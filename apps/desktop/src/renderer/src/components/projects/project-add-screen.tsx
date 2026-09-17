@@ -38,7 +38,7 @@ export function ProjectAddScreen({
 }) {
   const known = useProjectAdd((state) => state.known);
   const draft = useProjectAdd((state) => state.draft);
-  const detected = useProjectAdd((state) => state.detected);
+  const declared = useProjectAdd((state) => state.declared);
   const detection = useProjectAdd((state) => state.detection);
   const repos = useProjectAdd((state) => state.repos);
   const folders = useProjectAdd((state) => state.folders);
@@ -120,7 +120,7 @@ export function ProjectAddScreen({
 
   return (
     <ProjectAddPanel
-      detected={detected}
+      declared={declared()}
       detection={detection}
       draft={draft}
       edit={{
@@ -169,6 +169,7 @@ export function ProjectAddScreen({
       onInstallModule={onInstallModule}
       onLaunch={() => launch(serverId)}
       onOpen={(url) => window.pupitre.openUrl(url)}
+      onOpenDeclared={(name) => leave(() => onFinish?.(name))}
       onReload={() => prepare(serverId, exposure)}
       onRetry={() => retry(serverId)}
       phases={phases}

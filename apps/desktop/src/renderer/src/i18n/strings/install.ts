@@ -21,6 +21,8 @@ export const install = {
     "install.title": "Installation",
     "install.thisServer": "This server",
     "install.rereadReport": "Reread the report",
+    "install.secretsDropped":
+      "The secrets typed left with the refusal: go back to the configuration and type them again.",
     "install.retry": "Try again",
     "install.sending.detail": "The agent is copied onto the server.",
     "install.sending.title": "Installing the agent",
@@ -61,6 +63,8 @@ export const install = {
     "install.title": "Installation",
     "install.thisServer": "Ce serveur",
     "install.rereadReport": "Relire le rapport",
+    "install.secretsDropped":
+      "Les secrets tapés sont partis avec le refus : revenez à la configuration et retapez-les.",
     "install.retry": "Réessayer",
     "install.sending.detail": "L'agent est copié sur le serveur.",
     "install.sending.title": "Installation de l'agent",

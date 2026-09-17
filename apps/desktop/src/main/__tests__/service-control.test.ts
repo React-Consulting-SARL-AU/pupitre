@@ -24,7 +24,7 @@ function deps(fixture: string): ServicesDeps {
     spawn: fake.spawn,
   });
 
-  return { client, knows: (id) => id === SERVER };
+  return { client, declares: () => true, knows: (id) => id === SERVER };
 }
 
 afterEach(() => {

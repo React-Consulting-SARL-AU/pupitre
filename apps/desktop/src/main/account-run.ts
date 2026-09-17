@@ -87,6 +87,14 @@ export interface Account {
   ) => Promise<AccountResponse<PublishedAgent>>;
   takeEnrollmentToken: (serverId: string) => string | null;
   /**
+   * The enrolment the platform granted a server, while its token is unspent.
+   *
+   * A push that failed, or an install refused before the token left, leaves
+   * the seat bought and the token whole: the next attempt reuses it rather than
+   * asking the platform for another row.
+   */
+  heldEnrollment: (serverId: string) => Enrollment | null;
+  /**
    * Erase the server from the platform, for good.
    *
    * The platform deletes in two stages — the first call revokes and leaves
@@ -240,7 +248,10 @@ function refusalFor(right: UsageRight): AccountResponse<UsageRight> {
 
 export function createAccount(deps: AccountDeps): Account {
   const consoleUrl = consoleUrlOf(deps.platform.baseUrl);
-  const enrollmentTokens = new Map<string, string>();
+  const enrollments = new Map<
+    string,
+    { token: string; enrollment: Enrollment }
+  >();
 
   function state(): AccountState {
     const record = deps.vault.record();
@@ -468,18 +479,17 @@ export function createAccount(deps: AccountDeps): Account {
       return enrolled;
     }
 
-    enrollmentTokens.set(
-      enrolled.result.server_id,
-      enrolled.result.enrollment_token
-    );
-
-    return {
-      ok: true,
-      result: {
-        release: enrolled.result.release,
-        serverId: enrolled.result.server_id,
-      },
+    const enrollment: Enrollment = {
+      release: enrolled.result.release,
+      serverId: enrolled.result.server_id,
     };
+
+    enrollments.set(enrollment.serverId, {
+      enrollment,
+      token: enrolled.result.enrollment_token,
+    });
+
+    return { ok: true, result: enrollment };
   }
 
   async function releaseBytes(
@@ -566,7 +576,7 @@ export function createAccount(deps: AccountDeps): Account {
 
     signOut() {
       deps.vault.clear();
-      enrollmentTokens.clear();
+      enrollments.clear();
 
       return state();
     },
@@ -596,11 +606,15 @@ export function createAccount(deps: AccountDeps): Account {
     },
 
     takeEnrollmentToken(serverId) {
-      const held = enrollmentTokens.get(serverId) ?? null;
+      const held = enrollments.get(serverId)?.token ?? null;
 
-      enrollmentTokens.delete(serverId);
+      enrollments.delete(serverId);
 
       return held;
+    },
+
+    heldEnrollment(serverId) {
+      return enrollments.get(serverId)?.enrollment ?? null;
     },
 
     devices() {

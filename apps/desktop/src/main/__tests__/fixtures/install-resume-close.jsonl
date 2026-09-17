@@ -1,0 +1,5 @@
+# Le canal revient : le rapport est daté d'une demi-minute avant la demande, ce qu'une horloge de machine fait couramment — c'est bien le nôtre.
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","ping","snapshot","report","install","secrets.set","project.logs"]}}
+> {"id":2,"cmd":"report"}
+< {"id":2,"ok":true,"result":{"started_at":"2026-09-04T11:59:30Z","finished_at":"2026-09-04T12:02:00Z","agent_version":"0.0.0-test","modules":[{"id":"db.postgres","status":"ok","steps":[{"step":"apt","status":"start","ms":0},{"step":"apt","status":"ok","ms":4200},{"step":"cluster","status":"start","ms":0},{"step":"cluster","status":"ok","ms":900}]}],"failed":[],"warned":["db.postgres"],"report_path":"/var/lib/pupitre/report.json"}}

@@ -54,15 +54,22 @@ function asRoot(): Server {
 
 let fake: FakeAgent | null = null;
 
-function agent(fixtures: string | string[]): AgentClient {
+function agent(fixtures: string | string[], attempts = 3): AgentClient {
   fake = fakeAgent(fixtures);
 
   return createAgentClient({
     appVersion: "0.1.0",
-    backoff: { attempts: 3, firstMs: 5, maxMs: 20 },
+    backoff: { attempts, firstMs: 5, maxMs: 20 },
     spawn: fake.spawn,
   });
 }
+
+/** One transcript per connection attempt, so the probes can be counted. */
+function probing(fixtures: string[]): AgentClient {
+  return agent(fixtures, 1);
+}
+
+const AT_ONCE = { attempts: 2, delayMs: 0, sleep: () => Promise.resolve() };
 
 /** The app's own configuration, rewritten exactly as `servers.ts` rewrites it. */
 function account(servers: Server[], user: string) {
@@ -99,6 +106,7 @@ describe("runHarden", () => {
 
         return user;
       },
+      user: () => servers[0]?.user ?? null,
     });
 
     expect(answer).toMatchObject({
@@ -136,6 +144,7 @@ describe("runHarden", () => {
 
         return user;
       },
+      user: () => servers[0]?.user ?? null,
     });
 
     expect(answer).toMatchObject({
@@ -163,6 +172,7 @@ describe("runHarden", () => {
 
         return "dev";
       },
+      user: () => "root",
     });
 
     expect(switched).toBe(0);
@@ -189,6 +199,7 @@ describe("runHarden", () => {
       client,
       close: (id) => client.close(id),
       switchUser: () => "dev",
+      user: () => "root",
     });
 
     expect(answer).toMatchObject({
@@ -205,12 +216,146 @@ describe("runHarden", () => {
       client,
       close: () => undefined,
       switchUser: () => null,
+      user: () => "root",
     });
 
     expect(answer).toMatchObject({
       ok: true,
       result: { reconnected: false, user: null },
     });
+  });
+});
+
+/**
+ * The hardening restarts sshd, and the channel dies with it. The agent writes
+ * no report of a hardening, so nothing can be read back: the app asks the
+ * machine who opens it now, on the account it came in with and on `dev`.
+ */
+describe("un durcissement coupé en route", () => {
+  function tracked(client: AgentClient) {
+    const switched: string[] = [];
+    let servers = [asRoot()];
+
+    return {
+      deps: {
+        client,
+        close: (id: string) => client.close(id),
+        switchUser: (_id: string, user: string) => {
+          const next = withAccount(servers, SERVER, user);
+          if (!next) {
+            return null;
+          }
+          servers = next;
+          switched.push(user);
+
+          return user;
+        },
+        user: () => servers[0]?.user ?? null,
+      },
+      switched,
+      user: () => servers[0]?.user,
+    };
+  }
+
+  it("passe sur dev quand root ne répond plus et que dev ouvre la machine", async () => {
+    const client = probing([
+      "harden-cut.jsonl",
+      "dies-at-hello.jsonl",
+      "hello-then-ping.jsonl",
+    ]);
+    const { deps, switched, user } = tracked(client);
+    const updates: HardenUpdate[] = [];
+
+    const answer = await runHarden(
+      SERVER,
+      (change) => updates.push(change),
+      deps,
+      AT_ONCE
+    );
+
+    expect(answer).toEqual({
+      ok: true,
+      result: {
+        harden: { next_user: "dev", root_closed: true, root_kept: false },
+        reconnected: true,
+        user: "dev",
+      },
+    });
+    expect(switched).toEqual(["root", "dev"]);
+    expect(user()).toBe("dev");
+    expect(updates.filter((change) => change.kind === "event")).toHaveLength(3);
+    expect(updates.some((change) => change.kind === "switching")).toBe(true);
+    expect(fake?.started()).toBe(3);
+  });
+
+  it("rend la coupure et reste sur root quand root ouvre encore la machine", async () => {
+    const client = probing(["harden-cut.jsonl", "hello-then-ping.jsonl"]);
+    const { deps, switched, user } = tracked(client);
+
+    const answer = await runHarden(SERVER, () => undefined, deps, AT_ONCE);
+
+    expect(answer).toMatchObject({
+      ok: false,
+      error: { code: "disconnected" },
+    });
+    expect(switched).toEqual(["root"]);
+    expect(user()).toBe("root");
+    expect(fake?.started()).toBe(2);
+  });
+
+  it("laisse à sshd le temps de revenir avant de conclure", async () => {
+    const client = probing([
+      "harden-cut.jsonl",
+      "dies-at-hello.jsonl",
+      "dies-at-hello.jsonl",
+      "dies-at-hello.jsonl",
+      "hello-then-ping.jsonl",
+    ]);
+    const { deps, switched, user } = tracked(client);
+    let slept = 0;
+
+    const answer = await runHarden(SERVER, () => undefined, deps, {
+      ...AT_ONCE,
+      attempts: 3,
+      sleep: () => {
+        slept += 1;
+
+        return Promise.resolve();
+      },
+    });
+
+    expect(answer).toMatchObject({
+      ok: true,
+      result: { harden: { root_closed: true }, user: "dev" },
+    });
+    expect(switched).toEqual(["root", "dev", "root", "dev"]);
+    expect(user()).toBe("dev");
+    expect(slept).toBe(1);
+  });
+
+  it("remet la configuration sur root quand personne ne répond", async () => {
+    const client = probing(["harden-cut.jsonl", "dies-at-hello.jsonl"]);
+    const { deps, switched, user } = tracked(client);
+
+    const answer = await runHarden(SERVER, () => undefined, deps, AT_ONCE);
+
+    expect(answer).toMatchObject({
+      ok: false,
+      error: { code: "disconnected" },
+    });
+    expect(switched).toEqual(["root", "dev", "root", "dev", "root"]);
+    expect(user()).toBe("root");
+  });
+
+  it("ne relit jamais le rapport d'une installation à la place", async () => {
+    const client = probing(["harden-cut.jsonl", "hello-then-ping.jsonl"]);
+    const { deps } = tracked(client);
+
+    await runHarden(SERVER, () => undefined, deps, AT_ONCE);
+
+    expect(fake?.trace().some((line) => line.includes("cmd=report"))).toBe(
+      false
+    );
   });
 });
 
@@ -245,6 +390,7 @@ describe("le parcours d'un serveur atteint en root", () => {
           });
         },
         enrollment: () => null,
+        forgetSecrets: () => undefined,
         managed: () =>
           Promise.resolve({ ok: true, result: { config: {}, secrets: {} } }),
         probe: () => Promise.resolve({ ok: true, result: bare() }),
@@ -268,6 +414,7 @@ describe("le parcours d'un serveur atteint en root", () => {
 
         return user;
       },
+      user: () => servers[0]?.user ?? null,
     });
 
     expect(harden).toMatchObject({

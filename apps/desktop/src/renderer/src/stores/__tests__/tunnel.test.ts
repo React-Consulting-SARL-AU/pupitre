@@ -30,6 +30,7 @@ const FORWARD: PortForward = {
 
 beforeEach(() => {
   useTunnel.getState().forget();
+  useTunnel.setState({ forwards: [] });
 });
 
 describe("le tunnel de l'agent", () => {
@@ -199,5 +200,36 @@ describe("la liste des redirections de cet ordinateur", () => {
     stop();
 
     expect(held.push).toBeNull();
+  });
+
+  it("oublie le tunnel et son refus d'une machine quittée, pas les redirections de cet ordinateur", async () => {
+    stubPupitre({
+      agentCall: () =>
+        Promise.resolve({
+          error: { code: "internal", message: "le tunnel refuse" },
+          ok: false,
+        }),
+    });
+    useTunnel.setState({
+      forwards: [
+        {
+          id: "fwd-1",
+          label: "PostgreSQL",
+          localPort: 15_432,
+          remotePort: 5432,
+          serverId: "srv-1",
+          state: "open",
+        },
+      ] as never,
+    });
+
+    await useTunnel.getState().sync("srv-1");
+    expect(useTunnel.getState().problem).not.toBeNull();
+
+    useTunnel.getState().forget();
+
+    expect(useTunnel.getState().problem).toBeNull();
+    expect(useTunnel.getState().tunnel).toEqual({ status: "idle" });
+    expect(useTunnel.getState().forwards).toHaveLength(1);
   });
 });

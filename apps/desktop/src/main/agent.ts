@@ -14,6 +14,7 @@ import { noteProjects } from "./projects-run";
 import { refuseWith } from "./refusal";
 import { relayTo } from "./relay";
 import { paths, read } from "./servers";
+import { declaresService, noteServices } from "./services-run";
 import { sshArgs } from "./ssh-config";
 import { usageError } from "./usage-guard";
 
@@ -62,9 +63,11 @@ export const agentClient = createAgentClient({
   validateResults: !app.isPackaged,
 });
 
-function knows(serverId: string): boolean {
-  return read().servers.some((server) => server.id === serverId);
-}
+const bridge = {
+  declaresService,
+  knows: (serverId: string): boolean =>
+    read().servers.some((server) => server.id === serverId),
+};
 
 export function registerLanguage(): void {
   ipcMain.on("locale:set", (_event, locale: unknown) => {
@@ -101,7 +104,7 @@ export function registerAgentChannels(): void {
       params: unknown,
       polled: unknown
     ) => {
-      const call = checkedCall(serverId, cmd, params, knows);
+      const call = checkedCall(serverId, cmd, params, bridge);
 
       if (isRefusal(call)) {
         return Promise.resolve(call);
@@ -113,6 +116,7 @@ export function registerAgentChannels(): void {
         })
         .then((answer) => {
           noteProjects(call.serverId, call.cmd, answer);
+          noteServices(call.serverId, call.cmd, answer);
 
           return answer;
         });
@@ -133,7 +137,7 @@ export function registerAgentChannels(): void {
       cmd: unknown,
       params: unknown
     ) => {
-      const call = checkedCall(serverId, cmd, params, knows);
+      const call = checkedCall(serverId, cmd, params, bridge);
 
       if (isRefusal(call)) {
         return call;

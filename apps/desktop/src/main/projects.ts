@@ -8,6 +8,7 @@ import {
   addProject,
   checkoutProject,
   diffProject,
+  editorFolder,
   listProjects,
   onProject,
   type PlainProjectCommand,
@@ -38,7 +39,12 @@ const PLAIN: readonly PlainProjectCommand[] = [
   "project.remove",
 ];
 
-export function registerProjects(): void {
+export function registerProjects({
+  root,
+}: {
+  /** The folder the agent's completions count from: what the file browser walks. */
+  root: (serverId: string) => Promise<string | null>;
+}): void {
   const deps: ProjectDeps = {
     client: agentClient,
     knows: (serverId) => Boolean(byId(serverId)),
@@ -111,22 +117,31 @@ export function registerProjects(): void {
   /**
    * The folder opens in an editor of this computer, never of the server.
    *
-   * The absolute path is the one the agent gave for that project's repository;
-   * the name the editor resolves comes from the app's own server list. Neither
-   * is a string the renderer chose.
+   * The absolute path is one the agent gave — a project's repository, or a
+   * folder under the root its completions name; the name the editor resolves
+   * comes from the app's own server list. Neither is a string the renderer
+   * chose.
    */
   ipcMain.handle(
     "project:editor",
-    (_event, serverId: unknown, editorId: unknown, path: unknown) => {
+    async (_event, serverId: unknown, editorId: unknown, path: unknown) => {
       const server = typeof serverId === "string" ? byId(serverId) : null;
       const editor = typeof editorId === "string" ? editorById(editorId) : null;
       const name = server ? sshNameOf(server.id) : null;
 
-      if (!(server && editor && name && typeof path === "string")) {
+      if (!(server && editor && name)) {
         return;
       }
 
-      const url = remoteEditorUrl(editor, server, name, path);
+      const folder =
+        editorFolder(server.id, path, null) ??
+        editorFolder(server.id, path, await root(server.id));
+
+      if (!folder) {
+        return;
+      }
+
+      const url = remoteEditorUrl(editor, server, name, folder);
 
       if (url) {
         openOutside(url);

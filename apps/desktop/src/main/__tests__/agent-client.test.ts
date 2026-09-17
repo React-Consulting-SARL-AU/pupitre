@@ -9,6 +9,7 @@ import {
   type AgentClientOptions,
   createAgentClient,
   defaultTimeout,
+  reportOfRun,
   serveAs,
   sshSpawn,
 } from "../agent-client";
@@ -325,6 +326,48 @@ describe("le canal", () => {
     agent.closeAll();
   });
 
+  /**
+   * The agent writes its report once the configuration is validated, so the
+   * previous run's finished report stays on the machine while this one is
+   * being weighed: a cut then must not hand that report over as this one's.
+   */
+  it("refuse un rapport fini quelques minutes avant la demande", async () => {
+    const { agent, fake } = client([
+      "install-cut.jsonl",
+      "install-resume-earlier.jsonl",
+    ]);
+
+    const result = await install(agent);
+
+    expect(result).toBeInstanceOf(AgentCallError);
+    expect((result as AgentCallError).code).toBe("disconnected");
+    expect(fake.trace()).toEqual([
+      "id=1 cmd=hello",
+      "id=2 cmd=install",
+      "id=3 cmd=hello",
+      "id=4 cmd=report",
+    ]);
+
+    agent.closeAll();
+  });
+
+  it("accepte un rapport que l'horloge de la machine date d'un peu avant", async () => {
+    const { agent } = client([
+      "install-cut.jsonl",
+      "install-resume-close.jsonl",
+    ]);
+
+    const result = await install(agent);
+
+    expect(result).toEqual({
+      failed: [],
+      warned: ["db.postgres"],
+      report_path: "/var/lib/pupitre/report.json",
+    });
+
+    agent.closeAll();
+  });
+
   it("ne rouvre pas un canal que l'app a fermé elle-même", async () => {
     const { agent, fake } = client("install-hangs.jsonl");
 
@@ -358,20 +401,67 @@ describe("le canal", () => {
     agent.closeAll();
   });
 
-  it("n'empoisonne pas la commande suivante avec un timeout", async () => {
-    const { agent, fake } = client("snapshot-timeout.jsonl", {
-      timeouts: { snapshot: 200 },
-    });
+  /**
+   * The agent handles one request at a time: a command it is still on would
+   * hold the next one behind it, and the next one would time out in turn. The
+   * session is cut with the timeout, and the following command opens a fresh
+   * one — the agent finishes the old command on its own.
+   */
+  it("coupe la session sur un timeout, et la suivante repart sur une session neuve", async () => {
+    const { agent, fake } = client(
+      ["snapshot-timeout.jsonl", "snapshot-loop.jsonl"],
+      { timeouts: { snapshot: 200 } }
+    );
 
     const timedOut = await agent.call(SERVER, "snapshot").catch((e) => e);
-    const after = await agent.call(SERVER, "snapshot");
 
     expect(timedOut).toBeInstanceOf(AgentCallError);
     expect(timedOut.code).toBe("timeout");
+    expect(agent.session(SERVER)).toBeNull();
+    expect(await until(() => fake.live() === 0)).toBe(true);
+
+    const after = await agent.call(SERVER, "snapshot");
+
     expect(after.machine.hostname).toBe("staging");
-    expect(fake.started()).toBe(1);
+    expect(fake.started()).toBe(2);
+    expect(fake.trace()).toEqual([
+      "id=1 cmd=hello",
+      "id=2 cmd=snapshot",
+      "id=3 cmd=hello",
+      "id=4 cmd=snapshot",
+    ]);
 
     agent.closeAll();
+  });
+
+  it("ne répond plus pour un canal dont le processus est mort", async () => {
+    const { agent, fake } = client("hello-then-ping.jsonl");
+
+    await agent.call(SERVER, "ping");
+    expect(agent.session(SERVER)).not.toBeNull();
+
+    fake.killAll();
+
+    expect(await until(() => agent.session(SERVER) === null)).toBe(true);
+
+    agent.closeAll();
+  });
+
+  it("compte les fermetures d'un serveur, pour ce qui se relit après", async () => {
+    const { agent } = client("hello-then-ping.jsonl");
+
+    expect(agent.epoch(SERVER)).toBe(0);
+
+    await agent.call(SERVER, "ping");
+    agent.close(SERVER);
+
+    expect(agent.epoch(SERVER)).toBe(1);
+    expect(agent.epoch("autre")).toBe(0);
+
+    await agent.call(SERVER, "ping");
+    agent.closeAll();
+
+    expect(agent.epoch(SERVER)).toBe(2);
   });
 
   it("installe avec sa ligne de secrets, sans qu'un secret ressorte", async () => {
@@ -473,6 +563,120 @@ describe("un journal suivi", () => {
     reader.abort();
     await journal;
     agent.closeAll();
+  });
+});
+
+/**
+ * A follow the reader lets go of is killed with its channel — the agent has no
+ * other way to hear it yet. The cost of that has to stay on the follow channel:
+ * a gesture must not wait behind the reopening, and the killed process must
+ * not be spoken to again.
+ */
+describe("un suivi annulé", () => {
+  it("repart sur un processus neuf, sans que le canal de contrôle paie la reconnexion", async () => {
+    const { agent, fake } = client([
+      "ping-loop.jsonl",
+      "service-logs-follow-held.jsonl",
+      "service-logs-follow-held.jsonl",
+    ]);
+    const queued: string[] = [];
+
+    await agent.call(SERVER, "ping");
+
+    const first = new AbortController();
+    const lines: string[] = [];
+    const journal = agent
+      .stream(
+        SERVER,
+        "service.logs",
+        { follow: true, id: "db.postgres", lines: 120 },
+        (event: Event) => lines.push(String(event.line)),
+        { signal: first.signal }
+      )
+      .catch((error: AgentCallError) => error);
+
+    expect(await until(() => lines.length === 1)).toBe(true);
+
+    first.abort();
+
+    expect((await journal) as AgentCallError).toMatchObject({
+      code: "cancelled",
+    });
+    expect(await until(() => fake.live() === 1)).toBe(true);
+
+    const second = new AbortController();
+    const again = agent
+      .stream(
+        SERVER,
+        "service.logs",
+        { follow: true, id: "db.postgres", lines: 120 },
+        (event: Event) => lines.push(String(event.line)),
+        { onQueued: () => queued.push("service.logs"), signal: second.signal }
+      )
+      .catch((error: AgentCallError) => error);
+
+    expect(await until(() => lines.length === 2)).toBe(true);
+
+    await agent.call(SERVER, "ping", undefined, {
+      onQueued: () => queued.push("ping"),
+    });
+
+    expect(queued).toEqual([]);
+    expect(fake.started()).toBe(3);
+    expect(fake.live()).toBe(2);
+    expect(fake.trace().filter((line) => line.includes("hello"))).toHaveLength(
+      3
+    );
+
+    second.abort();
+    await again;
+    agent.closeAll();
+  });
+});
+
+describe("le rapport d'une exécution", () => {
+  const SENT_AT = Date.parse("2026-09-04T12:00:00Z");
+  const SKEW_MS = 60_000;
+
+  function report(started_at: string, finished_at: string) {
+    return {
+      agent_version: "0.0.0-test",
+      failed: [],
+      finished_at,
+      modules: [],
+      report_path: "/var/lib/pupitre/report.json",
+      started_at,
+      warned: [],
+    };
+  }
+
+  it("est le sien quand il commence dans la tolérance d'horloge", () => {
+    expect(
+      reportOfRun(
+        report("2026-09-04T11:59:30Z", "2026-09-04T12:02:00Z"),
+        SENT_AT,
+        SKEW_MS
+      )
+    ).toBe(true);
+    expect(
+      reportOfRun(report("2026-09-04T12:00:05Z", ""), SENT_AT, SKEW_MS)
+    ).toBe(true);
+  });
+
+  it("est celui d'une autre exécution quand il a commencé avant", () => {
+    expect(
+      reportOfRun(
+        report("2026-09-04T11:58:00Z", "2026-09-04T12:01:00Z"),
+        SENT_AT,
+        SKEW_MS
+      )
+    ).toBe(false);
+  });
+
+  it("est celui d'une autre exécution quand il a fini avant, quoi que dise son début", () => {
+    expect(
+      reportOfRun(report("", "2026-09-04T11:58:00Z"), SENT_AT, SKEW_MS)
+    ).toBe(false);
   });
 });
 

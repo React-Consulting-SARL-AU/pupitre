@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import type { Project } from "@pupitre/shared/agent-protocol/state";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { PortRow, RowProblem } from "../../lib/project-ports";
 import type { ProcessDraft, ProcessProblem } from "../../lib/project-processes";
@@ -139,6 +140,7 @@ function panel(
   extra: {
     exposure?: Exposure | null;
     detection?: DetectionState;
+    declared?: Project | null;
     logs?: string[];
     rows?: PortRow[];
     processes?: ProcessDraft[];
@@ -152,7 +154,7 @@ function panel(
 
   return renderToStaticMarkup(
     <ProjectAddPanel
-      detected={false}
+      declared={extra.declared ?? null}
       detection={extra.detection ?? { status: "idle" }}
       draft={{ ...DRAFT, processes }}
       edit={EDIT}
@@ -167,6 +169,7 @@ function panel(
       onFinish={() => undefined}
       onInstallModule={() => undefined}
       onLaunch={() => undefined}
+      onOpenDeclared={() => undefined}
       onReload={() => undefined}
       onRetry={() => undefined}
       phases={PHASES}
@@ -418,6 +421,44 @@ describe("un projet qui ne démarre pas", () => {
     expect(rendered).toContain("Modifier le formulaire");
     expect(rendered).toContain("Réessayer");
   });
+
+  /**
+   * Sources that would not come — a wrong branch, a private repository — left
+   * a declared project behind: the form is reachable too, and names it.
+   */
+  it("offre de revenir au formulaire quand les sources n'ont pas pu venir", () => {
+    const rendered = text(
+      panel({
+        ...run,
+        error: {
+          code: "internal",
+          fix: "Vérifiez la branche.",
+          message: "shop : la branche v2 n'existe pas",
+        },
+        phase: "sources",
+      })
+    );
+
+    expect(rendered).toContain("Modifier le formulaire");
+    expect(rendered).toContain("Réessayer");
+  });
+});
+
+describe("un projet que le serveur déclare déjà", () => {
+  it("le nomme et offre de l'ouvrir plutôt que de le créer", () => {
+    const declared = {
+      boot: false,
+      dir: "shop",
+      name: "shop",
+      path: "/home/dev/projects/shop",
+      processes: [],
+      state: "stopped",
+    } as unknown as Project;
+    const rendered = text(panel({ status: "idle" }, { declared }));
+
+    expect(rendered).toContain("déclare déjà ce projet sous le nom shop");
+    expect(rendered).toContain("Ouvrir le projet");
+  });
 });
 
 describe("un projet en ligne", () => {
@@ -452,6 +493,26 @@ describe("un projet en ligne", () => {
 });
 
 describe("les phases", () => {
+  it("disent chaque réserve de l'agent sous la phase, sans la tenir pour un échec", () => {
+    const html = renderToStaticMarkup(
+      <ProjectAddSteps
+        phases={[
+          {
+            detail: "shop · app:3000",
+            id: "add",
+            status: "ok",
+            warnings: ["le dossier n'a pas pu être créé", "node 22 absent"],
+          },
+        ]}
+      />
+    );
+
+    expect(html).toContain('data-phase="add" data-status="ok"');
+    expect(text(html)).toContain("le dossier n'a pas pu être créé");
+    expect(text(html)).toContain("node 22 absent");
+    expect(html).toContain('data-warning=""');
+  });
+
   it("portent leur état par la forme, et ce que l'agent en a dit", () => {
     const html = renderToStaticMarkup(<ProjectAddSteps phases={PHASES} />);
 

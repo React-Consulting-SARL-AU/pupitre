@@ -34,7 +34,11 @@ function client(fixture: string): {
     spawn: fake.spawn,
   });
 
-  return { agent, deps: { client: agent, knows: (id) => id === SERVER }, fake };
+  return {
+    agent,
+    deps: { client: agent, declares: () => true, knows: (id) => id === SERVER },
+    fake,
+  };
 }
 
 function reveals(fake: FakeAgent): number {

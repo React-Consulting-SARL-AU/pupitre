@@ -57,6 +57,7 @@ import { registerHarden } from "./harden";
 import { HARNESSED } from "./harness";
 import { registerInspection } from "./inspection";
 import { registerInstall } from "./install";
+import { designatedKeyFile, designateKeyFile } from "./key-files";
 import { installKey } from "./key-install";
 import { knock } from "./knock";
 import { menuTemplate } from "./menu";
@@ -111,6 +112,7 @@ import { terminalCommand } from "./terminal-run";
 import {
   close,
   closeAll,
+  closeFor,
   describeSession,
   endSession,
   onStates,
@@ -140,19 +142,20 @@ function beside(relative: string): string {
 }
 
 /**
- * What has to be dropped whenever the server list changes.
+ * What has to be dropped with one server: the machine it named is no longer
+ * the one the app talks to — removed from the list, reached at another address
+ * or another account, or reinstalled under a new host key.
  *
- * The channels were talking to the old servers and reopen on the new ones at
- * the next call; the project names the app was allowed to drive belonged to a
- * machine we may no longer be on.
+ * Only that server's channels, terminals, project names and credentials go: an
+ * install running on another server, and the tabs open on it, are not touched
+ * by what happens to this one. Activating, renaming or adding a server drops
+ * nothing at all — the file is written, and every session stands.
  */
-function settle(config: ServersConfig): ServersConfig {
-  agentClient.closeAll();
-  forgetProjects();
-  forgetServiceCredentials();
-  closeAll();
-
-  return config;
+function settle(serverId: string): void {
+  agentClient.close(serverId);
+  forgetProjects(serverId);
+  forgetServiceCredentials(serverId);
+  closeFor(serverId);
 }
 
 /**
@@ -469,9 +472,18 @@ function registerServerChannels(): void {
         return Promise.resolve(refused);
       }
 
+      if (draft.key.mode === "import" && !designatedKeyFile(draft.key.file)) {
+        return Promise.resolve({
+          ok: false,
+          error: refusalOf("bad_request", "refusal.key.missing", {
+            source: String(draft.key.file),
+          }),
+        });
+      }
+
       return addServerRun(draft, {
         add: addServer,
-        config: () => settle(read()),
+        config: read,
         install: (server, half, password) =>
           installKey({
             freshKey: true,
@@ -487,11 +499,11 @@ function registerServerChannels(): void {
 
   ipcMain.handle("server-rename", (_e, id: unknown, name: unknown) =>
     typeof id === "string" && typeof name === "string"
-      ? settle(renameServer(id, name))
+      ? renameServer(id, name)
       : read()
   );
   ipcMain.handle("server-activate", (_e, id: unknown) =>
-    typeof id === "string" ? settle(activateServer(id)) : read()
+    typeof id === "string" ? activateServer(id) : read()
   );
 
   /**
@@ -516,8 +528,7 @@ function registerServerChannels(): void {
       try {
         const updated = await updateServer(id, serverChanges(changes));
 
-        agentClient.close(id);
-        settle(updated.config);
+        settle(id);
 
         return { ok: true, result: updated };
       } catch (failure) {
@@ -541,9 +552,9 @@ function registerServerChannels(): void {
       return read();
     }
 
-    agentClient.close(id);
+    settle(id);
 
-    return settle(await removeServer(id));
+    return await removeServer(id);
   });
 
   /**
@@ -574,9 +585,9 @@ function registerServerChannels(): void {
         }
       }
 
-      agentClient.close(server.id);
+      settle(server.id);
 
-      return { ok: true, result: settle(await removeServer(server.id)) };
+      return { ok: true, result: await removeServer(server.id) };
     }
   );
 
@@ -591,15 +602,25 @@ function registerServerChannels(): void {
           }
   );
 
+  /**
+   * A new host key is a new machine: what was open on the old one — sessions,
+   * the names it declared, its credentials — says nothing about this one, and
+   * the next contact pins what answers.
+   */
   ipcMain.handle(
     "server-trust-reinstalled",
-    async (_e, id: unknown): Promise<AgentResponse<ServersConfig>> =>
-      typeof id === "string"
-        ? { ok: true, result: settle(await trustReinstalled(id)) }
-        : {
-            ok: false,
-            error: { ...refusalOf("bad_request", "refusal.server.unknown") },
-          }
+    async (_e, id: unknown): Promise<AgentResponse<ServersConfig>> => {
+      if (typeof id !== "string") {
+        return {
+          ok: false,
+          error: { ...refusalOf("bad_request", "refusal.server.unknown") },
+        };
+      }
+
+      settle(id);
+
+      return { ok: true, result: await trustReinstalled(id) };
+    }
   );
 
   ipcMain.handle("server-public-key", (_e, id: unknown): string | null =>
@@ -669,7 +690,7 @@ function registerServerChannels(): void {
       title: dialogTextIn(currentLanguage(), "pickKey"),
     });
 
-    return picked.canceled ? null : (picked.filePaths[0] ?? null);
+    return picked.canceled ? null : designateKeyFile(picked.filePaths[0]);
   });
 }
 
@@ -865,7 +886,7 @@ function registerChannels(): void {
   registerReenroll();
   registerHarden();
   registerLanguage();
-  registerProjects();
+  registerProjects({ root: workRoot });
   registerConnections();
 
   ipcMain.handle("github:repos", (_event, refresh: unknown) =>

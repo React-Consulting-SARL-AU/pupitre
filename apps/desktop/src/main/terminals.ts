@@ -250,6 +250,15 @@ export function closeAll(): void {
   }
 }
 
+/** The tabs of one server, closed with it: the others keep their shells. */
+export function closeFor(serverId: string): void {
+  for (const [id, session] of [...sessions]) {
+    if (session.serverId === serverId) {
+      close(id);
+    }
+  }
+}
+
 function isEnd(value: unknown): value is TerminalEnd {
   const end = value as TerminalEnd | null;
 

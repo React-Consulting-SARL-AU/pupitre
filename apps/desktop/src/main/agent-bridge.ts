@@ -22,6 +22,7 @@ export const BRIDGE_COMMANDS: ReadonlySet<CommandName> = new Set<CommandName>([
   "process.kill",
   "sessions.clean",
   "reboot",
+  "project.list",
   "project.detect",
   "module.config",
   "uninstall",
@@ -53,6 +54,21 @@ export interface BridgeCall {
   params: unknown;
 }
 
+export interface BridgeDeps {
+  /** Whether this identifier names a server of the app's configuration. */
+  knows: (serverId: string) => boolean;
+  /** Whether that server's agent listed this service, as it last answered. */
+  declaresService: (serverId: string, id: string) => boolean;
+}
+
+/** The commands that name a service by its `id`, and drive or read it. */
+const SERVICE_COMMANDS: ReadonlySet<CommandName> = new Set<CommandName>([
+  "service.start",
+  "service.stop",
+  "service.restart",
+  "service.logs",
+]);
+
 export function isRefusal(
   value: BridgeCall | AgentResponse<never>
 ): value is AgentResponse<never> {
@@ -64,17 +80,17 @@ export function isRefusal(
  *
  * The renderer names a server and a command of the protocol; this checks the
  * server against the configuration, the command against the bridge's own list,
- * and the parameters against that command's schema. Nothing free-form reaches
- * the channel.
+ * the parameters against that command's schema, and a service's id against
+ * the list the agent itself last gave. Nothing free-form reaches the channel.
  */
 export function checkedCall(
   serverId: unknown,
   cmd: unknown,
   params: unknown,
-  knows: (serverId: string) => boolean
+  deps: BridgeDeps
 ): BridgeCall | AgentResponse<never> {
   const known =
-    typeof serverId === "string" && knows(serverId) ? serverId : null;
+    typeof serverId === "string" && deps.knows(serverId) ? serverId : null;
 
   if (!known) {
     return refuseWith("bad_request", "refusal.server.unknown");
@@ -106,6 +122,17 @@ export function checkedCall(
   // main process, on the line that follows the request.
   if ((parsed.data as { secrets_stdin?: unknown }).secrets_stdin === true) {
     return refuseWith("bad_request", "refusal.bridge.secret", { cmd });
+  }
+
+  const service = (parsed.data as { id?: unknown }).id;
+
+  if (
+    SERVICE_COMMANDS.has(cmd) &&
+    !(typeof service === "string" && deps.declaresService(known, service))
+  ) {
+    return refuseWith("service_not_found", "refusal.service.unknown", {
+      service: String(service),
+    });
   }
 
   return { serverId: known, cmd, params: parsed.data };

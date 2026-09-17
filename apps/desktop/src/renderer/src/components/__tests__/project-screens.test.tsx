@@ -290,10 +290,14 @@ describe("les éditeurs distants", () => {
       />
     );
 
-    expect(html).toContain("JetBrains Gateway");
-    expect(html).toContain(`Ouvrir ${GIT_STATUS.root} dans JetBrains Gateway`);
+    expect(html).toContain("<fieldset");
+    expect(html).toContain('data-logo="editor.jetbrains"');
+    expect(html).toContain(
+      `data-tooltip="Ouvrir ${GIT_STATUS.root} dans JetBrains Gateway"`
+    );
+    expect(html).not.toContain('aria-haspopup="dialog"');
     expect(html).not.toContain("VS Code");
-    expect(html).not.toContain("Zed");
+    expect(html).not.toContain('data-logo="editor.zed"');
   });
 
   it("n'affichent rien tant que l'agent n'a pas donné de chemin absolu", () => {
@@ -321,7 +325,9 @@ describe("les éditeurs distants", () => {
       />
     );
 
-    expect(html).toContain("JetBrains Gateway");
-    expect(html).not.toContain(`Ouvrir ${GIT_STATUS.root} dans`);
+    expect(html).toContain(
+      `data-tooltip="Ouvrir ${GIT_STATUS.root} dans JetBrains Gateway"`
+    );
+    expect(html).toContain('aria-haspopup="dialog"');
   });
 });

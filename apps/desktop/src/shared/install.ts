@@ -4,15 +4,19 @@ import type { EnrollmentSummary } from "./account";
 /**
  * What the installation says about itself while it runs.
  *
- * The `step` events are the agent's own, passed on untouched. The other two
+ * The `step` events are the agent's own, passed on untouched. The others
  * belong to the app: putting `pupitred` on a machine that has none is work the
  * agent cannot report on, since it is not there yet — and a screen that stayed
- * blank for those eighteen megabytes would look frozen.
+ * blank for those eighteen megabytes would look frozen. `secrets` comes last
+ * and says whether the vault still holds what the form typed: the agent took
+ * them, and the form shows them as spent, or it refused before reading them,
+ * and the next Apply carries them again.
  */
 export type InstallUpdate =
   | { kind: "sending"; arch: string }
   | { kind: "sent"; arch: string; bytes: number }
-  | { kind: "event"; event: Event };
+  | { kind: "event"; event: Event }
+  | { kind: "secrets"; held: boolean };
 
 /**
  * What the app put on the machine before speaking to it: the binary, its size,

@@ -34,15 +34,23 @@ export const useInspection = create<InspectionStore>((set) => {
 
     const answer = await window.pupitre.inspect(serverId);
 
-    if (!answer.ok) {
-      set({ inspection: { error: answer.error, serverId, status: "failed" } });
+    if (answer.ok) {
+      set((state) => ({
+        probes: { ...state.probes, [serverId]: answer.result },
+      }));
+    }
+
+    // The screen moved on to another machine, or closed: what this one says
+    // is kept for later and paints nothing now.
+    if (running?.serverId !== serverId) {
       return;
     }
 
-    set((state) => ({
-      inspection: { probe: answer.result, serverId, status: "done" },
-      probes: { ...state.probes, [serverId]: answer.result },
-    }));
+    set({
+      inspection: answer.ok
+        ? { probe: answer.result, serverId, status: "done" }
+        : { error: answer.error, serverId, status: "failed" },
+    });
   }
 
   return {

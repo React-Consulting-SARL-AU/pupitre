@@ -32,17 +32,18 @@ import { ShotsScreen } from "./components/shots/shots-screen";
 import { ErrorNotice } from "./components/ui/error-notice";
 import { WindowBand } from "./components/ui/window-band";
 import { AgentUpdateBanner } from "./components/updates/agent-update-banner";
-import { noteProjects, noteServer } from "./lib/completion";
-import { poll } from "./lib/poll";
+import { noteProjects } from "./lib/completion";
+import { unlessHeld } from "./lib/refusals";
 import { attachedSessions } from "./lib/sessions";
 import { shellScreen } from "./lib/shell-screen";
 import { useHistoryShortcuts } from "./lib/use-history-shortcuts";
 import { useMainCommands } from "./lib/use-main-commands";
 import { usePaletteShortcut } from "./lib/use-palette-shortcut";
 import { usePlatformSync } from "./lib/use-platform-sync";
+import { useServerPolls } from "./lib/use-server-polls";
 import { useServiceAccounts } from "./lib/use-service-accounts";
 import { accountOf, useAccount } from "./stores/account";
-import { announces, useAgentUpdate } from "./stores/agent-update";
+import { announces, ofServer, useAgentUpdate } from "./stores/agent-update";
 import { useChannel } from "./stores/channel";
 import { useNavigation, type View } from "./stores/navigation";
 import { useOnboarding } from "./stores/onboarding";
@@ -56,12 +57,6 @@ import {
   useSnapshot,
 } from "./stores/snapshot";
 import { useTerminals } from "./stores/terminals";
-
-/** The dashboard is the state of the machine: it is worth a beat of its own. */
-const POLL_MS = 3000;
-
-/** A full `ps` is not: it changes more slowly than a project's state. */
-const POLL_PROCESSES_MS = 8000;
 
 /** A shell of its own, lost alone when it throws: the window stays. */
 function guarded(view: string, screen: ReactNode): ReactNode {
@@ -111,24 +106,23 @@ export function App() {
 
   const snapshotState = useSnapshot((s) => s.state);
   const processes = useSnapshot((s) => s.processes);
-  const processesProblem = useSnapshot((s) => s.processesProblem);
+  const processesProblem = useSnapshot((s) => unlessHeld(s.processesProblem));
   const lingering = useSnapshot((s) => s.lingering);
   const busy = useSnapshot((s) => s.busy);
-  const problem = useSnapshot((s) => s.problem);
+  const problem = useSnapshot((s) => unlessHeld(s.problem));
   const read = useSnapshot((s) => s.read);
   const readProcesses = useSnapshot((s) => s.readProcesses);
-  const forget = useSnapshot((s) => s.forget);
   const act = useSnapshot((s) => s.act);
   const stopProcess = useSnapshot((s) => s.stopProcess);
   const cleanSessions = useSnapshot((s) => s.cleanSessions);
   const reboot = useSnapshot((s) => s.reboot);
   const announceProblem = useSnapshot((s) => s.announce);
 
-  const updateState = useAgentUpdate((s) => s.state);
+  const updateStateHeld = useAgentUpdate((s) => s.state);
   const updateHidden = useAgentUpdate((s) => s.hidden);
   const updateJournal = useAgentUpdate((s) => s.journal);
-  const upgrade = useAgentUpdate((s) => s.upgrade);
-  const migration = useAgentUpdate((s) => s.migration);
+  const upgradeHeld = useAgentUpdate((s) => s.upgrade);
+  const migrationHeld = useAgentUpdate((s) => s.migration);
   const readUpdate = useAgentUpdate((s) => s.read);
   const forgetUpdate = useAgentUpdate((s) => s.forget);
   const hideUpdate = useAgentUpdate((s) => s.hide);
@@ -143,6 +137,9 @@ export function App() {
   const serverId = server?.id ?? null;
   const snapshot = snapshotOf(snapshotState, serverId);
   const channel = useChannel((s) => s.stateOf(serverId));
+  const updateState = ofServer(updateStateHeld, serverId);
+  const upgrade = ofServer(upgradeHeld, serverId);
+  const migration = ofServer(migrationHeld, serverId);
 
   usePlatformSync(serverId);
   useHistoryShortcuts();
@@ -202,23 +199,7 @@ export function App() {
     };
   }, []);
 
-  useEffect(() => {
-    noteServer(serverId);
-
-    if (!serverId) {
-      forget();
-
-      return;
-    }
-
-    const state = poll(() => read(serverId), POLL_MS);
-    const table = poll(() => readProcesses(serverId), POLL_PROCESSES_MS);
-
-    return () => {
-      state();
-      table();
-    };
-  }, [serverId, read, readProcesses, forget]);
+  useServerPolls(serverId, snapshot?.entitlement === "restricted");
 
   const projects = snapshot?.projects;
 
@@ -239,13 +220,11 @@ export function App() {
   // a server upgraded from elsewhere, or a release published since, has to
   // reach the banner without a relaunch.
   useEffect(() => {
-    if (!serverId) {
-      forgetUpdate();
+    forgetUpdate();
 
-      return;
+    if (serverId) {
+      readUpdate(serverId);
     }
-
-    readUpdate(serverId);
   }, [serverId, readUpdate, forgetUpdate]);
 
   const serversChanged = useCallback(() => {

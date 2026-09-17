@@ -136,7 +136,12 @@ describe("le refus d'un dossier non vide", () => {
 });
 
 describe("le menu d'une entrée", () => {
-  const zed = { id: "zed" as const, module: "editor.zed", name: "Zed" };
+  const zed = {
+    id: "zed" as const,
+    logo: "editor.zed",
+    module: "editor.zed",
+    name: "Zed",
+  };
 
   it("offre un terminal à un dossier seulement, un éditeur par éditeur installé, et un téléchargement à tous", () => {
     expect(entryActions(entry("src", "dir"), [zed]).map((a) => a.id)).toEqual([

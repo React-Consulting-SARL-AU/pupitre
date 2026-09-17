@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import type { Event } from "@pupitre/shared/agent-protocol/envelope";
 import { stubPupitre } from "../../__tests__/stub-pupitre";
-import { announces, useAgentUpdate } from "../agent-update";
+import { announces, ofServer, useAgentUpdate } from "../agent-update";
 
 const SERVER = "srv-1";
 
@@ -150,6 +150,7 @@ describe("la mise à jour de l'agent", () => {
     await useAgentUpdate.getState().upgradeAgent(SERVER);
 
     expect(useAgentUpdate.getState().upgrade).toEqual({
+      serverId: SERVER,
       status: "failed",
       error: {
         code: "bad_signature",
@@ -373,15 +374,155 @@ describe("la relecture sur le battement", () => {
       },
     });
 
-    useAgentUpdate.setState({ upgrade: { status: "running" } });
+    useAgentUpdate.setState({
+      upgrade: { serverId: SERVER, status: "running" },
+    });
     await useAgentUpdate.getState().refresh(SERVER);
 
     useAgentUpdate.setState({
-      migration: { status: "running" },
+      migration: { serverId: SERVER, status: "running" },
       upgrade: { status: "idle" },
     });
     await useAgentUpdate.getState().refresh(SERVER);
 
     expect(reads).toBe(0);
+  });
+
+  it("ne double pas une lecture encore en vol pour la même machine", async () => {
+    let reads = 0;
+    let settle: () => void = () => undefined;
+
+    stubPupitre({
+      agentUpdateState: () => {
+        reads += 1;
+
+        return new Promise((resolve) => {
+          settle = () =>
+            resolve({
+              ok: true,
+              result: {
+                ...SHEET,
+                installed: "0.3.0",
+                offer: null,
+                order: "same",
+                platform: true,
+              },
+            });
+        });
+      },
+    });
+
+    const first = useAgentUpdate.getState().refresh(SERVER);
+    const second = useAgentUpdate.getState().refresh(SERVER);
+    const third = useAgentUpdate.getState().refresh(SERVER);
+
+    settle();
+    await Promise.all([first, second, third]);
+
+    expect(reads).toBe(1);
+    expect(useAgentUpdate.getState().state).toMatchObject({
+      status: "ready",
+      serverId: SERVER,
+    });
+  });
+});
+
+describe("un changement de machine", () => {
+  it("laisse tomber la réponse tardive de la machine quittée", async () => {
+    const waiting: Record<string, () => void> = {};
+
+    stubPupitre({
+      agentUpdateState: (serverId) =>
+        new Promise((resolve) => {
+          waiting[serverId] = () =>
+            resolve({
+              ok: true,
+              result: {
+                ...SHEET,
+                installed: serverId === "srv-a" ? "0.2.5" : "0.3.0",
+                offer: null,
+                order: "same",
+                platform: true,
+              },
+            });
+        }),
+    });
+
+    const slow = useAgentUpdate.getState().read("srv-a");
+
+    useAgentUpdate.getState().forget();
+    const fast = useAgentUpdate.getState().read("srv-b");
+
+    waiting["srv-b"]?.();
+    await fast;
+    waiting["srv-a"]?.();
+    await slow;
+
+    expect(useAgentUpdate.getState().state).toMatchObject({
+      serverId: "srv-b",
+      status: "ready",
+      update: { installed: "0.3.0" },
+    });
+  });
+
+  it("garde à chaque geste la machine qu'il concerne", async () => {
+    stubPupitre({
+      agentUpdateState: () =>
+        Promise.resolve({
+          ok: true,
+          result: {
+            ...SHEET,
+            installed: "0.4.0",
+            offer: null,
+            order: "same",
+            platform: true,
+          },
+        }),
+      migrateAgentConfig: () =>
+        Promise.resolve({
+          ok: true,
+          result: {
+            applied: [],
+            expected: 2,
+            pending: [],
+            restored: false,
+            revision: 2,
+            state: "current" as const,
+          },
+        }),
+      upgradeAgent: () =>
+        Promise.resolve({
+          ok: true,
+          result: {
+            migration: null,
+            upgrade: {
+              previous_version: "0.3.0",
+              restarting: true,
+              version: "0.4.0",
+            },
+          },
+        }),
+      upgradeModules: () =>
+        Promise.resolve({
+          ok: true,
+          result: { failed: [], report_path: "/r", warned: [] },
+        }),
+    });
+
+    await useAgentUpdate.getState().upgradeAgent("srv-a");
+    await useAgentUpdate.getState().migrateConfig("srv-a");
+    await useAgentUpdate.getState().upgradeModules("srv-a", ["runtime.node"]);
+
+    const state = useAgentUpdate.getState();
+
+    expect(state.upgrade).toMatchObject({ serverId: "srv-a", status: "done" });
+    expect(state.migration).toMatchObject({
+      serverId: "srv-a",
+      status: "done",
+    });
+    expect(state.modules).toMatchObject({ serverId: "srv-a", status: "done" });
+    expect(ofServer(state.upgrade, "srv-b")).toEqual({ status: "idle" });
+    expect(ofServer(state.upgrade, "srv-a")).toBe(state.upgrade);
+    expect(ofServer(state.state, "srv-b")).toEqual({ status: "idle" });
   });
 });

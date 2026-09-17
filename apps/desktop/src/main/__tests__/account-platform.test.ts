@@ -464,6 +464,7 @@ describe("le compte contre l'API de la plateforme", () => {
 
           return { platformUrl: bridge.url, token };
         },
+        forgetSecrets: () => undefined,
         managed: () =>
           Promise.resolve({ ok: true, result: { config: {}, secrets: {} } }),
         probe: () => Promise.resolve({ ok: true, result: bareMachine() }),

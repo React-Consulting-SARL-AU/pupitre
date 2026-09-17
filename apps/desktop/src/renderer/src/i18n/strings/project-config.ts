@@ -19,6 +19,9 @@ export const projectConfig = {
     "project.config.save": "Save the configuration",
     "project.config.saved":
       "{name} is rewritten in the registry, and reads as {state}.",
+    "project.config.syncRefused":
+      "The names on the web are not all written: {message}",
+    "project.config.warning": "Saved, with one reservation: {warning}",
   },
   fr: {
     "project.tab.configuration": "Configuration",
@@ -41,5 +44,8 @@ export const projectConfig = {
     "project.config.save": "Enregistrer la configuration",
     "project.config.saved":
       "{name} est réécrit dans le registre, et se lit {state}.",
+    "project.config.syncRefused":
+      "Les noms sur le web ne sont pas tous écrits : {message}",
+    "project.config.warning": "Enregistré, avec une réserve : {warning}",
   },
 } as const;

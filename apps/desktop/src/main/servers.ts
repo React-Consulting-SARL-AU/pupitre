@@ -1,4 +1,11 @@
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import type {
@@ -87,6 +94,12 @@ const EMPTY: Configuration = {
 
 let cache: Configuration | null = null;
 
+/**
+ * A file that exists and cannot be read is not an empty list: the app shows
+ * none of its servers, and writes nothing over the file until it reads again.
+ */
+let unreadable = false;
+
 function userData(): string {
   return app.getPath("userData");
 }
@@ -97,6 +110,11 @@ export function paths(): SshPaths {
 
 function path(): string {
   return join(userData(), "servers.json");
+}
+
+/** Where a file the app could not read is kept aside, for whoever has to look. */
+export function corruptPath(): string {
+  return `${path()}.corrupt`;
 }
 
 function normaliseServer(raw: Server): Server {
@@ -133,48 +151,103 @@ function normalise(raw: ServersConfig): Configuration {
   return { active, dismissed, servers, version: VERSION };
 }
 
+function parsed(): Configuration | null {
+  const raw = JSON.parse(readFileSync(path(), "utf8")) as JsonObject;
+  const held = raw as unknown as ServersConfig;
+
+  if (!Array.isArray(held.servers)) {
+    return null;
+  }
+
+  const from = typeof raw.version === "number" ? raw.version : 1;
+  const migrated = migrate(raw, SERVERS_MIGRATIONS);
+  const clean = normalise(migrated.document as unknown as ServersConfig);
+
+  // An older configuration goes back to disk completed, once: otherwise
+  // every launch would complete it in memory, and the day the defaults
+  // changed it would change with them. The file as it was stays beside it,
+  // for a reader who has to go back to the version they came from.
+  if (from < VERSION) {
+    keepCopy(path(), from);
+    save(clean);
+  }
+
+  return clean;
+}
+
+/** The file read again, whatever was held: what a write does before touching a file it could not read. */
+export function reload(): Configuration {
+  cache = null;
+
+  return read();
+}
+
 export function read(): Configuration {
   if (cache) {
     return cache;
   }
 
-  try {
-    const raw = JSON.parse(readFileSync(path(), "utf8")) as JsonObject;
-    const held = raw as unknown as ServersConfig;
+  if (!existsSync(path())) {
+    unreadable = false;
+    cache = EMPTY;
 
-    if (Array.isArray(held.servers)) {
-      const from = typeof raw.version === "number" ? raw.version : 1;
-      const migrated = migrate(raw, SERVERS_MIGRATIONS);
-      const clean = normalise(migrated.document as unknown as ServersConfig);
-
-      // An older configuration goes back to disk completed, once: otherwise
-      // every launch would complete it in memory, and the day the defaults
-      // changed it would change with them. The file as it was stays beside it,
-      // for a reader who has to go back to the version they came from.
-      if (from < VERSION) {
-        keepCopy(path(), from);
-        save(clean);
-      }
-
-      cache = clean;
-      return clean;
-    }
-  } catch {
-    // First launch, or unreadable file: no server yet, and the app says so.
+    return EMPTY;
   }
 
-  cache = EMPTY;
-  return EMPTY;
+  let clean: Configuration | null = null;
+
+  try {
+    clean = parsed();
+  } catch {
+    clean = null;
+  }
+
+  if (!clean) {
+    copyFileSync(path(), corruptPath());
+    trace("servers", "unreadable", { copy: corruptPath() });
+  }
+
+  unreadable = clean === null;
+  cache = clean ?? EMPTY;
+
+  return cache;
 }
 
+/**
+ * Written aside and renamed over: a crash in the middle leaves either the
+ * previous file or the new one, never a truncated list of servers.
+ */
 function save(config: Configuration): void {
-  mkdirSync(dirname(path()), { recursive: true });
-  writeFileSync(path(), JSON.stringify(config, null, 2), "utf8");
+  const target = path();
+  const staging = `${target}.tmp`;
+
+  mkdirSync(dirname(target), { recursive: true });
+  writeFileSync(staging, JSON.stringify(config, null, 2), "utf8");
+  renameSync(staging, target);
   writeSshConfig(config.servers, paths(), sshHosts());
 }
 
-export function write(config: ServersConfig): Configuration {
-  const clean = normalise(config);
+/**
+ * The change, applied to what the file holds now.
+ *
+ * A caller that read the list, waited on something — a key to install, a
+ * host to untrust — and wrote back what it had read would erase whatever was
+ * written meanwhile: the patch reads again at the moment of writing. A file
+ * that could not be read is read once more first, and refused if it still
+ * cannot be: nothing overwrites a list the app has not seen.
+ */
+export function write(
+  patch: (current: Configuration) => ServersConfig
+): Configuration {
+  if (unreadable) {
+    reload();
+  }
+
+  if (unreadable) {
+    throw new Error(`servers.json unreadable, copy kept at ${corruptPath()}`);
+  }
+
+  const clean = normalise(patch(read()));
 
   save(clean);
   cache = clean;
@@ -267,10 +340,16 @@ export function setSshShare(shared: boolean): SshShareState {
 }
 
 export async function add(draft: ServerDraft): Promise<ServerCreation> {
-  const config = read();
-  const created = await addServer(draft, config.servers, paths());
+  const created = await addServer(draft, read().servers, paths());
 
-  write({ ...config, active: created.server.id, servers: created.servers });
+  write((current) => ({
+    ...current,
+    active: created.server.id,
+    servers: [
+      ...current.servers.filter((server) => server.id !== created.server.id),
+      created.server,
+    ],
+  }));
 
   trace("servers", "added", {
     host: created.server.host,
@@ -285,16 +364,14 @@ export async function add(draft: ServerDraft): Promise<ServerCreation> {
 }
 
 export function rename(id: string, name: string): Configuration {
-  const config = read();
-
-  return write({
-    ...config,
-    servers: config.servers.map((server) =>
+  return write((current) => ({
+    ...current,
+    servers: current.servers.map((server) =>
       server.id === id
         ? { ...server, name: name.trim().slice(0, NAME_LIMIT) || server.name }
         : server
     ),
-  });
+  }));
 }
 
 /**
@@ -309,10 +386,12 @@ export async function update(
   id: string,
   changes: ServerChanges
 ): Promise<ServerUpdated> {
-  const config = read();
-  const before = config.servers.find((server) => server.id === id) ?? null;
-  const changed = changeServer(config.servers, id, changes);
-  const written = write({ ...config, servers: changed.servers });
+  const before = read().servers.find((server) => server.id === id) ?? null;
+  const changed = changeServer(read().servers, id, changes);
+  const written = write((current) => ({
+    ...current,
+    servers: changeServer(current.servers, id, changes).servers,
+  }));
 
   if (
     before &&
@@ -344,14 +423,14 @@ export async function update(
  * app's SSH file, so the next `ssh -F` logs in as the account the agent named.
  */
 export function switchAccount(id: string, user: string): string | null {
-  const config = read();
-  const servers = withAccount(config.servers, id, user);
-
-  if (!servers) {
+  if (!withAccount(read().servers, id, user)) {
     return null;
   }
 
-  write({ ...config, servers });
+  write((current) => ({
+    ...current,
+    servers: withAccount(current.servers, id, user) ?? current.servers,
+  }));
 
   trace("servers", "account", { server: id, user });
 
@@ -384,12 +463,12 @@ export function noteGrant(id: string, platformServerId: string): Configuration {
     status: "enrolling",
   };
 
-  return write({
-    ...config,
-    servers: config.servers.map((candidate) =>
+  return write((current) => ({
+    ...current,
+    servers: current.servers.map((candidate) =>
       candidate.id === id ? { ...candidate, grant } : candidate
     ),
-  });
+  }));
 }
 
 /**
@@ -405,22 +484,22 @@ export function noteOpened(id: string): Configuration {
     return config;
   }
 
-  return write({
-    ...config,
+  return write((current) => ({
+    ...current,
     active: id,
-    servers: config.servers.map((server) =>
+    servers: current.servers.map((server) =>
       server.id === id && server.grant
         ? { ...server, grant: { ...server.grant, opened: true } }
         : server
     ),
-  });
+  }));
 }
 
 export function activate(id: string): Configuration {
   const config = read();
 
   return config.servers.some((server) => server.id === id)
-    ? write({ ...config, active: id })
+    ? write((current) => ({ ...current, active: id }))
     : config;
 }
 
@@ -432,29 +511,30 @@ export function activate(id: string): Configuration {
  * recorded. `restore` is the way back, and the only one.
  */
 export async function remove(id: string): Promise<Configuration> {
-  const config = read();
-  const going = config.servers.find((server) => server.id === id);
-  const left = removeServer(config.servers, id, paths());
+  const going = read().servers.find((server) => server.id === id);
+  const left = removeServer(read().servers, id, paths());
   const grantId = going?.grant?.id;
 
   if (going && !sharesAddress(left, going)) {
     await untrustHost(going, paths());
   }
 
-  return write({
-    active: config.active === id ? (left[0]?.id ?? null) : config.active,
-    dismissed: grantId
-      ? [...new Set([...config.dismissed, grantId])]
-      : config.dismissed,
-    servers: left,
+  return write((current) => {
+    const servers = current.servers.filter((server) => server.id !== id);
+
+    return {
+      active: current.active === id ? (servers[0]?.id ?? null) : current.active,
+      dismissed: grantId
+        ? [...new Set([...current.dismissed, grantId])]
+        : current.dismissed,
+      servers,
+    };
   });
 }
 
 /** Returns to the list every granted server that had been removed from here. */
 export function restore(): Configuration {
-  const config = read();
-
-  return write({ ...config, dismissed: [] });
+  return write((current) => ({ ...current, dismissed: [] }));
 }
 
 /**
@@ -476,8 +556,10 @@ export async function hostKey(id: string): Promise<HostKeyDecision> {
   const decision = hostKeyDecision(server.hostFingerprint, observed, live);
 
   if (decision.status === "first_contact" && observed) {
-    const config = read();
-    write({ ...config, servers: pinFingerprint(config.servers, id, observed) });
+    write((current) => ({
+      ...current,
+      servers: pinFingerprint(current.servers, id, observed),
+    }));
   }
 
   return decision;
@@ -495,14 +577,12 @@ export async function trustReinstalled(id: string): Promise<Configuration> {
 
   await untrustHost(server, paths());
 
-  const config = read();
-
-  return write({
-    ...config,
-    servers: config.servers.map((s) =>
+  return write((current) => ({
+    ...current,
+    servers: current.servers.map((s) =>
       s.id === id ? { ...s, hostFingerprint: undefined } : s
     ),
-  });
+  }));
 }
 
 /**

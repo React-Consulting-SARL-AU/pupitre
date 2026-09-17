@@ -148,10 +148,10 @@ export const useTunnel = create<TunnelStore>((set, get) => {
       set({ forwards: await window.pupitre.closePortForward(id) });
     },
 
+    /** Another machine, or none: what the agent said of its tunnel goes; the forwards are this computer's and stay. */
     forget() {
       set({
         busy: null,
-        forwards: [],
         problem: null,
         tunnel: { status: "idle" },
       });

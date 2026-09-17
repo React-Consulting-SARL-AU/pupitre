@@ -56,7 +56,7 @@ export async function runReenroll(
     return { ok: false, error: asAgentError(allowed.error) };
   }
 
-  const facts = await machineFacts(serverId, deps);
+  const facts = await machineFacts(serverId, deps, { polled: false });
 
   if (!facts.ok) {
     return facts;

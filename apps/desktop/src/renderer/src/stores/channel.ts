@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { translate } from "../i18n/translate";
 import { announce } from "./announcements";
+import { serversIn, useServers } from "./servers";
 
 /**
  * The link to each server, as it drops and comes back.
@@ -20,6 +21,15 @@ interface ChannelStore {
   listen: () => () => void;
 }
 
+/** What the reader calls the machine: its name in the list, or its identifier when the list does not hold it. */
+function nameOf(serverId: string): string {
+  return (
+    serversIn(useServers.getState().config).find(
+      (server) => server.id === serverId
+    )?.name ?? serverId
+  );
+}
+
 export const useChannel = create<ChannelStore>((set, get) => ({
   states: {},
 
@@ -34,7 +44,7 @@ export const useChannel = create<ChannelStore>((set, get) => ({
           state === "lost"
             ? "onboarding.channel.lost"
             : "onboarding.channel.back",
-          { name: serverId }
+          { name: nameOf(serverId) }
         ),
         state === "lost" ? "assertive" : "polite"
       );

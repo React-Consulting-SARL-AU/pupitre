@@ -132,4 +132,38 @@ describe("les comptes des services en marche", () => {
       serverId: null,
     });
   });
+
+  it("cède la place à une lecture plus récente de la même machine", async () => {
+    const asked: string[] = [];
+    const waiting: (() => void)[] = [];
+
+    stubPupitre({
+      serviceDetail: (_server, moduleId) => {
+        asked.push(moduleId);
+
+        return new Promise((resolve) => {
+          waiting.push(() => resolve({ ok: true, result: detail(moduleId) }));
+        });
+      },
+    });
+
+    const first = useLogins
+      .getState()
+      .read(SERVER, ["ai.claude", "db.postgres", "ai.codex"]);
+    const second = useLogins.getState().read(SERVER, ["ai.claude", "ai.codex"]);
+
+    while (waiting.length > 0) {
+      waiting.shift()?.();
+      await Promise.resolve();
+      await Promise.resolve();
+    }
+
+    await Promise.all([first, second]);
+
+    expect(asked.filter((id) => id === "db.postgres")).toEqual([]);
+    expect(asked.filter((id) => id === "ai.codex")).toHaveLength(1);
+    expect(useLogins.getState().answers["ai.codex"]).toMatchObject({
+      status: "answered",
+    });
+  });
 });

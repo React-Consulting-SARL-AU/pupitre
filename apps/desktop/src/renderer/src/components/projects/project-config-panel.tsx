@@ -144,6 +144,26 @@ export function ProjectConfigPanel({
           </Callout>
         ) : null}
 
+        {run.status === "saved"
+          ? run.warnings?.map((warning) => (
+              <Callout key={warning} name="config-warning" tone="warn">
+                {t("project.config.warning", { warning })}
+              </Callout>
+            ))
+          : null}
+
+        {run.status === "saved" && run.sync ? (
+          <Callout
+            fix={agentText(t, run.sync).fix}
+            name="config-sync-refused"
+            tone="warn"
+          >
+            {t("project.config.syncRefused", {
+              message: agentText(t, run.sync).message,
+            })}
+          </Callout>
+        ) : null}
+
         {run.status === "failed" ? (
           <Callout
             fix={agentText(t, run.error).fix}
