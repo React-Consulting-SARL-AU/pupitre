@@ -17,6 +17,7 @@
     "dev:site": "bun run dev:prepare && turbo run dev --filter=@pupitre/site",
     "dev:web": "bun run dev:prepare && turbo run dev dev:stripe dev:tunnel --filter=@pupitre/web",
     "dev:desktop": "turbo run dev --filter=@pupitre/desktop",
+    "dev:desktop:prod": "PUPITRE_PLATFORM_URL=https://app.pupitre.studio turbo run dev --filter=@pupitre/desktop",
     "dev:email": "bun --cwd=packages/api run dev:email",
     "build": "turbo run build",
     "build:agent": "turbo run build --filter=@pupitre/agent",

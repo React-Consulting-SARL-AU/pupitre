@@ -1,13 +1,15 @@
+import type { BuildKind } from "@shared/account";
 import type { DevDefaults } from "@shared/dev";
 
 /**
  * The machine a developer installs ten times a day, read from their own
  * environment rather than typed each time.
  *
- * Nothing here exists in a packaged build: it answers null, and the screens
- * keep their blank fields. The password is the throwaway machine's, and it
- * travels the way a typed one does — once, to the key install, and nowhere
- * else.
+ * Nothing here exists outside a development build on the local console: it
+ * answers null, and the screens keep their blank fields — the throwaway machine
+ * has no business being enrolled on the hosted platform. The password is that
+ * machine's, and it travels the way a typed one does — once, to the key
+ * install, and nowhere else.
  */
 
 const PREFIX = "PUPITRE_DEV_";
@@ -41,9 +43,9 @@ function fieldsOf(read: (name: string) => string): DevDefaults["fields"] {
 
 export function devDefaultsFrom(
   env: Env,
-  packaged: boolean
+  build: BuildKind
 ): DevDefaults | null {
-  if (packaged) {
+  if (build === "production") {
     return null;
   }
 

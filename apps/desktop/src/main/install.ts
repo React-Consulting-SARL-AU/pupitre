@@ -8,7 +8,7 @@ import type {
 import type { AgentResponse } from "@shared/agent";
 import type { AgentSendPhase } from "@shared/install";
 import { app, ipcMain } from "electron";
-import { account, agentPlatformUrl } from "./account";
+import { account } from "./account";
 import { agentClient } from "./agent";
 import {
   type AgentDelivery,
@@ -28,6 +28,7 @@ import {
   runInstall,
 } from "./install-run";
 import { forgetSecrets, readSecrets } from "./install-secrets";
+import { agentPlatformUrl, buildKind } from "./platform-url";
 import { refuseWith } from "./refusal";
 import { relayTo } from "./relay";
 import { byId, noteGrant, paths } from "./servers";
@@ -76,7 +77,7 @@ async function deliver(
   const prepared = await prepareAgent(server, arch, {
     account,
     bind: noteGrant,
-    build: app.isPackaged ? "production" : "development",
+    build: buildKind(),
     embedded: (wanted) => agentPayload(agentResourcesDir(), wanted),
     releaseKey: AGENT_RELEASE_PUBLIC_KEY,
   });
