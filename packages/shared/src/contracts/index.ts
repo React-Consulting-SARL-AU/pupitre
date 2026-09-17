@@ -23,6 +23,7 @@ import { InstallSecretsSchema } from "../agent-protocol/install"
 import { ConfigRevisionSchema } from "../agent-protocol/migrate"
 import { ShotEventSchema } from "../agent-protocol/processes"
 import { SecretEventSchema } from "../agent-protocol/secrets"
+import { ProjectSchema } from "../agent-protocol/state"
 import { EnrollSecretsSchema } from "../agent-protocol/system"
 import {
   FieldSchema,
@@ -88,6 +89,7 @@ export const CONTRACT_DEFINITIONS: Readonly<Record<string, z.ZodType>> = {
   UnenrolledCommands: z.enum(UNENROLLED_COMMANDS),
   MigrationCommands: z.enum(MIGRATION_COMMANDS),
   ConfigRevision: ConfigRevisionSchema,
+  Project: ProjectSchema,
   ...commandDefinitions(),
   InstallSecrets: InstallSecretsSchema,
   EnrollSecrets: EnrollSecretsSchema,

@@ -406,6 +406,197 @@
         "state"
       ]
     },
+    "Project": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "dir": {
+          "type": "string",
+          "minLength": 1
+        },
+        "repo": {
+          "type": "string"
+        },
+        "branch": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^\\/"
+        },
+        "processes": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 63,
+                "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+              },
+              "pkgmgr": {
+                "type": "string",
+                "enum": [
+                  "bun",
+                  "pnpm",
+                  "npm",
+                  "gradle",
+                  "uv",
+                  "service",
+                  "none"
+                ]
+              },
+              "host": {
+                "type": "string",
+                "minLength": 1
+              },
+              "port": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              },
+              "cmd": {
+                "type": "string",
+                "minLength": 1
+              },
+              "install": {
+                "type": "string"
+              },
+              "dir": {
+                "type": "string",
+                "minLength": 1
+              },
+              "path": {
+                "type": "string",
+                "pattern": "^\\/"
+              },
+              "routes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 63,
+                      "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+                    },
+                    "port": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 65535
+                    },
+                    "hostname": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 253,
+                      "pattern": "^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$"
+                    }
+                  },
+                  "required": [
+                    "label",
+                    "port"
+                  ]
+                }
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "online",
+                  "starting",
+                  "failed",
+                  "stopped",
+                  "down",
+                  "external",
+                  "service"
+                ]
+              },
+              "url": {
+                "type": "string"
+              },
+              "pid": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "ram_mb": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "uptime_s": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "id",
+              "pkgmgr",
+              "host",
+              "port",
+              "cmd",
+              "dir",
+              "path",
+              "routes",
+              "state"
+            ]
+          }
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "online",
+            "starting",
+            "failed",
+            "stopped",
+            "down",
+            "external",
+            "service",
+            "partial"
+          ]
+        },
+        "boot": {
+          "default": false,
+          "type": "boolean"
+        },
+        "runtimes": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "enum": [
+              "node",
+              "java",
+              "python",
+              "go",
+              "php",
+              "ruby",
+              "rust"
+            ]
+          },
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[0-9]+(\\.[0-9]+)*$"
+          }
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "dir",
+        "path",
+        "processes",
+        "state"
+      ]
+    },
     "HelloParams": {
       "type": "object",
       "properties": {
@@ -1182,7 +1373,7 @@
         "projects": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/ProjectUpdateResult"
+            "$ref": "#/$defs/Project"
           }
         },
         "sessions": {
@@ -1330,7 +1521,7 @@
         "projects": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/ProjectUpdateResult"
+            "$ref": "#/$defs/Project"
           }
         }
       },
@@ -1914,7 +2105,7 @@
         "projects": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/ProjectUpdateResult"
+            "$ref": "#/$defs/Project"
           }
         }
       },
@@ -2251,6 +2442,12 @@
         },
         "url": {
           "type": "string"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "required": [
@@ -2712,6 +2909,12 @@
         },
         "url": {
           "type": "string"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "required": [

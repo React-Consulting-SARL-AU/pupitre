@@ -19,7 +19,7 @@ type Manifest = {
   resources: { ram_mb: number; disk_mb: number }
   arch: ("amd64" | "arm64")[]
   fields: Field[]                // ce que l'écran de configuration demande
-  connection?: "cloudflare" | "github" | "1password" | "neon"  // le compte tiers que ce module exige de l'app
+  connection?: ConnectionKind    // le compte tiers que ce module exige de l'app : `CONNECTION_KINDS` de `packages/shared` — cloudflare, wrangler, github, 1password, neon, vercel, supabase, stripe
   runs: boolean                  // le module tient un processus, ou en lance un à tout moment
   mandatory: boolean             // true pour core.system et core.hardening
   since: string                  // version de l'agent
