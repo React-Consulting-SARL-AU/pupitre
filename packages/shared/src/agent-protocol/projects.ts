@@ -63,7 +63,18 @@ export const ProjectAddParamsSchema = ProjectRegistrationSchema.strict()
 
 export type ProjectAddParams = z.infer<typeof ProjectAddParamsSchema>
 
-export const ProjectAddResultSchema = ProjectSchema
+/**
+ * The declared project, and what failed once its line was written: a folder
+ * that could not be created, a runtime pin, a start. The line stands either
+ * way, so a retry would only answer that the project is declared already.
+ */
+export const DeclaredProjectSchema = ProjectSchema.extend({
+  warnings: z.array(z.string()).optional(),
+})
+
+export type DeclaredProject = z.infer<typeof DeclaredProjectSchema>
+
+export const ProjectAddResultSchema = DeclaredProjectSchema
 
 export type ProjectAddResult = z.infer<typeof ProjectAddResultSchema>
 
@@ -131,7 +142,7 @@ export const ProjectUpdateParamsSchema = z.strictObject({
 
 export type ProjectUpdateParams = z.infer<typeof ProjectUpdateParamsSchema>
 
-export const ProjectUpdateResultSchema = ProjectSchema
+export const ProjectUpdateResultSchema = DeclaredProjectSchema
 
 export type ProjectUpdateResult = z.infer<typeof ProjectUpdateResultSchema>
 
