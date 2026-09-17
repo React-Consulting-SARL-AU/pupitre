@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
   agentBaseUrl,
+  buildKindOf,
   createPlatformClient,
   DEV_AGENT_PLATFORM_URL,
   isLocalPlatform,
@@ -14,6 +15,12 @@ describe("la plateforme visée en développement", () => {
     expect(isLocalPlatform("http://[::1]:3000")).toBe(true);
     expect(isLocalPlatform("https://app.pupitre.studio")).toBe(false);
     expect(isLocalPlatform("pas une url")).toBe(false);
+  });
+
+  it("se conduit en production dès que la plateforme n'est pas la console locale", () => {
+    expect(buildKindOf(false, LOCAL_PLATFORM_URL)).toBe("development");
+    expect(buildKindOf(false, "https://app.pupitre.studio")).toBe("production");
+    expect(buildKindOf(true, LOCAL_PLATFORM_URL)).toBe("production");
   });
 
   it("dit quoi lancer quand la console locale ne répond pas", async () => {

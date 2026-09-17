@@ -63,6 +63,7 @@ import { knock } from "./knock";
 import { menuTemplate } from "./menu";
 import { openable, ownPage } from "./navigation";
 import { current, windowChrome } from "./platform";
+import { buildKind, platformUrl } from "./platform-url";
 import { awaitListening, closeForward, openForward } from "./port-forward";
 import { type PreferencesStore, preferencesStore } from "./preferences";
 import { registerProjects } from "./projects";
@@ -945,7 +946,12 @@ app
   .whenReady()
   .then(() => {
     enableTrace(!app.isPackaged);
-    trace("app", "ready", { packaged: app.isPackaged, platform: current() });
+    trace("app", "ready", {
+      build: buildKind(),
+      console: platformUrl(),
+      packaged: app.isPackaged,
+      platform: current(),
+    });
 
     hardenSession();
     Menu.setApplicationMenu(
