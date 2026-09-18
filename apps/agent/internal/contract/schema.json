@@ -3428,12 +3428,16 @@
           "items": {
             "type": "string"
           }
+        },
+        "template": {
+          "type": "boolean"
         }
       },
       "required": [
         "path",
         "written",
-        "keys"
+        "keys",
+        "template"
       ]
     },
     "ProjectBranchesParams": {
@@ -4489,12 +4493,16 @@
           "items": {
             "type": "string"
           }
+        },
+        "template": {
+          "type": "boolean"
         }
       },
       "required": [
         "path",
         "written",
-        "keys"
+        "keys",
+        "template"
       ]
     },
     "DbDumpParams": {

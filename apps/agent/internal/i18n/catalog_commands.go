@@ -139,13 +139,13 @@ var commandCatalog = map[string]Message{
 		FR: "Choisissez mysql, postgres ou mongodb.",
 		EN: "Pick mysql, postgres or mongodb.",
 	},
-	"onepassword.template.none": {
-		FR: "%s : ni %s ni %s dans le dépôt",
-		EN: "%s: neither %s nor %s in the repository",
+	"onepassword.template.uninjectable": {
+		FR: "%s : le dépôt versionne un %s mais 1Password n'est pas installé sur la machine",
+		EN: "%s: the repository versions a %s but 1Password is not installed on the machine",
 	},
-	"onepassword.template.none.fix": {
-		FR: "Versionnez un %s dans %s, ou un %s si le projet garde ses secrets dans 1Password.",
-		EN: "Version a %s in %s, or a %s if the project keeps its secrets in 1Password.",
+	"onepassword.template.uninjectable.fix": {
+		FR: "Installez tool.1password, ou versionnez un %s à côté pour un démarrage sans coffre.",
+		EN: "Install tool.1password, or version a %s next to it for a start without a vault.",
 	},
 	"onepassword.inject.empty": {
 		FR: "%s : op inject n'a rien produit",

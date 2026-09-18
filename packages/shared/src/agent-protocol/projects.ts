@@ -278,10 +278,12 @@ export const ProjectEnvParamsSchema = z.strictObject({
 
 export type ProjectEnvParams = z.infer<typeof ProjectEnvParamsSchema>
 
+/** A repository that versions no template is a project without an environment, not a refusal: `keys` is empty and `template` false. */
 export const ProjectEnvResultSchema = z.object({
   path: z.string(),
   written: z.boolean(),
   keys: z.array(z.string()),
+  template: z.boolean(),
 })
 
 export type ProjectEnvResult = z.infer<typeof ProjectEnvResultSchema>
