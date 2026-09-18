@@ -105,6 +105,7 @@ export function ProjectAddRepos({
             {t("projectAdd.github.connect")}
           </Button>
         }
+        bare
         fix={t("projectAdd.github.absentFix")}
         name="github.absent"
         tone="info"
@@ -122,6 +123,7 @@ export function ProjectAddRepos({
             {t("common.retry")}
           </Button>
         }
+        bare
         fix={agentText(t, state.error).fix}
         name="github.failed"
         tone="danger"

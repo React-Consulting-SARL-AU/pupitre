@@ -1,7 +1,7 @@
 /** One chord, drawn as a key cap. */
 export function Kbd({ children }: { children: string }) {
   return (
-    <kbd className="rounded-sm border border-line px-1.5 font-data text-[11px] text-ink-3">
+    <kbd className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center whitespace-nowrap rounded-xs border border-line-strong bg-raised px-1.5 font-ui text-[12px] text-ink-2 leading-none shadow-raised">
       {children}
     </kbd>
   );

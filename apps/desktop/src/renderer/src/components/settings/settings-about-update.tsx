@@ -78,6 +78,7 @@ export function SettingsAboutUpdate({
               {t("settings.about.restart")}
             </Button>
           }
+          bare
           fix={t("settings.about.readyFix")}
           name="app-update"
           tone="ok"
@@ -94,6 +95,7 @@ export function SettingsAboutUpdate({
     <div className="flex flex-col gap-3" data-app-update={state.status}>
       {state.status === "error" ? (
         <Callout
+          bare
           fix={t("settings.about.errorFix")}
           name="app-update"
           tone="danger"

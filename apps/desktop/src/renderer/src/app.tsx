@@ -11,6 +11,7 @@ import { AccountReadingScreen } from "./components/account/account-reading-scree
 import { ActivityPanel } from "./components/activity/activity-panel";
 import { DashboardPanel } from "./components/dashboard/dashboard-panel";
 import { FilesScreen } from "./components/files/files-screen";
+import { HelpScreen } from "./components/help/help-screen";
 import { OnboardingFlow } from "./components/onboarding/onboarding-flow";
 import { ProjectAddScreen } from "./components/projects/project-add-screen";
 import { ProjectScreen } from "./components/projects/project-screen";
@@ -348,13 +349,14 @@ export function App() {
     );
   }
 
+  const unreachable =
+    snapshotState.status === "unreachable" ? snapshotState.error : null;
+
   if (shell === "unready" || !(serverId && snapshot)) {
     return guarded(
       `unready:${serverId ?? ""}`,
       <NoServerScreen
-        error={
-          snapshotState.status === "unreachable" ? snapshotState.error : null
-        }
+        error={unreachable}
         onAddServer={openOnboarding}
         onInstall={() =>
           serverId ? beginOnboarding(serverId) : openOnboarding()
@@ -382,6 +384,15 @@ export function App() {
       />
     ),
     shots: <ShotsScreen serverId={serverId} serverName={serverName} />,
+    help: (
+      <HelpScreen
+        activeId={serverId}
+        onServices={() => goTo("services")}
+        onSettings={() => openSettings("ssh")}
+        projects={snapshot.projects}
+        services={snapshot.services}
+      />
+    ),
   };
 
   return (
@@ -489,9 +500,7 @@ export function App() {
                   onOpenProject={select}
                   onOpenService={openService}
                   onOpenTerminal={() => openTerminal(null, "shell")}
-                  onReboot={() =>
-                    reboot(serverId, server?.name ?? snapshot.machine.hostname)
-                  }
+                  onReboot={() => reboot(serverId, serverName)}
                   onStopSession={(pid) => stopProcess(serverId, pid)}
                   serverName={server?.name}
                   snapshot={snapshot}

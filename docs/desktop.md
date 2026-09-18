@@ -78,6 +78,7 @@ src/renderer/src/
   components/updates/     bandeau et notes de mise à jour de l'agent, migration de sa configuration, mise à niveau des modules
   components/account/     connexion, identité, usage, abonnement
   components/settings/    apparence, connexions, terminal, notifications, démarrage, à propos (version, canal, mise à jour de l'app)
+  components/help/        la vue « Aide » (bas de la barre latérale) : comment ssh, Claude Code, Codex et les éditeurs joignent le serveur piloté, avec ses valeurs lues du fichier SSH de l'app (`ssh-share:state`) et les modules du snapshot
   stores/                 un store Zustand par sujet : servers · snapshot · onboarding et onboarding-machine (l'ordre, pur) · install · harden · inspection · catalog · connections · services · project · project-add · files · transfers · terminals · shots · fleet · account · agent-update · app-update · preferences · reenroll · tunnel · channel · announcements · navigation · locale · theme
   lib/                    fonctions pures et hooks : format, duration, memory (navigation), completion, terminals, remedy, refusals, roles, use-pending, use-history-shortcuts…
   i18n/strings/           les textes, un fichier par sujet, `en` et `fr`
