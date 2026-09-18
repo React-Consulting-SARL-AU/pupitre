@@ -86,7 +86,7 @@ describe("les rayons de la console", () => {
   const files = sources(SOURCE_ROOT)
 
   it("lit la même échelle que @pupitre/design", () => {
-    expect([...scale].sort()).toEqual(["full", "lg", "md", "sm", "xl"])
+    expect([...scale].sort()).toEqual(["full", "lg", "md", "sm", "xl", "xs"])
   })
 
   it("balaie toutes les sources", () => {
