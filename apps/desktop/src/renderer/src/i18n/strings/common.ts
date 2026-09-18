@@ -10,6 +10,8 @@ export const common = {
     "common.hint.open": "Open the page",
     "common.details": "Details",
     "common.loading": "Loading…",
+    "common.decrease": "Decrease — {label}",
+    "common.increase": "Increase — {label}",
   },
   fr: {
     "common.retry": "Réessayer",
@@ -22,5 +24,7 @@ export const common = {
     "common.hint.open": "Ouvrir la page",
     "common.details": "Détails",
     "common.loading": "Chargement…",
+    "common.decrease": "Diminuer — {label}",
+    "common.increase": "Augmenter — {label}",
   },
 } as const;

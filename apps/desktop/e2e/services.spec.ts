@@ -148,9 +148,11 @@ test.describe("services", () => {
         .getByRole("button", { exact: true, name: "Redémarrer" })
         .click();
 
-      await expect(controls.getByText(RESTART_QUESTION)).toBeVisible();
+      const question = page.getByRole("alertdialog");
 
-      await controls
+      await expect(question.getByText(RESTART_QUESTION)).toBeVisible();
+
+      await question
         .getByRole("button", { name: "Redémarrer maintenant" })
         .click();
 

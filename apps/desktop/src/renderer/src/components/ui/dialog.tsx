@@ -1,14 +1,29 @@
-import { useTranslations } from "@renderer/i18n/use-translations";
-import { type ReactNode, type RefObject, useEffect, useRef } from "react";
+import { Dialog as Base } from "@base-ui-components/react/dialog";
+import type { ReactNode, RefObject } from "react";
+
+/** The veil, the frame and the heading every dialog of the app shares, alert or not. */
+export const DIALOG_BACKDROP =
+  "fixed inset-0 bg-base/60 transition-pop data-[ending-style]:opacity-0 data-[starting-style]:opacity-0";
+
+export const DIALOG_POPUP =
+  "elevation-overlay fixed top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col gap-5 rounded-lg border border-line bg-surface p-6 outline-none transition-pop data-[ending-style]:opacity-0 data-[ending-style]:scale-[0.98] data-[starting-style]:opacity-0 data-[starting-style]:scale-[0.98]";
+
+export const DIALOG_TITLE = "font-semibold text-[15px] text-ink";
+
+const WIDTH = {
+  narrow: "w-[min(28rem,calc(100vw-2rem))]",
+  wide: "w-[min(36rem,calc(100vw-2rem))]",
+};
 
 /**
  * A question that floats over the window and waits for one answer.
  *
  * The frame is the same for every dialog: a veil that closes it when clicked,
- * Escape that closes it too, and the title that takes the focus so a reader
- * hears the question before the controls — unless the caller names the one
- * control that should take it, a field to fill. What is asked and how it is
- * answered come from the caller.
+ * Escape that closes it too, the focus held inside and sent back where it was
+ * once the answer is given. The title takes the focus first so a reader hears
+ * the question before the controls — unless the caller names the one control
+ * that should take it, a field to fill. What is asked and how it is answered
+ * come from the caller.
  */
 export function Dialog({
   open,
@@ -18,6 +33,7 @@ export function Dialog({
   focus,
   children,
   actions,
+  width = "narrow",
 }: {
   open: boolean;
   /** Names the dialog in a test and ties the heading to the frame. */
@@ -28,65 +44,32 @@ export function Dialog({
   focus?: RefObject<HTMLElement | null>;
   children: ReactNode;
   actions: ReactNode;
+  /** `wide` for a dialog that holds a form rather than a sentence. */
+  width?: keyof typeof WIDTH;
 }) {
-  const t = useTranslations();
-
-  const heading = useRef<HTMLHeadingElement | null>(null);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    (focus?.current ?? heading.current)?.focus();
-
-    const onEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-      }
-    };
-
-    window.addEventListener("keydown", onEscape);
-
-    return () => window.removeEventListener("keydown", onEscape);
-  }, [open, onClose, focus]);
-
-  if (!open) {
-    return null;
-  }
-
-  const titleId = `${name}-title`;
-
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center px-4">
-      <button
-        aria-label={t("common.cancel")}
-        className="absolute inset-0 cursor-default bg-base/60"
-        onClick={onClose}
-        type="button"
-      />
-
-      <div
-        aria-labelledby={titleId}
-        aria-modal="true"
-        className="elevation-overlay relative flex w-full max-w-sm flex-col gap-4 rounded-lg border border-line bg-surface p-5"
-        data-dialog={name}
-        role="dialog"
-      >
-        <h2
-          className="font-semibold text-[15px] text-ink outline-none"
-          id={titleId}
-          ref={heading}
-          tabIndex={-1}
+    <Base.Root
+      onOpenChange={(next) => {
+        if (!next) {
+          onClose();
+        }
+      }}
+      open={open}
+    >
+      <Base.Portal>
+        <Base.Backdrop className={DIALOG_BACKDROP} />
+        <Base.Popup
+          className={`${DIALOG_POPUP} ${WIDTH[width]}`}
+          data-dialog={name}
+          initialFocus={focus}
         >
-          {title}
-        </h2>
+          <Base.Title className={DIALOG_TITLE}>{title}</Base.Title>
 
-        {children}
+          {children}
 
-        <div className="flex items-center justify-end gap-2">{actions}</div>
-      </div>
-    </div>
+          <div className="flex items-center justify-end gap-2">{actions}</div>
+        </Base.Popup>
+      </Base.Portal>
+    </Base.Root>
   );
 }

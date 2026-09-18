@@ -35,7 +35,7 @@ export function Section({
   return (
     <section
       aria-label={title}
-      className={`flex flex-col gap-3 ${className}`}
+      className={`flex flex-col gap-4 ${className}`}
       data-section={name}
       {...rest}
     >

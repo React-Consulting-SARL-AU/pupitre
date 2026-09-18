@@ -411,12 +411,14 @@ type ServiceStatus struct {
 	// module the client asked to answer later sits installed and unconfigured.
 	Configured bool `json:"configured"`
 	// Runs and Connection carry the manifest's own answers, so that a screen showing what the machine is doing never has to read the catalogue.
-	Runs        bool              `json:"runs"`
-	Connection  string            `json:"connection,omitempty"`
-	Version     string            `json:"version,omitempty"`
-	Versions    []string          `json:"versions,omitempty"`
-	Port        int               `json:"port,omitempty"`
-	Unit        string            `json:"unit,omitempty"`
+	Runs       bool     `json:"runs"`
+	Connection string   `json:"connection,omitempty"`
+	Version    string   `json:"version,omitempty"`
+	Versions   []string `json:"versions,omitempty"`
+	Port       int      `json:"port,omitempty"`
+	Unit       string   `json:"unit,omitempty"`
+	// Path is the absolute folder the module laid when the reader's side has to be pointed at it: the backend JetBrains Gateway opens.
+	Path        string            `json:"path,omitempty"`
 	Credentials map[string]string `json:"credentials,omitempty"`
 	Login       *Login            `json:"login,omitempty"`
 }

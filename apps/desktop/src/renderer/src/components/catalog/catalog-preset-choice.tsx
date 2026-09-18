@@ -3,7 +3,8 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { CircleSlash } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../ui/button";
-import { RadioDot } from "../ui/radio-dot";
+import { Label } from "../ui/label";
+import { RadioGroup, RadioLine } from "../ui/radio";
 import { ServiceLogo } from "../ui/service-logo";
 
 /** The value of the radio that stands for taking none of them. */
@@ -40,65 +41,46 @@ export function CatalogPresetChoice({
   const [chosen, setChosen] = useState(choices[0]?.id ?? NONE);
 
   return (
-    <fieldset
-      className="elevation-raised flex flex-col gap-3 rounded-md border border-line bg-surface p-4"
+    <div
+      className="elevation-raised flex flex-col gap-4 rounded-md border border-line bg-surface p-5"
       data-preset-choice={preset.id}
     >
-      <legend className="label px-1 text-ink-3">
-        {t("catalog.presets.chooseOne", { preset: preset.name })}
-      </legend>
+      <Label>{t("catalog.presets.chooseOne", { preset: preset.name })}</Label>
 
-      <div className="flex flex-col gap-2">
+      <RadioGroup
+        label={t("catalog.presets.chooseOne", { preset: preset.name })}
+        name={`preset-${preset.id}`}
+        onChange={setChosen}
+        value={chosen}
+      >
         {choices.map((module) => (
-          // biome-ignore lint/a11y/noLabelWithoutControl: the radio is inside RadioDot, and wrapping it is what makes the whole row clickable
-          <label
-            className="clickable flex items-center gap-3 rounded-md px-2 py-1.5 transition-fast hover:bg-raised"
+          <RadioLine
             data-preset-option={module.id}
+            detail={module.summary}
             key={module.id}
-          >
-            <RadioDot
-              checked={chosen === module.id}
-              label={module.name}
-              name={`preset-${preset.id}`}
-              onChange={() => setChosen(module.id)}
-              value={module.id}
-            />
-            <ServiceLogo moduleId={module.id} name={module.name} size={20} />
-            <span className="min-w-0">
-              <span className="block text-ink">{module.name}</span>
-              <span className="block text-[12px] text-ink-3">
-                {module.summary}
-              </span>
-            </span>
-          </label>
+            label={module.name}
+            leading={
+              <ServiceLogo moduleId={module.id} name={module.name} size={20} />
+            }
+            value={module.id}
+          />
         ))}
 
-        {/** biome-ignore lint/a11y/noLabelWithoutControl: the radio is inside RadioDot, and wrapping it is what makes the whole row clickable */}
-        <label
-          className="clickable flex items-center gap-3 rounded-md px-2 py-1.5 transition-fast hover:bg-raised"
+        <RadioLine
           data-preset-option="none"
-        >
-          <RadioDot
-            checked={chosen === NONE}
-            label={t("catalog.presets.none")}
-            name={`preset-${preset.id}`}
-            onChange={() => setChosen(NONE)}
-            value={NONE}
-          />
-          <CircleSlash
-            aria-hidden="true"
-            className="shrink-0 text-ink-4"
-            size={20}
-            strokeWidth={1.5}
-          />
-          <span className="min-w-0">
-            <span className="block text-ink">{t("catalog.presets.none")}</span>
-            <span className="block text-[12px] text-ink-3">
-              {t("catalog.presets.noneDetail")}
-            </span>
-          </span>
-        </label>
-      </div>
+          detail={t("catalog.presets.noneDetail")}
+          label={t("catalog.presets.none")}
+          leading={
+            <CircleSlash
+              aria-hidden="true"
+              className="shrink-0 text-ink-4"
+              size={20}
+              strokeWidth={1.5}
+            />
+          }
+          value={NONE}
+        />
+      </RadioGroup>
 
       <div className="flex gap-2">
         <Button onClick={() => onChoose(chosen)} size="sm" variant="inverse">
@@ -108,6 +90,6 @@ export function CatalogPresetChoice({
           {t("common.cancel")}
         </Button>
       </div>
-    </fieldset>
+    </div>
   );
 }

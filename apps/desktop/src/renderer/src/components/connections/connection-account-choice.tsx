@@ -1,4 +1,4 @@
-import { RadioDot } from "@renderer/components/ui/radio-dot";
+import { RadioGroup, RadioLine } from "@renderer/components/ui/radio";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { ConnectionAccount } from "@shared/connections";
 
@@ -37,30 +37,26 @@ export function ConnectionAccountChoice({
         {t("connections.accounts.help")}
       </p>
 
-      <div className="flex flex-col gap-1">
+      <RadioGroup
+        label={t("connections.accounts.label")}
+        name={`connections-${kind}-account`}
+        onChange={onChoose}
+        value={chosen ?? ""}
+      >
         {accounts.map((account) => (
-          // biome-ignore lint/a11y/noLabelWithoutControl: the radio is inside RadioDot, and wrapping it is what makes the whole row clickable
-          <label
-            className="clickable flex items-center gap-3 rounded-md px-2 py-1.5 transition-fast hover:bg-raised"
+          <RadioLine
             data-account-option={account.id}
-            key={account.id}
-          >
-            <RadioDot
-              checked={chosen === account.id}
-              label={account.name}
-              name={`connections-${kind}-account`}
-              onChange={() => onChoose(account.id)}
-              value={account.id}
-            />
-            <span className="min-w-0">
-              <span className="block text-ink">{account.name}</span>
-              <span className="block truncate font-mono text-[11px] text-ink-4">
+            detail={
+              <span className="block truncate font-data text-[11px] text-ink-4">
                 {account.id}
               </span>
-            </span>
-          </label>
+            }
+            key={account.id}
+            label={account.name}
+            value={account.id}
+          />
         ))}
-      </div>
+      </RadioGroup>
     </fieldset>
   );
 }

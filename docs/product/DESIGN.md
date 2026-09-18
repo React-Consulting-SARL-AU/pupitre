@@ -55,6 +55,7 @@ typography:
     fontWeight: 700
     letterSpacing: "-0.01em"
 radius:
+  xs: "4px"
   sm: "8px"
   md: "12px"
   lg: "18px"
@@ -114,7 +115,7 @@ Une échelle de gris neutres, sans teinte. Quatre niveaux de surface pour l'él�
 
 - **L'état se lit à la forme d'abord.** En ligne : point plein. Arrêté : cercle vide. En échec : point barré. En cours : point qui respire. La couleur confirme ; l'interface reste lisible en gris purs.
 - **L'élévation est une ombre douce, jamais une bordure épaisse.** Trois niveaux seulement : `flat` pour ce qui est dans le flux, `raised` pour une carte ou un panneau posé sur le fond, `overlay` pour ce qui flotte — menu, popover, boîte de dialogue. En thème sombre, l'ombre est plus profonde et se double d'un pas de gris, l'ombre seule n'y suffisant pas. Une carte porte une ombre **ou** un trait, jamais les deux appuyés.
-- **Les coins sont arrondis.** `sm` pour un contrôle, `md` pour une carte ou un panneau, `lg` pour une boîte de dialogue ou une fenêtre, `xl` pour les grandes surfaces du site — bloc d'accueil, carte de section, tuile de logo —, `full` pour une pastille. Un rayon plus petit que son parent quand un élément est imbriqué.
+- **Les coins sont arrondis.** `xs` pour une case à cocher — à seize pixels, `sm` dessinerait un cercle, et un cercle est un bouton radio —, `sm` pour un contrôle, `md` pour une carte ou un panneau, `lg` pour une boîte de dialogue ou une fenêtre, `xl` pour les grandes surfaces du site — bloc d'accueil, carte de section, tuile de logo —, `full` pour une pastille. Un rayon plus petit que son parent quand un élément est imbriqué.
 - **L'en-tête d'une page est un bandeau à part.** Dans l'app, la barre latérale, la bande de la fenêtre et l'en-tête de la page — logo, libellé, titre, état, faits, contrôles — partagent une même surface `surface` fermée par un trait ; le corps est un puits `base` qui défile sous eux. Ce qui concerne la chose entière — revenir, relire, retirer — se fait dans l'en-tête ; ce qui concerne une section se fait dans la section. L'onboarding, dont le rail dit déjà où l'on est, lit l'en-tête de chaque étape sur la page elle-même.
 - **L'espace fait la hiérarchie.** Échelle de 4 px. Une gouttière de 20 px entre les blocs d'un même groupe, 32 px entre deux sections. Un titre de section a plus d'air au-dessus qu'en dessous. Une liste dense reste aérée : 12 px de padding vertical minimum par ligne. Ne jamais serrer pour faire tenir : couper ou faire défiler.
 - **Les menus se hiérarchisent en trois plans** : le libellé de groupe en capitales espacées `ink-3`, les entrées en `ink`, l'entrée active sur `raised` avec un repère à gauche. Un séparateur avant une action destructrice. Jamais plus de deux niveaux d'imbrication.

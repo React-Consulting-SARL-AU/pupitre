@@ -1,9 +1,6 @@
 import { type FoldedLine, foldRows, type ScreenRow } from "@shared/folded-rows";
 import type { IBufferLine, ILink, ILinkProvider, Terminal } from "@xterm/xterm";
-
-const ADDRESS = /(?:https?|ssh|file):\/\/[^\s"'<>`]{4,2048}/g;
-
-const TRAILING = /[.,;:!?'"]+$/;
+import { ADDRESS, trimmedAddress } from "./addresses";
 
 // An address rarely goes past this many rows; a window of them on either side of the hovered row is where its pieces are.
 const REACH = 32;
@@ -38,21 +35,6 @@ function readRow(line: IBufferLine, cols: number): ReadRow {
   const kept = text.trimEnd();
 
   return { text: kept, width, columns: columns.slice(0, kept.length) };
-}
-
-function count(text: string, glyph: string): number {
-  return text.split(glyph).length - 1;
-}
-
-/** A closing bracket only belongs to the address when it closes one opened inside it. */
-function trimmed(raw: string): string {
-  let address = raw.replace(TRAILING, "");
-
-  while (address.endsWith(")") && count(address, "(") < count(address, ")")) {
-    address = address.slice(0, -1).replace(TRAILING, "");
-  }
-
-  return address;
 }
 
 /** The row and column of an offset in a folded line, on the screen. */
@@ -115,7 +97,7 @@ export function addressProvider(
         }
 
         for (const match of line.text.matchAll(ADDRESS)) {
-          const address = trimmed(match[0]);
+          const address = trimmedAddress(match[0]);
           const start = locate(line, rows, match.index);
           const end = locate(line, rows, match.index + address.length - 1);
 

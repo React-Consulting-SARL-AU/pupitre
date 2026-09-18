@@ -163,7 +163,7 @@ test.describe("nouveau projet", () => {
         page.getByRole("heading", { name: "Nouveau projet" })
       ).toBeVisible();
       await expect(
-        page.getByRole("button", { name: GITHUB_CARD })
+        page.getByRole("radio", { name: GITHUB_CARD })
       ).toBeVisible();
     });
 
@@ -171,11 +171,29 @@ test.describe("nouveau projet", () => {
       await assertAccessible(page, "projects/add");
     });
 
-    await test.step("une adresse git remplit le reste, et l'agent la lit", async () => {
-      await page.getByRole("button", { name: "Adresse git" }).click();
-      await page.locator("#project\\.source").fill(REPO);
-      await page.locator("#project\\.name").focus();
+    await test.step("la source seule se demande d'abord, et rien ne se lit avant qu'on le demande", async () => {
+      await expect(
+        page.getByRole("button", { name: "Lire le dépôt" })
+      ).toBeDisabled();
+      await expect(page.locator("#project\\.name")).toHaveCount(0);
 
+      await page.getByRole("radio", { name: "Adresse git" }).click();
+      await page.locator("#project\\.source").fill(REPO);
+
+      await expect(
+        page.getByRole("button", { name: "Lire le dépôt" })
+      ).toBeEnabled();
+      await expect(page.locator("#project\\.name")).toHaveCount(0);
+    });
+
+    await test.step("la lecture du dépôt ouvre la configuration sur ce qu'elle a trouvé", async () => {
+      await page.getByRole("button", { name: "Lire le dépôt" }).click();
+
+      await expect(page.locator('[data-step="config"]')).toBeVisible();
+      await expect(page.locator('[data-source="repo"]')).toContainText(REPO);
+      await expect(page.locator('[data-source="branch"]')).toContainText(
+        "celle du dépôt"
+      );
       await expect(page.locator("#project\\.name")).toHaveValue("atlas-web");
       await expect(
         page.getByText("Lu dans la source : bun, port 3100.")
@@ -196,17 +214,27 @@ test.describe("nouveau projet", () => {
      * folded one, which the agent accepts, and not the name, which it refuses.
      */
     await test.step("un dépôt à point propose un sous-domaine valide", async () => {
-      await page.getByRole("button", { name: GITHUB_CARD }).click();
+      await page.getByRole("button", { name: "Modifier la source" }).click();
+
+      await expect(page.locator('[data-step="source"]')).toBeVisible();
+
+      await page.getByRole("radio", { name: GITHUB_CARD }).click();
       await page.locator("#project\\.repoFilter").fill("my.site");
 
       await page.getByRole("button", { name: DOTTED_ROW }).click();
 
       await expect(page.locator('[data-repo="ada/my.site"]')).toBeVisible();
       await expect(page.locator("#project\\.repoFilter")).toBeHidden();
-      await expect(page.locator("#project\\.name")).toHaveValue("my.site");
       await expect(page.locator("#project\\.branch")).toHaveValue(
         "release/2.0"
       );
+
+      await page.getByRole("button", { name: "Lire le dépôt" }).click();
+
+      await expect(page.locator('[data-source="branch"]')).toContainText(
+        "release/2.0"
+      );
+      await expect(page.locator("#project\\.name")).toHaveValue("my.site");
       await expect(
         page.locator("#project\\.processes\\.0\\.ports\\.0\\.web")
       ).toHaveValue("my-site");
@@ -237,12 +265,16 @@ test.describe("nouveau projet", () => {
     });
 
     await test.step("le dépôt choisi est celui qu'on crée", async () => {
+      await page.getByRole("button", { name: "Modifier la source" }).click();
       await page.getByRole("button", { name: "Changer de dépôt" }).click();
       await page.locator("#project\\.repoFilter").fill("atlas");
       await page.getByRole("button", { name: ATLAS_ROW }).click();
+      await page.getByRole("button", { name: "Lire le dépôt" }).click();
 
       await expect(page.locator("#project\\.name")).toHaveValue("atlas-web");
-      await expect(page.locator("#project\\.branch")).toHaveValue("main");
+      await expect(page.locator('[data-source="branch"]')).toContainText(
+        "main"
+      );
       await expect(
         page.locator("#project\\.processes\\.0\\.ports\\.0\\.web")
       ).toHaveValue("atlas-web");

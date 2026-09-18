@@ -50,6 +50,7 @@ export const services = {
       "{name} stopped on an error. Start it again; if it falls again, the journal below says why.",
 
     "services.journal.title": "Journal",
+    "services.journal.label": "Journal of {name}",
     "services.journal.follow": "Follow",
     "services.journal.copyAll": "Copy",
     "services.journal.lines.one": "{count} line",
@@ -186,6 +187,7 @@ export const services = {
       "{name} s'est arrêté sur une erreur. Redémarrez-le ; s'il retombe, le journal ci-dessous dit pourquoi.",
 
     "services.journal.title": "Journal",
+    "services.journal.label": "Journal de {name}",
     "services.journal.follow": "Suivre",
     "services.journal.copyAll": "Copier",
     "services.journal.lines.one": "{count} ligne",

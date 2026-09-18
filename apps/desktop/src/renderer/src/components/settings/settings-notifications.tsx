@@ -1,4 +1,6 @@
-import { CheckLine } from "@renderer/components/ui/check-line";
+import { Panel } from "@renderer/components/ui/panel";
+import { Section } from "@renderer/components/ui/section";
+import { SwitchLine } from "@renderer/components/ui/switch";
 import { WaitingLine } from "@renderer/components/ui/waiting-line";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { usePreferences } from "@renderer/stores/preferences";
@@ -22,19 +24,20 @@ export function SettingsNotifications() {
   }, [read]);
 
   return (
-    <div className="max-w-sm">
-      <div>
+    <Section name="notifications" title={t("settings.section.notifications")}>
+      <Panel inset="lg">
         {notifications === null ? (
           <WaitingLine>{t("settings.notifications.reading")}</WaitingLine>
         ) : (
-          <CheckLine
+          <SwitchLine
             checked={notifications}
+            detail={t("settings.notifications.detail")}
             label={t("settings.notifications.label")}
             name="settings.notifications"
             onChange={setNotifications}
           />
         )}
-      </div>
-    </div>
+      </Panel>
+    </Section>
   );
 }

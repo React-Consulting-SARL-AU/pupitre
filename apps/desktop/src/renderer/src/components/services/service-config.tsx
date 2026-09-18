@@ -144,11 +144,11 @@ export function ServiceConfig({
           }}
         >
           {accountOnly ? (
-            <p className="px-5 py-4 text-[13px] text-ink-2 leading-relaxed">
+            <p className="px-6 py-5 text-[13px] text-ink-2 leading-relaxed">
               {t("services.config.accountNote")}
             </p>
           ) : (
-            <div className="grid gap-4 p-5 sm:grid-cols-2">
+            <div className="grid gap-6 p-6 sm:grid-cols-2">
               {fields.map((field) => (
                 <ServiceConfigField
                   field={field}
@@ -165,7 +165,7 @@ export function ServiceConfig({
             </div>
           )}
 
-          <div className="flex flex-wrap items-center gap-3 border-line border-t px-5 py-3">
+          <div className="flex flex-wrap items-center gap-3 border-line border-t px-6 py-4">
             {refused.length > 0 ? (
               <span className="text-[12px] text-danger" data-config-refused="">
                 {t.plural("services.config.refused", refused.length)}

@@ -4,8 +4,12 @@ import type {
   Service,
 } from "@pupitre/shared/agent-protocol/state";
 import { renderToStaticMarkup } from "react-dom/server";
+import { mount, optionsOf } from "../../__tests__/dom";
 import { SNAPSHOT } from "../../__tests__/snapshot-fixtures";
-import { processesFromProject } from "../../lib/project-processes";
+import {
+  type ProcessProblem,
+  processesFromProject,
+} from "../../lib/project-processes";
 import type { ConfigState } from "../../stores/project-config";
 import { ProjectConfigPanel } from "../projects/project-config-panel";
 
@@ -65,20 +69,20 @@ const RUNTIMES: Service[] = [
   },
 ];
 
-function panel(
-  run: ConfigState,
-  extra: {
-    restarts?: string[];
-    dropped?: string[];
-    services?: Service[];
-    runtimes?: ProjectRuntimes;
-  } = {}
-): string {
+interface Extra {
+  restarts?: string[];
+  dropped?: string[];
+  services?: Service[];
+  runtimes?: ProjectRuntimes;
+  processProblems?: (ProcessProblem | null)[];
+}
+
+function element(run: ConfigState, extra: Extra = {}) {
   if (!PROJECT) {
     throw new Error("the fixture has no project");
   }
 
-  return renderToStaticMarkup(
+  return (
     <ProjectConfigPanel
       draft={{
         boot: false,
@@ -90,7 +94,7 @@ function panel(
       edit={EDIT}
       exposure={{ host: "192.0.2.10", provider: "cloudflare" }}
       onSave={() => Promise.resolve()}
-      processProblems={[null]}
+      processProblems={extra.processProblems ?? [null]}
       project={PROJECT}
       ready
       restarts={extra.restarts ?? []}
@@ -99,6 +103,10 @@ function panel(
       services={extra.services ?? [...SNAPSHOT.services, ...RUNTIMES]}
     />
   );
+}
+
+function panel(run: ConfigState, extra: Extra = {}): string {
+  return renderToStaticMarkup(element(run, extra));
 }
 
 describe("la configuration d'un projet", () => {
@@ -116,8 +124,32 @@ describe("la configuration d'un projet", () => {
     expect(text(html)).toContain("Enregistrer la configuration");
   });
 
+  /** The first choice is whether the project follows the server; a reader who only came for that never scrolls. */
+  it("demande d'abord si le projet démarre avec le serveur, avant la branche", () => {
+    const html = panel({ status: "idle" });
+
+    expect(text(html)).toContain("Démarrer le projet avec le serveur");
+    expect(html.indexOf('name="config.boot"')).toBeLessThan(
+      html.indexOf('id="config.branch"')
+    );
+  });
+
+  /** A process the reader did not come for folds under one line saying what it is; one the registry would refuse opens on its refusal. */
+  it("replie chaque processus sous son résumé, et ouvre celui qui serait refusé", () => {
+    const folded = panel({ status: "idle" });
+    const refused = panel({ status: "idle" }, { processProblems: ["cmd"] });
+
+    expect(folded).toMatch(/data-closed=""[^>]*data-process="0"/);
+    expect(folded).toMatch(
+      /data-process-fold="0"[^>]*>[\s\S]*?3000[\s\S]*?flymate\.example\.org[\s\S]*?<\/button>/
+    );
+    expect(text(folded)).toContain("principal");
+
+    expect(refused).toMatch(/data-open=""[^>]*data-process="0"/);
+  });
+
   /** Each runtime the server holds at several majors gets a select: the default first, named, then the majors; a server without a runtime shows nothing of it. */
-  it("propose une version par runtime installé, le défaut nommé, rien sans runtime", () => {
+  it("propose une version par runtime installé, le défaut nommé, rien sans runtime", async () => {
     const html = panel({ status: "idle" }, { runtimes: { node: "22" } });
     const none = panel({ status: "idle" }, { services: [] });
 
@@ -126,10 +158,20 @@ describe("la configuration d'un projet", () => {
     expect(html).toContain('id="config.runtimes.node"');
     expect(html).toContain('id="config.runtimes.java"');
     expect(html).not.toContain('id="config.runtimes.db.postgres"');
-    expect(text(html)).toContain("Par défaut (24)");
     expect(text(html)).toContain("Par défaut (21)");
-    expect(html).toContain('<option value="22" selected="">');
-    expect(html).toContain('value="24"');
+    expect(html).toContain('name="config.runtimes.node" value="22"');
+
+    const view = await mount(
+      element({ status: "idle" }, { runtimes: { node: "22" } })
+    );
+    const node = await optionsOf(
+      view,
+      document.getElementById("config.runtimes.node")
+    );
+
+    expect(node.options).toEqual(["Par défaut (24)", "24", "22"]);
+
+    view.unmount();
   });
 
   it("dit qu'un changement de commande redémarre son processus, et quelles adresses meurent", () => {

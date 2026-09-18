@@ -1,12 +1,12 @@
+import { Checkbox } from "@base-ui-components/react/checkbox";
 import { Check, Lock, Minus } from "lucide-react";
 
 /**
  * A checkbox whose state is a shape before it is a colour.
  *
- * The native input stays in the document and keeps the keyboard and the label
- * working; the square next to it is what the eye reads — a tick when chosen, a
- * padlock when the catalogue calls the module mandatory, a dash when something
- * else stands in the way.
+ * A hidden native input keeps the form and the label working; the square is
+ * what the eye reads — a tick when chosen, a padlock when the catalogue calls
+ * the module mandatory, a dash when something else stands in the way.
  */
 export function CheckBox({
   name,
@@ -23,9 +23,7 @@ export function CheckBox({
   label: string;
   onChange?: (next: boolean) => void;
 }) {
-  const frame = checked
-    ? "border-inverse bg-inverse text-inverse-ink"
-    : "border-line-strong text-transparent";
+  const off = disabled || locked;
 
   let glyph = <Check size={11} strokeWidth={2.5} />;
   if (locked) {
@@ -35,22 +33,20 @@ export function CheckBox({
   }
 
   return (
-    <span className="relative inline-flex shrink-0">
-      <input
-        aria-label={label}
-        checked={checked}
-        className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
-        disabled={disabled || locked}
-        name={name}
-        onChange={(event) => onChange?.(event.target.checked)}
-        type="checkbox"
-      />
-      <span
-        aria-hidden="true"
-        className={`inline-flex h-4 w-4 items-center justify-center rounded-sm border transition-soft ${frame} ${disabled && !checked ? "opacity-60" : ""}`}
+    <Checkbox.Root
+      aria-label={label}
+      checked={checked}
+      className={`clickable inline-flex size-4 shrink-0 items-center justify-center rounded-xs border border-line-strong text-transparent transition-soft data-[checked]:border-inverse data-[checked]:bg-inverse data-[checked]:text-inverse-ink ${off ? "cursor-not-allowed" : "cursor-pointer"} ${disabled && !checked ? "opacity-60" : ""}`}
+      disabled={off}
+      name={name}
+      onCheckedChange={(next) => onChange?.(next)}
+    >
+      <Checkbox.Indicator
+        className="inline-flex"
+        keepMounted={disabled && !checked}
       >
         {glyph}
-      </span>
-    </span>
+      </Checkbox.Indicator>
+    </Checkbox.Root>
   );
 }

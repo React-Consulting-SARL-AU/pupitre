@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import type { Navigation } from "@renderer/lib/memory";
 import { stubPupitre } from "../../__tests__/stub-pupitre";
 import { restoredTerminals, useNavigation } from "../navigation";
+import { useServers } from "../servers";
 
 const STORAGE_ENTRY = "pupitre.navigation.v1";
 
@@ -278,7 +279,7 @@ describe("les onglets d'un lancement à l'autre", () => {
   it("relit les onglets, leurs titres, leur session et celui qui était devant", () => {
     remembered({
       terminal: "t2",
-      terminalTabs: { "@server:shell": "t2", "flymate-api:claude": "t1" },
+      terminalTabs: { "@server": "t2", "flymate-api:agents": "t1" },
       terminals: [
         tab({
           id: "t1",
@@ -304,10 +305,32 @@ describe("les onglets d'un lancement à l'autre", () => {
       "shell-server-t2",
     ]);
     expect(state.activeTabs).toEqual({
-      "@server:shell": "t2",
-      "flymate-api:claude": "t1",
+      "@server": "t2",
+      "flymate-api:agents": "t1",
     });
     expect(state.activeTerminal).toBe("t2");
+  });
+
+  it("oublie l'onglet devant d'un groupe qu'aucun onglet ne forme", () => {
+    remembered({
+      terminalTabs: { "@server": "t1", "flymate-api:claude": "t1" },
+      terminals: [tab({})],
+    });
+
+    useNavigation.setState(restoredTerminals());
+
+    expect(useNavigation.getState().activeTabs).toEqual({ "@server": "t1" });
+  });
+
+  it("oublie l'onglet devant d'une rangée où il ne siège pas", () => {
+    remembered({
+      terminalTabs: { "flymate-api": "t1" },
+      terminals: [tab({ kind: "claude", project: "flymate-api" })],
+    });
+
+    useNavigation.setState(restoredTerminals());
+
+    expect(useNavigation.getState().activeTabs).toEqual({});
   });
 
   it("les rend fermés, et c'est y revenir qui les rouvre", () => {
@@ -332,7 +355,7 @@ describe("les onglets d'un lancement à l'autre", () => {
   it("laisse tomber ce qu'elle ne sait pas relire, sans perdre le reste", () => {
     remembered({
       terminal: "t9",
-      terminalTabs: { "@server:shell": "t9" },
+      terminalTabs: { "@server": "t9" },
       terminals: [
         tab({ kind: "rm -rf /" }),
         { id: "t2" },
@@ -365,7 +388,7 @@ describe("les onglets d'un lancement à l'autre", () => {
 
   it("retire l'onglet remémoré d'un projet que le registre ne déclare plus", () => {
     remembered({
-      terminalTabs: { "@server:shell": "t2", "flymate-api:claude": "t1" },
+      terminalTabs: { "@server": "t2", "flymate-api:agents": "t1" },
       terminals: [
         tab({ id: "t1", kind: "claude", project: "flymate-api" }),
         tab({ id: "t2" }),
@@ -378,7 +401,102 @@ describe("les onglets d'un lancement à l'autre", () => {
     const state = useNavigation.getState();
 
     expect(state.terminals.map((terminal) => terminal.id)).toEqual(["t2"]);
-    expect(state.activeTabs).toEqual({ "@server:shell": "t2" });
+    expect(state.activeTabs).toEqual({ "@server": "t2" });
+  });
+
+  it("met les shells d'un projet dans une rangée et ses agents dans l'autre", () => {
+    const store = useNavigation.getState();
+    const shell = store.openTerminal("flymate-api", "shell");
+    const claude = store.openTerminal("flymate-api", "claude");
+    const codex = store.openTerminal("flymate-api", "codex");
+    const second = store.openTerminal("flymate-api", "claude");
+
+    const state = useNavigation.getState();
+
+    expect(
+      state.terminals
+        .filter((terminal) => terminal.project === "flymate-api")
+        .map((terminal) => terminal.title)
+    ).toEqual(["Terminal", "Claude", "Codex", "Claude 2"]);
+    expect(state.activeTabs).toEqual({
+      "flymate-api": shell,
+      "flymate-api:agents": second,
+    });
+
+    useNavigation.getState().closeTerminal(second);
+
+    expect(useNavigation.getState().activeTabs).toEqual({
+      "flymate-api": shell,
+      "flymate-api:agents": codex,
+    });
+
+    useNavigation.getState().activateTerminal(claude);
+    useNavigation.getState().ensureTerminal("flymate-api");
+
+    expect(useNavigation.getState().activeTabs).toEqual({
+      "flymate-api": shell,
+      "flymate-api:agents": claude,
+    });
+    expect(useNavigation.getState().terminals).toHaveLength(3);
+  });
+
+  it("ferme l'onglet d'un agent qui a quitté, sans rien tuer sur la machine", () => {
+    const ends: unknown[] = [];
+
+    stubPupitre({
+      closeTerminal: (_id: string, end: unknown) => {
+        ends.push(end);
+      },
+    });
+
+    useServers.setState({ config: { active: "srv", servers: [] } });
+
+    const claude = useNavigation
+      .getState()
+      .openTerminal("flymate-api", "claude");
+    const codex = useNavigation.getState().openTerminal("flymate-api", "codex");
+
+    useNavigation.getState().noteSession(claude, "claude-flymate-api");
+    useNavigation.getState().noteSession(codex, "codex-flymate-api");
+    useNavigation.getState().endTerminal(claude, 0);
+    useNavigation.getState().closeTerminal(codex);
+
+    expect(useNavigation.getState().terminals).toHaveLength(0);
+    expect(ends).toEqual([
+      null,
+      { serverId: "srv", session: "codex-flymate-api" },
+    ]);
+
+    useServers.setState({ config: null });
+  });
+
+  it("garde l'onglet d'un shell qui a quitté, et celui d'un agent dont la liaison a rompu", () => {
+    const shell = useNavigation.getState().openTerminal("flymate-api", "shell");
+    const claude = useNavigation
+      .getState()
+      .openTerminal("flymate-api", "claude");
+
+    useNavigation.getState().endTerminal(shell, 0);
+    useNavigation.getState().endTerminal(claude, 255);
+
+    expect(
+      useNavigation.getState().terminals.map((terminal) => terminal.id)
+    ).toEqual([shell, claude]);
+  });
+
+  it("n'ouvre un shell à l'arrivée que si la rangée des shells est vide, jamais un agent", () => {
+    useNavigation.getState().openTerminal("flymate-api", "claude");
+    useNavigation.getState().ensureTerminal("flymate-api");
+
+    const kinds = useNavigation
+      .getState()
+      .terminals.map((terminal) => terminal.kind);
+
+    expect(kinds).toEqual(["claude", "shell"]);
+
+    useNavigation.getState().ensureTerminal("flymate-api");
+
+    expect(useNavigation.getState().terminals).toHaveLength(2);
   });
 
   it("garde l'onglet ouvert d'un projet disparu : c'est le travail du lecteur", () => {
@@ -386,5 +504,48 @@ describe("les onglets d'un lancement à l'autre", () => {
     useNavigation.getState().settle(["atlas-web"]);
 
     expect(useNavigation.getState().terminals).toHaveLength(1);
+  });
+
+  it("ouvre le terminal du raccourci dans le projet affiché, sur son onglet des terminaux", () => {
+    useNavigation.getState().select("flymate-api");
+    useNavigation.getState().setProjectTab("flymate-api", "files");
+    useNavigation.getState().openTerminalHere();
+
+    const state = useNavigation.getState();
+
+    expect(state.terminals.map((terminal) => terminal.project)).toEqual([
+      "flymate-api",
+    ]);
+    expect(state.projectTabs["flymate-api"]).toBe("terminals");
+    expect(where()).toMatchObject({
+      selection: "flymate-api",
+      view: "project",
+    });
+  });
+
+  it("ouvre le terminal du raccourci sur le serveur hors d'un projet", () => {
+    useNavigation.getState().goTo("services");
+    useNavigation.getState().openTerminalHere();
+
+    const state = useNavigation.getState();
+
+    expect(state.terminals.map((terminal) => terminal.project)).toEqual([null]);
+    expect(where().view).toBe("terminals");
+  });
+
+  it("ouvre l'agent du raccourci dans le projet affiché, sur son onglet des agents, jamais sur le serveur", () => {
+    useNavigation.getState().select("flymate-api");
+    useNavigation.getState().openTerminalHere("claude");
+
+    expect(useNavigation.getState().projectTabs["flymate-api"]).toBe("agents");
+    expect(
+      useNavigation.getState().terminals.map((terminal) => terminal.kind)
+    ).toEqual(["claude"]);
+
+    useNavigation.getState().goTo("dashboard");
+    useNavigation.getState().openTerminalHere("claude");
+
+    expect(useNavigation.getState().terminals).toHaveLength(1);
+    expect(where().view).toBe("dashboard");
   });
 });

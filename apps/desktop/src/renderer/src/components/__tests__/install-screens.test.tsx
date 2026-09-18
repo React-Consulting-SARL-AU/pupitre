@@ -225,7 +225,7 @@ describe("le rapport final", () => {
     expect(text(html)).toContain("MySQL n'a pas pu être installé.");
     expect(text(html)).toContain("pupitred install db.mysql");
     expect(html).toMatch(
-      /<details[^>]*>.*apt : E: Unable to locate package mysql-server/s
+      /aria-expanded="false"[\s\S]*hidden=""[^>]*>[\s\S]*apt : E: Unable to locate package mysql-server/
     );
   });
 
@@ -300,8 +300,8 @@ describe("le journal", () => {
       <InstallLog lines={["core.system · paquets · ok · 12,4 s", "seconde"]} />
     );
 
-    expect(html).toContain("<details");
-    expect(html).not.toContain("<details open");
+    expect(html).toContain("data-details");
+    expect(html).not.toMatch(/data-open=""[^>]*data-details/);
     expect(text(html).indexOf("core.system")).toBeLessThan(
       text(html).indexOf("seconde")
     );

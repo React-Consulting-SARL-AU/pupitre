@@ -539,7 +539,13 @@ func (r *Reader) Logs(name, id string, lines int) ([]string, error) {
 
 // With follow every line travels as an event, the tail included: the app must never receive the newest lines before the oldest.
 //
-// The follow ends with the channel that reads it, with the process, or with its own time — whichever comes first.
+// The follow outlives the process: a stop writes its marker, a restart empties
+// the journal and writes it again, and the reader sees both. It ends with the
+// channel that reads it or with its own time — whichever comes first.
+//
+// A line travels once it is whole. A read lands between two writes of the
+// same line — a download counter, a Gradle progress bar — and emitting the
+// half read would show it as two lines; the rest waits for its newline.
 func (r *Reader) Follow(channel context.Context, name, id string, lines int, emit func(string)) error {
 	tail, err := r.Logs(name, id, lines)
 	if err != nil {
@@ -551,23 +557,31 @@ func (r *Reader) Follow(channel context.Context, name, id string, lines int, emi
 	}
 
 	ctx := r.ctx()
-	window := registry.Window(name, id)
-	path := r.options.Tmux.LogPath(window)
+	path := r.options.Tmux.LogPath(registry.Window(name, id))
 	seen := r.size(path)
+	partial := ""
 	deadline := r.options.Now().Add(r.options.Follow.Limit)
 
-	for channel.Err() == nil && tmux.Running(ctx, r.options.Tmux, window) && r.options.Now().Before(deadline) {
+	for channel.Err() == nil && r.options.Now().Before(deadline) {
 		r.pause(channel, r.options.Follow.Interval)
+
+		if r.size(path) < seen {
+			seen = 0
+			partial = ""
+		}
 
 		raw, readErr := file.From(ctx, path, seen)
 		if readErr != nil || len(raw) == 0 {
 			continue
 		}
+		seen += int64(len(raw))
 
-		for _, line := range strings.Split(strings.TrimRight(string(raw), "\n"), "\n") {
+		pieces := strings.Split(partial+string(raw), "\n")
+		partial = pieces[len(pieces)-1]
+
+		for _, line := range pieces[:len(pieces)-1] {
 			emit(line)
 		}
-		seen += int64(len(raw))
 	}
 
 	return nil

@@ -2,8 +2,9 @@ import { describe, expect, it } from "bun:test";
 import { devDefaultsFrom } from "../dev-defaults-run";
 
 /**
- * What the developer's environment fills in, and where it stops: a packaged
- * build answers nothing, whatever the environment says.
+ * What the developer's environment fills in, and where it stops: a build that
+ * talks to a hosted platform answers nothing, whatever the environment says —
+ * the throwaway machine belongs to the local console.
  */
 const ENV = {
   PUPITRE_DEV_GIT_EMAIL: "ada@pupitre.studio",
@@ -17,7 +18,7 @@ const ENV = {
 
 describe("les valeurs de développement", () => {
   it("viennent de l'environnement, sous les clés que le socle déclare", () => {
-    expect(devDefaultsFrom(ENV, false)).toEqual({
+    expect(devDefaultsFrom(ENV, "development")).toEqual({
       fields: {
         "core.system": {
           git_email: "ada@pupitre.studio",
@@ -34,14 +35,14 @@ describe("les valeurs de développement", () => {
     });
   });
 
-  it("n'existent pas dans un build empaqueté", () => {
-    expect(devDefaultsFrom(ENV, true)).toBeNull();
+  it("n'existent pas hors d'un build de développement sur la console locale", () => {
+    expect(devDefaultsFrom(ENV, "production")).toBeNull();
   });
 
   it("laissent vide ce qui n'est pas donné, et ignorent un port qui n'en est pas un", () => {
     const defaults = devDefaultsFrom(
       { PUPITRE_DEV_SERVER_PORT: "vingt-deux" },
-      false
+      "development"
     );
 
     expect(defaults?.fields).toEqual({});

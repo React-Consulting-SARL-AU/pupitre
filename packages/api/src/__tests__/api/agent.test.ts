@@ -389,6 +389,44 @@ describe("POST /agent/heartbeat", () => {
     expect(stored.lastUsage).not.toHaveProperty("sessions")
   })
 
+  it("follows the account the agent holds the keys of, and keeps the known one when the agent says nothing", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { organization } = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: {},
+    })
+    const { server, token } = await createServer({
+      organizationId: organization.id,
+    })
+
+    await prisma.server.update({
+      where: { id: server.id },
+      data: { sshUser: "root" },
+    })
+
+    const silent = await apiRequest("/agent/heartbeat", {
+      body: HEARTBEAT,
+      bearer: token,
+    })
+
+    expect(silent.status).toBe(204)
+    expect(
+      (await prisma.server.findUniqueOrThrow({ where: { id: server.id } }))
+        .sshUser
+    ).toBe("root")
+
+    const telling = await apiRequest("/agent/heartbeat", {
+      body: { ...HEARTBEAT, ssh_user: "dev" },
+      bearer: token,
+    })
+
+    expect(telling.status).toBe(204)
+    expect(
+      (await prisma.server.findUniqueOrThrow({ where: { id: server.id } }))
+        .sshUser
+    ).toBe("dev")
+  })
+
   it("refuses a heartbeat that lists more sessions or modules than a machine has", async () => {
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],

@@ -3,7 +3,10 @@ import type { FileEntry } from "@pupitre/shared/agent-protocol/files";
 import type { Server } from "@shared/servers";
 import type { PortForward, ServiceDetail } from "@shared/services";
 import { renderToStaticMarkup } from "react-dom/server";
+import { mount } from "../../__tests__/dom";
 import type { PaletteEntry } from "../../lib/palette";
+import { isMac } from "../../lib/platform";
+import { shortcutSheet } from "../../lib/shortcut-sheet";
 import { refusedField, ServerRowEdit } from "../servers/server-row-edit";
 import { ServiceControls } from "../services/service-controls";
 import { ServiceDatabase } from "../services/service-database";
@@ -12,6 +15,7 @@ import { ServiceForward } from "../services/service-forward";
 import { CommandPalette } from "../shell/command-palette";
 import { ForwardsList } from "../shell/forwards-list";
 import { ServerSwitch } from "../shell/server-switch";
+import { ShortcutsDialog } from "../shell/shortcuts-dialog";
 import { SignOutDialog } from "../shell/sign-out-dialog";
 
 /**
@@ -292,8 +296,8 @@ describe("la palette", () => {
     },
   ];
 
-  it("est un dialogue qui porte une liste, la première entrée choisie", () => {
-    const html = renderToStaticMarkup(
+  it("est un dialogue qui porte une liste, la première entrée choisie", async () => {
+    const view = await mount(
       <CommandPalette
         entries={ENTRIES}
         onClose={() => undefined}
@@ -301,15 +305,18 @@ describe("la palette", () => {
         open
       />
     );
+    const html = view.html();
 
     expect(html).toContain('role="dialog"');
-    expect(html).toContain('aria-modal="true"');
     expect(html).toContain('role="listbox"');
     expect(html).toContain('role="combobox"');
     expect(html).toContain('data-palette-entry="view:dashboard"');
     expect(html).toContain('data-palette-entry="project:flymate-api"');
     expect(html.match(/aria-selected="true"/g)).toHaveLength(1);
     expect(text(html)).toContain("2 résultats");
+    expect(document.activeElement?.getAttribute("role")).toBe("combobox");
+
+    view.unmount();
   });
 
   it("ne dessine rien fermée", () => {
@@ -326,14 +333,60 @@ describe("la palette", () => {
   });
 });
 
+describe("la fiche des raccourcis", () => {
+  it("liste chaque groupe avec ses touches, écrites pour ce clavier", async () => {
+    let closed = 0;
+    const view = await mount(
+      <ShortcutsDialog
+        onClose={() => {
+          closed += 1;
+        }}
+        open
+      />
+    );
+    const html = view.html();
+    const shown = text(html);
+
+    const caps = [
+      ...document.querySelectorAll('[data-dialog="shortcuts"] kbd'),
+    ].map((cap) => cap.textContent);
+
+    expect(html).toContain('data-dialog="shortcuts"');
+
+    for (const group of shortcutSheet(isMac)) {
+      expect(html).toContain(`data-section="${group.name}"`);
+
+      for (const line of group.shortcuts) {
+        expect(caps).toContain(line.keys[0]);
+      }
+    }
+
+    expect(shown).toContain("Nouveau terminal dans le projet affiché");
+    expect(shown).toContain("Onglet par son rang");
+
+    await view.click(
+      [...document.querySelectorAll("[data-dialog] button")].find(
+        (button) => button.textContent === "Fermer"
+      ) ?? null
+    );
+
+    expect(closed).toBe(1);
+
+    view.unmount();
+  });
+});
+
 describe("la déconnexion demandée par le menu", () => {
-  it("se confirme dans la fenêtre avant de faire quoi que ce soit", () => {
-    const html = renderToStaticMarkup(
+  it("se confirme dans la fenêtre avant de faire quoi que ce soit", async () => {
+    const view = await mount(
       <SignOutDialog onCancel={() => undefined} onConfirm={later} open />
     );
+    const html = view.html();
 
     expect(html).toContain('role="dialog"');
     expect(text(html)).toContain("Se déconnecter de ce compte ?");
     expect(text(html)).toContain("Annuler");
+
+    view.unmount();
   });
 });

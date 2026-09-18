@@ -1,22 +1,8 @@
 import type { Manifest, ModuleCategory } from "@pupitre/shared/catalog";
-import type { DictionaryKey } from "@renderer/i18n/en";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import { CATEGORY_NAMES } from "@renderer/lib/module-category";
 import { Section } from "../ui/section";
 import { CatalogModuleCard } from "./catalog-module-card";
-
-/**
- * The seven categories of the contract. A category the agent sends that is not
- * one of them keeps its own name rather than disappearing.
- */
-const NAMES: Record<string, DictionaryKey> = {
-  core: "catalog.category.core",
-  runtime: "catalog.category.runtime",
-  database: "catalog.category.database",
-  ai: "catalog.category.ai",
-  editor: "catalog.category.editor",
-  exposure: "catalog.category.exposure",
-  tool: "catalog.category.tool",
-};
 
 export function CatalogCategorySection({
   category,
@@ -33,7 +19,7 @@ export function CatalogCategorySection({
 }) {
   const t = useTranslations();
 
-  const name = NAMES[category];
+  const name = CATEGORY_NAMES[category];
 
   return (
     <Section

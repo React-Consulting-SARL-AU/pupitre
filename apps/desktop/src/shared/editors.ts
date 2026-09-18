@@ -18,6 +18,20 @@ export interface RemoteEditor {
   module: string;
   /** The module whose logo is this editor's mark: Cursor's is its agent's, not the server's. */
   logo: string;
+  /**
+   * Whether the link has to name the folder the module laid on the server.
+   *
+   * Gateway refuses a link that says neither where the backend is nor which
+   * one to download; the module put it there, and only the agent's `path`
+   * says where. Until it does, there is no link to hand, and no mark.
+   */
+  backend: boolean;
+}
+
+/** A module the agent listed, and the folder it laid when the link needs one. */
+export interface LaidModule {
+  id: string;
+  path?: string;
 }
 
 /**
@@ -27,27 +41,41 @@ export interface RemoteEditor {
  */
 export const REMOTE_EDITORS: readonly RemoteEditor[] = [
   {
+    backend: true,
     id: "jetbrains",
     logo: "editor.jetbrains",
     module: "editor.jetbrains",
     name: "JetBrains Gateway",
   },
   {
+    backend: false,
     id: "vscode",
     logo: "editor.vscode",
     module: "editor.vscode",
     name: "VS Code",
   },
-  { id: "cursor", logo: "ai.cursor", module: "editor.vscode", name: "Cursor" },
-  { id: "zed", logo: "editor.zed", module: "editor.zed", name: "Zed" },
+  {
+    backend: false,
+    id: "cursor",
+    logo: "ai.cursor",
+    module: "editor.vscode",
+    name: "Cursor",
+  },
+  {
+    backend: false,
+    id: "zed",
+    logo: "editor.zed",
+    module: "editor.zed",
+    name: "Zed",
+  },
 ];
 
-export function editorsFor(
-  installedModules: readonly string[]
-): RemoteEditor[] {
-  return REMOTE_EDITORS.filter((editor) =>
-    installedModules.includes(editor.module)
-  );
+export function editorsFor(installed: readonly LaidModule[]): RemoteEditor[] {
+  return REMOTE_EDITORS.filter((editor) => {
+    const module = installed.find((laid) => laid.id === editor.module);
+
+    return module !== undefined && (!editor.backend || Boolean(module.path));
+  });
 }
 
 export function editorById(id: string): RemoteEditor | null {
@@ -65,15 +93,18 @@ const PATH_OK = /^\/[\w.\-/+@]{0,240}$/;
  * the account, the port, the key and the pinned host key all come from there
  * and none needs saying here. A host taken from ~/.ssh/config is named by its
  * alias alone, for the same reason. JetBrains Gateway asks for the port and
- * the account anyway, and gets the ones the block says.
+ * the account anyway, and gets the ones the block says — and the backend the
+ * module laid, as `idePath`, so it opens that one rather than downloading its
+ * own or refusing the link.
  */
 export function remoteEditorUrl(
   editor: RemoteEditor,
   server: Server,
   name: string,
-  path: string
+  path: string,
+  backend: string | null = null
 ): string | null {
-  if (!PATH_OK.test(path)) {
+  if (!PATH_OK.test(path) || (editor.backend && !backend)) {
     return null;
   }
 
@@ -82,7 +113,7 @@ export function remoteEditorUrl(
 
   switch (editor.id) {
     case "jetbrains":
-      return `jetbrains-gateway://connect#type=ssh&host=${encodeURIComponent(name)}&port=${port}&user=${encodeURIComponent(user)}&projectPath=${encodeURIComponent(path)}`;
+      return `jetbrains-gateway://connect#type=ssh&host=${encodeURIComponent(name)}&port=${port}&user=${encodeURIComponent(user)}&projectPath=${encodeURIComponent(path)}&idePath=${encodeURIComponent(backend ?? "")}&deploy=false`;
     case "vscode":
       return `vscode://vscode-remote/ssh-remote+${name}${path}`;
     case "cursor":

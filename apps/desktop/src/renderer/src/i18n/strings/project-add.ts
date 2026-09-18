@@ -23,8 +23,13 @@ export const projectAdd = {
       "This server already declares this project as {name}. Its processes are shown as it runs them; open it to change them.",
     "projectAdd.form.portLabel": "Port",
     "projectAdd.processes.title": "Processes",
-    "projectAdd.processes.help":
-      "What runs in the project: one process at the least, each from its own folder with its own command. The first one is the main one.",
+    "projectAdd.section.source": "Source",
+    "projectAdd.section.project": "Project",
+    "projectAdd.section.start": "Start",
+    "projectAdd.form.startNowDetail":
+      "The sources are fetched and the dependencies installed first; the project comes up once they are.",
+    "projectAdd.form.bootDetail":
+      "The project comes back on its own after a reboot of the server.",
     "projectAdd.processes.idLabel": "Process",
     "projectAdd.processes.idHelp": "Names the window and the journal.",
     "projectAdd.processes.idPlaceholder": "server",
@@ -39,6 +44,8 @@ export const projectAdd = {
     "projectAdd.processes.dir":
       "A folder inside the project: no leading slash, no “..”.",
     "projectAdd.processes.cmd": "A start command is needed.",
+    "projectAdd.processes.main": "main",
+    "projectAdd.processes.unnamed": "Unnamed process",
     "projectAdd.processes.remove": "Remove the process {id}",
     "projectAdd.processes.add": "Add a process",
     "projectAdd.ports.title": "Ports",
@@ -67,7 +74,15 @@ export const projectAdd = {
       "Run from the project's folder, in the agent's session.",
     "projectAdd.form.cmdPlaceholder": "bun run dev --port 3000",
     "projectAdd.form.submit": "Create the project",
+    "projectAdd.form.read.repo": "Read the repository",
+    "projectAdd.form.read.dir": "Read the folder",
+    "projectAdd.form.skipReading": "Configure without reading",
+    "projectAdd.form.editSource": "Change the source",
+    "projectAdd.summary.repo": "Repository",
+    "projectAdd.summary.dir": "Folder",
+    "projectAdd.summary.defaultBranch": "the repository's own",
 
+    "projectAdd.source.label": "Where the project comes from",
     "projectAdd.source.github.title": "GitHub",
     "projectAdd.source.github.detail":
       "The repositories of the account connected in the settings.",
@@ -141,7 +156,7 @@ export const projectAdd = {
     "projectAdd.publish.local": "the project stays local",
     "projectAdd.up.notAsked": "left stopped, as asked",
     "projectAdd.form.startNowLabel": "Start the project once it is ready",
-    "projectAdd.form.bootLabel": "Start it with the server",
+    "projectAdd.form.bootLabel": "Start the project with the server",
     "projectAdd.up.notRunningFix":
       "Read the journal below, fix the start command, then try again.",
     "projectAdd.up.notRunningMessage":
@@ -175,8 +190,13 @@ export const projectAdd = {
       "Ce serveur déclare déjà ce projet sous le nom {name}. Ses processus sont ceux qu'il fait tourner ; ouvrez-le pour les changer.",
     "projectAdd.form.portLabel": "Port",
     "projectAdd.processes.title": "Processus",
-    "projectAdd.processes.help":
-      "Ce qui tourne dans le projet : un processus au moins, chacun depuis son dossier avec sa commande. Le premier est le principal.",
+    "projectAdd.section.source": "Source",
+    "projectAdd.section.project": "Projet",
+    "projectAdd.section.start": "Démarrage",
+    "projectAdd.form.startNowDetail":
+      "Les sources sont récupérées et les dépendances installées d'abord ; le projet démarre une fois que c'est fait.",
+    "projectAdd.form.bootDetail":
+      "Le projet revient de lui-même après un redémarrage du serveur.",
     "projectAdd.processes.idLabel": "Processus",
     "projectAdd.processes.idHelp": "Nomme la fenêtre et le journal.",
     "projectAdd.processes.idPlaceholder": "server",
@@ -190,6 +210,8 @@ export const projectAdd = {
     "projectAdd.processes.dir":
       "Un dossier dans le projet : pas de barre oblique en tête, pas de « .. ».",
     "projectAdd.processes.cmd": "Il faut une commande de démarrage.",
+    "projectAdd.processes.main": "principal",
+    "projectAdd.processes.unnamed": "Processus sans nom",
     "projectAdd.processes.remove": "Retirer le processus {id}",
     "projectAdd.processes.add": "Ajouter un processus",
     "projectAdd.ports.title": "Ports",
@@ -218,7 +240,15 @@ export const projectAdd = {
       "Lancée depuis le dossier du projet, dans la session de l'agent.",
     "projectAdd.form.cmdPlaceholder": "bun run dev --port 3000",
     "projectAdd.form.submit": "Créer le projet",
+    "projectAdd.form.read.repo": "Lire le dépôt",
+    "projectAdd.form.read.dir": "Lire le dossier",
+    "projectAdd.form.skipReading": "Configurer sans lire",
+    "projectAdd.form.editSource": "Modifier la source",
+    "projectAdd.summary.repo": "Dépôt",
+    "projectAdd.summary.dir": "Dossier",
+    "projectAdd.summary.defaultBranch": "celle du dépôt",
 
+    "projectAdd.source.label": "D'où vient le projet",
     "projectAdd.source.github.title": "GitHub",
     "projectAdd.source.github.detail":
       "Les dépôts du compte connecté dans les réglages.",
@@ -294,7 +324,7 @@ export const projectAdd = {
     "projectAdd.publish.local": "le projet reste local",
     "projectAdd.up.notAsked": "laissé arrêté, comme demandé",
     "projectAdd.form.startNowLabel": "Démarrer le projet une fois prêt",
-    "projectAdd.form.bootLabel": "Le démarrer avec le serveur",
+    "projectAdd.form.bootLabel": "Démarrer le projet avec le serveur",
     "projectAdd.up.notRunningFix":
       "Lisez le journal ci-dessous, corrigez la commande de démarrage, puis réessayez.",
     "projectAdd.up.notRunningMessage":

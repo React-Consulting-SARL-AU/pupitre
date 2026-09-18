@@ -16,6 +16,7 @@ import {
   readDatabaseUrl,
   readService,
   type ServicesDeps,
+  servicePath,
 } from "../services-run";
 
 const SERVER = "srv-1";
@@ -229,13 +230,25 @@ describe("les services que l'agent a listés", () => {
 
     noteServices(SERVER, "snapshot", {
       ok: true,
-      result: { services: [{ id: "db.postgres" }, { id: "runtime.node" }] },
+      result: {
+        services: [
+          { id: "db.postgres" },
+          { id: "runtime.node" },
+          { id: "editor.jetbrains", path: "/home/dev/.cache/dist/idea" },
+          { id: "editor.zed", path: "relative/never" },
+        ],
+      },
     });
 
     expect(declaresService(SERVER, "db.postgres")).toBe(true);
     expect(declaresService(SERVER, "runtime.node")).toBe(true);
     expect(declaresService(SERVER, "db.mysql")).toBe(false);
     expect(declaresService("srv-2", "db.postgres")).toBe(false);
+    expect(servicePath(SERVER, "editor.jetbrains")).toBe(
+      "/home/dev/.cache/dist/idea"
+    );
+    expect(servicePath(SERVER, "editor.zed")).toBeNull();
+    expect(servicePath(SERVER, "db.postgres")).toBeNull();
 
     noteServices(SERVER, "status", {
       ok: true,

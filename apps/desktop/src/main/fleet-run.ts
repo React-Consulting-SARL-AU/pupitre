@@ -16,8 +16,9 @@ import { grantGone, grantWithdrawn } from "@shared/servers";
  * and no clock; `fleet.ts` hands it the two lists and writes what comes back.
  *
  * A server the app itself added is never overwritten by the platform's copy of
- * it: the hardening moved its account here, and the platform still names the
- * one the enrolment saw.
+ * it: the address and the account were typed here, and stay as typed. The
+ * platform learns the hardened account from the agent's heartbeat, so what it
+ * hands another device is the account that actually opens the machine.
  */
 
 export interface FleetMergeInput {

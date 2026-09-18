@@ -15,42 +15,11 @@ export const PROJECT_TABS = [
   "logs",
   "diff",
   "files",
-  "shell",
-  "claude",
-  "codex",
-  "cursor",
-  "gemini",
-  "copilot",
-  "opencode",
-  "hermes",
+  "terminals",
+  "agents",
 ] as const;
 
 export type ProjectTab = (typeof PROJECT_TABS)[number];
-
-export const TERMINAL_TABS: readonly ProjectTab[] = [
-  "shell",
-  "claude",
-  "codex",
-  "cursor",
-  "gemini",
-  "copilot",
-  "opencode",
-  "hermes",
-];
-
-const AGENT_TABS: readonly ProjectTab[] = [
-  "claude",
-  "codex",
-  "cursor",
-  "gemini",
-  "copilot",
-  "opencode",
-  "hermes",
-];
-
-export function isTerminalTab(tab: ProjectTab): tab is TerminalKind {
-  return TERMINAL_TABS.includes(tab);
-}
 
 /** What comes back from storage is a string, and last run was another version. */
 export function isProjectTab(value: string | undefined): value is ProjectTab {
@@ -60,44 +29,26 @@ export function isProjectTab(value: string | undefined): value is ProjectTab {
 }
 
 export const TAB_LABEL: Record<ProjectTab, DictionaryKey> = {
-  claude: "project.tab.claude",
-  codex: "project.tab.codex",
+  agents: "project.tab.agents",
   configuration: "project.tab.configuration",
-  copilot: "project.tab.copilot",
-  cursor: "project.tab.cursor",
   diff: "project.tab.diff",
   files: "project.tab.files",
-  gemini: "project.tab.gemini",
-  hermes: "project.tab.hermes",
   logs: "project.tab.logs",
-  opencode: "project.tab.opencode",
   overview: "project.tab.overview",
-  shell: "project.tab.shell",
+  terminals: "project.tab.terminals",
 };
 
 /**
  * The tabs this particular project offers.
  *
- * An agent that is not installed on the machine gets no tab: opening "Claude"
- * where it does not exist gives a terminal that dies at once. A folder that is
- * not a repository gets no diff, for want of anything to compare.
+ * A folder that is not a repository gets no diff, for want of anything to
+ * compare. Which agents the agents tab can start is the tab's own question.
  */
-export function tabsFor({
-  agents,
-  repo,
-}: {
-  agents: readonly string[];
-  repo: boolean;
-}): ProjectTab[] {
-  return PROJECT_TABS.filter((tab) => {
-    if (tab === "diff") {
-      return repo;
-    }
+export function tabsFor({ repo }: { repo: boolean }): ProjectTab[] {
+  return PROJECT_TABS.filter((tab) => tab !== "diff" || repo);
+}
 
-    if (AGENT_TABS.includes(tab)) {
-      return agents.includes(tab);
-    }
-
-    return true;
-  });
+/** The tab a session of that kind sits under: the shells on one, the agents on the other. */
+export function tabOfKind(kind: TerminalKind): ProjectTab {
+  return kind === "shell" ? "terminals" : "agents";
 }

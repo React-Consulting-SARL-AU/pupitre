@@ -22,7 +22,10 @@ Même outillage que React-Box, mêmes versions quand elles sont compatibles : ce
 bun install
 bun dev              # site sur :4321, web sur :3000, tunnel de l'agent
 bun run dev:desktop  # l'app, pointée sur la console locale
+bun run dev:desktop:prod  # l'app, pointée sur app.pupitre.studio : le vrai compte, les vrais serveurs
 ```
+
+`dev:desktop:prod` est la même app de développement — rechargement à chaud du renderer, traces, devtools — mais dirigée vers la plateforme hébergée par `PUPITRE_PLATFORM_URL`. Elle se conduit alors comme l'app installée : le droit d'usage vient du compte, l'agent poussé sur un serveur nu est la release que la plateforme nomme, et rien n'est accordé par le build lui-même. Elle tient ses données dans `Pupitre Dev (app.pupitre.studio)`, à côté de `Pupitre Dev` (console locale) et de `Pupitre` (l'app installée) : un jeton de l'une n'ouvre rien chez les autres, et les trois peuvent tourner en même temps. Au premier lancement on se connecte par le device flow avec son compte, ce qui enregistre un appareil de plus — sa clé est poussée sur les serveurs du compte à leur prochain battement — et le parcours des flottes ouvre les serveurs déjà enrôlés sans rien réinstaller. C'est ainsi qu'un écran s'essaie sur un vrai VPS sans release ; ce qui n'y est pas essayé, c'est un changement du protocole : l'agent en face est celui de la dernière release. Les préremplissages `PUPITRE_DEV_*` ne s'appliquent qu'à la console locale.
 
 `dev:desktop` et le `build` du desktop construisent d'abord l'agent (`@pupitre/agent#build`, que turbo ne met jamais en cache : le binaire embarque `git describe`, que turbo ne hache pas, et un build repris du cache porterait la version d'un autre commit) : l'app embarque `apps/agent/dist` au démarrage, et c'est ce binaire qu'elle pousse sur un serveur nu. Sans cette dépendance, elle poussait le dernier build manuel, et un écran pouvait attendre un contrat que l'agent installé ne parlait pas encore.
 

@@ -1,4 +1,3 @@
-import { agentText } from "@renderer/i18n/agent-error";
 import type { DictionaryKey } from "@renderer/i18n/en";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { GithubRepo } from "@shared/github";
@@ -14,7 +13,7 @@ import type { ButtonIcon } from "../ui/button";
 import { Button } from "../ui/button";
 import { Callout } from "../ui/callout";
 import { Field, fieldControlClass } from "../ui/field";
-import { ModeCard } from "../ui/mode-card";
+import { ModeCard, ModeCards } from "../ui/mode-card";
 import { ProjectAddFolders } from "./project-add-folders";
 import { ProjectAddRepos } from "./project-add-repos";
 
@@ -25,7 +24,9 @@ import { ProjectAddRepos } from "./project-add-repos";
  * guessed at: a repository of the connected account brings its own branch and
  * says whether it is private, a free address is typed, and a folder already on
  * the server is walked to. Choosing is the first decision of this screen, so it
- * is the first thing on it.
+ * is the first thing on it. Nothing here asks the agent anything: the reading
+ * is the gesture at the foot of the page, once the source and its branch are
+ * settled.
  */
 const KINDS: {
   kind: SourceKind;
@@ -71,7 +72,6 @@ export function ProjectAddSource({
   folders,
   githubModule,
   edit,
-  onDetect,
   onConnect,
   onInstallModule,
 }: {
@@ -82,40 +82,33 @@ export function ProjectAddSource({
   /** Whether `tool.github` sits on this server: without it a private clone fails. */
   githubModule: boolean;
   edit: SourceEdits;
-  /** The reader is done naming the source: the agent may read it. */
-  onDetect: () => void;
   onConnect: () => void;
   onInstallModule: () => void;
 }) {
   const t = useTranslations();
 
-  const refused =
-    detection.status === "failed"
-      ? agentText(t, detection.error).message
-      : undefined;
-
   return (
-    <div className="flex flex-col gap-5">
-      <div className="grid gap-5 sm:grid-cols-3">
+    <div className="flex flex-col gap-6">
+      <ModeCards
+        label={t("projectAdd.source.label")}
+        onChange={edit.kind}
+        value={draft.kind}
+      >
         {KINDS.map((option) => (
           <ModeCard
             detail={t(option.detail)}
             icon={option.icon}
             key={option.kind}
-            onPick={() => edit.kind(option.kind)}
-            picked={draft.kind === option.kind}
             title={t(option.title)}
+            value={option.kind}
           />
         ))}
-      </div>
+      </ModeCards>
 
       {draft.kind === "github" ? (
         <ProjectAddRepos
           onConnect={onConnect}
-          onPick={(repo) => {
-            edit.pickRepo(repo);
-            onDetect();
-          }}
+          onPick={edit.pickRepo}
           onRefresh={() => edit.loadRepos(true)}
           picked={draft.source}
           state={repos}
@@ -127,20 +120,13 @@ export function ProjectAddSource({
           help={t("projectAdd.form.sourceHelp")}
           label={t("projectAdd.form.sourceLabel")}
           name="project.source"
-          problem={refused}
           required
         >
           <input
             aria-busy={detection.status === "reading"}
-            aria-describedby={
-              refused
-                ? "project.source-help project.source-problem"
-                : "project.source-help"
-            }
-            aria-invalid={refused ? true : undefined}
+            aria-describedby="project.source-help"
             className={fieldControlClass}
             id="project.source"
-            onBlur={onDetect}
             onChange={(event) => edit.source(event.target.value)}
             placeholder={t("projectAdd.form.sourcePlaceholder")}
             value={draft.source}
@@ -152,10 +138,7 @@ export function ProjectAddSource({
         <ProjectAddFolders
           onBrowse={edit.browse}
           onCreate={edit.createFolder}
-          onPick={(path) => {
-            edit.pickFolder(path);
-            onDetect();
-          }}
+          onPick={edit.pickFolder}
           picked={draft.source}
           state={folders}
         />
@@ -171,7 +154,6 @@ export function ProjectAddSource({
             aria-busy={detection.status === "reading"}
             className={fieldControlClass}
             id="project.branch"
-            onBlur={onDetect}
             onChange={(event) => edit.branch(event.target.value)}
             placeholder={t("projectAdd.form.branchPlaceholder")}
             value={draft.branch}

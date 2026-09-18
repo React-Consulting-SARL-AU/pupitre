@@ -12,12 +12,8 @@ import { createTokenVault, type Sealer } from "./account-vault";
 import { asAgentError } from "./enrollment-run";
 import { openOutside } from "./foreground";
 import { generateKey, keyPaths, readPublicKey } from "./keys";
-import {
-  agentBaseUrl,
-  createPlatformClient,
-  DEFAULT_PLATFORM_URL,
-  LOCAL_PLATFORM_URL,
-} from "./platform-client";
+import { createPlatformClient } from "./platform-client";
+import { buildKind, platformUrl } from "./platform-url";
 import { refuseWith } from "./refusal";
 import { relayTo } from "./relay";
 import { paths } from "./servers";
@@ -37,35 +33,6 @@ const sealer: Sealer = {
   decrypt: (value) => safeStorage.decryptString(value),
   encrypt: (value) => safeStorage.encryptString(value),
 };
-
-/**
- * Which platform this build talks to.
- *
- * A packaged app knows only the hosted one. A development build talks to the
- * console running beside it, so the whole account — device flow, enrolment,
- * console links — stays on this computer; `PUPITRE_PLATFORM_URL` names another
- * one when it is elsewhere.
- */
-export function platformUrl(): string {
-  const fallback = app.isPackaged ? DEFAULT_PLATFORM_URL : LOCAL_PLATFORM_URL;
-
-  return process.env.PUPITRE_PLATFORM_URL || fallback;
-}
-
-/**
- * The same platform, as the agent reaches it: the API's own base, not the
- * console's — and under a name the server can actually resolve.
- *
- * A development console is served on this computer, which the VPS has no way to
- * reach; what leaves for the server is the tunnel that publishes that same
- * console. `PUPITRE_AGENT_PLATFORM_URL` names another one when the agent has to
- * answer somewhere else than the app does.
- */
-export function agentPlatformUrl(): string {
-  const base = process.env.PUPITRE_AGENT_PLATFORM_URL || platformUrl();
-
-  return new URL("/api/v1", agentBaseUrl(base)).toString();
-}
 
 /**
  * One ed25519 key for this computer, made once and never leaving it. Only the
@@ -94,7 +61,7 @@ export function deviceKeyPath(): string {
 }
 
 export const account: Account = createAccount({
-  build: app.isPackaged ? "production" : "development",
+  build: buildKind(),
   deviceKey,
   deviceName: () => hostname(),
   now: () => Date.now(),

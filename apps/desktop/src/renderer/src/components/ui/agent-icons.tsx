@@ -1,3 +1,5 @@
+import type { TerminalKind } from "@shared/terminals";
+import { Bot, SquareTerminal } from "lucide-react";
 import type { ComponentType } from "react";
 
 /**
@@ -117,3 +119,15 @@ export function CopilotIcon({ size = 14, className }: Props) {
     </svg>
   );
 }
+
+/** The mark each kind of terminal wears, wherever sessions of several kinds sit side by side. */
+export const KIND_ICONS: Record<TerminalKind, IconComponent> = {
+  claude: ClaudeIcon,
+  codex: CodexIcon,
+  copilot: CopilotIcon,
+  cursor: CursorIcon,
+  gemini: GeminiIcon,
+  hermes: Bot,
+  opencode: OpencodeIcon,
+  shell: SquareTerminal,
+};

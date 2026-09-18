@@ -1,15 +1,9 @@
 import { AgentDot } from "@renderer/components/ui/agent-dot";
-import {
-  ClaudeIcon,
-  CodexIcon,
-  CopilotIcon,
-  CursorIcon,
-  GeminiIcon,
-  type IconComponent,
-  OpencodeIcon,
-} from "@renderer/components/ui/agent-icons";
-import { TabBar, TabButton } from "@renderer/components/ui/tab-bar";
+import type { IconComponent } from "@renderer/components/ui/agent-icons";
+import { Tab, TabBar } from "@renderer/components/ui/tab-bar";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import { isMac } from "@renderer/lib/platform";
+import { projectChordLabel } from "@renderer/lib/project-shortcuts";
 import { dominantState } from "@renderer/stores/navigation";
 import type { AgentState, Terminal } from "@shared/terminals";
 import {
@@ -24,19 +18,13 @@ import {
 import { type ProjectTab, TAB_LABEL } from "./project-tabs";
 
 const ICONS: Record<ProjectTab, IconComponent> = {
-  claude: ClaudeIcon,
-  codex: CodexIcon,
+  agents: Bot,
   configuration: Settings2,
-  copilot: CopilotIcon,
-  cursor: CursorIcon,
   diff: FileDiff,
   files: Files,
-  gemini: GeminiIcon,
-  hermes: Bot,
   logs: ScrollText,
-  opencode: OpencodeIcon,
   overview: LayoutGrid,
-  shell: SquareTerminal,
+  terminals: SquareTerminal,
 };
 
 /**
@@ -62,20 +50,17 @@ export function ProjectTabBar({
   states: Record<string, AgentState>;
 }) {
   const t = useTranslations();
+  const chord = projectChordLabel(isMac);
 
   return (
-    <TabBar>
-      {tabs.map((tab) => {
+    <TabBar label={t("project.tabs")} onChange={onSelect} value={active}>
+      {tabs.map((tab, index) => {
         const Icon = ICONS[tab];
         const count = counts[tab] ?? 0;
         const open = sessions[tab] ?? [];
 
         return (
-          <TabButton
-            active={tab === active}
-            key={tab}
-            onClick={() => onSelect(tab)}
-          >
+          <Tab hint={`${chord}${index + 1}`} key={tab} value={tab}>
             <Icon size={13} strokeWidth={1.5} />
             {t(TAB_LABEL[tab])}
             {count > 0 ? (
@@ -84,7 +69,7 @@ export function ProjectTabBar({
               </span>
             ) : null}
             <AgentDot state={dominantState(open, states)} />
-          </TabButton>
+          </Tab>
         );
       })}
     </TabBar>

@@ -232,7 +232,7 @@ export async function reachConfig(
   options: { pick?: readonly string[] } = {}
 ): Promise<void> {
   await page.getByRole("button", { name: "Réglages" }).click();
-  await page.getByRole("button", { name: "Serveurs" }).click();
+  await page.getByRole("tab", { name: "Serveurs" }).click();
   await page.getByRole("button", { name: "Installer Pupitre" }).click();
 
   await expect(page.getByText("Prête à être installée")).toBeVisible();

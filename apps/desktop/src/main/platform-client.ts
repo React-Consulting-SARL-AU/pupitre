@@ -11,6 +11,7 @@ import type {
   AccountError,
   AccountIdentity,
   AccountResponse,
+  BuildKind,
   Entitlement,
 } from "@shared/account";
 import type { FleetServer } from "@shared/servers";
@@ -175,6 +176,19 @@ export function isLocalPlatform(baseUrl: string): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * How a build conducts itself, decided by the platform it talks to rather than
+ * by the folder it runs from.
+ *
+ * A development build pointed at a hosted platform is a second computer of the
+ * same person: the usage right comes from the account, the agent from the
+ * release the platform names, and nothing is granted by the build itself. Only
+ * a build on the console of this computer gets the developer's shortcuts.
+ */
+export function buildKindOf(packaged: boolean, baseUrl: string): BuildKind {
+  return packaged || !isLocalPlatform(baseUrl) ? "production" : "development";
 }
 
 /**

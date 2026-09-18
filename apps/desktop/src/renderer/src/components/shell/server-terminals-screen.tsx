@@ -50,10 +50,10 @@ export function ServerTerminalsScreen({
       ) : (
         <TerminalTabs
           active={active}
-          kind="shell"
+          kinds={["shell"]}
           onActivate={onActivate}
           onClose={onClose}
-          onNew={() => onNew(null, "shell")}
+          onNew={(kind) => onNew(null, kind)}
           onRename={onRename}
           project={null}
           sessions={terminals}

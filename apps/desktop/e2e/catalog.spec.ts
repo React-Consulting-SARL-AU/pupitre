@@ -157,7 +157,7 @@ test.describe("catalogue", () => {
     const { page } = running;
 
     await page.getByRole("button", { name: "Réglages" }).click();
-    await page.getByRole("button", { name: "Serveurs" }).click();
+    await page.getByRole("tab", { name: "Serveurs" }).click();
     await page.getByRole("button", { name: "Installer Pupitre" }).click();
     await expect(page.getByText("Prête à être installée")).toBeVisible();
     await page.getByRole("button", { name: INSTALL }).first().click();
@@ -283,7 +283,7 @@ test.describe("catalogue sur une machine arm64", () => {
     const { page } = running;
 
     await page.getByRole("button", { name: "Réglages" }).click();
-    await page.getByRole("button", { name: "Serveurs" }).click();
+    await page.getByRole("tab", { name: "Serveurs" }).click();
     await page.getByRole("button", { name: "Installer Pupitre" }).click();
     await expect(page.getByText("Prête à être installée")).toBeVisible();
     await page.getByRole("button", { name: INSTALL }).first().click();

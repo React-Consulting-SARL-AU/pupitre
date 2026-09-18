@@ -16,8 +16,8 @@ import { useTunnel } from "@renderer/stores/tunnel";
 import { Boxes, Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ServicePanel } from "./service-panel";
-import { ServiceRow } from "./service-row";
 import { ServicesAddFlow } from "./services-add-flow";
+import { ServicesList } from "./services-list";
 import { ServicesTunnel } from "./services-tunnel";
 
 /**
@@ -191,16 +191,11 @@ export function ServicesScreen({
             />
           </Panel>
         ) : (
-          <Panel as="ul" list>
-            {services.map((service) => (
-              <ServiceRow
-                account={accounts[service.id]}
-                key={service.id}
-                onOpen={() => onOpenService(service.id)}
-                service={service}
-              />
-            ))}
-          </Panel>
+          <ServicesList
+            accounts={accounts}
+            onOpen={onOpenService}
+            services={services}
+          />
         )}
       </ModuleUpgradePanel>
 

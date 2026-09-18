@@ -17,6 +17,12 @@ import (
 // machine's default — what a shell outside any project runs, and what a
 // project that names no version gets. Prefix is the distribution mise names
 // before the version, temurin- for Java.
+//
+// The options reach back as far as the machine can still build or fetch the
+// major: every Node and Temurin build is prebuilt, Python comes from
+// python-build-standalone, which starts at 3.9, and PHP and Ruby compile
+// against the OpenSSL 3 of Ubuntu 24.04, which PHP 8.0 and Ruby 3.1 are the
+// oldest to accept.
 type Runtime struct {
 	Tool    string
 	Options []string
@@ -25,13 +31,42 @@ type Runtime struct {
 }
 
 var (
-	Node   = Runtime{Tool: "node", Options: []string{"24", "22", "20"}, Default: "24"}
-	Java   = Runtime{Tool: "java", Options: []string{"25", "21", "17"}, Default: "21", Prefix: "temurin-"}
-	Python = Runtime{Tool: "python", Options: []string{"3.13", "3.12", "3.11"}, Default: "3.12"}
-	Go     = Runtime{Tool: "go", Options: []string{"1.25", "1.24", "1.23"}, Default: "1.25"}
-	PHP    = Runtime{Tool: "php", Options: []string{"8.4", "8.3", "8.2"}, Default: "8.4"}
-	Ruby   = Runtime{Tool: "ruby", Options: []string{"3.4", "3.3", "3.2"}, Default: "3.4"}
-	Rust   = Runtime{Tool: "rust", Options: []string{"1.98", "1.97", "1.96"}, Default: "1.98"}
+	Node = Runtime{
+		Tool:    "node",
+		Options: []string{"26", "25", "24", "23", "22", "21", "20", "19", "18", "17", "16", "15", "14", "13", "12", "11", "10"},
+		Default: "24",
+	}
+	Java = Runtime{
+		Tool:    "java",
+		Options: []string{"26", "25", "24", "23", "22", "21", "20", "19", "18", "17", "16", "11", "8"},
+		Default: "21",
+		Prefix:  "temurin-",
+	}
+	Python = Runtime{
+		Tool:    "python",
+		Options: []string{"3.14", "3.13", "3.12", "3.11", "3.10", "3.9"},
+		Default: "3.12",
+	}
+	Go = Runtime{
+		Tool:    "go",
+		Options: []string{"1.27", "1.26", "1.25", "1.24", "1.23", "1.22", "1.21", "1.20", "1.19", "1.18"},
+		Default: "1.25",
+	}
+	PHP = Runtime{
+		Tool:    "php",
+		Options: []string{"8.5", "8.4", "8.3", "8.2", "8.1", "8.0"},
+		Default: "8.4",
+	}
+	Ruby = Runtime{
+		Tool:    "ruby",
+		Options: []string{"4.0", "3.4", "3.3", "3.2", "3.1"},
+		Default: "3.4",
+	}
+	Rust = Runtime{
+		Tool:    "rust",
+		Options: []string{"1.98", "1.97", "1.96", "1.95", "1.94", "1.93", "1.92", "1.91", "1.90"},
+		Default: "1.98",
+	}
 )
 
 // Runtimes lists them in the order the contract names them, which is the order the projects screen shows them.

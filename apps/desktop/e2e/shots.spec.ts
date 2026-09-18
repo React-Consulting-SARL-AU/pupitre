@@ -198,8 +198,13 @@ test.describe("la galerie", () => {
       const tile = page.locator('[data-shot="2026-09-05/paiement.png"]');
 
       await tile.getByRole("button", { name: "Supprimer" }).click();
-      await expect(tile.getByText("paiement.png est supprimée")).toBeVisible();
-      await tile.getByRole("button", { name: "Supprimer" }).last().click();
+
+      const question = page.getByRole("alertdialog");
+
+      await expect(
+        question.getByText("paiement.png est supprimée")
+      ).toBeVisible();
+      await question.getByRole("button", { name: "Supprimer" }).click();
 
       await expect(page.locator("[data-shot]")).toHaveCount(2);
       await expect(

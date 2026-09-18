@@ -1,8 +1,9 @@
+import { AlertDialog } from "@base-ui-components/react/alert-dialog";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { Gesture } from "@renderer/lib/use-pending";
 import { useState } from "react";
 import { Button, type ButtonIcon, type ButtonVariant } from "./button";
-import { Dialog } from "./dialog";
+import { DIALOG_BACKDROP, DIALOG_POPUP, DIALOG_TITLE } from "./dialog";
 
 /**
  * A gesture that cannot be undone, asked twice.
@@ -81,7 +82,11 @@ export function ConfirmButton({
   );
 }
 
-/** The question of a ConfirmButton, drawn on its own: what a test reads, and what the button opens. */
+/**
+ * The question of a ConfirmButton, drawn on its own: what a test reads, and
+ * what the button opens. An alert rather than a dialog: it does not go away
+ * on a click beside it, only on one of its two answers or on Escape.
+ */
 export function ConfirmDialog({
   open,
   title,
@@ -104,27 +109,43 @@ export function ConfirmDialog({
   const t = useTranslations();
 
   return (
-    <Dialog
-      actions={
-        <>
-          <Button disabled={working} onClick={onCancel} variant="discreet">
-            {t("common.cancel")}
-          </Button>
-          <Button
-            disabled={working}
-            onClick={onConfirm}
-            variant={confirmVariant}
-          >
-            {confirmLabel}
-          </Button>
-        </>
-      }
-      name="confirm"
-      onClose={working ? () => undefined : onCancel}
+    <AlertDialog.Root
+      onOpenChange={(next) => {
+        if (!(next || working)) {
+          onCancel();
+        }
+      }}
       open={open}
-      title={title}
     >
-      <p className="text-[13px] text-ink-2 leading-relaxed">{question}</p>
-    </Dialog>
+      <AlertDialog.Portal>
+        <AlertDialog.Backdrop className={DIALOG_BACKDROP} />
+        <AlertDialog.Popup
+          className={`${DIALOG_POPUP} w-[min(28rem,calc(100vw-2rem))]`}
+          data-dialog="confirm"
+        >
+          <AlertDialog.Title className={DIALOG_TITLE}>
+            {title}
+          </AlertDialog.Title>
+
+          <AlertDialog.Description className="text-[13px] text-ink-2 leading-relaxed">
+            {question}
+          </AlertDialog.Description>
+
+          <div className="flex items-center justify-end gap-2">
+            <Button disabled={working} onClick={onCancel} variant="discreet">
+              {t("common.cancel")}
+            </Button>
+            <Button
+              disabled={working}
+              loading={working}
+              onClick={onConfirm}
+              variant={confirmVariant}
+            >
+              {confirmLabel}
+            </Button>
+          </div>
+        </AlertDialog.Popup>
+      </AlertDialog.Portal>
+    </AlertDialog.Root>
   );
 }

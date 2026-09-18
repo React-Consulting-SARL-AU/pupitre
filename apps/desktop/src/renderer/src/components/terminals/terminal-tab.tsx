@@ -1,4 +1,5 @@
 import { AgentDot } from "@renderer/components/ui/agent-dot";
+import { KIND_ICONS } from "@renderer/components/ui/agent-icons";
 import { fieldControlClass } from "@renderer/components/ui/field";
 import { IconButton } from "@renderer/components/ui/icon-button";
 import { Tooltip } from "@renderer/components/ui/tooltip";
@@ -12,9 +13,10 @@ const MIDDLE_BUTTON = 1;
 /**
  * One tab of a row of sessions.
  *
- * The dot says what the session is doing before the name does; the close
- * button shows on the tab in front and on the one under the mouse, and a
- * middle click closes without looking for it. A double click opens the name.
+ * The dot says what the session is doing before the name does, and the mark
+ * says what kind it is once the reader has renamed it; the close button shows
+ * on the tab in front and on the one under the mouse, and a middle click
+ * closes without looking for it. A double click opens the name.
  */
 export function TerminalTab({
   session,
@@ -37,6 +39,8 @@ export function TerminalTab({
   const t = useTranslations();
 
   const [renaming, setRenaming] = useState(false);
+
+  const Mark = KIND_ICONS[session.kind];
 
   if (renaming) {
     return (
@@ -71,6 +75,7 @@ export function TerminalTab({
           : "border-transparent text-ink-3 hover:bg-raised hover:text-ink"
       }`}
       data-active={active}
+      data-terminal-kind={session.kind}
       data-terminal-tab={session.id}
     >
       <Tooltip label={t("terminals.renameHint")}>
@@ -89,6 +94,7 @@ export function TerminalTab({
           type="button"
         >
           <AgentDot state={state} />
+          <Mark className="shrink-0 text-ink-3" size={11} strokeWidth={1.5} />
           <span className="truncate">{session.title}</span>
         </button>
       </Tooltip>

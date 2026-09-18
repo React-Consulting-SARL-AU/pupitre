@@ -6,8 +6,16 @@ import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { RowProblem } from "@renderer/lib/project-ports";
 import type { ProcessProblem } from "@renderer/lib/project-processes";
-import { ArrowRight, PencilLine, RefreshCw, X } from "lucide-react";
+import {
+  ArrowRight,
+  FolderPlus,
+  PencilLine,
+  RefreshCw,
+  ScanSearch,
+  X,
+} from "lucide-react";
 import type {
+  AddStep,
   DetectionState,
   Draft,
   Exposure,
@@ -18,6 +26,7 @@ import type {
   ProjectAddState,
   ReposState,
 } from "../../stores/project-add";
+import { ActionBar } from "../ui/action-bar";
 import { Button } from "../ui/button";
 import { Callout } from "../ui/callout";
 import { Screen } from "../ui/screen";
@@ -45,6 +54,7 @@ const EDITABLE: readonly PhaseId[] = ["add", "sources"];
 
 export function ProjectAddPanel({
   known,
+  step,
   draft,
   declared,
   detection,
@@ -61,6 +71,8 @@ export function ProjectAddPanel({
   rowProblems,
   edit,
   onDetect,
+  onSkipReading,
+  onEditSource,
   onLaunch,
   onRetry,
   onEdit,
@@ -73,6 +85,8 @@ export function ProjectAddPanel({
   onOpenDeclared,
 }: {
   known: KnownState;
+  /** Which page of the form is open: the source, or what runs in it. */
+  step: AddStep;
   draft: Draft;
   /** The project the server already declares where the draft points: opened rather than declared again. */
   declared: Project | null;
@@ -92,7 +106,11 @@ export function ProjectAddPanel({
   processProblems: readonly (ProcessProblem | null)[];
   rowProblems: readonly (readonly (RowProblem | null)[])[];
   edit: DraftEdits;
-  onDetect: () => void;
+  /** The agent reads the source; the button waits on it. */
+  onDetect: () => Promise<void> | void;
+  /** Opens the configuration without a reading, once one has failed. */
+  onSkipReading: () => void;
+  onEditSource: () => void;
   onLaunch: () => void;
   onRetry: () => void;
   /** Back to the form with the draft intact. */
@@ -107,6 +125,45 @@ export function ProjectAddPanel({
   onOpenDeclared: (name: string) => void;
 }) {
   const t = useTranslations();
+
+  const editing = known.status === "ready" && run.status === "idle";
+  const reading = detection.status === "reading";
+  const readable = draft.source.trim().length > 0 && declared === null;
+
+  const footer =
+    step === "source" ? (
+      <ActionBar name="project-add">
+        {detection.status === "failed" ? (
+          <Button onClick={onSkipReading} variant="discreet">
+            {t("projectAdd.form.skipReading")}
+          </Button>
+        ) : null}
+        <Button
+          disabled={!readable}
+          icon={ScanSearch}
+          loading={reading}
+          onClick={onDetect}
+          variant="inverse"
+        >
+          {t(
+            draft.kind === "dir"
+              ? "projectAdd.form.read.dir"
+              : "projectAdd.form.read.repo"
+          )}
+        </Button>
+      </ActionBar>
+    ) : (
+      <ActionBar name="project-add">
+        <Button
+          disabled={!ready}
+          icon={FolderPlus}
+          onClick={onLaunch}
+          variant="inverse"
+        >
+          {t("projectAdd.form.submit")}
+        </Button>
+      </ActionBar>
+    );
 
   return (
     <Screen
@@ -126,7 +183,9 @@ export function ProjectAddPanel({
           </Button>
         )
       }
+      column
       eyebrow={t("project.header.eyebrow")}
+      footer={editing ? footer : undefined}
       title={t("projectAdd.panel.title")}
     >
       {known.status === "loading" ? (
@@ -147,7 +206,7 @@ export function ProjectAddPanel({
         </Callout>
       ) : null}
 
-      {known.status === "ready" && run.status === "idle" ? (
+      {editing ? (
         <ProjectAddForm
           declared={declared}
           detection={detection}
@@ -157,14 +216,20 @@ export function ProjectAddPanel({
           folders={folders}
           githubModule={githubModule}
           onConnect={onConnect}
-          onDetect={onDetect}
+          onEditSource={onEditSource}
           onInstallModule={onInstallModule}
           onOpenDeclared={onOpenDeclared}
-          onSubmit={onLaunch}
+          onSubmit={() => {
+            if (step === "config" && ready) {
+              onLaunch();
+            } else if (step === "source" && readable && !reading) {
+              onDetect();
+            }
+          }}
           processProblems={processProblems}
-          ready={ready}
           repos={repos}
           rowProblems={rowProblems}
+          step={step}
         />
       ) : null}
 

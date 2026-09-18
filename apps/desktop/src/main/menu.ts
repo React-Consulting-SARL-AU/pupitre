@@ -15,7 +15,9 @@ import { dialogTextIn } from "./dialogs";
 export interface MenuActions {
   preferences: () => void;
   newTerminal: () => void;
+  newAgent: () => void;
   goToProject: () => void;
+  shortcuts: () => void;
   checkUpdates: () => void;
   signOut: () => void;
 }
@@ -23,8 +25,10 @@ export interface MenuActions {
 const NOTHING: MenuActions = {
   checkUpdates: () => undefined,
   goToProject: () => undefined,
+  newAgent: () => undefined,
   newTerminal: () => undefined,
   preferences: () => undefined,
+  shortcuts: () => undefined,
   signOut: () => undefined,
 };
 
@@ -84,6 +88,12 @@ export function menuTemplate(
         label: text("newTerminal"),
       },
       {
+        accelerator: "CmdOrCtrl+Shift+T",
+        click: actions.newAgent,
+        id: "new-agent",
+        label: text("newAgent"),
+      },
+      {
         accelerator: "CmdOrCtrl+K",
         click: actions.goToProject,
         id: "go-to-project",
@@ -118,11 +128,25 @@ export function menuTemplate(
     );
   }
 
+  const help: MenuItemConstructorOptions = {
+    label: text("helpMenu"),
+    role: "help",
+    submenu: [
+      {
+        accelerator: "CmdOrCtrl+/",
+        click: actions.shortcuts,
+        id: "shortcuts",
+        label: text("shortcuts"),
+      },
+    ],
+  };
+
   return [
     ...(platform === "darwin" ? [appMenu] : []),
     file,
     { role: "editMenu" },
     { label: text("viewMenu"), submenu: view },
     { role: "windowMenu" },
+    help,
   ];
 }

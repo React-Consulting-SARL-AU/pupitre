@@ -6,6 +6,7 @@ start and stop, live logs, terminals, AI agents.
 ```bash
 bun install          # from the monorepo root
 bun run dev:desktop  # from the root, or `bun run dev` from this directory
+bun run dev:desktop:prod  # the same app, on the hosted platform: real account, real servers
 ```
 
 ## Requirements

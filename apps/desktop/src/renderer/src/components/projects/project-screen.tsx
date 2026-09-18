@@ -5,12 +5,13 @@ import { Screen } from "@renderer/components/ui/screen";
 import { ServiceLogo } from "@renderer/components/ui/service-logo";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import {
-  agentsFrom,
+  agentModulesFrom,
   remoteEditors,
   runtimeModuleOf,
 } from "@renderer/lib/modules";
 import { unlessHeld } from "@renderer/lib/refusals";
-import { group, useNavigation } from "@renderer/stores/navigation";
+import { useProjectShortcuts } from "@renderer/lib/use-project-shortcuts";
+import { group, groupKey, useNavigation } from "@renderer/stores/navigation";
 import { useProject } from "@renderer/stores/project";
 import { serversIn, useServers } from "@renderer/stores/servers";
 import { useSnapshot } from "@renderer/stores/snapshot";
@@ -18,6 +19,7 @@ import { useSshShare } from "@renderer/stores/ssh-share";
 import { Package } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ProjectActions } from "./project-actions";
+import { ProjectAgentsPicker } from "./project-agents-picker";
 import { ProjectBody } from "./project-body";
 import { ProjectConfigScreen } from "./project-config-screen";
 import { ProjectDiff } from "./project-diff";
@@ -27,12 +29,7 @@ import { ProjectLogs } from "./project-logs";
 import { ProjectMeta } from "./project-meta";
 import { ProjectOverview } from "./project-overview";
 import { ProjectTabBar } from "./project-tab-bar";
-import {
-  isProjectTab,
-  isTerminalTab,
-  type ProjectTab,
-  tabsFor,
-} from "./project-tabs";
+import { type ProjectTab, tabsFor } from "./project-tabs";
 
 /**
  * One project, its state and the four things you read about it.
@@ -61,11 +58,13 @@ export function ProjectScreen({
 }: Props) {
   const t = useTranslations();
 
-  const [tab, setTabState] = useState<ProjectTab>("overview");
   const [syncing, setSyncing] = useState(false);
 
-  const projectTabs = useNavigation((s) => s.projectTabs);
+  const savedTab = useNavigation(
+    (s) => s.projectTabs[project.name] ?? "overview"
+  );
   const setProjectTab = useNavigation((s) => s.setProjectTab);
+  const goTo = useNavigation((s) => s.goTo);
   const terminals = useNavigation((s) => s.terminals);
   const activeTabs = useNavigation((s) => s.activeTabs);
   const terminalStates = useNavigation((s) => s.terminalStates);
@@ -95,32 +94,29 @@ export function ProjectScreen({
     [readEnv, serverId, name]
   );
 
-  /**
-   * Switching tabs writes it down, so coming back to this project reopens the
-   * tab you left it on. Every caller goes through here — a `setTabState` left
-   * somewhere would be a tab that silently stops being remembered.
-   */
+  // The tab lives in the navigation store, so coming back to this project
+  // reopens the tab you left it on, and a shortcut can switch it from outside.
   const setTab = useCallback(
-    (next: ProjectTab) => {
-      setTabState(next);
-      setProjectTab(name, next);
-    },
+    (next: ProjectTab) => setProjectTab(name, next),
     [name, setProjectTab]
   );
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: projectTabs is read once, on arrival — re-running on every remembered tab would drag the view back
   useEffect(() => {
-    // Restoring is not a choice the reader just made, so `setTabState`: writing
-    // it back would be noise.
-    const saved = projectTabs[name];
-
-    setTabState(isProjectTab(saved) ? saved : "overview");
     open(serverId, name);
   }, [serverId, name, open]);
 
+  const repo =
+    store.branches.status === "read" ? store.branches.branches.repo : true;
+  const tabs = useMemo(() => tabsFor({ repo }), [repo]);
+  // A remembered tab the project no longer offers falls back to the overview:
+  // a folder that is no longer a repository.
+  const tab = tabs.includes(savedTab) ? savedTab : "overview";
+
+  useProjectShortcuts(tabs, tab, setTab);
+
   useEffect(() => {
-    if (isTerminalTab(tab)) {
-      ensureTerminal(name, tab);
+    if (tab === "terminals") {
+      ensureTerminal(name);
     }
 
     if (tab === "diff") {
@@ -128,21 +124,13 @@ export function ProjectScreen({
     }
   }, [tab, name, serverId, ensureTerminal, readTree]);
 
-  const repo =
-    store.branches.status === "read" ? store.branches.branches.repo : true;
-  const agents = agentsFrom(services).join(" ");
-  const tabs = useMemo(
-    () => tabsFor({ agents: agents.split(" ").filter(Boolean), repo }),
-    [agents, repo]
+  const agentModules = useMemo(() => agentModulesFrom(services), [services]);
+  const agents = useMemo(
+    () => agentModules.map((held) => held.agent),
+    [agentModules]
   );
-
-  // A remembered tab the project no longer offers falls back to the overview:
-  // an agent uninstalled, a folder that is no longer a repository.
-  useEffect(() => {
-    if (!tabs.includes(tab)) {
-      setTabState("overview");
-    }
-  }, [tabs, tab]);
+  const shells = group(terminals, name, "shell");
+  const agentSessions = group(terminals, name, "agent");
 
   const git = store.git.status === "read" ? store.git.git : null;
   const root = git?.root || null;
@@ -228,18 +216,13 @@ export function ProjectScreen({
       tabs={
         <ProjectTabBar
           active={tab}
-          counts={{ diff: git?.changed ?? 0 }}
-          onSelect={setTab}
-          sessions={{
-            claude: group(terminals, name, "claude"),
-            codex: group(terminals, name, "codex"),
-            copilot: group(terminals, name, "copilot"),
-            cursor: group(terminals, name, "cursor"),
-            gemini: group(terminals, name, "gemini"),
-            hermes: group(terminals, name, "hermes"),
-            opencode: group(terminals, name, "opencode"),
-            shell: group(terminals, name, "shell"),
+          counts={{
+            agents: agentSessions.length,
+            diff: git?.changed ?? 0,
+            terminals: shells.length,
           }}
+          onSelect={setTab}
+          sessions={{ agents: agentSessions, terminals: shells }}
           states={terminalStates}
           tabs={tabs}
         />
@@ -255,6 +238,27 @@ export function ProjectScreen({
 
         <div className="min-h-0 flex-1">
           <ProjectBody
+            agents={
+              agentSessions.length === 0 ? (
+                <ProjectAgentsPicker
+                  agents={agentModules}
+                  onInstall={() => goTo("services")}
+                  onPick={(agent) => openTerminal(name, agent)}
+                />
+              ) : (
+                <TerminalTabs
+                  active={activeTabs[groupKey(name, "agent")] ?? null}
+                  kinds={agents}
+                  onActivate={activateTerminal}
+                  onClose={closeTerminal}
+                  onNew={(kind) => openTerminal(name, kind)}
+                  onRename={renameTerminal}
+                  project={name}
+                  sessions={agentSessions}
+                  states={terminalStates}
+                />
+              )
+            }
             configuration={
               <ProjectConfigScreen
                 host={host}
@@ -281,7 +285,7 @@ export function ProjectScreen({
               <ProjectFiles
                 onTerminal={(dir) => {
                   openTerminal(name, "shell", dir);
-                  setTab("shell");
+                  setTab("terminals");
                 }}
                 project={project}
                 serverId={serverId}
@@ -316,19 +320,19 @@ export function ProjectScreen({
               />
             }
             tab={tab}
-            terminals={(kind) => (
+            terminals={
               <TerminalTabs
-                active={activeTabs[`${name}:${kind}`] ?? null}
-                kind={kind}
+                active={activeTabs[groupKey(name, "shell")] ?? null}
+                kinds={["shell"]}
                 onActivate={activateTerminal}
                 onClose={closeTerminal}
-                onNew={() => openTerminal(name, kind)}
+                onNew={(kind) => openTerminal(name, kind)}
                 onRename={renameTerminal}
                 project={name}
-                sessions={group(terminals, name, kind)}
+                sessions={shells}
                 states={terminalStates}
               />
-            )}
+            }
           />
         </div>
       </div>

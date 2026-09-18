@@ -7,6 +7,7 @@ import { useNavigation, type View } from "@renderer/stores/navigation";
 import type { Server } from "@shared/servers";
 import type { Terminal } from "@shared/terminals";
 import { useMemo } from "react";
+import { tabOfKind } from "../projects/project-tabs";
 import { CommandPalette } from "./command-palette";
 
 /**
@@ -91,7 +92,7 @@ export function AppPalette({
 
         if (tab?.project) {
           navigation.select(tab.project);
-          navigation.setProjectTab(tab.project, tab.kind);
+          navigation.setProjectTab(tab.project, tabOfKind(tab.kind));
         }
 
         navigation.activateTerminal(entry.id);

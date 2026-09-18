@@ -20,6 +20,7 @@ import {
 import { refusalOf } from "./refusal";
 import { relayTo } from "./relay";
 import { byId, sshNameOf } from "./servers";
+import { servicePath } from "./services-run";
 
 /**
  * The project commands, wired to this machine's servers.
@@ -141,7 +142,13 @@ export function registerProjects({
         return;
       }
 
-      const url = remoteEditorUrl(editor, server, name, folder);
+      const url = remoteEditorUrl(
+        editor,
+        server,
+        name,
+        folder,
+        servicePath(server.id, editor.module)
+      );
 
       if (url) {
         openOutside(url);

@@ -39,6 +39,7 @@ export interface HeartbeatInput {
   stack_version: string
   modules: string[]
   agent_version?: string
+  ssh_user?: string
   disk_total_gb?: number
   disk_free_gb?: number
   ram_total_mb?: number
@@ -112,6 +113,7 @@ export async function recordHeartbeat(
     data: {
       lastHeartbeatAt: now,
       agentVersion: input.agent_version ?? server.agentVersion,
+      sshUser: input.ssh_user ?? server.sshUser,
       metrics: toStoredMetrics(appendSample(window?.metrics, sample, now)),
       lastUsage: toStoredUsage(toUsage(sample)),
     },

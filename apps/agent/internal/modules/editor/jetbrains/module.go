@@ -49,6 +49,7 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 		Installed:  true,
 		Configured: file.Exists(ctx, dist+"/"+markerName) && file.Exists(ctx, optionsPath(ctx)),
 		Version:    build,
+		Path:       dist,
 	}, nil
 }
 
