@@ -119,11 +119,17 @@ export interface EntitlementNotice {
   look: StatusLook
 }
 
+export interface LaunchNotice {
+  endsAt: string | null
+}
+
 export interface EntitlementNoticeInput {
   entitlement: string
   /** `unknown` while nothing has been read, `none` for an organisation Stripe ignores. */
   subscription: string
   canManageBilling: boolean
+  /** The running launch subscription, when the platform granted one; the pill names it rather than a trial. */
+  launch?: LaunchNotice | null
 }
 
 function beforeTheTrial(label: DictionaryKey): EntitlementNotice {
@@ -134,13 +140,29 @@ function beforeTheTrial(label: DictionaryKey): EntitlementNotice {
   }
 }
 
+function duringTheLaunch(
+  { endsAt }: LaunchNotice,
+  canManageBilling: boolean
+): EntitlementNotice {
+  const label: DictionaryKey = endsAt
+    ? "entitlement.launch"
+    : "billing.launchTitle"
+
+  return {
+    label,
+    to: canManageBilling ? "/dashboard/billing" : null,
+    look: { shape: "filled", tone: "ok", label },
+  }
+}
+
 export function entitlementNotice({
   entitlement,
   subscription,
   canManageBilling,
+  launch = null,
 }: EntitlementNoticeInput): EntitlementNotice | null {
   if (entitlement === "valid") {
-    return null
+    return launch ? duringTheLaunch(launch, canManageBilling) : null
   }
 
   if (entitlement === "suspended" && subscription === "none") {

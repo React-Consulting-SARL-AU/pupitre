@@ -3,13 +3,19 @@ import { LOCALES } from "../i18n/locale"
 import {
   copyrightHolder,
   developmentNotice,
+  isBlockedAttachment,
   isIncorporated,
+  isPreviewableMailType,
   isPublicStage,
   LEGAL_DOCUMENT_SLUGS,
   LEGAL_DOCUMENTS,
   LEGAL_ENTITY,
   LegalDocumentSchema,
   LegalEntitySchema,
+  MAIL_BLOCKED_ATTACHMENT_EXTENSIONS,
+  MAIL_MAX_OUTBOUND_ATTACHMENT_BYTES,
+  MAIL_MAX_OUTBOUND_ATTACHMENTS,
+  MAIL_SIGNED_URL_TTL_SECONDS,
   PROJECT_STAGE,
   SUB_PROCESSORS,
   SubProcessorSchema,
@@ -89,6 +95,33 @@ describe("les sous-traitants", () => {
     for (const processor of SUB_PROCESSORS) {
       expect(SubProcessorSchema.parse(processor)).toEqual(processor)
     }
+  })
+})
+
+describe("les pièces jointes sortantes", () => {
+  it("tiennent en cinq mébioctets, dix pièces et dix minutes d'adresse signée", () => {
+    expect(MAIL_MAX_OUTBOUND_ATTACHMENT_BYTES).toBe(5 * 1024 * 1024)
+    expect(MAIL_MAX_OUTBOUND_ATTACHMENTS).toBe(10)
+    expect(MAIL_SIGNED_URL_TTL_SECONDS).toBe(600)
+  })
+
+  it("refusent un exécutable ou un script, quelle que soit la casse", () => {
+    expect(isBlockedAttachment("rapport.exe")).toBe(true)
+    expect(isBlockedAttachment("Installer.MSI")).toBe(true)
+    expect(isBlockedAttachment("script.ps1")).toBe(true)
+    expect(isBlockedAttachment("archive.tar.sh")).toBe(true)
+    expect(isBlockedAttachment("rapport.pdf")).toBe(false)
+    expect(isBlockedAttachment("sans-extension")).toBe(false)
+    expect(MAIL_BLOCKED_ATTACHMENT_EXTENSIONS).toContain("js")
+  })
+
+  it("ne s'affichent en ligne que pour une image matricielle ou un PDF", () => {
+    expect(isPreviewableMailType("image/png")).toBe(true)
+    expect(isPreviewableMailType("IMAGE/JPEG; charset=binary")).toBe(true)
+    expect(isPreviewableMailType("application/pdf")).toBe(true)
+    expect(isPreviewableMailType("image/svg+xml")).toBe(false)
+    expect(isPreviewableMailType("text/html")).toBe(false)
+    expect(isPreviewableMailType(null)).toBe(false)
   })
 })
 

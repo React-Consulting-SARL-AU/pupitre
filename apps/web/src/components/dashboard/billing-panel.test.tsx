@@ -12,7 +12,9 @@ import {
   postStripeWebhook,
   remoteSubscription,
   stripeEvent,
+  TEST_LAUNCH_END,
   useFakeBilling,
+  useLaunchBilling,
 } from "@pupitre/api/testing/billing"
 import type { OrgRole } from "@pupitre/shared/permissions"
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query"
@@ -23,12 +25,28 @@ import {
   type DashboardOrganization,
 } from "@/lib/domain/dashboard-context"
 import { createQueryClient } from "@/lib/query/client"
-import { createConsoleUser, useSessionApiClient } from "@/testing/harness"
-import { fill, render, trigger, waitUntil } from "@/testing/render"
+import {
+  createConsoleUser,
+  grantLaunch,
+  useSessionApiClient,
+} from "@/testing/harness"
+import {
+  fill,
+  render,
+  trigger,
+  waitUntil,
+  waitUntilStored,
+} from "@/testing/render"
 
 type Billing = ReturnType<typeof useFakeBilling>
 
 const mounted: (() => void)[] = []
+
+/** The checkout reads the affiliate code off the browser, so the test has to leave one there. */
+function writeCookie(value: string): void {
+  // biome-ignore lint/suspicious/noDocumentCookie: the console reads document.cookie, and the test writes what it reads
+  document.cookie = value
+}
 
 function panel(
   organization: DashboardOrganization | null,
@@ -50,6 +68,7 @@ function panel(
           activeOrganization: organization,
           role,
           entitlement: "valid",
+          platformRole: null,
         }}
       >
         <BillingPanel />
@@ -120,13 +139,14 @@ describe("BillingPanel", () => {
 
   afterEach(() => {
     leave.mockRestore()
+    writeCookie("pupitre_ref=; Path=/; Max-Age=0")
 
     for (const unmount of mounted.splice(0)) {
       unmount()
     }
   })
 
-  it("opens a checkout with the chosen quantity and interval when nothing is paid", async () => {
+  it("opens a checkout on the chosen interval; the first one holds one machine whatever the count", async () => {
     const { container, unmount, click } = await render(
       panel(organization, "owner")
     )
@@ -135,20 +155,16 @@ describe("BillingPanel", () => {
 
     await waitUntil(() => container.textContent?.includes("Order") === true)
 
-    const quantity = container.querySelector("#quantity")
+    expect(container.querySelector("#quantity")).toBeNull()
+    expect(container.textContent).toContain("The first 30 days are free")
 
-    if (!quantity) {
-      throw new Error("no quantity field")
-    }
-
-    await fill(quantity, "3")
     await click(trigger(container, "Yearly"))
     await click(trigger(container, "Order"))
     await waitUntil(() => billing.checkouts.length === 1)
 
     expect(billing.checkouts[0]).toMatchObject({
       organizationId: organization.id,
-      quantity: 3,
+      quantity: 1,
       interval: "year",
     })
     expect(leave).toHaveBeenCalledWith(
@@ -173,7 +189,7 @@ describe("BillingPanel", () => {
     expect(container.textContent).toContain("3 servers")
     expect(container.textContent).toContain("Active")
     expect(container.textContent).toContain("Yearly")
-    expect(container.textContent).toContain("300")
+    expect(container.textContent).toContain("$150")
     expect(container.textContent).not.toContain("Order")
 
     await click(trigger(container, "Manage the subscription"))
@@ -185,8 +201,45 @@ describe("BillingPanel", () => {
     )
   })
 
-  it("raises the seats of a running trial, without leaving the console", async () => {
+  it("names the free launch, with neither portal nor seat form", async () => {
+    useLaunchBilling()
+    await grantLaunch(organization.id, TEST_LAUNCH_END)
+
+    const { container, unmount } = await render(panel(organization, "owner"))
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("Free launch until") === true
+    )
+
+    expect(container.textContent).toContain("One machine during the launch")
+    expect(container.textContent).toContain("1 server")
+    expect(container.textContent).not.toContain("Manage the subscription")
+    expect(container.textContent).not.toContain("Trial running")
+    expect(container.textContent).not.toContain("$")
+    expect(container.querySelector("#seats")).toBeNull()
+  })
+
+  it("locks the seats of a running trial to its one machine", async () => {
     await payFor(billing, organization.id, 1, "trialing")
+
+    const { container, unmount } = await render(panel(organization, "owner"))
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("Manage the subscription") === true
+    )
+
+    expect(container.textContent).toContain("Trial running")
+    expect(container.textContent).toContain("One machine during the trial")
+    expect(container.querySelector("#seats")).toBeNull()
+    expect(container.textContent).not.toContain("Change the number")
+  })
+
+  it("raises the seats of a paid subscription, without leaving the console", async () => {
+    await payFor(billing, organization.id, 1)
 
     const { container, unmount, click } = await render(
       panel(organization, "owner")
@@ -197,8 +250,6 @@ describe("BillingPanel", () => {
     await waitUntil(
       () => container.textContent?.includes("Change the number") === true
     )
-
-    expect(container.textContent).toContain("During the trial")
 
     const seats = container.querySelector("#seats")
 
@@ -220,7 +271,7 @@ describe("BillingPanel", () => {
   })
 
   it("refreshes the account once the seats changed", async () => {
-    await payFor(billing, organization.id, 1, "trialing")
+    await payFor(billing, organization.id, 1)
 
     const queryClient = createQueryClient()
 
@@ -264,6 +315,8 @@ describe("BillingPanel", () => {
 
     expect(container.textContent).not.toContain("Manage the subscription")
     expect(container.querySelector("#seats")).toBeNull()
+    expect(container.querySelector("#quantity")).not.toBeNull()
+    expect(container.textContent).not.toContain("The first 30 days are free")
   })
 
   it("refuses a seat count below the servers in place", async () => {
@@ -292,6 +345,49 @@ describe("BillingPanel", () => {
     )
 
     expect(billing.quantities).toHaveLength(0)
+  })
+
+  it("carries the affiliate cookie into the checkout the billing page opens", async () => {
+    const { prisma } = await bootApiTestServer()
+    const link = await prisma.affiliateLink.create({
+      data: { code: "ada-2026", name: "Ada", freeMonths: 1, seats: 1 },
+    })
+
+    writeCookie("pupitre_ref=ada-2026; Path=/")
+
+    const { container, unmount, click } = await render(
+      panel(organization, "owner")
+    )
+
+    mounted.push(unmount)
+
+    await waitUntil(() => container.textContent?.includes("Order") === true)
+    await click(trigger(container, "Order"))
+    await waitUntil(() => billing.checkouts.length === 1)
+    await waitUntilStored(async () => {
+      const referral = await prisma.referral.findUnique({
+        where: { organizationId: organization.id },
+      })
+
+      return referral?.linkId === link.id
+    })
+  })
+
+  it("offers the free launch instead of a Stripe checkout while the launch runs", async () => {
+    useLaunchBilling()
+
+    const { container, unmount } = await render(panel(organization, "owner"))
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("Free launch") === true
+    )
+
+    expect(container.textContent).toContain("Free until")
+    expect(container.textContent).not.toContain("Order")
+    expect(container.querySelector("#quantity")).toBeNull()
+    expect(container.textContent).not.toContain("$")
   })
 
   it("shows a member neither a button nor an amount", async () => {

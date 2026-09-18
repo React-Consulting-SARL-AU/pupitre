@@ -70,3 +70,28 @@ export const StripeEventStatus = {
 } as const
 
 export type StripeEventStatus = (typeof StripeEventStatus)[keyof typeof StripeEventStatus]
+
+
+export const MailDirection = {
+  inbound: 'inbound',
+  outbound: 'outbound'
+} as const
+
+export type MailDirection = (typeof MailDirection)[keyof typeof MailDirection]
+
+
+export const MailThreadStatus = {
+  open: 'open',
+  closed: 'closed'
+} as const
+
+export type MailThreadStatus = (typeof MailThreadStatus)[keyof typeof MailThreadStatus]
+
+
+export const MailDelivery = {
+  received: 'received',
+  sent: 'sent',
+  failed: 'failed'
+} as const
+
+export type MailDelivery = (typeof MailDelivery)[keyof typeof MailDelivery]

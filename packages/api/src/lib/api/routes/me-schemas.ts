@@ -47,6 +47,7 @@ export const meSchema = t.Object(
     ),
     active_organization: t.Nullable(t.Object(organizationSummary)),
     role: t.Nullable(t.UnionEnum([...ORG_ROLES])),
+    platform_role: t.Nullable(t.UnionEnum([...ORG_ROLES])),
     entitlement: t.UnionEnum([...ME_ENTITLEMENTS]),
     subscription: t.Nullable(meSubscriptionSchema),
   },

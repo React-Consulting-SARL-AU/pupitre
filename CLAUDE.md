@@ -46,6 +46,7 @@ bun run test
 bun run build
 bun run db:generate
 bun run db:migrate
+bun run db:seed
 ```
 
 Commandes d'un seul workspace : `bun --cwd=<workspace> run <script>`.

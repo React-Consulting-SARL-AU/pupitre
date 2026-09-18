@@ -1,4 +1,5 @@
 import type {
+  ReleaseChannel,
   ServerStatus,
   SuspensionReason,
 } from "@pupitre/db/cloudflare/client"
@@ -6,6 +7,12 @@ import { sendServerSuspendedByAdminEmail } from "../../emails/notifications"
 import { activeAlertsFor } from "../alerts/alerts"
 import { getPrisma } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
+import {
+  type Entitlement,
+  entitlementForOrganization,
+  entitlementWindow,
+} from "../billing/entitlement"
+import { type AdminEventView, recentEvents } from "../platform/events"
 import type { ServerRow } from "./server-row"
 import { WITHOUT_METRICS } from "./server-row"
 import { type ServerView, toServerView } from "./servers"
@@ -42,6 +49,13 @@ export class ServerRevokedError extends Error {
   constructor(serverId: string) {
     super(`server ${serverId} is revoked and cannot be suspended`)
     this.name = "ServerRevokedError"
+  }
+}
+
+export class ServerNotAdminSuspendedError extends Error {
+  constructor(serverId: string) {
+    super(`server ${serverId} was not suspended by the team`)
+    this.name = "ServerNotAdminSuspendedError"
   }
 }
 
@@ -157,4 +171,135 @@ export async function suspendServerByAdmin(
   const alerts = await activeAlertsFor([suspended.id])
 
   return toAdminView(suspended, new Date(), alerts.get(suspended.id) ?? [])
+}
+
+export interface AdminServerAssignee {
+  id: string
+  email: string
+  name: string
+}
+
+export interface AdminServerDevice {
+  id: string
+  name: string
+  user: { id: string; email: string }
+}
+
+export interface AdminServerDetail extends AdminServerView {
+  channel: ReleaseChannel
+  assigned_user: AdminServerAssignee | null
+  device: AdminServerDevice | null
+  events: AdminEventView[]
+}
+
+const DETAIL_INCLUDE = {
+  organization: ORGANIZATION_SELECT,
+  assignedUser: { select: { id: true, email: true, name: true } },
+  device: {
+    select: {
+      id: true,
+      name: true,
+      user: { select: { id: true, email: true } },
+    },
+  },
+} as const
+
+export async function readServerForPlatform(
+  serverId: string
+): Promise<AdminServerDetail | null> {
+  const server = await getPrisma().server.findUnique({
+    where: { id: serverId },
+    omit: WITHOUT_METRICS,
+    include: DETAIL_INCLUDE,
+  })
+
+  if (!server) {
+    return null
+  }
+
+  const [alerts, events] = await Promise.all([
+    activeAlertsFor([server.id]),
+    recentEvents({ targetType: "server", targetId: server.id }),
+  ])
+
+  return {
+    ...toAdminView(server, new Date(), alerts.get(server.id) ?? []),
+    channel: server.channel,
+    assigned_user: server.assignedUser,
+    device: server.device,
+    events,
+  }
+}
+
+/**
+ * The team gives a machine back.
+ *
+ * Only a suspension the team itself laid down lifts here, and what it lifts
+ * into is whatever the organization is entitled to now: a subscription that
+ * lapsed meanwhile leaves the server in tolerance rather than open.
+ */
+export async function restoreServerByAdmin(
+  actor: AdminActor,
+  serverId: string,
+  now: Date = new Date()
+): Promise<AdminServerDetail | null> {
+  const prisma = getPrisma()
+  const server = await prisma.server.findUnique({
+    where: { id: serverId },
+    select: {
+      id: true,
+      organizationId: true,
+      status: true,
+      suspendedReason: true,
+    },
+  })
+
+  if (!server) {
+    return null
+  }
+
+  if (!(server.status === "suspended" && server.suspendedReason === "admin")) {
+    throw new ServerNotAdminSuspendedError(server.id)
+  }
+
+  const held = await entitlementForOrganization(server.organizationId, now)
+
+  await prisma.server.update({
+    where: { id: server.id },
+    data: standingAfterRestore(held, now),
+  })
+  await recordEvent({
+    action: "server.restored",
+    actorUserId: actor.userId,
+    organizationId: server.organizationId,
+    targetType: "server",
+    targetId: server.id,
+    payload: { entitlement: held.state },
+  })
+
+  return await readServerForPlatform(server.id)
+}
+
+function standingAfterRestore(held: Entitlement, now: Date) {
+  if (held.state === "valid") {
+    return {
+      status: "active" as const,
+      suspendedReason: null,
+      entitlementValidUntil: entitlementWindow(now),
+    }
+  }
+
+  if (held.state === "grace") {
+    return {
+      status: "grace" as const,
+      suspendedReason: null,
+      entitlementValidUntil: held.valid_until,
+    }
+  }
+
+  return {
+    status: "suspended" as const,
+    suspendedReason: "billing" as const,
+    entitlementValidUntil: held.valid_until,
+  }
 }

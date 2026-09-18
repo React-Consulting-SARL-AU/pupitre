@@ -37,19 +37,27 @@ Jobs-to-be-done :
 
 | Offre | Pour qui | Contenu | Prix HT |
 | --- | --- | --- | --- |
-| **Solo** | un utilisateur | jusqu'à deux serveurs apportés | 10 $ par serveur et par mois |
-| **Team** | une organisation | serveurs apportés, membres, rôles, attribution d'un serveur à une personne, audit, facture unique | 10 $ par serveur et par mois |
+| **Solo** | un utilisateur | jusqu'à deux serveurs apportés | 5 $ par serveur et par mois, 50 $ par an |
+| **Team** | une organisation | serveurs apportés, membres, rôles, attribution d'un serveur à une personne, audit, facture unique | 5 $ par serveur et par mois, 50 $ par an |
 | **Hosted** | qui ne veut pas louer | serveur fourni par Pupitre. Plus tard, après 100 serveurs payants | à partir de 29 $ par mois |
 
-Prix en dollars, la LLC vendant depuis les États-Unis ; Stripe convertit dans la devise du client au moment du paiement et ajoute la taxe applicable. Annuel avec deux mois offerts. Essai de 14 jours sans carte. Le prix par serveur est identique pour Solo et Team : l'agence achète l'organisation, pas un tarif. Noms en anglais sur toutes les surfaces publiques ; en français, Solo, Équipe, Hébergé.
+Prix en dollars, la LLC vendant depuis les États-Unis ; Stripe convertit dans la devise du client au moment du paiement et ajoute la taxe applicable. Annuel avec deux mois offerts. Essai de 30 jours sans carte, sur une seule machine : les sièges ne changent pas tant que l'essai court, et une organisation n'a qu'un essai. Le prix par serveur est identique pour Solo et Team : l'agence achète l'organisation, pas un tarif. Noms en anglais sur toutes les surfaces publiques ; en français, Solo, Équipe, Hébergé.
 
 Aucun serveur ne tourne sans abonnement : l'essai en est un, et sans lui l'app n'enrôle rien. Quand l'abonnement s'arrête, le serveur du client continue de fonctionner comme un serveur normal : ses projets, ses bases, ses services restent. Il perd Pupitre, rien d'autre. C'est écrit dans les conditions et sur le site.
+
+### Le lancement
+
+Tant que la société n'existe pas, il n'y a ni Stripe ni facturation : la plateforme tourne en mode `launch` (`BILLING_MODE`), le propriétaire paie l'hébergement, et l'abonnement est gratuit pour tout inscrit jusqu'à une date annoncée (`LAUNCH_ENDS_AT`). C'est toujours un abonnement, que la plateforme s'accorde elle-même au premier clic sur « Commencer » : une machine par organisation, le nombre de machines de l'organisation du propriétaire (`LAUNCH_ADMIN_SEATS`) mis à part. À la date de fin, l'abonnement s'annule, les serveurs passent en tolérance puis en suspension le jour même, et le chemin normal reprend : essai, ou carte quand Stripe existe. Repousser la fin du lancement, c'est changer la date en configuration ; le job quotidien aligne les abonnements en cours.
+
+**Liens d'affiliation.** Le propriétaire crée des liens `pupitre.studio/?ref=<code>` depuis la console d'administration. Le site pose le code en cookie sur le domaine, et la console l'attache à l'organisation au moment où elle démarre son abonnement. Pendant le lancement, un lien ne fait que dire d'où vient un inscrit. Quand Stripe est en place, l'organisation venue d'un lien démarre avec le nombre de mois gratuits et de machines que le lien porte, à la place des 30 jours et de la machine unique. Un lien se désactive, jamais ne s'efface : ses inscrits restent comptés.
+
+**Console d'administration.** L'accès vient de l'appartenance à l'organisation Pupitre (`org_pupitre`), que le propriétaire gère depuis sa page Membres comme n'importe quelle organisation : un membre lit tout, un `admin` ou `owner` agit. La console y montre les compteurs (comptes, organisations, serveurs et abonnements par statut, liens et parrainages), la boîte de réception des emails de `pupitre.studio` avec réponse depuis les adresses de contact, les fiches détaillées des comptes, organisations et serveurs, les abonnements, le journal de la plateforme, les versions à promouvoir, l'équipe, et les liens d'affiliation. Suspendre ou rétablir un serveur, bannir un compte, créer un lien, répondre à un mail sont réservés à `admin` et `owner`. Jamais l'accès aux machines.
 
 ## Le parcours
 
 1. **Le site.** Le visiteur lit ce que Pupitre fait, et ce qu'il coûte.
 2. **Le compte.** Il s'inscrit sur `app.pupitre.studio` ; une organisation personnelle naît avec lui.
-3. **L'essai.** Il démarre son essai de quatorze jours, sans carte. C'est un abonnement : Stripe seul le crée, par webhook.
+3. **L'essai.** Il démarre son essai de trente jours, sans carte, sur une machine. C'est un abonnement : Stripe seul le crée, par webhook ; pendant le lancement, la plateforme le crée elle-même.
 4. **Le téléchargement.** La console lui donne l'app pour son système.
 5. **La liaison.** Il ouvre l'app, la lie à son compte par le code affiché sur `/auth/device`.
 6. **Le serveur.** Il enrôle son VPS, et l'onboarding commence.

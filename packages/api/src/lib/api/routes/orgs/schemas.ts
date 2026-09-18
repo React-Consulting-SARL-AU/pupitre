@@ -19,6 +19,7 @@ export const checkoutBody = t.Object({
   quantity: seatQuantity,
   interval: billingIntervalSchema,
   return_to: t.Optional(t.UnionEnum([...CHECKOUT_RETURNS])),
+  affiliate_code: t.Optional(t.String({ maxLength: 64 })),
 })
 
 export const seatsBody = t.Object({ quantity: seatQuantity })

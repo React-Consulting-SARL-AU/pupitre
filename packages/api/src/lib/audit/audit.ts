@@ -12,7 +12,10 @@ export type AuditAction =
   | "server.unassigned"
   | "server.device_revoked"
   | "server.suspended"
+  | "server.restored"
   | "member.invited"
+  | "user.banned"
+  | "user.unbanned"
   | "release.published"
   | "release.promoted"
   | "app_release.published"
@@ -21,14 +24,25 @@ export type AuditAction =
   | "subscription.updated"
   | "subscription.canceled"
   | "seats.drifted"
+  | "referral.recorded"
+  | "affiliate_link.created"
+  | "affiliate_link.updated"
+  | "mail.closed"
+  | "mail.reopened"
+  | "mail.assigned"
+  | "mail.replied"
+  | "mail.composed"
 
 export type AuditTargetType =
   | "device"
   | "server"
+  | "user"
   | "release"
   | "app_release"
   | "subscription"
   | "invitation"
+  | "affiliate_link"
+  | "mail_thread"
 
 /**
  * Who did the thing.

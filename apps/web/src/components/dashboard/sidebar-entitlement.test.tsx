@@ -7,11 +7,16 @@ import {
   it,
 } from "bun:test"
 import { bootApiTestServer, resetDb } from "@pupitre/api/testing"
+import { TEST_LAUNCH_END } from "@pupitre/api/testing/billing"
 import { subscribeOrganization } from "@pupitre/api/testing/factories"
 import type { OrgRole } from "@pupitre/shared/permissions"
 import { SidebarEntitlement } from "@/components/dashboard/sidebar-entitlement"
 import type { DashboardOrganization } from "@/lib/domain/dashboard-context"
-import { createConsoleUser, useSessionApiClient } from "@/testing/harness"
+import {
+  createConsoleUser,
+  grantLaunch,
+  useSessionApiClient,
+} from "@/testing/harness"
 import { render, waitUntil, withDashboard } from "@/testing/render"
 
 const mounted: (() => void)[] = []
@@ -57,7 +62,7 @@ describe("SidebarEntitlement", () => {
     mounted.push(unmount)
 
     await waitUntil(
-      () => container.textContent?.includes("Trial not started") === true
+      () => container.textContent?.includes("Free access not started") === true
     )
 
     expect(container.textContent).not.toContain("Licence suspended")
@@ -72,7 +77,9 @@ describe("SidebarEntitlement", () => {
     mounted.push(unmount)
 
     await waitUntil(
-      () => container.textContent?.includes("Waiting for the trial") === true
+      () =>
+        container.textContent?.includes("Waiting for the owner to start") ===
+        true
     )
 
     expect(container.textContent).not.toContain("Licence suspended")
@@ -103,5 +110,23 @@ describe("SidebarEntitlement", () => {
     mounted.push(unmount)
 
     expect(container.textContent).toBe("")
+  })
+
+  it("nomme le lancement gratuit et sa fin, jamais un essai", async () => {
+    await grantLaunch(organization.id, TEST_LAUNCH_END)
+
+    const { container, unmount } = await render(pill("valid"))
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("Free launch · until") === true
+    )
+
+    expect(container.textContent).toContain("2026")
+    expect(container.textContent).not.toContain("Trial")
+    expect(container.querySelector("a")?.getAttribute("href")).toBe(
+      "/dashboard/billing"
+    )
   })
 })

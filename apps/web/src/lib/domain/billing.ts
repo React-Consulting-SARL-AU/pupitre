@@ -1,4 +1,9 @@
-import { ANNUAL_FREE_MONTHS, getPlan } from "@pupitre/shared/plans"
+import {
+  ANNUAL_FREE_MONTHS,
+  type BillingMode,
+  getPlan,
+  LAUNCH_PRODUCT,
+} from "@pupitre/shared/plans"
 import type { StatusLook } from "@/lib/domain/server-status"
 import type { DictionaryKey } from "@/lib/i18n/en"
 
@@ -44,9 +49,90 @@ const STATUS_LOOKS: Record<string, StatusLook> = {
   },
 }
 
+const LAUNCH_LOOK: StatusLook = {
+  shape: "filled",
+  tone: "ok",
+  label: "billing.status.launch",
+}
+
+export interface SubscriptionProduct {
+  product: string | null
+  status: string
+}
+
+/** The subscription the platform granted itself for the launch: no Stripe, one machine, whatever status it ends on. */
+export function isLaunchSubscription({
+  product,
+}: SubscriptionProduct): boolean {
+  return product === LAUNCH_PRODUCT
+}
+
+/** Stripe holds a trial to one machine, and so does the launch: the seat form waits for the first payment. */
+export function seatsLocked({ status, product }: SubscriptionProduct): boolean {
+  return status === "trialing" || isLaunchSubscription({ product, status })
+}
+
 /** A status Stripe invents after this was written has no name of ours to show. */
-export function subscriptionStatusLook(status: string): StatusLook | null {
+export function subscriptionStatusLook(
+  status: string,
+  product: string | null = null
+): StatusLook | null {
+  if (status === "trialing" && isLaunchSubscription({ product, status })) {
+    return LAUNCH_LOOK
+  }
+
   return STATUS_LOOKS[status] ?? null
+}
+
+export interface BillingStatus {
+  mode: BillingMode
+  launch_ends_at: string | null
+}
+
+/** What either offer gives, trial or launch: the same product, free for a while. */
+export const START_PROMISES: DictionaryKey[] = [
+  "start.gives.enrol",
+  "start.gives.catalogue",
+  "start.gives.yours",
+]
+
+export type StartOfferKind = "trial" | "launch"
+
+export interface StartOffer {
+  kind: StartOfferKind
+  /** When the free period ends; a launch without a date runs until the platform says otherwise. */
+  endsAt: string | null
+  title: DictionaryKey
+  action: DictionaryKey
+  actionPending: DictionaryKey
+  failed: DictionaryKey
+}
+
+const TRIAL_OFFER: StartOffer = {
+  kind: "trial",
+  endsAt: null,
+  title: "start.trialTitle",
+  action: "start.action",
+  actionPending: "start.actionPending",
+  failed: "start.failed",
+}
+
+/** Until `/status` has answered, the console offers the trial: that is what it offers outside the launch. */
+export function startOffer(
+  billing: BillingStatus | null | undefined
+): StartOffer {
+  if (billing?.mode !== "launch") {
+    return TRIAL_OFFER
+  }
+
+  return {
+    kind: "launch",
+    endsAt: billing.launch_ends_at,
+    title: "start.launchTitle",
+    action: "start.launchAction",
+    actionPending: "start.launchActionPending",
+    failed: "start.launchFailed",
+  }
 }
 
 export function amountUsd(

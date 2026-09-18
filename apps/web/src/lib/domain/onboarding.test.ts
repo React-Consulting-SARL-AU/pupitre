@@ -139,6 +139,41 @@ describe("la pastille de droit d'usage", () => {
     ).toBeNull()
   })
 
+  it("nomme le lancement gratuit et sa fin plutôt qu'un essai", () => {
+    expect(
+      entitlementNotice({
+        entitlement: "valid",
+        subscription: "trialing",
+        canManageBilling: true,
+        launch: { endsAt: "2026-12-31T00:00:00.000Z" },
+      })
+    ).toEqual({
+      label: "entitlement.launch",
+      to: "/dashboard/billing",
+      look: { shape: "filled", tone: "ok", label: "entitlement.launch" },
+    })
+
+    expect(
+      entitlementNotice({
+        entitlement: "valid",
+        subscription: "trialing",
+        canManageBilling: false,
+        launch: { endsAt: null },
+      })
+    ).toMatchObject({ label: "billing.launchTitle", to: null })
+  })
+
+  it("ne parle pas de lancement à un droit d'usage qui n'est plus en règle", () => {
+    expect(
+      entitlementNotice({
+        entitlement: "suspended",
+        subscription: "canceled",
+        canManageBilling: true,
+        launch: { endsAt: null },
+      })
+    ).toMatchObject({ label: "entitlement.suspended" })
+  })
+
   it("ne dit jamais « suspendu » à un compte qui n'a rien souscrit", () => {
     expect(
       entitlementNotice({

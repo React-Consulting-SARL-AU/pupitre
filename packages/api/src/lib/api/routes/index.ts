@@ -1,8 +1,16 @@
 import { type AnyElysia, Elysia } from "elysia"
 import { authPlugin } from "../plugins/auth"
+import { adminAffiliateLinksRoutes } from "./admin/affiliate-links"
 import { adminAppReleasesRoutes } from "./admin/app-releases"
+import { adminEventsRoutes } from "./admin/events"
+import { adminInboxRoutes } from "./admin/inbox"
+import { adminOrganizationsRoutes } from "./admin/organizations"
+import { adminOverviewRoutes } from "./admin/overview"
 import { adminReleasesRoutes } from "./admin/releases"
 import { adminServersRoutes } from "./admin/servers"
+import { adminSubscriptionsRoutes } from "./admin/subscriptions"
+import { adminTeamRoutes } from "./admin/team"
+import { adminUsersRoutes } from "./admin/users"
 import { agentRoutes } from "./agent"
 import { appReleasesRoutes } from "./app-releases"
 import { devicesRoutes } from "./devices"
@@ -23,6 +31,14 @@ const adminRoutes = hiddenRoutes(
     .use(adminReleasesRoutes)
     .use(adminAppReleasesRoutes)
     .use(adminServersRoutes)
+    .use(adminOverviewRoutes)
+    .use(adminUsersRoutes)
+    .use(adminOrganizationsRoutes)
+    .use(adminSubscriptionsRoutes)
+    .use(adminEventsRoutes)
+    .use(adminTeamRoutes)
+    .use(adminAffiliateLinksRoutes)
+    .use(adminInboxRoutes)
 )
 
 export const routes = new Elysia({ name: "routes" })

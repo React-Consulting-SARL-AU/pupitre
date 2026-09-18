@@ -28,6 +28,7 @@
     "./legal": "./src/legal/index.ts",
     "./permissions": "./src/permissions/index.ts",
     "./plans": "./src/plans/index.ts",
+    "./platform": "./src/platform/index.ts",
     "./releases": "./src/releases/index.ts",
     "./semver": "./src/semver/index.ts",
     "./status": "./src/status/index.ts"

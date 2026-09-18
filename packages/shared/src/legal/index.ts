@@ -66,6 +66,86 @@ export const PUPITRE_ORIGINS = {
   app: "https://app.pupitre.studio",
 } as const
 
+/** Every address under this domain reaches the platform inbox, catch-all. */
+export const MAIL_DOMAIN = new URL(PUPITRE_ORIGINS.site).hostname
+
+/**
+ * Above this, a mail is refused at the edge. Buffering it kills the isolate,
+ * and Cloudflare replays a delivery that died forever.
+ */
+export const MAIL_MAX_BYTES = 20 * 1024 * 1024
+
+/** D1 refuses a row past a megabyte; the raw `.eml` in the bucket keeps the whole body. */
+export const MAIL_MAX_TEXT_CHARS = 200_000
+
+/** The only `from` a reply or a new mail may carry: the four verified senders. */
+export const MAIL_SENDER_ADDRESSES = [
+  LEGAL_CONTACTS.support,
+  LEGAL_CONTACTS.legal,
+  LEGAL_CONTACTS.privacy,
+  LEGAL_CONTACTS.security,
+] as const
+
+export type MailSenderAddress = (typeof MAIL_SENDER_ADDRESSES)[number]
+
+export function isMailSenderAddress(value: string): value is MailSenderAddress {
+  return MAIL_SENDER_ADDRESSES.includes(value as MailSenderAddress)
+}
+
+/** What a reply or a new mail may carry, all attachments together. */
+export const MAIL_MAX_OUTBOUND_ATTACHMENT_BYTES = 5 * 1024 * 1024
+
+export const MAIL_MAX_OUTBOUND_ATTACHMENTS = 10
+
+/** How long a signed bucket address, to read an attachment or to upload one, stays valid. */
+export const MAIL_SIGNED_URL_TTL_SECONDS = 600
+
+export const MAIL_BLOCKED_ATTACHMENT_EXTENSIONS = [
+  "exe",
+  "bat",
+  "cmd",
+  "com",
+  "scr",
+  "pif",
+  "vbs",
+  "js",
+  "jse",
+  "wsf",
+  "wsh",
+  "msi",
+  "jar",
+  "ps1",
+  "sh",
+  "dll",
+] as const
+
+const BLOCKED_EXTENSIONS = new Set<string>(MAIL_BLOCKED_ATTACHMENT_EXTENSIONS)
+
+const PDF_TYPE = "application/pdf"
+
+const IMAGE_TYPE_PREFIX = "image/"
+
+/** An SVG is an image that can carry a script: it is saved, never shown. */
+const SVG_TYPE = "image/svg+xml"
+
+export function isBlockedAttachment(filename: string): boolean {
+  const extension = filename.split(".").pop()?.toLowerCase() ?? ""
+
+  return BLOCKED_EXTENSIONS.has(extension)
+}
+
+/** Only a raster image or a PDF opens in the console; anything else is handed over to save. */
+export function isPreviewableMailType(
+  mimeType: string | null | undefined
+): boolean {
+  const declared = mimeType?.split(";")[0].trim().toLowerCase() ?? ""
+
+  return (
+    declared === PDF_TYPE ||
+    (declared.startsWith(IMAGE_TYPE_PREFIX) && declared !== SVG_TYPE)
+  )
+}
+
 export const LEGAL_DOCUMENT_SLUGS = [
   "terms",
   "licence",

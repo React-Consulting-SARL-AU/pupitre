@@ -14,8 +14,8 @@ export const meRoutes = new Elysia({ name: "me-routes", tags: ["Me"] })
   .use(requireAuth)
   .get(
     "/me",
-    async ({ user, organizationId, role }) =>
-      serializeData(await loadMe({ user, organizationId, role })),
+    async ({ user, organizationId, role, platformRole }) =>
+      serializeData(await loadMe({ user, organizationId, role, platformRole })),
     {
       detail: {
         summary: "L'utilisateur connecté, ses organisations et son rôle",
@@ -25,7 +25,16 @@ export const meRoutes = new Elysia({ name: "me-routes", tags: ["Me"] })
   )
   .patch(
     "/me",
-    async ({ user, session, organizationId, role, body, request, set }) => {
+    async ({
+      user,
+      session,
+      organizationId,
+      role,
+      platformRole,
+      body,
+      request,
+      set,
+    }) => {
       if (body.locale) {
         await setUserLocale(user.id, body.locale)
       }
@@ -58,7 +67,12 @@ export const meRoutes = new Elysia({ name: "me-routes", tags: ["Me"] })
       }
 
       return serializeData(
-        await loadMe({ user, organizationId: active, role: held })
+        await loadMe({
+          user,
+          organizationId: active,
+          role: held,
+          platformRole,
+        })
       )
     },
     {

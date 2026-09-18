@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
 import { Lock, RotateCw } from "lucide-react"
 import { CheckoutForm } from "@/components/dashboard/checkout-form"
+import { LaunchOffer } from "@/components/dashboard/launch-offer"
 import { SeatBalanceCard } from "@/components/dashboard/seat-balance-card"
 import { SubscriptionCard } from "@/components/dashboard/subscription-card"
 import { Button } from "@/components/ui/button"
@@ -13,10 +14,18 @@ import { usePermission } from "@/hooks/use-permission"
 import {
   isLiveSubscription,
   serversQueryOptions,
+  statusQueryOptions,
   subscriptionQueryOptions,
 } from "@/lib/api/queries"
-import { seatBalance, trialDaysLeft } from "@/lib/domain/billing"
+import {
+  isLaunchSubscription,
+  seatBalance,
+  seatsLocked,
+  startOffer,
+  trialDaysLeft,
+} from "@/lib/domain/billing"
 import type { Translate } from "@/lib/i18n/i18n"
+import { formatDate } from "@/lib/utils/format"
 
 const SEATED_STATUSES = new Set(["enrolling", "active", "grace", "suspended"])
 
@@ -44,6 +53,12 @@ function trialNotice(t: Translate, daysLeft: number | null): string {
   return `${title} · ${remaining}`
 }
 
+function launchNotice(t: Translate, endsAt: string | null): string {
+  return endsAt
+    ? t("billing.launchUntil", { date: formatDate(endsAt, t) })
+    : t("billing.launchTitle")
+}
+
 export function BillingPanel() {
   const t = useTranslations()
   const { activeOrganization } = useDashboardContext()
@@ -55,6 +70,7 @@ export function BillingPanel() {
     enabled,
   })
   const servers = useQuery({ ...serversQueryOptions(), enabled })
+  const status = useQuery(statusQueryOptions())
 
   if (!canManage) {
     return (
@@ -76,7 +92,7 @@ export function BillingPanel() {
     )
   }
 
-  if (subscription.isPending || servers.isPending) {
+  if (subscription.isPending || servers.isPending || status.isPending) {
     return <SkeletonCards label={t("billingPanel.reading")} />
   }
 
@@ -108,34 +124,54 @@ export function BillingPanel() {
       ? subscription.data
       : null
   const paid = live?.quantity ?? 0
-  const trialing = live?.status === "trialing"
+  const launch = live !== null && isLaunchSubscription(live)
+  const trialing = live !== null && !launch && live.status === "trialing"
   const daysLeft = trialing
     ? trialDaysLeft(live?.current_period_end ?? null)
     : null
-  const trialTitle = trialNotice(t, daysLeft)
+  const offer = startOffer(status.data?.billing)
 
   return (
     <div className="flex flex-col gap-section">
+      {launch ? (
+        <Callout
+          fix={t("billing.launchEnds")}
+          title={launchNotice(t, live?.current_period_end ?? null)}
+        />
+      ) : null}
+
       {trialing ? (
-        <Callout fix={t("billing.trialEnds")} title={trialTitle} />
+        <Callout
+          fix={t("billing.trialEnds")}
+          title={trialNotice(t, daysLeft)}
+        />
       ) : null}
 
       {live ? (
         <SubscriptionCard
+          launch={launch}
           organizationId={activeOrganization.id}
           seatsInUse={used}
+          seatsLocked={seatsLocked(live)}
           subscription={live}
         />
-      ) : (
+      ) : null}
+
+      {live === null && offer.kind === "launch" ? (
+        <LaunchOffer offer={offer} organizationId={activeOrganization.id} />
+      ) : null}
+
+      {live === null && offer.kind === "trial" ? (
         <CheckoutForm
           defaultQuantity={Math.max(used, 1)}
+          firstCheckout={subscription.data === null}
           organizationId={activeOrganization.id}
         />
-      )}
+      ) : null}
 
       <SeatBalanceCard
         balance={seatBalance(paid, used)}
-        paidSeats={live !== null}
+        paidSeats={live !== null && !launch}
       />
     </div>
   )

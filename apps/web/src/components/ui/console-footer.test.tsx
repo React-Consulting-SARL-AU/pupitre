@@ -20,6 +20,7 @@ const SIGNED_IN = {
   active_organization: null,
   role: null,
   entitlement: "valid",
+  platformRole: null,
 }
 
 const mounted: (() => void)[] = []

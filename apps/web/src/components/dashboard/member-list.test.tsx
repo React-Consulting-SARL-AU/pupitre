@@ -42,6 +42,7 @@ function list(
           activeOrganization: organization,
           role,
           entitlement: "valid",
+          platformRole: null,
         }}
       >
         <ToastProvider>

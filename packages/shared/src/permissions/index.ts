@@ -36,6 +36,8 @@ const CATALOG = [
   { slug: "audit:view" },
   { slug: "admin:servers" },
   { slug: "admin:releases" },
+  { slug: "admin:users" },
+  { slug: "admin:affiliate_links" },
 ] as const
 
 export type Permission = (typeof CATALOG)[number]["slug"]
@@ -91,6 +93,8 @@ const OWNER_PERMISSIONS: readonly Permission[] = [
 const PLATFORM_ADMIN_PERMISSIONS: readonly Permission[] = [
   "admin:servers",
   "admin:releases",
+  "admin:users",
+  "admin:affiliate_links",
 ]
 
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {

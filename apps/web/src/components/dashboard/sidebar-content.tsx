@@ -1,11 +1,17 @@
 import {
   Building2,
   CreditCard,
+  Gauge,
+  HardDrive,
+  Inbox,
   Laptop,
+  Link2,
+  Package,
   ScrollText,
   Server,
   SlidersHorizontal,
   Users,
+  UsersRound,
 } from "lucide-react"
 import { ConsoleBrand } from "@/components/dashboard/console-brand"
 import { OrganizationSwitcher } from "@/components/dashboard/organization-switcher"
@@ -17,7 +23,7 @@ import { SidebarStartLink } from "@/components/dashboard/sidebar-start-link"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
 import { usePermission } from "@/hooks/use-permission"
-import { opensWhileSuspended } from "@/lib/domain/entitlement-gate"
+import { ADMIN_ROUTE, opensWhileSuspended } from "@/lib/domain/entitlement-gate"
 import { canManageOrganization } from "@/lib/domain/organization"
 import type { DictionaryKey } from "@/lib/i18n/en"
 
@@ -25,6 +31,7 @@ interface SidebarEntry {
   to: string
   label: DictionaryKey
   icon: typeof Server
+  exact?: boolean
 }
 
 const SERVERS_LINK: SidebarEntry = {
@@ -69,10 +76,35 @@ const SETTINGS_LINK: SidebarEntry = {
   icon: SlidersHorizontal,
 }
 
+const PLATFORM_LINKS: SidebarEntry[] = [
+  { to: ADMIN_ROUTE, label: "nav.admin", icon: Gauge, exact: true },
+  { to: `${ADMIN_ROUTE}/inbox`, label: "nav.adminInbox", icon: Inbox },
+  { to: `${ADMIN_ROUTE}/users`, label: "nav.adminUsers", icon: UsersRound },
+  {
+    to: `${ADMIN_ROUTE}/organizations`,
+    label: "nav.adminOrganizations",
+    icon: Building2,
+  },
+  { to: `${ADMIN_ROUTE}/servers`, label: "nav.adminServers", icon: HardDrive },
+  {
+    to: `${ADMIN_ROUTE}/subscriptions`,
+    label: "nav.adminSubscriptions",
+    icon: CreditCard,
+  },
+  {
+    to: `${ADMIN_ROUTE}/affiliate-links`,
+    label: "nav.adminAffiliateLinks",
+    icon: Link2,
+  },
+  { to: `${ADMIN_ROUTE}/events`, label: "nav.adminEvents", icon: ScrollText },
+  { to: `${ADMIN_ROUTE}/releases`, label: "nav.adminReleases", icon: Package },
+  { to: `${ADMIN_ROUTE}/team`, label: "nav.adminTeam", icon: Users },
+]
+
 /** The console's navigation, declared once: the column holds it, the panel borrows it. */
 export function SidebarContent() {
   const t = useTranslations()
-  const { role, entitlement } = useDashboardContext()
+  const { role, entitlement, platformRole } = useDashboardContext()
   const canManageBilling = usePermission("billing:manage")
   const canReadAudit = usePermission("audit:view")
   const open = (link: SidebarEntry) =>
@@ -91,6 +123,10 @@ export function SidebarContent() {
     {
       label: t("nav.group.account"),
       links: [DEVICES_LINK, SETTINGS_LINK].filter(open),
+    },
+    {
+      label: t("nav.group.platform"),
+      links: platformRole ? PLATFORM_LINKS : [],
     },
   ].filter((group) => group.links.length > 0)
 
@@ -118,6 +154,7 @@ export function SidebarContent() {
             <div className="flex flex-col gap-[2px]">
               {group.links.map((link) => (
                 <SidebarLink
+                  exact={link.exact}
                   icon={link.icon}
                   key={link.to}
                   label={t(link.label)}

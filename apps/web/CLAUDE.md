@@ -20,8 +20,8 @@ TanStack Start (React 19) sur Cloudflare Workers via le plugin Vite · TS strict
 ## Architecture
 
 ```
-src/routes/      api/v1/$ · api/auth/$ · auth/ (sign-in, device, invitation) · dashboard/ · admin/ (platform_admin) · download
-src/components/  ui/ (Base UI + shadcn, 1 composant/fichier) · dashboard/ · admin/ · auth/
+src/routes/      api/v1/$ · api/auth/$ · auth/ (sign-in, device, invitation) · dashboard/ · dashboard/admin/ (membres de l'organisation plateforme) · download
+src/components/  ui/ (Base UI + shadcn, 1 composant/fichier) · dashboard/ · admin/ (pages plateforme, admin/inbox/ pour les mails) · auth/
 src/lib/         api/ (client Eden) · auth/ · query/ · schemas/ (Zod) · domain/ · config/
 src/workflows/   étapes de ReconcileSeats · DecommissionServer · ExpireEnrollments · EvaluateAlerts · SuspendExpiredGrace, cron triggers, déclencheur interne
 src/worker.ts    sert /api/v1 et /internal/workflows, porte les classes Workflow et le handler cron, délègue le reste à Start
@@ -33,7 +33,7 @@ packages/auth/   createAuth, plugins, clients web et desktop
 
 - **La console n'a pas de logique métier.** Elle appelle l'API comme l'app desktop le fait. Une règle métier vit dans `packages/api/src/lib/`, jamais dans une route TanStack ni un composant.
 - **Multi-tenancy** : `const { user, activeOrganization, role } = useDashboardContext()`. Permissions via `usePermission(slug)`, slugs de `@pupitre/shared/permissions`. Gardes API : `requireOrg`, `requireRole`, `requireServer`, `requirePlatformAdmin`.
-- **Les webhooks sont la seule entrée de la facturation.** La console ne crée rien à la fin d'un checkout ; elle attend l'événement Stripe. Idempotence par `event.id`.
+- **Les webhooks sont la seule entrée de la facturation Stripe.** La console ne crée rien à la fin d'un checkout ; elle attend l'événement Stripe. Idempotence par `event.id`. En `BILLING_MODE=launch`, il n'y a pas de Stripe : `POST /orgs/:id/checkout` accorde lui-même l'abonnement de lancement (`packages/api/src/lib/billing/launch.ts`), et c'est la seule exception.
 - **La plateforme ne connaît pas le contenu d'un serveur.** Aucune route ne reçoit de projet, de secret ou de fichier client. Une PR qui ajoute un tel champ est refusée.
 - **Routes admin** : sous `/admin/**` et `{ detail: { hide: true } }` côté Elysia.
 - **Fichiers** `{feature}-{context}-{type}.tsx`, un composant React par fichier hors `ui/`, pas de barrel files. Types inférés depuis Prisma et Eden, jamais redéclarés. Zod dans `src/lib/schemas/`.

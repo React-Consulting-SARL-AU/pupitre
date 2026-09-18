@@ -98,6 +98,31 @@ export type Subscription = Prisma.SubscriptionModel
  */
 export type OrganizationBilling = Prisma.OrganizationBillingModel
 /**
+ * Model AffiliateLink
+ * 
+ */
+export type AffiliateLink = Prisma.AffiliateLinkModel
+/**
+ * Model Referral
+ * 
+ */
+export type Referral = Prisma.ReferralModel
+/**
+ * Model MailThread
+ * 
+ */
+export type MailThread = Prisma.MailThreadModel
+/**
+ * Model MailMessage
+ * 
+ */
+export type MailMessage = Prisma.MailMessageModel
+/**
+ * Model MailAttachment
+ * 
+ */
+export type MailAttachment = Prisma.MailAttachmentModel
+/**
  * Model Release
  * 
  */

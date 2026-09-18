@@ -65,10 +65,10 @@ En revanche tu peux les obtenir dans l'ordre, et trois d'entre eux se fabriquent
 | `STRIPE_WEBHOOK_SECRET` | vérifier que Stripe est bien l'émetteur | Stripe | sandbox / live |
 | `STRIPE_PRICE_SERVER_MONTH` | le prix mensuel | Stripe | sandbox / live |
 | `STRIPE_PRICE_SERVER_YEAR` | le prix annuel | Stripe | sandbox / live |
-| `R2_ACCOUNT_ID` | servir le binaire de l'agent | Cloudflare | même valeur des deux côtés |
+| `R2_ACCOUNT_ID` | servir le binaire de l'agent, signer les pièces jointes de la boîte | Cloudflare | même valeur des deux côtés |
 | `R2_ACCESS_KEY_ID` | idem | Cloudflare | même valeur des deux côtés |
 | `R2_SECRET_ACCESS_KEY` | idem | Cloudflare | même valeur des deux côtés |
-| `R2_BUCKET_NAME` | idem — vaut `ppt-agent` | c'est le nom du seau | même valeur des deux côtés |
+| `R2_BUCKET_NAME` | le seau du binaire — vaut `ppt-agent` | c'est le nom du seau | même valeur des deux côtés |
 
 | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` | la connexion par GitHub | l'OAuth App GitHub | **une OAuth App par hôte** : GitHub n'accepte qu'une adresse de retour par app |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | la connexion par Google | Google Cloud, identifiant OAuth « application Web » | même client possible, une URI de redirection par hôte |
@@ -85,7 +85,7 @@ Un secret présent mais faux ne bloque pas le déploiement : le garde-fou compte
 | `INTERNAL_WORKFLOW_SECRET` | tout, tâches planifiées comprises | seulement le déclenchement manuel d'une tâche de fond, qui ne sert qu'en développement |
 | `PUPITRE_PUBLISH_TOKEN` | tout le service | la CI ne peut plus déclarer de version publiée |
 | les quatre `STRIPE_*` | la connexion, la console, l'ajout d'un serveur | souscrire un abonnement |
-| les quatre `R2_*` | la console entière | l'app ne peut pas télécharger l'agent, donc aucune installation sur un serveur |
+| les quatre `R2_*` | la console entière | l'app ne peut pas télécharger l'agent, donc aucune installation sur un serveur ; la boîte ne peut ni ouvrir ni joindre une pièce jointe |
 
 Autrement dit : `BETTER_AUTH_SECRET` est le seul dont une valeur fausse rend le service inutilisable. Les autres dégradent une fonction, et le disent. La base n'est pas un secret : c'est une D1 **liée** au Worker par `wrangler.jsonc`, sans adresse ni mot de passe.
 
@@ -103,9 +103,9 @@ Le préfixe `pupitre_pub_` est ce à quoi la plateforme reconnaît un jeton de p
 
 ### Les quatre `R2_*` — Cloudflare
 
-Ils servent à une seule chose : laisser la plateforme distribuer le binaire de l'agent depuis un seau que rien n'atteint autrement.
+Ils servent à deux choses : laisser la plateforme distribuer le binaire de l'agent depuis un seau que rien n'atteint autrement, et signer les adresses par lesquelles la console lit et dépose les pièces jointes de la boîte, sur `ppt-mail`.
 
-Cloudflare → **R2** → *Manage API tokens* → *Create API token*. Permission **Object Read only**, restreinte au seul seau `ppt-agent`. Cloudflare affiche alors une clé et un secret — **le secret n'est montré qu'une fois**.
+Cloudflare → **R2** → *Manage API tokens* → *Create API token*. Permission **Object Read & Write**, restreinte aux deux seaux `ppt-agent` et `ppt-mail` — la lecture pour le binaire, l'écriture pour qu'un dépôt signé de la console soit accepté. Cloudflare affiche alors une clé et un secret — **le secret n'est montré qu'une fois**.
 
 | Variable | Valeur |
 | --- | --- |
@@ -114,7 +114,9 @@ Cloudflare → **R2** → *Manage API tokens* → *Create API token*. Permission
 | `R2_SECRET_ACCESS_KEY` | le secret, montré une seule fois |
 | `R2_BUCKET_NAME` | `ppt-agent` |
 
-Crée **un second jeton** au même endroit, celui-là en **Object Read & Write** sur les deux seaux : sa clé et son secret deviennent `R2_ACCESS_KEY_ID` et `R2_SECRET_ACCESS_KEY` dans la note 1Password de la release, étape 8. La chaîne de release parle S3 directement, avec ce jeton-là, et rien d'autre : un jeton d'API Cloudflare ouvrirait tous les seaux du compte, celui-ci n'ouvre que les deux. Ne réutilise pas le premier — celui du Worker n'a pas à pouvoir écrire.
+Le nom du seau des mails n'est pas un secret : `R2_MAIL_BUCKET_NAME` vaut `ppt-mail` dans les `vars` de `wrangler.jsonc`.
+
+Crée **un second jeton** au même endroit, en **Object Read & Write** sur `ppt-agent` et `ppt-downloads` : sa clé et son secret deviennent `R2_ACCESS_KEY_ID` et `R2_SECRET_ACCESS_KEY` dans la note 1Password de la release, étape 8. La chaîne de release parle S3 directement, avec ce jeton-là, et rien d'autre : un jeton d'API Cloudflare ouvrirait tous les seaux du compte, celui-ci n'ouvre que les deux. Ne réutilise pas le premier — celui du Worker n'a pas à toucher au seau public.
 
 ### Les quatre `STRIPE_*` — Stripe
 
@@ -123,8 +125,8 @@ Un produit et deux prix, à créer **deux fois** : en sandbox pour le poste de t
 | | |
 | --- | --- |
 | Produit | `Pupitre Server`, code fiscal `txcd_10103001` (logiciel en ligne, usage professionnel) |
-| Prix mensuel | 10 $, taxe en sus → `STRIPE_PRICE_SERVER_MONTH` |
-| Prix annuel | 100 $, deux mois offerts → `STRIPE_PRICE_SERVER_YEAR` |
+| Prix mensuel | 5 $, taxe en sus → `STRIPE_PRICE_SERVER_MONTH` |
+| Prix annuel | 50 $, deux mois offerts → `STRIPE_PRICE_SERVER_YEAR` |
 
 `STRIPE_SECRET_KEY` se relève dans *Developers* → *API keys*.
 
@@ -149,7 +151,23 @@ Vérifie : `curl -I https://dl.pupitre.studio` répond **404 servi par Cloudflar
 
 **`ppt-agent`, privé.** Ni adresse publique, ni URL `r2.dev`. Rien ne l'atteint depuis internet : c'est ce qui garde le binaire de l'agent hors de portée. La plateforme en sert le contenu par une adresse signée valable cinq minutes, qu'elle calcule elle-même, et seulement à un serveur qui présente son jeton.
 
-**Email.** Le Worker envoie par le binding `send_email` d'Email Sending : active Email Sending sur le compte et fais vérifier le domaine `pupitre.studio` comme expéditeur (les enregistrements DKIM et SPF sont posés sur la zone). Rien à recevoir, donc pas d'Email Routing. Sans domaine vérifié aucun lien de connexion ne part, donc personne ne se connecte.
+**`ppt-mail`, privé.** Tout ce qu'un email porte au-delà de son texte : le message brut, son corps HTML, ses pièces jointes. La D1 tient le fil, le seau tient les octets. Ni adresse publique, ni URL `r2.dev`. Le Worker y écrit et y lit par le binding `MAIL` ; la console, elle, lit et dépose les pièces jointes **directement dans le seau**, par des adresses signées de dix minutes que la plateforme calcule avec les `R2_*` — d'où la règle CORS, sans laquelle le navigateur refuse le `PUT` et la lecture en ligne. Juridiction par défaut.
+
+```bash
+bun x wrangler r2 bucket create ppt-mail
+bun x wrangler r2 bucket cors set ppt-mail --file apps/web/r2-mail-cors.json
+```
+
+`apps/web/r2-mail-cors.json` dit la règle : origines `https://app.pupitre.studio` et `http://localhost:3000`, méthodes `GET` et `PUT`, seul en-tête `content-type`, mise en cache de la pré-vérification une heure. Vérifie avec `bun x wrangler r2 bucket cors list ppt-mail`. Le jeton R2 du Worker (étape 3) doit lire et écrire sur ce seau : une adresse signée n'ouvre que ce que sa clé peut ouvrir.
+
+**Email, ce qui part.** Le Worker envoie par le binding `send_email` d'Email Sending : active Email Sending sur le compte et fais vérifier le domaine `pupitre.studio` comme expéditeur (les enregistrements DKIM et SPF sont posés sur la zone). Fais vérifier aussi les quatre adresses d'expédition de la boîte — `support@`, `legal@`, `privacy@`, `security@` — dans *Email Sending → Destination addresses* : ce sont les seules qu'une réponse de la console peut porter. Sans domaine vérifié aucun lien de connexion ne part, donc personne ne se connecte.
+
+**Email, ce qui arrive.** Tout ce qui est écrit à `*@pupitre.studio` entre dans la base de la plateforme, et l'équipe y répond depuis la console — [`contracts/platform-mail.md`](./contracts/platform-mail.md). Sur la zone, dans *Email → Email Routing* :
+
+1. **Enable Email Routing** : Cloudflare pose les enregistrements MX et le TXT SPF sur `pupitre.studio`. Les enregistrements d'Email Sending restent ; les deux cohabitent.
+2. **Routing rules → Catch-all address → Edit** : action *Send to a Worker*, destination `ppt-web-production`, puis **Enable**. Aucune adresse ne se déclare une par une.
+
+Le Worker doit être déployé avant que la règle puisse le nommer : cette étape se fait donc après le premier déploiement. Vérifie en écrivant à `support@pupitre.studio` depuis une adresse extérieure ; le fil apparaît dans la console sous `/dashboard/admin`. Une exception dans le handler est un échec **temporaire** : Cloudflare représente le message, et un renvoi est reconnu comme un doublon.
 
 ## 5. La base de données
 
@@ -162,9 +180,13 @@ bun run db:migrate local                                        # la D1 que mini
 PUPITRE_ALLOW_MIGRATE_ON=production bun run db:migrate production
 bun run db:migrate:new <nom>                                    # le prochain fichier, par diff du schéma Prisma contre les migrations
 bun run db:reset local                                          # toutes les tables supprimées, puis toutes les migrations
+bun run db:seed local <adresse>                                 # l'organisation de Pupitre et son administrateur
+PUPITRE_ALLOW_MIGRATE_ON=production bun run db:seed production <adresse>
 ```
 
-`db:reset` sur production demande le même drapeau. Une base D1 revient aussi à n'importe quel instant des trente derniers jours par *Time Travel* : `wrangler d1 time-travel restore ppt-db --timestamp=<ISO>`.
+Une base migrée est vide : le seed y pose l'organisation de Pupitre, `pupitre` sous l'identifiant `org_pupitre`, puis fait du compte de l'adresse donnée son propriétaire et l'administrateur de la plateforme, sous `usr_pupitre_admin` et le rôle `platform_admin`. Le compte n'a pas à exister d'avance ; s'il existe — Better Auth l'a créé à la première connexion avec un identifiant tiré au hasard — le seed le renomme, et tout ce qui le désignait suit. On le rejoue autant qu'on veut : la deuxième fois ne change rien, et il s'arrête sans rien écrire si un autre compte ou une autre organisation tient déjà l'un de ces identifiants.
+
+`db:reset` et `db:seed` sur production demandent le même drapeau. Une base D1 revient aussi à n'importe quel instant des trente derniers jours par *Time Travel* : `wrangler d1 time-travel restore ppt-db --timestamp=<ISO>`.
 
 ## 6. Le premier déploiement, à la main
 
@@ -302,6 +324,9 @@ Puis, à la main : ouvrir le `.dmg` sur un Mac qui n'a jamais vu le certificat, 
 | Le déploiement refuse de partir en nommant des secrets | il en manque un : `check:secrets <environnement>` les liste |
 | Le site répond mais aucune connexion n'aboutit | `BETTER_AUTH_SECRET` absent, ou différent de celui qui a signé les sessions |
 | Aucun email ne part | Email Sending pas activé, ou `pupitre.studio` pas vérifié comme domaine expéditeur |
+| Rien n'arrive dans la boîte de la console | Email Routing pas activé sur la zone, ou la règle catch-all ne pointe pas le Worker de production |
+| Un fil s'ouvre mais son HTML et ses pièces jointes manquent | le seau `ppt-mail` n'existe pas, ou le binding `MAIL` n'est pas dans l'environnement déployé |
+| Une pièce jointe ne s'ouvre pas, ou le dépôt d'un fichier échoue dans le navigateur | la règle CORS de `ppt-mail` n'est pas posée (étape 4), ou le jeton R2 du Worker ne lit et n'écrit pas sur ce seau |
 | L'app dit qu'il n'y a rien à télécharger | les quatre `R2_*` sont faux : la plateforme rend une adresse locale et le dit dans un en-tête |
 | La construction échoue sur la migration | un fichier de `packages/db/migrations` ne s'applique pas sur D1 : il s'applique d'abord en local, `bun run db:migrate local`, et les tests le rejouent |
 | `wrangler deploy` refuse `legacy_env` dans la configuration générée | `@cloudflare/vite-plugin` et `wrangler` ne sont plus au même niveau : le plugin écrit la configuration que wrangler lit, les deux se mettent à jour ensemble |

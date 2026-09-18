@@ -45,6 +45,7 @@ function card(
           activeOrganization: organization,
           role,
           entitlement: "valid",
+          platformRole: null,
         }}
       >
         <ServerAssignment

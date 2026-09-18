@@ -13,6 +13,8 @@ export interface CheckoutSessionInput {
   customerEmail: string | null
   quantity: number
   interval: BillingIntervalName
+  /** Null past the first checkout: no trial, and a card before anything opens. */
+  trialDays: number | null
   successUrl: string
   cancelUrl: string
 }

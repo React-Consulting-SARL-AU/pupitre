@@ -28,6 +28,7 @@ export interface DashboardHarness {
   organization?: DashboardOrganization | null
   role?: OrgRole
   entitlement?: string
+  platformRole?: OrgRole | null
 }
 
 /** Anything under the console reads the session, its organisation and its rights. */
@@ -37,6 +38,7 @@ export function withDashboard(
     organization = null,
     role = "owner",
     entitlement = "suspended",
+    platformRole = null,
   }: DashboardHarness = {}
 ): ReactElement {
   return withRouter(
@@ -54,6 +56,7 @@ export function withDashboard(
           activeOrganization: organization,
           role: organization ? role : null,
           entitlement,
+          platformRole,
         }}
       >
         {element}
@@ -190,12 +193,14 @@ export async function waitUntilStored(
   throw new Error("condition not met before the deadline")
 }
 
+/** A button is named by its text, or by its `aria-label` when it only carries an icon. */
 export function trigger(container: HTMLElement, label: string): HTMLElement {
   const buttons = [...document.querySelectorAll("button")]
 
   // An exact label wins over a longer one containing it: "Assign" must not pick "Assigned".
   const found =
     buttons.find((button) => (button.textContent ?? "").trim() === label) ??
+    buttons.find((button) => button.getAttribute("aria-label") === label) ??
     buttons.find((button) => (button.textContent ?? "").includes(label))
 
   if (!found) {

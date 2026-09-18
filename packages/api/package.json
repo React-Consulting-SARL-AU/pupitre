@@ -6,13 +6,17 @@
   "exports": {
     "./alerts/evaluate": "./src/lib/alerts/alerts.ts",
     "./billing/grace": "./src/lib/billing/grace.ts",
+    "./billing/launch": "./src/lib/billing/launch.ts",
     "./billing/reconcile": "./src/lib/billing/reconcile.ts",
     "./client": "./src/client.ts",
+    "./mail/ingest": "./src/lib/mail/ingest.ts",
+    "./mail/uploads": "./src/lib/mail/uploads.ts",
     "./server": "./src/server.ts",
     "./servers/expire": "./src/lib/servers/expire.ts",
     "./testing": "./src/testing/index.ts",
     "./testing/billing": "./src/testing/billing.ts",
-    "./testing/factories": "./src/testing/factories.ts"
+    "./testing/factories": "./src/testing/factories.ts",
+    "./testing/mail": "./src/testing/mail.ts"
   },
   "scripts": {
     "lint": "ultracite check",
@@ -31,6 +35,7 @@
     "@react-email/components": "1.0.12",
     "@sinclair/typebox": "^0.34.50",
     "elysia": "^1.4.29",
+    "postal-mime": "^3.0.0",
     "react": "19.2.8",
     "react-dom": "19.2.8"
   },

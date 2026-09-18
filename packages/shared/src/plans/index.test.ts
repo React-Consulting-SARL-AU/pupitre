@@ -1,16 +1,27 @@
 import { describe, expect, it } from "bun:test"
 import {
+  AFFILIATE_CODE_LENGTH,
+  AFFILIATE_CODE_RE,
+  AFFILIATE_COOKIE,
+  AFFILIATE_MAX_FREE_MONTHS,
   ANNUAL_FREE_MONTHS,
   BILLING_INTERVALS,
+  BILLING_MODES,
   BillingIntervalSchema,
+  BillingModeSchema,
+  DAYS_PER_FREE_MONTH,
   formatUsd,
   getPlan,
+  LAUNCH_ADMIN_SEATS,
+  LAUNCH_PRODUCT,
+  LAUNCH_SEATS,
   MeSubscriptionSchema,
   PLANS,
   PlanIdSchema,
   PlanSchema,
   TRIAL_DAYS,
   TRIAL_REQUIRES_CARD,
+  TRIAL_SEATS,
   TRIAL_WARN_DAYS,
   trialDaysLeft,
   yearlyPriceUsd,
@@ -22,8 +33,8 @@ describe("plans", () => {
   })
 
   it("prices Solo and Team per server, Hosted from 29 per month", () => {
-    expect(getPlan("solo").monthlyPriceUsd).toBe(10)
-    expect(getPlan("team").monthlyPriceUsd).toBe(10)
+    expect(getPlan("solo").monthlyPriceUsd).toBe(5)
+    expect(getPlan("team").monthlyPriceUsd).toBe(5)
     expect(getPlan("hosted").monthlyPriceUsd).toBe(29)
     expect(getPlan("hosted").billedPer).toBe("month")
     expect(getPlan("hosted").startingAt).toBe(true)
@@ -36,12 +47,31 @@ describe("plans", () => {
     expect(getPlan("hosted").availability).toBe("later")
   })
 
-  it("offers two months on the annual interval and a 14-day trial without card", () => {
+  it("offers two months on the annual interval and a 30-day trial without card, on one machine", () => {
     expect(BILLING_INTERVALS).toEqual(["month", "year"])
     expect(ANNUAL_FREE_MONTHS).toBe(2)
-    expect(yearlyPriceUsd(getPlan("solo"))).toBe(100)
-    expect(TRIAL_DAYS).toBe(14)
+    expect(yearlyPriceUsd(getPlan("solo"))).toBe(50)
+    expect(TRIAL_DAYS).toBe(30)
     expect(TRIAL_REQUIRES_CARD).toBe(false)
+    expect(TRIAL_SEATS).toBe(1)
+  })
+
+  it("names the launch mode, its product and its seats", () => {
+    expect(BILLING_MODES).toEqual(["stripe", "launch"])
+    expect(BillingModeSchema.safeParse("launch").success).toBe(true)
+    expect(BillingModeSchema.safeParse("free").success).toBe(false)
+    expect(LAUNCH_PRODUCT).toBe("launch")
+    expect(LAUNCH_SEATS).toBe(TRIAL_SEATS)
+    expect(LAUNCH_ADMIN_SEATS).toBeGreaterThan(LAUNCH_SEATS)
+  })
+
+  it("bounds an affiliate code and its promise", () => {
+    expect(AFFILIATE_CODE_RE.test("launch-2026")).toBe(true)
+    expect(AFFILIATE_CODE_RE.test("Launch 2026")).toBe(false)
+    expect(AFFILIATE_CODE_LENGTH).toBe(8)
+    expect(AFFILIATE_COOKIE).toBe("pupitre_ref")
+    expect(AFFILIATE_MAX_FREE_MONTHS).toBe(24)
+    expect(DAYS_PER_FREE_MONTH).toBe(30)
   })
 
   it("validates ids, intervals and plans", () => {
@@ -64,8 +94,8 @@ describe("plans", () => {
 
 describe("formatUsd", () => {
   it("writes a whole amount in dollars", () => {
-    expect(formatUsd(getPlan("solo").monthlyPriceUsd)).toBe("$10")
-    expect(formatUsd(yearlyPriceUsd(getPlan("solo")))).toBe("$100")
+    expect(formatUsd(getPlan("solo").monthlyPriceUsd)).toBe("$5")
+    expect(formatUsd(yearlyPriceUsd(getPlan("solo")))).toBe("$50")
   })
 })
 

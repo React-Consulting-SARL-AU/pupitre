@@ -2,6 +2,7 @@ import { type Locale, resolveLocale } from "@pupitre/shared/i18n"
 import { Elysia } from "elysia"
 import {
   BillingCustomerMissingError,
+  BillingLaunchError,
   startCheckout,
   startPortal,
 } from "../../../billing/checkout"
@@ -9,6 +10,7 @@ import {
   NoPayingSubscriptionError,
   resizeSeats,
   SeatsBelowUsageError,
+  SeatsLockedError,
 } from "../../../billing/seats"
 import { readSubscription } from "../../../billing/subscription"
 import { translate } from "../../../i18n"
@@ -41,13 +43,17 @@ export const orgsBillingRoutes = new Elysia({ name: "orgs-billing-routes" })
         return organizationNotFound(locale)
       }
 
-      return await startCheckout({ organizationId, email: user.email }, body)
+      return await startCheckout(
+        { organizationId, userId: user.id, email: user.email },
+        body
+      )
     },
     {
       params: organizationParams,
       body: checkoutBody,
       detail: {
-        summary: "Ouvrir un Stripe Checkout pour des sièges de serveur",
+        summary:
+          "Ouvrir un Stripe Checkout pour des sièges de serveur, ou l'abonnement du lancement",
       },
       response: {
         200: billingUrlSchema,
@@ -72,6 +78,16 @@ export const orgsBillingRoutes = new Elysia({ name: "orgs-billing-routes" })
       try {
         return await startPortal(organizationId)
       } catch (error) {
+        if (error instanceof BillingLaunchError) {
+          set.status = 409
+
+          return apiError(
+            "conflict",
+            translate(locale, "billing_launch"),
+            translate(locale, "billing_launch_fix")
+          )
+        }
+
         if (!(error instanceof BillingCustomerMissingError)) {
           throw error
         }
@@ -147,6 +163,16 @@ export const orgsBillingRoutes = new Elysia({ name: "orgs-billing-routes" })
             "conflict",
             translate(locale, "subscription_missing"),
             translate(locale, "subscription_missing_fix")
+          )
+        }
+
+        if (error instanceof SeatsLockedError) {
+          set.status = 409
+
+          return apiError(
+            "conflict",
+            translate(locale, "seats_locked"),
+            translate(locale, "seats_locked_fix")
           )
         }
 

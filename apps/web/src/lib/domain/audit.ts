@@ -13,6 +13,17 @@ export const AUDIT_ACTIONS = [
   "subscription.created",
   "subscription.updated",
   "subscription.canceled",
+  "referral.recorded",
+  "affiliate_link.created",
+  "affiliate_link.updated",
+  "user.banned",
+  "user.unbanned",
+  "server.restored",
+  "mail.replied",
+  "mail.composed",
+  "mail.closed",
+  "mail.reopened",
+  "mail.assigned",
 ] as const
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]
@@ -30,7 +41,29 @@ const ACTION_KEYS: Record<AuditAction, DictionaryKey> = {
   "subscription.created": "audit.action.subscription.created",
   "subscription.updated": "audit.action.subscription.updated",
   "subscription.canceled": "audit.action.subscription.canceled",
+  "referral.recorded": "audit.action.referral.recorded",
+  "affiliate_link.created": "audit.action.affiliate_link.created",
+  "affiliate_link.updated": "audit.action.affiliate_link.updated",
+  "user.banned": "audit.action.user.banned",
+  "user.unbanned": "audit.action.user.unbanned",
+  "server.restored": "audit.action.server.restored",
+  "mail.replied": "audit.action.mail.replied",
+  "mail.composed": "audit.action.mail.composed",
+  "mail.closed": "audit.action.mail.closed",
+  "mail.reopened": "audit.action.mail.reopened",
+  "mail.assigned": "audit.action.mail.assigned",
 }
+
+export const AUDIT_TARGET_TYPES = [
+  "server",
+  "device",
+  "invitation",
+  "subscription",
+  "release",
+  "affiliate_link",
+  "user",
+  "mail_thread",
+] as const
 
 const TARGET_KEYS: Record<string, DictionaryKey> = {
   server: "audit.target.server",
@@ -38,6 +71,9 @@ const TARGET_KEYS: Record<string, DictionaryKey> = {
   invitation: "audit.target.invitation",
   subscription: "audit.target.subscription",
   release: "audit.target.release",
+  affiliate_link: "audit.target.affiliate_link",
+  user: "audit.target.user",
+  mail_thread: "audit.target.mail_thread",
 }
 
 /** A key when the action is one we name, and the raw action when it is not. */
