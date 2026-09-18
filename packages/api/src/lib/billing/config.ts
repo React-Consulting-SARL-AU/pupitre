@@ -1,3 +1,9 @@
+import {
+  BILLING_MODES,
+  type BillingMode,
+  BillingModeSchema,
+  LAUNCH_ADMIN_SEATS,
+} from "@pupitre/shared/plans"
 import type { BillingIntervalName } from "./provider"
 
 export interface StripeConfig {
@@ -15,6 +21,28 @@ export class StripeNotConfiguredError extends Error {
     this.missing = missing
   }
 }
+
+export class BillingModeInvalidError extends Error {
+  constructor(value: string) {
+    super(`BILLING_MODE "${value}" is not one of ${BILLING_MODES.join(", ")}`)
+    this.name = "BillingModeInvalidError"
+  }
+}
+
+export class LaunchNotConfiguredError extends Error {
+  constructor(reason: string) {
+    super(`the launch cannot start: ${reason}`)
+    this.name = "LaunchNotConfiguredError"
+  }
+}
+
+export interface BillingModeConfig {
+  mode: BillingMode
+  launchEndsAt: Date | null
+  adminSeats: number
+}
+
+export type BillingEnv = Record<string, string | undefined>
 
 const PRICE_VARIABLES: Record<BillingIntervalName, string> = {
   month: "STRIPE_PRICE_SERVER_MONTH",
@@ -64,4 +92,59 @@ export function webhookSecretFromEnv(): string {
   }
 
   return secret
+}
+
+function launchEndOf(env: BillingEnv): Date {
+  const raw = env.LAUNCH_ENDS_AT
+
+  if (!raw) {
+    throw new LaunchNotConfiguredError("LAUNCH_ENDS_AT is not set")
+  }
+
+  const date = new Date(raw)
+
+  if (Number.isNaN(date.getTime())) {
+    throw new LaunchNotConfiguredError(
+      `LAUNCH_ENDS_AT "${raw}" is not an ISO date`
+    )
+  }
+
+  return date
+}
+
+function adminSeatsOf(env: BillingEnv): number {
+  const raw = env.LAUNCH_ADMIN_SEATS
+
+  if (!raw) {
+    return LAUNCH_ADMIN_SEATS
+  }
+
+  const seats = Number(raw)
+
+  if (!Number.isInteger(seats) || seats < 1) {
+    throw new LaunchNotConfiguredError(
+      `LAUNCH_ADMIN_SEATS "${raw}" is not a positive integer`
+    )
+  }
+
+  return seats
+}
+
+export function billingModeFromEnv(
+  env: BillingEnv = process.env
+): BillingModeConfig {
+  const raw = env.BILLING_MODE ?? "stripe"
+  const parsed = BillingModeSchema.safeParse(raw)
+
+  if (!parsed.success) {
+    throw new BillingModeInvalidError(raw)
+  }
+
+  const adminSeats = adminSeatsOf(env)
+
+  if (parsed.data === "stripe") {
+    return { mode: "stripe", launchEndsAt: null, adminSeats }
+  }
+
+  return { mode: "launch", launchEndsAt: launchEndOf(env), adminSeats }
 }

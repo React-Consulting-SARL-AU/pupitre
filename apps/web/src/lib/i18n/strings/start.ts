@@ -1,8 +1,17 @@
 export const start = {
   en: {
     "start.heroTitle": "Four steps, and your server works for you.",
-    "start.trialTitle": "Fourteen days, no card",
-    "start.trialBadge": "{days} days",
+    "start.trialTitle": "{days} days, no card",
+    "start.trialSeats.one": "{count} machine",
+    "start.trialSeats.other": "{count} machines",
+    "start.launchTitle": "Free launch",
+    "start.launchUntil": "Free until {date}",
+    "start.launchOpen": "Free for the whole launch",
+    "start.launchLead":
+      "Nothing is charged during the launch. When it ends, the servers stop unless a subscription is taken.",
+    "start.launchAction": "Start",
+    "start.launchActionPending": "Opening…",
+    "start.launchFailed": "The launch access could not be opened.",
     "start.gives.enrol":
       "Enrol a server and let the app install it from end to end.",
     "start.gives.catalogue":
@@ -37,9 +46,9 @@ export const start = {
     "onboarding.todo": "To do",
     "onboarding.account.title": "Create your account",
     "onboarding.account.lead": "Done: you are signed in.",
-    "onboarding.trial.title": "Start the trial",
+    "onboarding.trial.title": "Start for free",
     "onboarding.trial.lead":
-      "Fourteen days, no card. The trial is what lets you add a server.",
+      "No card, one machine. This is what lets you add a server.",
     "onboarding.app.title": "Install the app and link it to your account",
     "onboarding.app.lead":
       "The app runs on your computer. When it opens, it shows a code: enter it here, on the linking page.",
@@ -51,8 +60,17 @@ export const start = {
   },
   fr: {
     "start.heroTitle": "Quatre pas, et votre serveur travaille pour vous.",
-    "start.trialTitle": "Quatorze jours, sans carte",
-    "start.trialBadge": "{days} jours",
+    "start.trialTitle": "{days} jours, sans carte",
+    "start.trialSeats.one": "{count} machine",
+    "start.trialSeats.other": "{count} machines",
+    "start.launchTitle": "Lancement gratuit",
+    "start.launchUntil": "Gratuit jusqu'au {date}",
+    "start.launchOpen": "Gratuit pendant tout le lancement",
+    "start.launchLead":
+      "Rien n'est prélevé pendant le lancement. À sa fin, les serveurs s'arrêtent sauf abonnement.",
+    "start.launchAction": "Commencer",
+    "start.launchActionPending": "Ouverture…",
+    "start.launchFailed": "L'accès de lancement n'a pas pu être ouvert.",
     "start.gives.enrol":
       "Enrôlez un serveur et laissez l'app l'installer de bout en bout.",
     "start.gives.catalogue":
@@ -88,9 +106,9 @@ export const start = {
     "onboarding.todo": "À faire",
     "onboarding.account.title": "Créer votre compte",
     "onboarding.account.lead": "Fait : vous êtes connecté.",
-    "onboarding.trial.title": "Démarrer l'essai",
+    "onboarding.trial.title": "Commencer gratuitement",
     "onboarding.trial.lead":
-      "Quatorze jours, sans carte. C'est l'essai qui permet d'ajouter un serveur.",
+      "Sans carte, une machine. C'est ce qui permet d'ajouter un serveur.",
     "onboarding.app.title": "Installer l'app et la lier à votre compte",
     "onboarding.app.lead":
       "L'app tourne sur votre ordinateur. À l'ouverture, elle affiche un code : entrez-le ici, sur la page de liaison.",

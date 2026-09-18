@@ -174,6 +174,48 @@ export const requirePlatformAdmin = new Elysia({
 })
 
 /**
+ * A member of the platform organization reads the platform pages; acting on
+ * them — suspending, creating a link, answering a mail — takes `admin` or
+ * `owner` there, the roles the owner hands out on the platform's members page.
+ */
+export function requirePlatformRole(minimum: OrgRole) {
+  return new Elysia({ name: `requirePlatformRole:${minimum}` }).resolve(
+    { as: "scoped" },
+    async ({ request }) => {
+      const auth = await resolveAuthContext(request)
+
+      if (!(auth.user && auth.session)) {
+        return unauthenticated(request)
+      }
+
+      if (!auth.platformRole) {
+        return refuse(request, {
+          status: 403,
+          code: "forbidden",
+          message: "platform_admin_required",
+        })
+      }
+
+      if (ROLE_RANK[auth.platformRole] < ROLE_RANK[minimum]) {
+        return refuse(request, {
+          status: 403,
+          code: "forbidden",
+          message: "platform_role_required",
+          params: { role: minimum },
+        })
+      }
+
+      return {
+        ...auth,
+        user: auth.user,
+        session: auth.session,
+        platformRole: auth.platformRole,
+      }
+    }
+  )
+}
+
+/**
  * Who may publish a version: the release pipeline, or a member of the team.
  *
  * The pipeline presents a token of its own, declared on the Worker and in
@@ -205,11 +247,20 @@ export const requirePublisher = new Elysia({
     return unauthenticated(request)
   }
 
-  if (!auth.isPlatformAdmin) {
+  if (!auth.platformRole) {
     return refuse(request, {
       status: 403,
       code: "forbidden",
       message: "platform_admin_required",
+    })
+  }
+
+  if (ROLE_RANK[auth.platformRole] < ROLE_RANK.admin) {
+    return refuse(request, {
+      status: 403,
+      code: "forbidden",
+      message: "platform_role_required",
+      params: { role: "admin" },
     })
   }
 

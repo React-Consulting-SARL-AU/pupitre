@@ -1,5 +1,9 @@
 import { describe, expect, it } from "bun:test"
-import { opensWhileSuspended, startRedirectFor } from "./entitlement-gate"
+import {
+  isAdminRoute,
+  opensWhileSuspended,
+  startRedirectFor,
+} from "./entitlement-gate"
 
 describe("la porte de l'essai", () => {
   it("laisse passer une organisation qui a un droit d'usage", () => {
@@ -102,5 +106,30 @@ describe("ce qui s'ouvre sans abonnement", () => {
 
   it("ignore une barre oblique finale", () => {
     expect(opensWhileSuspended("/dashboard/settings/")).toBe(true)
+  })
+
+  it("laisse la plateforme ouverte quelle que soit l'organisation active", () => {
+    for (const pathname of [
+      "/dashboard/admin",
+      "/dashboard/admin/",
+      "/dashboard/admin/users",
+      "/dashboard/admin/servers",
+      "/dashboard/admin/affiliate-links",
+    ]) {
+      expect(opensWhileSuspended(pathname), pathname).toBe(true)
+      expect(
+        startRedirectFor({ entitlement: "suspended", pathname }),
+        pathname
+      ).toBeNull()
+    }
+  })
+})
+
+describe("isAdminRoute", () => {
+  it("reconnaît les pages de la plateforme, et elles seules", () => {
+    expect(isAdminRoute("/dashboard/admin")).toBe(true)
+    expect(isAdminRoute("/dashboard/admin/users")).toBe(true)
+    expect(isAdminRoute("/dashboard/administration")).toBe(false)
+    expect(isAdminRoute("/dashboard/servers")).toBe(false)
   })
 })

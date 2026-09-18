@@ -14,6 +14,17 @@ export function getPrisma(): ApiPrisma {
   return configured ?? scopedPrismaClient()
 }
 
+const UNIQUE_VIOLATION = "P2002"
+
+export function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code: unknown }).code === UNIQUE_VIOLATION
+  )
+}
+
 export type Serialized<T> = T extends Date | bigint | Prisma.Decimal
   ? string
   : T extends (infer Item)[]

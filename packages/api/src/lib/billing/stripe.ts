@@ -1,4 +1,4 @@
-import { TRIAL_DAYS, TRIAL_REQUIRES_CARD } from "@pupitre/shared/plans"
+import { TRIAL_REQUIRES_CARD } from "@pupitre/shared/plans"
 import type { StripeConfig } from "./config"
 import {
   BILLING_INTERVALS,
@@ -109,6 +109,33 @@ export function toRemoteSubscription(
   }
 }
 
+interface TrialTerms {
+  paymentMethodCollection: "always" | "if_required"
+  subscriptionData: FormTree
+}
+
+// Without a card required, Stripe is the one that cancels at the end of the trial:
+// the subscription moves to `canceled`, the webhook suspends it, nothing to count here.
+function trialTerms(trialDays: number | null): TrialTerms {
+  if (trialDays === null) {
+    return { paymentMethodCollection: "always", subscriptionData: {} }
+  }
+
+  return {
+    paymentMethodCollection: TRIAL_REQUIRES_CARD ? "always" : "if_required",
+    subscriptionData: {
+      trial_period_days: trialDays,
+      trial_settings: {
+        end_behavior: {
+          missing_payment_method: TRIAL_REQUIRES_CARD
+            ? "create_invoice"
+            : "cancel",
+        },
+      },
+    },
+  }
+}
+
 export function createStripeBilling(config: StripeConfig): BillingProvider {
   async function call<T>(
     path: string,
@@ -152,6 +179,7 @@ export function createStripeBilling(config: StripeConfig): BillingProvider {
       input: CheckoutSessionInput
     ): Promise<BillingSession> {
       const price = config.prices[input.interval]
+      const trial = trialTerms(input.trialDays)
       const session = await call<{ id?: string; url?: string }>(
         "/checkout/sessions",
         {
@@ -167,21 +195,10 @@ export function createStripeBilling(config: StripeConfig): BillingProvider {
             allow_promotion_codes: true,
             line_items: { 0: { price, quantity: input.quantity } },
             metadata: { organization_id: input.organizationId },
-            // Without a card required, Stripe is the one that cancels at the end of the trial:
-            // the subscription moves to `canceled`, the webhook suspends it, nothing to count here.
-            payment_method_collection: TRIAL_REQUIRES_CARD
-              ? "always"
-              : "if_required",
+            payment_method_collection: trial.paymentMethodCollection,
             subscription_data: {
+              ...trial.subscriptionData,
               metadata: { organization_id: input.organizationId },
-              trial_period_days: TRIAL_DAYS,
-              trial_settings: {
-                end_behavior: {
-                  missing_payment_method: TRIAL_REQUIRES_CARD
-                    ? "create_invoice"
-                    : "cancel",
-                },
-              },
             },
           },
         }

@@ -19,14 +19,12 @@ export interface SeatQuantityFormProps {
   organizationId: string
   quantity: number
   seatsInUse: number
-  trialing: boolean
 }
 
 export function SeatQuantityForm({
   organizationId,
   quantity,
   seatsInUse,
-  trialing,
 }: SeatQuantityFormProps) {
   const t = useTranslations()
   const queryClient = useQueryClient()
@@ -89,7 +87,7 @@ export function SeatQuantityForm({
         </Button>
 
         <p className="max-w-[52ch] flex-1 text-[13px] text-ink-2">
-          {trialing ? t("billing.seatsTrialLead") : t("billing.seatsLead")}
+          {t("billing.seatsLead")}
         </p>
       </div>
 

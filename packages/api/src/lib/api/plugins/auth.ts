@@ -3,11 +3,8 @@ import {
   getAuth as getDefaultAuth,
   type Session,
 } from "@pupitre/auth/server"
-import {
-  isOrgRole,
-  type OrgRole,
-  PLATFORM_ADMIN_ROLE,
-} from "@pupitre/shared/permissions"
+import { isOrgRole, type OrgRole } from "@pupitre/shared/permissions"
+import { PLATFORM_ORGANIZATION_ID } from "@pupitre/shared/platform"
 import { Elysia } from "elysia"
 import { isPublishToken } from "../../releases/publish-token"
 import { isServerToken } from "../../servers/tokens"
@@ -22,6 +19,8 @@ export interface AuthContext {
   session: SessionRecord | null
   organizationId: string | null
   role: OrgRole | null
+  /** The caller's role in the platform's own organization: membership there is what opens the platform pages. */
+  platformRole: OrgRole | null
   isPlatformAdmin: boolean
 }
 
@@ -30,6 +29,7 @@ const ANONYMOUS: AuthContext = {
   session: null,
   organizationId: null,
   role: null,
+  platformRole: null,
   isPlatformAdmin: false,
 }
 
@@ -69,12 +69,29 @@ export async function memberRole(
   userId: string,
   organizationId: string
 ): Promise<OrgRole | null> {
-  const member = await getPrisma().member.findFirst({
-    where: { userId, organizationId },
-    select: { role: true },
-  })
+  const roles = await memberRoles(userId, [organizationId])
 
-  return member && isOrgRole(member.role) ? member.role : null
+  return roles.get(organizationId) ?? null
+}
+
+/** One read for every organization a request cares about: the active one and the platform's. */
+async function memberRoles(
+  userId: string,
+  organizationIds: string[]
+): Promise<Map<string, OrgRole>> {
+  const members = await getPrisma().member.findMany({
+    where: { userId, organizationId: { in: organizationIds } },
+    select: { organizationId: true, role: true },
+  })
+  const roles = new Map<string, OrgRole>()
+
+  for (const member of members) {
+    if (isOrgRole(member.role)) {
+      roles.set(member.organizationId, member.role)
+    }
+  }
+
+  return roles
 }
 
 async function loadAuthContext(request: Request): Promise<AuthContext> {
@@ -91,16 +108,19 @@ async function loadAuthContext(request: Request): Promise<AuthContext> {
   }
 
   const organizationId = resolved.session.activeOrganizationId ?? null
-  const role = organizationId
-    ? await memberRole(resolved.user.id, organizationId)
-    : null
+  const roles = await memberRoles(resolved.user.id, [
+    ...(organizationId ? [organizationId] : []),
+    PLATFORM_ORGANIZATION_ID,
+  ])
+  const platformRole = roles.get(PLATFORM_ORGANIZATION_ID) ?? null
 
   return {
     user: resolved.user,
     session: resolved.session,
     organizationId,
-    role,
-    isPlatformAdmin: resolved.user.role === PLATFORM_ADMIN_ROLE,
+    role: organizationId ? (roles.get(organizationId) ?? null) : null,
+    platformRole,
+    isPlatformAdmin: platformRole !== null,
   }
 }
 

@@ -10,6 +10,7 @@ export interface MeInput {
   user: SessionUser
   organizationId: string | null
   role: OrgRole | null
+  platformRole: OrgRole | null
 }
 
 export interface MeSubscriptionView {
@@ -46,7 +47,12 @@ export async function subscriptionForMe(
   }
 }
 
-export async function loadMe({ user, organizationId, role }: MeInput) {
+export async function loadMe({
+  user,
+  organizationId,
+  role,
+  platformRole,
+}: MeInput) {
   const prisma = getPrisma()
   const [memberships, stored] = await Promise.all([
     prisma.member.findMany({
@@ -87,6 +93,7 @@ export async function loadMe({ user, organizationId, role }: MeInput) {
     })),
     active_organization: active,
     role,
+    platform_role: platformRole,
     entitlement,
     subscription,
   }

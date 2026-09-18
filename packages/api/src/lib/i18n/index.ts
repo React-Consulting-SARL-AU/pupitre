@@ -11,6 +11,8 @@ const FR = {
   not_a_member: "Vous n'êtes plus membre de cette organisation.",
   role_required: "Le rôle {role} est requis.",
   platform_admin_required: "Réservé à l'équipe Pupitre.",
+  platform_role_required:
+    "Le rôle {role} dans l'organisation Pupitre est requis pour agir ici.",
   publish_token_invalid: "Jeton de publication invalide.",
   publish_token_invalid_fix:
     "Vérifiez PUPITRE_PUBLISH_TOKEN des deux côtés : le Worker et GitHub Actions.",
@@ -33,6 +35,14 @@ const FR = {
     "Ce serveur est révoqué : il n'y a rien à suspendre.",
   server_revoked_no_suspend_fix:
     "Sa ligne s'efface à la décommission ; un serveur révoqué ne distribue déjà plus aucune clé.",
+  server_not_admin_suspended:
+    "Ce serveur n'a pas été suspendu par l'équipe Pupitre.",
+  server_not_admin_suspended_fix:
+    "Une suspension de facturation se lève en rétablissant l'abonnement de l'organisation.",
+  user_not_found: "Ce compte n'existe pas.",
+  platform_member_protected: "Ce compte est membre de l'organisation Pupitre.",
+  platform_member_protected_fix:
+    "Retirez-le d'abord de l'organisation Pupitre depuis sa page des membres.",
   organization_forbidden: "Cette organisation n'est pas la vôtre.",
   organization_forbidden_fix:
     "Choisissez une organisation dont vous êtes membre.",
@@ -71,9 +81,53 @@ const FR = {
   seats_below_usage: "Cette organisation occupe déjà {used} sièges.",
   seats_below_usage_fix:
     "Supprimez d'abord des serveurs, puis réduisez le nombre de sièges.",
+  seats_locked:
+    "Le nombre de sièges ne change pas pendant l'essai ni pendant le lancement.",
+  seats_locked_fix:
+    "Attendez la fin de l'essai : un abonnement payé se redimensionne depuis /dashboard/billing.",
+  billing_launch:
+    "Pendant le lancement, l'abonnement est accordé par Pupitre : il n'y a pas de portail de paiement.",
+  billing_launch_fix:
+    "Rien à payer avant la fin du lancement. Le portail s'ouvrira avec le premier abonnement facturé.",
+  affiliate_code_taken: "Le code « {code} » est déjà pris.",
+  affiliate_code_taken_fix:
+    "Choisissez un autre code, ou laissez la plateforme en tirer un.",
+  affiliate_link_not_found: "Ce lien d'affiliation n'existe pas.",
+  mail_thread_not_found: "Ce fil de discussion n'existe pas.",
+  mail_html_not_found: "Ce message n'a pas de version HTML.",
+  mail_attachment_not_found: "Cette pièce jointe n'existe pas.",
+  mail_assignee_not_on_the_team:
+    "Cette personne n'est pas membre de l'organisation Pupitre.",
+  mail_assignee_not_on_the_team_fix:
+    "Attribuez le fil à un membre de l'équipe, ou laissez-le sans attributaire.",
+  mail_thread_has_no_recipient:
+    "Ce fil ne porte aucune adresse à qui répondre.",
+  mail_thread_has_no_recipient_fix:
+    "Écrivez un nouveau message depuis la boîte, en nommant le destinataire.",
+  mail_send_failed: "L'envoi a échoué : {reason}",
+  mail_send_failed_fix:
+    "Le message est enregistré comme échoué dans le fil ; réessayez, l'envoi ne part qu'une fois.",
+  mail_attachment_blocked:
+    "Le fichier « {filename} » est d'un type refusé en pièce jointe.",
+  mail_attachment_blocked_fix:
+    "Compressez-le en archive .zip avant de l'ajouter.",
+  mail_attachments_too_large:
+    "Les pièces jointes dépassent {limit} Mio en tout.",
+  mail_attachments_too_large_fix:
+    "Retirez une pièce jointe, ou envoyez-la dans un second message.",
+  mail_upload_missing:
+    "Le fichier « {filename} » n'a pas été reçu par le seau.",
+  mail_upload_missing_fix: "Téléversez-le à nouveau, puis renvoyez le message.",
+  mail_upload_foreign:
+    "Le fichier « {filename} » n'a pas été téléversé depuis votre session.",
+  mail_upload_foreign_fix:
+    "Ajoutez la pièce jointe depuis ce formulaire, puis renvoyez le message.",
+  mail_upload_size_mismatch:
+    "Le fichier « {filename} » est plus gros que ce qui a été annoncé.",
+  mail_upload_size_mismatch_fix: "Retirez-le et ajoutez-le à nouveau.",
   entitlement_required: "Cette organisation n'a aucun abonnement en cours.",
   entitlement_required_fix:
-    "Démarrez votre essai de quatorze jours, sans carte, depuis /dashboard/billing.",
+    "Démarrez votre essai de trente jours, sans carte, depuis /dashboard/billing.",
   server_suspended: "L'abonnement de cette organisation est suspendu.",
   server_suspended_fix:
     "Reprenez un abonnement depuis /dashboard/billing pour retrouver vos serveurs.",
@@ -132,6 +186,8 @@ const EN: Record<MessageKey, string> = {
   not_a_member: "You are no longer a member of this organization.",
   role_required: "The {role} role is required.",
   platform_admin_required: "Reserved to the Pupitre team.",
+  platform_role_required:
+    "The {role} role in the Pupitre organization is required to act here.",
   publish_token_invalid: "Invalid publish token.",
   publish_token_invalid_fix:
     "Check PUPITRE_PUBLISH_TOKEN on both sides: the Worker and GitHub Actions.",
@@ -154,6 +210,14 @@ const EN: Record<MessageKey, string> = {
     "This server is revoked: there is nothing left to suspend.",
   server_revoked_no_suspend_fix:
     "Its row disappears at decommission; a revoked server already hands out no key.",
+  server_not_admin_suspended: "The Pupitre team did not suspend this server.",
+  server_not_admin_suspended_fix:
+    "A billing suspension lifts by restoring the organization's subscription.",
+  user_not_found: "This account does not exist.",
+  platform_member_protected:
+    "This account belongs to the Pupitre organization.",
+  platform_member_protected_fix:
+    "Remove them from the Pupitre organization first, on its members page.",
   organization_forbidden: "This organization is not yours.",
   organization_forbidden_fix: "Pick an organization you belong to.",
   assignee_not_a_member: "This person is not a member of this organization.",
@@ -189,9 +253,49 @@ const EN: Record<MessageKey, string> = {
     "Start the trial or order seats from /dashboard/billing.",
   seats_below_usage: "This organization already seats {used} servers.",
   seats_below_usage_fix: "Delete servers first, then lower the seat count.",
+  seats_locked:
+    "The seat count does not change during the trial or during the launch.",
+  seats_locked_fix:
+    "Wait for the trial to end: a paid subscription resizes from /dashboard/billing.",
+  billing_launch:
+    "During the launch, Pupitre grants the subscription itself: there is no payment portal.",
+  billing_launch_fix:
+    "Nothing to pay before the launch ends. The portal opens with the first billed subscription.",
+  affiliate_code_taken: 'The code "{code}" is already taken.',
+  affiliate_code_taken_fix: "Pick another code, or let the platform draw one.",
+  affiliate_link_not_found: "This affiliate link does not exist.",
+  mail_thread_not_found: "This thread does not exist.",
+  mail_html_not_found: "This message has no HTML version.",
+  mail_attachment_not_found: "This attachment does not exist.",
+  mail_assignee_not_on_the_team:
+    "This person is not a member of the Pupitre organization.",
+  mail_assignee_not_on_the_team_fix:
+    "Assign the thread to a team member, or leave it unassigned.",
+  mail_thread_has_no_recipient: "This thread carries no address to answer.",
+  mail_thread_has_no_recipient_fix:
+    "Write a new message from the inbox, naming the recipient.",
+  mail_send_failed: "Sending failed: {reason}",
+  mail_send_failed_fix:
+    "The message is kept in the thread as failed; try again, it only leaves once.",
+  mail_attachment_blocked:
+    'The file "{filename}" is of a type refused as an attachment.',
+  mail_attachment_blocked_fix:
+    "Compress it into a .zip archive before adding it.",
+  mail_attachments_too_large: "The attachments exceed {limit} MiB altogether.",
+  mail_attachments_too_large_fix:
+    "Remove an attachment, or send it in a second message.",
+  mail_upload_missing: 'The file "{filename}" never reached the bucket.',
+  mail_upload_missing_fix: "Upload it again, then resend the message.",
+  mail_upload_foreign:
+    'The file "{filename}" was not uploaded from your session.',
+  mail_upload_foreign_fix:
+    "Add the attachment from this form, then resend the message.",
+  mail_upload_size_mismatch:
+    'The file "{filename}" is larger than what was declared.',
+  mail_upload_size_mismatch_fix: "Remove it and add it again.",
   entitlement_required: "This organization has no active subscription.",
   entitlement_required_fix:
-    "Start your fourteen-day trial, no card needed, from /dashboard/billing.",
+    "Start your thirty-day trial, no card needed, from /dashboard/billing.",
   server_suspended: "This organization's subscription is suspended.",
   server_suspended_fix:
     "Resume a subscription from /dashboard/billing to get your servers back.",

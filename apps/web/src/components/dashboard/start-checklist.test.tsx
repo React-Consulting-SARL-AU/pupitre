@@ -93,7 +93,7 @@ describe("StartChecklist", () => {
     await waitUntil(() => currentStep(container).length > 0)
 
     expect(doneSteps(container)).toBe(1)
-    expect(currentStep(container)).toContain("Start the trial")
+    expect(currentStep(container)).toContain("Start for free")
     expect(container.textContent).toContain("No card is asked for")
     expect(container.textContent).toContain("Rent a server and add it")
   })

@@ -11,15 +11,51 @@ import type { TestResponse } from "./request"
 
 export const TEST_WEBHOOK_SECRET = "whsec_pupitre_test_secret"
 
+export const TEST_LAUNCH_END = new Date("2026-12-31T23:59:59.000Z")
+
 let fake: FakeBilling | null = null
 
-export function useFakeBilling(): FakeBilling {
+function fakeProvider(): FakeBilling {
   fake ??= createFakeBilling()
   fake.reset()
 
-  configureBilling({ provider: fake, webhookSecret: TEST_WEBHOOK_SECRET })
-
   return fake
+}
+
+export function useFakeBilling(): FakeBilling {
+  const provider = fakeProvider()
+
+  configureBilling({
+    provider,
+    webhookSecret: TEST_WEBHOOK_SECRET,
+    mode: "stripe",
+    launchEndsAt: null,
+  })
+
+  return provider
+}
+
+export interface LaunchBillingInput {
+  endsAt?: Date
+  adminSeats?: number
+}
+
+/** The launch: the platform grants the subscription, and any call to the provider is a bug the fake records. */
+export function useLaunchBilling({
+  endsAt = TEST_LAUNCH_END,
+  adminSeats,
+}: LaunchBillingInput = {}): FakeBilling {
+  const provider = fakeProvider()
+
+  configureBilling({
+    provider,
+    webhookSecret: TEST_WEBHOOK_SECRET,
+    mode: "launch",
+    launchEndsAt: endsAt,
+    adminSeats,
+  })
+
+  return provider
 }
 
 export interface SubscriptionFixture {

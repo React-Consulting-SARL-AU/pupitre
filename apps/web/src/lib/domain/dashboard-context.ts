@@ -20,6 +20,8 @@ export interface DashboardContextValue {
   activeOrganization: DashboardOrganization | null
   role: OrgRole | null
   entitlement: string
+  /** The role held in the platform organization: it opens the platform pages whatever the active organisation. */
+  platformRole: OrgRole | null
 }
 
 export const DashboardContext = createContext<DashboardContextValue | null>(

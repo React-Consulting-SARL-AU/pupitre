@@ -24,9 +24,18 @@ function normalize(pathname: string): string {
   return pathname.replace(TRAILING_SLASH_RE, "$1")
 }
 
+export const ADMIN_ROUTE = "/dashboard/admin"
+
+/** The platform's own pages belong to no organisation: its subscription does not close them. */
+export function isAdminRoute(pathname: string): boolean {
+  const target = normalize(pathname)
+
+  return target === ADMIN_ROUTE || target.startsWith(`${ADMIN_ROUTE}/`)
+}
+
 /** The pages a console without a subscription can still open, and show. */
 export function opensWhileSuspended(pathname: string): boolean {
-  return OPEN_WHILE_SUSPENDED.has(normalize(pathname))
+  return OPEN_WHILE_SUSPENDED.has(normalize(pathname)) || isAdminRoute(pathname)
 }
 
 /**

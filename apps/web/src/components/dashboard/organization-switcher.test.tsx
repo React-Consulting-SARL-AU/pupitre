@@ -23,6 +23,7 @@ const CONTEXT = {
   activeOrganization: { id: "o2", name: "Atelier", slug: "atelier" },
   role: "member" as const,
   entitlement: "valid",
+  platformRole: null,
 }
 
 const mounted: (() => void)[] = []

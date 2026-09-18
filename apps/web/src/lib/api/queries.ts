@@ -3,6 +3,7 @@ import type { Locale } from "@pupitre/shared/i18n"
 import type { OrgRole } from "@pupitre/shared/permissions"
 import { keepPreviousData, queryOptions } from "@tanstack/react-query"
 import { api } from "@/lib/api/client"
+import { readAffiliateCode } from "@/lib/domain/affiliate"
 import type { BillingIntervalName, CheckoutReturn } from "@/lib/domain/billing"
 
 export const SERVERS_POLL_INTERVAL_MS = 5000
@@ -25,6 +26,54 @@ export const queryKeys = {
   latestAppRelease: ["releases", "app", "latest"] as const,
   status: ["status"] as const,
   socialProviders: ["status", "social-providers"] as const,
+  admin: {
+    overview: ["admin", "overview"] as const,
+    users: (page: AdminPageQuery) => ["admin", "users", page] as const,
+    user: (id: string) => ["admin", "user", id] as const,
+    allUsers: ["admin", "users"] as const,
+    servers: (page: AdminServerPageQuery) =>
+      ["admin", "servers", page] as const,
+    server: (id: string) => ["admin", "server", id] as const,
+    allServers: ["admin", "servers"] as const,
+    organizations: (page: AdminPageQuery) =>
+      ["admin", "organizations", page] as const,
+    organization: (id: string) => ["admin", "organization", id] as const,
+    subscriptions: (page: AdminSubscriptionPageQuery) =>
+      ["admin", "subscriptions", page] as const,
+    events: (page: AdminEventPageQuery) => ["admin", "events", page] as const,
+    affiliateLinks: ["admin", "affiliate-links"] as const,
+    affiliateLink: (id: string) => ["admin", "affiliate-link", id] as const,
+    releases: ["admin", "releases"] as const,
+    appReleases: ["admin", "app-releases"] as const,
+    team: ["admin", "team"] as const,
+  },
+}
+
+export interface AdminPageQuery {
+  limit: number
+  offset: number
+  q?: string
+}
+
+export interface AdminServerPageQuery extends AdminPageQuery {
+  status?: string
+  organization_id?: string
+}
+
+export interface AdminSubscriptionPageQuery {
+  limit: number
+  offset: number
+  status?: string
+  product?: string
+}
+
+export interface AdminEventPageQuery {
+  limit: number
+  offset: number
+  organization_id?: string
+  actor_user_id?: string
+  action?: string
+  target_type?: string
 }
 
 /** The query roots whose answers belong to one organisation and to no other. */
@@ -213,13 +262,19 @@ export interface CheckoutInput {
   return_to?: CheckoutReturn
 }
 
+/** The code the browser carries from an affiliate link rides every checkout, whichever page opened it. */
 export function startCheckout(
   organizationId: string,
   input: CheckoutInput
 ): Promise<string> {
+  const affiliateCode = readAffiliateCode()
+
   return api()
     .api.v1.orgs({ id: organizationId })
-    .checkout.post(input)
+    .checkout.post({
+      ...input,
+      ...(affiliateCode ? { affiliate_code: affiliateCode } : {}),
+    })
     .then((response) => unwrap(response).url)
 }
 

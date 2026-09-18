@@ -2,6 +2,7 @@ import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
 import { type AuthEnv, type AuthPrisma, createAuth } from "@pupitre/auth/server"
 import { STATUS_STALE_AFTER_MS } from "@pupitre/shared/status"
 import { configureAuth } from "../../lib/api/plugins/auth"
+import { resetBilling } from "../../lib/billing/runtime"
 import { readServiceStatus } from "../../lib/status/status"
 import {
   type ApiTestServer,
@@ -9,6 +10,11 @@ import {
   resetDb,
   TEST_AUTH_ENV,
 } from "../../testing"
+import {
+  TEST_LAUNCH_END,
+  useFakeBilling,
+  useLaunchBilling,
+} from "../../testing/billing"
 import {
   createOrganizationWithMembers,
   createServer,
@@ -29,6 +35,7 @@ interface StatusBody {
     freshness: string
     checked_at: string
     social_providers: string[]
+    billing: { mode: string; launch_ends_at: string | null }
   }
 }
 
@@ -73,6 +80,53 @@ describe("GET /status", () => {
     expect(response.json.data.api).toBe("ok")
     expect(response.json.data.database).toBe("ok")
     expect(response.json.data.checked_at).toMatch(ISO_DATE_RE)
+  })
+
+  it("dit le mode de facturation et la fin du lancement", async () => {
+    useLaunchBilling()
+
+    const launch = await statusRequest()
+
+    expect(launch.json.data.billing).toEqual({
+      mode: "launch",
+      launch_ends_at: TEST_LAUNCH_END.toISOString(),
+    })
+
+    useFakeBilling()
+
+    const stripe = await statusRequest()
+
+    expect(stripe.json.data.billing).toEqual({
+      mode: "stripe",
+      launch_ends_at: null,
+    })
+  })
+
+  it("répond quand même quand le mode de facturation est illisible", async () => {
+    const previous = process.env.BILLING_MODE
+
+    resetBilling()
+    process.env.BILLING_MODE = "launch"
+
+    try {
+      const response = await statusRequest()
+
+      expect(response.status).toBe(200)
+      expect(response.json.data.api).toBe("ok")
+      expect(response.json.data.database).toBe("ok")
+      expect(response.json.data.billing).toEqual({
+        mode: "stripe",
+        launch_ends_at: null,
+      })
+    } finally {
+      if (previous === undefined) {
+        Reflect.deleteProperty(process.env, "BILLING_MODE")
+      } else {
+        process.env.BILLING_MODE = previous
+      }
+
+      useFakeBilling()
+    }
   })
 
   it("compte les serveurs actifs sans rien dire d'eux", async () => {
@@ -140,6 +194,7 @@ describe("GET /status", () => {
     expect(Object.keys(response.json.data).sort()).toEqual([
       "active_servers",
       "api",
+      "billing",
       "checked_at",
       "database",
       "freshness",

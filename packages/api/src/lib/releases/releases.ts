@@ -95,6 +95,14 @@ export async function findRelease(
   })
 }
 
+export async function listReleases(): Promise<ReleaseView[]> {
+  const releases = await getPrisma().release.findMany({
+    orderBy: [{ publishedAt: "desc" }, { arch: "asc" }],
+  })
+
+  return releases.map(toReleaseView)
+}
+
 export async function latestRelease(
   channel: ReleaseChannel,
   arch: string

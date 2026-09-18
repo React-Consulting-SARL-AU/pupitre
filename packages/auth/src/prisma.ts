@@ -52,6 +52,11 @@ export interface AuthPrisma {
       where: { slug: string }
       select: { id: true }
     }): Promise<{ id: string } | null>
+    upsert(args: {
+      where: { id: string }
+      create: { id: string; name: string; slug: string; createdAt: Date }
+      update: Record<string, never>
+    }): Promise<AuthOrganizationRecord>
     create(args: {
       data: {
         id: string
@@ -76,5 +81,18 @@ export interface AuthPrisma {
       orderBy: { createdAt: "asc" }
       select: { organizationId: true }
     }): Promise<{ organizationId: string } | null>
+    create(args: {
+      data: {
+        id: string
+        organizationId: string
+        userId: string
+        role: string
+        createdAt: Date
+      }
+    }): Promise<{ id: string }>
+    updateMany(args: {
+      where: { organizationId: string; userId: string }
+      data: { role: string }
+    }): Promise<{ count: number }>
   }
 }

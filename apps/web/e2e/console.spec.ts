@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test"
 import { DESKTOP_CLIENT_ID } from "@pupitre/auth/client/desktop"
+import { TRIAL_DAYS } from "@pupitre/shared/plans"
 import {
   harnessUrl,
   magicLinkFor,
@@ -103,7 +104,7 @@ test.describe("console", () => {
         })
       ).toBeVisible()
       await expect(
-        page.getByRole("heading", { name: "Quatorze jours, sans carte" })
+        page.getByRole("heading", { name: `${TRIAL_DAYS} jours, sans carte` })
       ).toBeVisible()
     })
 
@@ -218,17 +219,13 @@ test.describe("console", () => {
       ).toBeVisible()
     })
 
-    await test.step("l'essai monte à deux serveurs sans quitter la console", async () => {
-      await page.goto("/dashboard/billing")
-
-      await page.getByLabel("Changer le nombre de serveurs").fill("2")
-      await page.getByRole("button", { name: "Mettre à jour" }).click()
-
+    await test.step("l'essai tient une machine, et ne vend pas de siège", async () => {
+      await expect(page.getByText("Une machine pendant l'essai")).toBeVisible()
       await expect(
-        page.getByTestId("toasts").getByText("couvre maintenant 2 serveurs")
-      ).toBeVisible()
-      await expect(page.getByText("2 serveurs", { exact: true })).toBeVisible()
-      await expect(page.getByText("0 / 2")).toBeVisible()
+        page.getByLabel("Changer le nombre de serveurs")
+      ).toHaveCount(0)
+      await expect(page.getByText("1 serveur", { exact: true })).toBeVisible()
+      await expect(page.getByText("0 / 1")).toBeVisible()
     })
 
     await test.step("le téléchargement s'ouvre dans la console et dit l'ordre", async () => {

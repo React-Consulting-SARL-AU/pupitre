@@ -20,6 +20,7 @@
     "db:migrate": "bun scripts/migrate.ts",
     "db:migrate:new": "bun scripts/new-migration.ts",
     "db:reset": "bun scripts/reset.ts",
+    "db:seed": "bun scripts/seed.ts",
     "lint": "ultracite check",
     "lint:fix": "ultracite fix",
     "check:types": "tsgo --noEmit",
@@ -31,6 +32,7 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20260708.1",
+    "@pupitre/shared": "workspace:*",
     "@types/bun": "^1.4.0",
     "@types/node": "^26.2.0",
     "@typescript/native-preview": "^7.0.0-dev.20260707.2",

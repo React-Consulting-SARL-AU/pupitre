@@ -29,6 +29,14 @@
       "migrations_dir": "../../packages/db/migrations"
     }
   ],
+  // Everything a mail carries beyond its text: the raw message, its HTML body
+  // and its attachments. D1 keeps the thread, the bucket keeps the bytes.
+  "r2_buckets": [
+    {
+      "binding": "MAIL",
+      "bucket_name": "ppt-mail"
+    }
+  ],
   "observability": {
     "enabled": true
   },
@@ -71,7 +79,10 @@
     "BETTER_AUTH_URL": "http://localhost:3000",
     "VITE_APP_URL": "http://localhost:3000",
     "EMAIL_FROM": "no-reply@pupitre.studio",
-    "PUPITRE_DOWNLOADS_URL": "https://dl.pupitre.studio"
+    "PUPITRE_DOWNLOADS_URL": "https://dl.pupitre.studio",
+    "R2_MAIL_BUCKET_NAME": "ppt-mail",
+    "BILLING_MODE": "launch",
+    "LAUNCH_ENDS_AT": "2026-12-31T23:59:59Z"
   },
   "secrets": {
     "required": [
@@ -112,6 +123,12 @@
           "database_name": "ppt-db",
           "database_id": "8c4cd3b5-7375-4a69-8b84-b3b78c734cf5",
           "migrations_dir": "../../packages/db/migrations"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "MAIL",
+          "bucket_name": "ppt-mail"
         }
       ],
       "observability": {
@@ -162,7 +179,10 @@
         "VITE_APP_URL": "https://app.pupitre.studio",
         "BETTER_AUTH_URL": "https://app.pupitre.studio",
         "EMAIL_FROM": "no-reply@pupitre.studio",
-        "PUPITRE_DOWNLOADS_URL": "https://dl.pupitre.studio"
+        "PUPITRE_DOWNLOADS_URL": "https://dl.pupitre.studio",
+        "R2_MAIL_BUCKET_NAME": "ppt-mail",
+        "BILLING_MODE": "launch",
+        "LAUNCH_ENDS_AT": "2026-12-31T23:59:59Z"
       },
       "secrets": {
         "required": [

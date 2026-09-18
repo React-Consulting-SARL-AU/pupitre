@@ -43,7 +43,7 @@ function isBinding(value: unknown): value is CloudflareEmailBinding {
  * runtime: the import has to be dynamic, and its failure is the signal that we
  * are running under Bun instead.
  */
-async function workerEnv(): Promise<Record<string, unknown> | null> {
+export async function workerEnv(): Promise<Record<string, unknown> | null> {
   try {
     const { env } = (await import("cloudflare:workers")) as unknown as {
       env: Record<string, unknown>
@@ -61,7 +61,7 @@ export async function cloudflareEmailBinding(): Promise<CloudflareEmailBinding |
   return isBinding(binding) ? binding : null
 }
 
-async function cloudflareEmailMessage(): Promise<
+export async function cloudflareEmailMessage(): Promise<
   CloudflareEmailModule["EmailMessage"] | null
 > {
   try {

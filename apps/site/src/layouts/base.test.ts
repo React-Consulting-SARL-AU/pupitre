@@ -104,6 +104,15 @@ describe("Base layout", () => {
     expect(stylesheet === -1 || script < stylesheet).toBe(true)
   })
 
+  it("keeps an affiliate code from the query in the head, on every page", async () => {
+    const html = await render(Base, { props, path: "/fr/pricing/" })
+    const script = html.indexOf("pupitre_ref=")
+
+    expect(script).toBeGreaterThan(-1)
+    expect(script).toBeLessThan(html.indexOf("<body"))
+    expect(html).toContain('n="pupitre.studio"')
+  })
+
   it("loads Bricolage Grotesque and JetBrains Mono from Google Fonts with swap, without blocking the first paint", async () => {
     const html = await render(Base, { props })
     const fonts =

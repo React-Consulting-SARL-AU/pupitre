@@ -71,6 +71,9 @@ function createTestFetch(auth: Auth): TestFetch {
  * machine it runs on. A test that needs one of these sets it itself.
  */
 const AMBIENT_VARIABLES = [
+  "BILLING_MODE",
+  "LAUNCH_ENDS_AT",
+  "LAUNCH_ADMIN_SEATS",
   "PUPITRE_DOWNLOADS_URL",
   "PUPITRE_PUBLISH_TOKEN",
   "PUPITRE_PUBLISH_TOKEN_PREVIOUS",

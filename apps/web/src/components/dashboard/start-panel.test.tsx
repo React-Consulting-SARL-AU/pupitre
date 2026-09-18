@@ -13,6 +13,7 @@ import {
   stripeEvent,
   stripeSubscriptionObject,
   useFakeBilling,
+  useLaunchBilling,
 } from "@pupitre/api/testing/billing"
 import type { OrgRole } from "@pupitre/shared/permissions"
 import { StartPanel } from "@/components/dashboard/start-panel"
@@ -97,6 +98,42 @@ describe("StartPanel", () => {
     }
   })
 
+  it("offers the free launch instead of the trial, and grants it without Stripe", async () => {
+    const launch = useLaunchBilling()
+    const { container, unmount, click } = await render(
+      panel(organization, "owner")
+    )
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("Free launch") === true
+    )
+
+    expect(container.textContent).toContain("Free until")
+    expect(container.textContent).toContain("1 machine")
+    expect(container.textContent).not.toContain("Monthly")
+    expect(container.textContent).not.toContain("$")
+    expect(container.textContent).not.toContain("Start the trial")
+
+    await click(trigger(container, "Start"))
+    await waitUntil(() => leave.mock.calls.length === 1)
+
+    expect(leave).toHaveBeenCalledWith(expect.stringContaining("checkout=done"))
+    expect(launch.checkouts).toHaveLength(0)
+
+    const { prisma } = await bootApiTestServer()
+    const granted = await prisma.subscription.findFirst({
+      where: { organizationId: organization.id },
+    })
+
+    expect(granted).toMatchObject({
+      product: "launch",
+      status: "trialing",
+      quantity: 1,
+    })
+  })
+
   it("opens a one-seat monthly checkout on Stripe by default", async () => {
     const { container, unmount, click } = await render(
       panel(organization, "owner")
@@ -108,10 +145,11 @@ describe("StartPanel", () => {
       () => container.textContent?.includes("Start the trial") === true
     )
 
-    expect(container.textContent).toContain("Fourteen days, no card")
+    expect(container.textContent).toContain("30 days, no card")
+    expect(container.textContent).toContain("1 machine")
     expect(container.textContent).toContain("No card is asked for")
     expect(container.textContent).toContain(
-      "After the trial: $10 per server per month"
+      "After the trial: $5 per server per month"
     )
     expect(container.querySelector("#quantity")).toBeNull()
     expect(trigger(container, "Monthly").getAttribute("aria-pressed")).toBe(
@@ -145,7 +183,7 @@ describe("StartPanel", () => {
     await click(trigger(container, "Yearly"))
 
     expect(container.textContent).toContain(
-      "After the trial: $100 per server per year, 2 months free"
+      "After the trial: $50 per server per year, 2 months free"
     )
     expect(trigger(container, "Yearly").getAttribute("aria-pressed")).toBe(
       "true"

@@ -3,6 +3,7 @@
 interface CloudflareEnv {
   ASSETS: Fetcher
   DB: D1Database
+  MAIL: R2Bucket
   DECOMMISSION_SERVER: Workflow
   EVALUATE_ALERTS: Workflow
   EXPIRE_ENROLLMENTS: Workflow

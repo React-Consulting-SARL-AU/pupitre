@@ -1,4 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
+import { TRIAL_DAYS, TRIAL_SEATS } from "@pupitre/shared/plans"
 import type { FakeBilling } from "../../lib/billing/fake"
 import { suspendExpiredGrace } from "../../lib/billing/grace"
 import { reconcileSeats } from "../../lib/billing/reconcile"
@@ -129,7 +130,7 @@ describe("facturation d'une organisation", () => {
     member = created.members[2].session
   })
 
-  it("ouvre un checkout en quantité, mensuel", async () => {
+  it("ouvre le premier checkout sur l'essai, un siège quelle que soit la demande", async () => {
     const response = await apiRequest<UrlBody>(
       `/orgs/${organizationId}/checkout`,
       { body: { quantity: 3, interval: "month" }, session: owner }
@@ -140,9 +141,25 @@ describe("facturation d'une organisation", () => {
     expect(billing.checkouts).toHaveLength(1)
     expect(billing.checkouts[0]).toMatchObject({
       organizationId,
-      quantity: 3,
+      quantity: TRIAL_SEATS,
+      trialDays: TRIAL_DAYS,
       interval: "month",
       customerId: null,
+    })
+  })
+
+  it("ouvre les checkouts suivants sans essai, à la quantité demandée", async () => {
+    await paySeats(billing, organizationId, 2, "canceled")
+
+    await apiRequest(`/orgs/${organizationId}/checkout`, {
+      body: { quantity: 3, interval: "month" },
+      session: owner,
+    })
+
+    expect(billing.checkouts[0]).toMatchObject({
+      quantity: 3,
+      trialDays: null,
+      customerId: "cus_seat",
     })
   })
 
@@ -450,16 +467,31 @@ describe("facturation d'une organisation", () => {
     expect(after.json.data?.quantity).toBe(1)
   })
 
-  it("ajoute un siège en cours d'essai, et l'enrôlement suivant passe", async () => {
+  it("verrouille les sièges pendant l'essai", async () => {
     await paySeats(billing, organizationId, 1, "trialing")
+
+    const refused = await apiRequest<ErrorBody>(
+      `/orgs/${organizationId}/seats`,
+      { body: { quantity: 2 }, session: owner, locale: "fr" }
+    )
+
+    expect(refused.status).toBe(409)
+    expect(refused.json.error.code).toBe("conflict")
+    expect(refused.json.error.message).toContain("essai")
+    expect(refused.json.error.fix).toContain("/dashboard/billing")
+    expect(billing.quantities).toHaveLength(0)
+  })
+
+  it("ajoute un siège une fois l'abonnement payé, et l'enrôlement suivant passe", async () => {
+    await paySeats(billing, organizationId, 1)
 
     const device = await addDevice(owner, "poste")
     const deviceId = device.json.data.id
 
-    expect((await enroll(owner, deviceId, "trial-1.example.net")).status).toBe(
+    expect((await enroll(owner, deviceId, "paid-1.example.net")).status).toBe(
       201
     )
-    expect((await enroll(owner, deviceId, "trial-2.example.net")).status).toBe(
+    expect((await enroll(owner, deviceId, "paid-2.example.net")).status).toBe(
       403
     )
 
@@ -469,17 +501,17 @@ describe("facturation d'une organisation", () => {
     )
 
     expect(resized.status).toBe(200)
-    expect(resized.json.data).toMatchObject({ quantity: 2, status: "trialing" })
+    expect(resized.json.data).toMatchObject({ quantity: 2, status: "active" })
     expect(billing.quantities).toEqual([
       { subscriptionId: "sub_seat", quantity: 2 },
     ])
-    expect((await enroll(owner, deviceId, "trial-2.example.net")).status).toBe(
+    expect((await enroll(owner, deviceId, "paid-2.example.net")).status).toBe(
       201
     )
   })
 
   it("garde la trace du changement dans le journal", async () => {
-    await paySeats(billing, organizationId, 1, "trialing")
+    await paySeats(billing, organizationId, 1)
     await apiRequest(`/orgs/${organizationId}/seats`, {
       body: { quantity: 3 },
       session: owner,

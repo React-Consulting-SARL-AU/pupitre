@@ -30,7 +30,7 @@ export const PLANS: readonly Plan[] = [
     id: "solo",
     name: "Solo",
     nameFr: "Solo",
-    monthlyPriceUsd: 10,
+    monthlyPriceUsd: 5,
     billedPer: "server",
     startingAt: false,
     maxServers: 2,
@@ -40,7 +40,7 @@ export const PLANS: readonly Plan[] = [
     id: "team",
     name: "Team",
     nameFr: "Équipe",
-    monthlyPriceUsd: 10,
+    monthlyPriceUsd: 5,
     billedPer: "server",
     startingAt: false,
     maxServers: null,
@@ -60,8 +60,37 @@ export const PLANS: readonly Plan[] = [
 
 export const ANNUAL_FREE_MONTHS = 2
 
-export const TRIAL_DAYS = 14
+export const TRIAL_DAYS = 30
 export const TRIAL_REQUIRES_CARD = false
+
+/** A trial, and the free launch, cover one machine; more seats come with payment. */
+export const TRIAL_SEATS = 1
+
+export const BILLING_MODES = ["stripe", "launch"] as const
+
+export const BillingModeSchema = z.enum(BILLING_MODES)
+
+export type BillingMode = z.infer<typeof BillingModeSchema>
+
+/** The product name of a subscription the platform grants itself, without Stripe. */
+export const LAUNCH_PRODUCT = "launch"
+
+export const LAUNCH_SEATS = TRIAL_SEATS
+
+/** The platform's own organization enrols what it needs during the launch. */
+export const LAUNCH_ADMIN_SEATS = 100
+
+export const AFFILIATE_CODE_LENGTH = 8
+
+export const AFFILIATE_CODE_RE = /^[a-z0-9-]{3,32}$/
+
+export const AFFILIATE_COOKIE = "pupitre_ref"
+
+export const AFFILIATE_COOKIE_DAYS = 90
+
+export const AFFILIATE_MAX_FREE_MONTHS = 24
+
+export const DAYS_PER_FREE_MONTH = 30
 
 export function getPlan(id: PlanId): Plan {
   const plan = PLANS.find((candidate) => candidate.id === id)

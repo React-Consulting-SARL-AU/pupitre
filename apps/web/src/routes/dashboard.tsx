@@ -66,6 +66,7 @@ function DashboardLayout() {
         activeOrganization: me.data.active_organization,
         role: me.data.role as OrgRole | null,
         entitlement: me.data.entitlement,
+        platformRole: me.data.platform_role as OrgRole | null,
       }}
     >
       <div className="animate-enter" key={pathname}>

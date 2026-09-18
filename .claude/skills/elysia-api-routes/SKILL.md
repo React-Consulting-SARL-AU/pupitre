@@ -41,7 +41,7 @@ Le socle existe : `GET /health`, `GET /me` (les guards, et le droit d'usage de l
 - **Les codes d'erreur viennent de `@pupitre/shared/api/errors`.** Un code nouveau se déclare là, jamais comme une chaîne libre dans un handler. `apiError` refuse un code inconnu à la compilation.
 - **Les messages d'erreur sont traduits** : une clé dans `src/lib/i18n/index.ts` (fr et en dans la même passe), `translate(resolveLocale(request.headers), clé)` dans le handler. Pas de phrase en dur.
 - **La plateforme ne connaît pas le contenu d'un serveur.** Aucune route ne reçoit un projet, un secret ou un fichier client. Une PR qui ajoute un tel champ est refusée (`apps/web/CLAUDE.md`).
-- **Les webhooks Stripe sont la seule entrée de la facturation.** Une route ne crée jamais un abonnement ou un siège à la fin d'un checkout.
+- **Les webhooks Stripe sont la seule entrée de la facturation Stripe.** Une route ne crée jamais un abonnement ou un siège à la fin d'un checkout. L'unique exception est le mode `launch` (`BILLING_MODE`, sans Stripe) : `POST /orgs/:id/checkout` accorde l'abonnement de lancement par `grantLaunchSubscription` de `lib/billing/launch.ts`, et rien d'autre n'écrit `Subscription` hors du webhook.
 - **Types inférés**, jamais redéclarés : Prisma pour les entités, `t` pour les entrées et sorties, Eden côté client.
 - **Imports relatifs** dans `packages/api` : pas d'alias `@/`. `@pupitre/api/lib/*` est interdit hors du package (`scripts/assert-package-boundaries.ts`). Le client Prisma s'importe depuis `@pupitre/db/cloudflare/client` (`ApiPrisma`), jamais depuis `@pupitre/db/client` hors des tests.
 - Style Biome du monorepo : guillemets doubles, pas de point-virgule, lignes vides entre les blocs, pas de commentaire qui répète le code, pas de `export … from` (Biome `noBarrelFile`).
@@ -70,13 +70,15 @@ Composition, jamais réimplémentation. Le guard se monte **une fois**, juste ap
 
 | Guard | Ce qu'il injecte | Ce qu'il refuse | Pour |
 | --- | --- | --- | --- |
-| `authPlugin` | `user`, `session`, `organizationId`, `role`, `isPlatformAdmin`, tous nullables sauf le dernier | rien : l'anonyme passe avec `user: null` | `routes/index.ts` le monte en premier ; une route à session optionnelle |
+| `authPlugin` | `user`, `session`, `organizationId`, `role`, `platformRole` (le rôle tenu dans l'organisation Pupitre, `PLATFORM_ORGANIZATION_ID`), `isPlatformAdmin` (`platformRole !== null`), tous nullables sauf le dernier | rien : l'anonyme passe avec `user: null` | `routes/index.ts` le monte en premier ; une route à session optionnelle |
 | `requireAuth` | idem, `user` et `session` non nuls | 401 `unauthenticated` | tout ce qui parle à un humain : `/me`, `/me/devices` |
 | `requireOrg` | idem, `organizationId` et `role` non nuls (le rôle vient de la table `member`) | 401 `unauthenticated` ; 403 `forbidden` avec `fix` sans organisation active ; 403 `forbidden` si l'utilisateur n'est plus membre | `/servers`, `/orgs/:id/*` |
 | `requireRole("admin")` | idem `requireOrg` | 403 `forbidden` si le rôle est sous celui demandé ; `owner` > `admin` > `member` (`ROLE_RANK`) | `/servers/:id/assign`, `/orgs/:id/invitations`, la facturation en `owner` |
 | `requireEntitlement` | idem `requireOrg` | 403 `entitlement_required` sans abonnement sur l'organisation ; 403 `server_suspended` quand celui qu'elle a est suspendu ; `fix` vers `/dashboard/billing` dans les deux cas | tout ce qui suppose un abonnement en cours, fût-il en essai : `POST /servers/enroll`, les routes d'attribution |
 | `requireServer` | `currentServer` : le `Server` dont `serverTokenHash` est le SHA-256 du bearer, quel que soit son statut sauf `revoked` | 401 `unauthenticated` sans bearer, jeton inconnu, ou serveur `revoked` (avec `fix`) | `/agent/state`, `/agent/heartbeat`, `/agent/release/:version` |
-| `requirePlatformAdmin` | `user`, `session` non nuls, `isPlatformAdmin` vrai (`user.role === "platform_admin"`) | 401 `unauthenticated` ; 403 `forbidden` | `/admin/**` |
+| `requirePlatformAdmin` | `user`, `session` non nuls, `platformRole` non nul : tout membre de l'organisation Pupitre | 401 `unauthenticated` ; 403 `forbidden` (`platform_admin_required`) | **lire** sous `/admin/**` : listes, fiches, boîte de réception |
+| `requirePlatformRole("admin")` | idem, `platformRole` valant `admin` ou `owner` dans l'organisation Pupitre | 403 `forbidden` (`platform_role_required`) pour un simple `member` | **agir** sous `/admin/**` : suspendre, bannir, créer un lien, répondre à un mail ; un routeur `/admin` se scinde en une instance lecture et une instance écriture |
+| `requirePublisher` | `actor` : `{ userId, source: "console" }` pour une session `admin`/`owner` de l'organisation Pupitre, `PIPELINE_ACTOR` pour le jeton `PUPITRE_PUBLISH_TOKEN` | 401 `publish_token_invalid` ; 403 comme `requirePlatformRole("admin")` | publier et promouvoir une version |
 
 `currentServer` et non `server` : Elysia réserve `server` dans son contexte (l'instance Bun). Un serveur `suspended` passe `requireServer` : c'est `/agent/state` qui lui dit `entitlement: "suspended"`. Les jetons de serveur sont préfixés `pupitre_srv_` (`src/lib/servers/tokens.ts` : `generateServerToken`, `hashServerToken`, `isServerToken`) ; `authPlugin` ne cherche pas de session Better Auth derrière un tel bearer.
 
