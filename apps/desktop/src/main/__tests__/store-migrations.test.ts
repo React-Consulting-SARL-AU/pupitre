@@ -3,6 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ACCOUNT_MIGRATIONS } from "../account-migrations";
+import { SERVERS_MIGRATIONS } from "../servers-migrations";
 import {
   expectedRevision,
   forgetCopies,
@@ -169,5 +170,83 @@ describe("le registre de account.json", () => {
     expect(migrated.document.identity).toMatchObject({
       subscription: { status: "active" },
     });
+  });
+});
+
+describe("le registre de servers.json", () => {
+  const held: JsonObject = {
+    active: "srv-1",
+    servers: [
+      {
+        host: "203.0.113.10",
+        id: "srv-1",
+        name: "Atelier d'Été",
+        origin: "app",
+      },
+      {
+        host: "203.0.113.11",
+        id: "srv-2",
+        name: "atelier-d-ete",
+        origin: "app",
+      },
+      { host: "dev-vps", id: "srv-3", name: "Poste", origin: "system" },
+      { host: "203.0.113.12", id: "srv-4", name: "dev-vps", origin: "app" },
+      {
+        host: "203.0.113.13",
+        id: "srv-5",
+        name: "···",
+        origin: "app",
+        stale: 1,
+      },
+    ],
+    version: 3,
+  };
+
+  it("donne à chaque serveur le nom SSH qu'il portait, dessiné depuis son nom", () => {
+    const migrated = migrate(held, SERVERS_MIGRATIONS);
+
+    expect(migrated.applied).toEqual([4]);
+    expect(
+      (migrated.document.servers as JsonObject[]).map((server) => server.slug)
+    ).toEqual(["atelier-d-ete", undefined, undefined, undefined, undefined]);
+  });
+
+  it("porte les champs que le code d'aujourd'hui ne nomme plus, et n'y revient pas", () => {
+    const migrated = migrate(held, SERVERS_MIGRATIONS);
+
+    expect((migrated.document.servers as JsonObject[])[4]).toMatchObject({
+      stale: 1,
+    });
+
+    const again = migrate(migrated.document, SERVERS_MIGRATIONS);
+
+    expect(again.applied).toEqual([]);
+    expect(again.document).toEqual(migrated.document);
+  });
+
+  it("laisse le nom SSH qu'un serveur porte déjà", () => {
+    const migrated = migrate(
+      {
+        servers: [
+          {
+            host: "203.0.113.10",
+            id: "srv-1",
+            name: "Atelier",
+            origin: "app",
+            slug: "prod",
+          },
+        ],
+        version: 3,
+      },
+      SERVERS_MIGRATIONS
+    );
+
+    expect((migrated.document.servers as JsonObject[])[0]?.slug).toBe("prod");
+  });
+
+  it("ne se met pas en peine d'un fichier sans liste", () => {
+    const migrated = migrate({ active: null }, SERVERS_MIGRATIONS);
+
+    expect(migrated.document).toEqual({ active: null, version: 4 });
   });
 });

@@ -38,6 +38,9 @@ function CalloutFix({ fix }: { fix: string }) {
   return <p className="mt-1 text-[12px] text-ink-2 leading-relaxed">{fix}</p>;
 }
 
+const FRAMED =
+  "elevation-raised rounded-md border border-line bg-surface px-3.5 py-3";
+
 export function Callout({
   tone = "info",
   children,
@@ -45,6 +48,7 @@ export function Callout({
   action,
   onDismiss,
   name,
+  bare = false,
 }: {
   tone?: CalloutTone;
   children: ReactNode;
@@ -55,6 +59,8 @@ export function Callout({
   onDismiss?: () => void;
   /** What this card is about, for whoever has to find it. */
   name?: string;
+  /** Inside a Panel: the frame is the panel's, a second one would be a card in a card. */
+  bare?: boolean;
 }) {
   const t = useTranslations();
 
@@ -63,7 +69,7 @@ export function Callout({
 
   return (
     <div
-      className="elevation-raised flex items-start gap-3 rounded-md border border-line bg-surface px-3.5 py-3"
+      className={`flex items-start gap-3 ${bare ? "" : FRAMED}`}
       data-callout={name}
       data-tone={tone}
       role={tone === "danger" ? "alert" : "status"}

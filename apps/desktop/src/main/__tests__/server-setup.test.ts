@@ -18,7 +18,12 @@ import {
   sharesAddress,
   untrustHost,
 } from "../server-setup";
-import { appSshPaths, writeSshConfig } from "../ssh-config";
+import {
+  appSshPaths,
+  renderSshConfig,
+  type SshPaths,
+  writeSshConfig,
+} from "../ssh-config";
 
 const SYSTEM_CONFIG = `Host dev-vps
   HostName 198.51.100.7
@@ -45,10 +50,15 @@ function userData(): string {
   return mkdtempSync(join(tmpdir(), "pupitre-userdata-"));
 }
 
+/** A home inside the folder under test: the link lands there, not in the developer's. */
+function pathsIn(data: string): SshPaths {
+  return appSshPaths(data, join(data, "home"));
+}
+
 describe("le parcours d'ajout d'un serveur", () => {
   it("ne modifie jamais le ~/.ssh/config de l'utilisateur", async () => {
     const { sshConfig } = fakeHome();
-    const paths = appSshPaths(userData());
+    const paths = pathsIn(userData());
     const before = hash(sshConfig);
     const userBefore = existsSync(join(homedir(), ".ssh", "config"))
       ? hash(join(homedir(), ".ssh", "config"))
@@ -87,7 +97,7 @@ describe("le parcours d'ajout d'un serveur", () => {
 
   it("écrit tout ce qu'il écrit dans le dossier de données de l'app", async () => {
     const data = userData();
-    const paths = appSshPaths(data);
+    const paths = pathsIn(data);
 
     const created = await addServer(
       {
@@ -109,7 +119,7 @@ describe("le parcours d'ajout d'un serveur", () => {
   });
 
   it("garde la clé publique à portée, avec sa commande ssh-copy-id", async () => {
-    const paths = appSshPaths(userData());
+    const paths = pathsIn(userData());
 
     const created = await addServer(
       {
@@ -131,7 +141,7 @@ describe("le parcours d'ajout d'un serveur", () => {
 
 describe("un hôte déjà déclaré dans le système", () => {
   it("n'ouvre ni clé ni bloc de configuration : l'app n'écrit rien pour lui", async () => {
-    const paths = appSshPaths(userData());
+    const paths = pathsIn(userData());
 
     const created = await addServer(
       {
@@ -153,9 +163,74 @@ describe("un hôte déjà déclaré dans le système", () => {
   });
 });
 
+describe("le nom SSH d'un serveur ajouté", () => {
+  const draft = {
+    host: "203.0.113.10",
+    key: { mode: "generate" } as const,
+    name: "Atelier d'Été",
+    port: 22,
+    user: "root",
+  };
+
+  it("est le mot tapé, mis en forme pour une ligne Host", async () => {
+    const paths = pathsIn(userData());
+
+    const created = await addServer({ ...draft, slug: "Prod VPS" }, [], paths);
+
+    expect(created.server.slug).toBe("prod-vps");
+    expect(renderSshConfig(created.servers, paths)).toContain(
+      `Host pupitre-${created.server.id} prod-vps\n`
+    );
+  });
+
+  it("vient du nom quand rien n'est tapé, et manque quand ce mot est pris", async () => {
+    const paths = pathsIn(userData());
+
+    const first = await addServer(draft, [], paths);
+    const second = await addServer(draft, first.servers, paths);
+    const third = await addServer(
+      { ...draft, name: "Bastion" },
+      second.servers,
+      paths,
+      ["bastion"]
+    );
+
+    expect(first.server.slug).toBe("atelier-d-ete");
+    expect(second.server.slug).toBeUndefined();
+    expect(third.server.slug).toBeUndefined();
+  });
+
+  it("refuse un mot tapé qui ne tient pas, ou qui désigne déjà une machine", async () => {
+    const paths = pathsIn(userData());
+    const held = await addServer({ ...draft, slug: "atelier" }, [], paths);
+
+    await expect(
+      addServer({ ...draft, slug: "···" }, [], paths)
+    ).rejects.toMatchObject({ phrase: { id: "refusal.setup.sshName" } });
+    await expect(
+      addServer({ ...draft, slug: "atelier" }, held.servers, paths)
+    ).rejects.toMatchObject({ phrase: { id: "refusal.setup.sshNameTaken" } });
+    await expect(
+      addServer({ ...draft, slug: "bastion" }, [], paths, ["bastion"])
+    ).rejects.toMatchObject({ phrase: { id: "refusal.setup.sshNameTaken" } });
+  });
+
+  it("n'en donne pas à un hôte du système, qui est son propre alias", async () => {
+    const paths = pathsIn(userData());
+
+    const created = await addServer(
+      { ...draft, key: { host: "dev-vps", mode: "system" }, slug: "vps" },
+      [],
+      paths
+    );
+
+    expect(created.server.slug).toBeUndefined();
+  });
+});
+
 describe("ce que le formulaire refuse", () => {
   it("dit ce qui ne va pas dans l'adresse, le port et l'utilisateur", async () => {
-    const paths = appSshPaths(userData());
+    const paths = pathsIn(userData());
     const draft = {
       host: "203.0.113.10",
       key: { mode: "generate" } as const,
@@ -176,7 +251,7 @@ describe("ce que le formulaire refuse", () => {
   });
 
   it("porte un remède avec son refus", async () => {
-    const paths = appSshPaths(userData());
+    const paths = pathsIn(userData());
 
     try {
       await addServer(
@@ -200,7 +275,7 @@ describe("ce que le formulaire refuse", () => {
 
 describe("la suppression d'un serveur", () => {
   it("emporte la clé du dossier de l'app", async () => {
-    const paths = appSshPaths(userData());
+    const paths = pathsIn(userData());
     const created = await addServer(
       {
         host: "203.0.113.10",

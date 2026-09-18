@@ -134,7 +134,7 @@ export function ProjectBranchCreate({
       ) : null}
 
       {branches.dirty && trimmed !== "" && problem === null ? (
-        <Callout tone="warn">
+        <Callout bare tone="warn">
           {t("project.branches.dirtyCreate", { branch: trimmed })}
         </Callout>
       ) : null}

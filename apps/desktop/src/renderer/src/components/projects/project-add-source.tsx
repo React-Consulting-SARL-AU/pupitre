@@ -173,6 +173,7 @@ export function ProjectAddSource({
               {t("projectAdd.github.install")}
             </Button>
           }
+          bare
           fix={t("projectAdd.github.moduleFix")}
           name="github.module"
           tone="warn"

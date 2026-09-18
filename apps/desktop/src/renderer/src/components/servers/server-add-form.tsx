@@ -20,6 +20,7 @@ import { panelClass } from "../ui/panel";
 import { Select } from "../ui/select";
 import { ServerAddPortField } from "./server-add-port-field";
 import { ServerReachNotice } from "./server-reach-notice";
+import { ServerSshNameField } from "./server-ssh-name-field";
 
 type Mode = KeyChoice["mode"];
 
@@ -70,6 +71,36 @@ function portState(
       ? { portProblem: t("servers.add.port.problem", { max: PORT_MAX }) }
       : {}),
   };
+}
+
+/** Whether the draft has everything the chosen way of giving a key needs. */
+function readyToAdd({
+  mode,
+  systemHost,
+  host,
+  user,
+  file,
+  asksPassword,
+  password,
+}: {
+  mode: Mode;
+  systemHost: string;
+  host: string;
+  user: string;
+  file: string;
+  asksPassword: boolean;
+  password: string;
+}): boolean {
+  if (mode === "system") {
+    return systemHost !== "";
+  }
+
+  return (
+    host.trim() !== "" &&
+    user.trim() !== "" &&
+    (mode !== "import" || file !== "") &&
+    (!asksPassword || password !== "")
+  );
 }
 
 const MODES: {
@@ -133,6 +164,7 @@ export function ServerAddForm({
 
   const [mode, setMode] = useState<Mode>("generate");
   const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
   const [host, setHost] = useState("");
   const [port, setPort] = useState(DEFAULT_PORT);
   const [user, setUser] = useState("root");
@@ -214,6 +246,7 @@ export function ServerAddForm({
       name,
       password: asksPassword ? typed : null,
       port: portNumber,
+      slug,
       user,
     });
   }
@@ -243,13 +276,15 @@ export function ServerAddForm({
     };
   }
 
-  const ready =
-    mode === "system"
-      ? systemHost !== ""
-      : host.trim() !== "" &&
-        user.trim() !== "" &&
-        (mode !== "import" || file) &&
-        (!asksPassword || password !== "");
+  const ready = readyToAdd({
+    asksPassword,
+    file,
+    host,
+    mode,
+    password,
+    systemHost,
+    user,
+  });
 
   // An alias of `~/.ssh/config` carries its address in that file, which this
   // window does not read: there is nothing here to knock on.
@@ -297,6 +332,15 @@ export function ServerAddForm({
             value={name}
           />
         </Field>
+
+        {mode === "system" ? null : (
+          <ServerSshNameField
+            name="servers.add.sshName"
+            onChange={setSlug}
+            serverName={name}
+            value={slug}
+          />
+        )}
 
         {mode === "system" ? (
           <Field
@@ -372,7 +416,7 @@ export function ServerAddForm({
 
       {error ? (
         <div className="mt-5">
-          <Callout fix={agentText(t, error).fix} tone="danger">
+          <Callout bare fix={agentText(t, error).fix} tone="danger">
             {agentText(t, error).message}
           </Callout>
         </div>

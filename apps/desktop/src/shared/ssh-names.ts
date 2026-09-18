@@ -5,13 +5,13 @@ import type { Server } from "./servers";
  *
  * A server of the app is written under its identifier, since an address can
  * move; a host of the system is its own alias. Beside the identifier, the block
- * also carries the server's name, made fit for a `Host` line, when nothing else
- * answers to it: that is the word a reader types in a terminal or hands an
- * editor, and it cannot be a word that already names another machine.
+ * also carries the SSH name the reader chose for it, when nothing else answers
+ * to it: that is the word a reader types in a terminal or hands an editor, and
+ * it cannot be a word that already names another machine.
  */
 
 const NAME_LIMIT = 63;
-const ACCENTS = /[\u0300-\u036f]/g;
+const ACCENTS = /\p{Mn}/gu;
 const UNFIT = /[^a-z0-9-]+/g;
 const EDGES = /^-+|-+$/g;
 
@@ -20,9 +20,9 @@ export function alias(server: Server): string {
   return server.origin === "system" ? server.host : `pupitre-${server.id}`;
 }
 
-/** The name as ssh accepts it on a `Host` line, or nothing when none of it survives. */
-export function sshSlug(name: string): string | null {
-  const slug = name
+/** What was typed, as ssh accepts it on a `Host` line, or nothing when none of it survives. */
+export function sshSlug(typed: string): string | null {
+  const slug = typed
     .normalize("NFD")
     .replace(ACCENTS, "")
     .toLowerCase()
@@ -35,9 +35,29 @@ export function sshSlug(name: string): string | null {
 }
 
 /**
- * The name each server of the app answers to, by identifier: its slug when no
- * host of the system's own file, no earlier server and no identifier claims it,
- * the alias alone otherwise. A host of the system keeps its own name.
+ * Whether a word names no other machine: no host of the system's own file, no
+ * identifier, and no SSH name of another server of the list.
+ */
+export function sshNameFree(
+  slug: string,
+  servers: readonly Server[],
+  reserved: readonly string[],
+  self?: string
+): boolean {
+  if (reserved.includes(slug)) {
+    return false;
+  }
+
+  return servers.every(
+    (server) =>
+      alias(server) !== slug && (server.id === self || server.slug !== slug)
+  );
+}
+
+/**
+ * The name each server of the app answers to, by identifier: its SSH name when
+ * no host of the system's own file, no earlier server and no identifier claims
+ * it, the alias alone otherwise. A host of the system keeps its own name.
  */
 export function sshNames(
   servers: readonly Server[],
@@ -55,11 +75,9 @@ export function sshNames(
       continue;
     }
 
-    const slug = sshSlug(server.name);
-
-    if (slug && !taken.has(slug)) {
-      taken.add(slug);
-      names.set(server.id, slug);
+    if (server.slug && !taken.has(server.slug)) {
+      taken.add(server.slug);
+      names.set(server.id, server.slug);
     } else {
       names.set(server.id, alias(server));
     }
@@ -68,11 +86,20 @@ export function sshNames(
   return names;
 }
 
-/** One server of the app, and the word that reaches it once the file is shared. */
+/**
+ * One server of the app, and what another client needs to reach it: the word
+ * that names it once the file is shared, and the account, the address, the
+ * port and the key a client that reads no configuration file asks for.
+ */
 export interface SshShareServer {
   id: string;
   name: string;
   ssh: string;
+  user: string;
+  host: string;
+  port: number;
+  /** The key as the app's file names it, through the link; null on a system host. */
+  identityFile: string | null;
 }
 
 /** What a settings screen reads about the system's own SSH file. */

@@ -5,7 +5,17 @@ import { useSshShare } from "../ssh-share";
 
 const UNSHARED: SshShareState = {
   line: "Include /data/ssh/config",
-  servers: [{ id: "srv-a", name: "Atelier", ssh: "atelier" }],
+  servers: [
+    {
+      host: "203.0.113.10",
+      id: "srv-a",
+      identityFile: "/home/jean/.pupitre/desktop/keys/srv-a",
+      name: "Atelier",
+      port: 22,
+      ssh: "atelier",
+      user: "dev",
+    },
+  ],
   shared: false,
   userConfigPath: "/home/jean/.ssh/config",
 };

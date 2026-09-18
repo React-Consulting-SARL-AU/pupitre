@@ -10,6 +10,7 @@ import { files } from "./strings/files";
 import { fleet } from "./strings/fleet";
 import { format } from "./strings/format";
 import { forwards } from "./strings/forwards";
+import { help } from "./strings/help";
 import { install } from "./strings/install";
 import { onboarding } from "./strings/onboarding";
 import { project } from "./strings/project";
@@ -44,6 +45,7 @@ export const en = {
   ...dashboard.en,
   ...files.en,
   ...fleet.en,
+  ...help.en,
   ...install.en,
   ...onboarding.en,
   ...project.en,

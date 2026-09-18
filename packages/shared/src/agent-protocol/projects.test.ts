@@ -398,6 +398,15 @@ describe("project results", () => {
         path: "/home/dev/projects/flymate/api/.env.local",
         written: true,
         keys: ["DATABASE_URL"],
+        template: true,
+      }).success
+    ).toBe(true)
+    expect(
+      ProjectEnvResultSchema.safeParse({
+        path: "/home/dev/projects/flymate/.env.local",
+        written: false,
+        keys: [],
+        template: false,
       }).success
     ).toBe(true)
     expect(
@@ -475,6 +484,14 @@ describe("project results", () => {
         path: "/x/.env.local",
         written: true,
         keys: [{ DATABASE_URL: "postgres://…" }],
+        template: true,
+      }).success
+    ).toBe(false)
+    expect(
+      ProjectEnvResultSchema.safeParse({
+        path: "/x/.env.local",
+        written: false,
+        keys: [],
       }).success
     ).toBe(false)
     expect(

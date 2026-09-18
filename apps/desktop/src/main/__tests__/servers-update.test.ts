@@ -125,6 +125,60 @@ describe("la modification d'un serveur", () => {
     expect(refused({ host: "bad host" })).toBe("refusal.setup.host");
     expect(refused({ port: 0 })).toBe("refusal.setup.port");
     expect(refused({ user: "" })).toBe("refusal.setup.user");
+    expect(refused({ slug: "···" })).toBe("refusal.setup.sshName");
+    expect(refused({ slug: "pupitre-srv-x" })).toBe("refusal.setup.sshName");
     expect(refused({ user: "dev" })).toBeNull();
+  });
+});
+
+describe("le nom SSH d'un serveur", () => {
+  beforeEach(() => {
+    write(() => ({
+      active: TYPED.id,
+      dismissed: [],
+      servers: [{ ...TYPED, slug: "mon-serveur" }, SYSTEM],
+    }));
+  });
+
+  it("change sur la ligne Host de la configuration SSH de l'app, l'alias gardé", async () => {
+    expect(sshConfig()).toContain("Host pupitre-srv-local-1 mon-serveur\n");
+
+    const updated = await update(TYPED.id, { slug: "Prod VPS" });
+
+    expect(updated.server.slug).toBe("prod-vps");
+    expect(read().servers[0]?.slug).toBe("prod-vps");
+    expect(sshConfig()).toContain("Host pupitre-srv-local-1 prod-vps\n");
+    expect(sshConfig()).not.toContain("mon-serveur");
+  });
+
+  it("revient au nom du serveur quand le champ est vidé", async () => {
+    await update(TYPED.id, { slug: "prod" });
+
+    const updated = await update(TYPED.id, { slug: "" });
+
+    expect(updated.server.slug).toBe("mon-serveur");
+    expect(sshConfig()).toContain("Host pupitre-srv-local-1 mon-serveur\n");
+  });
+
+  it("garde le nom quand le changement ne le nomme pas", async () => {
+    const updated = await update(TYPED.id, { port: 2222 });
+
+    expect(updated.server.slug).toBe("mon-serveur");
+  });
+
+  it("refuse un mot qui désigne déjà une autre machine", async () => {
+    await expect(update(TYPED.id, { slug: "atelier" })).rejects.toMatchObject({
+      phrase: { id: "refusal.setup.sshNameTaken", values: { name: "atelier" } },
+    });
+    await expect(
+      update(TYPED.id, { slug: "pupitre-srv-system-1" })
+    ).rejects.toThrow(SetupError);
+    expect(read().servers[0]?.slug).toBe("mon-serveur");
+  });
+
+  it("peut reprendre son propre mot", async () => {
+    const updated = await update(TYPED.id, { slug: "mon-serveur" });
+
+    expect(updated.server.slug).toBe("mon-serveur");
   });
 });

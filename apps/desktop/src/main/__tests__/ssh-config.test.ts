@@ -1,16 +1,18 @@
 import { describe, expect, it } from "bun:test";
 import {
   chmodSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
   statSync,
   symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import type { Server } from "@shared/servers";
 import { alias } from "@shared/ssh-names";
 import {
@@ -19,15 +21,22 @@ import {
   controlPath,
   controlPathFits,
   ensureControlDir,
+  ensureLink,
   knownHostsKey,
   readSystemHosts,
   renderSshConfig,
+  type SshPaths,
   sshArgs,
   writeSshConfig,
 } from "../ssh-config";
 
 function userData(): string {
   return mkdtempSync(join(tmpdir(), "pupitre-userdata-"));
+}
+
+/** A home inside the folder under test: nothing lands in the developer's own. */
+function pathsIn(dir: string): SshPaths {
+  return appSshPaths(dir, join(dir, "home"));
 }
 
 const APP_SERVER: Server = {
@@ -38,6 +47,7 @@ const APP_SERVER: Server = {
   name: "Staging",
   origin: "app",
   port: 22,
+  slug: "staging",
   user: "root",
 };
 
@@ -102,15 +112,54 @@ describe("le fichier de configuration de l'app", () => {
     expect(pinned).not.toContain("accept-new");
   });
 
-  it("s'écrit en 0600 dans un dossier 0700", () => {
-    const paths = appSshPaths(userData());
+  it("s'écrit en 0600 dans un dossier 0700, et pose le lien", () => {
+    const paths = pathsIn(userData());
 
     writeSshConfig([APP_SERVER], paths);
 
     expect(statSync(paths.configPath).mode & 0o777).toBe(0o600);
     expect(statSync(paths.dir).mode & 0o777).toBe(0o700);
     expect(readFileSync(paths.configPath, "utf8")).toContain(
-      "Host pupitre-srv-a"
+      `  UserKnownHostsFile ${join(paths.link, "ssh", "known_hosts")}`
+    );
+    expect(lstatSync(paths.link).isSymbolicLink()).toBe(true);
+  });
+});
+
+describe("le lien sans espace vers le dossier de l'app", () => {
+  it("se pose dans ~/.pupitre, fermé aux autres, et pointe sur le dossier", () => {
+    const paths = pathsIn(userData());
+
+    expect(ensureLink(paths)).toBe(paths.link);
+    expect(realpathSync(paths.link)).toBe(realpathSync(paths.root));
+    expect(statSync(dirname(paths.link)).mode & 0o777).toBe(0o700);
+    expect(ensureLink(paths)).toBe(paths.link);
+  });
+
+  it("reprend un lien qui pointait sur un dossier parti", () => {
+    const paths = pathsIn(userData());
+    const gone = join(dirname(paths.root), "gone");
+
+    mkdirSync(dirname(paths.link), { recursive: true });
+    symlinkSync(gone, paths.link);
+
+    expect(ensureLink(paths)).toBe(paths.link);
+    expect(realpathSync(paths.link)).toBe(realpathSync(paths.root));
+  });
+
+  it("laisse en place ce qui n'est pas un lien, et rend alors les chemins réels", () => {
+    const paths = pathsIn(userData());
+
+    mkdirSync(paths.link, { recursive: true });
+    writeFileSync(join(paths.link, "theirs"), "");
+
+    expect(ensureLink(paths)).toBe(null);
+    expect(lstatSync(paths.link).isDirectory()).toBe(true);
+
+    writeSshConfig([APP_SERVER], paths);
+
+    expect(readFileSync(paths.configPath, "utf8")).toContain(
+      `  UserKnownHostsFile ${paths.knownHostsPath}`
     );
   });
 });
@@ -143,6 +192,51 @@ describe("les chemins que chaque système impose", () => {
 
     expect(config).toContain("  IdentityFile /data/keys/srv-a");
     expect(config).not.toContain('"');
+  });
+
+  it("nomme la clé et les hôtes connus à travers le lien quand il tient, puisque Gateway coupe sur l'espace", () => {
+    const paths = appSshPaths(
+      "/Users/jean/Library/Application Support/Pupitre Dev (app.pupitre.studio)",
+      "/Users/jean"
+    );
+
+    const config = renderSshConfig(
+      [{ ...APP_SERVER, keyPath: join(paths.keysDir, "srv-a") }],
+      paths,
+      "darwin",
+      null,
+      [],
+      paths.link
+    );
+
+    expect(paths.link).toBe(
+      "/Users/jean/.pupitre/pupitre-dev-app-pupitre-studio"
+    );
+    expect(config).toContain(
+      "  IdentityFile /Users/jean/.pupitre/pupitre-dev-app-pupitre-studio/keys/srv-a"
+    );
+    expect(config).toContain(
+      "  UserKnownHostsFile /Users/jean/.pupitre/pupitre-dev-app-pupitre-studio/ssh/known_hosts"
+    );
+    expect(config).not.toContain('"');
+  });
+
+  it("garde son chemin à une clé qui vit hors du dossier de l'app", () => {
+    const paths = appSshPaths("/data", "/home/jean");
+
+    const config = renderSshConfig(
+      [{ ...APP_SERVER, keyPath: "/elsewhere/keys/srv-a" }],
+      paths,
+      "linux",
+      null,
+      [],
+      paths.link
+    );
+
+    expect(config).toContain("  IdentityFile /elsewhere/keys/srv-a");
+    expect(config).toContain(
+      "  UserKnownHostsFile /home/jean/.pupitre/data/ssh/known_hosts"
+    );
   });
 
   it("n'écrit aucun ControlMaster pour Windows, dont l'OpenSSH l'ignore", () => {

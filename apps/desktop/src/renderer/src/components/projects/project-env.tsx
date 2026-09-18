@@ -3,6 +3,7 @@ import { ConfirmButton } from "@renderer/components/ui/confirm-button";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { WaitingLine } from "@renderer/components/ui/waiting-line";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import { dirnameOf } from "@renderer/lib/files";
 import type { EnvState } from "@renderer/stores/project";
 import { ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { useState } from "react";
@@ -18,7 +19,10 @@ export const ENV_PREVIEW_KEYS = 4;
  * show one by accident. A file of forty keys would bury the panel, so it opens
  * on a count and the first few names, and the whole list is one click away.
  * Writing it again is a gesture that overwrites what a reader may have edited
- * by hand on the server, which is why it is asked twice.
+ * by hand on the server, which is why it is asked twice — and it is not
+ * offered at all when the repository versions no template, since there would
+ * be nothing to write it from. A project without a template is not broken:
+ * many need no environment, so the panel says so in a plain line, not an alert.
  */
 export function ProjectEnv({
   state,
@@ -42,10 +46,22 @@ export function ProjectEnv({
   }
 
   if (state.status === "failed") {
-    return <ErrorNotice error={state.error} onRetry={onRead} />;
+    return <ErrorNotice bare error={state.error} onRetry={onRead} />;
   }
 
   const { env } = state;
+
+  if (!env.template && env.keys.length === 0) {
+    return (
+      <div className="flex flex-col gap-1" data-env="none">
+        <p className="text-[13px] text-ink-2">{t("project.env.none")}</p>
+        <p className="text-[12px] text-ink-3 leading-relaxed">
+          {t("project.env.noneHow", { folder: dirnameOf(env.path) })}
+        </p>
+      </div>
+    );
+  }
+
   const foldable = env.keys.length > ENV_PREVIEW_KEYS;
   const shown =
     foldable && !expanded ? env.keys.slice(0, ENV_PREVIEW_KEYS) : env.keys;
@@ -106,17 +122,19 @@ export function ProjectEnv({
           </Button>
         ) : null}
 
-        <ConfirmButton
-          className={foldable ? "" : "ml-auto"}
-          confirmLabel={t("project.env.regenerate")}
-          icon={RefreshCw}
-          onConfirm={onRegenerate}
-          question={t("project.env.regenerateQuestion")}
-          size="sm"
-          variant="default"
-        >
-          {t("project.env.regenerate")}
-        </ConfirmButton>
+        {env.template ? (
+          <ConfirmButton
+            className={foldable ? "" : "ml-auto"}
+            confirmLabel={t("project.env.regenerate")}
+            icon={RefreshCw}
+            onConfirm={onRegenerate}
+            question={t("project.env.regenerateQuestion")}
+            size="sm"
+            variant="default"
+          >
+            {t("project.env.regenerate")}
+          </ConfirmButton>
+        ) : null}
       </div>
     </div>
   );

@@ -17,9 +17,9 @@ Le renderer nomme les commandes du protocole sur `agent:call` ; `src/main/agent-
 
 ## SSH : configuration, clés, partage
 
-La configuration SSH est celle de l'app : `userData/ssh/config` passé avec `-F`, clés dans `userData/keys/` en 0600, clé d'hôte épinglée.
+La configuration SSH est celle de l'app : `userData/ssh/config` passé avec `-F`, clés dans `userData/keys/` en 0600, clé d'hôte épinglée. Le fichier nomme la clé et le `known_hosts` à travers `~/.pupitre/<dossier>` — un lien symbolique (une jonction sur Windows) vers le dossier de données, posé à chaque écriture — parce que `~/Library/Application Support` porte un espace et que JetBrains Gateway, qui lit ce fichier avec son propre analyseur, coupe `IdentityFile` et `UserKnownHostsFile` sur l'espace, guillemets ou non. Un serveur accordé arrive avec son empreinte et rien dans le `known_hosts` : `hostKey()` y écrit la clé que la machine présente quand c'est celle du pin.
 
-`~/.ssh/config` de l'utilisateur n'est jamais réécrit. Sur un geste explicite (Réglages › SSH, ou un bouton « Ouvrir dans » qui la demande d'abord), `ssh-share.ts` y pose une seule ligne `Include` vers le fichier de l'app, en tête, et la retire de même. Chaque bloc de l'app porte `pupitre-<id>` et, quand aucun hôte du système ne le prend, le nom du serveur (`ssh atelier`) ; les liens des éditeurs nomment ce mot. Un hôte existant peut être désigné.
+`~/.ssh/config` de l'utilisateur n'est jamais réécrit. Sur un geste explicite (Réglages › SSH, ou un bouton « Ouvrir dans » qui la demande d'abord), `ssh-share.ts` y pose une seule ligne `Include` vers le fichier de l'app, en tête, et la retire de même. Chaque bloc de l'app porte `pupitre-<id>` et, quand aucun hôte du système ne le prend, le nom SSH du serveur (`slug` de `servers.json`, `ssh atelier`) : un mot choisi par le lecteur à l'ajout et modifiable depuis la fiche du serveur, tiré du nom quand rien n'est tapé, refusé quand une autre machine y répond déjà (`sshNameFree`) ; les liens des éditeurs nomment ce mot. Un hôte existant peut être désigné.
 
 ## Poser la clé sur un serveur
 
@@ -78,6 +78,7 @@ src/renderer/src/
   components/updates/     bandeau et notes de mise à jour de l'agent, migration de sa configuration, mise à niveau des modules
   components/account/     connexion, identité, usage, abonnement
   components/settings/    apparence, connexions, terminal, notifications, démarrage, à propos (version, canal, mise à jour de l'app)
+  components/help/        la vue « Aide » (bas de la barre latérale) : comment ssh, Claude Code, Codex et les éditeurs joignent le serveur piloté, avec ses valeurs lues du fichier SSH de l'app (`ssh-share:state`) et les modules du snapshot
   stores/                 un store Zustand par sujet : servers · snapshot · onboarding et onboarding-machine (l'ordre, pur) · install · harden · inspection · catalog · connections · services · project · project-add · files · transfers · terminals · shots · fleet · account · agent-update · app-update · preferences · reenroll · tunnel · channel · announcements · navigation · locale · theme
   lib/                    fonctions pures et hooks : format, duration, memory (navigation), completion, terminals, remedy, refusals, roles, use-pending, use-history-shortcuts…
   i18n/strings/           les textes, un fichier par sujet, `en` et `fr`

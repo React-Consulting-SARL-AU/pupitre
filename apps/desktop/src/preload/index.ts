@@ -1109,6 +1109,9 @@ const api = {
     ),
   writeTerminal: (id: string, data: string): void =>
     ipcRenderer.send("terminal-write", id, data),
+  /** OSC 52 from a session: the page itself may not write the clipboard unprompted. */
+  copyFromTerminal: (text: string): void =>
+    ipcRenderer.send("terminal-copy", text),
   resizeTerminal: (id: string, cols: number, rows: number): void =>
     ipcRenderer.send("terminal-resize", id, cols, rows),
   /** `end` names the session to kill: a tab closed for good takes it with it. */

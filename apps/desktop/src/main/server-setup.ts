@@ -5,6 +5,7 @@ import type {
   ServerChanges,
   ServerDraft,
 } from "@shared/servers";
+import { sshNameFree, sshSlug } from "@shared/ssh-names";
 import { forgetHostKey } from "./host-keys";
 import {
   copyIdCommand,
@@ -58,6 +59,44 @@ export interface ServerCreation {
   copyId: string | null;
 }
 
+/**
+ * The SSH name a server gets: what was typed, made fit for a `Host` line, or
+ * the name itself when nothing was typed. A word that already names another
+ * machine is refused when typed; drawn from the name, it is simply not given,
+ * and the server answers to its identifier alone.
+ */
+function sshNameOf(
+  typed: string | undefined,
+  name: string,
+  servers: Server[],
+  reserved: readonly string[],
+  self?: string
+): string | undefined {
+  const wanted = typed?.trim() ?? "";
+
+  if (wanted) {
+    const slug = sshSlug(wanted);
+
+    if (slug === null) {
+      throw new SetupError("refusal.setup.sshName", { name: wanted });
+    }
+
+    refuse(
+      sshNameFree(slug, servers, reserved, self),
+      "refusal.setup.sshNameTaken",
+      { name: slug }
+    );
+
+    return slug;
+  }
+
+  const drawn = sshSlug(name);
+
+  return drawn && sshNameFree(drawn, servers, reserved, self)
+    ? drawn
+    : undefined;
+}
+
 function refuse(
   condition: boolean,
   id: string,
@@ -101,7 +140,8 @@ async function keyFor(
 export async function addServer(
   draft: ServerDraft,
   servers: Server[],
-  paths: SshPaths
+  paths: SshPaths,
+  reserved: readonly string[] = []
 ): Promise<ServerCreation> {
   const fromSystem = draft.key.mode === "system";
   const host = (
@@ -141,6 +181,7 @@ export async function addServer(
 
   refuse(isUser(user), "refusal.setup.user", { user });
 
+  const slug = sshNameOf(draft.slug, name, servers, reserved);
   const pair = await keyFor(draft.key, id, paths);
   const server: Server = {
     host,
@@ -149,6 +190,7 @@ export async function addServer(
     name,
     origin: "app",
     port: draft.port,
+    ...(slug ? { slug } : {}),
     user,
   };
 
@@ -252,7 +294,8 @@ export function untrustHost(server: Server, paths: SshPaths): Promise<void> {
 export function changeServer(
   servers: Server[],
   id: string,
-  changes: ServerChanges
+  changes: ServerChanges,
+  reserved: readonly string[] = []
 ): { servers: Server[]; server: Server; hostKeyDropped: boolean } {
   const target = servers.find((server) => server.id === id);
 
@@ -274,12 +317,17 @@ export function changeServer(
   );
   refuse(isUser(user), "refusal.setup.user", { user });
 
+  const slug =
+    changes.slug === undefined
+      ? held.slug
+      : sshNameOf(changes.slug, held.name, servers, reserved, id);
   const moved = host !== held.host || port !== held.port;
   const server: Server = {
     ...held,
     host,
     hostFingerprint: moved ? undefined : held.hostFingerprint,
     port,
+    slug,
     user,
   };
 

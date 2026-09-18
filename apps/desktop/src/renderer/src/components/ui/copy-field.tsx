@@ -16,10 +16,13 @@ export function CopyField({
   label,
   value,
   help,
+  lines = false,
 }: {
   label: string;
   value: string;
   help?: string;
+  /** Several commands, one per line: the breaks are kept as typed. */
+  lines?: boolean;
 }) {
   const t = useTranslations();
 
@@ -40,7 +43,9 @@ export function CopyField({
       <Label>{label}</Label>
 
       <div className="mt-1.5 flex items-start gap-2 rounded-md border border-line-strong bg-sunken px-3 py-2">
-        <code className="min-w-0 flex-1 break-all font-data text-[12px] text-ink-2 leading-relaxed">
+        <code
+          className={`min-w-0 flex-1 break-all font-data text-[12px] text-ink-2 leading-relaxed ${lines ? "whitespace-pre-line" : ""}`}
+        >
           {value}
         </code>
         <IconButton

@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { FleetServer, Server, ServerGrant } from "@shared/servers";
 import { grantOpens, grantPending, grantWithdrawn } from "@shared/servers";
 import { mergeFleet } from "../fleet-run";
-import { renderSshConfig, type SshPaths, sshArgs } from "../ssh-config";
+import { appSshPaths, renderSshConfig, sshArgs } from "../ssh-config";
 
 /**
  * The platform's list, merged into the one the app keeps.
@@ -15,12 +15,7 @@ import { renderSshConfig, type SshPaths, sshArgs } from "../ssh-config";
 
 const DEVICE_KEY = "/data/keys/device";
 
-const PATHS: SshPaths = {
-  configPath: "/data/ssh/config",
-  dir: "/data/ssh",
-  keysDir: "/data/keys",
-  knownHostsPath: "/data/ssh/known_hosts",
-};
+const PATHS = appSshPaths("/data", "/home/jean");
 
 const GRANTED: FleetServer = {
   host: "203.0.113.10",
@@ -91,8 +86,21 @@ describe("un serveur attribué", () => {
         name: "vps-atelier",
         origin: "app",
         port: 22,
+        slug: "vps-atelier",
         user: "dev",
       },
+    ]);
+  });
+
+  it("laisse son nom SSH à un serveur d'ici qui le porte déjà", () => {
+    const merged = merge(
+      [{ ...TYPED, host: "198.51.100.7", slug: "vps-atelier" }],
+      [GRANTED]
+    );
+
+    expect(merged.config.servers.map((server) => server.slug)).toEqual([
+      "vps-atelier",
+      undefined,
     ]);
   });
 

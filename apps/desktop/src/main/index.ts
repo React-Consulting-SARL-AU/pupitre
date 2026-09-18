@@ -16,6 +16,7 @@ import type {
   ServersConfig,
   ServerUpdated,
 } from "@shared/servers";
+import { movesConnection } from "@shared/servers";
 import type { DeepLink, MenuCommand } from "@shared/shell";
 import type { SshShareState } from "@shared/ssh-names";
 import type { StartupState } from "@shared/startup";
@@ -23,6 +24,7 @@ import type { TerminalOpened } from "@shared/terminals";
 import {
   app,
   BrowserWindow,
+  clipboard,
   dialog,
   ipcMain,
   Menu,
@@ -508,9 +510,12 @@ function registerServerChannels(): void {
   );
 
   /**
-   * The address, the port or the account of a server, as the reader typed
-   * them. Each is checked here before it becomes a line of the SSH file; the
-   * channels are dropped, since the ones open reach the old address.
+   * The address, the port, the account or the SSH name of a server, as the
+   * reader typed them. Each is checked here before it becomes a line of the
+   * SSH file; the channels are dropped when the address, the port or the
+   * account moved, since the ones open reach the old one. The SSH name is
+   * other clients' word for the server — the app's own sessions ride the
+   * identifier and stand.
    */
   ipcMain.handle(
     "server-update",
@@ -527,9 +532,12 @@ function registerServerChannels(): void {
       }
 
       try {
-        const updated = await updateServer(id, serverChanges(changes));
+        const asked = serverChanges(changes);
+        const updated = await updateServer(id, asked);
 
-        settle(id);
+        if (movesConnection(asked)) {
+          settle(id);
+        }
 
         return { ok: true, result: updated };
       } catch (failure) {
@@ -703,6 +711,7 @@ function serverChanges(value: unknown): ServerChanges {
     ...(typeof held.host === "string" ? { host: held.host } : {}),
     ...(typeof held.port === "number" ? { port: held.port } : {}),
     ...(typeof held.user === "string" ? { user: held.user } : {}),
+    ...(typeof held.slug === "string" ? { slug: held.slug } : {}),
   };
 }
 
@@ -798,6 +807,12 @@ function registerTerminalChannels(): void {
   ipcMain.on("terminal-write", (_e, id: unknown, data: unknown) => {
     if (typeof id === "string" && typeof data === "string") {
       write(id, data);
+    }
+  });
+
+  ipcMain.on("terminal-copy", (_e, text: unknown) => {
+    if (typeof text === "string" && text.length > 0) {
+      clipboard.writeText(text);
     }
   });
 
@@ -974,6 +989,8 @@ app
 
     registerChannels();
     registerPreferences();
+    // Derived file: a version that changes its shape must not wait for an edit.
+    sshPathsWritten();
     startUpdater();
     watchAttention();
     createWindow();

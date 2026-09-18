@@ -136,7 +136,7 @@ export function ConnectionCard({
         />
       ) : null}
 
-      {problem ? <ErrorNotice error={problem} /> : null}
+      {problem ? <ErrorNotice bare error={problem} /> : null}
 
       <div>
         <Button

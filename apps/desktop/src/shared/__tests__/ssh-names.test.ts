@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { editorsFor, REMOTE_EDITORS, remoteEditorUrl } from "../editors";
 import type { Server } from "../servers";
-import { alias, sshNames, sshSlug } from "../ssh-names";
+import { alias, sshNameFree, sshNames, sshSlug } from "../ssh-names";
 
 const ATELIER: Server = {
   host: "203.0.113.10",
@@ -10,6 +10,7 @@ const ATELIER: Server = {
   name: "Atelier",
   origin: "app",
   port: 2222,
+  slug: "atelier",
   user: "dev",
 };
 
@@ -22,29 +23,51 @@ const SYSTEM: Server = {
   user: "",
 };
 
-describe("le nom d'un serveur sur une ligne Host", () => {
-  it("est son nom, en minuscules sans accent ni espace", () => {
+describe("le mot tapé pour un nom SSH", () => {
+  it("devient ce que ssh accepte sur une ligne Host : minuscules, sans accent ni espace", () => {
     expect(sshSlug("Atelier")).toBe("atelier");
     expect(sshSlug("Serveur d'Été 2")).toBe("serveur-d-ete-2");
     expect(sshSlug("  --VPS--  ")).toBe("vps");
   });
 
-  it("n'existe pas quand rien du nom ne tient sur la ligne, ni quand il singe un alias", () => {
+  it("n'existe pas quand rien n'en tient sur la ligne, ni quand il singe un alias", () => {
     expect(sshSlug("···")).toBeNull();
     expect(sshSlug("pupitre-srv-x")).toBeNull();
   });
 });
 
+describe("un nom SSH libre", () => {
+  it("n'est ni un hôte du système, ni un alias, ni le nom d'un autre serveur", () => {
+    expect(sshNameFree("prod", [ATELIER, SYSTEM], [])).toBe(true);
+    expect(sshNameFree("atelier", [ATELIER, SYSTEM], [])).toBe(false);
+    expect(sshNameFree("dev-vps", [ATELIER, SYSTEM], [])).toBe(false);
+    expect(sshNameFree("pupitre-srv-mfx2k1", [ATELIER], [])).toBe(false);
+    expect(sshNameFree("bastion", [ATELIER], ["bastion"])).toBe(false);
+  });
+
+  it("reste libre pour le serveur qui le porte déjà", () => {
+    expect(sshNameFree("atelier", [ATELIER, SYSTEM], [], ATELIER.id)).toBe(
+      true
+    );
+  });
+});
+
 describe("les noms que les serveurs se partagent", () => {
-  it("donnent à chaque serveur de l'app son nom, et à un hôte du système le sien", () => {
+  it("donnent à chaque serveur de l'app son nom SSH, et à un hôte du système le sien", () => {
     const names = sshNames([ATELIER, SYSTEM], []);
 
     expect(names.get(ATELIER.id)).toBe("atelier");
     expect(names.get(SYSTEM.id)).toBe("dev-vps");
   });
 
+  it("laissent l'alias seul à un serveur sans nom SSH", () => {
+    const bare = { ...ATELIER, slug: undefined };
+
+    expect(sshNames([bare], []).get(bare.id)).toBe(alias(bare));
+  });
+
   it("laissent l'alias seul à un serveur dont le nom est déjà pris", () => {
-    const twin = { ...ATELIER, id: "srv-2", name: "atelier" };
+    const twin = { ...ATELIER, id: "srv-2" };
 
     const names = sshNames([ATELIER, twin], []);
 
@@ -59,7 +82,7 @@ describe("les noms que les serveurs se partagent", () => {
   });
 
   it("ne prennent pas non plus l'alias d'un hôte du système désigné", () => {
-    const named = { ...ATELIER, name: "dev-vps" };
+    const named = { ...ATELIER, slug: "dev-vps" };
 
     const names = sshNames([SYSTEM, named], []);
 
