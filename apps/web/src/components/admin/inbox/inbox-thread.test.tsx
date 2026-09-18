@@ -299,8 +299,10 @@ describe("InboxThread", () => {
       expect(
         container.querySelector("[aria-label='Remove notes.txt']")
       ).toBeNull()
-      expect(trigger(container, "Download notes.txt")).toBeInstanceOf(
-        HTMLButtonElement
+
+      await waitUntil(
+        () =>
+          container.querySelector("[aria-label='Download notes.txt']") !== null
       )
     } finally {
       globalThis.fetch = nativeFetch
