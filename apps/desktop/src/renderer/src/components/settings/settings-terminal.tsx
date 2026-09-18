@@ -1,6 +1,10 @@
 import { Button } from "@renderer/components/ui/button";
-import { CheckLine } from "@renderer/components/ui/check-line";
-import { Field, fieldControlClass } from "@renderer/components/ui/field";
+import { Field, fieldAria } from "@renderer/components/ui/field";
+import { NumberField } from "@renderer/components/ui/number-field";
+import { Panel } from "@renderer/components/ui/panel";
+import { Section } from "@renderer/components/ui/section";
+import { Select } from "@renderer/components/ui/select";
+import { SwitchLine } from "@renderer/components/ui/switch";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import {
   DEFAULT_TERMINAL_SETTINGS,
@@ -45,88 +49,8 @@ export function SettingsTerminal() {
     settings.cursorBlink === DEFAULT_TERMINAL_SETTINGS.cursorBlink;
 
   return (
-    <div className="max-w-sm">
-      <div>
-        <Field
-          help={t("settings.terminal.fontSize.help", {
-            max: FONT_SIZE_MAX,
-            min: FONT_SIZE_MIN,
-          })}
-          label={t("settings.terminal.fontSize.label")}
-          name="settings.terminal.fontSize"
-        >
-          <input
-            className={fieldControlClass}
-            id="settings.terminal.fontSize"
-            max={FONT_SIZE_MAX}
-            min={FONT_SIZE_MIN}
-            onChange={(event) =>
-              set({ fontSize: Number.parseInt(event.target.value, 10) })
-            }
-            step={1}
-            type="number"
-            value={settings.fontSize}
-          />
-        </Field>
-      </div>
-
-      <div className="mt-4">
-        <Field
-          help={t("settings.terminal.family.help")}
-          label={t("settings.terminal.family.label")}
-          name="settings.terminal.family"
-        >
-          <select
-            className={fieldControlClass}
-            id="settings.terminal.family"
-            onChange={(event) =>
-              set({ fontFamily: event.target.value as TerminalFontFamily })
-            }
-            value={settings.fontFamily}
-          >
-            {TERMINAL_FONT_FAMILIES.map((family) => (
-              <option key={family} value={family}>
-                {familyLabel[family]}
-              </option>
-            ))}
-          </select>
-        </Field>
-      </div>
-
-      <div className="mt-4">
-        <Field
-          help={t("settings.terminal.scrollback.help", {
-            max: SCROLLBACK_MAX,
-            min: SCROLLBACK_MIN,
-          })}
-          label={t("settings.terminal.scrollback.label")}
-          name="settings.terminal.scrollback"
-        >
-          <input
-            className={fieldControlClass}
-            id="settings.terminal.scrollback"
-            max={SCROLLBACK_MAX}
-            min={SCROLLBACK_MIN}
-            onChange={(event) =>
-              set({ scrollback: Number.parseInt(event.target.value, 10) })
-            }
-            step={SCROLLBACK_STEP}
-            type="number"
-            value={settings.scrollback}
-          />
-        </Field>
-      </div>
-
-      <div className="mt-4">
-        <CheckLine
-          checked={settings.cursorBlink}
-          label={t("settings.terminal.blink.label")}
-          name="settings.terminal.blink"
-          onChange={(next) => set({ cursorBlink: next })}
-        />
-      </div>
-
-      <div className="mt-6">
+    <Section
+      actions={
         <Button
           disabled={unchanged}
           icon={RotateCcw}
@@ -136,7 +60,88 @@ export function SettingsTerminal() {
         >
           {t("settings.terminal.reset")}
         </Button>
-      </div>
-    </div>
+      }
+      name="terminal"
+      title={t("settings.section.terminal")}
+    >
+      <Panel inset="lg">
+        <div className="grid gap-6 sm:grid-cols-2">
+          <Field
+            help={t("settings.terminal.family.help")}
+            label={t("settings.terminal.family.label")}
+            name="settings.terminal.family"
+          >
+            <Select
+              {...fieldAria({ help: true, name: "settings.terminal.family" })}
+              onChange={(fontFamily) => set({ fontFamily })}
+              options={TERMINAL_FONT_FAMILIES.map((family) => ({
+                label: familyLabel[family],
+                value: family,
+              }))}
+              value={settings.fontFamily}
+            />
+          </Field>
+
+          <Field
+            help={t("settings.terminal.fontSize.help", {
+              max: FONT_SIZE_MAX,
+              min: FONT_SIZE_MIN,
+            })}
+            label={t("settings.terminal.fontSize.label")}
+            name="settings.terminal.fontSize"
+          >
+            <NumberField
+              {...fieldAria({ help: true, name: "settings.terminal.fontSize" })}
+              decrementLabel={t("common.decrease", {
+                label: t("settings.terminal.fontSize.label"),
+              })}
+              incrementLabel={t("common.increase", {
+                label: t("settings.terminal.fontSize.label"),
+              })}
+              max={FONT_SIZE_MAX}
+              min={FONT_SIZE_MIN}
+              onChange={(fontSize) => set({ fontSize })}
+              value={settings.fontSize}
+            />
+          </Field>
+
+          <Field
+            help={t("settings.terminal.scrollback.help", {
+              max: SCROLLBACK_MAX,
+              min: SCROLLBACK_MIN,
+            })}
+            label={t("settings.terminal.scrollback.label")}
+            name="settings.terminal.scrollback"
+          >
+            <NumberField
+              {...fieldAria({
+                help: true,
+                name: "settings.terminal.scrollback",
+              })}
+              decrementLabel={t("common.decrease", {
+                label: t("settings.terminal.scrollback.label"),
+              })}
+              incrementLabel={t("common.increase", {
+                label: t("settings.terminal.scrollback.label"),
+              })}
+              max={SCROLLBACK_MAX}
+              min={SCROLLBACK_MIN}
+              onChange={(scrollback) => set({ scrollback })}
+              step={SCROLLBACK_STEP}
+              value={settings.scrollback}
+            />
+          </Field>
+        </div>
+
+        <div className="mt-6 border-line border-t pt-5">
+          <SwitchLine
+            checked={settings.cursorBlink}
+            label={t("settings.terminal.blink.label")}
+            name="settings.terminal.blink"
+            onChange={(next) => set({ cursorBlink: next })}
+          />
+        </div>
+      </Panel>
+    </Section>
   );
 }

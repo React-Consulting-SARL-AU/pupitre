@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
+import { mount } from "../../__tests__/dom";
 import { Callout } from "../ui/callout";
 import { ConfirmButton, ConfirmDialog } from "../ui/confirm-button";
 import { ErrorNotice } from "../ui/error-notice";
@@ -113,7 +114,7 @@ describe("un refus de l'agent", () => {
 });
 
 describe("une confirmation", () => {
-  it("pose sa question dans un dialogue, sans toucher au bouton", () => {
+  it("pose sa question dans un dialogue, sans toucher au bouton", async () => {
     const closed = renderToStaticMarkup(
       <ConfirmButton
         confirmLabel="Retirer"
@@ -128,7 +129,7 @@ describe("une confirmation", () => {
     expect(closed).not.toContain('role="dialog"');
     expect(closed).not.toContain("son dossier reste");
 
-    const asked = renderToStaticMarkup(
+    const view = await mount(
       <ConfirmDialog
         confirmLabel="Retirer"
         onCancel={() => undefined}
@@ -138,11 +139,14 @@ describe("une confirmation", () => {
         title="Retirer du registre"
       />
     );
+    const asked = view.html();
 
-    expect(asked).toContain('role="dialog"');
+    expect(asked).toContain('role="alertdialog"');
     expect(asked).toContain('data-dialog="confirm"');
     expect(asked).toContain("son dossier reste sur le serveur");
     expect(asked).toContain(">Retirer<");
     expect(asked).toContain("Annuler");
+
+    view.unmount();
   });
 });

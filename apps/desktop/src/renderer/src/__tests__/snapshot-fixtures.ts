@@ -129,6 +129,7 @@ export const SNAPSHOT: SnapshotResult = {
       configured: true,
       id: "editor.jetbrains",
       name: "JetBrains Remote Dev",
+      path: "/home/dev/.cache/JetBrains/RemoteDev/dist/idea-latest",
       runs: true,
       state: "stopped",
     },

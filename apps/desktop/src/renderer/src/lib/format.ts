@@ -92,6 +92,19 @@ export function since(timestampMs: number): string {
   return t("format.since.days", { count: Math.round(seconds / DAY_S) });
 }
 
+/** The time of day of a moment the agent dated, on the reader's clock; a date it cannot read is shown as it came. */
+export function clock(iso: string): string {
+  const moment = new Date(iso);
+
+  if (Number.isNaN(moment.getTime())) {
+    return iso;
+  }
+
+  return new Intl.DateTimeFormat(currentLocale(), {
+    timeStyle: "medium",
+  }).format(moment);
+}
+
 const BYTES_PER_KB = 1024;
 
 /** A file's weight, the way a reader judges whether it is worth keeping. */

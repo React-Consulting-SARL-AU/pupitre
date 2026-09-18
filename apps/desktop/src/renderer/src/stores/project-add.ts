@@ -21,7 +21,6 @@ import { agentCall } from "../lib/agent-call";
 import {
   FIRST_PORT,
   folderFromSource,
-  freePort,
   nameFromSource,
   portFromRemedy,
 } from "../lib/project-draft";
@@ -37,6 +36,7 @@ import {
   addedProcess,
   firstProcess,
   followProcesses,
+  onFreePorts,
   type ProcessDraft,
   type ProcessProblem,
   processesFromDetection,
@@ -129,6 +129,14 @@ export const GITHUB_TOOL = "tool.github";
 export const SOURCE_KINDS = ["github", "git", "dir"] as const;
 
 export type SourceKind = (typeof SOURCE_KINDS)[number];
+
+/**
+ * The two pages of the form: where the project comes from, then what runs in
+ * it. The second opens once the agent has read the source — its processes,
+ * its ports and its commands are what the configuration starts from — or
+ * when the reader chooses to fill it in without a reading.
+ */
+export type AddStep = "source" | "config";
 
 export const PHASES = [
   "add",
@@ -244,6 +252,7 @@ interface ProjectAddStore {
   /** True when the processes came from a project the agent already knows. */
   detected: boolean;
   detection: DetectionState;
+  step: AddStep;
   repos: ReposState;
   folders: FolderState;
   exposure: Exposure | null;
@@ -283,8 +292,12 @@ interface ProjectAddStore {
   browse: (serverId: string, path: string) => Promise<void>;
   makeFolder: (serverId: string, name: string) => Promise<void>;
   pickFolder: (path: string) => void;
-  /** Asks the agent what the source asks for, without declaring anything. */
+  /** Asks the agent what the source asks for, without declaring anything; what it read opens the configuration. */
   detect: (serverId: string) => Promise<void>;
+  /** Opens the configuration on what the form proposes alone, when the agent could not read the source. */
+  skipReading: () => void;
+  /** Back to the source, the configuration kept. */
+  editSource: () => void;
 
   launch: (serverId: string) => Promise<void>;
   retry: (serverId: string) => Promise<void>;
@@ -948,6 +961,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     repos: { status: "idle" },
     run: { status: "idle" },
     settleMs: SETTLE_POLL_MS,
+    step: "source",
 
     async prepare(serverId, exposure) {
       set({
@@ -973,10 +987,12 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       });
 
       if (!get().edited.processes) {
-        const { processes } = get().draft;
-        const port = freePort(heldBy(answer.result.projects).ports);
-
-        refresh({ processes: atRow(processes, 0, 0, { port }) });
+        refresh({
+          processes: onFreePorts(
+            get().draft.processes,
+            heldBy(answer.result.projects)
+          ),
+        });
       }
     },
 
@@ -1310,12 +1326,19 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     async detect(serverId) {
       const source = get().draft.source.trim();
       const { detection } = get();
+      const same = detection.status !== "idle" && detection.source === source;
 
-      if (
-        source.length === 0 ||
-        get().detected ||
-        (detection.status !== "idle" && detection.source === source)
-      ) {
+      if (source.length === 0 || get().detected) {
+        return;
+      }
+
+      if (same && detection.status === "read") {
+        set({ step: "config" });
+
+        return;
+      }
+
+      if (same && detection.status === "reading") {
         return;
       }
 
@@ -1350,15 +1373,32 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
 
       const { edited, exposure } = get();
 
-      set({ detection: { result: answer.result, source, status: "read" } });
+      set({
+        detection: { result: answer.result, source, status: "read" },
+        step: "config",
+      });
 
       if (edited.processes) {
         return;
       }
 
       refresh({
-        processes: processesFromDetection(answer.result, exposure !== null),
+        processes: processesFromDetection(
+          answer.result,
+          exposure !== null,
+          heldOf(get().known)
+        ),
       });
+    },
+
+    skipReading() {
+      if (get().draft.source.trim().length > 0) {
+        set({ step: "config" });
+      }
+    },
+
+    editSource() {
+      set({ step: "source" });
     },
 
     async launch(serverId) {
@@ -1403,6 +1443,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
         phases: pending(),
         repos: { status: "idle" },
         run: { status: "idle" },
+        step: "source",
       });
     },
 

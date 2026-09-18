@@ -959,8 +959,10 @@ app
         menuTemplate(process.platform, app.isPackaged, app.getLocale(), {
           checkUpdates: checkForUpdates,
           goToProject: () => relayMenu("palette"),
+          newAgent: () => relayMenu("new-agent"),
           newTerminal: () => relayMenu("new-terminal"),
           preferences: () => relayMenu("preferences"),
+          shortcuts: () => relayMenu("shortcuts"),
           signOut: () => relayMenu("sign-out"),
         })
       )

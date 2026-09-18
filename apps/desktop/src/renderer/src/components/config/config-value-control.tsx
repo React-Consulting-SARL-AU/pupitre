@@ -1,6 +1,7 @@
 import type { Field } from "@pupitre/shared/catalog";
 import { CheckBox } from "../ui/check-box";
 import { controlClass, fieldAria } from "../ui/field";
+import { Select } from "../ui/select";
 
 /** A git identity is a sentence; a port, a path and a version are values. */
 const PROSE_KEYS = new Set(["git_name"]);
@@ -23,10 +24,8 @@ export function ConfigValueControl({
   wrong?: boolean;
   onValue?: (value: unknown) => void;
 }) {
-  const control = controlClass(
-    PROSE_KEYS.has(field.key) ? "prose" : "data",
-    wrong
-  );
+  const kind = PROSE_KEYS.has(field.key) ? "prose" : "data";
+  const control = controlClass(kind, wrong);
 
   const aria = fieldAria({
     help: Boolean(field.help),
@@ -48,19 +47,18 @@ export function ConfigValueControl({
 
   if (field.kind === "version" || field.kind === "select") {
     return (
-      <select
+      <Select
         {...aria}
-        className={control}
+        kind={kind}
         name={name}
-        onChange={(event) => onValue?.(event.target.value)}
+        onChange={(next) => onValue?.(next)}
+        options={(field.options ?? []).map((option) => ({
+          label: option,
+          value: option,
+        }))}
         value={typeof value === "string" ? value : ""}
-      >
-        {(field.options ?? []).map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
+        wrong={wrong}
+      />
     );
   }
 

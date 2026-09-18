@@ -1,6 +1,5 @@
 import type { Project, Service } from "@pupitre/shared/agent-protocol/state";
 import type { RuntimeTool } from "@pupitre/shared/catalog";
-import { panelClass } from "@renderer/components/ui/panel";
 import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { RowProblem } from "@renderer/lib/project-ports";
@@ -8,10 +7,13 @@ import type { ProcessProblem } from "@renderer/lib/project-processes";
 import type { Exposure } from "@renderer/stores/project-add";
 import type { ConfigDraft, ConfigState } from "@renderer/stores/project-config";
 import { Save } from "lucide-react";
+import { ActionBar } from "../ui/action-bar";
 import { Button } from "../ui/button";
 import { Callout } from "../ui/callout";
 import { CheckLine } from "../ui/check-line";
 import { Field, fieldControlClass } from "../ui/field";
+import { Panel } from "../ui/panel";
+import { Section } from "../ui/section";
 import type { ProcessEdits } from "./project-process-card";
 import { ProjectProcesses } from "./project-processes";
 import { ProjectRuntimes } from "./project-runtimes";
@@ -28,9 +30,9 @@ export interface ConfigEdits extends ProcessEdits {
  * its ports and their names on the web.
  *
  * The source and the name are not here — they do not change without removing
- * the project. What is said before the button is what the save will do: a
+ * the project. What the save will do is said in the bar it ends on: a
  * changed command restarts its process if it runs, and a name taken out stops
- * answering. The agent's answer is read under the form, in its own words.
+ * answering. The agent's answer is read above the bar, in its own words.
  */
 export function ProjectConfigPanel({
   project,
@@ -64,76 +66,71 @@ export function ProjectConfigPanel({
 }) {
   const t = useTranslations();
 
+  const saving = run.status === "saving";
+
+  const consequences = [
+    restarts.length > 0
+      ? t("project.config.restarts", { processes: restarts.join(", ") })
+      : null,
+    dropped.length > 0
+      ? t("project.config.dropped", { hostnames: dropped.join(", ") })
+      : null,
+  ].filter((line): line is string => line !== null);
+
   return (
-    <div className="h-full overflow-y-auto px-8 py-6">
-      <form
-        className={`${panelClass("lg")} flex max-w-3xl flex-col gap-gutter`}
-        data-config={run.status}
-        onSubmit={(event) => {
-          event.preventDefault();
-          onSave();
-        }}
-      >
-        <Field
-          help={t("project.config.branchHelp")}
-          label={t("projectAdd.form.branchLabel")}
-          name="config.branch"
-        >
-          <input
-            className={fieldControlClass}
-            disabled={!project.repo}
-            id="config.branch"
-            onChange={(event) => edit.branch(event.target.value)}
-            placeholder={t("projectAdd.form.branchPlaceholder")}
-            value={draft.branch}
+    <form
+      className="flex h-full flex-col overflow-y-auto"
+      data-config={run.status}
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSave();
+      }}
+    >
+      <div className="flex flex-col gap-section px-8 py-8">
+        <div className="grid items-start gap-section lg:grid-cols-[repeat(auto-fit,minmax(24rem,1fr))]">
+          <Section name="start" title={t("projectAdd.section.start")}>
+            <Panel className="flex flex-col gap-6" inset="lg">
+              <CheckLine
+                checked={draft.boot}
+                detail={t("projectAdd.form.bootDetail")}
+                label={t("projectAdd.form.bootLabel")}
+                name="config.boot"
+                onChange={edit.boot}
+              />
+
+              <Field
+                help={t("project.config.branchHelp")}
+                label={t("projectAdd.form.branchLabel")}
+                name="config.branch"
+              >
+                <input
+                  className={`${fieldControlClass} max-w-sm`}
+                  disabled={!project.repo}
+                  id="config.branch"
+                  onChange={(event) => edit.branch(event.target.value)}
+                  placeholder={t("projectAdd.form.branchPlaceholder")}
+                  value={draft.branch}
+                />
+              </Field>
+            </Panel>
+          </Section>
+
+          <ProjectRuntimes
+            onChange={edit.runtime}
+            runtimes={draft.runtimes}
+            services={services}
           />
-        </Field>
-
-        <CheckLine
-          checked={draft.boot}
-          label={t("projectAdd.form.bootLabel")}
-          name="config.boot"
-          onChange={edit.boot}
-        />
-
-        <ProjectRuntimes
-          onChange={edit.runtime}
-          runtimes={draft.runtimes}
-          services={services}
-        />
+        </div>
 
         <ProjectProcesses
           edit={edit}
           exposure={exposure}
+          folded
           placeholder={project.name}
           problems={processProblems}
           processes={draft.processes}
           rowProblems={rowProblems}
         />
-
-        {restarts.length > 0 ? (
-          <Callout name="config-restart" tone="warn">
-            {t("project.config.restarts", { processes: restarts.join(", ") })}
-          </Callout>
-        ) : null}
-
-        {dropped.length > 0 ? (
-          <Callout name="config-dropped" tone="warn">
-            {t("project.config.dropped", { hostnames: dropped.join(", ") })}
-          </Callout>
-        ) : null}
-
-        <div className="flex items-center gap-2">
-          <Button
-            disabled={!ready || run.status === "saving"}
-            icon={Save}
-            loading={run.status === "saving"}
-            submit
-            variant="inverse"
-          >
-            {t("project.config.save")}
-          </Button>
-        </div>
 
         {run.status === "saved" ? (
           <Callout name="config-saved" tone="ok">
@@ -173,7 +170,33 @@ export function ProjectConfigPanel({
             {agentText(t, run.error).message}
           </Callout>
         ) : null}
-      </form>
-    </div>
+      </div>
+
+      <div className="mt-auto">
+        <ActionBar
+          column={false}
+          name="project-config"
+          note={
+            consequences.length > 0 ? (
+              <span className="flex flex-col gap-1" data-config-consequences="">
+                {consequences.map((line) => (
+                  <span key={line}>{line}</span>
+                ))}
+              </span>
+            ) : undefined
+          }
+        >
+          <Button
+            disabled={!ready || saving}
+            icon={Save}
+            loading={saving}
+            submit
+            variant="inverse"
+          >
+            {t("project.config.save")}
+          </Button>
+        </ActionBar>
+      </div>
+    </form>
   );
 }

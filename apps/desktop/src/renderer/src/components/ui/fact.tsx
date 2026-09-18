@@ -20,7 +20,9 @@ export function FactList({
 }) {
   const grid = columns === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2";
 
-  return <dl className={`grid gap-3 ${grid} ${className}`}>{children}</dl>;
+  return (
+    <dl className={`grid gap-x-6 gap-y-4 ${grid} ${className}`}>{children}</dl>
+  );
 }
 
 export function Fact({

@@ -110,8 +110,19 @@ test.describe("la configuration d'un projet", () => {
       await expect(page.getByText("api-flymate.example.org")).toBeVisible();
     });
 
-    await test.step("publier un autre port ouvre la configuration, préremplie", async () => {
+    await test.step("publier un autre port ouvre la configuration, le processus replié sur son résumé", async () => {
       await page.getByRole("button", { name: "Publier un autre port" }).click();
+
+      const process = page.locator('[data-process="0"]');
+      const fold = page.locator('[data-process-fold="0"]');
+
+      await expect(process).toHaveAttribute("data-closed", "");
+      await expect(fold).toContainText(
+        "3000 → flymate.example.org · 3001 → api-flymate.example.org"
+      );
+      await expect(page.locator("#project\\.processes\\.0\\.cmd")).toBeHidden();
+
+      await fold.click();
 
       await expect(page.locator("#project\\.processes\\.0\\.cmd")).toHaveValue(
         "bun run dev --port 3000"

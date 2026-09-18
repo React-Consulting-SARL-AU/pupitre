@@ -1,5 +1,6 @@
 import type { DeepLink, MenuCommand } from "@shared/shell";
 import { useEffect } from "react";
+import { tabOfKind } from "../components/projects/project-tabs";
 import { useNavigation } from "../stores/navigation";
 
 /**
@@ -65,7 +66,7 @@ export function useMainCommands(handlers: MainCommandHandlers): void {
 
       if (tab?.project) {
         navigation.select(tab.project);
-        navigation.setProjectTab(tab.project, tab.kind);
+        navigation.setProjectTab(tab.project, tabOfKind(tab.kind));
       }
 
       navigation.activateTerminal(id);

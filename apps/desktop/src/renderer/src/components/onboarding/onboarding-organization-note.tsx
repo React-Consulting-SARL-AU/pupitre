@@ -1,5 +1,6 @@
-import { Field, proseControlClass } from "@renderer/components/ui/field";
+import { Field } from "@renderer/components/ui/field";
 import { Panel } from "@renderer/components/ui/panel";
+import { Select } from "@renderer/components/ui/select";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { roleLabel } from "@renderer/lib/roles";
 import type { AccountIdentity } from "@shared/account";
@@ -76,21 +77,17 @@ export function OnboardingOrganizationNote({
           label={t("onboarding.organization.switchLabel")}
           name="onboarding.organization"
         >
-          <select
-            aria-busy={switching}
-            className={proseControlClass}
+          <Select
             disabled={switching}
             id="onboarding.organization"
-            onChange={(event) => pick(event.target.value)}
+            onChange={pick}
+            options={identity.organizations.map((membership) => ({
+              label: `${membership.name} · ${roleLabel(t, membership.role)}`,
+              value: membership.id,
+            }))}
+            placeholder="—"
             value={organization?.id ?? ""}
-          >
-            {organization ? null : <option value="">—</option>}
-            {identity.organizations.map((membership) => (
-              <option key={membership.id} value={membership.id}>
-                {membership.name} · {roleLabel(t, membership.role)}
-              </option>
-            ))}
-          </select>
+          />
         </Field>
       ) : null}
     </Panel>

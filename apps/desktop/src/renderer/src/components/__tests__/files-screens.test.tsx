@@ -4,6 +4,7 @@ import type {
   FsStatResult,
 } from "@pupitre/shared/agent-protocol/files";
 import { renderToStaticMarkup } from "react-dom/server";
+import { mount } from "../../__tests__/dom";
 import type { ListingState, PreviewState } from "../../stores/files";
 import { FileEntryMenu } from "../files/file-entry-menu";
 import { FileList } from "../files/file-list";
@@ -128,14 +129,15 @@ describe("le nouveau dossier", () => {
     expect(html).toContain("disabled");
   });
 
-  it("s'ouvre en dialogue avec le nom à taper et le bouton Créer", () => {
-    const html = renderToStaticMarkup(
+  it("s'ouvre en dialogue avec le nom à taper et le bouton Créer", async () => {
+    const view = await mount(
       <FolderCreateDialog
         name="files.newFolder"
         onClose={noop}
         onCreate={later}
       />
     );
+    const html = view.html();
 
     expect(html).toContain('role="dialog"');
     expect(html).toContain('data-dialog="files.newFolder"');
@@ -143,6 +145,9 @@ describe("le nouveau dossier", () => {
     expect(html).toContain('id="files.newFolder"');
     expect(html).toContain("Créer");
     expect(html).toContain("Annuler");
+    expect(document.activeElement?.id).toBe("files.newFolder");
+
+    view.unmount();
   });
 });
 

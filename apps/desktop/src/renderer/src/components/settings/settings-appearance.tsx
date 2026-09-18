@@ -1,4 +1,7 @@
-import { Field, proseControlClass } from "@renderer/components/ui/field";
+import { Field, fieldAria } from "@renderer/components/ui/field";
+import { Panel } from "@renderer/components/ui/panel";
+import { Section } from "@renderer/components/ui/section";
+import { Select } from "@renderer/components/ui/select";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { LOCALE_PREFERENCES, useLocale } from "@renderer/stores/locale";
 import { useTheme } from "@renderer/stores/theme";
@@ -34,56 +37,44 @@ export function SettingsAppearance() {
   } as const;
 
   return (
-    <div className="max-w-sm">
-      <div>
-        <Field
-          help={t("settings.appearance.currently", {
-            theme: t(`settings.resolved.${resolved}`),
-          })}
-          label={t("settings.appearance.themeLabel")}
-          name="settings.theme"
-        >
-          <select
-            className={proseControlClass}
-            id="settings.theme"
-            onChange={(event) =>
-              setPreference(event.target.value as ThemePreference)
-            }
-            value={preference}
+    <Section name="appearance" title={t("settings.section.appearance")}>
+      <Panel inset="lg">
+        <div className="grid gap-6 sm:grid-cols-2">
+          <Field
+            help={t("settings.appearance.currently", {
+              theme: t(`settings.resolved.${resolved}`),
+            })}
+            label={t("settings.appearance.themeLabel")}
+            name="settings.theme"
           >
-            {THEME_PREFERENCES.map((option) => (
-              <option key={option} value={option}>
-                {themeLabel[option]}
-              </option>
-            ))}
-          </select>
-        </Field>
-      </div>
+            <Select
+              {...fieldAria({ help: true, name: "settings.theme" })}
+              onChange={setPreference}
+              options={THEME_PREFERENCES.map((option) => ({
+                label: themeLabel[option],
+                value: option,
+              }))}
+              value={preference}
+            />
+          </Field>
 
-      <div className="mt-4">
-        <Field
-          help={t("settings.language.help")}
-          label={t("settings.language.label")}
-          name="settings.language"
-        >
-          <select
-            className={proseControlClass}
-            id="settings.language"
-            onChange={(event) =>
-              setLocalePreference(
-                event.target.value as (typeof LOCALE_PREFERENCES)[number]
-              )
-            }
-            value={localePreference}
+          <Field
+            help={t("settings.language.help")}
+            label={t("settings.language.label")}
+            name="settings.language"
           >
-            {LOCALE_PREFERENCES.map((option) => (
-              <option key={option} value={option}>
-                {localeLabel[option]}
-              </option>
-            ))}
-          </select>
-        </Field>
-      </div>
-    </div>
+            <Select
+              {...fieldAria({ help: true, name: "settings.language" })}
+              onChange={setLocalePreference}
+              options={LOCALE_PREFERENCES.map((option) => ({
+                label: localeLabel[option],
+                value: option,
+              }))}
+              value={localePreference}
+            />
+          </Field>
+        </div>
+      </Panel>
+    </Section>
   );
 }

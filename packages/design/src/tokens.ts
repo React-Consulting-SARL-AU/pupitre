@@ -98,6 +98,7 @@ export const TYPOGRAPHY: Typography = {
 }
 
 export interface Radius {
+  xs: string
   sm: string
   md: string
   lg: string
@@ -106,6 +107,7 @@ export interface Radius {
 }
 
 export const RADIUS: Radius = {
+  xs: "4px",
   sm: "8px",
   md: "12px",
   lg: "18px",

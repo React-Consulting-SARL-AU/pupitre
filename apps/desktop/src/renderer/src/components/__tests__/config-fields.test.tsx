@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { SecretMarks } from "@shared/secrets";
 import { renderToStaticMarkup } from "react-dom/server";
 import { CATALOG, CATALOG_NEXT } from "../../__tests__/catalog-fixtures";
+import { mount, optionsOf } from "../../__tests__/dom";
 import {
   defaultsOf,
   type FieldProblemView,
@@ -29,31 +30,49 @@ const ALL = [
   "exposure.cloudflare",
 ];
 
+interface Extra {
+  values?: Record<string, Record<string, unknown>>;
+  secrets?: SecretMarks;
+  problems?: readonly FieldProblemView[];
+}
+
+function groups(
+  modules = CATALOG.modules,
+  selected: readonly string[] = ALL,
+  extra: Extra = {}
+) {
+  return fieldsOf(modules, selected).map((group) => (
+    <ConfigModuleGroup
+      group={group}
+      handlers={{}}
+      key={group.module.id}
+      marks={extra.secrets?.[group.module.id]}
+      problems={(extra.problems ?? []).filter(
+        (one) => one.module === group.module.id
+      )}
+      values={extra.values?.[group.module.id] ?? {}}
+    />
+  ));
+}
+
 function form(
   modules = CATALOG.modules,
   selected: readonly string[] = ALL,
-  extra: {
-    values?: Record<string, Record<string, unknown>>;
-    secrets?: SecretMarks;
-    problems?: readonly FieldProblemView[];
-  } = {}
+  extra: Extra = {}
 ): string {
-  return fieldsOf(modules, selected)
-    .map((group) =>
-      renderToStaticMarkup(
-        <ConfigModuleGroup
-          group={group}
-          handlers={{}}
-          key={group.module.id}
-          marks={extra.secrets?.[group.module.id]}
-          problems={(extra.problems ?? []).filter(
-            (one) => one.module === group.module.id
-          )}
-          values={extra.values?.[group.module.id] ?? {}}
-        />
-      )
-    )
+  return groups(modules, selected, extra)
+    .map((group) => renderToStaticMarkup(group))
     .join("");
+}
+
+/** The options a list offers are only drawn once it is open: the group is mounted and the list opened. */
+async function listed(moduleId: string, fieldId: string): Promise<string[]> {
+  const view = await mount(<div>{groups(CATALOG.modules, [moduleId])}</div>);
+  const found = await optionsOf(view, document.getElementById(fieldId));
+
+  view.unmount();
+
+  return found.options;
 }
 
 /** The opening tag that carries this attribute, whatever order it renders in. */
@@ -114,22 +133,25 @@ describe("chaque genre de champ a son contrôle", () => {
     expect(control(html, "db.mysql.buffer_pool")).toContain('type="number"');
   });
 
-  it("select : une liste des options du manifeste", () => {
+  it("select : une liste des options du manifeste", async () => {
     expect(field(html, "db.mysql.engine")).toContain('data-kind="select"');
-    expect(control(html, "db.mysql.engine").startsWith("<select")).toBe(true);
-    expect(html).toContain('value="mysql"');
-    expect(html).toContain('value="mariadb"');
+    expect(tag(html, "id", "db.mysql.engine")).toContain('role="combobox"');
+    expect(await listed("db.mysql", "db.mysql.engine")).toEqual([
+      "mysql",
+      "mariadb",
+    ]);
   });
 
-  it("version : une liste des versions, la valeur par défaut choisie", () => {
+  it("version : une liste des versions, la valeur par défaut choisie", async () => {
     expect(field(html, "editor.jetbrains.version")).toContain(
       'data-kind="version"'
     );
+    expect(tag(html, "id", "editor.jetbrains.version")).toContain(
+      'role="combobox"'
+    );
     expect(
-      control(html, "editor.jetbrains.version").startsWith("<select")
-    ).toBe(true);
-    expect(html).toContain(">2026.2</option>");
-    expect(html).toContain(">2026.1</option>");
+      await listed("editor.jetbrains", "editor.jetbrains.version")
+    ).toEqual(["2026.2", "2026.1"]);
   });
 
   it("versions : une case par version, la plus récente cochée dite par défaut", () => {
@@ -362,9 +384,7 @@ describe("ce qui est demandé d'abord, et ce qui attend derrière", () => {
 
     const advanced = html.slice(html.indexOf('data-details="advanced"'));
 
-    expect(advanced.startsWith("<details")).toBe(false);
-    expect(html).toMatch(/<details[^>]*data-details="advanced"[^>]*>/);
-    expect(html).not.toMatch(/<details[^>]*data-details="advanced"[^>]*open/);
+    expect(html).toMatch(/data-closed=""[^>]*data-details="advanced"/);
     expect(advanced).toContain('data-field="core.system.timezone"');
     expect(advanced).toContain('data-field="core.system.projects_dir"');
     expect(text(html)).toContain("Réglages avancés (2)");
@@ -397,7 +417,7 @@ describe("ce qui est demandé d'abord, et ce qui attend derrière", () => {
       values: withDefaults,
     });
 
-    expect(html).toMatch(/<details[^>]*data-details="advanced"[^>]*open/);
+    expect(html).toMatch(/data-open=""[^>]*data-details="advanced"/);
   });
 
   it("dit où le service se trouve dans la suite", () => {

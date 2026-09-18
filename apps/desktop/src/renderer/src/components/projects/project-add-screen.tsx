@@ -40,6 +40,9 @@ export function ProjectAddScreen({
   const draft = useProjectAdd((state) => state.draft);
   const declared = useProjectAdd((state) => state.declared);
   const detection = useProjectAdd((state) => state.detection);
+  const step = useProjectAdd((state) => state.step);
+  const skipReading = useProjectAdd((state) => state.skipReading);
+  const editSource = useProjectAdd((state) => state.editSource);
   const repos = useProjectAdd((state) => state.repos);
   const folders = useProjectAdd((state) => state.folders);
   const phases = useProjectAdd((state) => state.phases);
@@ -159,6 +162,7 @@ export function ProjectAddScreen({
       onConnect={onConnect}
       onDetect={() => detect(serverId)}
       onEdit={park}
+      onEditSource={editSource}
       onFinish={() => {
         if (run.status === "done") {
           const { name } = run;
@@ -172,6 +176,7 @@ export function ProjectAddScreen({
       onOpenDeclared={(name) => leave(() => onFinish?.(name))}
       onReload={() => prepare(serverId, exposure)}
       onRetry={() => retry(serverId)}
+      onSkipReading={skipReading}
       phases={phases}
       processProblems={draft.processes.map((_process, index) =>
         processProblem(index)
@@ -181,6 +186,7 @@ export function ProjectAddScreen({
       rowProblems={draft.processes.map((_process, index) => rowProblems(index))}
       run={run}
       state={liveState}
+      step={step}
     />
   );
 }

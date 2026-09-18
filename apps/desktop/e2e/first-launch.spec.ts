@@ -102,7 +102,7 @@ test.describe("premier lancement", () => {
 
     await expect(page.getByRole("heading", { name: "Réglages" })).toBeVisible();
 
-    await page.getByRole("button", { name: "Compte" }).click();
+    await page.getByRole("tab", { name: "Compte" }).click();
 
     await expect(
       page.getByRole("button", { name: "Se connecter" })

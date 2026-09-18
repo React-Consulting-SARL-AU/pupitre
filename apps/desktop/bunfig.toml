@@ -1,2 +1,5 @@
 [test]
-preload = ["./src/renderer/src/__tests__/setup-locale.ts"]
+preload = [
+  "./src/renderer/src/__tests__/dom-register.ts",
+  "./src/renderer/src/__tests__/setup-locale.ts",
+]

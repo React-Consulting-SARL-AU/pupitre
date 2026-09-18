@@ -10,12 +10,16 @@ export type MenuCommand =
   | "palette"
   | "preferences"
   | "new-terminal"
+  | "new-agent"
+  | "shortcuts"
   | "sign-out";
 
 export const MENU_COMMANDS: readonly MenuCommand[] = [
   "palette",
   "preferences",
   "new-terminal",
+  "new-agent",
+  "shortcuts",
   "sign-out",
 ];
 

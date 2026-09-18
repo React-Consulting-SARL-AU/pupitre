@@ -2,7 +2,7 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import type { FieldProblemView } from "@renderer/lib/catalog-selection";
 import type { SecretMark } from "@shared/secrets";
 import { Clock, Undo2 } from "lucide-react";
-import { type ReactNode, useEffect, useRef } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { type FieldGroup, splitFields } from "../../lib/catalog-selection";
 import { Button } from "../ui/button";
 import { Callout } from "../ui/callout";
@@ -51,6 +51,7 @@ export function ConfigModuleGroup({
 }) {
   const t = useTranslations();
   const heading = useRef<HTMLHeadingElement>(null);
+  const [advancedOpened, setAdvancedOpened] = useState(false);
 
   useEffect(() => {
     if (focus) {
@@ -93,7 +94,7 @@ export function ConfigModuleGroup({
         <ServiceLogo
           moduleId={group.module.id}
           name={group.module.name}
-          size={20}
+          size={24}
         />
         <div className="min-w-0 flex-1">
           <h2
@@ -138,7 +139,7 @@ export function ConfigModuleGroup({
       ) : null}
 
       {!deferred && asked.length > 0 ? (
-        <div className="grid @lg/module:grid-cols-2 gap-4" data-asked="true">
+        <div className="grid @lg/module:grid-cols-2 gap-6" data-asked="true">
           {asked.map(control)}
         </div>
       ) : null}
@@ -151,12 +152,13 @@ export function ConfigModuleGroup({
 
       {!deferred && kept.length > 0 ? (
         <Details
-          className="border-line border-t pt-3"
+          className="border-line border-t pt-4"
           label={t("config.advanced", { count: kept.length })}
           name="advanced"
-          open={keptRefused}
+          onOpenChange={setAdvancedOpened}
+          open={advancedOpened || keptRefused}
         >
-          <div className="mt-2 grid @lg/module:grid-cols-2 gap-4">
+          <div className="mt-3 grid @lg/module:grid-cols-2 gap-6">
             {kept.map(control)}
           </div>
         </Details>
@@ -168,7 +170,7 @@ export function ConfigModuleGroup({
         offered for a module the machine cannot do without.
       */}
       {!(deferred || group.module.mandatory) && onDefer ? (
-        <div className="border-line border-t pt-3">
+        <div className="border-line border-t pt-4">
           <Button
             icon={Clock}
             onClick={() => onDefer(true)}

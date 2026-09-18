@@ -3,6 +3,7 @@ export const settings = {
     "settings.eyebrow": "Application",
     "settings.title": "Settings",
     "settings.back": "Back",
+    "settings.sections": "The settings",
     "settings.section.servers": "Servers",
     "settings.section.account": "Account",
     "settings.section.connections": "Connections",
@@ -16,13 +17,17 @@ export const settings = {
     "settings.ssh.label":
       "Let ssh, my editors and my coding agents reach my servers by name",
     "settings.ssh.line":
-      "One line at the top of {file}, taken back when unchecked:",
+      "One line at the top of {file}, taken back when switched off:",
     "settings.ssh.servers": "Servers",
     "settings.ssh.none": "No server added by the app yet.",
     "settings.notifications.reading": "Reading the preference",
     "settings.notifications.label": "Notify me when a session is waiting",
+    "settings.notifications.detail":
+      "A notification and a badge on the icon, the moment a coding agent stops to ask something while the window is in the background.",
     "settings.startup.reading": "Reading the preference",
     "settings.startup.label": "Open Pupitre at login",
+    "settings.startup.detail":
+      "The window comes up with the session; the servers are reached only once it is used.",
     "settings.startup.unsupported":
       "This system keeps no standard list of applications to open at login: add Pupitre from your desktop's own settings.",
     "settings.about.reading": "Reading the version",
@@ -77,6 +82,7 @@ export const settings = {
     "settings.eyebrow": "Application",
     "settings.title": "Réglages",
     "settings.back": "Revenir",
+    "settings.sections": "Les réglages",
     "settings.section.servers": "Serveurs",
     "settings.section.account": "Compte",
     "settings.section.connections": "Connexions",
@@ -89,14 +95,18 @@ export const settings = {
     "settings.ssh.label":
       "Laisser ssh, mes éditeurs et mes agents de code joindre mes serveurs par leur nom",
     "settings.ssh.line":
-      "Une ligne en tête de {file}, retirée quand la case se décoche :",
+      "Une ligne en tête de {file}, retirée quand l'option s'éteint :",
     "settings.ssh.servers": "Serveurs",
     "settings.ssh.none": "Aucun serveur ajouté par l'app pour l'instant.",
     "settings.section.about": "À propos",
     "settings.notifications.reading": "Lecture de la préférence",
     "settings.notifications.label": "Me prévenir quand une session attend",
+    "settings.notifications.detail":
+      "Une notification et un badge sur l'icône dès qu'un agent de code s'arrête pour poser une question pendant que la fenêtre est en arrière-plan.",
     "settings.startup.reading": "Lecture de la préférence",
     "settings.startup.label": "Ouvrir Pupitre à la connexion",
+    "settings.startup.detail":
+      "La fenêtre s'ouvre avec la session ; les serveurs ne sont joints qu'au premier usage.",
     "settings.startup.unsupported":
       "Ce système ne tient pas de liste standard des applications à ouvrir à la connexion : ajoutez Pupitre depuis les réglages de votre bureau.",
     "settings.about.reading": "Lecture de la version",

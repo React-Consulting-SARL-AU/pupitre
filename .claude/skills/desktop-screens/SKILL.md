@@ -1,437 +1,238 @@
 ---
 name: desktop-screens
-description: "Ajouter ou refondre un écran de l'app Electron `apps/desktop` — store Zustand dans `src/renderer/src/stores`, méthode IPC exposée dans `src/preload/index.ts` et gérée dans `src/main`, appel de l'agent par `src/main/agent-client.ts` avec les types de `@pupitre/shared/agent-protocol`, composants monochromes sur les tokens de `@pupitre/design`, état par la forme, `fix` affiché tel quel, test du store et du main avec l'agent factice, scénario Playwright. À utiliser dès qu'on touche à un écran."
+description: "Ajouter ou refondre un écran de l'app Electron `apps/desktop` — commande du protocole autorisée dans `src/main/agent-bridge.ts` ou canal dédié dans `src/main`, une ligne dans `src/preload/index.ts`, store Zustand à états discriminés dans `src/renderer/src/stores`, vue dans `stores/navigation.ts`, textes dans `i18n/strings`, composants `Screen` · `Section` · `Panel` · `Fact` sur les tokens de `@pupitre/design`, `usePending` sur chaque geste, `fix` affiché tel quel, tests du store sur `stubPupitre`, du main sur l'agent factice, scénario Playwright. À utiliser dès qu'on touche à un écran."
 ---
 
 # Écrans de l'app desktop
 
-L'app est un client de l'agent : elle affiche ce que `pupitred` renvoie et n'a pas de second modèle. Un écran nouveau commence par la commande du protocole qu'il lit, finit par un test Playwright, et ne touche jamais au système depuis le renderer.
+L'app est un client de l'agent : elle affiche ce que `pupitred` renvoie et n'a pas de second modèle. Un écran commence par la commande du protocole qu'il lit, réutilise les primitives de `components/ui/`, et finit par ses tests. **Lis d'abord [`apps/desktop/CLAUDE.md`](../../../apps/desktop/CLAUDE.md)** : ce skill dit comment un écran se construit, le guide dit ce que l'app ne fait jamais.
 
-## Fichiers gouvernés
+Le code existant est la référence : avant d'écrire, ouvre l'écran le plus proche de ce qu'on te demande (`shots/` pour une liste lue de l'agent, `services/` pour une fiche avec formulaire, `files/` pour une vue qui tient sa hauteur, `onboarding/` pour une étape d'un parcours) et copie sa forme.
+
+## Où vivent les choses
 
 | Fichier | Rôle |
 | --- | --- |
-| `apps/desktop/src/main/agent-client.ts` | le canal SSH par serveur qui lance `pupitred serve` ; `request(serverId, cmd, params)` typé par le protocole |
-| `apps/desktop/src/main/<feature>.ts` | les handlers `ipcMain.handle` d'une feature ; validation des noms contre ce que l'agent a donné |
-| `apps/desktop/src/main/index.ts` | enregistre les handlers, crée la fenêtre |
-| `apps/desktop/src/preload/index.ts` | la surface IPC exposée au renderer, typée, et rien d'autre |
-| `apps/desktop/src/renderer/src/stores/<store>.ts` | un store Zustand par domaine : `servers`, `snapshot`, `onboarding`, `theme`, `account` |
-| `apps/desktop/src/renderer/src/components/<feature>/` | les écrans : `onboarding/`, `dashboard/`, `projects/`, `terminals/`, `agents/`, `services/`, `settings/`, `account/` |
-| `apps/desktop/src/renderer/src/components/ui/` | les primitives Base UI + shadcn sur les tokens |
-| `apps/desktop/src/renderer/src/styles.css` | importe `@pupitre/design/tailwind.css` ; aucune couleur ici |
-| `apps/desktop/src/main/__tests__/` | tests du main ; `fixtures/` contient les transcriptions de l'agent factice |
-| `apps/desktop/src/renderer/src/stores/__tests__/` | tests des stores |
-| `apps/desktop/e2e/` | Playwright pour Electron |
-| `packages/shared/src/agent-protocol/` | les types des commandes, résultats, événements, erreurs |
-| `docs/contracts/agent-protocol.md` | le contrat du protocole |
-| `docs/product/DESIGN.md` | le système de design |
+| `packages/shared/src/agent-protocol/` · `docs/contracts/agent-protocol.md` | les commandes, leurs paramètres, leurs résultats, leurs événements — rien n'est redéclaré ailleurs |
+| `apps/desktop/src/shared/` | ce qui traverse IPC et n'est pas du protocole : l'enveloppe `AgentResponse`, les erreurs du canal, les formes propres à l'app |
+| `src/main/agent-client.ts` | le client SSH d'un serveur : quatre canaux, `request(serverId, cmd, params, { onEvent, onSecret })` |
+| `src/main/agent-bridge.ts` | `BRIDGE_COMMANDS`, les seules commandes que le renderer peut nommer sur `agent:call` ; `checkedCall` valide le serveur, la commande et ses paramètres |
+| `src/main/<feature>.ts` | `register<Feature>()` : les `ipcMain.handle` d'une feature, enregistrés depuis `src/main/index.ts` |
+| `src/main/<feature>-run.ts` | le déroulé pur d'une opération, testable sans Electron, avec ses dépendances en paramètre |
+| `src/main/refusal.ts` | `refuseWith(code, "refusal.<feature>.<quoi>", values)` : un refus du main nomme une entrée du dictionnaire, il n'écrit aucune phrase |
+| `src/preload/index.ts` | `window.pupitre`, typé `PupitreApi` ; `agentCall`, `agentPoll`, `agentStream` pour le protocole, une méthode nommée pour chaque canal dédié |
+| `src/renderer/src/lib/agent-call.ts` | `agentCall<T>()` et `agentPoll<T>()`, l'appel typé par ce que l'écran attend |
+| `src/renderer/src/stores/<feature>.ts` | un store Zustand par sujet, l'état en union discriminée par `status` |
+| `src/renderer/src/stores/navigation.ts` | `VIEWS`, `Location`, l'historique de l'app |
+| `src/renderer/src/i18n/strings/<feature>.ts` | les textes de l'écran, `en` et `fr`, dont les refus `refusal.<feature>.<quoi>` et leur `.fix` |
+| `src/renderer/src/components/<feature>/` | l'écran et ses fichiers frères, `{feature}-{context}-{type}.tsx` |
+| `src/renderer/src/components/ui/` | Base UI + shadcn sur les tokens : `screen`, `section`, `panel`, `fact`, `button`, `icon-button`, `confirm-button`, `dialog`, `menu`, `field`, `error-notice`, `waiting-notice`, `empty-state`, `skeleton`, `status-dot`, `tooltip`… |
+| `src/renderer/src/lib/use-pending.ts` | `usePending` : le contrôle cliqué attend tant que la promesse du geste court |
+| `src/renderer/src/components/shell/app-sidebar.tsx` · `src/renderer/src/app.tsx` | où une vue s'ouvre |
+| `src/main/__tests__/` · `fixtures/` | tests du main ; `fake-agent.ts` rejoue des transcriptions `.jsonl` |
+| `src/renderer/src/__tests__/stub-pupitre.ts` · `stores/__tests__/` | `stubPupitre(partial)` remplace `window.pupitre` pour un test de store |
+| `e2e/` · `e2e/harness/` | Playwright pour Electron ; `launchPupitre()`, `ANSWERS`, `assertAccessible` |
 
-## État du dépôt
-
-Il reste, dans `apps/desktop`, des morceaux de l'app d'origine : un store unique (`stores/state.ts`), des composants en PascalCase à la racine de `components/`, un canal `sh` à marqueurs dans `src/main/ssh.ts` qui parle à l'ancienne commande `dev`, une palette chaude dans `styles.css`. Ce skill décrit la cible : les tokens et `components/ui/`, `agent-client.ts` et l'agent factice, `@pupitre/shared/agent-protocol`. Un écran nouveau suit la cible, pas l'existant ; un écran existant y migre quand on le lui demande, pas avant.
-
-Style propre au workspace : `apps/desktop/biome.jsonc` impose les **points-virgules** (le reste du monorepo les omet). Alias `@renderer` → `src/renderer/src`, `@shared` → `src/shared`. Fichiers `{feature}-{context}-{type}.tsx`, un composant React par fichier hors `components/ui/`, pas de barrel file.
+Style propre au workspace : `apps/desktop/biome.jsonc` impose les **points-virgules** (le reste du monorepo les omet). Alias `@renderer` → `src/renderer/src`, `@shared` → `src/shared`. Un composant React par fichier hors `components/ui/`, pas de barrel file.
 
 ## Le chemin d'une donnée
 
 ```
-composant ──► store Zustand ──► window.pupitre.<méthode>() ──► preload ──► ipcMain.handle ──► agent-client.request(serverId, cmd) ──► pupitred
+composant ──► store ──► agentCall(serverId, cmd, params) ──► preload ──► agent:call ──► checkedCall ──► agentClient.request ──► pupitred
 ```
 
-- **Le renderer nomme, le main valide.** Le renderer envoie un identifiant de serveur, un nom de projet, une action. Le main vérifie le nom contre la liste que l'agent vient de donner avant d'en faire une commande. Aucune chaîne libre venue de l'interface n'atteint un shell (`docs/security.md`).
-- **Un canal par serveur**, tenu par `agent-client.ts`. Jamais un `ssh` par appel, jamais un `child_process` dans un handler de feature.
-- **Le résultat traverse tel quel.** `request` renvoie l'enveloppe du protocole, `{ ok: true, result }` ou `{ ok: false, error: { code, message, fix } }`, et le store la garde telle quelle. `fix` s'affiche tel quel dans le composant.
-- **Aucun secret dans un store, un log ou une commande.** Un secret part par le flux secret (`secrets_stdin`) et n'est jamais conservé après l'envoi.
-- **Le thème** est celui de `stores/theme` : `system`, `light`, `dark`, appliqué par `data-theme` sur `<html>` ; xterm bascule avec lui.
+- **Le protocole passe par `agent:call`.** Une commande que l'écran lit ou déclenche s'ajoute à `BRIDGE_COMMANDS` ; le main vérifie qu'elle existe dans `COMMANDS`, que ses paramètres ont la forme du contrat, que le serveur est connu, et que le service nommé est un de ceux que l'agent vient de lister. `agentPoll` pour ce qu'un écran relit sur minuterie (canal `beat`), `agentStream` pour une commande longue dont les événements comptent.
+- **Un canal dédié seulement quand le main ajoute ou retient quelque chose** : un secret, un jeton, un chemin local, un `ssh`, un fichier. Il vit dans `src/main/<feature>.ts`, son déroulé dans `<feature>-run.ts` avec ses dépendances injectées, et refuse par `refuseWith`. Jamais un `child_process` dans un handler, jamais un `ssh` par appel.
+- **Le renderer nomme, le main valide.** Un identifiant de serveur, un nom de projet, un libellé, une action. Aucune chaîne libre venue de l'interface n'atteint un shell (`docs/security.md`).
+- **Le résultat traverse tel quel.** `{ ok: true, result }` ou `{ ok: false, error: { code, message, fix?, phrase? } }`. Le store le garde tel quel et ne le complète pas : ce que l'agent n'a pas dit, l'écran ne le montre pas. `ErrorNotice` rend `message` puis `fix` ; `phrase` est un refus du main que le renderer traduit.
+- **Aucun secret dans un store, un log ou une commande.** Un secret part par le flux secret (`onSecret`) et n'est jamais conservé après l'envoi.
 
 ## Ajouter un écran, dans l'ordre
 
 1. **Le type du protocole.** La commande et son résultat existent dans `docs/contracts/agent-protocol.md` et dans `@pupitre/shared/agent-protocol`. Sinon, on s'arrête : le besoin se signale au propriétaire et le contrat est amendé d'abord.
-2. **Le handler du main**, dans `src/main/<feature>.ts`, enregistré depuis `src/main/index.ts`. Il valide l'entrée, appelle `agentClient.request`, renvoie l'enveloppe.
-3. **La méthode du preload**, une ligne dans `src/preload/index.ts`, typée par le résultat du protocole. Le type `PupitreApi` en découle et le renderer le voit par `window.pupitre`.
-4. **Le store**, dans `src/renderer/src/stores/<store>.ts`. L'état est une union discriminée par `status`, jamais des booléens `loading` et `error` côte à côte.
-5. **Les composants**, dans `src/renderer/src/components/<feature>/`. L'écran compose des primitives de `components/ui/` ; les sous-composants vivent dans des fichiers frères.
-6. **Les tests** : le main avec l'agent factice, le store avec `window.pupitre` remplacé, l'écran par Playwright.
+2. **Le pont.** La commande entre dans `BRIDGE_COMMANDS` ; ou, si le main doit y mettre du sien, un handler dans `src/main/<feature>.ts` + une ligne typée dans `src/preload/index.ts` + son entrée dans `QUIET` de `stub-pupitre.ts` si une étape la déclenche seule. `ipc-surface.test.ts` refuse un canal que l'un appelle et que l'autre n'écoute pas, et un canal que le harnais Playwright ne répond pas.
+3. **Le store**, `stores/<feature>.ts` : `state` en union discriminée par `status` — `idle` · `loading` · `read` · `failed` — jamais `loading` et `error` côte à côte ; un champ par geste en cours (`removing: string | null`) pour que seul le bouton cliqué attende ; `forget()` pour le test et le changement de serveur.
+4. **Les textes**, `i18n/strings/<feature>.ts`, `en` puis `fr`, importé dans `i18n/en.ts` et `i18n/fr.ts`. Pluriels en `.one` / `.other`, refus en `refusal.<feature>.<quoi>` et `refusal.<feature>.<quoi>.fix`. Aucune phrase dans un composant.
+5. **La vue**, si l'écran est une page : `VIEWS` dans `stores/navigation.ts`, son entrée dans `app-sidebar.tsx`, son rendu dans `app.tsx`, sa commande dans la palette si elle s'y attend.
+6. **Les composants**, `components/<feature>/` : `<feature>-screen.tsx` compose les primitives ; les sous-composants sont des fichiers frères.
+7. **Les tests** : le store sur `stubPupitre`, le déroulé du main sur ses dépendances ou sur une transcription de l'agent factice, l'écran par Playwright avec `assertAccessible`.
 
 ## Composants
 
-- **Cherche la primitive avant d'écrire** : bouton, point d'état, libellé, avis d'attente, avis d'erreur, champ, liste. Si elle manque, elle naît dans `components/ui/` avec un `variant`, jamais dans le dossier de la feature.
-- **L'en-tête dit toujours la même chose** : `eyebrow` est le contexte — le nom du serveur sur ses pages (tableau de bord, services, processus, galerie, fichiers, terminaux) et sur chaque étape de l'onboarding, « Projet » ou « Service » sur la fiche d'un projet ou d'un service, « Application » dans les réglages — et `title` est la chose ou la page (« Tableau de bord », « flymate-api », « PostgreSQL », « Configuration »). Ce qui compte ou résume va en `description`, jamais dans le titre. Une page n'écrit pas deux fois la même donnée : ce que l'en-tête dit (état, branche, adresse), une section ne le répète pas.
-- **Chaque section d'une page est `Section`** (`components/ui/section.tsx`) : le libellé en capitales, `aside` pour ce qui le qualifie (un compte, un état), `actions` pour les gestes de la section sur la même ligne. Jamais un `Label` posé à la main ni un titre dans la carte. **Chaque cadre est `Panel`** (`components/ui/panel.tsx`) : `list` pour des lignes qui se séparent elles-mêmes, `inset` pour l'air ; `panelClass()` sur un `form`. **Chaque fait est `Fact`** dans une `FactList` (`components/ui/fact.tsx`) : libellé, valeur en `font-data`, détail en dessous. Un geste qui concerne la chose entière — arrêter, redémarrer, relire, retirer, redémarrer le serveur — va dans les `actions` de l'en-tête ; un geste qui concerne une section va sur sa ligne de libellé ; un geste qui termine un formulaire reste à son pied.
-- **Une confirmation est `ConfirmButton`** quand elle tient sur la ligne du geste, `Dialog` quand elle porte une conséquence à lire ou plusieurs issues (supprimer ou retirer). Jamais un bloc rouge dessiné dans la carte.
-- **Une page du shell commence par `Screen`** (`components/ui/screen.tsx`) : le cadre commun — pleine largeur, l'en-tête sur son bandeau `surface` fermé par un trait, le corps en `base` qui défile sous lui, `PageHeader` avec `eyebrow`, `title`, `meta`, `description`, `actions`, `leading` pour un logo, `tabs` pour une `TabBar` — et `fill` quand le corps tient sa propre hauteur (fichiers, terminaux, projet). Un geste qui porte sur la chose entière (revenir, relire, retirer le module) va dans `actions`. Aucune page ne pose son propre `max-w-*`, son propre `h1` ni son propre bandeau d'onglets. Une étape d'un parcours (onboarding, ajout d'un service) est un `Screen` en mode `column` — bandeau et corps tenus sur `STEP_COLUMN` — avec `step` pour envoyer le focus au titre à l'arrivée et `footer` pour l'`ActionBar` sur laquelle elle finit ; dans l'onboarding, dont le rail dit déjà où l'on est, l'étape ajoute `plain` et lit son en-tête sur la page, sans bandeau.
-- **Tokens seulement** : `bg-base`, `bg-surface`, `bg-sunken`, `bg-raised`, `text-ink`, `text-ink-2`, `text-ink-3`, `text-ink-4`, `border-line`, `border-line-strong`, `bg-inverse text-inverse-ink` pour le bouton principal, `text-ok`, `text-warn`, `text-danger` pour l'état seulement, `font-data` pour toute donnée (port, chemin, commande, durée, version, empreinte), `rounded-sm` pour les contrôles, `rounded-md` pour les panneaux. `grep -rE "#[0-9a-f]{6}|hsl\(|rgb\(" src/renderer --include=*.tsx` doit rester vide.
-- **L'état se lit à la forme d'abord** : point plein pour en ligne, cercle vide pour arrêté, point barré pour en échec, point qui respire pour en cours. La couleur confirme, l'écran reste lisible en gris.
-- **Chaque attente dit ce qui se passe** : le module, l'étape, le compteur, la durée. Jamais un spinner seul.
-- **Chaque erreur dit le remède** : `error.message` puis `error.fix` tel quel, dans une balise `<code>` s'il ressemble à une commande, avec le bouton qui rejoue.
+- **Cherche la primitive avant d'écrire** : bouton, point d'état, libellé, avis d'attente, avis d'erreur, champ, liste, menu, infobulle. Si elle manque, elle naît dans `components/ui/` avec un `variant`, jamais dans le dossier de la feature.
+- **Chaque contrôle est une primitive sur Base UI** : `Select` (groupes par `groups`), `NumberField`, `CheckBox` / `CheckLine`, `Switch` / `SwitchLine` pour une préférence, `RadioGroup` + `Radio` / `RadioLine`, `ModeCards` + `ModeCard` pour un choix en cartes, `Segmented`, `TabBar` + `Tab` (`orientation="vertical"` pour une colonne de panes), `Details` (plié, `open` + `onOpenChange` quand un refus doit l'ouvrir), `Dialog`, `ConfirmButton` (un `alertdialog`), `Menu`, `Tooltip`, `Hint`. Jamais un `<select>`, un `<details>`, une case native ni un `role="dialog"` à la main. Un formulaire est une suite de `Section` sur des `Panel inset="lg"`, ses champs en `gap-6`, son geste dans l'`ActionBar` au pied de la page.
+- **Une page du shell commence par `Screen`** : `eyebrow` est le contexte (le nom du serveur sur ses pages, « Projet » ou « Service » sur une fiche, « Application » dans les réglages), `title` est la chose ou la page, `actions` porte les gestes sur la chose entière, `tabs` une `TabBar`, `fill` quand le corps tient sa propre hauteur. Une étape d'un parcours est un `Screen` en `column` avec `step` et `footer` ; dans l'onboarding elle ajoute `plain`. Aucune page ne pose son propre `max-w-*`, son `h1` ni son bandeau.
+- **Chaque section est `Section`** : `title`, `aside` pour ce qui la qualifie, `actions` pour ses gestes sur la même ligne. **Chaque cadre est `Panel`** : `list` pour des lignes, `inset` pour l'air, `panelClass()` sur un `form`. **Chaque fait est `Fact`** dans une `FactList` : libellé, valeur en `font-data`, `detail` en dessous. Une page n'écrit pas deux fois la même donnée.
+- **Chaque geste répond là où il a été fait.** `Button`, `IconButton` et `ConfirmButton` passent en `loading` d'eux-mêmes dès que le gestionnaire rend une promesse (`usePending`) : un gestionnaire asynchrone retourne toujours sa promesse. Un formulaire finit sur son bouton au pied, actif quand quelque chose a changé ; un refus se lit sous le champ, avec `aria-invalid` et `aria-describedby`.
+- **Une confirmation est `ConfirmButton`** quand elle tient sur la ligne du geste, `Dialog` quand elle porte une conséquence à lire ou plusieurs issues. Jamais un bloc rouge dessiné dans la carte.
+- **Chaque bouton à icône porte une infobulle** (`ui/tooltip.tsx`) ; le `title` natif ne s'affiche pas dans Electron sur macOS.
+- **Tokens seulement** : `bg-base`, `bg-surface`, `bg-sunken`, `bg-raised`, `text-ink` à `text-ink-4`, `border-line`, `border-line-strong`, `bg-inverse text-inverse-ink` pour le bouton principal, `text-ok`, `text-warn`, `text-danger` pour l'état seulement, `font-data` pour toute donnée, `rounded-sm` pour les contrôles, `rounded-md` pour les panneaux. `grep -rE "#[0-9a-f]{6}|hsl\(|rgb\(" src/renderer --include=*.tsx` reste vide.
+- **L'état se lit à la forme d'abord** : point plein pour en ligne, cercle vide pour arrêté, point barré pour en échec, point qui respire pour en cours. La couleur confirme.
+- **Chaque attente dit ce qui se passe** (`WaitingNotice`, `SkeletonRows`) : le module, l'étape, la durée. Jamais un spinner seul. **Chaque erreur dit le remède** (`ErrorNotice` avec `onRetry`).
 - **Base UI + shadcn, prop `render`**, jamais `asChild`, jamais Radix. Lucide uniquement, trait 1,5 px, jamais coloré. Un bouton d'action porte son icône avant son libellé.
-- Pas d'ombre, pas de dégradé, pas d'illustration, pas de spinner décoratif.
+- Pas d'ombre, pas de dégradé, pas d'illustration, pas de description qui raconte l'écran.
 
-## Exemple complet : l'écran « Inspection »
+## Exemple : la galerie, telle qu'elle est écrite
 
-L'écran envoie `probe` au serveur actif et rend le verdict — `{ level, kind, up_to_date?, reasons, fixes }` — selon son `kind` : `bare`, `managed` (version, mise à jour disponible), `occupied` (ce qui serait touché), `incompatible` (raison, remède). Les boutons dépendent du verdict. Sur un serveur sans agent, `agent-client` joue `probe.sh` en mémoire et renvoie le même `ProbeResult` — les deux sondes sont égales — : l'écran ne fait pas la différence.
+Extraits de `stores/shots.ts`, `components/shots/shots-screen.tsx` et de leurs tests — ouvre les fichiers pour le reste.
 
-### Le handler du main — `src/main/inspection.ts`
-
-```ts
-import type { AgentResponse, ProbeResult } from "@pupitre/shared/agent-protocol";
-import { ipcMain } from "electron";
-import { agentClient } from "./agent-client";
-import { knownServer } from "./servers";
-
-export function registerInspection(): void {
-  ipcMain.handle(
-    "inspection:probe",
-    (_event, serverId: unknown): Promise<AgentResponse<ProbeResult>> => {
-      const server = knownServer(serverId);
-
-      if (!server) {
-        return Promise.resolve({
-          ok: false,
-          error: {
-            code: "unknown_server",
-            message: "Ce serveur n'est plus dans la liste.",
-            fix: "Choisissez un serveur dans la barre latérale.",
-          },
-        });
-      }
-
-      return agentClient.request(server.id, "probe");
-    }
-  );
-}
-```
-
-`knownServer` (dans `src/main/servers.ts`) renvoie le serveur seulement si l'identifiant est une chaîne connue de la configuration de l'app. Le handler ne construit aucune commande : `"probe"` est une commande du protocole, typée, sans paramètre.
-
-### Le preload — `src/preload/index.ts`
+### Le store — `src/renderer/src/stores/shots.ts`
 
 ```ts
-inspect: (serverId: string): Promise<AgentResponse<ProbeResult>> =>
-  ipcRenderer.invoke("inspection:probe", serverId),
-```
-
-Une ligne dans l'objet `api`, avec les autres. Le nom du canal IPC est `<feature>:<action>`.
-
-### Le store — `src/renderer/src/stores/onboarding.ts`
-
-```ts
-import type { AgentError, ProbeResult } from "@pupitre/shared/agent-protocol";
+import type { Shot, ShotsListResult } from "@pupitre/shared/agent-protocol/processes";
+import { agentCall as call } from "@renderer/lib/agent-call";
+import type { AgentError } from "@shared/agent";
 import { create } from "zustand";
 
-export type InspectionState =
+export type ShotsState =
   | { status: "idle" }
-  | { status: "running"; serverId: string }
-  | { status: "done"; serverId: string; probe: ProbeResult }
+  | { status: "loading"; serverId: string }
+  | { status: "read"; serverId: string; shots: Shot[] }
   | { status: "failed"; serverId: string; error: AgentError };
 
-type OnboardingStore = {
-  inspection: InspectionState;
-  inspect: (serverId: string) => Promise<void>;
-  resetInspection: () => void;
-};
+interface ShotsStore {
+  state: ShotsState;
+  removing: string | null;
+  read: (serverId: string) => Promise<void>;
+  remove: (serverId: string, path: string) => Promise<void>;
+  forget: () => void;
+}
 
-export const useOnboarding = create<OnboardingStore>((set) => ({
-  inspection: { status: "idle" },
+export const useShots = create<ShotsStore>((set, get) => ({
+  state: { status: "idle" },
+  removing: null,
 
-  async inspect(serverId) {
-    set({ inspection: { status: "running", serverId } });
+  async read(serverId) {
+    set({ state: { status: "loading", serverId } });
 
-    const response = await window.pupitre.inspect(serverId);
+    const answer = await call<ShotsListResult>(serverId, "shots.list");
 
     set({
-      inspection: response.ok
-        ? { status: "done", serverId, probe: response.result }
-        : { status: "failed", serverId, error: response.error },
+      state: answer.ok
+        ? { status: "read", serverId, shots: answer.result.shots }
+        : { status: "failed", serverId, error: answer.error },
     });
   },
 
-  resetInspection() {
-    set({ inspection: { status: "idle" } });
+  async remove(serverId, path) {
+    set({ removing: path });
+
+    const answer = await call(serverId, "shots.clean", { path });
+
+    set({ removing: null });
+
+    if (answer.ok) {
+      await get().read(serverId);
+    }
+  },
+
+  forget() {
+    set({ state: { status: "idle" }, removing: null });
   },
 }));
 ```
 
-Le store ne transforme pas le résultat de l'agent et ne le complète pas : ce que l'agent n'a pas dit, l'écran ne le montre pas.
-
-### L'écran — `src/renderer/src/components/onboarding/onboarding-inspection-screen.tsx`
+### L'écran — `src/renderer/src/components/shots/shots-screen.tsx`
 
 ```tsx
-import { useEffect } from "react";
-import { ErrorNotice } from "@renderer/components/ui/error-notice";
-import { WaitingNotice } from "@renderer/components/ui/waiting-notice";
-import { useOnboarding } from "@renderer/stores/onboarding";
-import { useServers } from "@renderer/stores/servers";
-import { OnboardingInspectionActions } from "./onboarding-inspection-actions";
-import { OnboardingInspectionVerdict } from "./onboarding-inspection-verdict";
-
-export function OnboardingInspectionScreen() {
-  const serverId = useServers((s) => s.activeId);
-  const inspection = useOnboarding((s) => s.inspection);
-  const inspect = useOnboarding((s) => s.inspect);
+export function ShotsScreen({ serverId, serverName }: { serverId: string; serverName: string }) {
+  const t = useTranslations();
+  const state = useShots((s) => s.state);
+  const read = useShots((s) => s.read);
+  const clean = useShots((s) => s.clean);
 
   useEffect(() => {
-    if (serverId) {
-      void inspect(serverId);
-    }
-  }, [serverId, inspect]);
-
-  if (inspection.status === "idle" || inspection.status === "running") {
-    return (
-      <WaitingNotice
-        title="Inspection du serveur"
-        detail="Système, mémoire, disque, ports, utilisateurs"
-      />
-    );
-  }
-
-  if (inspection.status === "failed") {
-    return (
-      <ErrorNotice
-        error={inspection.error}
-        onRetry={() => inspect(inspection.serverId)}
-      />
-    );
-  }
+    read(serverId);
+  }, [serverId, read]);
 
   return (
-    <section className="flex flex-col gap-6 p-8">
-      <header className="flex flex-col gap-1">
-        <p className="text-ink-3 text-xs uppercase tracking-widest">Inspection</p>
-        <h1 className="font-data text-ink">
-          {inspection.probe.os} {inspection.probe.version} · {inspection.probe.arch} ·{" "}
-          {inspection.probe.ram_mb} Mo
-        </h1>
-      </header>
+    <Screen
+      actions={
+        <ConfirmButton
+          confirmLabel={t("shots.clearConfirm")}
+          icon={Trash2}
+          onConfirm={() => clean(serverId)}
+          question={t("shots.clearQuestion")}
+        >
+          {t("shots.clear")}
+        </ConfirmButton>
+      }
+      eyebrow={serverName}
+      title={t("shots.title")}
+    >
+      {state.status === "loading" ? <SkeletonRows rows={3} /> : null}
 
-      <OnboardingInspectionVerdict probe={inspection.probe} />
-      <OnboardingInspectionActions probe={inspection.probe} />
-    </section>
-  );
-}
-```
-
-`WaitingNotice` et `ErrorNotice` sont des primitives de `components/ui/` : la première affiche le titre et le détail de ce qui se passe avec le point qui respire, la seconde affiche `message`, `fix` tel quel et le bouton de rejeu. Si les noms diffèrent de ceux-là, ce skill se met à jour.
-
-### Le verdict — `onboarding-inspection-verdict.tsx`
-
-```tsx
-import type { ProbeResult } from "@pupitre/shared/agent-protocol";
-import { StatusDot } from "@renderer/components/ui/status-dot";
-
-type VerdictKind = ProbeResult["verdict"]["kind"];
-
-type VerdictLook = {
-  shape: "filled" | "empty" | "struck";
-  tone: "neutral" | "ok" | "warn" | "danger";
-  title: string;
-};
-
-const VERDICTS: Record<VerdictKind, VerdictLook> = {
-  bare: { shape: "empty", tone: "neutral", title: "Serveur nu" },
-  managed: { shape: "filled", tone: "ok", title: "Déjà géré par Pupitre" },
-  occupied: { shape: "filled", tone: "warn", title: "Serveur occupé" },
-  incompatible: { shape: "struck", tone: "danger", title: "Serveur incompatible" },
-};
-
-type Props = {
-  probe: ProbeResult;
-};
-
-export function OnboardingInspectionVerdict({ probe }: Props) {
-  const verdict = VERDICTS[probe.verdict.kind];
-
-  return (
-    <div className="flex flex-col gap-3 rounded-md border border-line bg-surface p-4">
-      <div className="flex items-center gap-2">
-        <StatusDot shape={verdict.shape} tone={verdict.tone} />
-        <h2 className="text-ink font-semibold">{verdict.title}</h2>
-        {probe.agent_version ? (
-          <span className="font-data text-ink-3">pupitred {probe.agent_version}</span>
-        ) : null}
-      </div>
-
-      {probe.verdict.reasons.length > 0 ? (
-        <ul className="flex flex-col gap-2">
-          {probe.verdict.reasons.map((reason, index) => (
-            <li key={reason} className="flex flex-col gap-0.5 border-line border-l pl-3">
-              <span className="text-ink-2">{reason}</span>
-              {probe.verdict.fixes[index] ? (
-                <code className="font-data text-ink-3">{probe.verdict.fixes[index]}</code>
-              ) : null}
-            </li>
-          ))}
-        </ul>
+      {state.status === "failed" ? (
+        <ErrorNotice error={state.error} onRetry={() => read(serverId)} />
       ) : null}
-    </div>
+
+      {state.status === "read"
+        ? shotsByDay(state.shots).map((group) => (
+            <Section key={group.day} title={dayLabel(group.day)}>
+              …
+            </Section>
+          ))
+        : null}
+    </Screen>
   );
 }
 ```
 
-Les raisons et les remèdes sont ceux que la sonde renvoie, dans l'ordre, sans reformulation.
+Une page lit sur `useEffect` à l'arrivée. Une **étape de l'onboarding** ne le fait pas : c'est `stores/onboarding-machine.ts` qui dit ce qu'entrer dans une étape déclenche, et le store exécute l'effet.
 
-### Les actions — `onboarding-inspection-actions.tsx`
+### Le test du store — `stores/__tests__/shots.test.ts`
 
-```tsx
-import type { ProbeResult } from "@pupitre/shared/agent-protocol";
-import { Button } from "@renderer/components/ui/button";
-import { useOnboarding } from "@renderer/stores/onboarding";
-import { useServers } from "@renderer/stores/servers";
+```ts
+function agent(answers: Partial<Record<CommandName, unknown>>): void {
+  stubPupitre({
+    agentCall: (_serverId: string, cmd: CommandName) =>
+      Promise.resolve(
+        answers[cmd] === undefined
+          ? { error: { code: "internal", message: "rien" }, ok: false }
+          : { ok: true, result: answers[cmd] }
+      ),
+  });
+}
 
-type Props = {
-  probe: ProbeResult;
-};
+it("liste les captures que le serveur a nommées", async () => {
+  agent({ "shots.list": { shots: SHOTS } });
 
-export function OnboardingInspectionActions({ probe }: Props) {
-  const goTo = useOnboarding((s) => s.goTo);
-  const pickAnother = useServers((s) => s.clearActive);
+  await useShots.getState().read(SERVER);
 
-  const install = <Button variant="primary" onClick={() => goTo("catalog")}>Installer</Button>;
-  const installAnyway = <Button onClick={() => goTo("catalog")}>Installer quand même</Button>;
-  const upgrade = <Button variant="primary" onClick={() => goTo("upgrade")}>Mettre à jour</Button>;
-  const another = <Button variant="ghost" onClick={pickAnother}>Choisir un autre serveur</Button>;
+  expect(useShots.getState().state).toMatchObject({ status: "read", shots: SHOTS });
+});
+```
 
-  return (
-    <div className="flex gap-2">
-      {probe.verdict.kind === "bare" ? install : null}
-      {probe.verdict.kind === "managed" ? upgrade : null}
-      {probe.verdict.kind === "occupied" ? installAnyway : null}
-      {another}
-    </div>
+### Un canal dédié et son déroulé — `src/main/shots.ts` · `shots-run.ts`
+
+```ts
+export function registerShots(): void {
+  ipcMain.handle("shots:save", (_e, path: unknown, bytes: unknown) =>
+    saveShot(path, bytes, { picked: pickedPath, write: writeFile })
   );
+}
+
+export async function saveShot(path: unknown, bytes: unknown, deps: Deps): Promise<AgentResponse<{ path: string }>> {
+  if (!deps.picked(path)) {
+    return refuseWith("bad_request", "refusal.shots.savePath");
+  }
+
+  …
 }
 ```
 
-`goTo` navigue dans l'onboarding (store `onboarding`) ; `clearActive` désélectionne le serveur (store `servers`). Aucun des deux ne parle au main.
+Le déroulé reçoit ses dépendances et se teste sans Electron (`__tests__/shots-save.test.ts`) ; ce qui parle à l'agent se teste sur une transcription (`fakeAgent("shots-read.jsonl")`, `__tests__/shots-read.test.ts`).
 
-### Test du main — `src/main/__tests__/inspection.test.ts`
+### Le scénario Playwright — `e2e/shots.spec.ts`
 
-L'agent factice rejoue une transcription : une ligne de requête attendue, une ligne de réponse rendue. Il tourne dans un `child_process` local à la place de `ssh`, ce qui teste `agent-client` sans réseau.
-
-`src/main/__tests__/fixtures/probe-bare.jsonl` :
-
-```jsonl
-{"id":1,"cmd":"hello","params":{"app_version":"0.1.0","protocol":1}}
-{"id":1,"ok":true,"result":{"agent_version":"0.1.0","protocol":1,"entitlement":"dev","capabilities":["probe"]}}
-{"id":2,"cmd":"probe"}
-{"id":2,"ok":true,"result":{"os":"ubuntu","version":"24.04","arch":"amd64","ram_mb":4096,"disk_free_gb":38,"sudo":true,"ports":[],"docker":false,"panel":null,"agent_version":null,"installed_modules":[],"verdict":{"level":"ready","kind":"bare","reasons":[],"fixes":[]}}}
-```
-
-```ts
-import { describe, expect, it } from "bun:test";
-import { createAgentClient } from "../agent-client";
-import { fakeAgent } from "./fixtures/fake-agent";
-
-describe("probe", () => {
-  it("renvoie le verdict de la transcription", async () => {
-    const client = createAgentClient({ spawn: fakeAgent("probe-bare.jsonl") });
-
-    const response = await client.request("staging", "probe");
-
-    expect(response).toMatchObject({
-      ok: true,
-      result: { verdict: { level: "ready", kind: "bare" } },
-    });
-  });
-
-  it("transmet l'erreur et son remède sans les toucher", async () => {
-    const client = createAgentClient({ spawn: fakeAgent("probe-incompatible.jsonl") });
-
-    const response = await client.request("staging", "probe");
-
-    expect(response).toMatchObject({
-      ok: true,
-      result: {
-        verdict: {
-          level: "blocked",
-          kind: "incompatible",
-          reasons: ["Debian 12 n'est pas pris en charge"],
-          fixes: ["Réinstallez le serveur en Ubuntu 24.04"],
-        },
-      },
-    });
-  });
-});
-```
-
-### Test du store — `src/renderer/src/stores/__tests__/onboarding.test.ts`
-
-```ts
-import { beforeEach, describe, expect, it } from "bun:test";
-import { stubPupitre } from "../../__tests__/stub-pupitre";
-import { useOnboarding } from "../onboarding";
-
-describe("inspect", () => {
-  beforeEach(() => {
-    useOnboarding.getState().resetInspection();
-  });
-
-  it("garde le verdict tel que l'agent le renvoie", async () => {
-    stubPupitre({
-      inspect: async () => ({
-        ok: true,
-        result: {
-          verdict: { level: "warning", kind: "occupied", reasons: ["Docker"], fixes: [] },
-        },
-      }),
-    });
-
-    await useOnboarding.getState().inspect("srv-1");
-
-    expect(useOnboarding.getState().inspection).toMatchObject({
-      status: "done",
-      probe: { verdict: { kind: "occupied", reasons: ["Docker"] } },
-    });
-  });
-
-  it("garde le remède de l'agent en cas d'échec", async () => {
-    stubPupitre({
-      inspect: async () => ({
-        ok: false,
-        error: { code: "ssh_unreachable", message: "Connexion refusée.", fix: "Vérifiez le port 22." },
-      }),
-    });
-
-    await useOnboarding.getState().inspect("srv-1");
-
-    expect(useOnboarding.getState().inspection).toMatchObject({
-      status: "failed",
-      error: { fix: "Vérifiez le port 22." },
-    });
-  });
-});
-```
-
-`stubPupitre` (`src/renderer/src/__tests__/stub-pupitre.ts`) pose un `window.pupitre` partiel pour la durée du test ; les stores ne sont jamais testés contre un vrai agent.
-
-### Scénario Playwright — `e2e/onboarding-inspection.spec.ts`
-
-```ts
-import { _electron as electron, expect, test } from "@playwright/test";
-
-test("un serveur nu propose l'installation", async () => {
-  const app = await electron.launch({ args: ["out/main/index.js"] });
-  const page = await app.firstWindow();
-
-  await page.getByRole("button", { name: "Ajouter un serveur" }).click();
-  await page.getByLabel("Adresse").fill(process.env.PUPITRE_STAGING_HOST ?? "");
-  await page.getByRole("button", { name: "Inspecter" }).click();
-
-  await expect(page.getByRole("heading", { name: "Serveur nu" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Installer" })).toBeVisible();
-
-  await app.close();
-});
-```
-
-Le scénario tourne contre l'agent factice de `e2e/harness/`, qui rejoue des réponses enregistrées : aucun serveur n'est joint. `bun run test:e2e` le lance après `bun run build`. Un écran a au moins un scénario par verdict ou par état terminal ; les états d'attente sont couverts par les tests de store.
+Le harnais lance l'app (`launchPupitre()`), remplace `agent:call` par `answer("agent:call", …)` sur les fixtures de `ANSWERS`, et le test lit l'écran comme un lecteur : `getByRole`, `getByText`, puis `assertAccessible(page, "shots")`.
 
 ## Avant de rendre la main
 
 1. La commande et le type viennent de `@pupitre/shared/agent-protocol` ; rien n'est redéclaré dans `src/shared/`.
-2. Le renderer n'envoie que des identifiants ; le main les valide contre ce que l'agent a donné.
-3. Le store garde l'enveloppe du protocole ; `fix` arrive à l'écran tel quel.
-4. Aucune couleur en dur, aucun composant hors `components/ui/` qui réinvente une primitive, un composant par fichier, points-virgules.
-5. Chaque attente dit ce qui se passe, chaque erreur dit le remède, chaque état se distingue par sa forme.
-6. Tests : main sur une transcription, store sur `stubPupitre`, Playwright sur le staging. Assertions dans `it()`, pas de `.only`.
-7. `bun --cwd=apps/desktop run lint`, `check:types`, `test` verts ; `test:e2e` vert quand le staging est disponible.
+2. Le renderer n'envoie que des identifiants ; `BRIDGE_COMMANDS` ou le handler dédié les valide.
+3. Le store garde l'enveloppe ; `fix` arrive à l'écran tel quel ; aucune phrase hors de `i18n/strings`.
+4. `Screen` · `Section` · `Panel` · `Fact` ; aucune couleur en dur ; aucune primitive réinventée hors `components/ui/` ; un composant par fichier ; points-virgules.
+5. Chaque geste asynchrone retourne sa promesse ; chaque attente dit ce qui se passe ; chaque erreur dit le remède ; chaque bouton à icône a son infobulle.
+6. Tests : store sur `stubPupitre`, main sur ses dépendances ou une transcription, écran par Playwright avec `assertAccessible(page, "<écran>")`. Ce qui flotte (dialogue, liste d'un `Select`) se lit par `mount` et `optionsOf` de `__tests__/dom.tsx`, jamais par `renderToStaticMarkup`. Assertions dans `it()`, pas de `.only`.
+7. `bun --cwd=apps/desktop run lint`, `check:types`, `test` verts ; `test:e2e` vert. Puis l'app réelle : `bun run dev:desktop` et l'écran ouvert, pas seulement les tests.

@@ -31,13 +31,15 @@ export interface ServicesDeps {
 }
 
 /**
- * The services each agent named, as it last listed them.
+ * The services each agent named, as it last listed them, with the folder each
+ * laid when it named one.
  *
  * The renderer never gets to invent a service: what it can drive, read the
  * journal of or ask a credential of is what a `snapshot` or a `status` came
- * back with — the same rule the projects follow.
+ * back with — the same rule the projects follow. Nor a folder: the one an
+ * editor is pointed at is the one the agent said.
  */
-const listed = new Map<string, Set<string>>();
+const listed = new Map<string, Map<string, string | null>>();
 
 /** The commands whose answer lists every service of the machine, as the agent names them. */
 const LISTINGS: ReadonlySet<string> = new Set(["snapshot", "status"]);
@@ -59,9 +61,18 @@ export function noteServices(
 
   listed.set(
     serverId,
-    new Set(
-      services.flatMap((service: { id?: unknown }) =>
-        typeof service?.id === "string" ? [service.id] : []
+    new Map(
+      services.flatMap((service: { id?: unknown; path?: unknown }) =>
+        typeof service?.id === "string"
+          ? [
+              [
+                service.id,
+                typeof service.path === "string" && service.path.startsWith("/")
+                  ? service.path
+                  : null,
+              ] as const,
+            ]
+          : []
       )
     )
   );
@@ -69,6 +80,11 @@ export function noteServices(
 
 export function declaresService(serverId: string, moduleId: string): boolean {
   return listed.get(serverId)?.has(moduleId) ?? false;
+}
+
+/** The folder the agent said a module laid, or nothing when it named none. */
+export function servicePath(serverId: string, moduleId: string): string | null {
+  return listed.get(serverId)?.get(moduleId) ?? null;
 }
 
 export function forgetServices(serverId?: string): void {

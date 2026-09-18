@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
+import { mount } from "../../__tests__/dom";
 import {
   BRANCHES,
   DIFF,
@@ -8,14 +9,20 @@ import {
   WORKING_TREE,
 } from "../../__tests__/snapshot-fixtures";
 import { remoteEditors } from "../../lib/modules";
+import { isMac } from "../../lib/platform";
+import {
+  agentChordLabel,
+  projectChordLabel,
+} from "../../lib/project-shortcuts";
 import { ProjectActions } from "../projects/project-actions";
 import { ProjectAddresses } from "../projects/project-addresses";
+import { ProjectAgentsPicker } from "../projects/project-agents-picker";
 import { ProjectDiff } from "../projects/project-diff";
 import { ProjectEditors } from "../projects/project-editors";
 import { ProjectMeta } from "../projects/project-meta";
 import { ProjectOverview } from "../projects/project-overview";
 import { ProjectTabBar } from "../projects/project-tab-bar";
-import { tabsFor } from "../projects/project-tabs";
+import { tabOfKind, tabsFor } from "../projects/project-tabs";
 
 /**
  * A project's screens, rendered from the same `snapshot` fixture as the
@@ -26,6 +33,14 @@ const NOOP = () => undefined;
 const RESOLVED = () => Promise.resolve();
 
 const PROJECT = SNAPSHOT.projects[0];
+
+const SESSION = {
+  dir: null,
+  dormant: false,
+  project: PROJECT.name,
+  session: null,
+  title: "Session",
+} as const;
 
 const STOPPED = SNAPSHOT.projects[1];
 
@@ -88,53 +103,141 @@ describe("l'en-tête d'un projet", () => {
 });
 
 describe("les onglets d'un projet", () => {
-  it("ne proposent que les agents installés sur cette machine", () => {
-    const tabs = tabsFor({ agents: ["claude"], repo: true });
-
-    expect(tabs).toEqual([
+  it("séparent les shells des agents, sous deux onglets", () => {
+    expect(tabsFor({ repo: true })).toEqual([
       "overview",
       "configuration",
       "logs",
       "diff",
       "files",
-      "shell",
-      "claude",
+      "terminals",
+      "agents",
     ]);
   });
 
   it("retirent le diff d'un dossier qui n'est pas un dépôt", () => {
-    expect(tabsFor({ agents: [], repo: false })).not.toContain("diff");
+    expect(tabsFor({ repo: false })).not.toContain("diff");
   });
 
-  it("donnent un onglet à chaque agent que la machine tient", () => {
-    const tabs = tabsFor({
-      agents: ["cursor", "gemini", "copilot", "opencode"],
-      repo: false,
-    });
-
-    expect(tabs).toContain("cursor");
-    expect(tabs).toContain("gemini");
-    expect(tabs).toContain("copilot");
-    expect(tabs).toContain("opencode");
-    expect(tabs).not.toContain("claude");
+  it("renvoient un shell sous Terminaux et un agent sous Agents", () => {
+    expect(tabOfKind("shell")).toBe("terminals");
+    expect(tabOfKind("claude")).toBe("agents");
+    expect(tabOfKind("codex")).toBe("agents");
   });
 
-  it("portent le nombre de fichiers changés", () => {
+  it("portent le nombre de fichiers changés, de sessions ouvertes, et leur état", () => {
     const html = renderToStaticMarkup(
       <ProjectTabBar
         active="overview"
-        counts={{ diff: GIT_STATUS.changed }}
+        counts={{ agents: 2, diff: GIT_STATUS.changed, terminals: 1 }}
         onSelect={NOOP}
-        sessions={{}}
-        states={{}}
-        tabs={tabsFor({ agents: ["claude"], repo: true })}
+        sessions={{
+          agents: [
+            { ...SESSION, id: "t2", kind: "claude" },
+            { ...SESSION, id: "t3", kind: "codex" },
+          ],
+          terminals: [{ ...SESSION, id: "t1", kind: "shell" }],
+        }}
+        states={{ t2: "attention" }}
+        tabs={tabsFor({ repo: true })}
       />
     );
 
     expect(html).toContain("Vue d&#x27;ensemble");
     expect(html).toContain("Journal");
-    expect(html).toContain("Claude");
+    expect(html).toContain("Terminaux");
+    expect(html).toContain("Agents");
+    expect(html).not.toContain("Claude");
+    expect(html).toContain(">1<");
     expect(html).toContain(">2<");
+    expect(html).toContain('data-shape="ringed"');
+  });
+
+  it("disent sur chaque onglet le raccourci qui y mène", () => {
+    const html = renderToStaticMarkup(
+      <ProjectTabBar
+        active="overview"
+        counts={{}}
+        onSelect={NOOP}
+        sessions={{}}
+        states={{}}
+        tabs={tabsFor({ repo: false })}
+      />
+    );
+    const chord = projectChordLabel(isMac);
+
+    expect(html).toContain(`data-tooltip="${chord}1"`);
+    expect(html).toContain(`data-tooltip="${chord}6"`);
+    expect(html).not.toContain(`data-tooltip="${chord}7"`);
+  });
+});
+
+describe("le choix d'un agent", () => {
+  it("offre une carte par agent que la machine tient, sous le logo de son module, et lance celui qu'on presse", async () => {
+    const picked: string[] = [];
+    const view = await mount(
+      <ProjectAgentsPicker
+        agents={[
+          {
+            agent: "claude",
+            moduleId: "ai.claude",
+            name: "Claude Code",
+            version: "2.1.0",
+          },
+          {
+            agent: "codex",
+            moduleId: "ai.codex",
+            name: "Codex",
+            version: null,
+          },
+        ]}
+        onInstall={NOOP}
+        onPick={(agent) => picked.push(agent)}
+      />
+    );
+
+    const buttons = [
+      ...view.container.querySelectorAll("[data-agents-picker] button"),
+    ];
+
+    expect(buttons.map((button) => button.textContent)).toEqual([
+      `Claude CodeClaudeClaude Code · 2.1.0${agentChordLabel(isMac)}`,
+      "CodexCodexCodex",
+    ]);
+    expect(buttons[0]?.getAttribute("aria-keyshortcuts")).toBe(
+      agentChordLabel(isMac)
+    );
+    expect(view.html()).toContain('data-logo="ai.claude"');
+    expect(view.html()).toContain('data-logo="ai.codex"');
+    expect(view.text()).toContain("Lancer un agent");
+
+    await view.click(buttons[1]);
+
+    expect(picked).toEqual(["codex"]);
+
+    view.unmount();
+  });
+
+  it("dit où un agent s'installe quand la machine n'en tient aucun", async () => {
+    let asked = 0;
+    const view = await mount(
+      <ProjectAgentsPicker
+        agents={[]}
+        onInstall={() => {
+          asked += 1;
+        }}
+        onPick={NOOP}
+      />
+    );
+
+    expect(view.text()).toContain("Aucun agent installé sur ce serveur");
+    expect(view.container.querySelector("[data-agents-picker]")).toBeNull();
+
+    await view.click(view.container.querySelector("button"));
+
+    expect(asked).toBe(1);
+
+    view.unmount();
   });
 });
 
@@ -163,7 +266,7 @@ describe("la vue d'ensemble d'un projet", () => {
     expect(html).toContain("api-flymate.example.org");
     expect(html).toContain('data-addresses="2"');
     expect(html).toContain("Publier un autre port");
-    expect(html).toContain("feat/tarifs");
+    expect(html).toContain('id="project-branch"');
     expect(html).toContain("bun run dev --port 3000");
     expect(html).toContain("412 Mo");
     expect(html).toContain('data-processes="1"');
@@ -290,7 +393,8 @@ describe("les éditeurs distants", () => {
       />
     );
 
-    expect(html).toContain("<fieldset");
+    expect(html).toContain('<fieldset aria-label="Ouvrir dans un éditeur"');
+    expect(html).toContain(">Ouvrir</span>");
     expect(html).toContain('data-logo="editor.jetbrains"');
     expect(html).toContain(
       `data-tooltip="Ouvrir ${GIT_STATUS.root} dans JetBrains Gateway"`

@@ -187,7 +187,7 @@ test.describe("compte", () => {
     ).toBeVisible();
 
     await page.getByRole("button", { name: "Réglages" }).click();
-    await page.getByRole("button", { name: "Compte" }).click();
+    await page.getByRole("tab", { name: "Compte" }).click();
 
     await expect(page.getByText("ada@pupitre.studio")).toBeVisible();
     await expect(page.getByText("Abonnement actif")).toBeVisible();
@@ -224,7 +224,7 @@ test.describe("compte", () => {
     await page.getByRole("button", { name: "Se déconnecter" }).last().click();
 
     // Settings stay in front: it's where the account gets repaired.
-    await page.getByRole("button", { name: "Compte" }).click();
+    await page.getByRole("tab", { name: "Compte" }).click();
 
     await expect(page.getByText("Aucun compte connecté")).toBeVisible();
   });

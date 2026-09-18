@@ -137,6 +137,7 @@ describe("le refus d'un dossier non vide", () => {
 
 describe("le menu d'une entrée", () => {
   const zed = {
+    backend: false,
     id: "zed" as const,
     logo: "editor.zed",
     module: "editor.zed",

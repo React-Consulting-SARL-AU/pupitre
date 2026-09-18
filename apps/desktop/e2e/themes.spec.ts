@@ -1,9 +1,11 @@
 import { expect, type Page, test } from "@playwright/test";
 import { DARK, LIGHT } from "@pupitre/design/tokens";
 import { assertAccessible } from "./harness/accessible";
+import { pickOption } from "./harness/controls";
 import { launchPupitre, type Running } from "./harness/launch";
 
 const HEADING = "Tableau de bord";
+const THEME_OPTION = { dark: "Sombre", light: "Clair" } as const;
 const BRANDED = ["db.postgres", "ai.claude", "exposure.cloudflare"];
 const BRAND_COLOUR = /^#[0-9a-f]{6}$/;
 
@@ -17,8 +19,8 @@ function rgb(hex: string): string {
 
 async function dashboardIn(page: Page, theme: "light" | "dark"): Promise<void> {
   await page.getByRole("button", { name: "Réglages" }).click();
-  await page.getByRole("button", { name: "Apparence" }).click();
-  await page.getByLabel("Thème").selectOption(theme);
+  await page.getByRole("tab", { name: "Apparence" }).click();
+  await pickOption(page, page.getByLabel("Thème"), THEME_OPTION[theme]);
 
   await page.getByRole("button", { name: "Tableau de bord" }).click();
 
@@ -95,8 +97,8 @@ test.describe("thèmes", () => {
       const field = page.getByLabel("Thème");
 
       await page.getByRole("button", { name: "Réglages" }).click();
-      await page.getByRole("button", { name: "Apparence" }).click();
-      await field.selectOption(theme);
+      await page.getByRole("tab", { name: "Apparence" }).click();
+      await pickOption(page, field, THEME_OPTION[theme]);
       await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
 
       const highlight = await field.evaluate((node) => {
