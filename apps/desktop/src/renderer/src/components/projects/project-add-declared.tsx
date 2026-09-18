@@ -29,6 +29,7 @@ export function ProjectAddDeclared({
           {t("projectAdd.panel.open")}
         </Button>
       }
+      bare
       name="declared"
       tone="warn"
     >

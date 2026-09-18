@@ -40,6 +40,7 @@ export const VIEWS = [
   "files",
   "terminals",
   "settings",
+  "help",
 ] as const;
 
 export type View = (typeof VIEWS)[number];

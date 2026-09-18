@@ -15,6 +15,7 @@ import type { AgentState, Terminal } from "@shared/terminals";
 import {
   Activity,
   Boxes,
+  CircleHelp,
   Files,
   FolderPlus,
   Images,
@@ -232,6 +233,13 @@ export function AppSidebar({
         <ForwardsPanel />
 
         <div className="flex flex-col gap-0.5 px-2 pt-4">
+          <SidebarEntry
+            active={view === "help"}
+            bullet={<CircleHelp size={14} strokeWidth={1.5} />}
+            onClick={() => onView("help")}
+          >
+            {t("shell.sidebar.help")}
+          </SidebarEntry>
           <SidebarEntry
             active={view === "settings"}
             bullet={<SettingsIcon size={14} strokeWidth={1.5} />}

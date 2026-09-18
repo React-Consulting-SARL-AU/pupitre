@@ -60,6 +60,7 @@ export function ProjectAddFolders({
               {t("common.retry")}
             </Button>
           }
+          bare
           fix={agentText(t, state.error).fix}
           name="folders.failed"
           tone="danger"

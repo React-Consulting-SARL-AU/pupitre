@@ -7,7 +7,11 @@ export function ProjectGitSummary({ git }: { git: ProjectGitStatusResult }) {
   const t = useTranslations();
 
   if (git.problem) {
-    return <Callout tone="warn">{git.problem}</Callout>;
+    return (
+      <Callout bare tone="warn">
+        {git.problem}
+      </Callout>
+    );
   }
 
   if (!git.upstream) {

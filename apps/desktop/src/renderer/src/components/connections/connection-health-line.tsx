@@ -34,7 +34,7 @@ export function ConnectionHealthLine({ health }: { health: ConnectionHealth }) {
 
   if (health.status === "refused") {
     return (
-      <Callout fix={agentText(t, health.error).fix} tone="danger">
+      <Callout bare fix={agentText(t, health.error).fix} tone="danger">
         {agentText(t, health.error).message}
       </Callout>
     );

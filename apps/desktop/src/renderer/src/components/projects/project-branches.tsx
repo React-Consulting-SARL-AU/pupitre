@@ -47,7 +47,7 @@ export function ProjectBranches({
 
   if (state.status === "failed") {
     return heldForUsage(state.error) ? null : (
-      <ErrorNotice error={state.error} />
+      <ErrorNotice bare error={state.error} />
     );
   }
 
@@ -152,13 +152,15 @@ export function ProjectBranches({
       ) : null}
 
       {chosen && branches.dirty ? (
-        <Callout tone="warn">
+        <Callout bare tone="warn">
           {t("project.branches.dirtySwitch", { branch: chosen })}
         </Callout>
       ) : null}
 
       {branches.dirty && !chosen && !creating ? (
-        <Callout tone="warn">{t("project.branches.dirty")}</Callout>
+        <Callout bare tone="warn">
+          {t("project.branches.dirty")}
+        </Callout>
       ) : null}
 
       {branches.dirty ? null : (

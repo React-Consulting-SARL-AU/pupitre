@@ -91,6 +91,19 @@ describe("un avis", () => {
     expect(html).toContain('aria-label="Masquer"');
     expect(html).toContain('data-tone="ok"');
   });
+
+  it("posé dans un panneau, il perd son cadre et garde son glyphe", () => {
+    const html = renderToStaticMarkup(
+      <Callout bare tone="danger">
+        Le serveur a refusé.
+      </Callout>
+    );
+
+    expect(html).not.toContain("elevation-raised");
+    expect(html).not.toContain("border-line");
+    expect(html).toContain('role="alert"');
+    expect(html).toContain("text-danger");
+  });
 });
 
 describe("un refus de l'agent", () => {

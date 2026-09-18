@@ -21,6 +21,7 @@ export function ErrorNotice({
   retryLabel,
   onDismiss,
   name,
+  bare = false,
 }: {
   error: AgentError;
   /** Answer with the promise of the replay and the button waits on it. */
@@ -30,6 +31,8 @@ export function ErrorNotice({
   retryLabel?: string;
   onDismiss?: () => void;
   name?: string;
+  /** Inside a Panel, which already draws the frame. */
+  bare?: boolean;
 }) {
   const t = useTranslations();
 
@@ -49,6 +52,7 @@ export function ErrorNotice({
           </Button>
         ) : null
       }
+      bare={bare}
       fix={said.fix}
       name={name ?? error.code}
       onDismiss={onDismiss}

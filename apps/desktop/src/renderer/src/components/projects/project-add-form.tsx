@@ -115,6 +115,7 @@ export function ProjectAddForm({
 
             {detection.status === "failed" ? (
               <Callout
+                bare
                 fix={agentText(t, detection.error).fix}
                 name="detection"
                 tone="danger"

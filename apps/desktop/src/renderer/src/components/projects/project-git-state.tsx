@@ -45,7 +45,9 @@ export function ProjectGitState({
 
   if (state.status === "failed") {
     return heldForUsage(state.error) ? null : (
-      <ErrorNotice error={state.error} onRetry={onCheck} />
+      <div className="border-line border-t pt-3">
+        <ErrorNotice bare error={state.error} onRetry={onCheck} />
+      </div>
     );
   }
 
