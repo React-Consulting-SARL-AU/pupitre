@@ -263,16 +263,67 @@ func TestEnvFallsBackOnTheVersionedExampleWithoutASecretManager(t *testing.T) {
 	}
 }
 
-func TestEnvSaysWhatIsMissingWhenTheRepositoryVersionsNothing(t *testing.T) {
+// A repository that versions nothing is a project without an environment, not a refusal.
+func TestEnvAnswersNoTemplateWhenTheRepositoryVersionsNothing(t *testing.T) {
 	fake := machine()
 	delete(fake.Files, home+"/"+templateName)
 	ctx := newContext(t, fake, modtest.Secrets{"service_account_token": token})
 
+	result, err := Env(ctx, "flymate", "web", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if result.Template || result.Written || len(result.Keys) != 0 || result.Path != target {
+		t.Fatalf("want an empty answer at the target, got %+v", result)
+	}
+
+	if _, exists := fake.Files[target]; exists {
+		t.Fatal("nothing must be written without a template")
+	}
+
+	fake.Files[target] = []byte("PORT=3000\n")
+
+	kept, err := Env(ctx, "flymate", "web", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if kept.Template || strings.Join(kept.Keys, ",") != "PORT" {
+		t.Fatalf("a file written by hand is read, and still has no template: %+v", kept)
+	}
+}
+
+// A 1Password template with no op on the machine and no example beside it is a real refusal: the project has an environment nobody can produce.
+func TestEnvRefusesATemplateItCannotInject(t *testing.T) {
+	fake := machine()
+	delete(fake.Packages, pkg)
+	ctx := newContext(t, fake, nil)
+
 	_, err := Env(ctx, "flymate", "web", false)
 
 	failure, isProtocol := err.(*protocol.Error)
-	if !isProtocol || failure.Code != contract.ErrorBadRequest || failure.Fix == "" {
-		t.Fatalf("want a bad_request that says how to fix it, got %#v", err)
+	if !isProtocol || failure.Code != contract.ErrorBadRequest || !strings.Contains(failure.Fix, "tool.1password") {
+		t.Fatalf("want a bad_request that names the module to install, got %#v", err)
+	}
+}
+
+func TestEnvSaysWhetherTheRepositoryVersionsATemplate(t *testing.T) {
+	fake := machine()
+	ctx := newContext(t, fake, modtest.Secrets{"service_account_token": token})
+
+	written, err := Env(ctx, "flymate", "web", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	read, err := Env(ctx, "flymate", "web", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !written.Template || !read.Template {
+		t.Fatalf("the template is there whether the file was written or read: %+v %+v", written, read)
 	}
 }
 

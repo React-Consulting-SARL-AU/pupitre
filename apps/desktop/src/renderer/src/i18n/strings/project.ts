@@ -111,6 +111,10 @@ export const project = {
     "project.overview.branch": "Branch",
     "project.overview.env": "Environment",
     "project.env.reading": "reading the environment file…",
+    "project.env.none":
+      "No environment file: neither .env.example nor .env.1password.tpl in the repository.",
+    "project.env.noneHow":
+      "To have one, version either in {folder}; Pupitre writes .env.local from it.",
     "project.env.noKeys": "The file carries no key.",
     "project.env.keyCount.one": "{count} key",
     "project.env.keyCount.other": "{count} keys",
@@ -244,6 +248,10 @@ export const project = {
     "project.overview.branch": "Branche",
     "project.overview.env": "Environnement",
     "project.env.reading": "lecture du fichier d'environnement…",
+    "project.env.none":
+      "Pas de fichier d'environnement : ni .env.example ni .env.1password.tpl dans le dépôt.",
+    "project.env.noneHow":
+      "Pour en avoir un, versionnez l'un des deux dans {folder} ; Pupitre en écrit .env.local.",
     "project.env.noKeys": "Le fichier ne porte aucune clé.",
     "project.env.keyCount.one": "{count} clé",
     "project.env.keyCount.other": "{count} clés",

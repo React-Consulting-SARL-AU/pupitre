@@ -25,9 +25,10 @@ const (
 var keyPattern = regexp.MustCompile(`(?m)^\s*(?:export\s+)?([A-Z][A-Z0-9_]*)=`)
 
 type Result struct {
-	Path    string   `json:"path"`
-	Written bool     `json:"written"`
-	Keys    []string `json:"keys"`
+	Path     string   `json:"path"`
+	Written  bool     `json:"written"`
+	Keys     []string `json:"keys"`
+	Template bool     `json:"template"`
 }
 
 // The template is versioned by the repository, the values live in the vault: the file produced is the only place the two ever meet.
@@ -52,9 +53,10 @@ func Env(ctx *modules.Context, name, id string, force bool) (Result, error) {
 
 	home := envHome(ctx, dir, root)
 	target := home + "/" + targetName
+	template := hasTemplate(ctx, home)
 
 	if file.Exists(ctx, target) && !force {
-		return read(ctx, target)
+		return read(ctx, target, template)
 	}
 
 	switch {
@@ -62,10 +64,14 @@ func Env(ctx *modules.Context, name, id string, force bool) (Result, error) {
 		return inject(ctx, name, home, root, target)
 	case file.Exists(ctx, home+"/"+exampleName):
 		return copyExample(ctx, name, home, target)
+	case template:
+		return Result{}, protocol.NewError(contract.ErrorBadRequest, i18n.T("onepassword.template.uninjectable", name, templateName)).
+			WithFix(i18n.T("onepassword.template.uninjectable.fix", exampleName))
+	case file.Exists(ctx, target):
+		return read(ctx, target, false)
 	}
 
-	return Result{}, protocol.NewError(contract.ErrorBadRequest, i18n.T("onepassword.template.none", name, templateName, exampleName)).
-		WithFix(i18n.T("onepassword.template.none.fix", exampleName, home, templateName))
+	return Result{Path: target, Keys: []string{}}, nil
 }
 
 // A monorepo keeps one environment file at its root and its workspaces point back at it; the project folder is looked at first, the root next.
@@ -152,16 +158,16 @@ func write(ctx *modules.Context, target string, content []byte) (Result, error) 
 		return Result{}, err
 	}
 
-	return Result{Path: target, Written: true, Keys: keys(content)}, nil
+	return Result{Path: target, Written: true, Keys: keys(content), Template: true}, nil
 }
 
-func read(ctx *modules.Context, target string) (Result, error) {
+func read(ctx *modules.Context, target string, template bool) (Result, error) {
 	raw, err := file.Read(ctx, target)
 	if err != nil {
 		return Result{}, err
 	}
 
-	return Result{Path: target, Written: false, Keys: keys(raw)}, nil
+	return Result{Path: target, Written: false, Keys: keys(raw), Template: template}, nil
 }
 
 // The names of the variables, in the order the file gives them, and never a single value.

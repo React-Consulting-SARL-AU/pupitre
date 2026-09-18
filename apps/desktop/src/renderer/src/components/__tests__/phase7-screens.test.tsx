@@ -68,6 +68,7 @@ describe("le fichier d'environnement d'un projet", () => {
           env: {
             keys: ["DATABASE_URL", "AUTH_SECRET"],
             path: "/home/dev/projects/flymate/.env.local",
+            template: true,
             written: false,
           },
           status: "read",
@@ -92,6 +93,7 @@ describe("le fichier d'environnement d'un projet", () => {
           env: {
             keys,
             path: "/home/dev/projects/flymate/.env.local",
+            template: true,
             written: false,
           },
           status: "read",
@@ -117,6 +119,7 @@ describe("le fichier d'environnement d'un projet", () => {
           env: {
             keys: ["DATABASE_URL", "AUTH_SECRET"],
             path: "/home/dev/projects/flymate/.env.local",
+            template: true,
             written: false,
           },
           status: "read",
@@ -147,6 +150,55 @@ describe("le fichier d'environnement d'un projet", () => {
     expect(text(html)).toContain("aucun modele");
     expect(text(html)).toContain("Ajoutez un .env.example");
     expect(text(html)).toContain("Réessayer");
+    expect(html).not.toContain("elevation-raised");
+  });
+
+  it("dit calmement qu'un projet sans gabarit n'a pas d'environnement", () => {
+    const html = renderToStaticMarkup(
+      <ProjectEnv
+        onRead={NOOP}
+        onRegenerate={RESOLVED}
+        state={{
+          env: {
+            keys: [],
+            path: "/home/dev/projects/intranet/.env.local",
+            template: false,
+            written: false,
+          },
+          status: "read",
+        }}
+      />
+    );
+
+    expect(html).toContain('data-env="none"');
+    expect(text(html)).toContain("Pas de fichier d'environnement");
+    expect(text(html)).toContain("/home/dev/projects/intranet");
+    expect(html).not.toContain('role="alert"');
+    expect(html).not.toContain("text-danger");
+    expect(text(html)).not.toContain("Réessayer");
+    expect(text(html)).not.toContain("Régénérer");
+    expect(text(html)).not.toContain("aucune clé");
+  });
+
+  it("lit un fichier écrit à la main sans offrir de le régénérer", () => {
+    const html = renderToStaticMarkup(
+      <ProjectEnv
+        onRead={NOOP}
+        onRegenerate={RESOLVED}
+        state={{
+          env: {
+            keys: ["PORT"],
+            path: "/home/dev/projects/intranet/.env.local",
+            template: false,
+            written: false,
+          },
+          status: "read",
+        }}
+      />
+    );
+
+    expect(html).toContain("PORT");
+    expect(text(html)).not.toContain("Régénérer");
   });
 });
 
