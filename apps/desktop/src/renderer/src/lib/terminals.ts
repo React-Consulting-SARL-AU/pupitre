@@ -1,6 +1,7 @@
 import { translate } from "@renderer/i18n/translate";
 import type { ResolvedTheme } from "@shared/appearance";
 import type { TerminalEnd, TerminalKind } from "@shared/terminals";
+import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
 import { SearchAddon } from "@xterm/addon-search";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
@@ -218,11 +219,11 @@ export function obtain(id: string, kind: TerminalKind): Live {
   xterm.loadAddon(fit);
   xterm.loadAddon(search);
   xterm.loadAddon(new Unicode11Addon());
+  xterm.loadAddon(new ClipboardAddon(undefined, writeOnlyClipboard));
   xterm.unicode.activeVersion = "11";
   xterm.registerLinkProvider(addressProvider(xterm, openInBrowser));
   xterm.open(host);
   drawWithWebgl(xterm);
-  host.addEventListener("mousedown", keepSelectionOurs, true);
 
   // Only a shell gets completion: Claude, Codex and the dashboard handle their
   // own input, and a list on top of theirs would get in the way.
@@ -335,20 +336,19 @@ export function fitTerminal(id: string): void {
 }
 
 /**
- * A drag on the text selects it, whatever the program on the other side asked.
+ * What a program on the other side copies lands in the clipboard here.
  *
- * A full-screen agent turns mouse reporting on for its scrolling, and xterm
- * then hands every press to it: nothing can be selected or copied until the
- * program quits. Wheel events still reach it; a press reads as the modifier
- * xterm takes for "select anyway", on every platform.
+ * tmux and the agents under it ask for the mouse, so a plain press is theirs
+ * and a drag over a shell selects in tmux, which copies to its own buffer and
+ * announces the text with OSC 52; Option (Shift elsewhere) keeps a drag for
+ * xterm's own selection. Nothing goes the other way — a remote program never
+ * reads what the clipboard holds.
  */
-function keepSelectionOurs(event: MouseEvent): void {
-  if (event.button !== 0 || event.altKey || event.shiftKey) {
-    return;
-  }
-
-  Object.defineProperty(event, isMac ? "altKey" : "shiftKey", { value: true });
-}
+const writeOnlyClipboard = {
+  readText: () => "",
+  writeText: (_selection: unknown, text: string) =>
+    window.pupitre.copyFromTerminal(text),
+};
 
 export function focus(id: string): void {
   live.get(id)?.xterm.focus();
