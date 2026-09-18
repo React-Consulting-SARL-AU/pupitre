@@ -1,0 +1,30 @@
+---
+title: The mouse reaches tmux and the agents again, a server answers to the SSH name you choose, and a Help view says how each client reaches it
+description: A click in a terminal goes to the program that asked for the mouse and what it copies lands in the clipboard; each server carries an SSH name chosen beside its name; a server granted by the organization gets its host key on file; JetBrains Gateway reads the app's SSH file through a link without a space; a Help view at the foot of the sidebar shows how ssh, Claude Code, Codex and the editors reach the server; a repository without an environment template is no longer refused.
+locale: en
+version: 0.6.0
+channel: stable
+date: 2026-09-18
+order: 13
+---
+
+App and agent both to update: the app offers the agent update on the servers it knows, and each server keeps the word it already answered to.
+
+## The app
+
+- Since 0.2.3 every left click in a terminal was turned into an Option-click so the terminal kept its selection, and no press reached tmux or Claude Code any more — only the wheel got through. A click and a drag now go to the program that asked for the mouse; ⌥+drag on macOS, ⇧+drag elsewhere, selects in the terminal. What a program copies — a tmux selection, for one — lands in the clipboard, and nothing is ever read from it the other way.
+- Each server carries an SSH name, the word `ssh atelier`, the editors and the coding agents reach it by. It is entered beside the name when the server is added, changed from the server's entry in Settings › Servers, drawn from the name when nothing is typed, and refused when another server or a host of your `~/.ssh/config` already answers to it. A server added before keeps the word it answered to, and changing the name does not close the sessions open on it.
+- A server granted by the organization — the second computer of the same person — arrived with its pinned fingerprint and no host key on file, so the clients that read the app's SSH file could not verify it. The key the machine presents is now written there when it is the pinned one.
+- The app's SSH file names the key and the `known_hosts` through `~/.pupitre/<folder>`, a link kept pointed at the app's data folder and put back at each start. JetBrains Gateway parses that file with its own code and splits a path on the space in `Application Support`, quotes or not, then refuses the host key without asking; the link takes the space out of the path.
+- A Help entry sits at the foot of the sidebar, and in the command palette: how ssh, Claude Code, Codex and the editors reach the server on screen, with the command, account and key read from the app's SSH file, whether each tool is installed on that server, the common failures and what fixes them, and a link to the full guide.
+- A repository that versions neither `.env.example` nor `.env.1password.tpl` is no longer refused: the project simply has no environment, its panel says so in one line, and Regenerate is offered only when a template exists. A `.env.local` placed by hand on the server is read as it is. This asks for the 0.6.0 agent.
+
+## The agent
+
+- `project.env` says whether the repository versions a template. Without one it answers with no key and writes nothing. The only refusal left is a 1Password template on a machine where `tool.1password` is not installed, and it names the fix: install the tool, or version an `.env.example` beside it for a start without a vault.
+
+## Known limits
+
+- The runtime versions of a project are chosen in its settings once it is added; the add screen does not ask for them yet.
+- A macOS app 0.1.2 or later finds this version on its own; 0.1.0 and 0.1.1 still cannot, and need 0.6.0 installed from the download page.
+- The Windows installer is still unsigned: SmartScreen warns at first launch.
