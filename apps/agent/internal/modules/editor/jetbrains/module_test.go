@@ -142,6 +142,10 @@ func TestStatusReadsTheBuildThatIsOnTheMachine(t *testing.T) {
 	if !status.Installed || !status.Configured || status.Version != "IU-262.12345.67" {
 		t.Fatalf("unexpected status: %+v", status)
 	}
+
+	if status.Path != "/home/dev/.cache/JetBrains/RemoteDev/dist/idea-latest" {
+		t.Fatalf("the status must name the backend Gateway is pointed at, got %q", status.Path)
+	}
 }
 
 func TestUninstallGivesBackTheCacheOnly(t *testing.T) {

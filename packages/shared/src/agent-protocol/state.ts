@@ -47,6 +47,10 @@ export type ServiceState = z.infer<typeof ServiceStateSchema>
  * a screen showing what the machine is doing never has to read the catalogue
  * to know it: whether the module holds a process, and which third-party
  * account the app must hold for it.
+ *
+ * `path` is the absolute folder a module laid on the machine when something
+ * on the reader's side has to be pointed at it — the backend JetBrains Gateway
+ * opens. Only the agent knows where it put it.
  */
 export const ServiceSchema = z.object({
   id: z.string(),
@@ -60,6 +64,7 @@ export const ServiceSchema = z.object({
   versions: z.array(z.string()).optional(),
   port: z.int().min(1).max(65_535).optional(),
   unit: z.string().optional(),
+  path: z.string().optional(),
 })
 
 export type Service = z.infer<typeof ServiceSchema>
