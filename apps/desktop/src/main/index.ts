@@ -24,6 +24,7 @@ import type { TerminalOpened } from "@shared/terminals";
 import {
   app,
   BrowserWindow,
+  clipboard,
   dialog,
   ipcMain,
   Menu,
@@ -806,6 +807,12 @@ function registerTerminalChannels(): void {
   ipcMain.on("terminal-write", (_e, id: unknown, data: unknown) => {
     if (typeof id === "string" && typeof data === "string") {
       write(id, data);
+    }
+  });
+
+  ipcMain.on("terminal-copy", (_e, text: unknown) => {
+    if (typeof text === "string" && text.length > 0) {
+      clipboard.writeText(text);
     }
   });
 
