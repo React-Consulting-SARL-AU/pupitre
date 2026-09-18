@@ -152,7 +152,9 @@ export function ServerKeyInstall({
 
         {keyInstall.retry ? (
           <div className="mt-5">
-            <Callout tone="warn">{t("servers.key.password.refused")}</Callout>
+            <Callout bare tone="warn">
+              {t("servers.key.password.refused")}
+            </Callout>
           </div>
         ) : null}
 

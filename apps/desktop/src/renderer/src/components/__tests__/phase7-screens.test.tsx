@@ -319,6 +319,14 @@ describe("le formulaire d'ajout d'un serveur", () => {
     expect(html).toContain("noValidate");
   });
 
+  it("demande un nom SSH à côté du nom", () => {
+    const html = renderToStaticMarkup(
+      <ServerAddForm busy={false} error={null} onSubmit={NOOP} />
+    );
+
+    expect(text(html)).toContain("Nom SSH");
+  });
+
   it("ne lit un port que comme un nombre entier entre 1 et 65535", () => {
     expect(portOf("22")).toBe(22);
     expect(portOf(" 2222 ")).toBe(2222);

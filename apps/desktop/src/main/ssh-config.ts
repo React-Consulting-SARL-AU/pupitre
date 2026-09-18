@@ -4,9 +4,13 @@ import {
   lstatSync,
   mkdirSync,
   readFileSync,
+  realpathSync,
+  symlinkSync,
+  unlinkSync,
   writeFileSync,
 } from "node:fs";
-import { join } from "node:path";
+import { homedir } from "node:os";
+import { basename, dirname, isAbsolute, join, relative } from "node:path";
 import type { Server } from "@shared/servers";
 import { alias, sshNames } from "@shared/ssh-names";
 import { current, multiplexes, type Platform } from "./platform";
@@ -47,13 +51,29 @@ const HEADER = `# Written by Pupitre. Your own ~/.ssh/config is never touched.
 `;
 
 export interface SshPaths {
+  /** The app's data folder, which everything below lives in. */
+  root: string;
   dir: string;
   configPath: string;
   knownHostsPath: string;
   keysDir: string;
+  /** The whitespace-free way into `root`, for the readers that split on spaces. */
+  link: string;
 }
 
-export function appSshPaths(userData: string): SshPaths {
+const LINK_DIR = ".pupitre";
+const NOT_A_WORD = /[^a-z0-9]+/g;
+const EDGE_DASHES = /^-|-$/g;
+
+/** `Pupitre Dev (app.pupitre.studio)` becomes `pupitre-dev-app-pupitre-studio`. */
+function linkName(userData: string): string {
+  return basename(userData)
+    .toLowerCase()
+    .replace(NOT_A_WORD, "-")
+    .replace(EDGE_DASHES, "");
+}
+
+export function appSshPaths(userData: string, home = homedir()): SshPaths {
   const dir = join(userData, "ssh");
 
   return {
@@ -61,7 +81,82 @@ export function appSshPaths(userData: string): SshPaths {
     dir,
     keysDir: join(userData, "keys"),
     knownHostsPath: join(dir, "known_hosts"),
+    link: join(home, LINK_DIR, linkName(userData)),
+    root: userData,
   };
+}
+
+function pointsAtRoot(paths: SshPaths): boolean {
+  try {
+    return realpathSync(paths.link) === realpathSync(paths.root);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The link stood up, or checked, and its path; nothing when the place is taken.
+ *
+ * `~/Library/Application Support` carries a space, and so may a Windows
+ * profile. OpenSSH reads a quoted path, but JetBrains Gateway parses the same
+ * file with its own code and splits `IdentityFile` and `UserKnownHostsFile` on
+ * whitespace, quotes or not — then, pinned to strict checking, refuses without
+ * asking. So the app's file names its key and its known hosts through a link
+ * in a folder the app names itself, where no space can get in. A junction on
+ * Windows, which needs no privilege. A link that points elsewhere is the app's
+ * own, left by a data folder that moved, and is taken back; anything that is
+ * not a link belongs to someone else and is left alone.
+ */
+export function ensureLink(paths: SshPaths): string | null {
+  try {
+    const stat = lstatSync(paths.link, { throwIfNoEntry: false });
+
+    if (stat?.isSymbolicLink()) {
+      if (pointsAtRoot(paths)) {
+        return paths.link;
+      }
+
+      unlinkSync(paths.link);
+    } else if (stat) {
+      trace("ssh", "link-taken", { link: paths.link });
+
+      return null;
+    }
+
+    mkdirSync(dirname(paths.link), { mode: DIR_MODE, recursive: true });
+    symlinkSync(paths.root, paths.link, "junction");
+
+    return paths.link;
+  } catch (error) {
+    trace("ssh", "link-refused", {
+      error: (error as NodeJS.ErrnoException).code,
+      link: paths.link,
+    });
+
+    return null;
+  }
+}
+
+/** A file of the data folder, named through the link when it stands. */
+function through(paths: SshPaths, link: string | null, path: string): string {
+  if (!link) {
+    return path;
+  }
+
+  const inside = relative(paths.root, path);
+
+  return inside.startsWith("..") || isAbsolute(inside)
+    ? path
+    : join(link, inside);
+}
+
+/** The key of a server as the app's file names it, for a client that asks for the path. */
+export function identityFile(
+  server: Server,
+  paths: SshPaths,
+  link: string | null
+): string | null {
+  return server.keyPath ? through(paths, link, server.keyPath) : null;
 }
 
 export type Address = Pick<Server, "host" | "port">;
@@ -183,7 +278,8 @@ function block(
   name: string,
   paths: SshPaths,
   platform: Platform,
-  control: string | null
+  control: string | null,
+  link: string | null
 ): string {
   const names = name === alias(server) ? name : `${alias(server)} ${name}`;
   const lines = [
@@ -194,12 +290,14 @@ function block(
   ];
 
   if (server.keyPath) {
-    lines.push(`  IdentityFile ${argument(server.keyPath)}`);
+    lines.push(
+      `  IdentityFile ${argument(through(paths, link, server.keyPath))}`
+    );
   }
 
   lines.push(
     "  IdentitiesOnly yes",
-    `  UserKnownHostsFile ${argument(paths.knownHostsPath)}`,
+    `  UserKnownHostsFile ${argument(through(paths, link, paths.knownHostsPath))}`,
     `  StrictHostKeyChecking ${server.hostFingerprint ? "yes" : "accept-new"}`
   );
 
@@ -227,7 +325,8 @@ export function renderSshConfig(
   paths: SshPaths,
   platform: Platform = current(),
   control: string | null = controlDir(currentUid() ?? 0),
-  reserved: readonly string[] = []
+  reserved: readonly string[] = [],
+  link: string | null = null
 ): string {
   const names = sshNames(servers, reserved);
   const blocks = servers
@@ -238,7 +337,8 @@ export function renderSshConfig(
         names.get(server.id) ?? alias(server),
         paths,
         platform,
-        control
+        control,
+        link
       )
     );
 
@@ -255,7 +355,14 @@ export function writeSshConfig(
 
   writeFileSync(
     paths.configPath,
-    renderSshConfig(servers, paths, current(), usableControlDir(), reserved),
+    renderSshConfig(
+      servers,
+      paths,
+      current(),
+      usableControlDir(),
+      reserved,
+      ensureLink(paths)
+    ),
     { mode: FILE_MODE }
   );
   chmodSync(paths.configPath, FILE_MODE);

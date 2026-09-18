@@ -49,9 +49,11 @@ Host pupitre-srv-m9k2p1
   HostName 203.0.113.10
   Port 22
   User dev
-  IdentityFile "/Users/vous/Library/Application Support/Pupitre/keys/srv-m9k2p1"
+  IdentityFile /Users/vous/.pupitre/desktop/keys/srv-m9k2p1
   IdentitiesOnly yes
 ```
+
+Le chemin passe par `~/.pupitre/desktop`, un lien que l’app garde pointé sur son dossier de données. Le dossier lui-même porte une espace dans son nom sur macOS, et souvent sur Windows ; OpenSSH lit un chemin entre guillemets, mais JetBrains Gateway analyse le même fichier avec son propre code et coupe `IdentityFile` et `UserKnownHostsFile` sur l’espace, guillemets ou non. Le lien est ce qui rend le bloc de l’app lisible par les deux.
 
 Pointez vos clients sur ce fichier plutôt que d’en faire une copie ailleurs. Supprimer le serveur dans l’app emporte sa clé, et une copie posée ailleurs serait une orpheline qui ouvre toujours votre machine.
 
@@ -63,7 +65,7 @@ Tout ce qui suit demande que votre propre `~/.ssh/config` connaisse le serveur :
 Include "/Users/vous/Library/Application Support/Pupitre/ssh/config"
 ```
 
-Chaque serveur de l’app répond dès lors à son nom, en minuscules — `atelier` pour un serveur nommé « Atelier », le réglage le montre — avec la clé de l’app, `IdentitiesOnly` et la clé d’hôte épinglée. Un serveur dont le nom est déjà celui d’un `Host` de votre fichier garde son identifiant seul, `pupitre-srv-…`. Décocher la case retire la ligne. Vérifiez :
+Chaque serveur de l’app répond dès lors à son **nom SSH** — le mot choisi à côté de son nom quand vous l’ajoutez, `atelier` par défaut pour un serveur nommé « Atelier », modifiable depuis la fiche du serveur dans **Réglages › Serveurs**, le réglage SSH le montre — avec la clé de l’app, `IdentitiesOnly` et la clé d’hôte épinglée. Un serveur dont le nom SSH est déjà celui d’un `Host` de votre fichier garde son identifiant seul, `pupitre-srv-…`. Décocher la case retire la ligne. Vérifiez :
 
 ```
 ssh atelier "dev status"
@@ -71,14 +73,14 @@ ssh atelier "dev status"
 
 Une machine qui répond avec ses projets est une machine que tous les clients de cette page peuvent désormais joindre. Si elle demande un mot de passe, la clé n’est pas celle que `dev` accepte : révélez la clé publique sur l’écran des serveurs et comparez-la à `~/.ssh/authorized_keys` sur la machine.
 
-Si vous préférez écrire l’entrée vous-même, recopiez les valeurs depuis le bloc de l’app ; les guillemets autour du chemin sont nécessaires dès qu’il contient une espace, ce qui est le cas sur macOS et sur Windows.
+Si vous préférez écrire l’entrée vous-même, recopiez les valeurs depuis le bloc de l’app, lien compris : un chemin qui contient une espace demande des guillemets à OpenSSH et casse JetBrains Gateway dans tous les cas.
 
 ```
 Host atelier
   HostName 203.0.113.10
   Port 22
   User dev
-  IdentityFile "/Users/vous/Library/Application Support/Pupitre/keys/srv-m9k2p1"
+  IdentityFile /Users/vous/.pupitre/desktop/keys/srv-m9k2p1
   IdentitiesOnly yes
 ```
 
@@ -156,6 +158,7 @@ VS Code, Cursor et Windsurf se connectent en Remote SSH, Zed par `zed://ssh`, le
 - **`Permissions 0644 for ... are too open`.** La clé privée ne doit être lisible que par vous : `chmod 600` sur macOS et Linux. Sur Windows, la garder dans `%APPDATA%` suffit — une copie posée dans un dossier partagé, non.
 - **Rien ne répond sur le port 22.** Si votre réseau le filtre, `core.hardening` peut mettre SSH sur le 443 également ; changez `Port` dans votre entrée.
 - **La clé d’hôte a changé.** Réinstaller une machine la change. L’app vous le demande de son côté ; dans votre `~/.ssh/known_hosts`, retirez l’ancienne ligne.
+- **Gateway dit `Could not verify host key` sans rien vous demander.** Le bloc de l’app pointe sur son propre `known_hosts` en vérification stricte, et Gateway n’a pas pu lire le chemin. Vérifiez que `~/.pupitre` tient un lien au nom du dossier de l’app et que rien d’autre n’a pris sa place ; l’app le repose à son prochain démarrage.
 - **`codex: command not found` depuis un client distant.** Le client a ouvert un shell qui n’a pas lu `.zshenv`. Vérifiez avec `ssh atelier 'which codex'`.
 
 ## La révocation fonctionne toujours

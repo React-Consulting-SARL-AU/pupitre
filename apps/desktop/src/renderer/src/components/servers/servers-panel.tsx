@@ -1,6 +1,7 @@
 import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
-import type { ServerDraft } from "@shared/servers";
+import type { ServerChanges, ServerDraft } from "@shared/servers";
+import { movesConnection } from "@shared/servers";
 import { ExternalLink, Plus, Server as ServerIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { accountOf, useAccount } from "../../stores/account";
@@ -77,6 +78,12 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
   async function run(work: Promise<void>) {
     await work;
     onChanged?.();
+  }
+
+  function change(id: string, changes: ServerChanges): Promise<void> {
+    return movesConnection(changes)
+      ? run(update(id, changes))
+      : update(id, changes);
   }
 
   async function submit(draft: ServerDraft) {
@@ -178,7 +185,7 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
                 onOpen={() => open(server.id)}
                 onRemove={() => run(remove(server.id))}
                 onRename={(name) => rename(server.id, name)}
-                onUpdate={(changes) => run(update(server.id, changes))}
+                onUpdate={(changes) => change(server.id, changes)}
                 opening={
                   opening.status !== "idle" && opening.serverId === server.id
                     ? opening

@@ -29,6 +29,13 @@ export interface Server {
   /** The remote account. Empty on a system host: its own block says which. */
   user: string;
   origin: ServerOrigin;
+  /**
+   * The word typed after `ssh`, and handed to editors and coding agents.
+   *
+   * Chosen by the reader, beside the name; absent on a system host, which is
+   * its own alias, and on a server that answers to `pupitre-<id>` alone.
+   */
+  slug?: string;
   /** The private key in the app's folder. Absent on a system host. */
   keyPath?: string;
   /** The host key recorded on first contact. Absent: never contacted yet. */
@@ -149,6 +156,8 @@ export type KeyChoice =
 
 export interface ServerDraft {
   name: string;
+  /** The SSH name as typed; blank or absent, the main process draws one from the name. */
+  slug?: string;
   host: string;
   port: number;
   user: string;
@@ -164,11 +173,27 @@ export interface ServerDraft {
   password?: string | null;
 }
 
-/** What may change on a server the app reaches: its address, its port, its account. */
+/** What may change on a server the app reaches: its address, its port, its account, its SSH name. */
 export interface ServerChanges {
   host?: string;
   port?: number;
   user?: string;
+  /** As typed; blank, the main process draws one from the name again. */
+  slug?: string;
+}
+
+/**
+ * Whether a change reaches the machine differently: what is open on the
+ * server speaks to the old address, port or account and has to be reopened.
+ * The SSH name is other clients' word for the server — the app's own sessions
+ * ride the identifier and stand.
+ */
+export function movesConnection(changes: ServerChanges): boolean {
+  return (
+    changes.host !== undefined ||
+    changes.port !== undefined ||
+    changes.user !== undefined
+  );
 }
 
 export interface ServerUpdated {
