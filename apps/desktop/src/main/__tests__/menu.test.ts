@@ -60,7 +60,9 @@ describe("le menu de l'application", () => {
 
     expect(byId(menu, "preferences")?.accelerator).toBe("CmdOrCtrl+,");
     expect(byId(menu, "new-terminal")?.accelerator).toBe("CmdOrCtrl+T");
+    expect(byId(menu, "new-agent")?.accelerator).toBe("CmdOrCtrl+Shift+T");
     expect(byId(menu, "go-to-project")?.accelerator).toBe("CmdOrCtrl+K");
+    expect(byId(menu, "shortcuts")?.accelerator).toBe("CmdOrCtrl+/");
     expect(byId(menu, "check-updates")).toBeDefined();
     expect(byId(menu, "sign-out")).toBeDefined();
   });
@@ -70,15 +72,19 @@ describe("le menu de l'application", () => {
     const menu = menuTemplate("linux", true, "fr-FR", {
       checkUpdates: () => called.push("updates"),
       goToProject: () => called.push("palette"),
+      newAgent: () => called.push("agent"),
       newTerminal: () => called.push("terminal"),
       preferences: () => called.push("preferences"),
+      shortcuts: () => called.push("shortcuts"),
       signOut: () => called.push("sign-out"),
     });
 
     for (const id of [
       "preferences",
       "new-terminal",
+      "new-agent",
       "go-to-project",
+      "shortcuts",
       "check-updates",
       "sign-out",
     ]) {
@@ -88,10 +94,25 @@ describe("le menu de l'application", () => {
     expect(called).toEqual([
       "preferences",
       "terminal",
+      "agent",
       "palette",
+      "shortcuts",
       "updates",
       "sign-out",
     ]);
+  });
+
+  it("place les raccourcis sous le menu d'aide, dans la langue du système", () => {
+    const help = (locale: string) =>
+      menuTemplate("win32", true, locale).find((item) => item.role === "help");
+
+    expect(help("fr-FR")?.label).toBe("Aide");
+    expect(help("en-US")?.label).toBe("Help");
+    expect(
+      items(help("fr-FR")?.submenu as MenuItemConstructorOptions[]).find(
+        (item) => item.id === "shortcuts"
+      )?.label
+    ).toBe("Raccourcis clavier");
   });
 
   it("libelle ses entrées dans la langue du système", () => {

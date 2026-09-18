@@ -43,20 +43,37 @@ export function installedModules(services: readonly Service[]): string[] {
   return services.map((service) => service.id);
 }
 
-export function agentsFrom(services: readonly Service[]): TerminalAgent[] {
-  const agents: TerminalAgent[] = [];
+/** An agent and the module that put it on the machine, as the snapshot names it. */
+export interface AgentModule {
+  agent: TerminalAgent;
+  moduleId: string;
+  name: string;
+  version: string | null;
+}
+
+export function agentModulesFrom(services: readonly Service[]): AgentModule[] {
+  const modules: AgentModule[] = [];
 
   for (const service of services) {
     const agent = AGENT_MODULES[service.id];
 
-    if (agent && !agents.includes(agent)) {
-      agents.push(agent);
+    if (agent && !modules.some((held) => held.agent === agent)) {
+      modules.push({
+        agent,
+        moduleId: service.id,
+        name: service.name,
+        version: service.version ?? null,
+      });
     }
   }
 
-  return agents;
+  return modules;
+}
+
+export function agentsFrom(services: readonly Service[]): TerminalAgent[] {
+  return agentModulesFrom(services).map((held) => held.agent);
 }
 
 export function remoteEditors(services: readonly Service[]): RemoteEditor[] {
-  return editorsFor(installedModules(services));
+  return editorsFor(services);
 }

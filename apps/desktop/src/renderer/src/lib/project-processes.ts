@@ -190,12 +190,39 @@ function fromDetected(
   });
 }
 
-/** The processes the agent read off the source, in its order, all published when the server can. */
+/**
+ * The same processes, each port on one nobody holds: a port a declared project
+ * took, or an earlier row of the draft, moves up to the next free one. The
+ * command follows, since what the agent proposed is kept beside the row.
+ */
+export function onFreePorts(
+  processes: readonly ProcessDraft[],
+  held: Held
+): ProcessDraft[] {
+  const claimed = [...held.ports];
+
+  return processes.map((current) => ({
+    ...current,
+    rows: current.rows.map((row) => {
+      const port = freePort(claimed, row.port);
+
+      claimed.push(port);
+
+      return port === row.port ? row : { ...row, port };
+    }),
+  }));
+}
+
+/** The processes the agent read off the source, in its order, all published when the server can, on ports the server has free. */
 export function processesFromDetection(
   result: ProjectDetectResult,
-  publish: boolean
+  publish: boolean,
+  held: Held
 ): ProcessDraft[] {
-  return result.processes.map((detected) => fromDetected(detected, publish));
+  return onFreePorts(
+    result.processes.map((detected) => fromDetected(detected, publish)),
+    held
+  );
 }
 
 /** The processes of a declared project, as the configuration screen opens them: nothing proposed, everything the reader's. */

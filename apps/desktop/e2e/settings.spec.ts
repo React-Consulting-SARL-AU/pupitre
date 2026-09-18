@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 import { assertAccessible } from "./harness/accessible";
+import { toggle } from "./harness/controls";
 import { launchPupitre, type Running } from "./harness/launch";
 
 /**
@@ -34,7 +35,7 @@ test.describe("les réglages de l'app", () => {
     const { app, page } = running;
 
     await page.getByRole("button", { name: "Réglages" }).click();
-    await page.getByRole("button", { name: "À propos" }).click();
+    await page.getByRole("tab", { name: "À propos" }).click();
 
     await expect(page.locator("[data-app-version]")).toHaveAttribute(
       "data-app-version",
@@ -86,22 +87,20 @@ test.describe("les réglages de l'app", () => {
     const { app, page } = running;
 
     await page.getByRole("button", { name: "Réglages" }).click();
-    await page.getByRole("button", { name: "Notifications" }).click();
+    await page.getByRole("tab", { name: "Notifications" }).click();
 
-    const notifications = page.getByLabel(
-      "Me prévenir quand une session attend"
-    );
+    const notifications = toggle(page, "Me prévenir quand une session attend");
 
     await expect(notifications).toBeChecked();
     await notifications.click();
     await expect(notifications).not.toBeChecked();
 
-    await page.getByRole("button", { name: "Démarrage" }).click();
+    await page.getByRole("tab", { name: "Démarrage" }).click();
 
     if (process.platform === "linux") {
       await expect(page.locator('[data-startup="unsupported"]')).toBeVisible();
     } else {
-      const startup = page.getByLabel("Ouvrir Pupitre à la connexion");
+      const startup = toggle(page, "Ouvrir Pupitre à la connexion");
 
       await expect(startup).not.toBeChecked();
       await startup.click();
@@ -128,9 +127,10 @@ test.describe("les réglages de l'app", () => {
     const { app, page } = running;
 
     await page.getByRole("button", { name: "Réglages" }).click();
-    await page.getByRole("button", { name: "SSH" }).click();
+    await page.getByRole("tab", { name: "SSH" }).click();
 
-    const share = page.getByLabel(
+    const share = toggle(
+      page,
       "Laisser ssh, mes éditeurs et mes agents de code joindre mes serveurs par leur nom"
     );
 

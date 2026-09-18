@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { PageHeader } from "../ui/page-header";
 import { Screen } from "../ui/screen";
-import { TabBar, TabButton } from "../ui/tab-bar";
+import { Tab, TabBar } from "../ui/tab-bar";
 
 /**
  * The frame every page of the shell shares: a header on its own band, one
@@ -21,7 +21,7 @@ describe("le cadre d'une page", () => {
     );
 
     expect(html).toContain('data-screen="scroll"');
-    expect(html).toContain("bg-surface pt-4 border-b pb-5");
+    expect(html).toContain("bg-surface pt-5 border-b pb-6");
     expect(html).toContain("overflow-y-auto bg-base");
     expect(html).not.toContain("max-w-");
     expect(html).not.toContain("mx-auto");
@@ -76,7 +76,7 @@ describe("le cadre d'une page", () => {
     );
 
     expect(html).toContain('data-screen="fill"');
-    expect(html).toContain("bg-surface pt-4 border-b pb-5");
+    expect(html).toContain("bg-surface pt-5 border-b pb-6");
     expect(html).toContain(
       '<div class="min-h-0 flex-1 bg-base"><p>corps</p></div>'
     );
@@ -87,13 +87,9 @@ describe("le cadre d'une page", () => {
       <Screen
         fill
         tabs={
-          <TabBar>
-            <TabButton active onClick={NOOP}>
-              Vue
-            </TabButton>
-            <TabButton active={false} onClick={NOOP}>
-              Journal
-            </TabButton>
+          <TabBar label="Les pages" onChange={NOOP} value="overview">
+            <Tab value="overview">Vue</Tab>
+            <Tab value="logs">Journal</Tab>
           </TabBar>
         }
         title="atlas-web"
@@ -102,9 +98,9 @@ describe("le cadre d'une page", () => {
       </Screen>
     );
 
-    expect(html).not.toContain("border-b pb-5");
-    expect(html).toContain('data-active="true"');
-    expect(html.match(/data-active/g)?.length).toBe(1);
+    expect(html).not.toContain("border-b pb-6");
+    expect(html).toContain('role="tablist"');
+    expect(html.match(/aria-selected="true"/g)?.length).toBe(1);
     expect(html.indexOf("Vue")).toBeGreaterThan(html.indexOf("atlas-web"));
     expect(html.indexOf("corps")).toBeGreaterThan(html.indexOf("Journal"));
   });

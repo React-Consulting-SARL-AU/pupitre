@@ -6,6 +6,11 @@ import type {
 } from "@shared/terminals";
 import { TERMINAL_KINDS } from "@shared/terminals";
 import { create } from "zustand";
+import {
+  isProjectTab,
+  type ProjectTab,
+  tabOfKind,
+} from "../components/projects/project-tabs";
 import { translate } from "../i18n/translate";
 import {
   type Navigation,
@@ -42,6 +47,18 @@ export type View = (typeof VIEWS)[number];
 const NOT_RESTORED: readonly View[] = ["project-add", "terminals"];
 
 const remembered = readNavigation();
+
+function rememberedTabs(): Record<string, ProjectTab> {
+  const tabs: Record<string, ProjectTab> = {};
+
+  for (const [project, tab] of Object.entries(remembered.tabs ?? {})) {
+    if (isProjectTab(tab)) {
+      tabs[project] = tab;
+    }
+  }
+
+  return tabs;
+}
 
 function rememberedView(): View {
   const read = remembered.view as View | undefined;
@@ -98,23 +115,40 @@ function titleOf(kind: TerminalKind, rank: number): string {
 }
 
 /**
- * Terminals are grouped by project AND by kind.
- *
- * That is what lets a project's Claude tab have its own sessions, knowing
- * nothing of those in the Terminal tab nor of those of another project. The
- * server's own terminals have no project.
+ * Terminals are grouped by project and by row: a project's shells sit in one
+ * row and its agents — a Claude next to a Codex — in another, each knowing
+ * nothing of the other's, nor of another project's. The server's own
+ * terminals have no project.
  */
-export function groupKey(project: string | null, kind: TerminalKind): string {
-  return `${project ?? "@server"}:${kind}`;
+export type TerminalRow = "shell" | "agent";
+
+export function rowOf(kind: TerminalKind): TerminalRow {
+  return kind === "shell" ? "shell" : "agent";
+}
+
+export function groupKey(project: string | null, row: TerminalRow): string {
+  const base = project ?? "@server";
+
+  return row === "shell" ? base : `${base}:agents`;
 }
 
 export function group(
   terminals: readonly Terminal[],
   project: string | null,
-  kind: TerminalKind
+  row: TerminalRow
 ): Terminal[] {
-  return terminals.filter((t) => t.project === project && t.kind === kind);
+  return terminals.filter(
+    (t) => t.project === project && rowOf(t.kind) === row
+  );
 }
+
+function groupKeyOf(terminal: Terminal): string {
+  return groupKey(terminal.project, rowOf(terminal.kind));
+}
+
+// tmux exits 0 once the program it held has left, however that program left;
+// a broken link is ssh's own 255, and the session is still there to reattach.
+const CLEAN_EXIT = 0;
 
 function text(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
@@ -157,8 +191,9 @@ export interface RestoredTerminals {
  * The tabs the last run left, closed and ready to be opened again.
  *
  * Anything the memory cannot make a tab of is dropped rather than repaired, and
- * a tab in front that is no longer there leaves its group with none: a bad line
- * on the disk costs a tab, never the launch.
+ * a tab in front that is no longer there — or in front of a group it does not
+ * belong to — leaves its group with none: a bad line on the disk costs a tab,
+ * never the launch.
  */
 export function restoredTerminals(
   memory: Navigation = readNavigation()
@@ -166,12 +201,17 @@ export function restoredTerminals(
   const kept = Array.isArray(memory.terminals) ? memory.terminals : [];
   const terminals = kept.flatMap((entry) => tabOf(entry) ?? []);
   const ids = new Set(terminals.map((terminal) => terminal.id));
+  const keyOf = new Map(
+    terminals.map((terminal) => [terminal.id, groupKeyOf(terminal)])
+  );
   const fronts = Object.entries(memory.terminalTabs ?? {});
   const front = text(memory.terminal);
 
   return {
     activeTabs: Object.fromEntries(
-      fronts.filter(([, id]) => typeof id === "string" && ids.has(id))
+      fronts.filter(
+        ([key, id]) => typeof id === "string" && keyOf.get(id) === key
+      )
     ),
     activeTerminal: front && ids.has(front) ? front : null,
     terminals,
@@ -196,7 +236,7 @@ interface NavigationStore {
   terminalStates: Record<string, AgentState>;
   activeTerminal: string | null;
   /** The tab each project was left on, by project name. */
-  projectTabs: Record<string, string>;
+  projectTabs: Record<string, ProjectTab>;
   /** Where the reader has been this run, oldest first. */
   history: Location[];
   /** The entry of `history` on screen. */
@@ -221,14 +261,30 @@ interface NavigationStore {
     dir?: string | null,
     given?: GivenTerminal | null
   ) => string;
-  ensureTerminal: (project: string | null, kind: TerminalKind) => void;
-  closeTerminal: (id: string) => void;
+  /**
+   * The session the shortcut asks for, in the project on screen. A shell
+   * falls back to the server; an agent only runs in a project.
+   */
+  openTerminalHere: (kind?: TerminalKind) => void;
+  /** A project's terminals open on a shell when none is there yet. */
+  ensureTerminal: (project: string | null) => void;
+  /** `ended` says the session is already gone: nothing is left to kill on the machine. */
+  closeTerminal: (id: string, ended?: boolean) => void;
+  /**
+   * The process behind a tab has exited with `code`.
+   *
+   * An agent that left cleanly takes its tab with it — quitting Claude is
+   * done with Claude, not with an empty pane to close by hand. A shell keeps
+   * its tab with what it printed, and so does any session whose link broke
+   * rather than ended: the session lives on, and the tab is the way back.
+   */
+  endTerminal: (id: string, code: number) => void;
   activateTerminal: (id: string) => void;
   renameTerminal: (id: string, title: string) => void;
   /** The session the main process named for a tab, so the next run finds it. */
   noteSession: (id: string, session: string) => void;
   noteStates: (states: Record<string, AgentState>) => void;
-  setProjectTab: (project: string, tab: string) => void;
+  setProjectTab: (project: string, tab: ProjectTab) => void;
   reset: () => void;
 }
 
@@ -264,7 +320,7 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
   ...restoredTerminals(remembered),
   cursor: 0,
   history: [START],
-  projectTabs: remembered.tabs ?? {},
+  projectTabs: rememberedTabs(),
   selection: START.selection,
   service: START.service,
   terminalStates: {},
@@ -366,7 +422,10 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
     const id =
       given?.id ??
       `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
-    const rank = group(get().terminals, project, kind).length + 1;
+    const rank =
+      group(get().terminals, project, rowOf(kind)).filter(
+        (t) => t.kind === kind
+      ).length + 1;
     const title = given?.title ?? titleOf(kind, rank);
 
     set((state) => ({
@@ -377,7 +436,7 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
             view: "terminals",
           })
         : {}),
-      activeTabs: { ...state.activeTabs, [groupKey(project, kind)]: id },
+      activeTabs: { ...state.activeTabs, [groupKey(project, rowOf(kind))]: id },
       activeTerminal: project === null ? id : state.activeTerminal,
       terminals: [
         ...state.terminals,
@@ -389,20 +448,31 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
     return id;
   },
 
-  // Opening a project's Claude tab must give a session right away: nobody comes
-  // there to click "new" a second time.
-  ensureTerminal(project, kind) {
-    if (group(get().terminals, project, kind).length === 0) {
-      get().openTerminal(project, kind);
+  openTerminalHere(kind = "shell") {
+    const { view, selection } = get();
+
+    if (view === "project" && selection !== null) {
+      get().openTerminal(selection, kind);
+      get().setProjectTab(selection, tabOfKind(kind));
+    } else if (kind === "shell") {
+      get().openTerminal(null, kind);
+    }
+  },
+
+  // Opening a project's terminals must give a shell right away: nobody comes
+  // there to click "new" a second time. Its agents are the reader's choice.
+  ensureTerminal(project) {
+    if (group(get().terminals, project, "shell").length === 0) {
+      get().openTerminal(project, "shell");
     }
   },
 
   // Closing a tab is the reader saying they are done with that session: the
   // session dies with it, where closing the window only lets go of the pipe.
-  closeTerminal(id) {
+  closeTerminal(id, ended = false) {
     const leaving = get().terminals.find((t) => t.id === id);
 
-    destroy(id, endOf(leaving));
+    destroy(id, ended ? null : endOf(leaving));
     useTerminals.getState().forget(id);
 
     set((state) => {
@@ -410,12 +480,14 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
       const activeTabs = { ...state.activeTabs };
 
       if (leaving) {
-        const key = groupKey(leaving.project, leaving.kind);
+        const key = groupKeyOf(leaving);
 
         if (activeTabs[key] === id) {
-          const neighbour = group(remaining, leaving.project, leaving.kind).at(
-            -1
-          );
+          const neighbour = group(
+            remaining,
+            leaving.project,
+            rowOf(leaving.kind)
+          ).at(-1);
 
           if (neighbour) {
             activeTabs[key] = neighbour.id;
@@ -437,6 +509,14 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
     persist(get());
   },
 
+  endTerminal(id, code) {
+    const ended = get().terminals.find((t) => t.id === id);
+
+    if (ended && rowOf(ended.kind) === "agent" && code === CLEAN_EXIT) {
+      get().closeTerminal(id, true);
+    }
+  },
+
   // Coming back to a remembered tab is what opens it: this is where a tab left
   // by the last run stops being a name and becomes a session again.
   activateTerminal(id) {
@@ -454,7 +534,7 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
       }),
       activeTabs: {
         ...state.activeTabs,
-        [groupKey(target.project, target.kind)]: id,
+        [groupKeyOf(target)]: id,
       },
       activeTerminal: target.project === null ? id : state.activeTerminal,
       terminals: state.terminals.map((t) =>

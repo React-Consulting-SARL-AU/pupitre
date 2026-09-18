@@ -6,8 +6,9 @@ import type {
 } from "@renderer/lib/project-processes";
 import type { Exposure } from "@renderer/stores/project-add";
 import { Plus } from "lucide-react";
+import { useState } from "react";
 import { Button } from "../ui/button";
-import { Label } from "../ui/label";
+import { Section } from "../ui/section";
 import { type ProcessEdits, ProjectProcessCard } from "./project-process-card";
 
 /**
@@ -17,6 +18,10 @@ import { type ProcessEdits, ProjectProcessCard } from "./project-process-card";
  * that holds a server and its client shows two, each with its own folder,
  * manager, command and ports. The agent proposes the list from what it read
  * in the repository, and the reader adds, removes or corrects.
+ *
+ * Folded, each card is one line saying what the process is until the reader
+ * opens it; one added since the list opened, or one the registry would
+ * refuse, opens on its own.
  */
 export function ProjectProcesses({
   processes,
@@ -24,6 +29,7 @@ export function ProjectProcesses({
   rowProblems,
   exposure,
   placeholder,
+  folded = false,
   edit,
 }: {
   processes: readonly ProcessDraft[];
@@ -34,28 +40,39 @@ export function ProjectProcesses({
   exposure: Exposure | null;
   /** The project's name, which each name on the web is proposed from. */
   placeholder: string;
+  /** Closes each card on its summary, for a reader who knows the project. */
+  folded?: boolean;
   edit: ProcessEdits;
 }) {
   const t = useTranslations();
 
-  return (
-    <fieldset
-      className="flex min-w-0 flex-col gap-3"
-      data-processes={processes.length}
-    >
-      <legend className="flex flex-col gap-1">
-        <Label>{t("projectAdd.processes.title")}</Label>
-        <span className="text-[12px] text-ink-3 leading-relaxed">
-          {t("projectAdd.processes.help")}
-        </span>
-      </legend>
+  const [known] = useState(() => new Set(processes.map((draft) => draft.key)));
 
-      <ul className="flex flex-col gap-3">
+  return (
+    <Section
+      actions={
+        <Button icon={Plus} onClick={edit.addProcess} size="sm">
+          {t("projectAdd.processes.add")}
+        </Button>
+      }
+      aside={
+        processes.length > 1 ? (
+          <span className="font-data text-[12px] text-ink-3 tabular-nums">
+            {processes.length}
+          </span>
+        ) : undefined
+      }
+      data-processes={String(processes.length)}
+      name="processes"
+      title={t("projectAdd.processes.title")}
+    >
+      <ul className="flex flex-col gap-4">
         {processes.map((draft, index) => (
           <ProjectProcessCard
             draft={draft}
             edit={edit}
             exposure={exposure}
+            folded={folded && known.has(draft.key)}
             index={index}
             key={draft.key}
             placeholder={placeholder}
@@ -65,12 +82,6 @@ export function ProjectProcesses({
           />
         ))}
       </ul>
-
-      <div>
-        <Button icon={Plus} onClick={edit.addProcess} size="sm">
-          {t("projectAdd.processes.add")}
-        </Button>
-      </div>
-    </fieldset>
+    </Section>
   );
 }

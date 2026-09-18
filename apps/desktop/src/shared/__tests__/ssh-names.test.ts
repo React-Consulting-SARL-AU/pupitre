@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { REMOTE_EDITORS, remoteEditorUrl } from "../editors";
+import { editorsFor, REMOTE_EDITORS, remoteEditorUrl } from "../editors";
 import type { Server } from "../servers";
 import { alias, sshNames, sshSlug } from "../ssh-names";
 
@@ -67,6 +67,8 @@ describe("les noms que les serveurs se partagent", () => {
   });
 });
 
+const BACKEND = "/home/dev/.cache/JetBrains/RemoteDev/dist/idea-latest";
+
 describe("le lien d'un éditeur", () => {
   const byId = Object.fromEntries(REMOTE_EDITORS.map((e) => [e.id, e]));
 
@@ -82,20 +84,58 @@ describe("le lien d'un éditeur", () => {
     ).toBe("cursor://vscode-remote/ssh-remote+atelier/home/dev/api");
   });
 
-  it("donne à Gateway le port et le compte que le bloc dit", () => {
+  it("donne à Gateway le port et le compte que le bloc dit, et le backend que l'agent a posé", () => {
     expect(
-      remoteEditorUrl(byId.jetbrains, ATELIER, "atelier", "/home/dev/api")
+      remoteEditorUrl(
+        byId.jetbrains,
+        ATELIER,
+        "atelier",
+        "/home/dev/api",
+        BACKEND
+      )
     ).toBe(
-      "jetbrains-gateway://connect#type=ssh&host=atelier&port=2222&user=dev&projectPath=%2Fhome%2Fdev%2Fapi"
+      `jetbrains-gateway://connect#type=ssh&host=atelier&port=2222&user=dev&projectPath=%2Fhome%2Fdev%2Fapi&idePath=${encodeURIComponent(BACKEND)}&deploy=false`
     );
   });
 
   it("laisse un hôte du système à son alias, sans compte", () => {
     expect(
-      remoteEditorUrl(byId.jetbrains, SYSTEM, "dev-vps", "/home/dev/api")
+      remoteEditorUrl(
+        byId.jetbrains,
+        SYSTEM,
+        "dev-vps",
+        "/home/dev/api",
+        BACKEND
+      )
     ).toBe(
-      "jetbrains-gateway://connect#type=ssh&host=dev-vps&port=22&user=&projectPath=%2Fhome%2Fdev%2Fapi"
+      `jetbrains-gateway://connect#type=ssh&host=dev-vps&port=22&user=&projectPath=%2Fhome%2Fdev%2Fapi&idePath=${encodeURIComponent(BACKEND)}&deploy=false`
     );
+  });
+
+  it("ne donne aucun lien Gateway tant que l'agent n'a pas dit où est le backend", () => {
+    expect(
+      remoteEditorUrl(byId.jetbrains, ATELIER, "atelier", "/home/dev/api")
+    ).toBeNull();
+    expect(
+      remoteEditorUrl(byId.zed, ATELIER, "atelier", "/home/dev/api", null)
+    ).toBe("zed://ssh/atelier/home/dev/api");
+  });
+
+  it("n'offre Gateway qu'avec son backend, les autres dès leur module", () => {
+    const laid = editorsFor([
+      { id: "editor.jetbrains" },
+      { id: "editor.zed" },
+      { id: "editor.vscode", path: "/nowhere" },
+    ]);
+
+    expect(laid.map((editor) => editor.id)).toEqual([
+      "vscode",
+      "cursor",
+      "zed",
+    ]);
+    expect(
+      editorsFor([{ id: "editor.jetbrains", path: BACKEND }]).map((e) => e.id)
+    ).toEqual(["jetbrains"]);
   });
 
   it("refuse un chemin qui n'est pas absolu", () => {

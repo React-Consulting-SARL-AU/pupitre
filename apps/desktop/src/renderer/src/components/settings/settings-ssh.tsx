@@ -1,6 +1,7 @@
-import { CheckLine } from "@renderer/components/ui/check-line";
 import { Fact, FactList } from "@renderer/components/ui/fact";
+import { Panel } from "@renderer/components/ui/panel";
 import { Section } from "@renderer/components/ui/section";
+import { SwitchLine } from "@renderer/components/ui/switch";
 import { WaitingLine } from "@renderer/components/ui/waiting-line";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { useSshShare } from "@renderer/stores/ssh-share";
@@ -27,46 +28,52 @@ export function SettingsSsh() {
 
   if (!state) {
     return (
-      <div className="max-w-sm">
+      <Section name="ssh" title={t("settings.section.ssh")}>
         <WaitingLine>{t("settings.ssh.reading")}</WaitingLine>
-      </div>
+      </Section>
     );
   }
 
   return (
-    <div className="flex max-w-lg flex-col gap-6">
-      <div className="flex flex-col gap-2">
-        <CheckLine
-          checked={state.shared}
-          label={t("settings.ssh.label")}
-          name="settings.ssh"
-          onChange={set}
-        />
-        <p className="text-[12px] text-ink-3">
-          {t("settings.ssh.line", { file: state.userConfigPath })}
-        </p>
-        <code className="font-data text-[12px] text-ink-2" data-ssh-include>
-          {state.line}
-        </code>
-      </div>
+    <>
+      <Section name="ssh" title={t("settings.section.ssh")}>
+        <Panel inset="lg">
+          <SwitchLine
+            checked={state.shared}
+            detail={t("settings.ssh.line", { file: state.userConfigPath })}
+            label={t("settings.ssh.label")}
+            name="settings.ssh"
+            onChange={set}
+          />
+
+          <code
+            className="mt-4 block rounded-sm bg-sunken px-3 py-2 font-data text-[12px] text-ink-2"
+            data-ssh-include
+          >
+            {state.line}
+          </code>
+        </Panel>
+      </Section>
 
       <Section name="ssh-servers" title={t("settings.ssh.servers")}>
         {state.servers.length === 0 ? (
           <p className="text-ink-2">{t("settings.ssh.none")}</p>
         ) : (
-          <FactList>
-            {state.servers.map((server) => (
-              <Fact
-                data-ssh-name={server.ssh}
-                key={server.id}
-                label={server.name}
-              >
-                ssh {server.ssh}
-              </Fact>
-            ))}
-          </FactList>
+          <Panel inset="lg">
+            <FactList>
+              {state.servers.map((server) => (
+                <Fact
+                  data-ssh-name={server.ssh}
+                  key={server.id}
+                  label={server.name}
+                >
+                  ssh {server.ssh}
+                </Fact>
+              ))}
+            </FactList>
+          </Panel>
         )}
       </Section>
-    </div>
+    </>
   );
 }

@@ -1,3 +1,4 @@
+import { Collapsible } from "@base-ui-components/react/collapsible";
 import type { Manifest } from "@pupitre/shared/catalog";
 import { ServiceLogo } from "@renderer/components/ui/service-logo";
 import { StatusDot } from "@renderer/components/ui/status-dot";
@@ -36,11 +37,11 @@ export function ConnectionRow({
   const account = connected ? state.account : null;
 
   return (
-    <details
+    <Collapsible.Root
       className="group border-line border-b last:border-b-0"
       data-connection-row={connection.kind}
     >
-      <summary className="clickable flex cursor-pointer items-center gap-3 px-4 py-3 transition-soft hover:bg-raised">
+      <Collapsible.Trigger className="clickable flex w-full cursor-pointer items-center gap-3 px-5 py-3.5 text-left transition-soft hover:bg-raised">
         <ServiceLogo moduleId={connection.logo} name={t(connection.title)} />
 
         <span className="min-w-0 flex-1">
@@ -66,20 +67,20 @@ export function ConnectionRow({
 
         <ChevronRight
           aria-hidden="true"
-          className="shrink-0 text-ink-3 transition-soft group-open:rotate-90"
+          className="shrink-0 text-ink-3 transition-soft group-data-[open]:rotate-90"
           size={14}
           strokeWidth={1.5}
         />
-      </summary>
+      </Collapsible.Trigger>
 
-      <div className="px-4 pt-1 pb-4">
+      <Collapsible.Panel className="px-5 pt-1 pb-5">
         <ConnectionCard
           connection={connection}
           installed={installed}
           manifests={manifests}
           serverName={serverName}
         />
-      </div>
-    </details>
+      </Collapsible.Panel>
+    </Collapsible.Root>
   );
 }

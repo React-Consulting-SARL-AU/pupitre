@@ -747,6 +747,112 @@ describe("ce que l'agent lit dans la source", () => {
     expect(useProjectAdd.getState().run).toMatchObject({ status: "done" });
   });
 
+  /** A detection weighed against a declared project holding the given ports. */
+  function detectingBeside(ports: number[], processes: unknown[]): void {
+    stubPupitre({
+      ...QUIET_RUN,
+      agentCall: () => Promise.resolve({ ok: true, result: { processes } }),
+      listProjects: () =>
+        Promise.resolve({
+          ok: true,
+          result: {
+            projects: [
+              {
+                boot: false,
+                dir: "blog",
+                name: "blog",
+                path: "/home/dev/projects/blog",
+                processes: ports.map((port, index) => ({
+                  cmd: `bun run dev --port ${port}`,
+                  dir: ".",
+                  host: "127.0.0.1",
+                  id: `p${index}`,
+                  path: "/home/dev/projects/blog",
+                  pkgmgr: "bun",
+                  port,
+                  routes: [{ label: "web", port }],
+                  state: "stopped",
+                })),
+                state: "stopped",
+              },
+            ],
+          },
+        } as never),
+    });
+  }
+
+  // A repository declares the port it was written on; when another project of
+  // the server already holds it, the form opens on the next free one rather
+  // than on a refusal the reader has to fix by hand.
+  it("propose le port libre suivant quand un autre projet tient celui que le dépôt déclare", async () => {
+    detectingBeside(
+      [5173],
+      [
+        {
+          cmd: "pnpm dev --port 5173",
+          dir: ".",
+          id: "vite-starter",
+          install: "pnpm install",
+          pkgmgr: "pnpm",
+          port_hint: 5173,
+        },
+      ]
+    );
+
+    await useProjectAdd.getState().prepare("srv-1", null);
+    useProjectAdd.getState().setSource(REPO);
+    await useProjectAdd.getState().detect("srv-1");
+
+    expect(mainPort()).toBe(5174);
+    expect(main()?.cmd).toBe("pnpm dev --port 5174");
+    expect(useProjectAdd.getState().rowProblems(0)).toEqual([null]);
+    expect(useProjectAdd.getState().ready()).toBe(true);
+  });
+
+  it("décale chaque port d'un monorepo qu'un autre projet tient, sans en doubler un", async () => {
+    detectingBeside(
+      [3100, 3102],
+      [
+        {
+          cmd: "bunx turbo run dev",
+          dir: ".",
+          id: "shop",
+          install: "bun install",
+          pkgmgr: "bun",
+          port_hint: 3100,
+          routes: [
+            { label: "web", port: 3100 },
+            { label: "api", port: 3101 },
+          ],
+        },
+        {
+          cmd: "bun run dev --port 3101",
+          dir: "worker",
+          id: "worker",
+          install: "bun install",
+          pkgmgr: "bun",
+          port_hint: 3101,
+        },
+      ]
+    );
+
+    await useProjectAdd.getState().prepare("srv-1", TUNNEL);
+    useProjectAdd.getState().setSource(SHOP);
+    await useProjectAdd.getState().detect("srv-1");
+
+    expect(routes()).toEqual([
+      { label: "web", port: 3101, subdomain: "shop" },
+      { label: "api", port: 3103, subdomain: "api-shop" },
+    ]);
+    expect(routes(1)).toEqual([
+      { label: "web", port: 3104, subdomain: "web-shop" },
+    ]);
+    expect(useProjectAdd.getState().draft.processes[1]?.cmd).toBe(
+      "bun run dev --port 3104"
+    );
+    expect(useProjectAdd.getState().ready()).toBe(true);
+  });
+
   it("nomme un dossier du serveur comme tel, et ne relit pas la même source", async () => {
     const { asked } = detecting({
       ok: true,
@@ -848,6 +954,125 @@ describe("ce que l'agent lit dans la source", () => {
     });
     expect(mainPort()).toBe(3400);
     expect(useProjectAdd.getState().params()).not.toHaveProperty("repo");
+    expect(useProjectAdd.getState().step).toBe("source");
+  });
+});
+
+describe("les deux pas du formulaire", () => {
+  const READ = {
+    ok: true as const,
+    result: {
+      processes: [
+        {
+          cmd: "pnpm dev --port 5173",
+          dir: ".",
+          id: "app",
+          install: "pnpm install",
+          pkgmgr: "pnpm",
+          port_hint: 5173,
+        },
+      ],
+    },
+  };
+
+  function reading(answers: AgentResponse<unknown>[]): { asked: unknown[] } {
+    const asked: unknown[] = [];
+
+    stubPupitre({
+      ...QUIET_RUN,
+      agentCall: (_server, _cmd, params) => {
+        asked.push(params);
+
+        return Promise.resolve(answers[asked.length - 1] ?? READ);
+      },
+    });
+
+    return { asked };
+  }
+
+  it("ouvre sur la source, ne la lit que sur demande, puis passe à la configuration", async () => {
+    const { asked } = reading([READ]);
+
+    await useProjectAdd.getState().prepare("srv-1", null);
+    useProjectAdd.getState().setSource(REPO);
+    useProjectAdd.getState().setBranch("release/2.0");
+
+    expect(useProjectAdd.getState().step).toBe("source");
+    expect(asked).toEqual([]);
+
+    await useProjectAdd.getState().detect("srv-1");
+
+    expect(asked).toEqual([{ branch: "release/2.0", repo: REPO }]);
+    expect(useProjectAdd.getState().step).toBe("config");
+    expect(mainPort()).toBe(5173);
+  });
+
+  it("reste sur la source quand la lecture échoue, la relit sur demande, ou s'en passe", async () => {
+    const refused: AgentError = {
+      code: "bad_request",
+      message: "le dépôt ne répond pas",
+    };
+    const { asked } = reading([{ error: refused, ok: false }, READ]);
+
+    await useProjectAdd.getState().prepare("srv-1", null);
+    useProjectAdd.getState().setSource(REPO);
+    await useProjectAdd.getState().detect("srv-1");
+
+    expect(useProjectAdd.getState().step).toBe("source");
+    expect(useProjectAdd.getState().detection).toMatchObject({
+      error: refused,
+      status: "failed",
+    });
+
+    await useProjectAdd.getState().detect("srv-1");
+
+    expect(asked).toHaveLength(2);
+    expect(useProjectAdd.getState().step).toBe("config");
+
+    useProjectAdd.getState().reset();
+    reading([{ error: refused, ok: false }]);
+
+    await useProjectAdd.getState().prepare("srv-1", null);
+    useProjectAdd.getState().setSource(REPO);
+    await useProjectAdd.getState().detect("srv-1");
+    useProjectAdd.getState().skipReading();
+
+    expect(useProjectAdd.getState().step).toBe("config");
+    expect(mainPort()).toBe(3000);
+  });
+
+  it("revient à la source sans rien perdre, et ne relit pas ce qui l'a été", async () => {
+    const { asked } = reading([READ]);
+
+    await useProjectAdd.getState().prepare("srv-1", null);
+    useProjectAdd.getState().setSource(REPO);
+    await useProjectAdd.getState().detect("srv-1");
+    useProjectAdd.getState().setRowPort(0, 0, 5200);
+    useProjectAdd.getState().editSource();
+
+    expect(useProjectAdd.getState().step).toBe("source");
+    expect(useProjectAdd.getState().draft.source).toBe(REPO);
+    expect(mainPort()).toBe(5200);
+
+    await useProjectAdd.getState().detect("srv-1");
+
+    expect(asked).toHaveLength(1);
+    expect(useProjectAdd.getState().step).toBe("config");
+  });
+
+  it("ne se passe pas de lecture sans source, et repart de la source à la remise à zéro", async () => {
+    reading([READ]);
+
+    await useProjectAdd.getState().prepare("srv-1", null);
+    useProjectAdd.getState().skipReading();
+
+    expect(useProjectAdd.getState().step).toBe("source");
+
+    useProjectAdd.getState().setSource(REPO);
+    await useProjectAdd.getState().detect("srv-1");
+    useProjectAdd.getState().reset();
+
+    expect(useProjectAdd.getState().step).toBe("source");
   });
 });
 

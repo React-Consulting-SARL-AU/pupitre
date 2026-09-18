@@ -14,6 +14,7 @@ export function ActionBar({
   name,
   note,
   tone = "neutral",
+  column = true,
   children,
 }: {
   /** Which screen's bar this is, for whoever has to find it. */
@@ -22,6 +23,8 @@ export function ActionBar({
   note?: ReactNode;
   /** `danger` when the note says why the main gesture cannot be made. */
   tone?: "neutral" | "danger";
+  /** Off when the page above is not read in the step column: what the bar holds lines up with the page's own gutter. */
+  column?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -30,7 +33,7 @@ export function ActionBar({
       data-actions={name}
     >
       <div
-        className={`${STEP_COLUMN} flex flex-wrap items-center justify-between gap-3`}
+        className={`${column ? STEP_COLUMN : "px-8"} flex flex-wrap items-center justify-between gap-3`}
       >
         <div
           className={`min-w-0 flex-1 text-[12px] ${tone === "danger" ? "text-danger" : "text-ink-3"}`}

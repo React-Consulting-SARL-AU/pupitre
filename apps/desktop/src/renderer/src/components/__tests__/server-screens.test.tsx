@@ -332,10 +332,10 @@ describe("l'organisation de l'enrôlement", () => {
       organizations: identity.organizations.slice(0, 1),
     });
 
-    expect(several).toContain("<select");
+    expect(several).toContain('role="combobox"');
     expect(several).toContain('value="org-1"');
-    expect(text(several)).toContain("Fonderie · Membre");
-    expect(one).not.toContain("<select");
+    expect(text(several)).toContain("Atelier Ada · Admin");
+    expect(one).not.toContain('role="combobox"');
   });
 
   it("prévient quand aucune organisation n'est active", () => {

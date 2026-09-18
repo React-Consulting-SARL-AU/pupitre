@@ -1,37 +1,24 @@
+import { CheckLine } from "@renderer/components/ui/check-line";
 import { CopyButton } from "@renderer/components/ui/copy-button";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
+import { JournalPane } from "@renderer/components/ui/journal-pane";
 import { Section } from "@renderer/components/ui/section";
 import { WaitingLine } from "@renderer/components/ui/waiting-line";
 import { useTranslations } from "@renderer/i18n/use-translations";
-import type { AgentError } from "@shared/agent";
-import { useEffect, useRef, useState } from "react";
+import { useJournal } from "@renderer/lib/use-journal";
+import { useState } from "react";
 
 /**
  * The unit's journal, followed line by line.
  *
  * The lines are `log` events of `service.logs` followed: the app never names a
  * unit, never tails a file. The history is bounded — a service that loops on
- * an error writes megabytes — and what lands between two frames is drawn in
- * one. Scrolling up lets go of the tail; the box below hooks it back.
+ * an error writes megabytes.
  */
 
 const MAX_LINES = 2000;
 
 const TAIL = 120;
-
-// biome-ignore lint/suspicious/noControlCharactersInRegex: the escape byte is what an ANSI sequence is made of, and stripping it is the point
-const ANSI = /\[[0-9;?]*[a-zA-Z]/g;
-
-const CARRIAGE = /\r/g;
-
-interface Line {
-  id: number;
-  text: string;
-}
-
-function clean(line: string): string[] {
-  return line.replace(ANSI, "").replace(CARRIAGE, "").split("\n");
-}
 
 export function ServiceJournal({
   serverId,
@@ -45,102 +32,32 @@ export function ServiceJournal({
 }) {
   const t = useTranslations();
 
-  const [lines, setLines] = useState<Line[]>([]);
   const [follow, setFollow] = useState(true);
-  const [error, setError] = useState<AgentError | null>(null);
-  const [attempt, setAttempt] = useState(0);
-  const [cut, setCut] = useState(false);
-  const end = useRef<HTMLDivElement | null>(null);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is the retry itself — it is here to re-run the effect, not to be read
-  useEffect(() => {
-    setLines([]);
-    setError(null);
-    setCut(false);
-
-    let live = true;
-    let next = 0;
-    let frame: number | null = null;
-    let held: Line[] = [];
-
-    function flush(): void {
-      frame = null;
-
-      const batch = held;
-      held = [];
-
-      setLines((previous) => {
-        const merged = [...previous, ...batch];
-
-        return merged.length > MAX_LINES ? merged.slice(-MAX_LINES) : merged;
-      });
-
-      if (next > MAX_LINES) {
-        setCut(true);
-      }
-    }
-
-    const journal = window.pupitre.followServiceJournal(
-      serverId,
-      moduleId,
-      TAIL,
-      (line) => {
-        if (!live) {
-          return;
-        }
-
-        for (const text of clean(line)) {
-          next += 1;
-          held.push({ id: next, text });
-        }
-
-        frame ??= requestAnimationFrame(flush);
-      }
-    );
-
-    journal.done.then((answer) => {
-      if (live && !answer.ok) {
-        setError(answer.error);
-      }
-    });
-
-    return () => {
-      live = false;
-      journal.cancel();
-
-      if (frame !== null) {
-        cancelAnimationFrame(frame);
-      }
-    };
-  }, [serverId, moduleId, attempt]);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: every new line is a reason to follow — the count is the signal, not a value read
-  useEffect(() => {
-    if (follow) {
-      end.current?.scrollIntoView({ block: "end" });
-    }
-  }, [follow, lines.length]);
+  const journal = useJournal(
+    (onLine) =>
+      window.pupitre.followServiceJournal(serverId, moduleId, TAIL, onLine),
+    `${serverId}/${moduleId}`,
+    MAX_LINES
+  );
 
   return (
     <Section
       actions={
         <>
-          <label className="clickable flex h-7 items-center gap-2 px-1 text-[12px] text-ink-2">
-            <input
-              checked={follow}
-              className="accent-ink"
-              onChange={(event) => setFollow(event.target.checked)}
-              type="checkbox"
-            />
-            {t("services.journal.follow")}
-          </label>
+          <CheckLine
+            checked={follow}
+            label={t("services.journal.follow")}
+            name="service-journal-follow"
+            onChange={setFollow}
+            size="sm"
+          />
 
           <CopyButton
-            disabled={lines.length === 0}
+            disabled={journal.rows.length === 0}
             hint={t("services.journal.copyAllHint", { name })}
             onCopy={() =>
               navigator.clipboard.writeText(
-                lines.map((line) => line.text).join("\n")
+                journal.rows.map((row) => row.text).join("\n")
               )
             }
           >
@@ -149,36 +66,27 @@ export function ServiceJournal({
         </>
       }
       aside={
-        lines.length > 0 ? (
+        journal.rows.length > 0 ? (
           <span className="font-data text-[11px] text-ink-3 tabular-nums">
-            {t.plural("services.journal.lines", lines.length)}
+            {t.plural("services.journal.lines", journal.rows.length)}
           </span>
         ) : null
       }
       data-service-journal={moduleId}
       title={t("services.journal.title")}
     >
-      {error ? (
-        <ErrorNotice
-          error={error}
-          onRetry={() => setAttempt((count) => count + 1)}
-        />
+      {journal.error ? (
+        <ErrorNotice error={journal.error} onRetry={journal.retry} />
       ) : null}
 
-      <div
-        className="max-h-80 overflow-auto rounded-md border border-line bg-sunken px-4 py-3 font-data text-[12px] text-ink-2 leading-[1.7]"
-        onScroll={(event) => {
-          const element = event.currentTarget;
-          const atBottom =
-            element.scrollHeight - element.scrollTop - element.clientHeight <
-            40;
-
-          if (!atBottom && follow) {
-            setFollow(false);
-          }
-        }}
+      <JournalPane
+        className="max-h-80 rounded-md border border-line"
+        follow={follow}
+        label={t("services.journal.label", { name })}
+        onFollowChange={setFollow}
+        rows={journal.rows}
       >
-        {cut ? (
+        {journal.cut ? (
           <p
             className="mb-2 border-line border-b pb-2 text-[11px] text-ink-3"
             data-logs-cut="true"
@@ -187,17 +95,10 @@ export function ServiceJournal({
           </p>
         ) : null}
 
-        {lines.length === 0 && !error ? (
+        {journal.rows.length === 0 && !journal.error ? (
           <WaitingLine>{t("services.journal.waiting", { name })}</WaitingLine>
         ) : null}
-
-        {lines.map((line) => (
-          <div className="whitespace-pre-wrap break-all" key={line.id}>
-            {line.text}
-          </div>
-        ))}
-        <div ref={end} />
-      </div>
+      </JournalPane>
     </Section>
   );
 }

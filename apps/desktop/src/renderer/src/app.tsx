@@ -14,6 +14,7 @@ import { FilesScreen } from "./components/files/files-screen";
 import { OnboardingFlow } from "./components/onboarding/onboarding-flow";
 import { ProjectAddScreen } from "./components/projects/project-add-screen";
 import { ProjectScreen } from "./components/projects/project-screen";
+import { tabOfKind } from "./components/projects/project-tabs";
 import { ServicesScreen } from "./components/services/services-screen";
 import {
   SettingsScreen,
@@ -27,12 +28,14 @@ import { ScreenBoundary } from "./components/shell/screen-boundary";
 import { ServerLinkNotice } from "./components/shell/server-link-notice";
 import { ServerRestrictedNotice } from "./components/shell/server-restricted-notice";
 import { ServerTerminalsScreen } from "./components/shell/server-terminals-screen";
+import { ShortcutsDialog } from "./components/shell/shortcuts-dialog";
 import { SignOutDialog } from "./components/shell/sign-out-dialog";
 import { ShotsScreen } from "./components/shots/shots-screen";
 import { ErrorNotice } from "./components/ui/error-notice";
 import { WindowBand } from "./components/ui/window-band";
 import { AgentUpdateBanner } from "./components/updates/agent-update-banner";
 import { noteProjects } from "./lib/completion";
+import { agentModulesFrom } from "./lib/modules";
 import { unlessHeld } from "./lib/refusals";
 import { attachedSessions } from "./lib/sessions";
 import { shellScreen } from "./lib/shell-screen";
@@ -69,6 +72,7 @@ export function App() {
   const [settingsSection, setSettingsSection] =
     useState<SettingsSection>("servers");
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
   const onboarding = useOnboarding((s) => s.step);
@@ -97,6 +101,7 @@ export function App() {
   const goForward = useNavigation((s) => s.forward);
   const settle = useNavigation((s) => s.settle);
   const openTerminal = useNavigation((s) => s.openTerminal);
+  const openTerminalHere = useNavigation((s) => s.openTerminalHere);
   const closeTerminal = useNavigation((s) => s.closeTerminal);
   const activateTerminal = useNavigation((s) => s.activateTerminal);
   const renameTerminal = useNavigation((s) => s.renameTerminal);
@@ -148,6 +153,10 @@ export function App() {
     () => (snapshot?.services ?? []).filter((service) => service.runs),
     [snapshot]
   );
+  const firstAgent = useMemo(
+    () => agentModulesFrom(snapshot?.services ?? [])[0]?.agent ?? null,
+    [snapshot]
+  );
   const accounts = useServiceAccounts(
     serverId,
     runningServices,
@@ -189,9 +198,10 @@ export function App() {
     const link = window.pupitre.onTerminalLink((payload) =>
       useTerminals.getState().noteLink(payload.id, payload.host)
     );
-    const exit = window.pupitre.onTerminalExit((payload) =>
-      useTerminals.getState().noteExit(payload.id, payload.code)
-    );
+    const exit = window.pupitre.onTerminalExit((payload) => {
+      useNavigation.getState().endTerminal(payload.id, payload.code);
+      useTerminals.getState().noteExit(payload.id, payload.code);
+    });
 
     return () => {
       link();
@@ -253,9 +263,15 @@ export function App() {
       active: () => serverId,
       goTo,
       menu: {
-        "new-terminal": () => openTerminal(null, "shell"),
+        "new-agent": () => {
+          if (firstAgent) {
+            openTerminalHere(firstAgent);
+          }
+        },
+        "new-terminal": () => openTerminalHere(),
         palette: () => setPaletteOpen(true),
         preferences: () => openSettings("appearance"),
+        shortcuts: () => setShortcutsOpen(true),
         "sign-out": () => setSigningOut(true),
       },
       openSettings,
@@ -264,9 +280,10 @@ export function App() {
       switchServer,
     }),
     [
+      firstAgent,
       goTo,
       openSettings,
-      openTerminal,
+      openTerminalHere,
       readAccount,
       select,
       serverId,
@@ -377,6 +394,10 @@ export function App() {
         server={server}
         servers={servers}
         terminals={terminals}
+      />
+      <ShortcutsDialog
+        onClose={() => setShortcutsOpen(false)}
+        open={shortcutsOpen}
       />
       <SignOutDialog
         onCancel={() => setSigningOut(false)}
@@ -535,7 +556,7 @@ export function App() {
                   onCleanSessions={() => cleanSessions(serverId)}
                   onReattach={(project, kind) => {
                     openTerminal(project, kind);
-                    setProjectTab(project, kind);
+                    setProjectTab(project, tabOfKind(kind));
                     select(project);
                   }}
                   onRetryProcesses={() => readProcesses(serverId)}

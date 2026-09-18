@@ -1,7 +1,7 @@
 import { Button } from "@renderer/components/ui/button";
 import { Callout } from "@renderer/components/ui/callout";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
-import { fieldControlClass } from "@renderer/components/ui/field";
+import { Select } from "@renderer/components/ui/select";
 import { WaitingLine } from "@renderer/components/ui/waiting-line";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { heldForUsage } from "@renderer/lib/refusals";
@@ -81,30 +81,34 @@ export function ProjectBranches({
         <label className="sr-only" htmlFor={selectId}>
           {t("project.overview.branch")}
         </label>
-        <select
-          className={fieldControlClass}
+        <Select
+          className="max-w-xs"
           disabled={switching || creating}
+          groups={[
+            {
+              label: t("project.branches.local"),
+              options: branches.local.map((branch) => ({
+                label: branch,
+                value: branch,
+              })),
+            },
+            ...(remoteOnly.length > 0
+              ? [
+                  {
+                    label: t("project.branches.remote"),
+                    options: remoteOnly.map((branch) => ({
+                      label: branch,
+                      value: branch,
+                    })),
+                  },
+                ]
+              : []),
+          ]}
           id={selectId}
-          onChange={(event) => setPicked(event.target.value)}
+          kind="data"
+          onChange={setPicked}
           value={chosen ?? branches.current}
-        >
-          <optgroup label={t("project.branches.local")}>
-            {branches.local.map((branch) => (
-              <option key={branch} value={branch}>
-                {branch}
-              </option>
-            ))}
-          </optgroup>
-          {remoteOnly.length > 0 ? (
-            <optgroup label={t("project.branches.remote")}>
-              {remoteOnly.map((branch) => (
-                <option key={branch} value={branch}>
-                  {branch}
-                </option>
-              ))}
-            </optgroup>
-          ) : null}
-        </select>
+        />
 
         {chosen ? (
           <Button

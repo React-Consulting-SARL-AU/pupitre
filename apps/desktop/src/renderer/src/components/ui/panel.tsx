@@ -4,9 +4,9 @@ const FRAME = "elevation-raised rounded-md border border-line bg-surface";
 
 const INSET = {
   none: "",
-  sm: "px-3.5 py-3",
-  md: "px-4 py-4",
-  lg: "p-5",
+  sm: "px-4 py-3.5",
+  md: "p-5",
+  lg: "p-6",
 };
 
 /** The same frame on an element the component cannot be: a form, a button. */
@@ -34,7 +34,7 @@ export function Panel({
   children: ReactNode;
   inset?: keyof typeof INSET;
   list?: boolean;
-  as?: "div" | "ul" | "ol" | "section" | "article";
+  as?: "div" | "ul" | "ol" | "li" | "section" | "article";
   className?: string;
 } & Record<`data-${string}`, string | number | undefined> & {
     "aria-label"?: string;

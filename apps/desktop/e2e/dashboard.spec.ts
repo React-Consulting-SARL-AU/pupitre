@@ -182,7 +182,7 @@ test.describe("le tableau de bord", () => {
 
     await page.getByRole("button", { name: "Redémarrer le serveur" }).click();
     await page
-      .getByRole("banner")
+      .getByRole("alertdialog")
       .getByRole("button", { exact: true, name: "Redémarrer" })
       .click();
 

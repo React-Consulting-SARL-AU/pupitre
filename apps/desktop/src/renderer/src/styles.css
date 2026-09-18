@@ -97,6 +97,13 @@
   transition: width var(--motion-soft);
 }
 
+/* What floats — a menu, a bubble, a dialog — fades and settles in one breath. */
+@utility transition-pop {
+  transition:
+    opacity var(--motion-fast),
+    transform var(--motion-fast);
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;

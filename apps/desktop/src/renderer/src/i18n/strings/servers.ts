@@ -67,6 +67,7 @@ export const servers = {
     "servers.add.submitAnyway": "Add anyway",
     "servers.add.submit": "Add",
     "servers.add.recommended": "Recommended",
+    "servers.add.modes": "How the app gets its key onto the server",
 
     "servers.key.installing.title": "Installing the key",
     "servers.key.installing.detail":
@@ -193,6 +194,7 @@ export const servers = {
     "servers.add.submitAnyway": "Ajouter quand même",
     "servers.add.submit": "Ajouter",
     "servers.add.recommended": "Recommandé",
+    "servers.add.modes": "Comment l'app pose sa clé sur le serveur",
 
     "servers.key.installing.title": "Installation de la clé",
     "servers.key.installing.detail":

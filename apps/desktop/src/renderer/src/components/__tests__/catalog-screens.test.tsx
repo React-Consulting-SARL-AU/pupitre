@@ -281,8 +281,10 @@ describe("un préréglage qui nomme des modules exclusifs", () => {
     const html = question();
 
     for (const id of preset?.choose_one ?? []) {
-      expect(html).toContain(`value="${id}"`);
+      expect(html).toContain(`data-preset-option="${id}"`);
     }
+
+    expect(html).toContain('role="radiogroup"');
   });
 
   /** Exposing nothing is a state of its own, not a reason to cancel the preset. */

@@ -5,7 +5,7 @@ import { Hint } from "./hint";
 import { Label } from "./label";
 
 const SHARED =
-  "w-full rounded-md border bg-sunken px-3 py-1.5 text-[13px] text-ink outline-none transition-soft placeholder:text-ink-4 disabled:text-ink-4";
+  "w-full rounded-md border bg-sunken px-3.5 py-2 text-[13px] text-ink outline-none transition-soft placeholder:text-ink-4 disabled:text-ink-4";
 
 // The two borders are the same property: only one of them may be on the control, or the stylesheet's order decides.
 const soundClass = "border-line-strong focus:border-ink";
@@ -64,7 +64,7 @@ export function Field({
 
   return (
     <div
-      className="flex min-w-0 flex-col gap-1.5"
+      className="flex min-w-0 flex-col gap-2"
       data-wrong={problem ? "true" : undefined}
     >
       <div className="flex items-center gap-1.5">

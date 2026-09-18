@@ -1,4 +1,6 @@
-import { CheckLine } from "@renderer/components/ui/check-line";
+import { Panel } from "@renderer/components/ui/panel";
+import { Section } from "@renderer/components/ui/section";
+import { SwitchLine } from "@renderer/components/ui/switch";
 import { WaitingLine } from "@renderer/components/ui/waiting-line";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { usePreferences } from "@renderer/stores/preferences";
@@ -23,15 +25,16 @@ export function SettingsStartup() {
   }, [read]);
 
   return (
-    <div className="max-w-sm">
-      <div>
+    <Section name="startup" title={t("settings.section.startup")}>
+      <Panel inset="lg">
         {startup === null ? (
           <WaitingLine>{t("settings.startup.reading")}</WaitingLine>
         ) : null}
 
         {startup?.supported ? (
-          <CheckLine
+          <SwitchLine
             checked={startup.enabled}
+            detail={t("settings.startup.detail")}
             label={t("settings.startup.label")}
             name="settings.startup"
             onChange={setStartup}
@@ -39,11 +42,11 @@ export function SettingsStartup() {
         ) : null}
 
         {startup && !startup.supported ? (
-          <p className="text-ink-2" data-startup="unsupported">
+          <p className="text-ink-2 leading-relaxed" data-startup="unsupported">
             {t("settings.startup.unsupported")}
           </p>
         ) : null}
-      </div>
-    </div>
+      </Panel>
+    </Section>
   );
 }

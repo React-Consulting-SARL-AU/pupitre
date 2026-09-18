@@ -2,7 +2,7 @@ import { AccountPanel } from "@renderer/components/account/account-panel";
 import { ServersPanel } from "@renderer/components/servers/servers-panel";
 import { Button } from "@renderer/components/ui/button";
 import { Screen } from "@renderer/components/ui/screen";
-import { TabBar, TabButton } from "@renderer/components/ui/tab-bar";
+import { Tab, TabBar } from "@renderer/components/ui/tab-bar";
 import { WindowBand } from "@renderer/components/ui/window-band";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { ArrowLeft } from "lucide-react";
@@ -41,10 +41,13 @@ const SECTIONS: readonly SettingsSection[] = [
 /**
  * The settings, reachable from inside the app and from in front of it.
  *
- * In the shell the sidebar is the way back, and there is nothing to add. Opened
- * on its own — from the sign-in, or from a server that does not answer — it is
- * the whole window, and then it carries its own way out: without one the reader
- * repairs their account and stays stuck on the screen that repaired it.
+ * The panes stand in a column on the left, the one open on the right: nine
+ * words in a row read as a menu bar, nine in a column read as a table of
+ * contents. In the shell the sidebar is the way back, and there is nothing
+ * to add. Opened on its own — from the sign-in, or from a server that does
+ * not answer — it is the whole window, and then it carries its own way out:
+ * without one the reader repairs their account and stays stuck on the screen
+ * that repaired it.
  */
 export function SettingsScreen({
   onChanged,
@@ -53,7 +56,7 @@ export function SettingsScreen({
 }: {
   onChanged: () => void;
   onBack?: () => void;
-  /** The tab to land on, for a screen that sent the reader here to repair something. */
+  /** The pane to land on, for a screen that sent the reader here to repair something. */
   openAt?: SettingsSection;
 }) {
   const t = useTranslations();
@@ -76,44 +79,48 @@ export function SettingsScreen({
         <Screen
           actions={back}
           eyebrow={t("settings.eyebrow")}
-          tabs={
-            <TabBar>
-              {SECTIONS.map((id) => (
-                <TabButton
-                  active={section === id}
-                  key={id}
-                  onClick={() => setSection(id)}
-                >
-                  {t(`settings.section.${id}`)}
-                </TabButton>
-              ))}
-            </TabBar>
-          }
           title={t("settings.title")}
         >
-          {section === "account" ? <AccountPanel /> : null}
+          <div className="flex items-start gap-12">
+            <TabBar
+              label={t("settings.sections")}
+              onChange={setSection}
+              orientation="vertical"
+              value={section}
+            >
+              {SECTIONS.map((id) => (
+                <Tab key={id} orientation="vertical" value={id}>
+                  {t(`settings.section.${id}`)}
+                </Tab>
+              ))}
+            </TabBar>
 
-          {section === "connections" ? <SettingsConnections /> : null}
+            <div className="flex min-w-0 max-w-2xl flex-1 flex-col gap-section">
+              {section === "account" ? <AccountPanel /> : null}
 
-          {section === "appearance" ? <SettingsAppearance /> : null}
+              {section === "connections" ? <SettingsConnections /> : null}
 
-          {section === "terminal" ? <SettingsTerminal /> : null}
+              {section === "appearance" ? <SettingsAppearance /> : null}
 
-          {section === "ssh" ? <SettingsSsh /> : null}
+              {section === "terminal" ? <SettingsTerminal /> : null}
 
-          {section === "notifications" ? <SettingsNotifications /> : null}
+              {section === "ssh" ? <SettingsSsh /> : null}
 
-          {section === "startup" ? <SettingsStartup /> : null}
+              {section === "notifications" ? <SettingsNotifications /> : null}
 
-          {section === "about" ? <SettingsAbout /> : null}
+              {section === "startup" ? <SettingsStartup /> : null}
 
-          {/*
-          The servers panel keeps its state while the appearance tab is up: it
-          holds a key being generated and a line to paste, and unmounting it
-          would ask for both again.
-        */}
-          <div hidden={section !== "servers"}>
-            <ServersPanel onChanged={onChanged} />
+              {section === "about" ? <SettingsAbout /> : null}
+
+              {/*
+              The servers panel keeps its state while another pane is up: it
+              holds a key being generated and a line to paste, and unmounting
+              it would ask for both again.
+            */}
+              <div hidden={section !== "servers"}>
+                <ServersPanel onChanged={onChanged} />
+              </div>
+            </div>
           </div>
         </Screen>
       </div>

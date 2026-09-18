@@ -41,7 +41,7 @@ export function Screen({
   const inner = column ? STEP_COLUMN : "px-8";
   const band = plain
     ? "pt-10 pb-2"
-    : `border-line bg-surface pt-4 ${tabs ? "" : "border-b pb-5"}`;
+    : `border-line bg-surface pt-5 ${tabs ? "" : "border-b pb-6"}`;
 
   return (
     <div
@@ -60,7 +60,7 @@ export function Screen({
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto bg-base">
           <div className="flex min-h-full flex-col">
-            <div className={`${inner} flex flex-1 flex-col gap-section py-6`}>
+            <div className={`${inner} flex flex-1 flex-col gap-section py-8`}>
               {children}
             </div>
             {footer}

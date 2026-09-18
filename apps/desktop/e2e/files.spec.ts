@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { assertAccessible } from "./harness/accessible";
+import { pickOption } from "./harness/controls";
 import { ANSWERS, FILES } from "./harness/fixtures";
 import { launchPupitre, type Running } from "./harness/launch";
 
@@ -28,8 +29,12 @@ type Made = string[];
 
 async function themed(page: Page, theme: "light" | "dark"): Promise<void> {
   await page.getByRole("button", { name: "Réglages" }).click();
-  await page.getByRole("button", { name: "Apparence" }).click();
-  await page.getByLabel("Thème").selectOption(theme);
+  await page.getByRole("tab", { name: "Apparence" }).click();
+  await pickOption(
+    page,
+    page.getByLabel("Thème"),
+    theme === "dark" ? "Sombre" : "Clair"
+  );
 
   await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
 }
@@ -41,11 +46,7 @@ async function openFiles(page: Page): Promise<void> {
     page.getByRole("heading", { name: "flymate-api" })
   ).toBeVisible();
 
-  // The sidebar has a "Fichiers" entry of its own; the tab comes after it.
-  await page
-    .getByRole("button", { exact: true, name: "Fichiers" })
-    .last()
-    .click();
+  await page.getByRole("tab", { exact: true, name: "Fichiers" }).click();
   await expect(page.locator("[data-files-root]")).toBeVisible();
 }
 

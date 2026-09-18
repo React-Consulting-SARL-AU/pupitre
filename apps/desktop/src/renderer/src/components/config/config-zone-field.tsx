@@ -1,6 +1,7 @@
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { CloudflareZone } from "@shared/cloudflare";
-import { Field, fieldControlClass } from "../ui/field";
+import { Field, fieldAria } from "../ui/field";
+import { Select } from "../ui/select";
 
 /**
  * The domain of an exposure, picked among the zones of the connected account.
@@ -33,19 +34,14 @@ export function ConfigZoneField({
       label={t("connections.zone.label")}
       name={`${moduleId}.zone`}
     >
-      <select
-        className={fieldControlClass}
-        id={`${moduleId}.zone`}
-        onChange={(event) => onChange(event.target.value)}
+      <Select
+        {...fieldAria({ help: true, name: `${moduleId}.zone` })}
+        kind="data"
+        onChange={onChange}
+        options={zones.map((zone) => ({ label: zone.name, value: zone.name }))}
+        placeholder={t("connections.zone.pick")}
         value={picked}
-      >
-        <option value="">{t("connections.zone.pick")}</option>
-        {zones.map((zone) => (
-          <option key={zone.id} value={zone.name}>
-            {zone.name}
-          </option>
-        ))}
-      </select>
+      />
     </Field>
   );
 }

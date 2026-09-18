@@ -11,6 +11,7 @@ import {
   DB_MONGODB,
   EXPOSURE_CLOUDFLARE,
 } from "../../__tests__/catalog-fixtures";
+import { mount } from "../../__tests__/dom";
 import { stubPupitre } from "../../__tests__/stub-pupitre";
 import { LOGIN_LOOK } from "../../lib/project-state";
 import { removalOf } from "../../lib/service-removal";
@@ -30,6 +31,7 @@ import { ServicePanelFacts } from "../services/service-panel-facts";
 import { ServiceRemovalLosses } from "../services/service-removal-losses";
 import { ServiceRoutes } from "../services/service-routes";
 import { ServiceRow } from "../services/service-row";
+import { ServicesList } from "../services/services-list";
 import { ServicesTunnel } from "../services/services-tunnel";
 import { ScreenFailure } from "../shell/screen-failure";
 import { StatePill } from "../ui/state-pill";
@@ -126,6 +128,47 @@ describe("la ligne d'un service", () => {
     expect(signedOut).toContain('data-state="running"');
     expect(signedOut).toContain('data-state="signed_out"');
     expect(text(signedOut)).toContain("non connecté");
+  });
+});
+
+describe("la liste des services", () => {
+  const html = renderToStaticMarkup(
+    <ServicesList
+      accounts={{ "ai.claude": "signed_in" }}
+      onOpen={() => undefined}
+      services={[
+        { ...POSTGRES, id: "ai.claude", name: "Claude Code" },
+        POSTGRES,
+        { ...POSTGRES, id: "runtime.node", name: "Node.js" },
+        { ...POSTGRES, id: "core.system", name: "Système" },
+        { ...POSTGRES, id: "db.mysql", name: "MySQL" },
+      ]}
+    />
+  );
+
+  it("range chaque service sous la catégorie du catalogue, dans l'ordre du catalogue", () => {
+    const categories = [
+      ...html.matchAll(/data-service-category="([a-z]+)"/g),
+    ].map((match) => match[1]);
+
+    expect(categories).toEqual(["core", "runtime", "database", "ai"]);
+    expect(text(html)).toMatch(/Socle.*Runtimes.*Bases de données.*Agents IA/);
+  });
+
+  it("garde dans une catégorie l'ordre du snapshot", () => {
+    const databases = html.slice(
+      html.indexOf('data-service-category="database"'),
+      html.indexOf('data-service-category="ai"')
+    );
+
+    expect(databases.indexOf('data-service="db.postgres"')).toBeLessThan(
+      databases.indexOf('data-service="db.mysql"')
+    );
+    expect(databases).not.toContain('data-service="runtime.node"');
+  });
+
+  it("dit sur la ligne le compte que le service tient", () => {
+    expect(html).toContain('data-state="signed_in"');
   });
 });
 
@@ -283,17 +326,21 @@ describe("la confirmation d'un retrait", () => {
     [...CATALOG.modules, DB_MONGODB]
   );
 
-  const html = renderToStaticMarkup(
-    <ServiceRemovalLosses
-      losses={removal.losses}
-      name={DB_MONGODB.name}
-      onCancel={() => undefined}
-      onConfirm={() => undefined}
-      open
-    />
-  );
+  const asked = () =>
+    mount(
+      <ServiceRemovalLosses
+        losses={removal.losses}
+        name={DB_MONGODB.name}
+        onCancel={() => undefined}
+        onConfirm={() => undefined}
+        open
+      />
+    );
 
-  it("nomme les données perdues avant de proposer le geste", () => {
+  it("nomme les données perdues avant de proposer le geste", async () => {
+    const view = await asked();
+    const html = view.html();
+
     expect(text(html)).toContain(
       "Les bases de données de ce moteur, leurs comptes et leurs mots de passe."
     );
@@ -302,12 +349,19 @@ describe("la confirmation d'un retrait", () => {
     expect(html.indexOf("Retirer définitivement")).toBeGreaterThan(
       html.indexOf("secrets envoyés")
     );
+
+    view.unmount();
   });
 
   /** The gesture stands in the header; the question floats over the page it was asked from. */
-  it("pose la question dans une boîte de dialogue, et rien tant qu'elle n'est pas ouverte", () => {
+  it("pose la question dans une boîte de dialogue, et rien tant qu'elle n'est pas ouverte", async () => {
+    const view = await asked();
+    const html = view.html();
+
     expect(html).toContain('data-dialog="uninstall"');
     expect(html).toContain('role="dialog"');
+
+    view.unmount();
 
     const closed = renderToStaticMarkup(
       <ServiceRemovalLosses
@@ -322,8 +376,12 @@ describe("la confirmation d'un retrait", () => {
     expect(closed).toBe("");
   });
 
-  it("ne laisse pas croire qu'une sauvegarde est prise au passage", () => {
-    expect(text(html)).toContain("Rien n'est sauvegardé au passage");
+  it("ne laisse pas croire qu'une sauvegarde est prise au passage", async () => {
+    const view = await asked();
+
+    expect(view.text()).toContain("Rien n'est sauvegardé au passage");
+
+    view.unmount();
   });
 });
 
@@ -500,13 +558,13 @@ describe("l'en-tête d'un service", () => {
 
   /** What names the module on the machine decides nothing for the reader, and everything for whoever goes looking on the server. */
   it("range l'identifiant et l'unité systemd sous Détails", () => {
-    const details = html.slice(html.indexOf("<details"));
+    const fold = html.indexOf('hidden=""');
+    const details = html.slice(fold);
 
+    expect(fold).toBeGreaterThan(-1);
     expect(details).toContain("db.postgres");
     expect(details).toContain("postgresql");
-    expect(html.slice(0, html.indexOf("<details"))).not.toContain(
-      "db.postgres"
-    );
+    expect(html.slice(0, fold)).not.toContain("db.postgres");
   });
 
   /** A mandatory module has no removal button; the header says why in its place. */
@@ -590,8 +648,10 @@ describe("les réglages d'un service dont le catalogue manque", () => {
     );
 
     expect(picked).toContain('id="exposure.cloudflare.zone"');
-    expect(picked).toContain('<option value="flymate.dev" selected="">');
-    expect(picked).toContain('value="flymate.studio"');
+    expect(picked).toContain('role="combobox"');
+    expect(picked).toMatch(
+      /id="exposure.cloudflare.zone"[^>]*>[^<]*<span[^>]*>flymate\.dev</
+    );
     expect(picked).toContain('data-field="exposure.cloudflare.domain"');
 
     const typed = renderToStaticMarkup(
@@ -776,7 +836,7 @@ describe("un écran que l'app n'a pas su dessiner", () => {
     expect(html).toContain('data-screen-failure="true"');
     expect(text(html)).toContain("Rien n'a changé sur le serveur");
     expect(text(html)).toContain("Le dessiner à nouveau");
-    expect(html.slice(html.indexOf("<details"))).toContain(
+    expect(html.slice(html.indexOf('hidden=""'))).toContain(
       "Cannot read properties"
     );
   });

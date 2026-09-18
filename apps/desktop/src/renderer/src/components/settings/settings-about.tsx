@@ -1,3 +1,5 @@
+import { Panel } from "@renderer/components/ui/panel";
+import { Section } from "@renderer/components/ui/section";
 import { WaitingLine } from "@renderer/components/ui/waiting-line";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { useAppUpdate } from "@renderer/stores/app-update";
@@ -28,23 +30,23 @@ export function SettingsAbout() {
     return listen();
   }, [read, listen]);
 
-  if (!(about && state)) {
-    return <WaitingLine>{t("settings.about.reading")}</WaitingLine>;
-  }
-
   return (
-    <div className="max-w-sm">
-      <div>
-        <SettingsAboutBuild about={about} />
-      </div>
+    <Section name="about" title={t("settings.section.about")}>
+      {about && state ? (
+        <Panel inset="lg">
+          <SettingsAboutBuild about={about} />
 
-      <div className="mt-6 border-line border-t pt-4">
-        <SettingsAboutUpdate
-          onCheck={check}
-          onInstall={install}
-          state={state}
-        />
-      </div>
-    </div>
+          <div className="mt-6 border-line border-t pt-5">
+            <SettingsAboutUpdate
+              onCheck={check}
+              onInstall={install}
+              state={state}
+            />
+          </div>
+        </Panel>
+      ) : (
+        <WaitingLine>{t("settings.about.reading")}</WaitingLine>
+      )}
+    </Section>
   );
 }

@@ -12,13 +12,15 @@ import type {
   Terminal as TerminalInfo,
   TerminalKind,
 } from "@shared/terminals";
-import { Eraser, Plus, Search } from "lucide-react";
+import { Eraser, Search } from "lucide-react";
 import type { KeyboardEvent } from "react";
+import { TerminalNewButton } from "./terminal-new-button";
 import { TerminalPane } from "./terminal-pane";
 import { TerminalTab } from "./terminal-tab";
 
 /**
- * Several sessions of the same kind, side by side.
+ * The sessions of one project — or of the server — side by side, whatever
+ * their kind: a shell next to a Claude next to a Codex.
  *
  * None is unmounted when you move to the next: they are all rendered, and only
  * the active one gets opacity and events. A terminal hidden by `display:none`
@@ -27,13 +29,14 @@ import { TerminalTab } from "./terminal-tab";
  *
  * The row is a tab list in the keyboard's sense too: the arrows move between
  * sessions, and the shortcuts a terminal catches — new, close, next, search —
- * land here, where the row knows its neighbours.
+ * land here, where the row knows its neighbours. "New" from a session opens
+ * another of its kind.
  */
 export function TerminalTabs({
   sessions,
   active,
   states,
-  kind,
+  kinds,
   project,
   onActivate,
   onNew,
@@ -43,10 +46,11 @@ export function TerminalTabs({
   sessions: readonly TerminalInfo[];
   active: string | null;
   states: Record<string, AgentState>;
-  kind: TerminalKind;
+  /** What the "+" can open here: the shell, and the agents the machine holds. */
+  kinds: readonly TerminalKind[];
   project: string | null;
   onActivate: (id: string) => void;
-  onNew: () => void;
+  onNew: (kind: TerminalKind) => void;
   onClose: (id: string) => void;
   onRename: (id: string, title: string) => void;
 }) {
@@ -87,7 +91,7 @@ export function TerminalTabs({
   function answer(id: string, shortcut: TerminalShortcut): void {
     switch (shortcut.kind) {
       case "new":
-        onNew();
+        onNew(sessions.find((session) => session.id === id)?.kind ?? "shell");
         return;
       case "close":
         onClose(id);
@@ -157,13 +161,7 @@ export function TerminalTabs({
             />
           ))}
 
-          <IconButton
-            icon={Plus}
-            label={t("terminals.newSessionHint", { chord })}
-            onClick={onNew}
-            size={12}
-            variant="discreet"
-          />
+          <TerminalNewButton chord={chord} kinds={kinds} onNew={onNew} />
         </div>
 
         {active ? (
@@ -203,7 +201,7 @@ export function TerminalTabs({
               dir={session.dir}
               dormant={session.dormant}
               id={session.id}
-              kind={kind}
+              kind={session.kind}
               onClose={() => onClose(session.id)}
               onResume={() => onActivate(session.id)}
               onShortcut={(shortcut) => answer(session.id, shortcut)}

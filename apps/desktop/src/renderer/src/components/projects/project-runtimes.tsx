@@ -8,8 +8,10 @@ import {
   runtimeModuleId,
 } from "@pupitre/shared/catalog";
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { Field, fieldControlClass } from "../ui/field";
-import { Label } from "../ui/label";
+import { Field } from "../ui/field";
+import { Panel } from "../ui/panel";
+import { Section } from "../ui/section";
+import { Select } from "../ui/select";
 
 /**
  * One select per runtime the server holds, in the catalogue's order: the
@@ -40,46 +42,47 @@ export function ProjectRuntimes({
   }
 
   return (
-    <fieldset
-      className="flex min-w-0 flex-col gap-3"
-      data-runtimes={held.length}
+    <Section
+      data-runtimes={String(held.length)}
+      name="runtimes"
+      title={t("project.config.runtimes.title")}
     >
-      <legend className="flex flex-col gap-1">
-        <Label>{t("project.config.runtimes.title")}</Label>
-        <span className="text-[12px] text-ink-3 leading-relaxed">
+      <Panel className="flex flex-col gap-5" inset="lg">
+        <p className="text-[12px] text-ink-3 leading-relaxed">
           {t("project.config.runtimes.help")}
-        </span>
-      </legend>
+        </p>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        {held.map(({ service, tool }) => {
-          const versions = service.versions ?? [];
-          const name = `config.runtimes.${tool}`;
+        <div className="grid gap-6 sm:grid-cols-2">
+          {held.map(({ service, tool }) => {
+            const versions = service.versions ?? [];
+            const name = `config.runtimes.${tool}`;
 
-          return (
-            <Field key={tool} label={service.name} name={name}>
-              <select
-                className={fieldControlClass}
-                id={name}
-                name={name}
-                onChange={(event) => onChange(tool, event.target.value)}
-                value={runtimes[tool] ?? ""}
-              >
-                <option value="">
-                  {t("project.config.runtimes.default", {
-                    version: versions[0] ?? "",
-                  })}
-                </option>
-                {versions.map((version) => (
-                  <option key={version} value={version}>
-                    {version}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          );
-        })}
-      </div>
-    </fieldset>
+            return (
+              <Field key={tool} label={service.name} name={name}>
+                <Select
+                  id={name}
+                  kind="data"
+                  name={name}
+                  onChange={(version) => onChange(tool, version)}
+                  options={[
+                    {
+                      label: t("project.config.runtimes.default", {
+                        version: versions[0] ?? "",
+                      }),
+                      value: "",
+                    },
+                    ...versions.map((version) => ({
+                      label: version,
+                      value: version,
+                    })),
+                  ]}
+                  value={runtimes[tool] ?? ""}
+                />
+              </Field>
+            );
+          })}
+        </div>
+      </Panel>
+    </Section>
   );
 }

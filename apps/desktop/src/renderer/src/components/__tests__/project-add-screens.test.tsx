@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { PortRow, RowProblem } from "../../lib/project-ports";
 import type { ProcessDraft, ProcessProblem } from "../../lib/project-processes";
 import type {
+  AddStep,
   DetectionState,
   Draft,
   Exposure,
@@ -138,6 +139,8 @@ function text(html: string): string {
 function panel(
   run: ProjectAddState,
   extra: {
+    step?: AddStep;
+    draft?: Partial<Draft>;
     exposure?: Exposure | null;
     detection?: DetectionState;
     declared?: Project | null;
@@ -156,7 +159,7 @@ function panel(
     <ProjectAddPanel
       declared={extra.declared ?? null}
       detection={extra.detection ?? { status: "idle" }}
-      draft={{ ...DRAFT, processes }}
+      draft={{ ...DRAFT, ...extra.draft, processes }}
       edit={EDIT}
       exposure={extra.exposure ?? null}
       folders={NO_FOLDERS}
@@ -166,12 +169,14 @@ function panel(
       onCancel={() => undefined}
       onConnect={() => undefined}
       onDetect={() => undefined}
+      onEditSource={() => undefined}
       onFinish={() => undefined}
       onInstallModule={() => undefined}
       onLaunch={() => undefined}
       onOpenDeclared={() => undefined}
       onReload={() => undefined}
       onRetry={() => undefined}
+      onSkipReading={() => undefined}
       phases={PHASES}
       processProblems={extra.processProblems ?? processes.map(() => null)}
       ready
@@ -182,18 +187,84 @@ function panel(
           : process.rows.map(() => null)
       )}
       run={run}
+      step={extra.step ?? "config"}
     />
   );
 }
 
 describe("le formulaire d'un nouveau projet", () => {
-  it("demande la source et offre de créer ou de renoncer", () => {
-    const rendered = text(panel({ status: "idle" }));
+  it("ouvre sur la source seule, et finit sur sa lecture", () => {
+    const rendered = panel({ status: "idle" }, { step: "source" });
 
-    expect(rendered).toContain("Nouveau projet");
-    expect(rendered).toContain("Source");
-    expect(rendered).toContain("Créer le projet");
-    expect(rendered).toContain("Annuler");
+    expect(text(rendered)).toContain("Nouveau projet");
+    expect(rendered).toContain('data-step="source"');
+    expect(text(rendered)).toContain("Adresse git");
+    expect(rendered).toContain('id="project.source"');
+    expect(text(rendered)).toContain("Lire le dépôt");
+    expect(text(rendered)).toContain("Annuler");
+    expect(text(rendered)).not.toContain("Créer le projet");
+    expect(rendered).not.toContain('id="project.name"');
+    expect(rendered).not.toContain("data-ports=");
+
+    expect(
+      text(
+        panel({ status: "idle" }, { draft: { kind: "dir" }, step: "source" })
+      )
+    ).toContain("Lire le dossier");
+  });
+
+  it("ne lit rien sans source, ni un projet que le serveur déclare déjà", () => {
+    const empty = panel(
+      { status: "idle" },
+      { draft: { source: "" }, step: "source" }
+    );
+    const declared = panel(
+      { status: "idle" },
+      {
+        declared: {
+          boot: false,
+          dir: "vite-starter",
+          name: "vite-starter",
+          path: "/home/dev/projects/vite-starter",
+          processes: [],
+          state: "stopped",
+        },
+        step: "source",
+      }
+    );
+
+    expect(empty).toMatch(
+      /<button[^>]*disabled[^>]*>[^<]*<svg[^>]*>.*?Lire le dépôt/
+    );
+    expect(declared).toMatch(
+      /<button[^>]*disabled[^>]*>[^<]*<svg[^>]*>.*?Lire le dépôt/
+    );
+    expect(text(declared)).toContain("déclare déjà ce projet");
+    expect(text(declared)).toContain("Ouvrir le projet");
+  });
+
+  it("garde la source en vue sur la configuration, et offre d'y revenir", () => {
+    const rendered = panel({ status: "idle" });
+    const own = text(panel({ status: "idle" }, { draft: { branch: "" } }));
+    const folder = text(
+      panel({ status: "idle" }, { draft: { kind: "dir", source: "apps/api" } })
+    );
+
+    expect(rendered).toContain('data-step="config"');
+    expect(rendered).toContain('data-source="repo"');
+    expect(text(rendered)).toContain(
+      "Dépôt https://github.com/moi/vite-starter.git"
+    );
+    expect(text(rendered)).toContain("Branche main");
+    expect(text(rendered)).toContain("Modifier la source");
+    expect(text(rendered)).toContain("Créer le projet");
+    expect(text(rendered)).not.toContain("Lire le dépôt");
+    expect(rendered).not.toContain('id="project.source"');
+
+    expect(own).toContain("Branche celle du dépôt");
+
+    expect(folder).toContain("Dossier apps/api");
+    expect(folder).not.toContain("Branche");
   });
 
   it("liste les ports en lignes, et ne demande un nom sur le web que si une exposition est installée et que l'on publie", () => {
@@ -284,6 +355,8 @@ describe("le formulaire d'un nouveau projet", () => {
     expect(text(one)).toContain("Ajouter un processus");
 
     expect(two).toContain('data-processes="2"');
+    expect(two).toMatch(/data-open=""[^>]*data-process="0"/);
+    expect(two).toMatch(/data-open=""[^>]*data-process="1"/);
     expect(two).toContain('id="project.processes.0.id"');
     expect(two).toContain('id="project.processes.1.dir"');
     expect(two).toContain('value="client"');
@@ -334,7 +407,7 @@ describe("le formulaire d'un nouveau projet", () => {
     );
     const reading = panel(
       { status: "idle" },
-      { detection: { source: DRAFT.source, status: "reading" } }
+      { detection: { source: DRAFT.source, status: "reading" }, step: "source" }
     );
     const readingBranch = panel(
       { status: "idle" },
@@ -344,16 +417,22 @@ describe("le formulaire d'un nouveau projet", () => {
           source: DRAFT.source,
           status: "reading",
         },
+        step: "source",
       }
     );
     const failed = panel(
       { status: "idle" },
       {
         detection: {
-          error: { code: "bad_request", message: "le dépôt ne répond pas" },
+          error: {
+            code: "bad_request",
+            fix: "Vérifiez l'adresse, ou la branche.",
+            message: "le dépôt ne répond pas",
+          },
           source: DRAFT.source,
           status: "failed",
         },
+        step: "source",
       }
     );
 
@@ -365,14 +444,17 @@ describe("le formulaire d'un nouveau projet", () => {
     expect(reading).toContain('role="status"');
     expect(reading).toContain('data-live="duration"');
     expect(reading).toMatch(/<input aria-busy="true"[^>]*id="project\.branch"/);
+    expect(reading).toMatch(
+      /<button aria-busy="true"[^>]*disabled[^>]*>.*?Lire le dépôt/
+    );
     expect(text(readingBranch)).toContain(
       "L'agent clone la branche release/2.0 et lit ce qu'elle demande…"
     );
+    expect(failed).toContain('data-callout="detection"');
     expect(text(failed)).toContain("le dépôt ne répond pas");
-    expect(failed).toContain('aria-invalid="true"');
-    expect(failed).toContain(
-      'aria-describedby="project.source-help project.source-problem"'
-    );
+    expect(text(failed)).toContain("Vérifiez l'adresse, ou la branche.");
+    expect(text(failed)).toContain("Configurer sans lire");
+    expect(text(reading)).not.toContain("Configurer sans lire");
   });
 });
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { AccountDevice, AccountState } from "@shared/account";
 import { CONNECTION_KINDS } from "@shared/connections";
 import { renderToStaticMarkup } from "react-dom/server";
+import { mount, optionsOf } from "../../__tests__/dom";
 import {
   BRANCHES,
   GIT_STATUS,
@@ -35,7 +36,6 @@ import {
 } from "../projects/project-diff-files";
 import { ProjectEnv } from "../projects/project-env";
 import { ProjectGitState } from "../projects/project-git-state";
-import { matchingLines } from "../projects/project-logs";
 import { portOf, ServerAddForm } from "../servers/server-add-form";
 import { grantStatusLabel } from "../servers/server-grant-detail";
 
@@ -161,13 +161,13 @@ describe("le changement de branche", () => {
       />
     );
 
-    expect(html).toContain("<select");
+    expect(html).toContain('role="combobox"');
     expect(text(html)).not.toContain("Changer ");
     expect(text(html)).toContain("changement de branche sera refusé");
   });
 
-  it("sépare les branches locales des distantes pas encore prises, et offre d'en créer une", () => {
-    const html = renderToStaticMarkup(
+  it("sépare les branches locales des distantes pas encore prises, et offre d'en créer une", async () => {
+    const view = await mount(
       <ProjectBranches
         folder="/home/dev/projects/flymate"
         onCheckout={NOOP}
@@ -176,12 +176,18 @@ describe("le changement de branche", () => {
       />
     );
 
-    expect(html).toContain('<optgroup label="Locales">');
-    expect(html).toContain('<optgroup label="Distantes">');
-    expect(html.match(/<option/g)).toHaveLength(3);
-    expect(html).toContain('value="release"');
-    expect(text(html)).toContain("Nouvelle branche");
-    expect(text(html)).toContain("1 distante pas encore prise");
+    expect(view.text()).toContain("Nouvelle branche");
+    expect(view.text()).toContain("1 distante pas encore prise");
+
+    const listed = await optionsOf(
+      view,
+      document.querySelector("#project-branch")
+    );
+
+    expect(listed.options).toEqual(["main", "feat/tarifs", "release"]);
+    expect(listed.groups).toEqual(["Locales", "Distantes"]);
+
+    view.unmount();
   });
 
   it("refuse avant l'agent un nom que git refuserait, ou qui existe déjà", () => {
@@ -221,21 +227,6 @@ describe("l'écart avec le dépôt distant", () => {
     );
 
     expect(text(html)).not.toContain("Tirer");
-  });
-});
-
-describe("le journal", () => {
-  it("garde les lignes qui portent le terme, majuscules à part", () => {
-    const lines = [
-      { id: 1, text: "Listening on :3000" },
-      { id: 2, text: "error: boom" },
-      { id: 3, text: "ERROR again" },
-    ];
-
-    expect(matchingLines(lines, "error").map((line) => line.id)).toEqual([
-      2, 3,
-    ]);
-    expect(matchingLines(lines, "  ")).toBe(lines);
   });
 });
 
@@ -361,8 +352,10 @@ describe("un compte tiers connecté", () => {
     expect(text(html)).toContain("Flymate");
     expect(text(html)).toContain("Atelier");
     expect(html).toContain('data-account-option="acc-1"');
-    expect(html.match(/type="radio"/g)).toHaveLength(2);
-    expect(html).toContain('checked="" value="acc-2"');
+    expect(html.match(/role="radio"/g)).toHaveLength(2);
+    expect(html).toMatch(
+      /data-account-option="acc-2"[^>]*>[^!]*?data-checked=""[^>]*role="radio"/
+    );
   });
 
   it("nomme ce que l'oubli emporte, ou dit qu'il ne le sait pas", () => {

@@ -31,6 +31,7 @@
   --font-display-weight: 700;
   --font-display-letter-spacing: -0.01em;
 
+  --radius-xs: 4px;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 18px;

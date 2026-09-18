@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { noteStatus } from "../../lib/terminal-status";
 import { TerminalEndedBar } from "../terminals/terminal-ended-bar";
+import { TerminalNewButton } from "../terminals/terminal-new-button";
 import { TerminalSearchBar } from "../terminals/terminal-search-bar";
 import { TerminalStatusBar } from "../terminals/terminal-status-bar";
 import { TerminalTab } from "../terminals/terminal-tab";
@@ -33,6 +34,8 @@ describe("un onglet de session", () => {
     expect(html).toContain('role="tab"');
     expect(html).toContain('aria-selected="true"');
     expect(html).toContain('data-shape="ringed"');
+    expect(html).toContain('data-terminal-kind="claude"');
+    expect(html).toContain("<title>Claude</title>");
     expect(html).toContain("Fermer l&#x27;onglet (⌘W)");
   });
 
@@ -59,6 +62,30 @@ describe("un onglet de session", () => {
 
     expect(html).toContain("opacity-0");
     expect(html).toContain('tabindex="-1"');
+  });
+});
+
+describe("le bouton d'une nouvelle session", () => {
+  it("ouvre un shell sans rien demander quand c'est tout ce que la machine offre", () => {
+    const html = renderToStaticMarkup(
+      <TerminalNewButton chord="⌘" kinds={["shell"]} onNew={NOOP} />
+    );
+
+    expect(html).toContain('aria-label="Nouvelle session (⌘T)"');
+    expect(html).not.toContain("aria-haspopup");
+  });
+
+  it("ouvre la liste des agents installés quand il y en a", () => {
+    const html = renderToStaticMarkup(
+      <TerminalNewButton
+        chord="⌘"
+        kinds={["shell", "claude", "opencode"]}
+        onNew={NOOP}
+      />
+    );
+
+    expect(html).toContain('aria-label="Nouvelle session (⌘T)"');
+    expect(html).toContain('aria-haspopup="menu"');
   });
 });
 

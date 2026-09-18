@@ -15,8 +15,9 @@ import { Button } from "../ui/button";
 import { Callout } from "../ui/callout";
 import { Field, fieldControlClass } from "../ui/field";
 import { Label } from "../ui/label";
-import { ModeCard } from "../ui/mode-card";
+import { ModeCard, ModeCards } from "../ui/mode-card";
 import { panelClass } from "../ui/panel";
+import { Select } from "../ui/select";
 import { ServerAddPortField } from "./server-add-port-field";
 import { ServerReachNotice } from "./server-reach-notice";
 
@@ -264,22 +265,27 @@ export function ServerAddForm({
     <form className={panelClass("lg")} noValidate onSubmit={submit}>
       <h3 className="font-medium text-ink">{t("servers.addServer")}</h3>
 
-      <div className="mt-5 grid gap-5 sm:grid-cols-3">
-        {MODES.map((option) => (
-          <ModeCard
-            detail={t(option.detail)}
-            icon={option.icon}
-            key={option.mode}
-            note={
-              option.mode === "generate"
-                ? t("servers.add.recommended")
-                : undefined
-            }
-            onPick={() => pickMode(option.mode)}
-            picked={mode === option.mode}
-            title={t(option.title)}
-          />
-        ))}
+      <div className="mt-5">
+        <ModeCards
+          label={t("servers.add.modes")}
+          onChange={pickMode}
+          value={mode}
+        >
+          {MODES.map((option) => (
+            <ModeCard
+              detail={t(option.detail)}
+              icon={option.icon}
+              key={option.mode}
+              note={
+                option.mode === "generate"
+                  ? t("servers.add.recommended")
+                  : undefined
+              }
+              title={t(option.title)}
+              value={option.mode}
+            />
+          ))}
+        </ModeCards>
       </div>
 
       <div className="mt-5 grid gap-5 sm:grid-cols-2">
@@ -301,17 +307,16 @@ export function ServerAddForm({
             }
             label={t("servers.add.systemHost.label")}
           >
-            <select
-              className={fieldControlClass}
-              onChange={(e) => setSystemHost(e.target.value)}
+            <Select
+              aria-label={t("servers.add.systemHost.label")}
+              kind="data"
+              onChange={setSystemHost}
+              options={hosts.map((declared) => ({
+                label: declared,
+                value: declared,
+              }))}
               value={systemHost}
-            >
-              {hosts.map((declared) => (
-                <option key={declared} value={declared}>
-                  {declared}
-                </option>
-              ))}
-            </select>
+            />
           </Field>
         ) : (
           <Field
