@@ -1,5 +1,5 @@
 import { execFile, spawn } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { promisify } from "node:util";
 import type { HostKeyAction, HostKeyDecision } from "@shared/servers";
 import { type Address, knownHostsKey, type SshPaths } from "./ssh-config";
@@ -32,6 +32,7 @@ const CHANGED_MARKS = [
 const FINGERPRINT = /SHA256:[A-Za-z0-9+/=]+/;
 const FINGERPRINTS = /SHA256:[A-Za-z0-9+/=]+/g;
 const SCAN_TIMEOUT_S = 3;
+const FILE_MODE = 0o600;
 
 function changed(pinned: string, observed: string | null): HostKeyDecision {
   return {
@@ -99,21 +100,67 @@ function fingerprintsOf(keys: string): Promise<string[]> {
   });
 }
 
+/** One key the machine presents: its fingerprint, and the line known_hosts would hold for it. */
+export interface LiveKey {
+  fingerprint: string;
+  line: string;
+}
+
+/** What `ssh-keyscan` prints for a machine: one key per line, comments aside. */
+export function keyLines(scanned: string): string[] {
+  return scanned
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line !== "" && !line.startsWith("#"));
+}
+
 /**
- * The fingerprints the machine presents right now, read from its banner and
- * nothing more: no session is opened and nothing of ours is sent.
+ * The keys the machine presents right now, read from its banner and nothing
+ * more: no session is opened and nothing of ours is sent. `ssh-keygen` names
+ * the fingerprints in the order of the lines it was given, which is what pairs
+ * each with its line.
  */
-export async function liveFingerprints(
+export async function liveKeys(
   server: Address,
   scan: Scan = keyscan
-): Promise<string[]> {
+): Promise<LiveKey[]> {
   try {
-    const keys = await scan(server.host, server.port);
+    const lines = keyLines(await scan(server.host, server.port));
 
-    return keys.trim() === "" ? [] : await fingerprintsOf(keys);
+    if (lines.length === 0) {
+      return [];
+    }
+
+    const fingerprints = await fingerprintsOf(lines.join("\n"));
+
+    return fingerprints.length === lines.length
+      ? lines.map((line, index) => ({
+          fingerprint: fingerprints[index] as string,
+          line,
+        }))
+      : [];
   } catch {
     return [];
   }
+}
+
+/**
+ * The pinned key, written into the app's file from the machine's own answer.
+ *
+ * A server granted by the organisation comes with its fingerprint and nothing
+ * else: the platform pinned it, the app's known_hosts has never met the
+ * machine, and `ssh`, told to be strict, would refuse a host it has no key
+ * for. The pin is what the app trusts; the file only has to agree with it.
+ */
+export function recordHostKey(line: string, paths: SshPaths): void {
+  const held = existsSync(paths.knownHostsPath)
+    ? readFileSync(paths.knownHostsPath, "utf8")
+    : "";
+  const lead = held === "" || held.endsWith("\n") ? "" : "\n";
+
+  writeFileSync(paths.knownHostsPath, `${held}${lead}${line}\n`, {
+    mode: FILE_MODE,
+  });
 }
 
 /** What ssh says when it refuses for that reason, and not for another. */

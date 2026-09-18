@@ -84,6 +84,12 @@ export const refusals = {
     "refusal.setup.user": "« {user} » is not a user name.",
     "refusal.setup.user.fix":
       "The account to open on the server: « root » at first contact, « dev » once the machine is hardened.",
+    "refusal.setup.sshName": "Nothing of « {name} » fits an SSH name.",
+    "refusal.setup.sshName.fix":
+      "Letters, digits and dashes — « atelier » or « vps-2 » — and not « pupitre- », which the app keeps for itself.",
+    "refusal.setup.sshNameTaken": "« {name} » already names another machine.",
+    "refusal.setup.sshNameTaken.fix":
+      "Another server here, or a host of your ~/.ssh/config, answers to it: choose another word.",
     "refusal.setup.system":
       "This server is a host of your own SSH configuration.",
     "refusal.setup.system.fix":
@@ -450,6 +456,12 @@ export const refusals = {
     "refusal.setup.user": "« {user} » n'est pas un nom d'utilisateur.",
     "refusal.setup.user.fix":
       "Le compte à ouvrir sur le serveur : « root » au premier contact, « dev » une fois la machine durcie.",
+    "refusal.setup.sshName": "Rien de « {name} » ne tient dans un nom SSH.",
+    "refusal.setup.sshName.fix":
+      "Des lettres, des chiffres et des tirets — « atelier » ou « vps-2 » — et pas « pupitre- », que l'app garde pour elle.",
+    "refusal.setup.sshNameTaken": "« {name} » désigne déjà une autre machine.",
+    "refusal.setup.sshNameTaken.fix":
+      "Un autre serveur ici, ou un hôte de votre ~/.ssh/config, y répond : choisissez un autre mot.",
     "refusal.setup.system":
       "Ce serveur est un hôte de votre propre configuration SSH.",
     "refusal.setup.system.fix":

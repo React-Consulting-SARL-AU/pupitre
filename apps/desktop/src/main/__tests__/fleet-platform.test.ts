@@ -18,7 +18,12 @@ import { createAccount } from "../account-run";
 import { createTokenVault } from "../account-vault";
 import { mergeFleet } from "../fleet-run";
 import { createPlatformClient } from "../platform-client";
-import { renderSshConfig, type SshPaths, sshArgs } from "../ssh-config";
+import {
+  appSshPaths,
+  renderSshConfig,
+  type SshPaths,
+  sshArgs,
+} from "../ssh-config";
 import { memorySealer } from "./fixtures/fake-platform";
 
 /**
@@ -41,12 +46,7 @@ const HOST = "203.0.113.10";
 const dirs: string[] = [];
 
 function pathsIn(dir: string): SshPaths {
-  return {
-    configPath: join(dir, "ssh", "config"),
-    dir: join(dir, "ssh"),
-    keysDir: join(dir, "keys"),
-    knownHostsPath: join(dir, "ssh", "known_hosts"),
-  };
+  return appSshPaths(dir, join(dir, "home"));
 }
 
 async function rewindPolls(): Promise<void> {

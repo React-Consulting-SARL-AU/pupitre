@@ -245,6 +245,60 @@ describe("la modification d'un serveur", () => {
     expect(html).toContain("disabled");
   });
 
+  it("porte le nom SSH du serveur, et dit ce que ssh tapera", () => {
+    const html = renderToStaticMarkup(
+      <ServerRowEdit
+        busy={false}
+        error={null}
+        onCancel={() => undefined}
+        onSubmit={() => undefined}
+        server={{ ...SERVER, slug: "atelier-prod" }}
+      />
+    );
+
+    expect(html).toContain('id="server-edit-srv-1-slug"');
+    expect(html).toContain('value="atelier-prod"');
+    expect(text(html)).toContain("ssh atelier-prod");
+  });
+
+  it("propose le nom du serveur quand aucun nom SSH n'est posé, sans l'écrire", () => {
+    const html = renderToStaticMarkup(
+      <ServerRowEdit
+        busy={false}
+        error={null}
+        onCancel={() => undefined}
+        onSubmit={() => undefined}
+        server={SERVER}
+      />
+    );
+
+    expect(html).toContain('placeholder="atelier"');
+    expect(text(html)).toContain("ssh atelier");
+  });
+
+  it("marque le nom SSH qu'une autre machine porte déjà", () => {
+    const error = {
+      code: "bad_request" as const,
+      message: "refusal.setup.sshNameTaken",
+      phrase: { id: "refusal.setup.sshNameTaken", values: { name: "atelier" } },
+    };
+    const html = renderToStaticMarkup(
+      <ServerRowEdit
+        busy={false}
+        error={error}
+        onCancel={() => undefined}
+        onSubmit={() => undefined}
+        server={SERVER}
+      />
+    );
+
+    expect(refusedField(error)).toBe("slug");
+    expect(html).toContain(
+      'aria-describedby="server-edit-srv-1-slug-help server-edit-srv-1-slug-problem"'
+    );
+    expect(text(html)).toContain("désigne déjà une autre machine");
+  });
+
   it("marque le champ que le processus principal a refusé", () => {
     const error = {
       code: "bad_request" as const,

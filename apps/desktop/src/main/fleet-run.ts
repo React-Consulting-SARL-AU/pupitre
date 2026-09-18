@@ -5,6 +5,7 @@ import type {
   ServersConfig,
 } from "@shared/servers";
 import { grantGone, grantWithdrawn } from "@shared/servers";
+import { sshNameFree, sshSlug } from "@shared/ssh-names";
 
 /**
  * What the platform grants, merged into the list the app keeps.
@@ -113,10 +114,30 @@ function unlisted(server: Server): Server {
   return { ...server, grant: { ...server.grant, listed: false } };
 }
 
-function adopt(granted: FleetServer, deviceKeyPath: string): Server | null {
+/**
+ * The word an adopted server answers to after `ssh`: its name, made fit for a
+ * `Host` line, unless a server already here holds it. The reader can change
+ * it from the servers screen, as for a server they typed.
+ */
+function sshNameFor(
+  granted: FleetServer,
+  held: readonly Server[]
+): string | null {
+  const slug = sshSlug(granted.name);
+
+  return slug && sshNameFree(slug, held, []) ? slug : null;
+}
+
+function adopt(
+  granted: FleetServer,
+  deviceKeyPath: string,
+  held: readonly Server[]
+): Server | null {
   if (!granted.host) {
     return null;
   }
+
+  const slug = sshNameFor(granted, held);
 
   return {
     grant: {
@@ -136,6 +157,7 @@ function adopt(granted: FleetServer, deviceKeyPath: string): Server | null {
     name: granted.name,
     origin: "app",
     port: granted.port,
+    ...(slug ? { slug } : {}),
     user: granted.user,
   };
 }
@@ -160,6 +182,7 @@ function print(server: Server): string {
   return [
     server.id,
     server.name,
+    server.slug ?? "",
     server.host,
     server.port,
     server.user,
@@ -214,12 +237,19 @@ export function mergeFleet({
   const gone = kept.filter(released).map((server) => server.id);
   const standing = kept.filter((server) => !released(server));
 
-  const fresh = granted
-    .filter(
-      (candidate) => !(claimed.has(candidate.id) || declined.has(candidate.id))
-    )
-    .map((candidate) => adopt(candidate, deviceKeyPath))
-    .filter((server): server is Server => server !== null);
+  const fresh: Server[] = [];
+
+  for (const candidate of granted) {
+    if (claimed.has(candidate.id) || declined.has(candidate.id)) {
+      continue;
+    }
+
+    const adopted = adopt(candidate, deviceKeyPath, [...standing, ...fresh]);
+
+    if (adopted) {
+      fresh.push(adopted);
+    }
+  }
 
   const servers = [...standing, ...fresh];
   const before = local.map(print).join("\n");

@@ -49,9 +49,11 @@ Host pupitre-srv-m9k2p1
   HostName 203.0.113.10
   Port 22
   User dev
-  IdentityFile "/Users/you/Library/Application Support/Pupitre/keys/srv-m9k2p1"
+  IdentityFile /Users/you/.pupitre/desktop/keys/srv-m9k2p1
   IdentitiesOnly yes
 ```
+
+The path goes through `~/.pupitre/desktop`, a link the app keeps pointed at its data folder. The folder itself has a space in its name on macOS, and often on Windows; OpenSSH reads a quoted path, but JetBrains Gateway parses the same file with its own code and splits `IdentityFile` and `UserKnownHostsFile` on the space, quotes or not. The link is what makes the app's block readable by both.
 
 Point clients at that file rather than copying it somewhere else. Deleting the server in the app takes its key with it, and a copy you made elsewhere would be an orphan that still opens your machine.
 
@@ -63,7 +65,7 @@ Everything below needs your own `~/.ssh/config` to know the server: `ssh`, the e
 Include "/Users/you/Library/Application Support/Pupitre/ssh/config"
 ```
 
-Every server of the app then answers to its name, in lowercase — `atelier` for a server called “Atelier”, the setting shows it — with the app's key, `IdentitiesOnly` and the pinned host key. A server whose name is already a `Host` of your file keeps its identifier alone, `pupitre-srv-…`. Unticking the box takes the line back. Then check it:
+Every server of the app then answers to its **SSH name** — the word chosen beside its name when you add it, `atelier` by default for a server called “Atelier”, changed from the server's entry in **Settings › Servers**, the SSH setting shows it — with the app's key, `IdentitiesOnly` and the pinned host key. A server whose SSH name is already a `Host` of your file keeps its identifier alone, `pupitre-srv-…`. Unticking the box takes the line back. Then check it:
 
 ```
 ssh atelier "dev status"
@@ -71,14 +73,14 @@ ssh atelier "dev status"
 
 A machine that answers with its projects is a machine every client on this page can now reach. If it asks for a password instead, the key is not the one `dev` accepts — reveal the public key on the server screen and compare it with `~/.ssh/authorized_keys` on the machine.
 
-If you would rather write the entry yourself, copy the values from the app's own block; quotes around the path are required when it contains a space, which it does on macOS and on Windows.
+If you would rather write the entry yourself, copy the values from the app's own block, link included: a path with a space in it needs quotes for OpenSSH and breaks JetBrains Gateway regardless.
 
 ```
 Host atelier
   HostName 203.0.113.10
   Port 22
   User dev
-  IdentityFile "/Users/you/Library/Application Support/Pupitre/keys/srv-m9k2p1"
+  IdentityFile /Users/you/.pupitre/desktop/keys/srv-m9k2p1
   IdentitiesOnly yes
 ```
 
@@ -156,6 +158,7 @@ VS Code, Cursor and Windsurf connect over Remote SSH, Zed through `zed://ssh`, J
 - **`Permissions 0644 for ... are too open`.** The private key has to be readable by you alone: `chmod 600` on macOS and Linux. On Windows, keeping it in `%APPDATA%` is enough — a copy dropped in a shared folder is not.
 - **Nothing answers on port 22.** If your network filters it, `core.hardening` can put SSH on 443 as well; change `Port` in your entry.
 - **The host key changed.** Reinstalling a machine changes it. The app asks you about it on its side; in your own `~/.ssh/known_hosts`, remove the old line.
+- **Gateway says `Could not verify host key` without asking you.** The app's block points at its own `known_hosts` with strict checking, and Gateway could not read the path. Check that `~/.pupitre` holds a link named after the app's folder and that nothing else took its place; the app puts it back at its next start.
 - **`codex: command not found` from a remote client.** The client opened a shell that did not read `.zshenv`. Check with `ssh atelier 'which codex'`.
 
 ## Revocation still works

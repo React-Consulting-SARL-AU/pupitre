@@ -3,6 +3,9 @@ export const servers = {
     "servers.addServer": "Add a server",
     "servers.field.address": "Address",
     "servers.field.name": "Name",
+    "servers.field.sshName": "SSH name",
+    "servers.field.sshName.help":
+      "ssh {name} — the word ssh, editors and coding agents reach the server by.",
     "servers.field.host": "Host",
     "servers.field.port": "Port",
     "servers.field.user": "Account",
@@ -10,7 +13,7 @@ export const servers = {
     "servers.edit.save": "Save",
     "servers.edit.note":
       "The connections to this server are reopened on the new address.",
-    "servers.edit.done": "The server's address was changed.",
+    "servers.edit.done": "The server was changed.",
     "servers.edit.hostKeyDropped":
       "The address changed, so the pinned host key was dropped.",
     "servers.edit.hostKeyDroppedFix":
@@ -129,6 +132,9 @@ export const servers = {
     "servers.addServer": "Ajouter un serveur",
     "servers.field.address": "Adresse",
     "servers.field.name": "Nom",
+    "servers.field.sshName": "Nom SSH",
+    "servers.field.sshName.help":
+      "ssh {name} — le mot par lequel ssh, les éditeurs et les agents de code joignent le serveur.",
     "servers.field.host": "Hôte",
     "servers.field.port": "Port",
     "servers.field.user": "Compte",
@@ -136,7 +142,7 @@ export const servers = {
     "servers.edit.save": "Enregistrer",
     "servers.edit.note":
       "Les connexions à ce serveur se rouvrent sur la nouvelle adresse.",
-    "servers.edit.done": "L'adresse du serveur a été changée.",
+    "servers.edit.done": "Le serveur a été modifié.",
     "servers.edit.hostKeyDropped":
       "L'adresse a changé, la clé d'hôte épinglée a donc été oubliée.",
     "servers.edit.hostKeyDroppedFix":

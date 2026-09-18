@@ -11,6 +11,7 @@ import {
   fieldControlClass,
   proseControlClass,
 } from "../ui/field";
+import { ServerSshNameField } from "./server-ssh-name-field";
 
 /**
  * The address, the port and the account of a server, changed where they are read.
@@ -21,13 +22,15 @@ import {
  * on this side.
  */
 
-const FIELDS = ["host", "port", "user"] as const;
+const FIELDS = ["host", "port", "user", "slug"] as const;
 
 type FieldName = (typeof FIELDS)[number];
 
 const REFUSED: Record<string, FieldName> = {
   "refusal.setup.host": "host",
   "refusal.setup.port": "port",
+  "refusal.setup.sshName": "slug",
+  "refusal.setup.sshNameTaken": "slug",
   "refusal.setup.user": "user",
 };
 
@@ -58,6 +61,7 @@ export function ServerRowEdit({
   const t = useTranslations();
 
   const [name, setName] = useState(server.name);
+  const [slug, setSlug] = useState(server.slug ?? "");
   const [host, setHost] = useState(server.host);
   const [port, setPort] = useState(String(server.port));
   const [user, setUser] = useState(server.user);
@@ -71,6 +75,7 @@ export function ServerRowEdit({
     ...(host.trim() === server.host ? {} : { host: host.trim() }),
     ...(Number(port) === server.port ? {} : { port: Number(port) }),
     ...(user.trim() === server.user ? {} : { user: user.trim() }),
+    ...(slug.trim() === (server.slug ?? "") ? {} : { slug: slug.trim() }),
   };
   const renamed = name.trim() !== "" && name.trim() !== server.name;
   const changed = Object.keys(changes).length > 0;
@@ -113,6 +118,17 @@ export function ServerRowEdit({
             value={name}
           />
         </Field>
+      ) : null}
+
+      {addressEditable ? (
+        <ServerSshNameField
+          disabled={busy}
+          name={`${prefix}-slug`}
+          onChange={setSlug}
+          problem={problemOf("slug")}
+          serverName={name}
+          value={slug}
+        />
       ) : null}
 
       {addressEditable ? (

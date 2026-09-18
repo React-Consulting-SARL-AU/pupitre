@@ -17,9 +17,9 @@ Le renderer nomme les commandes du protocole sur `agent:call` ; `src/main/agent-
 
 ## SSH : configuration, clés, partage
 
-La configuration SSH est celle de l'app : `userData/ssh/config` passé avec `-F`, clés dans `userData/keys/` en 0600, clé d'hôte épinglée.
+La configuration SSH est celle de l'app : `userData/ssh/config` passé avec `-F`, clés dans `userData/keys/` en 0600, clé d'hôte épinglée. Le fichier nomme la clé et le `known_hosts` à travers `~/.pupitre/<dossier>` — un lien symbolique (une jonction sur Windows) vers le dossier de données, posé à chaque écriture — parce que `~/Library/Application Support` porte un espace et que JetBrains Gateway, qui lit ce fichier avec son propre analyseur, coupe `IdentityFile` et `UserKnownHostsFile` sur l'espace, guillemets ou non. Un serveur accordé arrive avec son empreinte et rien dans le `known_hosts` : `hostKey()` y écrit la clé que la machine présente quand c'est celle du pin.
 
-`~/.ssh/config` de l'utilisateur n'est jamais réécrit. Sur un geste explicite (Réglages › SSH, ou un bouton « Ouvrir dans » qui la demande d'abord), `ssh-share.ts` y pose une seule ligne `Include` vers le fichier de l'app, en tête, et la retire de même. Chaque bloc de l'app porte `pupitre-<id>` et, quand aucun hôte du système ne le prend, le nom du serveur (`ssh atelier`) ; les liens des éditeurs nomment ce mot. Un hôte existant peut être désigné.
+`~/.ssh/config` de l'utilisateur n'est jamais réécrit. Sur un geste explicite (Réglages › SSH, ou un bouton « Ouvrir dans » qui la demande d'abord), `ssh-share.ts` y pose une seule ligne `Include` vers le fichier de l'app, en tête, et la retire de même. Chaque bloc de l'app porte `pupitre-<id>` et, quand aucun hôte du système ne le prend, le nom SSH du serveur (`slug` de `servers.json`, `ssh atelier`) : un mot choisi par le lecteur à l'ajout et modifiable depuis la fiche du serveur, tiré du nom quand rien n'est tapé, refusé quand une autre machine y répond déjà (`sshNameFree`) ; les liens des éditeurs nomment ce mot. Un hôte existant peut être désigné.
 
 ## Poser la clé sur un serveur
 

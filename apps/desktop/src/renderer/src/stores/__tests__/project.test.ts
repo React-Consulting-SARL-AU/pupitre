@@ -141,6 +141,7 @@ describe("le fichier d'environnement", () => {
           result: {
             keys: ["DATABASE_URL"],
             path: "/home/dev/projects/a/.env.local",
+            template: true,
             written: force,
           },
         });
@@ -155,6 +156,7 @@ describe("le fichier d'environnement", () => {
       env: {
         keys: ["DATABASE_URL"],
         path: "/home/dev/projects/a/.env.local",
+        template: true,
         written: false,
       },
       status: "read",

@@ -6,7 +6,6 @@ import {
   renameSync,
   writeFileSync,
 } from "node:fs";
-import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import type {
   HostKeyDecision,
@@ -17,14 +16,20 @@ import type {
   ServersConfig,
   ServerUpdated,
 } from "@shared/servers";
-import { alias, type SshShareState, sshNames } from "@shared/ssh-names";
+import {
+  alias,
+  type SshShareState,
+  sshNames,
+  sshSlug,
+} from "@shared/ssh-names";
 import { app } from "electron";
 import { HARNESSED } from "./harness";
 import {
   forgetHostKey,
   hostKeyDecision,
-  liveFingerprints,
+  liveKeys,
   observedFingerprint,
+  recordHostKey,
 } from "./host-keys";
 import { readPublicKey } from "./keys";
 import {
@@ -41,6 +46,8 @@ import { SERVERS_BASELINE, SERVERS_MIGRATIONS } from "./servers-migrations";
 import {
   type Address,
   appSshPaths,
+  ensureLink,
+  identityFile,
   readSystemHosts,
   type SshPaths,
   sshArgs,
@@ -104,8 +111,18 @@ function userData(): string {
   return app.getPath("userData");
 }
 
+/**
+ * The home the app's link and the system's SSH file hang from.
+ *
+ * A scenario run gets one inside the folder it throws away: a suite that left
+ * a line in the reader's real file, or a link beside it, would outlive itself.
+ */
+function home(): string {
+  return HARNESSED ? join(userData(), "home") : app.getPath("home");
+}
+
 export function paths(): SshPaths {
-  return appSshPaths(userData());
+  return appSshPaths(userData(), home());
 }
 
 function path(): string {
@@ -131,6 +148,10 @@ function normaliseServer(raw: Server): Server {
     name: raw.name.slice(0, NAME_LIMIT),
     origin,
     port,
+    slug:
+      origin === "app" && raw.slug
+        ? (sshSlug(raw.slug) ?? undefined)
+        : undefined,
     user: typeof raw.user === "string" ? raw.user : "",
   };
 }
@@ -293,16 +314,9 @@ export function sshPathsWritten(): SshPaths {
   return paths();
 }
 
-/**
- * The system's own file, read for its hosts and written for one line.
- *
- * A scenario run gets one inside the folder it throws away: a suite that left
- * a line in the reader's real file would outlive itself.
- */
+/** The system's own file, read for its hosts and written for one line. */
 export function userSshConfigPath(): string {
-  return HARNESSED
-    ? join(userData(), "home", ".ssh", "config")
-    : join(homedir(), ".ssh", "config");
+  return join(home(), ".ssh", "config");
 }
 
 export function sshHosts(): string[] {
@@ -315,17 +329,23 @@ export function sshNameOf(serverId: string): string | null {
 }
 
 export function sshShareState(): SshShareState {
-  const appConfigPath = sshPathsWritten().configPath;
+  const written = sshPathsWritten();
+  const appConfigPath = written.configPath;
   const names = sshNames(read().servers, sshHosts());
+  const link = ensureLink(written);
 
   return {
     line: includeLine(appConfigPath),
     servers: read()
       .servers.filter((server) => server.origin === "app")
       .map((server) => ({
+        host: server.host,
         id: server.id,
+        identityFile: identityFile(server, written, link),
         name: server.name,
+        port: server.port,
         ssh: names.get(server.id) ?? alias(server),
+        user: server.user,
       })),
     shared: sharedAt(userSshConfigPath(), appConfigPath),
     userConfigPath: userSshConfigPath(),
@@ -340,7 +360,7 @@ export function setSshShare(shared: boolean): SshShareState {
 }
 
 export async function add(draft: ServerDraft): Promise<ServerCreation> {
-  const created = await addServer(draft, read().servers, paths());
+  const created = await addServer(draft, read().servers, paths(), sshHosts());
 
   write((current) => ({
     ...current,
@@ -387,10 +407,11 @@ export async function update(
   changes: ServerChanges
 ): Promise<ServerUpdated> {
   const before = read().servers.find((server) => server.id === id) ?? null;
-  const changed = changeServer(read().servers, id, changes);
+  const reserved = sshHosts();
+  const changed = changeServer(read().servers, id, changes, reserved);
   const written = write((current) => ({
     ...current,
-    servers: changeServer(current.servers, id, changes).servers,
+    servers: changeServer(current.servers, id, changes, reserved).servers,
   }));
 
   if (
@@ -542,6 +563,8 @@ export function restore(): Configuration {
  *
  * A first contact is pinned here rather than left to the next connection: the
  * fingerprint `ssh` has just accepted is the one to compare against from now on.
+ * A pin the file has never met — a server granted with its fingerprint — is
+ * written there from the machine's own answer, when that answer is the pin.
  */
 export async function hostKey(id: string): Promise<HostKeyDecision> {
   const server = byId(id);
@@ -549,11 +572,24 @@ export async function hostKey(id: string): Promise<HostKeyDecision> {
     return { status: "first_contact" };
   }
 
-  const [observed, live] = await Promise.all([
+  const [held, live] = await Promise.all([
     observedFingerprint(server, paths()),
-    liveFingerprints(server),
+    liveKeys(server),
   ]);
-  const decision = hostKeyDecision(server.hostFingerprint, observed, live);
+  const presented = live.find(
+    (key) => key.fingerprint === server.hostFingerprint
+  );
+
+  if (held === null && presented) {
+    recordHostKey(presented.line, paths());
+  }
+
+  const observed = held ?? presented?.fingerprint ?? null;
+  const decision = hostKeyDecision(
+    server.hostFingerprint,
+    observed,
+    live.map((key) => key.fingerprint)
+  );
 
   if (decision.status === "first_contact" && observed) {
     write((current) => ({
