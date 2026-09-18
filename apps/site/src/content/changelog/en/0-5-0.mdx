@@ -1,0 +1,37 @@
+---
+title: Terminals and agents in two tabs, a project added in three sections, and JetBrains Gateway opens the backend on the server
+description: A project keeps its sessions under Terminals and Agents and remembers the tab you left; adding a project reads the repository first, then asks the rest; a keyboard shortcuts sheet opens with Cmd+/; JetBrains Gateway is pointed at the IDE the agent installed; a journal reads as a terminal would show it and its follow outlives a restart; every runtime offers every major the machine still builds; a second computer of the same person receives the account that really opens the machine.
+locale: en
+version: 0.5.0
+channel: stable
+date: 2026-09-18
+order: 12
+---
+
+App and agent both to update: the app offers the agent update on the servers it knows, and what was set before is carried over as it was.
+
+## The app
+
+- A project's sessions sit under two tabs, Terminals and Agents. The Agents tab offers the agents installed on the server — Claude, Codex or another — and sends to the services when none is; the last tab opened is remembered per project. Cmd+Shift+T opens an agent session in the project on screen.
+- Adding a project goes in three sections: Source, Project, Start. The repository or the folder is read first and summed up — "Configure without reading" skips the read — the form takes the rest, and the Start section says what it does: the sources are fetched and the dependencies installed before the project comes up, and a project started with the server comes back on its own after a reboot.
+- A keyboard shortcuts sheet opens with Cmd+/ from the Help menu: navigation, project, terminal and files, each with its keys.
+- Opening a project in a JetBrains IDE hands Gateway the backend the agent installed on the server, so it opens that one rather than downloading its own or refusing the link. The mark shows once the agent has named the backend's folder, which asks for the 0.5.0 agent.
+- The journal of a process or a service reads as a terminal would have shown it: a download counter or a progress bar rewrites its row instead of piling up lines, an address reads as a link, and a start or a stop of the process reads as a rule with its time. The pane follows the tail until you scroll up or select a line, and hooks it again at the bottom.
+- Checkboxes, radios, switches, selects, tabs, menus and dialogs share one set of primitives, and answer to the keyboard and to assistive tools by their role.
+- Settings, the service journal, the command palette and the screenshot viewer are laid out in sections, and their labels read on their own: the SSH option is a switch, and the notification and login options say what they do.
+
+## The agent
+
+- The version options of each runtime reach as far back as the machine still builds or downloads: Node 10 to 26, Temurin 8 to 26, Python 3.9 to 3.14, Go 1.18 to 1.27, PHP 8.0 to 8.5, Ruby 3.1 to 4.0, Rust 1.90 to 1.98.
+- A followed journal outlives the process: a stop writes its marker, a restart empties the journal and writes its own, and the reader sees both. The follow reads the journal again from its first byte when it shortens, ends with the channel that reads it or with its own quarter of an hour, and lets a line travel only whole — a counter rewritten in place no longer shows as two lines.
+- The agent tells the platform which account holds the devices' keys, `dev` once the server is hardened, and `service.status` names the folder a module laid — the backend JetBrains Gateway opens.
+
+## The platform
+
+- A second computer of the same person receives the account that really opens the machine. The platform kept the account seen at enrolment, root, while the hardening moves it to `dev` and the agent puts the devices' keys there: the second device was handed root, and could not open the server. The account now comes from the agent's heartbeat; a 0.4.0 agent leaves the known one.
+
+## Known limits
+
+- The runtime versions of a project are chosen in its settings once it is added; the add screen does not ask for them yet.
+- A macOS app 0.1.2 or later finds this version on its own; 0.1.0 and 0.1.1 still cannot, and need 0.5.0 installed from the download page.
+- The Windows installer is still unsigned: SmartScreen warns at first launch.

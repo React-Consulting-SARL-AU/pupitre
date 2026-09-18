@@ -1,0 +1,37 @@
+---
+title: Terminaux et agents sous deux onglets, un projet ajouté en trois sections, et JetBrains Gateway ouvre le backend du serveur
+description: Un projet tient ses sessions sous Terminaux et Agents et retient l’onglet quitté ; l’ajout d’un projet lit d’abord le dépôt, puis demande le reste ; une fiche des raccourcis clavier s’ouvre par Cmd+/ ; JetBrains Gateway est pointé sur l’IDE que l’agent a installé ; un journal se lit comme un terminal l’aurait montré et son suivi survit à un redémarrage ; chaque runtime propose toutes les majeures que la machine construit encore ; le second ordinateur d’une même personne reçoit le compte qui ouvre vraiment la machine.
+locale: fr
+version: 0.5.0
+channel: stable
+date: 2026-09-18
+order: 12
+---
+
+App et agent tous deux à mettre à jour : l’app propose la mise à jour de l’agent sur les serveurs qu’elle connaît, et ce qui était réglé avant est repris tel quel.
+
+## L’app
+
+- Les sessions d’un projet sont rangées sous deux onglets, Terminaux et Agents. L’onglet Agents propose les agents installés sur le serveur — Claude, Codex ou un autre — et renvoie aux services quand il n’y en a aucun ; le dernier onglet ouvert est retenu par projet. Cmd+Maj+T ouvre une session d’agent dans le projet affiché.
+- L’ajout d’un projet se fait en trois sections : Source, Projet, Démarrage. Le dépôt ou le dossier se lit d’abord et se résume — « Configurer sans lire » saute la lecture — le formulaire prend le reste, et la section Démarrage dit ce qu’elle fait : les sources sont récupérées et les dépendances installées avant que le projet démarre, et un projet démarré avec le serveur revient de lui-même après un redémarrage.
+- Une fiche des raccourcis clavier s’ouvre par Cmd+/ depuis le menu Aide : navigation, projet, terminal et fichiers, chacun avec ses touches.
+- Ouvrir un projet dans un IDE JetBrains donne à Gateway le backend que l’agent a installé sur le serveur, si bien qu’il ouvre celui-là au lieu de télécharger le sien ou de refuser le lien. Le bouton apparaît une fois que l’agent a nommé le dossier du backend, ce qui demande l’agent 0.5.0.
+- Le journal d’un processus ou d’un service se lit comme un terminal l’aurait montré : un compteur de téléchargement ou une barre de progression réécrit sa ligne au lieu d’en empiler, une adresse se lit comme un lien, et un démarrage ou un arrêt du processus se lit comme un trait avec son heure. Le panneau suit la fin tant que vous ne remontez pas ou ne sélectionnez pas une ligne, et la raccroche en revenant en bas.
+- Cases à cocher, boutons radio, interrupteurs, sélecteurs, onglets, menus et dialogues partagent un même jeu de primitives, et répondent au clavier et aux outils d’assistance par leur rôle.
+- Les réglages, le journal d’un service, la palette de commande et la visionneuse de captures sont rangés en sections, et leurs libellés se lisent seuls : l’option SSH est un interrupteur, et les options de notification et de connexion disent ce qu’elles font.
+
+## L’agent
+
+- Les options de version de chaque runtime remontent aussi loin que la machine construit ou télécharge encore : Node 10 à 26, Temurin 8 à 26, Python 3.9 à 3.14, Go 1.18 à 1.27, PHP 8.0 à 8.5, Ruby 3.1 à 4.0, Rust 1.90 à 1.98.
+- Un journal suivi survit au processus : un arrêt écrit sa marque, un redémarrage vide le journal et écrit la sienne, et le lecteur voit les deux. Le suivi relit le journal depuis son premier octet quand il raccourcit, finit avec le canal qui le lit ou avec son propre quart d’heure, et ne laisse voyager une ligne qu’entière — un compteur réécrit sur place ne s’affiche plus en deux lignes.
+- L’agent dit à la plateforme quel compte tient les clés des appareils, `dev` une fois le serveur durci, et `service.status` nomme le dossier qu’un module a posé — le backend qu’ouvre JetBrains Gateway.
+
+## La plateforme
+
+- Le second ordinateur d’une même personne reçoit le compte qui ouvre vraiment la machine. La plateforme gardait le compte vu à l’enrôlement, root, alors que le durcissement le déplace vers `dev` et que l’agent y pose les clés des appareils : le second appareil recevait root, et ne pouvait pas ouvrir le serveur. Le compte vient désormais du heartbeat de l’agent ; un agent 0.4.0 laisse celui qui est connu.
+
+## Limites connues
+
+- Les versions de runtime d’un projet se choisissent dans ses réglages une fois le projet ajouté ; l’écran d’ajout ne les demande pas encore.
+- Une app macOS 0.1.2 ou plus récente trouve cette version seule ; les 0.1.0 et 0.1.1 ne le peuvent toujours pas, et demandent la 0.5.0 installée depuis la page de téléchargement.
+- L’installateur Windows n’est toujours pas signé : SmartScreen avertit au premier lancement.
