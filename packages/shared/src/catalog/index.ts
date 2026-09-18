@@ -14,6 +14,18 @@ export const ModuleCategorySchema = z.enum(MODULE_CATEGORIES)
 
 export type ModuleCategory = z.infer<typeof ModuleCategorySchema>
 
+const CATEGORY_OF_PREFIX: Record<string, ModuleCategory> = { db: "database" }
+
+/**
+ * The category a module id names before its dot, so a screen with the id
+ * alone — a snapshot's service — groups it as the catalogue does.
+ */
+export function categoryOfModule(moduleId: string): string {
+  const prefix = moduleId.split(".")[0] ?? ""
+
+  return CATEGORY_OF_PREFIX[prefix] ?? prefix
+}
+
 export const ARCHITECTURES = ["amd64", "arm64"] as const
 
 export const ArchitectureSchema = z.enum(ARCHITECTURES)

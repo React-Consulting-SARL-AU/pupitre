@@ -1,12 +1,14 @@
 import { describe, expect, it } from "bun:test"
 import {
   ARCHITECTURES,
+  categoryOfModule,
   defaultVersionOf,
   FieldSchema,
   getPreset,
   ManifestSchema,
   MODULE_CATEGORIES,
   MODULE_IDS,
+  ModuleCategorySchema,
   ModuleIdSchema,
   PRESETS,
   PresetSchema,
@@ -308,6 +310,18 @@ describe("module ids", () => {
       "tool",
     ])
     expect(ARCHITECTURES).toEqual(["amd64", "arm64"])
+  })
+
+  it("name their category by their prefix, the databases under db.", () => {
+    expect(categoryOfModule("db.mysql")).toBe("database")
+    expect(categoryOfModule("runtime.docker")).toBe("runtime")
+    expect(categoryOfModule("exposure.cloudflare")).toBe("exposure")
+
+    for (const id of MODULE_IDS) {
+      expect(ModuleCategorySchema.safeParse(categoryOfModule(id)).success).toBe(
+        true
+      )
+    }
   })
 })
 

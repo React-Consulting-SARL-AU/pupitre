@@ -34,6 +34,7 @@ type Status struct {
 	State       contract.ServiceState
 	Port        int
 	Unit        string
+	Path        string
 	Credentials map[string]string
 }
 
@@ -53,6 +54,7 @@ func (s Status) Service(manifest contract.Manifest) contract.ServiceStatus {
 		Versions:    s.Versions,
 		Port:        s.Port,
 		Unit:        s.Unit,
+		Path:        s.Path,
 		Credentials: s.Credentials,
 	}
 }

@@ -2,6 +2,7 @@ package mise
 
 import (
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -300,11 +301,30 @@ func TestEveryRuntimeIsNamedOnceAndFoundByTool(t *testing.T) {
 		if !contains(runtime.Options, runtime.Default) {
 			t.Errorf("%s: default %s is not an option", runtime.Tool, runtime.Default)
 		}
+
+		for i := 1; i < len(runtime.Options); i++ {
+			if !newerThan(runtime.Options[i-1], runtime.Options[i]) {
+				t.Errorf("%s: option %s is not newer than %s", runtime.Tool, runtime.Options[i-1], runtime.Options[i])
+			}
+		}
 	}
 
 	if _, ok := RuntimeOf("deno"); ok {
 		t.Error("deno is not a runtime")
 	}
+}
+
+func newerThan(a, b string) bool {
+	left, right := strings.Split(a, "."), strings.Split(b, ".")
+	for i := 0; i < len(left) && i < len(right); i++ {
+		l, _ := strconv.Atoi(left[i])
+		r, _ := strconv.Atoi(right[i])
+		if l != r {
+			return l > r
+		}
+	}
+
+	return len(left) > len(right)
 }
 
 func contains(items []string, item string) bool {

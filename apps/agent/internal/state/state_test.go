@@ -361,6 +361,91 @@ func TestFollowEmitsTheTailThenWhatTheLogGains(t *testing.T) {
 	}
 }
 
+func TestFollowHoldsAHalfLineUntilItsNewline(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	machine(fake)
+	fake.Files[registry.DefaultConf] = []byte(conf)
+	fake.Dirs["/home/dev/projects/web"] = true
+	fake.Serves("web/web", 3000)
+
+	path := tmux.Options{}.LogPath("web/web")
+	rounds := 0
+	grow := func(time.Duration) {
+		rounds++
+		switch rounds {
+		case 1:
+			fake.Files[path] = append(fake.Files[path], []byte("12.8 KiB/56")...)
+		case 2:
+			fake.Files[path] = append(fake.Files[path], []byte(".5 KiB downloaded\nnext\n")...)
+		}
+	}
+
+	reader := newReader(t, fake, modules.NewRegistry(), grow)
+	if _, err := reader.Up("web", ""); err != nil {
+		t.Fatal(err)
+	}
+	fake.Files[path] = []byte("premier\n")
+
+	var emitted []string
+	if err := reader.Follow(context.Background(), "web", "web", 10, func(line string) { emitted = append(emitted, line) }); err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{"premier", "12.8 KiB/56.5 KiB downloaded", "next"}
+	if strings.Join(emitted, "|") != strings.Join(want, "|") {
+		t.Fatalf("a line read in two pieces travels once, whole: %q", emitted)
+	}
+}
+
+func TestFollowOutlivesARestartAndReadsTheNewJournalFromItsFirstByte(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	machine(fake)
+	fake.Files[registry.DefaultConf] = []byte(conf)
+	fake.Dirs["/home/dev/projects/web"] = true
+	fake.Serves("web/web", 3000)
+
+	path := tmux.Options{}.LogPath("web/web")
+	var reader *state.Reader
+	rounds := 0
+	grow := func(time.Duration) {
+		rounds++
+		switch rounds {
+		case 1:
+			if _, err := reader.Down("web", "web"); err != nil {
+				t.Fatal(err)
+			}
+		case 2:
+			if _, err := reader.Up("web", "web"); err != nil {
+				t.Fatal(err)
+			}
+		case 3:
+			fake.Files[path] = append(fake.Files[path], []byte("ready again\n")...)
+		}
+	}
+
+	reader = newReader(t, fake, modules.NewRegistry(), grow)
+	if _, err := reader.Up("web", ""); err != nil {
+		t.Fatal(err)
+	}
+	fake.Files[path] = []byte("=== pupitre up 2026-09-18T10:00:00Z ===\na long first run that the new journal is shorter than\n")
+
+	var emitted []string
+	if err := reader.Follow(context.Background(), "web", "web", 10, func(line string) { emitted = append(emitted, line) }); err != nil {
+		t.Fatal(err)
+	}
+
+	joined := strings.Join(emitted, "\n")
+	if !strings.Contains(joined, "=== pupitre down ") {
+		t.Fatalf("the stop marker reaches the reader: %q", emitted)
+	}
+	if up := strings.Count(joined, "=== pupitre up "); up != 2 {
+		t.Fatalf("the new run's start marker reaches the reader once, got %d: %q", up, emitted)
+	}
+	if !strings.HasSuffix(joined, "ready again") {
+		t.Fatalf("the new run's lines follow its marker: %q", emitted)
+	}
+}
+
 func TestServiceStatusNamesTheCredentialKeysAndSnapshotDoesNot(t *testing.T) {
 	fake, _ := fixture(t)
 	catalog := modules.NewRegistry()

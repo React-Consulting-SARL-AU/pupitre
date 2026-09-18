@@ -166,7 +166,7 @@ Un module dont le CLI se connecte à un compte implémente en plus `Login` : il 
 
 | Id | Fait | Champs |
 | --- | --- | --- |
-| `editor.jetbrains` | backend de développement distant préinstallé dans le cache attendu par JetBrains Gateway, JVM et mémoire dimensionnées ; l'app ouvre par le lien Gateway ; licence du client | `ide: idea \| webstorm \| pycharm \| phpstorm \| goland`, `version` |
+| `editor.jetbrains` | backend de développement distant préinstallé dans le cache attendu par JetBrains Gateway, JVM et mémoire dimensionnées ; le service rend son dossier dans `path` et l'app ouvre par le lien Gateway (`idePath`, `deploy=false`) ; licence du client | `ide: idea \| webstorm \| pycharm \| phpstorm \| goland`, `version` |
 | `editor.vscode` | CLI `code` et serveur distant préinstallés pour que la première connexion Remote SSH soit immédiate, extensions de base, Remote Tunnel en option ; un rejeu garde le serveur enregistré, seul `upgrade` prend la version suivante ; même mécanisme pour Cursor et Windsurf | `extensions` (list de text), `tunnel` (boolean) |
 | `editor.zed` | serveur distant Zed préinstallé pour la version du client ; en `latest`, un rejeu garde la version posée et seul `upgrade` prend la suivante ; ouverture par `zed://ssh` | `version` |
 
