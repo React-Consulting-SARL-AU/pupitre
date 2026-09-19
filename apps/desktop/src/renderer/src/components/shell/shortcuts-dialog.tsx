@@ -56,7 +56,12 @@ export function ShortcutsDialog({
       title={t("shortcuts.title")}
       width="wide"
     >
-      <div className="grid max-h-[70vh] gap-6 overflow-y-auto sm:grid-cols-2">
+      <section
+        aria-label={t("shortcuts.title")}
+        className="grid max-h-[70vh] gap-6 overflow-y-auto sm:grid-cols-2"
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: a list that scrolls must be reachable by the keyboard, or nothing below the fold can be read
+        tabIndex={0}
+      >
         {groups.map((group) => (
           <Section
             key={group.name}
@@ -78,7 +83,7 @@ export function ShortcutsDialog({
             </dl>
           </Section>
         ))}
-      </div>
+      </section>
     </Dialog>
   );
 }

@@ -8,7 +8,7 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { weight } from "@renderer/lib/format";
 import { useShots } from "@renderer/stores/shots";
 import { ChevronLeft, ChevronRight, Download, X } from "lucide-react";
-import { type KeyboardEvent, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 /**
  * The capture itself, laid over the gallery rather than pushed into it.
@@ -32,20 +32,34 @@ export function ShotViewer({ serverId }: { serverId: string }) {
 
   // The frame itself takes the focus: a button that goes away with the next
   // capture — save, copy — would take the focus out with it, and a dialog
-  // whose focus leaves is a dialog that closes. The arrows are read on the
-  // frame too, where the focus is: the dialog keeps a key from reaching the
-  // window.
+  // whose focus leaves is a dialog that closes.
   const popup = useRef<HTMLDivElement | null>(null);
+  const open = view.status !== "idle";
 
-  function onKey(event: KeyboardEvent<HTMLDivElement>): void {
-    if (event.key === "ArrowLeft") {
-      event.preventDefault();
-      step(serverId, -1);
-    } else if (event.key === "ArrowRight") {
-      event.preventDefault();
-      step(serverId, 1);
+  // The arrows are read on the window, not on the frame: wherever the focus
+  // landed once the overlay opened, the next capture is one key away.
+  useEffect(() => {
+    if (!open) {
+      return;
     }
-  }
+
+    function onKey(event: globalThis.KeyboardEvent): void {
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        step(serverId, -1);
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        step(serverId, 1);
+      }
+    }
+
+    // Captured, so a key stopped inside the dialog still walks the list.
+    window.addEventListener("keydown", onKey, true);
+
+    return () => {
+      window.removeEventListener("keydown", onKey, true);
+    };
+  }, [open, serverId, step]);
 
   if (view.status === "idle") {
     return null;
@@ -71,7 +85,6 @@ export function ShotViewer({ serverId }: { serverId: string }) {
           className="fixed inset-0 z-20 flex flex-col bg-base/95 p-6 outline-none transition-pop data-[ending-style]:opacity-0 data-[starting-style]:opacity-0"
           data-shot-viewer={view.shot.path}
           initialFocus={popup}
-          onKeyDown={onKey}
           ref={popup}
         >
           <header className="flex shrink-0 items-center gap-3">
