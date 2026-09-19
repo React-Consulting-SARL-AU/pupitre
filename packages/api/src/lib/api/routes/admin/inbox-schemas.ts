@@ -78,7 +78,11 @@ export const mailCountsSchema = t.Object(
     mailboxes: t.Array(
       t.Object({ id: t.String(), unread: t.Integer(), open: t.Integer() })
     ),
-    others: t.Object({ unread: t.Integer(), open: t.Integer() }),
+    others: t.Object({
+      unread: t.Integer(),
+      open: t.Integer(),
+      threads: t.Integer(),
+    }),
     total_unread: t.Integer(),
   },
   { $id: "MailCounts" }

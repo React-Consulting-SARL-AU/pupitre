@@ -104,3 +104,13 @@ VALUES
 UPDATE "MailThread"
 SET "mailboxId" = (SELECT "id" FROM "MailMailbox" WHERE "MailMailbox"."address" = "MailThread"."address")
 WHERE "mailboxId" IS NULL;
+
+-- The open view drops the automated threads: a thread received before this
+-- migration must carry its own last inbound, not the column's default.
+UPDATE "MailThread"
+SET "lastInboundAutomated" = COALESCE((
+    SELECT "automated" FROM "MailMessage"
+    WHERE "MailMessage"."threadId" = "MailThread"."id" AND "MailMessage"."direction" = 'inbound'
+    ORDER BY "MailMessage"."createdAt" DESC
+    LIMIT 1
+), false);

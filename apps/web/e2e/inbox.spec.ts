@@ -23,9 +23,9 @@ const DRAFT = "Brouillon en cours de rédaction."
 const NEW_MAILBOX = "ventes"
 const NEW_MAILBOX_NAME = "Ventes"
 
-const INBOX_URL_RE = /\/dashboard\/admin\/inbox/
-const THREAD_URL_RE = /\/dashboard\/admin\/inbox\/[^/?]+/
-const MAILBOXES_URL_RE = /\/dashboard\/admin\/inbox\/mailboxes/
+const INBOX_URL_RE = /\/dashboard\/admin\/inbox$/
+const THREAD_URL_RE = /\/dashboard\/admin\/inbox\/[^/]+$/
+const MAILBOXES_URL_RE = /\/dashboard\/admin\/inbox\/mailboxes$/
 
 const SELECTION_RE = /conversations? sélectionnée/
 

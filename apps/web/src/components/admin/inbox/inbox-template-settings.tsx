@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Plus, Trash2 } from "lucide-react"
+import { Pencil, Plus, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
@@ -17,8 +17,10 @@ import {
   createTemplate,
   deleteTemplate,
   type InboxMailbox,
+  type InboxTemplate,
   inboxKeys,
   inboxTemplatesQueryOptions,
+  patchTemplate,
 } from "@/lib/api/inbox-queries"
 import {
   MAX_TEMPLATE_NAME_LENGTH,
@@ -43,6 +45,7 @@ export function InboxTemplateSettings({
   const queryClient = useQueryClient()
   const templates = useQuery(inboxTemplatesQueryOptions(EVERY_MAILBOX))
   const [mailboxId, setMailboxId] = useState(EVERY_MAILBOX)
+  const [edited, setEdited] = useState<string | null>(null)
   const empty: TemplateFormInput = {
     name: "",
     body: "",
@@ -66,16 +69,34 @@ export function InboxTemplateSettings({
     })
   }
 
-  const add = useMutation({
-    mutationFn: (values: TemplateFormValues) =>
-      createTemplate({
+  function startOver() {
+    setEdited(null)
+    setMailboxId(EVERY_MAILBOX)
+    form.reset(empty)
+  }
+
+  function edit(template: InboxTemplate) {
+    setEdited(template.id)
+    setMailboxId(template.mailbox_id ?? EVERY_MAILBOX)
+    form.reset({
+      name: template.name,
+      body: template.body,
+      mailbox_id: template.mailbox_id ?? EVERY_MAILBOX,
+    })
+  }
+
+  const save = useMutation({
+    mutationFn: (values: TemplateFormValues) => {
+      const written = {
         name: values.name,
         body: values.body,
         mailbox_id: mailboxId === EVERY_MAILBOX ? null : mailboxId,
-      }),
-    onSuccess: async (_created, values) => {
-      form.reset(empty)
-      setMailboxId(EVERY_MAILBOX)
+      }
+
+      return edited ? patchTemplate(edited, written) : createTemplate(written)
+    },
+    onSuccess: async (_saved, values) => {
+      startOver()
       toasts.done(t("inbox.templateSaved", { name: values.name }))
       await refresh()
     },
@@ -84,12 +105,18 @@ export function InboxTemplateSettings({
 
   const remove = useMutation({
     mutationFn: (id: string) => deleteTemplate(id),
-    onSuccess: refresh,
+    onSuccess: async (_removed, id) => {
+      if (edited === id) {
+        startOver()
+      }
+
+      await refresh()
+    },
     onError: failed,
   })
 
   const submit = form.handleSubmit((values) => {
-    add.mutate(values)
+    save.mutate(values)
   })
 
   return (
@@ -118,20 +145,35 @@ export function InboxTemplateSettings({
                   </p>
                 </div>
                 {canAct ? (
-                  <ConfirmDialog
-                    busy={remove.isPending}
-                    confirmLabel={t("inbox.templateDelete")}
-                    description={t("inbox.templateDeleteConfirm", {
-                      name: template.name,
-                    })}
-                    onConfirm={() => {
-                      remove.mutate(template.id)
-                    }}
-                    title={t("inbox.templateDelete")}
-                    triggerIcon={Trash2}
-                    triggerIconOnly
-                    triggerLabel={t("inbox.templateDelete")}
-                  />
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Button
+                      aria-label={t("inbox.templateEdit", {
+                        name: template.name,
+                      })}
+                      className="w-7 px-0"
+                      icon={Pencil}
+                      onClick={() => {
+                        edit(template)
+                      }}
+                      size="sm"
+                      title={t("inbox.templateEdit", { name: template.name })}
+                      variant="ghost"
+                    />
+                    <ConfirmDialog
+                      busy={remove.isPending}
+                      confirmLabel={t("inbox.templateDelete")}
+                      description={t("inbox.templateDeleteConfirm", {
+                        name: template.name,
+                      })}
+                      onConfirm={() => {
+                        remove.mutate(template.id)
+                      }}
+                      title={t("inbox.templateDelete")}
+                      triggerIcon={Trash2}
+                      triggerIconOnly
+                      triggerLabel={t("inbox.templateDelete")}
+                    />
+                  </div>
                 ) : null}
               </li>
             ))}
@@ -185,14 +227,24 @@ export function InboxTemplateSettings({
               />
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              {edited ? (
+                <Button
+                  onClick={startOver}
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  {t("common.cancel")}
+                </Button>
+              ) : null}
               <Button
-                icon={Plus}
-                loading={add.isPending}
+                icon={edited ? Pencil : Plus}
+                loading={save.isPending}
                 type="submit"
                 variant="primary"
               >
-                {t("inbox.templateCreate")}
+                {edited ? t("inbox.templateSave") : t("inbox.templateCreate")}
               </Button>
             </div>
           </form>

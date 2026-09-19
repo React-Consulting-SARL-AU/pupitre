@@ -10,11 +10,10 @@ import {
   createMailNote,
   deleteMailNote,
   listMailNotes,
-  MailNoteNotYoursError,
 } from "../../../mail/notes"
 import { apiError } from "../../errors"
 import { dataResponse, errorResponse } from "../../openapi-models"
-import { ROLE_RANK, requirePlatformAdmin } from "../../plugins/guards"
+import { requirePlatformAdmin, requirePlatformRole } from "../../plugins/guards"
 import { serializeData } from "../../prisma"
 import {
   mailDraftBody,
@@ -32,7 +31,9 @@ const noteListResponse = t.Object(
   { $id: "MailNoteList" }
 )
 
-export const adminInboxNoteRoutes = new Elysia({ name: "admin-inbox-notes" })
+export const adminInboxNoteReadRoutes = new Elysia({
+  name: "admin-inbox-notes-read",
+})
   .use(requirePlatformAdmin)
   .get(
     "/threads/:id/notes",
@@ -49,6 +50,38 @@ export const adminInboxNoteRoutes = new Elysia({ name: "admin-inbox-notes" })
       },
     }
   )
+  .get(
+    "/threads/:id/draft",
+    async ({ params, request, set }) => {
+      const draft = await readMailDraft(params.id)
+
+      if (!draft) {
+        set.status = 404
+
+        return apiError(
+          "not_found",
+          translate(resolveLocale(request.headers), "mail_draft_not_found")
+        )
+      }
+
+      return { data: serializeData(draft) }
+    },
+    {
+      params: threadParams,
+      detail: { summary: "Le brouillon de réponse gardé sur un fil" },
+      response: {
+        200: dataResponse(mailDraftSchema),
+        401: errorResponse,
+        403: errorResponse,
+        404: errorResponse,
+      },
+    }
+  )
+
+export const adminInboxNoteWriteRoutes = new Elysia({
+  name: "admin-inbox-notes-write",
+})
+  .use(requirePlatformRole("admin"))
   .post(
     "/threads/:id/notes",
     async ({ user, params, body, request, set }) => {
@@ -86,74 +119,29 @@ export const adminInboxNoteRoutes = new Elysia({ name: "admin-inbox-notes" })
   )
   .delete(
     "/threads/:id/notes/:noteId",
-    async ({ user, platformRole, params, request, set }) => {
-      const locale = resolveLocale(request.headers)
-      const mayDeleteAnyone =
-        ROLE_RANK[(platformRole ?? "member") as "member"] >= ROLE_RANK.admin
+    async ({ user, params, request, set }) => {
+      const removed = await deleteMailNote(
+        { userId: user.id, source: "console" },
+        params.id,
+        params.noteId
+      )
 
-      try {
-        const removed = await deleteMailNote(
-          { userId: user.id, source: "console" },
-          params.id,
-          params.noteId,
-          mayDeleteAnyone
-        )
-
-        if (!removed) {
-          set.status = 404
-
-          return apiError("not_found", translate(locale, "mail_note_not_found"))
-        }
-
-        set.status = 204
-
-        return
-      } catch (error) {
-        if (!(error instanceof MailNoteNotYoursError)) {
-          throw error
-        }
-
-        set.status = 403
+      if (!removed) {
+        set.status = 404
 
         return apiError(
-          "forbidden",
-          translate(locale, "mail_note_not_yours"),
-          translate(locale, "mail_note_not_yours_fix")
+          "not_found",
+          translate(resolveLocale(request.headers), "mail_note_not_found")
         )
       }
+
+      set.status = 204
     },
     {
       params: noteParams,
       detail: { summary: "Retirer une note interne" },
       response: {
         204: t.Void(),
-        401: errorResponse,
-        403: errorResponse,
-        404: errorResponse,
-      },
-    }
-  )
-  .get(
-    "/threads/:id/draft",
-    async ({ params, request, set }) => {
-      const draft = await readMailDraft(params.id)
-
-      if (!draft) {
-        set.status = 404
-
-        return apiError(
-          "not_found",
-          translate(resolveLocale(request.headers), "mail_draft_not_found")
-        )
-      }
-
-      return { data: serializeData(draft) }
-    },
-    {
-      params: threadParams,
-      detail: { summary: "Le brouillon de réponse gardé sur un fil" },
-      response: {
-        200: dataResponse(mailDraftSchema),
         401: errorResponse,
         403: errorResponse,
         404: errorResponse,

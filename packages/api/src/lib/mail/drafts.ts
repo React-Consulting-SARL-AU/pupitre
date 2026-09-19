@@ -93,7 +93,7 @@ export async function saveMailDraft(
     create: { threadId, ...data },
   })
 
-  await publishInboxEvent({ type: "thread.updated", thread_id: threadId })
+  await publishInboxEvent({ type: "draft.changed", thread_id: threadId })
 
   return await viewOf(draft)
 }
@@ -103,5 +103,11 @@ export async function deleteMailDraft(threadId: string): Promise<boolean> {
     where: { threadId },
   })
 
-  return count > 0
+  if (count === 0) {
+    return false
+  }
+
+  await publishInboxEvent({ type: "draft.changed", thread_id: threadId })
+
+  return true
 }
