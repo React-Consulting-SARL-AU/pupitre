@@ -115,6 +115,12 @@ export const MAIL_MAX_OUTBOUND_ATTACHMENTS = 10
 /** How long a signed bucket address, to read an attachment or to upload one, stays valid. */
 export const MAIL_SIGNED_URL_TTL_SECONDS = 600
 
+/**
+ * One journal line per reader and per sensitive thread inside this window: a
+ * console that refetches the open thread is still the same reading.
+ */
+export const MAIL_READ_AUDIT_WINDOW_MS = 10 * 60 * 1000
+
 export const MAIL_BLOCKED_ATTACHMENT_EXTENSIONS = [
   "exe",
   "bat",

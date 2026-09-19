@@ -1,4 +1,4 @@
-import { resolveAuthContext } from "@pupitre/api/auth-context"
+import { type AuthContext, resolveAuthContext } from "@pupitre/api/auth-context"
 import {
   configureInboxRealtime,
   type InboxEvent,
@@ -45,6 +45,22 @@ export function acceptInboxSocket(state: DurableObjectState): Response {
   return new Response(null, { status: 101, webSocket: client })
 }
 
+/**
+ * A socket the runtime has already torn down throws on `send`; the round must
+ * still reach the others, so the faulty one is dropped instead of the frame.
+ */
+function sendOrDrop(socket: WebSocket, payload: string): void {
+  try {
+    socket.send(payload)
+  } catch {
+    try {
+      socket.close()
+    } catch {
+      return
+    }
+  }
+}
+
 export function broadcastInboxEvent(
   state: DurableObjectState,
   event: InboxEvent
@@ -52,7 +68,7 @@ export function broadcastInboxEvent(
   const payload = JSON.stringify(event)
 
   for (const socket of state.getWebSockets()) {
-    socket.send(payload)
+    sendOrDrop(socket, payload)
   }
 }
 
@@ -110,14 +126,18 @@ function inboxStub(env: CloudflareEnv) {
 }
 
 /**
- * The socket opens only for the platform team, and the session is resolved
- * before the request ever reaches the object: the room has no reader of its own.
+ * The socket answers to the same refusals as the routes it mirrors, in the
+ * order `refuseSession` uses: a session the platform no longer honours says
+ * what it refuses before anything about a role.
  */
-export async function handleInboxEventsRequest(
-  request: Request,
-  env: CloudflareEnv
-): Promise<Response> {
-  const auth = await resolveAuthContext(request)
+export function inboxSocketRefusal(auth: AuthContext): Response | null {
+  if (auth.accountRefusal) {
+    return refuse(
+      403,
+      "forbidden",
+      "Ce compte est désactivé : la plateforme n'honore plus sa session."
+    )
+  }
 
   if (!(auth.user && auth.session)) {
     return refuse(401, "unauthenticated", "Authentification requise.")
@@ -125,6 +145,23 @@ export async function handleInboxEventsRequest(
 
   if (!auth.isPlatformAdmin) {
     return refuse(403, "forbidden", "Réservé à l'équipe Pupitre.")
+  }
+
+  return null
+}
+
+/**
+ * The socket opens only for the platform team, and the session is resolved
+ * before the request ever reaches the object: the room has no reader of its own.
+ */
+export async function handleInboxEventsRequest(
+  request: Request,
+  env: CloudflareEnv
+): Promise<Response> {
+  const refused = inboxSocketRefusal(await resolveAuthContext(request))
+
+  if (refused) {
+    return refused
   }
 
   if (!isInboxSocketUpgrade(request)) {
