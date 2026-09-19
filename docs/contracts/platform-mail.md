@@ -32,6 +32,8 @@ Le même chemin s'ouvre en local par `POST /internal/email`, derrière le secret
 
 `MailThread.address` reste la vérité de l'enveloppe ; `MailThread.mailboxId` est la boîte qu'on a déclarée pour elle, et vaut `null` quand aucune ne la déclare — le fil est alors rangé dans **« Autres »**. Ouvrir une boîte sur une adresse qui a déjà reçu **rattache** ces fils-là. Une boîte désactivée reçoit encore — le catch-all ne trie pas — mais n'émet plus et sort des onglets par défaut.
 
+La migration ne se contente pas d'ajouter les colonnes : elle **remplit** `mailboxId` depuis l'adresse, et `lastInboundAutomated` depuis le dernier message entrant de chaque fil. Sans cela un fil reçu avant la migration serait entré dans la vue ouverte quel que soit son dernier entrant, et la valeur par défaut de la colonne aurait fait passer un accusé automatique pour du courrier à traiter.
+
 **Une boîte sensible journalise ses lectures** : ouvrir un fil y écrit `mail.read`, ouvrir une pièce jointe `mail.attachment_read`. Une boîte ordinaire n'écrit rien.
 
 Il n'y a plus de liste d'adresses d'expédition figée : **les expéditeurs possibles sont les boîtes `enabled && canReply`**. Le binding `send_email` de `wrangler.jsonc` ne liste **aucun** `allowed_sender_addresses`, et c'est délibéré : toute adresse du domaine peut émettre, la vérification est faite par le domaine lui-même dans Email Sending.
