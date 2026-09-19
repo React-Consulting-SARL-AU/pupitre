@@ -46,6 +46,35 @@ const FR = {
   platform_member_protected: "Ce compte est membre de l'organisation Pupitre.",
   platform_member_protected_fix:
     "Retirez-le d'abord de l'organisation Pupitre depuis sa page des membres.",
+  account_deactivated: "Ce compte est fermé.",
+  account_deactivated_fix:
+    "Écrivez à support@pupitre.studio pour le faire rouvrir.",
+  user_already_deactivated: "Ce compte est déjà désactivé.",
+  user_already_deactivated_fix:
+    "Réactivez-le d'abord : POST /admin/users/:id/reactivate.",
+  user_active: "Ce compte n'a ni désactivation ni suppression à lever.",
+  user_active_fix:
+    "Une suspension se lève par POST /admin/users/:id/unban ; ce compte n'a rien d'autre.",
+  sole_owner:
+    "Ce compte est le seul propriétaire d'une organisation qui porte encore un serveur ou un abonnement.",
+  sole_owner_fix:
+    "Transférez l'organisation à un autre membre, ou fermez-la : POST /admin/organizations/:id/transfer, DELETE /admin/organizations/:id.",
+  email_verified: "L'adresse de ce compte est déjà vérifiée.",
+  email_verified_fix:
+    "Il n'y a rien à renvoyer ; le compte se connecte par lien magique ou clé d'accès.",
+  organization_closed: "Cette organisation est fermée.",
+  organization_closed_fix:
+    "Choisissez une autre organisation, ou écrivez à support@pupitre.studio pour la faire rouvrir.",
+  organization_already_suspended: "Cette organisation est déjà suspendue.",
+  organization_already_suspended_fix:
+    "Levez d'abord la suspension : POST /admin/organizations/:id/restore.",
+  slug_taken: "Le slug « {slug} » est déjà pris.",
+  slug_taken_fix: "Choisissez un autre slug.",
+  last_owner:
+    "Cette organisation n'aurait plus aucun propriétaire après ce retrait.",
+  last_owner_fix:
+    "Nommez d'abord un autre propriétaire : POST /admin/organizations/:id/transfer.",
+  member_not_found: "Cette personne n'est pas membre de cette organisation.",
   organization_forbidden: "Cette organisation n'est pas la vôtre.",
   organization_forbidden_fix:
     "Choisissez une organisation dont vous êtes membre.",
@@ -265,6 +294,34 @@ const EN: Record<MessageKey, string> = {
     "This account belongs to the Pupitre organization.",
   platform_member_protected_fix:
     "Remove them from the Pupitre organization first, on its members page.",
+  account_deactivated: "This account is closed.",
+  account_deactivated_fix:
+    "Write to support@pupitre.studio to have it reopened.",
+  user_already_deactivated: "This account is already deactivated.",
+  user_already_deactivated_fix:
+    "Reactivate it first: POST /admin/users/:id/reactivate.",
+  user_active: "This account has no deactivation and no deletion to lift.",
+  user_active_fix:
+    "A suspension lifts with POST /admin/users/:id/unban; this account has nothing else.",
+  sole_owner:
+    "This account is the sole owner of an organization that still holds a server or a subscription.",
+  sole_owner_fix:
+    "Transfer the organization to another member, or close it: POST /admin/organizations/:id/transfer, DELETE /admin/organizations/:id.",
+  email_verified: "This account's address is already verified.",
+  email_verified_fix:
+    "There is nothing to send again; the account signs in with a magic link or a passkey.",
+  organization_closed: "This organization is closed.",
+  organization_closed_fix:
+    "Pick another organization, or write to support@pupitre.studio to have it reopened.",
+  organization_already_suspended: "This organization is already suspended.",
+  organization_already_suspended_fix:
+    "Lift the suspension first: POST /admin/organizations/:id/restore.",
+  slug_taken: 'The slug "{slug}" is already taken.',
+  slug_taken_fix: "Pick another slug.",
+  last_owner: "This organization would be left without an owner.",
+  last_owner_fix:
+    "Name another owner first: POST /admin/organizations/:id/transfer.",
+  member_not_found: "This person is not a member of this organization.",
   organization_forbidden: "This organization is not yours.",
   organization_forbidden_fix: "Pick an organization you belong to.",
   assignee_not_a_member: "This person is not a member of this organization.",

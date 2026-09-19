@@ -8,9 +8,13 @@ import {
   renderAlertServerUnreachableEmail,
   renderDeviceAddedEmail,
   renderEmailChangeEmail,
+  renderEmailVerificationEmail,
   renderEntitlementGraceEmail,
   renderInvitationEmail,
   renderMagicLinkEmail,
+  renderOrganizationClosedEmail,
+  renderOrganizationRestoredEmail,
+  renderOrganizationSuspendedEmail,
   renderSeatsDriftEmail,
   renderServerAssignedEmail,
   renderServerDecommissionEmail,
@@ -25,6 +29,7 @@ export const SAMPLE = {
   magicLinkUrl: `${consoleUrl()}/api/auth/magic-link/verify?token=8f3c1d94a0b74e2f&callbackURL=%2Fdashboard`,
   invitationUrl: `${consoleUrl()}/auth/invitation/inv_7a1c2e`,
   emailChangeUrl: `${consoleUrl()}/api/auth/verify-email?token=1b7d0e5c9a24f8&callbackURL=%2Fdashboard%2Fsettings`,
+  emailVerificationUrl: `${consoleUrl()}/api/auth/verify-email?token=5c2b8e10d7f43a&callbackURL=%2Fdashboard`,
   newEmail: "camille@ferrand.studio",
   organizationName: "Atelier Ferrand",
   inviterEmail: "camille@atelier-ferrand.fr",
@@ -62,6 +67,30 @@ const RENDERERS: Record<
       locale,
       url: SAMPLE.emailChangeUrl,
       newEmail: SAMPLE.newEmail,
+    }),
+  email_verification: (locale) =>
+    renderEmailVerificationEmail({
+      locale,
+      url: SAMPLE.emailVerificationUrl,
+    }),
+  organization_suspended: (locale) =>
+    renderOrganizationSuspendedEmail({
+      locale,
+      organizationName: SAMPLE.organizationName,
+      reason: SAMPLE.suspensionReason,
+      serverCount: SAMPLE.serverCount,
+    }),
+  organization_restored: (locale) =>
+    renderOrganizationRestoredEmail({
+      locale,
+      organizationName: SAMPLE.organizationName,
+      serverCount: SAMPLE.serverCount,
+    }),
+  organization_closed: (locale) =>
+    renderOrganizationClosedEmail({
+      locale,
+      organizationName: SAMPLE.organizationName,
+      reason: SAMPLE.suspensionReason,
     }),
   invitation: (locale) =>
     renderInvitationEmail({

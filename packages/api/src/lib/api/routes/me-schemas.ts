@@ -1,5 +1,6 @@
 import { LOCALES } from "@pupitre/shared/i18n"
 import { ORG_ROLES } from "@pupitre/shared/permissions"
+import { ORGANIZATION_STATES } from "@pupitre/shared/platform"
 import { t } from "elysia"
 import { dateTime } from "../openapi-models"
 import { serverStatusSchema } from "./servers/schemas"
@@ -16,10 +17,13 @@ export const meInputBody = t.Object({
   organization_id: t.Optional(t.String({ minLength: 1 })),
 })
 
+export const organizationStateSchema = t.UnionEnum([...ORGANIZATION_STATES])
+
 const organizationSummary = {
   id: t.String(),
   name: t.String(),
   slug: t.String(),
+  state: organizationStateSchema,
 }
 
 export const meSubscriptionSchema = t.Object(
@@ -45,7 +49,9 @@ export const meSchema = t.Object(
     organizations: t.Array(
       t.Object({ ...organizationSummary, role: t.String() })
     ),
-    active_organization: t.Nullable(t.Object(organizationSummary)),
+    active_organization: t.Nullable(
+      t.Object({ ...organizationSummary, reason: t.Nullable(t.String()) })
+    ),
     role: t.Nullable(t.UnionEnum([...ORG_ROLES])),
     platform_role: t.Nullable(t.UnionEnum([...ORG_ROLES])),
     entitlement: t.UnionEnum([...ME_ENTITLEMENTS]),

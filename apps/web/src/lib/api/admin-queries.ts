@@ -52,10 +52,61 @@ export function adminUserQueryOptions(id: string) {
   })
 }
 
-export function banUser(id: string, reason: string): Promise<void> {
+export interface BanUserInput {
+  reason: string
+  until?: string | null
+}
+
+export function banUser(id: string, input: BanUserInput): Promise<void> {
   return api()
     .api.v1.admin.users({ id })
-    .ban.post({ reason })
+    .ban.post(input)
+    .then((response) => {
+      unwrap(response)
+    })
+}
+
+export function deactivateUser(id: string, reason: string): Promise<void> {
+  return api()
+    .api.v1.admin.users({ id })
+    .deactivate.post({ reason })
+    .then((response) => {
+      unwrap(response)
+    })
+}
+
+export function reactivateUser(id: string): Promise<void> {
+  return api()
+    .api.v1.admin.users({ id })
+    .reactivate.post()
+    .then((response) => {
+      unwrap(response)
+    })
+}
+
+/** The first call schedules the purge and answers the account; the second erases it and answers nothing. */
+export function deleteUser(id: string, reason: string): Promise<void> {
+  return api()
+    .api.v1.admin.users({ id })
+    .delete({ reason })
+    .then((response) => {
+      unwrap(response)
+    })
+}
+
+export function revokeUserSessions(id: string): Promise<void> {
+  return api()
+    .api.v1.admin.users({ id })
+    .sessions.revoke.post()
+    .then((response) => {
+      unwrap(response)
+    })
+}
+
+export function resendUserVerification(id: string): Promise<void> {
+  return api()
+    .api.v1.admin.users({ id })
+    .verification.post()
     .then((response) => {
       unwrap(response)
     })
@@ -113,6 +164,93 @@ export function adminOrganizationQueryOptions(id: string) {
     queryKey: queryKeys.admin.organization(id),
     queryFn: () => readOrganization(id),
   })
+}
+
+export function suspendOrganization(
+  id: string,
+  reason: string
+): Promise<AdminOrganizationDetail> {
+  return api()
+    .api.v1.admin.organizations({ id })
+    .suspend.post({ reason })
+    .then((response) => unwrap(response).data)
+}
+
+export function restoreOrganization(
+  id: string
+): Promise<AdminOrganizationDetail> {
+  return api()
+    .api.v1.admin.organizations({ id })
+    .restore.post()
+    .then((response) => unwrap(response).data)
+}
+
+export function closeOrganization(
+  id: string,
+  reason: string
+): Promise<AdminOrganizationDetail> {
+  return api()
+    .api.v1.admin.organizations({ id })
+    .close.post({ reason })
+    .then((response) => unwrap(response).data)
+}
+
+export function reopenOrganization(
+  id: string
+): Promise<AdminOrganizationDetail> {
+  return api()
+    .api.v1.admin.organizations({ id })
+    .reopen.post()
+    .then((response) => unwrap(response).data)
+}
+
+/** The first call schedules the purge and answers the organisation; the second erases it and answers nothing. */
+export function deleteOrganization(id: string, reason: string): Promise<void> {
+  return api()
+    .api.v1.admin.organizations({ id })
+    .delete({ reason })
+    .then((response) => {
+      unwrap(response)
+    })
+}
+
+export interface RenameOrganizationInput {
+  name?: string
+  slug?: string
+}
+
+export function renameOrganization(
+  id: string,
+  input: RenameOrganizationInput
+): Promise<AdminOrganizationDetail> {
+  return api()
+    .api.v1.admin.organizations({ id })
+    .patch(input)
+    .then((response) => unwrap(response).data)
+}
+
+export function transferOrganization(
+  id: string,
+  userId: string
+): Promise<AdminOrganizationDetail> {
+  return api()
+    .api.v1.admin.organizations({ id })
+    .transfer.post({ user_id: userId })
+    .then((response) => unwrap(response).data)
+}
+
+export function removeOrganizationMember(
+  id: string,
+  userId: string,
+  reason: string
+): Promise<void> {
+  return api()
+    .api.v1.admin.organizations({ id })
+    .members({ userId })
+    .delete({ reason })
+    .then((response) => {
+      unwrap(response)
+    })
 }
 
 async function readSubscriptions(page: AdminSubscriptionPageQuery) {
