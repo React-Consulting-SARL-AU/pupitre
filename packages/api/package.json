@@ -11,6 +11,8 @@
     "./billing/reconcile": "./src/lib/billing/reconcile.ts",
     "./client": "./src/client.ts",
     "./mail/ingest": "./src/lib/mail/ingest.ts",
+    "./mail/mailboxes": "./src/lib/mail/mailboxes.ts",
+    "./mail/realtime": "./src/lib/mail/realtime.ts",
     "./mail/uploads": "./src/lib/mail/uploads.ts",
     "./server": "./src/server.ts",
     "./servers/expire": "./src/lib/servers/expire.ts",

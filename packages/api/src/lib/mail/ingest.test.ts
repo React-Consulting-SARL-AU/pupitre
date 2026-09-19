@@ -1,7 +1,13 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "bun:test"
 import { MAIL_MAX_BYTES, MAIL_MAX_TEXT_CHARS } from "@pupitre/shared/legal"
+import { PLATFORM_MAILBOX_IDS } from "@pupitre/shared/platform"
 import { bootApiTestServer, resetDb } from "../../testing"
-import { resetFakeMail, textOf, useFakeMail } from "../../testing/mail"
+import {
+  resetFakeMail,
+  seedPlatformMailboxes,
+  textOf,
+  useFakeMail,
+} from "../../testing/mail"
 import { createUser } from "../../testing/session"
 import { getPrisma } from "../api/prisma"
 import {
@@ -258,6 +264,39 @@ describe("ingestInboundEmail", () => {
 
     expect(result.status).toBe("stored")
     expect(thread.unread).toBe(false)
+    expect(thread.lastInboundAutomated).toBe(true)
+  })
+
+  it("rattache le fil à la boîte qui déclare l'adresse", async () => {
+    await seedPlatformMailboxes()
+
+    const result = await ingest(eml())
+    const thread = await getPrisma().mailThread.findUniqueOrThrow({
+      where: { id: result.threadId },
+    })
+
+    expect(thread.mailboxId).toBe(PLATFORM_MAILBOX_IDS.support)
+    expect(mail.broadcast).toContainEqual({
+      type: "thread.received",
+      thread_id: result.threadId,
+      mailbox_id: PLATFORM_MAILBOX_IDS.support,
+    })
+  })
+
+  it("laisse le fil sans boîte quand aucune ne déclare l'adresse", async () => {
+    await seedPlatformMailboxes()
+
+    const result = await ingestInboundEmail({
+      envelopeFrom: "camille@exemple.fr",
+      envelopeTo: "jordan@pupitre.studio",
+      raw: eml({ to: "jordan@pupitre.studio" }),
+    })
+    const thread = await getPrisma().mailThread.findUniqueOrThrow({
+      where: { id: result.threadId },
+    })
+
+    expect(thread.address).toBe("jordan@pupitre.studio")
+    expect(thread.mailboxId).toBeNull()
   })
 
   it("nomme le correspondant quand l'adresse est celle d'un compte", async () => {

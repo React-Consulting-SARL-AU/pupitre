@@ -1,8 +1,11 @@
 import { Prisma } from "@pupitre/db/cloudflare/client"
 import { MAIL_MAX_BYTES, MAIL_MAX_TEXT_CHARS } from "@pupitre/shared/legal"
 import { getPrisma } from "../api/prisma"
+import { recordMailActivity } from "./activity"
+import { mailboxIdForAddress } from "./mailboxes"
 import { normalizeSubject, referencedMessageIds, snippetOf } from "./normalize"
 import { type ParsedEmail, parseEmail } from "./parse"
+import { publishInboxEvent } from "./realtime"
 import {
   HTML_CONTENT_TYPE,
   inboundAttachmentKey,
@@ -217,6 +220,7 @@ async function contactUserIdFor(email: string | null): Promise<string | null> {
 
 interface ThreadTarget {
   address: string
+  mailboxId: string | null
   subject: string
   normalizedSubject: string
   sender: string
@@ -245,6 +249,7 @@ async function resolveThread(
   const thread = await getPrisma().mailThread.create({
     data: {
       address: target.address,
+      mailboxId: target.mailboxId,
       subject: target.subject,
       normalizedSubject: target.normalizedSubject,
       contactUserId: target.contactUserId,
@@ -337,7 +342,15 @@ export async function ingestInboundEmail(
     parsed?.messageId ?? null
   )
 
+  const mailboxId = await mailboxIdForAddress(address)
+
   if (duplicate) {
+    await publishInboxEvent({
+      type: "thread.received",
+      thread_id: duplicate.threadId,
+      mailbox_id: mailboxId,
+    })
+
     return duplicate
   }
 
@@ -348,6 +361,7 @@ export async function ingestInboundEmail(
   const thread = await resolveThread(
     {
       address,
+      mailboxId,
       subject,
       normalizedSubject: normalizeSubject(subject),
       sender,
@@ -370,10 +384,17 @@ export async function ingestInboundEmail(
     where: { id: thread.id },
     data: {
       lastInboundAt: now,
+      lastInboundAutomated: parsed?.automated ?? false,
       status: parsed?.automated ? undefined : "open",
       unread: parsed?.automated ? undefined : true,
       contactUserId: contactUserId ?? undefined,
     },
+  })
+  await recordMailActivity({ threadId: thread.id, action: "received" })
+  await publishInboxEvent({
+    type: "thread.received",
+    thread_id: thread.id,
+    mailbox_id: mailboxId,
   })
 
   return {

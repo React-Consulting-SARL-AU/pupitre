@@ -197,6 +197,7 @@ export type OrganizationWhereInput = {
   billing?: Prisma.XOR<Prisma.OrganizationBillingNullableScalarRelationFilter, Prisma.OrganizationBillingWhereInput> | null
   events?: Prisma.EventListRelationFilter
   referral?: Prisma.XOR<Prisma.ReferralNullableScalarRelationFilter, Prisma.ReferralWhereInput> | null
+  mailThreads?: Prisma.MailThreadListRelationFilter
 }
 
 export type OrganizationOrderByWithRelationInput = {
@@ -213,6 +214,7 @@ export type OrganizationOrderByWithRelationInput = {
   billing?: Prisma.OrganizationBillingOrderByWithRelationInput
   events?: Prisma.EventOrderByRelationAggregateInput
   referral?: Prisma.ReferralOrderByWithRelationInput
+  mailThreads?: Prisma.MailThreadOrderByRelationAggregateInput
 }
 
 export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
@@ -232,6 +234,7 @@ export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
   billing?: Prisma.XOR<Prisma.OrganizationBillingNullableScalarRelationFilter, Prisma.OrganizationBillingWhereInput> | null
   events?: Prisma.EventListRelationFilter
   referral?: Prisma.XOR<Prisma.ReferralNullableScalarRelationFilter, Prisma.ReferralWhereInput> | null
+  mailThreads?: Prisma.MailThreadListRelationFilter
 }, "id" | "slug">
 
 export type OrganizationOrderByWithAggregationInput = {
@@ -272,6 +275,7 @@ export type OrganizationCreateInput = {
   billing?: Prisma.OrganizationBillingCreateNestedOneWithoutOrganizationInput
   events?: Prisma.EventCreateNestedManyWithoutOrganizationInput
   referral?: Prisma.ReferralCreateNestedOneWithoutOrganizationInput
+  mailThreads?: Prisma.MailThreadCreateNestedManyWithoutLinkedOrganizationInput
 }
 
 export type OrganizationUncheckedCreateInput = {
@@ -288,6 +292,7 @@ export type OrganizationUncheckedCreateInput = {
   billing?: Prisma.OrganizationBillingUncheckedCreateNestedOneWithoutOrganizationInput
   events?: Prisma.EventUncheckedCreateNestedManyWithoutOrganizationInput
   referral?: Prisma.ReferralUncheckedCreateNestedOneWithoutOrganizationInput
+  mailThreads?: Prisma.MailThreadUncheckedCreateNestedManyWithoutLinkedOrganizationInput
 }
 
 export type OrganizationUpdateInput = {
@@ -304,6 +309,7 @@ export type OrganizationUpdateInput = {
   billing?: Prisma.OrganizationBillingUpdateOneWithoutOrganizationNestedInput
   events?: Prisma.EventUpdateManyWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUpdateOneWithoutOrganizationNestedInput
+  mailThreads?: Prisma.MailThreadUpdateManyWithoutLinkedOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateInput = {
@@ -320,6 +326,7 @@ export type OrganizationUncheckedUpdateInput = {
   billing?: Prisma.OrganizationBillingUncheckedUpdateOneWithoutOrganizationNestedInput
   events?: Prisma.EventUncheckedUpdateManyWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUncheckedUpdateOneWithoutOrganizationNestedInput
+  mailThreads?: Prisma.MailThreadUncheckedUpdateManyWithoutLinkedOrganizationNestedInput
 }
 
 export type OrganizationCreateManyInput = {
@@ -470,6 +477,22 @@ export type OrganizationUpdateOneRequiredWithoutReferralNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUpdateToOneWithWhereWithoutReferralInput, Prisma.OrganizationUpdateWithoutReferralInput>, Prisma.OrganizationUncheckedUpdateWithoutReferralInput>
 }
 
+export type OrganizationCreateNestedOneWithoutMailThreadsInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutMailThreadsInput, Prisma.OrganizationUncheckedCreateWithoutMailThreadsInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutMailThreadsInput
+  connect?: Prisma.OrganizationWhereUniqueInput
+}
+
+export type OrganizationUpdateOneWithoutMailThreadsNestedInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutMailThreadsInput, Prisma.OrganizationUncheckedCreateWithoutMailThreadsInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutMailThreadsInput
+  upsert?: Prisma.OrganizationUpsertWithoutMailThreadsInput
+  disconnect?: Prisma.OrganizationWhereInput | boolean
+  delete?: Prisma.OrganizationWhereInput | boolean
+  connect?: Prisma.OrganizationWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUpdateToOneWithWhereWithoutMailThreadsInput, Prisma.OrganizationUpdateWithoutMailThreadsInput>, Prisma.OrganizationUncheckedUpdateWithoutMailThreadsInput>
+}
+
 export type OrganizationCreateNestedOneWithoutEventsInput = {
   create?: Prisma.XOR<Prisma.OrganizationCreateWithoutEventsInput, Prisma.OrganizationUncheckedCreateWithoutEventsInput>
   connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutEventsInput
@@ -499,6 +522,7 @@ export type OrganizationCreateWithoutMembersInput = {
   billing?: Prisma.OrganizationBillingCreateNestedOneWithoutOrganizationInput
   events?: Prisma.EventCreateNestedManyWithoutOrganizationInput
   referral?: Prisma.ReferralCreateNestedOneWithoutOrganizationInput
+  mailThreads?: Prisma.MailThreadCreateNestedManyWithoutLinkedOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutMembersInput = {
@@ -514,6 +538,7 @@ export type OrganizationUncheckedCreateWithoutMembersInput = {
   billing?: Prisma.OrganizationBillingUncheckedCreateNestedOneWithoutOrganizationInput
   events?: Prisma.EventUncheckedCreateNestedManyWithoutOrganizationInput
   referral?: Prisma.ReferralUncheckedCreateNestedOneWithoutOrganizationInput
+  mailThreads?: Prisma.MailThreadUncheckedCreateNestedManyWithoutLinkedOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutMembersInput = {
@@ -545,6 +570,7 @@ export type OrganizationUpdateWithoutMembersInput = {
   billing?: Prisma.OrganizationBillingUpdateOneWithoutOrganizationNestedInput
   events?: Prisma.EventUpdateManyWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUpdateOneWithoutOrganizationNestedInput
+  mailThreads?: Prisma.MailThreadUpdateManyWithoutLinkedOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutMembersInput = {
@@ -560,6 +586,7 @@ export type OrganizationUncheckedUpdateWithoutMembersInput = {
   billing?: Prisma.OrganizationBillingUncheckedUpdateOneWithoutOrganizationNestedInput
   events?: Prisma.EventUncheckedUpdateManyWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUncheckedUpdateOneWithoutOrganizationNestedInput
+  mailThreads?: Prisma.MailThreadUncheckedUpdateManyWithoutLinkedOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutInvitationsInput = {
@@ -575,6 +602,7 @@ export type OrganizationCreateWithoutInvitationsInput = {
   billing?: Prisma.OrganizationBillingCreateNestedOneWithoutOrganizationInput
   events?: Prisma.EventCreateNestedManyWithoutOrganizationInput
   referral?: Prisma.ReferralCreateNestedOneWithoutOrganizationInput
+  mailThreads?: Prisma.MailThreadCreateNestedManyWithoutLinkedOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutInvitationsInput = {
@@ -590,6 +618,7 @@ export type OrganizationUncheckedCreateWithoutInvitationsInput = {
   billing?: Prisma.OrganizationBillingUncheckedCreateNestedOneWithoutOrganizationInput
   events?: Prisma.EventUncheckedCreateNestedManyWithoutOrganizationInput
   referral?: Prisma.ReferralUncheckedCreateNestedOneWithoutOrganizationInput
+  mailThreads?: Prisma.MailThreadUncheckedCreateNestedManyWithoutLinkedOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutInvitationsInput = {
@@ -621,6 +650,7 @@ export type OrganizationUpdateWithoutInvitationsInput = {
   billing?: Prisma.OrganizationBillingUpdateOneWithoutOrganizationNestedInput
   events?: Prisma.EventUpdateManyWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUpdateOneWithoutOrganizationNestedInput
+  mailThreads?: Prisma.MailThreadUpdateManyWithoutLinkedOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutInvitationsInput = {
@@ -636,6 +666,7 @@ export type OrganizationUncheckedUpdateWithoutInvitationsInput = {
   billing?: Prisma.OrganizationBillingUncheckedUpdateOneWithoutOrganizationNestedInput
   events?: Prisma.EventUncheckedUpdateManyWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUncheckedUpdateOneWithoutOrganizationNestedInput
+  mailThreads?: Prisma.MailThreadUncheckedUpdateManyWithoutLinkedOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutServersInput = {
@@ -651,6 +682,7 @@ export type OrganizationCreateWithoutServersInput = {
   billing?: Prisma.OrganizationBillingCreateNestedOneWithoutOrganizationInput
   events?: Prisma.EventCreateNestedManyWithoutOrganizationInput
   referral?: Prisma.ReferralCreateNestedOneWithoutOrganizationInput
+  mailThreads?: Prisma.MailThreadCreateNestedManyWithoutLinkedOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutServersInput = {
@@ -666,6 +698,7 @@ export type OrganizationUncheckedCreateWithoutServersInput = {
   billing?: Prisma.OrganizationBillingUncheckedCreateNestedOneWithoutOrganizationInput
   events?: Prisma.EventUncheckedCreateNestedManyWithoutOrganizationInput
   referral?: Prisma.ReferralUncheckedCreateNestedOneWithoutOrganizationInput
+  mailThreads?: Prisma.MailThreadUncheckedCreateNestedManyWithoutLinkedOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutServersInput = {
@@ -697,6 +730,7 @@ export type OrganizationUpdateWithoutServersInput = {
   billing?: Prisma.OrganizationBillingUpdateOneWithoutOrganizationNestedInput
   events?: Prisma.EventUpdateManyWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUpdateOneWithoutOrganizationNestedInput
+  mailThreads?: Prisma.MailThreadUpdateManyWithoutLinkedOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutServersInput = {
@@ -712,6 +746,7 @@ export type OrganizationUncheckedUpdateWithoutServersInput = {
   billing?: Prisma.OrganizationBillingUncheckedUpdateOneWithoutOrganizationNestedInput
   events?: Prisma.EventUncheckedUpdateManyWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUncheckedUpdateOneWithoutOrganizationNestedInput
+  mailThreads?: Prisma.MailThreadUncheckedUpdateManyWithoutLinkedOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutSubscriptionsInput = {
@@ -727,6 +762,7 @@ export type OrganizationCreateWithoutSubscriptionsInput = {
   billing?: Prisma.OrganizationBillingCreateNestedOneWithoutOrganizationInput
   events?: Prisma.EventCreateNestedManyWithoutOrganizationInput
   referral?: Prisma.ReferralCreateNestedOneWithoutOrganizationInput
+  mailThreads?: Prisma.MailThreadCreateNestedManyWithoutLinkedOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutSubscriptionsInput = {
@@ -742,6 +778,7 @@ export type OrganizationUncheckedCreateWithoutSubscriptionsInput = {
   billing?: Prisma.OrganizationBillingUncheckedCreateNestedOneWithoutOrganizationInput
   events?: Prisma.EventUncheckedCreateNestedManyWithoutOrganizationInput
   referral?: Prisma.ReferralUncheckedCreateNestedOneWithoutOrganizationInput
+  mailThreads?: Prisma.MailThreadUncheckedCreateNestedManyWithoutLinkedOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutSubscriptionsInput = {
@@ -773,6 +810,7 @@ export type OrganizationUpdateWithoutSubscriptionsInput = {
   billing?: Prisma.OrganizationBillingUpdateOneWithoutOrganizationNestedInput
   events?: Prisma.EventUpdateManyWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUpdateOneWithoutOrganizationNestedInput
+  mailThreads?: Prisma.MailThreadUpdateManyWithoutLinkedOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutSubscriptionsInput = {
@@ -788,6 +826,7 @@ export type OrganizationUncheckedUpdateWithoutSubscriptionsInput = {
   billing?: Prisma.OrganizationBillingUncheckedUpdateOneWithoutOrganizationNestedInput
   events?: Prisma.EventUncheckedUpdateManyWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUncheckedUpdateOneWithoutOrganizationNestedInput
+  mailThreads?: Prisma.MailThreadUncheckedUpdateManyWithoutLinkedOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutBillingInput = {
@@ -803,6 +842,7 @@ export type OrganizationCreateWithoutBillingInput = {
   subscriptions?: Prisma.SubscriptionCreateNestedManyWithoutOrganizationInput
   events?: Prisma.EventCreateNestedManyWithoutOrganizationInput
   referral?: Prisma.ReferralCreateNestedOneWithoutOrganizationInput
+  mailThreads?: Prisma.MailThreadCreateNestedManyWithoutLinkedOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutBillingInput = {
@@ -818,6 +858,7 @@ export type OrganizationUncheckedCreateWithoutBillingInput = {
   subscriptions?: Prisma.SubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
   events?: Prisma.EventUncheckedCreateNestedManyWithoutOrganizationInput
   referral?: Prisma.ReferralUncheckedCreateNestedOneWithoutOrganizationInput
+  mailThreads?: Prisma.MailThreadUncheckedCreateNestedManyWithoutLinkedOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutBillingInput = {
@@ -849,6 +890,7 @@ export type OrganizationUpdateWithoutBillingInput = {
   subscriptions?: Prisma.SubscriptionUpdateManyWithoutOrganizationNestedInput
   events?: Prisma.EventUpdateManyWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUpdateOneWithoutOrganizationNestedInput
+  mailThreads?: Prisma.MailThreadUpdateManyWithoutLinkedOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutBillingInput = {
@@ -864,6 +906,7 @@ export type OrganizationUncheckedUpdateWithoutBillingInput = {
   subscriptions?: Prisma.SubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
   events?: Prisma.EventUncheckedUpdateManyWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUncheckedUpdateOneWithoutOrganizationNestedInput
+  mailThreads?: Prisma.MailThreadUncheckedUpdateManyWithoutLinkedOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutReferralInput = {
@@ -879,6 +922,7 @@ export type OrganizationCreateWithoutReferralInput = {
   subscriptions?: Prisma.SubscriptionCreateNestedManyWithoutOrganizationInput
   billing?: Prisma.OrganizationBillingCreateNestedOneWithoutOrganizationInput
   events?: Prisma.EventCreateNestedManyWithoutOrganizationInput
+  mailThreads?: Prisma.MailThreadCreateNestedManyWithoutLinkedOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutReferralInput = {
@@ -894,6 +938,7 @@ export type OrganizationUncheckedCreateWithoutReferralInput = {
   subscriptions?: Prisma.SubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
   billing?: Prisma.OrganizationBillingUncheckedCreateNestedOneWithoutOrganizationInput
   events?: Prisma.EventUncheckedCreateNestedManyWithoutOrganizationInput
+  mailThreads?: Prisma.MailThreadUncheckedCreateNestedManyWithoutLinkedOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutReferralInput = {
@@ -925,6 +970,7 @@ export type OrganizationUpdateWithoutReferralInput = {
   subscriptions?: Prisma.SubscriptionUpdateManyWithoutOrganizationNestedInput
   billing?: Prisma.OrganizationBillingUpdateOneWithoutOrganizationNestedInput
   events?: Prisma.EventUpdateManyWithoutOrganizationNestedInput
+  mailThreads?: Prisma.MailThreadUpdateManyWithoutLinkedOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutReferralInput = {
@@ -940,6 +986,87 @@ export type OrganizationUncheckedUpdateWithoutReferralInput = {
   subscriptions?: Prisma.SubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
   billing?: Prisma.OrganizationBillingUncheckedUpdateOneWithoutOrganizationNestedInput
   events?: Prisma.EventUncheckedUpdateManyWithoutOrganizationNestedInput
+  mailThreads?: Prisma.MailThreadUncheckedUpdateManyWithoutLinkedOrganizationNestedInput
+}
+
+export type OrganizationCreateWithoutMailThreadsInput = {
+  id: string
+  name: string
+  slug: string
+  logo?: string | null
+  createdAt: Date | string
+  metadata?: string | null
+  members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
+  servers?: Prisma.ServerCreateNestedManyWithoutOrganizationInput
+  subscriptions?: Prisma.SubscriptionCreateNestedManyWithoutOrganizationInput
+  billing?: Prisma.OrganizationBillingCreateNestedOneWithoutOrganizationInput
+  events?: Prisma.EventCreateNestedManyWithoutOrganizationInput
+  referral?: Prisma.ReferralCreateNestedOneWithoutOrganizationInput
+}
+
+export type OrganizationUncheckedCreateWithoutMailThreadsInput = {
+  id: string
+  name: string
+  slug: string
+  logo?: string | null
+  createdAt: Date | string
+  metadata?: string | null
+  members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
+  servers?: Prisma.ServerUncheckedCreateNestedManyWithoutOrganizationInput
+  subscriptions?: Prisma.SubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
+  billing?: Prisma.OrganizationBillingUncheckedCreateNestedOneWithoutOrganizationInput
+  events?: Prisma.EventUncheckedCreateNestedManyWithoutOrganizationInput
+  referral?: Prisma.ReferralUncheckedCreateNestedOneWithoutOrganizationInput
+}
+
+export type OrganizationCreateOrConnectWithoutMailThreadsInput = {
+  where: Prisma.OrganizationWhereUniqueInput
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutMailThreadsInput, Prisma.OrganizationUncheckedCreateWithoutMailThreadsInput>
+}
+
+export type OrganizationUpsertWithoutMailThreadsInput = {
+  update: Prisma.XOR<Prisma.OrganizationUpdateWithoutMailThreadsInput, Prisma.OrganizationUncheckedUpdateWithoutMailThreadsInput>
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutMailThreadsInput, Prisma.OrganizationUncheckedCreateWithoutMailThreadsInput>
+  where?: Prisma.OrganizationWhereInput
+}
+
+export type OrganizationUpdateToOneWithWhereWithoutMailThreadsInput = {
+  where?: Prisma.OrganizationWhereInput
+  data: Prisma.XOR<Prisma.OrganizationUpdateWithoutMailThreadsInput, Prisma.OrganizationUncheckedUpdateWithoutMailThreadsInput>
+}
+
+export type OrganizationUpdateWithoutMailThreadsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
+  servers?: Prisma.ServerUpdateManyWithoutOrganizationNestedInput
+  subscriptions?: Prisma.SubscriptionUpdateManyWithoutOrganizationNestedInput
+  billing?: Prisma.OrganizationBillingUpdateOneWithoutOrganizationNestedInput
+  events?: Prisma.EventUpdateManyWithoutOrganizationNestedInput
+  referral?: Prisma.ReferralUpdateOneWithoutOrganizationNestedInput
+}
+
+export type OrganizationUncheckedUpdateWithoutMailThreadsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
+  servers?: Prisma.ServerUncheckedUpdateManyWithoutOrganizationNestedInput
+  subscriptions?: Prisma.SubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
+  billing?: Prisma.OrganizationBillingUncheckedUpdateOneWithoutOrganizationNestedInput
+  events?: Prisma.EventUncheckedUpdateManyWithoutOrganizationNestedInput
+  referral?: Prisma.ReferralUncheckedUpdateOneWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutEventsInput = {
@@ -955,6 +1082,7 @@ export type OrganizationCreateWithoutEventsInput = {
   subscriptions?: Prisma.SubscriptionCreateNestedManyWithoutOrganizationInput
   billing?: Prisma.OrganizationBillingCreateNestedOneWithoutOrganizationInput
   referral?: Prisma.ReferralCreateNestedOneWithoutOrganizationInput
+  mailThreads?: Prisma.MailThreadCreateNestedManyWithoutLinkedOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutEventsInput = {
@@ -970,6 +1098,7 @@ export type OrganizationUncheckedCreateWithoutEventsInput = {
   subscriptions?: Prisma.SubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
   billing?: Prisma.OrganizationBillingUncheckedCreateNestedOneWithoutOrganizationInput
   referral?: Prisma.ReferralUncheckedCreateNestedOneWithoutOrganizationInput
+  mailThreads?: Prisma.MailThreadUncheckedCreateNestedManyWithoutLinkedOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutEventsInput = {
@@ -1001,6 +1130,7 @@ export type OrganizationUpdateWithoutEventsInput = {
   subscriptions?: Prisma.SubscriptionUpdateManyWithoutOrganizationNestedInput
   billing?: Prisma.OrganizationBillingUpdateOneWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUpdateOneWithoutOrganizationNestedInput
+  mailThreads?: Prisma.MailThreadUpdateManyWithoutLinkedOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutEventsInput = {
@@ -1016,6 +1146,7 @@ export type OrganizationUncheckedUpdateWithoutEventsInput = {
   subscriptions?: Prisma.SubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
   billing?: Prisma.OrganizationBillingUncheckedUpdateOneWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUncheckedUpdateOneWithoutOrganizationNestedInput
+  mailThreads?: Prisma.MailThreadUncheckedUpdateManyWithoutLinkedOrganizationNestedInput
 }
 
 
@@ -1029,6 +1160,7 @@ export type OrganizationCountOutputType = {
   servers: number
   subscriptions: number
   events: number
+  mailThreads: number
 }
 
 export type OrganizationCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1037,6 +1169,7 @@ export type OrganizationCountOutputTypeSelect<ExtArgs extends runtime.Types.Exte
   servers?: boolean | OrganizationCountOutputTypeCountServersArgs
   subscriptions?: boolean | OrganizationCountOutputTypeCountSubscriptionsArgs
   events?: boolean | OrganizationCountOutputTypeCountEventsArgs
+  mailThreads?: boolean | OrganizationCountOutputTypeCountMailThreadsArgs
 }
 
 /**
@@ -1084,6 +1217,13 @@ export type OrganizationCountOutputTypeCountEventsArgs<ExtArgs extends runtime.T
   where?: Prisma.EventWhereInput
 }
 
+/**
+ * OrganizationCountOutputType without action
+ */
+export type OrganizationCountOutputTypeCountMailThreadsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.MailThreadWhereInput
+}
+
 
 export type OrganizationSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1099,6 +1239,7 @@ export type OrganizationSelect<ExtArgs extends runtime.Types.Extensions.Internal
   billing?: boolean | Prisma.Organization$billingArgs<ExtArgs>
   events?: boolean | Prisma.Organization$eventsArgs<ExtArgs>
   referral?: boolean | Prisma.Organization$referralArgs<ExtArgs>
+  mailThreads?: boolean | Prisma.Organization$mailThreadsArgs<ExtArgs>
   _count?: boolean | Prisma.OrganizationCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["organization"]>
 
@@ -1138,6 +1279,7 @@ export type OrganizationInclude<ExtArgs extends runtime.Types.Extensions.Interna
   billing?: boolean | Prisma.Organization$billingArgs<ExtArgs>
   events?: boolean | Prisma.Organization$eventsArgs<ExtArgs>
   referral?: boolean | Prisma.Organization$referralArgs<ExtArgs>
+  mailThreads?: boolean | Prisma.Organization$mailThreadsArgs<ExtArgs>
   _count?: boolean | Prisma.OrganizationCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type OrganizationIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1153,6 +1295,7 @@ export type $OrganizationPayload<ExtArgs extends runtime.Types.Extensions.Intern
     billing: Prisma.$OrganizationBillingPayload<ExtArgs> | null
     events: Prisma.$EventPayload<ExtArgs>[]
     referral: Prisma.$ReferralPayload<ExtArgs> | null
+    mailThreads: Prisma.$MailThreadPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1562,6 +1705,7 @@ export interface Prisma__OrganizationClient<T, Null = never, ExtArgs extends run
   billing<T extends Prisma.Organization$billingArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$billingArgs<ExtArgs>>): Prisma.Prisma__OrganizationBillingClient<runtime.Types.Result.GetResult<Prisma.$OrganizationBillingPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   events<T extends Prisma.Organization$eventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$eventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   referral<T extends Prisma.Organization$referralArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$referralArgs<ExtArgs>>): Prisma.Prisma__ReferralClient<runtime.Types.Result.GetResult<Prisma.$ReferralPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  mailThreads<T extends Prisma.Organization$mailThreadsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$mailThreadsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MailThreadPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2143,6 +2287,30 @@ export type Organization$referralArgs<ExtArgs extends runtime.Types.Extensions.I
    */
   include?: Prisma.ReferralInclude<ExtArgs> | null
   where?: Prisma.ReferralWhereInput
+}
+
+/**
+ * Organization.mailThreads
+ */
+export type Organization$mailThreadsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the MailThread
+   */
+  select?: Prisma.MailThreadSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the MailThread
+   */
+  omit?: Prisma.MailThreadOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.MailThreadInclude<ExtArgs> | null
+  where?: Prisma.MailThreadWhereInput
+  orderBy?: Prisma.MailThreadOrderByWithRelationInput | Prisma.MailThreadOrderByWithRelationInput[]
+  cursor?: Prisma.MailThreadWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.MailThreadScalarFieldEnum | Prisma.MailThreadScalarFieldEnum[]
 }
 
 /**
