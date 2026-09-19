@@ -405,12 +405,38 @@ export function createAffiliateLink(input: AffiliateLinkInput): Promise<void> {
     })
 }
 
+export interface AffiliateLinkUpdate {
+  disabled?: boolean
+  name?: string
+  free_months?: number
+  seats?: number
+  partner_name?: string | null
+  partner_email?: string | null
+  notes?: string | null
+}
+
+export function updateAffiliateLink(
+  id: string,
+  update: AffiliateLinkUpdate
+): Promise<AffiliateLink> {
+  return api()
+    .api.v1.admin["affiliate-links"]({ id })
+    .patch(update)
+    .then((response) => unwrap(response).data)
+}
+
 export function setAffiliateLinkDisabled(
   id: string,
   disabled: boolean
 ): Promise<AffiliateLink> {
+  return updateAffiliateLink(id, { disabled })
+}
+
+export function deleteAffiliateLink(id: string): Promise<void> {
   return api()
     .api.v1.admin["affiliate-links"]({ id })
-    .patch({ disabled })
-    .then((response) => unwrap(response).data)
+    .delete()
+    .then((response) => {
+      unwrap(response)
+    })
 }

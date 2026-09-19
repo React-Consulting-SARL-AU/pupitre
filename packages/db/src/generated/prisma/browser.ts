@@ -103,6 +103,11 @@ export type OrganizationBilling = Prisma.OrganizationBillingModel
  */
 export type AffiliateLink = Prisma.AffiliateLinkModel
 /**
+ * Model AffiliateClickDay
+ * 
+ */
+export type AffiliateClickDay = Prisma.AffiliateClickDayModel
+/**
  * Model Referral
  * 
  */
