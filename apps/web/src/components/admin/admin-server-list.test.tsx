@@ -122,7 +122,7 @@ describe("AdminServerList", () => {
     mounted.push(unmount)
 
     await waitUntil(() => container.textContent?.includes("vps-one") === true)
-    await click(trigger(container, "Actions on this line"))
+    await click(trigger(container, "Actions on vps-one"))
     await waitUntil(() => document.querySelector("[role=menuitem]") !== null)
     await click(menuItem("Suspend"))
     await waitUntil(
@@ -157,7 +157,7 @@ describe("AdminServerList", () => {
     mounted.push(unmount)
 
     await waitUntil(() => container.textContent?.includes("vps-one") === true)
-    await click(trigger(container, "Actions on this line"))
+    await click(trigger(container, "Actions on vps-one"))
     await waitUntil(() => document.querySelector("[role=menuitem]") !== null)
     await click(menuItem("Suspend"))
     await waitUntil(
@@ -186,7 +186,7 @@ describe("AdminServerList", () => {
     mounted.push(unmount)
 
     await waitUntil(() => container.textContent?.includes("vps-one") === true)
-    await click(trigger(container, "Actions on this line"))
+    await click(trigger(container, "Actions on vps-one"))
     await waitUntil(() => document.querySelector("[role=menuitem]") !== null)
     await click(menuItem("Move to beta"))
     await waitUntil(() => container.textContent?.includes("Beta") === true)
@@ -230,9 +230,8 @@ describe("AdminServerList", () => {
     await waitUntil(() => container.textContent?.includes("vps-one") === true)
 
     expect(container.querySelectorAll("tbody tr")).toHaveLength(1)
-    expect(container.textContent).not.toContain("Actions on this line")
     expect(
-      container.querySelectorAll("[aria-label='Actions on this line']")
+      container.querySelectorAll("[aria-label='Actions on vps-one']")
     ).toHaveLength(0)
   })
 })

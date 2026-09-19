@@ -304,7 +304,7 @@ test.describe("plateforme", () => {
       await main
         .getByRole("row")
         .filter({ hasText: RUNNING_SERVER })
-        .getByRole("button", { name: "Actions sur cette ligne" })
+        .getByRole("button", { name: `Gestes sur ${RUNNING_SERVER}` })
         .click()
       await page.getByRole("menuitem", { name: "Suspendre" }).click()
 
@@ -662,7 +662,7 @@ test.describe("plateforme", () => {
 
       await expect(row).toBeVisible()
       await expect(
-        row.getByRole("button", { name: "Actions sur cette ligne" })
+        row.getByRole("button", { name: `Gestes sur ${READER_SERVER}` })
       ).toHaveCount(0)
     })
 
@@ -675,7 +675,7 @@ test.describe("plateforme", () => {
 
       await expect(row).toContainText(LINK_URL)
       await expect(
-        row.getByRole("button", { name: "Actions sur cette ligne" })
+        row.getByRole("button", { name: `Gestes sur ${LINK_NAME}` })
       ).toHaveCount(0)
       await expect(
         page.getByRole("button", { name: "Créer un lien" })

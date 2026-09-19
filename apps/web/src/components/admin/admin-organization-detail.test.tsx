@@ -283,7 +283,7 @@ describe("AdminOrganizationDetail", () => {
     await waitUntil(
       () => container.textContent?.includes(second.email) === true
     )
-    await click(trigger(container, `Acts on the member ${second.email}`))
+    await click(trigger(container, `Actions on the member ${second.email}`))
     await click(await pickMenuItem("Transfer the ownership"))
     await waitUntil(() => document.querySelector("[role=dialog]") !== null)
     await click(dialogConfirm())
@@ -313,7 +313,7 @@ describe("AdminOrganizationDetail", () => {
     await waitUntil(
       () => container.textContent?.includes(second.email) === true
     )
-    await click(trigger(container, `Acts on the member ${second.email}`))
+    await click(trigger(container, `Actions on the member ${second.email}`))
     await click(await pickMenuItem("Remove the member"))
     await waitUntil(
       () =>

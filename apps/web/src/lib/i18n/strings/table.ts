@@ -3,7 +3,7 @@ export const table = {
     "table.search": "Search",
     "table.actions": "Actions",
     "table.rowActions": "Actions on this line",
-    "table.rowActionsOn": "Acts on {name}",
+    "table.rowActionsOn": "Actions on {name}",
     "table.selectRow": "Select this line",
     "table.selectPage": "Select every line on this page",
     "table.clearSelection": "Clear the selection",

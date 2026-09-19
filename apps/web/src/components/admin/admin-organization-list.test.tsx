@@ -110,7 +110,7 @@ describe("AdminOrganizationList", () => {
     mounted.push(unmount)
 
     await waitUntil(() => container.textContent?.includes("Atelier") === true)
-    await click(trigger(container, "Acts on Atelier"))
+    await click(trigger(container, "Actions on Atelier"))
     await waitUntil(() => document.querySelector("[role=menuitem]") !== null)
 
     const item = [...document.querySelectorAll("[role=menuitem]")].find(
@@ -155,6 +155,8 @@ describe("AdminOrganizationList", () => {
 
     await waitUntil(() => container.textContent?.includes("Atelier") === true)
 
-    expect(container.querySelector("[aria-label='Acts on Atelier']")).toBeNull()
+    expect(
+      container.querySelector("[aria-label='Actions on Atelier']")
+    ).toBeNull()
   })
 })
