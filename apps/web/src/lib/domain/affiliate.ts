@@ -29,6 +29,12 @@ export const AFFILIATE_LINK_TABS = [
 
 export type AffiliateLinkTab = (typeof AFFILIATE_LINK_TABS)[number]
 
+export const AFFILIATE_LINK_TAB: AffiliateLinkTab = "overview"
+
+export function affiliateLinkTab(value: unknown): AffiliateLinkTab {
+  return AFFILIATE_LINK_TABS.find((tab) => tab === value) ?? AFFILIATE_LINK_TAB
+}
+
 const READER_TABS: AffiliateLinkTab[] = ["overview", "organizations"]
 
 /** A reader of the platform has neither settings nor danger: an address naming one opens the overview. */
@@ -36,7 +42,7 @@ export function affiliateLinkTabFor(
   tab: AffiliateLinkTab,
   canAct: boolean
 ): AffiliateLinkTab {
-  return canAct || READER_TABS.includes(tab) ? tab : "overview"
+  return canAct || READER_TABS.includes(tab) ? tab : AFFILIATE_LINK_TAB
 }
 
 export interface AffiliateConversion {

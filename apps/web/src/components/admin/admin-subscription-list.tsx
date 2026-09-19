@@ -6,6 +6,7 @@ import { AsyncDataTable } from "@/components/ui/async-data-table"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import { useTranslations } from "@/hooks/use-locale"
 import { adminSubscriptionsQueryOptions } from "@/lib/api/admin-queries"
 import type { AdminSortDirection } from "@/lib/api/queries"
@@ -36,6 +37,7 @@ export interface AdminSubscriptionListSearch {
   product?: string
   organization_id?: string
   live?: boolean
+  drifted?: boolean
   sort?: string
   direction?: SortDirection
 }
@@ -85,6 +87,7 @@ export function AdminSubscriptionList({
       ...(product === ALL ? {} : { product }),
       ...(organizationId === "" ? {} : { organization_id: organizationId }),
       ...(search.live === undefined ? {} : { live: search.live }),
+      ...(search.drifted ? { drifted: true } : {}),
       ...(query === "" ? {} : { q: query }),
     })
   )
@@ -167,6 +170,15 @@ export function AdminSubscriptionList({
               value={flagValue(search.live)}
             />
           </div>
+
+          <Switch
+            checked={search.drifted === true}
+            id="admin-subscriptions-drifted"
+            label={t("admin.subscriptions.driftedFilter")}
+            onCheckedChange={(next) => {
+              setSearch({ drifted: next ? true : undefined })
+            }}
+          />
 
           {organizationId === "" ? null : (
             <Button

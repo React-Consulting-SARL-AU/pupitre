@@ -5,7 +5,7 @@ import { StatusDot } from "@/components/ui/status-dot"
 import { channelKey, suspendedReasonKey } from "@/lib/domain/admin"
 import { statusLook } from "@/lib/domain/server-status"
 import type { Translate } from "@/lib/i18n/i18n"
-import { formatRelative } from "@/lib/utils/format"
+import { formatDate, formatRelative } from "@/lib/utils/format"
 
 export interface AdminServerRowServer {
   id: string
@@ -18,6 +18,7 @@ export interface AdminServerRowServer {
   suspended_reason: string | null
   agent_version: string | null
   last_heartbeat_at: string | Date | null
+  created_at: string | Date
   organization: { id: string; name: string; slug: string }
 }
 
@@ -105,6 +106,19 @@ export function adminServerColumns(
       cell: (server) => (
         <span className="text-[12px] text-ink-3">
           {formatRelative(server.last_heartbeat_at, t)}
+        </span>
+      ),
+    },
+    {
+      key: "created_at",
+      header: t("admin.servers.createdAt"),
+      width: "w-28",
+      align: "end",
+      sortable: true,
+      hideBelow: "lg",
+      cell: (server) => (
+        <span className="font-data text-[12px] text-ink-3">
+          {formatDate(server.created_at, t)}
         </span>
       ),
     },

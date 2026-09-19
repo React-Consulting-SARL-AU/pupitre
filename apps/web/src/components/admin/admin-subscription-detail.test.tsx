@@ -8,6 +8,10 @@ import {
 } from "bun:test"
 import { bootApiTestServer, resetDb } from "@pupitre/api/testing"
 import {
+  remoteSubscription,
+  useFakeBilling,
+} from "@pupitre/api/testing/billing"
+import {
   createOrganizationWithMembers,
   createServer,
   subscribeOrganization,
@@ -24,6 +28,7 @@ import {
   createConsoleUser,
   grantLaunch,
   useSessionApiClient,
+  useSeveredApiClient,
 } from "@/testing/harness"
 import {
   fill,
@@ -72,6 +77,8 @@ async function grantedSubscription(organizationId: string, quantity: number) {
 }
 
 describe("AdminSubscriptionDetail", () => {
+  let sessionToken: string
+
   beforeAll(async () => {
     await bootApiTestServer()
   })
@@ -85,6 +92,8 @@ describe("AdminSubscriptionDetail", () => {
     })
 
     await useSessionApiClient(console.token)
+
+    sessionToken = console.token
   })
 
   afterEach(() => {
@@ -217,6 +226,125 @@ describe("AdminSubscriptionDetail", () => {
     })
     await waitUntil(
       () => container.textContent?.includes("Stop the subscription") === false
+    )
+  })
+
+  it("resumes a subscription Stripe was to stop at the end of the period", async () => {
+    const { prisma } = await bootApiTestServer()
+    const billing = useFakeBilling()
+    const { organization } = await createOrganizationWithMembers({
+      name: "Atelier",
+      roles: ["owner"],
+    })
+    const periodEnd = new Date(Date.now() + 12 * DAY_MS)
+    const stripe = await subscribeOrganization({
+      organizationId: organization.id,
+      status: "active",
+      quantity: 2,
+      currentPeriodEnd: periodEnd,
+      cancelAtPeriodEnd: true,
+    })
+
+    billing.put(
+      remoteSubscription({
+        id: stripe.stripeSubscriptionId,
+        organizationId: organization.id,
+        status: "active",
+        quantity: 2,
+        currentPeriodEnd: periodEnd,
+        cancelAtPeriodEnd: true,
+      })
+    )
+
+    const { container, unmount, click } = await render(
+      page(stripe.id, { tab: "actions" })
+    )
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("Resume the subscription") === true
+    )
+    await click(trigger(container, "Resume"))
+    await waitUntil(() => document.querySelector("[role=alertdialog]") !== null)
+
+    const confirm = [
+      ...document.querySelectorAll("[role=alertdialog] button"),
+    ].find((button) => button.textContent === "Resume the subscription")
+
+    if (!confirm) {
+      throw new Error("the resume dialog did not open")
+    }
+
+    await click(confirm)
+    await waitUntilStored(
+      async () =>
+        (
+          await prisma.subscription.findUniqueOrThrow({
+            where: { id: stripe.id },
+          })
+        ).cancelAtPeriodEnd === false
+    )
+
+    expect(billing.resumptions).toEqual([stripe.stripeSubscriptionId])
+  })
+
+  it("keeps the stop dialog open on a cut line, and opens it clean next time", async () => {
+    const { organization } = await createOrganizationWithMembers({
+      name: "Atelier",
+      roles: ["owner"],
+    })
+    const granted = await grantedSubscription(organization.id, 2)
+
+    await useSeveredApiClient(
+      sessionToken,
+      (url, method) => method === "POST" && url.includes("/cancel")
+    )
+
+    const { container, unmount, click } = await render(
+      page(granted.id, { tab: "actions" })
+    )
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("Stop the subscription") === true
+    )
+    await click(trigger(container, "Stop now"))
+
+    await waitUntil(() => document.querySelector("#cancel-reason") !== null)
+
+    const reason = document.querySelector("#cancel-reason")
+    const confirm = document.querySelector("[role=dialog] button[type=submit]")
+
+    if (!(reason && confirm)) {
+      throw new Error("the stop dialog did not open")
+    }
+
+    await fill(reason, "Partnership over")
+    await click(confirm)
+    await waitUntil(
+      () =>
+        document
+          .querySelector("[role=dialog]")
+          ?.textContent?.includes("The subscription was not stopped.") === true
+    )
+
+    const close = [...document.querySelectorAll("[role=dialog] button")].find(
+      (button) => button.textContent === "Cancel"
+    )
+
+    if (!close) {
+      throw new Error("the stop dialog has no way out")
+    }
+
+    await click(close)
+    await waitUntil(() => document.querySelector("[role=dialog]") === null)
+    await click(trigger(container, "Stop now"))
+    await waitUntil(() => document.querySelector("[role=dialog]") !== null)
+
+    expect(document.querySelector("[role=dialog]")?.textContent).not.toContain(
+      "The subscription was not stopped."
     )
   })
 

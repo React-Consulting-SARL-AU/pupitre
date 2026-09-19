@@ -77,16 +77,21 @@ describe("canRestore", () => {
 })
 
 describe("productKey", () => {
-  it("names the three products, the granted one included", () => {
-    expect(productKey("prod_server")).toBe("admin.subscriptions.product.server")
+  it("names the two products of the platform, and Stripe for every other", () => {
     expect(productKey("launch")).toBe("admin.subscriptions.product.launch")
     expect(productKey("granted")).toBe("admin.subscriptions.product.granted")
-    expect(SUBSCRIPTION_PRODUCT_FILTERS).toContain("granted")
+    expect(productKey("stripe")).toBe("admin.subscriptions.product.stripe")
+    expect(productKey("prod_server")).toBe("admin.subscriptions.product.stripe")
+    expect(productKey("prod_other")).toBe("admin.subscriptions.product.stripe")
+    expect(productKey(null)).toBeNull()
   })
 
-  it("has no name for a product it does not know", () => {
-    expect(productKey("prod_other")).toBeNull()
-    expect(productKey(null)).toBeNull()
+  it("offers the launch, the granted one and Stripe as filters", () => {
+    expect([...SUBSCRIPTION_PRODUCT_FILTERS]).toEqual([
+      "launch",
+      "granted",
+      "stripe",
+    ])
   })
 })
 
