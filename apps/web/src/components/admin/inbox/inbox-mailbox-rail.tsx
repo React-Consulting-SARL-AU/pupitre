@@ -36,7 +36,7 @@ export function InboxMailboxRail({
   const t = useTranslations()
   const unreadOf = (id: string) =>
     counts?.mailboxes.find((mailbox) => mailbox.id === id)?.unread ?? 0
-  const others = counts?.others ?? { unread: 0, open: 0 }
+  const others = counts?.others ?? { unread: 0, threads: 0 }
   const entries: RailEntry[] = [
     {
       value: MAILBOX_EVERY,
@@ -50,7 +50,7 @@ export function InboxMailboxRail({
         label: mailbox.display_name,
         unread: unreadOf(mailbox.id),
       })),
-    ...(others.open > 0 || others.unread > 0
+    ...(others.threads > 0
       ? [
           {
             value: MAILBOX_OTHERS,

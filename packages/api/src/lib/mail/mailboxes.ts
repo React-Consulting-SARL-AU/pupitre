@@ -62,7 +62,8 @@ export interface MailboxView {
 
 export interface MailboxCounts {
   mailboxes: { id: string; unread: number; open: number }[]
-  others: { unread: number; open: number }
+  /** `threads` and not only `open`: « Autres » appears as soon as one thread lands there, closed or not. */
+  others: { unread: number; open: number; threads: number }
   total_unread: number
 }
 
@@ -225,7 +226,7 @@ export async function mailboxIdForAddress(
 
 export async function countMailboxes(): Promise<MailboxCounts> {
   const prisma = getPrisma()
-  const [mailboxes, unread, open] = await Promise.all([
+  const [mailboxes, unread, open, others] = await Promise.all([
     prisma.mailMailbox.findMany({
       orderBy: [{ sortOrder: "asc" }, { address: "asc" }],
       select: { id: true },
@@ -240,6 +241,7 @@ export async function countMailboxes(): Promise<MailboxCounts> {
       where: { status: "open" },
       _count: { _all: true },
     }),
+    prisma.mailThread.count({ where: { mailboxId: null } }),
   ])
   const unreadBy = new Map(
     unread.map((row) => [row.mailboxId ?? "", row._count._all] as const)
@@ -254,7 +256,11 @@ export async function countMailboxes(): Promise<MailboxCounts> {
       unread: unreadBy.get(mailbox.id) ?? 0,
       open: openBy.get(mailbox.id) ?? 0,
     })),
-    others: { unread: unreadBy.get("") ?? 0, open: openBy.get("") ?? 0 },
+    others: {
+      unread: unreadBy.get("") ?? 0,
+      open: openBy.get("") ?? 0,
+      threads: others,
+    },
     total_unread: [...unreadBy.values()].reduce((sum, count) => sum + count, 0),
   }
 }
