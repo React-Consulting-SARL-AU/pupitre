@@ -1,4 +1,5 @@
 import { ORG_ROLES } from "@pupitre/shared/permissions"
+import { ACCOUNT_STATES, ORGANIZATION_STATES } from "@pupitre/shared/platform"
 import { t } from "elysia"
 import { dateTime } from "../../openapi-models"
 import { MAX_SEATS, MIN_SEATS } from "../orgs/schemas"
@@ -39,6 +40,10 @@ export const adminOverviewSchema = t.Object(
   { $id: "AdminOverview" }
 )
 
+export const accountStateSchema = t.UnionEnum([...ACCOUNT_STATES])
+
+export const organizationStateSchema = t.UnionEnum([...ORGANIZATION_STATES])
+
 const adminUserFields = {
   id: t.String(),
   email: t.String(),
@@ -47,6 +52,12 @@ const adminUserFields = {
   banned: t.Boolean(),
   email_verified: t.Boolean(),
   created_at: dateTime,
+  state: accountStateSchema,
+  ban_expires_at: t.Nullable(dateTime),
+  deactivated_at: t.Nullable(dateTime),
+  deactivated_reason: t.Nullable(t.String()),
+  deletion_at: t.Nullable(dateTime),
+  deletion_reason: t.Nullable(t.String()),
   organizations: t.Array(
     t.Object({
       id: t.String(),
@@ -83,11 +94,18 @@ export const adminUserDetailSchema = t.Object(
     ),
     platform_role: t.Nullable(orgRoleSchema),
     banned_reason: t.Nullable(t.String()),
-    ban_expires_at: t.Nullable(dateTime),
+    sessions: t.Integer(),
+    last_seen_at: t.Nullable(dateTime),
     events: t.Array(adminEventSchema),
   },
   { $id: "AdminUserDetail" }
 )
+
+/** A sanction that ends by itself: `until` in the future, or nothing for an open one. */
+export const adminBanBody = t.Object({
+  reason: t.String({ minLength: 1, maxLength: 500 }),
+  until: t.Optional(t.Nullable(dateTime)),
+})
 
 export const adminUsersQuery = t.Object({
   q: t.Optional(t.String({ maxLength: 254 })),
@@ -114,6 +132,13 @@ const adminOrganizationFields = {
   slug: t.String(),
   personal: t.Boolean(),
   created_at: dateTime,
+  state: organizationStateSchema,
+  suspended_at: t.Nullable(dateTime),
+  suspended_reason: t.Nullable(t.String()),
+  closed_at: t.Nullable(dateTime),
+  closed_reason: t.Nullable(t.String()),
+  deletion_at: t.Nullable(dateTime),
+  deletion_reason: t.Nullable(t.String()),
   subscription: t.Nullable(
     t.Object({
       status: t.String(),
@@ -198,6 +223,15 @@ export const adminGrantBody = t.Object({
 export const adminGrantedResizeBody = t.Object({
   seats: t.Optional(grantedSeats),
   ends_at: t.Optional(grantedEnd),
+})
+
+export const adminOrganizationRenameBody = t.Object({
+  name: t.Optional(t.String({ minLength: 1, maxLength: 80 })),
+  slug: t.Optional(t.String({ minLength: 1, maxLength: 80 })),
+})
+
+export const adminOrganizationTransferBody = t.Object({
+  user_id: t.String({ minLength: 1 }),
 })
 
 export const adminTeamMemberSchema = t.Object(

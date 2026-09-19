@@ -14,7 +14,7 @@ import {
 } from "../../releases/publish-token"
 import { findServerByToken } from "../../servers/servers"
 import { apiError } from "../errors"
-import { bearerTokenOf, resolveAuthContext } from "./auth"
+import { type AuthContext, bearerTokenOf, resolveAuthContext } from "./auth"
 
 export const hasPermission = hasRolePermission
 
@@ -55,13 +55,31 @@ function unauthenticated(request: Request) {
   })
 }
 
+/**
+ * A session the platform no longer honours answers what it refuses, not that
+ * nobody is signed in: the app shows the `fix` as it stands.
+ */
+function refuseSession(request: Request, auth: AuthContext) {
+  if (auth.accountRefusal) {
+    return refuse(request, {
+      status: 403,
+      code: "forbidden",
+      message: auth.accountRefusal,
+      fix: `${auth.accountRefusal}_fix`,
+    })
+  }
+
+  return auth.user && auth.session ? null : unauthenticated(request)
+}
+
 export const requireAuth = new Elysia({ name: "requireAuth" }).resolve(
   { as: "scoped" },
   async ({ request }) => {
     const auth = await resolveAuthContext(request)
+    const refused = refuseSession(request, auth)
 
-    if (!(auth.user && auth.session)) {
-      return unauthenticated(request)
+    if (refused || !(auth.user && auth.session)) {
+      return refused ?? unauthenticated(request)
     }
 
     return { ...auth, user: auth.user, session: auth.session }
@@ -70,9 +88,10 @@ export const requireAuth = new Elysia({ name: "requireAuth" }).resolve(
 
 async function resolveMembership(request: Request) {
   const auth = await resolveAuthContext(request)
+  const refused = refuseSession(request, auth)
 
-  if (!(auth.user && auth.session)) {
-    return unauthenticated(request)
+  if (refused || !(auth.user && auth.session)) {
+    return refused ?? unauthenticated(request)
   }
 
   if (!auth.organizationId) {
@@ -89,6 +108,18 @@ async function resolveMembership(request: Request) {
       status: 403,
       code: "forbidden",
       message: "not_a_member",
+    })
+  }
+
+  if (
+    auth.organizationState === "closed" ||
+    auth.organizationState === "deleting"
+  ) {
+    return refuse(request, {
+      status: 403,
+      code: "forbidden",
+      message: "organization_closed",
+      fix: "organization_closed_fix",
     })
   }
 
@@ -157,9 +188,10 @@ export const requirePlatformAdmin = new Elysia({
   name: "requirePlatformAdmin",
 }).resolve({ as: "scoped" }, async ({ request }) => {
   const auth = await resolveAuthContext(request)
+  const refused = refuseSession(request, auth)
 
-  if (!(auth.user && auth.session)) {
-    return unauthenticated(request)
+  if (refused || !(auth.user && auth.session)) {
+    return refused ?? unauthenticated(request)
   }
 
   if (!auth.isPlatformAdmin) {
@@ -183,9 +215,10 @@ export function requirePlatformRole(minimum: OrgRole) {
     { as: "scoped" },
     async ({ request }) => {
       const auth = await resolveAuthContext(request)
+      const refused = refuseSession(request, auth)
 
-      if (!(auth.user && auth.session)) {
-        return unauthenticated(request)
+      if (refused || !(auth.user && auth.session)) {
+        return refused ?? unauthenticated(request)
       }
 
       if (!auth.platformRole) {
@@ -242,9 +275,10 @@ export const requirePublisher = new Elysia({
   }
 
   const auth = await resolveAuthContext(request)
+  const refused = refuseSession(request, auth)
 
-  if (!(auth.user && auth.session)) {
-    return unauthenticated(request)
+  if (refused || !(auth.user && auth.session)) {
+    return refused ?? unauthenticated(request)
   }
 
   if (!auth.platformRole) {
