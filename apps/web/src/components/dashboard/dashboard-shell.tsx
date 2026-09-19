@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar"
 import { MobileNav } from "@/components/dashboard/mobile-nav"
+import { OrganizationStandingBanner } from "@/components/dashboard/organization-standing-banner"
 import { ToastProvider } from "@/components/ui/toast"
 import { useTranslations } from "@/hooks/use-locale"
 import {
@@ -37,7 +38,10 @@ export function DashboardShell({ value, children }: DashboardShellProps) {
               className="min-w-0 flex-1 px-4 py-6 lg:px-10 lg:py-10"
               id={MAIN_ID}
             >
-              <div className="mx-auto max-w-5xl">{children}</div>
+              <div className="mx-auto max-w-5xl">
+                <OrganizationStandingBanner />
+                {children}
+              </div>
             </main>
           </div>
         </div>

@@ -13,8 +13,8 @@ import { QueryClientProvider } from "@tanstack/react-query"
 import { MemberList } from "@/components/dashboard/member-list"
 import { ToastProvider } from "@/components/ui/toast"
 import {
+  type DashboardActiveOrganization,
   DashboardContext,
-  type DashboardOrganization,
 } from "@/lib/domain/dashboard-context"
 import { createQueryClient } from "@/lib/query/client"
 import { useSessionApiClient } from "@/testing/harness"
@@ -23,7 +23,7 @@ import { fill, render, trigger, waitUntil } from "@/testing/render"
 const mounted: (() => void)[] = []
 
 function list(
-  organization: DashboardOrganization,
+  organization: DashboardActiveOrganization,
   role: OrgRole,
   userId: string
 ) {
@@ -82,6 +82,8 @@ describe("MemberList", () => {
           id: organization.id,
           name: organization.name,
           slug: organization.slug,
+          state: "active",
+          reason: null,
         },
         "owner",
         owner.user.id
@@ -127,6 +129,8 @@ describe("MemberList", () => {
           id: organization.id,
           name: organization.name,
           slug: organization.slug,
+          state: "active",
+          reason: null,
         },
         "member",
         member.user.id

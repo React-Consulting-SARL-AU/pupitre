@@ -47,6 +47,7 @@ describe("SidebarEntitlement", () => {
       id: console.organization.id,
       name: console.organization.name,
       slug: console.organization.slug,
+      state: "active",
     }
   })
 

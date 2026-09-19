@@ -5,8 +5,8 @@ import type { ReactElement } from "react"
 import { act } from "react"
 import { createRoot, type Root } from "react-dom/client"
 import {
+  type DashboardActiveOrganization,
   DashboardContext,
-  type DashboardOrganization,
 } from "@/lib/domain/dashboard-context"
 import { createQueryClient } from "@/lib/query/client"
 import { getRouter } from "@/router"
@@ -24,8 +24,14 @@ export function withRouter(element: ReactElement): ReactElement {
   )
 }
 
+export type HarnessOrganization = Pick<
+  DashboardActiveOrganization,
+  "id" | "name" | "slug"
+> &
+  Partial<DashboardActiveOrganization>
+
 export interface DashboardHarness {
-  organization?: DashboardOrganization | null
+  organization?: HarnessOrganization | null
   role?: OrgRole
   entitlement?: string
   platformRole?: OrgRole | null
@@ -53,7 +59,9 @@ export function withDashboard(
             locale: "fr",
           },
           organizations: [],
-          activeOrganization: organization,
+          activeOrganization: organization
+            ? { state: "active", reason: null, ...organization }
+            : null,
           role: organization ? role : null,
           entitlement,
           platformRole,
