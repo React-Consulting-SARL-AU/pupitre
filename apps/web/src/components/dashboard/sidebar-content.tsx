@@ -19,6 +19,7 @@ import { SidebarAccountMenu } from "@/components/dashboard/sidebar-account-menu"
 import { SidebarAppCard } from "@/components/dashboard/sidebar-app-card"
 import { SidebarEntitlement } from "@/components/dashboard/sidebar-entitlement"
 import { SidebarLink } from "@/components/dashboard/sidebar-link"
+import { SidebarSearchButton } from "@/components/dashboard/sidebar-search-button"
 import { SidebarStartLink } from "@/components/dashboard/sidebar-start-link"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
@@ -110,6 +111,7 @@ export function SidebarContent() {
   const canManageBilling = usePermission("billing:manage")
   const canReadAudit = usePermission("audit:view")
   const platform = isPlatformOrganization(activeOrganization?.id)
+  const platformOpens = platformOpen(activeOrganization?.id, platformRole)
   const open = (link: SidebarEntry) =>
     entitlement !== "suspended" || opensWhileSuspended(link.to)
   const groups = [
@@ -129,9 +131,8 @@ export function SidebarContent() {
     },
     {
       label: t("nav.group.platform"),
-      links: platformOpen(activeOrganization?.id, platformRole)
-        ? PLATFORM_LINKS
-        : [],
+      links: platformOpens ? PLATFORM_LINKS : [],
+      search: platformOpens,
     },
   ].filter((group) => group.links.length > 0)
 
@@ -157,6 +158,7 @@ export function SidebarContent() {
               {group.label}
             </p>
             <div className="flex flex-col gap-[2px]">
+              {group.search ? <SidebarSearchButton /> : null}
               {group.links.map((link) => (
                 <SidebarLink
                   exact={link.exact}

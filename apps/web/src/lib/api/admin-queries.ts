@@ -1,4 +1,5 @@
 import { ApiError, unwrap } from "@pupitre/api/client"
+import { PLATFORM_SEARCH_MIN_LENGTH } from "@pupitre/shared/platform"
 import { keepPreviousData, queryOptions } from "@tanstack/react-query"
 import { api } from "@/lib/api/client"
 import {
@@ -413,4 +414,20 @@ export function setAffiliateLinkDisabled(
     .api.v1.admin["affiliate-links"]({ id })
     .patch({ disabled })
     .then((response) => unwrap(response).data)
+}
+
+async function readSearch(query: string) {
+  return unwrap(await api().api.v1.admin.search.get({ query: { q: query } }))
+    .data
+}
+
+export type AdminSearchResults = Awaited<ReturnType<typeof readSearch>>
+
+export function adminSearchQueryOptions(query: string) {
+  return queryOptions({
+    queryKey: queryKeys.admin.search(query),
+    queryFn: () => readSearch(query),
+    enabled: query.length >= PLATFORM_SEARCH_MIN_LENGTH,
+    placeholderData: keepPreviousData,
+  })
 }
