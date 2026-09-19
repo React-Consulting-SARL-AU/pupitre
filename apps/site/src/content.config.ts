@@ -32,7 +32,6 @@ const legal = defineCollection({
   loader: glob({ base: "src/content/legal", pattern: "**/*.mdx" }),
   schema: base.extend({
     updated: z.coerce.date(),
-    draft: z.boolean().default(false),
   }),
 })
 

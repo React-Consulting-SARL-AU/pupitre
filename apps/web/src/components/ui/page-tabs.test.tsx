@@ -41,4 +41,22 @@ describe("PageTabs", () => {
     expect(container.textContent).toContain("One member")
     expect(container.textContent).not.toContain("Two servers")
   })
+
+  it("marks the current tab so its styling can find it", async () => {
+    const { container, unmount, click } = await render(withDashboard(<Tabs />))
+
+    mounted.push(unmount)
+
+    const current = () =>
+      [...container.querySelectorAll("[role=tab]")].filter((tab) =>
+        tab.hasAttribute("data-active")
+      )
+
+    expect(current().map((tab) => tab.textContent)).toEqual(["Servers"])
+    expect(current()[0]?.className).toContain("data-[active]:border-ink")
+
+    await click(trigger(container, "Members"))
+
+    expect(current().map((tab) => tab.textContent)).toEqual(["Members"])
+  })
 })

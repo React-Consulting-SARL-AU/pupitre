@@ -191,7 +191,7 @@ Les deux Workers sont connectés au dépôt GitHub : chaque push de `main` — c
 
 - En-têtes de sécurité et de cache dans `apps/site/public/_headers` : `HSTS`, `CSP`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, et un an d'immuable sur `/_astro/*` et `/og/*`.
 - Variables de build : `PUBLIC_POSTHOG_KEY` et `PUBLIC_POSTHOG_HOST` en production seulement — sans clé, le site ne charge aucun analytics et n'affiche pas de bandeau de consentement.
-- Le garde légal (`apps/site/scripts/legal.ts`) fait échouer le build de production — `PUPITRE_ENV=production`, posé par `build:production` — quand une page de `src/content/legal/` porte un `TODO`, et, dès que `PROJECT_STAGE` de `@pupitre/shared/legal` vaut `public`, quand elle est encore un brouillon ou porte un passage à compléter. Tant que le projet se déclare en développement, les brouillons se publient avec leur avertissement. Voir [`legal.md`](./legal.md).
+- Le garde légal (`apps/site/scripts/legal.ts`) fait échouer le build de production — `PUPITRE_ENV=production`, posé par `build:production` — et `check:content` quand une page de `src/content/legal/` porte un `TODO`, un `draft: true` ou un passage entre crochets à compléter. Voir [`legal.md`](./legal.md).
 - La liste des releases de l'app est lue au build depuis `PUBLIC_RELEASES_URL`, posée par `build:production` sur la console — une route publique, sans session : ce sont des fichiers publics. API injoignable n'échoue pas le build : la page de téléchargement part avec `apps/site/src/content/site/releases.ts` et un avertissement de build. En local et en test, la variable n'est pas posée, donc le build ne sort jamais sur le réseau.
 
 ## Stripe

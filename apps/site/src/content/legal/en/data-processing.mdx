@@ -1,50 +1,61 @@
 ---
 title: "Data processing"
-description: "The data processing agreement for organisations that need one, and the sub-processors it names."
+description: "The data processing agreement that binds Pupitre towards every organisation, the sub-processors it names, and the clauses that cover transfers."
 locale: en
-updated: 2026-09-06
-draft: true
+updated: 2026-09-20
 order: 5
 ---
 
 import SubProcessors from "../../../components/SubProcessors.astro"
 
-Working draft. No agreement is signed today: the publisher is not incorporated and the text has not been reviewed by a lawyer. It is published so you know what it will contain.
+This agreement is part of the [terms of service](/legal/terms/) and applies to every organisation from the moment it exists, without a signature. An organisation that needs a signed copy asks for it at `legal@pupitre.studio` and receives it back, signed.
+
+## Parties and roles
+
+The organisation is the controller of the personal data it brings to the platform. The processor is Jordan Monier, a natural person residing in Morocco, who publishes Pupitre. Where the applicable law calls those roles differently, the obligations below apply all the same.
 
 ## Scope
 
-The agreement covers the personal data we process on behalf of your organisation when you use the console and the platform: your members' accounts, their devices, and the metadata of your servers.
+The agreement covers the personal data we process on behalf of your organisation when you use the console, the app and the platform: your members' accounts and sessions, their devices and the public halves of their keys, the journal of the organisation, and the metadata of your machines listed in the [privacy policy](/legal/privacy/).
 
-It does not cover the data that lives on your servers. We have no access to it: there, you are not our customer, you are the only one at the controls.
+It does not cover the data that lives on your machines. We have no access to it and no technical means of obtaining it: for that data, we are not your processor, and you are the only one at the controls.
 
 ## Instructions
 
-We process that data only to provide the service, on your documented instructions, and for nothing else. We do not sell it, we do not share it, and we train no model on it.
+We process that data only to provide the service, on your documented instructions — these terms and what you do in the console — and for nothing else. We do not sell it, we do not share it for anyone's own purposes, and we train no model on it. If an instruction seemed to us to break the law, we would tell you before acting on it.
+
+## Confidentiality
+
+The people who can read the platform's data are the members of the Pupitre organisation, each bound to confidentiality, and each reading of a sensitive thread is journaled.
 
 ## Security measures
 
-Encryption in transit and at rest, access to production systems limited to the people who need it and logged, secrets kept out of the repository, agent distributed as a signed binary, no inbound connection to your machines. [Full list of technical and organisational measures to be annexed before signature.]
+Encryption in transit and at rest. Sign-in by link, passkey or second factor. Sessions bound to the device that opened them. Access to production systems limited to the people who need it, and journaled. Secrets kept out of the code, injected by a password manager. Agent distributed as a signed binary, verified before installation. No inbound connection to your machines, no command executed on them, no file read on them. Dependencies watched for published vulnerabilities and updated within the day for the ones that sign you in.
 
 ## Sub-processors
 
 <SubProcessors />
 
-You are told by email before a sub-processor is added, and you may object to it.
+You are told by email before a sub-processor is added, and you may object to it; if we cannot meet the objection, you may delete your organisation before the change takes effect.
 
 ## Transfers
 
-The publisher will be a United States company and the platform will be hosted in the United States: your organisation's data will be processed there, as Stripe and GitHub already process theirs. The database still lives in a European region today; it is migrated before the service takes its first customer.
+The platform's database and files are stored in Cloudflare's Western Europe region; the processor reads them from Morocco, and the sub-processors are established in the United States.
 
-For an organisation established in the European Union, the transfer will rely on the standard contractual clauses and on the guarantees each sub-processor publishes. [Exact references of the clauses and the transfer impact assessment to be annexed before signature.]
+For an organisation established in the European Union or the United Kingdom, the transfer to the processor relies on the standard contractual clauses adopted by the European Commission by decision 2021/914, module two (controller to processor), which this agreement incorporates by reference with the organisation as data exporter and the processor as data importer, together with the United Kingdom addendum where it applies. The transfer to each sub-processor relies on the clauses and guarantees that sub-processor publishes in its own data processing terms.
 
-## Assistance and audits
+## Assistance and breaches
 
-We help you answer requests from data subjects and meet the obligations that fall on you, and we tell you without undue delay about a data breach that affects you. The documents evidencing our measures are provided on request. [Audit terms and frequency to be settled before signature.]
+We help you answer requests from data subjects and meet the obligations that fall on you, within what the platform allows. We tell you without undue delay, and within seventy-two hours of learning it, about a personal data breach that affects your organisation, with what we know of its nature, its scope and the measures taken.
+
+## Audits
+
+The documents evidencing our measures are provided on request. Once a year, and on thirty days' notice, you or an auditor you mandate may verify them; the audit is at your cost and touches nothing that concerns another organisation.
 
 ## Deletion
 
-At the end of the contract, your organisation's data is deleted within thirty days, except what accounting law requires us to keep. A copy of your data is handed to you on request before the deletion.
+When you delete your organisation, or your account with the organisations where you were the only member, its data is deleted at once; a deletion we perform at your request is scheduled seven days ahead, then carried out. Before that, an export of your organisation's data is handed to you on request. What accounting law will require us to keep, the day invoices exist, is kept for that reason and that duration only.
 
 ## Getting a signed copy
 
-When the service opens, the request will be made from the console and the agreement signed electronically. Until then, write to `legal@pupitre.studio`: we cannot sign anything before incorporation, but we will tell you where the text stands.
+Write to `legal@pupitre.studio` from the address of an owner of the organisation. You receive this agreement, dated and signed, with the standard contractual clauses completed for your organisation.

@@ -68,6 +68,7 @@ interface AdminUser {
     slug: string
     role: string
     subscription_status: string | null
+    subscription_id: string | null
     servers: number
   }[]
 }
@@ -217,6 +218,12 @@ describe("GET /admin/users", () => {
 
   it("liste chaque compte avec ses organisations, leur abonnement qui compte et leurs sièges", async () => {
     const { atelier, bureau } = await populatedPlatform()
+    const liveOf = async (organizationId: string, status: string) =>
+      (
+        await harness.prisma.subscription.findFirstOrThrow({
+          where: { organizationId, status },
+        })
+      ).id
     const admin = await platformAdmin()
     const response = await apiRequest<UsersBody>("/admin/users", {
       session: admin,
@@ -249,6 +256,7 @@ describe("GET /admin/users", () => {
       slug: atelier.organization.slug,
       role: "owner",
       subscription_status: "active",
+      subscription_id: await liveOf(atelier.organization.id, "active"),
       servers: 2,
     })
     expect(bureauOwner?.organizations).toContainEqual({
@@ -257,6 +265,7 @@ describe("GET /admin/users", () => {
       slug: bureau.organization.slug,
       role: "owner",
       subscription_status: "trialing",
+      subscription_id: await liveOf(bureau.organization.id, "trialing"),
       servers: 0,
     })
     expect(support?.role).toBe("platform_admin")

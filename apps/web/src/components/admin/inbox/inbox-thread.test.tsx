@@ -332,15 +332,15 @@ describe("InboxThread", () => {
     )
 
     const panels = [...container.querySelectorAll("details")]
-    const back = container.querySelector("a[href*='/dashboard/admin/inbox']")
+    const back = container.querySelector(
+      "a[title='Close the conversation or the selection · Esc']"
+    )
 
     expect(
       panels.map((panel) => panel.querySelector("h2")?.textContent)
     ).toEqual(["Details", "Internal notes", "Activity"])
     expect(panels.every((panel) => panel.open)).toBe(true)
-    expect(back?.getAttribute("title")).toBe(
-      "Close the conversation or the selection · Esc"
-    )
+    expect(back?.getAttribute("href")).toContain("/dashboard/admin/inbox")
   })
 
   it("keeps the reply as a draft, and throws it away once the composer is emptied", async () => {

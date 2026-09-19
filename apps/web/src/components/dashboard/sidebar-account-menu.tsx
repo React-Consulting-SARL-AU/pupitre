@@ -1,5 +1,5 @@
 import { LOCALES, type Locale } from "@pupitre/shared/i18n"
-import { copyrightHolder, developmentNotice } from "@pupitre/shared/legal"
+import { copyrightHolder } from "@pupitre/shared/legal"
 import { useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import type { LucideIcon } from "lucide-react"
@@ -174,8 +174,6 @@ export function SidebarAccountMenu() {
             year: new Date().getFullYear(),
             entity: copyrightHolder(),
           })}
-          {" · "}
-          {developmentNotice(locale).short}
         </p>
       </MenuPopup>
     </MenuRoot>

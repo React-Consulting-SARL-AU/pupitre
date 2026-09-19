@@ -166,9 +166,20 @@ export function AdminUserOverview({
                   <span className="text-[12px] text-ink-2 sm:w-24">
                     {roleName(organization.role)}
                   </span>
-                  <span className="text-[12px] text-ink-2 sm:w-32">
-                    {look ? t(look.label) : t("admin.users.noSubscription")}
-                  </span>
+                  {look && organization.subscription_id ? (
+                    <Link
+                      className="text-[12px] text-ink underline-offset-2 hover:underline sm:w-32"
+                      params={{ id: organization.subscription_id }}
+                      title={t("admin.users.openSubscription")}
+                      to="/dashboard/admin/subscriptions/$id"
+                    >
+                      {t(look.label)}
+                    </Link>
+                  ) : (
+                    <span className="text-[12px] text-ink-2 sm:w-32">
+                      {t("admin.users.noSubscription")}
+                    </span>
+                  )}
                   <span className="font-data text-[12px] text-ink-3 tabular-nums sm:w-28 sm:text-right">
                     {t.plural("admin.users.servers", organization.servers)}
                   </span>

@@ -251,7 +251,7 @@ export function AsyncDataTable<Row>({
       {total === 0 ? (
         <EmptyState icon={emptyIcon} title={emptyTitle} />
       ) : (
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader>
             <CardTitle>{title}</CardTitle>
             <span className="font-data text-[12px] text-ink-3 tabular-nums">

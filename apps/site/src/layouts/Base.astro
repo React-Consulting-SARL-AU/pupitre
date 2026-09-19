@@ -1,7 +1,6 @@
 ---
 import { LIGHT } from "@pupitre/design/tokens"
 import Analytics from "../components/Analytics.astro"
-import DevelopmentBanner from "../components/DevelopmentBanner.astro"
 import Footer from "../components/Footer.astro"
 import Nav from "../components/Nav.astro"
 import "../styles/global.css"
@@ -92,7 +91,6 @@ const image = ogUrl(pathname)
   </head>
   <body class="flex min-h-dvh flex-col bg-base text-ink">
     <a href="#main" class="skip-link">{t("a11y.skip")}</a>
-    <DevelopmentBanner />
     <Nav />
     <main id="main" class="flex-1">
       <slot />

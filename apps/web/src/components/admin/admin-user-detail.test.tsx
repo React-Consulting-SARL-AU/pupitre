@@ -263,6 +263,33 @@ describe("AdminUserDetail", () => {
     expect(trigger(container, "Cancel the account deletion")).not.toBeNull()
   })
 
+  it("links each organisation to the subscription that counts for it", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { members, organization } = await createOrganizationWithMembers({
+      name: "Atelier",
+      roles: ["owner"],
+      subscription: { quantity: 2, status: "active" },
+    })
+    const owner = members[0].user
+    const subscription = await prisma.subscription.findFirstOrThrow({
+      where: { organizationId: organization.id },
+    })
+
+    const { container, unmount } = await render(page(owner.id))
+
+    mounted.push(unmount)
+
+    await waitUntil(() => container.textContent?.includes("Atelier") === true)
+
+    const link = container.querySelector<HTMLAnchorElement>(
+      'a[title="Open the subscription"]'
+    )
+
+    expect(link?.getAttribute("href")).toBe(
+      `/dashboard/admin/subscriptions/${subscription.id}`
+    )
+  })
+
   it("shows the refusal of the platform inside the dialog that asked", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],

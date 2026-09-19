@@ -78,7 +78,6 @@ export const en = {
   "legal.headline": "The rules, written to be read.",
   "legal.lead": "Nothing here contradicts what the app does on your machine.",
   "legal.updated": "Updated",
-  "legal.draft": "Draft",
   "legal.subProcessor": "Sub-processor",
   "legal.purpose": "Purpose",
   "legal.region": "Region",

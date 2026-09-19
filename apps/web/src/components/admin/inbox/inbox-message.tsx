@@ -31,7 +31,7 @@ export function InboxMessage({ message }: InboxMessageProps) {
   return (
     <article
       className={cn(
-        "flex flex-col gap-3 rounded-md border px-4 py-3",
+        "flex flex-col gap-4 rounded-md border px-5 py-4",
         outbound
           ? "border-line-strong bg-sunken sm:ml-10"
           : "border-line bg-surface sm:mr-10"

@@ -98,7 +98,6 @@ export const inbox = {
     "inbox.changeFailedFix": "Try again in a moment.",
     "inbox.openContact": "Open the account of {name}",
     "inbox.backToList": "Back to the conversations",
-    "inbox.threadNone": "Open a conversation to read it.",
 
     "inbox.details": "Details",
     "inbox.notes": "Internal notes",
@@ -353,7 +352,6 @@ export const inbox = {
     "inbox.changeFailedFix": "Réessayez dans un instant.",
     "inbox.openContact": "Ouvrir le compte de {name}",
     "inbox.backToList": "Revenir aux conversations",
-    "inbox.threadNone": "Ouvrez une conversation pour la lire.",
 
     "inbox.details": "Détails",
     "inbox.notes": "Notes internes",

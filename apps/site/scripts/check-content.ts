@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs"
 import path from "node:path"
 import { BANNED_WORDS } from "../src/lib/voice"
-import { checkLegalDrafts, isProduction, legalDrafts } from "./legal"
+import { checkLegalPages } from "./legal"
 
 export interface ContentFinding {
   file: string
@@ -100,9 +100,11 @@ export function checkBannedWords(root: string): ContentFinding[] {
 }
 
 export function checkContent(root: string): ContentFinding[] {
-  const legal = isProduction() ? checkLegalDrafts(root) : []
-
-  return [...checkRouteParity(root), ...checkBannedWords(root), ...legal]
+  return [
+    ...checkRouteParity(root),
+    ...checkBannedWords(root),
+    ...checkLegalPages(root),
+  ]
 }
 
 function main(): void {
@@ -119,17 +121,10 @@ function main(): void {
 
   const routes = listRoutes(root)
   const pairs = routes.filter((route) => route.startsWith(FRENCH_PREFIX))
-  const drafts = legalDrafts(root)
 
   process.stdout.write(
-    `Content OK: ${pairs.length} route(s) in both languages (${routes.length} files), no banned word.\n`
+    `Content OK: ${pairs.length} route(s) in both languages (${routes.length} files), no banned word, legal pages complete.\n`
   )
-
-  if (drafts.length > 0) {
-    process.stdout.write(
-      `${drafts.length} legal page(s) publish as drafts while the project is in development.\n`
-    )
-  }
 }
 
 if (import.meta.main) {

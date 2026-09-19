@@ -175,6 +175,7 @@ const adminUserFields = {
       slug: t.String(),
       role: t.String(),
       subscription_status: t.Nullable(t.String()),
+      subscription_id: t.Nullable(t.String()),
       servers: t.Integer(),
     })
   ),

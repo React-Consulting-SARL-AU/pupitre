@@ -1,6 +1,5 @@
 ---
 import { getCollection, render } from "astro:content"
-import LegalNotice from "../../../components/LegalNotice.astro"
 import PageHeader from "../../../components/PageHeader.astro"
 import Base from "../../../layouts/Base.astro"
 import { docSlug } from "../../../lib/docs"
@@ -30,8 +29,6 @@ const updated = new Intl.DateTimeFormat("fr", { dateStyle: "long" }).format(
   title={`${entry.data.title} — ${t("site.name")}`}
   description={entry.data.description}
 >
-  <LegalNotice />
-
   <PageHeader
     align="start"
     label={t("legal.label")}

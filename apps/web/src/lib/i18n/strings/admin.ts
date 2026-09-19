@@ -58,6 +58,7 @@ export const admin = {
     "admin.users.active": "Verified",
     "admin.users.noOrganization": "No organisation",
     "admin.users.noSubscription": "no subscription",
+    "admin.users.openSubscription": "Open the subscription",
     "admin.users.servers.one": "{count} server",
     "admin.users.servers.other": "{count} servers",
 
@@ -585,7 +586,7 @@ export const admin = {
     "admin.links.namePlaceholder": "Who carries the link",
     "admin.links.code": "Code",
     "admin.links.codeOptional": "Code (optional)",
-    "admin.links.codePlaceholder": "drawn when empty",
+    "admin.links.codePlaceholder": "random",
     "admin.links.freeMonthsField": "Free months",
     "admin.links.seatsField": "Seats",
     "admin.links.createAction": "Create the link",
@@ -717,6 +718,7 @@ export const admin = {
     "admin.users.active": "Vérifié",
     "admin.users.noOrganization": "Aucune organisation",
     "admin.users.noSubscription": "sans abonnement",
+    "admin.users.openSubscription": "Ouvrir l'abonnement",
     "admin.users.servers.one": "{count} serveur",
     "admin.users.servers.other": "{count} serveurs",
 
@@ -1251,7 +1253,7 @@ export const admin = {
     "admin.links.namePlaceholder": "Qui porte le lien",
     "admin.links.code": "Code",
     "admin.links.codeOptional": "Code (facultatif)",
-    "admin.links.codePlaceholder": "tiré au sort si vide",
+    "admin.links.codePlaceholder": "aléatoire",
     "admin.links.freeMonthsField": "Mois offerts",
     "admin.links.seatsField": "Sièges",
     "admin.links.createAction": "Créer le lien",
