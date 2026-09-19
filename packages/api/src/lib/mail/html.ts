@@ -5,8 +5,12 @@
  * back to `default-src 'none'`, so no inline script, no event handler and no
  * `javascript:` URL runs, and the console frames the body under an empty
  * `sandbox`. The body is served exactly as it arrived.
+ *
+ * `img-src` stops at `data:`: a remote pixel in a mail written to `security@`
+ * would otherwise tell its sender the hour it was read and the address it was
+ * read from. An attachment is opened from the band above the body instead.
  */
 export const MAIL_HTML_CSP =
-  "default-src 'none'; img-src data: https:; style-src 'unsafe-inline'; frame-ancestors 'self'"
+  "default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:; frame-ancestors 'self'"
 
 export const MAIL_NOSNIFF = "nosniff"

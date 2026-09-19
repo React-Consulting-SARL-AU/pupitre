@@ -95,3 +95,23 @@ export const MailDelivery = {
 } as const
 
 export type MailDelivery = (typeof MailDelivery)[keyof typeof MailDelivery]
+
+
+export const MailActivityAction = {
+  received: 'received',
+  read: 'read',
+  unread: 'unread',
+  replied: 'replied',
+  reply_failed: 'reply_failed',
+  composed: 'composed',
+  assigned: 'assigned',
+  unassigned: 'unassigned',
+  closed: 'closed',
+  reopened: 'reopened',
+  linked: 'linked',
+  unlinked: 'unlinked',
+  note_added: 'note_added',
+  note_deleted: 'note_deleted'
+} as const
+
+export type MailActivityAction = (typeof MailActivityAction)[keyof typeof MailActivityAction]

@@ -30,6 +30,11 @@ describe("MAIL_HTML_CSP", () => {
   it("garde le cadre sur notre propre origine", () => {
     expect(directives(MAIL_HTML_CSP).get("frame-ancestors")).toBe("'self'")
   })
+
+  it("ne charge aucune image distante, pour qu'un pixel de suivi n'apprenne rien", () => {
+    expect(directives(MAIL_HTML_CSP).get("img-src")).toBe("data:")
+    expect(directives(MAIL_HTML_CSP).get("font-src")).toBe("data:")
+  })
 })
 
 describe("MAIL_NOSNIFF", () => {

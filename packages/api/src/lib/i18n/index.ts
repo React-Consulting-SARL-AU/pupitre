@@ -198,6 +198,40 @@ const FR = {
   mail_upload_size_mismatch:
     "Le fichier « {filename} » est plus gros que ce qui a été annoncé.",
   mail_upload_size_mismatch_fix: "Retirez-le et ajoutez-le à nouveau.",
+  mailbox_not_found: "Cette boîte n'existe pas.",
+  mailbox_address_refused:
+    "« {address} » n'est pas une adresse valable sur {domain}.",
+  mailbox_address_refused_fix:
+    "Donnez la partie locale seule, en minuscules : support, ou support@{domain}.",
+  mailbox_taken: "L'adresse {address} a déjà une boîte.",
+  mailbox_taken_fix:
+    "Ouvrez la boîte existante, ou choisissez une autre adresse.",
+  mailbox_in_use: "Cette boîte porte encore {threads} fils.",
+  mailbox_in_use_fix:
+    "Désactivez-la : elle continue de recevoir sans émettre, et ses fils restent lisibles.",
+  mailbox_protected: "Les quatre boîtes légales ne se suppriment pas.",
+  mailbox_protected_fix:
+    "Désactivez-la si elle ne doit plus émettre ; elle continuera de recevoir.",
+  mailbox_cannot_reply: "La boîte {address} n'émet pas.",
+  mailbox_cannot_reply_fix:
+    "Réactivez-la, ou autorisez-lui la réponse dans les réglages des boîtes.",
+  mail_thread_no_mailbox:
+    "Ce fil est arrivé sur {address}, qu'aucune boîte ne déclare.",
+  mail_thread_no_mailbox_fix:
+    "Créez la boîte {address} : les fils déjà reçus lui seront rattachés.",
+  mail_organization_unknown: "Cette organisation n'existe pas.",
+  mail_organization_unknown_fix:
+    "Choisissez une organisation parmi les suggestions du champ.",
+  mail_note_not_found: "Cette note n'existe pas.",
+  mail_draft_not_found: "Ce fil n'a aucun brouillon.",
+  mail_note_not_yours: "Cette note a été écrite par quelqu'un d'autre.",
+  mail_note_not_yours_fix:
+    "Seul son auteur, ou un administrateur de la plateforme, la supprime.",
+  mail_template_not_found: "Cette réponse type n'existe pas.",
+  mail_template_mailbox_unknown:
+    "La boîte nommée par cette réponse type n'existe pas.",
+  mail_template_mailbox_unknown_fix:
+    "Choisissez une boîte existante, ou laissez la réponse type sans boîte.",
   entitlement_required: "Cette organisation n'a aucun abonnement en cours.",
   entitlement_required_fix:
     "Démarrez votre essai de trente jours, sans carte, depuis /dashboard/billing.",
@@ -433,6 +467,38 @@ const EN: Record<MessageKey, string> = {
   mail_upload_size_mismatch:
     'The file "{filename}" is larger than what was declared.',
   mail_upload_size_mismatch_fix: "Remove it and add it again.",
+  mailbox_not_found: "This mailbox does not exist.",
+  mailbox_address_refused: '"{address}" is not a valid address on {domain}.',
+  mailbox_address_refused_fix:
+    "Give the local part alone, in lower case: support, or support@{domain}.",
+  mailbox_taken: "The address {address} already has a mailbox.",
+  mailbox_taken_fix: "Open the existing mailbox, or pick another address.",
+  mailbox_in_use: "This mailbox still carries {threads} threads.",
+  mailbox_in_use_fix:
+    "Disable it: it keeps receiving without sending, and its threads stay readable.",
+  mailbox_protected: "The four legal mailboxes cannot be deleted.",
+  mailbox_protected_fix:
+    "Disable it if it must stop sending; it will keep receiving.",
+  mailbox_cannot_reply: "The mailbox {address} does not send.",
+  mailbox_cannot_reply_fix:
+    "Enable it again, or allow it to reply in the mailbox settings.",
+  mail_thread_no_mailbox:
+    "This thread came in on {address}, which no mailbox declares.",
+  mail_thread_no_mailbox_fix:
+    "Create the mailbox {address}: the threads already received join it.",
+  mail_organization_unknown: "This organization does not exist.",
+  mail_organization_unknown_fix:
+    "Pick an organization from the field's suggestions.",
+  mail_note_not_found: "This note does not exist.",
+  mail_draft_not_found: "This thread carries no draft.",
+  mail_note_not_yours: "This note was written by someone else.",
+  mail_note_not_yours_fix:
+    "Only its author, or a platform administrator, deletes it.",
+  mail_template_not_found: "This canned reply does not exist.",
+  mail_template_mailbox_unknown:
+    "The mailbox this canned reply names does not exist.",
+  mail_template_mailbox_unknown_fix:
+    "Pick an existing mailbox, or leave the canned reply without one.",
   entitlement_required: "This organization has no active subscription.",
   entitlement_required_fix:
     "Start your thirty-day trial, no card needed, from /dashboard/billing.",

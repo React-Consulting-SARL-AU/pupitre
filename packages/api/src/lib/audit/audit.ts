@@ -50,6 +50,19 @@ export type AuditAction =
   | "mail.assigned"
   | "mail.replied"
   | "mail.composed"
+  | "mail.read"
+  | "mail.attachment_read"
+  | "mail.linked"
+  | "mail.note_added"
+  | "mail.note_deleted"
+  | "mail.bulk_closed"
+  | "mail.bulk_read"
+  | "mail.mailbox_created"
+  | "mail.mailbox_updated"
+  | "mail.mailbox_deleted"
+  | "mail.template_created"
+  | "mail.template_updated"
+  | "mail.template_deleted"
 
 export type AuditTargetType =
   | "device"
@@ -62,6 +75,8 @@ export type AuditTargetType =
   | "invitation"
   | "affiliate_link"
   | "mail_thread"
+  | "mail_mailbox"
+  | "mail_template"
 
 /**
  * Who did the thing.

@@ -42,6 +42,19 @@ export const AUDIT_ACTIONS = [
   "mail.closed",
   "mail.reopened",
   "mail.assigned",
+  "mail.read",
+  "mail.attachment_read",
+  "mail.linked",
+  "mail.note_added",
+  "mail.note_deleted",
+  "mail.bulk_closed",
+  "mail.bulk_read",
+  "mail.mailbox_created",
+  "mail.mailbox_updated",
+  "mail.mailbox_deleted",
+  "mail.template_created",
+  "mail.template_updated",
+  "mail.template_deleted",
 ] as const
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]
@@ -88,6 +101,19 @@ const ACTION_KEYS: Record<AuditAction, DictionaryKey> = {
   "mail.closed": "audit.action.mail.closed",
   "mail.reopened": "audit.action.mail.reopened",
   "mail.assigned": "audit.action.mail.assigned",
+  "mail.read": "audit.action.mail.read",
+  "mail.attachment_read": "audit.action.mail.attachment_read",
+  "mail.linked": "audit.action.mail.linked",
+  "mail.note_added": "audit.action.mail.note_added",
+  "mail.note_deleted": "audit.action.mail.note_deleted",
+  "mail.bulk_closed": "audit.action.mail.bulk_closed",
+  "mail.bulk_read": "audit.action.mail.bulk_read",
+  "mail.mailbox_created": "audit.action.mail.mailbox_created",
+  "mail.mailbox_updated": "audit.action.mail.mailbox_updated",
+  "mail.mailbox_deleted": "audit.action.mail.mailbox_deleted",
+  "mail.template_created": "audit.action.mail.template_created",
+  "mail.template_updated": "audit.action.mail.template_updated",
+  "mail.template_deleted": "audit.action.mail.template_deleted",
 }
 
 export const AUDIT_TARGET_TYPES = [
@@ -100,6 +126,8 @@ export const AUDIT_TARGET_TYPES = [
   "user",
   "organization",
   "mail_thread",
+  "mail_mailbox",
+  "mail_template",
 ] as const
 
 const TARGET_KEYS: Record<string, DictionaryKey> = {
@@ -112,6 +140,8 @@ const TARGET_KEYS: Record<string, DictionaryKey> = {
   user: "audit.target.user",
   organization: "audit.target.organization",
   mail_thread: "audit.target.mail_thread",
+  mail_mailbox: "audit.target.mail_mailbox",
+  mail_template: "audit.target.mail_template",
 }
 
 /** A key when the action is one we name, and the raw action when it is not. */

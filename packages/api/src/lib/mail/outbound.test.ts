@@ -1,13 +1,25 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "bun:test"
 import { LEGAL_CONTACTS } from "@pupitre/shared/legal"
+import { PLATFORM_MAILBOX_IDS } from "@pupitre/shared/platform"
 import { bootApiTestServer, resetDb } from "../../testing"
-import { resetFakeMail, useFakeMail } from "../../testing/mail"
+import {
+  resetFakeMail,
+  seedPlatformMailboxes,
+  useFakeMail,
+} from "../../testing/mail"
 import { createUser } from "../../testing/session"
 import { getPrisma } from "../api/prisma"
-import { MailThreadHasNoRecipientError, replyToMailThread } from "./outbound"
+import {
+  MailboxCannotReplyError,
+  MailThreadHasNoMailboxError,
+  MailThreadHasNoRecipientError,
+  replyToMailThread,
+} from "./outbound"
 import { type MailAttachmentInput, MailAttachmentRefusedError } from "./uploads"
 
 const MESSAGE_ID_RE = /Message-ID: <([^>]+)>/
+
+const FROM_HEADER_RE = /From: (.+)/
 
 interface MessageInput {
   direction?: "inbound" | "outbound"
@@ -18,10 +30,11 @@ interface MessageInput {
   messageId?: string
 }
 
-async function thread(): Promise<string> {
+async function thread(mailboxId: string | null = PLATFORM_MAILBOX_IDS.support) {
   const row = await getPrisma().mailThread.create({
     data: {
       address: LEGAL_CONTACTS.support,
+      mailboxId,
       subject: "Mon serveur ne repond plus",
       normalizedSubject: "mon serveur ne repond plus",
     },
@@ -62,8 +75,12 @@ describe("replyToMailThread", () => {
   beforeEach(async () => {
     await resetDb()
     mail = useFakeMail()
+    await seedPlatformMailboxes()
 
-    const { user } = await createUser({ email: "jordan@pupitre.studio" })
+    const { user } = await createUser({
+      email: "jordan@pupitre.studio",
+      name: "Jordan Monier",
+    })
 
     actor = { userId: user.id }
   })
@@ -190,6 +207,83 @@ describe("replyToMailThread", () => {
         where: { threadId, direction: "outbound" },
       })
     ).toBe(0)
+  })
+
+  it("signe la réponse du prénom de qui répond, et de la boîte du fil", async () => {
+    const threadId = await thread()
+
+    await message(threadId, { fromEmail: "camille@exemple.fr" })
+    await getPrisma().mailMailbox.update({
+      where: { id: PLATFORM_MAILBOX_IDS.support },
+      data: { signature: "Jordan\nPupitre" },
+    })
+
+    const sent = await reply(threadId)
+
+    expect(sent?.from.email).toBe(LEGAL_CONTACTS.support)
+    expect(sent?.text).toContain("Bonjour, on regarde.")
+    expect(sent?.text).toContain("Jordan\nPupitre")
+    expect(mail.sent[0].from).toBe(LEGAL_CONTACTS.support)
+    expect(mail.sent[0].raw.match(FROM_HEADER_RE)?.[1]).toContain(
+      `<${LEGAL_CONTACTS.support}>`
+    )
+  })
+
+  it("prend les destinataires demandés plutôt que ceux du message répondu", async () => {
+    const threadId = await thread()
+
+    await message(threadId, { fromEmail: "camille@exemple.fr" })
+
+    const sent = await replyToMailThread(
+      { userId: actor.userId, source: "console" },
+      threadId,
+      {
+        text: "Bonjour, on regarde.",
+        to: ["Autre@Exemple.fr"],
+        cc: ["copie@exemple.fr"],
+      }
+    )
+
+    expect(sent?.to).toEqual(["autre@exemple.fr"])
+    expect(sent?.cc).toEqual(["copie@exemple.fr"])
+  })
+
+  it("efface le brouillon du fil une fois la réponse partie", async () => {
+    const threadId = await thread()
+
+    await message(threadId, { fromEmail: "camille@exemple.fr" })
+    await getPrisma().mailDraft.create({
+      data: { threadId, body: "en cours", updatedByUserId: actor.userId },
+    })
+    await reply(threadId)
+
+    expect(await getPrisma().mailDraft.count({ where: { threadId } })).toBe(0)
+  })
+
+  it("refuse de répondre depuis un fil qu'aucune boîte ne déclare", async () => {
+    const threadId = await thread(null)
+
+    await message(threadId, { fromEmail: "camille@exemple.fr" })
+
+    await expect(reply(threadId)).rejects.toBeInstanceOf(
+      MailThreadHasNoMailboxError
+    )
+    expect(mail.sent).toHaveLength(0)
+  })
+
+  it("refuse de répondre depuis une boîte désactivée", async () => {
+    const threadId = await thread()
+
+    await message(threadId, { fromEmail: "camille@exemple.fr" })
+    await getPrisma().mailMailbox.update({
+      where: { id: PLATFORM_MAILBOX_IDS.support },
+      data: { enabled: false },
+    })
+
+    await expect(reply(threadId)).rejects.toBeInstanceOf(
+      MailboxCannotReplyError
+    )
+    expect(mail.sent).toHaveLength(0)
   })
 
   it("écrit au destinataire de notre dernier message quand personne n'a répondu", async () => {

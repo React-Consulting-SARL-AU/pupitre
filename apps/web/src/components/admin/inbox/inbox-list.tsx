@@ -1,136 +1,152 @@
-import { useQuery } from "@tanstack/react-query"
 import { Inbox } from "lucide-react"
-import { useState } from "react"
 import { AdminFailure } from "@/components/admin/admin-failure"
-import { InboxComposeDialog } from "@/components/admin/inbox/inbox-compose-dialog"
-import { InboxFilterBar } from "@/components/admin/inbox/inbox-filter-bar"
+import { InboxBulkBar } from "@/components/admin/inbox/inbox-bulk-bar"
 import { InboxThreadRow } from "@/components/admin/inbox/inbox-thread-row"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
+import { Checkbox } from "@/components/ui/checkbox"
 import { EmptyState } from "@/components/ui/empty-state"
-import { PageHeader } from "@/components/ui/page-header"
 import { Pagination } from "@/components/ui/pagination"
 import { SkeletonRows } from "@/components/ui/skeleton"
-import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
-import {
-  inboxAddressesQueryOptions,
-  inboxThreadsQueryOptions,
-  type ThreadPageQuery,
-  type ThreadStatus,
-} from "@/lib/api/inbox-queries"
-import { canActOnPlatform } from "@/lib/domain/admin"
-import { ASSIGNED_ANYONE, INBOX_PAGE_SIZE } from "@/lib/domain/inbox"
-import { pageTitle } from "@/lib/domain/page-titles"
+import type { InboxMailbox, InboxThread } from "@/lib/api/inbox-queries"
+import { INBOX_PAGE_SIZE } from "@/lib/domain/inbox"
+import type { InboxSearch } from "@/lib/domain/inbox-search"
 
 export const INBOX_ROUTE_ID = "/dashboard/admin/inbox"
 
-const EVERY_ADDRESS = ""
+export interface InboxListProps {
+  threads: InboxThread[]
+  total: number
+  mailboxes: InboxMailbox[]
+  search: InboxSearch
+  pending: boolean
+  failed: boolean
+  fetching: boolean
+  onRetry: () => void
+  onOffsetChange: (offset: number) => void
+  selected: string[]
+  onSelectedChange: (selected: string[]) => void
+  focusedId: string | null
+  openThreadId: string | null
+  canAct: boolean
+  bulkPending: boolean
+  onBulk: (patch: { status?: "open" | "closed"; unread?: boolean }) => void
+}
 
-export function InboxList() {
+export function InboxList({
+  threads,
+  total,
+  mailboxes,
+  search,
+  pending,
+  failed,
+  fetching,
+  onRetry,
+  onOffsetChange,
+  selected,
+  onSelectedChange,
+  focusedId,
+  openThreadId,
+  canAct,
+  bulkPending,
+  onBulk,
+}: InboxListProps) {
   const t = useTranslations()
-  const { platformRole } = useDashboardContext()
-  const { title, parents } = pageTitle(INBOX_ROUTE_ID)
-  const [status, setStatus] = useState<ThreadStatus>("open")
-  const [unreadOnly, setUnreadOnly] = useState(false)
-  const [assigned, setAssigned] = useState(ASSIGNED_ANYONE)
-  const [address, setAddress] = useState(EVERY_ADDRESS)
-  const [query, setQuery] = useState("")
-  const [offset, setOffset] = useState(0)
-  const pageQuery: ThreadPageQuery = {
-    limit: INBOX_PAGE_SIZE,
-    offset,
-    status,
-    ...(unreadOnly ? { unread: true } : {}),
-    ...(assigned === ASSIGNED_ANYONE ? {} : { assigned }),
-    ...(address === EVERY_ADDRESS ? {} : { address }),
-    ...(query === "" ? {} : { q: query }),
-  }
-  const page = useQuery(inboxThreadsQueryOptions(pageQuery))
-  const addresses = useQuery(inboxAddressesQueryOptions())
-  const unread = page.data?.unread ?? 0
-
-  function narrow<T>(set: (value: T) => void) {
-    return (value: T) => {
-      set(value)
-      setOffset(0)
-    }
-  }
+  const allSelected = threads.length > 0 && selected.length === threads.length
+  const mailboxOf = (id: string | null) =>
+    mailboxes.find((mailbox) => mailbox.id === id)
 
   return (
-    <>
-      <PageHeader
-        actions={
-          canActOnPlatform(platformRole) ? (
-            <InboxComposeDialog addresses={addresses.data ?? []} />
-          ) : null
-        }
-        description={unread > 0 ? t.plural("inbox.unread", unread) : undefined}
-        parents={parents}
-        title={t(title)}
-      />
+    <div className="flex flex-col gap-gutter">
+      {pending ? <SkeletonRows label={t("admin.reading")} /> : null}
 
-      <div className="flex flex-col gap-gutter">
-        <InboxFilterBar
-          address={address}
-          addresses={addresses.data ?? []}
-          assigned={assigned}
-          onAddressChange={narrow(setAddress)}
-          onAssignedChange={narrow(setAssigned)}
-          onSearch={narrow(setQuery)}
-          onStatusChange={narrow(setStatus)}
-          onUnreadOnlyChange={narrow(setUnreadOnly)}
-          query={query}
-          status={status}
-          unreadOnly={unreadOnly}
-        />
+      {failed ? <AdminFailure fetching={fetching} onRetry={onRetry} /> : null}
 
-        {page.isPending ? <SkeletonRows label={t("admin.reading")} /> : null}
+      {!(pending || failed) && total === 0 ? (
+        <EmptyState icon={Inbox} title={t("inbox.empty")} />
+      ) : null}
 
-        {page.isError ? (
-          <AdminFailure
-            fetching={page.isFetching}
-            onRetry={() => {
-              page.refetch()
-            }}
-          />
-        ) : null}
-
-        {page.isSuccess && page.data.total === 0 ? (
-          <EmptyState icon={Inbox} title={t("inbox.empty")} />
-        ) : null}
-
-        {page.isSuccess && page.data.total > 0 ? (
-          <Card>
-            <CardHeader>
+      {!(pending || failed) && total > 0 ? (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <Checkbox
+                checked={allSelected}
+                indeterminate={selected.length > 0 && !allSelected}
+                label={t("inbox.selectAll")}
+                onCheckedChange={(next) => {
+                  onSelectedChange(
+                    next ? threads.map((thread) => thread.id) : []
+                  )
+                }}
+              />
               <CardTitle>{t("inbox.threads")}</CardTitle>
-              <span className="font-data text-[12px] text-ink-3 tabular-nums">
-                {t("admin.range", {
-                  from: offset + 1,
-                  to: offset + page.data.data.length,
-                  total: page.data.total,
-                })}
-              </span>
-            </CardHeader>
+            </div>
+            <span className="font-data text-[12px] text-ink-3 tabular-nums">
+              {t("admin.range", {
+                from: search.offset + 1,
+                to: search.offset + threads.length,
+                total,
+              })}
+            </span>
+          </CardHeader>
 
-            <ul aria-busy={page.isFetching || undefined}>
-              {page.data.data.map((thread) => (
-                <InboxThreadRow key={thread.id} thread={thread} />
-              ))}
-            </ul>
-          </Card>
-        ) : null}
+          {selected.length > 0 ? (
+            <InboxBulkBar
+              canAct={canAct}
+              count={selected.length}
+              onClear={() => {
+                onSelectedChange([])
+              }}
+              onClose={() => {
+                onBulk({ status: "closed" })
+              }}
+              onRead={() => {
+                onBulk({ unread: false })
+              }}
+              onReopen={() => {
+                onBulk({ status: "open" })
+              }}
+              onUnread={() => {
+                onBulk({ unread: true })
+              }}
+              pending={bulkPending}
+            />
+          ) : null}
 
-        {page.isSuccess ? (
-          <Pagination
-            nextLabel={t("admin.next")}
-            offset={offset}
-            onOffsetChange={setOffset}
-            pageSize={INBOX_PAGE_SIZE}
-            previousLabel={t("admin.previous")}
-            total={page.data.total}
-          />
-        ) : null}
-      </div>
-    </>
+          <ul aria-busy={fetching || undefined}>
+            {threads.map((thread) => (
+              <InboxThreadRow
+                focused={thread.id === focusedId}
+                key={thread.id}
+                mailbox={mailboxOf(thread.mailbox_id)}
+                onSelectedChange={(next) => {
+                  onSelectedChange(
+                    next
+                      ? [...selected, thread.id]
+                      : selected.filter((id) => id !== thread.id)
+                  )
+                }}
+                open={thread.id === openThreadId}
+                search={search}
+                selected={selected.includes(thread.id)}
+                thread={thread}
+              />
+            ))}
+          </ul>
+        </Card>
+      ) : null}
+
+      {failed ? null : (
+        <Pagination
+          nextLabel={t("admin.next")}
+          offset={search.offset}
+          onOffsetChange={onOffsetChange}
+          pageSize={INBOX_PAGE_SIZE}
+          previousLabel={t("admin.previous")}
+          total={total}
+        />
+      )}
+    </div>
   )
 }

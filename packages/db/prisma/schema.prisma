@@ -170,6 +170,7 @@ model Organization {
   billing       OrganizationBilling?
   events        Event[]
   referral      Referral?
+  mailThreads   MailThread[]
 
   @@unique([slug])
   @@index([deletionAt])
@@ -423,26 +424,124 @@ enum MailDelivery {
   failed
 }
 
-model MailThread {
-  id                String           @id @default(cuid())
-  address           String
-  subject           String
-  normalizedSubject String
-  status            MailThreadStatus @default(open)
-  unread            Boolean          @default(true)
-  assignedUserId    String?
-  contactUserId     String?
-  lastInboundAt     DateTime?
-  lastOutboundAt    DateTime?
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
+enum MailActivityAction {
+  received
+  read
+  unread
+  replied
+  reply_failed
+  composed
+  assigned
+  unassigned
+  closed
+  reopened
+  linked
+  unlinked
+  note_added
+  note_deleted
+}
 
-  messages MailMessage[]
+model MailMailbox {
+  id          String   @id @default(cuid())
+  address     String   @unique
+  displayName String
+  signature   String?
+  /// A sensitive box journals every read: who opened what, and when.
+  sensitive   Boolean  @default(false)
+  canReply    Boolean  @default(true)
+  enabled     Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  threads   MailThread[]
+  templates MailTemplate[]
+
+  @@index([sortOrder])
+}
+
+model MailThread {
+  id                     String           @id @default(cuid())
+  /// The envelope's truth; the mailbox is what we declared, and may be missing.
+  address                String
+  mailboxId              String?
+  mailbox                MailMailbox?     @relation(fields: [mailboxId], references: [id], onDelete: SetNull)
+  subject                String
+  normalizedSubject      String
+  status                 MailThreadStatus @default(open)
+  unread                 Boolean          @default(true)
+  assignedUserId         String?
+  contactUserId          String?
+  linkedOrganizationId   String?
+  linkedOrganization     Organization?    @relation(fields: [linkedOrganizationId], references: [id], onDelete: SetNull)
+  lastInboundAt          DateTime?
+  /// Whether the last mail that came in was a bounce, a blast or an auto-reply:
+  /// the open view hides those, and no `some`/`none` filter can say "the last one".
+  lastInboundAutomated   Boolean          @default(false)
+  lastOutboundAt         DateTime?
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+
+  messages   MailMessage[]
+  notes      MailNote[]
+  draft      MailDraft?
+  activities MailActivity[]
 
   @@index([status, updatedAt])
   @@index([address, normalizedSubject])
   @@index([assignedUserId])
   @@index([contactUserId])
+  @@index([mailboxId])
+  @@index([linkedOrganizationId])
+}
+
+model MailNote {
+  id              String     @id @default(cuid())
+  threadId        String
+  thread          MailThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  body            String
+  createdByUserId String
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@index([threadId, createdAt])
+}
+
+model MailDraft {
+  id              String     @id @default(cuid())
+  threadId        String     @unique
+  thread          MailThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  body            String
+  to              Json?
+  cc              Json?
+  attachments     Json?
+  updatedByUserId String
+  updatedAt       DateTime   @updatedAt
+}
+
+model MailActivity {
+  id          String             @id @default(cuid())
+  threadId    String
+  thread      MailThread         @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  action      MailActivityAction
+  actorUserId String?
+  metadata    Json?
+  createdAt   DateTime           @default(now())
+
+  @@index([threadId, createdAt])
+}
+
+model MailTemplate {
+  id              String       @id @default(cuid())
+  mailboxId       String?
+  mailbox         MailMailbox? @relation(fields: [mailboxId], references: [id], onDelete: SetNull)
+  name            String
+  body            String
+  createdByUserId String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([mailboxId])
 }
 
 model MailMessage {
