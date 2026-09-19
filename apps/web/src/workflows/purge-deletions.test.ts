@@ -126,7 +126,7 @@ describe("le workflow PurgeDeletions", () => {
 
     const second = await runPurgeDeletions(recordSteps().step)
 
-    expect(second.users).toEqual([ids.at(-1)])
+    expect(second.users).toEqual(ids.slice(PURGE_BATCH_SIZE))
     expect(await prisma.user.count({ where: { id: { in: ids } } })).toBe(0)
     expect(await runPurgeDeletions(recordSteps().step)).toEqual({
       organizations: [],

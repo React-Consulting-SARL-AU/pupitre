@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router"
 import { Crown, UserMinus } from "lucide-react"
 import { useState } from "react"
+import { Callout } from "@/components/ui/callout"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
 import { ConfirmFormDialog } from "@/components/ui/confirm-form-dialog"
 import { RowActionsMenu } from "@/components/ui/row-actions-menu"
@@ -12,6 +13,7 @@ import {
   transferOrganization,
 } from "@/lib/api/admin-queries"
 import { queryKeys } from "@/lib/api/queries"
+import { isPlatformOrganization } from "@/lib/domain/admin"
 import { roleKey } from "@/lib/domain/roles"
 import type { ConfirmFormValues } from "@/lib/schemas/confirm-form"
 import { formatDate } from "@/lib/utils/format"
@@ -35,6 +37,7 @@ export function AdminOrganizationMembers({
 }: AdminOrganizationMembersProps) {
   const t = useTranslations()
   const [aimed, setAimed] = useState<Aimed | null>(null)
+  const platform = isPlatformOrganization(detail.id)
   const touched = [
     queryKeys.admin.organization(detail.id),
     queryKeys.admin.allOrganizations,
@@ -91,6 +94,15 @@ export function AdminOrganizationMembers({
         <CardTitle>{t("admin.organizations.members")}</CardTitle>
       </CardHeader>
 
+      {platform ? (
+        <CardBody>
+          <Callout
+            title={t("admin.organizations.platformOrganization")}
+            tone="warn"
+          />
+        </CardBody>
+      ) : null}
+
       {detail.members.length === 0 ? (
         <CardBody>
           <p className="text-[13px] text-ink-3">
@@ -120,38 +132,40 @@ export function AdminOrganizationMembers({
               <span className="font-data text-[12px] text-ink-3 tabular-nums sm:w-28 sm:text-right">
                 {formatDate(member.created_at, t)}
               </span>
-              <RowActionsMenu
-                actions={[
-                  {
-                    label: t("admin.organizations.transfer"),
-                    icon: Crown,
-                    disabled: !acts,
-                    onSelect: () => {
-                      setAimed({
-                        act: "transfer",
-                        userId: member.user_id,
-                        email: member.email,
-                      })
+              {platform ? null : (
+                <RowActionsMenu
+                  actions={[
+                    {
+                      label: t("admin.organizations.transfer"),
+                      icon: Crown,
+                      disabled: !acts,
+                      onSelect: () => {
+                        setAimed({
+                          act: "transfer",
+                          userId: member.user_id,
+                          email: member.email,
+                        })
+                      },
                     },
-                  },
-                  {
-                    label: t("admin.organizations.removeMember"),
-                    icon: UserMinus,
-                    tone: "danger",
-                    disabled: !acts,
-                    onSelect: () => {
-                      setAimed({
-                        act: "remove",
-                        userId: member.user_id,
-                        email: member.email,
-                      })
+                    {
+                      label: t("admin.organizations.removeMember"),
+                      icon: UserMinus,
+                      tone: "danger",
+                      disabled: !acts,
+                      onSelect: () => {
+                        setAimed({
+                          act: "remove",
+                          userId: member.user_id,
+                          email: member.email,
+                        })
+                      },
                     },
-                  },
-                ]}
-                label={t("admin.organizations.memberActions", {
-                  email: member.email,
-                })}
-              />
+                  ]}
+                  label={t("admin.organizations.memberActions", {
+                    email: member.email,
+                  })}
+                />
+              )}
             </li>
           ))}
         </ul>

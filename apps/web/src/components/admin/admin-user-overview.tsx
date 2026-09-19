@@ -13,11 +13,7 @@ import {
   resendUserVerification,
 } from "@/lib/api/admin-queries"
 import { queryKeys } from "@/lib/api/queries"
-import {
-  accountLook,
-  accountReason,
-  subscriptionIsLive,
-} from "@/lib/domain/admin"
+import { accountLook, subscriptionIsLive } from "@/lib/domain/admin"
 import { subscriptionStatusLook } from "@/lib/domain/billing"
 import { roleKey } from "@/lib/domain/roles"
 import { formatDateTime, formatRelative } from "@/lib/utils/format"
@@ -44,7 +40,7 @@ export function AdminUserOverview({
       fix: t("admin.users.resendVerificationFailedFix"),
     },
   })
-  const reason = accountReason(detail)
+  const reason = detail.reason
 
   function roleName(role: string): string {
     const key = roleKey(role)

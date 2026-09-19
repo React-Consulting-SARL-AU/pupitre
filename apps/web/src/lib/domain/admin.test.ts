@@ -2,7 +2,6 @@ import { describe, expect, it } from "bun:test"
 import {
   accountGestures,
   accountLook,
-  accountReason,
   canActOnPlatform,
   canCancelSubscription,
   canDeleteSubscription,
@@ -16,7 +15,6 @@ import {
   endOfDayIso,
   organizationGestures,
   organizationLook,
-  organizationReason,
   overviewFigures,
   platformOpen,
   productKey,
@@ -395,42 +393,6 @@ describe("organizationGestures", () => {
       "cancel_deletion",
       "purge",
     ])
-  })
-})
-
-describe("accountReason", () => {
-  it("reads the reason the state was written with, and no older one", () => {
-    const account = {
-      banned_reason: "abus",
-      deactivated_reason: "inactif",
-      deletion_reason: "demande",
-    }
-
-    expect(accountReason({ ...account, state: "suspended" })).toBe("abus")
-    expect(accountReason({ ...account, state: "deactivated" })).toBe("inactif")
-    expect(accountReason({ ...account, state: "deleting" })).toBe("demande")
-    expect(accountReason({ ...account, state: "active" })).toBeNull()
-  })
-})
-
-describe("organizationReason", () => {
-  it("reads the reason the state was written with", () => {
-    const organization = {
-      suspended_reason: "abus",
-      closed_reason: "demande",
-      deletion_reason: "purge",
-    }
-
-    expect(organizationReason({ ...organization, state: "suspended" })).toBe(
-      "abus"
-    )
-    expect(organizationReason({ ...organization, state: "closed" })).toBe(
-      "demande"
-    )
-    expect(organizationReason({ ...organization, state: "deleting" })).toBe(
-      "purge"
-    )
-    expect(organizationReason({ ...organization, state: "active" })).toBeNull()
   })
 })
 
