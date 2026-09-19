@@ -147,7 +147,7 @@ Deux branches longues, et rien d'autre qui vive plus qu'une pull request.
 | Base D1 | `ppt-db` |
 | Seau R2 des emails | `ppt-mail`, lié sous `MAIL`, privé, juridiction par défaut ; règle CORS de `apps/web/r2-mail-cors.json` (`wrangler r2 bucket cors set`) pour que la console lise et dépose les pièces jointes par adresse signée ; le jeton `R2_*` du Worker y lit et y écrit |
 | Email Routing | règle catch-all sur la zone `pupitre.studio` → *Send to a Worker*, `ppt-web-production` |
-| Workflows | `ppt-expire-enrollments`, `ppt-decommission-server`, `ppt-reconcile-seats`, `ppt-evaluate-alerts`, `ppt-suspend-expired-grace` |
+| Workflows | `ppt-expire-enrollments`, `ppt-decommission-server`, `ppt-reconcile-seats`, `ppt-evaluate-alerts`, `ppt-suspend-expired-grace`, `ppt-purge-deletions` |
 | Déclencheur | Cloudflare Builds sur un push de `main` |
 | Stripe | mode live |
 
