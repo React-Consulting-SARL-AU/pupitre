@@ -88,6 +88,12 @@ export function isPlatformProduct(product: string): boolean {
   return PLATFORM_PRODUCTS.includes(product)
 }
 
+/**
+ * Stripe names and renames its own products: the filter and the label say that
+ * a row is billed by Stripe rather than showing an identifier nobody reads.
+ */
+export const STRIPE_PRODUCT = "stripe"
+
 export const LAUNCH_SEATS = TRIAL_SEATS
 
 /** The platform's own organization enrols what it needs during the launch. */

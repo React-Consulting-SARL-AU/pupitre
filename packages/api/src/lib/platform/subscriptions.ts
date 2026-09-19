@@ -3,7 +3,11 @@ import type {
   StripeEventStatus,
   Subscription,
 } from "@pupitre/db/cloudflare/client"
-import { isPlatformProduct } from "@pupitre/shared/plans"
+import {
+  isPlatformProduct,
+  PLATFORM_PRODUCTS,
+  STRIPE_PRODUCT,
+} from "@pupitre/shared/plans"
 import { getPrisma } from "../api/prisma"
 import { stripeSubscriptionUrl } from "../billing/config"
 import { SEATED_STATUSES } from "../billing/seats"
@@ -38,7 +42,7 @@ export interface AdminSubscriptionView
   organization: AdminSubscriptionOrganization
   live: boolean
   seats: AdminSubscriptionSeats
-  /** More servers seated than seats paid: the same reading as `ReconcileSeats`. */
+  /** The row that counts pays for fewer servers than the organisation seats: the reading of `ReconcileSeats`. */
   drifted: boolean
 }
 
@@ -60,6 +64,7 @@ export interface AdminSubscriptionFilter {
   product?: string
   organization_id?: string
   live?: boolean
+  drifted?: boolean
   q?: string
   sort?: AdminSubscriptionSort
   direction?: "asc" | "desc"
@@ -80,6 +85,18 @@ type SubscriptionWithOrganization = Prisma.SubscriptionGetPayload<{
   include: typeof ORGANIZATION_INCLUDE
 }>
 
+function productWhere(
+  product: string | undefined
+): Prisma.SubscriptionWhereInput {
+  if (!product) {
+    return {}
+  }
+
+  return product === STRIPE_PRODUCT
+    ? { product: { notIn: [...PLATFORM_PRODUCTS] } }
+    : { product }
+}
+
 function whereOf(
   filter: AdminSubscriptionFilter
 ): Prisma.SubscriptionWhereInput {
@@ -87,7 +104,7 @@ function whereOf(
 
   return {
     ...(filter.status ? { status: filter.status } : {}),
-    ...(filter.product ? { product: filter.product } : {}),
+    ...productWhere(filter.product),
     ...(filter.organization_id
       ? { organizationId: filter.organization_id }
       : {}),
@@ -174,41 +191,67 @@ async function seatsUsedAmong(
   return new Map(rows.map((row) => [row.organizationId, row._count._all]))
 }
 
+/** Only the row an organisation is billed on can be short of seats; a closed one owes nothing. */
+function isDrifted(
+  subscription: { id: string; organizationId: string; quantity: number },
+  live: Set<string>,
+  used: Map<string, number>
+): boolean {
+  return (
+    live.has(subscription.id) &&
+    (used.get(subscription.organizationId) ?? 0) > subscription.quantity
+  )
+}
+
 function toView(
   subscription: SubscriptionWithOrganization,
   live: Set<string>,
   used: Map<string, number>
 ): AdminSubscriptionView {
-  const seated = used.get(subscription.organizationId) ?? 0
-
   return {
     ...toSubscriptionRow(subscription),
     organization: subscription.organization,
     live: live.has(subscription.id),
-    seats: { paid: subscription.quantity, used: seated },
-    drifted: seated > subscription.quantity,
+    seats: {
+      paid: subscription.quantity,
+      used: used.get(subscription.organizationId) ?? 0,
+    },
+    drifted: isDrifted(subscription, live, used),
   }
 }
 
 /**
- * Which row counts is a choice made across an organization, not a column: the
- * filter resolves it over everything the other filters keep, then narrows by
- * identifier, so the count and the page agree.
+ * Which row counts, and which is short of seats, are choices made across an
+ * organization and not columns: they are resolved over everything the other
+ * filters keep, then narrowed by identifier, so the count and the page agree.
  */
-async function narrowToLive(
+async function narrowBeyondColumns(
   where: Prisma.SubscriptionWhereInput,
-  live: boolean
+  filter: AdminSubscriptionFilter
 ): Promise<Prisma.SubscriptionWhereInput> {
   const matching = await getPrisma().subscription.findMany({
     where,
-    select: { organizationId: true },
-    distinct: ["organizationId"],
+    select: { id: true, organizationId: true, quantity: true },
   })
-  const counted = [
-    ...(await liveIdsAmong(matching.map((row) => row.organizationId))),
+  const organizationIds = [
+    ...new Set(matching.map((row) => row.organizationId)),
   ]
+  const [live, used] = await Promise.all([
+    liveIdsAmong(organizationIds),
+    seatsUsedAmong(organizationIds),
+  ])
+  const kept = matching.filter((row) => {
+    if (filter.live !== undefined && live.has(row.id) !== filter.live) {
+      return false
+    }
 
-  return { ...where, id: live ? { in: counted } : { notIn: counted } }
+    return (
+      filter.drifted === undefined ||
+      isDrifted(row, live, used) === filter.drifted
+    )
+  })
+
+  return { ...where, id: { in: kept.map((row) => row.id) } }
 }
 
 export async function listSubscriptionsForPlatform(
@@ -217,9 +260,9 @@ export async function listSubscriptionsForPlatform(
   const prisma = getPrisma()
   const filtered = whereOf(filter)
   const where =
-    filter.live === undefined
+    filter.live === undefined && filter.drifted === undefined
       ? filtered
-      : await narrowToLive(filtered, filter.live)
+      : await narrowBeyondColumns(filtered, filter)
   const [subscriptions, total] = await Promise.all([
     prisma.subscription.findMany({
       where,

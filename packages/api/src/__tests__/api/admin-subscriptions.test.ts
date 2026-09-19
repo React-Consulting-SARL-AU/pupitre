@@ -881,6 +881,114 @@ describe("GET /admin/subscriptions, filtres et tris", () => {
     expect(dropped.id).toBeString()
     expect(unknown.status).toBe(422)
   })
+
+  it("trie par création et par modification dans les deux sens", async () => {
+    const { counted, dropped, other } = await twoOrganizations()
+    const admin = await platformAdmin()
+    const order = [counted.id, dropped.id, other.id]
+
+    for (const [rank, id] of order.entries()) {
+      await harness.prisma.subscription.update({
+        where: { id },
+        data: {
+          createdAt: new Date(Date.now() - (order.length - rank) * DAY_MS),
+          updatedAt: new Date(Date.now() - (rank + 1) * DAY_MS),
+        },
+      })
+    }
+
+    const oldest = await apiRequest<SubscriptionsBody>(
+      "/admin/subscriptions?sort=created_at&direction=asc",
+      { session: admin }
+    )
+    const newest = await apiRequest<SubscriptionsBody>(
+      "/admin/subscriptions?sort=created_at&direction=desc",
+      { session: admin }
+    )
+    const touched = await apiRequest<SubscriptionsBody>(
+      "/admin/subscriptions?sort=updated_at&direction=desc",
+      { session: admin }
+    )
+
+    expect(oldest.json.data.map((row) => row.id)).toEqual(order)
+    expect(newest.json.data.map((row) => row.id)).toEqual([...order].reverse())
+    expect(touched.json.data.map((row) => row.id)).toEqual(order)
+  })
+
+  it("ne marque en dérive que l'abonnement qui compte, et le filtre ne garde que lui", async () => {
+    const { organization } = await createOrganizationWithMembers({
+      name: "Atelier serré",
+      roles: ["owner"],
+    })
+    const closed = await subscribeOrganization({
+      organizationId: organization.id,
+      status: "canceled",
+      quantity: 1,
+    })
+    const tight = await subscribeOrganization({
+      organizationId: organization.id,
+      status: "active",
+      quantity: 1,
+    })
+    const { other } = await twoOrganizations()
+    const admin = await platformAdmin()
+
+    await createServer({ organizationId: organization.id })
+    await createServer({ organizationId: organization.id, status: "grace" })
+
+    const every = await apiRequest<SubscriptionsBody>("/admin/subscriptions", {
+      session: admin,
+    })
+    const byId = new Map(every.json.data.map((row) => [row.id, row]))
+    const adrift = await apiRequest<SubscriptionsBody>(
+      "/admin/subscriptions?drifted=true",
+      { session: admin }
+    )
+    const covered = await apiRequest<SubscriptionsBody>(
+      "/admin/subscriptions?drifted=false",
+      { session: admin }
+    )
+
+    expect(byId.get(tight.id)?.drifted).toBe(true)
+    expect(byId.get(closed.id)?.seats).toEqual({ paid: 1, used: 2 })
+    expect(byId.get(closed.id)?.drifted).toBe(false)
+
+    expect(adrift.json.total).toBe(1)
+    expect(adrift.json.data.map((row) => row.id)).toEqual([tight.id])
+    expect(covered.json.data.map((row) => row.id)).toContain(closed.id)
+    expect(covered.json.data.map((row) => row.id)).toContain(other.id)
+    expect(covered.json.data.map((row) => row.id)).not.toContain(tight.id)
+  })
+
+  it("garde tout produit hors plateforme sous le filtre stripe", async () => {
+    const { organization } = await atelier()
+    const granted = await subscribeOrganization({
+      organizationId: organization.id,
+      status: "canceled",
+    })
+    const { counted, dropped, other } = await twoOrganizations()
+    const admin = await platformAdmin()
+
+    await harness.prisma.subscription.update({
+      where: { id: granted.id },
+      data: { product: GRANTED_PRODUCT },
+    })
+
+    const stripe = await apiRequest<SubscriptionsBody>(
+      "/admin/subscriptions?product=stripe",
+      { session: admin }
+    )
+    const offered = await apiRequest<SubscriptionsBody>(
+      `/admin/subscriptions?product=${GRANTED_PRODUCT}`,
+      { session: admin }
+    )
+
+    expect(stripe.json.total).toBe(3)
+    expect(stripe.json.data.map((row) => row.id).sort()).toEqual(
+      [counted.id, dropped.id, other.id].sort()
+    )
+    expect(offered.json.data.map((row) => row.id)).toEqual([granted.id])
+  })
 })
 
 describe("GET /admin/subscriptions/:id, sièges, dérive et Stripe", () => {

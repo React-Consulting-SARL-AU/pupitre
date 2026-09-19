@@ -592,6 +592,37 @@ describe("la fiche d'un lien d'affiliation", () => {
     expect(enabled.json.data.disabled).toBe(false)
   })
 
+  it("laisse la date de modification où elle est quand rien ne change", async () => {
+    const admin = await platformAdmin()
+    const created = await createLink(admin, {
+      name: "Blog",
+      free_months: 1,
+      seats: 2,
+    })
+    const { id } = created.json.data
+    const before = await harness.prisma.affiliateLink.findUniqueOrThrow({
+      where: { id },
+    })
+    const same = await patchLink(admin, id, {
+      name: "Blog",
+      free_months: 1,
+      seats: 2,
+      disabled: false,
+    })
+    const after = await harness.prisma.affiliateLink.findUniqueOrThrow({
+      where: { id },
+    })
+
+    expect(same.status).toBe(200)
+    expect(same.json.data).toMatchObject({ name: "Blog", seats: 2 })
+    expect(after.updatedAt).toEqual(before.updatedAt)
+    expect(
+      await harness.prisma.event.count({
+        where: { action: "affiliate_link.updated" },
+      })
+    ).toBe(0)
+  })
+
   it("refuse un partenaire illisible, une note trop longue et des bornes dépassées", async () => {
     const admin = await platformAdmin()
     const created = await createLink(admin, { name: "Blog", free_months: 1 })
@@ -647,6 +678,16 @@ describe("la fiche d'un lien d'affiliation", () => {
     expect(unknown.status).toBe(404)
     expect(await harness.prisma.affiliateLink.count()).toBe(1)
     expect(await harness.prisma.affiliateClickDay.count()).toBe(0)
+    expect(
+      await harness.prisma.referral.count({
+        where: { linkId: used.json.data.id },
+      })
+    ).toBe(1)
+    expect(
+      await harness.prisma.event.count({
+        where: { action: "affiliate_link.deleted" },
+      })
+    ).toBe(1)
 
     const event = await harness.prisma.event.findFirstOrThrow({
       where: { action: "affiliate_link.deleted" },
