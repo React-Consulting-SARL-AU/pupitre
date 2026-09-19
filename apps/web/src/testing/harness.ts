@@ -61,12 +61,23 @@ export async function grantLaunch(organizationId: string, endsAt: Date) {
   })
 }
 
-export async function useSessionApiClient(token: string): Promise<void> {
+export interface SessionApiClientOptions {
+  /** A request the network never carries: the client throws instead of answering. */
+  cut?: (url: string, init?: RequestInit) => boolean
+}
+
+export async function useSessionApiClient(
+  token: string,
+  { cut }: SessionApiClientOptions = {}
+): Promise<void> {
   const server = await bootApiTestServer()
 
   setApiClient(
     createApiClient(TEST_BASE_URL, {
-      fetch: server.fetch,
+      fetch: (input, init) =>
+        cut?.(String(input), init)
+          ? Promise.reject(new Error("the network went away"))
+          : server.fetch(input, init),
       headers: { authorization: `Bearer ${token}` },
     })
   )

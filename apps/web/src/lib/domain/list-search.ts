@@ -4,6 +4,35 @@ import { z } from "zod"
 
 export type SortDirection = "asc" | "desc"
 
+/** What a filter select holds while it narrows nothing; the address carries no key at all. */
+export const FILTER_ALL = ""
+
+/** A sort the page does not declare is a sort it does not run. */
+export function listSort<Sort extends string>(
+  value: string | undefined,
+  sorts: readonly Sort[],
+  fallback: Sort
+): Sort {
+  return sorts.find((sort) => sort === value) ?? fallback
+}
+
+/** The three values a select holds for a flag the address carries as a word. */
+export function flagValue(flag: boolean | undefined): string {
+  if (flag === undefined) {
+    return FILTER_ALL
+  }
+
+  return flag ? "true" : "false"
+}
+
+export function readFlag(value: string): boolean | undefined {
+  if (value === FILTER_ALL) {
+    return undefined
+  }
+
+  return value === "true"
+}
+
 export type ListFilter =
   | { kind: "string" }
   | { kind: "boolean" }
@@ -38,9 +67,18 @@ const offsetField = z.coerce.number().int().min(0)
 
 const directionField = z.enum(["asc", "desc"])
 
+/**
+ * The router parses `?stale=true` into a boolean before the schema sees it, and
+ * a link written by hand carries the word: both forms have to land.
+ */
+const booleanField = z.union([
+  z.boolean(),
+  z.enum(["true", "false"]).transform((value) => value === "true"),
+])
+
 function filterSchema(filter: ListFilter): z.ZodType {
   if (filter.kind === "boolean") {
-    return z.enum(["true", "false"]).transform((value) => value === "true")
+    return booleanField
   }
 
   if (filter.kind === "enum") {

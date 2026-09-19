@@ -38,7 +38,7 @@ export function AdminWorklists({ worklists }: AdminWorklistsProps) {
           )}`,
         }))}
         icon={Inbox}
-        seeAll={{ to: "/dashboard/admin/inbox" }}
+        seeAll={{ to: "/dashboard/admin/inbox", search: { unread: true } }}
         title={t("admin.worklists.unreadMail")}
       />
 
@@ -102,7 +102,7 @@ export function AdminWorklists({ worklists }: AdminWorklistsProps) {
           )}`,
         }))}
         icon={HardDrive}
-        seeAll={{ to: "/dashboard/admin/servers" }}
+        seeAll={{ to: "/dashboard/admin/servers", search: { stale: true } }}
         title={t("admin.worklists.serversUnreachable")}
       />
 
@@ -122,7 +122,10 @@ export function AdminWorklists({ worklists }: AdminWorklistsProps) {
           }),
         }))}
         icon={Users}
-        seeAll={{ to: "/dashboard/admin/organizations" }}
+        seeAll={{
+          to: "/dashboard/admin/subscriptions",
+          search: { drifted: true },
+        }}
         title={t("admin.worklists.seatsDrifted")}
       />
 

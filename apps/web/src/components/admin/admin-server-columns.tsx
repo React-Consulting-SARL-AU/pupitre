@@ -44,6 +44,7 @@ export function adminServerColumns(
       header: t("admin.servers.organization"),
       width: "w-40",
       hideBelow: "md",
+      interactive: true,
       cell: (server) => (
         <>
           <Link

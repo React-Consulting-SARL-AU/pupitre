@@ -80,6 +80,7 @@ export function adminUserColumns(t: Translate): DataColumn<AdminUserRowUser>[] {
       header: t("admin.users.organizations"),
       width: "w-[280px]",
       hideBelow: "md",
+      interactive: true,
       cell: (user) =>
         user.organizations.length === 0 ? (
           <span className="text-[12px] text-ink-3">

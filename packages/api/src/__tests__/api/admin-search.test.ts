@@ -112,6 +112,43 @@ describe("GET /admin/search", () => {
     expect(response.json.data.servers).toHaveLength(PLATFORM_SEARCH_RESULTS)
   })
 
+  it("rend l'état du compte que la plateforme calcule, pas un état à part", async () => {
+    const { user } = await createUser({
+      email: "marmotte@test.local",
+      name: "Marmotte Suspendue",
+    })
+
+    await harness.prisma.user.update({
+      where: { id: user.id },
+      data: { banned: true, banExpires: null },
+    })
+
+    const deactivated = await createUser({
+      email: "loir@test.local",
+      name: "Loir Endormi",
+    })
+
+    await harness.prisma.user.update({
+      where: { id: deactivated.user.id },
+      data: { deactivatedAt: new Date() },
+    })
+
+    const admin = await platformAdmin()
+    const response = await apiRequest<SearchBody>(
+      "/admin/search?q=test.local",
+      {
+        session: admin,
+      }
+    )
+    const states = new Map(
+      response.json.data.users.map((found) => [found.email, found.state])
+    )
+
+    expect(response.status).toBe(200)
+    expect(states.get("marmotte@test.local")).toBe("suspended")
+    expect(states.get("loir@test.local")).toBe("deactivated")
+  })
+
   it("refuse une recherche trop courte", async () => {
     const admin = await platformAdmin()
     const response = await apiRequest<ErrorBody>("/admin/search?q=a", {

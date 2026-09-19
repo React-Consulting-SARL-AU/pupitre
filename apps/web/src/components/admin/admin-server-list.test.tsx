@@ -17,6 +17,7 @@ import { createConsoleUser, useSessionApiClient } from "@/testing/harness"
 import { ListSearchHarness } from "@/testing/list-search"
 import {
   fill,
+  press,
   render,
   trigger,
   waitUntil,
@@ -69,8 +70,42 @@ function menuItem(label: string): HTMLElement {
   return found as HTMLElement
 }
 
+function reasonField(serverId: string): Element {
+  const found = document.querySelector(`#suspend-${serverId}-reason`)
+
+  if (!found) {
+    throw new Error("the suspension dialog did not open")
+  }
+
+  return found
+}
+
+function confirmButton(): Element {
+  const found = document.querySelector("[role=dialog] button[type=submit]")
+
+  if (!found) {
+    throw new Error("the suspension dialog did not open")
+  }
+
+  return found
+}
+
+async function openSuspension(
+  click: (element: Element) => Promise<void>,
+  container: HTMLElement,
+  name: string
+) {
+  await click(trigger(container, `Actions on ${name}`))
+  await waitUntil(() => document.querySelector("[role=menuitem]") !== null)
+  await click(menuItem("Suspend"))
+  await waitUntil(
+    () => document.querySelector("[role=dialog] button[type=submit]") !== null
+  )
+}
+
 describe("AdminServerList", () => {
   let organizationId: string
+  let token: string
 
   beforeAll(async () => {
     await bootApiTestServer()
@@ -87,6 +122,7 @@ describe("AdminServerList", () => {
     await useSessionApiClient(console.token)
 
     organizationId = console.organization.id
+    token = console.token
   })
 
   afterEach(() => {
@@ -122,22 +158,9 @@ describe("AdminServerList", () => {
     mounted.push(unmount)
 
     await waitUntil(() => container.textContent?.includes("vps-one") === true)
-    await click(trigger(container, "Actions on vps-one"))
-    await waitUntil(() => document.querySelector("[role=menuitem]") !== null)
-    await click(menuItem("Suspend"))
-    await waitUntil(
-      () => document.querySelector(`#suspend-${server.id}-reason`) !== null
-    )
-
-    const reason = document.querySelector(`#suspend-${server.id}-reason`)
-    const confirm = document.querySelector("[role=dialog] button[type=submit]")
-
-    if (!(reason && confirm)) {
-      throw new Error("the suspension dialog did not open")
-    }
-
-    await fill(reason, "Abuse report")
-    await click(confirm)
+    await openSuspension(click, container, "vps-one")
+    await fill(reasonField(server.id), "Abuse report")
+    await click(confirmButton())
     await waitUntil(
       () => container.textContent?.includes("Suspended by the team") === true
     )
@@ -157,25 +180,63 @@ describe("AdminServerList", () => {
     mounted.push(unmount)
 
     await waitUntil(() => container.textContent?.includes("vps-one") === true)
-    await click(trigger(container, "Actions on vps-one"))
-    await waitUntil(() => document.querySelector("[role=menuitem]") !== null)
-    await click(menuItem("Suspend"))
-    await waitUntil(
-      () => document.querySelector("[role=dialog] button[type=submit]") !== null
-    )
-
-    const confirm = document.querySelector("[role=dialog] button[type=submit]")
-
-    if (!confirm) {
-      throw new Error("the suspension dialog did not open")
-    }
-
-    await click(confirm)
+    await openSuspension(click, container, "vps-one")
+    await click(confirmButton())
     await waitUntil(
       () => document.body.textContent?.includes("Give the reason") === true
     )
 
     expect((await storedServer(server.id, "active")).status).toBe("active")
+  })
+
+  it("keeps the suspension dialog open on a network cut, with the refusal and the typing", async () => {
+    const { server } = await createServer({ organizationId, name: "vps-one" })
+
+    await useSessionApiClient(token, { cut: (url) => url.includes("/suspend") })
+
+    const { container, unmount, click } = await render(list())
+
+    mounted.push(unmount)
+
+    await waitUntil(() => container.textContent?.includes("vps-one") === true)
+    await openSuspension(click, container, "vps-one")
+    await fill(reasonField(server.id), "Abuse report")
+    await click(confirmButton())
+    await waitUntil(
+      () =>
+        document.body.textContent?.includes("The suspension failed.") === true
+    )
+
+    expect(document.querySelector("[role=dialog]")).not.toBeNull()
+    expect((reasonField(server.id) as HTMLInputElement).value).toBe(
+      "Abuse report"
+    )
+    expect((await storedServer(server.id, "active")).status).toBe("active")
+  })
+
+  it("carries no refusal from one server to the next", async () => {
+    const one = await createServer({ organizationId, name: "vps-one" })
+
+    await createServer({ organizationId, name: "vps-two" })
+    await useSessionApiClient(token, { cut: (url) => url.includes("/suspend") })
+
+    const { container, unmount, click } = await render(list())
+
+    mounted.push(unmount)
+
+    await waitUntil(() => container.textContent?.includes("vps-two") === true)
+    await openSuspension(click, container, "vps-one")
+    await fill(reasonField(one.server.id), "Abuse report")
+    await click(confirmButton())
+    await waitUntil(
+      () =>
+        document.body.textContent?.includes("The suspension failed.") === true
+    )
+    await press(document.body, "Escape")
+    await waitUntil(() => document.querySelector("[role=dialog]") === null)
+    await openSuspension(click, container, "vps-two")
+
+    expect(document.body.textContent).not.toContain("The suspension failed.")
   })
 
   it("moves a server to the beta channel from its row", async () => {

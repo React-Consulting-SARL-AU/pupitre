@@ -1,5 +1,5 @@
 import type { ServerStatus } from "@pupitre/db/cloudflare/client"
-import { isPlatformProduct } from "@pupitre/shared/plans"
+import { isPlatformProduct, PLATFORM_PRODUCTS } from "@pupitre/shared/plans"
 import { PLATFORM_ORGANIZATION_ID } from "@pupitre/shared/platform"
 import { getPrisma, type OrganizationPrisma } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
@@ -56,6 +56,53 @@ export function countSeatedServers(
   prisma: OrganizationPrisma
 ): Promise<number> {
   return prisma.server.count({ where: { status: { in: SEATED_STATUSES } } })
+}
+
+function billedSubscriptions() {
+  return getPrisma().subscription.findMany({
+    where: {
+      status: { in: PAYING_SUBSCRIPTION_STATUSES },
+      product: { notIn: [...PLATFORM_PRODUCTS] },
+    },
+    orderBy: { createdAt: "asc" },
+    include: { organization: { select: { id: true, name: true, slug: true } } },
+  })
+}
+
+export interface SeatUsage {
+  subscription: Awaited<ReturnType<typeof billedSubscriptions>>[number]
+  seated: number
+}
+
+/**
+ * What every billed organisation pays for and what it actually seats, in two
+ * queries: the reconciliation writes from it, the overview only reads it.
+ */
+export async function readSeatUsage(): Promise<SeatUsage[]> {
+  const subscriptions = await billedSubscriptions()
+
+  if (subscriptions.length === 0) {
+    return []
+  }
+
+  const seats = await getPrisma().server.groupBy({
+    by: ["organizationId"],
+    where: {
+      status: { in: SEATED_STATUSES },
+      organizationId: {
+        in: subscriptions.map((subscription) => subscription.organizationId),
+      },
+    },
+    _count: { _all: true },
+  })
+  const seatedByOrganization = new Map(
+    seats.map((row) => [row.organizationId, row._count._all])
+  )
+
+  return subscriptions.map((subscription) => ({
+    subscription,
+    seated: seatedByOrganization.get(subscription.organizationId) ?? 0,
+  }))
 }
 
 export async function payingSubscriptionOf(organizationId: string) {

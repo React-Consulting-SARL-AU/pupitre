@@ -81,6 +81,26 @@ describe("AdminSearchDialog", () => {
     expect(document.body.textContent).toContain("Account")
   })
 
+  it("shows the account state the platform calculates on every account found", async () => {
+    const { prisma } = await bootApiTestServer()
+
+    await prisma.user.updateMany({
+      where: { email: "marmotte@test.local" },
+      data: { deactivatedAt: new Date() },
+    })
+
+    const { unmount } = await render(dialog())
+
+    mounted.push(unmount)
+
+    await fill(searchField(), "marmotte")
+    await waitUntil(
+      () => document.body.textContent?.includes("marmotte@test.local") === true
+    )
+
+    expect(document.body.textContent).toContain("Deactivated")
+  })
+
   it("says when nothing matches", async () => {
     const { unmount } = await render(dialog())
 
