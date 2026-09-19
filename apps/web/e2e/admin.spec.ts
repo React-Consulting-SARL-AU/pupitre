@@ -32,6 +32,7 @@ const LAUNCH_DATE = "31 décembre 2026"
 
 const SERVERS_URL_RE = /\/dashboard\/servers$/
 const START_URL_RE = /\/dashboard\/start$/
+const START_LINK_RE = /^Démarrer/
 const ADMIN_URL_RE = /\/dashboard\/admin$/
 const ADMIN_USERS_URL_RE = /\/dashboard\/admin\/users$/
 const ADMIN_USER_URL_RE = /\/dashboard\/admin\/users\/[^/]+$/
@@ -121,6 +122,21 @@ test.describe("plateforme", () => {
       await expect(page).toHaveURL(START_URL_RE)
 
       await openPlatformOrganization(page)
+    })
+
+    await test.step("l'organisation Pupitre n'a ni démarrage ni facturation", async () => {
+      await expect(menu.getByRole("link", { name: START_LINK_RE })).toHaveCount(
+        0
+      )
+      await expect(menu.getByRole("link", { name: "Facturation" })).toHaveCount(
+        0
+      )
+
+      await page.goto("/dashboard/start")
+      await expect(page).toHaveURL(ADMIN_URL_RE)
+
+      await page.goto("/dashboard/billing")
+      await expect(page).toHaveURL(ADMIN_URL_RE)
     })
 
     await test.step("le groupe Plateforme porte les dix pages", async () => {

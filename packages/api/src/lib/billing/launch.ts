@@ -1,6 +1,5 @@
 import type { Subscription } from "@pupitre/db/cloudflare/client"
 import { LAUNCH_PRODUCT, LAUNCH_SEATS } from "@pupitre/shared/plans"
-import { PLATFORM_ORGANIZATION_ID } from "@pupitre/shared/platform"
 import { getPrisma, isUniqueViolation } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import { LaunchNotConfiguredError } from "./config"
@@ -67,8 +66,8 @@ async function createLaunchRow(
 
 /**
  * The subscription the platform grants itself while there is no company to
- * bill through: one machine per organization until the launch ends, more for
- * the team's own. A live subscription, launch or not, is left alone.
+ * bill through: one machine per organization until the launch ends. A live
+ * subscription, launch or not, is left alone.
  */
 export async function grantLaunchSubscription(
   actor: LaunchActor,
@@ -85,10 +84,7 @@ export async function grantLaunchSubscription(
   const stripeSubscriptionId = launchSubscriptionId(organizationId)
   const data = {
     product: LAUNCH_PRODUCT,
-    quantity:
-      organizationId === PLATFORM_ORGANIZATION_ID
-        ? getBillingMode().adminSeats
-        : LAUNCH_SEATS,
+    quantity: LAUNCH_SEATS,
     status: "trialing",
     currentPeriodEnd: launchEnd(),
   }

@@ -23,7 +23,7 @@ import { SidebarStartLink } from "@/components/dashboard/sidebar-start-link"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
 import { usePermission } from "@/hooks/use-permission"
-import { platformOpen } from "@/lib/domain/admin"
+import { isPlatformOrganization, platformOpen } from "@/lib/domain/admin"
 import { ADMIN_ROUTE, opensWhileSuspended } from "@/lib/domain/entitlement-gate"
 import { canManageOrganization } from "@/lib/domain/organization"
 import type { DictionaryKey } from "@/lib/i18n/en"
@@ -109,6 +109,7 @@ export function SidebarContent() {
     useDashboardContext()
   const canManageBilling = usePermission("billing:manage")
   const canReadAudit = usePermission("audit:view")
+  const platform = isPlatformOrganization(activeOrganization?.id)
   const open = (link: SidebarEntry) =>
     entitlement !== "suspended" || opensWhileSuspended(link.to)
   const groups = [
@@ -118,7 +119,7 @@ export function SidebarContent() {
         SERVERS_LINK,
         MEMBERS_LINK,
         ...(canReadAudit ? [AUDIT_LINK] : []),
-        ...(canManageBilling ? [BILLING_LINK] : []),
+        ...(canManageBilling && !platform ? [BILLING_LINK] : []),
         ...(canManageOrganization(role) ? [ORGANIZATION_LINK] : []),
       ].filter(open),
     },
