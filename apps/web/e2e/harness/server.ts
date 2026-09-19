@@ -63,6 +63,11 @@ interface InboundEmailBody {
   text: string
 }
 
+interface ReferralBody {
+  email: string
+  code: string
+}
+
 function json(payload: unknown, status = 200): Response {
   return Response.json(payload, { status })
 }
@@ -147,6 +152,24 @@ async function promotePlatformMember(
   return json({ id: user.id })
 }
 
+/** Where an organisation came from, written straight: the checkout it rides on is another suite's subject. */
+async function seedReferral(body: ReferralBody): Promise<Response> {
+  const { prisma } = await bootApiTestServer()
+  const link = await prisma.affiliateLink.findUnique({
+    where: { code: body.code },
+  })
+
+  if (!link) {
+    return json({ error: `no affiliate link ${body.code}` }, 404)
+  }
+
+  const referral = await prisma.referral.create({
+    data: { organizationId: await organizationOf(body.email), linkId: link.id },
+  })
+
+  return json({ id: referral.organizationId })
+}
+
 /** An email reaching a support address, handed over the way the Worker hands it over. */
 async function receiveEmail(body: InboundEmailBody): Promise<Response> {
   const raw = [
@@ -229,6 +252,10 @@ async function handleHarness(
 
   if (path === "/inbound-emails") {
     return await receiveEmail((await request.json()) as InboundEmailBody)
+  }
+
+  if (path === "/referrals") {
+    return await seedReferral((await request.json()) as ReferralBody)
   }
 
   return json({ error: `unknown harness route ${path}` }, 404)
