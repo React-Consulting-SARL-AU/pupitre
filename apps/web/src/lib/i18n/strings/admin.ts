@@ -382,7 +382,7 @@ export const admin = {
     "admin.organizations.slugRequired": "Give the organisation a slug.",
     "admin.organizations.textTooLong": "At most {max} characters.",
 
-    "admin.organizations.memberActions": "Acts on the member {email}",
+    "admin.organizations.memberActions": "Actions on the member {email}",
     "admin.organizations.transfer": "Transfer the ownership",
     "admin.organizations.transferTitle": "Transfer the ownership?",
     "admin.organizations.transferDescription":

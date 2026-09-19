@@ -178,7 +178,7 @@ describe("AdminAffiliateLinkList", () => {
       container.querySelector('[aria-label="Copy the link"]')
     ).not.toBeNull()
 
-    await click(trigger(container, "Actions on this line"))
+    await click(trigger(container, "Actions on Ada"))
     await waitUntil(() => document.querySelector("[role=menuitem]") !== null)
     await click(menuItem("Disable"))
     await waitUntil(() => container.textContent?.includes("Disabled") === true)
@@ -242,9 +242,7 @@ describe("AdminAffiliateLinkList", () => {
     expect(container.textContent).toContain("Ada")
     expect(container.textContent).toContain("Enabled")
     expect(container.querySelectorAll("tbody tr")).toHaveLength(1)
-    expect(
-      container.querySelector('[aria-label="Actions on this line"]')
-    ).toBeNull()
+    expect(container.querySelector('[aria-label="Actions on Ada"]')).toBeNull()
     expect(container.textContent).not.toContain("Create a link")
   })
 
@@ -286,7 +284,7 @@ describe("AdminAffiliateLinkList", () => {
 
     await waitUntil(() => container.textContent?.includes("Podcast") === true)
 
-    await click(trigger(container, "Actions on this line"))
+    await click(trigger(container, "Actions on Podcast"))
     await waitUntil(() => document.querySelector("[role=menuitem]") !== null)
     await click(menuItem("Delete the link"))
     await waitUntil(
@@ -316,7 +314,7 @@ describe("AdminAffiliateLinkList", () => {
 
     await waitUntil(() => container.textContent?.includes("Podcast") === true)
 
-    await click(trigger(container, "Actions on this line"))
+    await click(trigger(container, "Actions on Podcast"))
     await waitUntil(() => document.querySelector("[role=menuitem]") !== null)
     await click(menuItem("Delete the link"))
     await waitUntil(
