@@ -201,6 +201,25 @@ export function cancelSubscription(
     .then((response) => unwrap(response).data)
 }
 
+/** Stripe holds the trial: the mirror shows back what Stripe answered. */
+export function extendSubscriptionTrial(
+  id: string,
+  endsAt: string
+): Promise<AdminSubscription> {
+  return api()
+    .api.v1.admin.subscriptions({ id })
+    .trial.post({ ends_at: endsAt })
+    .then((response) => unwrap(response).data)
+}
+
+/** Takes back a cancellation still billed to the end of the period. */
+export function resumeSubscription(id: string): Promise<AdminSubscription> {
+  return api()
+    .api.v1.admin.subscriptions({ id })
+    .resume.post()
+    .then((response) => unwrap(response).data)
+}
+
 export function deleteSubscription(id: string): Promise<void> {
   return api()
     .api.v1.admin.subscriptions({ id })
@@ -341,6 +360,26 @@ export function suspendServer(
     .api.v1.admin.servers({ id })
     .suspend.post({ reason })
     .then((response) => unwrap(response).data)
+}
+
+export function setServerChannel(
+  id: string,
+  channel: "stable" | "beta"
+): Promise<AdminServerDetail> {
+  return api()
+    .api.v1.admin.servers({ id })
+    .patch({ channel })
+    .then((response) => unwrap(response).data)
+}
+
+/** A condition that still holds opens a new alert at the next hourly run. */
+export function clearServerAlerts(id: string): Promise<void> {
+  return api()
+    .api.v1.admin.servers({ id })
+    .alerts.delete()
+    .then((response) => {
+      unwrap(response)
+    })
 }
 
 /** Only the team lifts the suspension the team laid; a returning subscription never does. */
