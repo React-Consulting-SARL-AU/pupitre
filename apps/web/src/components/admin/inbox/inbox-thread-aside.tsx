@@ -114,7 +114,7 @@ export function InboxThreadAside({
           <CardTitle>{t("inbox.notes")}</CardTitle>
         </CardHeader>
         <CardBody>
-          <InboxNotesPanel notes={notes} threadId={threadId} />
+          <InboxNotesPanel canAct={canAct} notes={notes} threadId={threadId} />
         </CardBody>
       </Card>
 

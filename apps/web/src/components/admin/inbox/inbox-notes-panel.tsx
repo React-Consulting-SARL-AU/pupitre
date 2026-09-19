@@ -18,9 +18,15 @@ import { formatDateTime } from "@/lib/utils/format"
 export interface InboxNotesPanelProps {
   threadId: string
   notes: InboxNote[]
+  /** Writing a note takes the `admin` role on the platform; a member reads them. */
+  canAct: boolean
 }
 
-export function InboxNotesPanel({ threadId, notes }: InboxNotesPanelProps) {
+export function InboxNotesPanel({
+  threadId,
+  notes,
+  canAct,
+}: InboxNotesPanelProps) {
   const t = useTranslations()
   const toasts = useToast()
   const queryClient = useQueryClient()
@@ -78,56 +84,60 @@ export function InboxNotesPanel({ threadId, notes }: InboxNotesPanelProps) {
                   {formatDateTime(note.created_at, t)}
                 </p>
               </div>
-              <Button
-                aria-label={t("inbox.noteDelete")}
-                className="w-7 shrink-0 px-0"
-                icon={Trash2}
-                loading={remove.isPending}
-                onClick={() => {
-                  remove.mutate(note.id)
-                }}
-                size="sm"
-                title={t("inbox.noteDelete")}
-                variant="ghost"
-              />
+              {canAct ? (
+                <Button
+                  aria-label={t("inbox.noteDelete")}
+                  className="w-7 shrink-0 px-0"
+                  icon={Trash2}
+                  loading={remove.isPending}
+                  onClick={() => {
+                    remove.mutate(note.id)
+                  }}
+                  size="sm"
+                  title={t("inbox.noteDelete")}
+                  variant="ghost"
+                />
+              ) : null}
             </li>
           ))}
         </ul>
       )}
 
-      <form
-        className="flex flex-col gap-2"
-        noValidate
-        onSubmit={(event) => {
-          event.preventDefault()
+      {canAct ? (
+        <form
+          className="flex flex-col gap-2"
+          noValidate
+          onSubmit={(event) => {
+            event.preventDefault()
 
-          if (body.trim() === "") {
-            setRefusal(t("inbox.noteRequired"))
+            if (body.trim() === "") {
+              setRefusal(t("inbox.noteRequired"))
 
-            return
-          }
+              return
+            }
 
-          setRefusal(null)
-          add.mutate()
-        }}
-      >
-        <Label htmlFor="inbox-note">{t("inbox.addNote")}</Label>
-        <Textarea
-          className="min-h-20"
-          id="inbox-note"
-          onChange={(event) => {
-            setBody(event.target.value)
+            setRefusal(null)
+            add.mutate()
           }}
-          placeholder={t("inbox.notePlaceholder")}
-          value={body}
-        />
-        <FieldError>{refusal}</FieldError>
-        <div className="flex justify-end">
-          <Button icon={Plus} loading={add.isPending} size="sm" type="submit">
-            {t("inbox.noteAdd")}
-          </Button>
-        </div>
-      </form>
+        >
+          <Label htmlFor="inbox-note">{t("inbox.addNote")}</Label>
+          <Textarea
+            className="min-h-20"
+            id="inbox-note"
+            onChange={(event) => {
+              setBody(event.target.value)
+            }}
+            placeholder={t("inbox.notePlaceholder")}
+            value={body}
+          />
+          <FieldError>{refusal}</FieldError>
+          <div className="flex justify-end">
+            <Button icon={Plus} loading={add.isPending} size="sm" type="submit">
+              {t("inbox.noteAdd")}
+            </Button>
+          </div>
+        </form>
+      ) : null}
     </div>
   )
 }

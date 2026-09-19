@@ -3,7 +3,10 @@ import {
   adminInboxMailboxReadRoutes,
   adminInboxMailboxWriteRoutes,
 } from "./inbox-mailboxes"
-import { adminInboxNoteRoutes } from "./inbox-notes"
+import {
+  adminInboxNoteReadRoutes,
+  adminInboxNoteWriteRoutes,
+} from "./inbox-notes"
 import { adminInboxOutboundRoutes } from "./inbox-outbound"
 import {
   adminInboxTemplateReadRoutes,
@@ -18,7 +21,8 @@ export const adminInboxRoutes = new Elysia({
   .use(adminInboxMailboxReadRoutes)
   .use(adminInboxMailboxWriteRoutes)
   .use(adminInboxThreadRoutes)
-  .use(adminInboxNoteRoutes)
+  .use(adminInboxNoteReadRoutes)
+  .use(adminInboxNoteWriteRoutes)
   .use(adminInboxTemplateReadRoutes)
   .use(adminInboxTemplateWriteRoutes)
   .use(adminInboxOutboundRoutes)

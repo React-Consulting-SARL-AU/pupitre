@@ -191,11 +191,11 @@ Sous `/api/v1/admin/inbox`. **Lire demande d'être membre de l'organisation Pupi
 | Méthode | Route | Corps | Réponse |
 | --- | --- | --- | --- |
 | GET | `/threads/:id/notes` | — | `{ data: Note[] }`, de la plus ancienne à la plus récente |
-| POST | `/threads/:id/notes` | `{ body (1..10 000) }` | `201 { data: Note }`. Activité `note_added`, journal `mail.note_added` |
-| DELETE | `/threads/:id/notes/:noteId` | — | `204`. Son auteur, ou un `admin` de la plateforme ; sinon `403 forbidden`. Activité `note_deleted`, journal `mail.note_deleted` |
+| POST | `/threads/:id/notes` | `{ body (1..10 000) }` | `201 { data: Note }`. Activité `note_added`, journal `mail.note_added`. Rôle `admin` |
+| DELETE | `/threads/:id/notes/:noteId` | — | `204`, `404` sur une note inconnue. Activité `note_deleted`, journal `mail.note_deleted`. Rôle `admin` : écrire une note le demande déjà, donc l'auteur d'une note est toujours un `admin` |
 | GET | `/threads/:id/draft` | — | `{ data: Draft }`, `404 not_found` quand le fil n'en porte pas |
-| PUT | `/threads/:id/draft` | `{ body (0..20 000), to?, cc?, attachments? }` | `{ data: Draft }`. Un brouillon par fil : l'écriture crée ou remplace |
-| DELETE | `/threads/:id/draft` | — | `204`, `404` sans brouillon. Un envoi réussi l'efface de lui-même |
+| PUT | `/threads/:id/draft` | `{ body (0..20 000), to?, cc?, attachments? }` | `{ data: Draft }`. Un brouillon par fil : l'écriture crée ou remplace. Événement `draft.changed`. Rôle `admin` |
+| DELETE | `/threads/:id/draft` | — | `204`, `404` sans brouillon. Un envoi réussi l'efface de lui-même, et la console l'efface dès que le texte redevient vide. Événement `draft.changed`. Rôle `admin` |
 | GET | `/templates` | `?mailbox_id=` | `{ data: Template[] }`. Avec `mailbox_id`, les réponses types de cette boîte **et** celles qui n'en nomment aucune |
 | POST | `/templates` | `{ name (1..80), body (1..20 000), mailbox_id? }` | `201 { data: Template }`. Une boîte inconnue vaut `422 validation`. Journal `mail.template_created`. Rôle `admin` |
 | PATCH | `/templates/:id` | `{ name?, body?, mailbox_id? }` | `{ data: Template }`, `404` sur une réponse type inconnue. Journal `mail.template_updated`. Rôle `admin` |
@@ -293,7 +293,7 @@ Template = { id, name, body, mailbox_id: string | null, created_at, updated_at }
 
 ### Les codes d'erreur
 
-Ceux de `@pupitre/shared/api/errors`, sans ajout. Un envoi qui casse répond `502` avec le code `internal` : c'est la plateforme qui a échoué, pas l'appelant, et le `fix` dit que le message est gardé en échec dans le fil. Une pièce jointe refusée répond `422 validation`, et le message dit laquelle et pourquoi (`mail_attachment_blocked`, `mail_attachments_too_large`, `mail_upload_missing`, `mail_upload_foreign`, `mail_upload_size_mismatch` dans `lib/i18n`), le `fix` ce qu'il reste à faire. Les refus propres aux boîtes ont leurs clés : `mailbox_not_found`, `mailbox_address_refused`, `mailbox_taken`, `mailbox_in_use`, `mailbox_protected`, `mailbox_cannot_reply`, `mail_thread_no_mailbox`, `mail_organization_unknown`, `mail_note_not_found`, `mail_note_not_yours`, `mail_draft_not_found`, `mail_template_not_found`, `mail_template_mailbox_unknown`.
+Ceux de `@pupitre/shared/api/errors`, sans ajout. Un envoi qui casse répond `502` avec le code `internal` : c'est la plateforme qui a échoué, pas l'appelant, et le `fix` dit que le message est gardé en échec dans le fil. Une pièce jointe refusée répond `422 validation`, et le message dit laquelle et pourquoi (`mail_attachment_blocked`, `mail_attachments_too_large`, `mail_upload_missing`, `mail_upload_foreign`, `mail_upload_size_mismatch` dans `lib/i18n`), le `fix` ce qu'il reste à faire. Les refus propres aux boîtes ont leurs clés : `mailbox_not_found`, `mailbox_address_refused`, `mailbox_taken`, `mailbox_in_use`, `mailbox_protected`, `mailbox_cannot_reply`, `mail_thread_no_mailbox`, `mail_organization_unknown`, `mail_note_not_found`, `mail_draft_not_found`, `mail_template_not_found`, `mail_template_mailbox_unknown`.
 
 ## Le journal
 
