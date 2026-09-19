@@ -14,6 +14,7 @@ import { affiliateLinkQueryOptions } from "@/lib/api/admin-queries"
 import { canActOnPlatform } from "@/lib/domain/admin"
 import {
   type AffiliateLinkTab,
+  affiliateLinkTab,
   affiliateLinkTabFor,
 } from "@/lib/domain/affiliate"
 
@@ -73,7 +74,7 @@ export function AdminAffiliateLinkDetail({
       <PageTabs
         label={t("admin.links.tabsLabel")}
         onValueChange={(next) => {
-          onTabChange(next as AffiliateLinkTab)
+          onTabChange(affiliateLinkTab(next))
         }}
         tabs={[
           {

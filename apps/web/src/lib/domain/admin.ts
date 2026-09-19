@@ -1,5 +1,10 @@
 import type { OrgRole } from "@pupitre/shared/permissions"
-import { GRANTED_PRODUCT, isPlatformProduct } from "@pupitre/shared/plans"
+import {
+  GRANTED_PRODUCT,
+  isPlatformProduct,
+  LAUNCH_PRODUCT,
+  STRIPE_PRODUCT,
+} from "@pupitre/shared/plans"
 import {
   type AccountState,
   type OrganizationState,
@@ -72,19 +77,24 @@ export const SUBSCRIPTION_STATUS_FILTERS = [
 ] as const
 
 export const SUBSCRIPTION_PRODUCT_FILTERS = [
-  "prod_server",
-  "launch",
+  LAUNCH_PRODUCT,
   GRANTED_PRODUCT,
+  STRIPE_PRODUCT,
 ] as const
 
 const PRODUCT_KEYS: Record<string, DictionaryKey> = {
-  launch: "admin.subscriptions.product.launch",
-  prod_server: "admin.subscriptions.product.server",
+  [LAUNCH_PRODUCT]: "admin.subscriptions.product.launch",
   [GRANTED_PRODUCT]: "admin.subscriptions.product.granted",
+  [STRIPE_PRODUCT]: "admin.subscriptions.product.stripe",
 }
 
+/** Stripe names its own products: the console says where the row is billed, never the identifier. */
 export function productKey(product: string | null): DictionaryKey | null {
-  return product === null ? null : (PRODUCT_KEYS[product] ?? null)
+  if (product === null) {
+    return null
+  }
+
+  return PRODUCT_KEYS[product] ?? PRODUCT_KEYS[STRIPE_PRODUCT]
 }
 
 /** The statuses under which an organisation still holds its right of use, as `/me` counts them. */

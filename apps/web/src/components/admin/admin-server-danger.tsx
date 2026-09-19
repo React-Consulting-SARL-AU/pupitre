@@ -3,29 +3,24 @@ import { Ban, RotateCcw, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ConfirmFormDialog } from "@/components/ui/confirm-form-dialog"
 import { DangerZone } from "@/components/ui/danger-zone"
+import { useConfirmMutation } from "@/hooks/use-confirm-mutation"
 import { useTranslations } from "@/hooks/use-locale"
 import { useOptimisticMutation } from "@/hooks/use-optimistic-mutation"
-import { useToast } from "@/hooks/use-toast"
 import {
   type AdminServerDetail,
   deleteServer,
   restoreServer,
   suspendServer,
 } from "@/lib/api/admin-queries"
-import { apiFailure } from "@/lib/api/errors"
 import { queryKeys } from "@/lib/api/queries"
 import { canRestore, canSuspend } from "@/lib/domain/admin"
 import { purgeable, type ServerDeletion } from "@/lib/domain/server-deletion"
 import type { Translate } from "@/lib/i18n/i18n"
+import type { ConfirmFormValues } from "@/lib/schemas/confirm-form"
 import { formatDateTime } from "@/lib/utils/format"
 
 export interface AdminServerDangerProps {
   server: AdminServerDetail
-}
-
-interface Deletion {
-  deletion: ServerDeletion
-  reason: string
 }
 
 interface DeletionCopy {
@@ -70,18 +65,19 @@ function deletionCopy(server: AdminServerDetail, t: Translate): DeletionCopy {
 
 export function AdminServerDanger({ server }: AdminServerDangerProps) {
   const t = useTranslations()
-  const toasts = useToast()
   const navigate = useNavigate()
   const touched = [
     queryKeys.admin.server(server.id),
     queryKeys.admin.allServers,
   ]
-  // A refusal belongs in the dialog the reader is still typing in, not in a toast behind it.
-  const suspend = useOptimisticMutation<string>({
-    mutationFn: (reason) => suspendServer(server.id, reason),
+  const deletion = deletionCopy(server, t)
+  const suspend = useConfirmMutation<ConfirmFormValues>({
+    mutationFn: (values) => suspendServer(server.id, values.reason),
     invalidate: touched,
-    onDone: () => {
-      toasts.done(t("admin.servers.suspended", { name: server.name }))
+    done: () => t("admin.servers.suspended", { name: server.name }),
+    failed: {
+      title: t("admin.servers.suspendFailed"),
+      fix: t("admin.servers.suspendFailedFix"),
     },
   })
   const restore = useOptimisticMutation({
@@ -94,27 +90,26 @@ export function AdminServerDanger({ server }: AdminServerDangerProps) {
       }),
     },
   })
-  // The purge leaves the page at the click, as the owner's does: no line is left to look at.
-  const remove = useOptimisticMutation<Deletion>({
-    mutationFn: ({ reason }) => deleteServer(server.id, reason),
+  const remove = useConfirmMutation<ConfirmFormValues>({
+    mutationFn: (values) => deleteServer(server.id, values.reason),
     invalidate: touched,
-    onStart: ({ deletion }) => {
-      if (deletion === "purge") {
+    done: () =>
+      t(
+        deletion.deletion === "purge"
+          ? "admin.servers.purged"
+          : "admin.servers.deleted",
+        { name: server.name }
+      ),
+    failed: {
+      title: t("admin.servers.deleteFailed"),
+      fix: t("admin.servers.deleteFailedFix"),
+    },
+    onDone: () => {
+      if (deletion.deletion === "purge") {
         navigate({ to: "/dashboard/admin/servers" })
       }
     },
-    onDone: (_data, { deletion }) => {
-      toasts.done(
-        t(
-          deletion === "purge"
-            ? "admin.servers.purged"
-            : "admin.servers.deleted",
-          { name: server.name }
-        )
-      )
-    },
   })
-  const deletion = deletionCopy(server, t)
 
   return (
     <div className="flex flex-col gap-gutter">
@@ -122,7 +117,7 @@ export function AdminServerDanger({ server }: AdminServerDangerProps) {
         <DangerZone
           action={
             <ConfirmFormDialog
-              busy={suspend.isPending}
+              busy={suspend.busy}
               busyLabel={t("admin.servers.suspending")}
               confirmLabel={t("admin.servers.suspend")}
               description={t("admin.servers.suspendDescription", {
@@ -130,13 +125,16 @@ export function AdminServerDanger({ server }: AdminServerDangerProps) {
                 organization: server.organization.name,
               })}
               id={`suspend-${server.id}`}
-              onConfirm={(values) => {
-                suspend.mutate(values.reason)
+              onConfirm={suspend.run}
+              onOpenChange={(open) => {
+                if (!open) {
+                  suspend.reset()
+                }
               }}
               reason="required"
               reasonLabel={t("admin.servers.reason")}
               reasonRequiredMessage={t("admin.servers.reasonRequired")}
-              refusal={apiFailure(suspend.error)}
+              refusal={suspend.refusal}
               title={t("admin.servers.suspendTitle")}
               tone="warning"
               triggerIcon={Ban}
@@ -178,22 +176,22 @@ export function AdminServerDanger({ server }: AdminServerDangerProps) {
       <DangerZone
         action={
           <ConfirmFormDialog
-            busy={remove.isPending}
+            busy={remove.busy}
             busyLabel={t("admin.servers.deleting")}
             confirmLabel={deletion.label}
             description={deletion.description}
             id={`delete-${server.id}`}
             keyword={deletion.keyword}
-            onConfirm={(values) => {
-              remove.mutate({
-                deletion: deletion.deletion,
-                reason: values.reason,
-              })
+            onConfirm={remove.run}
+            onOpenChange={(open) => {
+              if (!open) {
+                remove.reset()
+              }
             }}
             reason="required"
             reasonLabel={t("admin.servers.reason")}
             reasonRequiredMessage={t("admin.servers.reasonRequired")}
-            refusal={apiFailure(remove.error)}
+            refusal={remove.refusal}
             title={deletion.title}
             triggerIcon={Trash2}
             triggerLabel={deletion.label}
