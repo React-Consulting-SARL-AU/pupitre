@@ -68,8 +68,12 @@ export function deletionDeadline(from: Date = new Date()): Date {
 /** How many lines a work list of the overview shows before its "see everything" link. */
 export const WORKLIST_ITEMS = 5
 
-/** How close to its end a trial has to be for the overview to raise it. */
-export const TRIAL_WARN_DAYS = 7
+/**
+ * How close to its end a trial has to be for the overview to raise it. The team
+ * looks further ahead than the customer, whose own warning is `TRIAL_WARN_DAYS`
+ * in `@pupitre/shared/plans`.
+ */
+export const TRIAL_WORKLIST_DAYS = 7
 
 /** The global search: how short a query may be, how long, and how many hits a group returns. */
 export const PLATFORM_SEARCH_MIN_LENGTH = 2
