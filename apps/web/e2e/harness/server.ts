@@ -1,3 +1,4 @@
+import { ingestInboundEmail } from "@pupitre/api/mail/ingest"
 import { bootApiTestServer, resetDb } from "@pupitre/api/testing"
 import {
   postStripeWebhook,
@@ -5,8 +6,12 @@ import {
   stripeEvent,
   stripeSubscriptionObject,
   useFakeBilling,
+  useLaunchBilling,
 } from "@pupitre/api/testing/billing"
 import { createServer } from "@pupitre/api/testing/factories"
+import { useFakeMail } from "@pupitre/api/testing/mail"
+import { joinPlatformOrganization } from "@pupitre/auth/testing"
+import { MAIL_SENDER_ADDRESSES } from "@pupitre/shared/legal"
 import { serve } from "bun"
 import { HARNESS_PORT, HARNESS_PREFIX, VITE_PORT } from "./ports"
 
@@ -19,10 +24,16 @@ const BODYLESS_METHODS = new Set(["GET", "HEAD"])
 
 const TRIAL_DAYS_MS = 14 * 86_400_000
 
+const SUPPORT_ADDRESS = MAIL_SENDER_ADDRESSES[0]
+
 // The console never opens a subscription: Checkout is faked and Stripe's
 // webhook is played back, exactly as in production.
 // biome-ignore lint/correctness/useHookAtTopLevel: the test harness reads as a hook by name only
 const billing = useFakeBilling()
+
+// The bucket and the sending binding only exist inside the Worker.
+// biome-ignore lint/correctness/useHookAtTopLevel: the test harness reads as a hook by name only
+useFakeMail()
 
 type SeededStatus = "enrolling" | "active" | "grace" | "suspended" | "revoked"
 
@@ -34,6 +45,22 @@ interface SeedServerBody {
 
 interface TrialBody {
   email: string
+}
+
+interface PlatformMemberBody {
+  email: string
+  role?: "owner" | "admin" | "member"
+}
+
+interface BillingModeBody {
+  mode: "stripe" | "launch"
+  ends_at?: string
+}
+
+interface InboundEmailBody {
+  from: string
+  subject: string
+  text: string
 }
 
 function json(payload: unknown, status = 200): Response {
@@ -104,6 +131,57 @@ async function openTrial(body: TrialBody): Promise<Response> {
   return json({ handled: received.json.handled })
 }
 
+/** What the seed writes for the owner: a seat in Pupitre's own organization, which is what opens the platform pages. */
+async function promotePlatformMember(
+  body: PlatformMemberBody
+): Promise<Response> {
+  const { prisma } = await bootApiTestServer()
+  const user = await prisma.user.findUnique({ where: { email: body.email } })
+
+  if (!user) {
+    return json({ error: `no account for ${body.email}` }, 404)
+  }
+
+  await joinPlatformOrganization(prisma, user.id, body.role ?? "owner")
+
+  return json({ id: user.id })
+}
+
+/** An email reaching a support address, handed over the way the Worker hands it over. */
+async function receiveEmail(body: InboundEmailBody): Promise<Response> {
+  const raw = [
+    `From: ${body.from}`,
+    `To: ${SUPPORT_ADDRESS}`,
+    `Subject: ${body.subject}`,
+    `Message-ID: <${crypto.randomUUID()}@e2e.local>`,
+    "MIME-Version: 1.0",
+    "Content-Type: text/plain; charset=UTF-8",
+    "",
+    body.text,
+    "",
+  ].join("\r\n")
+  const { threadId } = await ingestInboundEmail({
+    envelopeFrom: body.from,
+    envelopeTo: SUPPORT_ADDRESS,
+    raw: new TextEncoder().encode(raw).buffer as ArrayBuffer,
+  })
+
+  return json({ id: threadId, address: SUPPORT_ADDRESS })
+}
+
+/** The launch has no Stripe at all; every reset puts the payment provider back. */
+function chooseBillingMode(body: BillingModeBody): Response {
+  if (body.mode === "launch") {
+    // biome-ignore lint/correctness/useHookAtTopLevel: the test harness reads as a hook by name only
+    useLaunchBilling(body.ends_at ? { endsAt: new Date(body.ends_at) } : {})
+  } else {
+    // biome-ignore lint/correctness/useHookAtTopLevel: the test harness reads as a hook by name only
+    useFakeBilling()
+  }
+
+  return json({ mode: body.mode })
+}
+
 async function handleHarness(
   request: Request,
   path: string
@@ -115,12 +193,23 @@ async function handleHarness(
   if (path === "/reset") {
     await resetDb()
     billing.reset()
+    chooseBillingMode({ mode: "stripe" })
 
     return json({ ok: true })
   }
 
   if (path === "/trial") {
     return await openTrial((await request.json()) as TrialBody)
+  }
+
+  if (path === "/platform-member") {
+    return await promotePlatformMember(
+      (await request.json()) as PlatformMemberBody
+    )
+  }
+
+  if (path === "/billing-mode") {
+    return chooseBillingMode((await request.json()) as BillingModeBody)
   }
 
   if (path === "/checkouts") {
@@ -135,6 +224,10 @@ async function handleHarness(
 
   if (path === "/servers") {
     return await seedServer((await request.json()) as SeedServerBody)
+  }
+
+  if (path === "/inbound-emails") {
+    return await receiveEmail((await request.json()) as InboundEmailBody)
   }
 
   return json({ error: `unknown harness route ${path}` }, 404)

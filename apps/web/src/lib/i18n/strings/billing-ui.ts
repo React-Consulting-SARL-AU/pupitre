@@ -9,8 +9,13 @@ export const billingUi = {
     "billing.seatsUpdating": "Updating…",
     "billing.seatsLead":
       "Stripe bills the difference on the next invoice, prorated over the days left.",
-    "billing.seatsTrialLead":
-      "During the trial nothing is billed: the new count applies when the trial ends.",
+    "billing.seatsLocked":
+      "One machine during the trial: more seats come with the first payment.",
+    "billing.launchSeats": "One machine during the launch.",
+    "billing.launchTitle": "Free launch",
+    "billing.launchUntil": "Free launch until {date}",
+    "billing.launchEnds":
+      "When the launch ends, without a subscription, the servers go to grace, then suspended.",
     "billing.seatsFailed": "The seats could not be changed.",
     "billing.seatsFailedFix":
       "Try again in a moment; if it persists, open the billing area.",
@@ -46,6 +51,8 @@ export const billingUi = {
     "checkout.opening": "Opening the payment…",
     "checkout.lead":
       "The subscription lands here as soon as the payment is confirmed.",
+    "checkout.firstTrial":
+      "The first {days} days are free, on {seats} machine, without a card. More seats can be added once the trial is over.",
     "checkout.failed": "The payment could not be opened.",
     "checkout.failedFix":
       "Try again; if it persists, check that you own this organisation.",
@@ -60,8 +67,13 @@ export const billingUi = {
     "billing.seatsUpdating": "Mise à jour…",
     "billing.seatsLead":
       "Stripe facture la différence sur la prochaine facture, au prorata des jours restants.",
-    "billing.seatsTrialLead":
-      "Pendant l'essai, rien n'est facturé : le nouveau nombre s'applique à la fin de l'essai.",
+    "billing.seatsLocked":
+      "Une machine pendant l'essai : d'autres sièges viennent avec le premier paiement.",
+    "billing.launchSeats": "Une machine pendant le lancement.",
+    "billing.launchTitle": "Lancement gratuit",
+    "billing.launchUntil": "Lancement gratuit jusqu'au {date}",
+    "billing.launchEnds":
+      "À la fin du lancement, sans abonnement, les serveurs passent en sursis, puis suspendus.",
     "billing.seatsFailed": "Les sièges n'ont pas pu être changés.",
     "billing.seatsFailedFix":
       "Réessayez dans un instant ; si cela persiste, ouvrez l'espace de facturation.",
@@ -98,6 +110,8 @@ export const billingUi = {
     "checkout.opening": "Ouverture du paiement…",
     "checkout.lead":
       "L'abonnement arrive ici dès que le paiement est confirmé.",
+    "checkout.firstTrial":
+      "Les {days} premiers jours sont gratuits, sur {seats} machine, sans carte. Les sièges s'ajoutent une fois l'essai terminé.",
     "checkout.failed": "Le paiement n'a pas pu être ouvert.",
     "checkout.failedFix":
       "Réessayez ; si cela persiste, vérifiez que vous êtes bien propriétaire de cette organisation.",

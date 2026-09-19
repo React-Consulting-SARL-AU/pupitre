@@ -3,12 +3,19 @@ import {
   type SocialProviderId,
 } from "@pupitre/auth/server"
 import type { ReleaseChannel } from "@pupitre/db/cloudflare/client"
+import type { BillingMode } from "@pupitre/shared/plans"
 import { latestBy } from "@pupitre/shared/semver"
 import { type StatusFreshness, statusFreshness } from "@pupitre/shared/status"
 import { getApiAuth } from "../api/plugins/auth"
 import { getPrisma } from "../api/prisma"
+import { getBillingMode } from "../billing/runtime"
 
 export type ServiceHealth = "ok" | "down"
+
+export interface BillingStatus {
+  mode: BillingMode
+  launch_ends_at: Date | null
+}
 
 export interface PublishedRelease {
   version: string
@@ -25,6 +32,20 @@ export interface ServiceStatus {
   freshness: StatusFreshness
   checked_at: Date
   social_providers: SocialProviderId[]
+  billing: BillingStatus
+}
+
+/** A misconfigured `BILLING_MODE` degrades this line; it never takes the public status down with it. */
+function billingStatus(): BillingStatus {
+  try {
+    const { mode, launchEndsAt } = getBillingMode()
+
+    return { mode, launch_ends_at: launchEndsAt }
+  } catch (error) {
+    console.error("[api] status: the billing mode is unreadable", error)
+
+    return { mode: "stripe", launch_ends_at: null }
+  }
 }
 
 interface ReleaseRow {
@@ -54,6 +75,7 @@ export async function readServiceStatus(
 ): Promise<ServiceStatus> {
   const prisma = getPrisma()
   const socialProviders = mountedSocialProviders(getApiAuth())
+  const billing = billingStatus()
 
   try {
     const [activeServers, releases, lastObservation] = await Promise.all([
@@ -79,6 +101,7 @@ export async function readServiceStatus(
       freshness: statusFreshness(lastObservationAt, now),
       checked_at: now,
       social_providers: socialProviders,
+      billing,
     }
   } catch (error) {
     console.error("[api] status: the database did not answer", error)
@@ -92,6 +115,7 @@ export async function readServiceStatus(
       freshness: "unknown",
       checked_at: now,
       social_providers: socialProviders,
+      billing,
     }
   }
 }

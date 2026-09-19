@@ -11,7 +11,7 @@ Même outillage que React-Box, mêmes versions quand elles sont compatibles : ce
 | Biome via Ultracite | lint et format | `biome.jsonc` racine étend `ultracite/biome/core`, `semicolons: "asNeeded"`. Même épingle qu'React-Box (`7.8.3`) tant que la mise à niveau n'a pas été faite là-bas |
 | tsgo | typecheck | `@typescript/native-preview`, TypeScript 6 |
 | Husky + commitlint | hooks | pre-commit : `ultracite fix` par workspace sur les fichiers indexés, et seul un fichier entièrement indexé est ré-indexé après la passe — un fichier indexé en partie est formaté sur le disque sans que ses morceaux laissés de côté entrent dans le commit ; pre-push : lint, `check:types`, `test` affectés, que `SKIP_PREPUSH=1` saute quand on sait ce qu'on fait ; commits conventionnels |
-| Prisma 7 | schéma et migrations | client généré committé, empreinte `packages/db/src/generated/.prisma-inputs.sha256` vérifiée au lint par `scripts/check-prisma-client-freshness.ts` ; `db:migrate production` exige `PUPITRE_ALLOW_MIGRATE_ON=production` sur la ligne de commande |
+| Prisma 7 | schéma et migrations | client généré committé, empreinte `packages/db/src/generated/.prisma-inputs.sha256` vérifiée au lint par `scripts/check-prisma-client-freshness.ts` ; `db:migrate production`, `db:reset production` et `db:seed production` exigent `PUPITRE_ALLOW_MIGRATE_ON=production` sur la ligne de commande |
 | Wrangler 4 | Workers, R2, secrets | `secrets.required` déclarés dans `wrangler.jsonc`, vérifiés avant déploiement |
 | Go 1.26+ (`apps/agent/go.mod`) | l'agent | `gofmt`, `go vet` et `staticcheck` au lint, `govulncheck` et `go test -race` en CI, `garble` en release. Les trois outils sont épinglés dans `apps/agent/package.json` : `bun --cwd=apps/agent run tools:install` installe `staticcheck` et `govulncheck`, `garble:install` installe garble, tous dans le bin de Go, à mettre dans le `PATH`. Go lui-même est installé par Homebrew sur la machine du propriétaire |
 | electron-vite, electron-builder | l'app desktop | bytecode du processus principal, fusibles, signature et notarisation ; un runner par système |
@@ -41,6 +41,21 @@ bun run workflows:run decommission-server
 
 Le script frappe le déclencheur interne avec le secret que `dev:prepare` a écrit, et rend l'identifiant de l'instance. Les noms sont ceux de `apps/web/src/workflows/registry.ts`, qui reste la seule liste ; un nom inconnu est refusé par le Worker.
 
+### Poster un email dans la boîte, en local
+
+Email Routing n'existe que sur la zone en ligne : en local, rien n'arrive jamais dans la boîte de la plateforme. `POST /internal/email` ouvre le même chemin que le handler `email` du Worker, derrière le secret des déclencheurs internes.
+
+```bash
+curl -X POST http://localhost:3000/internal/email \
+  -H "x-pupitre-internal-secret: $INTERNAL_WORKFLOW_SECRET" \
+  -H "x-pupitre-envelope-from: camille@exemple.fr" \
+  -H "x-pupitre-envelope-to: support@pupitre.studio" \
+  -H "content-type: message/rfc822" \
+  --data-binary @message.eml
+```
+
+Le fil se lit ensuite dans la console, sous `/dashboard/admin`. Ce que devient le message est dans [`contracts/platform-mail.md`](./contracts/platform-mail.md).
+
 ### Le tunnel qui rend la console locale joignable
 
 Un VPS ne peut pas atteindre `localhost:3000` : c'est sa propre boucle locale. `bun dev` lance donc `scripts/dev-tunnel.ts`, un tunnel Cloudflare **nommé** — l'adresse ne change pas d'un lancement à l'autre, contrairement à un tunnel jetable.
@@ -68,15 +83,13 @@ bun run test
 bun run build
 ```
 
-Un push sur `staging` est vérifié une fois, sur son SHA. La pull request `staging` → `main` est ouverte et fusionnée par `release.yml`, sur un commit déjà vérifié, avec un jeton qui ne déclenche aucun workflow : `main` ne fait rien tourner. `pull_request` ne vise donc que `staging`, où arrivent les branches de travail. Les workflows tournent sur les runners de **Blacksmith** (app GitHub installée sur l'organisation, labels `blacksmith-*`), pas sur ceux de GitHub, dont la facturation a bloqué une release ; les minutes s'y paient aussi : `ci.yml` ne fait que vérifier, tout sur Ubuntu, et seule une release — un tag `v*` — occupe un runner macOS ou Windows. Les jobs de `ci.yml` :
+La CI ne tourne que sur les **pull requests** : une branche de travail est vérifiée quand elle demande à entrer dans `staging`, et `staging` quand elle demande à entrer dans `main`. Un push ne déclenche rien — les minutes se paient, et le même commit serait vérifié deux fois — et la fusion dans `main` ne fait rien tourner non plus : le commit de fusion est celui que la pull request vient de vérifier. La pull request `staging` → `main` qu'ouvre `release.yml` l'est avec un jeton qui ne déclenche aucun workflow, sur un commit déjà vérifié. Les workflows tournent sur les runners de **Blacksmith** (app GitHub installée sur l'organisation, labels `blacksmith-*`), pas sur ceux de GitHub, dont la facturation a bloqué une release ; les minutes s'y paient aussi : `ci.yml` tient en un seul job, tout sur Ubuntu, et seule une release — un tag `v*` — occupe un runner macOS ou Windows.
 
 | Job | Quand | Ce qu'il fait |
 | --- | --- | --- |
-| `quality` | PR vers `staging`, push sur `staging` | lint, typecheck, tests, build hors desktop. L'app desktop et les packages tournent avec `--coverage`, et leurs `lcov.info` montent dans l'artefact `coverage-<sha>` — aucun seuil, on lit |
-| `console-e2e` | idem | Playwright sur la console, non bloquant |
-| `desktop-e2e` | idem | Playwright sur l'app, sous xvfb |
-| `gitleaks` | idem | l'historique entier relu par le binaire `gitleaks`, épinglé par empreinte — pas l'action, qui exige une licence dès qu'une organisation porte le dépôt ; `.gitleaks.toml` exclut les fixtures de test et les valeurs factices de la CI |
-| `agent` | idem | `gofmt`, `go vet`, `staticcheck`, `govulncheck`, `go test -race` avec son profil de couverture dans l'artefact `coverage-agent-<sha>`, build multi-arch |
+| `quality` | PR vers `staging` ou `main` | migrations appliquées sur une base vide, lint (dont `gofmt`, `go vet`, `staticcheck`), typecheck, tests de tous les workspaces (dont `go test`), build hors desktop |
+
+Ce que la CI ne fait plus, et qui se fait ailleurs : les suites Playwright de la console et de l'app (`bun --cwd=apps/web run test:e2e`, `bun --cwd=apps/desktop run test:e2e`) se passent sur la machine du propriétaire avant une pull request ; les secrets sont refusés par le hook pre-commit (`scripts/assert-no-secrets.ts`) et par la *push protection* de GitHub ; `govulncheck` et `go test -race` se lancent à la main depuis `apps/agent` quand une dépendance Go bouge ; aucune couverture n'est mesurée.
 
 Ni macOS ni Windows n'ont de job de CI : l'app s'y construit au moment de la release, `release.yml`, et c'est là qu'elle se voit. Windows n'est de toute façon pas éprouvé : le modèle SSH de l'app — une session maître multiplexée par serveur, clés et sockets en 0600 — n'a pas d'équivalent sur OpenSSH pour Windows ; ça devient une tâche le jour où Windows en est une.
 
@@ -90,7 +103,7 @@ Trois workspaces passent `--timeout=60000` à `bun test` : `apps/web`, `apps/des
 
 ## Secrets
 
-- Jamais dans le dépôt. Le hook pre-commit refuse toute chaîne ressemblant à une clé API, un jeton ou une clé privée, et le job `gitleaks` de la CI relit tout l'historique. La *push protection* de GitHub se pose dans les réglages du dépôt — *Settings* → *Code security* → *Secret scanning* — et nulle part ici : elle refuse un push qui porte un secret avant que la CI ne le voie.
+- Jamais dans le dépôt. Le hook pre-commit refuse toute chaîne ressemblant à une clé API, un jeton ou une clé privée ; `.gitleaks.toml` reste pour relire l'historique à la main (`gitleaks git --redact .`). La *push protection* de GitHub se pose dans les réglages du dépôt — *Settings* → *Code security* → *Secret scanning* — et nulle part ici : elle refuse un push qui porte un secret avant que la CI ne le voie.
 - Local : `bun run dev:prepare` prépare `.env.local` et les liens que chaque outil attend. Les trois commandes de développement l'appellent d'abord, donc il n'y a rien à lancer à la main. Il ne remplace jamais une valeur déjà écrite : un `.env.local` renseigné reste tel quel.
 - **Ce qui se dérive n'est pas stocké.** La base n'a pas d'adresse : c'est un binding. `BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET` sont tirés au hasard par poste, puisqu'ils n'ont pas à être partagés.
 - **Ce qui se tire ne se tape pas.** Les secrets qu'on fabrique soi-même — ceux-là pour chaque environnement en ligne, et le `PUPITRE_PUBLISH_TOKEN` commun aux notes des environnements et à celle de la release — sont tirés et déposés dans les notes 1Password par `bun run secrets:draw` (`scripts/draw-secrets.ts`), jamais par `openssl` et un copier-coller. Un champ déjà rempli reste tel quel ; on le vide dans 1Password pour le faire retirer. Un nouveau secret de cette famille s'ajoute à la liste du script, pas à une consigne.
@@ -98,7 +111,7 @@ Trois workspaces passent `--timeout=60000` à `bun test` : `apps/web`, `apps/des
 - **Rien n'est bloquant.** `op` absent, session fermée ou champ manquant : le script le dit et retombe sur ce que `.env.local` porte déjà.
 - **`secrets.required` de `wrangler.jsonc` fait deux choses à la fois**, et c'est un piège : Cloudflare ne charge dans le Worker local **que** les clés qui y figurent — tout ce que `.dev.vars` porte en plus est silencieusement ignoré — et `wrangler deploy` refuse de partir si l'une d'elles manque. Il n'existe pas de liste « facultative ». Une variable que seul le développement local doit voir se déclare **dans la liste racine seulement** : le bloc `env.production` porte sa propre liste complète et l'emporte entièrement. Les identifiants de connexion sociale figurent dans les deux listes : le produit s'en passe à l'écran, mais la console en ligne les offre. Un secret qui n'apparaît nulle part n'atteint jamais le Worker, quoi qu'il y ait dans `.env.local` — le symptôme est une fonctionnalité qui se croit non configurée alors que la valeur est bien là.
 - `STRIPE_WEBHOOK_SECRET` **se dérive** en local, comme la base : `dev:prepare` le lit par `stripe listen --print-secret`, c'est-à-dire le secret de l'endpoint que le CLI tient pour ce compte, et avec lequel `bun run dev:stripe` signe. Il diffère de celui du tableau de bord et n'a donc rien à faire dans 1Password. Sans le CLI, ou sans `stripe login`, le script le dit et ne bloque rien. Il reste requis en production, par secret Wrangler, où le webhook vérifie ses signatures.
-- Les valeurs **non secrètes** du développement (`BETTER_AUTH_URL`, `VITE_APP_URL`, `EMAIL_FROM`, `PUPITRE_DOWNLOADS_URL`) ne sont ni dans 1Password ni écrites à la main : elles vivent dans `vars` de `apps/web/wrangler.jsonc`, et `dev:prepare` les recopie dans `.env.local` quand elles y sont vides. Sans cette copie, `.dev.vars` masquerait `vars` clé par clé et le Worker local démarrerait avec un `BETTER_AUTH_URL` vide.
+- Les valeurs **non secrètes** du développement (`BETTER_AUTH_URL`, `VITE_APP_URL`, `EMAIL_FROM`, `PUPITRE_DOWNLOADS_URL`, `BILLING_MODE`, `LAUNCH_ENDS_AT`) ne sont ni dans 1Password ni écrites à la main : elles vivent dans `vars` de `apps/web/wrangler.jsonc`, et `dev:prepare` les recopie dans `.env.local` quand elles y sont vides. Sans cette copie, `.dev.vars` masquerait `vars` clé par clé et le Worker local démarrerait avec un `BETTER_AUTH_URL` vide.
 - `.env.local` est écrit en 0600 et lié en `apps/web/.dev.vars` (que le Worker lit) et `apps/web/.env.local` (que Vite lit) : une seule valeur à tenir à jour. `.env.example` reste la liste de référence des noms.
 - Déployés : secrets Wrangler, un jeu par environnement. `apps/web/wrangler.jsonc` déclare `env.<environnement>.secrets.required` ; `scripts/check-worker-secrets.ts <environnement>` compare cette liste avec ce qui est lié au Worker et refuse le déploiement en nommant ce qui manque. Il refuse aussi un secret requis déclaré en clair dans `vars`.
 - Le script lit les secrets liés par `wrangler secret list`. `PUPITRE_WORKER_SECRETS` (liste de noms) ou `--bound-from <fichier|->` remplacent cette lecture, pour les tests et pour une CI qui a déjà la liste.
@@ -132,6 +145,8 @@ Deux branches longues, et rien d'autre qui vive plus qu'une pull request.
 | Domaine | `app.pupitre.studio` |
 | Environnement Wrangler | `production` |
 | Base D1 | `ppt-db` |
+| Seau R2 des emails | `ppt-mail`, lié sous `MAIL`, privé, juridiction par défaut ; règle CORS de `apps/web/r2-mail-cors.json` (`wrangler r2 bucket cors set`) pour que la console lise et dépose les pièces jointes par adresse signée ; le jeton `R2_*` du Worker y lit et y écrit |
+| Email Routing | règle catch-all sur la zone `pupitre.studio` → *Send to a Worker*, `ppt-web-production` |
 | Workflows | `ppt-expire-enrollments`, `ppt-decommission-server`, `ppt-reconcile-seats`, `ppt-evaluate-alerts`, `ppt-suspend-expired-grace` |
 | Déclencheur | Cloudflare Builds sur un push de `main` |
 | Stripe | mode live |
@@ -179,8 +194,10 @@ Un produit et deux prix, créés à l'identique en sandbox et en live :
 | | |
 | --- | --- |
 | Produit | `Pupitre Server`, code fiscal `txcd_10103001` (SaaS, business use) |
-| Prix mensuel | 10 $, `tax_behavior` `exclusive` → `STRIPE_PRICE_SERVER_MONTH` |
-| Prix annuel | 100 $, deux mois offerts → `STRIPE_PRICE_SERVER_YEAR` |
+| Prix mensuel | 5 $, `tax_behavior` `exclusive` → `STRIPE_PRICE_SERVER_MONTH` |
+| Prix annuel | 50 $, deux mois offerts → `STRIPE_PRICE_SERVER_YEAR` |
+
+Tant que la société n'existe pas, le Worker tourne en `BILLING_MODE=launch` avec `LAUNCH_ENDS_AT`, deux `vars` de `apps/web/wrangler.jsonc` : aucun appel à Stripe, la plateforme accorde elle-même l'abonnement de lancement, et les secrets Stripe restent requis mais inertes. Passer en `stripe`, c'est changer la variable, une fois le compte, les prix et le webhook ci-dessus créés ; les abonnements de lancement en cours vont jusqu'à leur date, puis les organisations repassent par l'essai.
 
 Réglages du dashboard : email de support à jour dans [Business details](https://dashboard.stripe.com/settings/business-details) (Stripe y escalade, et sans réponse sous 48 h il rembourse) ; logo, CGU et confidentialité dans [Checkout settings](https://dashboard.stripe.com/settings/checkout) ; portail client limité au moyen de paiement, aux factures et à la résiliation, jamais à la quantité : les sièges se changent depuis la console par `POST /orgs/:id/seats`, et `ReconcileSeats` ne fait que rapporter l'écart avec le nombre de serveurs.
 
@@ -301,6 +318,8 @@ Cloudflare **D1**, une base en ligne : `ppt-db` (`8c4cd3b5-7375-4a69-8b84-b3b78c
 
 **Les migrations sont des fichiers SQL**, `packages/db/migrations/NNNN_<nom>.sql`, dans le registre de D1 (`d1_migrations`) et appliqués par wrangler : `bun run db:migrate <local|production>`, production avec `PUPITRE_ALLOW_MIGRATE_ON=production` sur la ligne de commande. `bun run db:migrate:new <nom>` écrit le suivant : les migrations rejouées sur un SQLite jetable, le schéma diffé contre lui. `bun run db:reset <cible>` supprime toutes les tables puis rejoue tout. La construction (`build:production`) migre avant de construire ; la CI applique les migrations sur une base locale vide, et les tests les rejouent. En local, `dev:prepare` migre la D1 de miniflare : la console démarre sur une base qui existe.
 
+**L'organisation de Pupitre et son administrateur sont posés par un seed**, `bun run db:seed <local|production> <adresse>`, production avec `PUPITRE_ALLOW_MIGRATE_ON=production` sur la ligne de commande, comme une migration. Il crée l'organisation `pupitre` sous l'identifiant `org_pupitre`, donne au compte de cette adresse l'identifiant `usr_pupitre_admin` et le rôle `platform_admin`, et l'inscrit propriétaire de cette organisation sous `mem_pupitre_admin` — les cinq identifiants sont ceux de `@pupitre/shared/platform`, et ils ne bougent plus. Better Auth a créé ce compte avec un identifiant tiré au hasard : le seed le renomme, et les clés étrangères en `ON UPDATE CASCADE` emportent tout ce qui le désigne ; `ServerRevokedDevice.revokedByUserId` et `AffiliateLink.createdById`, qui n'en ont pas, sont repris à la main dans la même passe. D1 n'ouvre pas de transaction : chaque instruction est idempotente pour elle-même, et rejouer le seed ne change rien. Il refuse plutôt que d'écraser — une autre organisation sur le slug `pupitre`, un autre compte sur `usr_pupitre_admin` — et dit en une ligne ce qu'il a fait de chacune des trois lignes.
+
 ## Dépendances
 
 Les `overrides` du `package.json` racine sont la seule source de vérité de l'arbre d'installation ; Bun ignore les overrides par workspace. Chaque épingle a une raison écrite ici ; on n'en ajoute pas sans `bun audit` et un `bun run build` qui passent.
@@ -311,4 +330,4 @@ Les `overrides` du `package.json` racine sont la seule source de vérité de l'a
 
 ## Dashboards externes
 
-Cloudflare Builds, Cloudflare Email Sending, D1 (les deux bases), R2 (les deux buckets, dont `ppt-downloads` et son domaine public), Stripe, Apple Developer, Azure Trusted Signing. Ce document est ce qui les décrit ; rien dans le dépôt ne peut vérifier ce qu'ils exécutent. Quand un tableau ci-dessus change, le dashboard change dans la même passe.
+Cloudflare Builds, Cloudflare Email Sending, Cloudflare Email Routing (la règle catch-all de `pupitre.studio`), D1 (les deux bases), R2 (les trois buckets : `ppt-downloads` et son domaine public, `ppt-agent`, `ppt-mail`), Stripe, Apple Developer, Azure Trusted Signing. Ce document est ce qui les décrit ; rien dans le dépôt ne peut vérifier ce qu'ils exécutent. Quand un tableau ci-dessus change, le dashboard change dans la même passe.

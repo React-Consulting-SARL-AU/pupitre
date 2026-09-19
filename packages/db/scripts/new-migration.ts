@@ -44,6 +44,15 @@ export function migrationFiles(dir = MIGRATIONS_DIR): string[] {
     .sort()
 }
 
+export function replayMigrations(
+  database: Database,
+  dir = MIGRATIONS_DIR
+): void {
+  for (const file of migrationFiles(dir)) {
+    database.exec(readFileSync(path.join(dir, file), "utf8"))
+  }
+}
+
 function main(): void {
   const name = process.argv[2]
 
@@ -60,10 +69,7 @@ function main(): void {
   try {
     const database = new Database(shadow)
 
-    for (const file of files) {
-      database.exec(readFileSync(path.join(MIGRATIONS_DIR, file), "utf8"))
-    }
-
+    replayMigrations(database)
     database.close()
 
     const diff = spawnSync(

@@ -1,23 +1,19 @@
 import { useQuery } from "@tanstack/react-query"
 import { RotateCw, ScrollText } from "lucide-react"
 import { useState } from "react"
+import { AuditRow } from "@/components/dashboard/audit-row"
 import { Button } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Label } from "@/components/ui/label"
+import { Pagination } from "@/components/ui/pagination"
 import { Select } from "@/components/ui/select"
 import { SkeletonRows } from "@/components/ui/skeleton"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
 import { eventsQueryOptions } from "@/lib/api/queries"
-import {
-  AUDIT_ACTIONS,
-  actionKey,
-  EVENTS_PER_PAGE,
-  targetKey,
-} from "@/lib/domain/audit"
-import { formatDateTime } from "@/lib/utils/format"
+import { AUDIT_ACTIONS, actionKey, EVENTS_PER_PAGE } from "@/lib/domain/audit"
 
 const ALL_ACTIONS = ""
 
@@ -40,12 +36,6 @@ export function AuditLog() {
     const key = actionKey(action)
 
     return key ? t(key) : action
-  }
-
-  function targetName(targetType: string): string {
-    const key = targetKey(targetType)
-
-    return key ? t(key) : targetType
   }
 
   function filterOn(next: string) {
@@ -124,53 +114,25 @@ export function AuditLog() {
 
           <ul aria-busy={page.isFetching || undefined}>
             {page.data.data.map((event) => (
-              <li
-                className="flex flex-wrap items-baseline justify-between gap-4 border-line border-b px-4 py-3 last:border-b-0"
+              <AuditRow
+                actor={event.actor_email}
+                event={event}
                 key={event.id}
-              >
-                <div className="min-w-0">
-                  <p className="text-[13px] text-ink">
-                    {actionName(event.action)}
-                  </p>
-                  <p className="truncate font-data text-[12px] text-ink-3">
-                    {targetName(event.target_type)} · {event.target_id}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="truncate font-data text-[12px] text-ink-2">
-                    {event.actor_email ?? t("auditUi.system")}
-                  </p>
-                  <p className="font-data text-[12px] text-ink-3 tabular-nums">
-                    {formatDateTime(event.created_at, t)}
-                  </p>
-                </div>
-              </li>
+              />
             ))}
           </ul>
         </Card>
       ) : null}
 
-      {page.isSuccess && page.data.total > EVENTS_PER_PAGE ? (
-        <div className="flex items-center justify-end gap-2">
-          <Button
-            disabled={offset === 0}
-            onClick={() => {
-              setOffset(Math.max(0, offset - EVENTS_PER_PAGE))
-            }}
-            size="sm"
-          >
-            {t("auditUi.newer")}
-          </Button>
-          <Button
-            disabled={offset + EVENTS_PER_PAGE >= page.data.total}
-            onClick={() => {
-              setOffset(offset + EVENTS_PER_PAGE)
-            }}
-            size="sm"
-          >
-            {t("auditUi.older")}
-          </Button>
-        </div>
+      {page.isSuccess ? (
+        <Pagination
+          nextLabel={t("auditUi.older")}
+          offset={offset}
+          onOffsetChange={setOffset}
+          pageSize={EVENTS_PER_PAGE}
+          previousLabel={t("auditUi.newer")}
+          total={page.data.total}
+        />
       ) : null}
     </div>
   )

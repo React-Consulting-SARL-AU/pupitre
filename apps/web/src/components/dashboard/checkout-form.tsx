@@ -1,4 +1,4 @@
-import { formatUsd } from "@pupitre/shared/plans"
+import { formatUsd, TRIAL_DAYS, TRIAL_SEATS } from "@pupitre/shared/plans"
 import { useMutation } from "@tanstack/react-query"
 import { ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -31,17 +31,23 @@ export interface CheckoutFormProps {
   organizationId: string
   defaultQuantity: number
   defaultInterval?: BillingIntervalName
+  /** An organization that never subscribed gets the trial: one machine, and the count is not its to choose. */
+  firstCheckout?: boolean
 }
 
 export function CheckoutForm({
   organizationId,
   defaultQuantity,
   defaultInterval = "month",
+  firstCheckout = false,
 }: CheckoutFormProps) {
   const t = useTranslations()
   const form = useForm<CheckoutInput, CheckoutValues>({
     schema: checkoutSchema(t),
-    defaultValues: { quantity: defaultQuantity, interval: defaultInterval },
+    defaultValues: {
+      quantity: firstCheckout ? TRIAL_SEATS : defaultQuantity,
+      interval: defaultInterval,
+    },
   })
   const order = useMutation({
     mutationFn: (values: CheckoutValues) =>
@@ -83,18 +89,20 @@ export function CheckoutForm({
           }}
         >
           <div className="flex flex-wrap items-end gap-gutter">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="quantity">{t("checkout.servers")}</Label>
-              <Input
-                className="w-24 font-data tabular-nums"
-                id="quantity"
-                inputMode="numeric"
-                max={MAX_SEATS}
-                min={MIN_SEATS}
-                type="number"
-                {...form.register("quantity")}
-              />
-            </div>
+            {firstCheckout ? null : (
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="quantity">{t("checkout.servers")}</Label>
+                <Input
+                  className="w-24 font-data tabular-nums"
+                  id="quantity"
+                  inputMode="numeric"
+                  max={MAX_SEATS}
+                  min={MIN_SEATS}
+                  type="number"
+                  {...form.register("quantity")}
+                />
+              </div>
+            )}
 
             <div className="flex flex-col gap-2">
               <Label>{t("checkout.period")}</Label>
@@ -126,6 +134,15 @@ export function CheckoutForm({
           </div>
 
           <FieldError>{form.formState.errors.quantity?.message}</FieldError>
+
+          {firstCheckout ? (
+            <p className="rounded-md bg-sunken px-3.5 py-2.5 text-[13px] text-ink">
+              {t("checkout.firstTrial", {
+                days: TRIAL_DAYS,
+                seats: TRIAL_SEATS,
+              })}
+            </p>
+          ) : null}
 
           <div className="flex flex-wrap items-center gap-3">
             <Button disabled={order.isPending} type="submit" variant="primary">

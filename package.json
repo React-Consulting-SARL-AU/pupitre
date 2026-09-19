@@ -39,6 +39,7 @@
     "db:migrate": "bun --cwd=packages/db run db:migrate",
     "db:migrate:new": "bun --cwd=packages/db run db:migrate:new",
     "db:reset": "bun --cwd=packages/db run db:reset",
+    "db:seed": "bun --cwd=packages/db run db:seed",
     "prepare": "husky",
     "commitlint": "commitlint --edit",
     "dev:stripe": "bun run dev:prepare && turbo run dev:stripe --filter=@pupitre/web"

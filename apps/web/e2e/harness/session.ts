@@ -80,6 +80,41 @@ export async function openTrial(
   expect(((await opened.json()) as { handled: boolean }).handled).toBe(true)
 }
 
+/** A seat in Pupitre's own organization: the role there is what opens or closes the platform gestures. */
+export async function promotePlatformMember(
+  request: APIRequestContext,
+  email: string,
+  role: "owner" | "admin" | "member" = "owner"
+): Promise<void> {
+  const promoted = await request.post(harnessUrl("/platform-member"), {
+    data: { email, role },
+  })
+
+  expect(promoted.ok()).toBe(true)
+}
+
+export async function receiveEmail(
+  request: APIRequestContext,
+  data: { from: string; subject: string; text: string }
+): Promise<void> {
+  const received = await request.post(harnessUrl("/inbound-emails"), { data })
+
+  expect(received.ok()).toBe(true)
+}
+
+/** Launch or Stripe: the offer the start page shows comes from the platform, not from the browser. */
+export async function chooseBillingMode(
+  request: APIRequestContext,
+  mode: "stripe" | "launch",
+  endsAt?: string
+): Promise<void> {
+  const chosen = await request.post(harnessUrl("/billing-mode"), {
+    data: { mode, ...(endsAt ? { ends_at: endsAt } : {}) },
+  })
+
+  expect(chosen.ok()).toBe(true)
+}
+
 export async function seedServer(
   request: APIRequestContext,
   data: { email: string; name: string; status?: string }

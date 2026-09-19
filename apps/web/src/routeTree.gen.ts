@@ -17,6 +17,7 @@ import { Route as AuthDeviceRouteImport } from './routes/auth/device'
 import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
 import { Route as AuthTwoFactorRouteImport } from './routes/auth/two-factor'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as DashboardAdminRouteImport } from './routes/dashboard/admin'
 import { Route as DashboardAuditRouteImport } from './routes/dashboard/audit'
 import { Route as DashboardBillingRouteImport } from './routes/dashboard/billing'
 import { Route as DashboardDevicesRouteImport } from './routes/dashboard/devices'
@@ -27,8 +28,23 @@ import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settin
 import { Route as DashboardStartRouteImport } from './routes/dashboard/start'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AuthInvitationIdRouteImport } from './routes/auth/invitation.$id'
+import { Route as DashboardAdminIndexRouteImport } from './routes/dashboard/admin/index'
+import { Route as DashboardAdminEventsRouteImport } from './routes/dashboard/admin/events'
+import { Route as DashboardAdminReleasesRouteImport } from './routes/dashboard/admin/releases'
+import { Route as DashboardAdminSubscriptionsRouteImport } from './routes/dashboard/admin/subscriptions'
+import { Route as DashboardAdminTeamRouteImport } from './routes/dashboard/admin/team'
 import { Route as DashboardServersIndexRouteImport } from './routes/dashboard/servers/index'
 import { Route as DashboardServersIdRouteImport } from './routes/dashboard/servers/$id'
+import { Route as DashboardAdminAffiliateLinksIndexRouteImport } from './routes/dashboard/admin/affiliate-links/index'
+import { Route as DashboardAdminAffiliateLinksIdRouteImport } from './routes/dashboard/admin/affiliate-links/$id'
+import { Route as DashboardAdminInboxIndexRouteImport } from './routes/dashboard/admin/inbox/index'
+import { Route as DashboardAdminInboxThreadIdRouteImport } from './routes/dashboard/admin/inbox/$threadId'
+import { Route as DashboardAdminOrganizationsIndexRouteImport } from './routes/dashboard/admin/organizations/index'
+import { Route as DashboardAdminOrganizationsIdRouteImport } from './routes/dashboard/admin/organizations/$id'
+import { Route as DashboardAdminServersIndexRouteImport } from './routes/dashboard/admin/servers/index'
+import { Route as DashboardAdminServersIdRouteImport } from './routes/dashboard/admin/servers/$id'
+import { Route as DashboardAdminUsersIndexRouteImport } from './routes/dashboard/admin/users/index'
+import { Route as DashboardAdminUsersIdRouteImport } from './routes/dashboard/admin/users/$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -68,6 +84,11 @@ const AuthTwoFactorRoute = AuthTwoFactorRouteImport.update({
 const DashboardIndexRoute = DashboardIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardAdminRoute = DashboardAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardAuditRoute = DashboardAuditRouteImport.update({
@@ -120,6 +141,32 @@ const AuthInvitationIdRoute = AuthInvitationIdRouteImport.update({
   path: '/auth/invitation/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardAdminIndexRoute = DashboardAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardAdminRoute,
+} as any)
+const DashboardAdminEventsRoute = DashboardAdminEventsRouteImport.update({
+  id: '/events',
+  path: '/events',
+  getParentRoute: () => DashboardAdminRoute,
+} as any)
+const DashboardAdminReleasesRoute = DashboardAdminReleasesRouteImport.update({
+  id: '/releases',
+  path: '/releases',
+  getParentRoute: () => DashboardAdminRoute,
+} as any)
+const DashboardAdminSubscriptionsRoute =
+  DashboardAdminSubscriptionsRouteImport.update({
+    id: '/subscriptions',
+    path: '/subscriptions',
+    getParentRoute: () => DashboardAdminRoute,
+  } as any)
+const DashboardAdminTeamRoute = DashboardAdminTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => DashboardAdminRoute,
+} as any)
 const DashboardServersIndexRoute = DashboardServersIndexRouteImport.update({
   id: '/servers/',
   path: '/servers/',
@@ -130,6 +177,64 @@ const DashboardServersIdRoute = DashboardServersIdRouteImport.update({
   path: '/servers/$id',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardAdminAffiliateLinksIndexRoute =
+  DashboardAdminAffiliateLinksIndexRouteImport.update({
+    id: '/affiliate-links/',
+    path: '/affiliate-links/',
+    getParentRoute: () => DashboardAdminRoute,
+  } as any)
+const DashboardAdminAffiliateLinksIdRoute =
+  DashboardAdminAffiliateLinksIdRouteImport.update({
+    id: '/affiliate-links/$id',
+    path: '/affiliate-links/$id',
+    getParentRoute: () => DashboardAdminRoute,
+  } as any)
+const DashboardAdminInboxIndexRoute =
+  DashboardAdminInboxIndexRouteImport.update({
+    id: '/inbox/',
+    path: '/inbox/',
+    getParentRoute: () => DashboardAdminRoute,
+  } as any)
+const DashboardAdminInboxThreadIdRoute =
+  DashboardAdminInboxThreadIdRouteImport.update({
+    id: '/inbox/$threadId',
+    path: '/inbox/$threadId',
+    getParentRoute: () => DashboardAdminRoute,
+  } as any)
+const DashboardAdminOrganizationsIndexRoute =
+  DashboardAdminOrganizationsIndexRouteImport.update({
+    id: '/organizations/',
+    path: '/organizations/',
+    getParentRoute: () => DashboardAdminRoute,
+  } as any)
+const DashboardAdminOrganizationsIdRoute =
+  DashboardAdminOrganizationsIdRouteImport.update({
+    id: '/organizations/$id',
+    path: '/organizations/$id',
+    getParentRoute: () => DashboardAdminRoute,
+  } as any)
+const DashboardAdminServersIndexRoute =
+  DashboardAdminServersIndexRouteImport.update({
+    id: '/servers/',
+    path: '/servers/',
+    getParentRoute: () => DashboardAdminRoute,
+  } as any)
+const DashboardAdminServersIdRoute = DashboardAdminServersIdRouteImport.update({
+  id: '/servers/$id',
+  path: '/servers/$id',
+  getParentRoute: () => DashboardAdminRoute,
+} as any)
+const DashboardAdminUsersIndexRoute =
+  DashboardAdminUsersIndexRouteImport.update({
+    id: '/users/',
+    path: '/users/',
+    getParentRoute: () => DashboardAdminRoute,
+  } as any)
+const DashboardAdminUsersIdRoute = DashboardAdminUsersIdRouteImport.update({
+  id: '/users/$id',
+  path: '/users/$id',
+  getParentRoute: () => DashboardAdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -139,6 +244,7 @@ export interface FileRoutesByFullPath {
   '/auth/device': typeof AuthDeviceRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/two-factor': typeof AuthTwoFactorRoute
+  '/dashboard/admin': typeof DashboardAdminRouteWithChildren
   '/dashboard/audit': typeof DashboardAuditRoute
   '/dashboard/billing': typeof DashboardBillingRoute
   '/dashboard/devices': typeof DashboardDevicesRoute
@@ -150,8 +256,23 @@ export interface FileRoutesByFullPath {
   '/dashboard/': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/invitation/$id': typeof AuthInvitationIdRoute
+  '/dashboard/admin/events': typeof DashboardAdminEventsRoute
+  '/dashboard/admin/releases': typeof DashboardAdminReleasesRoute
+  '/dashboard/admin/subscriptions': typeof DashboardAdminSubscriptionsRoute
+  '/dashboard/admin/team': typeof DashboardAdminTeamRoute
   '/dashboard/servers/$id': typeof DashboardServersIdRoute
+  '/dashboard/admin/': typeof DashboardAdminIndexRoute
   '/dashboard/servers/': typeof DashboardServersIndexRoute
+  '/dashboard/admin/affiliate-links/$id': typeof DashboardAdminAffiliateLinksIdRoute
+  '/dashboard/admin/inbox/$threadId': typeof DashboardAdminInboxThreadIdRoute
+  '/dashboard/admin/organizations/$id': typeof DashboardAdminOrganizationsIdRoute
+  '/dashboard/admin/servers/$id': typeof DashboardAdminServersIdRoute
+  '/dashboard/admin/users/$id': typeof DashboardAdminUsersIdRoute
+  '/dashboard/admin/affiliate-links/': typeof DashboardAdminAffiliateLinksIndexRoute
+  '/dashboard/admin/inbox/': typeof DashboardAdminInboxIndexRoute
+  '/dashboard/admin/organizations/': typeof DashboardAdminOrganizationsIndexRoute
+  '/dashboard/admin/servers/': typeof DashboardAdminServersIndexRoute
+  '/dashboard/admin/users/': typeof DashboardAdminUsersIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -171,8 +292,23 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/invitation/$id': typeof AuthInvitationIdRoute
+  '/dashboard/admin/events': typeof DashboardAdminEventsRoute
+  '/dashboard/admin/releases': typeof DashboardAdminReleasesRoute
+  '/dashboard/admin/subscriptions': typeof DashboardAdminSubscriptionsRoute
+  '/dashboard/admin/team': typeof DashboardAdminTeamRoute
   '/dashboard/servers/$id': typeof DashboardServersIdRoute
+  '/dashboard/admin': typeof DashboardAdminIndexRoute
   '/dashboard/servers': typeof DashboardServersIndexRoute
+  '/dashboard/admin/affiliate-links/$id': typeof DashboardAdminAffiliateLinksIdRoute
+  '/dashboard/admin/inbox/$threadId': typeof DashboardAdminInboxThreadIdRoute
+  '/dashboard/admin/organizations/$id': typeof DashboardAdminOrganizationsIdRoute
+  '/dashboard/admin/servers/$id': typeof DashboardAdminServersIdRoute
+  '/dashboard/admin/users/$id': typeof DashboardAdminUsersIdRoute
+  '/dashboard/admin/affiliate-links': typeof DashboardAdminAffiliateLinksIndexRoute
+  '/dashboard/admin/inbox': typeof DashboardAdminInboxIndexRoute
+  '/dashboard/admin/organizations': typeof DashboardAdminOrganizationsIndexRoute
+  '/dashboard/admin/servers': typeof DashboardAdminServersIndexRoute
+  '/dashboard/admin/users': typeof DashboardAdminUsersIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -183,6 +319,7 @@ export interface FileRoutesById {
   '/auth/device': typeof AuthDeviceRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/two-factor': typeof AuthTwoFactorRoute
+  '/dashboard/admin': typeof DashboardAdminRouteWithChildren
   '/dashboard/audit': typeof DashboardAuditRoute
   '/dashboard/billing': typeof DashboardBillingRoute
   '/dashboard/devices': typeof DashboardDevicesRoute
@@ -194,8 +331,23 @@ export interface FileRoutesById {
   '/dashboard/': typeof DashboardIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/auth/invitation/$id': typeof AuthInvitationIdRoute
+  '/dashboard/admin/events': typeof DashboardAdminEventsRoute
+  '/dashboard/admin/releases': typeof DashboardAdminReleasesRoute
+  '/dashboard/admin/subscriptions': typeof DashboardAdminSubscriptionsRoute
+  '/dashboard/admin/team': typeof DashboardAdminTeamRoute
   '/dashboard/servers/$id': typeof DashboardServersIdRoute
+  '/dashboard/admin/': typeof DashboardAdminIndexRoute
   '/dashboard/servers/': typeof DashboardServersIndexRoute
+  '/dashboard/admin/affiliate-links/$id': typeof DashboardAdminAffiliateLinksIdRoute
+  '/dashboard/admin/inbox/$threadId': typeof DashboardAdminInboxThreadIdRoute
+  '/dashboard/admin/organizations/$id': typeof DashboardAdminOrganizationsIdRoute
+  '/dashboard/admin/servers/$id': typeof DashboardAdminServersIdRoute
+  '/dashboard/admin/users/$id': typeof DashboardAdminUsersIdRoute
+  '/dashboard/admin/affiliate-links/': typeof DashboardAdminAffiliateLinksIndexRoute
+  '/dashboard/admin/inbox/': typeof DashboardAdminInboxIndexRoute
+  '/dashboard/admin/organizations/': typeof DashboardAdminOrganizationsIndexRoute
+  '/dashboard/admin/servers/': typeof DashboardAdminServersIndexRoute
+  '/dashboard/admin/users/': typeof DashboardAdminUsersIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -207,6 +359,7 @@ export interface FileRouteTypes {
     | '/auth/device'
     | '/auth/sign-in'
     | '/auth/two-factor'
+    | '/dashboard/admin'
     | '/dashboard/audit'
     | '/dashboard/billing'
     | '/dashboard/devices'
@@ -218,8 +371,23 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/api/auth/$'
     | '/auth/invitation/$id'
+    | '/dashboard/admin/events'
+    | '/dashboard/admin/releases'
+    | '/dashboard/admin/subscriptions'
+    | '/dashboard/admin/team'
     | '/dashboard/servers/$id'
+    | '/dashboard/admin/'
     | '/dashboard/servers/'
+    | '/dashboard/admin/affiliate-links/$id'
+    | '/dashboard/admin/inbox/$threadId'
+    | '/dashboard/admin/organizations/$id'
+    | '/dashboard/admin/servers/$id'
+    | '/dashboard/admin/users/$id'
+    | '/dashboard/admin/affiliate-links/'
+    | '/dashboard/admin/inbox/'
+    | '/dashboard/admin/organizations/'
+    | '/dashboard/admin/servers/'
+    | '/dashboard/admin/users/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -239,8 +407,23 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/api/auth/$'
     | '/auth/invitation/$id'
+    | '/dashboard/admin/events'
+    | '/dashboard/admin/releases'
+    | '/dashboard/admin/subscriptions'
+    | '/dashboard/admin/team'
     | '/dashboard/servers/$id'
+    | '/dashboard/admin'
     | '/dashboard/servers'
+    | '/dashboard/admin/affiliate-links/$id'
+    | '/dashboard/admin/inbox/$threadId'
+    | '/dashboard/admin/organizations/$id'
+    | '/dashboard/admin/servers/$id'
+    | '/dashboard/admin/users/$id'
+    | '/dashboard/admin/affiliate-links'
+    | '/dashboard/admin/inbox'
+    | '/dashboard/admin/organizations'
+    | '/dashboard/admin/servers'
+    | '/dashboard/admin/users'
   id:
     | '__root__'
     | '/'
@@ -250,6 +433,7 @@ export interface FileRouteTypes {
     | '/auth/device'
     | '/auth/sign-in'
     | '/auth/two-factor'
+    | '/dashboard/admin'
     | '/dashboard/audit'
     | '/dashboard/billing'
     | '/dashboard/devices'
@@ -261,8 +445,23 @@ export interface FileRouteTypes {
     | '/dashboard/'
     | '/api/auth/$'
     | '/auth/invitation/$id'
+    | '/dashboard/admin/events'
+    | '/dashboard/admin/releases'
+    | '/dashboard/admin/subscriptions'
+    | '/dashboard/admin/team'
     | '/dashboard/servers/$id'
+    | '/dashboard/admin/'
     | '/dashboard/servers/'
+    | '/dashboard/admin/affiliate-links/$id'
+    | '/dashboard/admin/inbox/$threadId'
+    | '/dashboard/admin/organizations/$id'
+    | '/dashboard/admin/servers/$id'
+    | '/dashboard/admin/users/$id'
+    | '/dashboard/admin/affiliate-links/'
+    | '/dashboard/admin/inbox/'
+    | '/dashboard/admin/organizations/'
+    | '/dashboard/admin/servers/'
+    | '/dashboard/admin/users/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -335,6 +534,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/admin': {
+      id: '/dashboard/admin'
+      path: '/admin'
+      fullPath: '/dashboard/admin'
+      preLoaderRoute: typeof DashboardAdminRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/audit': {
       id: '/dashboard/audit'
       path: '/audit'
@@ -405,6 +611,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthInvitationIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/admin/': {
+      id: '/dashboard/admin/'
+      path: '/'
+      fullPath: '/dashboard/admin/'
+      preLoaderRoute: typeof DashboardAdminIndexRouteImport
+      parentRoute: typeof DashboardAdminRoute
+    }
+    '/dashboard/admin/events': {
+      id: '/dashboard/admin/events'
+      path: '/events'
+      fullPath: '/dashboard/admin/events'
+      preLoaderRoute: typeof DashboardAdminEventsRouteImport
+      parentRoute: typeof DashboardAdminRoute
+    }
+    '/dashboard/admin/releases': {
+      id: '/dashboard/admin/releases'
+      path: '/releases'
+      fullPath: '/dashboard/admin/releases'
+      preLoaderRoute: typeof DashboardAdminReleasesRouteImport
+      parentRoute: typeof DashboardAdminRoute
+    }
+    '/dashboard/admin/subscriptions': {
+      id: '/dashboard/admin/subscriptions'
+      path: '/subscriptions'
+      fullPath: '/dashboard/admin/subscriptions'
+      preLoaderRoute: typeof DashboardAdminSubscriptionsRouteImport
+      parentRoute: typeof DashboardAdminRoute
+    }
+    '/dashboard/admin/team': {
+      id: '/dashboard/admin/team'
+      path: '/team'
+      fullPath: '/dashboard/admin/team'
+      preLoaderRoute: typeof DashboardAdminTeamRouteImport
+      parentRoute: typeof DashboardAdminRoute
+    }
     '/dashboard/servers/': {
       id: '/dashboard/servers/'
       path: '/servers'
@@ -419,10 +660,122 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardServersIdRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/admin/affiliate-links/': {
+      id: '/dashboard/admin/affiliate-links/'
+      path: '/affiliate-links'
+      fullPath: '/dashboard/admin/affiliate-links/'
+      preLoaderRoute: typeof DashboardAdminAffiliateLinksIndexRouteImport
+      parentRoute: typeof DashboardAdminRoute
+    }
+    '/dashboard/admin/affiliate-links/$id': {
+      id: '/dashboard/admin/affiliate-links/$id'
+      path: '/affiliate-links/$id'
+      fullPath: '/dashboard/admin/affiliate-links/$id'
+      preLoaderRoute: typeof DashboardAdminAffiliateLinksIdRouteImport
+      parentRoute: typeof DashboardAdminRoute
+    }
+    '/dashboard/admin/inbox/': {
+      id: '/dashboard/admin/inbox/'
+      path: '/inbox'
+      fullPath: '/dashboard/admin/inbox/'
+      preLoaderRoute: typeof DashboardAdminInboxIndexRouteImport
+      parentRoute: typeof DashboardAdminRoute
+    }
+    '/dashboard/admin/inbox/$threadId': {
+      id: '/dashboard/admin/inbox/$threadId'
+      path: '/inbox/$threadId'
+      fullPath: '/dashboard/admin/inbox/$threadId'
+      preLoaderRoute: typeof DashboardAdminInboxThreadIdRouteImport
+      parentRoute: typeof DashboardAdminRoute
+    }
+    '/dashboard/admin/organizations/': {
+      id: '/dashboard/admin/organizations/'
+      path: '/organizations'
+      fullPath: '/dashboard/admin/organizations/'
+      preLoaderRoute: typeof DashboardAdminOrganizationsIndexRouteImport
+      parentRoute: typeof DashboardAdminRoute
+    }
+    '/dashboard/admin/organizations/$id': {
+      id: '/dashboard/admin/organizations/$id'
+      path: '/organizations/$id'
+      fullPath: '/dashboard/admin/organizations/$id'
+      preLoaderRoute: typeof DashboardAdminOrganizationsIdRouteImport
+      parentRoute: typeof DashboardAdminRoute
+    }
+    '/dashboard/admin/servers/': {
+      id: '/dashboard/admin/servers/'
+      path: '/servers'
+      fullPath: '/dashboard/admin/servers/'
+      preLoaderRoute: typeof DashboardAdminServersIndexRouteImport
+      parentRoute: typeof DashboardAdminRoute
+    }
+    '/dashboard/admin/servers/$id': {
+      id: '/dashboard/admin/servers/$id'
+      path: '/servers/$id'
+      fullPath: '/dashboard/admin/servers/$id'
+      preLoaderRoute: typeof DashboardAdminServersIdRouteImport
+      parentRoute: typeof DashboardAdminRoute
+    }
+    '/dashboard/admin/users/': {
+      id: '/dashboard/admin/users/'
+      path: '/users'
+      fullPath: '/dashboard/admin/users/'
+      preLoaderRoute: typeof DashboardAdminUsersIndexRouteImport
+      parentRoute: typeof DashboardAdminRoute
+    }
+    '/dashboard/admin/users/$id': {
+      id: '/dashboard/admin/users/$id'
+      path: '/users/$id'
+      fullPath: '/dashboard/admin/users/$id'
+      preLoaderRoute: typeof DashboardAdminUsersIdRouteImport
+      parentRoute: typeof DashboardAdminRoute
+    }
   }
 }
 
+interface DashboardAdminRouteChildren {
+  DashboardAdminEventsRoute: typeof DashboardAdminEventsRoute
+  DashboardAdminReleasesRoute: typeof DashboardAdminReleasesRoute
+  DashboardAdminSubscriptionsRoute: typeof DashboardAdminSubscriptionsRoute
+  DashboardAdminTeamRoute: typeof DashboardAdminTeamRoute
+  DashboardAdminIndexRoute: typeof DashboardAdminIndexRoute
+  DashboardAdminAffiliateLinksIdRoute: typeof DashboardAdminAffiliateLinksIdRoute
+  DashboardAdminInboxThreadIdRoute: typeof DashboardAdminInboxThreadIdRoute
+  DashboardAdminOrganizationsIdRoute: typeof DashboardAdminOrganizationsIdRoute
+  DashboardAdminServersIdRoute: typeof DashboardAdminServersIdRoute
+  DashboardAdminUsersIdRoute: typeof DashboardAdminUsersIdRoute
+  DashboardAdminAffiliateLinksIndexRoute: typeof DashboardAdminAffiliateLinksIndexRoute
+  DashboardAdminInboxIndexRoute: typeof DashboardAdminInboxIndexRoute
+  DashboardAdminOrganizationsIndexRoute: typeof DashboardAdminOrganizationsIndexRoute
+  DashboardAdminServersIndexRoute: typeof DashboardAdminServersIndexRoute
+  DashboardAdminUsersIndexRoute: typeof DashboardAdminUsersIndexRoute
+}
+
+const DashboardAdminRouteChildren: DashboardAdminRouteChildren = {
+  DashboardAdminEventsRoute: DashboardAdminEventsRoute,
+  DashboardAdminReleasesRoute: DashboardAdminReleasesRoute,
+  DashboardAdminSubscriptionsRoute: DashboardAdminSubscriptionsRoute,
+  DashboardAdminTeamRoute: DashboardAdminTeamRoute,
+  DashboardAdminIndexRoute: DashboardAdminIndexRoute,
+  DashboardAdminAffiliateLinksIdRoute: DashboardAdminAffiliateLinksIdRoute,
+  DashboardAdminInboxThreadIdRoute: DashboardAdminInboxThreadIdRoute,
+  DashboardAdminOrganizationsIdRoute: DashboardAdminOrganizationsIdRoute,
+  DashboardAdminServersIdRoute: DashboardAdminServersIdRoute,
+  DashboardAdminUsersIdRoute: DashboardAdminUsersIdRoute,
+  DashboardAdminAffiliateLinksIndexRoute:
+    DashboardAdminAffiliateLinksIndexRoute,
+  DashboardAdminInboxIndexRoute: DashboardAdminInboxIndexRoute,
+  DashboardAdminOrganizationsIndexRoute: DashboardAdminOrganizationsIndexRoute,
+  DashboardAdminServersIndexRoute: DashboardAdminServersIndexRoute,
+  DashboardAdminUsersIndexRoute: DashboardAdminUsersIndexRoute,
+}
+
+const DashboardAdminRouteWithChildren = DashboardAdminRoute._addFileChildren(
+  DashboardAdminRouteChildren,
+)
+
 interface DashboardRouteChildren {
+  DashboardAdminRoute: typeof DashboardAdminRouteWithChildren
   DashboardAuditRoute: typeof DashboardAuditRoute
   DashboardBillingRoute: typeof DashboardBillingRoute
   DashboardDevicesRoute: typeof DashboardDevicesRoute
@@ -437,6 +790,7 @@ interface DashboardRouteChildren {
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardAdminRoute: DashboardAdminRouteWithChildren,
   DashboardAuditRoute: DashboardAuditRoute,
   DashboardBillingRoute: DashboardBillingRoute,
   DashboardDevicesRoute: DashboardDevicesRoute,

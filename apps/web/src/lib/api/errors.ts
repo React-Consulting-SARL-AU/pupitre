@@ -2,6 +2,8 @@ import { ApiError } from "@pupitre/api/client"
 import { isApiErrorBody } from "@pupitre/shared/api/errors"
 
 export interface ApiFailure {
+  code: string
+  status: number
   message: string
   fix: string | null
 }
@@ -13,6 +15,8 @@ export function apiFailure(error: unknown): ApiFailure | null {
   }
 
   return {
+    code: error.body.error.code,
+    status: error.status,
     message: error.body.error.message,
     fix: error.body.error.fix ?? null,
   }

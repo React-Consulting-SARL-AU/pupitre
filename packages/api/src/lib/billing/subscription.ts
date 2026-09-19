@@ -6,6 +6,19 @@ import { getPrisma } from "../api/prisma"
 
 export const LIVE_SUBSCRIPTION_STATUSES = ["active", "trialing", "past_due"]
 
+/** The same choice as `liveSubscriptionOf`, over rows already sorted by last touch. */
+export function liveAmong<T extends { status: string }>(
+  sortedByLastTouch: T[]
+): T | null {
+  return (
+    sortedByLastTouch.find((subscription) =>
+      LIVE_SUBSCRIPTION_STATUSES.includes(subscription.status)
+    ) ??
+    sortedByLastTouch[0] ??
+    null
+  )
+}
+
 /**
  * The subscription that counts for an organization: the one Stripe still
  * bills, before any other. An old subscription keeps receiving events after a

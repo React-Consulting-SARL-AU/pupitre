@@ -1,3 +1,4 @@
+import { LAUNCH_PRODUCT } from "@pupitre/shared/plans"
 import { sendSeatsDriftEmail } from "../../emails/notifications"
 import { getPrisma } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
@@ -53,7 +54,10 @@ export async function reconcileSeats({
 }: ReconcileSeatsOptions = {}): Promise<SeatReconciliation[]> {
   const prisma = getPrisma()
   const subscriptions = await prisma.subscription.findMany({
-    where: { status: { in: PAYING_SUBSCRIPTION_STATUSES } },
+    where: {
+      status: { in: PAYING_SUBSCRIPTION_STATUSES },
+      product: { not: LAUNCH_PRODUCT },
+    },
     orderBy: { createdAt: "asc" },
   })
 

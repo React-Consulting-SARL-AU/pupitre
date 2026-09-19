@@ -36,13 +36,17 @@ function stubStripe(payload: unknown): StripeCall[] {
   return calls
 }
 
-function checkout(interval: "month" | "year") {
+function checkout(
+  interval: "month" | "year",
+  trialDays: number | null = TRIAL_DAYS
+) {
   return createStripeBilling(CONFIG).createCheckoutSession({
     organizationId: "org_1",
     customerId: null,
     customerEmail: "owner@example.com",
     quantity: 2,
     interval,
+    trialDays,
     successUrl: "https://app.pupitre.studio/dashboard/billing?checkout=done",
     cancelUrl:
       "https://app.pupitre.studio/dashboard/billing?checkout=cancelled",
@@ -73,6 +77,39 @@ describe("createCheckoutSession", () => {
         "subscription_data[trial_settings][end_behavior][missing_payment_method]"
       )
     ).toBe("cancel")
+  })
+
+  it("envoie les jours d'essai du lien d'affiliation", async () => {
+    const calls = stubStripe({
+      id: "cs_test_referred",
+      url: "https://checkout.test/referred",
+    })
+
+    await checkout("month", 90)
+
+    expect(calls[0].body.get("subscription_data[trial_period_days]")).toBe("90")
+  })
+
+  it("exige une carte et n'offre aucun essai après le premier checkout", async () => {
+    const calls = stubStripe({
+      id: "cs_test_second",
+      url: "https://checkout.test/second",
+    })
+
+    await checkout("month", null)
+
+    const { body } = calls[0]
+
+    expect(body.get("payment_method_collection")).toBe("always")
+    expect(body.get("subscription_data[trial_period_days]")).toBeNull()
+    expect(
+      body.get(
+        "subscription_data[trial_settings][end_behavior][missing_payment_method]"
+      )
+    ).toBeNull()
+    expect(body.get("subscription_data[metadata][organization_id]")).toBe(
+      "org_1"
+    )
   })
 
   it("vend en Managed Payments, sans devise ni taxe à nous", async () => {

@@ -5,6 +5,7 @@ import DevelopmentBanner from "../components/DevelopmentBanner.astro"
 import Footer from "../components/Footer.astro"
 import Nav from "../components/Nav.astro"
 import "../styles/global.css"
+import { AFFILIATE_BOOT_SCRIPT } from "../lib/affiliate"
 import {
   alternateLocale,
   type Locale,
@@ -39,6 +40,7 @@ const image = ogUrl(pathname)
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script is:inline set:html={THEME_BOOT_SCRIPT} />
+    <script is:inline set:html={AFFILIATE_BOOT_SCRIPT} />
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta name="color-scheme" content="light dark" />

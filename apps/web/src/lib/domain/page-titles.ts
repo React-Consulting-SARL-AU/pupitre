@@ -20,7 +20,73 @@ export interface PageTitle {
  */
 const SERVERS: Crumb = { title: "nav.servers", to: "/dashboard/servers" }
 
+const ADMIN: Crumb = { title: "nav.admin", to: "/dashboard/admin" }
+
+const ADMIN_USERS: Crumb = {
+  title: "nav.adminUsers",
+  to: "/dashboard/admin/users",
+}
+
+const ADMIN_ORGANIZATIONS: Crumb = {
+  title: "nav.adminOrganizations",
+  to: "/dashboard/admin/organizations",
+}
+
+const ADMIN_SERVERS: Crumb = {
+  title: "nav.adminServers",
+  to: "/dashboard/admin/servers",
+}
+
+const ADMIN_LINKS: Crumb = {
+  title: "nav.adminAffiliateLinks",
+  to: "/dashboard/admin/affiliate-links",
+}
+
+const ADMIN_INBOX: Crumb = {
+  title: "nav.adminInbox",
+  to: "/dashboard/admin/inbox",
+}
+
 const TITLES: Record<string, PageTitle> = {
+  "/dashboard/admin": { title: "nav.admin", parents: [] },
+  "/dashboard/admin/inbox": { title: "nav.adminInbox", parents: [ADMIN] },
+  "/dashboard/admin/inbox/$threadId": {
+    title: "nav.adminThread",
+    parents: [ADMIN, ADMIN_INBOX],
+  },
+  "/dashboard/admin/users": { title: "nav.adminUsers", parents: [ADMIN] },
+  "/dashboard/admin/users/$id": {
+    title: "nav.adminUser",
+    parents: [ADMIN, ADMIN_USERS],
+  },
+  "/dashboard/admin/organizations": {
+    title: "nav.adminOrganizations",
+    parents: [ADMIN],
+  },
+  "/dashboard/admin/organizations/$id": {
+    title: "nav.adminOrganization",
+    parents: [ADMIN, ADMIN_ORGANIZATIONS],
+  },
+  "/dashboard/admin/servers": { title: "nav.adminServers", parents: [ADMIN] },
+  "/dashboard/admin/servers/$id": {
+    title: "nav.server",
+    parents: [ADMIN, ADMIN_SERVERS],
+  },
+  "/dashboard/admin/subscriptions": {
+    title: "nav.adminSubscriptions",
+    parents: [ADMIN],
+  },
+  "/dashboard/admin/affiliate-links": {
+    title: "nav.adminAffiliateLinks",
+    parents: [ADMIN],
+  },
+  "/dashboard/admin/affiliate-links/$id": {
+    title: "nav.adminAffiliateLink",
+    parents: [ADMIN, ADMIN_LINKS],
+  },
+  "/dashboard/admin/events": { title: "nav.adminEvents", parents: [ADMIN] },
+  "/dashboard/admin/releases": { title: "nav.adminReleases", parents: [ADMIN] },
+  "/dashboard/admin/team": { title: "nav.adminTeam", parents: [ADMIN] },
   "/dashboard": { title: "nav.dashboard", parents: [] },
   "/dashboard/start": { title: "nav.start", parents: [] },
   "/dashboard/servers": { title: "nav.servers", parents: [] },

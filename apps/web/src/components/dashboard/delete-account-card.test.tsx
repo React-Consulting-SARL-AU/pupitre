@@ -17,6 +17,7 @@ const CONTEXT = {
   activeOrganization: null,
   role: "owner" as const,
   entitlement: "valid",
+  platformRole: null,
 }
 
 const mounted: (() => void)[] = []

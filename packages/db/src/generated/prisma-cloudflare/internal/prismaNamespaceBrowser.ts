@@ -67,6 +67,11 @@ export const ModelName = {
   ServerRevokedDevice: 'ServerRevokedDevice',
   Subscription: 'Subscription',
   OrganizationBilling: 'OrganizationBilling',
+  AffiliateLink: 'AffiliateLink',
+  Referral: 'Referral',
+  MailThread: 'MailThread',
+  MailMessage: 'MailMessage',
+  MailAttachment: 'MailAttachment',
   Release: 'Release',
   AppRelease: 'AppRelease',
   Event: 'Event',
@@ -329,6 +334,90 @@ export const OrganizationBillingScalarFieldEnum = {
 export type OrganizationBillingScalarFieldEnum = (typeof OrganizationBillingScalarFieldEnum)[keyof typeof OrganizationBillingScalarFieldEnum]
 
 
+export const AffiliateLinkScalarFieldEnum = {
+  id: 'id',
+  code: 'code',
+  name: 'name',
+  freeMonths: 'freeMonths',
+  seats: 'seats',
+  createdById: 'createdById',
+  createdAt: 'createdAt',
+  disabledAt: 'disabledAt'
+} as const
+
+export type AffiliateLinkScalarFieldEnum = (typeof AffiliateLinkScalarFieldEnum)[keyof typeof AffiliateLinkScalarFieldEnum]
+
+
+export const ReferralScalarFieldEnum = {
+  organizationId: 'organizationId',
+  linkId: 'linkId',
+  createdAt: 'createdAt'
+} as const
+
+export type ReferralScalarFieldEnum = (typeof ReferralScalarFieldEnum)[keyof typeof ReferralScalarFieldEnum]
+
+
+export const MailThreadScalarFieldEnum = {
+  id: 'id',
+  address: 'address',
+  subject: 'subject',
+  normalizedSubject: 'normalizedSubject',
+  status: 'status',
+  unread: 'unread',
+  assignedUserId: 'assignedUserId',
+  contactUserId: 'contactUserId',
+  lastInboundAt: 'lastInboundAt',
+  lastOutboundAt: 'lastOutboundAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MailThreadScalarFieldEnum = (typeof MailThreadScalarFieldEnum)[keyof typeof MailThreadScalarFieldEnum]
+
+
+export const MailMessageScalarFieldEnum = {
+  id: 'id',
+  threadId: 'threadId',
+  direction: 'direction',
+  fromEmail: 'fromEmail',
+  fromName: 'fromName',
+  toEmails: 'toEmails',
+  ccEmails: 'ccEmails',
+  subject: 'subject',
+  text: 'text',
+  snippet: 'snippet',
+  htmlKey: 'htmlKey',
+  rawKey: 'rawKey',
+  rawHash: 'rawHash',
+  messageId: 'messageId',
+  inReplyTo: 'inReplyTo',
+  references: 'references',
+  sentByUserId: 'sentByUserId',
+  automated: 'automated',
+  delivery: 'delivery',
+  error: 'error',
+  receivedAt: 'receivedAt',
+  sentAt: 'sentAt',
+  createdAt: 'createdAt'
+} as const
+
+export type MailMessageScalarFieldEnum = (typeof MailMessageScalarFieldEnum)[keyof typeof MailMessageScalarFieldEnum]
+
+
+export const MailAttachmentScalarFieldEnum = {
+  id: 'id',
+  messageId: 'messageId',
+  key: 'key',
+  filename: 'filename',
+  mimeType: 'mimeType',
+  size: 'size',
+  contentId: 'contentId',
+  createdAt: 'createdAt'
+} as const
+
+export type MailAttachmentScalarFieldEnum = (typeof MailAttachmentScalarFieldEnum)[keyof typeof MailAttachmentScalarFieldEnum]
+
+
 export const ReleaseScalarFieldEnum = {
   version: 'version',
   arch: 'arch',
@@ -398,6 +487,13 @@ export const NullableJsonNullValueInput = {
 } as const
 
 export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
+
+
+export const JsonNullValueInput = {
+  JsonNull: JsonNull
+} as const
+
+export type JsonNullValueInput = (typeof JsonNullValueInput)[keyof typeof JsonNullValueInput]
 
 
 export const NullsOrder = {

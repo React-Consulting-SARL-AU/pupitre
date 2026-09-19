@@ -1,4 +1,5 @@
 import { account } from "./strings/account"
+import { admin } from "./strings/admin"
 import { audit } from "./strings/audit"
 import { auditUi } from "./strings/audit-ui"
 import { auth } from "./strings/auth"
@@ -8,6 +9,7 @@ import { common } from "./strings/common"
 import { download } from "./strings/download"
 import { footer } from "./strings/footer"
 import { format } from "./strings/format"
+import { inbox } from "./strings/inbox"
 import { invites } from "./strings/invites"
 import { lists } from "./strings/lists"
 import { members } from "./strings/members"
@@ -48,6 +50,8 @@ export const en = {
   ...settings.en,
   ...account.en,
   ...twoFactor.en,
+  ...admin.en,
+  ...inbox.en,
 }
 
 export type Dictionary = typeof en

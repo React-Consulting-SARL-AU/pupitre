@@ -54,12 +54,15 @@ describe("la frappe sur un compte", () => {
   it("n'offre à ssh qu'une clé que le sélecteur a désignée", async () => {
     const invented = recorder([{ code: 0 }]);
 
-    await probeAccess({ ...TARGET, keyFile: "/home/j/.ssh/vps" }, PATHS, {
+    // The designated set is shared by every test file of the run: this path must be one no other test designates.
+    await probeAccess({ ...TARGET, keyFile: "/home/j/.ssh/invented" }, PATHS, {
       identities: [],
       spawn: invented.spawn,
     });
 
-    expect(invented.calls[0]?.args.join(" ")).not.toContain("/home/j/.ssh/vps");
+    expect(invented.calls[0]?.args.join(" ")).not.toContain(
+      "/home/j/.ssh/invented"
+    );
 
     const picked = recorder([{ code: 0 }]);
     const file = designateKeyFile("/home/j/.ssh/picked") ?? "";

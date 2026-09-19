@@ -2,13 +2,14 @@ import { resolveLocale } from "@pupitre/shared/i18n"
 import { Elysia, t } from "elysia"
 import { translate } from "../../../i18n"
 import {
+  listReleases,
   promoteRelease,
   publishRelease,
   ReleaseFingerprintConflictError,
 } from "../../../releases/releases"
 import { apiError } from "../../errors"
 import { dataResponse, errorResponse } from "../../openapi-models"
-import { requirePublisher } from "../../plugins/guards"
+import { requirePlatformAdmin, requirePublisher } from "../../plugins/guards"
 import { serializeData } from "../../prisma"
 import {
   releasePromoteBody,
@@ -24,8 +25,23 @@ const releaseListEnvelope = t.Object(
   { $id: "ReleaseList" }
 )
 
-export const adminReleasesRoutes = new Elysia({
-  name: "admin-releases-routes",
+const readRoutes = new Elysia({ name: "admin-releases-read" })
+  .use(requirePlatformAdmin)
+  .get(
+    "/releases",
+    async () => ({ data: serializeData(await listReleases()) }),
+    {
+      detail: { summary: "Toutes les versions publiées de l'agent" },
+      response: {
+        200: releaseListEnvelope,
+        401: errorResponse,
+        403: errorResponse,
+      },
+    }
+  )
+
+const publishRoutes = new Elysia({
+  name: "admin-releases-publish",
 })
   .use(requirePublisher)
   .post(
@@ -100,3 +116,9 @@ export const adminReleasesRoutes = new Elysia({
       },
     }
   )
+
+export const adminReleasesRoutes = new Elysia({
+  name: "admin-releases-routes",
+})
+  .use(readRoutes)
+  .use(publishRoutes)

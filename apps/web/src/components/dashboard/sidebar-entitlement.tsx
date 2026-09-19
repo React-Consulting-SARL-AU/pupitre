@@ -5,7 +5,9 @@ import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
 import { usePermission } from "@/hooks/use-permission"
 import { type Subscription, subscriptionQueryOptions } from "@/lib/api/queries"
-import { entitlementNotice } from "@/lib/domain/onboarding"
+import { isLaunchSubscription } from "@/lib/domain/billing"
+import { entitlementNotice, type LaunchNotice } from "@/lib/domain/onboarding"
+import { formatDateTime } from "@/lib/utils/format"
 
 const SHELL =
   "flex items-center gap-2 rounded-md bg-sunken px-2.5 py-2 text-[12px] text-ink-2"
@@ -19,6 +21,12 @@ function subscriptionStateOf(data: Subscription | null | undefined): string {
   return data ? data.status : "none"
 }
 
+function launchOf(data: Subscription | null | undefined): LaunchNotice | null {
+  return data && isLaunchSubscription(data)
+    ? { endsAt: data.current_period_end }
+    : null
+}
+
 export function SidebarEntitlement() {
   const t = useTranslations()
   const { entitlement, activeOrganization } = useDashboardContext()
@@ -28,17 +36,21 @@ export function SidebarEntitlement() {
     ...subscriptionQueryOptions(organizationId),
     enabled: canManageBilling && organizationId !== "",
   })
+  const launch = launchOf(subscription.data)
   const notice = entitlementNotice({
     entitlement,
     subscription: subscriptionStateOf(subscription.data),
     canManageBilling,
+    launch,
   })
 
   if (!notice) {
     return null
   }
 
-  const label = t(notice.label)
+  const label = t(notice.label, {
+    date: launch?.endsAt ? formatDateTime(launch.endsAt, t) : "",
+  })
 
   const body = (
     <>

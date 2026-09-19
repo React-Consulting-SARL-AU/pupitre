@@ -14,6 +14,7 @@ interface MeBody {
   organizations: { id: string; name: string; slug: string; role: string }[]
   active_organization: { id: string; slug: string } | null
   role: string | null
+  platform_role: string | null
   entitlement: string
   subscription: {
     status: string
@@ -75,6 +76,23 @@ describe("GET /me", () => {
       name: "Atelier",
     })
     expect(asOwner.json.organizations).toHaveLength(2)
+  })
+
+  it("says whether the caller belongs to the platform team", async () => {
+    const { user } = await createUser({ email: "ada@test.local" })
+    const support = await createUser({
+      email: "support@pupitre.studio",
+      role: "platform_admin",
+    })
+    const asUser = await apiRequest<MeBody>("/me", {
+      session: await createSession({ userId: user.id }),
+    })
+    const asSupport = await apiRequest<MeBody>("/me", {
+      session: await createSession({ userId: support.user.id }),
+    })
+
+    expect(asUser.json.platform_role).toBeNull()
+    expect(asSupport.json.platform_role).toBe("owner")
   })
 
   it("reports no active organization and no role for a bare session", async () => {

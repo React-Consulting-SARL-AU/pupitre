@@ -1,4 +1,5 @@
 import type { ServerStatus } from "@pupitre/db/cloudflare/client"
+import { LAUNCH_PRODUCT } from "@pupitre/shared/plans"
 import { getPrisma, type OrganizationPrisma } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import { getBillingProvider } from "./runtime"
@@ -63,6 +64,13 @@ export class NoPayingSubscriptionError extends Error {
   }
 }
 
+export class SeatsLockedError extends Error {
+  constructor() {
+    super("seats do not change while trialing or during the launch")
+    this.name = "SeatsLockedError"
+  }
+}
+
 export class SeatsBelowUsageError extends Error {
   readonly used: number
 
@@ -87,6 +95,13 @@ export async function resizeSeats(
 
   if (!subscription) {
     throw new NoPayingSubscriptionError()
+  }
+
+  if (
+    subscription.status === "trialing" ||
+    subscription.product === LAUNCH_PRODUCT
+  ) {
+    throw new SeatsLockedError()
   }
 
   const prisma = getPrisma()

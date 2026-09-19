@@ -25,7 +25,7 @@ src/pages/       index · pricing · download · integrations · docs/** · blog
 src/content/     docs/{en,fr} · blog/ · legal/ (MDX) · changelog/ (MDX, notes de version lues par la chaîne de release, jamais rendues) · site/ (accueil, tarifs, téléchargement, intégrations, catalogue, doc des modules) · ui/ (chaînes d'interface)
 src/layouts/     Base · Docs · Post
 src/components/  Nav · Footer · Hero · Steps · Section · PageHeader · Card·like (Feature, Claim) · Pricing · Download · Integrations · Docs* · Callout · ProductShot · StatusMark · Analytics
-src/lib/         releases.ts · docs.ts · docs-entries.ts · og.ts · og-pages.ts · feeds.ts · platform.ts · analytics.ts · i18n.ts · theme.ts · seo.ts · structured-data.ts
+src/lib/         releases.ts · docs.ts · docs-entries.ts · og.ts · og-pages.ts · feeds.ts · platform.ts · analytics.ts · affiliate.ts (cookie `?ref=` pour la console) · i18n.ts · theme.ts · seo.ts · structured-data.ts
 src/assets/fonts Bricolage et JetBrains Mono, lues au build pour les images Open Graph seulement
 scripts/         check-content.ts (parité, mots interdits) · legal.ts (garde des TODO légaux, intégration Astro) · redirects.ts (chaque page de premier niveau a sa redirection)
 worker/          index.ts — `www` → apex, puis les assets ; rien d'autre

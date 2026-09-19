@@ -151,6 +151,7 @@ model Organization {
   subscriptions Subscription[]
   billing       OrganizationBilling?
   events        Event[]
+  referral      Referral?
 
   @@unique([slug])
   @@map("organization")
@@ -343,6 +344,112 @@ model OrganizationBilling {
   defaultInterval  BillingInterval @default(month)
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
+}
+
+model AffiliateLink {
+  id          String     @id @default(cuid())
+  code        String     @unique
+  name        String
+  freeMonths  Int
+  seats       Int        @default(1)
+  createdById String?
+  createdAt   DateTime   @default(now())
+  disabledAt  DateTime?
+  referrals   Referral[]
+}
+
+model Referral {
+  organizationId String        @id
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  linkId         String
+  link           AffiliateLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  createdAt      DateTime      @default(now())
+
+  @@index([linkId])
+}
+
+enum MailDirection {
+  inbound
+  outbound
+}
+
+enum MailThreadStatus {
+  open
+  closed
+}
+
+enum MailDelivery {
+  received
+  sent
+  failed
+}
+
+model MailThread {
+  id                String           @id @default(cuid())
+  address           String
+  subject           String
+  normalizedSubject String
+  status            MailThreadStatus @default(open)
+  unread            Boolean          @default(true)
+  assignedUserId    String?
+  contactUserId     String?
+  lastInboundAt     DateTime?
+  lastOutboundAt    DateTime?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  messages MailMessage[]
+
+  @@index([status, updatedAt])
+  @@index([address, normalizedSubject])
+  @@index([assignedUserId])
+  @@index([contactUserId])
+}
+
+model MailMessage {
+  id           String        @id @default(cuid())
+  threadId     String
+  thread       MailThread    @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  direction    MailDirection
+  fromEmail    String
+  fromName     String?
+  toEmails     Json
+  ccEmails     Json
+  subject      String?
+  text         String?
+  snippet      String?
+  htmlKey      String?
+  rawKey       String?
+  rawHash      String?       @unique
+  messageId    String?       @unique
+  inReplyTo    String?
+  references   String?
+  sentByUserId String?
+  /// A bounce, a list blast or an auto-reply: it is filed, but the team never answers it.
+  automated    Boolean       @default(false)
+  delivery     MailDelivery  @default(received)
+  error        String?
+  receivedAt   DateTime      @default(now())
+  sentAt       DateTime?
+  createdAt    DateTime      @default(now())
+
+  attachments MailAttachment[]
+
+  @@index([threadId, createdAt])
+}
+
+model MailAttachment {
+  id        String      @id @default(cuid())
+  messageId String
+  message   MailMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  key       String
+  filename  String
+  mimeType  String
+  size      Int
+  contentId String?
+  createdAt DateTime    @default(now())
+
+  @@index([messageId])
 }
 
 model Release {

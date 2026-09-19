@@ -1,26 +1,30 @@
 import { resolveLocale } from "@pupitre/shared/i18n"
+import { ADMIN_PAGE_SIZE } from "@pupitre/shared/platform"
 import { Elysia, t } from "elysia"
 import { translate } from "../../../i18n"
 import {
   listServersForPlatform,
+  readServerForPlatform,
+  restoreServerByAdmin,
+  ServerNotAdminSuspendedError,
   ServerRevokedError,
   suspendServerByAdmin,
 } from "../../../servers/admin"
 import { apiError } from "../../errors"
 import { dataResponse, errorResponse } from "../../openapi-models"
-import { requirePlatformAdmin } from "../../plugins/guards"
+import { requirePlatformAdmin, requirePlatformRole } from "../../plugins/guards"
 import { serializeData } from "../../prisma"
 import {
-  ADMIN_SERVERS_PAGE_SIZE,
+  adminServerDetailSchema,
   adminServerListSchema,
   adminServerSchema,
   adminServersQuery,
   adminSuspendBody,
 } from "./server-schemas"
 
-export const adminServersRoutes = new Elysia({
-  name: "admin-servers-routes",
-})
+const serverParams = t.Object({ id: t.String() })
+
+const readRoutes = new Elysia({ name: "admin-servers-read" })
   .use(requirePlatformAdmin)
   .get(
     "/servers",
@@ -30,7 +34,7 @@ export const adminServersRoutes = new Elysia({
           status: query.status,
           organization_id: query.organization_id,
           q: query.q,
-          limit: query.limit ?? ADMIN_SERVERS_PAGE_SIZE,
+          limit: query.limit ?? ADMIN_PAGE_SIZE,
           offset: query.offset ?? 0,
         })
       ),
@@ -45,6 +49,36 @@ export const adminServersRoutes = new Elysia({
       },
     }
   )
+  .get(
+    "/servers/:id",
+    async ({ params, request, set }) => {
+      const server = await readServerForPlatform(params.id)
+
+      if (!server) {
+        set.status = 404
+
+        return apiError(
+          "not_found",
+          translate(resolveLocale(request.headers), "server_not_found")
+        )
+      }
+
+      return { data: serializeData(server) }
+    },
+    {
+      params: serverParams,
+      detail: { summary: "Un serveur, son appareil, son droit et son journal" },
+      response: {
+        200: dataResponse(adminServerDetailSchema),
+        401: errorResponse,
+        403: errorResponse,
+        404: errorResponse,
+      },
+    }
+  )
+
+const writeRoutes = new Elysia({ name: "admin-servers-write" })
+  .use(requirePlatformRole("admin"))
   .post(
     "/servers/:id/suspend",
     async ({ user, params, body, request, set }) => {
@@ -79,7 +113,7 @@ export const adminServersRoutes = new Elysia({
       }
     },
     {
-      params: t.Object({ id: t.String() }),
+      params: serverParams,
       body: adminSuspendBody,
       detail: { summary: "Suspendre un serveur, avec la raison" },
       response: {
@@ -92,3 +126,53 @@ export const adminServersRoutes = new Elysia({
       },
     }
   )
+  .post(
+    "/servers/:id/restore",
+    async ({ user, params, request, set }) => {
+      const locale = resolveLocale(request.headers)
+
+      try {
+        const restored = await restoreServerByAdmin(
+          { userId: user.id },
+          params.id
+        )
+
+        if (!restored) {
+          set.status = 404
+
+          return apiError("not_found", translate(locale, "server_not_found"))
+        }
+
+        return { data: serializeData(restored) }
+      } catch (error) {
+        if (!(error instanceof ServerNotAdminSuspendedError)) {
+          throw error
+        }
+
+        set.status = 409
+
+        return apiError(
+          "conflict",
+          translate(locale, "server_not_admin_suspended"),
+          translate(locale, "server_not_admin_suspended_fix")
+        )
+      }
+    },
+    {
+      params: serverParams,
+      detail: { summary: "Lever une suspension posée par l'équipe" },
+      response: {
+        200: dataResponse(adminServerDetailSchema),
+        401: errorResponse,
+        403: errorResponse,
+        404: errorResponse,
+        409: errorResponse,
+      },
+    }
+  )
+
+export const adminServersRoutes = new Elysia({
+  name: "admin-servers-routes",
+})
+  .use(readRoutes)
+  .use(writeRoutes)

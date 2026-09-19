@@ -63,7 +63,10 @@ describe("hasPermission", () => {
   it("keeps the admin scope for platform_admin only", () => {
     expect(hasPermission("platform_admin", "admin:servers")).toBe(true)
     expect(hasPermission("platform_admin", "admin:releases")).toBe(true)
+    expect(hasPermission("platform_admin", "admin:users")).toBe(true)
+    expect(hasPermission("platform_admin", "admin:affiliate_links")).toBe(true)
     expect(hasPermission("owner", "admin:servers")).toBe(false)
+    expect(hasPermission("owner", "admin:affiliate_links")).toBe(false)
     expect(hasPermission("platform_admin", "billing:manage")).toBe(false)
   })
 

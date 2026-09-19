@@ -89,7 +89,7 @@ function layout(card: OgCard): Node {
     [
       node("div", { display: "flex", alignItems: "center", gap: 20 }, [
         markGlyph(),
-        text("Pupitre", { fontSize: 30, fontWeight: 700, letterSpacing: -0.6 }),
+        text("Pupitre", { fontSize: 32, fontWeight: 700, letterSpacing: -0.6 }),
         node("div", { display: "flex", flexGrow: 1 }),
         text(card.eyebrow.toUpperCase(), {
           fontFamily: "Mono",

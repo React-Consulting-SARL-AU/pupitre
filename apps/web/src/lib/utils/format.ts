@@ -57,6 +57,13 @@ export function formatRatio(ratio: number, t: Translate): string {
   return `${Math.round(ratio * 100)}${space}%`
 }
 
+/** A day, for what ends on one: a launch, a period, never a moment. */
+export function formatDate(value: string | Date, t: Translate): string {
+  return new Intl.DateTimeFormat(t.locale, { dateStyle: "long" }).format(
+    new Date(value)
+  )
+}
+
 export function formatDateTime(value: string | Date, t: Translate): string {
   return new Intl.DateTimeFormat(t.locale, {
     dateStyle: "medium",
