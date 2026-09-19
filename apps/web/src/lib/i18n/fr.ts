@@ -24,6 +24,7 @@ import { sidebar } from "./strings/sidebar"
 import { start } from "./strings/start"
 import { status } from "./strings/status"
 import { statusPage } from "./strings/status-page"
+import { table } from "./strings/table"
 import { twoFactor } from "./strings/two-factor"
 
 export const fr: Dictionary = {
@@ -51,6 +52,7 @@ export const fr: Dictionary = {
   ...settings.fr,
   ...account.fr,
   ...twoFactor.fr,
+  ...table.fr,
   ...admin.fr,
   ...inbox.fr,
 }

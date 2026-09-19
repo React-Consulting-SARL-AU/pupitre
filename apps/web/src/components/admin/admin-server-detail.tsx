@@ -1,14 +1,13 @@
 import { useQuery } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
-import { RotateCcw } from "lucide-react"
-import { AdminDeleteServerDialog } from "@/components/admin/admin-delete-server-dialog"
+import { Ban, RotateCcw, Trash2 } from "lucide-react"
 import { AdminEventsCard } from "@/components/admin/admin-events-card"
 import { AdminFacts } from "@/components/admin/admin-facts"
 import { AdminFailure } from "@/components/admin/admin-failure"
-import { AdminSuspendDialog } from "@/components/admin/admin-suspend-dialog"
 import { ServerAlerts } from "@/components/dashboard/server-alerts"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
+import { ConfirmFormDialog } from "@/components/ui/confirm-form-dialog"
 import { SkeletonCards } from "@/components/ui/skeleton"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
@@ -29,6 +28,7 @@ import {
 } from "@/lib/domain/admin"
 import { purgeable, type ServerDeletion } from "@/lib/domain/server-deletion"
 import { statusLook } from "@/lib/domain/server-status"
+import type { Translate } from "@/lib/i18n/i18n"
 import { formatDateTime, formatRatio, formatRelative } from "@/lib/utils/format"
 
 export interface AdminServerDetailProps {
@@ -38,6 +38,50 @@ export interface AdminServerDetailProps {
 interface Deletion {
   deletion: ServerDeletion
   reason: string
+}
+
+interface DeletableServer {
+  name: string
+  status: string
+  decommission_at: string | null
+  organization: { name: string }
+}
+
+interface DeletionCopy {
+  label: string
+  title: string
+  description: string
+  keyword: string | undefined
+  deletion: ServerDeletion
+}
+
+/** Revoking and purging are the same control, one step apart: the copy says which one it is. */
+function deletionCopy(server: DeletableServer, t: Translate): DeletionCopy {
+  if (purgeable(server.status)) {
+    return {
+      label: t("admin.servers.purge"),
+      title: t("admin.servers.purgeTitle"),
+      description: t("admin.servers.purgeDescription", {
+        name: server.name,
+        date: server.decommission_at
+          ? formatDateTime(server.decommission_at, t)
+          : t("format.none"),
+      }),
+      keyword: server.name,
+      deletion: "purge",
+    }
+  }
+
+  return {
+    label: t("admin.servers.delete"),
+    title: t("admin.servers.deleteTitle"),
+    description: t("admin.servers.deleteDescription", {
+      name: server.name,
+      organization: server.organization.name,
+    }),
+    keyword: undefined,
+    deletion: "revoke",
+  }
 }
 
 export function AdminServerDetail({ id }: AdminServerDetailProps) {
@@ -124,6 +168,7 @@ export function AdminServerDetail({ id }: AdminServerDetailProps) {
   const reason = suspendedReasonKey(detail.suspended_reason)
   const acts = canActOnPlatform(platformRole)
   const usage = detail.usage
+  const deletion = deletionCopy(detail, t)
 
   return (
     <div className="flex flex-col gap-gutter">
@@ -133,12 +178,24 @@ export function AdminServerDetail({ id }: AdminServerDetailProps) {
           <div className="flex items-center gap-3">
             <StatusBadge look={statusLook(detail.status, detail.stale)} />
             {acts && canSuspend(detail.status) ? (
-              <AdminSuspendDialog
+              <ConfirmFormDialog
                 busy={suspend.isPending}
-                onConfirm={(said) => {
-                  suspend.mutate(said)
+                busyLabel={t("admin.servers.suspending")}
+                confirmLabel={t("admin.servers.suspend")}
+                description={t("admin.servers.suspendDescription", {
+                  name: detail.name,
+                  organization: detail.organization.name,
+                })}
+                id={`suspend-${detail.id}`}
+                onConfirm={(values) => {
+                  suspend.mutate(values.reason)
                 }}
-                server={detail}
+                reason="required"
+                reasonLabel={t("admin.servers.reason")}
+                reasonRequiredMessage={t("admin.servers.reasonRequired")}
+                title={t("admin.servers.suspendTitle")}
+                triggerIcon={Ban}
+                triggerLabel={t("admin.servers.suspend")}
               />
             ) : null}
             {acts && canRestore(detail.suspended_reason) ? (
@@ -154,15 +211,25 @@ export function AdminServerDetail({ id }: AdminServerDetailProps) {
               </Button>
             ) : null}
             {acts ? (
-              <AdminDeleteServerDialog
+              <ConfirmFormDialog
                 busy={remove.isPending}
-                onConfirm={(reason) => {
+                busyLabel={t("admin.servers.deleting")}
+                confirmLabel={deletion.label}
+                description={deletion.description}
+                id={`delete-${detail.id}`}
+                keyword={deletion.keyword}
+                onConfirm={(values) => {
                   remove.mutate({
-                    deletion: purgeable(detail.status) ? "purge" : "revoke",
-                    reason,
+                    deletion: deletion.deletion,
+                    reason: values.reason,
                   })
                 }}
-                server={detail}
+                reason="required"
+                reasonLabel={t("admin.servers.reason")}
+                reasonRequiredMessage={t("admin.servers.reasonRequired")}
+                title={deletion.title}
+                triggerIcon={Trash2}
+                triggerLabel={deletion.label}
               />
             ) : null}
           </div>

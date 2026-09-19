@@ -4,11 +4,11 @@ import { CircleStop, Trash2 } from "lucide-react"
 import { AdminEventsCard } from "@/components/admin/admin-events-card"
 import { AdminFacts } from "@/components/admin/admin-facts"
 import { AdminFailure } from "@/components/admin/admin-failure"
-import { AdminReasonDialog } from "@/components/admin/admin-reason-dialog"
 import { AdminSubscriptionResizeForm } from "@/components/admin/admin-subscription-resize-form"
 import { AdminSubscriptionStatus } from "@/components/admin/admin-subscription-status"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { ConfirmFormDialog } from "@/components/ui/confirm-form-dialog"
 import { SkeletonCards } from "@/components/ui/skeleton"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
@@ -25,7 +25,6 @@ import {
   canCancelSubscription,
   canDeleteSubscription,
   canResizeSubscription,
-  MAX_REASON_LENGTH,
 } from "@/lib/domain/admin"
 import { formatDateTime, formatProduct } from "@/lib/utils/format"
 
@@ -114,23 +113,23 @@ export function AdminSubscriptionDetail({ id }: AdminSubscriptionDetailProps) {
               status={detail.status}
             />
             {acts && canCancelSubscription(detail.status) ? (
-              <AdminReasonDialog
+              <ConfirmFormDialog
                 busy={cancel.isPending}
                 busyLabel={t("admin.subscriptions.canceling")}
                 confirmLabel={t("admin.subscriptions.cancel")}
                 description={t("admin.subscriptions.cancelDescription", {
                   organization: detail.organization.name,
                 })}
-                fieldId="cancel-reason"
-                fieldLabel={t("admin.servers.reason")}
-                onConfirm={(reason) => {
-                  cancel.mutate(reason)
+                id="cancel"
+                onConfirm={(values) => {
+                  cancel.mutate(values.reason)
                 }}
-                requiredMessage={t("admin.subscriptions.cancelReasonRequired")}
+                reason="required"
+                reasonLabel={t("admin.servers.reason")}
+                reasonRequiredMessage={t(
+                  "admin.subscriptions.cancelReasonRequired"
+                )}
                 title={t("admin.subscriptions.cancelTitle")}
-                tooLongMessage={t("admin.servers.reasonTooLong", {
-                  max: MAX_REASON_LENGTH,
-                })}
                 triggerIcon={CircleStop}
                 triggerLabel={t("admin.subscriptions.cancel")}
               />

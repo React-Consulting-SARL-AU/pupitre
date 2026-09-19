@@ -64,3 +64,16 @@ export type OrganizationState = (typeof ORGANIZATION_STATES)[number]
 export function deletionDeadline(from: Date = new Date()): Date {
   return new Date(from.getTime() + DELETION_GRACE_DAYS * 86_400_000)
 }
+
+/** How many lines a work list of the overview shows before its "see everything" link. */
+export const WORKLIST_ITEMS = 5
+
+/** How close to its end a trial has to be for the overview to raise it. */
+export const TRIAL_WARN_DAYS = 7
+
+/** The global search: how short a query may be, how long, and how many hits a group returns. */
+export const PLATFORM_SEARCH_MIN_LENGTH = 2
+
+export const PLATFORM_SEARCH_MAX_LENGTH = 80
+
+export const PLATFORM_SEARCH_RESULTS = 5

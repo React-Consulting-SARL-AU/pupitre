@@ -1,25 +1,22 @@
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
 import { Users } from "lucide-react"
-import { AdminFailure } from "@/components/admin/admin-failure"
+import {
+  type AdminTeamRowMember,
+  adminTeamColumns,
+} from "@/components/admin/admin-team-columns"
+import { AsyncDataTable } from "@/components/ui/async-data-table"
 import { buttonClassName } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
-import { Card, CardHeader, CardTitle } from "@/components/ui/card"
-import { SkeletonRows } from "@/components/ui/skeleton"
 import { useTranslations } from "@/hooks/use-locale"
 import { adminTeamQueryOptions } from "@/lib/api/admin-queries"
-import { roleKey } from "@/lib/domain/roles"
-import { formatDate } from "@/lib/utils/format"
+
+const PAGE_SIZE = 50
 
 export function AdminTeam() {
   const t = useTranslations()
   const team = useQuery(adminTeamQueryOptions())
-
-  function roleName(role: string): string {
-    const key = roleKey(role)
-
-    return key ? t(key) : role
-  }
+  const members: AdminTeamRowMember[] = team.data ?? []
 
   return (
     <div className="flex flex-col gap-gutter">
@@ -36,49 +33,24 @@ export function AdminTeam() {
         title={t("admin.team.rolesLiveOnTheOrganization")}
       />
 
-      {team.isPending ? <SkeletonRows label={t("admin.reading")} /> : null}
-
-      {team.isError ? (
-        <AdminFailure
-          fetching={team.isFetching}
-          onRetry={() => {
-            team.refetch()
-          }}
-        />
-      ) : null}
-
-      {team.isSuccess ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("admin.team.title")}</CardTitle>
-            <span className="font-data text-[12px] text-ink-3 tabular-nums">
-              {team.data.length}
-            </span>
-          </CardHeader>
-
-          <ul>
-            {team.data.map((member) => (
-              <li
-                className="flex flex-wrap items-center gap-4 border-line border-b px-4 py-3 last:border-b-0"
-                key={member.user_id}
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px] text-ink">{member.name}</p>
-                  <p className="truncate font-data text-[12px] text-ink-3">
-                    {member.email}
-                  </p>
-                </div>
-                <span className="text-[12px] text-ink-2 sm:w-24">
-                  {roleName(member.role)}
-                </span>
-                <span className="font-data text-[12px] text-ink-3 tabular-nums sm:w-28 sm:text-right">
-                  {formatDate(member.created_at, t)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      ) : null}
+      <AsyncDataTable
+        columns={adminTeamColumns(t)}
+        data={members}
+        emptyIcon={Users}
+        emptyTitle={t("admin.team.empty")}
+        isError={team.isError}
+        isFetching={team.isFetching}
+        isPending={team.isPending}
+        limit={PAGE_SIZE}
+        offset={0}
+        onOffsetChange={() => undefined}
+        refetch={() => {
+          team.refetch()
+        }}
+        rowKey={(member) => member.user_id}
+        title={t("admin.team.title")}
+        total={members.length}
+      />
     </div>
   )
 }

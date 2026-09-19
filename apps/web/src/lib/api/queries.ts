@@ -48,6 +48,7 @@ export const queryKeys = {
     releases: ["admin", "releases"] as const,
     appReleases: ["admin", "app-releases"] as const,
     team: ["admin", "team"] as const,
+    search: (query: string) => ["admin", "search", query] as const,
   },
 }
 
