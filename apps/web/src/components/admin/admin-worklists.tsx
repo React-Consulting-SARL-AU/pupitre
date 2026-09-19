@@ -1,4 +1,11 @@
-import { CreditCard, HardDrive, Hourglass, Inbox, Users } from "lucide-react"
+import {
+  CreditCard,
+  HardDrive,
+  Hourglass,
+  Inbox,
+  Trash2,
+  Users,
+} from "lucide-react"
 import { AdminWorklistCard } from "@/components/admin/admin-worklist-card"
 import { useTranslations } from "@/hooks/use-locale"
 import type { AdminOverviewData } from "@/lib/api/admin-queries"
@@ -117,6 +124,36 @@ export function AdminWorklists({ worklists }: AdminWorklistsProps) {
         icon={Users}
         seeAll={{ to: "/dashboard/admin/organizations" }}
         title={t("admin.worklists.seatsDrifted")}
+      />
+
+      <AdminWorklistCard
+        count={worklists.deletions_scheduled.count}
+        emptyLabel={empty}
+        entries={worklists.deletions_scheduled.items.map((scheduled) => ({
+          id: `${scheduled.kind}-${scheduled.id}`,
+          to:
+            scheduled.kind === "user"
+              ? {
+                  to: "/dashboard/admin/users/$id",
+                  params: { id: scheduled.id },
+                }
+              : {
+                  to: "/dashboard/admin/organizations/$id",
+                  params: { id: scheduled.id },
+                },
+          primary: scheduled.label,
+          secondary: `${t(
+            scheduled.kind === "user"
+              ? "admin.worklists.deletionKind.user"
+              : "admin.worklists.deletionKind.organization"
+          )} · ${formatDate(scheduled.deletion_at, t)}`,
+        }))}
+        icon={Trash2}
+        seeAll={{
+          to: "/dashboard/admin/users",
+          search: { state: "deleting" },
+        }}
+        title={t("admin.worklists.deletionsScheduled")}
       />
     </div>
   )

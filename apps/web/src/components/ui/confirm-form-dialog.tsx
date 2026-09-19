@@ -40,6 +40,12 @@ export interface ConfirmFormDialogProps {
   /** A row has no room for a sentence: the icon carries the action, the word names it. */
   triggerIconOnly?: boolean
   triggerDisabled?: boolean
+  /** Why the trigger is dead, on the trigger itself. */
+  triggerTitle?: string
+  /** Opened from outside — a row menu carries the act, so the dialog grows no trigger of its own. */
+  open?: boolean
+  /** Called whichever side holds the dialog: a refusal is cleared when it closes. */
+  onOpenChange?: (open: boolean) => void
   title: string
   /** What happens once the button is pressed, in one sentence. */
   description: string
@@ -60,9 +66,6 @@ export interface ConfirmFormDialogProps {
   tone?: ConfirmTone
   /** The server's refusal, shown inside the dialog, which stays open with the typing intact. */
   refusal?: ConfirmRefusal | null
-  /** Given when the gesture is offered somewhere a trigger cannot live, such as a row menu that closes on select; the dialog then carries no trigger of its own. */
-  open?: boolean
-  onOpenChange?: (open: boolean) => void
   onConfirm: (values: ConfirmFormValues) => void
   children?: ReactNode
 }
@@ -81,6 +84,9 @@ export function ConfirmFormDialog({
   triggerIcon: TriggerIcon,
   triggerIconOnly = false,
   triggerDisabled = false,
+  triggerTitle,
+  open,
+  onOpenChange,
   title,
   description,
   reason = "optional",
@@ -95,8 +101,6 @@ export function ConfirmFormDialog({
   busyLabel,
   tone = "danger",
   refusal = null,
-  open,
-  onOpenChange,
   onConfirm,
   children,
 }: ConfirmFormDialogProps) {
@@ -181,7 +185,9 @@ export function ConfirmFormDialog({
               disabled={triggerDisabled}
               icon={TriggerIcon}
               size="sm"
-              title={triggerIconOnly ? triggerLabel : undefined}
+              title={
+                triggerTitle ?? (triggerIconOnly ? triggerLabel : undefined)
+              }
               variant={TRIGGER_VARIANTS[tone]}
             >
               {triggerIconOnly ? null : triggerLabel}

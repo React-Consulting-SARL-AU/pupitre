@@ -58,6 +58,7 @@ describe("AdminOverview", () => {
     expect(container.textContent).toContain("Trials ending")
     expect(container.textContent).toContain("Unreachable servers")
     expect(container.textContent).toContain("Seats over the subscription")
+    expect(container.textContent).toContain("Scheduled deletions")
     expect(container.textContent).toContain("Nothing to handle")
     expect(container.textContent).not.toContain("See everything")
   })
@@ -116,5 +117,32 @@ describe("AdminOverview", () => {
     )
 
     expect(links).toContain("/dashboard/admin/subscriptions?status=past_due")
+  })
+
+  it("raises a scheduled deletion and links to the account it will erase", async () => {
+    const { prisma } = await bootApiTestServer()
+    const doomed = await createConsoleUser({ email: "ada@test.local" })
+
+    await prisma.user.update({
+      where: { id: doomed.user.id },
+      data: { deletionAt: new Date(), deletionReason: "demande" },
+    })
+
+    const { container, unmount } = await render(page())
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("ada@test.local") === true
+    )
+
+    const link = [...container.querySelectorAll("a")].find(
+      (anchor) => anchor.textContent?.includes("ada@test.local") === true
+    )
+
+    expect(link?.getAttribute("href")).toBe(
+      `/dashboard/admin/users/${doomed.user.id}`
+    )
+    expect(container.textContent).toContain("Account ·")
   })
 })

@@ -1,4 +1,6 @@
 import type { DataColumn } from "@/components/ui/async-data-table"
+import { StatusBadge } from "@/components/ui/status-badge"
+import { organizationLook } from "@/lib/domain/admin"
 import { subscriptionStatusLook } from "@/lib/domain/billing"
 import type { Translate } from "@/lib/i18n/i18n"
 import { formatDate } from "@/lib/utils/format"
@@ -9,6 +11,7 @@ export interface AdminOrganizationRowOrganization {
   slug: string
   personal: boolean
   created_at: string
+  state: string
   members: number
   servers: number
   subscription: { status: string; product: string | null } | null
@@ -32,6 +35,14 @@ export function adminOrganizationColumns(
               : ""}
           </span>
         </>
+      ),
+    },
+    {
+      key: "state",
+      header: t("admin.users.state"),
+      width: "w-40",
+      cell: (organization) => (
+        <StatusBadge look={organizationLook(organization.state)} />
       ),
     },
     {

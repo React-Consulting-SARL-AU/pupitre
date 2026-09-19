@@ -33,6 +33,9 @@ export const admin = {
     "admin.worklists.serversUnreachable": "Unreachable servers",
     "admin.worklists.seatsDrifted": "Seats over the subscription",
     "admin.worklists.seatsDrift": "{used} servers for {paid} seats",
+    "admin.worklists.deletionsScheduled": "Scheduled deletions",
+    "admin.worklists.deletionKind.user": "Account",
+    "admin.worklists.deletionKind.organization": "Organisation",
 
     "admin.users.profile": "Account",
     "admin.users.email": "Email",
@@ -41,34 +44,118 @@ export const admin = {
     "admin.users.createdAt": "Created",
     "admin.users.emailVerified": "Email verification",
     "admin.users.platformRole": "Platform role",
-    "admin.users.banExpires": "Ban ends",
-    "admin.users.banForever": "No end date",
     "admin.users.organizations": "Organisations",
     "admin.users.devices": "Devices",
     "admin.users.noDevice": "No device signed in.",
     "admin.users.assignedServers": "Servers assigned to this account",
     "admin.users.noAssignedServer": "No server assigned to this account.",
-    "admin.users.ban": "Ban",
-    "admin.users.banning": "Banning…",
-    "admin.users.unban": "Lift the ban",
-    "admin.users.banTitle": "Ban this account?",
-    "admin.users.banDescription":
-      "{email} can no longer sign in. Its servers keep running; the ban only closes the console and the app.",
-    "admin.users.banReason": "Reason",
-    "admin.users.banReasonRequired":
-      "Give the reason: the ban is logged with it.",
     "admin.users.searchPlaceholder": "Email or name",
     "admin.users.title": "Users",
     "admin.users.empty": "No user matches.",
     "admin.users.created": "Created on {date}",
     "admin.users.noRole": "No platform role",
-    "admin.users.banned": "Banned",
     "admin.users.unverified": "Email not verified",
     "admin.users.active": "Verified",
     "admin.users.noOrganization": "No organisation",
     "admin.users.noSubscription": "no subscription",
     "admin.users.servers.one": "{count} server",
     "admin.users.servers.other": "{count} servers",
+
+    "admin.users.state.active": "Active",
+    "admin.users.state.suspended": "Suspended",
+    "admin.users.state.deactivated": "Deactivated",
+    "admin.users.state.deleting": "Deletion scheduled",
+    "admin.users.stateFilter": "Account state",
+    "admin.users.allStates": "Every state",
+    "admin.users.stateReason": "Reason for the state",
+    "admin.users.suspendedUntil": "Suspension ends",
+    "admin.users.suspendedForever": "No end date",
+    "admin.users.deactivatedAt": "Deactivated on",
+    "admin.users.deletionAt": "Purged on",
+    "admin.users.sessions": "Open sessions",
+    "admin.users.lastSeen": "Last seen",
+
+    "admin.users.tabs": "Account sections",
+    "admin.users.tab.overview": "Overview",
+    "admin.users.tab.devices": "Devices",
+    "admin.users.tab.servers": "Servers",
+    "admin.users.tab.events": "Log",
+    "admin.users.tab.danger": "Danger",
+
+    "admin.users.reason": "Reason",
+    "admin.users.reasonRequired": "Give the reason: it is logged with the act.",
+    "admin.users.platformMember":
+      "This account belongs to the Pupitre organisation. Remove it from that organisation's members before suspending, deactivating or deleting it.",
+    "admin.users.roleRequired":
+      "The owner or admin role in the Pupitre organisation is required.",
+
+    "admin.users.suspend": "Suspend the account",
+    "admin.users.suspendTitle": "Suspend the account?",
+    "admin.users.suspendDescription":
+      "{email} can no longer open the console or the app, and its sessions and device codes drop. The servers of its organisations keep running.",
+    "admin.users.suspendUntil": "Suspension ends (optional)",
+    "admin.users.suspending": "Suspending…",
+    "admin.users.suspendDone": "The account {email} is suspended.",
+    "admin.users.suspendFailed": "The account was not suspended.",
+    "admin.users.suspendFailedFix":
+      "A member of the Pupitre organisation is not suspended from here.",
+    "admin.users.unsuspend": "Lift the account suspension",
+    "admin.users.unsuspending": "Lifting…",
+    "admin.users.unsuspendDescription":
+      "{email} signs in again. The sessions do not come back: the account signs in anew.",
+    "admin.users.unsuspendDone": "The suspension of {email} is lifted.",
+    "admin.users.unsuspendFailed": "The suspension was not lifted.",
+
+    "admin.users.deactivate": "Deactivate the account",
+    "admin.users.deactivateTitle": "Deactivate the account?",
+    "admin.users.deactivateDescription":
+      "{email} loses its sessions, its devices and every server assigned to it. The data of the account stays.",
+    "admin.users.deactivating": "Deactivating…",
+    "admin.users.deactivateDone": "The account {email} is deactivated.",
+    "admin.users.deactivateFailed": "The account was not deactivated.",
+    "admin.users.reactivate": "Reactivate the account",
+    "admin.users.reactivateDescription":
+      "{email} signs in again. The devices do not come back: the account registers new ones.",
+    "admin.users.reactivating": "Reactivating…",
+    "admin.users.reactivateDone": "The account {email} is reactivated.",
+    "admin.users.reactivateFailed": "The account was not reactivated.",
+
+    "admin.users.delete": "Delete the account",
+    "admin.users.deleteTitle": "Delete the account?",
+    "admin.users.deleteDescription":
+      "{email} is erased in {days} days, with its sessions, its devices and its memberships. Until then, “Cancel the account deletion” brings it back.",
+    "admin.users.deletingNow": "Deleting…",
+    "admin.users.deleteDone": "The account {email} is erased in {days} days.",
+    "admin.users.deleteFailed": "The account was not deleted.",
+    "admin.users.deleteFailedFix":
+      "The sole owner of an organisation that still holds a server or a subscription is not erased: transfer or close that organisation first.",
+    "admin.users.purge": "Purge the account now",
+    "admin.users.purgeTitle": "Purge the account now?",
+    "admin.users.purgeDescription":
+      "{email} leaves the database at once, with its sessions, its devices and its memberships. The servers it held lose their assignment.",
+    "admin.users.purgeDone": "The account {email} is purged.",
+    "admin.users.cancelDeletion": "Cancel the account deletion",
+    "admin.users.cancelDeletionDescription":
+      "{email} keeps its rows: the purge planned for {date} does not happen. The devices do not come back.",
+    "admin.users.cancelDeletionDone":
+      "The deletion of the account {email} is cancelled.",
+
+    "admin.users.revokeSessions": "Revoke the account sessions",
+    "admin.users.revokeSessionsTitle": "Revoke the account sessions?",
+    "admin.users.revokeSessionsDescription":
+      "{email} signs in again on the console and in the app. Nothing else moves.",
+    "admin.users.revokingSessions": "Revoking…",
+    "admin.users.revokeSessionsDone": "The sessions of {email} are revoked.",
+    "admin.users.revokeSessionsFailed": "The sessions were not revoked.",
+    "admin.users.resendVerification": "Send the verification email again",
+    "admin.users.resendingVerification": "Sending…",
+    "admin.users.resendVerificationDone":
+      "The verification email left again for {email}.",
+    "admin.users.resendVerificationFailed":
+      "The verification email did not leave.",
+    "admin.users.resendVerificationFailedFix":
+      "The address may already be verified.",
+
     "admin.users.revokeDevice": "Revoke",
     "admin.users.revoking": "Revoking…",
     "admin.users.revokeTitle": "Revoke this device?",
@@ -201,6 +288,118 @@ export const admin = {
     "admin.organizations.noSubscription": "No subscription, past or present.",
     "admin.organizations.members.one": "{count} member",
     "admin.organizations.members.other": "{count} members",
+
+    "admin.organizations.state.active": "Active",
+    "admin.organizations.state.suspended": "Suspended",
+    "admin.organizations.state.closed": "Closed",
+    "admin.organizations.state.deleting": "Deletion scheduled",
+    "admin.organizations.stateFilter": "Organisation state",
+    "admin.organizations.allStates": "Every state",
+    "admin.organizations.stateReason": "Reason for the state",
+    "admin.organizations.suspendedAt": "Suspended on",
+    "admin.organizations.closedAt": "Closed on",
+    "admin.organizations.deletionAt": "Purged on",
+    "admin.organizations.owners": "Owners",
+    "admin.organizations.noOwner": "No owner.",
+    "admin.organizations.liveSubscription": "Subscription that counts",
+    "admin.organizations.openSubscription": "Open the subscription",
+    "admin.organizations.seats": "Seats paid · seats held",
+
+    "admin.organizations.tabs": "Organisation sections",
+    "admin.organizations.tab.overview": "Overview",
+    "admin.organizations.tab.members": "Members",
+    "admin.organizations.tab.servers": "Servers",
+    "admin.organizations.tab.subscriptions": "Subscriptions",
+    "admin.organizations.tab.events": "Log",
+    "admin.organizations.tab.settings": "Settings",
+    "admin.organizations.tab.danger": "Danger",
+
+    "admin.organizations.reason": "Reason",
+    "admin.organizations.reasonRequired":
+      "Give the reason: the owners read it.",
+    "admin.organizations.platformOrganization":
+      "The Pupitre organisation is the platform's own: it is neither suspended, closed nor deleted.",
+    "admin.organizations.roleRequired":
+      "The owner or admin role in the Pupitre organisation is required.",
+
+    "admin.organizations.suspend": "Suspend the organisation",
+    "admin.organizations.suspendTitle": "Suspend the organisation?",
+    "admin.organizations.suspendDescription":
+      "The servers of {name} stop receiving keys at the agent's next report and the owners receive the reason by email. The members still open the console.",
+    "admin.organizations.suspending": "Suspending…",
+    "admin.organizations.suspendDone": "The organisation {name} is suspended.",
+    "admin.organizations.suspendFailed": "The organisation was not suspended.",
+    "admin.organizations.restore": "Lift the organisation suspension",
+    "admin.organizations.restoreDescription":
+      "The servers {name} held before the suspension come back to what its subscription allows today.",
+    "admin.organizations.restoring": "Lifting…",
+    "admin.organizations.restoreDone": "The suspension of {name} is lifted.",
+    "admin.organizations.restoreFailed": "The suspension was not lifted.",
+
+    "admin.organizations.close": "Close the organisation",
+    "admin.organizations.closeTitle": "Close the organisation?",
+    "admin.organizations.closeDescription":
+      "The subscription of {name} is stopped at once and its servers are suspended. Its members no longer open it; the data stays.",
+    "admin.organizations.closing": "Closing…",
+    "admin.organizations.closeDone": "The organisation {name} is closed.",
+    "admin.organizations.closeFailed": "The organisation was not closed.",
+    "admin.organizations.reopen": "Reopen the organisation",
+    "admin.organizations.reopenDescription":
+      "{name} opens again for its members, and a scheduled deletion is cancelled with it. The subscription does not come back.",
+    "admin.organizations.reopening": "Reopening…",
+    "admin.organizations.reopenDone": "The organisation {name} is reopened.",
+    "admin.organizations.reopenFailed": "The organisation was not reopened.",
+
+    "admin.organizations.delete": "Delete the organisation",
+    "admin.organizations.deleteTitle": "Delete the organisation?",
+    "admin.organizations.deleteDescription":
+      "{name} is erased in {days} days, with its members, its servers and its subscriptions. Until then, “Reopen the organisation” brings it back.",
+    "admin.organizations.deletingNow": "Deleting…",
+    "admin.organizations.deleteDone":
+      "The organisation {name} is erased in {days} days.",
+    "admin.organizations.deleteFailed": "The organisation was not deleted.",
+    "admin.organizations.purge": "Purge the organisation now",
+    "admin.organizations.purgeTitle": "Purge the organisation now?",
+    "admin.organizations.purgeDescription":
+      "{name} leaves the database at once, with its members, its servers, its subscriptions and its billing.",
+    "admin.organizations.purgeDone": "The organisation {name} is purged.",
+    "admin.organizations.cancelDeletion": "Cancel the organisation deletion",
+    "admin.organizations.cancelDeletionDescription":
+      "{name} keeps its rows: the purge planned for {date} does not happen, and the organisation reopens.",
+    "admin.organizations.cancelDeletionDone":
+      "The deletion of the organisation {name} is cancelled.",
+
+    "admin.organizations.rename": "Rename the organisation",
+    "admin.organizations.nameField": "Organisation name",
+    "admin.organizations.slugField": "Organisation slug",
+    "admin.organizations.renameApply": "Apply",
+    "admin.organizations.renaming": "Applying…",
+    "admin.organizations.renameDone": "The organisation is called {name}.",
+    "admin.organizations.renameFailed": "The organisation was not renamed.",
+    "admin.organizations.renameFailedFix":
+      "Another organisation may already carry that slug.",
+    "admin.organizations.nameRequired": "Give the organisation a name.",
+    "admin.organizations.slugRequired": "Give the organisation a slug.",
+    "admin.organizations.textTooLong": "At most {max} characters.",
+
+    "admin.organizations.memberActions": "Acts on the member {email}",
+    "admin.organizations.transfer": "Transfer the ownership",
+    "admin.organizations.transferTitle": "Transfer the ownership?",
+    "admin.organizations.transferDescription":
+      "{email} becomes the owner of {name}. The current owners become administrators.",
+    "admin.organizations.transferring": "Transferring…",
+    "admin.organizations.transferDone": "{email} owns {name}.",
+    "admin.organizations.transferFailed": "The ownership was not transferred.",
+    "admin.organizations.removeMember": "Remove the member",
+    "admin.organizations.removeMemberTitle":
+      "Remove the member from the organisation?",
+    "admin.organizations.removeMemberDescription":
+      "{email} leaves {name} and loses the servers assigned to it there.",
+    "admin.organizations.removingMember": "Removing…",
+    "admin.organizations.removeMemberDone": "{email} has left {name}.",
+    "admin.organizations.removeMemberFailed": "The member was not removed.",
+    "admin.organizations.removeMemberFailedFix":
+      "An organisation keeps at least one owner: transfer the ownership first.",
 
     "admin.subscriptions.title": "Subscriptions",
     "admin.subscriptions.empty": "No subscription matches.",
@@ -490,6 +689,9 @@ export const admin = {
     "admin.worklists.serversUnreachable": "Serveurs injoignables",
     "admin.worklists.seatsDrifted": "Sièges dépassés",
     "admin.worklists.seatsDrift": "{used} serveurs pour {paid} sièges",
+    "admin.worklists.deletionsScheduled": "Suppressions programmées",
+    "admin.worklists.deletionKind.user": "Compte",
+    "admin.worklists.deletionKind.organization": "Organisation",
 
     "admin.users.profile": "Compte",
     "admin.users.email": "Email",
@@ -498,34 +700,119 @@ export const admin = {
     "admin.users.createdAt": "Créé",
     "admin.users.emailVerified": "Vérification de l'email",
     "admin.users.platformRole": "Rôle plateforme",
-    "admin.users.banExpires": "Fin du bannissement",
-    "admin.users.banForever": "Sans date de fin",
     "admin.users.organizations": "Organisations",
     "admin.users.devices": "Appareils",
     "admin.users.noDevice": "Aucun appareil connecté.",
     "admin.users.assignedServers": "Serveurs attribués à ce compte",
     "admin.users.noAssignedServer": "Aucun serveur attribué à ce compte.",
-    "admin.users.ban": "Bannir",
-    "admin.users.banning": "Bannissement…",
-    "admin.users.unban": "Lever le bannissement",
-    "admin.users.banTitle": "Bannir ce compte ?",
-    "admin.users.banDescription":
-      "{email} ne peut plus se connecter. Ses serveurs continuent de tourner ; le bannissement ne ferme que la console et l'app.",
-    "admin.users.banReason": "Motif",
-    "admin.users.banReasonRequired":
-      "Indiquez le motif : le bannissement est journalisé avec lui.",
     "admin.users.searchPlaceholder": "Email ou nom",
     "admin.users.title": "Utilisateurs",
     "admin.users.empty": "Aucun utilisateur ne correspond.",
     "admin.users.created": "Créé le {date}",
     "admin.users.noRole": "Aucun rôle plateforme",
-    "admin.users.banned": "Banni",
     "admin.users.unverified": "Email non vérifié",
     "admin.users.active": "Vérifié",
     "admin.users.noOrganization": "Aucune organisation",
     "admin.users.noSubscription": "sans abonnement",
     "admin.users.servers.one": "{count} serveur",
     "admin.users.servers.other": "{count} serveurs",
+
+    "admin.users.state.active": "Actif",
+    "admin.users.state.suspended": "Suspendu",
+    "admin.users.state.deactivated": "Désactivé",
+    "admin.users.state.deleting": "Suppression programmée",
+    "admin.users.stateFilter": "État du compte",
+    "admin.users.allStates": "Tous les états",
+    "admin.users.stateReason": "Motif de l'état",
+    "admin.users.suspendedUntil": "Fin de la suspension",
+    "admin.users.suspendedForever": "Sans date de fin",
+    "admin.users.deactivatedAt": "Désactivé le",
+    "admin.users.deletionAt": "Purgé le",
+    "admin.users.sessions": "Sessions ouvertes",
+    "admin.users.lastSeen": "Dernière activité",
+
+    "admin.users.tabs": "Sections du compte",
+    "admin.users.tab.overview": "Aperçu",
+    "admin.users.tab.devices": "Appareils",
+    "admin.users.tab.servers": "Serveurs",
+    "admin.users.tab.events": "Journal",
+    "admin.users.tab.danger": "Danger",
+
+    "admin.users.reason": "Motif",
+    "admin.users.reasonRequired":
+      "Indiquez le motif : il est journalisé avec le geste.",
+    "admin.users.platformMember":
+      "Ce compte est membre de l'organisation Pupitre. Retirez-le des membres de cette organisation avant de le suspendre, de le désactiver ou de le supprimer.",
+    "admin.users.roleRequired":
+      "Le rôle owner ou admin de l'organisation Pupitre est requis.",
+
+    "admin.users.suspend": "Suspendre le compte",
+    "admin.users.suspendTitle": "Suspendre le compte ?",
+    "admin.users.suspendDescription":
+      "{email} n'ouvre plus la console ni l'app, et ses sessions comme ses codes d'appareil tombent. Les serveurs de ses organisations continuent de tourner.",
+    "admin.users.suspendUntil": "Fin de la suspension (facultative)",
+    "admin.users.suspending": "Suspension…",
+    "admin.users.suspendDone": "Le compte {email} est suspendu.",
+    "admin.users.suspendFailed": "Le compte n'a pas été suspendu.",
+    "admin.users.suspendFailedFix":
+      "Un membre de l'organisation Pupitre ne se suspend pas d'ici.",
+    "admin.users.unsuspend": "Lever la suspension du compte",
+    "admin.users.unsuspending": "Levée…",
+    "admin.users.unsuspendDescription":
+      "{email} se connecte à nouveau. Les sessions ne reviennent pas : le compte se reconnecte.",
+    "admin.users.unsuspendDone": "La suspension de {email} est levée.",
+    "admin.users.unsuspendFailed": "La suspension n'a pas été levée.",
+
+    "admin.users.deactivate": "Désactiver le compte",
+    "admin.users.deactivateTitle": "Désactiver le compte ?",
+    "admin.users.deactivateDescription":
+      "{email} perd ses sessions, ses appareils et chaque serveur qui lui était attribué. Les données du compte restent.",
+    "admin.users.deactivating": "Désactivation…",
+    "admin.users.deactivateDone": "Le compte {email} est désactivé.",
+    "admin.users.deactivateFailed": "Le compte n'a pas été désactivé.",
+    "admin.users.reactivate": "Réactiver le compte",
+    "admin.users.reactivateDescription":
+      "{email} se connecte à nouveau. Les appareils ne reviennent pas : le compte en réenregistre.",
+    "admin.users.reactivating": "Réactivation…",
+    "admin.users.reactivateDone": "Le compte {email} est réactivé.",
+    "admin.users.reactivateFailed": "Le compte n'a pas été réactivé.",
+
+    "admin.users.delete": "Supprimer le compte",
+    "admin.users.deleteTitle": "Supprimer le compte ?",
+    "admin.users.deleteDescription":
+      "{email} est effacé dans {days} jours, avec ses sessions, ses appareils et ses appartenances. D'ici là, « Annuler la suppression du compte » le rend.",
+    "admin.users.deletingNow": "Suppression…",
+    "admin.users.deleteDone": "Le compte {email} est effacé dans {days} jours.",
+    "admin.users.deleteFailed": "Le compte n'a pas été supprimé.",
+    "admin.users.deleteFailedFix":
+      "Le seul propriétaire d'une organisation qui porte encore un serveur ou un abonnement ne s'efface pas : transférez ou fermez cette organisation d'abord.",
+    "admin.users.purge": "Purger le compte maintenant",
+    "admin.users.purgeTitle": "Purger le compte maintenant ?",
+    "admin.users.purgeDescription":
+      "{email} quitte la base sur-le-champ, avec ses sessions, ses appareils et ses appartenances. Les serveurs qu'il tenait perdent leur attribution.",
+    "admin.users.purgeDone": "Le compte {email} est purgé.",
+    "admin.users.cancelDeletion": "Annuler la suppression du compte",
+    "admin.users.cancelDeletionDescription":
+      "{email} garde ses lignes : la purge prévue le {date} n'a pas lieu. Les appareils ne reviennent pas.",
+    "admin.users.cancelDeletionDone":
+      "La suppression du compte {email} est annulée.",
+
+    "admin.users.revokeSessions": "Révoquer les sessions du compte",
+    "admin.users.revokeSessionsTitle": "Révoquer les sessions du compte ?",
+    "admin.users.revokeSessionsDescription":
+      "{email} se reconnecte sur la console et dans l'app. Rien d'autre ne bouge.",
+    "admin.users.revokingSessions": "Révocation…",
+    "admin.users.revokeSessionsDone": "Les sessions de {email} sont révoquées.",
+    "admin.users.revokeSessionsFailed": "Les sessions n'ont pas été révoquées.",
+    "admin.users.resendVerification": "Renvoyer l'email de vérification",
+    "admin.users.resendingVerification": "Envoi…",
+    "admin.users.resendVerificationDone":
+      "L'email de vérification est reparti à {email}.",
+    "admin.users.resendVerificationFailed":
+      "L'email de vérification n'est pas parti.",
+    "admin.users.resendVerificationFailedFix":
+      "L'adresse est peut-être déjà vérifiée.",
+
     "admin.users.revokeDevice": "Révoquer",
     "admin.users.revoking": "Révocation…",
     "admin.users.revokeTitle": "Révoquer cet appareil ?",
@@ -660,6 +947,121 @@ export const admin = {
     "admin.organizations.noSubscription": "Aucun abonnement, passé ou présent.",
     "admin.organizations.members.one": "{count} membre",
     "admin.organizations.members.other": "{count} membres",
+
+    "admin.organizations.state.active": "Active",
+    "admin.organizations.state.suspended": "Suspendue",
+    "admin.organizations.state.closed": "Fermée",
+    "admin.organizations.state.deleting": "Suppression programmée",
+    "admin.organizations.stateFilter": "État de l'organisation",
+    "admin.organizations.allStates": "Tous les états",
+    "admin.organizations.stateReason": "Motif de l'état",
+    "admin.organizations.suspendedAt": "Suspendue le",
+    "admin.organizations.closedAt": "Fermée le",
+    "admin.organizations.deletionAt": "Purgée le",
+    "admin.organizations.owners": "Propriétaires",
+    "admin.organizations.noOwner": "Aucun propriétaire.",
+    "admin.organizations.liveSubscription": "Abonnement qui compte",
+    "admin.organizations.openSubscription": "Ouvrir l'abonnement",
+    "admin.organizations.seats": "Sièges payés · sièges occupés",
+
+    "admin.organizations.tabs": "Sections de l'organisation",
+    "admin.organizations.tab.overview": "Aperçu",
+    "admin.organizations.tab.members": "Membres",
+    "admin.organizations.tab.servers": "Serveurs",
+    "admin.organizations.tab.subscriptions": "Abonnements",
+    "admin.organizations.tab.events": "Journal",
+    "admin.organizations.tab.settings": "Réglages",
+    "admin.organizations.tab.danger": "Danger",
+
+    "admin.organizations.reason": "Motif",
+    "admin.organizations.reasonRequired":
+      "Indiquez le motif : les propriétaires le lisent.",
+    "admin.organizations.platformOrganization":
+      "L'organisation Pupitre est celle de la plateforme : elle ne se suspend, ne se ferme ni ne se supprime.",
+    "admin.organizations.roleRequired":
+      "Le rôle owner ou admin de l'organisation Pupitre est requis.",
+
+    "admin.organizations.suspend": "Suspendre l'organisation",
+    "admin.organizations.suspendTitle": "Suspendre l'organisation ?",
+    "admin.organizations.suspendDescription":
+      "Les serveurs de {name} cessent de recevoir des clés au prochain état de l'agent et les propriétaires reçoivent le motif par email. Les membres ouvrent encore la console.",
+    "admin.organizations.suspending": "Suspension…",
+    "admin.organizations.suspendDone": "L'organisation {name} est suspendue.",
+    "admin.organizations.suspendFailed":
+      "L'organisation n'a pas été suspendue.",
+    "admin.organizations.restore": "Lever la suspension de l'organisation",
+    "admin.organizations.restoreDescription":
+      "Les serveurs que {name} tenait avant la suspension reviennent à ce que son abonnement permet aujourd'hui.",
+    "admin.organizations.restoring": "Levée…",
+    "admin.organizations.restoreDone": "La suspension de {name} est levée.",
+    "admin.organizations.restoreFailed": "La suspension n'a pas été levée.",
+
+    "admin.organizations.close": "Fermer l'organisation",
+    "admin.organizations.closeTitle": "Fermer l'organisation ?",
+    "admin.organizations.closeDescription":
+      "L'abonnement de {name} est arrêté sur-le-champ et ses serveurs sont suspendus. Ses membres ne l'ouvrent plus ; les données restent.",
+    "admin.organizations.closing": "Fermeture…",
+    "admin.organizations.closeDone": "L'organisation {name} est fermée.",
+    "admin.organizations.closeFailed": "L'organisation n'a pas été fermée.",
+    "admin.organizations.reopen": "Rouvrir l'organisation",
+    "admin.organizations.reopenDescription":
+      "{name} rouvre pour ses membres, et une suppression programmée tombe avec la fermeture. L'abonnement ne revient pas.",
+    "admin.organizations.reopening": "Réouverture…",
+    "admin.organizations.reopenDone": "L'organisation {name} est rouverte.",
+    "admin.organizations.reopenFailed": "L'organisation n'a pas été rouverte.",
+
+    "admin.organizations.delete": "Supprimer l'organisation",
+    "admin.organizations.deleteTitle": "Supprimer l'organisation ?",
+    "admin.organizations.deleteDescription":
+      "{name} est effacée dans {days} jours, avec ses membres, ses serveurs et ses abonnements. D'ici là, « Rouvrir l'organisation » la rend.",
+    "admin.organizations.deletingNow": "Suppression…",
+    "admin.organizations.deleteDone":
+      "L'organisation {name} est effacée dans {days} jours.",
+    "admin.organizations.deleteFailed": "L'organisation n'a pas été supprimée.",
+    "admin.organizations.purge": "Purger l'organisation maintenant",
+    "admin.organizations.purgeTitle": "Purger l'organisation maintenant ?",
+    "admin.organizations.purgeDescription":
+      "{name} quitte la base sur-le-champ, avec ses membres, ses serveurs, ses abonnements et sa facturation.",
+    "admin.organizations.purgeDone": "L'organisation {name} est purgée.",
+    "admin.organizations.cancelDeletion":
+      "Annuler la suppression de l'organisation",
+    "admin.organizations.cancelDeletionDescription":
+      "{name} garde ses lignes : la purge prévue le {date} n'a pas lieu, et l'organisation rouvre.",
+    "admin.organizations.cancelDeletionDone":
+      "La suppression de l'organisation {name} est annulée.",
+
+    "admin.organizations.rename": "Renommer l'organisation",
+    "admin.organizations.nameField": "Nom de l'organisation",
+    "admin.organizations.slugField": "Slug de l'organisation",
+    "admin.organizations.renameApply": "Appliquer",
+    "admin.organizations.renaming": "Application…",
+    "admin.organizations.renameDone": "L'organisation s'appelle {name}.",
+    "admin.organizations.renameFailed": "L'organisation n'a pas été renommée.",
+    "admin.organizations.renameFailedFix":
+      "Une autre organisation porte peut-être déjà ce slug.",
+    "admin.organizations.nameRequired": "Donnez un nom à l'organisation.",
+    "admin.organizations.slugRequired": "Donnez un slug à l'organisation.",
+    "admin.organizations.textTooLong": "Au plus {max} caractères.",
+
+    "admin.organizations.memberActions": "Gestes sur le membre {email}",
+    "admin.organizations.transfer": "Transférer la propriété",
+    "admin.organizations.transferTitle": "Transférer la propriété ?",
+    "admin.organizations.transferDescription":
+      "{email} devient propriétaire de {name}. Les propriétaires actuels deviennent administrateurs.",
+    "admin.organizations.transferring": "Transfert…",
+    "admin.organizations.transferDone": "{email} est propriétaire de {name}.",
+    "admin.organizations.transferFailed":
+      "La propriété n'a pas été transférée.",
+    "admin.organizations.removeMember": "Retirer le membre",
+    "admin.organizations.removeMemberTitle":
+      "Retirer le membre de l'organisation ?",
+    "admin.organizations.removeMemberDescription":
+      "{email} quitte {name} et perd les serveurs qui lui y étaient attribués.",
+    "admin.organizations.removingMember": "Retrait…",
+    "admin.organizations.removeMemberDone": "{email} a quitté {name}.",
+    "admin.organizations.removeMemberFailed": "Le membre n'a pas été retiré.",
+    "admin.organizations.removeMemberFailedFix":
+      "Une organisation garde au moins un propriétaire : transférez la propriété d'abord.",
 
     "admin.subscriptions.title": "Abonnements",
     "admin.subscriptions.empty": "Aucun abonnement ne correspond.",

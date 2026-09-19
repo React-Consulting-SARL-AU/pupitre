@@ -106,4 +106,38 @@ describe("AdminUserList", () => {
       () => container.textContent?.includes("No user matches") === true
     )
   })
+
+  it("keeps only the accounts of the state the filter names", async () => {
+    const { prisma } = await bootApiTestServer()
+    const ada = await createConsoleUser({
+      email: "ada@test.local",
+      name: "Ada",
+    })
+
+    await prisma.user.update({
+      where: { id: ada.user.id },
+      data: { banned: true, banReason: "abus" },
+    })
+
+    const { container, unmount } = await render(
+      withDashboard(
+        <ListSearchHarness<AdminUserListSearch>
+          initial={{ state: "suspended" }}
+        >
+          {(handle) => <AdminUserList {...handle} />}
+        </ListSearchHarness>,
+        { platformRole: "owner" }
+      )
+    )
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("ada@test.local") === true
+    )
+
+    expect(container.textContent).toContain("1–1 of 1")
+    expect(container.textContent).toContain("Suspended")
+    expect(container.textContent).not.toContain("ops@test.local")
+  })
 })

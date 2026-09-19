@@ -44,6 +44,12 @@ interface OverviewBody {
         paid: number
         used: number
       }>
+      deletions_scheduled: Worklist<{
+        kind: "user" | "organization"
+        id: string
+        label: string
+        deletion_at: string
+      }>
     }
   }
 }
@@ -242,6 +248,62 @@ describe("les listes de travail de GET /admin/overview", () => {
       used: 2,
     })
     expect(worklists.seats_drifted.items[0].organization.name).toBe("Débordée")
+  })
+
+  it("lève les comptes et les organisations dont la purge est programmée, la plus proche d'abord", async () => {
+    const { organization, members } = await createOrganizationWithMembers({
+      name: "Partie",
+      roles: ["owner"],
+    })
+    const { organization: gardee } = await createOrganizationWithMembers({
+      name: "Gardée",
+      roles: ["owner"],
+    })
+
+    await harness.prisma.organization.update({
+      where: { id: organization.id },
+      data: { deletionAt: inDays(6), deletionReason: "Demande du client" },
+    })
+    await harness.prisma.user.update({
+      where: { id: members[0].user.id },
+      data: { deletionAt: inDays(2), deletionReason: "Demande du client" },
+    })
+
+    const worklists = await readWorklists()
+
+    expect(worklists.deletions_scheduled.count).toBe(2)
+    expect(worklists.deletions_scheduled.items[0]).toMatchObject({
+      kind: "user",
+      id: members[0].user.id,
+      label: members[0].user.email,
+    })
+    expect(worklists.deletions_scheduled.items[1]).toMatchObject({
+      kind: "organization",
+      id: organization.id,
+      label: "Partie",
+    })
+    expect(
+      worklists.deletions_scheduled.items.some((item) => item.id === gardee.id)
+    ).toBe(false)
+  })
+
+  it("ne garde que cinq suppressions programmées et compte toutes les autres", async () => {
+    for (let index = 0; index < WORKLIST_ITEMS + 2; index += 1) {
+      const { organization } = await createOrganizationWithMembers({
+        name: `Organisation ${index}`,
+        roles: ["owner"],
+      })
+
+      await harness.prisma.organization.update({
+        where: { id: organization.id },
+        data: { deletionAt: inDays(index + 1) },
+      })
+    }
+
+    const worklists = await readWorklists()
+
+    expect(worklists.deletions_scheduled.count).toBe(WORKLIST_ITEMS + 2)
+    expect(worklists.deletions_scheduled.items).toHaveLength(WORKLIST_ITEMS)
   })
 
   it("refuse un anonyme", async () => {

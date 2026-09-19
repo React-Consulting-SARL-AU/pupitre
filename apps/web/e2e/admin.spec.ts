@@ -6,6 +6,7 @@ import {
   promotePlatformMember,
   receiveEmail,
   seedAlert,
+  seedMember,
   seedReferral,
   seedServer,
   signIn,
@@ -70,12 +71,23 @@ const ADMIN_SUBSCRIPTION_URL_RE = /\/dashboard\/admin\/subscriptions\/[^/]+$/
 const ADMIN_LINKS_URL_RE = /\/dashboard\/admin\/affiliate-links$/
 const ADMIN_LINK_URL_RE = /\/dashboard\/admin\/affiliate-links\/[^/?]+/
 const ADMIN_LINK_SETTINGS_URL_RE = /\/affiliate-links\/[^/?]+\?tab=settings$/
-const ADMIN_INBOX_URL_RE = /\/dashboard\/admin\/inbox$/
-const ADMIN_THREAD_URL_RE = /\/dashboard\/admin\/inbox\/[^/]+$/
+const ADMIN_INBOX_URL_RE = /\/dashboard\/admin\/inbox(\?|$)/
+const ADMIN_THREAD_URL_RE = /\/dashboard\/admin\/inbox\/[^/?]+/
 const START_RETURN_URL_RE = /\/dashboard\/start\?checkout=done$/
 
 const ONLINE_SERVERS_RE = /en ligne/
 const TRIALING_SUBSCRIPTIONS_RE = /essai/
+
+const ROLE_REQUIRED =
+  "Le rôle owner ou admin de l'organisation Pupitre est requis."
+
+const CYCLE_ADMIN_EMAIL = "cycles@e2e.local"
+const CYCLE_TARGET_EMAIL = "cible@e2e.local"
+const CYCLE_SECOND_EMAIL = "second@e2e.local"
+const CYCLE_ORGANIZATION = "cible"
+const CYCLE_RENAMED = "Atelier repris"
+const CYCLE_SERVER = "vps-cycle"
+const DANGER_TAB_URL_RE = /tab=danger$/
 
 const FORBIDDEN = 403
 
@@ -482,6 +494,7 @@ test.describe("plateforme", () => {
         .click()
 
       await expect(page).toHaveURL(ADMIN_ORGANIZATION_URL_RE)
+      await main.getByRole("tab", { name: "Abonnements" }).click()
       await expect(
         page.getByRole("button", { name: "Offrir un abonnement" })
       ).toBeDisabled()
@@ -497,6 +510,7 @@ test.describe("plateforme", () => {
         .click()
 
       await expect(page).toHaveURL(ADMIN_ORGANIZATION_URL_RE)
+      await main.getByRole("tab", { name: "Abonnements" }).click()
       await expect(
         main.getByText("Aucun abonnement, passé ou présent.")
       ).toBeVisible()
@@ -608,7 +622,7 @@ test.describe("plateforme", () => {
       ).toBeVisible()
     })
 
-    await test.step("un compte s'ouvre sans offrir de bannissement", async () => {
+    await test.step("un compte s'ouvre, ses gestes grisés disent le rôle qu'ils demandent", async () => {
       await menu.getByRole("link", { name: "Utilisateurs" }).click()
 
       await expect(page).toHaveURL(ADMIN_USERS_URL_RE)
@@ -627,7 +641,16 @@ test.describe("plateforme", () => {
 
       await expect(page).toHaveURL(ADMIN_USER_URL_RE)
       await expect(main.getByText(OWNER_EMAIL)).toBeVisible()
-      await expect(page.getByRole("button", { name: "Bannir" })).toHaveCount(0)
+
+      await main.getByRole("tab", { name: "Danger" }).click()
+
+      const suspend = page.getByRole("button", {
+        name: "Suspendre le compte",
+        exact: true,
+      })
+
+      await expect(suspend).toBeDisabled()
+      await expect(suspend).toHaveAttribute("title", ROLE_REQUIRED)
     })
 
     await test.step("un serveur en ligne s'affiche sans suspension", async () => {
@@ -987,6 +1010,333 @@ test.describe("plateforme", () => {
 
       await expect(
         main.getByText("La fin d'essai demandée est déjà passée.")
+      ).toBeVisible()
+    })
+  })
+
+  test("un compte se suspend, se désactive et se programme en suppression, chaque geste se reprenant", async ({
+    page,
+    request,
+  }) => {
+    await stayLocal(page)
+    await signIn(page, request, CYCLE_TARGET_EMAIL)
+    await signIn(page, request, CYCLE_ADMIN_EMAIL)
+    await promotePlatformMember(request, CYCLE_ADMIN_EMAIL)
+    await page.goto("/dashboard/start")
+    await openPlatformOrganization(page)
+
+    const menu = page.getByRole("navigation", { name: "Menu principal" })
+    const main = page.getByRole("main")
+    const toasts = page.getByTestId("toasts")
+
+    await test.step("la liste des comptes se resserre sur un état", async () => {
+      await menu.getByRole("link", { name: "Utilisateurs" }).click()
+
+      await expect(page).toHaveURL(ADMIN_USERS_URL_RE)
+
+      await page.getByLabel("État du compte").click()
+      await page.getByRole("option", { name: "Suspendu" }).click()
+
+      await expect(
+        main.getByText("Aucun utilisateur ne correspond.")
+      ).toBeVisible()
+
+      await page.getByLabel("État du compte").click()
+      await page.getByRole("option", { name: "Tous les états" }).click()
+      await page.getByLabel("Recherche").fill(CYCLE_TARGET_EMAIL)
+      await expect(main.getByText(CYCLE_TARGET_EMAIL)).toBeVisible()
+
+      const account = await main
+        .getByRole("row")
+        .filter({ hasText: CYCLE_TARGET_EMAIL })
+        .getByRole("link")
+        .first()
+        .getAttribute("href")
+
+      await page.goto(account ?? "")
+      await expect(page).toHaveURL(ADMIN_USER_URL_RE)
+    })
+
+    await test.step("suspendre le compte, puis lever la suspension", async () => {
+      await main.getByRole("tab", { name: "Danger" }).click()
+      await expect(page).toHaveURL(DANGER_TAB_URL_RE)
+
+      await page
+        .getByRole("button", { name: "Suspendre le compte", exact: true })
+        .click()
+
+      const dialog = page.getByRole("dialog")
+
+      await dialog.getByLabel("Motif").fill("Signalement 118")
+      await dialog
+        .getByRole("button", { name: "Suspendre le compte", exact: true })
+        .click()
+
+      await expect(
+        toasts.getByText(`Le compte ${CYCLE_TARGET_EMAIL} est suspendu.`)
+      ).toBeVisible()
+      await expect(
+        page.getByRole("button", { name: "Lever la suspension du compte" })
+      ).toBeVisible()
+
+      await main.getByRole("tab", { name: "Aperçu" }).click()
+      await expect(main.getByRole("img", { name: "Suspendu" })).toBeVisible()
+      await expect(main.getByText("Signalement 118")).toBeVisible()
+
+      await main.getByRole("tab", { name: "Danger" }).click()
+      await page
+        .getByRole("button", { name: "Lever la suspension du compte" })
+        .first()
+        .click()
+      await page
+        .getByRole("dialog")
+        .getByRole("button", { name: "Lever la suspension du compte" })
+        .click()
+
+      await expect(
+        toasts.getByText(`La suspension de ${CYCLE_TARGET_EMAIL} est levée.`)
+      ).toBeVisible()
+      await expect(
+        page.getByRole("button", { name: "Suspendre le compte", exact: true })
+      ).toBeVisible()
+    })
+
+    await test.step("désactiver le compte, puis le réactiver", async () => {
+      await page
+        .getByRole("button", { name: "Désactiver le compte", exact: true })
+        .click()
+
+      const dialog = page.getByRole("dialog")
+
+      await dialog.getByLabel("Motif").fill("Compte dormant")
+      await dialog
+        .getByRole("button", { name: "Désactiver le compte", exact: true })
+        .click()
+
+      await expect(
+        toasts.getByText(`Le compte ${CYCLE_TARGET_EMAIL} est désactivé.`)
+      ).toBeVisible()
+
+      await page
+        .getByRole("button", { name: "Réactiver le compte", exact: true })
+        .first()
+        .click()
+      await page
+        .getByRole("dialog")
+        .getByRole("button", { name: "Réactiver le compte", exact: true })
+        .click()
+
+      await expect(
+        toasts.getByText(`Le compte ${CYCLE_TARGET_EMAIL} est réactivé.`)
+      ).toBeVisible()
+    })
+
+    await test.step("programmer la suppression derrière l'adresse retapée, puis l'annuler", async () => {
+      await page
+        .getByRole("button", { name: "Supprimer le compte", exact: true })
+        .click()
+
+      const dialog = page.getByRole("dialog")
+      const confirm = dialog.getByRole("button", {
+        name: "Supprimer le compte",
+        exact: true,
+      })
+
+      await dialog.getByLabel("Motif").fill("Demande du client")
+      await dialog
+        .getByLabel(`Retapez ${CYCLE_TARGET_EMAIL} pour confirmer`)
+        .fill("autre-chose")
+
+      await expect(confirm).toBeDisabled()
+
+      await dialog
+        .getByLabel(`Retapez ${CYCLE_TARGET_EMAIL} pour confirmer`)
+        .fill(CYCLE_TARGET_EMAIL)
+      await confirm.click()
+
+      await expect(
+        page.getByRole("button", { name: "Purger le compte maintenant" })
+      ).toBeVisible()
+
+      await main.getByRole("tab", { name: "Aperçu" }).click()
+      await expect(
+        main.getByRole("img", { name: "Suppression programmée" })
+      ).toBeVisible()
+
+      await main.getByRole("tab", { name: "Danger" }).click()
+      await page
+        .getByRole("button", {
+          name: "Annuler la suppression du compte",
+          exact: true,
+        })
+        .first()
+        .click()
+      await page
+        .getByRole("dialog")
+        .getByRole("button", {
+          name: "Annuler la suppression du compte",
+          exact: true,
+        })
+        .click()
+
+      await expect(
+        toasts.getByText(
+          `La suppression du compte ${CYCLE_TARGET_EMAIL} est annulée.`
+        )
+      ).toBeVisible()
+      await expect(
+        page.getByRole("button", { name: "Supprimer le compte", exact: true })
+      ).toBeVisible()
+    })
+  })
+
+  test("une organisation se suspend, se ferme, se renomme et change de propriétaire", async ({
+    page,
+    request,
+  }) => {
+    await stayLocal(page)
+    await signIn(page, request, CYCLE_SECOND_EMAIL)
+    await seedServer(request, {
+      email: CYCLE_TARGET_EMAIL,
+      name: CYCLE_SERVER,
+      status: "active",
+    })
+    await seedMember(request, {
+      organization_email: CYCLE_TARGET_EMAIL,
+      email: CYCLE_SECOND_EMAIL,
+      role: "member",
+    })
+    await signIn(page, request, CYCLE_ADMIN_EMAIL)
+    await page.goto("/dashboard/start")
+    await openPlatformOrganization(page)
+
+    const menu = page.getByRole("navigation", { name: "Menu principal" })
+    const main = page.getByRole("main")
+    const toasts = page.getByTestId("toasts")
+
+    await test.step("la liste des organisations mène à la fiche", async () => {
+      await menu.getByRole("link", { name: "Organisations" }).click()
+
+      await expect(page).toHaveURL(ADMIN_ORGANIZATIONS_URL_RE)
+
+      await page.getByLabel("Recherche").fill(CYCLE_ORGANIZATION)
+      await main
+        .getByRole("link", { name: CYCLE_ORGANIZATION, exact: true })
+        .click()
+
+      await expect(page).toHaveURL(ADMIN_ORGANIZATION_URL_RE)
+    })
+
+    await test.step("suspendre l'organisation suspend ses serveurs, puis la levée les rend", async () => {
+      await main.getByRole("tab", { name: "Danger" }).click()
+      await page
+        .getByRole("button", { name: "Suspendre l'organisation", exact: true })
+        .click()
+
+      const dialog = page.getByRole("dialog")
+
+      await dialog.getByLabel("Motif").fill("Balayage réseau sortant")
+      await dialog
+        .getByRole("button", { name: "Suspendre l'organisation", exact: true })
+        .click()
+
+      await expect(
+        toasts.getByText(`L'organisation ${CYCLE_ORGANIZATION} est suspendue.`)
+      ).toBeVisible()
+
+      await main.getByRole("tab", { name: "Serveurs" }).click()
+
+      const row = main.getByRole("listitem").filter({ hasText: CYCLE_SERVER })
+
+      await expect(row).toContainText("Suspendu par l'équipe")
+
+      await main.getByRole("tab", { name: "Danger" }).click()
+      await page
+        .getByRole("button", {
+          name: "Lever la suspension de l'organisation",
+          exact: true,
+        })
+        .first()
+        .click()
+      await page
+        .getByRole("dialog")
+        .getByRole("button", {
+          name: "Lever la suspension de l'organisation",
+          exact: true,
+        })
+        .click()
+
+      await expect(
+        toasts.getByText(`La suspension de ${CYCLE_ORGANIZATION} est levée.`)
+      ).toBeVisible()
+    })
+
+    await test.step("fermer l'organisation, puis la rouvrir", async () => {
+      await page
+        .getByRole("button", { name: "Fermer l'organisation", exact: true })
+        .click()
+
+      const dialog = page.getByRole("dialog")
+
+      await dialog.getByLabel("Motif").fill("Demande du client")
+      await dialog
+        .getByRole("button", { name: "Fermer l'organisation", exact: true })
+        .click()
+
+      await expect(
+        toasts.getByText(`L'organisation ${CYCLE_ORGANIZATION} est fermée.`)
+      ).toBeVisible()
+
+      await page
+        .getByRole("button", { name: "Rouvrir l'organisation", exact: true })
+        .first()
+        .click()
+      await page
+        .getByRole("dialog")
+        .getByRole("button", { name: "Rouvrir l'organisation", exact: true })
+        .click()
+
+      await expect(
+        toasts.getByText(`L'organisation ${CYCLE_ORGANIZATION} est rouverte.`)
+      ).toBeVisible()
+    })
+
+    await test.step("renommer l'organisation depuis ses réglages", async () => {
+      await main.getByRole("tab", { name: "Réglages" }).click()
+
+      const apply = page.getByRole("button", { name: "Appliquer" })
+
+      await expect(apply).toBeDisabled()
+
+      await page.getByLabel("Nom de l'organisation").fill(CYCLE_RENAMED)
+      await apply.click()
+
+      await expect(
+        toasts.getByText(`L'organisation s'appelle ${CYCLE_RENAMED}.`)
+      ).toBeVisible()
+    })
+
+    await test.step("transférer la propriété depuis le menu de ligne d'un membre", async () => {
+      await main.getByRole("tab", { name: "Membres" }).click()
+      await main
+        .getByRole("listitem")
+        .filter({ hasText: CYCLE_SECOND_EMAIL })
+        .getByRole("button", {
+          name: `Gestes sur le membre ${CYCLE_SECOND_EMAIL}`,
+        })
+        .click()
+      await page
+        .getByRole("menuitem", { name: "Transférer la propriété" })
+        .click()
+      await page
+        .getByRole("dialog")
+        .getByRole("button", { name: "Transférer la propriété", exact: true })
+        .click()
+
+      await expect(
+        toasts.getByText(
+          `${CYCLE_SECOND_EMAIL} est propriétaire de ${CYCLE_RENAMED}.`
+        )
       ).toBeVisible()
     })
   })
