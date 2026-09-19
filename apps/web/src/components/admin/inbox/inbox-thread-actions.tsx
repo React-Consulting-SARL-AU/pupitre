@@ -11,6 +11,7 @@ import {
   platformTeamQueryOptions,
   type ThreadPatch,
 } from "@/lib/api/inbox-queries"
+import { INBOX_SHORTCUTS, shortcutTitle } from "@/lib/domain/inbox"
 
 const NOBODY = ""
 
@@ -56,7 +57,7 @@ export function InboxThreadActions({
           change.mutate({ unread: !unread })
         }}
         size="sm"
-        title={unread ? undefined : t("inbox.shortcutUnread")}
+        title={unread ? undefined : shortcutTitle(t, INBOX_SHORTCUTS.unread)}
       >
         {unread ? t("inbox.markRead") : t("inbox.markUnread")}
       </Button>
@@ -69,7 +70,7 @@ export function InboxThreadActions({
             change.mutate({ status: closed ? "open" : "closed" })
           }}
           size="sm"
-          title={closed ? undefined : t("inbox.shortcutClose")}
+          title={closed ? undefined : shortcutTitle(t, INBOX_SHORTCUTS.close)}
         >
           {closed ? t("inbox.reopenThread") : t("inbox.closeThread")}
         </Button>

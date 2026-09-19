@@ -247,9 +247,6 @@ const FR = {
     "Choisissez une organisation parmi les suggestions du champ.",
   mail_note_not_found: "Cette note n'existe pas.",
   mail_draft_not_found: "Ce fil n'a aucun brouillon.",
-  mail_note_not_yours: "Cette note a été écrite par quelqu'un d'autre.",
-  mail_note_not_yours_fix:
-    "Seul son auteur, ou un administrateur de la plateforme, la supprime.",
   mail_template_not_found: "Cette réponse type n'existe pas.",
   mail_template_mailbox_unknown:
     "La boîte nommée par cette réponse type n'existe pas.",
@@ -537,9 +534,6 @@ const EN: Record<MessageKey, string> = {
     "Pick an organization from the field's suggestions.",
   mail_note_not_found: "This note does not exist.",
   mail_draft_not_found: "This thread carries no draft.",
-  mail_note_not_yours: "This note was written by someone else.",
-  mail_note_not_yours_fix:
-    "Only its author, or a platform administrator, deletes it.",
   mail_template_not_found: "This canned reply does not exist.",
   mail_template_mailbox_unknown:
     "The mailbox this canned reply names does not exist.",

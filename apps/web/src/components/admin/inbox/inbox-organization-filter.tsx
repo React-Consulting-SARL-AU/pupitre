@@ -5,7 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useTranslations } from "@/hooks/use-locale"
-import { adminOrganizationsQueryOptions } from "@/lib/api/admin-queries"
+import {
+  adminOrganizationQueryOptions,
+  adminOrganizationsQueryOptions,
+} from "@/lib/api/admin-queries"
 
 const SUGGESTION_LIMIT = 6
 
@@ -13,13 +16,11 @@ const SEARCH_DELAY_MS = 300
 
 export interface InboxOrganizationFilterProps {
   organizationId: string | undefined
-  organizationName: string | null
   onOrganizationChange: (organizationId: string | undefined) => void
 }
 
 export function InboxOrganizationFilter({
   organizationId,
-  organizationName,
   onOrganizationChange,
 }: InboxOrganizationFilterProps) {
   const t = useTranslations()
@@ -45,6 +46,13 @@ export function InboxOrganizationFilter({
     enabled: query.length > 1 && organizationId === undefined,
   })
 
+  // The organisation the address names is read from the platform, not guessed
+  // from the page: an empty page would otherwise show its raw identifier.
+  const chosen = useQuery({
+    ...adminOrganizationQueryOptions(organizationId ?? ""),
+    enabled: organizationId !== undefined,
+  })
+
   if (organizationId) {
     return (
       <div className="flex flex-col gap-2">
@@ -57,7 +65,7 @@ export function InboxOrganizationFilter({
           }}
           size="sm"
         >
-          {organizationName ?? organizationId}
+          {chosen.data?.name ?? organizationId}
         </Button>
       </div>
     )

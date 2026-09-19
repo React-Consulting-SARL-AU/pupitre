@@ -2,7 +2,12 @@ import { Link } from "@tanstack/react-router"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useTranslations } from "@/hooks/use-locale"
 import type { InboxMailbox, InboxThread } from "@/lib/api/inbox-queries"
-import { correspondentLabel, lastActivity } from "@/lib/domain/inbox"
+import {
+  correspondentLabel,
+  INBOX_SHORTCUTS,
+  lastActivity,
+  shortcutTitle,
+} from "@/lib/domain/inbox"
 import type { InboxSearch } from "@/lib/domain/inbox-search"
 import { cn } from "@/lib/utils/cn"
 import { formatRelative } from "@/lib/utils/format"
@@ -44,12 +49,14 @@ export function InboxThreadRow({
         checked={selected}
         label={t("inbox.selectThread")}
         onCheckedChange={onSelectedChange}
+        title={shortcutTitle(t, INBOX_SHORTCUTS.select)}
       />
 
       <Link
         className="flex min-w-0 flex-1 items-center gap-3 py-2.5 transition-fast focus-visible:outline-2 focus-visible:outline-ink focus-visible:-outline-offset-2"
         params={{ threadId: thread.id }}
         search={search}
+        title={shortcutTitle(t, INBOX_SHORTCUTS.open)}
         to="/dashboard/admin/inbox/$threadId"
       >
         <span className="flex w-2 shrink-0 justify-center">

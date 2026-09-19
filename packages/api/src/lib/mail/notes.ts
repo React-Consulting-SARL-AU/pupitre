@@ -13,16 +13,6 @@ export interface MailNoteView {
   updated_at: Date
 }
 
-export class MailNoteNotYoursError extends Error {
-  readonly noteId: string
-
-  constructor(noteId: string) {
-    super(`${noteId} was written by someone else`)
-    this.name = "MailNoteNotYoursError"
-    this.noteId = noteId
-  }
-}
-
 interface NoteRow {
   id: string
   body: string
@@ -115,21 +105,16 @@ export async function createMailNote(
 export async function deleteMailNote(
   actor: Actor & { userId: string },
   threadId: string,
-  noteId: string,
-  mayDeleteAnyone: boolean
+  noteId: string
 ): Promise<boolean> {
   const prisma = getPrisma()
   const note = await prisma.mailNote.findFirst({
     where: { id: noteId, threadId },
-    select: { id: true, createdByUserId: true },
+    select: { id: true },
   })
 
   if (!note) {
     return false
-  }
-
-  if (!(mayDeleteAnyone || note.createdByUserId === actor.userId)) {
-    throw new MailNoteNotYoursError(noteId)
   }
 
   await prisma.mailNote.delete({ where: { id: noteId } })

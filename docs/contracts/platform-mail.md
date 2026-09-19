@@ -32,6 +32,8 @@ Le même chemin s'ouvre en local par `POST /internal/email`, derrière le secret
 
 `MailThread.address` reste la vérité de l'enveloppe ; `MailThread.mailboxId` est la boîte qu'on a déclarée pour elle, et vaut `null` quand aucune ne la déclare — le fil est alors rangé dans **« Autres »**. Ouvrir une boîte sur une adresse qui a déjà reçu **rattache** ces fils-là. Une boîte désactivée reçoit encore — le catch-all ne trie pas — mais n'émet plus et sort des onglets par défaut.
 
+La migration ne se contente pas d'ajouter les colonnes : elle **remplit** `mailboxId` depuis l'adresse, et `lastInboundAutomated` depuis le dernier message entrant de chaque fil. Sans cela un fil reçu avant la migration serait entré dans la vue ouverte quel que soit son dernier entrant, et la valeur par défaut de la colonne aurait fait passer un accusé automatique pour du courrier à traiter.
+
 **Une boîte sensible journalise ses lectures** : ouvrir un fil y écrit `mail.read`, ouvrir une pièce jointe `mail.attachment_read`. Une boîte ordinaire n'écrit rien.
 
 Il n'y a plus de liste d'adresses d'expédition figée : **les expéditeurs possibles sont les boîtes `enabled && canReply`**. Le binding `send_email` de `wrangler.jsonc` ne liste **aucun** `allowed_sender_addresses`, et c'est délibéré : toute adresse du domaine peut émettre, la vérification est faite par le domaine lui-même dans Email Sending.
@@ -138,24 +140,28 @@ Un message HTML qui porte `<img src="cid:…">` désigne une partie du même mes
 
 ## Le temps réel
 
-`GET /api/v1/admin/inbox/events`, en **WebSocket**. Le Worker intercepte ce chemin **avant** Elysia — un routeur Elysia ne rend pas un `101` : il résout la session par `resolveAuthContext`, exige l'appartenance à l'organisation Pupitre (même règle que `requirePlatformAdmin`), puis transmet la requête au stub du Durable Object. Sans session : `401`, sans upgrade. Sans rôle plateforme : `403`. Sans en-tête `Upgrade: websocket` : `400`.
+`GET /api/v1/admin/inbox/events`, en **WebSocket**. Le Worker intercepte ce chemin **avant** Elysia — un routeur Elysia ne rend pas un `101` : il résout la session par `resolveAuthContext`, exige l'appartenance à l'organisation Pupitre (même règle que `requirePlatformAdmin`), puis transmet la requête au stub du Durable Object. Les refus suivent l'ordre de `refuseSession` : un compte que la plateforme n'honore plus (`accountRefusal`) reçoit `403` avant même que son rôle soit lu, sans session c'est `401`, hors de l'équipe `403`, et sans en-tête `Upgrade: websocket` `400`. Aucun de ces refus n'ouvre de socket.
 
 La classe `InboxRealtime` est exportée par `apps/web/src/worker.ts` — Cloudflare résout un binding d'objet durable sur l'entrée du Worker, comme les workflows — et sa logique vit dans `apps/web/src/realtime/inbox-realtime.ts`. Une seule instance, `idFromName("platform")`. Elle **ne stocke rien** : elle accepte la socket en hibernation (`state.acceptWebSocket`, `webSocketMessage`, `webSocketClose`) et diffuse. Un `ping` reçoit `pong`, rien d'autre.
 
 `packages/api/src/lib/mail/realtime.ts` expose `publishInboxEvent(event)`, configurable comme le transport (`configureInboxRealtime`, no-op par défaut). En production, le Worker installe un éditeur qui `fetch` le stub sur son chemin interne `/publish`, derrière `INTERNAL_WORKFLOW_SECRET` ; le harnais de test enregistre les événements dans `useFakeMail().broadcast`. **Une diffusion qui casse ne casse jamais l'écriture** : la console retombe sur son sondage.
 
-| Événement | Quand |
-| --- | --- |
-| `thread.received` | l'ingestion a rangé un message, doublon reconnu compris |
-| `thread.updated` | un `PATCH /threads/:id`, une note, un brouillon |
-| `thread.read` | l'ouverture d'un fil d'une boîte sensible |
-| `message.sent` | une réponse ou un nouveau message est parti |
-| `message.failed` | l'envoi a été refusé par le service d'envoi |
-| `counts.changed` | un lot, ou un changement de boîte |
+| Événement | Quand | Ce que la console refetche |
+| --- | --- | --- |
+| `thread.received` | l'ingestion a rangé un message, doublon reconnu compris | la liste, les compteurs, le fil nommé |
+| `thread.updated` | un `PATCH /threads/:id`, une note | la liste, le fil nommé |
+| `draft.changed` | un brouillon gardé ou jeté | la liste seule (`has_draft`) |
+| `message.sent` | une réponse ou un nouveau message est parti | la liste, le fil nommé |
+| `message.failed` | l'envoi a été refusé par le service d'envoi | la liste, le fil nommé |
+| `counts.changed` | un lot qui change quelque chose, ou un changement de boîte | les compteurs, les boîtes |
 
 Chaque événement porte `type`, et selon le cas `thread_id` et `mailbox_id`.
 
+**Une lecture ne se diffuse pas.** Ouvrir un fil d'une boîte sensible écrit au journal mais n'émet aucune trame : elle ne change rien pour les autres, et une trame qui aurait fait refetcher le fil aurait refait la lecture qui l'a émise — la lecture aurait bouclé sur elle-même. Pour la même raison, **la console distribue l'invalidation par type d'événement** (colonne ci-dessus) au lieu de tout invalider, et une trame d'un type qu'elle ne connaît pas ne refetche rien.
+
 Côté console, `useInboxRealtime()` est ouvert **une fois** par le layout de la boîte, se reconnecte avec un repli exponentiel plafonné à trente secondes, et invalide les requêtes que l'événement nomme. `INBOX_POLL_INTERVAL_MS` vaut 60 s et ne sert plus qu'à rattraper une socket morte : la console fonctionne sans socket, et c'est ce que fait le harnais e2e.
+
+Une socket qui jette à l'envoi est fermée et écartée de la tournée : la diffusion continue vers les autres.
 
 ## Les routes
 
@@ -169,32 +175,34 @@ Sous `/api/v1/admin/inbox`. **Lire demande d'être membre de l'organisation Pupi
 | POST | `/mailboxes` | `{ address, display_name, signature?, sensitive?, can_reply? }` | `201 { data: Mailbox }`. `address` est la partie locale seule, ou l'adresse complète sur `MAIL_DOMAIN` ; autre chose vaut `422 validation`. `409 conflict` (`mailbox_taken`) si l'adresse a déjà une boîte. Les fils « Autres » sur cette adresse lui sont rattachés. Journal `mail.mailbox_created`. Rôle `admin` |
 | PATCH | `/mailboxes/:id` | `{ display_name?, signature?, sensitive?, can_reply?, enabled?, sort_order? }` | `{ data: Mailbox }`. `404` sur une boîte inconnue. Journal `mail.mailbox_updated`. Rôle `admin` |
 | DELETE | `/mailboxes/:id` | — | `204` quand la boîte ne porte aucun fil. `409 conflict` (`mailbox_in_use`, le `fix` dit de la désactiver) sinon ; `409 conflict` (`mailbox_protected`) sur l'une des quatre boîtes légales. Journal `mail.mailbox_deleted`. Rôle `admin` |
-| GET | `/counts` | — | `{ data: { mailboxes: [{ id, unread, open }], others: { unread, open }, total_unread } }` |
+| GET | `/counts` | — | `{ data: { mailboxes: [{ id, unread, open }], others: { unread, open, threads }, total_unread } }`. `others.threads` compte **tous** les fils qu'aucune boîte ne déclare, lus et fermés compris : c'est lui qui décide si « Autres » apparaît dans le rail |
 
 ### Les fils
 
 | Méthode | Route | Corps | Réponse |
 | --- | --- | --- | --- |
-| GET | `/threads` | — | `{ data: Thread[], total, unread }`. Filtres en paramètres : `status=open\|closed`, `unread=true\|false`, `q`, `address`, `mailbox_id` (`others` pour les fils qu'aucune boîte ne déclare), `organization_id`, `automated=true`, `assigned=me\|none\|<userId>`, `sort=last_activity\|last_inbound_at\|created_at\|subject` (`last_activity` par défaut), `direction=asc\|desc` (`desc` par défaut), `limit` (50 par défaut, 200 au plus), `offset`. `q` cherche dans le sujet, l'adresse et le nom des expéditeurs, **le texte des messages** et l'identifiant du fil. **Les fils dont le dernier entrant est automatique sont exclus par défaut** ; `automated=true` ne rend qu'eux. `unread` compte les fils non lus qui passent les **autres** filtres : c'est le compteur d'en-tête, il ne suit pas la case « non lus » |
-| GET | `/threads/:id` | — | `{ data: Thread & { mailbox, messages: Message[], notes: Note[], activities: Activity[], draft: Draft \| null } }`, messages du plus ancien au plus récent. **Ouvrir un fil ne le marque pas lu** : c'est la console qui le dit, par le PATCH. Sur une **boîte sensible**, l'ouverture écrit `mail.read` au journal et une activité `read` |
+| GET | `/threads` | — | `{ data: Thread[], total, unread }`. Filtres en paramètres : `status=open\|closed`, `unread=true\|false`, `q`, `address`, `mailbox_id` (`others` pour les fils qu'aucune boîte ne déclare), `organization_id`, `automated=true`, `assigned=me\|none\|<userId>`, `sort=last_activity\|last_inbound_at\|created_at\|subject` (`last_activity` par défaut), `direction=asc\|desc` (`desc` par défaut), `limit` (50 par défaut, 200 au plus), `offset`. `q` cherche dans le sujet, l'adresse et le nom des expéditeurs, **le texte des messages** et l'identifiant du fil. Le `%` et le `_` sont les jokers du `LIKE` que `q` alimente : ils sont **retirés** de la recherche, et une recherche qui n'était que des jokers ne rend rien — `q=%` rendait tout. **Les fils dont le dernier entrant est automatique sont exclus par défaut** ; `automated=true` ne rend qu'eux. `unread` compte les fils non lus qui passent les **autres** filtres : c'est le compteur d'en-tête, il ne suit pas la case « non lus » |
+| GET | `/threads/:id` | — | `{ data: Thread & { mailbox, messages: Message[], notes: Note[], activities: Activity[], draft: Draft \| null } }`, messages du plus ancien au plus récent. **Ouvrir un fil ne le marque pas lu** : c'est la console qui le dit, par le PATCH. Sur une **boîte sensible**, l'ouverture écrit `mail.read` au journal et une activité `read`, **une fois par lecteur et par fenêtre de `MAIL_READ_AUDIT_WINDOW_MS`** (`@pupitre/shared/legal`, dix minutes) : le journal dit qui a lu quoi, pas combien de fois la console a refetché |
 | PATCH | `/threads/:id` | `{ status?, unread?, assigned_user_id?, linked_organization_id? }` | `{ data: ThreadDetail }`. `unread` est ouvert à tout membre ; `status`, `assigned_user_id` et `linked_organization_id` demandent le rôle `admin`, sinon `403 forbidden`. L'attributaire doit être membre de l'organisation Pupitre, sinon `422 validation` ; une organisation inconnue vaut `422 validation` ; `null` délie. Activités `assigned`/`unassigned`/`closed`/`reopened`/`linked`/`unlinked`/`read`/`unread` |
-| POST | `/threads/bulk` | `{ ids (1..100), status?, unread? }` | `{ data: { updated } }`. `status` demande le rôle `admin`, `unread` est ouvert à tout membre. Une activité par fil qui change vraiment ; un événement de journal par lot (`mail.bulk_closed`, `mail.bulk_read`) |
+| POST | `/threads/bulk` | `{ ids (1..100), status?, unread? }` | `{ data: { updated } }`, où `updated` est le nombre de fils **réellement changés** : clore ce qui est déjà clos n'en change aucun. `status` demande le rôle `admin`, `unread` est ouvert à tout membre. Une activité par fil qui change vraiment ; un événement de journal par lot, nommé par ce qu'il fait — `mail.bulk_closed`, `mail.bulk_reopened`, `mail.bulk_read`, `mail.bulk_unread` — et aucun `counts.changed` quand rien n'a changé |
 | GET | `/messages/:id/html` | — | le corps HTML stocké, en `text/html; charset=utf-8`, sous la CSP de *Le HTML d'un message* et `X-Content-Type-Options: nosniff`, les `src="cid:…"` réécrits. `404` quand le message n'a pas de HTML |
 | GET | `/attachments/:id/url` | `?disposition=inline\|attachment` | `{ data: { url, expires_at, mime_type, filename, size } }`. Voir *Lire une pièce jointe*. `404 not_found` |
+
+L'adresse de la console ne porte que ce que le lecteur a choisi (`parseInboxSearch` est construit sur `listSearch`) : les filtres laissés sur leur défaut n'y figurent pas, `/dashboard/admin/inbox` nue vaut la vue ouverte triée par dernière activité, et l'organisation qu'un `organization_id` nomme est lue par `GET /admin/organizations/:id`, jamais devinée depuis la page affichée.
 
 ### Les notes, les brouillons, les réponses types
 
 | Méthode | Route | Corps | Réponse |
 | --- | --- | --- | --- |
 | GET | `/threads/:id/notes` | — | `{ data: Note[] }`, de la plus ancienne à la plus récente |
-| POST | `/threads/:id/notes` | `{ body (1..10 000) }` | `201 { data: Note }`. Activité `note_added`, journal `mail.note_added` |
-| DELETE | `/threads/:id/notes/:noteId` | — | `204`. Son auteur, ou un `admin` de la plateforme ; sinon `403 forbidden`. Activité `note_deleted`, journal `mail.note_deleted` |
+| POST | `/threads/:id/notes` | `{ body (1..10 000) }` | `201 { data: Note }`. Activité `note_added`, journal `mail.note_added`. Rôle `admin` |
+| DELETE | `/threads/:id/notes/:noteId` | — | `204`, `404` sur une note inconnue. Activité `note_deleted`, journal `mail.note_deleted`. Rôle `admin` : écrire une note le demande déjà, donc l'auteur d'une note est toujours un `admin` |
 | GET | `/threads/:id/draft` | — | `{ data: Draft }`, `404 not_found` quand le fil n'en porte pas |
-| PUT | `/threads/:id/draft` | `{ body (0..20 000), to?, cc?, attachments? }` | `{ data: Draft }`. Un brouillon par fil : l'écriture crée ou remplace |
-| DELETE | `/threads/:id/draft` | — | `204`, `404` sans brouillon. Un envoi réussi l'efface de lui-même |
+| PUT | `/threads/:id/draft` | `{ body (0..20 000), to?, cc?, attachments? }` | `{ data: Draft }`. Un brouillon par fil : l'écriture crée ou remplace. Événement `draft.changed`. Rôle `admin` |
+| DELETE | `/threads/:id/draft` | — | `204`, `404` sans brouillon. Un envoi réussi l'efface de lui-même, et la console l'efface dès que le texte redevient vide. Événement `draft.changed`. Rôle `admin` |
 | GET | `/templates` | `?mailbox_id=` | `{ data: Template[] }`. Avec `mailbox_id`, les réponses types de cette boîte **et** celles qui n'en nomment aucune |
 | POST | `/templates` | `{ name (1..80), body (1..20 000), mailbox_id? }` | `201 { data: Template }`. Une boîte inconnue vaut `422 validation`. Journal `mail.template_created`. Rôle `admin` |
-| PATCH | `/templates/:id` | `{ name?, body?, mailbox_id? }` | `{ data: Template }`, `404` sur une réponse type inconnue. Journal `mail.template_updated`. Rôle `admin` |
+| PATCH | `/templates/:id` | `{ name?, body?, mailbox_id? }` | `{ data: Template }`, `404` sur une réponse type inconnue. Journal `mail.template_updated`. Rôle `admin`. La page des réglages l'appelle : chaque réponse type porte un geste qui la charge dans le formulaire, qui enregistre alors les changements au lieu d'en créer une seconde |
 | DELETE | `/templates/:id` | — | `204`, `404`. Journal `mail.template_deleted`. Rôle `admin` |
 
 Une réponse type est **un préremplissage de la console** : `template_id` n'est jamais envoyé au serveur, c'est le texte inséré qui part.
@@ -289,11 +297,11 @@ Template = { id, name, body, mailbox_id: string | null, created_at, updated_at }
 
 ### Les codes d'erreur
 
-Ceux de `@pupitre/shared/api/errors`, sans ajout. Un envoi qui casse répond `502` avec le code `internal` : c'est la plateforme qui a échoué, pas l'appelant, et le `fix` dit que le message est gardé en échec dans le fil. Une pièce jointe refusée répond `422 validation`, et le message dit laquelle et pourquoi (`mail_attachment_blocked`, `mail_attachments_too_large`, `mail_upload_missing`, `mail_upload_foreign`, `mail_upload_size_mismatch` dans `lib/i18n`), le `fix` ce qu'il reste à faire. Les refus propres aux boîtes ont leurs clés : `mailbox_not_found`, `mailbox_address_refused`, `mailbox_taken`, `mailbox_in_use`, `mailbox_protected`, `mailbox_cannot_reply`, `mail_thread_no_mailbox`, `mail_organization_unknown`, `mail_note_not_found`, `mail_note_not_yours`, `mail_draft_not_found`, `mail_template_not_found`, `mail_template_mailbox_unknown`.
+Ceux de `@pupitre/shared/api/errors`, sans ajout. Un envoi qui casse répond `502` avec le code `internal` : c'est la plateforme qui a échoué, pas l'appelant, et le `fix` dit que le message est gardé en échec dans le fil. Une pièce jointe refusée répond `422 validation`, et le message dit laquelle et pourquoi (`mail_attachment_blocked`, `mail_attachments_too_large`, `mail_upload_missing`, `mail_upload_foreign`, `mail_upload_size_mismatch` dans `lib/i18n`), le `fix` ce qu'il reste à faire. Les refus propres aux boîtes ont leurs clés : `mailbox_not_found`, `mailbox_address_refused`, `mailbox_taken`, `mailbox_in_use`, `mailbox_protected`, `mailbox_cannot_reply`, `mail_thread_no_mailbox`, `mail_organization_unknown`, `mail_note_not_found`, `mail_draft_not_found`, `mail_template_not_found`, `mail_template_mailbox_unknown`.
 
 ## Le journal
 
-Sur la cible `mail_thread` : `mail.closed`, `mail.reopened`, `mail.assigned`, `mail.replied`, `mail.composed`, `mail.read`, `mail.attachment_read`, `mail.linked`, `mail.note_added`, `mail.note_deleted`, `mail.bulk_closed`, `mail.bulk_read`.
+Sur la cible `mail_thread` : `mail.closed`, `mail.reopened`, `mail.assigned`, `mail.replied`, `mail.composed`, `mail.read`, `mail.attachment_read`, `mail.linked`, `mail.note_added`, `mail.note_deleted`, `mail.bulk_closed`, `mail.bulk_reopened`, `mail.bulk_read`, `mail.bulk_unread`.
 
 Sur la cible `mail_mailbox` : `mail.mailbox_created`, `mail.mailbox_updated`, `mail.mailbox_deleted`.
 

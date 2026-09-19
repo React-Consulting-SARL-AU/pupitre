@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router"
 import { InboxActivityList } from "@/components/admin/inbox/inbox-activity-list"
 import { InboxNotesPanel } from "@/components/admin/inbox/inbox-notes-panel"
 import { InboxOrganizationLink } from "@/components/admin/inbox/inbox-organization-link"
-import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
+import { FoldableCard } from "@/components/ui/foldable-card"
 import { useTranslations } from "@/hooks/use-locale"
 import type { InboxActivity, InboxNote } from "@/lib/api/inbox-queries"
 import { formatDateTime } from "@/lib/utils/format"
@@ -65,11 +65,8 @@ export function InboxThreadAside({
 
   return (
     <div className="flex flex-col gap-gutter">
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("inbox.details")}</CardTitle>
-        </CardHeader>
-        <CardBody className="flex flex-col gap-3">
+      <FoldableCard title={t("inbox.details")}>
+        <div className="flex flex-col gap-3">
           <dl className="flex flex-col gap-2">
             {facts.map((fact) => (
               <div className="flex flex-col gap-0.5" key={fact.label}>
@@ -106,26 +103,16 @@ export function InboxThreadAside({
               pending={linkPending}
             />
           </div>
-        </CardBody>
-      </Card>
+        </div>
+      </FoldableCard>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("inbox.notes")}</CardTitle>
-        </CardHeader>
-        <CardBody>
-          <InboxNotesPanel notes={notes} threadId={threadId} />
-        </CardBody>
-      </Card>
+      <FoldableCard title={t("inbox.notes")}>
+        <InboxNotesPanel canAct={canAct} notes={notes} threadId={threadId} />
+      </FoldableCard>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("inbox.activity")}</CardTitle>
-        </CardHeader>
-        <CardBody>
-          <InboxActivityList activities={activities} />
-        </CardBody>
-      </Card>
+      <FoldableCard title={t("inbox.activity")}>
+        <InboxActivityList activities={activities} />
+      </FoldableCard>
     </div>
   )
 }

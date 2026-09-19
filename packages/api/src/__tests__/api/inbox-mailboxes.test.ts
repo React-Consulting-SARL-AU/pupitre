@@ -39,6 +39,12 @@ interface ThreadRow {
   linked_organization: { id: string; name: string; slug: string } | null
 }
 
+interface CountsRow {
+  mailboxes: { id: string; unread: number; open: number }[]
+  others: { unread: number; open: number; threads: number }
+  total_unread: number
+}
+
 interface ThreadDetail extends Omit<ThreadRow, "notes"> {
   mailbox: { id: string; sensitive: boolean } | null
   notes: { id: string; body: string }[]
@@ -273,13 +279,10 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     await ingest({})
     await ingest({ to: "jordan@pupitre.studio", subject: "Hors boîte" })
 
-    const response = await apiRequest<{
-      data: {
-        mailboxes: { id: string; unread: number; open: number }[]
-        others: { unread: number; open: number }
-        total_unread: number
-      }
-    }>("/admin/inbox/counts", { session: member.session })
+    const response = await apiRequest<{ data: CountsRow }>(
+      "/admin/inbox/counts",
+      { session: member.session }
+    )
 
     expect(response.json.data.total_unread).toBe(2)
     expect(response.json.data.others.unread).toBe(1)
@@ -288,6 +291,30 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
         (mailbox) => mailbox.id === PLATFORM_MAILBOX_IDS.support
       )?.unread
     ).toBe(1)
+  })
+
+  it("compte les fils hors boîte même lus et fermés, pour que le rail les montre", async () => {
+    const stored = await ingest({
+      to: "jordan@pupitre.studio",
+      subject: "Hors boîte",
+    })
+
+    await apiRequest(`/admin/inbox/threads/${stored.threadId}`, {
+      method: "PATCH",
+      body: { status: "closed", unread: false },
+      session: owner.session,
+    })
+
+    const response = await apiRequest<{ data: CountsRow }>(
+      "/admin/inbox/counts",
+      { session: member.session }
+    )
+
+    expect(response.json.data.others).toEqual({
+      unread: 0,
+      open: 0,
+      threads: 1,
+    })
   })
 
   it("filtre par boîte, par « autres », et écarte les automatiques par défaut", async () => {
@@ -340,6 +367,29 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     ])
   })
 
+  it("lit les jokers du LIKE comme du texte, pas comme « tout »", async () => {
+    await ingest({ subject: "Bravo", text: "La sauvegarde a tourné." })
+    await ingest({ subject: "Alerte", text: "Rien ne repond." })
+
+    const everything = await apiRequest<{ data: ThreadRow[]; total: number }>(
+      "/admin/inbox/threads?q=%25",
+      { session: owner.session }
+    )
+    const anyCharacter = await apiRequest<{ data: ThreadRow[] }>(
+      "/admin/inbox/threads?q=_____",
+      { session: owner.session }
+    )
+    const literal = await apiRequest<{ data: ThreadRow[] }>(
+      "/admin/inbox/threads?q=Bra%25vo",
+      { session: owner.session }
+    )
+
+    expect(everything.json.total).toBe(0)
+    expect(anyCharacter.json.data).toHaveLength(0)
+    expect(literal.json.data).toHaveLength(1)
+    expect(literal.json.data[0].subject).toBe("Bravo")
+  })
+
   it("ferme plusieurs fils d'un coup, et refuse le lot à un membre", async () => {
     const first = await ingest({ subject: "Un" })
     const second = await ingest({ subject: "Deux" })
@@ -374,6 +424,73 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     )
   })
 
+  it("nomme le lot par ce qu'il fait, et ne compte que les fils qui changent", async () => {
+    const first = await ingest({ subject: "Un" })
+    const second = await ingest({ subject: "Deux" })
+    const ids = [first.threadId, second.threadId]
+
+    await apiRequest("/admin/inbox/threads/bulk", {
+      body: { ids: [first.threadId], status: "closed" },
+      session: owner.session,
+    })
+
+    mail.broadcast.length = 0
+
+    const reopened = await apiRequest<{ data: { updated: number } }>(
+      "/admin/inbox/threads/bulk",
+      { body: { ids, status: "open" }, session: owner.session }
+    )
+    const unread = await apiRequest<{ data: { updated: number } }>(
+      "/admin/inbox/threads/bulk",
+      { body: { ids, unread: true }, session: owner.session }
+    )
+    const again = await apiRequest<{ data: { updated: number } }>(
+      "/admin/inbox/threads/bulk",
+      { body: { ids, status: "open" }, session: owner.session }
+    )
+    const { prisma } = await bootApiTestServer()
+    const actions = await prisma.event.findMany({
+      where: { action: { startsWith: "mail.bulk_" } },
+      orderBy: { createdAt: "asc" },
+      select: { action: true },
+    })
+
+    expect(reopened.json.data.updated).toBe(1)
+    expect(unread.json.data.updated).toBe(0)
+    expect(again.json.data.updated).toBe(0)
+    expect(actions.map((event) => event.action)).toEqual([
+      "mail.bulk_closed",
+      "mail.bulk_reopened",
+    ])
+    expect(mail.broadcast).toEqual([{ type: "counts.changed" }])
+  })
+
+  it("marque un lot non lu sous son propre nom", async () => {
+    const first = await ingest({ subject: "Un" })
+
+    await apiRequest("/admin/inbox/threads/bulk", {
+      body: { ids: [first.threadId], unread: false },
+      session: member.session,
+    })
+
+    const unread = await apiRequest<{ data: { updated: number } }>(
+      "/admin/inbox/threads/bulk",
+      { body: { ids: [first.threadId], unread: true }, session: member.session }
+    )
+    const { prisma } = await bootApiTestServer()
+    const actions = await prisma.event.findMany({
+      where: { action: { startsWith: "mail.bulk_" } },
+      orderBy: { createdAt: "asc" },
+      select: { action: true },
+    })
+
+    expect(unread.json.data.updated).toBe(1)
+    expect(actions.map((event) => event.action)).toEqual([
+      "mail.bulk_read",
+      "mail.bulk_unread",
+    ])
+  })
+
   it("écrit une note interne, la rend avec le fil, et la retire", async () => {
     const stored = await ingest({})
     const created = await apiRequest<{ data: { id: string; body: string } }>(
@@ -399,19 +516,43 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     expect(removed.status).toBe(204)
   })
 
-  it("refuse à un membre de retirer la note d'un autre", async () => {
+  it("refuse à un membre d'écrire une note, un brouillon, ou de les retirer", async () => {
     const stored = await ingest({})
     const created = await apiRequest<{ data: { id: string } }>(
       `/admin/inbox/threads/${stored.threadId}/notes`,
       { body: { body: "À suivre." }, session: owner.session }
     )
-    const refused = await apiRequest<{ error: { code: string } }>(
+    const writtenNote = await apiRequest<{ error: { code: string } }>(
+      `/admin/inbox/threads/${stored.threadId}/notes`,
+      { body: { body: "Pas à moi." }, session: member.session }
+    )
+    const removedNote = await apiRequest(
       `/admin/inbox/threads/${stored.threadId}/notes/${created.json.data.id}`,
       { method: "DELETE", session: member.session }
     )
+    const savedDraft = await apiRequest(
+      `/admin/inbox/threads/${stored.threadId}/draft`,
+      {
+        method: "PUT",
+        body: { body: "On regarde" },
+        session: member.session,
+      }
+    )
+    const removedDraft = await apiRequest(
+      `/admin/inbox/threads/${stored.threadId}/draft`,
+      { method: "DELETE", session: member.session }
+    )
+    const readNotes = await apiRequest(
+      `/admin/inbox/threads/${stored.threadId}/notes`,
+      { session: member.session }
+    )
 
-    expect(refused.status).toBe(403)
-    expect(refused.json.error.code).toBe("forbidden")
+    expect(writtenNote.status).toBe(403)
+    expect(writtenNote.json.error.code).toBe("forbidden")
+    expect(removedNote.status).toBe(403)
+    expect(savedDraft.status).toBe(403)
+    expect(removedDraft.status).toBe(403)
+    expect(readNotes.status).toBe(200)
   })
 
   it("garde un brouillon, le remplace, et l'efface à l'envoi", async () => {
@@ -509,6 +650,60 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
 
     expect(reads).toHaveLength(1)
     expect(reads[0].targetId).toBe(sensitive.threadId)
+  })
+
+  it("n'écrit qu'une lecture par personne et par fenêtre, et rien en temps réel", async () => {
+    const sensitive = await ingest({
+      to: LEGAL_CONTACTS.security,
+      subject: "Faille",
+    })
+
+    mail.broadcast.length = 0
+
+    await apiRequest(`/admin/inbox/threads/${sensitive.threadId}`, {
+      session: owner.session,
+    })
+    await apiRequest(`/admin/inbox/threads/${sensitive.threadId}`, {
+      session: owner.session,
+    })
+    await apiRequest(`/admin/inbox/threads/${sensitive.threadId}`, {
+      session: member.session,
+    })
+
+    const { prisma } = await bootApiTestServer()
+    const reads = await prisma.event.findMany({
+      where: { action: "mail.read" },
+    })
+    const activities = await prisma.mailActivity.count({
+      where: { threadId: sensitive.threadId, action: "read" },
+    })
+
+    expect(reads.map((read) => read.actorUserId).sort()).toEqual(
+      [owner.userId, member.userId].sort()
+    )
+    expect(activities).toBe(2)
+    expect(mail.broadcast).toEqual([])
+  })
+
+  it("ne diffuse que la liste quand un brouillon est gardé", async () => {
+    const stored = await ingest({})
+
+    mail.broadcast.length = 0
+
+    await apiRequest(`/admin/inbox/threads/${stored.threadId}/draft`, {
+      method: "PUT",
+      body: { body: "On regarde" },
+      session: owner.session,
+    })
+    await apiRequest(`/admin/inbox/threads/${stored.threadId}/draft`, {
+      method: "DELETE",
+      session: owner.session,
+    })
+
+    expect(mail.broadcast.map((event) => event.type)).toEqual([
+      "draft.changed",
+      "draft.changed",
+    ])
   })
 
   it("journalise la lecture d'une pièce jointe sensible", async () => {

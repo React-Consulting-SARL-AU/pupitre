@@ -16,6 +16,27 @@ export interface InboxRealtimeEvent {
   mailbox_id?: string | null
 }
 
+interface InboxRefresh {
+  list?: boolean
+  counts?: boolean
+  mailboxes?: boolean
+  thread?: boolean
+}
+
+/**
+ * What a frame is worth refetching, and nothing more. Refetching the open
+ * thread on every type turned the journalled read of a sensitive box into a
+ * loop: the read published a frame, the frame refetched, the refetch read.
+ */
+const REFRESH_BY_EVENT: Record<string, InboxRefresh> = {
+  "thread.received": { list: true, counts: true, thread: true },
+  "thread.updated": { list: true, thread: true },
+  "draft.changed": { list: true },
+  "message.sent": { list: true, thread: true },
+  "message.failed": { list: true, thread: true },
+  "counts.changed": { counts: true, mailboxes: true },
+}
+
 const HTTP_SCHEME_RE = /^http/
 
 export function inboxSocketUrl(origin: string): string {
@@ -57,11 +78,25 @@ export function useInboxRealtime({
     let closed = false
 
     function invalidate(event: InboxRealtimeEvent) {
-      queryClient.invalidateQueries({ queryKey: inboxKeys.allThreads })
-      queryClient.invalidateQueries({ queryKey: inboxKeys.counts })
-      queryClient.invalidateQueries({ queryKey: inboxKeys.mailboxes })
+      const refresh = REFRESH_BY_EVENT[event.type]
 
-      if (event.thread_id) {
+      if (!refresh) {
+        return
+      }
+
+      if (refresh.list) {
+        queryClient.invalidateQueries({ queryKey: inboxKeys.allThreads })
+      }
+
+      if (refresh.counts) {
+        queryClient.invalidateQueries({ queryKey: inboxKeys.counts })
+      }
+
+      if (refresh.mailboxes) {
+        queryClient.invalidateQueries({ queryKey: inboxKeys.mailboxes })
+      }
+
+      if (refresh.thread && event.thread_id) {
         queryClient.invalidateQueries({
           queryKey: inboxKeys.thread(event.thread_id),
         })

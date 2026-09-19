@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useTranslations } from "@/hooks/use-locale"
 import { useToast } from "@/hooks/use-toast"
 import {
+  deleteDraft,
   inboxKeys,
   replyToThread,
   saveDraft,
@@ -50,6 +51,7 @@ export function InboxReplyForm({
   const [sending, setSending] = useState<string | null>(null)
   const [refusal, setRefusal] = useState<string | null>(null)
   const [kept, setKept] = useState(false)
+  const held = useRef(draftBody !== "")
   const settled = useRef(false)
 
   const send = useMutation({
@@ -68,6 +70,7 @@ export function InboxReplyForm({
       setText("")
       setFiles([])
       setKept(false)
+      held.current = false
       toasts.done(t("inbox.replySent"))
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: inboxKeys.thread(threadId) }),
@@ -83,13 +86,29 @@ export function InboxReplyForm({
       return
     }
 
-    if (text === "") {
+    if (text === "" && !held.current) {
       return
     }
 
     const timer = setTimeout(() => {
+      // An emptied composer means the reply was abandoned: the thread must not
+      // keep showing a draft badge over a draft nobody wrote.
+      if (text === "") {
+        deleteDraft(threadId)
+          .then(() => {
+            held.current = false
+            setKept(false)
+          })
+          .catch(() => {
+            setKept(false)
+          })
+
+        return
+      }
+
       saveDraft(threadId, { body: text, to, cc })
         .then(() => {
+          held.current = true
           setKept(true)
         })
         .catch(() => {

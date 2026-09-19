@@ -66,7 +66,7 @@ describe("useInboxRealtime", () => {
     expect(sockets[0].closed).toBe(true)
   })
 
-  it("invalidates the thread a frame names, and the counters", async () => {
+  async function watchInvalidations(): Promise<string[]> {
     const client = createQueryClient()
     const invalidated: string[] = []
 
@@ -84,13 +84,65 @@ describe("useInboxRealtime", () => {
 
     mounted.push(unmount)
 
+    return invalidated
+  }
+
+  it("invalidates the list and the thread a change names, not the counters", async () => {
+    const invalidated = await watchInvalidations()
+
     sockets[0].onmessage?.({
       data: JSON.stringify({ type: "thread.updated", thread_id: "thr_1" }),
     })
 
-    expect(invalidated).toContain(JSON.stringify(inboxKeys.allThreads))
-    expect(invalidated).toContain(JSON.stringify(inboxKeys.counts))
-    expect(invalidated).toContain(JSON.stringify(inboxKeys.thread("thr_1")))
+    expect(invalidated).toEqual([
+      JSON.stringify(inboxKeys.allThreads),
+      JSON.stringify(inboxKeys.thread("thr_1")),
+    ])
+  })
+
+  it("invalidates the list, the counters and the thread a new mail names", async () => {
+    const invalidated = await watchInvalidations()
+
+    sockets[0].onmessage?.({
+      data: JSON.stringify({ type: "thread.received", thread_id: "thr_1" }),
+    })
+
+    expect(invalidated).toEqual([
+      JSON.stringify(inboxKeys.allThreads),
+      JSON.stringify(inboxKeys.counts),
+      JSON.stringify(inboxKeys.thread("thr_1")),
+    ])
+  })
+
+  it("invalidates the list alone when a draft is kept", async () => {
+    const invalidated = await watchInvalidations()
+
+    sockets[0].onmessage?.({
+      data: JSON.stringify({ type: "draft.changed", thread_id: "thr_1" }),
+    })
+
+    expect(invalidated).toEqual([JSON.stringify(inboxKeys.allThreads)])
+  })
+
+  it("invalidates the counters and the mailboxes on a count change", async () => {
+    const invalidated = await watchInvalidations()
+
+    sockets[0].onmessage?.({ data: JSON.stringify({ type: "counts.changed" }) })
+
+    expect(invalidated).toEqual([
+      JSON.stringify(inboxKeys.counts),
+      JSON.stringify(inboxKeys.mailboxes),
+    ])
+  })
+
+  it("refetches nothing on a frame it does not know, so a read cannot loop", async () => {
+    const invalidated = await watchInvalidations()
+
+    sockets[0].onmessage?.({
+      data: JSON.stringify({ type: "thread.read", thread_id: "thr_1" }),
+    })
+
+    expect(invalidated).toEqual([])
   })
 
   it("ignores a frame it cannot read", async () => {

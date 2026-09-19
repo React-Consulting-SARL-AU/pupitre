@@ -14,7 +14,6 @@ import { cn } from "@/lib/utils/cn"
 export interface InboxMailboxRailProps {
   mailboxes: InboxMailbox[]
   counts: InboxCounts | undefined
-  value: string
   onValueChange: (value: string) => void
   /** The settings page sits under the same layout, which asks for the filters. */
   search: InboxSearch
@@ -29,14 +28,14 @@ interface RailEntry {
 export function InboxMailboxRail({
   mailboxes,
   counts,
-  value,
   onValueChange,
   search,
 }: InboxMailboxRailProps) {
   const t = useTranslations()
+  const value = search.mailbox ?? MAILBOX_EVERY
   const unreadOf = (id: string) =>
     counts?.mailboxes.find((mailbox) => mailbox.id === id)?.unread ?? 0
-  const others = counts?.others ?? { unread: 0, open: 0 }
+  const others = counts?.others ?? { unread: 0, threads: 0 }
   const entries: RailEntry[] = [
     {
       value: MAILBOX_EVERY,
@@ -50,7 +49,7 @@ export function InboxMailboxRail({
         label: mailbox.display_name,
         unread: unreadOf(mailbox.id),
       })),
-    ...(others.open > 0 || others.unread > 0
+    ...(others.threads > 0
       ? [
           {
             value: MAILBOX_OTHERS,
