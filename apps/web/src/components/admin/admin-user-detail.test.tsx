@@ -111,6 +111,49 @@ describe("AdminUserDetail", () => {
     })
   })
 
+  it("revokes a device with the reason the revocation is logged with", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { members } = await createOrganizationWithMembers({
+      roles: ["owner"],
+    })
+    const owner = members[0].user
+    const device = await prisma.device.create({
+      data: {
+        userId: owner.id,
+        name: "MacBook",
+        publicKey:
+          "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJggxfUKhpYOKRen6E6lpoh//viuSJtxOQ8hVlFZb+/t ada@macbook",
+        fingerprint: "SHA256:atelier",
+      },
+    })
+
+    const { container, unmount, click } = await render(page(owner.id))
+
+    mounted.push(unmount)
+
+    await waitUntil(() => container.textContent?.includes("MacBook") === true)
+    await click(trigger(container, "Revoke"))
+
+    const reason = document.querySelector(`#revoke-reason-${device.id}`)
+    const confirm = document.querySelector(
+      "[role=alertdialog] button[type=submit]"
+    )
+
+    if (!(reason && confirm)) {
+      throw new Error("the revoke dialog did not open")
+    }
+
+    await fill(reason, "Laptop stolen")
+    await click(confirm)
+    await waitUntilStored(
+      async () =>
+        (await prisma.device.count({ where: { id: device.id } })) === 0
+    )
+    await waitUntil(
+      () => container.textContent?.includes("No device signed in.") === true
+    )
+  })
+
   it("offers no ban on a member of the platform organisation", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["owner"],
@@ -138,11 +181,22 @@ describe("AdminUserDetail", () => {
     ).toBe(false)
   })
 
-  it("leaves a reader of the platform without the ban", async () => {
+  it("leaves a reader of the platform without the ban, the grant or the revocation", async () => {
+    const { prisma } = await bootApiTestServer()
     const { members } = await createOrganizationWithMembers({
       roles: ["member"],
     })
     const target = members[0].user
+
+    await prisma.device.create({
+      data: {
+        userId: target.id,
+        name: "MacBook",
+        publicKey:
+          "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJggxfUKhpYOKRen6E6lpoh//viuSJtxOQ8hVlFZb+/t ada@macbook",
+        fingerprint: "SHA256:atelier",
+      },
+    })
 
     const { container, unmount } = await render(
       withDashboard(<AdminUserDetail id={target.id} />, {
@@ -152,14 +206,8 @@ describe("AdminUserDetail", () => {
 
     mounted.push(unmount)
 
-    await waitUntil(
-      () => container.textContent?.includes(target.email) === true
-    )
+    await waitUntil(() => container.textContent?.includes("MacBook") === true)
 
-    expect(
-      [...document.querySelectorAll("button")].some(
-        (button) => (button.textContent ?? "").trim() === "Ban"
-      )
-    ).toBe(false)
+    expect(container.querySelectorAll("button")).toHaveLength(0)
   })
 })

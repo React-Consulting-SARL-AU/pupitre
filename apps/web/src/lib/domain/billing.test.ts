@@ -122,8 +122,9 @@ describe("seatsLocked", () => {
     )
   })
 
-  it("locks a launch subscription the platform moved off the trial", () => {
+  it("locks a launch subscription the platform moved off the trial, and one the team granted", () => {
     expect(seatsLocked({ product: "launch", status: "active" })).toBe(true)
+    expect(seatsLocked({ product: "granted", status: "active" })).toBe(true)
   })
 })
 

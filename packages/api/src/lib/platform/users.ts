@@ -5,6 +5,7 @@ import { getPrisma } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import { SEATED_STATUSES } from "../billing/seats"
 import { liveAmong } from "../billing/subscription"
+import { removeDevice } from "../devices/devices"
 import { type AdminEventView, recentEvents } from "./events"
 
 export interface AdminUserFilter {
@@ -307,6 +308,15 @@ export async function banUserFromPlatform(
   })
 
   return await readUserForPlatform(userId)
+}
+
+export function revokeDeviceFromPlatform(
+  actor: PlatformUserActor,
+  userId: string,
+  deviceId: string,
+  reason: string
+): Promise<boolean> {
+  return removeDevice(userId, deviceId, { actorUserId: actor.userId, reason })
 }
 
 export async function unbanUserFromPlatform(

@@ -5,6 +5,8 @@ import { AdminBanDialog } from "@/components/admin/admin-ban-dialog"
 import { AdminEventsCard } from "@/components/admin/admin-events-card"
 import { AdminFacts } from "@/components/admin/admin-facts"
 import { AdminFailure } from "@/components/admin/admin-failure"
+import { AdminGrantDialog } from "@/components/admin/admin-grant-dialog"
+import { AdminRevokeDeviceDialog } from "@/components/admin/admin-revoke-device-dialog"
 import { Button } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,9 +14,11 @@ import { SkeletonCards } from "@/components/ui/skeleton"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
+import { useOptimisticMutation } from "@/hooks/use-optimistic-mutation"
 import {
   adminUserQueryOptions,
   banUser,
+  revokeDevice,
   unbanUser,
 } from "@/lib/api/admin-queries"
 import { apiFailure } from "@/lib/api/errors"
@@ -22,6 +26,7 @@ import { queryKeys } from "@/lib/api/queries"
 import {
   accountIsProtected,
   canActOnPlatform,
+  subscriptionIsLive,
   userLook,
 } from "@/lib/domain/admin"
 import { subscriptionStatusLook } from "@/lib/domain/billing"
@@ -33,16 +38,23 @@ export interface AdminUserDetailProps {
   id: string
 }
 
+interface Revocation {
+  deviceId: string
+  name: string
+  reason: string
+}
+
 export function AdminUserDetail({ id }: AdminUserDetailProps) {
   const t = useTranslations()
   const queryClient = useQueryClient()
   const { platformRole } = useDashboardContext()
   const user = useQuery(adminUserQueryOptions(id))
-  const refresh = () =>
-    Promise.all([
+  const refresh = async () => {
+    await Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.user(id) }),
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.allUsers }),
     ])
+  }
   const ban = useMutation({
     mutationFn: (reason: string) => banUser(id, reason),
     onSuccess: refresh,
@@ -50,6 +62,17 @@ export function AdminUserDetail({ id }: AdminUserDetailProps) {
   const lift = useMutation({
     mutationFn: () => unbanUser(id),
     onSuccess: refresh,
+  })
+  const revoke = useOptimisticMutation<Revocation>({
+    mutationFn: ({ deviceId, reason }) => revokeDevice(id, deviceId, reason),
+    invalidate: [queryKeys.admin.user(id), queryKeys.admin.allServers],
+    toast: {
+      done: (_data, { name }) => t("admin.users.revoked", { name }),
+      failed: () => ({
+        title: t("admin.users.revokeFailed"),
+        fix: t("admin.users.revokeFailedFix"),
+      }),
+    },
   })
 
   if (user.isPending) {
@@ -70,7 +93,8 @@ export function AdminUserDetail({ id }: AdminUserDetailProps) {
   const detail = user.data
   const refused = apiFailure(ban.error) ?? apiFailure(lift.error)
   const protectedAccount = accountIsProtected(refused?.status)
-  const acts = canActOnPlatform(platformRole) && detail.platform_role === null
+  const manages = canActOnPlatform(platformRole)
+  const acts = manages && detail.platform_role === null
 
   function roleName(role: string): string {
     const key = roleKey(role)
@@ -188,6 +212,17 @@ export function AdminUserDetail({ id }: AdminUserDetailProps) {
                   <span className="font-data text-[12px] text-ink-3 tabular-nums sm:w-28 sm:text-right">
                     {t.plural("admin.users.servers", organization.servers)}
                   </span>
+                  {manages ? (
+                    <AdminGrantDialog
+                      blocked={
+                        organization.subscription_status
+                          ? subscriptionIsLive(organization.subscription_status)
+                          : false
+                      }
+                      onGranted={refresh}
+                      organization={organization}
+                    />
+                  ) : null}
                 </li>
               )
             })}
@@ -210,15 +245,31 @@ export function AdminUserDetail({ id }: AdminUserDetailProps) {
           <ul>
             {detail.devices.map((device) => (
               <li
-                className="flex flex-wrap items-baseline justify-between gap-4 border-line border-b px-4 py-3 last:border-b-0"
+                className="flex flex-wrap items-center gap-4 border-line border-b px-4 py-3 last:border-b-0"
                 key={device.id}
               >
-                <span className="min-w-0 truncate text-[13px] text-ink">
+                <span className="min-w-0 flex-1 truncate text-[13px] text-ink">
                   {device.name}
                 </span>
                 <span className="font-data text-[12px] text-ink-3 tabular-nums">
                   {formatRelative(device.last_used_at ?? null, t)}
                 </span>
+                {manages ? (
+                  <AdminRevokeDeviceDialog
+                    busy={
+                      revoke.isPending &&
+                      revoke.variables?.deviceId === device.id
+                    }
+                    device={device}
+                    onConfirm={(reason) => {
+                      revoke.mutate({
+                        deviceId: device.id,
+                        name: device.name,
+                        reason,
+                      })
+                    }}
+                  />
+                ) : null}
               </li>
             ))}
           </ul>

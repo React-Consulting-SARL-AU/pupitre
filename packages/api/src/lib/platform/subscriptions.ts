@@ -1,6 +1,7 @@
 import type { Prisma, Subscription } from "@pupitre/db/cloudflare/client"
 import { getPrisma } from "../api/prisma"
 import { liveAmong } from "../billing/subscription"
+import { type AdminEventView, recentEvents } from "./events"
 import {
   type AdminOrganizationSubscriptionRow,
   toSubscriptionRow,
@@ -16,6 +17,10 @@ export interface AdminSubscriptionView
   extends AdminOrganizationSubscriptionRow {
   organization: AdminSubscriptionOrganization
   live: boolean
+}
+
+export interface AdminSubscriptionDetail extends AdminSubscriptionView {
+  events: AdminEventView[]
 }
 
 export interface AdminSubscriptionFilter {
@@ -118,4 +123,45 @@ export async function listSubscriptionsForPlatform(
     data: subscriptions.map((subscription) => toView(subscription, live)),
     total,
   }
+}
+
+async function viewOf(
+  subscription: SubscriptionWithOrganization
+): Promise<AdminSubscriptionView> {
+  return toView(subscription, await liveIdsAmong([subscription.organizationId]))
+}
+
+/** The row a write just left: what the console shows back after a gesture. */
+export async function viewWrittenSubscription(
+  subscriptionId: string
+): Promise<AdminSubscriptionView> {
+  return await viewOf(
+    await getPrisma().subscription.findUniqueOrThrow({
+      where: { id: subscriptionId },
+      include: ORGANIZATION_INCLUDE,
+    })
+  )
+}
+
+export async function readSubscriptionForPlatform(
+  subscriptionId: string
+): Promise<AdminSubscriptionDetail | null> {
+  const subscription = await getPrisma().subscription.findUnique({
+    where: { id: subscriptionId },
+    include: ORGANIZATION_INCLUDE,
+  })
+
+  if (!subscription) {
+    return null
+  }
+
+  const [view, events] = await Promise.all([
+    viewOf(subscription),
+    recentEvents({
+      targetType: "subscription",
+      targetId: subscription.stripeSubscriptionId,
+    }),
+  ])
+
+  return { ...view, events }
 }

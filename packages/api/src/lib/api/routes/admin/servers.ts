@@ -3,6 +3,7 @@ import { ADMIN_PAGE_SIZE } from "@pupitre/shared/platform"
 import { Elysia, t } from "elysia"
 import { translate } from "../../../i18n"
 import {
+  deleteServerByAdmin,
   listServersForPlatform,
   readServerForPlatform,
   restoreServerByAdmin,
@@ -14,12 +15,12 @@ import { apiError } from "../../errors"
 import { dataResponse, errorResponse } from "../../openapi-models"
 import { requirePlatformAdmin, requirePlatformRole } from "../../plugins/guards"
 import { serializeData } from "../../prisma"
+import { adminReasonBody } from "./schemas"
 import {
   adminServerDetailSchema,
   adminServerListSchema,
   adminServerSchema,
   adminServersQuery,
-  adminSuspendBody,
 } from "./server-schemas"
 
 const serverParams = t.Object({ id: t.String() })
@@ -114,7 +115,7 @@ const writeRoutes = new Elysia({ name: "admin-servers-write" })
     },
     {
       params: serverParams,
-      body: adminSuspendBody,
+      body: adminReasonBody,
       detail: { summary: "Suspendre un serveur, avec la raison" },
       response: {
         200: dataResponse(adminServerSchema),
@@ -167,6 +168,49 @@ const writeRoutes = new Elysia({ name: "admin-servers-write" })
         403: errorResponse,
         404: errorResponse,
         409: errorResponse,
+      },
+    }
+  )
+  .delete(
+    "/servers/:id",
+    async ({ user, params, body, request, set }) => {
+      const deleted = await deleteServerByAdmin(
+        { userId: user.id },
+        params.id,
+        body.reason
+      )
+
+      if (!deleted) {
+        set.status = 404
+
+        return apiError(
+          "not_found",
+          translate(resolveLocale(request.headers), "server_not_found")
+        )
+      }
+
+      if (deleted.deletion === "purged") {
+        set.status = 204
+
+        return
+      }
+
+      return { data: serializeData(deleted.server) }
+    },
+    {
+      params: serverParams,
+      body: adminReasonBody,
+      detail: {
+        summary:
+          "Retirer un serveur avec la raison : révoqué d'abord, effacé au second appel",
+      },
+      response: {
+        200: dataResponse(adminServerDetailSchema),
+        204: t.Void(),
+        401: errorResponse,
+        403: errorResponse,
+        404: errorResponse,
+        422: errorResponse,
       },
     }
   )

@@ -75,6 +75,19 @@ export type BillingMode = z.infer<typeof BillingModeSchema>
 /** The product name of a subscription the platform grants itself, without Stripe. */
 export const LAUNCH_PRODUCT = "launch"
 
+/** The product name of a subscription the team grants from the console, without Stripe. */
+export const GRANTED_PRODUCT = "granted"
+
+/** The products with no Stripe counterpart: never reconciled, never resized, never given a portal. */
+export const PLATFORM_PRODUCTS: readonly string[] = [
+  LAUNCH_PRODUCT,
+  GRANTED_PRODUCT,
+]
+
+export function isPlatformProduct(product: string): boolean {
+  return PLATFORM_PRODUCTS.includes(product)
+}
+
 export const LAUNCH_SEATS = TRIAL_SEATS
 
 /** The platform's own organization enrols what it needs during the launch. */

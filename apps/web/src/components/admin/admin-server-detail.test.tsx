@@ -15,6 +15,7 @@ import type { SuspensionReason } from "@pupitre/db/cloudflare/client"
 import { AdminServerDetail } from "@/components/admin/admin-server-detail"
 import { createConsoleUser, useSessionApiClient } from "@/testing/harness"
 import {
+  fill,
   render,
   trigger,
   waitUntil,
@@ -119,6 +120,59 @@ describe("AdminServerDetail", () => {
     )
 
     expect(container.textContent).not.toContain("Lift the suspension")
+  })
+
+  it("deletes in two steps: revoked with its date first, purged second", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { server } = await createServer({ organizationId, name: "vps-one" })
+
+    const { container, unmount, click } = await render(page(server.id))
+
+    mounted.push(unmount)
+
+    await waitUntil(() => container.textContent?.includes("Online") === true)
+    await click(trigger(container, "Delete"))
+
+    const reason = document.querySelector(`#delete-reason-${server.id}`)
+    const confirm = document.querySelector(
+      "[role=alertdialog] button[type=submit]"
+    )
+
+    if (!(reason && confirm)) {
+      throw new Error("the delete dialog did not open")
+    }
+
+    await fill(reason, "Machine compromised")
+    await click(confirm)
+    await waitUntilStored(async () => {
+      const stored = await prisma.server.findUniqueOrThrow({
+        where: { id: server.id },
+      })
+
+      return stored.status === "revoked" && stored.decommissionAt !== null
+    })
+    await waitUntil(() => container.textContent?.includes("Purge") === true)
+
+    expect(container.textContent).toContain("Disappears on")
+    expect(container.textContent).not.toContain("Suspend")
+
+    await click(trigger(container, "Purge"))
+
+    const purgeReason = document.querySelector(`#delete-reason-${server.id}`)
+    const purge = document.querySelector(
+      "[role=alertdialog] button[type=submit]"
+    )
+
+    if (!(purgeReason && purge)) {
+      throw new Error("the purge dialog did not open")
+    }
+
+    await fill(purgeReason, "Nothing left to keep")
+    await click(purge)
+    await waitUntilStored(
+      async () =>
+        (await prisma.server.count({ where: { id: server.id } })) === 0
+    )
   })
 
   it("leaves a reader of the platform without either gesture", async () => {

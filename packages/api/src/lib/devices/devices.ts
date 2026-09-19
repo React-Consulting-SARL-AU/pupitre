@@ -81,9 +81,16 @@ export async function addDevice(
   return toView(device)
 }
 
+/** The team revokes on someone's behalf: the journal names the team member and keeps the reason. */
+export interface PlatformRevocation {
+  actorUserId: string
+  reason: string
+}
+
 export async function removeDevice(
   userId: string,
-  deviceId: string
+  deviceId: string,
+  byPlatform: PlatformRevocation | null = null
 ): Promise<boolean> {
   const prisma = getPrisma()
   const device = await prisma.device.findFirst({
@@ -98,10 +105,14 @@ export async function removeDevice(
 
   await recordEvent({
     action: "device.revoked",
-    actorUserId: userId,
+    actorUserId: byPlatform?.actorUserId ?? userId,
     targetType: "device",
     targetId: device.id,
-    payload: { fingerprint: device.fingerprint, name: device.name },
+    payload: {
+      fingerprint: device.fingerprint,
+      name: device.name,
+      ...(byPlatform ? { by_platform: true, reason: byPlatform.reason } : {}),
+    },
   })
 
   return true

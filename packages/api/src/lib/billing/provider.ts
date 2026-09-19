@@ -48,6 +48,8 @@ export interface BillingProvider {
     subscriptionId: string,
     quantity: number
   ): Promise<RemoteSubscription>
+  /** Cancels now: the customer stops being billed, and the answer is what the mirror keeps. */
+  cancelSubscription(subscriptionId: string): Promise<RemoteSubscription>
 }
 
 export class BillingProviderError extends Error {

@@ -1,4 +1,5 @@
 import type {
+  Prisma,
   ReleaseChannel,
   ServerStatus,
   SuspensionReason,
@@ -15,7 +16,7 @@ import {
 import { type AdminEventView, recentEvents } from "../platform/events"
 import type { ServerRow } from "./server-row"
 import { WITHOUT_METRICS } from "./server-row"
-import { type ServerView, toServerView } from "./servers"
+import { deleteServer, type ServerView, toServerView } from "./servers"
 
 export interface AdminServerFilter {
   status?: ServerStatus
@@ -204,19 +205,12 @@ const DETAIL_INCLUDE = {
   },
 } as const
 
-export async function readServerForPlatform(
-  serverId: string
-): Promise<AdminServerDetail | null> {
-  const server = await getPrisma().server.findUnique({
-    where: { id: serverId },
-    omit: WITHOUT_METRICS,
-    include: DETAIL_INCLUDE,
-  })
+type ServerDetailRow = Prisma.ServerGetPayload<{
+  include: typeof DETAIL_INCLUDE
+  omit: typeof WITHOUT_METRICS
+}>
 
-  if (!server) {
-    return null
-  }
-
+async function detailOf(server: ServerDetailRow): Promise<AdminServerDetail> {
   const [alerts, events] = await Promise.all([
     activeAlertsFor([server.id]),
     recentEvents({ targetType: "server", targetId: server.id }),
@@ -229,6 +223,18 @@ export async function readServerForPlatform(
     device: server.device,
     events,
   }
+}
+
+export async function readServerForPlatform(
+  serverId: string
+): Promise<AdminServerDetail | null> {
+  const server = await getPrisma().server.findUnique({
+    where: { id: serverId },
+    omit: WITHOUT_METRICS,
+    include: DETAIL_INCLUDE,
+  })
+
+  return server ? await detailOf(server) : null
 }
 
 /**
@@ -278,6 +284,47 @@ export async function restoreServerByAdmin(
   })
 
   return await readServerForPlatform(server.id)
+}
+
+export type AdminServerDeletion =
+  | { deletion: "revoked"; server: AdminServerDetail }
+  | { deletion: "purged" }
+
+/**
+ * The same two steps as the owner's deletion — revoke and schedule, then
+ * purge — signed by the team, with the reason in the journal.
+ */
+export async function deleteServerByAdmin(
+  actor: AdminActor,
+  serverId: string,
+  reason: string
+): Promise<AdminServerDeletion | null> {
+  const server = await getPrisma().server.findUnique({
+    where: { id: serverId },
+    omit: WITHOUT_METRICS,
+  })
+
+  if (!server) {
+    return null
+  }
+
+  const deletion = await deleteServer(
+    { userId: actor.userId, source: "console" },
+    server,
+    { by_platform: true, reason }
+  )
+
+  if (deletion === "purged") {
+    return { deletion }
+  }
+
+  const revoked = await getPrisma().server.findUniqueOrThrow({
+    where: { id: server.id },
+    omit: WITHOUT_METRICS,
+    include: DETAIL_INCLUDE,
+  })
+
+  return { deletion, server: await detailOf(revoked) }
 }
 
 function standingAfterRestore(held: Entitlement, now: Date) {

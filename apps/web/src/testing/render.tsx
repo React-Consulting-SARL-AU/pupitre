@@ -123,9 +123,10 @@ export async function waitUntil(
   throw new Error("condition not met before the deadline")
 }
 
+/** An input or a textarea: React listens on the prototype's setter, so the value goes through it. */
 export async function fill(input: Element, value: string): Promise<void> {
   const setter = Object.getOwnPropertyDescriptor(
-    HTMLInputElement.prototype,
+    Object.getPrototypeOf(input),
     "value"
   )?.set
 

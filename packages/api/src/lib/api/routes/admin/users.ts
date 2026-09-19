@@ -7,6 +7,7 @@ import {
   listUsersForPlatform,
   PlatformMemberProtectedError,
   readUserForPlatform,
+  revokeDeviceFromPlatform,
   unbanUserFromPlatform,
 } from "../../../platform/users"
 import { apiError } from "../../errors"
@@ -18,11 +19,11 @@ import {
 import { requirePlatformAdmin, requirePlatformRole } from "../../plugins/guards"
 import { serializeData } from "../../prisma"
 import {
-  adminBanBody,
   adminUserDetailSchema,
   adminUserSchema,
   adminUsersQuery,
 } from "./platform-schemas"
+import { adminReasonBody } from "./schemas"
 
 const userParams = t.Object({ id: t.String() })
 
@@ -121,7 +122,7 @@ const writeRoutes = new Elysia({ name: "admin-users-write" })
     },
     {
       params: userParams,
-      body: adminBanBody,
+      body: adminReasonBody,
       detail: { summary: "Bannir un compte, avec la raison" },
       response: {
         200: dataResponse(adminUserDetailSchema),
@@ -157,6 +158,40 @@ const writeRoutes = new Elysia({ name: "admin-users-write" })
         401: errorResponse,
         403: errorResponse,
         404: errorResponse,
+      },
+    }
+  )
+  .delete(
+    "/users/:id/devices/:deviceId",
+    async ({ user, params, body, request, set }) => {
+      const revoked = await revokeDeviceFromPlatform(
+        { userId: user.id },
+        params.id,
+        params.deviceId,
+        body.reason
+      )
+
+      if (!revoked) {
+        set.status = 404
+
+        return apiError(
+          "not_found",
+          translate(resolveLocale(request.headers), "device_not_found")
+        )
+      }
+
+      set.status = 204
+    },
+    {
+      params: t.Object({ id: t.String(), deviceId: t.String() }),
+      body: adminReasonBody,
+      detail: { summary: "Révoquer un appareil d'un compte, avec la raison" },
+      response: {
+        204: t.Void(),
+        401: errorResponse,
+        403: errorResponse,
+        404: errorResponse,
+        422: errorResponse,
       },
     }
   )

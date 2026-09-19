@@ -139,7 +139,9 @@ function trialTerms(trialDays: number | null): TrialTerms {
 export function createStripeBilling(config: StripeConfig): BillingProvider {
   async function call<T>(
     path: string,
-    init: { method: "GET" | "POST"; body?: FormTree } = { method: "GET" }
+    init: { method: "GET" | "POST" | "DELETE"; body?: FormTree } = {
+      method: "GET",
+    }
   ): Promise<T> {
     const response = await fetch(`${STRIPE_API_BASE}${path}`, {
       method: init.method,
@@ -261,6 +263,17 @@ export function createStripeBilling(config: StripeConfig): BillingProvider {
       )
 
       return toRemoteSubscription(updated)
+    },
+
+    async cancelSubscription(
+      subscriptionId: string
+    ): Promise<RemoteSubscription> {
+      const canceled = await call<StripeSubscriptionPayload>(
+        `/subscriptions/${encodeURIComponent(subscriptionId)}`,
+        { method: "DELETE" }
+      )
+
+      return toRemoteSubscription(canceled)
     },
   }
 }

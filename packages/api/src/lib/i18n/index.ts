@@ -82,13 +82,32 @@ const FR = {
   seats_below_usage_fix:
     "Supprimez d'abord des serveurs, puis réduisez le nombre de sièges.",
   seats_locked:
-    "Le nombre de sièges ne change pas pendant l'essai ni pendant le lancement.",
+    "Le nombre de sièges ne change pas pendant l'essai, pendant le lancement, ni sur un abonnement accordé par Pupitre.",
   seats_locked_fix:
     "Attendez la fin de l'essai : un abonnement payé se redimensionne depuis /dashboard/billing.",
   billing_launch:
     "Pendant le lancement, l'abonnement est accordé par Pupitre : il n'y a pas de portail de paiement.",
   billing_launch_fix:
     "Rien à payer avant la fin du lancement. Le portail s'ouvrira avec le premier abonnement facturé.",
+  billing_granted:
+    "Cet abonnement est accordé par Pupitre : il n'y a pas de portail de paiement.",
+  billing_granted_fix:
+    "Rien à payer tant qu'il court. Le portail s'ouvrira avec le premier abonnement facturé.",
+  subscription_not_found: "Cet abonnement n'existe pas.",
+  subscription_live: "Cette organisation a encore un abonnement en cours.",
+  subscription_live_fix:
+    "Arrêtez-le d'abord : POST /admin/subscriptions/:id/cancel.",
+  platform_organization:
+    "L'organisation Pupitre n'a besoin d'aucun abonnement.",
+  platform_organization_fix:
+    "Son droit d'usage tient à ce qu'elle est ; il n'y a rien à accorder.",
+  subscription_not_granted:
+    "Cet abonnement n'a pas été accordé par l'équipe Pupitre.",
+  subscription_not_granted_fix:
+    "Un abonnement Stripe se redimensionne par son propriétaire, depuis la facturation de la console.",
+  subscription_already_canceled: "Cet abonnement est déjà arrêté.",
+  subscription_already_canceled_fix:
+    "Effacez-le s'il n'a plus à figurer : DELETE /admin/subscriptions/:id.",
   affiliate_code_taken: "Le code « {code} » est déjà pris.",
   affiliate_code_taken_fix:
     "Choisissez un autre code, ou laissez la plateforme en tirer un.",
@@ -254,13 +273,29 @@ const EN: Record<MessageKey, string> = {
   seats_below_usage: "This organization already seats {used} servers.",
   seats_below_usage_fix: "Delete servers first, then lower the seat count.",
   seats_locked:
-    "The seat count does not change during the trial or during the launch.",
+    "The seat count does not change during the trial, during the launch, or on a subscription Pupitre granted.",
   seats_locked_fix:
     "Wait for the trial to end: a paid subscription resizes from /dashboard/billing.",
   billing_launch:
     "During the launch, Pupitre grants the subscription itself: there is no payment portal.",
   billing_launch_fix:
     "Nothing to pay before the launch ends. The portal opens with the first billed subscription.",
+  billing_granted:
+    "Pupitre granted this subscription: there is no payment portal.",
+  billing_granted_fix:
+    "Nothing to pay while it runs. The portal opens with the first billed subscription.",
+  subscription_not_found: "This subscription does not exist.",
+  subscription_live: "This organization still has a live subscription.",
+  subscription_live_fix: "Stop it first: POST /admin/subscriptions/:id/cancel.",
+  platform_organization: "The Pupitre organization needs no subscription.",
+  platform_organization_fix:
+    "It is entitled by what it is; there is nothing to grant.",
+  subscription_not_granted: "The Pupitre team did not grant this subscription.",
+  subscription_not_granted_fix:
+    "A Stripe subscription is resized by its owner, from the console billing page.",
+  subscription_already_canceled: "This subscription is already stopped.",
+  subscription_already_canceled_fix:
+    "Delete it if it no longer belongs in the list: DELETE /admin/subscriptions/:id.",
   affiliate_code_taken: 'The code "{code}" is already taken.',
   affiliate_code_taken_fix: "Pick another code, or let the platform draw one.",
   affiliate_link_not_found: "This affiliate link does not exist.",

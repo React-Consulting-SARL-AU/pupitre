@@ -2,6 +2,7 @@ import { type Locale, resolveLocale } from "@pupitre/shared/i18n"
 import { Elysia } from "elysia"
 import {
   BillingCustomerMissingError,
+  BillingGrantedError,
   BillingLaunchError,
   startCheckout,
   startPortal,
@@ -85,6 +86,16 @@ export const orgsBillingRoutes = new Elysia({ name: "orgs-billing-routes" })
             "conflict",
             translate(locale, "billing_launch"),
             translate(locale, "billing_launch_fix")
+          )
+        }
+
+        if (error instanceof BillingGrantedError) {
+          set.status = 409
+
+          return apiError(
+            "conflict",
+            translate(locale, "billing_granted"),
+            translate(locale, "billing_granted_fix")
           )
         }
 

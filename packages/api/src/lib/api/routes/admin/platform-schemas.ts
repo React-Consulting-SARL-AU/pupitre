@@ -1,6 +1,7 @@
 import { ORG_ROLES } from "@pupitre/shared/permissions"
 import { t } from "elysia"
 import { dateTime } from "../../openapi-models"
+import { MAX_SEATS, MIN_SEATS } from "../orgs/schemas"
 import { serverStatusSchema } from "../servers/schemas"
 import {
   adminEventSchema,
@@ -94,10 +95,6 @@ export const adminUsersQuery = t.Object({
   offset: adminOffsetSchema,
 })
 
-export const adminBanBody = t.Object({
-  reason: t.String({ minLength: 1, maxLength: 500 }),
-})
-
 const adminSubscriptionFields = {
   id: t.String(),
   stripe_subscription_id: t.String(),
@@ -105,6 +102,8 @@ const adminSubscriptionFields = {
   quantity: t.Integer(),
   status: t.String(),
   current_period_end: t.Nullable(dateTime),
+  note: t.Nullable(t.String()),
+  platform: t.Boolean(),
   created_at: dateTime,
   updated_at: dateTime,
 }
@@ -160,17 +159,23 @@ export const adminOrganizationsQuery = t.Object({
   offset: adminOffsetSchema,
 })
 
-export const adminSubscriptionSchema = t.Object(
-  {
-    ...adminSubscriptionFields,
-    organization: t.Object({
-      id: t.String(),
-      name: t.String(),
-      slug: t.String(),
-    }),
-    live: t.Boolean(),
-  },
-  { $id: "AdminSubscription" }
+const adminSubscriptionViewFields = {
+  ...adminSubscriptionFields,
+  organization: t.Object({
+    id: t.String(),
+    name: t.String(),
+    slug: t.String(),
+  }),
+  live: t.Boolean(),
+}
+
+export const adminSubscriptionSchema = t.Object(adminSubscriptionViewFields, {
+  $id: "AdminSubscription",
+})
+
+export const adminSubscriptionDetailSchema = t.Object(
+  { ...adminSubscriptionViewFields, events: t.Array(adminEventSchema) },
+  { $id: "AdminSubscriptionDetail" }
 )
 
 export const adminSubscriptionsQuery = t.Object({
@@ -178,6 +183,21 @@ export const adminSubscriptionsQuery = t.Object({
   product: t.Optional(t.String({ maxLength: 120 })),
   limit: adminLimitSchema,
   offset: adminOffsetSchema,
+})
+
+const grantedSeats = t.Integer({ minimum: MIN_SEATS, maximum: MAX_SEATS })
+
+const grantedEnd = t.Nullable(dateTime)
+
+export const adminGrantBody = t.Object({
+  seats: grantedSeats,
+  ends_at: t.Optional(grantedEnd),
+  note: t.Optional(t.String({ maxLength: 500 })),
+})
+
+export const adminGrantedResizeBody = t.Object({
+  seats: t.Optional(grantedSeats),
+  ends_at: t.Optional(grantedEnd),
 })
 
 export const adminTeamMemberSchema = t.Object(

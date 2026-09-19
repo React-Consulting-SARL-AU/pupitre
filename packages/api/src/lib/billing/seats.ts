@@ -1,5 +1,5 @@
 import type { ServerStatus } from "@pupitre/db/cloudflare/client"
-import { LAUNCH_PRODUCT } from "@pupitre/shared/plans"
+import { isPlatformProduct } from "@pupitre/shared/plans"
 import { PLATFORM_ORGANIZATION_ID } from "@pupitre/shared/platform"
 import { getPrisma, type OrganizationPrisma } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
@@ -76,7 +76,7 @@ export class NoPayingSubscriptionError extends Error {
 
 export class SeatsLockedError extends Error {
   constructor() {
-    super("seats do not change while trialing or during the launch")
+    super("seats do not change while trialing or on a platform product")
     this.name = "SeatsLockedError"
   }
 }
@@ -96,6 +96,19 @@ export interface SeatsActor {
   userId: string
 }
 
+export async function assertSeatsCoverUsage(
+  organizationId: string,
+  quantity: number
+): Promise<void> {
+  const seated = await getPrisma().server.count({
+    where: { organizationId, status: { in: SEATED_STATUSES } },
+  })
+
+  if (quantity < seated) {
+    throw new SeatsBelowUsageError(seated)
+  }
+}
+
 export async function resizeSeats(
   actor: SeatsActor,
   quantity: number
@@ -109,19 +122,14 @@ export async function resizeSeats(
 
   if (
     subscription.status === "trialing" ||
-    subscription.product === LAUNCH_PRODUCT
+    isPlatformProduct(subscription.product)
   ) {
     throw new SeatsLockedError()
   }
 
   const prisma = getPrisma()
-  const seated = await prisma.server.count({
-    where: { organizationId, status: { in: SEATED_STATUSES } },
-  })
 
-  if (quantity < seated) {
-    throw new SeatsBelowUsageError(seated)
-  }
+  await assertSeatsCoverUsage(organizationId, quantity)
 
   if (quantity === subscription.quantity) {
     return await readSubscription(organizationId)

@@ -1,4 +1,4 @@
-import { unwrap } from "@pupitre/api/client"
+import { ApiError, unwrap } from "@pupitre/api/client"
 import { keepPreviousData, queryOptions } from "@tanstack/react-query"
 import { api } from "@/lib/api/client"
 import {
@@ -70,6 +70,20 @@ export function unbanUser(id: string): Promise<void> {
     })
 }
 
+export function revokeDevice(
+  userId: string,
+  deviceId: string,
+  reason: string
+): Promise<void> {
+  return api()
+    .api.v1.admin.users({ id: userId })
+    .devices({ deviceId })
+    .delete({ reason })
+    .then((response) => {
+      unwrap(response)
+    })
+}
+
 async function readOrganizations(page: AdminPageQuery) {
   return unwrap(await api().api.v1.admin.organizations.get({ query: page }))
 }
@@ -117,6 +131,83 @@ export function adminSubscriptionsQueryOptions(
     queryFn: () => readSubscriptions(page),
     placeholderData: keepPreviousData,
   })
+}
+
+async function readSubscription(id: string) {
+  return unwrap(await api().api.v1.admin.subscriptions({ id }).get()).data
+}
+
+export type AdminSubscriptionDetail = Awaited<
+  ReturnType<typeof readSubscription>
+>
+
+export function adminSubscriptionQueryOptions(id: string) {
+  return queryOptions({
+    queryKey: queryKeys.admin.subscription(id),
+    queryFn: () => readSubscription(id),
+  })
+}
+
+export interface GrantSubscriptionInput {
+  seats: number
+  ends_at: string | null
+  note?: string
+}
+
+export async function grantSubscription(
+  organizationId: string,
+  input: GrantSubscriptionInput
+): Promise<AdminSubscription> {
+  const body = unwrap(
+    await api()
+      .api.v1.admin.organizations({ id: organizationId })
+      .subscriptions.post(input)
+  )
+
+  // Eden folds a 201 handler's return under 200 as well, next to the error shape.
+  if (!("data" in body)) {
+    throw new ApiError(
+      500,
+      body,
+      "the granted subscription came back without data"
+    )
+  }
+
+  return body.data
+}
+
+export interface ResizeSubscriptionInput {
+  seats: number
+  ends_at: string | null
+}
+
+export function resizeSubscription(
+  id: string,
+  input: ResizeSubscriptionInput
+): Promise<AdminSubscription> {
+  return api()
+    .api.v1.admin.subscriptions({ id })
+    .patch(input)
+    .then((response) => unwrap(response).data)
+}
+
+export function cancelSubscription(
+  id: string,
+  reason: string
+): Promise<AdminSubscription> {
+  return api()
+    .api.v1.admin.subscriptions({ id })
+    .cancel.post({ reason })
+    .then((response) => unwrap(response).data)
+}
+
+export function deleteSubscription(id: string): Promise<void> {
+  return api()
+    .api.v1.admin.subscriptions({ id })
+    .delete()
+    .then((response) => {
+      unwrap(response)
+    })
 }
 
 async function readEvents(page: AdminEventPageQuery) {
@@ -258,6 +349,16 @@ export function restoreServer(id: string): Promise<AdminServer> {
     .api.v1.admin.servers({ id })
     .restore.post()
     .then((response) => unwrap(response).data)
+}
+
+/** The first call revokes and answers the server; the second purges it and answers nothing. */
+export function deleteServer(id: string, reason: string): Promise<void> {
+  return api()
+    .api.v1.admin.servers({ id })
+    .delete({ reason })
+    .then((response) => {
+      unwrap(response)
+    })
 }
 
 async function readAffiliateLinks() {

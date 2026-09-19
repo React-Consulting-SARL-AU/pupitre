@@ -11,7 +11,10 @@ import {
 } from "./harness/session"
 
 const OWNER_EMAIL = "owner@e2e.local"
+const OWNER_ORGANIZATION = "owner"
 const ADMIN_EMAIL = "support@e2e.local"
+const ADMIN_ORGANIZATION = "support"
+const GRANT_NOTE = "Partenaire du lancement"
 const READER_EMAIL = "reader@e2e.local"
 const LAUNCH_EMAIL = "launch@e2e.local"
 
@@ -37,6 +40,9 @@ const ADMIN_URL_RE = /\/dashboard\/admin$/
 const ADMIN_USERS_URL_RE = /\/dashboard\/admin\/users$/
 const ADMIN_USER_URL_RE = /\/dashboard\/admin\/users\/[^/]+$/
 const ADMIN_SERVERS_URL_RE = /\/dashboard\/admin\/servers$/
+const ADMIN_ORGANIZATIONS_URL_RE = /\/dashboard\/admin\/organizations$/
+const ADMIN_ORGANIZATION_URL_RE = /\/dashboard\/admin\/organizations\/[^/]+$/
+const ADMIN_SUBSCRIPTION_URL_RE = /\/dashboard\/admin\/subscriptions\/[^/]+$/
 const ADMIN_LINKS_URL_RE = /\/dashboard\/admin\/affiliate-links$/
 const ADMIN_INBOX_URL_RE = /\/dashboard\/admin\/inbox$/
 const ADMIN_THREAD_URL_RE = /\/dashboard\/admin\/inbox\/[^/]+$/
@@ -323,6 +329,89 @@ test.describe("plateforme", () => {
       ).toBeVisible()
       await expect(
         main.getByRole("listitem").filter({ hasText: "Un autre porteur" })
+      ).toHaveCount(0)
+    })
+
+    await test.step("un abonnement s'offre à une organisation sans abonnement, puis s'arrête depuis sa page", async () => {
+      await menu.getByRole("link", { name: "Organisations" }).click()
+
+      await expect(page).toHaveURL(ADMIN_ORGANIZATIONS_URL_RE)
+
+      // The owner's organisation runs its trial: the grant stays shut there, and says why.
+      await main
+        .getByRole("link", { name: OWNER_ORGANIZATION, exact: true })
+        .click()
+
+      await expect(page).toHaveURL(ADMIN_ORGANIZATION_URL_RE)
+      await expect(
+        page.getByRole("button", { name: "Offrir un abonnement" })
+      ).toBeDisabled()
+      await expect(
+        main.getByText(
+          "Un abonnement est en cours : arrêtez-le avant d'en offrir un autre."
+        )
+      ).toBeVisible()
+
+      await menu.getByRole("link", { name: "Organisations" }).click()
+      await main
+        .getByRole("link", { name: ADMIN_ORGANIZATION, exact: true })
+        .click()
+
+      await expect(page).toHaveURL(ADMIN_ORGANIZATION_URL_RE)
+      await expect(
+        main.getByText("Aucun abonnement, passé ou présent.")
+      ).toBeVisible()
+
+      await page.getByRole("button", { name: "Offrir un abonnement" }).click()
+
+      const grant = page.getByRole("dialog")
+
+      await grant.getByLabel("Sièges").fill("2")
+      await grant.getByLabel("Note (facultative)").fill(GRANT_NOTE)
+      await grant.getByRole("button", { name: "Offrir", exact: true }).click()
+
+      await expect(
+        toasts.getByText(`${ADMIN_ORGANIZATION} a son abonnement.`)
+      ).toBeVisible()
+
+      // The log below the card also says "Abonnement offert": the seats name the row.
+      const row = main.getByRole("listitem").filter({ hasText: "2 sièges" })
+
+      await expect(row).toContainText("Offert")
+      await expect(row).toContainText("Actif")
+      await expect(
+        page.getByRole("button", { name: "Offrir un abonnement" })
+      ).toBeDisabled()
+
+      await row.getByRole("link").click()
+
+      await expect(page).toHaveURL(ADMIN_SUBSCRIPTION_URL_RE)
+      await expect(main.getByText(GRANT_NOTE)).toBeVisible()
+      // The status dot carries the same word as its hidden SVG title: the badge text is the last one.
+      await expect(
+        main.getByText("Actif", { exact: true }).last()
+      ).toBeVisible()
+
+      await page.screenshot({
+        path: `${SHOTS}/admin-subscription.png`,
+        fullPage: true,
+      })
+
+      await page.getByRole("button", { name: "Arrêter maintenant" }).click()
+
+      const stop = page.getByRole("alertdialog")
+
+      await stop.getByLabel("Motif").fill("Fin du partenariat")
+      await stop.getByRole("button", { name: "Arrêter maintenant" }).click()
+
+      await expect(
+        toasts.getByText(`L'abonnement de ${ADMIN_ORGANIZATION} est arrêté.`)
+      ).toBeVisible()
+      await expect(
+        main.getByText("Résilié", { exact: true }).last()
+      ).toBeVisible()
+      await expect(
+        page.getByRole("button", { name: "Arrêter maintenant" })
       ).toHaveCount(0)
     })
   })

@@ -1,3 +1,4 @@
+import { productKey } from "@/lib/domain/admin"
 import type { Translate } from "@/lib/i18n/i18n"
 
 const BYTE_UNITS_FR = ["o", "ko", "Mo", "Go", "To"] as const
@@ -95,4 +96,11 @@ export function formatRelative(
   }
 
   return t("format.daysAgo", { count: Math.floor(elapsed / DAY_MS) })
+}
+
+/** A product Stripe invents after this was written keeps its own name on screen. */
+export function formatProduct(product: string | null, t: Translate): string {
+  const key = productKey(product)
+
+  return key ? t(key) : (product ?? t("format.none"))
 }
