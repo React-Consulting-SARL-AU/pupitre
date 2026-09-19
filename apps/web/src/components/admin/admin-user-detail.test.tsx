@@ -257,11 +257,10 @@ describe("AdminUserDetail", () => {
       return stored.deletionAt !== null
     })
     await waitUntil(
-      () =>
-        container.textContent?.includes("Cancel the account deletion") === true
+      () => container.textContent?.includes("Purge the account now") === true
     )
 
-    expect(container.textContent).toContain("Purge the account now")
+    expect(trigger(container, "Cancel the account deletion")).not.toBeNull()
   })
 
   it("shows the refusal of the platform inside the dialog that asked", async () => {

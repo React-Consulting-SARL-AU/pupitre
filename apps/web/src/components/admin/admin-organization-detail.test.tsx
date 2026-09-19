@@ -230,10 +230,10 @@ describe("AdminOrganizationDetail", () => {
       return stored.closedAt !== null
     })
     await waitUntil(
-      () => container.textContent?.includes("Reopen the organisation") === true
+      () => container.textContent?.includes("Close the organisation") === false
     )
 
-    expect(container.textContent).not.toContain("Close the organisation")
+    expect(trigger(container, "Reopen the organisation")).not.toBeNull()
   })
 
   it("renames an organisation once the form is dirty", async () => {

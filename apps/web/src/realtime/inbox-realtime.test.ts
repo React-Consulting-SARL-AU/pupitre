@@ -62,7 +62,7 @@ describe("qui ouvre la socket de la boîte", () => {
 
   it("refuse en 403 un compte désactivé, malgré une session valide", () => {
     const refused = inboxSocketRefusal(
-      context({ accountRefusal: "account_deactivated" })
+      context({ accountRefusal: { kind: "account_deactivated" } })
     )
 
     expect(refused?.status).toBe(403)
