@@ -399,19 +399,43 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     expect(removed.status).toBe(204)
   })
 
-  it("refuse à un membre de retirer la note d'un autre", async () => {
+  it("refuse à un membre d'écrire une note, un brouillon, ou de les retirer", async () => {
     const stored = await ingest({})
     const created = await apiRequest<{ data: { id: string } }>(
       `/admin/inbox/threads/${stored.threadId}/notes`,
       { body: { body: "À suivre." }, session: owner.session }
     )
-    const refused = await apiRequest<{ error: { code: string } }>(
+    const writtenNote = await apiRequest<{ error: { code: string } }>(
+      `/admin/inbox/threads/${stored.threadId}/notes`,
+      { body: { body: "Pas à moi." }, session: member.session }
+    )
+    const removedNote = await apiRequest(
       `/admin/inbox/threads/${stored.threadId}/notes/${created.json.data.id}`,
       { method: "DELETE", session: member.session }
     )
+    const savedDraft = await apiRequest(
+      `/admin/inbox/threads/${stored.threadId}/draft`,
+      {
+        method: "PUT",
+        body: { body: "On regarde" },
+        session: member.session,
+      }
+    )
+    const removedDraft = await apiRequest(
+      `/admin/inbox/threads/${stored.threadId}/draft`,
+      { method: "DELETE", session: member.session }
+    )
+    const readNotes = await apiRequest(
+      `/admin/inbox/threads/${stored.threadId}/notes`,
+      { session: member.session }
+    )
 
-    expect(refused.status).toBe(403)
-    expect(refused.json.error.code).toBe("forbidden")
+    expect(writtenNote.status).toBe(403)
+    expect(writtenNote.json.error.code).toBe("forbidden")
+    expect(removedNote.status).toBe(403)
+    expect(savedDraft.status).toBe(403)
+    expect(removedDraft.status).toBe(403)
+    expect(readNotes.status).toBe(200)
   })
 
   it("garde un brouillon, le remplace, et l'efface à l'envoi", async () => {
