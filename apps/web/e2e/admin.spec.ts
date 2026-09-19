@@ -5,6 +5,7 @@ import {
   openTrial,
   promotePlatformMember,
   receiveEmail,
+  seedReferral,
   seedServer,
   signIn,
   stayLocal,
@@ -34,6 +35,11 @@ const THREAD_TEXT = "Mon serveur refuse l'agent."
 const LINK_NAME = "Salon des makers"
 const LINK_CODE = "makers-e2e"
 const LINK_URL = `https://pupitre.studio/?ref=${LINK_CODE}`
+const LINK_PARTNER = "Ada Lovelace"
+const LINK_PARTNER_EMAIL = "ada@partenaire.test"
+const LINK_NOTES = "Stand partagé au salon"
+const SPARE_LINK_NAME = "Podcast du soir"
+const SPARE_LINK_CODE = "podcast-e2e"
 
 const LAUNCH_ENDS_AT = "2026-12-31T12:00:00.000Z"
 const LAUNCH_DATE = "31 décembre 2026"
@@ -52,6 +58,8 @@ const ADMIN_ORGANIZATIONS_URL_RE = /\/dashboard\/admin\/organizations$/
 const ADMIN_ORGANIZATION_URL_RE = /\/dashboard\/admin\/organizations\/[^/]+$/
 const ADMIN_SUBSCRIPTION_URL_RE = /\/dashboard\/admin\/subscriptions\/[^/]+$/
 const ADMIN_LINKS_URL_RE = /\/dashboard\/admin\/affiliate-links$/
+const ADMIN_LINK_URL_RE = /\/dashboard\/admin\/affiliate-links\/[^/?]+/
+const ADMIN_LINK_SETTINGS_URL_RE = /\/affiliate-links\/[^/?]+\?tab=settings$/
 const ADMIN_INBOX_URL_RE = /\/dashboard\/admin\/inbox$/
 const ADMIN_THREAD_URL_RE = /\/dashboard\/admin\/inbox\/[^/]+$/
 const START_RETURN_URL_RE = /\/dashboard\/start\?checkout=done$/
@@ -294,7 +302,7 @@ test.describe("plateforme", () => {
       await expect(main.getByText("Aucun serveur ne correspond.")).toBeVisible()
     })
 
-    await test.step("un lien d'affiliation se crée, s'ouvre en adresse, puis se désactive", async () => {
+    await test.step("un lien d'affiliation se crée avec son partenaire", async () => {
       await menu.getByRole("link", { name: "Liens d'affiliation" }).click()
 
       await expect(page).toHaveURL(ADMIN_LINKS_URL_RE)
@@ -302,45 +310,153 @@ test.describe("plateforme", () => {
         main.getByText("Aucun lien d'affiliation pour l'instant.")
       ).toBeVisible()
 
-      await page.getByLabel("Nom").fill(LINK_NAME)
-      await page.getByLabel("Code (facultatif)").fill(LINK_CODE)
-      await page.getByLabel("Mois offerts").fill("2")
-      await page.getByLabel("Sièges").fill("3")
-      await page.getByRole("button", { name: "Créer le lien" }).click()
+      await page.getByRole("button", { name: "Créer un lien" }).click()
+
+      const create = page.getByRole("dialog")
+
+      await create.getByLabel("Nom", { exact: true }).fill(LINK_NAME)
+      await create.getByLabel("Code (facultatif)").fill(LINK_CODE)
+      await create.getByLabel("Mois offerts").fill("2")
+      await create.getByLabel("Sièges").fill("3")
+      await create.getByLabel("Nom du partenaire").fill(LINK_PARTNER)
+      await create.getByLabel("E-mail du partenaire").fill(LINK_PARTNER_EMAIL)
+      await create.getByRole("button", { name: "Créer le lien" }).click()
 
       await expect(toasts.getByText(`« ${LINK_NAME} » est prêt.`)).toBeVisible()
 
       const row = main.getByRole("row").filter({ hasText: LINK_NAME })
 
       await expect(row).toContainText(LINK_URL)
-      await expect(row).toContainText("2 mois offerts")
-      await expect(row).toContainText("3 sièges")
+      await expect(row).toContainText(LINK_PARTNER)
       await expect(row).toContainText("Actif")
 
       await page.screenshot({
         path: `${SHOTS}/admin-affiliate-links.png`,
         fullPage: true,
       })
+    })
 
-      await row.getByRole("button", { name: "Désactiver" }).click()
+    await test.step("un second lien sur le même code est refusé sous le champ", async () => {
+      await page.getByRole("button", { name: "Créer un lien" }).click()
+
+      const again = page.getByRole("dialog")
+
+      await again.getByLabel("Nom", { exact: true }).fill("Un autre porteur")
+      await again.getByLabel("Code (facultatif)").fill(LINK_CODE)
+      await again.getByRole("button", { name: "Créer le lien" }).click()
+
+      await expect(
+        again.getByText(`Le code « ${LINK_CODE} » est déjà pris.`)
+      ).toBeVisible()
+
+      await again.getByRole("button", { name: "Annuler" }).click()
+
+      await expect(
+        main.getByRole("row").filter({ hasText: "Un autre porteur" })
+      ).toHaveCount(0)
+    })
+
+    await test.step("la fiche du lien se modifie depuis ses réglages", async () => {
+      await main.getByRole("link", { name: LINK_NAME }).click()
+
+      await expect(page).toHaveURL(ADMIN_LINK_URL_RE)
+      await expect(main.getByText(LINK_URL)).toBeVisible()
+      await expect(main.getByText(LINK_PARTNER_EMAIL)).toBeVisible()
+      await expect(main.getByText("Venues")).toBeVisible()
+
+      await page.getByRole("tab", { name: "Réglages" }).click()
+
+      await expect(page).toHaveURL(ADMIN_LINK_SETTINGS_URL_RE)
+
+      const apply = main.getByRole("button", { name: "Appliquer" })
+
+      await expect(apply).toBeDisabled()
+
+      await main.getByLabel("Mois offerts").fill("4")
+      await main.getByLabel("Notes").fill(LINK_NOTES)
+      await apply.click()
+
+      await expect(
+        toasts.getByText(`« ${LINK_NAME} » est à jour.`)
+      ).toBeVisible()
+
+      await page.getByRole("tab", { name: "Aperçu" }).click()
+
+      await expect(main.getByText(LINK_NOTES)).toBeVisible()
+    })
+
+    await test.step("le lien se désactive depuis sa zone dangereuse", async () => {
+      await page.getByRole("tab", { name: "Danger" }).click()
+
+      await expect(
+        main.getByText(
+          "Un lien désactivé n'enregistre plus aucune provenance ; les organisations déjà venues gardent la leur."
+        )
+      ).toBeVisible()
+
+      await main.getByRole("button", { name: "Désactiver" }).click()
 
       await expect(
         toasts.getByText(`« ${LINK_NAME} » ne parraine plus personne.`)
       ).toBeVisible()
-      await expect(row).toContainText("Désactivé")
-      await expect(row.getByRole("button", { name: "Activer" })).toBeVisible()
+      await expect(main.getByRole("button", { name: "Activer" })).toBeVisible()
     })
 
-    await test.step("un second lien sur le même code est refusé sous le champ", async () => {
-      await page.getByLabel("Nom").fill("Un autre porteur")
-      await page.getByLabel("Code (facultatif)").fill(LINK_CODE)
-      await page.getByRole("button", { name: "Créer le lien" }).click()
+    await test.step("un lien qui a déjà amené une organisation ne s'efface pas", async () => {
+      await seedReferral(request, { email: OWNER_EMAIL, code: LINK_CODE })
+      await main.getByRole("button", { name: "Supprimer le lien" }).click()
+
+      const remove = page.getByRole("dialog")
+
+      await remove
+        .getByLabel(`Retapez ${LINK_CODE} pour confirmer`)
+        .fill(LINK_CODE)
+      await remove.getByRole("button", { name: "Supprimer le lien" }).click()
 
       await expect(
-        main.getByText(`Le code « ${LINK_CODE} » est déjà pris.`)
+        remove.getByText(
+          "Ce lien a déjà amené une organisation : il ne s'efface plus."
+        )
       ).toBeVisible()
+      await expect(remove.getByText("Désactivez-le")).toBeVisible()
+
+      await remove.getByRole("button", { name: "Annuler" }).click()
+    })
+
+    await test.step("un lien sans provenance s'efface, et la liste le perd", async () => {
+      await menu.getByRole("link", { name: "Liens d'affiliation" }).click()
+      await page.getByRole("button", { name: "Créer un lien" }).click()
+
+      const create = page.getByRole("dialog")
+
+      await create.getByLabel("Nom", { exact: true }).fill(SPARE_LINK_NAME)
+      await create.getByLabel("Code (facultatif)").fill(SPARE_LINK_CODE)
+      await create.getByRole("button", { name: "Créer le lien" }).click()
+
       await expect(
-        main.getByRole("row").filter({ hasText: "Un autre porteur" })
+        toasts.getByText(`« ${SPARE_LINK_NAME} » est prêt.`)
+      ).toBeVisible()
+
+      await main.getByRole("link", { name: SPARE_LINK_NAME }).click()
+
+      await expect(page).toHaveURL(ADMIN_LINK_URL_RE)
+
+      await page.getByRole("tab", { name: "Danger" }).click()
+      await main.getByRole("button", { name: "Supprimer le lien" }).click()
+
+      const remove = page.getByRole("dialog")
+
+      await remove
+        .getByLabel(`Retapez ${SPARE_LINK_CODE} pour confirmer`)
+        .fill(SPARE_LINK_CODE)
+      await remove.getByRole("button", { name: "Supprimer le lien" }).click()
+
+      await expect(
+        toasts.getByText(`« ${SPARE_LINK_NAME} » est supprimé.`)
+      ).toBeVisible()
+      await expect(page).toHaveURL(ADMIN_LINKS_URL_RE)
+      await expect(
+        main.getByRole("row").filter({ hasText: SPARE_LINK_NAME })
       ).toHaveCount(0)
     })
 
@@ -512,7 +628,7 @@ test.describe("plateforme", () => {
       )
     })
 
-    await test.step("les liens d'affiliation se lisent, ni création ni bascule", async () => {
+    await test.step("les liens d'affiliation se lisent, ni création ni réglages", async () => {
       await menu.getByRole("link", { name: "Liens d'affiliation" }).click()
 
       await expect(page).toHaveURL(ADMIN_LINKS_URL_RE)
@@ -520,14 +636,19 @@ test.describe("plateforme", () => {
       const row = main.getByRole("row").filter({ hasText: LINK_NAME })
 
       await expect(row).toContainText(LINK_URL)
-      await expect(row.getByRole("button", { name: "Activer" })).toHaveCount(0)
-      await expect(row.getByRole("button", { name: "Désactiver" })).toHaveCount(
-        0
-      )
-      await expect(main.getByText("Nouveau lien d'affiliation")).toHaveCount(0)
       await expect(
-        page.getByRole("button", { name: "Créer le lien" })
+        row.getByRole("button", { name: "Actions sur cette ligne" })
       ).toHaveCount(0)
+      await expect(
+        page.getByRole("button", { name: "Créer un lien" })
+      ).toHaveCount(0)
+
+      await row.getByRole("link", { name: LINK_NAME }).click()
+
+      await expect(page).toHaveURL(ADMIN_LINK_URL_RE)
+      await expect(page.getByRole("tab", { name: "Aperçu" })).toBeVisible()
+      await expect(page.getByRole("tab", { name: "Réglages" })).toHaveCount(0)
+      await expect(page.getByRole("tab", { name: "Danger" })).toHaveCount(0)
     })
 
     await test.step("une conversation se lit sans être fermée ni répondue", async () => {

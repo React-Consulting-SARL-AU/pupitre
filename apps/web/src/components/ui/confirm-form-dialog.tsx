@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react"
 import {
   type KeyboardEvent,
   type ReactNode,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -33,7 +34,8 @@ export interface ConfirmRefusal {
 export interface ConfirmFormDialogProps {
   /** Unique on a page that carries several: the fields and the labels hang off it. */
   id: string
-  triggerLabel: string
+  /** Left out when the dialog is opened from elsewhere: a row menu item carries no button. */
+  triggerLabel?: string
   triggerIcon?: LucideIcon
   /** A row has no room for a sentence: the icon carries the action, the word names it. */
   triggerIconOnly?: boolean
@@ -58,6 +60,9 @@ export interface ConfirmFormDialogProps {
   tone?: ConfirmTone
   /** The server's refusal, shown inside the dialog, which stays open with the typing intact. */
   refusal?: ConfirmRefusal | null
+  /** Held outside when the gesture starts somewhere the dialog cannot put a trigger. */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
   onConfirm: (values: ConfirmFormValues) => void
   children?: ReactNode
 }
@@ -90,11 +95,21 @@ export function ConfirmFormDialog({
   busyLabel,
   tone = "danger",
   refusal = null,
+  open: heldOpen,
+  onOpenChange,
   onConfirm,
   children,
 }: ConfirmFormDialogProps) {
   const t = useTranslations()
-  const [open, setOpen] = useState(false)
+  const [ownOpen, setOwnOpen] = useState(false)
+  const open = heldOpen ?? ownOpen
+  const setOpen = useCallback(
+    (next: boolean) => {
+      setOwnOpen(next)
+      onOpenChange?.(next)
+    },
+    [onOpenChange]
+  )
   const form = useForm<ConfirmFormInput, ConfirmFormValues>({
     schema: confirmFormSchema(t, {
       reason,
@@ -125,7 +140,7 @@ export function ConfirmFormDialog({
         form.reset(EMPTY)
       }
     }
-  }, [busy, refusal, form])
+  }, [busy, refusal, form, setOpen])
 
   const submit = form.handleSubmit((values) => {
     onConfirm(values)
@@ -153,21 +168,23 @@ export function ConfirmFormDialog({
       }}
       open={open}
     >
-      <Dialog.Trigger
-        render={
-          <Button
-            aria-label={triggerIconOnly ? triggerLabel : undefined}
-            className={triggerIconOnly ? "w-7 px-0" : undefined}
-            disabled={triggerDisabled}
-            icon={TriggerIcon}
-            size="sm"
-            title={triggerIconOnly ? triggerLabel : undefined}
-            variant={TRIGGER_VARIANTS[tone]}
-          >
-            {triggerIconOnly ? null : triggerLabel}
-          </Button>
-        }
-      />
+      {triggerLabel === undefined ? null : (
+        <Dialog.Trigger
+          render={
+            <Button
+              aria-label={triggerIconOnly ? triggerLabel : undefined}
+              className={triggerIconOnly ? "w-7 px-0" : undefined}
+              disabled={triggerDisabled}
+              icon={TriggerIcon}
+              size="sm"
+              title={triggerIconOnly ? triggerLabel : undefined}
+              variant={TRIGGER_VARIANTS[tone]}
+            >
+              {triggerIconOnly ? null : triggerLabel}
+            </Button>
+          }
+        />
+      )}
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 bg-base/70 backdrop-blur-[2px]" />
         <Dialog.Popup className="fixed top-1/2 left-1/2 w-[min(440px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 rounded-lg bg-surface p-6 shadow-overlay outline-none">

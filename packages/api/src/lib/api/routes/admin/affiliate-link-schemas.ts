@@ -68,11 +68,24 @@ const freeMonthsField = t.Integer({
 
 const seatsField = t.Integer({ minimum: MIN_SEATS, maximum: MAX_SEATS })
 
+const partnerNameField = t.Optional(
+  t.Nullable(t.String({ maxLength: AFFILIATE_PARTNER_NAME_MAX_LENGTH }))
+)
+
+const partnerEmailField = t.Optional(t.Nullable(emailSchema))
+
+const notesField = t.Optional(
+  t.Nullable(t.String({ maxLength: AFFILIATE_NOTES_MAX_LENGTH }))
+)
+
 export const adminAffiliateLinkBody = t.Object({
   name: nameField,
   code: t.Optional(t.String({ pattern: AFFILIATE_CODE_RE.source })),
   free_months: freeMonthsField,
   seats: t.Optional(seatsField),
+  partner_name: partnerNameField,
+  partner_email: partnerEmailField,
+  notes: notesField,
 })
 
 export const adminAffiliateLinkPatchBody = t.Object({
@@ -80,11 +93,7 @@ export const adminAffiliateLinkPatchBody = t.Object({
   name: t.Optional(nameField),
   free_months: t.Optional(freeMonthsField),
   seats: t.Optional(seatsField),
-  partner_name: t.Optional(
-    t.Nullable(t.String({ maxLength: AFFILIATE_PARTNER_NAME_MAX_LENGTH }))
-  ),
-  partner_email: t.Optional(t.Nullable(emailSchema)),
-  notes: t.Optional(
-    t.Nullable(t.String({ maxLength: AFFILIATE_NOTES_MAX_LENGTH }))
-  ),
+  partner_name: partnerNameField,
+  partner_email: partnerEmailField,
+  notes: notesField,
 })

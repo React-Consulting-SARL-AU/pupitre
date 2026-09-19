@@ -572,6 +572,9 @@ export interface AffiliateLinkInput {
   code?: string
   free_months: number
   seats?: number
+  partner_name?: string | null
+  partner_email?: string | null
+  notes?: string | null
 }
 
 /** The list is what shows the link once it exists: the answer only has to be a success. */

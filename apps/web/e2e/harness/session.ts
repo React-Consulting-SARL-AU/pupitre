@@ -115,6 +115,16 @@ export async function chooseBillingMode(
   expect(chosen.ok()).toBe(true)
 }
 
+/** An organisation that came through a link, so the page holds one that no longer deletes. */
+export async function seedReferral(
+  request: APIRequestContext,
+  data: { email: string; code: string }
+): Promise<void> {
+  const seeded = await request.post(harnessUrl("/referrals"), { data })
+
+  expect(seeded.ok()).toBe(true)
+}
+
 export async function seedServer(
   request: APIRequestContext,
   data: { email: string; name: string; status?: string }
