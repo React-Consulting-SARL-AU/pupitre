@@ -29,6 +29,7 @@ export type AuditAction =
   | "referral.recorded"
   | "affiliate_link.created"
   | "affiliate_link.updated"
+  | "affiliate_link.deleted"
   | "mail.closed"
   | "mail.reopened"
   | "mail.assigned"
