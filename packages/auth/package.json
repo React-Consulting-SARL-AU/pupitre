@@ -6,6 +6,7 @@
   "exports": {
     "./emails": "./src/emails.ts",
     "./hooks": "./src/hooks.ts",
+    "./lifecycle": "./src/lifecycle.ts",
     "./server": "./src/server.ts",
     "./client/web": "./src/client/web.ts",
     "./client/desktop": "./src/client/desktop.ts",

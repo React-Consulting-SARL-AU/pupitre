@@ -38,6 +38,12 @@ export type UserMinAggregateOutputType = {
   banExpires: Date | null
   twoFactorEnabled: boolean | null
   locale: string | null
+  deactivatedAt: Date | null
+  deactivatedReason: string | null
+  deactivatedByUserId: string | null
+  deletionAt: Date | null
+  deletionReason: string | null
+  deletionByUserId: string | null
 }
 
 export type UserMaxAggregateOutputType = {
@@ -54,6 +60,12 @@ export type UserMaxAggregateOutputType = {
   banExpires: Date | null
   twoFactorEnabled: boolean | null
   locale: string | null
+  deactivatedAt: Date | null
+  deactivatedReason: string | null
+  deactivatedByUserId: string | null
+  deletionAt: Date | null
+  deletionReason: string | null
+  deletionByUserId: string | null
 }
 
 export type UserCountAggregateOutputType = {
@@ -70,6 +82,12 @@ export type UserCountAggregateOutputType = {
   banExpires: number
   twoFactorEnabled: number
   locale: number
+  deactivatedAt: number
+  deactivatedReason: number
+  deactivatedByUserId: number
+  deletionAt: number
+  deletionReason: number
+  deletionByUserId: number
   _all: number
 }
 
@@ -88,6 +106,12 @@ export type UserMinAggregateInputType = {
   banExpires?: true
   twoFactorEnabled?: true
   locale?: true
+  deactivatedAt?: true
+  deactivatedReason?: true
+  deactivatedByUserId?: true
+  deletionAt?: true
+  deletionReason?: true
+  deletionByUserId?: true
 }
 
 export type UserMaxAggregateInputType = {
@@ -104,6 +128,12 @@ export type UserMaxAggregateInputType = {
   banExpires?: true
   twoFactorEnabled?: true
   locale?: true
+  deactivatedAt?: true
+  deactivatedReason?: true
+  deactivatedByUserId?: true
+  deletionAt?: true
+  deletionReason?: true
+  deletionByUserId?: true
 }
 
 export type UserCountAggregateInputType = {
@@ -120,6 +150,12 @@ export type UserCountAggregateInputType = {
   banExpires?: true
   twoFactorEnabled?: true
   locale?: true
+  deactivatedAt?: true
+  deactivatedReason?: true
+  deactivatedByUserId?: true
+  deletionAt?: true
+  deletionReason?: true
+  deletionByUserId?: true
   _all?: true
 }
 
@@ -209,6 +245,12 @@ export type UserGroupByOutputType = {
   banExpires: Date | null
   twoFactorEnabled: boolean | null
   locale: string
+  deactivatedAt: Date | null
+  deactivatedReason: string | null
+  deactivatedByUserId: string | null
+  deletionAt: Date | null
+  deletionReason: string | null
+  deletionByUserId: string | null
   _count: UserCountAggregateOutputType | null
   _min: UserMinAggregateOutputType | null
   _max: UserMaxAggregateOutputType | null
@@ -246,6 +288,12 @@ export type UserWhereInput = {
   banExpires?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   twoFactorEnabled?: Prisma.BoolNullableFilter<"User"> | boolean | null
   locale?: Prisma.StringFilter<"User"> | string
+  deactivatedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  deactivatedReason?: Prisma.StringNullableFilter<"User"> | string | null
+  deactivatedByUserId?: Prisma.StringNullableFilter<"User"> | string | null
+  deletionAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  deletionReason?: Prisma.StringNullableFilter<"User"> | string | null
+  deletionByUserId?: Prisma.StringNullableFilter<"User"> | string | null
   sessions?: Prisma.SessionListRelationFilter
   accounts?: Prisma.AccountListRelationFilter
   members?: Prisma.MemberListRelationFilter
@@ -271,6 +319,12 @@ export type UserOrderByWithRelationInput = {
   banExpires?: Prisma.SortOrderInput | Prisma.SortOrder
   twoFactorEnabled?: Prisma.SortOrderInput | Prisma.SortOrder
   locale?: Prisma.SortOrder
+  deactivatedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  deactivatedReason?: Prisma.SortOrderInput | Prisma.SortOrder
+  deactivatedByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
+  deletionAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  deletionReason?: Prisma.SortOrderInput | Prisma.SortOrder
+  deletionByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
   sessions?: Prisma.SessionOrderByRelationAggregateInput
   accounts?: Prisma.AccountOrderByRelationAggregateInput
   members?: Prisma.MemberOrderByRelationAggregateInput
@@ -299,6 +353,12 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   banExpires?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
   twoFactorEnabled?: Prisma.BoolNullableFilter<"User"> | boolean | null
   locale?: Prisma.StringFilter<"User"> | string
+  deactivatedAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  deactivatedReason?: Prisma.StringNullableFilter<"User"> | string | null
+  deactivatedByUserId?: Prisma.StringNullableFilter<"User"> | string | null
+  deletionAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  deletionReason?: Prisma.StringNullableFilter<"User"> | string | null
+  deletionByUserId?: Prisma.StringNullableFilter<"User"> | string | null
   sessions?: Prisma.SessionListRelationFilter
   accounts?: Prisma.AccountListRelationFilter
   members?: Prisma.MemberListRelationFilter
@@ -324,6 +384,12 @@ export type UserOrderByWithAggregationInput = {
   banExpires?: Prisma.SortOrderInput | Prisma.SortOrder
   twoFactorEnabled?: Prisma.SortOrderInput | Prisma.SortOrder
   locale?: Prisma.SortOrder
+  deactivatedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  deactivatedReason?: Prisma.SortOrderInput | Prisma.SortOrder
+  deactivatedByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
+  deletionAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  deletionReason?: Prisma.SortOrderInput | Prisma.SortOrder
+  deletionByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
   _max?: Prisma.UserMaxOrderByAggregateInput
   _min?: Prisma.UserMinOrderByAggregateInput
@@ -346,6 +412,12 @@ export type UserScalarWhereWithAggregatesInput = {
   banExpires?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
   twoFactorEnabled?: Prisma.BoolNullableWithAggregatesFilter<"User"> | boolean | null
   locale?: Prisma.StringWithAggregatesFilter<"User"> | string
+  deactivatedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
+  deactivatedReason?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  deactivatedByUserId?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  deletionAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
+  deletionReason?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  deletionByUserId?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
 }
 
 export type UserCreateInput = {
@@ -362,6 +434,12 @@ export type UserCreateInput = {
   banExpires?: Date | string | null
   twoFactorEnabled?: boolean | null
   locale?: string
+  deactivatedAt?: Date | string | null
+  deactivatedReason?: string | null
+  deactivatedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   members?: Prisma.MemberCreateNestedManyWithoutUserInput
@@ -387,6 +465,12 @@ export type UserUncheckedCreateInput = {
   banExpires?: Date | string | null
   twoFactorEnabled?: boolean | null
   locale?: string
+  deactivatedAt?: Date | string | null
+  deactivatedReason?: string | null
+  deactivatedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutUserInput
@@ -412,6 +496,12 @@ export type UserUpdateInput = {
   banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   twoFactorEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
+  deactivatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deactivatedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deactivatedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUpdateManyWithoutUserNestedInput
@@ -437,6 +527,12 @@ export type UserUncheckedUpdateInput = {
   banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   twoFactorEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
+  deactivatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deactivatedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deactivatedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUncheckedUpdateManyWithoutUserNestedInput
@@ -462,6 +558,12 @@ export type UserCreateManyInput = {
   banExpires?: Date | string | null
   twoFactorEnabled?: boolean | null
   locale?: string
+  deactivatedAt?: Date | string | null
+  deactivatedReason?: string | null
+  deactivatedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
 }
 
 export type UserUpdateManyMutationInput = {
@@ -478,6 +580,12 @@ export type UserUpdateManyMutationInput = {
   banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   twoFactorEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
+  deactivatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deactivatedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deactivatedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type UserUncheckedUpdateManyInput = {
@@ -494,6 +602,12 @@ export type UserUncheckedUpdateManyInput = {
   banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   twoFactorEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
+  deactivatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deactivatedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deactivatedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type UserCountOrderByAggregateInput = {
@@ -510,6 +624,12 @@ export type UserCountOrderByAggregateInput = {
   banExpires?: Prisma.SortOrder
   twoFactorEnabled?: Prisma.SortOrder
   locale?: Prisma.SortOrder
+  deactivatedAt?: Prisma.SortOrder
+  deactivatedReason?: Prisma.SortOrder
+  deactivatedByUserId?: Prisma.SortOrder
+  deletionAt?: Prisma.SortOrder
+  deletionReason?: Prisma.SortOrder
+  deletionByUserId?: Prisma.SortOrder
 }
 
 export type UserMaxOrderByAggregateInput = {
@@ -526,6 +646,12 @@ export type UserMaxOrderByAggregateInput = {
   banExpires?: Prisma.SortOrder
   twoFactorEnabled?: Prisma.SortOrder
   locale?: Prisma.SortOrder
+  deactivatedAt?: Prisma.SortOrder
+  deactivatedReason?: Prisma.SortOrder
+  deactivatedByUserId?: Prisma.SortOrder
+  deletionAt?: Prisma.SortOrder
+  deletionReason?: Prisma.SortOrder
+  deletionByUserId?: Prisma.SortOrder
 }
 
 export type UserMinOrderByAggregateInput = {
@@ -542,6 +668,12 @@ export type UserMinOrderByAggregateInput = {
   banExpires?: Prisma.SortOrder
   twoFactorEnabled?: Prisma.SortOrder
   locale?: Prisma.SortOrder
+  deactivatedAt?: Prisma.SortOrder
+  deactivatedReason?: Prisma.SortOrder
+  deactivatedByUserId?: Prisma.SortOrder
+  deletionAt?: Prisma.SortOrder
+  deletionReason?: Prisma.SortOrder
+  deletionByUserId?: Prisma.SortOrder
 }
 
 export type UserScalarRelationFilter = {
@@ -722,6 +854,12 @@ export type UserCreateWithoutSessionsInput = {
   banExpires?: Date | string | null
   twoFactorEnabled?: boolean | null
   locale?: string
+  deactivatedAt?: Date | string | null
+  deactivatedReason?: string | null
+  deactivatedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   members?: Prisma.MemberCreateNestedManyWithoutUserInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutUserInput
@@ -746,6 +884,12 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   banExpires?: Date | string | null
   twoFactorEnabled?: boolean | null
   locale?: string
+  deactivatedAt?: Date | string | null
+  deactivatedReason?: string | null
+  deactivatedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutUserInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutUserInput
@@ -786,6 +930,12 @@ export type UserUpdateWithoutSessionsInput = {
   banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   twoFactorEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
+  deactivatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deactivatedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deactivatedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUpdateManyWithoutUserNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutUserNestedInput
@@ -810,6 +960,12 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   twoFactorEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
+  deactivatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deactivatedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deactivatedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUncheckedUpdateManyWithoutUserNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutUserNestedInput
@@ -834,6 +990,12 @@ export type UserCreateWithoutAccountsInput = {
   banExpires?: Date | string | null
   twoFactorEnabled?: boolean | null
   locale?: string
+  deactivatedAt?: Date | string | null
+  deactivatedReason?: string | null
+  deactivatedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   members?: Prisma.MemberCreateNestedManyWithoutUserInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutUserInput
@@ -858,6 +1020,12 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   banExpires?: Date | string | null
   twoFactorEnabled?: boolean | null
   locale?: string
+  deactivatedAt?: Date | string | null
+  deactivatedReason?: string | null
+  deactivatedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutUserInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutUserInput
@@ -898,6 +1066,12 @@ export type UserUpdateWithoutAccountsInput = {
   banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   twoFactorEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
+  deactivatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deactivatedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deactivatedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUpdateManyWithoutUserNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutUserNestedInput
@@ -922,6 +1096,12 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   twoFactorEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
+  deactivatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deactivatedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deactivatedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUncheckedUpdateManyWithoutUserNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutUserNestedInput
@@ -946,6 +1126,12 @@ export type UserCreateWithoutMembersInput = {
   banExpires?: Date | string | null
   twoFactorEnabled?: boolean | null
   locale?: string
+  deactivatedAt?: Date | string | null
+  deactivatedReason?: string | null
+  deactivatedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutUserInput
@@ -970,6 +1156,12 @@ export type UserUncheckedCreateWithoutMembersInput = {
   banExpires?: Date | string | null
   twoFactorEnabled?: boolean | null
   locale?: string
+  deactivatedAt?: Date | string | null
+  deactivatedReason?: string | null
+  deactivatedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutUserInput
@@ -1010,6 +1202,12 @@ export type UserUpdateWithoutMembersInput = {
   banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   twoFactorEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
+  deactivatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deactivatedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deactivatedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutUserNestedInput
@@ -1034,6 +1232,12 @@ export type UserUncheckedUpdateWithoutMembersInput = {
   banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   twoFactorEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
+  deactivatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deactivatedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deactivatedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutUserNestedInput
@@ -1058,6 +1262,12 @@ export type UserCreateWithoutInvitationsInput = {
   banExpires?: Date | string | null
   twoFactorEnabled?: boolean | null
   locale?: string
+  deactivatedAt?: Date | string | null
+  deactivatedReason?: string | null
+  deactivatedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   members?: Prisma.MemberCreateNestedManyWithoutUserInput
@@ -1082,6 +1292,12 @@ export type UserUncheckedCreateWithoutInvitationsInput = {
   banExpires?: Date | string | null
   twoFactorEnabled?: boolean | null
   locale?: string
+  deactivatedAt?: Date | string | null
+  deactivatedReason?: string | null
+  deactivatedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutUserInput
@@ -1122,6 +1338,12 @@ export type UserUpdateWithoutInvitationsInput = {
   banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   twoFactorEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
+  deactivatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deactivatedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deactivatedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUpdateManyWithoutUserNestedInput
@@ -1146,6 +1368,12 @@ export type UserUncheckedUpdateWithoutInvitationsInput = {
   banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   twoFactorEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
+  deactivatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deactivatedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deactivatedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUncheckedUpdateManyWithoutUserNestedInput
@@ -1170,6 +1398,12 @@ export type UserCreateWithoutPasskeysInput = {
   banExpires?: Date | string | null
   twoFactorEnabled?: boolean | null
   locale?: string
+  deactivatedAt?: Date | string | null
+  deactivatedReason?: string | null
+  deactivatedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   members?: Prisma.MemberCreateNestedManyWithoutUserInput
@@ -1194,6 +1428,12 @@ export type UserUncheckedCreateWithoutPasskeysInput = {
   banExpires?: Date | string | null
   twoFactorEnabled?: boolean | null
   locale?: string
+  deactivatedAt?: Date | string | null
+  deactivatedReason?: string | null
+  deactivatedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutUserInput
@@ -1234,6 +1474,12 @@ export type UserUpdateWithoutPasskeysInput = {
   banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   twoFactorEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
+  deactivatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deactivatedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deactivatedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUpdateManyWithoutUserNestedInput
@@ -1258,6 +1504,12 @@ export type UserUncheckedUpdateWithoutPasskeysInput = {
   banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   twoFactorEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
+  deactivatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deactivatedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deactivatedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUncheckedUpdateManyWithoutUserNestedInput
@@ -1282,6 +1534,12 @@ export type UserCreateWithoutTwoFactorsInput = {
   banExpires?: Date | string | null
   twoFactorEnabled?: boolean | null
   locale?: string
+  deactivatedAt?: Date | string | null
+  deactivatedReason?: string | null
+  deactivatedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   members?: Prisma.MemberCreateNestedManyWithoutUserInput
@@ -1306,6 +1564,12 @@ export type UserUncheckedCreateWithoutTwoFactorsInput = {
   banExpires?: Date | string | null
   twoFactorEnabled?: boolean | null
   locale?: string
+  deactivatedAt?: Date | string | null
+  deactivatedReason?: string | null
+  deactivatedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutUserInput
@@ -1346,6 +1610,12 @@ export type UserUpdateWithoutTwoFactorsInput = {
   banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   twoFactorEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
+  deactivatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deactivatedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deactivatedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUpdateManyWithoutUserNestedInput
@@ -1370,6 +1640,12 @@ export type UserUncheckedUpdateWithoutTwoFactorsInput = {
   banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   twoFactorEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
+  deactivatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deactivatedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deactivatedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUncheckedUpdateManyWithoutUserNestedInput
@@ -1394,6 +1670,12 @@ export type UserCreateWithoutDevicesInput = {
   banExpires?: Date | string | null
   twoFactorEnabled?: boolean | null
   locale?: string
+  deactivatedAt?: Date | string | null
+  deactivatedReason?: string | null
+  deactivatedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   members?: Prisma.MemberCreateNestedManyWithoutUserInput
@@ -1418,6 +1700,12 @@ export type UserUncheckedCreateWithoutDevicesInput = {
   banExpires?: Date | string | null
   twoFactorEnabled?: boolean | null
   locale?: string
+  deactivatedAt?: Date | string | null
+  deactivatedReason?: string | null
+  deactivatedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutUserInput
@@ -1458,6 +1746,12 @@ export type UserUpdateWithoutDevicesInput = {
   banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   twoFactorEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
+  deactivatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deactivatedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deactivatedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUpdateManyWithoutUserNestedInput
@@ -1482,6 +1776,12 @@ export type UserUncheckedUpdateWithoutDevicesInput = {
   banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   twoFactorEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
+  deactivatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deactivatedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deactivatedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUncheckedUpdateManyWithoutUserNestedInput
@@ -1506,6 +1806,12 @@ export type UserCreateWithoutAssignedServersInput = {
   banExpires?: Date | string | null
   twoFactorEnabled?: boolean | null
   locale?: string
+  deactivatedAt?: Date | string | null
+  deactivatedReason?: string | null
+  deactivatedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   members?: Prisma.MemberCreateNestedManyWithoutUserInput
@@ -1530,6 +1836,12 @@ export type UserUncheckedCreateWithoutAssignedServersInput = {
   banExpires?: Date | string | null
   twoFactorEnabled?: boolean | null
   locale?: string
+  deactivatedAt?: Date | string | null
+  deactivatedReason?: string | null
+  deactivatedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutUserInput
@@ -1570,6 +1882,12 @@ export type UserUpdateWithoutAssignedServersInput = {
   banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   twoFactorEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
+  deactivatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deactivatedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deactivatedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUpdateManyWithoutUserNestedInput
@@ -1594,6 +1912,12 @@ export type UserUncheckedUpdateWithoutAssignedServersInput = {
   banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   twoFactorEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
+  deactivatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deactivatedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deactivatedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUncheckedUpdateManyWithoutUserNestedInput
@@ -1618,6 +1942,12 @@ export type UserCreateWithoutEventsInput = {
   banExpires?: Date | string | null
   twoFactorEnabled?: boolean | null
   locale?: string
+  deactivatedAt?: Date | string | null
+  deactivatedReason?: string | null
+  deactivatedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
   members?: Prisma.MemberCreateNestedManyWithoutUserInput
@@ -1642,6 +1972,12 @@ export type UserUncheckedCreateWithoutEventsInput = {
   banExpires?: Date | string | null
   twoFactorEnabled?: boolean | null
   locale?: string
+  deactivatedAt?: Date | string | null
+  deactivatedReason?: string | null
+  deactivatedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
   accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutUserInput
@@ -1682,6 +2018,12 @@ export type UserUpdateWithoutEventsInput = {
   banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   twoFactorEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
+  deactivatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deactivatedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deactivatedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUpdateManyWithoutUserNestedInput
@@ -1706,6 +2048,12 @@ export type UserUncheckedUpdateWithoutEventsInput = {
   banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   twoFactorEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
   locale?: Prisma.StringFieldUpdateOperationsInput | string
+  deactivatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deactivatedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deactivatedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
   accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
   members?: Prisma.MemberUncheckedUpdateManyWithoutUserNestedInput
@@ -1833,6 +2181,12 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   banExpires?: boolean
   twoFactorEnabled?: boolean
   locale?: boolean
+  deactivatedAt?: boolean
+  deactivatedReason?: boolean
+  deactivatedByUserId?: boolean
+  deletionAt?: boolean
+  deletionReason?: boolean
+  deletionByUserId?: boolean
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
   accounts?: boolean | Prisma.User$accountsArgs<ExtArgs>
   members?: boolean | Prisma.User$membersArgs<ExtArgs>
@@ -1859,6 +2213,12 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   banExpires?: boolean
   twoFactorEnabled?: boolean
   locale?: boolean
+  deactivatedAt?: boolean
+  deactivatedReason?: boolean
+  deactivatedByUserId?: boolean
+  deletionAt?: boolean
+  deletionReason?: boolean
+  deletionByUserId?: boolean
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1875,6 +2235,12 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   banExpires?: boolean
   twoFactorEnabled?: boolean
   locale?: boolean
+  deactivatedAt?: boolean
+  deactivatedReason?: boolean
+  deactivatedByUserId?: boolean
+  deletionAt?: boolean
+  deletionReason?: boolean
+  deletionByUserId?: boolean
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectScalar = {
@@ -1891,9 +2257,15 @@ export type UserSelectScalar = {
   banExpires?: boolean
   twoFactorEnabled?: boolean
   locale?: boolean
+  deactivatedAt?: boolean
+  deactivatedReason?: boolean
+  deactivatedByUserId?: boolean
+  deletionAt?: boolean
+  deletionReason?: boolean
+  deletionByUserId?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "emailVerified" | "image" | "createdAt" | "updatedAt" | "role" | "banned" | "banReason" | "banExpires" | "twoFactorEnabled" | "locale", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "email" | "emailVerified" | "image" | "createdAt" | "updatedAt" | "role" | "banned" | "banReason" | "banExpires" | "twoFactorEnabled" | "locale" | "deactivatedAt" | "deactivatedReason" | "deactivatedByUserId" | "deletionAt" | "deletionReason" | "deletionByUserId", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
   accounts?: boolean | Prisma.User$accountsArgs<ExtArgs>
@@ -1936,6 +2308,12 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     banExpires: Date | null
     twoFactorEnabled: boolean | null
     locale: string
+    deactivatedAt: Date | null
+    deactivatedReason: string | null
+    deactivatedByUserId: string | null
+    deletionAt: Date | null
+    deletionReason: string | null
+    deletionByUserId: string | null
   }, ExtArgs["result"]["user"]>
   composites: {}
 }
@@ -2381,6 +2759,12 @@ export interface UserFieldRefs {
   readonly banExpires: Prisma.FieldRef<"User", 'DateTime'>
   readonly twoFactorEnabled: Prisma.FieldRef<"User", 'Boolean'>
   readonly locale: Prisma.FieldRef<"User", 'String'>
+  readonly deactivatedAt: Prisma.FieldRef<"User", 'DateTime'>
+  readonly deactivatedReason: Prisma.FieldRef<"User", 'String'>
+  readonly deactivatedByUserId: Prisma.FieldRef<"User", 'String'>
+  readonly deletionAt: Prisma.FieldRef<"User", 'DateTime'>
+  readonly deletionReason: Prisma.FieldRef<"User", 'String'>
+  readonly deletionByUserId: Prisma.FieldRef<"User", 'String'>
 }
     
 
