@@ -1,3 +1,14 @@
+/** What the beat reads of the window: whether anyone is looking, and when that changes. */
+export interface PollPage {
+  readonly hidden: boolean;
+  addEventListener(type: "visibilitychange", listener: () => void): void;
+  removeEventListener(type: "visibilitychange", listener: () => void): void;
+}
+
+function currentPage(): PollPage | null {
+  return typeof document === "undefined" ? null : document;
+}
+
 /**
  * A read repeated on a beat, one at a time.
  *
@@ -8,13 +19,17 @@
  * be fresh — and coming back reads at once. Stopping cancels the beat and lets
  * an answer in flight fall on the floor.
  */
-export function poll(read: () => Promise<void>, everyMs: number): () => void {
+export function poll(
+  read: () => Promise<void>,
+  everyMs: number,
+  page: PollPage | null = currentPage()
+): () => void {
   let live = true;
   let reading = false;
   let next: ReturnType<typeof setTimeout> | null = null;
 
   function hidden(): boolean {
-    return typeof document !== "undefined" && document.hidden;
+    return page?.hidden === true;
   }
 
   async function turn(): Promise<void> {
@@ -44,9 +59,7 @@ export function poll(read: () => Promise<void>, everyMs: number): () => void {
     turn();
   }
 
-  if (typeof document !== "undefined") {
-    document.addEventListener("visibilitychange", onVisibility);
-  }
+  page?.addEventListener("visibilitychange", onVisibility);
 
   turn();
 
@@ -57,8 +70,6 @@ export function poll(read: () => Promise<void>, everyMs: number): () => void {
       clearTimeout(next);
     }
 
-    if (typeof document !== "undefined") {
-      document.removeEventListener("visibilitychange", onVisibility);
-    }
+    page?.removeEventListener("visibilitychange", onVisibility);
   };
 }

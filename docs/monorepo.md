@@ -83,15 +83,13 @@ bun run test
 bun run build
 ```
 
-Un push sur `staging` est vérifié une fois, sur son SHA. La pull request `staging` → `main` est ouverte et fusionnée par `release.yml`, sur un commit déjà vérifié, avec un jeton qui ne déclenche aucun workflow : `main` ne fait rien tourner. `pull_request` ne vise donc que `staging`, où arrivent les branches de travail. Les workflows tournent sur les runners de **Blacksmith** (app GitHub installée sur l'organisation, labels `blacksmith-*`), pas sur ceux de GitHub, dont la facturation a bloqué une release ; les minutes s'y paient aussi : `ci.yml` ne fait que vérifier, tout sur Ubuntu, et seule une release — un tag `v*` — occupe un runner macOS ou Windows. Les jobs de `ci.yml` :
+La CI ne tourne que sur les **pull requests** : une branche de travail est vérifiée quand elle demande à entrer dans `staging`, et `staging` quand elle demande à entrer dans `main`. Un push ne déclenche rien — les minutes se paient, et le même commit serait vérifié deux fois — et la fusion dans `main` ne fait rien tourner non plus : le commit de fusion est celui que la pull request vient de vérifier. La pull request `staging` → `main` qu'ouvre `release.yml` l'est avec un jeton qui ne déclenche aucun workflow, sur un commit déjà vérifié. Les workflows tournent sur les runners de **Blacksmith** (app GitHub installée sur l'organisation, labels `blacksmith-*`), pas sur ceux de GitHub, dont la facturation a bloqué une release ; les minutes s'y paient aussi : `ci.yml` tient en un seul job, tout sur Ubuntu, et seule une release — un tag `v*` — occupe un runner macOS ou Windows.
 
 | Job | Quand | Ce qu'il fait |
 | --- | --- | --- |
-| `quality` | PR vers `staging`, push sur `staging` | lint, typecheck, tests, build hors desktop. L'app desktop et les packages tournent avec `--coverage`, et leurs `lcov.info` montent dans l'artefact `coverage-<sha>` — aucun seuil, on lit |
-| `console-e2e` | idem | Playwright sur la console, non bloquant |
-| `desktop-e2e` | idem | Playwright sur l'app, sous xvfb |
-| `gitleaks` | idem | l'historique entier relu par le binaire `gitleaks`, épinglé par empreinte — pas l'action, qui exige une licence dès qu'une organisation porte le dépôt ; `.gitleaks.toml` exclut les fixtures de test et les valeurs factices de la CI |
-| `agent` | idem | `gofmt`, `go vet`, `staticcheck`, `govulncheck`, `go test -race` avec son profil de couverture dans l'artefact `coverage-agent-<sha>`, build multi-arch |
+| `quality` | PR vers `staging` ou `main` | migrations appliquées sur une base vide, lint (dont `gofmt`, `go vet`, `staticcheck`), typecheck, tests de tous les workspaces (dont `go test`), build hors desktop |
+
+Ce que la CI ne fait plus, et qui se fait ailleurs : les suites Playwright de la console et de l'app (`bun --cwd=apps/web run test:e2e`, `bun --cwd=apps/desktop run test:e2e`) se passent sur la machine du propriétaire avant une pull request ; les secrets sont refusés par le hook pre-commit (`scripts/assert-no-secrets.ts`) et par la *push protection* de GitHub ; `govulncheck` et `go test -race` se lancent à la main depuis `apps/agent` quand une dépendance Go bouge ; aucune couverture n'est mesurée.
 
 Ni macOS ni Windows n'ont de job de CI : l'app s'y construit au moment de la release, `release.yml`, et c'est là qu'elle se voit. Windows n'est de toute façon pas éprouvé : le modèle SSH de l'app — une session maître multiplexée par serveur, clés et sockets en 0600 — n'a pas d'équivalent sur OpenSSH pour Windows ; ça devient une tâche le jour où Windows en est une.
 
@@ -105,7 +103,7 @@ Trois workspaces passent `--timeout=60000` à `bun test` : `apps/web`, `apps/des
 
 ## Secrets
 
-- Jamais dans le dépôt. Le hook pre-commit refuse toute chaîne ressemblant à une clé API, un jeton ou une clé privée, et le job `gitleaks` de la CI relit tout l'historique. La *push protection* de GitHub se pose dans les réglages du dépôt — *Settings* → *Code security* → *Secret scanning* — et nulle part ici : elle refuse un push qui porte un secret avant que la CI ne le voie.
+- Jamais dans le dépôt. Le hook pre-commit refuse toute chaîne ressemblant à une clé API, un jeton ou une clé privée ; `.gitleaks.toml` reste pour relire l'historique à la main (`gitleaks git --redact .`). La *push protection* de GitHub se pose dans les réglages du dépôt — *Settings* → *Code security* → *Secret scanning* — et nulle part ici : elle refuse un push qui porte un secret avant que la CI ne le voie.
 - Local : `bun run dev:prepare` prépare `.env.local` et les liens que chaque outil attend. Les trois commandes de développement l'appellent d'abord, donc il n'y a rien à lancer à la main. Il ne remplace jamais une valeur déjà écrite : un `.env.local` renseigné reste tel quel.
 - **Ce qui se dérive n'est pas stocké.** La base n'a pas d'adresse : c'est un binding. `BETTER_AUTH_SECRET` et `INTERNAL_WORKFLOW_SECRET` sont tirés au hasard par poste, puisqu'ils n'ont pas à être partagés.
 - **Ce qui se tire ne se tape pas.** Les secrets qu'on fabrique soi-même — ceux-là pour chaque environnement en ligne, et le `PUPITRE_PUBLISH_TOKEN` commun aux notes des environnements et à celle de la release — sont tirés et déposés dans les notes 1Password par `bun run secrets:draw` (`scripts/draw-secrets.ts`), jamais par `openssl` et un copier-coller. Un champ déjà rempli reste tel quel ; on le vide dans 1Password pour le faire retirer. Un nouveau secret de cette famille s'ajoute à la liste du script, pas à une consigne.
