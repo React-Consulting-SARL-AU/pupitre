@@ -13,6 +13,7 @@ import {
   entitlementForOrganization,
   entitlementWindow,
 } from "../billing/entitlement"
+import { SEATED_STATUSES } from "../billing/seats"
 import { type AdminEventView, recentEvents } from "../platform/events"
 import { metricsOf } from "./agent-state"
 import type { MetricSample } from "./metrics"
@@ -52,6 +53,9 @@ export interface AdminOrganizationView {
 
 export interface AdminServerView extends ServerView {
   suspended_reason: SuspensionReason | null
+  channel: ReleaseChannel
+  /** Whether the row takes one of its organisation's seats, as `ReconcileSeats` counts them. */
+  seated: boolean
   organization: AdminOrganizationView
 }
 
@@ -88,6 +92,8 @@ function toAdminView(
   return {
     ...toServerView(server, now, alerts),
     suspended_reason: server.suspendedReason,
+    channel: server.channel,
+    seated: SEATED_STATUSES.includes(server.status),
     organization: server.organization,
   }
 }
@@ -248,7 +254,6 @@ export interface AdminServerRevokedDevice {
 }
 
 export interface AdminServerDetail extends AdminServerView {
-  channel: ReleaseChannel
   enrollment_expires_at: Date | null
   assigned_user: AdminServerAssignee | null
   device: AdminServerDevice | null
@@ -324,7 +329,6 @@ async function detailOf(server: ServerDetailRow): Promise<AdminServerDetail> {
 
   return {
     ...toAdminView(server, new Date(), alerts.get(server.id) ?? []),
-    channel: server.channel,
     enrollment_expires_at: server.enrollmentExpiresAt,
     assigned_user: server.assignedUser,
     device: server.device ? toDeviceView(server.device) : null,

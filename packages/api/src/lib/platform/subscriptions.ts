@@ -28,15 +28,18 @@ export interface AdminSubscriptionOrganization {
   slug: string
 }
 
+export interface AdminSubscriptionSeats {
+  paid: number
+  used: number
+}
+
 export interface AdminSubscriptionView
   extends AdminOrganizationSubscriptionRow {
   organization: AdminSubscriptionOrganization
   live: boolean
-}
-
-export interface AdminSubscriptionSeats {
-  paid: number
-  used: number
+  seats: AdminSubscriptionSeats
+  /** More servers seated than seats paid: the same reading as `ReconcileSeats`. */
+  drifted: boolean
 }
 
 export interface AdminStripeEventView {
@@ -47,9 +50,6 @@ export interface AdminStripeEventView {
 }
 
 export interface AdminSubscriptionDetail extends AdminSubscriptionView {
-  seats: AdminSubscriptionSeats
-  /** More servers seated than seats paid: the same reading as `ReconcileSeats`. */
-  drifted: boolean
   stripe_url: string | null
   stripe_events: AdminStripeEventView[]
   events: AdminEventView[]
@@ -154,14 +154,39 @@ async function liveIdsAmong(organizationIds: string[]): Promise<Set<string>> {
   return live
 }
 
+/** How many servers each of these organisations has seated, counted once for the page. */
+async function seatsUsedAmong(
+  organizationIds: string[]
+): Promise<Map<string, number>> {
+  if (organizationIds.length === 0) {
+    return new Map()
+  }
+
+  const rows = await getPrisma().server.groupBy({
+    by: ["organizationId"],
+    where: {
+      organizationId: { in: organizationIds },
+      status: { in: SEATED_STATUSES },
+    },
+    _count: { _all: true },
+  })
+
+  return new Map(rows.map((row) => [row.organizationId, row._count._all]))
+}
+
 function toView(
   subscription: SubscriptionWithOrganization,
-  live: Set<string>
+  live: Set<string>,
+  used: Map<string, number>
 ): AdminSubscriptionView {
+  const seated = used.get(subscription.organizationId) ?? 0
+
   return {
     ...toSubscriptionRow(subscription),
     organization: subscription.organization,
     live: live.has(subscription.id),
+    seats: { paid: subscription.quantity, used: seated },
+    drifted: seated > subscription.quantity,
   }
 }
 
@@ -205,14 +230,18 @@ export async function listSubscriptionsForPlatform(
     }),
     prisma.subscription.count({ where }),
   ])
-  const live = await liveIdsAmong([
+  const organizationIds = [
     ...new Set(
       subscriptions.map((subscription) => subscription.organizationId)
     ),
+  ]
+  const [live, used] = await Promise.all([
+    liveIdsAmong(organizationIds),
+    seatsUsedAmong(organizationIds),
   ])
 
   return {
-    data: subscriptions.map((subscription) => toView(subscription, live)),
+    data: subscriptions.map((subscription) => toView(subscription, live, used)),
     total,
   }
 }
@@ -220,7 +249,12 @@ export async function listSubscriptionsForPlatform(
 async function viewOf(
   subscription: SubscriptionWithOrganization
 ): Promise<AdminSubscriptionView> {
-  return toView(subscription, await liveIdsAmong([subscription.organizationId]))
+  const [live, used] = await Promise.all([
+    liveIdsAmong([subscription.organizationId]),
+    seatsUsedAmong([subscription.organizationId]),
+  ])
+
+  return toView(subscription, live, used)
 }
 
 /** The row a write just left: what the console shows back after a gesture. */
@@ -233,12 +267,6 @@ export async function viewWrittenSubscription(
       include: ORGANIZATION_INCLUDE,
     })
   )
-}
-
-function seatsUsedBy(organizationId: string): Promise<number> {
-  return getPrisma().server.count({
-    where: { organizationId, status: { in: SEATED_STATUSES } },
-  })
 }
 
 /** The deliveries that named this subscription, as the webhook filed them. */
@@ -275,13 +303,12 @@ export async function readSubscriptionForPlatform(
   }
 
   const platform = isPlatformProduct(subscription.product)
-  const [view, events, used, stripeEvents] = await Promise.all([
+  const [view, events, stripeEvents] = await Promise.all([
     viewOf(subscription),
     recentEvents({
       targetType: "subscription",
       targetId: subscription.stripeSubscriptionId,
     }),
-    seatsUsedBy(subscription.organizationId),
     platform
       ? Promise.resolve<AdminStripeEventView[]>([])
       : stripeEventsOf(subscription.stripeSubscriptionId),
@@ -289,8 +316,6 @@ export async function readSubscriptionForPlatform(
 
   return {
     ...view,
-    seats: { paid: subscription.quantity, used },
-    drifted: used > subscription.quantity,
     stripe_url: platform
       ? null
       : stripeSubscriptionUrl(subscription.stripeSubscriptionId),
