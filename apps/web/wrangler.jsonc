@@ -8,9 +8,9 @@
   "workers_dev": false,
   "preview_urls": false,
   "upload_source_maps": false,
-  // The database lives in Western Europe: smart placement runs the Worker
-  // beside it, instead of at the edge nearest the caller and an ocean away
-  // from every query.
+  // The database and the buckets live in Eastern North America (ENAM): smart
+  // placement runs the Worker beside them, instead of at the edge nearest the
+  // caller and an ocean away from every query.
   "placement": {
     "mode": "smart"
   },
@@ -132,8 +132,8 @@
       "d1_databases": [
         {
           "binding": "DB",
-          "database_name": "ppt-db",
-          "database_id": "8c4cd3b5-7375-4a69-8b84-b3b78c734cf5",
+          "database_name": "ppt-db-enam",
+          "database_id": "89b05eda-2e19-4643-a383-935836b4bbd8",
           "migrations_dir": "../../packages/db/migrations"
         }
       ],

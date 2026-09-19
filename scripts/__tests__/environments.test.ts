@@ -48,7 +48,7 @@ describe("the environments", () => {
       "production",
     ])
     expect(config.environments.local?.database).toBeUndefined()
-    expect(config.environments.production?.database).toBe("ppt-db")
+    expect(config.environments.production?.database).toBe("ppt-db-enam")
   })
 })
 

@@ -152,7 +152,7 @@ Deux branches longues, et rien d'autre qui vive plus qu'une pull request.
 | Worker | `ppt-web-production` |
 | Domaine | `app.pupitre.studio` |
 | Environnement Wrangler | `production` |
-| Base D1 | `ppt-db` |
+| Base D1 | `ppt-db-enam` |
 | Seau R2 des emails | `ppt-mail`, lié sous `MAIL`, privé, juridiction par défaut ; règle CORS de `apps/web/r2-mail-cors.json` (`wrangler r2 bucket cors set`) pour que la console lise et dépose les pièces jointes par adresse signée ; le jeton `R2_*` du Worker y lit et y écrit |
 | Email Routing | règle catch-all sur la zone `pupitre.studio` → *Send to a Worker*, `ppt-web-production` |
 | Workflows | `ppt-expire-enrollments`, `ppt-decommission-server`, `ppt-reconcile-seats`, `ppt-evaluate-alerts`, `ppt-suspend-expired-grace`, `ppt-purge-deletions` |
@@ -321,7 +321,7 @@ Le `.deb` est installé par apt et mis à jour par apt : l'app n'y touche pas, e
 
 ## La base de données
 
-Cloudflare **D1**, une base en ligne : `ppt-db` (`8c4cd3b5-7375-4a69-8b84-b3b78c734cf5`), en Europe de l'Ouest (`weur`), liée sous `DB` dans `apps/web/wrangler.jsonc` et nommée dans `environments.json` ; en local, la D1 que miniflare tient sous `apps/web/.wrangler/state`. Le Worker est en *smart placement* : il s'exécute à côté de la base, pas au bord le plus proche de l'appelant. Il n'y a ni adresse, ni secret, ni compute à réveiller : toute la plateforme est chez Cloudflare, et une base sans trafic ne coûte rien.
+Cloudflare **D1**, une base en ligne : `ppt-db-enam` (`89b05eda-2e19-4643-a383-935836b4bbd8`), en Amérique du Nord (`enam`) comme les trois seaux R2, liée sous `DB` dans `apps/web/wrangler.jsonc` et nommée dans `environments.json` ; en local, la D1 que miniflare tient sous `apps/web/.wrangler/state`. Elle a remplacé le 20 septembre 2026 `ppt-db` (`8c4cd3b5-7375-4a69-8b84-b3b78c734cf5`), créée en Europe de l'Ouest — une région D1 ne se change pas, on recrée et on importe — et à supprimer une fois `main` déployé dessus. Le Worker est en *smart placement* : il s'exécute à côté de la base, pas au bord le plus proche de l'appelant. Il n'y a ni adresse, ni secret, ni compute à réveiller : toute la plateforme est chez Cloudflare, et une base sans trafic ne coûte rien.
 
 **Prisma 7 sur l'adaptateur D1** (`@prisma/adapter-d1`), le schéma en `provider = "sqlite"`. Le Worker ouvre un client sur son binding à chaque requête et à chaque run de workflow (`withPrismaClient` dans `src/worker.ts`) ; tout ce qui est dessous le lit par `@pupitre/db/scope`, sans jamais voir un binding — et un test lui donne le sien, un fichier SQLite construit par les mêmes migrations que D1 applique (`@pupitre/api/testing`). SQLite tranche deux choses : pas de transaction interactive (aucune n'est écrite), et une comparaison de casse se fait en code, pas dans la requête.
 

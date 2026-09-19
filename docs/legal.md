@@ -11,7 +11,7 @@ Ce que la source partagée fixe :
 - `LEGAL_ENTITY.status` vaut `individual`. `owner` et `publicationDirector` portent « Jordan Monier », `jurisdiction` le Maroc — le droit qui régit les conditions et les tribunaux compétents — et les champs d'identité d'une société valent `null`. `copyrightHolder()` rend ce nom, et rendra la raison sociale le jour où la société sera immatriculée.
 - `CODE_SIGNING_ENTITY` nomme React Consulting SARL AU, la société marocaine dont les certificats signent les builds macOS et Windows de l'app. Elle signe et ne fait rien d'autre : la licence le dit, elle n'est ni l'éditeur ni partie au contrat.
 - `LEGAL_DOCUMENTS` porte les cinq documents, leur ordre et leur date. Ils sont publiés, sans brouillon ni passage à compléter.
-- `SUB_PROCESSORS` ne nomme que ceux qui touchent une donnée personnelle : Cloudflare (hébergement, base de données et fichiers en Europe de l'Ouest, emails), PostHog (mesure d'audience, événements stockés dans l'Union européenne) et Stripe, listé dès maintenant pour le jour où la facturation ouvrira, inactif pendant le lancement. GitHub n'y figure plus : il ne traite aucune donnée client.
+- `SUB_PROCESSORS` ne nomme que ceux qui touchent une donnée personnelle : Cloudflare (hébergement, base de données et fichiers en Amérique du Nord, emails), PostHog (mesure d'audience, événements stockés dans l'Union européenne) et Stripe, listé dès maintenant pour le jour où la facturation ouvrira, inactif pendant le lancement. GitHub n'y figure plus : il ne traite aucune donnée client.
 - La ligne de copyright du site, de la console et du menu de compte porte « © 2026 Jordan Monier ».
 
 ## Ce que les documents promettent, et que le code doit tenir

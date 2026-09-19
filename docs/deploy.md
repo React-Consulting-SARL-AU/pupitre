@@ -171,7 +171,7 @@ Le Worker doit être déployé avant que la règle puisse le nommer : cette éta
 
 ## 5. La base de données
 
-Une base **Cloudflare D1**, `ppt-db`, en Europe de l'Ouest, liée au Worker sous le nom `DB` dans `apps/web/wrangler.jsonc` — [`environments.json`](../environments.json) la nomme aussi. Elle existe déjà (`wrangler d1 create ppt-db --location weur`, une fois). Rien à connecter : le Worker s'exécute à côté d'elle (*smart placement*), et il n'y a ni adresse, ni mot de passe, ni compute qui dorme ou se réveille — on paie des lignes lues et écrites, et le palier gratuit en donne des millions par jour.
+Une base **Cloudflare D1**, `ppt-db-enam`, en Amérique du Nord comme les seaux R2, liée au Worker sous le nom `DB` dans `apps/web/wrangler.jsonc` — [`environments.json`](../environments.json) la nomme aussi. Elle existe déjà (`wrangler d1 create ppt-db-enam --location enam`, une fois). Une région D1 se choisit à la création et ne bouge plus : en changer, c'est créer une base, `wrangler d1 export` l'ancienne, `wrangler d1 execute --file` le dump dans la nouvelle — en découpant toute valeur au-delà de 100 Ko, la limite d'une instruction, comme la colonne `metrics` d'un serveur —, puis changer `database_id` ici et déployer. Rien à connecter : le Worker s'exécute à côté d'elle (*smart placement*), et il n'y a ni adresse, ni mot de passe, ni compute qui dorme ou se réveille — on paie des lignes lues et écrites, et le palier gratuit en donne des millions par jour.
 
 Les migrations sont des fichiers SQL, `packages/db/migrations/NNNN_<nom>.sql`, que D1 tient dans son propre registre. La construction les applique **avant** de construire, à chaque fois ; depuis ton poste :
 
@@ -186,7 +186,7 @@ PUPITRE_ALLOW_MIGRATE_ON=production bun run db:seed production <adresse>
 
 Une base migrée est vide : le seed y pose l'organisation de Pupitre, `pupitre` sous l'identifiant `org_pupitre`, puis fait du compte de l'adresse donnée son propriétaire et l'administrateur de la plateforme, sous `usr_pupitre_admin` et le rôle `platform_admin`. Le compte n'a pas à exister d'avance ; s'il existe — Better Auth l'a créé à la première connexion avec un identifiant tiré au hasard — le seed le renomme, et tout ce qui le désignait suit. On le rejoue autant qu'on veut : la deuxième fois ne change rien, et il s'arrête sans rien écrire si un autre compte ou une autre organisation tient déjà l'un de ces identifiants.
 
-`db:reset` et `db:seed` sur production demandent le même drapeau. Une base D1 revient aussi à n'importe quel instant des trente derniers jours par *Time Travel* : `wrangler d1 time-travel restore ppt-db --timestamp=<ISO>`.
+`db:reset` et `db:seed` sur production demandent le même drapeau. Une base D1 revient aussi à n'importe quel instant des trente derniers jours par *Time Travel* : `wrangler d1 time-travel restore ppt-db-enam --timestamp=<ISO>`.
 
 ## 6. Le premier déploiement, à la main
 
