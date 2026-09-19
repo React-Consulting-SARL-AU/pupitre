@@ -7,6 +7,7 @@ import { adminInboxRoutes } from "./admin/inbox"
 import { adminOrganizationsRoutes } from "./admin/organizations"
 import { adminOverviewRoutes } from "./admin/overview"
 import { adminReleasesRoutes } from "./admin/releases"
+import { adminSearchRoutes } from "./admin/search"
 import { adminServersRoutes } from "./admin/servers"
 import { adminSubscriptionsRoutes } from "./admin/subscriptions"
 import { adminTeamRoutes } from "./admin/team"
@@ -32,6 +33,7 @@ const adminRoutes = hiddenRoutes(
     .use(adminAppReleasesRoutes)
     .use(adminServersRoutes)
     .use(adminOverviewRoutes)
+    .use(adminSearchRoutes)
     .use(adminUsersRoutes)
     .use(adminOrganizationsRoutes)
     .use(adminSubscriptionsRoutes)

@@ -13,6 +13,35 @@ interface ErrorBody {
   error: { code: string }
 }
 
+interface Worklist<Item> {
+  count: number
+  items: Item[]
+}
+
+interface OverviewWorklists {
+  unread_mail: Worklist<{ id: string; subject: string; address: string }>
+  past_due: Worklist<{
+    id: string
+    organization: { id: string; name: string }
+    status: string
+  }>
+  trials_ending: Worklist<{
+    id: string
+    organization: { id: string; name: string }
+    current_period_end: string | null
+  }>
+  servers_unreachable: Worklist<{
+    id: string
+    name: string
+    organization: { id: string; name: string }
+  }>
+  seats_drifted: Worklist<{
+    organization: { id: string; name: string }
+    paid: number
+    used: number
+  }>
+}
+
 interface OverviewBody {
   data: {
     users: number
@@ -21,6 +50,7 @@ interface OverviewBody {
     subscriptions: Record<string, number>
     affiliate_links: number
     referrals: number
+    worklists: OverviewWorklists
   }
 }
 
@@ -135,8 +165,11 @@ describe("GET /admin/overview", () => {
       session: admin,
     })
 
+    const { worklists, ...counters } = response.json.data
+
     expect(response.status).toBe(200)
-    expect(response.json.data).toEqual({
+    expect(worklists.past_due.count).toBe(0)
+    expect(counters).toEqual({
       users: 4,
       organizations: 7,
       servers: {

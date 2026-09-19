@@ -1,4 +1,8 @@
 import { ORG_ROLES } from "@pupitre/shared/permissions"
+import {
+  PLATFORM_SEARCH_MAX_LENGTH,
+  PLATFORM_SEARCH_MIN_LENGTH,
+} from "@pupitre/shared/platform"
 import { t } from "elysia"
 import { dateTime } from "../../openapi-models"
 import { MAX_SEATS, MIN_SEATS } from "../orgs/schemas"
@@ -11,6 +15,93 @@ import {
 import { adminServerSchema } from "./server-schemas"
 
 export const orgRoleSchema = t.UnionEnum([...ORG_ROLES])
+
+const worklistOrganization = t.Object({
+  id: t.String(),
+  name: t.String(),
+  slug: t.String(),
+})
+
+function worklist<Item extends ReturnType<typeof t.Object>>(item: Item) {
+  return t.Object({ count: t.Integer(), items: t.Array(item) })
+}
+
+const adminWorklistsSchema = t.Object({
+  unread_mail: worklist(
+    t.Object({
+      id: t.String(),
+      subject: t.String(),
+      address: t.String(),
+      from: t.Object({ email: t.String(), name: t.Nullable(t.String()) }),
+      last_inbound_at: t.Nullable(dateTime),
+    })
+  ),
+  past_due: worklist(
+    t.Object({
+      id: t.String(),
+      organization: worklistOrganization,
+      status: t.String(),
+      current_period_end: t.Nullable(dateTime),
+    })
+  ),
+  trials_ending: worklist(
+    t.Object({
+      id: t.String(),
+      organization: worklistOrganization,
+      status: t.String(),
+      current_period_end: t.Nullable(dateTime),
+    })
+  ),
+  servers_unreachable: worklist(
+    t.Object({
+      id: t.String(),
+      name: t.String(),
+      host: t.Nullable(t.String()),
+      organization: t.Object({ id: t.String(), name: t.String() }),
+      last_heartbeat_at: t.Nullable(dateTime),
+    })
+  ),
+  seats_drifted: worklist(
+    t.Object({
+      organization: worklistOrganization,
+      paid: t.Integer(),
+      used: t.Integer(),
+    })
+  ),
+})
+
+export const adminSearchQuery = t.Object({
+  q: t.String({
+    minLength: PLATFORM_SEARCH_MIN_LENGTH,
+    maxLength: PLATFORM_SEARCH_MAX_LENGTH,
+  }),
+})
+
+export const adminSearchSchema = t.Object(
+  {
+    users: t.Array(
+      t.Object({
+        id: t.String(),
+        email: t.String(),
+        name: t.String(),
+        state: t.UnionEnum(["banned", "unverified", "active"]),
+      })
+    ),
+    organizations: t.Array(worklistOrganization),
+    servers: t.Array(
+      t.Object({
+        id: t.String(),
+        name: t.String(),
+        host: t.Nullable(t.String()),
+        organization: t.Object({ id: t.String(), name: t.String() }),
+      })
+    ),
+    threads: t.Array(
+      t.Object({ id: t.String(), subject: t.String(), address: t.String() })
+    ),
+  },
+  { $id: "AdminSearch" }
+)
 
 export const adminOverviewSchema = t.Object(
   {
@@ -35,6 +126,7 @@ export const adminOverviewSchema = t.Object(
     }),
     affiliate_links: t.Integer(),
     referrals: t.Integer(),
+    worklists: adminWorklistsSchema,
   },
   { $id: "AdminOverview" }
 )
