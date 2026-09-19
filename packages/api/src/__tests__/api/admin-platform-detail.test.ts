@@ -277,7 +277,7 @@ describe("POST /admin/users/:id/ban", () => {
 
     expect(event.targetType).toBe("user")
     expect(event.actorUserId).toBe(admin.session.userId)
-    expect(event.payload).toEqual({ reason: "usage abusif" })
+    expect(event.payload).toEqual({ reason: "usage abusif", until: null })
 
     const refused = await apiRequest("/me", { session: owner })
 

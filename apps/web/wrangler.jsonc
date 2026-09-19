@@ -65,6 +65,11 @@
       "name": "ppt-suspend-expired-grace",
       "binding": "SUSPEND_EXPIRED_GRACE",
       "class_name": "SuspendExpiredGrace"
+    },
+    {
+      "name": "ppt-purge-deletions",
+      "binding": "PURGE_DELETIONS",
+      "class_name": "PurgeDeletions"
     }
   ],
   // Two wakes, not five: the hourly workflows start together and the daily ones
@@ -164,6 +169,11 @@
           "name": "ppt-suspend-expired-grace",
           "binding": "SUSPEND_EXPIRED_GRACE",
           "class_name": "SuspendExpiredGrace"
+        },
+        {
+          "name": "ppt-purge-deletions",
+          "binding": "PURGE_DELETIONS",
+          "class_name": "PurgeDeletions"
         }
       ],
       "send_email": [

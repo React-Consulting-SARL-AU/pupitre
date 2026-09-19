@@ -9,6 +9,7 @@ interface CloudflareEnv {
   EXPIRE_ENROLLMENTS: Workflow
   RECONCILE_SEATS: Workflow
   SUSPEND_EXPIRED_GRACE: Workflow
+  PURGE_DELETIONS: Workflow
   BETTER_AUTH_SECRET?: string
   BETTER_AUTH_URL?: string
   EMAIL_FROM?: string
