@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it } from "bun:test";
-import { poll } from "../poll";
+import { describe, expect, it } from "bun:test";
+import { type PollPage, poll } from "../poll";
 
 function tick(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -52,8 +52,9 @@ describe("une lecture répétée", () => {
   describe("fenêtre cachée", () => {
     type Listener = () => void;
 
-    /** A `document` that says whether it is hidden and can be told to change its mind. */
+    /** A page that says whether it is hidden and can be told to change its mind, handed to the beat itself. */
     function page(hidden: boolean): {
+      page: PollPage;
       show: () => void;
       hide: () => void;
       listeners: () => number;
@@ -69,9 +70,8 @@ describe("une lecture répétée", () => {
         },
       };
 
-      (globalThis as { document?: unknown }).document = fake;
-
       return {
+        page: fake,
         hide: () => {
           fake.hidden = true;
           for (const listener of held) {
@@ -88,19 +88,19 @@ describe("une lecture répétée", () => {
       };
     }
 
-    afterEach(() => {
-      (globalThis as { document?: unknown }).document = undefined;
-    });
-
     it("ne lit pas tant que la fenêtre est cachée, et relit dès qu'elle revient", async () => {
       const view = page(true);
       let asked = 0;
 
-      const stop = poll(() => {
-        asked += 1;
+      const stop = poll(
+        () => {
+          asked += 1;
 
-        return Promise.resolve();
-      }, 1);
+          return Promise.resolve();
+        },
+        1,
+        view.page
+      );
 
       await tick(10);
       expect(asked).toBe(0);
@@ -118,11 +118,15 @@ describe("une lecture répétée", () => {
       const view = page(false);
       let asked = 0;
 
-      const stop = poll(() => {
-        asked += 1;
+      const stop = poll(
+        () => {
+          asked += 1;
 
-        return Promise.resolve();
-      }, 1);
+          return Promise.resolve();
+        },
+        1,
+        view.page
+      );
 
       await tick(10);
       view.hide();

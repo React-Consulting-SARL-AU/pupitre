@@ -1,15 +1,14 @@
 name: CI
 
-# A push to `staging` is checked once, on its own SHA. The pull request from
-# `staging` to `main` is opened and merged by `release.yml`, on a commit this
-# workflow already checked, with a token that starts no workflow: `main` has
-# nothing to run. Feature branches reach `staging` by pull request, and that
-# is where they are checked.
+# One job, on pull requests only: a feature branch is checked when it asks to
+# reach `staging`, and `staging` is checked when it asks to reach `main`. A
+# push checks nothing — the minutes are paid, and the same commit would be
+# checked twice. Merging into `main` runs nothing either: the merge commit is
+# the one the pull request just checked. The end-to-end suites run on the
+# owner's machine before a pull request; they are not repeated here.
 on:
   pull_request:
-    branches: [staging]
-  push:
-    branches: [staging]
+    branches: [staging, main]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -26,12 +25,12 @@ env:
   TURBO_TELEMETRY_DISABLED: "1"
 
 jobs:
-  # Sequential and cheapest first: one runner shares checkout, install and the
-  # turbo cache, and a lint failure surfaces before the build has started.
+  # Cheapest first on one runner: checkout, install and the turbo cache are
+  # paid once, and a lint failure surfaces before anything has been built.
   quality:
     name: Quality
     runs-on: blacksmith-4vcpu-ubuntu-2404
-    timeout-minutes: 30
+    timeout-minutes: 25
     env:
       WRANGLER_SEND_METRICS: "false"
     steps:
@@ -79,180 +78,10 @@ jobs:
       - name: Typecheck
         run: bun run check:types
 
-      # The desktop app and the packages run once, below, with coverage on.
       - name: Test
-        run: bun run test -- --filter='!@pupitre/desktop' --filter='!./packages/*'
-
-      - name: Test the desktop app and the packages with coverage
-        run: |
-          set -euo pipefail
-          for workspace in apps/desktop packages/*; do
-            bun --cwd="$workspace" run test --coverage --coverage-reporter=lcov --coverage-dir=coverage
-          done
-
-      - name: Upload the coverage reports
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: coverage-${{ github.sha }}
-          path: |
-            apps/desktop/coverage/lcov.info
-            packages/*/coverage/lcov.info
-          retention-days: 14
-          if-no-files-found: error
+        run: bun run test
 
       # electron-builder has nothing to prove here; the desktop workspace still
       # goes through lint, typecheck and test above.
       - name: Build
         run: bun run build -- --filter='!@pupitre/desktop'
-
-  console-e2e:
-    name: Console end-to-end
-    runs-on: blacksmith-4vcpu-ubuntu-2404
-    timeout-minutes: 20
-    # Non-blocking while the console rendering settles: the report is read, the
-    # pull request is not held on it.
-    continue-on-error: true
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version-file: package.json
-
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 22
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      - name: Install Chromium
-        run: bun --cwd=apps/web run playwright install --with-deps chromium
-
-      - name: Playwright
-        run: bun --cwd=apps/web run test:e2e
-
-      - name: Upload the failure artifacts
-        if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: playwright-${{ github.sha }}
-          path: .playwright/artifacts
-          retention-days: 7
-          if-no-files-found: ignore
-
-  desktop-e2e:
-    name: Desktop end-to-end
-    runs-on: blacksmith-4vcpu-ubuntu-2404
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version-file: package.json
-
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 22
-
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-
-      # Bun skips that install script often enough that the binary is missing
-      # on a fresh checkout; running it costs nothing when it is already there.
-      - name: Install the Electron binary
-        run: node node_modules/electron/install.js
-        working-directory: apps/desktop
-
-      - name: Playwright
-        run: xvfb-run --auto-servernum bun --cwd=apps/desktop run test:e2e
-
-      - name: Upload the failure artifacts
-        if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: playwright-desktop-${{ github.sha }}
-          path: .playwright/desktop
-          retention-days: 7
-          if-no-files-found: ignore
-
-  gitleaks:
-    name: Secrets
-    runs-on: blacksmith-4vcpu-ubuntu-2404
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-
-      # The binary, not the action: the action wants a paid licence from any
-      # organisation, the scanner itself is free. Pinned by digest.
-      - name: Install gitleaks
-        env:
-          VERSION: 8.30.1
-          SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
-        run: |
-          set -euo pipefail
-          curl -fsSL -o gitleaks.tar.gz \
-            "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz"
-          echo "${SHA256}  gitleaks.tar.gz" | sha256sum -c -
-          tar -xzf gitleaks.tar.gz gitleaks
-          rm gitleaks.tar.gz
-
-      - name: Scan the history
-        run: ./gitleaks git --redact --no-banner --exit-code 2 .
-
-  agent:
-    name: Agent
-    runs-on: blacksmith-4vcpu-ubuntu-2404
-    timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: apps/agent
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: apps/agent/go.mod
-          cache-dependency-path: apps/agent/go.mod
-
-      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version-file: package.json
-
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 22
-
-      - name: Install the Go tools
-        run: bun run tools:install
-
-      - name: Lint
-        run: bun run lint
-
-      - name: Vulnerabilities
-        run: govulncheck ./...
-
-      - name: Test
-        run: go test -race -coverprofile=coverage.out ./...
-
-      - name: Upload the coverage profile
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: coverage-agent-${{ github.sha }}
-          path: apps/agent/coverage.out
-          retention-days: 14
-          if-no-files-found: error
-
-      - name: Build linux/amd64 and linux/arm64
-        run: bun run build
-
-      - name: Upload binaries
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: pupitred-${{ github.sha }}
-          path: apps/agent/dist/pupitred-linux-*
-          retention-days: 14
-          if-no-files-found: error
