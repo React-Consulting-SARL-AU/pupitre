@@ -62,6 +62,11 @@ describe("listSearch", () => {
   it("ne lit aucun tri quand la page n'en déclare pas", () => {
     expect(listSearch()({ sort: "name" })).toEqual({})
   })
+
+  it("lit un drapeau que le routeur a déjà rendu booléen comme celui écrit en toutes lettres", () => {
+    expect(parse({ unread: true })).toEqual({ unread: true })
+    expect(parse({ unread: "false" })).toEqual({ unread: false })
+  })
 })
 
 describe("nextListSearch", () => {

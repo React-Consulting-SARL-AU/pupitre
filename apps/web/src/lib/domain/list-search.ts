@@ -38,9 +38,18 @@ const offsetField = z.coerce.number().int().min(0)
 
 const directionField = z.enum(["asc", "desc"])
 
+/**
+ * The router parses `?stale=true` into a boolean before the schema sees it, and
+ * a link written by hand carries the word: both forms have to land.
+ */
+const booleanField = z.union([
+  z.boolean(),
+  z.enum(["true", "false"]).transform((value) => value === "true"),
+])
+
 function filterSchema(filter: ListFilter): z.ZodType {
   if (filter.kind === "boolean") {
-    return z.enum(["true", "false"]).transform((value) => value === "true")
+    return booleanField
   }
 
   if (filter.kind === "enum") {
