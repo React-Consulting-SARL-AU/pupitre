@@ -85,6 +85,35 @@ export type ResizeSubscriptionValues = z.output<
   ReturnType<typeof resizeSubscriptionSchema>
 >
 
+export const MAX_ORGANIZATION_NAME_LENGTH = 80
+
+export function renameOrganizationSchema(t: Translate) {
+  const tooLong = t("admin.organizations.textTooLong", {
+    max: MAX_ORGANIZATION_NAME_LENGTH,
+  })
+
+  return z.object({
+    name: z
+      .string()
+      .trim()
+      .min(1, t("admin.organizations.nameRequired"))
+      .max(MAX_ORGANIZATION_NAME_LENGTH, tooLong),
+    slug: z
+      .string()
+      .trim()
+      .min(1, t("admin.organizations.slugRequired"))
+      .max(MAX_ORGANIZATION_NAME_LENGTH, tooLong),
+  })
+}
+
+export type RenameOrganizationInput = z.input<
+  ReturnType<typeof renameOrganizationSchema>
+>
+
+export type RenameOrganizationValues = z.output<
+  ReturnType<typeof renameOrganizationSchema>
+>
+
 export interface ReasonCopy {
   required: string
   tooLong: string

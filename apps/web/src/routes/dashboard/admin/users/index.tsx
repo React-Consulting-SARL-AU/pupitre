@@ -1,3 +1,4 @@
+import { ACCOUNT_STATES } from "@pupitre/shared/platform"
 import { createFileRoute } from "@tanstack/react-router"
 import { AdminUserList } from "@/components/admin/admin-user-list"
 import { PageHeader } from "@/components/ui/page-header"
@@ -12,7 +13,9 @@ export const Route = createFileRoute("/dashboard/admin/users/")({
   head: ({ match }) => ({
     meta: [{ title: documentTitle(ROUTE_ID, match.context.locale) }],
   }),
-  validateSearch: listSearch(),
+  validateSearch: listSearch({
+    filters: { state: { kind: "enum", values: ACCOUNT_STATES } },
+  }),
 })
 
 function AdminUsersPage() {
