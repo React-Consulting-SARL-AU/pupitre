@@ -4,6 +4,35 @@ import { z } from "zod"
 
 export type SortDirection = "asc" | "desc"
 
+/** What a filter select holds while it narrows nothing; the address carries no key at all. */
+export const FILTER_ALL = ""
+
+/** A sort the page does not declare is a sort it does not run. */
+export function listSort<Sort extends string>(
+  value: string | undefined,
+  sorts: readonly Sort[],
+  fallback: Sort
+): Sort {
+  return sorts.find((sort) => sort === value) ?? fallback
+}
+
+/** The three values a select holds for a flag the address carries as a word. */
+export function flagValue(flag: boolean | undefined): string {
+  if (flag === undefined) {
+    return FILTER_ALL
+  }
+
+  return flag ? "true" : "false"
+}
+
+export function readFlag(value: string): boolean | undefined {
+  if (value === FILTER_ALL) {
+    return undefined
+  }
+
+  return value === "true"
+}
+
 export type ListFilter =
   | { kind: "string" }
   | { kind: "boolean" }

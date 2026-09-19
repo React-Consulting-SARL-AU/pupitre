@@ -35,11 +35,16 @@ import {
   canSuspend,
   channelKey,
 } from "@/lib/domain/admin"
-import type { ListSearchHandle, SortDirection } from "@/lib/domain/list-search"
+import {
+  FILTER_ALL,
+  flagValue,
+  type ListSearchHandle,
+  listSort,
+  readFlag,
+  type SortDirection,
+} from "@/lib/domain/list-search"
 import { SERVER_STATUSES, statusLook } from "@/lib/domain/server-status"
 import type { ConfirmFormValues } from "@/lib/schemas/confirm-form"
-
-const ALL = ""
 
 export const SERVER_SORTS = ["created_at", "last_heartbeat_at", "name"] as const
 
@@ -65,27 +70,6 @@ export interface AdminServerListSearch {
 
 export type AdminServerListProps = ListSearchHandle<AdminServerListSearch>
 
-function toSort(value: string | undefined): ServerSort {
-  return SERVER_SORTS.find((sort) => sort === value) ?? SERVER_SORT
-}
-
-/** The three filter values a select can hold for a flag the address carries as a word. */
-function flagValue(flag: boolean | undefined): string {
-  if (flag === undefined) {
-    return ALL
-  }
-
-  return flag ? "true" : "false"
-}
-
-function readFlag(value: string): boolean | undefined {
-  if (value === ALL) {
-    return undefined
-  }
-
-  return value === "true"
-}
-
 export function AdminServerList({ search, setSearch }: AdminServerListProps) {
   const t = useTranslations()
   const { platformRole } = useDashboardContext()
@@ -94,16 +78,16 @@ export function AdminServerList({ search, setSearch }: AdminServerListProps) {
   )
   const offset = search.offset ?? 0
   const query = search.q ?? ""
-  const status = search.status ?? ALL
+  const status = search.status ?? FILTER_ALL
   const organizationId = search.organization_id ?? ""
-  const sort = toSort(search.sort)
+  const sort = listSort(search.sort, SERVER_SORTS, SERVER_SORT)
   const direction: AdminSortDirection = search.direction ?? "asc"
   const pageQuery: AdminServerPageQuery = {
     limit: ADMIN_PAGE_SIZE,
     offset,
     sort,
     direction,
-    ...(status === ALL ? {} : { status }),
+    ...(status === FILTER_ALL ? {} : { status }),
     ...(organizationId === "" ? {} : { organization_id: organizationId }),
     ...(search.stale === undefined ? {} : { stale: search.stale }),
     ...(query === "" ? {} : { q: query }),
@@ -226,7 +210,7 @@ export function AdminServerList({ search, setSearch }: AdminServerListProps) {
                 className="w-[200px]"
                 id="admin-servers-status"
                 items={[
-                  { value: ALL, label: t("admin.servers.allStatuses") },
+                  { value: FILTER_ALL, label: t("admin.servers.allStatuses") },
                   ...SERVER_STATUSES.map((candidate) => ({
                     value: candidate,
                     label: t(statusLook(candidate).label),
@@ -247,7 +231,7 @@ export function AdminServerList({ search, setSearch }: AdminServerListProps) {
                 className="w-[220px]"
                 id="admin-servers-stale"
                 items={[
-                  { value: ALL, label: t("admin.servers.anyFreshness") },
+                  { value: FILTER_ALL, label: t("admin.servers.anyFreshness") },
                   { value: "true", label: t("status.stale") },
                   { value: "false", label: t("admin.servers.fresh") },
                 ]}
@@ -305,7 +289,10 @@ export function AdminServerList({ search, setSearch }: AdminServerListProps) {
           key: sort,
           direction,
           onChange: (key, next) => {
-            setSearch({ sort: toSort(key), direction: next })
+            setSearch({
+              sort: listSort(key, SERVER_SORTS, SERVER_SORT),
+              direction: next,
+            })
           },
         }}
         title={t("admin.servers.title")}
