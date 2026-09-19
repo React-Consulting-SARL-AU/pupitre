@@ -45,6 +45,8 @@ export interface AdminOrganizationSubscriptionRow {
   quantity: number
   status: string
   current_period_end: Date | null
+  /** Still billed to the end of the period, and stopped there: not the same as stopped. */
+  cancel_at_period_end: boolean
   note: string | null
   /** True for a product Stripe never sees: the launch, or what the team granted. */
   platform: boolean
@@ -116,6 +118,7 @@ export function toSubscriptionRow(
     quantity: subscription.quantity,
     status: subscription.status,
     current_period_end: subscription.currentPeriodEnd,
+    cancel_at_period_end: subscription.cancelAtPeriodEnd,
     note: subscription.note,
     platform: isPlatformProduct(subscription.product),
     created_at: subscription.createdAt,
