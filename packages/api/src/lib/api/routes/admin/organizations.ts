@@ -7,12 +7,16 @@ import {
   deleteOrganizationFromPlatform,
   LastOwnerError,
   NotAMemberError,
+  OrganizationAlreadyClosedError,
   OrganizationAlreadySuspendedError,
+  OrganizationNotClosedError,
+  OrganizationNotSuspendedError,
   PlatformOrganizationProtectedError,
   removeMemberFromPlatform,
   renameOrganizationFromPlatform,
   reopenOrganizationFromPlatform,
   restoreOrganizationFromPlatform,
+  SlugEmptyError,
   SlugTakenError,
   suspendOrganizationFromPlatform,
   transferOrganizationFromPlatform,
@@ -21,7 +25,7 @@ import {
   listOrganizationsForPlatform,
   readOrganizationForPlatform,
 } from "../../../platform/organizations"
-import { apiError } from "../../errors"
+import { type ApiErrorPayload, apiError } from "../../errors"
 import {
   dataResponse,
   errorResponse,
@@ -47,26 +51,51 @@ const organizationNotFound = (request: Request) =>
   )
 
 const CONFLICTS: [new (...args: never[]) => Error, MessageKey][] = [
-  [PlatformOrganizationProtectedError, "platform_organization"],
+  [PlatformOrganizationProtectedError, "platform_organization_protected"],
   [OrganizationAlreadySuspendedError, "organization_already_suspended"],
+  [OrganizationNotSuspendedError, "organization_not_suspended"],
+  [OrganizationAlreadyClosedError, "organization_already_closed"],
+  [OrganizationNotClosedError, "organization_not_closed"],
   [SlugTakenError, "slug_taken"],
   [LastOwnerError, "last_owner"],
 ]
 
-function conflictKeyOf(error: unknown): MessageKey | null {
-  return CONFLICTS.find(([refusal]) => error instanceof refusal)?.[1] ?? null
+interface Refusal {
+  status: 409 | 422
+  body: ApiErrorPayload
 }
 
-function conflict(request: Request, error: unknown, key: MessageKey) {
+function refusalOf(request: Request, error: unknown): Refusal | null {
   const locale = resolveLocale(request.headers)
+
+  if (error instanceof SlugEmptyError) {
+    return {
+      status: 422,
+      body: apiError(
+        "validation",
+        translate(locale, "slug_empty"),
+        translate(locale, "slug_empty_fix")
+      ),
+    }
+  }
+
+  const key = CONFLICTS.find(([refused]) => error instanceof refused)?.[1]
+
+  if (!key) {
+    return null
+  }
+
   const params: MessageParams =
     error instanceof SlugTakenError ? { slug: error.slug } : {}
 
-  return apiError(
-    "conflict",
-    translate(locale, key, params),
-    translate(locale, `${key}_fix` as MessageKey)
-  )
+  return {
+    status: 409,
+    body: apiError(
+      "conflict",
+      translate(locale, key, params),
+      translate(locale, `${key}_fix` as MessageKey)
+    ),
+  }
 }
 
 const detailResponse = {
@@ -153,15 +182,15 @@ const writeRoutes = new Elysia({ name: "admin-organizations-write" })
 
         return { data: serializeData(suspended) }
       } catch (error) {
-        const key = conflictKeyOf(error)
+        const refused = refusalOf(request, error)
 
-        if (!key) {
+        if (!refused) {
           throw error
         }
 
-        set.status = 409
+        set.status = refused.status
 
-        return conflict(request, error, key)
+        return refused.body
       }
     },
     {
@@ -176,18 +205,30 @@ const writeRoutes = new Elysia({ name: "admin-organizations-write" })
   .post(
     "/organizations/:id/restore",
     async ({ user, params, request, set }) => {
-      const restored = await restoreOrganizationFromPlatform(
-        { userId: user.id },
-        params.id
-      )
+      try {
+        const restored = await restoreOrganizationFromPlatform(
+          { userId: user.id },
+          params.id
+        )
 
-      if (!restored) {
-        set.status = 404
+        if (!restored) {
+          set.status = 404
 
-        return organizationNotFound(request)
+          return organizationNotFound(request)
+        }
+
+        return { data: serializeData(restored) }
+      } catch (error) {
+        const refused = refusalOf(request, error)
+
+        if (!refused) {
+          throw error
+        }
+
+        set.status = refused.status
+
+        return refused.body
       }
-
-      return { data: serializeData(restored) }
     },
     {
       params: organizationParams,
@@ -195,12 +236,7 @@ const writeRoutes = new Elysia({ name: "admin-organizations-write" })
         summary:
           "Lever la suspension d'une organisation et rendre ses machines",
       },
-      response: {
-        200: dataResponse(adminOrganizationDetailSchema),
-        401: errorResponse,
-        403: errorResponse,
-        404: errorResponse,
-      },
+      response: detailResponse,
     }
   )
   .post(
@@ -221,15 +257,15 @@ const writeRoutes = new Elysia({ name: "admin-organizations-write" })
 
         return { data: serializeData(closed) }
       } catch (error) {
-        const key = conflictKeyOf(error)
+        const refused = refusalOf(request, error)
 
-        if (!key) {
+        if (!refused) {
           throw error
         }
 
-        set.status = 409
+        set.status = refused.status
 
-        return conflict(request, error, key)
+        return refused.body
       }
     },
     {
@@ -245,18 +281,30 @@ const writeRoutes = new Elysia({ name: "admin-organizations-write" })
   .post(
     "/organizations/:id/reopen",
     async ({ user, params, request, set }) => {
-      const reopened = await reopenOrganizationFromPlatform(
-        { userId: user.id },
-        params.id
-      )
+      try {
+        const reopened = await reopenOrganizationFromPlatform(
+          { userId: user.id },
+          params.id
+        )
 
-      if (!reopened) {
-        set.status = 404
+        if (!reopened) {
+          set.status = 404
 
-        return organizationNotFound(request)
+          return organizationNotFound(request)
+        }
+
+        return { data: serializeData(reopened) }
+      } catch (error) {
+        const refused = refusalOf(request, error)
+
+        if (!refused) {
+          throw error
+        }
+
+        set.status = refused.status
+
+        return refused.body
       }
-
-      return { data: serializeData(reopened) }
     },
     {
       params: organizationParams,
@@ -264,12 +312,7 @@ const writeRoutes = new Elysia({ name: "admin-organizations-write" })
         summary:
           "Rouvrir une organisation et annuler sa suppression programmée",
       },
-      response: {
-        200: dataResponse(adminOrganizationDetailSchema),
-        401: errorResponse,
-        403: errorResponse,
-        404: errorResponse,
-      },
+      response: detailResponse,
     }
   )
   .patch(
@@ -290,15 +333,15 @@ const writeRoutes = new Elysia({ name: "admin-organizations-write" })
 
         return { data: serializeData(renamed) }
       } catch (error) {
-        const key = conflictKeyOf(error)
+        const refused = refusalOf(request, error)
 
-        if (!key) {
+        if (!refused) {
           throw error
         }
 
-        set.status = 409
+        set.status = refused.status
 
-        return conflict(request, error, key)
+        return refused.body
       }
     },
     {
@@ -335,7 +378,15 @@ const writeRoutes = new Elysia({ name: "admin-organizations-write" })
           )
         }
 
-        throw error
+        const refused = refusalOf(request, error)
+
+        if (!refused) {
+          throw error
+        }
+
+        set.status = refused.status
+
+        return refused.body
       }
     },
     {
@@ -371,15 +422,15 @@ const writeRoutes = new Elysia({ name: "admin-organizations-write" })
 
         return { data: serializeData(deletion.organization) }
       } catch (error) {
-        const key = conflictKeyOf(error)
+        const refused = refusalOf(request, error)
 
-        if (!key) {
+        if (!refused) {
           throw error
         }
 
-        set.status = 409
+        set.status = refused.status
 
-        return conflict(request, error, key)
+        return refused.body
       }
     },
     {
@@ -414,15 +465,15 @@ const writeRoutes = new Elysia({ name: "admin-organizations-write" })
 
         set.status = 204
       } catch (error) {
-        const key = conflictKeyOf(error)
+        const refused = refusalOf(request, error)
 
-        if (!key) {
+        if (!refused) {
           throw error
         }
 
-        set.status = 409
+        set.status = refused.status
 
-        return conflict(request, error, key)
+        return refused.body
       }
     },
     {

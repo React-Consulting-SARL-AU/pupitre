@@ -9,7 +9,7 @@ import { SEATED_STATUSES } from "../billing/seats"
 import { liveAmong } from "../billing/subscription"
 import { type AdminServerView, listServersForPlatform } from "../servers/admin"
 import { type AdminEventView, recentEvents } from "./events"
-import { organizationStateOf } from "./lifecycle"
+import { organizationReasonOf, organizationStateOf } from "./lifecycle"
 
 export interface AdminOrganizationSubscription {
   id: string
@@ -74,6 +74,8 @@ export interface AdminOrganizationSeats {
 
 export interface AdminOrganizationDetail
   extends Omit<AdminOrganizationView, "members" | "servers"> {
+  /** The reason behind the state the organization holds now, so the console never picks one itself. */
+  reason: string | null
   members: AdminOrganizationMember[]
   servers: AdminServerView[]
   subscriptions: AdminOrganizationSubscriptionRow[]
@@ -302,6 +304,7 @@ export async function readOrganizationForPlatform(
 
   return {
     ...toView(organization, counted),
+    reason: organizationReasonOf(organization),
     members: members.map((member) => ({
       user_id: member.userId,
       email: member.user.email,

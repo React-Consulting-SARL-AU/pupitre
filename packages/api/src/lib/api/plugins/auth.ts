@@ -18,7 +18,9 @@ export type SessionUser = Session["user"]
 
 export type SessionRecord = Session["session"]
 
-export type SessionRefusal = "account_deactivated"
+export type SessionRefusal =
+  | { kind: "account_deactivated" }
+  | { kind: "account_suspended"; until: Date }
 
 export interface AuthContext {
   user: SessionUser | null
@@ -124,16 +126,22 @@ function refusalFor(user: {
   deactivatedAt?: Date | null
   deletionAt?: Date | null
 }): SessionRefusal | null {
+  if (user.deactivatedAt || user.deletionAt) {
+    return { kind: "account_deactivated" }
+  }
+
   const standing = {
     banned: user.banned ?? null,
     banExpires: user.banExpires ?? null,
   }
 
-  if (user.deactivatedAt || user.deletionAt || isBanned(standing)) {
-    return "account_deactivated"
+  if (!isBanned(standing)) {
+    return null
   }
 
-  return null
+  return standing.banExpires
+    ? { kind: "account_suspended", until: standing.banExpires }
+    : { kind: "account_deactivated" }
 }
 
 async function loadAuthContext(request: Request): Promise<AuthContext> {
