@@ -49,6 +49,7 @@ export interface ConfirmFormDialogProps {
   title: string
   /** What happens once the button is pressed, in one sentence. */
   description: string
+  /** Left out, the dialog asks for no reason at all; given, the field is there. */
   reason?: ReasonRule
   reasonLabel?: string
   /** Why the reason is asked for, in the words of the gesture. */
@@ -89,7 +90,7 @@ export function ConfirmFormDialog({
   onOpenChange,
   title,
   description,
-  reason = "optional",
+  reason,
   reasonLabel,
   reasonRequiredMessage,
   keyword,
@@ -214,7 +215,7 @@ export function ConfirmFormDialog({
           >
             {children}
 
-            {reason === "required" || reasonLabel ? (
+            {reason ? (
               <div className="flex flex-col gap-2">
                 <Label htmlFor={`${id}-reason`}>
                   {reasonLabel ?? t("confirm.reason")}
