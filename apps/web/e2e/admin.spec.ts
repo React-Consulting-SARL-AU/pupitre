@@ -937,6 +937,7 @@ test.describe("plateforme", () => {
 
       fleetOrganizationId = page.url().split("/").pop() ?? ""
 
+      await main.getByRole("tab", { name: "Abonnements" }).click()
       await page.getByRole("button", { name: "Offrir un abonnement" }).click()
 
       const grant = page.getByRole("dialog")
