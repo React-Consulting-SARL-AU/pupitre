@@ -8,8 +8,12 @@ import {
 } from "bun:test"
 import { bootApiTestServer, resetDb } from "@pupitre/api/testing"
 import type { OrgRole } from "@pupitre/shared/permissions"
-import { AdminAffiliateLinkList } from "@/components/admin/admin-affiliate-link-list"
+import {
+  AdminAffiliateLinkList,
+  type AdminAffiliateLinkListSearch,
+} from "@/components/admin/admin-affiliate-link-list"
 import { createConsoleUser, useSessionApiClient } from "@/testing/harness"
+import { ListSearchHarness } from "@/testing/list-search"
 import {
   fill,
   render,
@@ -23,7 +27,12 @@ const mounted: (() => void)[] = []
 const SETTLE_MS = 5000
 
 function list(platformRole: OrgRole = "owner") {
-  return withDashboard(<AdminAffiliateLinkList />, { platformRole })
+  return withDashboard(
+    <ListSearchHarness<AdminAffiliateLinkListSearch>>
+      {(handle) => <AdminAffiliateLinkList {...handle} />}
+    </ListSearchHarness>,
+    { platformRole }
+  )
 }
 
 async function seedLink(name: string, code: string) {
@@ -136,7 +145,7 @@ describe("AdminAffiliateLinkList", () => {
     await click(trigger(container, "Create the link"))
     await waitUntil(() => container.querySelector("[role=alert]") !== null)
 
-    expect(container.querySelectorAll("li")).toHaveLength(1)
+    expect(container.querySelectorAll("tbody tr")).toHaveLength(1)
     expect(container.textContent).not.toContain("Ada again")
   })
 
@@ -172,7 +181,7 @@ describe("AdminAffiliateLinkList", () => {
 
     expect(container.textContent).toContain("Ada")
     expect(container.textContent).toContain("Enabled")
-    expect(container.querySelectorAll("li")).toHaveLength(1)
+    expect(container.querySelectorAll("tbody tr")).toHaveLength(1)
     expect(container.textContent).not.toContain("Disable")
     expect(container.textContent).not.toContain("New affiliate link")
     expect(container.querySelector("#affiliate-name")).toBeNull()

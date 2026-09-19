@@ -90,11 +90,12 @@ describe("AdminUserDetail", () => {
       () => container.textContent?.includes(target.email) === true
     )
     await click(trigger(container, "Ban"))
-
-    const reason = document.querySelector("#ban-reason")
-    const confirm = document.querySelector(
-      "[role=alertdialog] button[type=submit]"
+    await waitUntil(
+      () => document.querySelector(`#ban-${target.id}-reason`) !== null
     )
+
+    const reason = document.querySelector(`#ban-${target.id}-reason`)
+    const confirm = document.querySelector("[role=dialog] button[type=submit]")
 
     if (!(reason && confirm)) {
       throw new Error("the ban dialog did not open")
@@ -133,11 +134,12 @@ describe("AdminUserDetail", () => {
 
     await waitUntil(() => container.textContent?.includes("MacBook") === true)
     await click(trigger(container, "Revoke"))
-
-    const reason = document.querySelector(`#revoke-reason-${device.id}`)
-    const confirm = document.querySelector(
-      "[role=alertdialog] button[type=submit]"
+    await waitUntil(
+      () => document.querySelector(`#revoke-${device.id}-reason`) !== null
     )
+
+    const reason = document.querySelector(`#revoke-${device.id}-reason`)
+    const confirm = document.querySelector("[role=dialog] button[type=submit]")
 
     if (!(reason && confirm)) {
       throw new Error("the revoke dialog did not open")
