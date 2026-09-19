@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test"
 import { translator } from "@/lib/i18n/i18n"
 import {
   formatBytes,
+  formatProduct,
   formatRatio,
   formatRelative,
   formatUsed,
@@ -79,5 +80,17 @@ describe("formatRelative", () => {
     expect(formatRelative("2026-09-04T11:40:00.000Z", en, now)).toBe(
       "20 min ago"
     )
+  })
+})
+
+describe("formatProduct", () => {
+  it("names the products the console knows", () => {
+    expect(formatProduct("granted", fr)).toBe("Offert")
+    expect(formatProduct("launch", en)).toBe("Launch")
+  })
+
+  it("shows an unknown product as Stripe names it, and none as nothing", () => {
+    expect(formatProduct("prod_other", fr)).toBe("prod_other")
+    expect(formatProduct(null, fr)).toBe("—")
   })
 })

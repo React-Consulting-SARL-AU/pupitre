@@ -6,9 +6,10 @@ import {
   createServer,
 } from "@pupitre/api/testing/factories"
 import { resetFakeMail, useFakeMail } from "@pupitre/api/testing/mail"
-import { LAUNCH_PRODUCT } from "@pupitre/shared/plans"
+import { GRANTED_PRODUCT, LAUNCH_PRODUCT } from "@pupitre/shared/plans"
 import { recordSteps } from "@/testing/workflow"
 import {
+  EXPIRE_GRANTED_STEP,
   PURGE_MAIL_UPLOADS_STEP,
   RECONCILE_LAUNCH_STEP,
   runSuspendExpiredGrace,
@@ -56,7 +57,7 @@ describe("le workflow SuspendExpiredGrace", () => {
     resetFakeMail()
   })
 
-  it("réconcilie le lancement, suspend, puis purge les dépôts, chacun dans une étape nommée", async () => {
+  it("réconcilie le lancement, ferme les octrois échus, suspend, puis purge les dépôts, chacun dans une étape nommée", async () => {
     const serverId = await serverWithExpiredGrace()
     const recorder = recordSteps()
 
@@ -64,11 +65,13 @@ describe("le workflow SuspendExpiredGrace", () => {
 
     expect(report).toEqual({
       launch: { aligned: [], canceled: [] },
+      granted: [],
       suspended: [serverId],
       purgedUploads: [],
     })
     expect(recorder.names).toEqual([
       RECONCILE_LAUNCH_STEP,
+      EXPIRE_GRANTED_STEP,
       SUSPEND_EXPIRED_GRACE_STEP,
       PURGE_MAIL_UPLOADS_STEP,
     ])
@@ -127,6 +130,43 @@ describe("le workflow SuspendExpiredGrace", () => {
 
     expect(report).toEqual({
       launch: { aligned: [], canceled: [subscription.id] },
+      granted: [],
+      suspended: [server.id],
+      purgedUploads: [],
+    })
+    expect(
+      await prisma.subscription.findUniqueOrThrow({
+        where: { id: subscription.id },
+      })
+    ).toMatchObject({ status: "canceled" })
+    expect(
+      await prisma.server.findUniqueOrThrow({ where: { id: server.id } })
+    ).toMatchObject({ status: "suspended", suspendedReason: "billing" })
+  })
+
+  it("ferme un octroi arrivé à échéance et suspend ses serveurs dans la même passe", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { organization } = await createOrganizationWithMembers({
+      roles: ["owner"],
+    })
+    const ended = new Date(Date.now() - DAY_MS)
+    const subscription = await prisma.subscription.create({
+      data: {
+        organizationId: organization.id,
+        stripeSubscriptionId: "granted_partenaire",
+        product: GRANTED_PRODUCT,
+        quantity: 2,
+        status: "active",
+        currentPeriodEnd: ended,
+      },
+    })
+    const { server } = await createServer({ organizationId: organization.id })
+
+    const report = await runSuspendExpiredGrace(recordSteps().step)
+
+    expect(report).toEqual({
+      launch: { aligned: [], canceled: [] },
+      granted: [subscription.id],
       suspended: [server.id],
       purgedUploads: [],
     })

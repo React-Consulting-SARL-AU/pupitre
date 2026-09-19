@@ -3,12 +3,85 @@ import {
   AFFILIATE_MAX_FREE_MONTHS,
 } from "@pupitre/shared/plans"
 import { z } from "zod"
-import { MAX_REASON_LENGTH } from "@/lib/domain/admin"
+import { endOfDayIso, MAX_REASON_LENGTH } from "@/lib/domain/admin"
 import type { Translate } from "@/lib/i18n/i18n"
+import { MAX_SEATS, MIN_SEATS } from "@/lib/schemas/billing"
 
 export const MAX_AFFILIATE_LINK_NAME_LENGTH = 80
 
 export const MIN_AFFILIATE_SEATS = 1
+
+export const MAX_SUBSCRIPTION_NOTE_LENGTH = 500
+
+function seatsField(t: Translate) {
+  return z.coerce
+    .number({ error: t("validation.quantity") })
+    .int(t("validation.quantityInteger"))
+    .min(MIN_SEATS, t("validation.quantityMin", { min: MIN_SEATS }))
+    .max(MAX_SEATS, t("validation.quantityMax", { max: MAX_SEATS }))
+}
+
+/** The field holds a day or nothing; what leaves the form is the last instant of that day, or null. */
+function endsAtField(t: Translate) {
+  return z
+    .string()
+    .trim()
+    .transform((value, context) => {
+      if (value === "") {
+        return null
+      }
+
+      const iso = endOfDayIso(value)
+
+      if (iso === null) {
+        context.addIssue({
+          code: "custom",
+          message: t("admin.subscriptions.endsAtInvalid"),
+        })
+
+        return z.NEVER
+      }
+
+      return iso
+    })
+}
+
+export function grantSubscriptionSchema(t: Translate) {
+  return z.object({
+    seats: seatsField(t),
+    ends_at: endsAtField(t),
+    note: z
+      .string()
+      .trim()
+      .max(
+        MAX_SUBSCRIPTION_NOTE_LENGTH,
+        t("admin.servers.reasonTooLong", { max: MAX_SUBSCRIPTION_NOTE_LENGTH })
+      ),
+  })
+}
+
+export type GrantSubscriptionInput = z.input<
+  ReturnType<typeof grantSubscriptionSchema>
+>
+
+export type GrantSubscriptionValues = z.output<
+  ReturnType<typeof grantSubscriptionSchema>
+>
+
+export function resizeSubscriptionSchema(t: Translate) {
+  return z.object({
+    seats: seatsField(t),
+    ends_at: endsAtField(t),
+  })
+}
+
+export type ResizeSubscriptionInput = z.input<
+  ReturnType<typeof resizeSubscriptionSchema>
+>
+
+export type ResizeSubscriptionValues = z.output<
+  ReturnType<typeof resizeSubscriptionSchema>
+>
 
 export interface ReasonCopy {
   required: string

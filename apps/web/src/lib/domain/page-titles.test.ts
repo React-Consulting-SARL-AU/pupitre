@@ -41,6 +41,7 @@ describe("pageTitle", () => {
       ["/dashboard/admin/users/$id", "/dashboard/admin/users"],
       ["/dashboard/admin/organizations/$id", "/dashboard/admin/organizations"],
       ["/dashboard/admin/servers/$id", "/dashboard/admin/servers"],
+      ["/dashboard/admin/subscriptions/$id", "/dashboard/admin/subscriptions"],
       [
         "/dashboard/admin/affiliate-links/$id",
         "/dashboard/admin/affiliate-links",

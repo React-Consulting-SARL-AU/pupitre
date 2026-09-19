@@ -66,7 +66,3 @@ export const adminServersQuery = t.Object({
   limit: adminLimitSchema,
   offset: adminOffsetSchema,
 })
-
-export const adminSuspendBody = t.Object({
-  reason: t.String({ minLength: 1, maxLength: 500 }),
-})

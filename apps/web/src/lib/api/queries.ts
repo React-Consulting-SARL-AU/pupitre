@@ -40,6 +40,8 @@ export const queryKeys = {
     organization: (id: string) => ["admin", "organization", id] as const,
     subscriptions: (page: AdminSubscriptionPageQuery) =>
       ["admin", "subscriptions", page] as const,
+    subscription: (id: string) => ["admin", "subscription", id] as const,
+    allSubscriptions: ["admin", "subscriptions"] as const,
     events: (page: AdminEventPageQuery) => ["admin", "events", page] as const,
     affiliateLinks: ["admin", "affiliate-links"] as const,
     affiliateLink: (id: string) => ["admin", "affiliate-link", id] as const,

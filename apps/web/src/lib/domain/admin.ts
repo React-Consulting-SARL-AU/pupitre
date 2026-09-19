@@ -1,4 +1,5 @@
 import type { OrgRole } from "@pupitre/shared/permissions"
+import { GRANTED_PRODUCT, isPlatformProduct } from "@pupitre/shared/plans"
 import { PLATFORM_ORGANIZATION_ID } from "@pupitre/shared/platform"
 import { SERVER_STATUSES, type StatusLook } from "@/lib/domain/server-status"
 import type { DictionaryKey } from "@/lib/i18n/en"
@@ -76,15 +77,95 @@ export const SUBSCRIPTION_STATUS_FILTERS = [
   "incomplete",
 ] as const
 
-export const SUBSCRIPTION_PRODUCT_FILTERS = ["prod_server", "launch"] as const
+export const SUBSCRIPTION_PRODUCT_FILTERS = [
+  "prod_server",
+  "launch",
+  GRANTED_PRODUCT,
+] as const
 
 const PRODUCT_KEYS: Record<string, DictionaryKey> = {
   launch: "admin.subscriptions.product.launch",
   prod_server: "admin.subscriptions.product.server",
+  [GRANTED_PRODUCT]: "admin.subscriptions.product.granted",
 }
 
 export function productKey(product: string | null): DictionaryKey | null {
   return product === null ? null : (PRODUCT_KEYS[product] ?? null)
+}
+
+/** The statuses under which an organisation still holds its right of use, as `/me` counts them. */
+const LIVE_SUBSCRIPTION_STATUSES = ["active", "trialing", "past_due"]
+
+export function subscriptionIsLive(status: string): boolean {
+  return LIVE_SUBSCRIPTION_STATUSES.includes(status)
+}
+
+export function canCancelSubscription(status: string): boolean {
+  return status !== "canceled"
+}
+
+export interface SubscriptionRow {
+  product: string
+  status: string
+}
+
+/** A platform row is the team's to remove; a Stripe row only once Stripe has let go of it. */
+export function canDeleteSubscription({
+  product,
+  status,
+}: SubscriptionRow): boolean {
+  return isPlatformProduct(product) || !subscriptionIsLive(status)
+}
+
+export function canResizeSubscription(product: string): boolean {
+  return product === GRANTED_PRODUCT
+}
+
+export interface GrantTarget {
+  organizationId: string
+  hasLive: boolean
+}
+
+export function canGrantSubscription({
+  organizationId,
+  hasLive,
+}: GrantTarget): boolean {
+  return !(isPlatformOrganization(organizationId) || hasLive)
+}
+
+const DATE_INPUT_RE = /^(\d{4})-(\d{2})-(\d{2})$/
+
+/** A day picked in the console ends where the team sits: the right of use covers the whole of it. */
+export function endOfDayIso(date: string): string | null {
+  const parts = DATE_INPUT_RE.exec(date)
+
+  if (!parts) {
+    return null
+  }
+
+  const end = new Date(
+    Number(parts[1]),
+    Number(parts[2]) - 1,
+    Number(parts[3]),
+    23,
+    59,
+    59,
+    999
+  )
+
+  return Number.isNaN(end.getTime()) ? null : end.toISOString()
+}
+
+export function dateInputValue(value: string | Date | null): string {
+  if (!value) {
+    return ""
+  }
+
+  const date = new Date(value)
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+
+  return `${date.getFullYear()}-${month}-${day}`
 }
 
 const CHANNEL_KEYS: Record<string, DictionaryKey> = {

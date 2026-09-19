@@ -3,7 +3,8 @@ import { LAUNCH_PRODUCT, LAUNCH_SEATS } from "@pupitre/shared/plans"
 import { getPrisma, isUniqueViolation } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import { LaunchNotConfiguredError } from "./config"
-import { graceOrganizationServers, restoreOrganizationServers } from "./grace"
+import { cancelEndedSubscriptions } from "./expiry"
+import { restoreOrganizationServers } from "./grace"
 import { getBillingMode } from "./runtime"
 import { LIVE_SUBSCRIPTION_STATUSES, liveSubscriptionOf } from "./subscription"
 
@@ -35,9 +36,9 @@ function launchEnd(): Date {
   return launchEndsAt
 }
 
-type LaunchRowData = Omit<
+type LaunchRowData = Pick<
   Subscription,
-  "id" | "organizationId" | "stripeSubscriptionId" | "createdAt" | "updatedAt"
+  "product" | "quantity" | "status" | "currentPeriodEnd"
 >
 
 /**
@@ -152,61 +153,19 @@ async function alignWithLaunchEnd(): Promise<string[]> {
   return ids
 }
 
-async function cancelEndedLaunches(now: Date): Promise<string[]> {
-  const prisma = getPrisma()
-  const ended = await prisma.subscription.findMany({
-    where: {
-      product: LAUNCH_PRODUCT,
-      status: "trialing",
-      currentPeriodEnd: { lte: now },
-    },
-    orderBy: { currentPeriodEnd: "asc" },
-  })
-
-  for (const subscription of ended) {
-    const live = await liveSubscriptionOf(subscription.organizationId)
-
-    await prisma.subscription.update({
-      where: { id: subscription.id },
-      data: { status: "canceled" },
-    })
-    await recordEvent({
-      action: "subscription.canceled",
-      actorUserId: null,
-      organizationId: subscription.organizationId,
-      targetType: "subscription",
-      targetId: subscription.stripeSubscriptionId,
-      payload: {
-        status: "canceled",
-        quantity: subscription.quantity,
-        product: subscription.product,
-        current_period_end:
-          subscription.currentPeriodEnd?.toISOString() ?? null,
-      },
-    })
-    if (!live || live.id === subscription.id) {
-      await graceOrganizationServers(
-        subscription.organizationId,
-        subscription.currentPeriodEnd ?? now
-      )
-    }
-  }
-
-  return ended.map((subscription) => subscription.id)
-}
-
 /**
  * Extending the launch is an environment change: every running launch
  * subscription follows the configured end. One that has passed it is
- * cancelled, and its servers take the past date so the suspension that runs
- * next closes them the same day — unless another subscription is the one that
- * counts for the organization, which has already paid for those servers.
+ * cancelled the way any ended subscription of the platform's own is.
  */
 export async function reconcileLaunch(
   now: Date = new Date()
 ): Promise<LaunchReconciliation> {
   const aligned = await alignWithLaunchEnd()
-  const canceled = await cancelEndedLaunches(now)
+  const canceled = await cancelEndedSubscriptions(
+    { product: LAUNCH_PRODUCT, status: "trialing" },
+    now
+  )
 
   return { aligned, canceled }
 }

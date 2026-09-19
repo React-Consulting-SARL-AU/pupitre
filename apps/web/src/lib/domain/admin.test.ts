@@ -2,11 +2,20 @@ import { describe, expect, it } from "bun:test"
 import {
   accountIsProtected,
   canActOnPlatform,
+  canCancelSubscription,
+  canDeleteSubscription,
+  canGrantSubscription,
+  canResizeSubscription,
   canRestore,
   canSuspend,
+  dateInputValue,
+  endOfDayIso,
   overviewFigures,
   platformOpen,
+  productKey,
   releaseVersions,
+  SUBSCRIPTION_PRODUCT_FILTERS,
+  subscriptionIsLive,
   suspendedReasonKey,
   userLook,
 } from "@/lib/domain/admin"
@@ -68,6 +77,111 @@ describe("accountIsProtected", () => {
   it("leaves it open when nothing was refused, or the refusal was another one", () => {
     expect(accountIsProtected(undefined)).toBe(false)
     expect(accountIsProtected(404)).toBe(false)
+  })
+})
+
+describe("productKey", () => {
+  it("names the three products, the granted one included", () => {
+    expect(productKey("prod_server")).toBe("admin.subscriptions.product.server")
+    expect(productKey("launch")).toBe("admin.subscriptions.product.launch")
+    expect(productKey("granted")).toBe("admin.subscriptions.product.granted")
+    expect(SUBSCRIPTION_PRODUCT_FILTERS).toContain("granted")
+  })
+
+  it("has no name for a product it does not know", () => {
+    expect(productKey("prod_other")).toBeNull()
+    expect(productKey(null)).toBeNull()
+  })
+})
+
+describe("subscriptionIsLive", () => {
+  it("counts what Stripe still bills, and what a trial or a granted right still covers", () => {
+    for (const status of ["active", "trialing", "past_due"]) {
+      expect(subscriptionIsLive(status), status).toBe(true)
+    }
+
+    for (const status of ["canceled", "unpaid", "incomplete_expired"]) {
+      expect(subscriptionIsLive(status), status).toBe(false)
+    }
+  })
+})
+
+describe("canCancelSubscription", () => {
+  it("stops anything that is not already cancelled", () => {
+    expect(canCancelSubscription("active")).toBe(true)
+    expect(canCancelSubscription("trialing")).toBe(true)
+    expect(canCancelSubscription("canceled")).toBe(false)
+  })
+})
+
+describe("canDeleteSubscription", () => {
+  it("deletes a platform row whatever its status", () => {
+    expect(
+      canDeleteSubscription({ product: "launch", status: "trialing" })
+    ).toBe(true)
+    expect(
+      canDeleteSubscription({ product: "granted", status: "active" })
+    ).toBe(true)
+  })
+
+  it("deletes a Stripe row only once Stripe no longer bills it", () => {
+    expect(
+      canDeleteSubscription({ product: "prod_server", status: "canceled" })
+    ).toBe(true)
+    expect(
+      canDeleteSubscription({ product: "prod_server", status: "active" })
+    ).toBe(false)
+    expect(
+      canDeleteSubscription({ product: "prod_server", status: "past_due" })
+    ).toBe(false)
+  })
+})
+
+describe("canResizeSubscription", () => {
+  it("resizes the granted product alone", () => {
+    expect(canResizeSubscription("granted")).toBe(true)
+    expect(canResizeSubscription("launch")).toBe(false)
+    expect(canResizeSubscription("prod_server")).toBe(false)
+  })
+})
+
+describe("canGrantSubscription", () => {
+  it("grants to an organisation with nothing live", () => {
+    expect(
+      canGrantSubscription({ organizationId: "org_perso", hasLive: false })
+    ).toBe(true)
+  })
+
+  it("refuses the platform organisation and one with a live subscription", () => {
+    expect(
+      canGrantSubscription({ organizationId: "org_pupitre", hasLive: false })
+    ).toBe(false)
+    expect(
+      canGrantSubscription({ organizationId: "org_perso", hasLive: true })
+    ).toBe(false)
+  })
+})
+
+describe("endOfDayIso", () => {
+  it("sends the last instant of the chosen day, and reads it back as that day", () => {
+    const iso = endOfDayIso("2026-12-31")
+
+    expect(iso).not.toBeNull()
+
+    const sent = new Date(iso ?? "")
+
+    expect(sent.getFullYear()).toBe(2026)
+    expect(sent.getMonth()).toBe(11)
+    expect(sent.getDate()).toBe(31)
+    expect(sent.getHours()).toBe(23)
+    expect(sent.getMinutes()).toBe(59)
+    expect(dateInputValue(iso)).toBe("2026-12-31")
+  })
+
+  it("sends nothing for an empty field, and refuses what is not a date", () => {
+    expect(endOfDayIso("")).toBeNull()
+    expect(endOfDayIso("soon")).toBeNull()
+    expect(dateInputValue(null)).toBe("")
   })
 })
 

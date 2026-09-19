@@ -16,6 +16,7 @@ export interface FakeBilling extends BillingProvider {
   readonly checkouts: CheckoutSessionInput[]
   readonly portals: PortalSessionInput[]
   readonly quantities: QuantityChange[]
+  readonly cancellations: string[]
   put(subscription: RemoteSubscription): void
   reset(): void
 }
@@ -24,6 +25,7 @@ export function createFakeBilling(): FakeBilling {
   const checkouts: CheckoutSessionInput[] = []
   const portals: PortalSessionInput[] = []
   const quantities: QuantityChange[] = []
+  const cancellations: string[] = []
   const subscriptions = new Map<string, RemoteSubscription>()
   let counter = 0
 
@@ -44,6 +46,7 @@ export function createFakeBilling(): FakeBilling {
     checkouts,
     portals,
     quantities,
+    cancellations,
 
     put(subscription: RemoteSubscription): void {
       subscriptions.set(subscription.id, subscription)
@@ -53,6 +56,7 @@ export function createFakeBilling(): FakeBilling {
       checkouts.length = 0
       portals.length = 0
       quantities.length = 0
+      cancellations.length = 0
       subscriptions.clear()
       counter = 0
     },
@@ -97,6 +101,18 @@ export function createFakeBilling(): FakeBilling {
       quantities.push({ subscriptionId, quantity })
 
       return Promise.resolve(updated)
+    },
+
+    cancelSubscription(subscriptionId: string): Promise<RemoteSubscription> {
+      const canceled = {
+        ...subscriptionOf(subscriptionId),
+        status: "canceled",
+      }
+
+      subscriptions.set(subscriptionId, canceled)
+      cancellations.push(subscriptionId)
+
+      return Promise.resolve(canceled)
     },
   }
 }

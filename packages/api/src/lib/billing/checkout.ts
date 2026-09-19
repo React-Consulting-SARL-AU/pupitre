@@ -1,5 +1,6 @@
 import {
   DAYS_PER_FREE_MONTH,
+  isPlatformProduct,
   TRIAL_DAYS,
   TRIAL_SEATS,
 } from "@pupitre/shared/plans"
@@ -9,7 +10,7 @@ import { appUrlFromEnv } from "./config"
 import { grantLaunchSubscription, isLaunchMode } from "./launch"
 import type { BillingIntervalName } from "./provider"
 import { getBillingProvider } from "./runtime"
-import { readBilling } from "./subscription"
+import { liveSubscriptionOf, readBilling } from "./subscription"
 
 const TRAILING_SLASHES_RE = /\/+$/
 
@@ -24,6 +25,13 @@ export class BillingLaunchError extends Error {
   constructor() {
     super("the launch grants the subscription: there is no Stripe portal")
     this.name = "BillingLaunchError"
+  }
+}
+
+export class BillingGrantedError extends Error {
+  constructor() {
+    super("the platform granted this subscription: there is no Stripe portal")
+    this.name = "BillingGrantedError"
   }
 }
 
@@ -132,6 +140,12 @@ export async function startPortal(
 ): Promise<{ url: string }> {
   if (isLaunchMode()) {
     throw new BillingLaunchError()
+  }
+
+  const live = await liveSubscriptionOf(organizationId)
+
+  if (live && isPlatformProduct(live.product)) {
+    throw new BillingGrantedError()
   }
 
   const billing = await readBilling(organizationId)

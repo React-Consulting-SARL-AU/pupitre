@@ -1,4 +1,5 @@
 import type { Prisma, Subscription } from "@pupitre/db/cloudflare/client"
+import { isPlatformProduct } from "@pupitre/shared/plans"
 import { ADMIN_MAX_PAGE_SIZE } from "@pupitre/shared/platform"
 import { getPrisma } from "../api/prisma"
 import { liveAmong } from "../billing/subscription"
@@ -44,6 +45,9 @@ export interface AdminOrganizationSubscriptionRow {
   quantity: number
   status: string
   current_period_end: Date | null
+  note: string | null
+  /** True for a product Stripe never sees: the launch, or what the team granted. */
+  platform: boolean
   created_at: Date
   updated_at: Date
 }
@@ -112,6 +116,8 @@ export function toSubscriptionRow(
     quantity: subscription.quantity,
     status: subscription.status,
     current_period_end: subscription.currentPeriodEnd,
+    note: subscription.note,
+    platform: isPlatformProduct(subscription.product),
     created_at: subscription.createdAt,
     updated_at: subscription.updatedAt,
   }

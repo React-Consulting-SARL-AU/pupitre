@@ -8,6 +8,11 @@ export const adminLimitSchema = t.Optional(
 
 export const adminOffsetSchema = t.Optional(t.Integer({ minimum: 0 }))
 
+/** Every gesture the team takes against someone carries its reason into the journal. */
+export const adminReasonBody = t.Object({
+  reason: t.String({ minLength: 1, maxLength: 500 }),
+})
+
 export const adminEventSchema = t.Object(
   {
     id: t.String(),

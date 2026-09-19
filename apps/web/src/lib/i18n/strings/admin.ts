@@ -52,6 +52,16 @@ export const admin = {
     "admin.users.noSubscription": "no subscription",
     "admin.users.servers.one": "{count} server",
     "admin.users.servers.other": "{count} servers",
+    "admin.users.revokeDevice": "Revoke",
+    "admin.users.revoking": "Revoking…",
+    "admin.users.revokeTitle": "Revoke this device?",
+    "admin.users.revokeDescription":
+      "“{name}” loses its access: the app on it signs out and the servers it held drop its keys. The reason is logged.",
+    "admin.users.revokeReasonRequired":
+      "Give the reason: it is logged with the revocation.",
+    "admin.users.revoked": "“{name}” is revoked.",
+    "admin.users.revokeFailed": "The device was not revoked.",
+    "admin.users.revokeFailedFix": "Try again in a moment.",
 
     "admin.servers.status": "Status",
     "admin.servers.allStatuses": "Every status",
@@ -87,6 +97,20 @@ export const admin = {
     "admin.servers.channel": "Channel",
     "admin.servers.entitlementValidUntil": "Entitlement valid until",
     "admin.servers.usage": "Disk · RAM · load",
+    "admin.servers.decommissionAt": "Disappears on",
+    "admin.servers.delete": "Delete",
+    "admin.servers.deleteTitle": "Delete this server?",
+    "admin.servers.deleteDescription":
+      "“{name}” of {organization} goes to revoked: the keys drop at the agent's next report, and the line disappears in seven days. The reason is logged.",
+    "admin.servers.purge": "Purge",
+    "admin.servers.purgeTitle": "Purge this server?",
+    "admin.servers.purgeDescription":
+      "“{name}” is revoked and would disappear on {date}. Purging removes the line and its history now; the machine keeps what is installed on it. The reason is logged.",
+    "admin.servers.deleting": "Deleting…",
+    "admin.servers.deleted": "“{name}” is revoked.",
+    "admin.servers.purged": "“{name}” is purged.",
+    "admin.servers.deleteFailed": "The deletion failed.",
+    "admin.servers.deleteFailedFix": "Try again in a moment.",
 
     "admin.organizations.title": "Organisations",
     "admin.organizations.profile": "Organisation",
@@ -115,8 +139,62 @@ export const admin = {
     "admin.subscriptions.allProducts": "Every product",
     "admin.subscriptions.product.launch": "Launch",
     "admin.subscriptions.product.server": "Server",
+    "admin.subscriptions.product.granted": "Granted",
     "admin.subscriptions.live": "Billed",
     "admin.subscriptions.over": "Over",
+    "admin.subscriptions.open": "Open the subscription",
+    "admin.subscriptions.profile": "Subscription",
+    "admin.subscriptions.seats": "Seats",
+    "admin.subscriptions.periodEnd": "Ends",
+    "admin.subscriptions.noEnd": "No end date",
+    "admin.subscriptions.note": "Note",
+    "admin.subscriptions.updatedAt": "Updated",
+    "admin.subscriptions.stripeId": "Stripe subscription",
+    "admin.subscriptions.cancel": "Stop now",
+    "admin.subscriptions.canceling": "Stopping…",
+    "admin.subscriptions.cancelTitle": "Stop this subscription now?",
+    "admin.subscriptions.cancelDescription":
+      "The servers of {organization} lose their right of use at the agent's next report. The reason is logged with the subscription.",
+    "admin.subscriptions.cancelReasonRequired":
+      "Give the reason: it is logged with the subscription.",
+    "admin.subscriptions.canceled":
+      "The subscription of {organization} is stopped.",
+    "admin.subscriptions.cancelFailed": "The subscription was not stopped.",
+    "admin.subscriptions.cancelFailedFix":
+      "Try again; a cancelled subscription cannot be stopped twice.",
+    "admin.subscriptions.delete": "Delete the row",
+    "admin.subscriptions.deleting": "Deleting…",
+    "admin.subscriptions.deleteTitle": "Delete this subscription row?",
+    "admin.subscriptions.deleteDescription":
+      "The row of {organization} leaves the console with its history. Stripe, when there is one, is not told.",
+    "admin.subscriptions.deleted":
+      "The subscription row of {organization} is deleted.",
+    "admin.subscriptions.deleteFailed": "The row was not deleted.",
+    "admin.subscriptions.deleteFailedFix":
+      "A row Stripe still bills cannot be deleted: stop it first.",
+    "admin.subscriptions.resize": "Resize",
+    "admin.subscriptions.resizeAction": "Apply",
+    "admin.subscriptions.resizing": "Applying…",
+    "admin.subscriptions.resized":
+      "The subscription of {organization} is resized.",
+    "admin.subscriptions.resizeFailed": "The subscription was not resized.",
+    "admin.subscriptions.resizeFailedFix":
+      "Fewer seats than servers in use cannot be set: remove a server first.",
+    "admin.subscriptions.endsAt": "End date",
+    "admin.subscriptions.endsAtOptional": "End date (optional)",
+    "admin.subscriptions.endsAtInvalid": "A date, or nothing.",
+    "admin.subscriptions.noteOptional": "Note (optional)",
+    "admin.subscriptions.grant": "Grant a subscription",
+    "admin.subscriptions.grantTitle": "Grant a subscription",
+    "admin.subscriptions.grantDescription":
+      "{organization} gets a right of use outside Stripe: the seats below, until the end date or until the team stops it.",
+    "admin.subscriptions.grantAction": "Grant",
+    "admin.subscriptions.granting": "Granting…",
+    "admin.subscriptions.granted": "{organization} has its subscription.",
+    "admin.subscriptions.grantFailed": "The subscription was not granted.",
+    "admin.subscriptions.grantFailedFix": "Try again in a moment.",
+    "admin.subscriptions.grantBlocked":
+      "A subscription is live: stop it before granting another.",
 
     "admin.events.title": "Platform log",
     "admin.events.recent": "Last events",
@@ -247,6 +325,16 @@ export const admin = {
     "admin.users.noSubscription": "sans abonnement",
     "admin.users.servers.one": "{count} serveur",
     "admin.users.servers.other": "{count} serveurs",
+    "admin.users.revokeDevice": "Révoquer",
+    "admin.users.revoking": "Révocation…",
+    "admin.users.revokeTitle": "Révoquer cet appareil ?",
+    "admin.users.revokeDescription":
+      "« {name} » perd son accès : l'app qui s'y trouve se déconnecte et les serveurs qu'il tenait retirent ses clés. Le motif est journalisé.",
+    "admin.users.revokeReasonRequired":
+      "Indiquez le motif : il est journalisé avec la révocation.",
+    "admin.users.revoked": "« {name} » est révoqué.",
+    "admin.users.revokeFailed": "L'appareil n'a pas été révoqué.",
+    "admin.users.revokeFailedFix": "Réessayez dans un instant.",
 
     "admin.servers.status": "Statut",
     "admin.servers.allStatuses": "Tous les statuts",
@@ -283,6 +371,20 @@ export const admin = {
     "admin.servers.channel": "Canal",
     "admin.servers.entitlementValidUntil": "Droit d'usage valable jusqu'au",
     "admin.servers.usage": "Disque · RAM · charge",
+    "admin.servers.decommissionAt": "Disparaît le",
+    "admin.servers.delete": "Supprimer",
+    "admin.servers.deleteTitle": "Supprimer ce serveur ?",
+    "admin.servers.deleteDescription":
+      "« {name} » de {organization} passe en révoqué : les clés tombent au prochain état de l'agent, et la ligne disparaît dans sept jours. Le motif est journalisé.",
+    "admin.servers.purge": "Effacer la ligne",
+    "admin.servers.purgeTitle": "Effacer cette ligne ?",
+    "admin.servers.purgeDescription":
+      "« {name} » est révoqué et disparaîtrait le {date}. Effacer retire la ligne et son historique maintenant ; la machine garde ce qui y est installé. Le motif est journalisé.",
+    "admin.servers.deleting": "Suppression…",
+    "admin.servers.deleted": "« {name} » est révoqué.",
+    "admin.servers.purged": "« {name} » est effacé.",
+    "admin.servers.deleteFailed": "La suppression a échoué.",
+    "admin.servers.deleteFailedFix": "Réessayez dans un instant.",
 
     "admin.organizations.title": "Organisations",
     "admin.organizations.profile": "Organisation",
@@ -311,8 +413,63 @@ export const admin = {
     "admin.subscriptions.allProducts": "Tous les produits",
     "admin.subscriptions.product.launch": "Lancement",
     "admin.subscriptions.product.server": "Serveur",
+    "admin.subscriptions.product.granted": "Offert",
     "admin.subscriptions.live": "Facturé",
     "admin.subscriptions.over": "Terminé",
+    "admin.subscriptions.open": "Ouvrir l'abonnement",
+    "admin.subscriptions.profile": "Abonnement",
+    "admin.subscriptions.seats": "Sièges",
+    "admin.subscriptions.periodEnd": "Fin",
+    "admin.subscriptions.noEnd": "Sans date de fin",
+    "admin.subscriptions.note": "Note",
+    "admin.subscriptions.updatedAt": "Modifié",
+    "admin.subscriptions.stripeId": "Abonnement Stripe",
+    "admin.subscriptions.cancel": "Arrêter maintenant",
+    "admin.subscriptions.canceling": "Arrêt…",
+    "admin.subscriptions.cancelTitle": "Arrêter cet abonnement maintenant ?",
+    "admin.subscriptions.cancelDescription":
+      "Les serveurs de {organization} perdent leur droit d'usage au prochain état de l'agent. Le motif est journalisé avec l'abonnement.",
+    "admin.subscriptions.cancelReasonRequired":
+      "Indiquez le motif : il est journalisé avec l'abonnement.",
+    "admin.subscriptions.canceled":
+      "L'abonnement de {organization} est arrêté.",
+    "admin.subscriptions.cancelFailed": "L'abonnement n'a pas été arrêté.",
+    "admin.subscriptions.cancelFailedFix":
+      "Réessayez ; un abonnement annulé ne s'arrête pas deux fois.",
+    "admin.subscriptions.delete": "Supprimer la ligne",
+    "admin.subscriptions.deleting": "Suppression…",
+    "admin.subscriptions.deleteTitle": "Supprimer cette ligne d'abonnement ?",
+    "admin.subscriptions.deleteDescription":
+      "La ligne de {organization} quitte la console avec son historique. Stripe, s'il y en a un, n'en sait rien.",
+    "admin.subscriptions.deleted":
+      "La ligne d'abonnement de {organization} est supprimée.",
+    "admin.subscriptions.deleteFailed": "La ligne n'a pas été supprimée.",
+    "admin.subscriptions.deleteFailedFix":
+      "Une ligne que Stripe facture encore ne se supprime pas : arrêtez-la d'abord.",
+    "admin.subscriptions.resize": "Redimensionner",
+    "admin.subscriptions.resizeAction": "Appliquer",
+    "admin.subscriptions.resizing": "Application…",
+    "admin.subscriptions.resized":
+      "L'abonnement de {organization} est redimensionné.",
+    "admin.subscriptions.resizeFailed":
+      "L'abonnement n'a pas été redimensionné.",
+    "admin.subscriptions.resizeFailedFix":
+      "Moins de sièges que de serveurs en usage ne se règle pas : retirez d'abord un serveur.",
+    "admin.subscriptions.endsAt": "Date de fin",
+    "admin.subscriptions.endsAtOptional": "Date de fin (facultative)",
+    "admin.subscriptions.endsAtInvalid": "Une date, ou rien.",
+    "admin.subscriptions.noteOptional": "Note (facultative)",
+    "admin.subscriptions.grant": "Offrir un abonnement",
+    "admin.subscriptions.grantTitle": "Offrir un abonnement",
+    "admin.subscriptions.grantDescription":
+      "{organization} reçoit un droit d'usage hors Stripe : les sièges ci-dessous, jusqu'à la date de fin ou jusqu'à ce que l'équipe l'arrête.",
+    "admin.subscriptions.grantAction": "Offrir",
+    "admin.subscriptions.granting": "Attribution…",
+    "admin.subscriptions.granted": "{organization} a son abonnement.",
+    "admin.subscriptions.grantFailed": "L'abonnement n'a pas été offert.",
+    "admin.subscriptions.grantFailedFix": "Réessayez dans un instant.",
+    "admin.subscriptions.grantBlocked":
+      "Un abonnement est en cours : arrêtez-le avant d'en offrir un autre.",
 
     "admin.events.title": "Journal de la plateforme",
     "admin.events.recent": "Derniers événements",

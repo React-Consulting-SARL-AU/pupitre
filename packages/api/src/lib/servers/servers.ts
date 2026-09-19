@@ -3,7 +3,7 @@ import type { OrgRole } from "@pupitre/shared/permissions"
 import { sendServerDecommissionEmail } from "../../emails/notifications"
 import { type AlertView, activeAlertsFor } from "../alerts/alerts"
 import { getPrisma, withOrganization } from "../api/prisma"
-import { recordEvent } from "../audit/audit"
+import { type Actor, recordEvent } from "../audit/audit"
 import { metricsOf } from "./agent-state"
 import { settleAssignment, settleAssignments } from "./assign"
 import { keyReadyByServer } from "./authorized-keys"
@@ -226,20 +226,17 @@ export async function getServerForOrganization(
  */
 export type ServerDeletion = "revoked" | "purged"
 
-export async function deleteServerForOrganization(
-  actor: { userId: string; organizationId: string },
-  serverId: string,
-  acceptLanguage: string | null = null
-): Promise<ServerDeletion | null> {
-  const prisma = withOrganization(getPrisma(), actor.organizationId)
-  const server = await prisma.server.findFirst({
-    where: { id: serverId },
-    omit: WITHOUT_METRICS,
-  })
+/** The team deletes with a reason the journal keeps; the owner deletes as themself. */
+export type DeletionOrigin = { by_platform: true; reason: string } | null
 
-  if (!server) {
-    return null
-  }
+export async function deleteServer(
+  actor: Actor,
+  server: ServerRow,
+  origin: DeletionOrigin,
+  acceptLanguage: string | null = null
+): Promise<ServerDeletion> {
+  const prisma = withOrganization(getPrisma(), server.organizationId)
+  const payload = { host: server.host, name: server.name, ...origin }
 
   if (server.status === "revoked") {
     await prisma.server.deleteMany({ where: { id: server.id } })
@@ -247,10 +244,10 @@ export async function deleteServerForOrganization(
     await recordEvent({
       action: "server.purged",
       actorUserId: actor.userId,
-      organizationId: actor.organizationId,
+      organizationId: server.organizationId,
       targetType: "server",
       targetId: server.id,
-      payload: { host: server.host, name: server.name },
+      payload,
     })
 
     return "purged"
@@ -272,10 +269,10 @@ export async function deleteServerForOrganization(
   await recordEvent({
     action: "server.deleted",
     actorUserId: actor.userId,
-    organizationId: actor.organizationId,
+    organizationId: server.organizationId,
     targetType: "server",
     targetId: server.id,
-    payload: { host: server.host, name: server.name },
+    payload,
   })
 
   await sendServerDecommissionEmail({
@@ -285,4 +282,26 @@ export async function deleteServerForOrganization(
   })
 
   return "revoked"
+}
+
+export async function deleteServerForOrganization(
+  actor: { userId: string; organizationId: string },
+  serverId: string,
+  acceptLanguage: string | null = null
+): Promise<ServerDeletion | null> {
+  const server = await withOrganization(
+    getPrisma(),
+    actor.organizationId
+  ).server.findFirst({ where: { id: serverId }, omit: WITHOUT_METRICS })
+
+  if (!server) {
+    return null
+  }
+
+  return await deleteServer(
+    { userId: actor.userId, source: "console" },
+    server,
+    null,
+    acceptLanguage
+  )
 }

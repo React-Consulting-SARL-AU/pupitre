@@ -3,18 +3,21 @@ import { Link } from "@tanstack/react-router"
 import { AdminEventsCard } from "@/components/admin/admin-events-card"
 import { AdminFacts } from "@/components/admin/admin-facts"
 import { AdminFailure } from "@/components/admin/admin-failure"
+import { AdminGrantDialog } from "@/components/admin/admin-grant-dialog"
+import { AdminSubscriptionStatus } from "@/components/admin/admin-subscription-status"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
 import { CopyButton } from "@/components/ui/copy-button"
 import { SkeletonCards } from "@/components/ui/skeleton"
 import { StatusBadge } from "@/components/ui/status-badge"
+import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
 import { adminOrganizationQueryOptions } from "@/lib/api/admin-queries"
-import { productKey } from "@/lib/domain/admin"
+import { canActOnPlatform, subscriptionIsLive } from "@/lib/domain/admin"
 import { affiliateUrlFor } from "@/lib/domain/affiliate"
 import { subscriptionStatusLook } from "@/lib/domain/billing"
 import { roleKey } from "@/lib/domain/roles"
 import { statusLook } from "@/lib/domain/server-status"
-import { formatDate, formatDateTime } from "@/lib/utils/format"
+import { formatDate, formatDateTime, formatProduct } from "@/lib/utils/format"
 
 export interface AdminOrganizationDetailProps {
   id: string
@@ -22,6 +25,7 @@ export interface AdminOrganizationDetailProps {
 
 export function AdminOrganizationDetail({ id }: AdminOrganizationDetailProps) {
   const t = useTranslations()
+  const { platformRole } = useDashboardContext()
   const organization = useQuery(adminOrganizationQueryOptions(id))
 
   if (organization.isPending) {
@@ -49,17 +53,15 @@ export function AdminOrganizationDetail({ id }: AdminOrganizationDetailProps) {
         detail.subscription.product
       )
     : null
+  const hasLive = detail.subscription
+    ? subscriptionIsLive(detail.subscription.status)
+    : false
+  const acts = canActOnPlatform(platformRole)
 
   function roleName(role: string): string {
     const key = roleKey(role)
 
     return key ? t(key) : role
-  }
-
-  function productName(product: string | null): string {
-    const key = productKey(product)
-
-    return key ? t(key) : (product ?? t("format.none"))
   }
 
   return (
@@ -198,6 +200,9 @@ export function AdminOrganizationDetail({ id }: AdminOrganizationDetailProps) {
       <Card>
         <CardHeader>
           <CardTitle>{t("admin.organizations.subscriptions")}</CardTitle>
+          {acts ? (
+            <AdminGrantDialog blocked={hasLive} organization={detail} />
+          ) : null}
         </CardHeader>
 
         {detail.subscriptions.length === 0 ? (
@@ -208,37 +213,36 @@ export function AdminOrganizationDetail({ id }: AdminOrganizationDetailProps) {
           </CardBody>
         ) : (
           <ul>
-            {detail.subscriptions.map((subscription) => {
-              const look = subscriptionStatusLook(
-                subscription.status,
-                subscription.product
-              )
-
-              return (
-                <li
-                  className="flex flex-wrap items-center gap-4 border-line border-b px-4 py-3 last:border-b-0"
-                  key={subscription.id}
+            {detail.subscriptions.map((subscription) => (
+              <li
+                className="flex flex-wrap items-center gap-4 border-line border-b px-4 py-3 last:border-b-0"
+                key={subscription.id}
+              >
+                <Link
+                  className="min-w-0 flex-1 truncate font-data text-[12px] text-ink underline-offset-2 hover:underline"
+                  params={{ id: subscription.id }}
+                  to="/dashboard/admin/subscriptions/$id"
                 >
-                  <span className="min-w-0 flex-1 truncate font-data text-[12px] text-ink-2">
-                    {subscription.stripe_subscription_id}
-                  </span>
-                  <span className="text-[12px] text-ink-2 sm:w-32">
-                    {productName(subscription.product)}
-                  </span>
-                  <span className="font-data text-[12px] text-ink-2 tabular-nums sm:w-24">
-                    {t.plural("admin.links.seats", subscription.quantity)}
-                  </span>
-                  <span className="text-[12px] text-ink-2 sm:w-32">
-                    {look ? t(look.label) : subscription.status}
-                  </span>
-                  <span className="font-data text-[12px] text-ink-3 tabular-nums sm:w-28 sm:text-right">
-                    {subscription.current_period_end
-                      ? formatDate(subscription.current_period_end, t)
-                      : t("format.none")}
-                  </span>
-                </li>
-              )
-            })}
+                  {subscription.stripe_subscription_id}
+                </Link>
+                <span className="text-[12px] text-ink-2 sm:w-32">
+                  {formatProduct(subscription.product, t)}
+                </span>
+                <span className="font-data text-[12px] text-ink-2 tabular-nums sm:w-24">
+                  {t.plural("admin.links.seats", subscription.quantity)}
+                </span>
+                <AdminSubscriptionStatus
+                  className="sm:w-36"
+                  product={subscription.product}
+                  status={subscription.status}
+                />
+                <span className="font-data text-[12px] text-ink-3 tabular-nums sm:w-28 sm:text-right">
+                  {subscription.current_period_end
+                    ? formatDate(subscription.current_period_end, t)
+                    : t("format.none")}
+                </span>
+              </li>
+            ))}
           </ul>
         )}
       </Card>

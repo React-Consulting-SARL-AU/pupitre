@@ -1,10 +1,8 @@
 import { Link } from "@tanstack/react-router"
-import { StatusBadge } from "@/components/ui/status-badge"
+import { AdminSubscriptionStatus } from "@/components/admin/admin-subscription-status"
 import { StatusDot } from "@/components/ui/status-dot"
 import { useTranslations } from "@/hooks/use-locale"
-import { productKey } from "@/lib/domain/admin"
-import { subscriptionStatusLook } from "@/lib/domain/billing"
-import { formatDate } from "@/lib/utils/format"
+import { formatDate, formatProduct } from "@/lib/utils/format"
 
 export interface AdminSubscriptionRowSubscription {
   id: string
@@ -24,8 +22,6 @@ export function AdminSubscriptionRow({
   subscription,
 }: AdminSubscriptionRowProps) {
   const t = useTranslations()
-  const look = subscriptionStatusLook(subscription.status, subscription.product)
-  const product = productKey(subscription.product)
   const billed = subscription.live
     ? t("admin.subscriptions.live")
     : t("admin.subscriptions.over")
@@ -46,20 +42,18 @@ export function AdminSubscriptionRow({
       </div>
 
       <p className="text-[12px] text-ink-2 sm:w-32">
-        {product ? t(product) : (subscription.product ?? t("format.none"))}
+        {formatProduct(subscription.product, t)}
       </p>
 
       <p className="font-data text-[12px] text-ink-2 tabular-nums sm:w-24">
         {t.plural("admin.links.seats", subscription.quantity)}
       </p>
 
-      {look ? (
-        <StatusBadge className="sm:w-36" look={look} />
-      ) : (
-        <p className="font-data text-[12px] text-ink-2 sm:w-36">
-          {subscription.status}
-        </p>
-      )}
+      <AdminSubscriptionStatus
+        className="sm:w-36"
+        product={subscription.product}
+        status={subscription.status}
+      />
 
       <p className="font-data text-[12px] text-ink-3 tabular-nums sm:w-28">
         {subscription.current_period_end
@@ -75,6 +69,14 @@ export function AdminSubscriptionRow({
         />
         {billed}
       </span>
+
+      <Link
+        className="text-[12px] text-ink-2 underline-offset-2 hover:underline"
+        params={{ id: subscription.id }}
+        to="/dashboard/admin/subscriptions/$id"
+      >
+        {t("admin.subscriptions.open")}
+      </Link>
     </li>
   )
 }

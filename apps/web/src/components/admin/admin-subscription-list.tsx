@@ -13,11 +13,11 @@ import { SkeletonRows } from "@/components/ui/skeleton"
 import { useTranslations } from "@/hooks/use-locale"
 import { adminSubscriptionsQueryOptions } from "@/lib/api/admin-queries"
 import {
-  productKey,
   SUBSCRIPTION_PRODUCT_FILTERS,
   SUBSCRIPTION_STATUS_FILTERS,
 } from "@/lib/domain/admin"
 import { subscriptionStatusLook } from "@/lib/domain/billing"
+import { formatProduct } from "@/lib/utils/format"
 
 const ALL = ""
 
@@ -39,12 +39,6 @@ export function AdminSubscriptionList() {
     const look = subscriptionStatusLook(candidate)
 
     return look ? t(look.label) : candidate
-  }
-
-  function productName(candidate: string): string {
-    const key = productKey(candidate)
-
-    return key ? t(key) : candidate
   }
 
   return (
@@ -83,7 +77,7 @@ export function AdminSubscriptionList() {
               { value: ALL, label: t("admin.subscriptions.allProducts") },
               ...SUBSCRIPTION_PRODUCT_FILTERS.map((candidate) => ({
                 value: candidate,
-                label: productName(candidate),
+                label: formatProduct(candidate, t),
               })),
             ]}
             onValueChange={(next) => {

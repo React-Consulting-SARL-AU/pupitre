@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./alerts/evaluate": "./src/lib/alerts/alerts.ts",
+    "./billing/admin": "./src/lib/billing/admin.ts",
     "./billing/grace": "./src/lib/billing/grace.ts",
     "./billing/launch": "./src/lib/billing/launch.ts",
     "./billing/reconcile": "./src/lib/billing/reconcile.ts",

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query"
-import { Link } from "@tanstack/react-router"
+import { Link, useNavigate } from "@tanstack/react-router"
 import { RotateCcw } from "lucide-react"
+import { AdminDeleteServerDialog } from "@/components/admin/admin-delete-server-dialog"
 import { AdminEventsCard } from "@/components/admin/admin-events-card"
 import { AdminFacts } from "@/components/admin/admin-facts"
 import { AdminFailure } from "@/components/admin/admin-failure"
@@ -15,6 +16,7 @@ import { useTranslations } from "@/hooks/use-locale"
 import { useOptimisticMutation } from "@/hooks/use-optimistic-mutation"
 import {
   adminServerQueryOptions,
+  deleteServer,
   restoreServer,
   suspendServer,
 } from "@/lib/api/admin-queries"
@@ -25,6 +27,7 @@ import {
   canSuspend,
   suspendedReasonKey,
 } from "@/lib/domain/admin"
+import { purgeable, type ServerDeletion } from "@/lib/domain/server-deletion"
 import { statusLook } from "@/lib/domain/server-status"
 import { formatDateTime, formatRatio, formatRelative } from "@/lib/utils/format"
 
@@ -32,10 +35,17 @@ export interface AdminServerDetailProps {
   id: string
 }
 
+interface Deletion {
+  deletion: ServerDeletion
+  reason: string
+}
+
 export function AdminServerDetail({ id }: AdminServerDetailProps) {
   const t = useTranslations()
+  const navigate = useNavigate()
   const { platformRole } = useDashboardContext()
   const server = useQuery(adminServerQueryOptions(id))
+  const serverName = server.data?.name ?? ""
   const touched = [queryKeys.admin.server(id), queryKeys.admin.allServers]
 
   const suspend = useOptimisticMutation<string>({
@@ -55,6 +65,42 @@ export function AdminServerDetail({ id }: AdminServerDetailProps) {
       failed: () => ({
         title: t("admin.servers.restoreFailed"),
         fix: t("admin.servers.restoreFailedFix"),
+      }),
+    },
+  })
+  // The purge leaves the page at the click, as the owner's does: no line is left to look at.
+  const remove = useOptimisticMutation<Deletion>({
+    mutationFn: ({ reason }) => deleteServer(id, reason),
+    invalidate: touched,
+    onStart: ({ deletion }) => {
+      if (deletion === "purge") {
+        navigate({ to: "/dashboard/admin/servers" })
+      }
+    },
+    toast: {
+      done: (_data, { deletion }) =>
+        t(
+          deletion === "purge"
+            ? "admin.servers.purged"
+            : "admin.servers.deleted",
+          { name: serverName }
+        ),
+      failed: ({ deletion }) => ({
+        title: t("admin.servers.deleteFailed"),
+        fix: t("admin.servers.deleteFailedFix"),
+        ...(deletion === "purge"
+          ? {
+              action: {
+                label: t("serverActions.reopen"),
+                run: () => {
+                  navigate({
+                    to: "/dashboard/admin/servers/$id",
+                    params: { id },
+                  })
+                },
+              },
+            }
+          : {}),
       }),
     },
   })
@@ -106,6 +152,18 @@ export function AdminServerDetail({ id }: AdminServerDetailProps) {
               >
                 {t("admin.servers.restore")}
               </Button>
+            ) : null}
+            {acts ? (
+              <AdminDeleteServerDialog
+                busy={remove.isPending}
+                onConfirm={(reason) => {
+                  remove.mutate({
+                    deletion: purgeable(detail.status) ? "purge" : "revoke",
+                    reason,
+                  })
+                }}
+                server={detail}
+              />
             ) : null}
           </div>
         </CardHeader>
@@ -173,6 +231,14 @@ export function AdminServerDetail({ id }: AdminServerDetailProps) {
                 ? `${formatRatio(usage.disk, t)} · ${formatRatio(usage.ram, t)} · ${usage.load}`
                 : t("format.none"),
             },
+            ...(detail.decommission_at
+              ? [
+                  {
+                    label: t("admin.servers.decommissionAt"),
+                    value: formatDateTime(detail.decommission_at, t),
+                  },
+                ]
+              : []),
           ]}
         />
       </Card>

@@ -1,4 +1,4 @@
-import { LAUNCH_PRODUCT } from "@pupitre/shared/plans"
+import { PLATFORM_PRODUCTS } from "@pupitre/shared/plans"
 import { sendSeatsDriftEmail } from "../../emails/notifications"
 import { getPrisma } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
@@ -56,7 +56,7 @@ export async function reconcileSeats({
   const subscriptions = await prisma.subscription.findMany({
     where: {
       status: { in: PAYING_SUBSCRIPTION_STATUSES },
-      product: { not: LAUNCH_PRODUCT },
+      product: { notIn: [...PLATFORM_PRODUCTS] },
     },
     orderBy: { createdAt: "asc" },
   })

@@ -2552,6 +2552,7 @@ export const SubscriptionScalarFieldEnum = {
   quantity: 'quantity',
   status: 'status',
   currentPeriodEnd: 'currentPeriodEnd',
+  note: 'note',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
