@@ -115,6 +115,15 @@ export async function chooseBillingMode(
   expect(chosen.ok()).toBe(true)
 }
 
+export async function seedAlert(
+  request: APIRequestContext,
+  data: { email: string; server: string; kind: string }
+): Promise<void> {
+  const seeded = await request.post(harnessUrl("/alerts"), { data })
+
+  expect(seeded.ok()).toBe(true)
+}
+
 export async function seedServer(
   request: APIRequestContext,
   data: { email: string; name: string; status?: string }
