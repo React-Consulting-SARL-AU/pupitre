@@ -67,6 +67,8 @@ const ADMIN_SERVER_URL_RE = /\/dashboard\/admin\/servers\/[^/]+$/
 const ADMIN_ORGANIZATIONS_URL_RE = /\/dashboard\/admin\/organizations$/
 const ADMIN_ORGANIZATION_URL_RE = /\/dashboard\/admin\/organizations\/[^/]+$/
 const ADMIN_SUBSCRIPTIONS_URL_RE = /\/dashboard\/admin\/subscriptions$/
+const ADMIN_SUBSCRIPTIONS_DRIFTED_URL_RE =
+  /\/dashboard\/admin\/subscriptions\?drifted=true$/
 const ADMIN_SUBSCRIPTION_URL_RE = /\/dashboard\/admin\/subscriptions\/[^/]+$/
 const ADMIN_LINKS_URL_RE = /\/dashboard\/admin\/affiliate-links$/
 const ADMIN_LINK_URL_RE = /\/dashboard\/admin\/affiliate-links\/[^/?]+/
@@ -828,7 +830,7 @@ test.describe("plateforme", () => {
 
       await main.getByRole("link", { name: "Tout voir" }).first().click()
 
-      await expect(page).toHaveURL(ADMIN_ORGANIZATIONS_URL_RE)
+      await expect(page).toHaveURL(ADMIN_SUBSCRIPTIONS_DRIFTED_URL_RE)
     })
 
     await test.step("la recherche globale ouvre une fiche", async () => {

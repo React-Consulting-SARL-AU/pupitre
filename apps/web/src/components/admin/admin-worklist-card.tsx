@@ -11,7 +11,7 @@ import { useTranslations } from "@/hooks/use-locale"
 export interface WorklistLink {
   to: string
   params?: Record<string, string>
-  search?: Record<string, string>
+  search?: Record<string, string | boolean>
 }
 
 export interface WorklistEntry {

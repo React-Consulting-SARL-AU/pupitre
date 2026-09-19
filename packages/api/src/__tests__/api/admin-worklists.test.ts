@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
-import { TRIAL_WARN_DAYS, WORKLIST_ITEMS } from "@pupitre/shared/platform"
+import { TRIAL_WORKLIST_DAYS, WORKLIST_ITEMS } from "@pupitre/shared/platform"
 import { type ApiTestServer, bootApiTestServer, resetDb } from "../../testing"
 import {
   createOrganizationWithMembers,
@@ -165,12 +165,12 @@ describe("les listes de travail de GET /admin/overview", () => {
     await subscribeOrganization({
       organizationId: soon.organization.id,
       status: "trialing",
-      currentPeriodEnd: inDays(TRIAL_WARN_DAYS - 1),
+      currentPeriodEnd: inDays(TRIAL_WORKLIST_DAYS - 1),
     })
     await subscribeOrganization({
       organizationId: later.organization.id,
       status: "trialing",
-      currentPeriodEnd: inDays(TRIAL_WARN_DAYS + 5),
+      currentPeriodEnd: inDays(TRIAL_WORKLIST_DAYS + 5),
     })
 
     const worklists = await readWorklists()

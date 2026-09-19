@@ -31,6 +31,8 @@ export interface DataColumn<Row> {
   sortable?: boolean
   /** The column leaves the table under this width: a phone reads the first two. */
   hideBelow?: ColumnBreakpoint
+  /** The cell holds its own link or button, which has to stay above the row's link. */
+  interactive?: boolean
 }
 
 export interface DataTableSearch {
@@ -363,9 +365,9 @@ export function AsyncDataTable<Row>({
                             "px-4 py-3 align-middle text-[13px] text-ink-2",
                             column.align === "end" && "text-right tabular-nums",
                             column.hideBelow && HIDDEN_BELOW[column.hideBelow],
-                            // The row's link covers the row from the first cell;
-                            // the cells after it sit above it and stay clickable.
-                            !(index === 0 && link) && "relative"
+                            // The row's link covers the row; only a cell holding
+                            // its own control rises above it, the rest follow it.
+                            column.interactive && "relative"
                           )}
                           key={column.key}
                         >

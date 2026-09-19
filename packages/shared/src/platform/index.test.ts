@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test"
+import { TRIAL_WARN_DAYS } from "../plans/index"
 import {
   ADMIN_MAX_PAGE_SIZE,
   ADMIN_PAGE_SIZE,
@@ -7,6 +8,7 @@ import {
   PLATFORM_ORGANIZATION_ID,
   PLATFORM_ORGANIZATION_NAME,
   PLATFORM_ORGANIZATION_SLUG,
+  TRIAL_WORKLIST_DAYS,
 } from "./index"
 
 describe("the platform's own organization", () => {
@@ -34,5 +36,13 @@ describe("the platform pages", () => {
     expect(ADMIN_PAGE_SIZE).toBe(50)
     expect(ADMIN_MAX_PAGE_SIZE).toBe(200)
     expect(ADMIN_PAGE_SIZE).toBeLessThanOrEqual(ADMIN_MAX_PAGE_SIZE)
+  })
+})
+
+describe("the trial deadlines", () => {
+  it("looks further ahead for the team than for the customer", () => {
+    expect(TRIAL_WORKLIST_DAYS).toBe(7)
+    expect(TRIAL_WARN_DAYS).toBe(3)
+    expect(TRIAL_WORKLIST_DAYS).toBeGreaterThan(TRIAL_WARN_DAYS)
   })
 })

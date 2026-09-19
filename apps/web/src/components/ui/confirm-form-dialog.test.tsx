@@ -3,6 +3,7 @@ import {
   ConfirmFormDialog,
   type ConfirmFormDialogProps,
 } from "@/components/ui/confirm-form-dialog"
+import { MAX_REASON_LENGTH } from "@/lib/domain/admin"
 import type { ConfirmFormValues } from "@/lib/schemas/confirm-form"
 import {
   fill,
@@ -14,6 +15,19 @@ import {
 } from "@/testing/render"
 
 const mounted: (() => void)[] = []
+
+const A_DAY_MS = 86_400_000
+
+/** What a `datetime-local` field holds: the local wall clock, without its zone. */
+function localMoment(offsetMs: number): string {
+  const moment = new Date(Date.now() + offsetMs)
+
+  moment.setSeconds(0, 0)
+
+  return new Date(moment.getTime() - moment.getTimezoneOffset() * 60_000)
+    .toISOString()
+    .slice(0, 16)
+}
 
 function dialog(overrides: Partial<ConfirmFormDialogProps> = {}) {
   const props: ConfirmFormDialogProps = {
@@ -121,6 +135,68 @@ describe("ConfirmFormDialog", () => {
     expect(confirmed[0].reason).toBe("abus répété")
   })
 
+  it("offers the reason field when the reason is optional and asks for none without it", async () => {
+    const confirmed: ConfirmFormValues[] = []
+    const rendered = await open(
+      dialog({
+        reason: "optional",
+        onConfirm: (values) => {
+          confirmed.push(values)
+        },
+      })
+    )
+    const confirm = [...document.querySelectorAll("button")].find(
+      (button) => button.getAttribute("type") === "submit"
+    )
+
+    if (!confirm) {
+      throw new Error("no confirm button")
+    }
+
+    expect(field("purge-reason")).not.toBeNull()
+
+    await rendered.click(confirm)
+    await waitUntil(() => confirmed.length > 0)
+
+    expect(confirmed[0].reason).toBe("")
+
+    for (const unmount of mounted.splice(0)) {
+      unmount()
+    }
+
+    await open(dialog())
+
+    expect(document.querySelector("#purge-reason")).toBeNull()
+  })
+
+  it("refuses a reason longer than the platform keeps", async () => {
+    const confirmed: ConfirmFormValues[] = []
+    const rendered = await open(
+      dialog({
+        reason: "optional",
+        onConfirm: (values) => {
+          confirmed.push(values)
+        },
+      })
+    )
+    const confirm = [...document.querySelectorAll("button")].find(
+      (button) => button.getAttribute("type") === "submit"
+    )
+
+    if (!confirm) {
+      throw new Error("no confirm button")
+    }
+
+    await fill(field("purge-reason"), "a".repeat(MAX_REASON_LENGTH + 1))
+    await rendered.click(confirm)
+    await waitUntil(() => document.querySelector("[role=alert]") !== null)
+
+    expect(confirmed).toHaveLength(0)
+    expect(document.body.textContent).toContain(
+      `At most ${MAX_REASON_LENGTH} characters.`
+    )
+  })
+
   it("shows the refusal inside the dialog and keeps what was typed", async () => {
     await open(
       dialog({
@@ -157,5 +233,39 @@ describe("ConfirmFormDialog", () => {
     await waitUntil(() => confirmed.length > 0)
 
     expect(confirmed[0].reason).toBe("abus répété")
+  })
+
+  it("refuses a deadline already past and takes one still to come", async () => {
+    const confirmed: ConfirmFormValues[] = []
+    const rendered = await open(
+      dialog({
+        until: true,
+        onConfirm: (values) => {
+          confirmed.push(values)
+        },
+      })
+    )
+    const confirm = [...document.querySelectorAll("button")].find(
+      (button) => button.getAttribute("type") === "submit"
+    )
+
+    if (!confirm) {
+      throw new Error("no confirm button")
+    }
+
+    await fill(field("purge-until"), localMoment(-A_DAY_MS))
+    await rendered.click(confirm)
+    await waitUntil(() => document.querySelector("[role=alert]") !== null)
+
+    expect(confirmed).toHaveLength(0)
+    expect(document.body.textContent).toContain("Pick a date ahead of now.")
+
+    const ahead = localMoment(A_DAY_MS)
+
+    await fill(field("purge-until"), ahead)
+    await rendered.click(confirm)
+    await waitUntil(() => confirmed.length > 0)
+
+    expect(confirmed[0].until).toBe(new Date(ahead).toISOString())
   })
 })

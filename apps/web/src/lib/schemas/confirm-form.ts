@@ -3,7 +3,8 @@ import { MAX_REASON_LENGTH } from "@/lib/domain/admin"
 import type { Translate } from "@/lib/i18n/i18n"
 
 export interface ConfirmFormRules {
-  reason: "optional" | "required"
+  /** Absent when the dialog asks for no reason; `optional` still shows the field. */
+  reason?: "optional" | "required"
   /** Why the reason is asked for, in the words of the gesture; the generic refusal otherwise. */
   reasonRequiredMessage?: string
   /** The word to retype, compared without case; absent when the dialog asks for none. */
@@ -17,7 +18,7 @@ function reasonField(t: Translate, rules: ConfirmFormRules) {
     .trim()
     .max(
       MAX_REASON_LENGTH,
-      t("admin.servers.reasonTooLong", { max: MAX_REASON_LENGTH })
+      t("confirm.reasonTooLong", { max: MAX_REASON_LENGTH })
     )
 
   return rules.reason === "required"

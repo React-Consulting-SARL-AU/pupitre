@@ -119,6 +119,52 @@ describe("AdminOverview", () => {
     expect(links).toContain("/dashboard/admin/subscriptions?status=past_due")
   })
 
+  it("sends unread mail, unreachable servers and drifted seats on to their filtered list", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { server } = await createServer({ organizationId, name: "vps-muet" })
+
+    await createServer({ organizationId, name: "vps-deux" })
+    await prisma.alert.create({
+      data: { serverId: server.id, kind: "server_unreachable" },
+    })
+    await prisma.mailThread.create({
+      data: {
+        address: "support@pupitre.studio",
+        subject: "La marmotte ne répond plus",
+        normalizedSubject: "la marmotte ne repond plus",
+        unread: true,
+      },
+    })
+    await prisma.subscription.create({
+      data: {
+        organizationId,
+        stripeSubscriptionId: "sub_overview_drifted",
+        product: "prod_server",
+        quantity: 1,
+        status: "active",
+      },
+    })
+
+    const { container, unmount } = await render(page())
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("See everything") === true
+    )
+
+    const links = [...container.querySelectorAll("a")].map((anchor) =>
+      anchor.getAttribute("href")
+    )
+    const inbox = links.find((href) =>
+      href?.startsWith("/dashboard/admin/inbox?")
+    )
+
+    expect(links).toContain("/dashboard/admin/servers?stale=true")
+    expect(links).toContain("/dashboard/admin/subscriptions?drifted=true")
+    expect(inbox).toContain("unread=true")
+  })
+
   it("raises a scheduled deletion and links to the account it will erase", async () => {
     const { prisma } = await bootApiTestServer()
     const doomed = await createConsoleUser({ email: "ada@test.local" })

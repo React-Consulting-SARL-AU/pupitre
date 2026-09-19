@@ -5,6 +5,7 @@ import { type LinkProps, useNavigate } from "@tanstack/react-router"
 import { Building2, HardDrive, Inbox, UsersRound } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { Input } from "@/components/ui/input"
+import { StatusBadge } from "@/components/ui/status-badge"
 import { useTranslations } from "@/hooks/use-locale"
 import {
   type AdminSearchResults,
@@ -171,6 +172,7 @@ export function AdminSearchDialog({
                           {hit.secondary}
                         </span>
                       </span>
+                      <StatusBadge className="shrink-0" look={hit.look} />
                       <span className="shrink-0 text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
                         {t(hit.groupLabel)}
                       </span>

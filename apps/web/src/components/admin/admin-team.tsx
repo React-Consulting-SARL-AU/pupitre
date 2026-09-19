@@ -1,6 +1,8 @@
+import { ADMIN_PAGE_SIZE } from "@pupitre/shared/platform"
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
 import { Users } from "lucide-react"
+import { useState } from "react"
 import {
   type AdminTeamRowMember,
   adminTeamColumns,
@@ -11,10 +13,9 @@ import { Callout } from "@/components/ui/callout"
 import { useTranslations } from "@/hooks/use-locale"
 import { adminTeamQueryOptions } from "@/lib/api/admin-queries"
 
-const PAGE_SIZE = 50
-
 export function AdminTeam() {
   const t = useTranslations()
+  const [offset, setOffset] = useState(0)
   const team = useQuery(adminTeamQueryOptions())
   const members: AdminTeamRowMember[] = team.data ?? []
 
@@ -35,15 +36,15 @@ export function AdminTeam() {
 
       <AsyncDataTable
         columns={adminTeamColumns(t)}
-        data={members}
+        data={members.slice(offset, offset + ADMIN_PAGE_SIZE)}
         emptyIcon={Users}
         emptyTitle={t("admin.team.empty")}
         isError={team.isError}
         isFetching={team.isFetching}
         isPending={team.isPending}
-        limit={PAGE_SIZE}
-        offset={0}
-        onOffsetChange={() => undefined}
+        limit={ADMIN_PAGE_SIZE}
+        offset={offset}
+        onOffsetChange={setOffset}
         refetch={() => {
           team.refetch()
         }}
