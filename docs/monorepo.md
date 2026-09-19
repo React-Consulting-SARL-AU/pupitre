@@ -33,7 +33,7 @@ bun run dev:desktop:prod  # l'app, pointée sur app.pupitre.studio : le vrai com
 
 ### Lancer un workflow à la main
 
-Les cinq workflows partent de Cron Triggers, qui ne se déclenchent que sur un Worker déployé : en local, rien ne les appelle jamais. Une ligne révoquée n'y est donc jamais décommissionnée, et tout ce qui dépend d'une échéance reste intestable.
+Les six workflows partent de Cron Triggers, qui ne se déclenchent que sur un Worker déployé : en local, rien ne les appelle jamais. Une ligne révoquée n'y est donc jamais décommissionnée, et tout ce qui dépend d'une échéance reste intestable.
 
 ```bash
 bun run workflows:run decommission-server

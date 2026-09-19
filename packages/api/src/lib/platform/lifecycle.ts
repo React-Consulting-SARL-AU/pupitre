@@ -56,6 +56,28 @@ export function organizationStateOf(
   return organization.suspendedAt ? "suspended" : "active"
 }
 
+/** The reason that belongs to the state the account holds now, never an older one. */
+export function accountReasonOf(
+  account: AccountStanding & {
+    banReason: string | null
+    deactivatedReason: string | null
+    deletionReason: string | null
+  },
+  now: Date = new Date()
+): string | null {
+  const state = accountStateOf(account, now)
+
+  if (state === "deleting") {
+    return account.deletionReason
+  }
+
+  if (state === "deactivated") {
+    return account.deactivatedReason
+  }
+
+  return state === "suspended" ? account.banReason : null
+}
+
 /** What the member reads on a state the platform laid down, and nothing else. */
 export function organizationReasonOf(
   organization: OrganizationStanding & {

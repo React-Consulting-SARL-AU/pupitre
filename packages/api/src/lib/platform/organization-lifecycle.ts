@@ -26,7 +26,9 @@ export interface PlatformOrganizationActor {
 
 export class PlatformOrganizationProtectedError extends Error {
   constructor() {
-    super("the Pupitre organization is not suspended, closed or deleted")
+    super(
+      "the Pupitre organization is not suspended, closed, renamed or deleted"
+    )
     this.name = "PlatformOrganizationProtectedError"
   }
 }
@@ -38,6 +40,27 @@ export class OrganizationAlreadySuspendedError extends Error {
   }
 }
 
+export class OrganizationNotSuspendedError extends Error {
+  constructor(organizationId: string) {
+    super(`organization ${organizationId} is not suspended`)
+    this.name = "OrganizationNotSuspendedError"
+  }
+}
+
+export class OrganizationAlreadyClosedError extends Error {
+  constructor(organizationId: string) {
+    super(`organization ${organizationId} is already closed`)
+    this.name = "OrganizationAlreadyClosedError"
+  }
+}
+
+export class OrganizationNotClosedError extends Error {
+  constructor(organizationId: string) {
+    super(`organization ${organizationId} is neither closed nor being deleted`)
+    this.name = "OrganizationNotClosedError"
+  }
+}
+
 export class SlugTakenError extends Error {
   readonly slug: string
 
@@ -45,6 +68,13 @@ export class SlugTakenError extends Error {
     super(`the slug ${slug} is already taken`)
     this.name = "SlugTakenError"
     this.slug = slug
+  }
+}
+
+export class SlugEmptyError extends Error {
+  constructor(slug: string) {
+    super(`the slug ${slug} normalizes to nothing`)
+    this.name = "SlugEmptyError"
   }
 }
 
@@ -95,11 +125,7 @@ function assertNotPlatform(organizationId: string): void {
   }
 }
 
-/**
- * Every machine the organization still holds goes down at once, marked as
- * taken by the organization's own standing: a reopening gives those back and
- * leaves the ones the team suspended one by one exactly where they are.
- */
+/** Only a machine in use goes down, so a reopening never hands back more than it took: an enrolment stays an enrolment. */
 async function suspendOrganizationServers(
   actor: PlatformOrganizationActor,
   organizationId: string,
@@ -107,11 +133,7 @@ async function suspendOrganizationServers(
 ): Promise<number> {
   const prisma = getPrisma()
   const servers = await prisma.server.findMany({
-    where: {
-      organizationId,
-      status: { not: "revoked" },
-      NOT: { status: "suspended", suspendedReason: "admin" },
-    },
+    where: { organizationId, status: { in: ["active", "grace"] } },
     orderBy: { createdAt: "asc" },
     select: { id: true, name: true, host: true, status: true },
   })
@@ -149,11 +171,7 @@ async function suspendOrganizationServers(
   return servers.length
 }
 
-/**
- * Only what the organization's standing took down comes back, and it comes
- * back to whatever the subscription now allows: a lapsed one leaves the
- * machine in tolerance rather than open.
- */
+/** What comes back comes back to what the subscription now allows: a lapsed one leaves the machine in tolerance. */
 async function releaseOrganizationServers(
   organizationId: string,
   now: Date
@@ -228,6 +246,10 @@ export async function restoreOrganizationFromPlatform(
 
   if (!organization) {
     return null
+  }
+
+  if (!organization.suspendedAt) {
+    throw new OrganizationNotSuspendedError(organizationId)
   }
 
   await getPrisma().organization.update({
@@ -325,6 +347,10 @@ export async function closeOrganizationFromPlatform(
 
   assertNotPlatform(organizationId)
 
+  if (organization.closedAt) {
+    throw new OrganizationAlreadyClosedError(organizationId)
+  }
+
   const applied = await applyClosure(actor, organizationId, reason, now)
 
   await recordEvent({
@@ -353,6 +379,10 @@ export async function reopenOrganizationFromPlatform(
 
   if (!organization) {
     return null
+  }
+
+  if (!(organization.closedAt || organization.deletionAt)) {
+    throw new OrganizationNotClosedError(organizationId)
   }
 
   await getPrisma().organization.update({
@@ -477,7 +507,13 @@ export async function renameOrganizationFromPlatform(
     return null
   }
 
+  assertNotPlatform(organizationId)
+
   const slug = input.slug === undefined ? undefined : slugify(input.slug)
+
+  if (slug === "") {
+    throw new SlugEmptyError(input.slug ?? "")
+  }
 
   if (slug !== undefined && slug !== organization.slug) {
     const taken = await prisma.organization.findUnique({
@@ -523,6 +559,8 @@ export async function transferOrganizationFromPlatform(
   if (!organization) {
     return null
   }
+
+  assertNotPlatform(organizationId)
 
   const member = await prisma.member.findFirst({
     where: { organizationId, userId },
@@ -571,6 +609,8 @@ export async function removeMemberFromPlatform(
   userId: string,
   reason: string
 ): Promise<boolean> {
+  assertNotPlatform(organizationId)
+
   const prisma = getPrisma()
   const member = await prisma.member.findFirst({
     where: { organizationId, userId },

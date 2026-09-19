@@ -10,7 +10,7 @@ import { SEATED_STATUSES } from "../billing/seats"
 import { liveAmong } from "../billing/subscription"
 import { removeDevice } from "../devices/devices"
 import { type AdminEventView, recentEvents } from "./events"
-import { accountStateOf } from "./lifecycle"
+import { accountReasonOf, accountStateOf } from "./lifecycle"
 
 export interface AdminUserFilter {
   q?: string
@@ -244,6 +244,8 @@ export interface AdminUserDetail extends AdminUserView {
   assigned_servers: AdminUserServer[]
   platform_role: OrgRole | null
   banned_reason: string | null
+  /** The reason behind the state the account holds now, so the console never picks one itself. */
+  reason: string | null
   sessions: number
   last_seen_at: Date | null
   events: AdminEventView[]
@@ -253,6 +255,13 @@ export class PlatformMemberProtectedError extends Error {
   constructor(userId: string) {
     super(`user ${userId} belongs to the platform organization`)
     this.name = "PlatformMemberProtectedError"
+  }
+}
+
+export class BanUntilNotFutureError extends Error {
+  constructor(until: Date) {
+    super(`the ban deadline ${until.toISOString()} has already passed`)
+    this.name = "BanUntilNotFutureError"
   }
 }
 
@@ -313,7 +322,9 @@ export async function readUserForPlatform(
         orderBy: { updatedAt: "desc" },
         select: { updatedAt: true },
       }),
-      recentEvents({ actorUserId: userId }),
+      recentEvents({
+        OR: [{ actorUserId: userId }, { targetType: "user", targetId: userId }],
+      }),
     ])
 
   return {
@@ -327,6 +338,7 @@ export async function readUserForPlatform(
     assigned_servers: servers,
     platform_role: platformRoleOf(user),
     banned_reason: user.banReason,
+    reason: accountReasonOf(user),
     sessions,
     last_seen_at: lastSeen?.updatedAt ?? null,
     events,
@@ -351,7 +363,8 @@ export async function banUserFromPlatform(
   actor: PlatformUserActor,
   userId: string,
   reason: string,
-  until: Date | null = null
+  until: Date | null = null,
+  now: Date = new Date()
 ): Promise<AdminUserDetail | null> {
   const prisma = getPrisma()
   const user = await prisma.user.findUnique({
@@ -365,6 +378,10 @@ export async function banUserFromPlatform(
 
   if (await belongsToPlatform(userId)) {
     throw new PlatformMemberProtectedError(userId)
+  }
+
+  if (until && until.getTime() <= now.getTime()) {
+    throw new BanUntilNotFutureError(until)
   }
 
   await prisma.user.update({
@@ -391,13 +408,20 @@ export async function revokeSessions(userId: string): Promise<void> {
   await prisma.deviceCode.deleteMany({ where: { userId } })
 }
 
-export function revokeDeviceFromPlatform(
+export async function revokeDeviceFromPlatform(
   actor: PlatformUserActor,
   userId: string,
   deviceId: string,
   reason: string
 ): Promise<boolean> {
-  return removeDevice(userId, deviceId, { actorUserId: actor.userId, reason })
+  if (await belongsToPlatform(userId)) {
+    throw new PlatformMemberProtectedError(userId)
+  }
+
+  return await removeDevice(userId, deviceId, {
+    actorUserId: actor.userId,
+    reason,
+  })
 }
 
 export async function unbanUserFromPlatform(
