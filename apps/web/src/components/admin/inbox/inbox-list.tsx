@@ -12,8 +12,6 @@ import type { InboxMailbox, InboxThread } from "@/lib/api/inbox-queries"
 import { INBOX_PAGE_SIZE } from "@/lib/domain/inbox"
 import type { InboxSearch } from "@/lib/domain/inbox-search"
 
-export const INBOX_ROUTE_ID = "/dashboard/admin/inbox"
-
 export interface InboxListProps {
   threads: InboxThread[]
   total: number
@@ -52,6 +50,7 @@ export function InboxList({
   onBulk,
 }: InboxListProps) {
   const t = useTranslations()
+  const offset = search.offset ?? 0
   const allSelected = threads.length > 0 && selected.length === threads.length
   const mailboxOf = (id: string | null) =>
     mailboxes.find((mailbox) => mailbox.id === id)
@@ -84,8 +83,8 @@ export function InboxList({
             </div>
             <span className="font-data text-[12px] text-ink-3 tabular-nums">
               {t("admin.range", {
-                from: search.offset + 1,
-                to: search.offset + threads.length,
+                from: offset + 1,
+                to: offset + threads.length,
                 total,
               })}
             </span>
@@ -140,7 +139,7 @@ export function InboxList({
       {failed ? null : (
         <Pagination
           nextLabel={t("admin.next")}
-          offset={search.offset}
+          offset={offset}
           onOffsetChange={onOffsetChange}
           pageSize={INBOX_PAGE_SIZE}
           previousLabel={t("admin.previous")}

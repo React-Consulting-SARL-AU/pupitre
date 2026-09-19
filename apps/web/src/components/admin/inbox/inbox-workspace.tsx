@@ -30,44 +30,43 @@ import {
 import { canActOnPlatform } from "@/lib/domain/admin"
 import {
   INBOX_PAGE_SIZE,
+  INBOX_STATUS,
   MAILBOX_AUTOMATED,
   MAILBOX_EVERY,
 } from "@/lib/domain/inbox"
-import type { InboxSearch } from "@/lib/domain/inbox-search"
+import { type InboxSearch, inboxSort } from "@/lib/domain/inbox-search"
+import type { ListSearchHandle } from "@/lib/domain/list-search"
 import { pageTitle } from "@/lib/domain/page-titles"
 
 export const INBOX_LAYOUT_ROUTE_ID = "/dashboard/admin/inbox"
 
 function pageQueryOf(search: InboxSearch): ThreadPageQuery {
+  const mailbox = search.mailbox ?? MAILBOX_EVERY
+
   return {
     limit: INBOX_PAGE_SIZE,
-    offset: search.offset,
-    status: search.status,
+    offset: search.offset ?? 0,
+    status: search.status ?? INBOX_STATUS,
     ...(search.unread === undefined ? {} : { unread: search.unread }),
-    ...(search.assigned === "" ? {} : { assigned: search.assigned }),
+    ...(search.assigned ? { assigned: search.assigned } : {}),
     ...(search.organization_id
       ? { organization_id: search.organization_id }
       : {}),
-    ...(search.mailbox === MAILBOX_EVERY || search.mailbox === MAILBOX_AUTOMATED
+    ...(mailbox === MAILBOX_EVERY || mailbox === MAILBOX_AUTOMATED
       ? {}
-      : { mailbox_id: search.mailbox }),
-    ...(search.mailbox === MAILBOX_AUTOMATED ? { automated: true } : {}),
-    ...(search.automated === true ? { automated: true } : {}),
-    ...(search.q === "" ? {} : { q: search.q }),
-    sort: search.sort,
-    direction: search.direction,
+      : { mailbox_id: mailbox }),
+    ...(mailbox === MAILBOX_AUTOMATED || search.automated === true
+      ? { automated: true }
+      : {}),
+    ...(search.q ? { q: search.q } : {}),
+    sort: inboxSort(search.sort),
+    direction: search.direction ?? "desc",
   }
 }
 
-export interface InboxWorkspaceProps {
-  search: InboxSearch
-  onSearchChange: (patch: Partial<InboxSearch>) => void
-}
+export type InboxWorkspaceProps = ListSearchHandle<InboxSearch>
 
-export function InboxWorkspace({
-  search,
-  onSearchChange,
-}: InboxWorkspaceProps) {
+export function InboxWorkspace({ search, setSearch }: InboxWorkspaceProps) {
   const t = useTranslations()
   const toasts = useToast()
   const navigate = useNavigate()
@@ -234,7 +233,7 @@ export function InboxWorkspace({
         bulk.mutate(patch)
       }}
       onOffsetChange={(offset) => {
-        onSearchChange({ offset })
+        setSearch({ offset })
       }}
       onRetry={() => {
         page.refetch()
@@ -282,25 +281,15 @@ export function InboxWorkspace({
           mailboxes={mailboxes.data ?? []}
           onValueChange={(mailbox) => {
             setSelected([])
-            onSearchChange({ mailbox, offset: 0 })
+            setSearch({
+              mailbox: mailbox === MAILBOX_EVERY ? undefined : mailbox,
+            })
           }}
           search={search}
-          value={search.mailbox}
         />
 
         <div className="flex min-w-0 flex-1 flex-col gap-gutter">
-          <InboxFilterBar
-            onChange={(patch) => {
-              onSearchChange({ ...patch, offset: 0 })
-            }}
-            organizationName={
-              threads.find(
-                (thread) =>
-                  thread.linked_organization?.id === search.organization_id
-              )?.linked_organization?.name ?? null
-            }
-            search={search}
-          />
+          <InboxFilterBar onChange={setSearch} search={search} />
 
           <SplitView
             detail={<Outlet />}

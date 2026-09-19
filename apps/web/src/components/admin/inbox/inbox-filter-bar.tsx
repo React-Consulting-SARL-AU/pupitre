@@ -6,45 +6,43 @@ import { SegmentedControl } from "@/components/ui/segmented-control"
 import { Select } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { useTranslations } from "@/hooks/use-locale"
-import type {
-  ThreadDirection,
-  ThreadSort,
-  ThreadStatus,
-} from "@/lib/api/inbox-queries"
+import type { ThreadDirection, ThreadStatus } from "@/lib/api/inbox-queries"
 import {
   ASSIGNED_ANYONE,
   ASSIGNED_ME,
   ASSIGNED_NOBODY,
+  INBOX_STATUS,
 } from "@/lib/domain/inbox"
-import type { InboxSearch } from "@/lib/domain/inbox-search"
+import {
+  INBOX_DIRECTION,
+  INBOX_SORT,
+  type InboxSearch,
+  inboxSort,
+} from "@/lib/domain/inbox-search"
 
 const SEARCH_DELAY_MS = 300
 
 export interface InboxFilterBarProps {
   search: InboxSearch
-  organizationName: string | null
   onChange: (patch: Partial<InboxSearch>) => void
 }
 
-export function InboxFilterBar({
-  search,
-  organizationName,
-  onChange,
-}: InboxFilterBarProps) {
+export function InboxFilterBar({ search, onChange }: InboxFilterBarProps) {
   const t = useTranslations()
-  const [typed, setTyped] = useState(search.q)
+  const written = search.q ?? ""
+  const [typed, setTyped] = useState(written)
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (typed !== search.q) {
-        onChange({ q: typed })
+      if (typed !== written) {
+        onChange({ q: typed === "" ? undefined : typed })
       }
     }, SEARCH_DELAY_MS)
 
     return () => {
       clearTimeout(timer)
     }
-  }, [typed, search.q, onChange])
+  }, [typed, written, onChange])
 
   return (
     <div className="flex flex-wrap items-end gap-3">
@@ -52,13 +50,13 @@ export function InboxFilterBar({
         <Label htmlFor="inbox-status">{t("inbox.status")}</Label>
         <SegmentedControl
           onValueChange={(status: ThreadStatus) => {
-            onChange({ status })
+            onChange({ status: status === INBOX_STATUS ? undefined : status })
           }}
           options={[
             { value: "open", label: t("inbox.open") },
             { value: "closed", label: t("inbox.closed") },
           ]}
-          value={search.status}
+          value={search.status ?? INBOX_STATUS}
         />
       </div>
 
@@ -75,14 +73,16 @@ export function InboxFilterBar({
         <Label htmlFor="inbox-assigned">{t("inbox.assigned")}</Label>
         <SegmentedControl
           onValueChange={(assigned: string) => {
-            onChange({ assigned })
+            onChange({
+              assigned: assigned === ASSIGNED_ANYONE ? undefined : assigned,
+            })
           }}
           options={[
             { value: ASSIGNED_ANYONE, label: t("inbox.assignedAnyone") },
             { value: ASSIGNED_ME, label: t("inbox.assignedMe") },
             { value: ASSIGNED_NOBODY, label: t("inbox.assignedNobody") },
           ]}
-          value={search.assigned}
+          value={search.assigned ?? ASSIGNED_ANYONE}
         />
       </div>
 
@@ -91,7 +91,6 @@ export function InboxFilterBar({
           onChange({ organization_id })
         }}
         organizationId={search.organization_id}
-        organizationName={organizationName}
       />
 
       <div className="flex flex-col gap-2">
@@ -106,9 +105,9 @@ export function InboxFilterBar({
             { value: "subject", label: t("inbox.sortSubject") },
           ]}
           onValueChange={(sort) => {
-            onChange({ sort: sort as ThreadSort })
+            onChange({ sort: sort === INBOX_SORT ? undefined : sort })
           }}
-          value={search.sort}
+          value={inboxSort(search.sort)}
         />
       </div>
 
@@ -122,9 +121,14 @@ export function InboxFilterBar({
             { value: "asc", label: t("inbox.directionAsc") },
           ]}
           onValueChange={(direction) => {
-            onChange({ direction: direction as ThreadDirection })
+            onChange({
+              direction:
+                direction === INBOX_DIRECTION
+                  ? undefined
+                  : (direction as ThreadDirection),
+            })
           }}
-          value={search.direction}
+          value={search.direction ?? INBOX_DIRECTION}
         />
       </div>
 
