@@ -36,9 +36,12 @@ export class DeviceFlowError extends Error {
   }
 }
 
+/** The device grant answers OAuth's `error`; a sign-in Better Auth refuses answers its own `code` and `message`. */
 interface ErrorPayload {
   error?: string
   error_description?: string
+  code?: string
+  message?: string
 }
 
 function authUrl(baseUrl: string, path: string): string {
@@ -72,9 +75,12 @@ async function postJson<T>(
 }
 
 function errorOf(payload: ErrorPayload, fallback: string): DeviceFlowError {
-  const code = payload.error ?? fallback
+  const code = payload.error ?? payload.code ?? fallback
 
-  return new DeviceFlowError(code, payload.error_description ?? code)
+  return new DeviceFlowError(
+    code,
+    payload.error_description ?? payload.message ?? code
+  )
 }
 
 export async function startDeviceFlow(
