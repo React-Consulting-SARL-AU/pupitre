@@ -28,6 +28,7 @@ export type StripeEventMinAggregateOutputType = {
   id: string | null
   type: string | null
   status: $Enums.StripeEventStatus | null
+  subscriptionId: string | null
   receivedAt: Date | null
   processedAt: Date | null
 }
@@ -36,6 +37,7 @@ export type StripeEventMaxAggregateOutputType = {
   id: string | null
   type: string | null
   status: $Enums.StripeEventStatus | null
+  subscriptionId: string | null
   receivedAt: Date | null
   processedAt: Date | null
 }
@@ -44,6 +46,7 @@ export type StripeEventCountAggregateOutputType = {
   id: number
   type: number
   status: number
+  subscriptionId: number
   receivedAt: number
   processedAt: number
   _all: number
@@ -54,6 +57,7 @@ export type StripeEventMinAggregateInputType = {
   id?: true
   type?: true
   status?: true
+  subscriptionId?: true
   receivedAt?: true
   processedAt?: true
 }
@@ -62,6 +66,7 @@ export type StripeEventMaxAggregateInputType = {
   id?: true
   type?: true
   status?: true
+  subscriptionId?: true
   receivedAt?: true
   processedAt?: true
 }
@@ -70,6 +75,7 @@ export type StripeEventCountAggregateInputType = {
   id?: true
   type?: true
   status?: true
+  subscriptionId?: true
   receivedAt?: true
   processedAt?: true
   _all?: true
@@ -151,6 +157,7 @@ export type StripeEventGroupByOutputType = {
   id: string
   type: string
   status: $Enums.StripeEventStatus
+  subscriptionId: string | null
   receivedAt: Date
   processedAt: Date | null
   _count: StripeEventCountAggregateOutputType | null
@@ -180,6 +187,7 @@ export type StripeEventWhereInput = {
   id?: Prisma.StringFilter<"StripeEvent"> | string
   type?: Prisma.StringFilter<"StripeEvent"> | string
   status?: Prisma.EnumStripeEventStatusFilter<"StripeEvent"> | $Enums.StripeEventStatus
+  subscriptionId?: Prisma.StringNullableFilter<"StripeEvent"> | string | null
   receivedAt?: Prisma.DateTimeFilter<"StripeEvent"> | Date | string
   processedAt?: Prisma.DateTimeNullableFilter<"StripeEvent"> | Date | string | null
 }
@@ -188,6 +196,7 @@ export type StripeEventOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   type?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  subscriptionId?: Prisma.SortOrderInput | Prisma.SortOrder
   receivedAt?: Prisma.SortOrder
   processedAt?: Prisma.SortOrderInput | Prisma.SortOrder
 }
@@ -199,6 +208,7 @@ export type StripeEventWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.StripeEventWhereInput | Prisma.StripeEventWhereInput[]
   type?: Prisma.StringFilter<"StripeEvent"> | string
   status?: Prisma.EnumStripeEventStatusFilter<"StripeEvent"> | $Enums.StripeEventStatus
+  subscriptionId?: Prisma.StringNullableFilter<"StripeEvent"> | string | null
   receivedAt?: Prisma.DateTimeFilter<"StripeEvent"> | Date | string
   processedAt?: Prisma.DateTimeNullableFilter<"StripeEvent"> | Date | string | null
 }, "id">
@@ -207,6 +217,7 @@ export type StripeEventOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   type?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  subscriptionId?: Prisma.SortOrderInput | Prisma.SortOrder
   receivedAt?: Prisma.SortOrder
   processedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.StripeEventCountOrderByAggregateInput
@@ -221,6 +232,7 @@ export type StripeEventScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"StripeEvent"> | string
   type?: Prisma.StringWithAggregatesFilter<"StripeEvent"> | string
   status?: Prisma.EnumStripeEventStatusWithAggregatesFilter<"StripeEvent"> | $Enums.StripeEventStatus
+  subscriptionId?: Prisma.StringNullableWithAggregatesFilter<"StripeEvent"> | string | null
   receivedAt?: Prisma.DateTimeWithAggregatesFilter<"StripeEvent"> | Date | string
   processedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"StripeEvent"> | Date | string | null
 }
@@ -229,6 +241,7 @@ export type StripeEventCreateInput = {
   id: string
   type: string
   status?: $Enums.StripeEventStatus
+  subscriptionId?: string | null
   receivedAt?: Date | string
   processedAt?: Date | string | null
 }
@@ -237,6 +250,7 @@ export type StripeEventUncheckedCreateInput = {
   id: string
   type: string
   status?: $Enums.StripeEventStatus
+  subscriptionId?: string | null
   receivedAt?: Date | string
   processedAt?: Date | string | null
 }
@@ -245,6 +259,7 @@ export type StripeEventUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumStripeEventStatusFieldUpdateOperationsInput | $Enums.StripeEventStatus
+  subscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -253,6 +268,7 @@ export type StripeEventUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumStripeEventStatusFieldUpdateOperationsInput | $Enums.StripeEventStatus
+  subscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -261,6 +277,7 @@ export type StripeEventCreateManyInput = {
   id: string
   type: string
   status?: $Enums.StripeEventStatus
+  subscriptionId?: string | null
   receivedAt?: Date | string
   processedAt?: Date | string | null
 }
@@ -269,6 +286,7 @@ export type StripeEventUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumStripeEventStatusFieldUpdateOperationsInput | $Enums.StripeEventStatus
+  subscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -277,6 +295,7 @@ export type StripeEventUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.EnumStripeEventStatusFieldUpdateOperationsInput | $Enums.StripeEventStatus
+  subscriptionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   processedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
@@ -285,6 +304,7 @@ export type StripeEventCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   type?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  subscriptionId?: Prisma.SortOrder
   receivedAt?: Prisma.SortOrder
   processedAt?: Prisma.SortOrder
 }
@@ -293,6 +313,7 @@ export type StripeEventMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   type?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  subscriptionId?: Prisma.SortOrder
   receivedAt?: Prisma.SortOrder
   processedAt?: Prisma.SortOrder
 }
@@ -301,6 +322,7 @@ export type StripeEventMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   type?: Prisma.SortOrder
   status?: Prisma.SortOrder
+  subscriptionId?: Prisma.SortOrder
   receivedAt?: Prisma.SortOrder
   processedAt?: Prisma.SortOrder
 }
@@ -315,6 +337,7 @@ export type StripeEventSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   id?: boolean
   type?: boolean
   status?: boolean
+  subscriptionId?: boolean
   receivedAt?: boolean
   processedAt?: boolean
 }, ExtArgs["result"]["stripeEvent"]>
@@ -323,6 +346,7 @@ export type StripeEventSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   id?: boolean
   type?: boolean
   status?: boolean
+  subscriptionId?: boolean
   receivedAt?: boolean
   processedAt?: boolean
 }, ExtArgs["result"]["stripeEvent"]>
@@ -331,6 +355,7 @@ export type StripeEventSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   id?: boolean
   type?: boolean
   status?: boolean
+  subscriptionId?: boolean
   receivedAt?: boolean
   processedAt?: boolean
 }, ExtArgs["result"]["stripeEvent"]>
@@ -339,11 +364,12 @@ export type StripeEventSelectScalar = {
   id?: boolean
   type?: boolean
   status?: boolean
+  subscriptionId?: boolean
   receivedAt?: boolean
   processedAt?: boolean
 }
 
-export type StripeEventOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "type" | "status" | "receivedAt" | "processedAt", ExtArgs["result"]["stripeEvent"]>
+export type StripeEventOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "type" | "status" | "subscriptionId" | "receivedAt" | "processedAt", ExtArgs["result"]["stripeEvent"]>
 
 export type $StripeEventPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "StripeEvent"
@@ -352,6 +378,7 @@ export type $StripeEventPayload<ExtArgs extends runtime.Types.Extensions.Interna
     id: string
     type: string
     status: $Enums.StripeEventStatus
+    subscriptionId: string | null
     receivedAt: Date
     processedAt: Date | null
   }, ExtArgs["result"]["stripeEvent"]>
@@ -780,6 +807,7 @@ export interface StripeEventFieldRefs {
   readonly id: Prisma.FieldRef<"StripeEvent", 'String'>
   readonly type: Prisma.FieldRef<"StripeEvent", 'String'>
   readonly status: Prisma.FieldRef<"StripeEvent", 'StripeEventStatus'>
+  readonly subscriptionId: Prisma.FieldRef<"StripeEvent", 'String'>
   readonly receivedAt: Prisma.FieldRef<"StripeEvent", 'DateTime'>
   readonly processedAt: Prisma.FieldRef<"StripeEvent", 'DateTime'>
 }

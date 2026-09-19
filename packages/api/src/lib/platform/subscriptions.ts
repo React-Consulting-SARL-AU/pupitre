@@ -1,11 +1,26 @@
-import type { Prisma, Subscription } from "@pupitre/db/cloudflare/client"
+import type {
+  Prisma,
+  StripeEventStatus,
+  Subscription,
+} from "@pupitre/db/cloudflare/client"
+import { isPlatformProduct } from "@pupitre/shared/plans"
 import { getPrisma } from "../api/prisma"
+import { stripeSubscriptionUrl } from "../billing/config"
+import { SEATED_STATUSES } from "../billing/seats"
 import { liveAmong } from "../billing/subscription"
-import { type AdminEventView, recentEvents } from "./events"
+import { type AdminEventView, RECENT_EVENTS, recentEvents } from "./events"
 import {
   type AdminOrganizationSubscriptionRow,
   toSubscriptionRow,
 } from "./organizations"
+
+export const ADMIN_SUBSCRIPTION_SORTS = [
+  "created_at",
+  "current_period_end",
+  "updated_at",
+] as const
+
+export type AdminSubscriptionSort = (typeof ADMIN_SUBSCRIPTION_SORTS)[number]
 
 export interface AdminSubscriptionOrganization {
   id: string
@@ -19,13 +34,35 @@ export interface AdminSubscriptionView
   live: boolean
 }
 
+export interface AdminSubscriptionSeats {
+  paid: number
+  used: number
+}
+
+export interface AdminStripeEventView {
+  id: string
+  type: string
+  status: StripeEventStatus
+  received_at: Date
+}
+
 export interface AdminSubscriptionDetail extends AdminSubscriptionView {
+  seats: AdminSubscriptionSeats
+  /** More servers seated than seats paid: the same reading as `ReconcileSeats`. */
+  drifted: boolean
+  stripe_url: string | null
+  stripe_events: AdminStripeEventView[]
   events: AdminEventView[]
 }
 
 export interface AdminSubscriptionFilter {
   status?: string
   product?: string
+  organization_id?: string
+  live?: boolean
+  q?: string
+  sort?: AdminSubscriptionSort
+  direction?: "asc" | "desc"
   limit: number
   offset: number
 }
@@ -46,10 +83,40 @@ type SubscriptionWithOrganization = Prisma.SubscriptionGetPayload<{
 function whereOf(
   filter: AdminSubscriptionFilter
 ): Prisma.SubscriptionWhereInput {
+  const q = filter.q?.trim()
+
   return {
     ...(filter.status ? { status: filter.status } : {}),
     ...(filter.product ? { product: filter.product } : {}),
+    ...(filter.organization_id
+      ? { organizationId: filter.organization_id }
+      : {}),
+    ...(q
+      ? {
+          OR: [
+            { stripeSubscriptionId: { contains: q } },
+            { organization: { name: { contains: q } } },
+            { organization: { slug: { contains: q } } },
+          ],
+        }
+      : {}),
   }
+}
+
+function orderOf(
+  filter: AdminSubscriptionFilter
+): Prisma.SubscriptionOrderByWithRelationInput {
+  const direction = filter.direction ?? "desc"
+
+  if (filter.sort === "current_period_end") {
+    return { currentPeriodEnd: direction }
+  }
+
+  if (filter.sort === "updated_at") {
+    return { updatedAt: direction }
+  }
+
+  return { createdAt: direction }
 }
 
 /**
@@ -98,15 +165,40 @@ function toView(
   }
 }
 
+/**
+ * Which row counts is a choice made across an organization, not a column: the
+ * filter resolves it over everything the other filters keep, then narrows by
+ * identifier, so the count and the page agree.
+ */
+async function narrowToLive(
+  where: Prisma.SubscriptionWhereInput,
+  live: boolean
+): Promise<Prisma.SubscriptionWhereInput> {
+  const matching = await getPrisma().subscription.findMany({
+    where,
+    select: { organizationId: true },
+    distinct: ["organizationId"],
+  })
+  const counted = [
+    ...(await liveIdsAmong(matching.map((row) => row.organizationId))),
+  ]
+
+  return { ...where, id: live ? { in: counted } : { notIn: counted } }
+}
+
 export async function listSubscriptionsForPlatform(
   filter: AdminSubscriptionFilter
 ): Promise<AdminSubscriptionPage> {
   const prisma = getPrisma()
-  const where = whereOf(filter)
+  const filtered = whereOf(filter)
+  const where =
+    filter.live === undefined
+      ? filtered
+      : await narrowToLive(filtered, filter.live)
   const [subscriptions, total] = await Promise.all([
     prisma.subscription.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: orderOf(filter),
       take: filter.limit,
       skip: filter.offset,
       include: ORGANIZATION_INCLUDE,
@@ -143,6 +235,33 @@ export async function viewWrittenSubscription(
   )
 }
 
+function seatsUsedBy(organizationId: string): Promise<number> {
+  return getPrisma().server.count({
+    where: { organizationId, status: { in: SEATED_STATUSES } },
+  })
+}
+
+/** The deliveries that named this subscription, as the webhook filed them. */
+function stripeEventsOf(
+  stripeSubscriptionId: string
+): Promise<AdminStripeEventView[]> {
+  return getPrisma()
+    .stripeEvent.findMany({
+      where: { subscriptionId: stripeSubscriptionId },
+      orderBy: { receivedAt: "desc" },
+      take: RECENT_EVENTS,
+      select: { id: true, type: true, status: true, receivedAt: true },
+    })
+    .then((rows) =>
+      rows.map((row) => ({
+        id: row.id,
+        type: row.type,
+        status: row.status,
+        received_at: row.receivedAt,
+      }))
+    )
+}
+
 export async function readSubscriptionForPlatform(
   subscriptionId: string
 ): Promise<AdminSubscriptionDetail | null> {
@@ -155,13 +274,27 @@ export async function readSubscriptionForPlatform(
     return null
   }
 
-  const [view, events] = await Promise.all([
+  const platform = isPlatformProduct(subscription.product)
+  const [view, events, used, stripeEvents] = await Promise.all([
     viewOf(subscription),
     recentEvents({
       targetType: "subscription",
       targetId: subscription.stripeSubscriptionId,
     }),
+    seatsUsedBy(subscription.organizationId),
+    platform
+      ? Promise.resolve<AdminStripeEventView[]>([])
+      : stripeEventsOf(subscription.stripeSubscriptionId),
   ])
 
-  return { ...view, events }
+  return {
+    ...view,
+    seats: { paid: subscription.quantity, used },
+    drifted: used > subscription.quantity,
+    stripe_url: platform
+      ? null
+      : stripeSubscriptionUrl(subscription.stripeSubscriptionId),
+    stripe_events: stripeEvents,
+    events,
+  }
 }

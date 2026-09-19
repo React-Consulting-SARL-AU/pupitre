@@ -4,6 +4,7 @@ import {
   BillingModeInvalidError,
   billingModeFromEnv,
   LaunchNotConfiguredError,
+  stripeSubscriptionUrl,
 } from "./config"
 
 describe("billingModeFromEnv", () => {
@@ -48,6 +49,32 @@ describe("billingModeFromEnv", () => {
   it("refuses an unknown mode", () => {
     expect(() => billingModeFromEnv({ BILLING_MODE: "free" })).toThrow(
       BillingModeInvalidError
+    )
+  })
+})
+
+describe("stripeSubscriptionUrl", () => {
+  it("reads which dashboard holds the subscription off the configured key", () => {
+    expect(
+      stripeSubscriptionUrl("sub_1", { STRIPE_SECRET_KEY: "sk_live_x" })
+    ).toBe("https://dashboard.stripe.com/subscriptions/sub_1")
+    expect(
+      stripeSubscriptionUrl("sub_1", { STRIPE_SECRET_KEY: "sk_test_x" })
+    ).toBe("https://dashboard.stripe.com/test/subscriptions/sub_1")
+  })
+
+  it("takes the configured dashboard over the key, trailing slashes apart", () => {
+    expect(
+      stripeSubscriptionUrl("sub_1", {
+        STRIPE_SECRET_KEY: "sk_test_x",
+        STRIPE_DASHBOARD_URL: "https://dashboard.stripe.com/acct_42//",
+      })
+    ).toBe("https://dashboard.stripe.com/acct_42/subscriptions/sub_1")
+  })
+
+  it("falls back to the live dashboard without a key", () => {
+    expect(stripeSubscriptionUrl("sub_1", {})).toBe(
+      "https://dashboard.stripe.com/subscriptions/sub_1"
     )
   })
 })

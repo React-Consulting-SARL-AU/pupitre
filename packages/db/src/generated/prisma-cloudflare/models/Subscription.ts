@@ -42,6 +42,7 @@ export type SubscriptionMinAggregateOutputType = {
   quantity: number | null
   status: string | null
   currentPeriodEnd: Date | null
+  cancelAtPeriodEnd: boolean | null
   note: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -55,6 +56,7 @@ export type SubscriptionMaxAggregateOutputType = {
   quantity: number | null
   status: string | null
   currentPeriodEnd: Date | null
+  cancelAtPeriodEnd: boolean | null
   note: string | null
   createdAt: Date | null
   updatedAt: Date | null
@@ -68,6 +70,7 @@ export type SubscriptionCountAggregateOutputType = {
   quantity: number
   status: number
   currentPeriodEnd: number
+  cancelAtPeriodEnd: number
   note: number
   createdAt: number
   updatedAt: number
@@ -91,6 +94,7 @@ export type SubscriptionMinAggregateInputType = {
   quantity?: true
   status?: true
   currentPeriodEnd?: true
+  cancelAtPeriodEnd?: true
   note?: true
   createdAt?: true
   updatedAt?: true
@@ -104,6 +108,7 @@ export type SubscriptionMaxAggregateInputType = {
   quantity?: true
   status?: true
   currentPeriodEnd?: true
+  cancelAtPeriodEnd?: true
   note?: true
   createdAt?: true
   updatedAt?: true
@@ -117,6 +122,7 @@ export type SubscriptionCountAggregateInputType = {
   quantity?: true
   status?: true
   currentPeriodEnd?: true
+  cancelAtPeriodEnd?: true
   note?: true
   createdAt?: true
   updatedAt?: true
@@ -217,6 +223,7 @@ export type SubscriptionGroupByOutputType = {
   quantity: number
   status: string
   currentPeriodEnd: Date | null
+  cancelAtPeriodEnd: boolean
   note: string | null
   createdAt: Date
   updatedAt: Date
@@ -253,6 +260,7 @@ export type SubscriptionWhereInput = {
   quantity?: Prisma.IntFilter<"Subscription"> | number
   status?: Prisma.StringFilter<"Subscription"> | string
   currentPeriodEnd?: Prisma.DateTimeNullableFilter<"Subscription"> | Date | string | null
+  cancelAtPeriodEnd?: Prisma.BoolFilter<"Subscription"> | boolean
   note?: Prisma.StringNullableFilter<"Subscription"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Subscription"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Subscription"> | Date | string
@@ -267,6 +275,7 @@ export type SubscriptionOrderByWithRelationInput = {
   quantity?: Prisma.SortOrder
   status?: Prisma.SortOrder
   currentPeriodEnd?: Prisma.SortOrderInput | Prisma.SortOrder
+  cancelAtPeriodEnd?: Prisma.SortOrder
   note?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -284,6 +293,7 @@ export type SubscriptionWhereUniqueInput = Prisma.AtLeast<{
   quantity?: Prisma.IntFilter<"Subscription"> | number
   status?: Prisma.StringFilter<"Subscription"> | string
   currentPeriodEnd?: Prisma.DateTimeNullableFilter<"Subscription"> | Date | string | null
+  cancelAtPeriodEnd?: Prisma.BoolFilter<"Subscription"> | boolean
   note?: Prisma.StringNullableFilter<"Subscription"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Subscription"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Subscription"> | Date | string
@@ -298,6 +308,7 @@ export type SubscriptionOrderByWithAggregationInput = {
   quantity?: Prisma.SortOrder
   status?: Prisma.SortOrder
   currentPeriodEnd?: Prisma.SortOrderInput | Prisma.SortOrder
+  cancelAtPeriodEnd?: Prisma.SortOrder
   note?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -319,6 +330,7 @@ export type SubscriptionScalarWhereWithAggregatesInput = {
   quantity?: Prisma.IntWithAggregatesFilter<"Subscription"> | number
   status?: Prisma.StringWithAggregatesFilter<"Subscription"> | string
   currentPeriodEnd?: Prisma.DateTimeNullableWithAggregatesFilter<"Subscription"> | Date | string | null
+  cancelAtPeriodEnd?: Prisma.BoolWithAggregatesFilter<"Subscription"> | boolean
   note?: Prisma.StringNullableWithAggregatesFilter<"Subscription"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Subscription"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Subscription"> | Date | string
@@ -331,6 +343,7 @@ export type SubscriptionCreateInput = {
   quantity: number
   status: string
   currentPeriodEnd?: Date | string | null
+  cancelAtPeriodEnd?: boolean
   note?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -345,6 +358,7 @@ export type SubscriptionUncheckedCreateInput = {
   quantity: number
   status: string
   currentPeriodEnd?: Date | string | null
+  cancelAtPeriodEnd?: boolean
   note?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -357,6 +371,7 @@ export type SubscriptionUpdateInput = {
   quantity?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
   currentPeriodEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelAtPeriodEnd?: Prisma.BoolFieldUpdateOperationsInput | boolean
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -371,6 +386,7 @@ export type SubscriptionUncheckedUpdateInput = {
   quantity?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
   currentPeriodEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelAtPeriodEnd?: Prisma.BoolFieldUpdateOperationsInput | boolean
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -384,6 +400,7 @@ export type SubscriptionCreateManyInput = {
   quantity: number
   status: string
   currentPeriodEnd?: Date | string | null
+  cancelAtPeriodEnd?: boolean
   note?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -396,6 +413,7 @@ export type SubscriptionUpdateManyMutationInput = {
   quantity?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
   currentPeriodEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelAtPeriodEnd?: Prisma.BoolFieldUpdateOperationsInput | boolean
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -409,6 +427,7 @@ export type SubscriptionUncheckedUpdateManyInput = {
   quantity?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
   currentPeriodEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelAtPeriodEnd?: Prisma.BoolFieldUpdateOperationsInput | boolean
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -432,6 +451,7 @@ export type SubscriptionCountOrderByAggregateInput = {
   quantity?: Prisma.SortOrder
   status?: Prisma.SortOrder
   currentPeriodEnd?: Prisma.SortOrder
+  cancelAtPeriodEnd?: Prisma.SortOrder
   note?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -449,6 +469,7 @@ export type SubscriptionMaxOrderByAggregateInput = {
   quantity?: Prisma.SortOrder
   status?: Prisma.SortOrder
   currentPeriodEnd?: Prisma.SortOrder
+  cancelAtPeriodEnd?: Prisma.SortOrder
   note?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -462,6 +483,7 @@ export type SubscriptionMinOrderByAggregateInput = {
   quantity?: Prisma.SortOrder
   status?: Prisma.SortOrder
   currentPeriodEnd?: Prisma.SortOrder
+  cancelAtPeriodEnd?: Prisma.SortOrder
   note?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -520,6 +542,7 @@ export type SubscriptionCreateWithoutOrganizationInput = {
   quantity: number
   status: string
   currentPeriodEnd?: Date | string | null
+  cancelAtPeriodEnd?: boolean
   note?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -532,6 +555,7 @@ export type SubscriptionUncheckedCreateWithoutOrganizationInput = {
   quantity: number
   status: string
   currentPeriodEnd?: Date | string | null
+  cancelAtPeriodEnd?: boolean
   note?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -573,6 +597,7 @@ export type SubscriptionScalarWhereInput = {
   quantity?: Prisma.IntFilter<"Subscription"> | number
   status?: Prisma.StringFilter<"Subscription"> | string
   currentPeriodEnd?: Prisma.DateTimeNullableFilter<"Subscription"> | Date | string | null
+  cancelAtPeriodEnd?: Prisma.BoolFilter<"Subscription"> | boolean
   note?: Prisma.StringNullableFilter<"Subscription"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Subscription"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Subscription"> | Date | string
@@ -585,6 +610,7 @@ export type SubscriptionCreateManyOrganizationInput = {
   quantity: number
   status: string
   currentPeriodEnd?: Date | string | null
+  cancelAtPeriodEnd?: boolean
   note?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -597,6 +623,7 @@ export type SubscriptionUpdateWithoutOrganizationInput = {
   quantity?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
   currentPeriodEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelAtPeriodEnd?: Prisma.BoolFieldUpdateOperationsInput | boolean
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -609,6 +636,7 @@ export type SubscriptionUncheckedUpdateWithoutOrganizationInput = {
   quantity?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
   currentPeriodEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelAtPeriodEnd?: Prisma.BoolFieldUpdateOperationsInput | boolean
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -621,6 +649,7 @@ export type SubscriptionUncheckedUpdateManyWithoutOrganizationInput = {
   quantity?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.StringFieldUpdateOperationsInput | string
   currentPeriodEnd?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  cancelAtPeriodEnd?: Prisma.BoolFieldUpdateOperationsInput | boolean
   note?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -636,6 +665,7 @@ export type SubscriptionSelect<ExtArgs extends runtime.Types.Extensions.Internal
   quantity?: boolean
   status?: boolean
   currentPeriodEnd?: boolean
+  cancelAtPeriodEnd?: boolean
   note?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -650,6 +680,7 @@ export type SubscriptionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   quantity?: boolean
   status?: boolean
   currentPeriodEnd?: boolean
+  cancelAtPeriodEnd?: boolean
   note?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -664,6 +695,7 @@ export type SubscriptionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   quantity?: boolean
   status?: boolean
   currentPeriodEnd?: boolean
+  cancelAtPeriodEnd?: boolean
   note?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -678,12 +710,13 @@ export type SubscriptionSelectScalar = {
   quantity?: boolean
   status?: boolean
   currentPeriodEnd?: boolean
+  cancelAtPeriodEnd?: boolean
   note?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type SubscriptionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "stripeSubscriptionId" | "product" | "quantity" | "status" | "currentPeriodEnd" | "note" | "createdAt" | "updatedAt", ExtArgs["result"]["subscription"]>
+export type SubscriptionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "stripeSubscriptionId" | "product" | "quantity" | "status" | "currentPeriodEnd" | "cancelAtPeriodEnd" | "note" | "createdAt" | "updatedAt", ExtArgs["result"]["subscription"]>
 export type SubscriptionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
 }
@@ -707,6 +740,7 @@ export type $SubscriptionPayload<ExtArgs extends runtime.Types.Extensions.Intern
     quantity: number
     status: string
     currentPeriodEnd: Date | null
+    cancelAtPeriodEnd: boolean
     note: string | null
     createdAt: Date
     updatedAt: Date
@@ -1141,6 +1175,7 @@ export interface SubscriptionFieldRefs {
   readonly quantity: Prisma.FieldRef<"Subscription", 'Int'>
   readonly status: Prisma.FieldRef<"Subscription", 'String'>
   readonly currentPeriodEnd: Prisma.FieldRef<"Subscription", 'DateTime'>
+  readonly cancelAtPeriodEnd: Prisma.FieldRef<"Subscription", 'Boolean'>
   readonly note: Prisma.FieldRef<"Subscription", 'String'>
   readonly createdAt: Prisma.FieldRef<"Subscription", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Subscription", 'DateTime'>

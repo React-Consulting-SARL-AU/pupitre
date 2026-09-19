@@ -3,12 +3,14 @@ import { ADMIN_PAGE_SIZE } from "@pupitre/shared/platform"
 import { Elysia, t } from "elysia"
 import { translate } from "../../../i18n"
 import {
+  clearServerAlertsByAdmin,
   deleteServerByAdmin,
   listServersForPlatform,
   readServerForPlatform,
   restoreServerByAdmin,
   ServerNotAdminSuspendedError,
   ServerRevokedError,
+  setServerChannel,
   suspendServerByAdmin,
 } from "../../../servers/admin"
 import { apiError } from "../../errors"
@@ -17,6 +19,7 @@ import { requirePlatformAdmin, requirePlatformRole } from "../../plugins/guards"
 import { serializeData } from "../../prisma"
 import { adminReasonBody } from "./schemas"
 import {
+  adminServerChannelBody,
   adminServerDetailSchema,
   adminServerListSchema,
   adminServerSchema,
@@ -35,6 +38,9 @@ const readRoutes = new Elysia({ name: "admin-servers-read" })
           status: query.status,
           organization_id: query.organization_id,
           q: query.q,
+          stale: query.stale,
+          sort: query.sort,
+          direction: query.direction,
           limit: query.limit ?? ADMIN_PAGE_SIZE,
           offset: query.offset ?? 0,
         })
@@ -80,6 +86,83 @@ const readRoutes = new Elysia({ name: "admin-servers-read" })
 
 const writeRoutes = new Elysia({ name: "admin-servers-write" })
   .use(requirePlatformRole("admin"))
+  .patch(
+    "/servers/:id",
+    async ({ user, params, body, request, set }) => {
+      const locale = resolveLocale(request.headers)
+
+      try {
+        const updated = await setServerChannel(
+          { userId: user.id },
+          params.id,
+          body.channel
+        )
+
+        if (!updated) {
+          set.status = 404
+
+          return apiError("not_found", translate(locale, "server_not_found"))
+        }
+
+        return { data: serializeData(updated) }
+      } catch (error) {
+        if (!(error instanceof ServerRevokedError)) {
+          throw error
+        }
+
+        set.status = 409
+
+        return apiError(
+          "conflict",
+          translate(locale, "server_revoked"),
+          translate(locale, "server_revoked_fix")
+        )
+      }
+    },
+    {
+      params: serverParams,
+      body: adminServerChannelBody,
+      detail: { summary: "Changer le canal de mise à jour d'un serveur" },
+      response: {
+        200: dataResponse(adminServerDetailSchema),
+        401: errorResponse,
+        403: errorResponse,
+        404: errorResponse,
+        409: errorResponse,
+        422: errorResponse,
+      },
+    }
+  )
+  .delete(
+    "/servers/:id/alerts",
+    async ({ user, params, request, set }) => {
+      const cleared = await clearServerAlertsByAdmin(
+        { userId: user.id },
+        params.id
+      )
+
+      if (cleared === null) {
+        set.status = 404
+
+        return apiError(
+          "not_found",
+          translate(resolveLocale(request.headers), "server_not_found")
+        )
+      }
+
+      set.status = 204
+    },
+    {
+      params: serverParams,
+      detail: { summary: "Fermer toutes les alertes ouvertes d'un serveur" },
+      response: {
+        204: t.Void(),
+        401: errorResponse,
+        403: errorResponse,
+        404: errorResponse,
+      },
+    }
+  )
   .post(
     "/servers/:id/suspend",
     async ({ user, params, body, request, set }) => {

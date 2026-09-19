@@ -35,6 +35,9 @@ const FR = {
     "Ce serveur est révoqué : il n'y a rien à suspendre.",
   server_revoked_no_suspend_fix:
     "Sa ligne s'efface à la décommission ; un serveur révoqué ne distribue déjà plus aucune clé.",
+  server_revoked: "Ce serveur est révoqué : sa fiche ne se modifie plus.",
+  server_revoked_fix:
+    "Sa ligne s'efface à la décommission ; un serveur révoqué ne reçoit plus aucune mise à jour.",
   server_not_admin_suspended:
     "Ce serveur n'a pas été suspendu par l'équipe Pupitre.",
   server_not_admin_suspended_fix:
@@ -108,6 +111,24 @@ const FR = {
   subscription_already_canceled: "Cet abonnement est déjà arrêté.",
   subscription_already_canceled_fix:
     "Effacez-le s'il n'a plus à figurer : DELETE /admin/subscriptions/:id.",
+  billing_launch_stripe:
+    "Pendant le lancement, la plateforme n'appelle pas Stripe.",
+  billing_launch_stripe_fix:
+    "Changez la fin d'un abonnement accordé : PATCH /admin/subscriptions/:id avec ends_at.",
+  subscription_not_stripe:
+    "Cet abonnement est un produit de la plateforme : Stripe ne le connaît pas.",
+  subscription_not_stripe_fix:
+    "Changez sa fin : PATCH /admin/subscriptions/:id avec ends_at.",
+  subscription_not_trialing: "Cet abonnement n'est pas en essai.",
+  subscription_not_trialing_fix:
+    "Seul un essai se prolonge ; un abonnement déjà facturé se change depuis le portail Stripe.",
+  subscription_not_resumable:
+    "Cet abonnement n'est pas résilié à la fin de la période.",
+  subscription_not_resumable_fix:
+    "Seule une résiliation encore facturée jusqu'au terme se reprend ; un abonnement arrêté se rouvre par un nouveau paiement.",
+  trial_end_not_future: "La fin d'essai demandée est déjà passée.",
+  trial_end_not_future_fix:
+    "Donnez une date postérieure à maintenant, au format ISO.",
   affiliate_code_taken: "Le code « {code} » est déjà pris.",
   affiliate_code_taken_fix:
     "Choisissez un autre code, ou laissez la plateforme en tirer un.",
@@ -233,6 +254,9 @@ const EN: Record<MessageKey, string> = {
     "This server is revoked: there is nothing left to suspend.",
   server_revoked_no_suspend_fix:
     "Its row disappears at decommission; a revoked server already hands out no key.",
+  server_revoked: "This server is revoked: its record no longer changes.",
+  server_revoked_fix:
+    "Its row is erased at decommission; a revoked server receives no update any more.",
   server_not_admin_suspended: "The Pupitre team did not suspend this server.",
   server_not_admin_suspended_fix:
     "A billing suspension lifts by restoring the organization's subscription.",
@@ -300,6 +324,22 @@ const EN: Record<MessageKey, string> = {
   subscription_already_canceled: "This subscription is already stopped.",
   subscription_already_canceled_fix:
     "Delete it if it no longer belongs in the list: DELETE /admin/subscriptions/:id.",
+  billing_launch_stripe: "During the launch, the platform never calls Stripe.",
+  billing_launch_stripe_fix:
+    "Change the end of a granted subscription: PATCH /admin/subscriptions/:id with ends_at.",
+  subscription_not_stripe:
+    "This subscription is a platform product: Stripe never sees it.",
+  subscription_not_stripe_fix:
+    "Change its end: PATCH /admin/subscriptions/:id with ends_at.",
+  subscription_not_trialing: "This subscription is not trialing.",
+  subscription_not_trialing_fix:
+    "Only a trial extends; a subscription already billed changes from the Stripe portal.",
+  subscription_not_resumable:
+    "This subscription was not cancelled at the end of the period.",
+  subscription_not_resumable_fix:
+    "Only a cancellation still billed to the term resumes; a stopped subscription reopens with a new payment.",
+  trial_end_not_future: "The trial end asked for is already past.",
+  trial_end_not_future_fix: "Give an ISO date later than now.",
   affiliate_code_taken: 'The code "{code}" is already taken.',
   affiliate_code_taken_fix: "Pick another code, or let the platform draw one.",
   affiliate_link_not_found: "This affiliate link does not exist.",

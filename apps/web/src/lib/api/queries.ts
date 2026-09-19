@@ -57,9 +57,14 @@ export interface AdminPageQuery {
   q?: string
 }
 
+export type AdminSortDirection = "asc" | "desc"
+
 export interface AdminServerPageQuery extends AdminPageQuery {
   status?: string
   organization_id?: string
+  stale?: boolean
+  sort?: "created_at" | "last_heartbeat_at" | "name"
+  direction?: AdminSortDirection
 }
 
 export interface AdminSubscriptionPageQuery {
@@ -67,6 +72,11 @@ export interface AdminSubscriptionPageQuery {
   offset: number
   status?: string
   product?: string
+  organization_id?: string
+  live?: boolean
+  q?: string
+  sort?: "created_at" | "current_period_end" | "updated_at"
+  direction?: AdminSortDirection
 }
 
 export interface AdminEventPageQuery {

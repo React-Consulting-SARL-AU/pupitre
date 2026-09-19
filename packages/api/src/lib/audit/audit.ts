@@ -13,6 +13,8 @@ export type AuditAction =
   | "server.device_revoked"
   | "server.suspended"
   | "server.restored"
+  | "server.updated"
+  | "server.alerts_cleared"
   | "member.invited"
   | "user.banned"
   | "user.unbanned"
