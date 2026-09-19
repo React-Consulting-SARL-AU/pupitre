@@ -4,9 +4,11 @@ import {
   canActOnPlatform,
   canCancelSubscription,
   canDeleteSubscription,
+  canExtendTrial,
   canGrantSubscription,
   canResizeSubscription,
   canRestore,
+  canResumeSubscription,
   canSuspend,
   dateInputValue,
   endOfDayIso,
@@ -15,6 +17,7 @@ import {
   productKey,
   releaseVersions,
   SUBSCRIPTION_PRODUCT_FILTERS,
+  stripeEventStatusKey,
   subscriptionIsLive,
   suspendedReasonKey,
   userLook,
@@ -142,6 +145,71 @@ describe("canResizeSubscription", () => {
     expect(canResizeSubscription("granted")).toBe(true)
     expect(canResizeSubscription("launch")).toBe(false)
     expect(canResizeSubscription("prod_server")).toBe(false)
+  })
+})
+
+describe("canExtendTrial", () => {
+  it("pushes the end of a Stripe trial alone", () => {
+    expect(canExtendTrial({ product: "prod_server", status: "trialing" })).toBe(
+      true
+    )
+    expect(canExtendTrial({ product: "prod_server", status: "active" })).toBe(
+      false
+    )
+    expect(canExtendTrial({ product: "launch", status: "trialing" })).toBe(
+      false
+    )
+    expect(canExtendTrial({ product: "granted", status: "trialing" })).toBe(
+      false
+    )
+  })
+})
+
+describe("canResumeSubscription", () => {
+  it("takes back a Stripe cancellation that still runs to the end of the period", () => {
+    expect(
+      canResumeSubscription({
+        product: "prod_server",
+        status: "active",
+        cancel_at_period_end: true,
+      })
+    ).toBe(true)
+    expect(
+      canResumeSubscription({
+        product: "prod_server",
+        status: "active",
+        cancel_at_period_end: false,
+      })
+    ).toBe(false)
+    expect(
+      canResumeSubscription({
+        product: "prod_server",
+        status: "canceled",
+        cancel_at_period_end: true,
+      })
+    ).toBe(false)
+    expect(
+      canResumeSubscription({
+        product: "granted",
+        status: "active",
+        cancel_at_period_end: true,
+      })
+    ).toBe(false)
+  })
+})
+
+describe("stripeEventStatusKey", () => {
+  it("names the three states the webhook files, and nothing else", () => {
+    expect(stripeEventStatusKey("processed")).toBe(
+      "admin.subscriptions.eventStatus.processed"
+    )
+    expect(stripeEventStatusKey("failed")).toBe(
+      "admin.subscriptions.eventStatus.failed"
+    )
+    expect(stripeEventStatusKey("processing")).toBe(
+      "admin.subscriptions.eventStatus.processing"
+    )
+    expect(stripeEventStatusKey("invented")).toBeNull()
   })
 })
 

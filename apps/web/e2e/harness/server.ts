@@ -43,6 +43,12 @@ interface SeedServerBody {
   status?: SeededStatus
 }
 
+interface SeedAlertBody {
+  email: string
+  server: string
+  kind: "server_unreachable" | "disk_high" | "agent_outdated"
+}
+
 interface TrialBody {
   email: string
 }
@@ -102,6 +108,21 @@ async function seedServer(body: SeedServerBody): Promise<Response> {
   })
 
   return json({ id: server.id, name: server.name })
+}
+
+/** `EvaluateAlerts` runs on a cron the suite never waits for: the alert is laid by hand. */
+async function seedAlert(body: SeedAlertBody): Promise<Response> {
+  const { prisma } = await bootApiTestServer()
+  const server = await prisma.server.findFirstOrThrow({
+    where: {
+      organizationId: await organizationOf(body.email),
+      name: body.server,
+    },
+  })
+
+  await prisma.alert.create({ data: { serverId: server.id, kind: body.kind } })
+
+  return json({ ok: true })
 }
 
 /** Stripe alone opens a subscription: the harness plays its webhook, nothing else. */
@@ -248,6 +269,10 @@ async function handleHarness(
 
   if (path === "/servers") {
     return await seedServer((await request.json()) as SeedServerBody)
+  }
+
+  if (path === "/alerts") {
+    return await seedAlert((await request.json()) as SeedAlertBody)
   }
 
   if (path === "/inbound-emails") {

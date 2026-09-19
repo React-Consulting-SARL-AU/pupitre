@@ -1,5 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { AdminSubscriptionList } from "@/components/admin/admin-subscription-list"
+import {
+  AdminSubscriptionList,
+  SUBSCRIPTION_SORT,
+  SUBSCRIPTION_SORTS,
+} from "@/components/admin/admin-subscription-list"
 import { PageHeader } from "@/components/ui/page-header"
 import { useTranslations } from "@/hooks/use-locale"
 import {
@@ -17,9 +21,13 @@ export const Route = createFileRoute("/dashboard/admin/subscriptions/")({
     meta: [{ title: documentTitle(ROUTE_ID, match.context.locale) }],
   }),
   validateSearch: listSearch({
+    sortKeys: SUBSCRIPTION_SORTS,
+    defaultSort: SUBSCRIPTION_SORT,
     filters: {
       status: { kind: "enum", values: SUBSCRIPTION_STATUS_FILTERS },
       product: { kind: "enum", values: SUBSCRIPTION_PRODUCT_FILTERS },
+      organization_id: { kind: "string" },
+      live: { kind: "boolean" },
     },
   }),
 })

@@ -5,6 +5,7 @@ import {
   openTrial,
   promotePlatformMember,
   receiveEmail,
+  seedAlert,
   seedReferral,
   seedServer,
   signIn,
@@ -22,6 +23,14 @@ const LAUNCH_EMAIL = "launch@e2e.local"
 const RUNNING_SERVER = "vps-admin-online"
 const REVOKED_SERVER = "vps-admin-revoked"
 const READER_SERVER = "vps-admin-reader"
+
+const FLEET_EMAIL = "fleet@e2e.local"
+const FLEET_ORGANIZATION = "fleet"
+const FLEET_SERVER = "vps-fleet-online"
+const TRIAL_EMAIL = "trial@e2e.local"
+const TRIAL_ORGANIZATION = "trial"
+const GRANT_END_DAY = "2027-06-30"
+const PAST_DAY = "2020-01-01"
 
 const SOCLE_EMAIL = "socle@e2e.local"
 const SOCLE_SERVER = "vps-socle-online"
@@ -56,6 +65,7 @@ const ADMIN_SERVERS_REVOKED_URL_RE =
 const ADMIN_SERVER_URL_RE = /\/dashboard\/admin\/servers\/[^/]+$/
 const ADMIN_ORGANIZATIONS_URL_RE = /\/dashboard\/admin\/organizations$/
 const ADMIN_ORGANIZATION_URL_RE = /\/dashboard\/admin\/organizations\/[^/]+$/
+const ADMIN_SUBSCRIPTIONS_URL_RE = /\/dashboard\/admin\/subscriptions$/
 const ADMIN_SUBSCRIPTION_URL_RE = /\/dashboard\/admin\/subscriptions\/[^/]+$/
 const ADMIN_LINKS_URL_RE = /\/dashboard\/admin\/affiliate-links$/
 const ADMIN_LINK_URL_RE = /\/dashboard\/admin\/affiliate-links\/[^/?]+/
@@ -282,8 +292,9 @@ test.describe("plateforme", () => {
       await main
         .getByRole("row")
         .filter({ hasText: RUNNING_SERVER })
-        .getByRole("button", { name: "Suspendre" })
+        .getByRole("button", { name: "Actions sur cette ligne" })
         .click()
+      await page.getByRole("menuitem", { name: "Suspendre" }).click()
 
       const dialog = page.getByRole("dialog")
 
@@ -524,6 +535,7 @@ test.describe("plateforme", () => {
         fullPage: true,
       })
 
+      await page.getByRole("tab", { name: "Gestes" }).click()
       await page.getByRole("button", { name: "Arrêter maintenant" }).click()
 
       const stop = page.getByRole("dialog")
@@ -535,11 +547,14 @@ test.describe("plateforme", () => {
         toasts.getByText(`L'abonnement de ${ADMIN_ORGANIZATION} est arrêté.`)
       ).toBeVisible()
       await expect(
-        main.getByText("Résilié", { exact: true }).filter({ visible: true })
-      ).toBeVisible()
-      await expect(
         page.getByRole("button", { name: "Arrêter maintenant" })
       ).toHaveCount(0)
+
+      await page.getByRole("tab", { name: "Aperçu" }).click()
+
+      await expect(
+        main.getByText("Résilié", { exact: true }).filter({ visible: true })
+      ).toBeVisible()
     })
   })
 
@@ -623,9 +638,9 @@ test.describe("plateforme", () => {
       const row = main.getByRole("row").filter({ hasText: READER_SERVER })
 
       await expect(row).toBeVisible()
-      await expect(row.getByRole("button", { name: "Suspendre" })).toHaveCount(
-        0
-      )
+      await expect(
+        row.getByRole("button", { name: "Actions sur cette ligne" })
+      ).toHaveCount(0)
     })
 
     await test.step("les liens d'affiliation se lisent, ni création ni réglages", async () => {
@@ -791,9 +806,8 @@ test.describe("plateforme", () => {
       await search.getByRole("button", { name: SOCLE_SERVER }).click()
 
       await expect(page).toHaveURL(ADMIN_SERVER_URL_RE)
-      await expect(
-        page.getByRole("button", { name: "Suspendre" })
-      ).toBeVisible()
+      await expect(page.getByRole("tab", { name: "Aperçu" })).toBeVisible()
+      await expect(page.getByRole("tab", { name: "Danger" })).toBeVisible()
     })
 
     await test.step("effacer une ligne révoquée reste inerte tant que le nom diffère", async () => {
@@ -806,6 +820,7 @@ test.describe("plateforme", () => {
         .click()
 
       await expect(page).toHaveURL(ADMIN_SERVER_URL_RE)
+      await page.getByRole("tab", { name: "Danger" }).click()
       await page.getByRole("button", { name: "Effacer la ligne" }).click()
 
       const purge = page.getByRole("dialog")
@@ -822,6 +837,157 @@ test.describe("plateforme", () => {
       await keyword.fill(SOCLE_REVOKED_SERVER)
 
       await expect(confirm).toBeEnabled()
+    })
+  })
+
+  test("le canal, les alertes, l'échéance d'un octroi, le filtre par organisation et un refus affiché", async ({
+    page,
+    request,
+  }) => {
+    await stayLocal(page)
+    await signIn(page, request, FLEET_EMAIL)
+    await promotePlatformMember(request, FLEET_EMAIL)
+    await seedServer(request, {
+      email: FLEET_EMAIL,
+      name: FLEET_SERVER,
+      status: "active",
+    })
+    await seedAlert(request, {
+      email: FLEET_EMAIL,
+      server: FLEET_SERVER,
+      kind: "disk_high",
+    })
+    await signIn(page, request, TRIAL_EMAIL)
+    await openTrial(request, TRIAL_EMAIL)
+    await signIn(page, request, FLEET_EMAIL)
+    await openPlatformOrganization(page)
+
+    const menu = page.getByRole("navigation", { name: "Menu principal" })
+    const main = page.getByRole("main")
+    const toasts = page.getByTestId("toasts")
+
+    await test.step("le canal d'une machine s'applique depuis sa fiche", async () => {
+      await menu.getByRole("link", { name: "Tous les serveurs" }).click()
+
+      await expect(page).toHaveURL(ADMIN_SERVERS_URL_RE)
+
+      await main
+        .getByRole("row")
+        .filter({ hasText: FLEET_SERVER })
+        .getByRole("link")
+        .first()
+        .click()
+
+      await expect(page).toHaveURL(ADMIN_SERVER_URL_RE)
+
+      await page.getByLabel("Canal de mise à jour").click()
+      await page.getByRole("option", { name: "Bêta" }).click()
+
+      await expect(
+        toasts.getByText(`« ${FLEET_SERVER} » suit le canal Bêta.`)
+      ).toBeVisible()
+    })
+
+    await test.step("les alertes ouvertes se ferment depuis leur onglet", async () => {
+      await page.getByRole("tab", { name: "Alertes" }).click()
+      await page.getByRole("button", { name: "Fermer les alertes" }).click()
+
+      const dialog = page.getByRole("alertdialog")
+
+      await dialog.getByRole("button", { name: "Fermer les alertes" }).click()
+
+      await expect(
+        toasts.getByText(`Les alertes de « ${FLEET_SERVER} » sont fermées.`)
+      ).toBeVisible()
+      await expect(main.getByText("Rien à signaler.")).toBeVisible()
+    })
+
+    let fleetOrganizationId = ""
+
+    await test.step("l'échéance d'un abonnement offert se prolonge", async () => {
+      await menu.getByRole("link", { name: "Organisations" }).click()
+      await main
+        .getByRole("link", { name: FLEET_ORGANIZATION, exact: true })
+        .click()
+
+      await expect(page).toHaveURL(ADMIN_ORGANIZATION_URL_RE)
+
+      fleetOrganizationId = page.url().split("/").pop() ?? ""
+
+      await page.getByRole("button", { name: "Offrir un abonnement" }).click()
+
+      const grant = page.getByRole("dialog")
+
+      await grant.getByLabel("Sièges").fill("2")
+      await grant.getByRole("button", { name: "Offrir", exact: true }).click()
+
+      await expect(
+        toasts.getByText(`${FLEET_ORGANIZATION} a son abonnement.`)
+      ).toBeVisible()
+
+      await main
+        .getByRole("listitem")
+        .filter({ hasText: "2 sièges" })
+        .getByRole("link")
+        .click()
+
+      await expect(page).toHaveURL(ADMIN_SUBSCRIPTION_URL_RE)
+
+      await page.getByRole("tab", { name: "Gestes" }).click()
+      await page.getByLabel("Date de fin (facultative)").fill(GRANT_END_DAY)
+      await page.getByRole("button", { name: "Appliquer" }).click()
+
+      await expect(
+        toasts.getByText(
+          `L'abonnement de ${FLEET_ORGANIZATION} est redimensionné.`
+        )
+      ).toBeVisible()
+    })
+
+    await test.step("le filtre d'organisation ne garde que ses abonnements, et se retire", async () => {
+      await page.goto(
+        `/dashboard/admin/subscriptions?organization_id=${fleetOrganizationId}`
+      )
+
+      await expect(
+        main.getByText(`Organisation : ${FLEET_ORGANIZATION}`)
+      ).toBeVisible()
+      await expect(main.getByText("1–1 sur 1")).toBeVisible()
+      await expect(
+        main.getByRole("row").filter({ hasText: TRIAL_ORGANIZATION })
+      ).toHaveCount(0)
+
+      await main
+        .getByRole("button", { name: `Organisation : ${FLEET_ORGANIZATION}` })
+        .click()
+
+      await expect(page).toHaveURL(ADMIN_SUBSCRIPTIONS_URL_RE)
+      await expect(
+        main.getByRole("row").filter({ hasText: TRIAL_ORGANIZATION })
+      ).toHaveCount(1)
+    })
+
+    await test.step("un essai repoussé dans le passé est refusé sous le geste", async () => {
+      await page.getByLabel("Recherche").fill(TRIAL_ORGANIZATION)
+
+      await expect(main.getByText("1–1 sur 1")).toBeVisible()
+
+      await main
+        .getByRole("row")
+        .filter({ hasText: TRIAL_ORGANIZATION })
+        .getByRole("link")
+        .first()
+        .click()
+
+      await expect(page).toHaveURL(ADMIN_SUBSCRIPTION_URL_RE)
+
+      await page.getByRole("tab", { name: "Gestes" }).click()
+      await page.getByLabel("Fin de l'essai").fill(PAST_DAY)
+      await page.getByRole("button", { name: "Prolonger l'essai" }).click()
+
+      await expect(
+        main.getByText("La fin d'essai demandée est déjà passée.")
+      ).toBeVisible()
     })
   })
 })
