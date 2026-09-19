@@ -19,6 +19,7 @@ export async function mirrorSubscription(
     quantity: remote.quantity,
     status: remote.status,
     currentPeriodEnd: remote.current_period_end,
+    cancelAtPeriodEnd: remote.cancel_at_period_end,
   }
 
   await prisma.subscription.upsert({

@@ -5,7 +5,7 @@ import type {
   SuspensionReason,
 } from "@pupitre/db/cloudflare/client"
 import { sendServerSuspendedByAdminEmail } from "../../emails/notifications"
-import { activeAlertsFor } from "../alerts/alerts"
+import { activeAlertsFor, closeOpenAlerts } from "../alerts/alerts"
 import { getPrisma } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import {
@@ -13,15 +13,34 @@ import {
   entitlementForOrganization,
   entitlementWindow,
 } from "../billing/entitlement"
+import { SEATED_STATUSES } from "../billing/seats"
 import { type AdminEventView, recentEvents } from "../platform/events"
+import { metricsOf } from "./agent-state"
+import type { MetricSample } from "./metrics"
 import type { ServerRow } from "./server-row"
 import { WITHOUT_METRICS } from "./server-row"
-import { deleteServer, type ServerView, toServerView } from "./servers"
+import {
+  deleteServer,
+  type ServerView,
+  STALE_AFTER_MS,
+  toServerView,
+} from "./servers"
+
+export const ADMIN_SERVER_SORTS = [
+  "created_at",
+  "last_heartbeat_at",
+  "name",
+] as const
+
+export type AdminServerSort = (typeof ADMIN_SERVER_SORTS)[number]
 
 export interface AdminServerFilter {
   status?: ServerStatus
   organization_id?: string
   q?: string
+  stale?: boolean
+  sort?: AdminServerSort
+  direction?: "asc" | "desc"
   limit: number
   offset: number
 }
@@ -34,6 +53,9 @@ export interface AdminOrganizationView {
 
 export interface AdminServerView extends ServerView {
   suspended_reason: SuspensionReason | null
+  channel: ReleaseChannel
+  /** Whether the row takes one of its organisation's seats, as `ReconcileSeats` counts them. */
+  seated: boolean
   organization: AdminOrganizationView
 }
 
@@ -48,7 +70,7 @@ type ServerWithOrganization = ServerRow & {
 
 export class ServerRevokedError extends Error {
   constructor(serverId: string) {
-    super(`server ${serverId} is revoked and cannot be suspended`)
+    super(`server ${serverId} is revoked`)
     this.name = "ServerRevokedError"
   }
 }
@@ -70,12 +92,31 @@ function toAdminView(
   return {
     ...toServerView(server, now, alerts),
     suspended_reason: server.suspendedReason,
+    channel: server.channel,
+    seated: SEATED_STATUSES.includes(server.status),
     organization: server.organization,
   }
 }
 
-function whereOf(filter: AdminServerFilter) {
+/** The reading `isStale` makes, written as SQL: a machine enrolling or revoked is never stale. */
+function staleWhere(now: Date): Prisma.ServerWhereInput {
+  const threshold = new Date(now.getTime() - STALE_AFTER_MS)
+
+  return {
+    status: { notIn: ["enrolling", "revoked"] },
+    OR: [
+      { lastHeartbeatAt: { lt: threshold } },
+      { lastHeartbeatAt: null, createdAt: { lt: threshold } },
+    ],
+  }
+}
+
+function whereOf(
+  filter: AdminServerFilter,
+  now: Date
+): Prisma.ServerWhereInput {
   const q = filter.q?.trim()
+  const stale = staleWhere(now)
 
   return {
     ...(filter.status ? { status: filter.status } : {}),
@@ -85,18 +126,38 @@ function whereOf(filter: AdminServerFilter) {
     ...(q
       ? { OR: [{ host: { contains: q } }, { name: { contains: q } }] }
       : {}),
+    ...(filter.stale === undefined
+      ? {}
+      : { AND: filter.stale ? [stale] : [{ NOT: stale }] }),
   }
+}
+
+function orderOf(
+  filter: AdminServerFilter
+): Prisma.ServerOrderByWithRelationInput {
+  const direction = filter.direction ?? "asc"
+
+  if (filter.sort === "last_heartbeat_at") {
+    return { lastHeartbeatAt: direction }
+  }
+
+  if (filter.sort === "name") {
+    return { name: direction }
+  }
+
+  return { createdAt: direction }
 }
 
 export async function listServersForPlatform(
   filter: AdminServerFilter
 ): Promise<AdminServerPage> {
   const prisma = getPrisma()
-  const where = whereOf(filter)
+  const now = new Date()
+  const where = whereOf(filter, now)
   const [servers, total] = await Promise.all([
     prisma.server.findMany({
       where,
-      orderBy: { createdAt: "asc" },
+      orderBy: orderOf(filter),
       skip: filter.offset,
       take: filter.limit,
       omit: WITHOUT_METRICS,
@@ -104,7 +165,6 @@ export async function listServersForPlatform(
     }),
     prisma.server.count({ where }),
   ])
-  const now = new Date()
   const alerts = await activeAlertsFor(servers.map((server) => server.id))
 
   return {
@@ -147,7 +207,11 @@ export async function suspendServerByAdmin(
 
   await prisma.server.update({
     where: { id: server.id },
-    data: { status: "suspended", suspendedReason: "admin" },
+    data: {
+      status: "suspended",
+      suspendedReason: "admin",
+      suspendedByOrganization: false,
+    },
   })
   await recordEvent({
     action: "server.suspended",
@@ -183,44 +247,103 @@ export interface AdminServerAssignee {
 export interface AdminServerDevice {
   id: string
   name: string
+  last_used_at: Date | null
   user: { id: string; email: string }
 }
 
+export interface AdminServerRevokedDevice {
+  device: AdminServerDevice
+  revoked_by: AdminServerAssignee | null
+  revoked_at: Date
+}
+
 export interface AdminServerDetail extends AdminServerView {
-  channel: ReleaseChannel
+  enrollment_expires_at: Date | null
   assigned_user: AdminServerAssignee | null
   device: AdminServerDevice | null
+  revoked_devices: AdminServerRevokedDevice[]
+  metrics: MetricSample[]
   events: AdminEventView[]
 }
+
+const DEVICE_SELECT = {
+  select: {
+    id: true,
+    name: true,
+    lastUsedAt: true,
+    user: { select: { id: true, email: true } },
+  },
+} as const
 
 const DETAIL_INCLUDE = {
   organization: ORGANIZATION_SELECT,
   assignedUser: { select: { id: true, email: true, name: true } },
-  device: {
-    select: {
-      id: true,
-      name: true,
-      user: { select: { id: true, email: true } },
-    },
+  device: DEVICE_SELECT,
+  revokedDevices: {
+    orderBy: { revokedAt: "desc" },
+    include: { device: DEVICE_SELECT },
   },
 } as const
 
 type ServerDetailRow = Prisma.ServerGetPayload<{
   include: typeof DETAIL_INCLUDE
-  omit: typeof WITHOUT_METRICS
 }>
 
+type DeviceRow = ServerDetailRow["device"]
+
+function toDeviceView(device: NonNullable<DeviceRow>): AdminServerDevice {
+  return {
+    id: device.id,
+    name: device.name,
+    last_used_at: device.lastUsedAt,
+    user: device.user,
+  }
+}
+
+/** `ServerRevokedDevice` names its actor by identifier alone: the journal shows a person. */
+async function revocationActorsOf(
+  revocations: ServerDetailRow["revokedDevices"]
+): Promise<Map<string, AdminServerAssignee>> {
+  const ids = [
+    ...new Set(
+      revocations
+        .map((revocation) => revocation.revokedByUserId)
+        .filter((id): id is string => id !== null)
+    ),
+  ]
+
+  if (ids.length === 0) {
+    return new Map()
+  }
+
+  const users = await getPrisma().user.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, email: true, name: true },
+  })
+
+  return new Map(users.map((user) => [user.id, user]))
+}
+
 async function detailOf(server: ServerDetailRow): Promise<AdminServerDetail> {
-  const [alerts, events] = await Promise.all([
+  const [alerts, events, actors] = await Promise.all([
     activeAlertsFor([server.id]),
     recentEvents({ targetType: "server", targetId: server.id }),
+    revocationActorsOf(server.revokedDevices),
   ])
 
   return {
     ...toAdminView(server, new Date(), alerts.get(server.id) ?? []),
-    channel: server.channel,
+    enrollment_expires_at: server.enrollmentExpiresAt,
     assigned_user: server.assignedUser,
-    device: server.device,
+    device: server.device ? toDeviceView(server.device) : null,
+    revoked_devices: server.revokedDevices.map((revocation) => ({
+      device: toDeviceView(revocation.device),
+      revoked_by: revocation.revokedByUserId
+        ? (actors.get(revocation.revokedByUserId) ?? null)
+        : null,
+      revoked_at: revocation.revokedAt,
+    })),
+    metrics: metricsOf(server),
     events,
   }
 }
@@ -230,11 +353,101 @@ export async function readServerForPlatform(
 ): Promise<AdminServerDetail | null> {
   const server = await getPrisma().server.findUnique({
     where: { id: serverId },
-    omit: WITHOUT_METRICS,
     include: DETAIL_INCLUDE,
   })
 
   return server ? await detailOf(server) : null
+}
+
+/**
+ * The channel a machine follows for its agent updates. A revoked machine has
+ * nothing left to update.
+ */
+export async function setServerChannel(
+  actor: AdminActor,
+  serverId: string,
+  channel: ReleaseChannel
+): Promise<AdminServerDetail | null> {
+  const prisma = getPrisma()
+  const server = await prisma.server.findUnique({
+    where: { id: serverId },
+    select: {
+      id: true,
+      organizationId: true,
+      status: true,
+      channel: true,
+      name: true,
+      host: true,
+    },
+  })
+
+  if (!server) {
+    return null
+  }
+
+  if (server.status === "revoked") {
+    throw new ServerRevokedError(server.id)
+  }
+
+  if (server.channel !== channel) {
+    await prisma.server.update({ where: { id: server.id }, data: { channel } })
+    await recordEvent({
+      action: "server.updated",
+      actorUserId: actor.userId,
+      organizationId: server.organizationId,
+      targetType: "server",
+      targetId: server.id,
+      payload: {
+        channel,
+        previous_channel: server.channel,
+        host: server.host,
+        name: server.name,
+      },
+    })
+  }
+
+  return await readServerForPlatform(server.id)
+}
+
+/**
+ * The team closes what a machine has open: an episode that is over keeps
+ * nobody's attention. A condition that still holds reopens at the next run.
+ */
+export async function clearServerAlertsByAdmin(
+  actor: AdminActor,
+  serverId: string,
+  now: Date = new Date()
+): Promise<number | null> {
+  const server = await getPrisma().server.findUnique({
+    where: { id: serverId },
+    select: { id: true, organizationId: true, name: true, host: true },
+  })
+
+  if (!server) {
+    return null
+  }
+
+  const closed = await closeOpenAlerts(server.id, now)
+
+  if (closed.length === 0) {
+    return 0
+  }
+
+  await recordEvent({
+    action: "server.alerts_cleared",
+    actorUserId: actor.userId,
+    organizationId: server.organizationId,
+    targetType: "server",
+    targetId: server.id,
+    payload: {
+      cleared: closed.length,
+      kinds: closed,
+      host: server.host,
+      name: server.name,
+    },
+  })
+
+  return closed.length
 }
 
 /**
@@ -320,7 +533,6 @@ export async function deleteServerByAdmin(
 
   const revoked = await getPrisma().server.findUniqueOrThrow({
     where: { id: server.id },
-    omit: WITHOUT_METRICS,
     include: DETAIL_INCLUDE,
   })
 

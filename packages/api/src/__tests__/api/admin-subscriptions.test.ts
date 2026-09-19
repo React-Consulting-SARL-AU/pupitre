@@ -5,7 +5,11 @@ import { expireGrantedSubscriptions } from "../../lib/billing/admin"
 import type { FakeBilling } from "../../lib/billing/fake"
 import { launchSubscriptionId } from "../../lib/billing/launch"
 import { type ApiTestServer, bootApiTestServer, resetDb } from "../../testing"
-import { remoteSubscription, useFakeBilling } from "../../testing/billing"
+import {
+  remoteSubscription,
+  useFakeBilling,
+  useLaunchBilling,
+} from "../../testing/billing"
 import {
   createOrganizationWithMembers,
   createServer,
@@ -25,9 +29,12 @@ interface AdminSubscription {
   quantity: number
   status: string
   current_period_end: string | null
+  cancel_at_period_end: boolean
   note: string | null
   platform: boolean
   live: boolean
+  seats: { paid: number; used: number }
+  drifted: boolean
   organization: { id: string; name: string; slug: string }
 }
 
@@ -37,6 +44,8 @@ interface SubscriptionBody {
 
 interface SubscriptionDetailBody {
   data: AdminSubscription & {
+    stripe_url: string | null
+    stripe_events: { id: string; type: string; status: string }[]
     events: { action: string; actor: { id: string } | null; payload: unknown }[]
   }
 }
@@ -724,5 +733,614 @@ describe("l'échéance d'un abonnement accordé", () => {
         where: { id: server.id },
       })
     ).toMatchObject({ status: "active" })
+  })
+})
+
+describe("GET /admin/subscriptions, filtres et tris", () => {
+  beforeAll(async () => {
+    harness = await bootApiTestServer()
+  })
+
+  beforeEach(async () => {
+    await resetDb()
+    useFakeBilling()
+  })
+
+  async function twoOrganizations() {
+    const { organization: atelierOrg } = await createOrganizationWithMembers({
+      name: "Atelier du Nord",
+      roles: ["owner"],
+    })
+    const { organization: bureau } = await createOrganizationWithMembers({
+      name: "Bureau Central",
+      roles: ["owner"],
+    })
+    const counted = await subscribeOrganization({
+      organizationId: atelierOrg.id,
+      status: "active",
+      currentPeriodEnd: new Date(Date.now() + 10 * DAY_MS),
+    })
+    const dropped = await subscribeOrganization({
+      organizationId: atelierOrg.id,
+      status: "canceled",
+      currentPeriodEnd: new Date(Date.now() - 10 * DAY_MS),
+    })
+    const other = await subscribeOrganization({
+      organizationId: bureau.id,
+      status: "trialing",
+    })
+
+    return { atelierOrg, bureau, counted, dropped, other }
+  }
+
+  it("filtre par organisation", async () => {
+    const { bureau, other } = await twoOrganizations()
+    const admin = await platformAdmin()
+    const response = await apiRequest<SubscriptionsBody>(
+      `/admin/subscriptions?organization_id=${bureau.id}`,
+      { session: admin }
+    )
+
+    expect(response.json.total).toBe(1)
+    expect(response.json.data.map((row) => row.id)).toEqual([other.id])
+  })
+
+  it("garde ou écarte celui qui compte pour son organisation", async () => {
+    const { counted, dropped, other } = await twoOrganizations()
+    const admin = await platformAdmin()
+    const live = await apiRequest<SubscriptionsBody>(
+      "/admin/subscriptions?live=true",
+      { session: admin }
+    )
+    const past = await apiRequest<SubscriptionsBody>(
+      "/admin/subscriptions?live=false",
+      { session: admin }
+    )
+
+    expect(live.json.total).toBe(2)
+    expect(live.json.data.map((row) => row.id).sort()).toEqual(
+      [counted.id, other.id].sort()
+    )
+    expect(past.json.total).toBe(1)
+    expect(past.json.data.map((row) => row.id)).toEqual([dropped.id])
+  })
+
+  it("cherche par nom, par slug et par identifiant Stripe", async () => {
+    const { bureau, other } = await twoOrganizations()
+    const admin = await platformAdmin()
+    const byName = await apiRequest<SubscriptionsBody>(
+      "/admin/subscriptions?q=Bureau",
+      { session: admin }
+    )
+    const bySlug = await apiRequest<SubscriptionsBody>(
+      `/admin/subscriptions?q=${bureau.slug}`,
+      { session: admin }
+    )
+    const byStripeId = await apiRequest<SubscriptionsBody>(
+      `/admin/subscriptions?q=${other.stripeSubscriptionId}`,
+      { session: admin }
+    )
+    const nothing = await apiRequest<SubscriptionsBody>(
+      "/admin/subscriptions?q=introuvable",
+      { session: admin }
+    )
+
+    expect(byName.json.data.map((row) => row.id)).toEqual([other.id])
+    expect(bySlug.json.data.map((row) => row.id)).toEqual([other.id])
+    expect(byStripeId.json.data.map((row) => row.id)).toEqual([other.id])
+    expect(nothing.json).toEqual({ data: [], total: 0 })
+  })
+
+  it("porte les sièges payés, les sièges occupés et la dérive sur chaque ligne", async () => {
+    const { organization } = await createOrganizationWithMembers({
+      name: "Atelier serré",
+      roles: ["owner"],
+    })
+    const tight = await subscribeOrganization({
+      organizationId: organization.id,
+      status: "active",
+      quantity: 1,
+    })
+    const { other } = await twoOrganizations()
+    const admin = await platformAdmin()
+
+    await createServer({ organizationId: organization.id })
+    await createServer({ organizationId: organization.id, status: "grace" })
+    await createServer({ organizationId: organization.id, status: "revoked" })
+
+    const response = await apiRequest<SubscriptionsBody>(
+      "/admin/subscriptions",
+      { session: admin }
+    )
+    const byId = new Map(response.json.data.map((row) => [row.id, row]))
+
+    expect(byId.get(tight.id)?.seats).toEqual({ paid: 1, used: 2 })
+    expect(byId.get(tight.id)?.drifted).toBe(true)
+    expect(byId.get(other.id)?.seats.used).toBe(0)
+    expect(byId.get(other.id)?.drifted).toBe(false)
+  })
+
+  it("trie par fin de période dans les deux sens, et refuse un tri inconnu", async () => {
+    const { counted, dropped } = await twoOrganizations()
+    const admin = await platformAdmin()
+    const ascending = await apiRequest<SubscriptionsBody>(
+      "/admin/subscriptions?sort=current_period_end&direction=asc",
+      { session: admin }
+    )
+    const descending = await apiRequest<SubscriptionsBody>(
+      "/admin/subscriptions?sort=current_period_end&direction=desc",
+      { session: admin }
+    )
+    const unknown = await apiRequest<ErrorBody>(
+      "/admin/subscriptions?sort=seats",
+      { session: admin }
+    )
+
+    expect(ascending.json.data.at(-1)?.id).toBe(counted.id)
+    expect(descending.json.data[0]?.id).toBe(counted.id)
+    expect(dropped.id).toBeString()
+    expect(unknown.status).toBe(422)
+  })
+
+  it("trie par création et par modification dans les deux sens", async () => {
+    const { counted, dropped, other } = await twoOrganizations()
+    const admin = await platformAdmin()
+    const order = [counted.id, dropped.id, other.id]
+
+    for (const [rank, id] of order.entries()) {
+      await harness.prisma.subscription.update({
+        where: { id },
+        data: {
+          createdAt: new Date(Date.now() - (order.length - rank) * DAY_MS),
+          updatedAt: new Date(Date.now() - (rank + 1) * DAY_MS),
+        },
+      })
+    }
+
+    const oldest = await apiRequest<SubscriptionsBody>(
+      "/admin/subscriptions?sort=created_at&direction=asc",
+      { session: admin }
+    )
+    const newest = await apiRequest<SubscriptionsBody>(
+      "/admin/subscriptions?sort=created_at&direction=desc",
+      { session: admin }
+    )
+    const touched = await apiRequest<SubscriptionsBody>(
+      "/admin/subscriptions?sort=updated_at&direction=desc",
+      { session: admin }
+    )
+
+    expect(oldest.json.data.map((row) => row.id)).toEqual(order)
+    expect(newest.json.data.map((row) => row.id)).toEqual([...order].reverse())
+    expect(touched.json.data.map((row) => row.id)).toEqual(order)
+  })
+
+  it("ne marque en dérive que l'abonnement qui compte, et le filtre ne garde que lui", async () => {
+    const { organization } = await createOrganizationWithMembers({
+      name: "Atelier serré",
+      roles: ["owner"],
+    })
+    const closed = await subscribeOrganization({
+      organizationId: organization.id,
+      status: "canceled",
+      quantity: 1,
+    })
+    const tight = await subscribeOrganization({
+      organizationId: organization.id,
+      status: "active",
+      quantity: 1,
+    })
+    const { other } = await twoOrganizations()
+    const admin = await platformAdmin()
+
+    await createServer({ organizationId: organization.id })
+    await createServer({ organizationId: organization.id, status: "grace" })
+
+    const every = await apiRequest<SubscriptionsBody>("/admin/subscriptions", {
+      session: admin,
+    })
+    const byId = new Map(every.json.data.map((row) => [row.id, row]))
+    const adrift = await apiRequest<SubscriptionsBody>(
+      "/admin/subscriptions?drifted=true",
+      { session: admin }
+    )
+    const covered = await apiRequest<SubscriptionsBody>(
+      "/admin/subscriptions?drifted=false",
+      { session: admin }
+    )
+
+    expect(byId.get(tight.id)?.drifted).toBe(true)
+    expect(byId.get(closed.id)?.seats).toEqual({ paid: 1, used: 2 })
+    expect(byId.get(closed.id)?.drifted).toBe(false)
+
+    expect(adrift.json.total).toBe(1)
+    expect(adrift.json.data.map((row) => row.id)).toEqual([tight.id])
+    expect(covered.json.data.map((row) => row.id)).toContain(closed.id)
+    expect(covered.json.data.map((row) => row.id)).toContain(other.id)
+    expect(covered.json.data.map((row) => row.id)).not.toContain(tight.id)
+  })
+
+  it("garde tout produit hors plateforme sous le filtre stripe", async () => {
+    const { organization } = await atelier()
+    const granted = await subscribeOrganization({
+      organizationId: organization.id,
+      status: "canceled",
+    })
+    const { counted, dropped, other } = await twoOrganizations()
+    const admin = await platformAdmin()
+
+    await harness.prisma.subscription.update({
+      where: { id: granted.id },
+      data: { product: GRANTED_PRODUCT },
+    })
+
+    const stripe = await apiRequest<SubscriptionsBody>(
+      "/admin/subscriptions?product=stripe",
+      { session: admin }
+    )
+    const offered = await apiRequest<SubscriptionsBody>(
+      `/admin/subscriptions?product=${GRANTED_PRODUCT}`,
+      { session: admin }
+    )
+
+    expect(stripe.json.total).toBe(3)
+    expect(stripe.json.data.map((row) => row.id).sort()).toEqual(
+      [counted.id, dropped.id, other.id].sort()
+    )
+    expect(offered.json.data.map((row) => row.id)).toEqual([granted.id])
+  })
+})
+
+describe("GET /admin/subscriptions/:id, sièges, dérive et Stripe", () => {
+  beforeAll(async () => {
+    harness = await bootApiTestServer()
+  })
+
+  beforeEach(async () => {
+    await resetDb()
+    useFakeBilling()
+  })
+
+  it("compte les sièges occupés, signale la dérive et pointe le tableau de bord Stripe", async () => {
+    const { organization } = await atelier()
+    const stripe = await subscribeOrganization({
+      organizationId: organization.id,
+      status: "active",
+      quantity: 1,
+    })
+
+    await createServer({ organizationId: organization.id })
+    await createServer({ organizationId: organization.id, status: "grace" })
+    await createServer({ organizationId: organization.id, status: "revoked" })
+    await harness.prisma.stripeEvent.createMany({
+      data: [
+        {
+          id: "evt_detail_1",
+          type: "customer.subscription.updated",
+          status: "processed",
+          subscriptionId: stripe.stripeSubscriptionId,
+          receivedAt: new Date(Date.now() - DAY_MS),
+        },
+        {
+          id: "evt_detail_2",
+          type: "invoice.payment_failed",
+          status: "failed",
+          subscriptionId: stripe.stripeSubscriptionId,
+          receivedAt: new Date(),
+        },
+        {
+          id: "evt_detail_ailleurs",
+          type: "customer.subscription.updated",
+          status: "processed",
+          subscriptionId: "sub_autre",
+        },
+      ],
+    })
+
+    const admin = await platformAdmin()
+    const response = await apiRequest<SubscriptionDetailBody>(
+      `/admin/subscriptions/${stripe.id}`,
+      { session: admin }
+    )
+
+    expect(response.status).toBe(200)
+    expect(response.json.data.seats).toEqual({ paid: 1, used: 2 })
+    expect(response.json.data.drifted).toBe(true)
+    expect(response.json.data.stripe_url).toContain(
+      `/subscriptions/${stripe.stripeSubscriptionId}`
+    )
+    expect(response.json.data.stripe_events.map((event) => event.id)).toEqual([
+      "evt_detail_2",
+      "evt_detail_1",
+    ])
+    expect(response.json.data.stripe_events[0]?.status).toBe("failed")
+  })
+
+  it("ne dérive pas quand les sièges couvrent, et n'a pas d'adresse Stripe sur un produit de la plateforme", async () => {
+    const { organization } = await atelier()
+    const admin = await platformAdmin()
+    const granted = await grant(organization.id, admin, { seats: 3 })
+
+    await createServer({ organizationId: organization.id })
+
+    const response = await apiRequest<SubscriptionDetailBody>(
+      `/admin/subscriptions/${granted.json.data.id}`,
+      { session: admin }
+    )
+
+    expect(response.json.data.seats).toEqual({ paid: 3, used: 1 })
+    expect(response.json.data.drifted).toBe(false)
+    expect(response.json.data.stripe_url).toBeNull()
+    expect(response.json.data.stripe_events).toEqual([])
+  })
+})
+
+describe("POST /admin/subscriptions/:id/trial", () => {
+  beforeAll(async () => {
+    harness = await bootApiTestServer()
+  })
+
+  beforeEach(async () => {
+    await resetDb()
+    billing = useFakeBilling()
+  })
+
+  afterAll(() => {
+    useFakeBilling()
+  })
+
+  async function trialing() {
+    const { organization } = await atelier()
+    const endsAt = new Date(Date.now() + 5 * DAY_MS)
+    const stripe = await subscribeOrganization({
+      organizationId: organization.id,
+      status: "trialing",
+      quantity: 2,
+      currentPeriodEnd: endsAt,
+    })
+
+    billing.put(
+      remoteSubscription({
+        id: stripe.stripeSubscriptionId,
+        organizationId: organization.id,
+        status: "trialing",
+        quantity: 2,
+        currentPeriodEnd: endsAt,
+      })
+    )
+
+    return { organization, stripe, endsAt }
+  }
+
+  it("repousse la fin chez Stripe, reflète la réponse et garde les deux dates au journal", async () => {
+    const { stripe, endsAt } = await trialing()
+    const admin = await platformAdmin()
+    const later = new Date(Date.now() + 20 * DAY_MS)
+    const response = await apiRequest<SubscriptionBody>(
+      `/admin/subscriptions/${stripe.id}/trial`,
+      { body: { ends_at: later.toISOString() }, session: admin }
+    )
+
+    expect(response.status).toBe(200)
+    expect(response.json.data).toMatchObject({
+      status: "trialing",
+      current_period_end: later.toISOString(),
+    })
+    expect(billing.trials).toEqual([
+      { subscriptionId: stripe.stripeSubscriptionId, endsAt: later },
+    ])
+
+    const event = await harness.prisma.event.findFirstOrThrow({
+      where: {
+        action: "subscription.updated",
+        targetId: stripe.stripeSubscriptionId,
+      },
+    })
+
+    expect(event.actorUserId).toBe(admin.session.userId)
+    expect(event.payload).toMatchObject({
+      trial_ends_at: later.toISOString(),
+      previous_trial_ends_at: endsAt.toISOString(),
+    })
+  })
+
+  it("refuse un produit de la plateforme, un abonnement hors essai et une date passée", async () => {
+    const { organization } = await atelier()
+    const admin = await platformAdmin()
+    const granted = await grant(organization.id, admin, { seats: 1 })
+    const { organization: other } = await atelier()
+    const active = await subscribeOrganization({
+      organizationId: other.id,
+      status: "active",
+    })
+    const { stripe } = await trialing()
+    const later = new Date(Date.now() + 20 * DAY_MS).toISOString()
+    const platform = await apiRequest<ErrorBody>(
+      `/admin/subscriptions/${granted.json.data.id}/trial`,
+      { body: { ends_at: later }, session: admin }
+    )
+    const notTrialing = await apiRequest<ErrorBody>(
+      `/admin/subscriptions/${active.id}/trial`,
+      { body: { ends_at: later }, session: admin }
+    )
+    const past = await apiRequest<ErrorBody>(
+      `/admin/subscriptions/${stripe.id}/trial`,
+      {
+        body: { ends_at: new Date(Date.now() - DAY_MS).toISOString() },
+        session: admin,
+      }
+    )
+
+    expect(platform.status).toBe(409)
+    expect(platform.json.error.code).toBe("conflict")
+    expect(platform.json.error.fix).toBeString()
+    expect(notTrialing.status).toBe(409)
+    expect(notTrialing.json.error.code).toBe("conflict")
+    expect(past.status).toBe(422)
+    expect(past.json.error.code).toBe("validation")
+    expect(billing.trials).toHaveLength(0)
+  })
+
+  it("refuse pendant le lancement, un abonnement absent, un membre et un anonyme", async () => {
+    const { stripe } = await trialing()
+    const admin = await platformAdmin()
+    const later = new Date(Date.now() + 20 * DAY_MS).toISOString()
+    const missing = await apiRequest<ErrorBody>(
+      "/admin/subscriptions/nope/trial",
+      { body: { ends_at: later }, session: admin }
+    )
+    const anonymous = await apiRequest<ErrorBody>(
+      `/admin/subscriptions/${stripe.id}/trial`,
+      { body: { ends_at: later } }
+    )
+
+    expect(missing.status).toBe(404)
+    expect(anonymous.status).toBe(401)
+
+    useLaunchBilling()
+
+    const launch = await apiRequest<ErrorBody>(
+      `/admin/subscriptions/${stripe.id}/trial`,
+      { body: { ends_at: later }, session: admin }
+    )
+
+    expect(launch.status).toBe(409)
+    expect(launch.json.error.code).toBe("conflict")
+    expect(launch.json.error.message).toContain("Stripe")
+  })
+})
+
+describe("POST /admin/subscriptions/:id/resume", () => {
+  beforeAll(async () => {
+    harness = await bootApiTestServer()
+  })
+
+  beforeEach(async () => {
+    await resetDb()
+    billing = useFakeBilling()
+  })
+
+  afterAll(() => {
+    useFakeBilling()
+  })
+
+  async function endingAtPeriodEnd() {
+    const { organization } = await atelier()
+    const periodEnd = new Date(Date.now() + 12 * DAY_MS)
+    const stripe = await subscribeOrganization({
+      organizationId: organization.id,
+      status: "active",
+      quantity: 2,
+      currentPeriodEnd: periodEnd,
+      cancelAtPeriodEnd: true,
+    })
+
+    billing.put(
+      remoteSubscription({
+        id: stripe.stripeSubscriptionId,
+        organizationId: organization.id,
+        status: "active",
+        quantity: 2,
+        currentPeriodEnd: periodEnd,
+        cancelAtPeriodEnd: true,
+      })
+    )
+
+    return { organization, stripe, periodEnd }
+  }
+
+  it("reprend l'abonnement chez Stripe et le miroir cesse d'annoncer la fin", async () => {
+    const { stripe, periodEnd } = await endingAtPeriodEnd()
+    const admin = await platformAdmin()
+    const response = await apiRequest<SubscriptionBody>(
+      `/admin/subscriptions/${stripe.id}/resume`,
+      { method: "POST", session: admin }
+    )
+
+    expect(response.status).toBe(200)
+    expect(response.json.data).toMatchObject({
+      status: "active",
+      cancel_at_period_end: false,
+      current_period_end: periodEnd.toISOString(),
+    })
+    expect(billing.resumptions).toEqual([stripe.stripeSubscriptionId])
+    expect(
+      await harness.prisma.subscription.findUniqueOrThrow({
+        where: { id: stripe.id },
+      })
+    ).toMatchObject({ cancelAtPeriodEnd: false })
+
+    const event = await harness.prisma.event.findFirstOrThrow({
+      where: {
+        action: "subscription.updated",
+        targetId: stripe.stripeSubscriptionId,
+      },
+    })
+
+    expect(event.actorUserId).toBe(admin.session.userId)
+    expect(event.payload).toMatchObject({
+      cancel_at_period_end: false,
+      previous_cancel_at_period_end: true,
+    })
+  })
+
+  it("refuse un abonnement qui ne se termine pas, un abonnement arrêté et un produit de la plateforme", async () => {
+    const { organization } = await atelier()
+    const admin = await platformAdmin()
+    const granted = await grant(organization.id, admin, { seats: 1 })
+    const { organization: other } = await atelier()
+    const running = await subscribeOrganization({
+      organizationId: other.id,
+      status: "active",
+    })
+    const { organization: third } = await atelier()
+    const stopped = await subscribeOrganization({
+      organizationId: third.id,
+      status: "canceled",
+      cancelAtPeriodEnd: true,
+    })
+    const platform = await apiRequest<ErrorBody>(
+      `/admin/subscriptions/${granted.json.data.id}/resume`,
+      { method: "POST", session: admin }
+    )
+    const notEnding = await apiRequest<ErrorBody>(
+      `/admin/subscriptions/${running.id}/resume`,
+      { method: "POST", session: admin }
+    )
+    const alreadyStopped = await apiRequest<ErrorBody>(
+      `/admin/subscriptions/${stopped.id}/resume`,
+      { method: "POST", session: admin }
+    )
+
+    expect(platform.status).toBe(409)
+    expect(notEnding.status).toBe(409)
+    expect(notEnding.json.error.code).toBe("conflict")
+    expect(notEnding.json.error.fix).toBeString()
+    expect(alreadyStopped.status).toBe(409)
+    expect(billing.resumptions).toHaveLength(0)
+  })
+
+  it("refuse un abonnement absent, un membre et un anonyme", async () => {
+    const { organization, stripe } = await endingAtPeriodEnd()
+    const [owner] = (await createOrganizationWithMembers({ roles: ["owner"] }))
+      .members
+    const admin = await platformAdmin()
+    const missing = await apiRequest<ErrorBody>(
+      "/admin/subscriptions/nope/resume",
+      { method: "POST", session: admin }
+    )
+    const member = await apiRequest<ErrorBody>(
+      `/admin/subscriptions/${stripe.id}/resume`,
+      { method: "POST", session: owner }
+    )
+    const anonymous = await apiRequest<ErrorBody>(
+      `/admin/subscriptions/${stripe.id}/resume`,
+      { method: "POST" }
+    )
+
+    expect(organization.id).toBeString()
+    expect(missing.status).toBe(404)
+    expect(member.status).toBe(403)
+    expect(anonymous.status).toBe(401)
   })
 })

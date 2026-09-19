@@ -1,10 +1,12 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "bun:test"
 import { joinPlatformOrganization } from "@pupitre/auth/testing"
 import { LEGAL_CONTACTS } from "@pupitre/shared/legal"
+import { PLATFORM_MAILBOX_IDS } from "@pupitre/shared/platform"
 import { ingestInboundEmail } from "../../lib/mail/ingest"
 import { bootApiTestServer, resetDb } from "../../testing"
 import {
   resetFakeMail,
+  seedPlatformMailboxes,
   useFailingMailTransport,
   useFakeMail,
 } from "../../testing/mail"
@@ -148,6 +150,7 @@ describe("/admin/inbox", () => {
   beforeEach(async () => {
     await resetDb()
     mail = useFakeMail()
+    await seedPlatformMailboxes()
 
     const ownerUser = await createUser({
       email: "jordan@pupitre.studio",
@@ -656,7 +659,7 @@ describe("/admin/inbox", () => {
       data: ThreadRow & { messages: MessageRow[] }
     }>("/admin/inbox/compose", {
       body: {
-        from: LEGAL_CONTACTS.legal,
+        mailbox_id: PLATFORM_MAILBOX_IDS.legal,
         to: ["client@exemple.fr"],
         subject: "Mise à jour des conditions",
         text: "Bonjour, voici la nouvelle version.",
@@ -677,7 +680,7 @@ describe("/admin/inbox", () => {
       data: ThreadRow & { messages: MessageRow[] }
     }>("/admin/inbox/compose", {
       body: {
-        from: LEGAL_CONTACTS.legal,
+        mailbox_id: PLATFORM_MAILBOX_IDS.legal,
         to: ["client@exemple.fr"],
         subject: "Conditions",
         text: "Ci-joint.",
@@ -689,7 +692,7 @@ describe("/admin/inbox", () => {
       "/admin/inbox/compose",
       {
         body: {
-          from: LEGAL_CONTACTS.legal,
+          mailbox_id: PLATFORM_MAILBOX_IDS.legal,
           to: ["client@exemple.fr"],
           subject: "Sans fichier",
           text: "Ci-joint.",
@@ -711,28 +714,22 @@ describe("/admin/inbox", () => {
     expect(await prisma.mailThread.count()).toBe(1)
   })
 
-  it("refuse une adresse d'expédition qui n'est pas vérifiée", async () => {
-    const response = await apiRequest("/admin/inbox/compose", {
-      body: {
-        from: "jordan@pupitre.studio",
-        to: ["client@exemple.fr"],
-        subject: "Bonjour",
-        text: "Bonjour",
-      },
-      session: owner.session,
-    })
-
-    expect(response.status).toBe(422)
-  })
-
-  it("rend les adresses d'expédition", async () => {
-    const response = await apiRequest<{ data: string[] }>(
-      "/admin/inbox/addresses",
-      { session: member.session }
+  it("refuse d'écrire depuis une boîte qui n'existe pas", async () => {
+    const response = await apiRequest<{ error: { code: string } }>(
+      "/admin/inbox/compose",
+      {
+        body: {
+          mailbox_id: "mbx_inconnue",
+          to: ["client@exemple.fr"],
+          subject: "Bonjour",
+          text: "Bonjour",
+        },
+        session: owner.session,
+      }
     )
 
-    expect(response.json.data).toContain(LEGAL_CONTACTS.support)
-    expect(response.json.data).toHaveLength(4)
+    expect(response.status).toBe(422)
+    expect(response.json.error.code).toBe("validation")
   })
 
   it("refuse tout à qui n'est pas de l'équipe", async () => {

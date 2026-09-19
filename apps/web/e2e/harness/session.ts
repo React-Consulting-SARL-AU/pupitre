@@ -115,11 +115,44 @@ export async function chooseBillingMode(
   expect(chosen.ok()).toBe(true)
 }
 
+/** An organisation that came through a link, so the page holds one that no longer deletes. */
+export async function seedReferral(
+  request: APIRequestContext,
+  data: { email: string; code: string }
+): Promise<void> {
+  const seeded = await request.post(harnessUrl("/referrals"), { data })
+
+  expect(seeded.ok()).toBe(true)
+}
+
+export async function seedAlert(
+  request: APIRequestContext,
+  data: { email: string; server: string; kind: string }
+): Promise<void> {
+  const seeded = await request.post(harnessUrl("/alerts"), { data })
+
+  expect(seeded.ok()).toBe(true)
+}
+
 export async function seedServer(
   request: APIRequestContext,
   data: { email: string; name: string; status?: string }
 ): Promise<void> {
   const seeded = await request.post(harnessUrl("/servers"), { data })
+
+  expect(seeded.ok()).toBe(true)
+}
+
+/** A second seat in someone else's organization; the console only hands one out by invitation. */
+export async function seedMember(
+  request: APIRequestContext,
+  data: {
+    organization_email: string
+    email: string
+    role?: "owner" | "admin" | "member"
+  }
+): Promise<void> {
+  const seeded = await request.post(harnessUrl("/members"), { data })
 
   expect(seeded.ok()).toBe(true)
 }

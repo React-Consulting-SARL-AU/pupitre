@@ -1,9 +1,8 @@
-import { PLATFORM_PRODUCTS } from "@pupitre/shared/plans"
 import { sendSeatsDriftEmail } from "../../emails/notifications"
 import { getPrisma } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import { getBillingProvider } from "./runtime"
-import { PAYING_SUBSCRIPTION_STATUSES, SEATED_STATUSES } from "./seats"
+import { readSeatUsage } from "./seats"
 
 export interface SeatReconciliation {
   organization_id: string
@@ -53,35 +52,10 @@ export async function reconcileSeats({
   apply = false,
 }: ReconcileSeatsOptions = {}): Promise<SeatReconciliation[]> {
   const prisma = getPrisma()
-  const subscriptions = await prisma.subscription.findMany({
-    where: {
-      status: { in: PAYING_SUBSCRIPTION_STATUSES },
-      product: { notIn: [...PLATFORM_PRODUCTS] },
-    },
-    orderBy: { createdAt: "asc" },
-  })
-
-  if (subscriptions.length === 0) {
-    return []
-  }
-
-  const seats = await prisma.server.groupBy({
-    by: ["organizationId"],
-    where: {
-      status: { in: SEATED_STATUSES },
-      organizationId: {
-        in: subscriptions.map((subscription) => subscription.organizationId),
-      },
-    },
-    _count: { _all: true },
-  })
-  const seatedByOrganization = new Map(
-    seats.map((row) => [row.organizationId, row._count._all])
-  )
+  const usage = await readSeatUsage()
   const report: SeatReconciliation[] = []
 
-  for (const subscription of subscriptions) {
-    const seated = seatedByOrganization.get(subscription.organizationId) ?? 0
+  for (const { subscription, seated } of usage) {
     const drift = seated - subscription.quantity
     let applied = false
 

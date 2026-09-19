@@ -1,39 +1,85 @@
 import { ADMIN_PAGE_SIZE } from "@pupitre/shared/platform"
 import { useQuery } from "@tanstack/react-query"
-import { CreditCard } from "lucide-react"
-import { useState } from "react"
-import { AdminFailure } from "@/components/admin/admin-failure"
-import { AdminSubscriptionRow } from "@/components/admin/admin-subscription-row"
-import { Card, CardHeader, CardTitle } from "@/components/ui/card"
-import { EmptyState } from "@/components/ui/empty-state"
+import { CreditCard, X } from "lucide-react"
+import { adminSubscriptionColumns } from "@/components/admin/admin-subscription-columns"
+import { AsyncDataTable } from "@/components/ui/async-data-table"
+import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Pagination } from "@/components/ui/pagination"
 import { Select } from "@/components/ui/select"
-import { SkeletonRows } from "@/components/ui/skeleton"
+import { Switch } from "@/components/ui/switch"
 import { useTranslations } from "@/hooks/use-locale"
 import { adminSubscriptionsQueryOptions } from "@/lib/api/admin-queries"
+import type { AdminSortDirection } from "@/lib/api/queries"
 import {
   SUBSCRIPTION_PRODUCT_FILTERS,
   SUBSCRIPTION_STATUS_FILTERS,
 } from "@/lib/domain/admin"
 import { subscriptionStatusLook } from "@/lib/domain/billing"
+import {
+  FILTER_ALL,
+  flagValue,
+  type ListSearchHandle,
+  listSort,
+  readFlag,
+  type SortDirection,
+} from "@/lib/domain/list-search"
 import { formatProduct } from "@/lib/utils/format"
 
-const ALL = ""
+export const SUBSCRIPTION_SORTS = [
+  "created_at",
+  "current_period_end",
+  "updated_at",
+] as const
 
-export function AdminSubscriptionList() {
+type SubscriptionSort = (typeof SUBSCRIPTION_SORTS)[number]
+
+export const SUBSCRIPTION_SORT: SubscriptionSort = "created_at"
+
+export interface AdminSubscriptionListSearch {
+  q?: string
+  offset?: number
+  status?: string
+  product?: string
+  organization_id?: string
+  live?: boolean
+  drifted?: boolean
+  sort?: string
+  direction?: SortDirection
+}
+
+export type AdminSubscriptionListProps =
+  ListSearchHandle<AdminSubscriptionListSearch>
+
+export function AdminSubscriptionList({
+  search,
+  setSearch,
+}: AdminSubscriptionListProps) {
   const t = useTranslations()
-  const [status, setStatus] = useState(ALL)
-  const [product, setProduct] = useState(ALL)
-  const [offset, setOffset] = useState(0)
+  const offset = search.offset ?? 0
+  const query = search.q ?? ""
+  const status = search.status ?? FILTER_ALL
+  const product = search.product ?? FILTER_ALL
+  const organizationId = search.organization_id ?? ""
+  const sort = listSort(search.sort, SUBSCRIPTION_SORTS, SUBSCRIPTION_SORT)
+  const direction: AdminSortDirection = search.direction ?? "desc"
   const page = useQuery(
     adminSubscriptionsQueryOptions({
       limit: ADMIN_PAGE_SIZE,
       offset,
-      ...(status === ALL ? {} : { status }),
-      ...(product === ALL ? {} : { product }),
+      sort,
+      direction,
+      ...(status === FILTER_ALL ? {} : { status }),
+      ...(product === FILTER_ALL ? {} : { product }),
+      ...(organizationId === "" ? {} : { organization_id: organizationId }),
+      ...(search.live === undefined ? {} : { live: search.live }),
+      ...(search.drifted ? { drifted: true } : {}),
+      ...(query === "" ? {} : { q: query }),
     })
   )
+  const organizationName =
+    page.data?.data.find(
+      (subscription) => subscription.organization.id === organizationId
+    )?.organization.name ?? organizationId
 
   function statusName(candidate: string): string {
     const look = subscriptionStatusLook(candidate)
@@ -42,102 +88,143 @@ export function AdminSubscriptionList() {
   }
 
   return (
-    <div className="flex flex-col gap-gutter">
-      <div className="flex flex-wrap items-end gap-gutter">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="admin-subscriptions-status">
-            {t("admin.servers.status")}
-          </Label>
-          <Select
-            className="w-[200px]"
-            id="admin-subscriptions-status"
-            items={[
-              { value: ALL, label: t("admin.servers.allStatuses") },
-              ...SUBSCRIPTION_STATUS_FILTERS.map((candidate) => ({
-                value: candidate,
-                label: statusName(candidate),
-              })),
-            ]}
-            onValueChange={(next) => {
-              setStatus(next)
-              setOffset(0)
+    <AsyncDataTable
+      columns={adminSubscriptionColumns(t)}
+      data={page.data?.data ?? []}
+      emptyIcon={CreditCard}
+      emptyTitle={t("admin.subscriptions.empty")}
+      filters={
+        <>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="admin-subscriptions-status">
+              {t("admin.servers.status")}
+            </Label>
+            <Select
+              className="w-[200px]"
+              id="admin-subscriptions-status"
+              items={[
+                { value: FILTER_ALL, label: t("admin.servers.allStatuses") },
+                ...SUBSCRIPTION_STATUS_FILTERS.map((candidate) => ({
+                  value: candidate,
+                  label: statusName(candidate),
+                })),
+              ]}
+              onValueChange={(next) => {
+                setSearch({ status: next })
+              }}
+              value={status}
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="admin-subscriptions-product">
+              {t("admin.subscriptions.productLabel")}
+            </Label>
+            <Select
+              className="w-[200px]"
+              id="admin-subscriptions-product"
+              items={[
+                {
+                  value: FILTER_ALL,
+                  label: t("admin.subscriptions.allProducts"),
+                },
+                ...SUBSCRIPTION_PRODUCT_FILTERS.map((candidate) => ({
+                  value: candidate,
+                  label: formatProduct(candidate, t),
+                })),
+              ]}
+              onValueChange={(next) => {
+                setSearch({ product: next })
+              }}
+              value={product}
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="admin-subscriptions-live">
+              {t("admin.subscriptions.live")}
+            </Label>
+            <Select
+              className="w-[240px]"
+              id="admin-subscriptions-live"
+              items={[
+                {
+                  value: FILTER_ALL,
+                  label: t("admin.subscriptions.anyCounted"),
+                },
+                { value: "true", label: t("admin.subscriptions.counted") },
+                { value: "false", label: t("admin.subscriptions.over") },
+              ]}
+              onValueChange={(next) => {
+                setSearch({ live: readFlag(next) })
+              }}
+              value={flagValue(search.live)}
+            />
+          </div>
+
+          <Switch
+            checked={search.drifted === true}
+            id="admin-subscriptions-drifted"
+            label={t("admin.subscriptions.driftedFilter")}
+            onCheckedChange={(next) => {
+              setSearch({ drifted: next ? true : undefined })
             }}
-            value={status}
           />
-        </div>
 
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="admin-subscriptions-product">
-            {t("admin.subscriptions.productLabel")}
-          </Label>
-          <Select
-            className="w-[200px]"
-            id="admin-subscriptions-product"
-            items={[
-              { value: ALL, label: t("admin.subscriptions.allProducts") },
-              ...SUBSCRIPTION_PRODUCT_FILTERS.map((candidate) => ({
-                value: candidate,
-                label: formatProduct(candidate, t),
-              })),
-            ]}
-            onValueChange={(next) => {
-              setProduct(next)
-              setOffset(0)
-            }}
-            value={product}
-          />
-        </div>
-      </div>
-
-      {page.isPending ? <SkeletonRows label={t("admin.reading")} /> : null}
-
-      {page.isError ? (
-        <AdminFailure
-          fetching={page.isFetching}
-          onRetry={() => {
-            page.refetch()
-          }}
-        />
-      ) : null}
-
-      {page.isSuccess && page.data.total === 0 ? (
-        <EmptyState icon={CreditCard} title={t("admin.subscriptions.empty")} />
-      ) : null}
-
-      {page.isSuccess && page.data.total > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("admin.subscriptions.title")}</CardTitle>
-            <span className="font-data text-[12px] text-ink-3 tabular-nums">
-              {t("admin.range", {
-                from: offset + 1,
-                to: offset + page.data.data.length,
-                total: page.data.total,
+          {organizationId === "" ? null : (
+            <Button
+              icon={X}
+              onClick={() => {
+                setSearch({ organization_id: undefined })
+              }}
+              size="sm"
+              title={t("admin.subscriptions.everyOrganization")}
+              variant="secondary"
+            >
+              {t("admin.subscriptions.organizationFilter", {
+                name: organizationName,
               })}
-            </span>
-          </CardHeader>
-
-          <ul aria-busy={page.isFetching || undefined}>
-            {page.data.data.map((subscription) => (
-              <AdminSubscriptionRow
-                key={subscription.id}
-                subscription={subscription}
-              />
-            ))}
-          </ul>
-        </Card>
-      ) : null}
-
-      {page.isSuccess ? (
-        <Pagination
-          nextLabel={t("admin.next")}
-          offset={offset}
-          onOffsetChange={setOffset}
-          pageSize={ADMIN_PAGE_SIZE}
-          previousLabel={t("admin.previous")}
-          total={page.data.total}
-        />
-      ) : null}
-    </div>
+            </Button>
+          )}
+        </>
+      }
+      isError={page.isError}
+      isFetching={page.isFetching}
+      isPending={page.isPending}
+      limit={ADMIN_PAGE_SIZE}
+      offset={offset}
+      onOffsetChange={(next) => {
+        setSearch({ offset: next })
+      }}
+      refetch={() => {
+        page.refetch()
+      }}
+      rowKey={(subscription) => subscription.id}
+      rowLabel={(subscription) => subscription.organization.name}
+      rowLink={(subscription) => ({
+        to: "/dashboard/admin/subscriptions/$id",
+        params: { id: subscription.id },
+      })}
+      search={{
+        id: "admin-subscriptions-search",
+        value: query,
+        placeholder: t("admin.subscriptions.searchPlaceholder"),
+        onChange: (next) => {
+          setSearch({ q: next })
+        },
+      }}
+      sort={{
+        key: sort,
+        direction,
+        onChange: (key, next) => {
+          setSearch({
+            sort: listSort(key, SUBSCRIPTION_SORTS, SUBSCRIPTION_SORT),
+            direction: next,
+          })
+        },
+      }}
+      title={t("admin.subscriptions.title")}
+      total={page.data?.total ?? 0}
+    />
   )
 }

@@ -14,7 +14,70 @@ export const PLATFORM_ADMIN_USER_ID = "usr_pupitre_admin"
 
 export const PLATFORM_ADMIN_MEMBER_ID = "mem_pupitre_admin"
 
+/**
+ * The four mailboxes the migration writes. Their identifiers are stable like
+ * the organization's: a renamed one orphans the threads already attached.
+ */
+export const PLATFORM_MAILBOX_IDS = {
+  support: "mbx_support",
+  legal: "mbx_legal",
+  privacy: "mbx_privacy",
+  security: "mbx_security",
+} as const
+
+export type PlatformMailboxKey = keyof typeof PLATFORM_MAILBOX_IDS
+
+export const PLATFORM_MAILBOX_ID_LIST = Object.values(PLATFORM_MAILBOX_IDS)
+
+export function isPlatformMailboxId(value: string): boolean {
+  return PLATFORM_MAILBOX_ID_LIST.includes(
+    value as (typeof PLATFORM_MAILBOX_ID_LIST)[number]
+  )
+}
+
 /** How many rows a platform page asks for, and the most it may ask for. */
 export const ADMIN_PAGE_SIZE = 50
 
 export const ADMIN_MAX_PAGE_SIZE = 200
+
+/** How long a scheduled purge stays cancellable before the rows leave the database. */
+export const DELETION_GRACE_DAYS = 7
+
+export const ACCOUNT_STATES = [
+  "active",
+  "suspended",
+  "deactivated",
+  "deleting",
+] as const
+
+export type AccountState = (typeof ACCOUNT_STATES)[number]
+
+export const ORGANIZATION_STATES = [
+  "active",
+  "suspended",
+  "closed",
+  "deleting",
+] as const
+
+export type OrganizationState = (typeof ORGANIZATION_STATES)[number]
+
+export function deletionDeadline(from: Date = new Date()): Date {
+  return new Date(from.getTime() + DELETION_GRACE_DAYS * 86_400_000)
+}
+
+/** How many lines a work list of the overview shows before its "see everything" link. */
+export const WORKLIST_ITEMS = 5
+
+/**
+ * How close to its end a trial has to be for the overview to raise it. The team
+ * looks further ahead than the customer, whose own warning is `TRIAL_WARN_DAYS`
+ * in `@pupitre/shared/plans`.
+ */
+export const TRIAL_WORKLIST_DAYS = 7
+
+/** The global search: how short a query may be, how long, and how many hits a group returns. */
+export const PLATFORM_SEARCH_MIN_LENGTH = 2
+
+export const PLATFORM_SEARCH_MAX_LENGTH = 80
+
+export const PLATFORM_SEARCH_RESULTS = 5

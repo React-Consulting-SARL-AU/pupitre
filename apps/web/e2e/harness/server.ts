@@ -9,9 +9,9 @@ import {
   useLaunchBilling,
 } from "@pupitre/api/testing/billing"
 import { createServer } from "@pupitre/api/testing/factories"
-import { useFakeMail } from "@pupitre/api/testing/mail"
+import { seedPlatformMailboxes, useFakeMail } from "@pupitre/api/testing/mail"
 import { joinPlatformOrganization } from "@pupitre/auth/testing"
-import { MAIL_SENDER_ADDRESSES } from "@pupitre/shared/legal"
+import { LEGAL_CONTACTS } from "@pupitre/shared/legal"
 import { serve } from "bun"
 import { HARNESS_PORT, HARNESS_PREFIX, VITE_PORT } from "./ports"
 
@@ -24,7 +24,7 @@ const BODYLESS_METHODS = new Set(["GET", "HEAD"])
 
 const TRIAL_DAYS_MS = 14 * 86_400_000
 
-const SUPPORT_ADDRESS = MAIL_SENDER_ADDRESSES[0]
+const SUPPORT_ADDRESS = LEGAL_CONTACTS.support
 
 // The console never opens a subscription: Checkout is faked and Stripe's
 // webhook is played back, exactly as in production.
@@ -41,6 +41,12 @@ interface SeedServerBody {
   email: string
   name: string
   status?: SeededStatus
+}
+
+interface SeedAlertBody {
+  email: string
+  server: string
+  kind: "server_unreachable" | "disk_high" | "agent_outdated"
 }
 
 interface TrialBody {
@@ -61,6 +67,17 @@ interface InboundEmailBody {
   from: string
   subject: string
   text: string
+}
+
+interface ReferralBody {
+  email: string
+  code: string
+}
+
+interface SeedMemberBody {
+  organization_email: string
+  email: string
+  role?: "owner" | "admin" | "member"
 }
 
 function json(payload: unknown, status = 200): Response {
@@ -97,6 +114,41 @@ async function seedServer(body: SeedServerBody): Promise<Response> {
   })
 
   return json({ id: server.id, name: server.name })
+}
+
+/** `EvaluateAlerts` runs on a cron the suite never waits for: the alert is laid by hand. */
+async function seedAlert(body: SeedAlertBody): Promise<Response> {
+  const { prisma } = await bootApiTestServer()
+  const server = await prisma.server.findFirstOrThrow({
+    where: {
+      organizationId: await organizationOf(body.email),
+      name: body.server,
+    },
+  })
+
+  await prisma.alert.create({ data: { serverId: server.id, kind: body.kind } })
+
+  return json({ ok: true })
+}
+
+/** A second seat in someone else's organization, which no console route hands out without an invitation. */
+async function seedMember(body: SeedMemberBody): Promise<Response> {
+  const { prisma } = await bootApiTestServer()
+  const organizationId = await organizationOf(body.organization_email)
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { email: body.email },
+  })
+  const member = await prisma.member.create({
+    data: {
+      id: crypto.randomUUID(),
+      organizationId,
+      userId: user.id,
+      role: body.role ?? "member",
+      createdAt: new Date(),
+    },
+  })
+
+  return json({ id: member.id })
 }
 
 /** Stripe alone opens a subscription: the harness plays its webhook, nothing else. */
@@ -147,6 +199,24 @@ async function promotePlatformMember(
   return json({ id: user.id })
 }
 
+/** Where an organisation came from, written straight: the checkout it rides on is another suite's subject. */
+async function seedReferral(body: ReferralBody): Promise<Response> {
+  const { prisma } = await bootApiTestServer()
+  const link = await prisma.affiliateLink.findUnique({
+    where: { code: body.code },
+  })
+
+  if (!link) {
+    return json({ error: `no affiliate link ${body.code}` }, 404)
+  }
+
+  const referral = await prisma.referral.create({
+    data: { organizationId: await organizationOf(body.email), linkId: link.id },
+  })
+
+  return json({ id: referral.organizationId })
+}
+
 /** An email reaching a support address, handed over the way the Worker hands it over. */
 async function receiveEmail(body: InboundEmailBody): Promise<Response> {
   const raw = [
@@ -192,6 +262,7 @@ async function handleHarness(
 
   if (path === "/reset") {
     await resetDb()
+    await seedPlatformMailboxes()
     billing.reset()
     chooseBillingMode({ mode: "stripe" })
 
@@ -226,8 +297,20 @@ async function handleHarness(
     return await seedServer((await request.json()) as SeedServerBody)
   }
 
+  if (path === "/alerts") {
+    return await seedAlert((await request.json()) as SeedAlertBody)
+  }
+
   if (path === "/inbound-emails") {
     return await receiveEmail((await request.json()) as InboundEmailBody)
+  }
+
+  if (path === "/referrals") {
+    return await seedReferral((await request.json()) as ReferralBody)
+  }
+
+  if (path === "/members") {
+    return await seedMember((await request.json()) as SeedMemberBody)
   }
 
   return json({ error: `unknown harness route ${path}` }, 404)
@@ -280,6 +363,7 @@ function route(request: Request): Promise<Response> {
 }
 
 await bootApiTestServer()
+await seedPlatformMailboxes()
 
 serve({
   port: HARNESS_PORT,

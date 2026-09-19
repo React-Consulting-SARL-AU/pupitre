@@ -161,6 +161,34 @@ export async function evaluateAlerts(
   return runs
 }
 
+/**
+ * Closing by hand is the stroke the hourly run makes on a return to normal. A
+ * condition that still holds opens a new episode at the next run, and the
+ * email that goes with it leaves again.
+ */
+export async function closeOpenAlerts(
+  serverId: string,
+  now: Date = new Date()
+): Promise<AlertKind[]> {
+  const prisma = getPrisma()
+  const open = await prisma.alert.findMany({
+    where: { serverId, resolvedAt: null },
+    orderBy: { firstSeenAt: "asc" },
+    select: { id: true, kind: true },
+  })
+
+  if (open.length === 0) {
+    return []
+  }
+
+  await prisma.alert.updateMany({
+    where: { id: { in: open.map((alert) => alert.id) } },
+    data: { resolvedAt: now },
+  })
+
+  return open.map((alert) => alert.kind)
+}
+
 export async function activeAlertsFor(
   serverIds: string[]
 ): Promise<Map<string, AlertView[]>> {

@@ -33,7 +33,7 @@ bun run dev:desktop:prod  # l'app, pointée sur app.pupitre.studio : le vrai com
 
 ### Lancer un workflow à la main
 
-Les cinq workflows partent de Cron Triggers, qui ne se déclenchent que sur un Worker déployé : en local, rien ne les appelle jamais. Une ligne révoquée n'y est donc jamais décommissionnée, et tout ce qui dépend d'une échéance reste intestable.
+Les six workflows partent de Cron Triggers, qui ne se déclenchent que sur un Worker déployé : en local, rien ne les appelle jamais. Une ligne révoquée n'y est donc jamais décommissionnée, et tout ce qui dépend d'une échéance reste intestable.
 
 ```bash
 bun run workflows:run decommission-server
@@ -55,6 +55,14 @@ curl -X POST http://localhost:3000/internal/email \
 ```
 
 Le fil se lit ensuite dans la console, sous `/dashboard/admin`. Ce que devient le message est dans [`contracts/platform-mail.md`](./contracts/platform-mail.md).
+
+### Le temps réel de la boîte, en local
+
+La classe `InboxRealtime` est un Durable Object exporté par `apps/web/src/worker.ts`, comme les workflows ; sa logique est dans `src/realtime/inbox-realtime.ts`. Le plugin Vite Cloudflare porte les Durable Objects en développement : `bun run dev:web` suffit, l'instance est unique (`idFromName("platform")`) et miniflare la tient sous `apps/web/.wrangler/state`.
+
+La console ouvre `GET /api/v1/admin/inbox/events` en WebSocket ; le Worker intercepte ce chemin **avant** Elysia — un routeur Elysia ne peut pas rendre un `101` — résout la session, exige l'appartenance à l'organisation Pupitre, puis passe la requête au stub. L'objet ne garde rien : il accepte la socket en hibernation et diffuse ce qu'une écriture lui pousse sur son chemin interne `/publish`, derrière `INTERNAL_WORKFLOW_SECRET`.
+
+Sans socket, la console reste juste : `INBOX_POLL_INTERVAL_MS` (60 s) rattrape une socket morte, et le harnais e2e, qui n'a pas de Worker, fonctionne ainsi.
 
 ### Le tunnel qui rend la console locale joignable
 
@@ -147,7 +155,8 @@ Deux branches longues, et rien d'autre qui vive plus qu'une pull request.
 | Base D1 | `ppt-db` |
 | Seau R2 des emails | `ppt-mail`, lié sous `MAIL`, privé, juridiction par défaut ; règle CORS de `apps/web/r2-mail-cors.json` (`wrangler r2 bucket cors set`) pour que la console lise et dépose les pièces jointes par adresse signée ; le jeton `R2_*` du Worker y lit et y écrit |
 | Email Routing | règle catch-all sur la zone `pupitre.studio` → *Send to a Worker*, `ppt-web-production` |
-| Workflows | `ppt-expire-enrollments`, `ppt-decommission-server`, `ppt-reconcile-seats`, `ppt-evaluate-alerts`, `ppt-suspend-expired-grace` |
+| Workflows | `ppt-expire-enrollments`, `ppt-decommission-server`, `ppt-reconcile-seats`, `ppt-evaluate-alerts`, `ppt-suspend-expired-grace`, `ppt-purge-deletions` |
+| Durable Object | `INBOX_REALTIME`, classe `InboxRealtime` (migration `v1`, `new_sqlite_classes`) ; une seule instance, `idFromName("platform")`, qui ne stocke rien et diffuse le temps réel de la boîte |
 | Déclencheur | Cloudflare Builds sur un push de `main` |
 | Stripe | mode live |
 

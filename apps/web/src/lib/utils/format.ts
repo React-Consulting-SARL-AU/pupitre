@@ -98,9 +98,8 @@ export function formatRelative(
   return t("format.daysAgo", { count: Math.floor(elapsed / DAY_MS) })
 }
 
-/** A product Stripe invents after this was written keeps its own name on screen. */
 export function formatProduct(product: string | null, t: Translate): string {
   const key = productKey(product)
 
-  return key ? t(key) : (product ?? t("format.none"))
+  return key ? t(key) : t("format.none")
 }

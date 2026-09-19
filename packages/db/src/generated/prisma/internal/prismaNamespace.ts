@@ -414,8 +414,14 @@ export const ModelName = {
   Subscription: 'Subscription',
   OrganizationBilling: 'OrganizationBilling',
   AffiliateLink: 'AffiliateLink',
+  AffiliateClickDay: 'AffiliateClickDay',
   Referral: 'Referral',
+  MailMailbox: 'MailMailbox',
   MailThread: 'MailThread',
+  MailNote: 'MailNote',
+  MailDraft: 'MailDraft',
+  MailActivity: 'MailActivity',
+  MailTemplate: 'MailTemplate',
   MailMessage: 'MailMessage',
   MailAttachment: 'MailAttachment',
   Release: 'Release',
@@ -437,7 +443,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "deviceCode" | "passkey" | "twoFactor" | "device" | "server" | "alert" | "serverRevokedDevice" | "subscription" | "organizationBilling" | "affiliateLink" | "referral" | "mailThread" | "mailMessage" | "mailAttachment" | "release" | "appRelease" | "event" | "stripeEvent"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "deviceCode" | "passkey" | "twoFactor" | "device" | "server" | "alert" | "serverRevokedDevice" | "subscription" | "organizationBilling" | "affiliateLink" | "affiliateClickDay" | "referral" | "mailMailbox" | "mailThread" | "mailNote" | "mailDraft" | "mailActivity" | "mailTemplate" | "mailMessage" | "mailAttachment" | "release" | "appRelease" | "event" | "stripeEvent"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1699,6 +1705,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    AffiliateClickDay: {
+      payload: Prisma.$AffiliateClickDayPayload<ExtArgs>
+      fields: Prisma.AffiliateClickDayFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AffiliateClickDayFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AffiliateClickDayPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AffiliateClickDayFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AffiliateClickDayPayload>
+        }
+        findFirst: {
+          args: Prisma.AffiliateClickDayFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AffiliateClickDayPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AffiliateClickDayFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AffiliateClickDayPayload>
+        }
+        findMany: {
+          args: Prisma.AffiliateClickDayFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AffiliateClickDayPayload>[]
+        }
+        create: {
+          args: Prisma.AffiliateClickDayCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AffiliateClickDayPayload>
+        }
+        createMany: {
+          args: Prisma.AffiliateClickDayCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AffiliateClickDayCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AffiliateClickDayPayload>[]
+        }
+        delete: {
+          args: Prisma.AffiliateClickDayDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AffiliateClickDayPayload>
+        }
+        update: {
+          args: Prisma.AffiliateClickDayUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AffiliateClickDayPayload>
+        }
+        deleteMany: {
+          args: Prisma.AffiliateClickDayDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AffiliateClickDayUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AffiliateClickDayUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AffiliateClickDayPayload>[]
+        }
+        upsert: {
+          args: Prisma.AffiliateClickDayUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AffiliateClickDayPayload>
+        }
+        aggregate: {
+          args: Prisma.AffiliateClickDayAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAffiliateClickDay>
+        }
+        groupBy: {
+          args: Prisma.AffiliateClickDayGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AffiliateClickDayGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AffiliateClickDayCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AffiliateClickDayCountAggregateOutputType> | number
+        }
+      }
+    }
     Referral: {
       payload: Prisma.$ReferralPayload<ExtArgs>
       fields: Prisma.ReferralFieldRefs
@@ -1773,6 +1853,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    MailMailbox: {
+      payload: Prisma.$MailMailboxPayload<ExtArgs>
+      fields: Prisma.MailMailboxFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MailMailboxFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailMailboxPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MailMailboxFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailMailboxPayload>
+        }
+        findFirst: {
+          args: Prisma.MailMailboxFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailMailboxPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MailMailboxFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailMailboxPayload>
+        }
+        findMany: {
+          args: Prisma.MailMailboxFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailMailboxPayload>[]
+        }
+        create: {
+          args: Prisma.MailMailboxCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailMailboxPayload>
+        }
+        createMany: {
+          args: Prisma.MailMailboxCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MailMailboxCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailMailboxPayload>[]
+        }
+        delete: {
+          args: Prisma.MailMailboxDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailMailboxPayload>
+        }
+        update: {
+          args: Prisma.MailMailboxUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailMailboxPayload>
+        }
+        deleteMany: {
+          args: Prisma.MailMailboxDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MailMailboxUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MailMailboxUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailMailboxPayload>[]
+        }
+        upsert: {
+          args: Prisma.MailMailboxUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailMailboxPayload>
+        }
+        aggregate: {
+          args: Prisma.MailMailboxAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMailMailbox>
+        }
+        groupBy: {
+          args: Prisma.MailMailboxGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MailMailboxGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MailMailboxCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MailMailboxCountAggregateOutputType> | number
+        }
+      }
+    }
     MailThread: {
       payload: Prisma.$MailThreadPayload<ExtArgs>
       fields: Prisma.MailThreadFieldRefs
@@ -1844,6 +1998,302 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.MailThreadCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.MailThreadCountAggregateOutputType> | number
+        }
+      }
+    }
+    MailNote: {
+      payload: Prisma.$MailNotePayload<ExtArgs>
+      fields: Prisma.MailNoteFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MailNoteFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailNotePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MailNoteFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailNotePayload>
+        }
+        findFirst: {
+          args: Prisma.MailNoteFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailNotePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MailNoteFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailNotePayload>
+        }
+        findMany: {
+          args: Prisma.MailNoteFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailNotePayload>[]
+        }
+        create: {
+          args: Prisma.MailNoteCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailNotePayload>
+        }
+        createMany: {
+          args: Prisma.MailNoteCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MailNoteCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailNotePayload>[]
+        }
+        delete: {
+          args: Prisma.MailNoteDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailNotePayload>
+        }
+        update: {
+          args: Prisma.MailNoteUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailNotePayload>
+        }
+        deleteMany: {
+          args: Prisma.MailNoteDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MailNoteUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MailNoteUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailNotePayload>[]
+        }
+        upsert: {
+          args: Prisma.MailNoteUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailNotePayload>
+        }
+        aggregate: {
+          args: Prisma.MailNoteAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMailNote>
+        }
+        groupBy: {
+          args: Prisma.MailNoteGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MailNoteGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MailNoteCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MailNoteCountAggregateOutputType> | number
+        }
+      }
+    }
+    MailDraft: {
+      payload: Prisma.$MailDraftPayload<ExtArgs>
+      fields: Prisma.MailDraftFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MailDraftFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailDraftPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MailDraftFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailDraftPayload>
+        }
+        findFirst: {
+          args: Prisma.MailDraftFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailDraftPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MailDraftFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailDraftPayload>
+        }
+        findMany: {
+          args: Prisma.MailDraftFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailDraftPayload>[]
+        }
+        create: {
+          args: Prisma.MailDraftCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailDraftPayload>
+        }
+        createMany: {
+          args: Prisma.MailDraftCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MailDraftCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailDraftPayload>[]
+        }
+        delete: {
+          args: Prisma.MailDraftDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailDraftPayload>
+        }
+        update: {
+          args: Prisma.MailDraftUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailDraftPayload>
+        }
+        deleteMany: {
+          args: Prisma.MailDraftDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MailDraftUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MailDraftUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailDraftPayload>[]
+        }
+        upsert: {
+          args: Prisma.MailDraftUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailDraftPayload>
+        }
+        aggregate: {
+          args: Prisma.MailDraftAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMailDraft>
+        }
+        groupBy: {
+          args: Prisma.MailDraftGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MailDraftGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MailDraftCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MailDraftCountAggregateOutputType> | number
+        }
+      }
+    }
+    MailActivity: {
+      payload: Prisma.$MailActivityPayload<ExtArgs>
+      fields: Prisma.MailActivityFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MailActivityFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailActivityPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MailActivityFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailActivityPayload>
+        }
+        findFirst: {
+          args: Prisma.MailActivityFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailActivityPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MailActivityFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailActivityPayload>
+        }
+        findMany: {
+          args: Prisma.MailActivityFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailActivityPayload>[]
+        }
+        create: {
+          args: Prisma.MailActivityCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailActivityPayload>
+        }
+        createMany: {
+          args: Prisma.MailActivityCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MailActivityCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailActivityPayload>[]
+        }
+        delete: {
+          args: Prisma.MailActivityDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailActivityPayload>
+        }
+        update: {
+          args: Prisma.MailActivityUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailActivityPayload>
+        }
+        deleteMany: {
+          args: Prisma.MailActivityDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MailActivityUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MailActivityUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailActivityPayload>[]
+        }
+        upsert: {
+          args: Prisma.MailActivityUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailActivityPayload>
+        }
+        aggregate: {
+          args: Prisma.MailActivityAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMailActivity>
+        }
+        groupBy: {
+          args: Prisma.MailActivityGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MailActivityGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MailActivityCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MailActivityCountAggregateOutputType> | number
+        }
+      }
+    }
+    MailTemplate: {
+      payload: Prisma.$MailTemplatePayload<ExtArgs>
+      fields: Prisma.MailTemplateFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MailTemplateFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailTemplatePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MailTemplateFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailTemplatePayload>
+        }
+        findFirst: {
+          args: Prisma.MailTemplateFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailTemplatePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MailTemplateFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailTemplatePayload>
+        }
+        findMany: {
+          args: Prisma.MailTemplateFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailTemplatePayload>[]
+        }
+        create: {
+          args: Prisma.MailTemplateCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailTemplatePayload>
+        }
+        createMany: {
+          args: Prisma.MailTemplateCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MailTemplateCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailTemplatePayload>[]
+        }
+        delete: {
+          args: Prisma.MailTemplateDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailTemplatePayload>
+        }
+        update: {
+          args: Prisma.MailTemplateUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailTemplatePayload>
+        }
+        deleteMany: {
+          args: Prisma.MailTemplateDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MailTemplateUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MailTemplateUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailTemplatePayload>[]
+        }
+        upsert: {
+          args: Prisma.MailTemplateUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MailTemplatePayload>
+        }
+        aggregate: {
+          args: Prisma.MailTemplateAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMailTemplate>
+        }
+        groupBy: {
+          args: Prisma.MailTemplateGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MailTemplateGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MailTemplateCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MailTemplateCountAggregateOutputType> | number
         }
       }
     }
@@ -2340,7 +2790,13 @@ export const UserScalarFieldEnum = {
   banReason: 'banReason',
   banExpires: 'banExpires',
   twoFactorEnabled: 'twoFactorEnabled',
-  locale: 'locale'
+  locale: 'locale',
+  deactivatedAt: 'deactivatedAt',
+  deactivatedReason: 'deactivatedReason',
+  deactivatedByUserId: 'deactivatedByUserId',
+  deletionAt: 'deletionAt',
+  deletionReason: 'deletionReason',
+  deletionByUserId: 'deletionByUserId'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
@@ -2399,7 +2855,16 @@ export const OrganizationScalarFieldEnum = {
   slug: 'slug',
   logo: 'logo',
   createdAt: 'createdAt',
-  metadata: 'metadata'
+  metadata: 'metadata',
+  suspendedAt: 'suspendedAt',
+  suspendedReason: 'suspendedReason',
+  suspendedByUserId: 'suspendedByUserId',
+  closedAt: 'closedAt',
+  closedReason: 'closedReason',
+  closedByUserId: 'closedByUserId',
+  deletionAt: 'deletionAt',
+  deletionReason: 'deletionReason',
+  deletionByUserId: 'deletionByUserId'
 } as const
 
 export type OrganizationScalarFieldEnum = (typeof OrganizationScalarFieldEnum)[keyof typeof OrganizationScalarFieldEnum]
@@ -2508,6 +2973,7 @@ export const ServerScalarFieldEnum = {
   decommissionAt: 'decommissionAt',
   status: 'status',
   suspendedReason: 'suspendedReason',
+  suspendedByOrganization: 'suspendedByOrganization',
   channel: 'channel',
   deviceId: 'deviceId',
   assignedUserId: 'assignedUserId',
@@ -2552,6 +3018,7 @@ export const SubscriptionScalarFieldEnum = {
   quantity: 'quantity',
   status: 'status',
   currentPeriodEnd: 'currentPeriodEnd',
+  cancelAtPeriodEnd: 'cancelAtPeriodEnd',
   note: 'note',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -2577,12 +3044,26 @@ export const AffiliateLinkScalarFieldEnum = {
   name: 'name',
   freeMonths: 'freeMonths',
   seats: 'seats',
+  partnerName: 'partnerName',
+  partnerEmail: 'partnerEmail',
+  notes: 'notes',
   createdById: 'createdById',
   createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
   disabledAt: 'disabledAt'
 } as const
 
 export type AffiliateLinkScalarFieldEnum = (typeof AffiliateLinkScalarFieldEnum)[keyof typeof AffiliateLinkScalarFieldEnum]
+
+
+export const AffiliateClickDayScalarFieldEnum = {
+  id: 'id',
+  linkId: 'linkId',
+  day: 'day',
+  count: 'count'
+} as const
+
+export type AffiliateClickDayScalarFieldEnum = (typeof AffiliateClickDayScalarFieldEnum)[keyof typeof AffiliateClickDayScalarFieldEnum]
 
 
 export const ReferralScalarFieldEnum = {
@@ -2594,22 +3075,92 @@ export const ReferralScalarFieldEnum = {
 export type ReferralScalarFieldEnum = (typeof ReferralScalarFieldEnum)[keyof typeof ReferralScalarFieldEnum]
 
 
+export const MailMailboxScalarFieldEnum = {
+  id: 'id',
+  address: 'address',
+  displayName: 'displayName',
+  signature: 'signature',
+  sensitive: 'sensitive',
+  canReply: 'canReply',
+  enabled: 'enabled',
+  sortOrder: 'sortOrder',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MailMailboxScalarFieldEnum = (typeof MailMailboxScalarFieldEnum)[keyof typeof MailMailboxScalarFieldEnum]
+
+
 export const MailThreadScalarFieldEnum = {
   id: 'id',
   address: 'address',
+  mailboxId: 'mailboxId',
   subject: 'subject',
   normalizedSubject: 'normalizedSubject',
   status: 'status',
   unread: 'unread',
   assignedUserId: 'assignedUserId',
   contactUserId: 'contactUserId',
+  linkedOrganizationId: 'linkedOrganizationId',
   lastInboundAt: 'lastInboundAt',
+  lastInboundAutomated: 'lastInboundAutomated',
   lastOutboundAt: 'lastOutboundAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type MailThreadScalarFieldEnum = (typeof MailThreadScalarFieldEnum)[keyof typeof MailThreadScalarFieldEnum]
+
+
+export const MailNoteScalarFieldEnum = {
+  id: 'id',
+  threadId: 'threadId',
+  body: 'body',
+  createdByUserId: 'createdByUserId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MailNoteScalarFieldEnum = (typeof MailNoteScalarFieldEnum)[keyof typeof MailNoteScalarFieldEnum]
+
+
+export const MailDraftScalarFieldEnum = {
+  id: 'id',
+  threadId: 'threadId',
+  body: 'body',
+  to: 'to',
+  cc: 'cc',
+  attachments: 'attachments',
+  updatedByUserId: 'updatedByUserId',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MailDraftScalarFieldEnum = (typeof MailDraftScalarFieldEnum)[keyof typeof MailDraftScalarFieldEnum]
+
+
+export const MailActivityScalarFieldEnum = {
+  id: 'id',
+  threadId: 'threadId',
+  action: 'action',
+  actorUserId: 'actorUserId',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+} as const
+
+export type MailActivityScalarFieldEnum = (typeof MailActivityScalarFieldEnum)[keyof typeof MailActivityScalarFieldEnum]
+
+
+export const MailTemplateScalarFieldEnum = {
+  id: 'id',
+  mailboxId: 'mailboxId',
+  name: 'name',
+  body: 'body',
+  createdByUserId: 'createdByUserId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MailTemplateScalarFieldEnum = (typeof MailTemplateScalarFieldEnum)[keyof typeof MailTemplateScalarFieldEnum]
 
 
 export const MailMessageScalarFieldEnum = {
@@ -2703,6 +3254,7 @@ export const StripeEventScalarFieldEnum = {
   id: 'id',
   type: 'type',
   status: 'status',
+  subscriptionId: 'subscriptionId',
   receivedAt: 'receivedAt',
   processedAt: 'processedAt'
 } as const
@@ -2845,6 +3397,13 @@ export type EnumBillingIntervalFieldRefInput<$PrismaModel> = FieldRefInputType<$
  * Reference to a field of type 'MailThreadStatus'
  */
 export type EnumMailThreadStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MailThreadStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'MailActivityAction'
+ */
+export type EnumMailActivityActionFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'MailActivityAction'>
     
 
 
@@ -3050,8 +3609,14 @@ export type GlobalOmitConfig = {
   subscription?: Prisma.SubscriptionOmit
   organizationBilling?: Prisma.OrganizationBillingOmit
   affiliateLink?: Prisma.AffiliateLinkOmit
+  affiliateClickDay?: Prisma.AffiliateClickDayOmit
   referral?: Prisma.ReferralOmit
+  mailMailbox?: Prisma.MailMailboxOmit
   mailThread?: Prisma.MailThreadOmit
+  mailNote?: Prisma.MailNoteOmit
+  mailDraft?: Prisma.MailDraftOmit
+  mailActivity?: Prisma.MailActivityOmit
+  mailTemplate?: Prisma.MailTemplateOmit
   mailMessage?: Prisma.MailMessageOmit
   mailAttachment?: Prisma.MailAttachmentOmit
   release?: Prisma.ReleaseOmit

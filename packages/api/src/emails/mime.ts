@@ -41,6 +41,17 @@ function encodeHeader(value: string): string {
   return ASCII_RE.test(clean) ? clean : `=?UTF-8?B?${base64(clean)}?=`
 }
 
+/**
+ * A display name travels RFC 2047 encoded, which is ASCII again: the bare
+ * address beside it stays a shape every client parses.
+ */
+export function formatAddress(
+  name: string | null | undefined,
+  address: string
+): string {
+  return name ? `${encodeHeader(name)} <${address}>` : address
+}
+
 export function generateMessageId(domain: string = EMAIL_DOMAIN): string {
   return `<${crypto.randomUUID()}@${domain}>`
 }

@@ -42,8 +42,12 @@ export type AffiliateLinkMinAggregateOutputType = {
   name: string | null
   freeMonths: number | null
   seats: number | null
+  partnerName: string | null
+  partnerEmail: string | null
+  notes: string | null
   createdById: string | null
   createdAt: Date | null
+  updatedAt: Date | null
   disabledAt: Date | null
 }
 
@@ -53,8 +57,12 @@ export type AffiliateLinkMaxAggregateOutputType = {
   name: string | null
   freeMonths: number | null
   seats: number | null
+  partnerName: string | null
+  partnerEmail: string | null
+  notes: string | null
   createdById: string | null
   createdAt: Date | null
+  updatedAt: Date | null
   disabledAt: Date | null
 }
 
@@ -64,8 +72,12 @@ export type AffiliateLinkCountAggregateOutputType = {
   name: number
   freeMonths: number
   seats: number
+  partnerName: number
+  partnerEmail: number
+  notes: number
   createdById: number
   createdAt: number
+  updatedAt: number
   disabledAt: number
   _all: number
 }
@@ -87,8 +99,12 @@ export type AffiliateLinkMinAggregateInputType = {
   name?: true
   freeMonths?: true
   seats?: true
+  partnerName?: true
+  partnerEmail?: true
+  notes?: true
   createdById?: true
   createdAt?: true
+  updatedAt?: true
   disabledAt?: true
 }
 
@@ -98,8 +114,12 @@ export type AffiliateLinkMaxAggregateInputType = {
   name?: true
   freeMonths?: true
   seats?: true
+  partnerName?: true
+  partnerEmail?: true
+  notes?: true
   createdById?: true
   createdAt?: true
+  updatedAt?: true
   disabledAt?: true
 }
 
@@ -109,8 +129,12 @@ export type AffiliateLinkCountAggregateInputType = {
   name?: true
   freeMonths?: true
   seats?: true
+  partnerName?: true
+  partnerEmail?: true
+  notes?: true
   createdById?: true
   createdAt?: true
+  updatedAt?: true
   disabledAt?: true
   _all?: true
 }
@@ -207,8 +231,12 @@ export type AffiliateLinkGroupByOutputType = {
   name: string
   freeMonths: number
   seats: number
+  partnerName: string | null
+  partnerEmail: string | null
+  notes: string | null
   createdById: string | null
   createdAt: Date
+  updatedAt: Date
   disabledAt: Date | null
   _count: AffiliateLinkCountAggregateOutputType | null
   _avg: AffiliateLinkAvgAggregateOutputType | null
@@ -241,10 +269,15 @@ export type AffiliateLinkWhereInput = {
   name?: Prisma.StringFilter<"AffiliateLink"> | string
   freeMonths?: Prisma.IntFilter<"AffiliateLink"> | number
   seats?: Prisma.IntFilter<"AffiliateLink"> | number
+  partnerName?: Prisma.StringNullableFilter<"AffiliateLink"> | string | null
+  partnerEmail?: Prisma.StringNullableFilter<"AffiliateLink"> | string | null
+  notes?: Prisma.StringNullableFilter<"AffiliateLink"> | string | null
   createdById?: Prisma.StringNullableFilter<"AffiliateLink"> | string | null
   createdAt?: Prisma.DateTimeFilter<"AffiliateLink"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"AffiliateLink"> | Date | string
   disabledAt?: Prisma.DateTimeNullableFilter<"AffiliateLink"> | Date | string | null
   referrals?: Prisma.ReferralListRelationFilter
+  clickDays?: Prisma.AffiliateClickDayListRelationFilter
 }
 
 export type AffiliateLinkOrderByWithRelationInput = {
@@ -253,10 +286,15 @@ export type AffiliateLinkOrderByWithRelationInput = {
   name?: Prisma.SortOrder
   freeMonths?: Prisma.SortOrder
   seats?: Prisma.SortOrder
+  partnerName?: Prisma.SortOrderInput | Prisma.SortOrder
+  partnerEmail?: Prisma.SortOrderInput | Prisma.SortOrder
+  notes?: Prisma.SortOrderInput | Prisma.SortOrder
   createdById?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
   disabledAt?: Prisma.SortOrderInput | Prisma.SortOrder
   referrals?: Prisma.ReferralOrderByRelationAggregateInput
+  clickDays?: Prisma.AffiliateClickDayOrderByRelationAggregateInput
 }
 
 export type AffiliateLinkWhereUniqueInput = Prisma.AtLeast<{
@@ -268,10 +306,15 @@ export type AffiliateLinkWhereUniqueInput = Prisma.AtLeast<{
   name?: Prisma.StringFilter<"AffiliateLink"> | string
   freeMonths?: Prisma.IntFilter<"AffiliateLink"> | number
   seats?: Prisma.IntFilter<"AffiliateLink"> | number
+  partnerName?: Prisma.StringNullableFilter<"AffiliateLink"> | string | null
+  partnerEmail?: Prisma.StringNullableFilter<"AffiliateLink"> | string | null
+  notes?: Prisma.StringNullableFilter<"AffiliateLink"> | string | null
   createdById?: Prisma.StringNullableFilter<"AffiliateLink"> | string | null
   createdAt?: Prisma.DateTimeFilter<"AffiliateLink"> | Date | string
+  updatedAt?: Prisma.DateTimeFilter<"AffiliateLink"> | Date | string
   disabledAt?: Prisma.DateTimeNullableFilter<"AffiliateLink"> | Date | string | null
   referrals?: Prisma.ReferralListRelationFilter
+  clickDays?: Prisma.AffiliateClickDayListRelationFilter
 }, "id" | "code">
 
 export type AffiliateLinkOrderByWithAggregationInput = {
@@ -280,8 +323,12 @@ export type AffiliateLinkOrderByWithAggregationInput = {
   name?: Prisma.SortOrder
   freeMonths?: Prisma.SortOrder
   seats?: Prisma.SortOrder
+  partnerName?: Prisma.SortOrderInput | Prisma.SortOrder
+  partnerEmail?: Prisma.SortOrderInput | Prisma.SortOrder
+  notes?: Prisma.SortOrderInput | Prisma.SortOrder
   createdById?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
   disabledAt?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.AffiliateLinkCountOrderByAggregateInput
   _avg?: Prisma.AffiliateLinkAvgOrderByAggregateInput
@@ -299,8 +346,12 @@ export type AffiliateLinkScalarWhereWithAggregatesInput = {
   name?: Prisma.StringWithAggregatesFilter<"AffiliateLink"> | string
   freeMonths?: Prisma.IntWithAggregatesFilter<"AffiliateLink"> | number
   seats?: Prisma.IntWithAggregatesFilter<"AffiliateLink"> | number
+  partnerName?: Prisma.StringNullableWithAggregatesFilter<"AffiliateLink"> | string | null
+  partnerEmail?: Prisma.StringNullableWithAggregatesFilter<"AffiliateLink"> | string | null
+  notes?: Prisma.StringNullableWithAggregatesFilter<"AffiliateLink"> | string | null
   createdById?: Prisma.StringNullableWithAggregatesFilter<"AffiliateLink"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"AffiliateLink"> | Date | string
+  updatedAt?: Prisma.DateTimeWithAggregatesFilter<"AffiliateLink"> | Date | string
   disabledAt?: Prisma.DateTimeNullableWithAggregatesFilter<"AffiliateLink"> | Date | string | null
 }
 
@@ -310,10 +361,15 @@ export type AffiliateLinkCreateInput = {
   name: string
   freeMonths: number
   seats?: number
+  partnerName?: string | null
+  partnerEmail?: string | null
+  notes?: string | null
   createdById?: string | null
   createdAt?: Date | string
+  updatedAt?: Date | string
   disabledAt?: Date | string | null
   referrals?: Prisma.ReferralCreateNestedManyWithoutLinkInput
+  clickDays?: Prisma.AffiliateClickDayCreateNestedManyWithoutLinkInput
 }
 
 export type AffiliateLinkUncheckedCreateInput = {
@@ -322,10 +378,15 @@ export type AffiliateLinkUncheckedCreateInput = {
   name: string
   freeMonths: number
   seats?: number
+  partnerName?: string | null
+  partnerEmail?: string | null
+  notes?: string | null
   createdById?: string | null
   createdAt?: Date | string
+  updatedAt?: Date | string
   disabledAt?: Date | string | null
   referrals?: Prisma.ReferralUncheckedCreateNestedManyWithoutLinkInput
+  clickDays?: Prisma.AffiliateClickDayUncheckedCreateNestedManyWithoutLinkInput
 }
 
 export type AffiliateLinkUpdateInput = {
@@ -334,10 +395,15 @@ export type AffiliateLinkUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   freeMonths?: Prisma.IntFieldUpdateOperationsInput | number
   seats?: Prisma.IntFieldUpdateOperationsInput | number
+  partnerName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  partnerEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   disabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   referrals?: Prisma.ReferralUpdateManyWithoutLinkNestedInput
+  clickDays?: Prisma.AffiliateClickDayUpdateManyWithoutLinkNestedInput
 }
 
 export type AffiliateLinkUncheckedUpdateInput = {
@@ -346,10 +412,15 @@ export type AffiliateLinkUncheckedUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   freeMonths?: Prisma.IntFieldUpdateOperationsInput | number
   seats?: Prisma.IntFieldUpdateOperationsInput | number
+  partnerName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  partnerEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   disabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   referrals?: Prisma.ReferralUncheckedUpdateManyWithoutLinkNestedInput
+  clickDays?: Prisma.AffiliateClickDayUncheckedUpdateManyWithoutLinkNestedInput
 }
 
 export type AffiliateLinkCreateManyInput = {
@@ -358,8 +429,12 @@ export type AffiliateLinkCreateManyInput = {
   name: string
   freeMonths: number
   seats?: number
+  partnerName?: string | null
+  partnerEmail?: string | null
+  notes?: string | null
   createdById?: string | null
   createdAt?: Date | string
+  updatedAt?: Date | string
   disabledAt?: Date | string | null
 }
 
@@ -369,8 +444,12 @@ export type AffiliateLinkUpdateManyMutationInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   freeMonths?: Prisma.IntFieldUpdateOperationsInput | number
   seats?: Prisma.IntFieldUpdateOperationsInput | number
+  partnerName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  partnerEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   disabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -380,8 +459,12 @@ export type AffiliateLinkUncheckedUpdateManyInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   freeMonths?: Prisma.IntFieldUpdateOperationsInput | number
   seats?: Prisma.IntFieldUpdateOperationsInput | number
+  partnerName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  partnerEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   disabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
@@ -391,8 +474,12 @@ export type AffiliateLinkCountOrderByAggregateInput = {
   name?: Prisma.SortOrder
   freeMonths?: Prisma.SortOrder
   seats?: Prisma.SortOrder
+  partnerName?: Prisma.SortOrder
+  partnerEmail?: Prisma.SortOrder
+  notes?: Prisma.SortOrder
   createdById?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
   disabledAt?: Prisma.SortOrder
 }
 
@@ -407,8 +494,12 @@ export type AffiliateLinkMaxOrderByAggregateInput = {
   name?: Prisma.SortOrder
   freeMonths?: Prisma.SortOrder
   seats?: Prisma.SortOrder
+  partnerName?: Prisma.SortOrder
+  partnerEmail?: Prisma.SortOrder
+  notes?: Prisma.SortOrder
   createdById?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
   disabledAt?: Prisma.SortOrder
 }
 
@@ -418,8 +509,12 @@ export type AffiliateLinkMinOrderByAggregateInput = {
   name?: Prisma.SortOrder
   freeMonths?: Prisma.SortOrder
   seats?: Prisma.SortOrder
+  partnerName?: Prisma.SortOrder
+  partnerEmail?: Prisma.SortOrder
+  notes?: Prisma.SortOrder
   createdById?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  updatedAt?: Prisma.SortOrder
   disabledAt?: Prisma.SortOrder
 }
 
@@ -431,6 +526,20 @@ export type AffiliateLinkSumOrderByAggregateInput = {
 export type AffiliateLinkScalarRelationFilter = {
   is?: Prisma.AffiliateLinkWhereInput
   isNot?: Prisma.AffiliateLinkWhereInput
+}
+
+export type AffiliateLinkCreateNestedOneWithoutClickDaysInput = {
+  create?: Prisma.XOR<Prisma.AffiliateLinkCreateWithoutClickDaysInput, Prisma.AffiliateLinkUncheckedCreateWithoutClickDaysInput>
+  connectOrCreate?: Prisma.AffiliateLinkCreateOrConnectWithoutClickDaysInput
+  connect?: Prisma.AffiliateLinkWhereUniqueInput
+}
+
+export type AffiliateLinkUpdateOneRequiredWithoutClickDaysNestedInput = {
+  create?: Prisma.XOR<Prisma.AffiliateLinkCreateWithoutClickDaysInput, Prisma.AffiliateLinkUncheckedCreateWithoutClickDaysInput>
+  connectOrCreate?: Prisma.AffiliateLinkCreateOrConnectWithoutClickDaysInput
+  upsert?: Prisma.AffiliateLinkUpsertWithoutClickDaysInput
+  connect?: Prisma.AffiliateLinkWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.AffiliateLinkUpdateToOneWithWhereWithoutClickDaysInput, Prisma.AffiliateLinkUpdateWithoutClickDaysInput>, Prisma.AffiliateLinkUncheckedUpdateWithoutClickDaysInput>
 }
 
 export type AffiliateLinkCreateNestedOneWithoutReferralsInput = {
@@ -447,15 +556,100 @@ export type AffiliateLinkUpdateOneRequiredWithoutReferralsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.AffiliateLinkUpdateToOneWithWhereWithoutReferralsInput, Prisma.AffiliateLinkUpdateWithoutReferralsInput>, Prisma.AffiliateLinkUncheckedUpdateWithoutReferralsInput>
 }
 
+export type AffiliateLinkCreateWithoutClickDaysInput = {
+  id?: string
+  code: string
+  name: string
+  freeMonths: number
+  seats?: number
+  partnerName?: string | null
+  partnerEmail?: string | null
+  notes?: string | null
+  createdById?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  disabledAt?: Date | string | null
+  referrals?: Prisma.ReferralCreateNestedManyWithoutLinkInput
+}
+
+export type AffiliateLinkUncheckedCreateWithoutClickDaysInput = {
+  id?: string
+  code: string
+  name: string
+  freeMonths: number
+  seats?: number
+  partnerName?: string | null
+  partnerEmail?: string | null
+  notes?: string | null
+  createdById?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  disabledAt?: Date | string | null
+  referrals?: Prisma.ReferralUncheckedCreateNestedManyWithoutLinkInput
+}
+
+export type AffiliateLinkCreateOrConnectWithoutClickDaysInput = {
+  where: Prisma.AffiliateLinkWhereUniqueInput
+  create: Prisma.XOR<Prisma.AffiliateLinkCreateWithoutClickDaysInput, Prisma.AffiliateLinkUncheckedCreateWithoutClickDaysInput>
+}
+
+export type AffiliateLinkUpsertWithoutClickDaysInput = {
+  update: Prisma.XOR<Prisma.AffiliateLinkUpdateWithoutClickDaysInput, Prisma.AffiliateLinkUncheckedUpdateWithoutClickDaysInput>
+  create: Prisma.XOR<Prisma.AffiliateLinkCreateWithoutClickDaysInput, Prisma.AffiliateLinkUncheckedCreateWithoutClickDaysInput>
+  where?: Prisma.AffiliateLinkWhereInput
+}
+
+export type AffiliateLinkUpdateToOneWithWhereWithoutClickDaysInput = {
+  where?: Prisma.AffiliateLinkWhereInput
+  data: Prisma.XOR<Prisma.AffiliateLinkUpdateWithoutClickDaysInput, Prisma.AffiliateLinkUncheckedUpdateWithoutClickDaysInput>
+}
+
+export type AffiliateLinkUpdateWithoutClickDaysInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  freeMonths?: Prisma.IntFieldUpdateOperationsInput | number
+  seats?: Prisma.IntFieldUpdateOperationsInput | number
+  partnerName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  partnerEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  disabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  referrals?: Prisma.ReferralUpdateManyWithoutLinkNestedInput
+}
+
+export type AffiliateLinkUncheckedUpdateWithoutClickDaysInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  code?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  freeMonths?: Prisma.IntFieldUpdateOperationsInput | number
+  seats?: Prisma.IntFieldUpdateOperationsInput | number
+  partnerName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  partnerEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  disabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  referrals?: Prisma.ReferralUncheckedUpdateManyWithoutLinkNestedInput
+}
+
 export type AffiliateLinkCreateWithoutReferralsInput = {
   id?: string
   code: string
   name: string
   freeMonths: number
   seats?: number
+  partnerName?: string | null
+  partnerEmail?: string | null
+  notes?: string | null
   createdById?: string | null
   createdAt?: Date | string
+  updatedAt?: Date | string
   disabledAt?: Date | string | null
+  clickDays?: Prisma.AffiliateClickDayCreateNestedManyWithoutLinkInput
 }
 
 export type AffiliateLinkUncheckedCreateWithoutReferralsInput = {
@@ -464,9 +658,14 @@ export type AffiliateLinkUncheckedCreateWithoutReferralsInput = {
   name: string
   freeMonths: number
   seats?: number
+  partnerName?: string | null
+  partnerEmail?: string | null
+  notes?: string | null
   createdById?: string | null
   createdAt?: Date | string
+  updatedAt?: Date | string
   disabledAt?: Date | string | null
+  clickDays?: Prisma.AffiliateClickDayUncheckedCreateNestedManyWithoutLinkInput
 }
 
 export type AffiliateLinkCreateOrConnectWithoutReferralsInput = {
@@ -491,9 +690,14 @@ export type AffiliateLinkUpdateWithoutReferralsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   freeMonths?: Prisma.IntFieldUpdateOperationsInput | number
   seats?: Prisma.IntFieldUpdateOperationsInput | number
+  partnerName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  partnerEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   disabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clickDays?: Prisma.AffiliateClickDayUpdateManyWithoutLinkNestedInput
 }
 
 export type AffiliateLinkUncheckedUpdateWithoutReferralsInput = {
@@ -502,9 +706,14 @@ export type AffiliateLinkUncheckedUpdateWithoutReferralsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   freeMonths?: Prisma.IntFieldUpdateOperationsInput | number
   seats?: Prisma.IntFieldUpdateOperationsInput | number
+  partnerName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  partnerEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  notes?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdById?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   disabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  clickDays?: Prisma.AffiliateClickDayUncheckedUpdateManyWithoutLinkNestedInput
 }
 
 
@@ -514,10 +723,12 @@ export type AffiliateLinkUncheckedUpdateWithoutReferralsInput = {
 
 export type AffiliateLinkCountOutputType = {
   referrals: number
+  clickDays: number
 }
 
 export type AffiliateLinkCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   referrals?: boolean | AffiliateLinkCountOutputTypeCountReferralsArgs
+  clickDays?: boolean | AffiliateLinkCountOutputTypeCountClickDaysArgs
 }
 
 /**
@@ -537,6 +748,13 @@ export type AffiliateLinkCountOutputTypeCountReferralsArgs<ExtArgs extends runti
   where?: Prisma.ReferralWhereInput
 }
 
+/**
+ * AffiliateLinkCountOutputType without action
+ */
+export type AffiliateLinkCountOutputTypeCountClickDaysArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.AffiliateClickDayWhereInput
+}
+
 
 export type AffiliateLinkSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -544,10 +762,15 @@ export type AffiliateLinkSelect<ExtArgs extends runtime.Types.Extensions.Interna
   name?: boolean
   freeMonths?: boolean
   seats?: boolean
+  partnerName?: boolean
+  partnerEmail?: boolean
+  notes?: boolean
   createdById?: boolean
   createdAt?: boolean
+  updatedAt?: boolean
   disabledAt?: boolean
   referrals?: boolean | Prisma.AffiliateLink$referralsArgs<ExtArgs>
+  clickDays?: boolean | Prisma.AffiliateLink$clickDaysArgs<ExtArgs>
   _count?: boolean | Prisma.AffiliateLinkCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["affiliateLink"]>
 
@@ -557,8 +780,12 @@ export type AffiliateLinkSelectCreateManyAndReturn<ExtArgs extends runtime.Types
   name?: boolean
   freeMonths?: boolean
   seats?: boolean
+  partnerName?: boolean
+  partnerEmail?: boolean
+  notes?: boolean
   createdById?: boolean
   createdAt?: boolean
+  updatedAt?: boolean
   disabledAt?: boolean
 }, ExtArgs["result"]["affiliateLink"]>
 
@@ -568,8 +795,12 @@ export type AffiliateLinkSelectUpdateManyAndReturn<ExtArgs extends runtime.Types
   name?: boolean
   freeMonths?: boolean
   seats?: boolean
+  partnerName?: boolean
+  partnerEmail?: boolean
+  notes?: boolean
   createdById?: boolean
   createdAt?: boolean
+  updatedAt?: boolean
   disabledAt?: boolean
 }, ExtArgs["result"]["affiliateLink"]>
 
@@ -579,14 +810,19 @@ export type AffiliateLinkSelectScalar = {
   name?: boolean
   freeMonths?: boolean
   seats?: boolean
+  partnerName?: boolean
+  partnerEmail?: boolean
+  notes?: boolean
   createdById?: boolean
   createdAt?: boolean
+  updatedAt?: boolean
   disabledAt?: boolean
 }
 
-export type AffiliateLinkOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "name" | "freeMonths" | "seats" | "createdById" | "createdAt" | "disabledAt", ExtArgs["result"]["affiliateLink"]>
+export type AffiliateLinkOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "code" | "name" | "freeMonths" | "seats" | "partnerName" | "partnerEmail" | "notes" | "createdById" | "createdAt" | "updatedAt" | "disabledAt", ExtArgs["result"]["affiliateLink"]>
 export type AffiliateLinkInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   referrals?: boolean | Prisma.AffiliateLink$referralsArgs<ExtArgs>
+  clickDays?: boolean | Prisma.AffiliateLink$clickDaysArgs<ExtArgs>
   _count?: boolean | Prisma.AffiliateLinkCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type AffiliateLinkIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -596,6 +832,7 @@ export type $AffiliateLinkPayload<ExtArgs extends runtime.Types.Extensions.Inter
   name: "AffiliateLink"
   objects: {
     referrals: Prisma.$ReferralPayload<ExtArgs>[]
+    clickDays: Prisma.$AffiliateClickDayPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -603,8 +840,12 @@ export type $AffiliateLinkPayload<ExtArgs extends runtime.Types.Extensions.Inter
     name: string
     freeMonths: number
     seats: number
+    partnerName: string | null
+    partnerEmail: string | null
+    notes: string | null
     createdById: string | null
     createdAt: Date
+    updatedAt: Date
     disabledAt: Date | null
   }, ExtArgs["result"]["affiliateLink"]>
   composites: {}
@@ -1001,6 +1242,7 @@ readonly fields: AffiliateLinkFieldRefs;
 export interface Prisma__AffiliateLinkClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   referrals<T extends Prisma.AffiliateLink$referralsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AffiliateLink$referralsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ReferralPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  clickDays<T extends Prisma.AffiliateLink$clickDaysArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.AffiliateLink$clickDaysArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AffiliateClickDayPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1035,8 +1277,12 @@ export interface AffiliateLinkFieldRefs {
   readonly name: Prisma.FieldRef<"AffiliateLink", 'String'>
   readonly freeMonths: Prisma.FieldRef<"AffiliateLink", 'Int'>
   readonly seats: Prisma.FieldRef<"AffiliateLink", 'Int'>
+  readonly partnerName: Prisma.FieldRef<"AffiliateLink", 'String'>
+  readonly partnerEmail: Prisma.FieldRef<"AffiliateLink", 'String'>
+  readonly notes: Prisma.FieldRef<"AffiliateLink", 'String'>
   readonly createdById: Prisma.FieldRef<"AffiliateLink", 'String'>
   readonly createdAt: Prisma.FieldRef<"AffiliateLink", 'DateTime'>
+  readonly updatedAt: Prisma.FieldRef<"AffiliateLink", 'DateTime'>
   readonly disabledAt: Prisma.FieldRef<"AffiliateLink", 'DateTime'>
 }
     
@@ -1450,6 +1696,30 @@ export type AffiliateLink$referralsArgs<ExtArgs extends runtime.Types.Extensions
   take?: number
   skip?: number
   distinct?: Prisma.ReferralScalarFieldEnum | Prisma.ReferralScalarFieldEnum[]
+}
+
+/**
+ * AffiliateLink.clickDays
+ */
+export type AffiliateLink$clickDaysArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the AffiliateClickDay
+   */
+  select?: Prisma.AffiliateClickDaySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the AffiliateClickDay
+   */
+  omit?: Prisma.AffiliateClickDayOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.AffiliateClickDayInclude<ExtArgs> | null
+  where?: Prisma.AffiliateClickDayWhereInput
+  orderBy?: Prisma.AffiliateClickDayOrderByWithRelationInput | Prisma.AffiliateClickDayOrderByWithRelationInput[]
+  cursor?: Prisma.AffiliateClickDayWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.AffiliateClickDayScalarFieldEnum | Prisma.AffiliateClickDayScalarFieldEnum[]
 }
 
 /**

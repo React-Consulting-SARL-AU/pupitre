@@ -82,6 +82,7 @@ export interface StripeSubscriptionPayload {
   status?: string
   quantity?: number
   current_period_end?: number
+  cancel_at_period_end?: boolean
   metadata?: Record<string, string> | null
   items?: { data?: StripeSubscriptionItem[] }
 }
@@ -105,6 +106,7 @@ export function toRemoteSubscription(
     current_period_end:
       secondsToDate(payload.current_period_end) ??
       secondsToDate(item?.current_period_end),
+    cancel_at_period_end: payload.cancel_at_period_end === true,
     organization_id: payload.metadata?.organization_id ?? null,
   }
 }
@@ -263,6 +265,35 @@ export function createStripeBilling(config: StripeConfig): BillingProvider {
       )
 
       return toRemoteSubscription(updated)
+    },
+
+    async extendTrial(
+      subscriptionId: string,
+      endsAt: Date
+    ): Promise<RemoteSubscription> {
+      const updated = await call<StripeSubscriptionPayload>(
+        `/subscriptions/${encodeURIComponent(subscriptionId)}`,
+        {
+          method: "POST",
+          body: {
+            trial_end: Math.floor(endsAt.getTime() / 1000),
+            proration_behavior: "none",
+          },
+        }
+      )
+
+      return toRemoteSubscription(updated)
+    },
+
+    async resumeSubscription(
+      subscriptionId: string
+    ): Promise<RemoteSubscription> {
+      const resumed = await call<StripeSubscriptionPayload>(
+        `/subscriptions/${encodeURIComponent(subscriptionId)}`,
+        { method: "POST", body: { cancel_at_period_end: false } }
+      )
+
+      return toRemoteSubscription(resumed)
     },
 
     async cancelSubscription(

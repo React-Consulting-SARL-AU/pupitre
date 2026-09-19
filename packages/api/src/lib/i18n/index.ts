@@ -35,6 +35,9 @@ const FR = {
     "Ce serveur est révoqué : il n'y a rien à suspendre.",
   server_revoked_no_suspend_fix:
     "Sa ligne s'efface à la décommission ; un serveur révoqué ne distribue déjà plus aucune clé.",
+  server_revoked: "Ce serveur est révoqué : sa fiche ne se modifie plus.",
+  server_revoked_fix:
+    "Sa ligne s'efface à la décommission ; un serveur révoqué ne reçoit plus aucune mise à jour.",
   server_not_admin_suspended:
     "Ce serveur n'a pas été suspendu par l'équipe Pupitre.",
   server_not_admin_suspended_fix:
@@ -43,6 +46,58 @@ const FR = {
   platform_member_protected: "Ce compte est membre de l'organisation Pupitre.",
   platform_member_protected_fix:
     "Retirez-le d'abord de l'organisation Pupitre depuis sa page des membres.",
+  account_deactivated: "Ce compte est fermé.",
+  account_deactivated_fix:
+    "Écrivez à support@pupitre.studio pour le faire rouvrir.",
+  account_suspended: "Ce compte est suspendu jusqu'au {date}.",
+  account_suspended_fix:
+    "Le compte se rouvre de lui-même à cette date. Écrivez à support@pupitre.studio pour la faire avancer.",
+  ban_until_not_future: "Le terme d'une suspension est à venir.",
+  ban_until_not_future_fix:
+    "Donnez une date postérieure à maintenant, ou omettez until pour une suspension sans terme.",
+  user_already_deactivated: "Ce compte est déjà désactivé.",
+  user_already_deactivated_fix:
+    "Réactivez-le d'abord : POST /admin/users/:id/reactivate.",
+  user_active: "Ce compte n'a ni désactivation ni suppression à lever.",
+  user_active_fix:
+    "Une suspension se lève par POST /admin/users/:id/unban ; ce compte n'a rien d'autre.",
+  sole_owner:
+    "Ce compte est le seul propriétaire d'une organisation qui porte encore un serveur ou un abonnement.",
+  sole_owner_fix:
+    "Transférez l'organisation à un autre membre, ou fermez-la : POST /admin/organizations/:id/transfer, DELETE /admin/organizations/:id.",
+  email_verified: "L'adresse de ce compte est déjà vérifiée.",
+  email_verified_fix:
+    "Il n'y a rien à renvoyer ; le compte se connecte par lien magique ou clé d'accès.",
+  organization_closed: "Cette organisation est fermée.",
+  organization_closed_fix:
+    "Choisissez une autre organisation, ou écrivez à support@pupitre.studio pour la faire rouvrir.",
+  organization_already_suspended: "Cette organisation est déjà suspendue.",
+  organization_already_suspended_fix:
+    "Levez d'abord la suspension : POST /admin/organizations/:id/restore.",
+  organization_not_suspended: "Cette organisation n'est pas suspendue.",
+  organization_not_suspended_fix:
+    "Il n'y a rien à lever ; une organisation fermée se rouvre par POST /admin/organizations/:id/reopen.",
+  organization_already_closed: "Cette organisation est déjà fermée.",
+  organization_already_closed_fix:
+    "Rouvrez-la d'abord : POST /admin/organizations/:id/reopen.",
+  organization_not_closed:
+    "Cette organisation n'est ni fermée ni en suppression.",
+  organization_not_closed_fix:
+    "Il n'y a rien à rouvrir ; une suspension se lève par POST /admin/organizations/:id/restore.",
+  platform_organization_protected:
+    "L'organisation Pupitre ne se suspend, ne se ferme, ne se renomme ni ne s'efface.",
+  platform_organization_protected_fix:
+    "Elle porte la plateforme : son nom et ses membres se changent en base, jamais depuis la console.",
+  slug_taken: "Le slug « {slug} » est déjà pris.",
+  slug_taken_fix: "Choisissez un autre slug.",
+  slug_empty: "Ce slug ne garde aucun caractère une fois normalisé.",
+  slug_empty_fix:
+    "Donnez un slug qui porte au moins une lettre ou un chiffre, par exemple atelier-durand.",
+  last_owner:
+    "Cette organisation n'aurait plus aucun propriétaire après ce retrait.",
+  last_owner_fix:
+    "Nommez d'abord un autre propriétaire : POST /admin/organizations/:id/transfer.",
+  member_not_found: "Cette personne n'est pas membre de cette organisation.",
   organization_forbidden: "Cette organisation n'est pas la vôtre.",
   organization_forbidden_fix:
     "Choisissez une organisation dont vous êtes membre.",
@@ -108,10 +163,32 @@ const FR = {
   subscription_already_canceled: "Cet abonnement est déjà arrêté.",
   subscription_already_canceled_fix:
     "Effacez-le s'il n'a plus à figurer : DELETE /admin/subscriptions/:id.",
+  billing_launch_stripe:
+    "Pendant le lancement, la plateforme n'appelle pas Stripe.",
+  billing_launch_stripe_fix:
+    "Changez la fin d'un abonnement accordé : PATCH /admin/subscriptions/:id avec ends_at.",
+  subscription_not_stripe:
+    "Cet abonnement est un produit de la plateforme : Stripe ne le connaît pas.",
+  subscription_not_stripe_fix:
+    "Changez sa fin : PATCH /admin/subscriptions/:id avec ends_at.",
+  subscription_not_trialing: "Cet abonnement n'est pas en essai.",
+  subscription_not_trialing_fix:
+    "Seul un essai se prolonge ; un abonnement déjà facturé se change depuis le portail Stripe.",
+  subscription_not_resumable:
+    "Cet abonnement n'est pas résilié à la fin de la période.",
+  subscription_not_resumable_fix:
+    "Seule une résiliation encore facturée jusqu'au terme se reprend ; un abonnement arrêté se rouvre par un nouveau paiement.",
+  trial_end_not_future: "La fin d'essai demandée est déjà passée.",
+  trial_end_not_future_fix:
+    "Donnez une date postérieure à maintenant, au format ISO.",
   affiliate_code_taken: "Le code « {code} » est déjà pris.",
   affiliate_code_taken_fix:
     "Choisissez un autre code, ou laissez la plateforme en tirer un.",
   affiliate_link_not_found: "Ce lien d'affiliation n'existe pas.",
+  affiliate_link_referred:
+    "Ce lien a déjà amené une organisation : il ne s'efface plus.",
+  affiliate_link_referred_fix:
+    'Désactivez-le : PATCH /admin/affiliate-links/:id { "disabled": true }.',
   mail_thread_not_found: "Ce fil de discussion n'existe pas.",
   mail_html_not_found: "Ce message n'a pas de version HTML.",
   mail_attachment_not_found: "Cette pièce jointe n'existe pas.",
@@ -144,6 +221,37 @@ const FR = {
   mail_upload_size_mismatch:
     "Le fichier « {filename} » est plus gros que ce qui a été annoncé.",
   mail_upload_size_mismatch_fix: "Retirez-le et ajoutez-le à nouveau.",
+  mailbox_not_found: "Cette boîte n'existe pas.",
+  mailbox_address_refused:
+    "« {address} » n'est pas une adresse valable sur {domain}.",
+  mailbox_address_refused_fix:
+    "Donnez la partie locale seule, en minuscules : support, ou support@{domain}.",
+  mailbox_taken: "L'adresse {address} a déjà une boîte.",
+  mailbox_taken_fix:
+    "Ouvrez la boîte existante, ou choisissez une autre adresse.",
+  mailbox_in_use: "Cette boîte porte encore {threads} fils.",
+  mailbox_in_use_fix:
+    "Désactivez-la : elle continue de recevoir sans émettre, et ses fils restent lisibles.",
+  mailbox_protected: "Les quatre boîtes légales ne se suppriment pas.",
+  mailbox_protected_fix:
+    "Désactivez-la si elle ne doit plus émettre ; elle continuera de recevoir.",
+  mailbox_cannot_reply: "La boîte {address} n'émet pas.",
+  mailbox_cannot_reply_fix:
+    "Réactivez-la, ou autorisez-lui la réponse dans les réglages des boîtes.",
+  mail_thread_no_mailbox:
+    "Ce fil est arrivé sur {address}, qu'aucune boîte ne déclare.",
+  mail_thread_no_mailbox_fix:
+    "Créez la boîte {address} : les fils déjà reçus lui seront rattachés.",
+  mail_organization_unknown: "Cette organisation n'existe pas.",
+  mail_organization_unknown_fix:
+    "Choisissez une organisation parmi les suggestions du champ.",
+  mail_note_not_found: "Cette note n'existe pas.",
+  mail_draft_not_found: "Ce fil n'a aucun brouillon.",
+  mail_template_not_found: "Cette réponse type n'existe pas.",
+  mail_template_mailbox_unknown:
+    "La boîte nommée par cette réponse type n'existe pas.",
+  mail_template_mailbox_unknown_fix:
+    "Choisissez une boîte existante, ou laissez la réponse type sans boîte.",
   entitlement_required: "Cette organisation n'a aucun abonnement en cours.",
   entitlement_required_fix:
     "Démarrez votre essai de trente jours, sans carte, depuis /dashboard/billing.",
@@ -229,6 +337,9 @@ const EN: Record<MessageKey, string> = {
     "This server is revoked: there is nothing left to suspend.",
   server_revoked_no_suspend_fix:
     "Its row disappears at decommission; a revoked server already hands out no key.",
+  server_revoked: "This server is revoked: its record no longer changes.",
+  server_revoked_fix:
+    "Its row is erased at decommission; a revoked server receives no update any more.",
   server_not_admin_suspended: "The Pupitre team did not suspend this server.",
   server_not_admin_suspended_fix:
     "A billing suspension lifts by restoring the organization's subscription.",
@@ -237,6 +348,57 @@ const EN: Record<MessageKey, string> = {
     "This account belongs to the Pupitre organization.",
   platform_member_protected_fix:
     "Remove them from the Pupitre organization first, on its members page.",
+  account_deactivated: "This account is closed.",
+  account_deactivated_fix:
+    "Write to support@pupitre.studio to have it reopened.",
+  account_suspended: "This account is suspended until {date}.",
+  account_suspended_fix:
+    "The account reopens on its own on that date. Write to support@pupitre.studio to bring it forward.",
+  ban_until_not_future: "A suspension deadline lies ahead.",
+  ban_until_not_future_fix:
+    "Give a date later than now, or leave until out for a suspension with no deadline.",
+  user_already_deactivated: "This account is already deactivated.",
+  user_already_deactivated_fix:
+    "Reactivate it first: POST /admin/users/:id/reactivate.",
+  user_active: "This account has no deactivation and no deletion to lift.",
+  user_active_fix:
+    "A suspension lifts with POST /admin/users/:id/unban; this account has nothing else.",
+  sole_owner:
+    "This account is the sole owner of an organization that still holds a server or a subscription.",
+  sole_owner_fix:
+    "Transfer the organization to another member, or close it: POST /admin/organizations/:id/transfer, DELETE /admin/organizations/:id.",
+  email_verified: "This account's address is already verified.",
+  email_verified_fix:
+    "There is nothing to send again; the account signs in with a magic link or a passkey.",
+  organization_closed: "This organization is closed.",
+  organization_closed_fix:
+    "Pick another organization, or write to support@pupitre.studio to have it reopened.",
+  organization_already_suspended: "This organization is already suspended.",
+  organization_already_suspended_fix:
+    "Lift the suspension first: POST /admin/organizations/:id/restore.",
+  organization_not_suspended: "This organization is not suspended.",
+  organization_not_suspended_fix:
+    "There is nothing to lift; a closed organization reopens with POST /admin/organizations/:id/reopen.",
+  organization_already_closed: "This organization is already closed.",
+  organization_already_closed_fix:
+    "Reopen it first: POST /admin/organizations/:id/reopen.",
+  organization_not_closed:
+    "This organization is neither closed nor being deleted.",
+  organization_not_closed_fix:
+    "There is nothing to reopen; a suspension lifts with POST /admin/organizations/:id/restore.",
+  platform_organization_protected:
+    "The Pupitre organization is not suspended, closed, renamed or deleted.",
+  platform_organization_protected_fix:
+    "It carries the platform: its name and its members change in the database, never from the console.",
+  slug_taken: 'The slug "{slug}" is already taken.',
+  slug_taken_fix: "Pick another slug.",
+  slug_empty: "This slug keeps no character once normalized.",
+  slug_empty_fix:
+    "Give a slug that holds at least one letter or digit, for instance atelier-durand.",
+  last_owner: "This organization would be left without an owner.",
+  last_owner_fix:
+    "Name another owner first: POST /admin/organizations/:id/transfer.",
+  member_not_found: "This person is not a member of this organization.",
   organization_forbidden: "This organization is not yours.",
   organization_forbidden_fix: "Pick an organization you belong to.",
   assignee_not_a_member: "This person is not a member of this organization.",
@@ -296,9 +458,29 @@ const EN: Record<MessageKey, string> = {
   subscription_already_canceled: "This subscription is already stopped.",
   subscription_already_canceled_fix:
     "Delete it if it no longer belongs in the list: DELETE /admin/subscriptions/:id.",
+  billing_launch_stripe: "During the launch, the platform never calls Stripe.",
+  billing_launch_stripe_fix:
+    "Change the end of a granted subscription: PATCH /admin/subscriptions/:id with ends_at.",
+  subscription_not_stripe:
+    "This subscription is a platform product: Stripe never sees it.",
+  subscription_not_stripe_fix:
+    "Change its end: PATCH /admin/subscriptions/:id with ends_at.",
+  subscription_not_trialing: "This subscription is not trialing.",
+  subscription_not_trialing_fix:
+    "Only a trial extends; a subscription already billed changes from the Stripe portal.",
+  subscription_not_resumable:
+    "This subscription was not cancelled at the end of the period.",
+  subscription_not_resumable_fix:
+    "Only a cancellation still billed to the term resumes; a stopped subscription reopens with a new payment.",
+  trial_end_not_future: "The trial end asked for is already past.",
+  trial_end_not_future_fix: "Give an ISO date later than now.",
   affiliate_code_taken: 'The code "{code}" is already taken.',
   affiliate_code_taken_fix: "Pick another code, or let the platform draw one.",
   affiliate_link_not_found: "This affiliate link does not exist.",
+  affiliate_link_referred:
+    "This link already brought an organization: it can no longer be deleted.",
+  affiliate_link_referred_fix:
+    'Disable it: PATCH /admin/affiliate-links/:id { "disabled": true }.',
   mail_thread_not_found: "This thread does not exist.",
   mail_html_not_found: "This message has no HTML version.",
   mail_attachment_not_found: "This attachment does not exist.",
@@ -328,6 +510,35 @@ const EN: Record<MessageKey, string> = {
   mail_upload_size_mismatch:
     'The file "{filename}" is larger than what was declared.',
   mail_upload_size_mismatch_fix: "Remove it and add it again.",
+  mailbox_not_found: "This mailbox does not exist.",
+  mailbox_address_refused: '"{address}" is not a valid address on {domain}.',
+  mailbox_address_refused_fix:
+    "Give the local part alone, in lower case: support, or support@{domain}.",
+  mailbox_taken: "The address {address} already has a mailbox.",
+  mailbox_taken_fix: "Open the existing mailbox, or pick another address.",
+  mailbox_in_use: "This mailbox still carries {threads} threads.",
+  mailbox_in_use_fix:
+    "Disable it: it keeps receiving without sending, and its threads stay readable.",
+  mailbox_protected: "The four legal mailboxes cannot be deleted.",
+  mailbox_protected_fix:
+    "Disable it if it must stop sending; it will keep receiving.",
+  mailbox_cannot_reply: "The mailbox {address} does not send.",
+  mailbox_cannot_reply_fix:
+    "Enable it again, or allow it to reply in the mailbox settings.",
+  mail_thread_no_mailbox:
+    "This thread came in on {address}, which no mailbox declares.",
+  mail_thread_no_mailbox_fix:
+    "Create the mailbox {address}: the threads already received join it.",
+  mail_organization_unknown: "This organization does not exist.",
+  mail_organization_unknown_fix:
+    "Pick an organization from the field's suggestions.",
+  mail_note_not_found: "This note does not exist.",
+  mail_draft_not_found: "This thread carries no draft.",
+  mail_template_not_found: "This canned reply does not exist.",
+  mail_template_mailbox_unknown:
+    "The mailbox this canned reply names does not exist.",
+  mail_template_mailbox_unknown_fix:
+    "Pick an existing mailbox, or leave the canned reply without one.",
   entitlement_required: "This organization has no active subscription.",
   entitlement_required_fix:
     "Start your thirty-day trial, no card needed, from /dashboard/billing.",

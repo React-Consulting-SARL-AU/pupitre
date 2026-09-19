@@ -61,12 +61,44 @@ export async function grantLaunch(organizationId: string, endsAt: Date) {
   })
 }
 
-export async function useSessionApiClient(token: string): Promise<void> {
+export interface SessionApiClientOptions {
+  /** A request the network never carries: the client throws instead of answering. */
+  cut?: (url: string, init?: RequestInit) => boolean
+}
+
+export async function useSessionApiClient(
+  token: string,
+  { cut }: SessionApiClientOptions = {}
+): Promise<void> {
   const server = await bootApiTestServer()
 
   setApiClient(
     createApiClient(TEST_BASE_URL, {
-      fetch: server.fetch,
+      fetch: (input, init) =>
+        cut?.(String(input), init)
+          ? Promise.reject(new Error("the network went away"))
+          : server.fetch(input, init),
+      headers: { authorization: `Bearer ${token}` },
+    })
+  )
+}
+
+/** A client whose writes never reach the API: what a gesture sees when the network drops. */
+export async function useSeveredApiClient(
+  token: string,
+  severed: (url: string, method: string) => boolean
+): Promise<void> {
+  const server = await bootApiTestServer()
+
+  setApiClient(
+    createApiClient(TEST_BASE_URL, {
+      fetch: (input, init) => {
+        const request = new Request(input, init)
+
+        return severed(request.url, request.method)
+          ? Promise.reject(new TypeError("Failed to fetch"))
+          : server.fetch(input, init)
+      },
       headers: { authorization: `Bearer ${token}` },
     })
   )

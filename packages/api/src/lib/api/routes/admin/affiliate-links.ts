@@ -2,10 +2,12 @@ import { resolveLocale } from "@pupitre/shared/i18n"
 import { Elysia, t } from "elysia"
 import {
   AffiliateCodeTakenError,
+  AffiliateLinkReferredError,
   createAffiliateLink,
+  deleteAffiliateLink,
   listAffiliateLinks,
   readAffiliateLink,
-  setAffiliateLinkDisabled,
+  updateAffiliateLink,
 } from "../../../affiliates/affiliates"
 import { translate } from "../../../i18n"
 import { apiError } from "../../errors"
@@ -110,10 +112,10 @@ const writeRoutes = new Elysia({ name: "admin-affiliate-links-write" })
   .patch(
     "/affiliate-links/:id",
     async ({ user, params, body, request, set }) => {
-      const link = await setAffiliateLinkDisabled(
+      const link = await updateAffiliateLink(
         { userId: user.id },
         params.id,
-        body.disabled
+        body
       )
 
       if (!link) {
@@ -130,13 +132,62 @@ const writeRoutes = new Elysia({ name: "admin-affiliate-links-write" })
     {
       params: t.Object({ id: t.String() }),
       body: adminAffiliateLinkPatchBody,
-      detail: { summary: "Désactiver ou réactiver un lien d'affiliation" },
+      detail: {
+        summary: "Modifier un lien d'affiliation, le désactiver ou le rendre",
+      },
       response: {
         200: dataResponse(adminAffiliateLinkSchema),
         401: errorResponse,
         403: errorResponse,
         404: errorResponse,
         422: errorResponse,
+      },
+    }
+  )
+  .delete(
+    "/affiliate-links/:id",
+    async ({ user, params, request, set }) => {
+      const locale = resolveLocale(request.headers)
+
+      try {
+        const deleted = await deleteAffiliateLink(
+          { userId: user.id },
+          params.id
+        )
+
+        if (!deleted) {
+          set.status = 404
+
+          return apiError(
+            "not_found",
+            translate(locale, "affiliate_link_not_found")
+          )
+        }
+
+        set.status = 204
+      } catch (error) {
+        if (!(error instanceof AffiliateLinkReferredError)) {
+          throw error
+        }
+
+        set.status = 409
+
+        return apiError(
+          "conflict",
+          translate(locale, "affiliate_link_referred"),
+          translate(locale, "affiliate_link_referred_fix")
+        )
+      }
+    },
+    {
+      params: t.Object({ id: t.String() }),
+      detail: { summary: "Effacer un lien d'affiliation sans provenance" },
+      response: {
+        204: t.Void(),
+        401: errorResponse,
+        403: errorResponse,
+        404: errorResponse,
+        409: errorResponse,
       },
     }
   )

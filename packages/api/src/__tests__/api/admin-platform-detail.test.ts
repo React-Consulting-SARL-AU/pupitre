@@ -277,7 +277,7 @@ describe("POST /admin/users/:id/ban", () => {
 
     expect(event.targetType).toBe("user")
     expect(event.actorUserId).toBe(admin.session.userId)
-    expect(event.payload).toEqual({ reason: "usage abusif" })
+    expect(event.payload).toEqual({ reason: "usage abusif", until: null })
 
     const refused = await apiRequest("/me", { session: owner })
 
@@ -438,6 +438,70 @@ describe("les organisations de la plateforme", () => {
       organization: { id: organization.id },
       actor: { id: admin.session.userId },
     })
+  })
+
+  it("ne garde que les organisations de l'état demandé", async () => {
+    const suspendue = await createOrganizationWithMembers({
+      name: "Suspendue",
+      roles: ["owner"],
+    })
+    const fermee = await createOrganizationWithMembers({
+      name: "Fermée",
+      roles: ["owner"],
+    })
+    const partante = await createOrganizationWithMembers({
+      name: "Partante",
+      roles: ["owner"],
+    })
+
+    await createOrganizationWithMembers({ name: "Ouverte", roles: ["owner"] })
+    await harness.prisma.organization.update({
+      where: { id: suspendue.organization.id },
+      data: { suspendedAt: new Date(), suspendedReason: "abus" },
+    })
+    await harness.prisma.organization.update({
+      where: { id: fermee.organization.id },
+      data: { closedAt: new Date(), closedReason: "demande" },
+    })
+    await harness.prisma.organization.update({
+      where: { id: partante.organization.id },
+      data: {
+        closedAt: new Date(),
+        deletionAt: new Date(),
+        deletionReason: "demande",
+      },
+    })
+
+    const admin = await platformAdmin()
+    const read = (state: string) =>
+      apiRequest<OrganizationsBody>(`/admin/organizations?state=${state}`, {
+        session: admin,
+      })
+    const [suspended, closed, deleting, active] = await Promise.all([
+      read("suspended"),
+      read("closed"),
+      read("deleting"),
+      read("active"),
+    ])
+    const unknown = await apiRequest<ErrorBody>(
+      "/admin/organizations?state=ailleurs",
+      { session: admin }
+    )
+
+    expect(suspended.json.data.map((one) => one.id)).toEqual([
+      suspendue.organization.id,
+    ])
+    expect(closed.json.data.map((one) => one.id)).toEqual([
+      fermee.organization.id,
+    ])
+    expect(deleting.json.data.map((one) => one.id)).toEqual([
+      partante.organization.id,
+    ])
+    expect(active.json.data.map((one) => one.name)).toContain("Ouverte")
+    expect(active.json.data.map((one) => one.id)).not.toContain(
+      suspendue.organization.id
+    )
+    expect(unknown.status).toBe(422)
   })
 
   it("rend not_found sur une organisation inconnue", async () => {

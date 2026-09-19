@@ -4,6 +4,7 @@ import { DEFAULT_LOCALE, LOCALES, localeOf } from "@pupitre/shared/i18n"
 import { PLATFORM_ADMIN_ROLE } from "@pupitre/shared/permissions"
 import { betterAuth } from "better-auth"
 import { prismaAdapter } from "better-auth/adapters/prisma"
+import { APIError } from "better-auth/api"
 import {
   admin,
   bearer,
@@ -30,6 +31,12 @@ import {
   trustedOrigins,
 } from "./env"
 import { organizationHooks } from "./hooks"
+import {
+  ACCOUNT_DEACTIVATED_CODE,
+  isAccountClosed,
+  LIFECYCLE_FIELDS,
+  ORGANIZATION_LIFECYCLE_FIELDS,
+} from "./lifecycle"
 import { ensurePersonalOrganization } from "./personal-organization"
 import type { AuthPrisma } from "./prisma"
 import { twoFactorChallenge } from "./two-factor-policy"
@@ -60,6 +67,9 @@ export type SocialProviderId = (typeof SOCIAL_PROVIDER_IDS)[number]
 
 export const RELYING_PARTY_NAME = "Pupitre"
 export const BACKUP_CODE_COUNT = 10
+
+export const ACCOUNT_DEACTIVATED_MESSAGE =
+  "This account is closed. Write to support@pupitre.studio to have it reopened."
 
 export const DEVICE_VERIFICATION_PATH = "/auth/device"
 export const INVITATION_PATH = "/auth/invitation"
@@ -169,6 +179,20 @@ export function createAuth({
       updateAge: SESSION_UPDATE_AGE,
     },
     rateLimit: { enabled: true },
+    emailVerification: {
+      sendVerificationEmail: async (
+        { user, url }: { user: { email: string }; url: string },
+        request: unknown
+      ) => {
+        await sendEmail(
+          await authEmailRenderer().emailVerification({
+            to: user.email,
+            url,
+            acceptLanguage: acceptLanguageOf(request),
+          })
+        )
+      },
+    },
     user: {
       deleteUser: { enabled: true },
       // The address that signs you in only moves once the address that holds
@@ -201,6 +225,7 @@ export function createAuth({
           defaultValue: DEFAULT_LOCALE,
           input: false,
         },
+        ...LIFECYCLE_FIELDS,
       },
     },
     advanced: {
@@ -230,16 +255,28 @@ export function createAuth({
       session: {
         create: {
           before: async (session) => {
-            if (activeOrganizationIdOf(session)) {
-              return
-            }
-
             const user = await prisma.user.findUnique({
               where: { id: session.userId },
-              select: { id: true, email: true },
+              select: {
+                id: true,
+                email: true,
+                deactivatedAt: true,
+                deletionAt: true,
+              },
             })
 
             if (!user) {
+              return
+            }
+
+            if (isAccountClosed(user)) {
+              throw new APIError("FORBIDDEN", {
+                code: ACCOUNT_DEACTIVATED_CODE,
+                message: ACCOUNT_DEACTIVATED_MESSAGE,
+              })
+            }
+
+            if (activeOrganizationIdOf(session)) {
               return
             }
 
@@ -279,6 +316,9 @@ export function createAuth({
       organization({
         ac,
         roles,
+        schema: {
+          organization: { additionalFields: ORGANIZATION_LIFECYCLE_FIELDS },
+        },
         creatorRole: "owner",
         invitationExpiresIn: INVITATION_EXPIRES_IN,
         cancelPendingInvitationsOnReInvite: true,

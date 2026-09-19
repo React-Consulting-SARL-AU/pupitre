@@ -11,8 +11,19 @@ import { createSession, createUser } from "../../testing/session"
 
 interface MeBody {
   user: { id: string; email: string; name: string }
-  organizations: { id: string; name: string; slug: string; role: string }[]
-  active_organization: { id: string; slug: string } | null
+  organizations: {
+    id: string
+    name: string
+    slug: string
+    state: string
+    role: string
+  }[]
+  active_organization: {
+    id: string
+    slug: string
+    state: string
+    reason: string | null
+  } | null
   role: string | null
   platform_role: string | null
   entitlement: string
@@ -62,10 +73,15 @@ describe("GET /me", () => {
         id: organization.id,
         name: organization.name,
         slug: organization.slug,
+        state: "active",
         role: "owner",
       },
     ])
-    expect(me.json.active_organization).toMatchObject({ id: organization.id })
+    expect(me.json.active_organization).toMatchObject({
+      id: organization.id,
+      state: "active",
+      reason: null,
+    })
     expect(me.json.role).toBe("owner")
     expect(me.json.entitlement).toBe("suspended")
 

@@ -78,18 +78,33 @@ export const MAIL_MAX_BYTES = 20 * 1024 * 1024
 /** D1 refuses a row past a megabyte; the raw `.eml` in the bucket keeps the whole body. */
 export const MAIL_MAX_TEXT_CHARS = 200_000
 
-/** The only `from` a reply or a new mail may carry: the four verified senders. */
-export const MAIL_SENDER_ADDRESSES = [
-  LEGAL_CONTACTS.support,
-  LEGAL_CONTACTS.legal,
-  LEGAL_CONTACTS.privacy,
-  LEGAL_CONTACTS.security,
-] as const
+export const MAIL_LOCAL_PART_MAX_LENGTH = 64
 
-export type MailSenderAddress = (typeof MAIL_SENDER_ADDRESSES)[number]
+export const MAIL_DISPLAY_NAME_MAX_LENGTH = 80
 
-export function isMailSenderAddress(value: string): value is MailSenderAddress {
-  return MAIL_SENDER_ADDRESSES.includes(value as MailSenderAddress)
+export const MAIL_SIGNATURE_MAX_LENGTH = 2000
+
+const MAIL_LOCAL_PART_RE = /^[a-z0-9]([a-z0-9._+-]*[a-z0-9])?$/
+
+/**
+ * A mailbox is a local part on our own domain: the catch-all brings everything
+ * here, so a box declared elsewhere would be a box nobody ever reads.
+ */
+export function mailboxAddressOf(input: string): string | null {
+  const value = input.trim().toLowerCase()
+  const at = value.indexOf("@")
+
+  if (at !== -1 && value.slice(at + 1) !== MAIL_DOMAIN) {
+    return null
+  }
+
+  const local = at === -1 ? value : value.slice(0, at)
+
+  if (local.length === 0 || local.length > MAIL_LOCAL_PART_MAX_LENGTH) {
+    return null
+  }
+
+  return MAIL_LOCAL_PART_RE.test(local) ? `${local}@${MAIL_DOMAIN}` : null
 }
 
 /** What a reply or a new mail may carry, all attachments together. */
@@ -99,6 +114,12 @@ export const MAIL_MAX_OUTBOUND_ATTACHMENTS = 10
 
 /** How long a signed bucket address, to read an attachment or to upload one, stays valid. */
 export const MAIL_SIGNED_URL_TTL_SECONDS = 600
+
+/**
+ * One journal line per reader and per sensitive thread inside this window: a
+ * console that refetches the open thread is still the same reading.
+ */
+export const MAIL_READ_AUDIT_WINDOW_MS = 10 * 60 * 1000
 
 export const MAIL_BLOCKED_ATTACHMENT_EXTENSIONS = [
   "exe",
