@@ -21,8 +21,8 @@ import { type QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { BillingPanel } from "@/components/dashboard/billing-panel"
 import { queryKeys } from "@/lib/api/queries"
 import {
+  type DashboardActiveOrganization,
   DashboardContext,
-  type DashboardOrganization,
 } from "@/lib/domain/dashboard-context"
 import { createQueryClient } from "@/lib/query/client"
 import {
@@ -49,7 +49,7 @@ function writeCookie(value: string): void {
 }
 
 function panel(
-  organization: DashboardOrganization | null,
+  organization: DashboardActiveOrganization | null,
   role: OrgRole,
   queryClient: QueryClient = createQueryClient()
 ) {
@@ -111,7 +111,7 @@ async function payFor(
 
 describe("BillingPanel", () => {
   let billing: Billing
-  let organization: DashboardOrganization
+  let organization: DashboardActiveOrganization
   let leave: ReturnType<typeof spyOn>
 
   beforeAll(async () => {
@@ -134,6 +134,8 @@ describe("BillingPanel", () => {
       id: console.organization.id,
       name: console.organization.name,
       slug: console.organization.slug,
+      state: "active",
+      reason: null,
     }
   })
 

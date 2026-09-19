@@ -70,6 +70,8 @@ describe("ServerActions", () => {
                 id: organization.id,
                 name: organization.name,
                 slug: organization.slug,
+                state: "active",
+                reason: null,
               },
               role: "owner",
               entitlement: "valid",

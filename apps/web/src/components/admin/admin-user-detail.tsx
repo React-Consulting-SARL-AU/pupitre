@@ -56,7 +56,7 @@ export function AdminUserDetail({ id }: AdminUserDetailProps) {
     ])
   }
   const ban = useMutation({
-    mutationFn: (reason: string) => banUser(id, reason),
+    mutationFn: (reason: string) => banUser(id, { reason }),
     onSuccess: refresh,
   })
   const lift = useMutation({

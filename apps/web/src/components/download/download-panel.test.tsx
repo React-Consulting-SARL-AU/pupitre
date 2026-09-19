@@ -96,6 +96,7 @@ describe("DownloadPanel", () => {
       id: consoleUser.organization.id,
       name: consoleUser.organization.name,
       slug: consoleUser.organization.slug,
+      state: "active",
     }
   })
 
