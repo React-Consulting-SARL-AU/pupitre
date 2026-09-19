@@ -1,11 +1,13 @@
+import type { AccountState } from "@pupitre/shared/platform"
 import { PLATFORM_SEARCH_RESULTS } from "@pupitre/shared/platform"
 import { getPrisma } from "../api/prisma"
+import { accountStateOf } from "./lifecycle"
 
 export interface SearchUser {
   id: string
   email: string
   name: string
-  state: "banned" | "unverified" | "active"
+  state: AccountState
 }
 
 export interface SearchOrganization {
@@ -34,17 +36,6 @@ export interface PlatformSearchResults {
   threads: SearchThread[]
 }
 
-function stateOf(user: {
-  banned: boolean | null
-  emailVerified: boolean
-}): SearchUser["state"] {
-  if (user.banned) {
-    return "banned"
-  }
-
-  return user.emailVerified ? "active" : "unverified"
-}
-
 /**
  * SQLite's `LIKE` ignores case on ASCII on its own, which is what D1 runs and
  * what the harness runs: the query goes in as typed.
@@ -65,7 +56,9 @@ export async function searchPlatform(
         email: true,
         name: true,
         banned: true,
-        emailVerified: true,
+        banExpires: true,
+        deactivatedAt: true,
+        deletionAt: true,
       },
     }),
     prisma.organization.findMany({
@@ -112,7 +105,7 @@ export async function searchPlatform(
       id: user.id,
       email: user.email,
       name: user.name,
-      state: stateOf(user),
+      state: accountStateOf(user),
     })),
     organizations,
     servers,
