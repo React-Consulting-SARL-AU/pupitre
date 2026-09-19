@@ -1,3 +1,4 @@
+import { PLATFORM_ORGANIZATION_ID } from "@pupitre/shared/platform"
 import { getPrisma } from "../api/prisma"
 import type { ServerRow } from "../servers/server-row"
 import { liveSubscriptionOf } from "./subscription"
@@ -88,10 +89,19 @@ async function entitlementOf(
   return { state, valid_until: subscription.currentPeriodEnd ?? now }
 }
 
+/** The platform's own organization is entitled by what it is, not by a subscription. */
+function isPlatform(organizationId: string): boolean {
+  return organizationId === PLATFORM_ORGANIZATION_ID
+}
+
 export async function entitlementForOrganization(
   organizationId: string,
   now: Date = new Date()
 ): Promise<Entitlement> {
+  if (isPlatform(organizationId)) {
+    return { state: "valid", valid_until: entitlementWindow(now) }
+  }
+
   const subscription = await liveSubscriptionOf(organizationId)
 
   if (!subscription) {
@@ -105,6 +115,10 @@ export async function entitlementRefusalFor(
   organizationId: string,
   now: Date = new Date()
 ): Promise<EntitlementRefusal | null> {
+  if (isPlatform(organizationId)) {
+    return null
+  }
+
   const subscription = await liveSubscriptionOf(organizationId)
 
   if (!subscription) {

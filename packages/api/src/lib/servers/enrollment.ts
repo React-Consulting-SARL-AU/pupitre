@@ -156,7 +156,7 @@ async function createServer(
   grant: EnrollmentGrant
 ) {
   const [{ quota, source }, seated] = await Promise.all([
-    seatQuotaFor(prisma),
+    seatQuotaFor(prisma, actor.organizationId),
     countSeatedServers(prisma),
   ])
 

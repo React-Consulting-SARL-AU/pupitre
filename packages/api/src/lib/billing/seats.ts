@@ -1,8 +1,9 @@
 import type { ServerStatus } from "@pupitre/db/cloudflare/client"
 import { LAUNCH_PRODUCT } from "@pupitre/shared/plans"
+import { PLATFORM_ORGANIZATION_ID } from "@pupitre/shared/platform"
 import { getPrisma, type OrganizationPrisma } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
-import { getBillingProvider } from "./runtime"
+import { getBillingMode, getBillingProvider } from "./runtime"
 import {
   LIVE_SUBSCRIPTION_STATUSES,
   liveSubscriptionOf,
@@ -19,16 +20,25 @@ export const SEATED_STATUSES: ServerStatus[] = [
 
 export const PAYING_SUBSCRIPTION_STATUSES = LIVE_SUBSCRIPTION_STATUSES
 
-export type SeatQuotaSource = "subscription" | "none"
+export type SeatQuotaSource = "subscription" | "platform" | "none"
 
 export interface SeatQuota {
   quota: number
   source: SeatQuotaSource
 }
 
+/**
+ * The platform's own organization holds the team's seats without any
+ * subscription: nobody bills Pupitre for Pupitre.
+ */
 export async function seatQuotaFor(
-  prisma: OrganizationPrisma
+  prisma: OrganizationPrisma,
+  organizationId: string
 ): Promise<SeatQuota> {
+  if (organizationId === PLATFORM_ORGANIZATION_ID) {
+    return { quota: getBillingMode().adminSeats, source: "platform" }
+  }
+
   const subscription = await prisma.subscription.findFirst({
     where: { status: { in: PAYING_SUBSCRIPTION_STATUSES } },
     orderBy: { updatedAt: "desc" },

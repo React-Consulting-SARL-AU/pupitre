@@ -21,6 +21,13 @@ export function platformOpen(
   )
 }
 
+/** The platform organisation has no trial, no subscription and no onboarding: its right of use is permanent. */
+export function isPlatformOrganization(
+  organizationId: string | null | undefined
+): boolean {
+  return organizationId === PLATFORM_ORGANIZATION_ID
+}
+
 /**
  * Any member of the platform organisation reads these pages; only the two roles
  * the owner grants there act on them. The guards decide, this only hides.
