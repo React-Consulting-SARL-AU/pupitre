@@ -27,6 +27,7 @@ export interface SubscriptionInput {
   quantity?: number
   status?: string
   currentPeriodEnd?: Date | null
+  cancelAtPeriodEnd?: boolean
 }
 
 export async function subscribeOrganization({
@@ -34,6 +35,7 @@ export async function subscribeOrganization({
   quantity = 5,
   status = "trialing",
   currentPeriodEnd = null,
+  cancelAtPeriodEnd = false,
 }: SubscriptionInput) {
   const { prisma } = await bootApiTestServer()
 
@@ -47,6 +49,7 @@ export async function subscribeOrganization({
       quantity,
       status,
       currentPeriodEnd,
+      cancelAtPeriodEnd,
     },
   })
 }
