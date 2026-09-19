@@ -27,6 +27,10 @@ const STRIPE_EVENT_STATUSES = [
 
 export const orgRoleSchema = t.UnionEnum([...ORG_ROLES])
 
+export const accountStateSchema = t.UnionEnum([...ACCOUNT_STATES])
+
+export const organizationStateSchema = t.UnionEnum([...ORGANIZATION_STATES])
+
 const worklistOrganization = t.Object({
   id: t.String(),
   name: t.String(),
@@ -103,7 +107,7 @@ export const adminSearchSchema = t.Object(
         id: t.String(),
         email: t.String(),
         name: t.String(),
-        state: t.UnionEnum(["banned", "unverified", "active"]),
+        state: accountStateSchema,
       })
     ),
     organizations: t.Array(worklistOrganization),
@@ -149,10 +153,6 @@ export const adminOverviewSchema = t.Object(
   },
   { $id: "AdminOverview" }
 )
-
-export const accountStateSchema = t.UnionEnum([...ACCOUNT_STATES])
-
-export const organizationStateSchema = t.UnionEnum([...ORGANIZATION_STATES])
 
 const adminUserFields = {
   id: t.String(),
