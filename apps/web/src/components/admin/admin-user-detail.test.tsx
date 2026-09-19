@@ -360,6 +360,39 @@ describe("AdminUserDetail", () => {
     expect(container.textContent).not.toContain("Delete the account")
   })
 
+  it("leaves a member of the platform organisation's devices without a revocation", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { members } = await createOrganizationWithMembers({
+      roles: ["owner"],
+    })
+    const colleague = members[0].user
+
+    await prisma.device.create({
+      data: {
+        userId: colleague.id,
+        name: "MacBook de l'équipe",
+        publicKey:
+          "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJggxfUKhpYOKRen6E6lpoh//viuSJtxOQ8hVlFZb+/t ada@macbook",
+        fingerprint: "SHA256:equipe",
+      },
+    })
+    await joinPlatformOrganization(prisma, colleague.id, "member")
+
+    const { container, unmount } = await render(page(colleague.id, "devices"))
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () =>
+        container.textContent?.includes(
+          "belongs to the Pupitre organisation"
+        ) === true
+    )
+
+    expect(container.textContent).toContain("MacBook de l'équipe")
+    expect(container.textContent).not.toContain("Revoke")
+  })
+
   it("greys every act out for a reader of the platform, and says which role acts", async () => {
     const { members } = await createOrganizationWithMembers({
       roles: ["member"],

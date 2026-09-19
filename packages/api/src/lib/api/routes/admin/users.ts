@@ -14,6 +14,7 @@ import {
   UserAlreadyDeactivatedError,
 } from "../../../platform/user-lifecycle"
 import {
+  BanUntilNotFutureError,
   banUserFromPlatform,
   listUsersForPlatform,
   PlatformMemberProtectedError,
@@ -21,7 +22,7 @@ import {
   revokeDeviceFromPlatform,
   unbanUserFromPlatform,
 } from "../../../platform/users"
-import { apiError } from "../../errors"
+import { type ApiErrorPayload, apiError } from "../../errors"
 import {
   dataResponse,
   errorResponse,
@@ -45,16 +46,6 @@ const userNotFound = (request: Request) =>
     translate(resolveLocale(request.headers), "user_not_found")
   )
 
-function conflict(request: Request, message: MessageKey) {
-  const locale = resolveLocale(request.headers)
-
-  return apiError(
-    "conflict",
-    translate(locale, message),
-    translate(locale, `${message}_fix` as MessageKey)
-  )
-}
-
 const CONFLICTS: [new (...args: never[]) => Error, MessageKey][] = [
   [PlatformMemberProtectedError, "platform_member_protected"],
   [UserAlreadyDeactivatedError, "user_already_deactivated"],
@@ -63,8 +54,39 @@ const CONFLICTS: [new (...args: never[]) => Error, MessageKey][] = [
   [EmailAlreadyVerifiedError, "email_verified"],
 ]
 
-function conflictKeyOf(error: unknown): MessageKey | null {
-  return CONFLICTS.find(([refusal]) => error instanceof refusal)?.[1] ?? null
+interface Refusal {
+  status: 409 | 422
+  body: ApiErrorPayload
+}
+
+function refusalOf(request: Request, error: unknown): Refusal | null {
+  const locale = resolveLocale(request.headers)
+
+  if (error instanceof BanUntilNotFutureError) {
+    return {
+      status: 422,
+      body: apiError(
+        "validation",
+        translate(locale, "ban_until_not_future"),
+        translate(locale, "ban_until_not_future_fix")
+      ),
+    }
+  }
+
+  const key = CONFLICTS.find(([refused]) => error instanceof refused)?.[1]
+
+  if (!key) {
+    return null
+  }
+
+  return {
+    status: 409,
+    body: apiError(
+      "conflict",
+      translate(locale, key),
+      translate(locale, `${key}_fix` as MessageKey)
+    ),
+  }
 }
 
 const readRoutes = new Elysia({ name: "admin-users-read" })
@@ -150,15 +172,15 @@ const writeRoutes = new Elysia({ name: "admin-users-write" })
 
         return { data: serializeData(banned) }
       } catch (error) {
-        const key = conflictKeyOf(error)
+        const refused = refusalOf(request, error)
 
-        if (!key) {
+        if (!refused) {
           throw error
         }
 
-        set.status = 409
+        set.status = refused.status
 
-        return conflict(request, key)
+        return refused.body
       }
     },
     {
@@ -213,15 +235,15 @@ const writeRoutes = new Elysia({ name: "admin-users-write" })
 
         return { data: serializeData(deactivated) }
       } catch (error) {
-        const key = conflictKeyOf(error)
+        const refused = refusalOf(request, error)
 
-        if (!key) {
+        if (!refused) {
           throw error
         }
 
-        set.status = 409
+        set.status = refused.status
 
-        return conflict(request, key)
+        return refused.body
       }
     },
     {
@@ -251,15 +273,15 @@ const writeRoutes = new Elysia({ name: "admin-users-write" })
 
         return { data: serializeData(reactivated) }
       } catch (error) {
-        const key = conflictKeyOf(error)
+        const refused = refusalOf(request, error)
 
-        if (!key) {
+        if (!refused) {
           throw error
         }
 
-        set.status = 409
+        set.status = refused.status
 
-        return conflict(request, key)
+        return refused.body
       }
     },
     {
@@ -295,15 +317,15 @@ const writeRoutes = new Elysia({ name: "admin-users-write" })
 
         return { data: serializeData(deletion.user) }
       } catch (error) {
-        const key = conflictKeyOf(error)
+        const refused = refusalOf(request, error)
 
-        if (!key) {
+        if (!refused) {
           throw error
         }
 
-        set.status = 409
+        set.status = refused.status
 
-        return conflict(request, key)
+        return refused.body
       }
     },
     {
@@ -319,18 +341,30 @@ const writeRoutes = new Elysia({ name: "admin-users-write" })
   .post(
     "/users/:id/sessions/revoke",
     async ({ user, params, request, set }) => {
-      const revoked = await revokeUserSessionsFromPlatform(
-        { userId: user.id },
-        params.id
-      )
+      try {
+        const revoked = await revokeUserSessionsFromPlatform(
+          { userId: user.id },
+          params.id
+        )
 
-      if (!revoked) {
-        set.status = 404
+        if (!revoked) {
+          set.status = 404
 
-        return userNotFound(request)
+          return userNotFound(request)
+        }
+
+        set.status = 204
+      } catch (error) {
+        const refused = refusalOf(request, error)
+
+        if (!refused) {
+          throw error
+        }
+
+        set.status = refused.status
+
+        return refused.body
       }
-
-      set.status = 204
     },
     {
       params: userParams,
@@ -340,6 +374,7 @@ const writeRoutes = new Elysia({ name: "admin-users-write" })
         401: errorResponse,
         403: errorResponse,
         404: errorResponse,
+        409: errorResponse,
       },
     }
   )
@@ -357,15 +392,15 @@ const writeRoutes = new Elysia({ name: "admin-users-write" })
 
         set.status = 204
       } catch (error) {
-        const key = conflictKeyOf(error)
+        const refused = refusalOf(request, error)
 
-        if (!key) {
+        if (!refused) {
           throw error
         }
 
-        set.status = 409
+        set.status = refused.status
 
-        return conflict(request, key)
+        return refused.body
       }
     },
     {
@@ -383,23 +418,35 @@ const writeRoutes = new Elysia({ name: "admin-users-write" })
   .delete(
     "/users/:id/devices/:deviceId",
     async ({ user, params, body, request, set }) => {
-      const revoked = await revokeDeviceFromPlatform(
-        { userId: user.id },
-        params.id,
-        params.deviceId,
-        body.reason
-      )
-
-      if (!revoked) {
-        set.status = 404
-
-        return apiError(
-          "not_found",
-          translate(resolveLocale(request.headers), "device_not_found")
+      try {
+        const revoked = await revokeDeviceFromPlatform(
+          { userId: user.id },
+          params.id,
+          params.deviceId,
+          body.reason
         )
-      }
 
-      set.status = 204
+        if (!revoked) {
+          set.status = 404
+
+          return apiError(
+            "not_found",
+            translate(resolveLocale(request.headers), "device_not_found")
+          )
+        }
+
+        set.status = 204
+      } catch (error) {
+        const refused = refusalOf(request, error)
+
+        if (!refused) {
+          throw error
+        }
+
+        set.status = refused.status
+
+        return refused.body
+      }
     },
     {
       params: t.Object({ id: t.String(), deviceId: t.String() }),
@@ -410,6 +457,7 @@ const writeRoutes = new Elysia({ name: "admin-users-write" })
         401: errorResponse,
         403: errorResponse,
         404: errorResponse,
+        409: errorResponse,
         422: errorResponse,
       },
     }

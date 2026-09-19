@@ -22,6 +22,7 @@ export type AuditAction =
   | "user.reactivated"
   | "user.deleted"
   | "user.purged"
+  | "user.purge_skipped"
   | "user.sessions_revoked"
   | "organization.suspended"
   | "organization.restored"

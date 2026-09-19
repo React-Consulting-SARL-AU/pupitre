@@ -54,11 +54,7 @@ const STANDING_SELECT = {
   deletionAt: true,
 } as const
 
-/**
- * What a closure takes away from the machines: every device of the account,
- * so its keys leave the servers, and every assignment, so nobody sees a name
- * that can no longer open anything.
- */
+/** Every device goes, so the account's keys leave the servers, and every assignment with them. */
 async function releaseFromMachines(
   actor: PlatformUserActor,
   userId: string,
@@ -178,12 +174,10 @@ export async function reactivateUserFromPlatform(
   return await readUserForPlatform(userId)
 }
 
-/**
- * An organization nobody else owns and that still holds something — a machine
- * that occupies a seat, a subscription still billed — would be left without
- * anyone able to act on it.
- */
-async function assertNotSoleOwner(userId: string): Promise<void> {
+/** An organization nobody else owns and that still holds a seated machine or a billed subscription would be left to nobody. */
+export async function soleOwnerOrganizationOf(
+  userId: string
+): Promise<string | null> {
   const prisma = getPrisma()
   const owned = await prisma.member.findMany({
     where: { userId, role: "owner" },
@@ -212,8 +206,18 @@ async function assertNotSoleOwner(userId: string): Promise<void> {
     ])
 
     if (servers > 0 || subscriptions > 0) {
-      throw new SoleOwnerError(userId, organizationId)
+      return organizationId
     }
+  }
+
+  return null
+}
+
+async function assertNotSoleOwner(userId: string): Promise<void> {
+  const organizationId = await soleOwnerOrganizationOf(userId)
+
+  if (organizationId) {
+    throw new SoleOwnerError(userId, organizationId)
   }
 }
 
@@ -241,13 +245,14 @@ export async function deleteUserFromPlatform(
     throw new PlatformMemberProtectedError(userId)
   }
 
+  await assertNotSoleOwner(userId)
+
   if (user.deletionAt) {
     await purgeUser({ id: user.id, email: user.email }, actor.userId)
 
     return { deletion: "purged" }
   }
 
-  await assertNotSoleOwner(userId)
   await prisma.user.update({
     where: { id: userId },
     data: {
@@ -318,6 +323,10 @@ export async function revokeUserSessionsFromPlatform(
 
   if (!user) {
     return false
+  }
+
+  if (await belongsToPlatform(userId)) {
+    throw new PlatformMemberProtectedError(userId)
   }
 
   await revokeSessions(userId)

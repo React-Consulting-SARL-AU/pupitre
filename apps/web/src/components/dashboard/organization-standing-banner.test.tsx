@@ -79,4 +79,34 @@ describe("OrganizationStandingBanner", () => {
         ?.textContent
     ).toContain("scheduled the erasure of Atelier Ferrand")
   })
+
+  it("porte le ton d'alerte du Callout", async () => {
+    const { container } = await mount({ ...ATELIER, state: "suspended" })
+    const banner = container.querySelector(
+      "[data-testid=organization-standing-banner]"
+    )
+
+    expect(banner?.getAttribute("data-tone")).toBe("danger")
+    expect(banner?.getAttribute("role")).toBe("alert")
+  })
+
+  it("ouvre une autre organisation depuis une organisation fermée ou en suppression", async () => {
+    for (const state of ["closed", "deleting"] as const) {
+      const { container } = await mount({ ...ATELIER, state })
+
+      expect(
+        container.querySelector("[data-testid=organization-standing-banner]")
+          ?.textContent
+      ).toContain("Open another organisation")
+    }
+  })
+
+  it("ne propose pas de sortie sur une organisation seulement suspendue", async () => {
+    const { container } = await mount({ ...ATELIER, state: "suspended" })
+
+    expect(
+      container.querySelector("[data-testid=organization-standing-banner]")
+        ?.textContent
+    ).not.toContain("Open another organisation")
+  })
 })

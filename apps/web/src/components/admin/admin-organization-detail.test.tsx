@@ -347,6 +347,34 @@ describe("AdminOrganizationDetail", () => {
     expect(container.textContent).not.toContain("Suspend the organisation")
   })
 
+  it("leaves the platform organisation without a rename form", async () => {
+    const { container, unmount } = await render(
+      page(PLATFORM_ORGANIZATION_ID, "settings")
+    )
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("is the platform's own") === true
+    )
+
+    expect(container.querySelector("#organization-slug")).toBeNull()
+  })
+
+  it("leaves the platform organisation's members without a row menu", async () => {
+    const { container, unmount } = await render(
+      page(PLATFORM_ORGANIZATION_ID, "members")
+    )
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("is the platform's own") === true
+    )
+
+    expect(container.querySelector("[aria-haspopup=menu]")).toBeNull()
+  })
+
   it("greys every act out for a reader of the platform", async () => {
     const { organization } = await createOrganizationWithMembers({
       name: "Atelier",

@@ -5,6 +5,7 @@ import {
   type OrgRole,
 } from "@pupitre/shared/permissions"
 import { Elysia, status } from "elysia"
+import { formatDate } from "../../../emails/format"
 import { PIPELINE_ACTOR } from "../../audit/audit"
 import { entitlementRefusalFor } from "../../billing/entitlement"
 import { type MessageKey, type MessageParams, translate } from "../../i18n"
@@ -60,12 +61,18 @@ function unauthenticated(request: Request) {
  * nobody is signed in: the app shows the `fix` as it stands.
  */
 function refuseSession(request: Request, auth: AuthContext) {
-  if (auth.accountRefusal) {
+  const refusal = auth.accountRefusal
+
+  if (refusal) {
     return refuse(request, {
       status: 403,
       code: "forbidden",
-      message: auth.accountRefusal,
-      fix: `${auth.accountRefusal}_fix`,
+      message: refusal.kind,
+      fix: `${refusal.kind}_fix`,
+      params:
+        refusal.kind === "account_suspended"
+          ? { date: formatDate(resolveLocale(request.headers), refusal.until) }
+          : {},
     })
   }
 

@@ -49,6 +49,12 @@ const FR = {
   account_deactivated: "Ce compte est fermé.",
   account_deactivated_fix:
     "Écrivez à support@pupitre.studio pour le faire rouvrir.",
+  account_suspended: "Ce compte est suspendu jusqu'au {date}.",
+  account_suspended_fix:
+    "Le compte se rouvre de lui-même à cette date. Écrivez à support@pupitre.studio pour la faire avancer.",
+  ban_until_not_future: "Le terme d'une suspension est à venir.",
+  ban_until_not_future_fix:
+    "Donnez une date postérieure à maintenant, ou omettez until pour une suspension sans terme.",
   user_already_deactivated: "Ce compte est déjà désactivé.",
   user_already_deactivated_fix:
     "Réactivez-le d'abord : POST /admin/users/:id/reactivate.",
@@ -68,8 +74,25 @@ const FR = {
   organization_already_suspended: "Cette organisation est déjà suspendue.",
   organization_already_suspended_fix:
     "Levez d'abord la suspension : POST /admin/organizations/:id/restore.",
+  organization_not_suspended: "Cette organisation n'est pas suspendue.",
+  organization_not_suspended_fix:
+    "Il n'y a rien à lever ; une organisation fermée se rouvre par POST /admin/organizations/:id/reopen.",
+  organization_already_closed: "Cette organisation est déjà fermée.",
+  organization_already_closed_fix:
+    "Rouvrez-la d'abord : POST /admin/organizations/:id/reopen.",
+  organization_not_closed:
+    "Cette organisation n'est ni fermée ni en suppression.",
+  organization_not_closed_fix:
+    "Il n'y a rien à rouvrir ; une suspension se lève par POST /admin/organizations/:id/restore.",
+  platform_organization_protected:
+    "L'organisation Pupitre ne se suspend, ne se ferme, ne se renomme ni ne s'efface.",
+  platform_organization_protected_fix:
+    "Elle porte la plateforme : son nom et ses membres se changent en base, jamais depuis la console.",
   slug_taken: "Le slug « {slug} » est déjà pris.",
   slug_taken_fix: "Choisissez un autre slug.",
+  slug_empty: "Ce slug ne garde aucun caractère une fois normalisé.",
+  slug_empty_fix:
+    "Donnez un slug qui porte au moins une lettre ou un chiffre, par exemple atelier-durand.",
   last_owner:
     "Cette organisation n'aurait plus aucun propriétaire après ce retrait.",
   last_owner_fix:
@@ -331,6 +354,12 @@ const EN: Record<MessageKey, string> = {
   account_deactivated: "This account is closed.",
   account_deactivated_fix:
     "Write to support@pupitre.studio to have it reopened.",
+  account_suspended: "This account is suspended until {date}.",
+  account_suspended_fix:
+    "The account reopens on its own on that date. Write to support@pupitre.studio to bring it forward.",
+  ban_until_not_future: "A suspension deadline lies ahead.",
+  ban_until_not_future_fix:
+    "Give a date later than now, or leave until out for a suspension with no deadline.",
   user_already_deactivated: "This account is already deactivated.",
   user_already_deactivated_fix:
     "Reactivate it first: POST /admin/users/:id/reactivate.",
@@ -350,8 +379,25 @@ const EN: Record<MessageKey, string> = {
   organization_already_suspended: "This organization is already suspended.",
   organization_already_suspended_fix:
     "Lift the suspension first: POST /admin/organizations/:id/restore.",
+  organization_not_suspended: "This organization is not suspended.",
+  organization_not_suspended_fix:
+    "There is nothing to lift; a closed organization reopens with POST /admin/organizations/:id/reopen.",
+  organization_already_closed: "This organization is already closed.",
+  organization_already_closed_fix:
+    "Reopen it first: POST /admin/organizations/:id/reopen.",
+  organization_not_closed:
+    "This organization is neither closed nor being deleted.",
+  organization_not_closed_fix:
+    "There is nothing to reopen; a suspension lifts with POST /admin/organizations/:id/restore.",
+  platform_organization_protected:
+    "The Pupitre organization is not suspended, closed, renamed or deleted.",
+  platform_organization_protected_fix:
+    "It carries the platform: its name and its members change in the database, never from the console.",
   slug_taken: 'The slug "{slug}" is already taken.',
   slug_taken_fix: "Pick another slug.",
+  slug_empty: "This slug keeps no character once normalized.",
+  slug_empty_fix:
+    "Give a slug that holds at least one letter or digit, for instance atelier-durand.",
   last_owner: "This organization would be left without an owner.",
   last_owner_fix:
     "Name another owner first: POST /admin/organizations/:id/transfer.",

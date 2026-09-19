@@ -25,10 +25,12 @@ interface UserDetailBody {
     deactivated_reason: string | null
     deletion_at: string | null
     deletion_reason: string | null
+    reason: string | null
     sessions: number
     last_seen_at: string | null
     devices: { id: string }[]
     assigned_servers: { id: string }[]
+    events: { action: string; target_id: string }[]
   }
 }
 
@@ -354,6 +356,119 @@ describe("le cycle de vie d'un compte", () => {
 
     expect(scheduled.status).toBe(200)
     expect(scheduled.json.data.state).toBe("deleting")
+  })
+
+  it("refuse un terme de suspension déjà passé", async () => {
+    const { members } = await createOrganizationWithMembers({
+      roles: ["owner", "member"],
+    })
+    const target = members[1]
+    const admin = await platformAdmin()
+    const refused = await apiRequest<ErrorBody>(
+      `/admin/users/${target.user.id}/ban`,
+      {
+        body: {
+          reason: "signalement 4412",
+          until: new Date(Date.now() - DAY_MS).toISOString(),
+        },
+        session: admin,
+      }
+    )
+
+    expect(refused.status).toBe(422)
+    expect(refused.json.error.code).toBe("validation")
+    expect(refused.json.error.fix).toContain("until")
+    expect(
+      await harness.prisma.user.findUniqueOrThrow({
+        where: { id: target.user.id },
+      })
+    ).toMatchObject({ banned: false, banExpires: null })
+  })
+
+  it("montre dans la fiche la raison de l'état courant et ce que la plateforme a fait au compte", async () => {
+    const { members } = await createOrganizationWithMembers({
+      roles: ["owner", "member"],
+    })
+    const target = members[1]
+    const admin = await platformAdmin()
+
+    await apiRequest(`/admin/users/${target.user.id}/ban`, {
+      body: { reason: "signalement 4412" },
+      session: admin,
+    })
+
+    const detail = await apiRequest<UserDetailBody>(
+      `/admin/users/${target.user.id}`,
+      { session: admin }
+    )
+
+    expect(detail.json.data.reason).toBe("signalement 4412")
+    expect(
+      detail.json.data.events.filter(
+        (event) =>
+          event.action === "user.banned" && event.target_id === target.user.id
+      )
+    ).toHaveLength(1)
+  })
+
+  it("laisse un membre de l'organisation Pupitre gérer ses sessions et ses appareils", async () => {
+    const { user } = await createUser({
+      email: "equipe-sessions@pupitre.studio",
+    })
+
+    await joinPlatformOrganization(harness.prisma, user.id, "member")
+
+    const device = await deviceFor(user.id, "portable de l'équipe")
+    const admin = await platformAdmin()
+
+    for (const call of [
+      apiRequest<ErrorBody>(`/admin/users/${user.id}/sessions/revoke`, {
+        method: "POST",
+        session: admin,
+      }),
+      apiRequest<ErrorBody>(`/admin/users/${user.id}/devices/${device.id}`, {
+        method: "DELETE",
+        body: { reason: "non" },
+        session: admin,
+      }),
+    ]) {
+      const refused = await call
+
+      expect(refused.status).toBe(409)
+      expect(refused.json.error.code).toBe("conflict")
+      expect(refused.json.error.message).toContain("Pupitre")
+    }
+
+    expect(
+      await harness.prisma.device.count({ where: { id: device.id } })
+    ).toBe(1)
+  })
+
+  it("refuse la purge immédiate d'un compte devenu seul propriétaire pendant sa grâce", async () => {
+    const { organization, members } = await createOrganizationWithMembers({
+      roles: ["owner"],
+    })
+    const admin = await platformAdmin()
+    const scheduled = await apiRequest<UserDetailBody>(
+      `/admin/users/${members[0].user.id}`,
+      { method: "DELETE", body: { reason: "demande RGPD" }, session: admin }
+    )
+
+    expect(scheduled.status).toBe(200)
+    expect(scheduled.json.data.state).toBe("deleting")
+
+    await createServer({ organizationId: organization.id })
+
+    const refused = await apiRequest<ErrorBody>(
+      `/admin/users/${members[0].user.id}`,
+      { method: "DELETE", body: { reason: "demande RGPD" }, session: admin }
+    )
+
+    expect(refused.status).toBe(409)
+    expect(refused.json.error.code).toBe("conflict")
+    expect(
+      await harness.prisma.user.count({ where: { id: members[0].user.id } })
+    ).toBe(1)
   })
 
   it("refuse chacun de ces gestes à un simple membre de l'équipe", async () => {
