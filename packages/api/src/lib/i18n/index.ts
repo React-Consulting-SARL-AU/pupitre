@@ -112,6 +112,10 @@ const FR = {
   affiliate_code_taken_fix:
     "Choisissez un autre code, ou laissez la plateforme en tirer un.",
   affiliate_link_not_found: "Ce lien d'affiliation n'existe pas.",
+  affiliate_link_referred:
+    "Ce lien a déjà amené une organisation : il ne s'efface plus.",
+  affiliate_link_referred_fix:
+    'Désactivez-le : PATCH /admin/affiliate-links/:id { "disabled": true }.',
   mail_thread_not_found: "Ce fil de discussion n'existe pas.",
   mail_html_not_found: "Ce message n'a pas de version HTML.",
   mail_attachment_not_found: "Cette pièce jointe n'existe pas.",
@@ -299,6 +303,10 @@ const EN: Record<MessageKey, string> = {
   affiliate_code_taken: 'The code "{code}" is already taken.',
   affiliate_code_taken_fix: "Pick another code, or let the platform draw one.",
   affiliate_link_not_found: "This affiliate link does not exist.",
+  affiliate_link_referred:
+    "This link already brought an organization: it can no longer be deleted.",
+  affiliate_link_referred_fix:
+    'Disable it: PATCH /admin/affiliate-links/:id { "disabled": true }.',
   mail_thread_not_found: "This thread does not exist.",
   mail_html_not_found: "This message has no HTML version.",
   mail_attachment_not_found: "This attachment does not exist.",
