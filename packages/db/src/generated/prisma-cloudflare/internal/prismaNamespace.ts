@@ -414,6 +414,7 @@ export const ModelName = {
   Subscription: 'Subscription',
   OrganizationBilling: 'OrganizationBilling',
   AffiliateLink: 'AffiliateLink',
+  AffiliateClickDay: 'AffiliateClickDay',
   Referral: 'Referral',
   MailThread: 'MailThread',
   MailMessage: 'MailMessage',
@@ -437,7 +438,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "deviceCode" | "passkey" | "twoFactor" | "device" | "server" | "alert" | "serverRevokedDevice" | "subscription" | "organizationBilling" | "affiliateLink" | "referral" | "mailThread" | "mailMessage" | "mailAttachment" | "release" | "appRelease" | "event" | "stripeEvent"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "deviceCode" | "passkey" | "twoFactor" | "device" | "server" | "alert" | "serverRevokedDevice" | "subscription" | "organizationBilling" | "affiliateLink" | "affiliateClickDay" | "referral" | "mailThread" | "mailMessage" | "mailAttachment" | "release" | "appRelease" | "event" | "stripeEvent"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1699,6 +1700,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    AffiliateClickDay: {
+      payload: Prisma.$AffiliateClickDayPayload<ExtArgs>
+      fields: Prisma.AffiliateClickDayFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.AffiliateClickDayFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AffiliateClickDayPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.AffiliateClickDayFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AffiliateClickDayPayload>
+        }
+        findFirst: {
+          args: Prisma.AffiliateClickDayFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AffiliateClickDayPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.AffiliateClickDayFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AffiliateClickDayPayload>
+        }
+        findMany: {
+          args: Prisma.AffiliateClickDayFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AffiliateClickDayPayload>[]
+        }
+        create: {
+          args: Prisma.AffiliateClickDayCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AffiliateClickDayPayload>
+        }
+        createMany: {
+          args: Prisma.AffiliateClickDayCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.AffiliateClickDayCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AffiliateClickDayPayload>[]
+        }
+        delete: {
+          args: Prisma.AffiliateClickDayDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AffiliateClickDayPayload>
+        }
+        update: {
+          args: Prisma.AffiliateClickDayUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AffiliateClickDayPayload>
+        }
+        deleteMany: {
+          args: Prisma.AffiliateClickDayDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.AffiliateClickDayUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.AffiliateClickDayUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AffiliateClickDayPayload>[]
+        }
+        upsert: {
+          args: Prisma.AffiliateClickDayUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$AffiliateClickDayPayload>
+        }
+        aggregate: {
+          args: Prisma.AffiliateClickDayAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateAffiliateClickDay>
+        }
+        groupBy: {
+          args: Prisma.AffiliateClickDayGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AffiliateClickDayGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.AffiliateClickDayCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AffiliateClickDayCountAggregateOutputType> | number
+        }
+      }
+    }
     Referral: {
       payload: Prisma.$ReferralPayload<ExtArgs>
       fields: Prisma.ReferralFieldRefs
@@ -2577,12 +2652,26 @@ export const AffiliateLinkScalarFieldEnum = {
   name: 'name',
   freeMonths: 'freeMonths',
   seats: 'seats',
+  partnerName: 'partnerName',
+  partnerEmail: 'partnerEmail',
+  notes: 'notes',
   createdById: 'createdById',
   createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
   disabledAt: 'disabledAt'
 } as const
 
 export type AffiliateLinkScalarFieldEnum = (typeof AffiliateLinkScalarFieldEnum)[keyof typeof AffiliateLinkScalarFieldEnum]
+
+
+export const AffiliateClickDayScalarFieldEnum = {
+  id: 'id',
+  linkId: 'linkId',
+  day: 'day',
+  count: 'count'
+} as const
+
+export type AffiliateClickDayScalarFieldEnum = (typeof AffiliateClickDayScalarFieldEnum)[keyof typeof AffiliateClickDayScalarFieldEnum]
 
 
 export const ReferralScalarFieldEnum = {
@@ -3050,6 +3139,7 @@ export type GlobalOmitConfig = {
   subscription?: Prisma.SubscriptionOmit
   organizationBilling?: Prisma.OrganizationBillingOmit
   affiliateLink?: Prisma.AffiliateLinkOmit
+  affiliateClickDay?: Prisma.AffiliateClickDayOmit
   referral?: Prisma.ReferralOmit
   mailThread?: Prisma.MailThreadOmit
   mailMessage?: Prisma.MailMessageOmit

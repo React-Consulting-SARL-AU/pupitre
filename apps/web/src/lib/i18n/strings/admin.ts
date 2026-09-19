@@ -271,6 +271,8 @@ export const admin = {
     "admin.links.freeMonthsRange": "Between 0 and {max} months.",
     "admin.links.seatsMin": "At least {min} seat.",
     "admin.links.integer": "A whole number.",
+    "admin.links.partnerEmailInvalid": "Write a readable email address.",
+    "admin.links.textTooLong": "At most {max} characters.",
   },
   fr: {
     "admin.reading": "Lecture…",
@@ -547,5 +549,7 @@ export const admin = {
     "admin.links.freeMonthsRange": "Entre 0 et {max} mois.",
     "admin.links.seatsMin": "Au moins {min} siège.",
     "admin.links.integer": "Un nombre entier.",
+    "admin.links.partnerEmailInvalid": "Écrivez une adresse e-mail lisible.",
+    "admin.links.textTooLong": "Au plus {max} caractères.",
   },
 }

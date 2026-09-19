@@ -1,6 +1,8 @@
 import {
   AFFILIATE_CODE_RE,
   AFFILIATE_MAX_FREE_MONTHS,
+  AFFILIATE_NOTES_MAX_LENGTH,
+  AFFILIATE_PARTNER_NAME_MAX_LENGTH,
 } from "@pupitre/shared/plans"
 import { z } from "zod"
 import { endOfDayIso, MAX_REASON_LENGTH } from "@/lib/domain/admin"
@@ -99,16 +101,53 @@ export type ReasonInput = z.input<ReturnType<typeof reasonSchema>>
 
 export type ReasonValues = z.output<ReturnType<typeof reasonSchema>>
 
+function affiliateNameField(t: Translate) {
+  return z
+    .string()
+    .trim()
+    .min(1, t("admin.links.nameRequired"))
+    .max(
+      MAX_AFFILIATE_LINK_NAME_LENGTH,
+      t("admin.links.nameTooLong", { max: MAX_AFFILIATE_LINK_NAME_LENGTH })
+    )
+}
+
+function affiliateFreeMonthsField(t: Translate) {
+  return z.coerce
+    .number({ error: t("admin.links.integer") })
+    .int(t("admin.links.integer"))
+    .min(
+      0,
+      t("admin.links.freeMonthsRange", { max: AFFILIATE_MAX_FREE_MONTHS })
+    )
+    .max(
+      AFFILIATE_MAX_FREE_MONTHS,
+      t("admin.links.freeMonthsRange", { max: AFFILIATE_MAX_FREE_MONTHS })
+    )
+}
+
+function affiliateSeatsField(t: Translate) {
+  return z.coerce
+    .number({ error: t("admin.links.integer") })
+    .int(t("admin.links.integer"))
+    .min(
+      MIN_AFFILIATE_SEATS,
+      t("admin.links.seatsMin", { min: MIN_AFFILIATE_SEATS })
+    )
+}
+
+/** An empty field clears what the link carried: the API takes `null` for that. */
+function clearableText(t: Translate, max: number) {
+  return z
+    .string()
+    .trim()
+    .max(max, t("admin.links.textTooLong", { max }))
+    .transform((value) => (value === "" ? null : value))
+}
+
 export function affiliateLinkSchema(t: Translate) {
   return z.object({
-    name: z
-      .string()
-      .trim()
-      .min(1, t("admin.links.nameRequired"))
-      .max(
-        MAX_AFFILIATE_LINK_NAME_LENGTH,
-        t("admin.links.nameTooLong", { max: MAX_AFFILIATE_LINK_NAME_LENGTH })
-      ),
+    name: affiliateNameField(t),
     code: z
       .string()
       .trim()
@@ -117,24 +156,26 @@ export function affiliateLinkSchema(t: Translate) {
         (value) => value === "" || AFFILIATE_CODE_RE.test(value),
         t("admin.links.codeInvalid")
       ),
-    free_months: z.coerce
-      .number({ error: t("admin.links.integer") })
-      .int(t("admin.links.integer"))
-      .min(
-        0,
-        t("admin.links.freeMonthsRange", { max: AFFILIATE_MAX_FREE_MONTHS })
+    free_months: affiliateFreeMonthsField(t),
+    seats: affiliateSeatsField(t),
+  })
+}
+
+export function affiliateLinkEditSchema(t: Translate) {
+  return z.object({
+    name: affiliateNameField(t),
+    free_months: affiliateFreeMonthsField(t),
+    seats: affiliateSeatsField(t),
+    partner_name: clearableText(t, AFFILIATE_PARTNER_NAME_MAX_LENGTH),
+    partner_email: z
+      .string()
+      .trim()
+      .refine(
+        (value) => value === "" || z.email().safeParse(value).success,
+        t("admin.links.partnerEmailInvalid")
       )
-      .max(
-        AFFILIATE_MAX_FREE_MONTHS,
-        t("admin.links.freeMonthsRange", { max: AFFILIATE_MAX_FREE_MONTHS })
-      ),
-    seats: z.coerce
-      .number({ error: t("admin.links.integer") })
-      .int(t("admin.links.integer"))
-      .min(
-        MIN_AFFILIATE_SEATS,
-        t("admin.links.seatsMin", { min: MIN_AFFILIATE_SEATS })
-      ),
+      .transform((value) => (value === "" ? null : value)),
+    notes: clearableText(t, AFFILIATE_NOTES_MAX_LENGTH),
   })
 }
 
@@ -144,4 +185,12 @@ export type AffiliateLinkFormInput = z.input<
 
 export type AffiliateLinkFormValues = z.output<
   ReturnType<typeof affiliateLinkSchema>
+>
+
+export type AffiliateLinkEditInput = z.input<
+  ReturnType<typeof affiliateLinkEditSchema>
+>
+
+export type AffiliateLinkEditValues = z.output<
+  ReturnType<typeof affiliateLinkEditSchema>
 >

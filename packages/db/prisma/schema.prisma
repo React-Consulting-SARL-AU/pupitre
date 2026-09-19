@@ -348,15 +348,31 @@ model OrganizationBilling {
 }
 
 model AffiliateLink {
-  id          String     @id @default(cuid())
-  code        String     @unique
-  name        String
-  freeMonths  Int
-  seats       Int        @default(1)
-  createdById String?
-  createdAt   DateTime   @default(now())
-  disabledAt  DateTime?
-  referrals   Referral[]
+  id           String              @id @default(cuid())
+  code         String              @unique
+  name         String
+  freeMonths   Int
+  seats        Int                 @default(1)
+  partnerName  String?
+  partnerEmail String?
+  notes        String?
+  createdById  String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  disabledAt   DateTime?
+  referrals    Referral[]
+  clickDays    AffiliateClickDay[]
+}
+
+model AffiliateClickDay {
+  id     String        @id @default(cuid())
+  linkId String
+  link   AffiliateLink @relation(fields: [linkId], references: [id], onDelete: Cascade)
+  day    String
+  count  Int           @default(0)
+
+  @@unique([linkId, day])
+  @@index([day])
 }
 
 model Referral {

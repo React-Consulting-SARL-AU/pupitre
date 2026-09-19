@@ -68,6 +68,7 @@ export const ModelName = {
   Subscription: 'Subscription',
   OrganizationBilling: 'OrganizationBilling',
   AffiliateLink: 'AffiliateLink',
+  AffiliateClickDay: 'AffiliateClickDay',
   Referral: 'Referral',
   MailThread: 'MailThread',
   MailMessage: 'MailMessage',
@@ -341,12 +342,26 @@ export const AffiliateLinkScalarFieldEnum = {
   name: 'name',
   freeMonths: 'freeMonths',
   seats: 'seats',
+  partnerName: 'partnerName',
+  partnerEmail: 'partnerEmail',
+  notes: 'notes',
   createdById: 'createdById',
   createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
   disabledAt: 'disabledAt'
 } as const
 
 export type AffiliateLinkScalarFieldEnum = (typeof AffiliateLinkScalarFieldEnum)[keyof typeof AffiliateLinkScalarFieldEnum]
+
+
+export const AffiliateClickDayScalarFieldEnum = {
+  id: 'id',
+  linkId: 'linkId',
+  day: 'day',
+  count: 'count'
+} as const
+
+export type AffiliateClickDayScalarFieldEnum = (typeof AffiliateClickDayScalarFieldEnum)[keyof typeof AffiliateClickDayScalarFieldEnum]
 
 
 export const ReferralScalarFieldEnum = {

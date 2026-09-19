@@ -103,6 +103,13 @@ export const AFFILIATE_COOKIE_DAYS = 90
 
 export const AFFILIATE_MAX_FREE_MONTHS = 24
 
+export const AFFILIATE_PARTNER_NAME_MAX_LENGTH = 120
+
+export const AFFILIATE_NOTES_MAX_LENGTH = 2000
+
+/** How many day buckets, today included, the recent click count covers. */
+export const AFFILIATE_CLICK_WINDOW_DAYS = 30
+
 export const DAYS_PER_FREE_MONTH = 30
 
 export function getPlan(id: PlanId): Plan {
