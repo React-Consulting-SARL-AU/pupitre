@@ -371,49 +371,6 @@ export function organizationGestures(state: string): OrganizationGesture[] {
   return ["suspend", "close", "delete"]
 }
 
-export interface AccountStanding {
-  state: string
-  banned_reason?: string | null
-  deactivated_reason: string | null
-  deletion_reason: string | null
-}
-
-/** The reason that belongs to the state the account holds, and no older one. */
-export function accountReason(account: AccountStanding): string | null {
-  if (account.state === "deleting") {
-    return account.deletion_reason
-  }
-
-  if (account.state === "deactivated") {
-    return account.deactivated_reason
-  }
-
-  return account.state === "suspended" ? (account.banned_reason ?? null) : null
-}
-
-export interface OrganizationStanding {
-  state: string
-  suspended_reason: string | null
-  closed_reason: string | null
-  deletion_reason: string | null
-}
-
-export function organizationReason(
-  organization: OrganizationStanding
-): string | null {
-  if (organization.state === "deleting") {
-    return organization.deletion_reason
-  }
-
-  if (organization.state === "closed") {
-    return organization.closed_reason
-  }
-
-  return organization.state === "suspended"
-    ? organization.suspended_reason
-    : null
-}
-
 export interface AdminOverview {
   users: number
   organizations: number

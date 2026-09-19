@@ -1,4 +1,5 @@
 import { ShieldOff } from "lucide-react"
+import { Callout } from "@/components/ui/callout"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
 import { ConfirmFormDialog } from "@/components/ui/confirm-form-dialog"
 import { useTranslations } from "@/hooks/use-locale"
@@ -39,11 +40,19 @@ export function AdminUserDevices({
     },
   })
 
+  const platformMember = detail.platform_role !== null
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>{t("admin.users.devices")}</CardTitle>
       </CardHeader>
+
+      {platformMember ? (
+        <CardBody>
+          <Callout title={t("admin.users.platformMember")} tone="warn" />
+        </CardBody>
+      ) : null}
 
       {detail.devices.length === 0 ? (
         <CardBody>
@@ -62,32 +71,34 @@ export function AdminUserDevices({
               <span className="font-data text-[12px] text-ink-3 tabular-nums">
                 {formatRelative(device.last_used_at ?? null, t)}
               </span>
-              <ConfirmFormDialog
-                busy={
-                  revoke.isPending && revoke.variables?.deviceId === device.id
-                }
-                busyLabel={t("admin.users.revoking")}
-                confirmLabel={t("admin.users.revokeDevice")}
-                description={t("admin.users.revokeDescription", {
-                  name: device.name,
-                })}
-                id={`revoke-${device.id}`}
-                onConfirm={(values) => {
-                  revoke.mutate({
-                    deviceId: device.id,
+              {platformMember ? null : (
+                <ConfirmFormDialog
+                  busy={
+                    revoke.isPending && revoke.variables?.deviceId === device.id
+                  }
+                  busyLabel={t("admin.users.revoking")}
+                  confirmLabel={t("admin.users.revokeDevice")}
+                  description={t("admin.users.revokeDescription", {
                     name: device.name,
-                    reason: values.reason,
-                  })
-                }}
-                reason="required"
-                reasonLabel={t("admin.users.reason")}
-                reasonRequiredMessage={t("admin.users.revokeReasonRequired")}
-                title={t("admin.users.revokeTitle")}
-                triggerDisabled={!acts}
-                triggerIcon={ShieldOff}
-                triggerLabel={t("admin.users.revokeDevice")}
-                triggerTitle={refusedTitle}
-              />
+                  })}
+                  id={`revoke-${device.id}`}
+                  onConfirm={(values) => {
+                    revoke.mutate({
+                      deviceId: device.id,
+                      name: device.name,
+                      reason: values.reason,
+                    })
+                  }}
+                  reason="required"
+                  reasonLabel={t("admin.users.reason")}
+                  reasonRequiredMessage={t("admin.users.revokeReasonRequired")}
+                  title={t("admin.users.revokeTitle")}
+                  triggerDisabled={!acts}
+                  triggerIcon={ShieldOff}
+                  triggerLabel={t("admin.users.revokeDevice")}
+                  triggerTitle={refusedTitle}
+                />
+              )}
             </li>
           ))}
         </ul>

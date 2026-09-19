@@ -6,7 +6,7 @@ import { CopyButton } from "@/components/ui/copy-button"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { useTranslations } from "@/hooks/use-locale"
 import type { AdminOrganizationDetail } from "@/lib/api/admin-queries"
-import { organizationLook, organizationReason } from "@/lib/domain/admin"
+import { organizationLook } from "@/lib/domain/admin"
 import { affiliateUrlFor } from "@/lib/domain/affiliate"
 import { subscriptionStatusLook } from "@/lib/domain/billing"
 import { formatDate, formatDateTime } from "@/lib/utils/format"
@@ -31,7 +31,7 @@ export function AdminOrganizationOverview({
       )
     : null
   const owners = detail.members.filter((member) => member.role === OWNER_ROLE)
-  const reason = organizationReason(detail)
+  const reason = detail.reason
   const counted = detail.subscription
 
   const facts: AdminFact[] = [
