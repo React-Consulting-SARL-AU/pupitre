@@ -1,9 +1,8 @@
 import { Link } from "@tanstack/react-router"
-import { Ban } from "lucide-react"
 import type { DataColumn } from "@/components/ui/async-data-table"
-import { ConfirmFormDialog } from "@/components/ui/confirm-form-dialog"
 import { StatusBadge } from "@/components/ui/status-badge"
-import { canSuspend, suspendedReasonKey } from "@/lib/domain/admin"
+import { StatusDot } from "@/components/ui/status-dot"
+import { channelKey, suspendedReasonKey } from "@/lib/domain/admin"
 import { statusLook } from "@/lib/domain/server-status"
 import type { Translate } from "@/lib/i18n/i18n"
 import { formatRelative } from "@/lib/utils/format"
@@ -14,27 +13,22 @@ export interface AdminServerRowServer {
   host: string | null
   status: string
   stale: boolean
+  seated: boolean
+  channel: string
   suspended_reason: string | null
   agent_version: string | null
-  last_heartbeat_at: string | null
+  last_heartbeat_at: string | Date | null
   organization: { id: string; name: string; slug: string }
 }
 
-export interface AdminServerColumnsHandlers {
-  canAct: boolean
-  /** The identifier of the server the platform is suspending right now, if any. */
-  suspending: string | undefined
-  onSuspend: (server: AdminServerRowServer, reason: string) => void
-}
-
 export function adminServerColumns(
-  t: Translate,
-  { canAct, suspending, onSuspend }: AdminServerColumnsHandlers
+  t: Translate
 ): DataColumn<AdminServerRowServer>[] {
   return [
     {
       key: "name",
       header: t("admin.servers.title"),
+      sortable: true,
       cell: (server) => (
         <>
           <span className="block truncate">{server.name}</span>
@@ -82,49 +76,59 @@ export function adminServerColumns(
       },
     },
     {
-      key: "agent",
+      key: "channel",
       header: t("admin.servers.channel"),
-      width: "w-24",
-      align: "end",
+      width: "w-28",
       hideBelow: "lg",
+      cell: (server) => {
+        const key = channelKey(server.channel)
+
+        return (
+          <>
+            <p className="text-[13px] text-ink-2">
+              {key ? t(key) : server.channel}
+            </p>
+            <p className="font-data text-[12px] text-ink-3">
+              {server.agent_version ?? t("format.none")}
+            </p>
+          </>
+        )
+      },
+    },
+    {
+      key: "last_heartbeat_at",
+      header: t("admin.servers.heartbeat"),
+      width: "w-32",
+      align: "end",
+      sortable: true,
+      hideBelow: "md",
       cell: (server) => (
-        <>
-          <p className="font-data text-[12px] text-ink-2">
-            {server.agent_version ?? t("format.none")}
-          </p>
-          <p className="text-[12px] text-ink-3">
-            {formatRelative(server.last_heartbeat_at, t)}
-          </p>
-        </>
+        <span className="text-[12px] text-ink-3">
+          {formatRelative(server.last_heartbeat_at, t)}
+        </span>
       ),
     },
     {
-      key: "actions",
-      header: t("table.actions"),
-      width: "w-32",
-      align: "end",
-      cell: (server) =>
-        canAct && canSuspend(server.status) ? (
-          <ConfirmFormDialog
-            busy={suspending === server.id}
-            busyLabel={t("admin.servers.suspending")}
-            confirmLabel={t("admin.servers.suspend")}
-            description={t("admin.servers.suspendDescription", {
-              name: server.name,
-              organization: server.organization.name,
-            })}
-            id={`suspend-${server.id}`}
-            onConfirm={(values) => {
-              onSuspend(server, values.reason)
-            }}
-            reason="required"
-            reasonLabel={t("admin.servers.reason")}
-            reasonRequiredMessage={t("admin.servers.reasonRequired")}
-            title={t("admin.servers.suspendTitle")}
-            triggerIcon={Ban}
-            triggerLabel={t("admin.servers.suspend")}
-          />
-        ) : null,
+      key: "seat",
+      header: t("admin.servers.seat"),
+      width: "w-28",
+      hideBelow: "lg",
+      cell: (server) => {
+        const seat = server.seated
+          ? t("admin.servers.seatTaken")
+          : t("admin.servers.seatFree")
+
+        return (
+          <span className="inline-flex items-center gap-2 text-[12px] text-ink-2">
+            <StatusDot
+              label={seat}
+              shape={server.seated ? "filled" : "hollow"}
+              tone={server.seated ? "ok" : "muted"}
+            />
+            {seat}
+          </span>
+        )
+      },
     },
   ]
 }

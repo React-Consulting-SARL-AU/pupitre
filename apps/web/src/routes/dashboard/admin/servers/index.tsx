@@ -1,5 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { AdminServerList } from "@/components/admin/admin-server-list"
+import {
+  AdminServerList,
+  SERVER_SORT,
+  SERVER_SORTS,
+} from "@/components/admin/admin-server-list"
 import { PageHeader } from "@/components/ui/page-header"
 import { useTranslations } from "@/hooks/use-locale"
 import { listSearch, useListSearch } from "@/lib/domain/list-search"
@@ -14,7 +18,14 @@ export const Route = createFileRoute("/dashboard/admin/servers/")({
     meta: [{ title: documentTitle(ROUTE_ID, match.context.locale) }],
   }),
   validateSearch: listSearch({
-    filters: { status: { kind: "enum", values: SERVER_STATUSES } },
+    sortKeys: SERVER_SORTS,
+    defaultSort: SERVER_SORT,
+    defaultDirection: "asc",
+    filters: {
+      status: { kind: "enum", values: SERVER_STATUSES },
+      organization_id: { kind: "string" },
+      stale: { kind: "boolean" },
+    },
   }),
 })
 

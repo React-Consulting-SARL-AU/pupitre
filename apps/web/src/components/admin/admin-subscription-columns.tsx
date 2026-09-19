@@ -7,10 +7,12 @@ import { formatDate, formatProduct } from "@/lib/utils/format"
 export interface AdminSubscriptionRowSubscription {
   id: string
   product: string | null
-  quantity: number
   status: string
-  current_period_end: string | null
+  current_period_end: string | Date | null
+  cancel_at_period_end: boolean
   live: boolean
+  seats: { paid: number; used: number }
+  drifted: boolean
   organization: { id: string; name: string; slug: string }
 }
 
@@ -41,28 +43,53 @@ export function adminSubscriptionColumns(
     },
     {
       key: "seats",
-      header: t("admin.subscriptions.seats"),
-      width: "w-24",
+      header: t("admin.subscriptions.seatsUsed"),
+      width: "w-28",
       align: "end",
-      cell: (subscription) =>
-        t.plural("admin.links.seats", subscription.quantity),
+      cell: (subscription) => {
+        const seats = t("admin.subscriptions.seatsRatio", {
+          used: subscription.seats.used,
+          paid: subscription.seats.paid,
+        })
+
+        return subscription.drifted ? (
+          <span className="inline-flex items-center gap-2">
+            <StatusDot
+              label={t("admin.subscriptions.drifted")}
+              shape="hollow"
+              tone="warn"
+            />
+            {seats}
+          </span>
+        ) : (
+          seats
+        )
+      },
     },
     {
       key: "status",
       header: t("admin.servers.status"),
       width: "w-36",
       cell: (subscription) => (
-        <AdminSubscriptionStatus
-          product={subscription.product}
-          status={subscription.status}
-        />
+        <>
+          <AdminSubscriptionStatus
+            product={subscription.product}
+            status={subscription.status}
+          />
+          {subscription.cancel_at_period_end ? (
+            <p className="text-[12px] text-ink-3">
+              {t("admin.subscriptions.cancelAtPeriodEnd")}
+            </p>
+          ) : null}
+        </>
       ),
     },
     {
-      key: "period_end",
+      key: "current_period_end",
       header: t("admin.subscriptions.periodEnd"),
       width: "w-28",
       align: "end",
+      sortable: true,
       hideBelow: "lg",
       cell: (subscription) => (
         <span className="font-data text-[12px] text-ink-3">
@@ -73,7 +100,7 @@ export function adminSubscriptionColumns(
       ),
     },
     {
-      key: "billed",
+      key: "live",
       header: t("admin.subscriptions.live"),
       width: "w-28",
       hideBelow: "lg",
