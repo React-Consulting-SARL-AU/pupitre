@@ -1,8 +1,8 @@
 import type { ServerStatus } from "@pupitre/db/cloudflare/client"
-import { LAUNCH_PRODUCT, PLATFORM_PRODUCTS } from "@pupitre/shared/plans"
+import { LAUNCH_PRODUCT } from "@pupitre/shared/plans"
 import { TRIAL_WORKLIST_DAYS, WORKLIST_ITEMS } from "@pupitre/shared/platform"
 import { getPrisma } from "../api/prisma"
-import { PAYING_SUBSCRIPTION_STATUSES, SEATED_STATUSES } from "../billing/seats"
+import { readSeatUsage } from "../billing/seats"
 
 export const OVERVIEW_SUBSCRIPTION_STATUSES = [
   "trialing",
@@ -252,38 +252,12 @@ async function readUnreachableServers(): Promise<
 
 /** The same count as `reconcileSeats`, read only: seated servers over the seats the organisation pays. */
 async function readSeatDrift(): Promise<Worklist<SeatDriftItem>> {
-  const prisma = getPrisma()
-  const subscriptions = await prisma.subscription.findMany({
-    where: {
-      status: { in: PAYING_SUBSCRIPTION_STATUSES },
-      product: { notIn: [...PLATFORM_PRODUCTS] },
-    },
-    orderBy: { createdAt: "asc" },
-    include: { organization: ORGANIZATION_SELECT },
-  })
-
-  if (subscriptions.length === 0) {
-    return { count: 0, items: [] }
-  }
-
-  const seats = await prisma.server.groupBy({
-    by: ["organizationId"],
-    where: {
-      status: { in: SEATED_STATUSES },
-      organizationId: {
-        in: subscriptions.map((subscription) => subscription.organizationId),
-      },
-    },
-    _count: { _all: true },
-  })
-  const seatedByOrganization = new Map(
-    seats.map((row) => [row.organizationId, row._count._all])
-  )
-  const drifted = subscriptions
-    .map((subscription) => ({
+  const usage = await readSeatUsage()
+  const drifted = usage
+    .map(({ subscription, seated }) => ({
       organization: subscription.organization,
       paid: subscription.quantity,
-      used: seatedByOrganization.get(subscription.organizationId) ?? 0,
+      used: seated,
     }))
     .filter((row) => row.used > row.paid)
 
