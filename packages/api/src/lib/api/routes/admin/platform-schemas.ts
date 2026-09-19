@@ -1,14 +1,23 @@
+import { StripeEventStatus } from "@pupitre/db/cloudflare/enums"
 import { ORG_ROLES } from "@pupitre/shared/permissions"
 import { t } from "elysia"
+import { ADMIN_SUBSCRIPTION_SORTS } from "../../../platform/subscriptions"
 import { dateTime } from "../../openapi-models"
 import { MAX_SEATS, MIN_SEATS } from "../orgs/schemas"
 import { serverStatusSchema } from "../servers/schemas"
 import {
+  adminDirectionSchema,
   adminEventSchema,
   adminLimitSchema,
   adminOffsetSchema,
 } from "./schemas"
 import { adminServerSchema } from "./server-schemas"
+
+const STRIPE_EVENT_STATUSES = [
+  StripeEventStatus.processing,
+  StripeEventStatus.processed,
+  StripeEventStatus.failed,
+] as const
 
 export const orgRoleSchema = t.UnionEnum([...ORG_ROLES])
 
@@ -102,6 +111,7 @@ const adminSubscriptionFields = {
   quantity: t.Integer(),
   status: t.String(),
   current_period_end: t.Nullable(dateTime),
+  cancel_at_period_end: t.Boolean(),
   note: t.Nullable(t.String()),
   platform: t.Boolean(),
   created_at: dateTime,
@@ -174,16 +184,41 @@ export const adminSubscriptionSchema = t.Object(adminSubscriptionViewFields, {
 })
 
 export const adminSubscriptionDetailSchema = t.Object(
-  { ...adminSubscriptionViewFields, events: t.Array(adminEventSchema) },
+  {
+    ...adminSubscriptionViewFields,
+    seats: t.Object({ paid: t.Integer(), used: t.Integer() }),
+    drifted: t.Boolean(),
+    stripe_url: t.Nullable(t.String()),
+    stripe_events: t.Array(
+      t.Object({
+        id: t.String(),
+        type: t.String(),
+        status: t.UnionEnum([...STRIPE_EVENT_STATUSES]),
+        received_at: dateTime,
+      })
+    ),
+    events: t.Array(adminEventSchema),
+  },
   { $id: "AdminSubscriptionDetail" }
+)
+
+const subscriptionSortSchema = t.Optional(
+  t.Union(ADMIN_SUBSCRIPTION_SORTS.map((sort) => t.Literal(sort)))
 )
 
 export const adminSubscriptionsQuery = t.Object({
   status: t.Optional(t.String({ maxLength: 40 })),
   product: t.Optional(t.String({ maxLength: 120 })),
+  organization_id: t.Optional(t.String({ minLength: 1, maxLength: 120 })),
+  live: t.Optional(t.Boolean()),
+  q: t.Optional(t.String({ maxLength: 254 })),
+  sort: subscriptionSortSchema,
+  direction: adminDirectionSchema,
   limit: adminLimitSchema,
   offset: adminOffsetSchema,
 })
+
+export const adminTrialBody = t.Object({ ends_at: dateTime })
 
 const grantedSeats = t.Integer({ minimum: MIN_SEATS, maximum: MAX_SEATS })
 
