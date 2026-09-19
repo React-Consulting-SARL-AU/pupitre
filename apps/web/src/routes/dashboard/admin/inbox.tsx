@@ -1,9 +1,10 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 import {
   INBOX_LAYOUT_ROUTE_ID,
   InboxWorkspace,
 } from "@/components/admin/inbox/inbox-workspace"
-import { type InboxSearch, parseInboxSearch } from "@/lib/domain/inbox-search"
+import { parseInboxSearch } from "@/lib/domain/inbox-search"
+import { useListSearch } from "@/lib/domain/list-search"
 import { documentTitle } from "@/lib/domain/page-titles"
 
 export const Route = createFileRoute("/dashboard/admin/inbox")({
@@ -17,15 +18,7 @@ export const Route = createFileRoute("/dashboard/admin/inbox")({
 })
 
 function AdminInboxLayout() {
-  const search = Route.useSearch()
-  const navigate = useNavigate()
+  const list = useListSearch(Route)
 
-  return (
-    <InboxWorkspace
-      onSearchChange={(patch: Partial<InboxSearch>) => {
-        navigate({ to: ".", search: { ...search, ...patch } })
-      }}
-      search={search}
-    />
-  )
+  return <InboxWorkspace {...list} />
 }

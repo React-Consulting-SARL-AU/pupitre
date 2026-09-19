@@ -20,6 +20,9 @@ export const DRAFT_SAVE_DELAY_MS = 800
 /** Past this many messages, the older ones of a thread fold into one line. */
 export const THREAD_FOLD_THRESHOLD = 5
 
+/** What the list shows to a reader who asked for no status: the work still to do. */
+export const INBOX_STATUS = "open"
+
 export const MAILBOX_EVERY = ""
 
 export const MAILBOX_OTHERS = "others"

@@ -71,8 +71,8 @@ const ADMIN_SUBSCRIPTION_URL_RE = /\/dashboard\/admin\/subscriptions\/[^/]+$/
 const ADMIN_LINKS_URL_RE = /\/dashboard\/admin\/affiliate-links$/
 const ADMIN_LINK_URL_RE = /\/dashboard\/admin\/affiliate-links\/[^/?]+/
 const ADMIN_LINK_SETTINGS_URL_RE = /\/affiliate-links\/[^/?]+\?tab=settings$/
-const ADMIN_INBOX_URL_RE = /\/dashboard\/admin\/inbox(\?|$)/
-const ADMIN_THREAD_URL_RE = /\/dashboard\/admin\/inbox\/[^/?]+/
+const ADMIN_INBOX_URL_RE = /\/dashboard\/admin\/inbox$/
+const ADMIN_THREAD_URL_RE = /\/dashboard\/admin\/inbox\/[^/]+$/
 const START_RETURN_URL_RE = /\/dashboard\/start\?checkout=done$/
 
 const ONLINE_SERVERS_RE = /en ligne/
