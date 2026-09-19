@@ -101,10 +101,10 @@ export function AdminSubscriptionTrialForm({
             <FieldError>{form.formState.errors.ends_at?.message}</FieldError>
           </div>
 
-          {refused ? (
+          {extend.isError ? (
             <Callout
-              fix={refused.fix ?? t("admin.subscriptions.trialFailedFix")}
-              title={refused.message}
+              fix={refused?.fix ?? t("admin.subscriptions.trialFailedFix")}
+              title={refused?.message ?? t("admin.subscriptions.trialFailed")}
               tone="danger"
             />
           ) : null}

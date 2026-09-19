@@ -243,7 +243,6 @@ export const admin = {
     "admin.subscriptions.deleteFailed": "The row was not deleted.",
     "admin.subscriptions.deleteFailedFix":
       "A row Stripe still bills cannot be deleted: stop it first.",
-    "admin.subscriptions.resize": "Resize",
     "admin.subscriptions.resizeAction": "Apply",
     "admin.subscriptions.resizing": "Applying…",
     "admin.subscriptions.resized":
@@ -274,7 +273,6 @@ export const admin = {
     "admin.subscriptions.tab.log": "Log",
     "admin.subscriptions.tab.actions": "Actions",
 
-    "admin.subscriptions.seatsPaid": "Seats paid",
     "admin.subscriptions.seatsUsed": "Seats taken",
     "admin.subscriptions.seatsRatio": "{used} of {paid}",
     "admin.subscriptions.drifted": "More servers than seats",
@@ -650,7 +648,6 @@ export const admin = {
     "admin.subscriptions.deleteFailed": "La ligne n'a pas été supprimée.",
     "admin.subscriptions.deleteFailedFix":
       "Une ligne que Stripe facture encore ne se supprime pas : arrêtez-la d'abord.",
-    "admin.subscriptions.resize": "Redimensionner",
     "admin.subscriptions.resizeAction": "Appliquer",
     "admin.subscriptions.resizing": "Application…",
     "admin.subscriptions.resized":
@@ -682,7 +679,6 @@ export const admin = {
     "admin.subscriptions.tab.log": "Journal",
     "admin.subscriptions.tab.actions": "Gestes",
 
-    "admin.subscriptions.seatsPaid": "Sièges payés",
     "admin.subscriptions.seatsUsed": "Sièges occupés",
     "admin.subscriptions.seatsRatio": "{used} sur {paid}",
     "admin.subscriptions.drifted": "Plus de serveurs que de sièges",
