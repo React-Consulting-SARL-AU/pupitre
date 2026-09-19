@@ -5,9 +5,9 @@ import { AdminSubscriptionTrialForm } from "@/components/admin/admin-subscriptio
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { ConfirmFormDialog } from "@/components/ui/confirm-form-dialog"
 import { DangerZone } from "@/components/ui/danger-zone"
+import { useConfirmMutation } from "@/hooks/use-confirm-mutation"
 import { useTranslations } from "@/hooks/use-locale"
 import { useOptimisticMutation } from "@/hooks/use-optimistic-mutation"
-import { useToast } from "@/hooks/use-toast"
 import {
   type AdminSubscription,
   type AdminSubscriptionDetail,
@@ -15,7 +15,6 @@ import {
   deleteSubscription,
   resumeSubscription,
 } from "@/lib/api/admin-queries"
-import { apiFailure } from "@/lib/api/errors"
 import { queryKeys } from "@/lib/api/queries"
 import {
   canCancelSubscription,
@@ -25,6 +24,7 @@ import {
   canResumeSubscription,
 } from "@/lib/domain/admin"
 import type { Translate } from "@/lib/i18n/i18n"
+import type { ConfirmFormValues } from "@/lib/schemas/confirm-form"
 import { formatDateTime } from "@/lib/utils/format"
 
 export interface AdminSubscriptionActionsProps {
@@ -54,7 +54,6 @@ export function AdminSubscriptionActions({
   subscription,
 }: AdminSubscriptionActionsProps) {
   const t = useTranslations()
-  const toasts = useToast()
   const navigate = useNavigate()
   const organization = subscription.organization
   const around = [
@@ -75,23 +74,26 @@ export function AdminSubscriptionActions({
       }),
     },
   })
-  // A refusal belongs in the dialog the reader is still typing in, not in a toast behind it.
-  const cancel = useOptimisticMutation<string, AdminSubscription>({
-    mutationFn: (reason) => cancelSubscription(subscription.id, reason),
+  const cancel = useConfirmMutation<ConfirmFormValues>({
+    mutationFn: (values) => cancelSubscription(subscription.id, values.reason),
     invalidate: around,
-    onDone: () => {
-      toasts.done(
-        t("admin.subscriptions.canceled", { organization: organization.name })
-      )
+    done: () =>
+      t("admin.subscriptions.canceled", { organization: organization.name }),
+    failed: {
+      title: t("admin.subscriptions.cancelFailed"),
+      fix: t("admin.subscriptions.cancelFailedFix"),
     },
   })
-  const remove = useOptimisticMutation({
+  const remove = useConfirmMutation<ConfirmFormValues>({
     mutationFn: () => deleteSubscription(subscription.id),
     invalidate: around,
+    done: () =>
+      t("admin.subscriptions.deleted", { organization: organization.name }),
+    failed: {
+      title: t("admin.subscriptions.deleteFailed"),
+      fix: t("admin.subscriptions.deleteFailedFix"),
+    },
     onDone: () => {
-      toasts.done(
-        t("admin.subscriptions.deleted", { organization: organization.name })
-      )
       navigate({ to: "/dashboard/admin/subscriptions" })
     },
   })
@@ -146,20 +148,23 @@ export function AdminSubscriptionActions({
         <DangerZone
           action={
             <ConfirmFormDialog
-              busy={cancel.isPending}
+              busy={cancel.busy}
               busyLabel={t("admin.subscriptions.canceling")}
               confirmLabel={t("admin.subscriptions.cancel")}
               description={cancelConsequence(subscription, t)}
               id="cancel"
-              onConfirm={(values) => {
-                cancel.mutate(values.reason)
+              onConfirm={cancel.run}
+              onOpenChange={(open) => {
+                if (!open) {
+                  cancel.reset()
+                }
               }}
               reason="required"
               reasonLabel={t("admin.servers.reason")}
               reasonRequiredMessage={t(
                 "admin.subscriptions.cancelReasonRequired"
               )}
-              refusal={apiFailure(cancel.error)}
+              refusal={cancel.refusal}
               title={t("admin.subscriptions.cancelTitle")}
               triggerIcon={CircleStop}
               triggerLabel={t("admin.subscriptions.cancel")}
@@ -174,7 +179,7 @@ export function AdminSubscriptionActions({
         <DangerZone
           action={
             <ConfirmFormDialog
-              busy={remove.isPending}
+              busy={remove.busy}
               busyLabel={t("admin.subscriptions.deleting")}
               confirmLabel={t("admin.subscriptions.delete")}
               description={t("admin.subscriptions.deleteDescription", {
@@ -182,10 +187,13 @@ export function AdminSubscriptionActions({
               })}
               id="delete"
               keyword={subscription.stripe_subscription_id}
-              onConfirm={() => {
-                remove.mutate(undefined)
+              onConfirm={remove.run}
+              onOpenChange={(open) => {
+                if (!open) {
+                  remove.reset()
+                }
               }}
-              refusal={apiFailure(remove.error)}
+              refusal={remove.refusal}
               title={t("admin.subscriptions.deleteTitle")}
               triggerIcon={Trash2}
               triggerLabel={t("admin.subscriptions.delete")}

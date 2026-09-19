@@ -65,6 +65,24 @@ function idOf(value: unknown): string | null {
   return null
 }
 
+/**
+ * Which subscription an invoice belongs to: Stripe moved the field under
+ * `parent.subscription_details` in the 2025 API and kept the older shapes
+ * alive, so a delivery can carry any of the three.
+ */
+function invoiceSubscriptionOf(object: Record<string, unknown>): string | null {
+  const parent = object.parent as Record<string, unknown> | undefined
+  const details = parent?.subscription_details as
+    | Record<string, unknown>
+    | undefined
+
+  return (
+    idOf(object.subscription) ??
+    idOf(details?.subscription) ??
+    idOf(parent?.subscription)
+  )
+}
+
 function metadataOrganizationOf(
   object: Record<string, unknown>
 ): string | null {
@@ -233,9 +251,7 @@ async function onInvoicePaymentFailed(
   now: Date
 ): Promise<boolean> {
   const customerId = idOf(object.customer)
-  const subscriptionId =
-    idOf(object.subscription) ??
-    idOf((object.parent as Record<string, unknown> | undefined)?.subscription)
+  const subscriptionId = invoiceSubscriptionOf(object)
   const organizationId =
     (await organizationOfSubscription(subscriptionId)) ??
     (await organizationOfCustomer(customerId))
@@ -276,10 +292,7 @@ function announcedSubscriptionOf(
     return idOf(object.id)
   }
 
-  return (
-    idOf(object.subscription) ??
-    idOf((object.parent as Record<string, unknown> | undefined)?.subscription)
-  )
+  return invoiceSubscriptionOf(object)
 }
 
 function dispatch(

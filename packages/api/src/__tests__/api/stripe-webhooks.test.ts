@@ -392,6 +392,44 @@ describe("POST /webhooks/stripe", () => {
     expect(afterGrace.json.entitlement).toBe("suspended")
   })
 
+  it("lit l'abonnement d'une facture rangé sous parent.subscription_details", async () => {
+    await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "customer.subscription.created",
+        stripeSubscriptionObject({ organizationId, quantity: 1 })
+      )
+    )
+
+    const failed = await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "invoice.payment_failed",
+        {
+          id: "in_test_parent",
+          object: "invoice",
+          customer: "cus_test_1",
+          parent: { subscription_details: { subscription: "sub_test_1" } },
+        },
+        "evt_test_parent"
+      )
+    )
+
+    expect(failed.json.handled).toBe(true)
+    expect(
+      (
+        await server.prisma.subscription.findFirstOrThrow({
+          where: { organizationId },
+        })
+      ).status
+    ).toBe("past_due")
+    expect(
+      (
+        await server.prisma.stripeEvent.findUniqueOrThrow({
+          where: { id: "evt_test_parent" },
+        })
+      ).subscriptionId
+    ).toBe("sub_test_1")
+  })
+
   it("rend leur droit d'usage aux serveurs quand l'abonnement repart", async () => {
     const enrolled = await createServer({ organizationId, status: "grace" })
 

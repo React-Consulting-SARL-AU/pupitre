@@ -89,8 +89,9 @@ describe("formatProduct", () => {
     expect(formatProduct("launch", en)).toBe("Launch")
   })
 
-  it("shows an unknown product as Stripe names it, and none as nothing", () => {
-    expect(formatProduct("prod_other", fr)).toBe("prod_other")
+  it("calls a product only Stripe knows Stripe, and none nothing", () => {
+    expect(formatProduct("prod_other", fr)).toBe("Stripe")
+    expect(formatProduct("prod_server", en)).toBe("Stripe")
     expect(formatProduct(null, fr)).toBe("—")
   })
 })

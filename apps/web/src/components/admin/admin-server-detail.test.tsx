@@ -19,7 +19,11 @@ import {
   AdminServerDetail,
   type AdminServerTab,
 } from "@/components/admin/admin-server-detail"
-import { createConsoleUser, useSessionApiClient } from "@/testing/harness"
+import {
+  createConsoleUser,
+  useSessionApiClient,
+  useSeveredApiClient,
+} from "@/testing/harness"
 import {
   fill,
   pick,
@@ -63,6 +67,7 @@ async function suspendedServer(
 
 describe("AdminServerDetail", () => {
   let organizationId: string
+  let sessionToken: string
 
   beforeAll(async () => {
     await bootApiTestServer()
@@ -78,6 +83,7 @@ describe("AdminServerDetail", () => {
 
     await useSessionApiClient(console.token)
 
+    sessionToken = console.token
     organizationId = console.organization.id
 
     // A restore hands the machine back to what the subscription allows: without
@@ -275,6 +281,63 @@ describe("AdminServerDetail", () => {
     )
 
     expect(container.textContent).not.toContain("Lift the suspension")
+  })
+
+  it("keeps the suspension dialog open on a cut line, and opens it clean next time", async () => {
+    const { server } = await createServer({ organizationId, name: "vps-one" })
+
+    await useSeveredApiClient(
+      sessionToken,
+      (url, method) => method === "POST" && url.includes("/suspend")
+    )
+
+    const { container, unmount, click } = await render(
+      page(server.id, { tab: "danger" })
+    )
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("Suspend the server") === true
+    )
+    await click(trigger(container, "Suspend"))
+
+    await waitUntil(
+      () => document.querySelector(`#suspend-${server.id}-reason`) !== null
+    )
+
+    const reason = document.querySelector(`#suspend-${server.id}-reason`)
+    const confirm = document.querySelector("[role=dialog] button[type=submit]")
+
+    if (!(reason && confirm)) {
+      throw new Error("the suspend dialog did not open")
+    }
+
+    await fill(reason, "Machine compromised")
+    await click(confirm)
+    await waitUntil(
+      () =>
+        document
+          .querySelector("[role=dialog]")
+          ?.textContent?.includes("The suspension failed.") === true
+    )
+
+    const cancel = [...document.querySelectorAll("[role=dialog] button")].find(
+      (button) => button.textContent === "Cancel"
+    )
+
+    if (!cancel) {
+      throw new Error("the suspend dialog has no way out")
+    }
+
+    await click(cancel)
+    await waitUntil(() => document.querySelector("[role=dialog]") === null)
+    await click(trigger(container, "Suspend"))
+    await waitUntil(() => document.querySelector("[role=dialog]") !== null)
+
+    expect(document.querySelector("[role=dialog]")?.textContent).not.toContain(
+      "The suspension failed."
+    )
   })
 
   it("deletes in two steps: revoked with its date first, purged second", async () => {

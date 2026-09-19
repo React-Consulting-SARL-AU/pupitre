@@ -9,6 +9,8 @@ export interface AdminSubscriptionRowSubscription {
   product: string | null
   status: string
   current_period_end: string | Date | null
+  created_at: string | Date
+  updated_at: string | Date
   cancel_at_period_end: boolean
   live: boolean
   seats: { paid: number; used: number }
@@ -96,6 +98,32 @@ export function adminSubscriptionColumns(
           {subscription.current_period_end
             ? formatDate(subscription.current_period_end, t)
             : t("format.none")}
+        </span>
+      ),
+    },
+    {
+      key: "created_at",
+      header: t("admin.subscriptions.createdAt"),
+      width: "w-28",
+      align: "end",
+      sortable: true,
+      hideBelow: "lg",
+      cell: (subscription) => (
+        <span className="font-data text-[12px] text-ink-3">
+          {formatDate(subscription.created_at, t)}
+        </span>
+      ),
+    },
+    {
+      key: "updated_at",
+      header: t("admin.subscriptions.updatedAt"),
+      width: "w-28",
+      align: "end",
+      sortable: true,
+      hideBelow: "lg",
+      cell: (subscription) => (
+        <span className="font-data text-[12px] text-ink-3">
+          {formatDate(subscription.updated_at, t)}
         </span>
       ),
     },

@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test"
+import { expect, type Locator, type Page, test } from "@playwright/test"
 import {
   chooseBillingMode,
   harnessUrl,
@@ -93,6 +93,17 @@ const FORBIDDEN = 403
 
 /** Where the owner looks at what the run saw; the suite writes beside its own artifacts otherwise. */
 const SHOTS = process.env.PUPITRE_E2E_SHOTS ?? "../../.playwright/shots"
+
+/**
+ * A tab clicked right after a navigation can be lost while the page settles:
+ * the step waits for the tab to be the selected one before acting on its panel.
+ */
+async function openTab(scope: Page | Locator, name: string): Promise<void> {
+  const tab = scope.getByRole("tab", { name })
+
+  await tab.click()
+  await expect(tab).toHaveAttribute("aria-selected", "true")
+}
 
 /** The platform pages open on the platform organisation alone: the switcher takes the session there. */
 async function openPlatformOrganization(page: Page): Promise<void> {
@@ -387,7 +398,7 @@ test.describe("plateforme", () => {
       await expect(main.getByText(LINK_PARTNER_EMAIL)).toBeVisible()
       await expect(main.getByText("Venues")).toBeVisible()
 
-      await page.getByRole("tab", { name: "Réglages" }).click()
+      await openTab(page, "Réglages")
 
       await expect(page).toHaveURL(ADMIN_LINK_SETTINGS_URL_RE)
 
@@ -403,13 +414,13 @@ test.describe("plateforme", () => {
         toasts.getByText(`« ${LINK_NAME} » est à jour.`)
       ).toBeVisible()
 
-      await page.getByRole("tab", { name: "Aperçu" }).click()
+      await openTab(page, "Aperçu")
 
       await expect(main.getByText(LINK_NOTES)).toBeVisible()
     })
 
     await test.step("le lien se désactive depuis sa zone dangereuse", async () => {
-      await page.getByRole("tab", { name: "Danger" }).click()
+      await openTab(page, "Danger")
 
       await expect(
         main.getByText(
@@ -464,7 +475,7 @@ test.describe("plateforme", () => {
 
       await expect(page).toHaveURL(ADMIN_LINK_URL_RE)
 
-      await page.getByRole("tab", { name: "Danger" }).click()
+      await openTab(page, "Danger")
       await main.getByRole("button", { name: "Supprimer le lien" }).click()
 
       const remove = page.getByRole("dialog")
@@ -494,7 +505,7 @@ test.describe("plateforme", () => {
         .click()
 
       await expect(page).toHaveURL(ADMIN_ORGANIZATION_URL_RE)
-      await main.getByRole("tab", { name: "Abonnements" }).click()
+      await openTab(main, "Abonnements")
       await expect(
         page.getByRole("button", { name: "Offrir un abonnement" })
       ).toBeDisabled()
@@ -510,7 +521,7 @@ test.describe("plateforme", () => {
         .click()
 
       await expect(page).toHaveURL(ADMIN_ORGANIZATION_URL_RE)
-      await main.getByRole("tab", { name: "Abonnements" }).click()
+      await openTab(main, "Abonnements")
       await expect(
         main.getByText("Aucun abonnement, passé ou présent.")
       ).toBeVisible()
@@ -549,7 +560,7 @@ test.describe("plateforme", () => {
         fullPage: true,
       })
 
-      await page.getByRole("tab", { name: "Gestes" }).click()
+      await openTab(page, "Gestes")
       await page.getByRole("button", { name: "Arrêter maintenant" }).click()
 
       const stop = page.getByRole("dialog")
@@ -564,7 +575,7 @@ test.describe("plateforme", () => {
         page.getByRole("button", { name: "Arrêter maintenant" })
       ).toHaveCount(0)
 
-      await page.getByRole("tab", { name: "Aperçu" }).click()
+      await openTab(page, "Aperçu")
 
       await expect(
         main.getByText("Résilié", { exact: true }).filter({ visible: true })
@@ -642,7 +653,7 @@ test.describe("plateforme", () => {
       await expect(page).toHaveURL(ADMIN_USER_URL_RE)
       await expect(main.getByText(OWNER_EMAIL)).toBeVisible()
 
-      await main.getByRole("tab", { name: "Danger" }).click()
+      await openTab(main, "Danger")
 
       const suspend = page.getByRole("button", {
         name: "Suspendre le compte",
@@ -843,7 +854,7 @@ test.describe("plateforme", () => {
         .click()
 
       await expect(page).toHaveURL(ADMIN_SERVER_URL_RE)
-      await page.getByRole("tab", { name: "Danger" }).click()
+      await openTab(page, "Danger")
       await page.getByRole("button", { name: "Effacer la ligne" }).click()
 
       const purge = page.getByRole("dialog")
@@ -912,7 +923,7 @@ test.describe("plateforme", () => {
     })
 
     await test.step("les alertes ouvertes se ferment depuis leur onglet", async () => {
-      await page.getByRole("tab", { name: "Alertes" }).click()
+      await openTab(page, "Alertes")
       await page.getByRole("button", { name: "Fermer les alertes" }).click()
 
       const dialog = page.getByRole("alertdialog")
@@ -937,7 +948,7 @@ test.describe("plateforme", () => {
 
       fleetOrganizationId = page.url().split("/").pop() ?? ""
 
-      await main.getByRole("tab", { name: "Abonnements" }).click()
+      await openTab(main, "Abonnements")
       await page.getByRole("button", { name: "Offrir un abonnement" }).click()
 
       const grant = page.getByRole("dialog")
@@ -957,7 +968,7 @@ test.describe("plateforme", () => {
 
       await expect(page).toHaveURL(ADMIN_SUBSCRIPTION_URL_RE)
 
-      await page.getByRole("tab", { name: "Gestes" }).click()
+      await openTab(page, "Gestes")
       await page.getByLabel("Date de fin (facultative)").fill(GRANT_END_DAY)
       await page.getByRole("button", { name: "Appliquer" }).click()
 
@@ -1005,7 +1016,7 @@ test.describe("plateforme", () => {
 
       await expect(page).toHaveURL(ADMIN_SUBSCRIPTION_URL_RE)
 
-      await page.getByRole("tab", { name: "Gestes" }).click()
+      await openTab(page, "Gestes")
       await page.getByLabel("Fin de l'essai").fill(PAST_DAY)
       await page.getByRole("button", { name: "Prolonger l'essai" }).click()
 
@@ -1059,7 +1070,7 @@ test.describe("plateforme", () => {
     })
 
     await test.step("suspendre le compte, puis lever la suspension", async () => {
-      await main.getByRole("tab", { name: "Danger" }).click()
+      await openTab(main, "Danger")
       await expect(page).toHaveURL(DANGER_TAB_URL_RE)
 
       await page
@@ -1080,11 +1091,11 @@ test.describe("plateforme", () => {
         page.getByRole("button", { name: "Lever la suspension du compte" })
       ).toBeVisible()
 
-      await main.getByRole("tab", { name: "Aperçu" }).click()
+      await openTab(main, "Aperçu")
       await expect(main.getByRole("img", { name: "Suspendu" })).toBeVisible()
       await expect(main.getByText("Signalement 118")).toBeVisible()
 
-      await main.getByRole("tab", { name: "Danger" }).click()
+      await openTab(main, "Danger")
       await page
         .getByRole("button", { name: "Lever la suspension du compte" })
         .first()
@@ -1159,12 +1170,12 @@ test.describe("plateforme", () => {
         page.getByRole("button", { name: "Purger le compte maintenant" })
       ).toBeVisible()
 
-      await main.getByRole("tab", { name: "Aperçu" }).click()
+      await openTab(main, "Aperçu")
       await expect(
         main.getByRole("img", { name: "Suppression programmée" })
       ).toBeVisible()
 
-      await main.getByRole("tab", { name: "Danger" }).click()
+      await openTab(main, "Danger")
       await page
         .getByRole("button", {
           name: "Annuler la suppression du compte",
@@ -1229,7 +1240,7 @@ test.describe("plateforme", () => {
     })
 
     await test.step("suspendre l'organisation suspend ses serveurs, puis la levée les rend", async () => {
-      await main.getByRole("tab", { name: "Danger" }).click()
+      await openTab(main, "Danger")
       await page
         .getByRole("button", { name: "Suspendre l'organisation", exact: true })
         .click()
@@ -1245,13 +1256,13 @@ test.describe("plateforme", () => {
         toasts.getByText(`L'organisation ${CYCLE_ORGANIZATION} est suspendue.`)
       ).toBeVisible()
 
-      await main.getByRole("tab", { name: "Serveurs" }).click()
+      await openTab(main, "Serveurs")
 
       const row = main.getByRole("listitem").filter({ hasText: CYCLE_SERVER })
 
       await expect(row).toContainText("Suspendu par l'équipe")
 
-      await main.getByRole("tab", { name: "Danger" }).click()
+      await openTab(main, "Danger")
       await page
         .getByRole("button", {
           name: "Lever la suspension de l'organisation",
@@ -1303,7 +1314,7 @@ test.describe("plateforme", () => {
     })
 
     await test.step("renommer l'organisation depuis ses réglages", async () => {
-      await main.getByRole("tab", { name: "Réglages" }).click()
+      await openTab(main, "Réglages")
 
       const apply = page.getByRole("button", { name: "Appliquer" })
 
@@ -1318,7 +1329,7 @@ test.describe("plateforme", () => {
     })
 
     await test.step("transférer la propriété depuis le menu de ligne d'un membre", async () => {
-      await main.getByRole("tab", { name: "Membres" }).click()
+      await openTab(main, "Membres")
       await main
         .getByRole("listitem")
         .filter({ hasText: CYCLE_SECOND_EMAIL })

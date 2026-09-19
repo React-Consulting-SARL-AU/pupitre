@@ -1,3 +1,4 @@
+import { ADMIN_PAGE_SIZE } from "@pupitre/shared/platform"
 import { useQuery } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { Ban, Link2, Pencil, RotateCcw, Trash2 } from "lucide-react"
@@ -45,8 +46,6 @@ export interface AdminAffiliateLinkListSearch {
 
 export type AdminAffiliateLinkListProps =
   ListSearchHandle<AdminAffiliateLinkListSearch>
-
-const PAGE_SIZE = 25
 
 const EVERY_STATE = ""
 
@@ -150,7 +149,7 @@ export function AdminAffiliateLinkList({
     <>
       <AsyncDataTable
         columns={adminAffiliateLinkColumns(t)}
-        data={kept.slice(offset, offset + PAGE_SIZE)}
+        data={kept.slice(offset, offset + ADMIN_PAGE_SIZE)}
         emptyIcon={Link2}
         emptyTitle={
           all.length === 0 ? t("admin.links.empty") : t("admin.links.noMatch")
@@ -182,7 +181,7 @@ export function AdminAffiliateLinkList({
         isError={links.isError}
         isFetching={links.isFetching}
         isPending={links.isPending}
-        limit={PAGE_SIZE}
+        limit={ADMIN_PAGE_SIZE}
         offset={offset}
         onOffsetChange={(next) => {
           setSearch({ offset: next })
