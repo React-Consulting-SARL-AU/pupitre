@@ -74,6 +74,12 @@ interface ReferralBody {
   code: string
 }
 
+interface SeedMemberBody {
+  organization_email: string
+  email: string
+  role?: "owner" | "admin" | "member"
+}
+
 function json(payload: unknown, status = 200): Response {
   return Response.json(payload, { status })
 }
@@ -123,6 +129,26 @@ async function seedAlert(body: SeedAlertBody): Promise<Response> {
   await prisma.alert.create({ data: { serverId: server.id, kind: body.kind } })
 
   return json({ ok: true })
+}
+
+/** A second seat in someone else's organization, which no console route hands out without an invitation. */
+async function seedMember(body: SeedMemberBody): Promise<Response> {
+  const { prisma } = await bootApiTestServer()
+  const organizationId = await organizationOf(body.organization_email)
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { email: body.email },
+  })
+  const member = await prisma.member.create({
+    data: {
+      id: crypto.randomUUID(),
+      organizationId,
+      userId: user.id,
+      role: body.role ?? "member",
+      createdAt: new Date(),
+    },
+  })
+
+  return json({ id: member.id })
 }
 
 /** Stripe alone opens a subscription: the harness plays its webhook, nothing else. */
@@ -281,6 +307,10 @@ async function handleHarness(
 
   if (path === "/referrals") {
     return await seedReferral((await request.json()) as ReferralBody)
+  }
+
+  if (path === "/members") {
+    return await seedMember((await request.json()) as SeedMemberBody)
   }
 
   return json({ error: `unknown harness route ${path}` }, 404)

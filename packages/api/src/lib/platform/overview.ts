@@ -56,6 +56,15 @@ export interface SeatDriftItem {
   used: number
 }
 
+export type ScheduledDeletionKind = "user" | "organization"
+
+export interface ScheduledDeletionItem {
+  kind: ScheduledDeletionKind
+  id: string
+  label: string
+  deletion_at: Date
+}
+
 export interface Worklist<Item> {
   count: number
   items: Item[]
@@ -67,6 +76,7 @@ export interface PlatformWorklists {
   trials_ending: Worklist<SubscriptionWorklistItem>
   servers_unreachable: Worklist<UnreachableServerItem>
   seats_drifted: Worklist<SeatDriftItem>
+  deletions_scheduled: Worklist<ScheduledDeletionItem>
 }
 
 export interface PlatformOverview {
@@ -280,19 +290,89 @@ async function readSeatDrift(): Promise<Worklist<SeatDriftItem>> {
   return { count: drifted.length, items: drifted.slice(0, WORKLIST_ITEMS) }
 }
 
+interface DeletionRow {
+  id: string
+  label: string
+  deletionAt: Date | null
+}
+
+function scheduledItems(
+  kind: ScheduledDeletionKind,
+  rows: DeletionRow[]
+): ScheduledDeletionItem[] {
+  return rows.flatMap((row) =>
+    row.deletionAt
+      ? [{ kind, id: row.id, label: row.label, deletion_at: row.deletionAt }]
+      : []
+  )
+}
+
+/** Accounts and organisations share one list: what the team has to cancel before the rows go. */
+async function readScheduledDeletions(): Promise<
+  Worklist<ScheduledDeletionItem>
+> {
+  const prisma = getPrisma()
+  const where = { deletionAt: { not: null } }
+  const page = {
+    where,
+    orderBy: { deletionAt: "asc" },
+    take: WORKLIST_ITEMS,
+  } as const
+  const [users, organizations, userCount, organizationCount] =
+    await Promise.all([
+      prisma.user.findMany({
+        ...page,
+        select: { id: true, email: true, deletionAt: true },
+      }),
+      prisma.organization.findMany({
+        ...page,
+        select: { id: true, name: true, deletionAt: true },
+      }),
+      prisma.user.count({ where }),
+      prisma.organization.count({ where }),
+    ])
+  const items = [
+    ...scheduledItems(
+      "user",
+      users.map((user) => ({ ...user, label: user.email }))
+    ),
+    ...scheduledItems(
+      "organization",
+      organizations.map((organization) => ({
+        ...organization,
+        label: organization.name,
+      }))
+    ),
+  ].sort(
+    (left, right) => left.deletion_at.getTime() - right.deletion_at.getTime()
+  )
+
+  return {
+    count: userCount + organizationCount,
+    items: items.slice(0, WORKLIST_ITEMS),
+  }
+}
+
 export async function readPlatformWorklists(): Promise<PlatformWorklists> {
   const now = new Date()
-  const [unreadMail, pastDue, trialsEnding, unreachable, seatsDrifted] =
-    await Promise.all([
-      readUnreadMail(),
-      readSubscriptionWorklist({ status: "past_due" }),
-      readSubscriptionWorklist({
-        status: "trialing",
-        currentPeriodEnd: { not: null, lte: trialDeadline(now) },
-      }),
-      readUnreachableServers(),
-      readSeatDrift(),
-    ])
+  const [
+    unreadMail,
+    pastDue,
+    trialsEnding,
+    unreachable,
+    seatsDrifted,
+    deletions,
+  ] = await Promise.all([
+    readUnreadMail(),
+    readSubscriptionWorklist({ status: "past_due" }),
+    readSubscriptionWorklist({
+      status: "trialing",
+      currentPeriodEnd: { not: null, lte: trialDeadline(now) },
+    }),
+    readUnreachableServers(),
+    readSeatDrift(),
+    readScheduledDeletions(),
+  ])
 
   return {
     unread_mail: unreadMail,
@@ -300,6 +380,7 @@ export async function readPlatformWorklists(): Promise<PlatformWorklists> {
     trials_ending: trialsEnding,
     servers_unreachable: unreachable,
     seats_drifted: seatsDrifted,
+    deletions_scheduled: deletions,
   }
 }
 

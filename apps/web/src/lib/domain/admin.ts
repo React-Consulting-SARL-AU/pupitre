@@ -1,6 +1,10 @@
 import type { OrgRole } from "@pupitre/shared/permissions"
 import { GRANTED_PRODUCT, isPlatformProduct } from "@pupitre/shared/plans"
-import { PLATFORM_ORGANIZATION_ID } from "@pupitre/shared/platform"
+import {
+  type AccountState,
+  type OrganizationState,
+  PLATFORM_ORGANIZATION_ID,
+} from "@pupitre/shared/platform"
 import { SERVER_STATUSES, type StatusLook } from "@/lib/domain/server-status"
 import type { DictionaryKey } from "@/lib/i18n/en"
 
@@ -56,16 +60,6 @@ export function canSuspend(status: string): boolean {
 /** Only the suspension the team laid is the team's to lift; non-payment lifts itself. */
 export function canRestore(suspendedReason: string | null): boolean {
   return suspendedReason === "admin"
-}
-
-const CONFLICT = 409
-
-/**
- * The platform refuses to ban a member of its own organisation. The refusal is
- * about who the account is, so retrying never changes it: the control closes.
- */
-export function accountIsProtected(status: number | undefined): boolean {
-  return status === CONFLICT
 }
 
 export const SUBSCRIPTION_STATUS_FILTERS = [
@@ -273,38 +267,151 @@ export function releaseVersions(builds: ReleaseBuild[]): ReleaseVersion[] {
     )
 }
 
-export interface AdminUserState {
-  banned: boolean
-  email_verified: boolean
+const ACCOUNT_LOOKS: Record<AccountState, StatusLook> = {
+  active: { shape: "filled", tone: "ok", label: "admin.users.state.active" },
+  suspended: {
+    shape: "barred",
+    tone: "danger",
+    label: "admin.users.state.suspended",
+  },
+  deactivated: {
+    shape: "hollow",
+    tone: "warn",
+    label: "admin.users.state.deactivated",
+  },
+  deleting: {
+    shape: "barred",
+    tone: "danger",
+    label: "admin.users.state.deleting",
+  },
 }
 
-const BANNED: StatusLook = {
-  shape: "barred",
-  tone: "danger",
-  label: "admin.users.banned",
+export function accountLook(state: string): StatusLook {
+  return ACCOUNT_LOOKS[state as AccountState] ?? ACCOUNT_LOOKS.active
 }
 
-const UNVERIFIED: StatusLook = {
-  shape: "hollow",
-  tone: "warn",
-  label: "admin.users.unverified",
+const ORGANIZATION_LOOKS: Record<OrganizationState, StatusLook> = {
+  active: {
+    shape: "filled",
+    tone: "ok",
+    label: "admin.organizations.state.active",
+  },
+  suspended: {
+    shape: "barred",
+    tone: "danger",
+    label: "admin.organizations.state.suspended",
+  },
+  closed: {
+    shape: "hollow",
+    tone: "warn",
+    label: "admin.organizations.state.closed",
+  },
+  deleting: {
+    shape: "barred",
+    tone: "danger",
+    label: "admin.organizations.state.deleting",
+  },
 }
 
-const ACTIVE: StatusLook = {
-  shape: "filled",
-  tone: "ok",
-  label: "admin.users.active",
+export function organizationLook(state: string): StatusLook {
+  return (
+    ORGANIZATION_LOOKS[state as OrganizationState] ?? ORGANIZATION_LOOKS.active
+  )
 }
 
-export function userLook({
-  banned,
-  email_verified,
-}: AdminUserState): StatusLook {
-  if (banned) {
-    return BANNED
+export type AccountGesture =
+  | "suspend"
+  | "unsuspend"
+  | "deactivate"
+  | "reactivate"
+  | "delete"
+  | "purge"
+  | "cancel_deletion"
+  | "revoke_sessions"
+
+/** What an account in this state has left to be done to it: the page shows these and nothing else. */
+export function accountGestures(state: string): AccountGesture[] {
+  if (state === "deleting") {
+    return ["cancel_deletion", "purge", "revoke_sessions"]
   }
 
-  return email_verified ? ACTIVE : UNVERIFIED
+  if (state === "deactivated") {
+    return ["reactivate", "delete", "revoke_sessions"]
+  }
+
+  if (state === "suspended") {
+    return ["unsuspend", "deactivate", "delete", "revoke_sessions"]
+  }
+
+  return ["suspend", "deactivate", "delete", "revoke_sessions"]
+}
+
+export type OrganizationGesture =
+  | "suspend"
+  | "restore"
+  | "close"
+  | "reopen"
+  | "delete"
+  | "purge"
+  | "cancel_deletion"
+
+export function organizationGestures(state: string): OrganizationGesture[] {
+  if (state === "deleting") {
+    return ["cancel_deletion", "purge"]
+  }
+
+  if (state === "closed") {
+    return ["reopen", "delete"]
+  }
+
+  if (state === "suspended") {
+    return ["restore", "close", "delete"]
+  }
+
+  return ["suspend", "close", "delete"]
+}
+
+export interface AccountStanding {
+  state: string
+  banned_reason?: string | null
+  deactivated_reason: string | null
+  deletion_reason: string | null
+}
+
+/** The reason that belongs to the state the account holds, and no older one. */
+export function accountReason(account: AccountStanding): string | null {
+  if (account.state === "deleting") {
+    return account.deletion_reason
+  }
+
+  if (account.state === "deactivated") {
+    return account.deactivated_reason
+  }
+
+  return account.state === "suspended" ? (account.banned_reason ?? null) : null
+}
+
+export interface OrganizationStanding {
+  state: string
+  suspended_reason: string | null
+  closed_reason: string | null
+  deletion_reason: string | null
+}
+
+export function organizationReason(
+  organization: OrganizationStanding
+): string | null {
+  if (organization.state === "deleting") {
+    return organization.deletion_reason
+  }
+
+  if (organization.state === "closed") {
+    return organization.closed_reason
+  }
+
+  return organization.state === "suspended"
+    ? organization.suspended_reason
+    : null
 }
 
 export interface AdminOverview {

@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router"
 import type { DataColumn } from "@/components/ui/async-data-table"
 import { StatusBadge } from "@/components/ui/status-badge"
-import { userLook } from "@/lib/domain/admin"
+import { accountLook } from "@/lib/domain/admin"
 import { subscriptionStatusLook } from "@/lib/domain/billing"
 import { roleKey } from "@/lib/domain/roles"
 import type { Translate } from "@/lib/i18n/i18n"
@@ -24,6 +24,7 @@ export interface AdminUserRowUser {
   banned: boolean
   email_verified: boolean
   created_at: string
+  state: string
   organizations: AdminUserRowOrganization[]
 }
 
@@ -61,7 +62,7 @@ export function adminUserColumns(t: Translate): DataColumn<AdminUserRowUser>[] {
       key: "state",
       header: t("admin.users.state"),
       width: "w-40",
-      cell: (user) => <StatusBadge look={userLook(user)} />,
+      cell: (user) => <StatusBadge look={accountLook(user.state)} />,
     },
     {
       key: "role",

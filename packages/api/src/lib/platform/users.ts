@@ -14,6 +14,7 @@ import { accountStateOf } from "./lifecycle"
 
 export interface AdminUserFilter {
   q?: string
+  state?: AccountState
   limit: number
   offset: number
 }
@@ -106,12 +107,57 @@ async function organizationFacts(
   }
 }
 
-function whereOf(filter: AdminUserFilter) {
-  const q = filter.q?.trim()
+/** The state the column shows, read back as a query: the same priority, so a page and its total agree. */
+function stateWhere(
+  state: AccountState,
+  now: Date
+): Prisma.UserWhereInput | null {
+  if (state === "deleting") {
+    return { deletionAt: { not: null } }
+  }
 
-  return q
-    ? { OR: [{ email: { contains: q } }, { name: { contains: q } }] }
-    : {}
+  if (state === "deactivated") {
+    return { deletionAt: null, deactivatedAt: { not: null } }
+  }
+
+  if (state === "suspended") {
+    return {
+      deletionAt: null,
+      deactivatedAt: null,
+      banned: true,
+      OR: [{ banExpires: null }, { banExpires: { gt: now } }],
+    }
+  }
+
+  return state === "active"
+    ? {
+        deletionAt: null,
+        deactivatedAt: null,
+        OR: [{ banned: null }, { banned: false }, { banExpires: { lte: now } }],
+      }
+    : null
+}
+
+function whereOf(
+  filter: AdminUserFilter,
+  now: Date = new Date()
+): Prisma.UserWhereInput {
+  const q = filter.q?.trim()
+  const clauses: Prisma.UserWhereInput[] = []
+
+  if (q) {
+    clauses.push({
+      OR: [{ email: { contains: q } }, { name: { contains: q } }],
+    })
+  }
+
+  const state = filter.state ? stateWhere(filter.state, now) : null
+
+  if (state) {
+    clauses.push(state)
+  }
+
+  return clauses.length === 0 ? {} : { AND: clauses }
 }
 
 const WITH_MEMBERSHIPS = {

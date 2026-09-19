@@ -291,4 +291,78 @@ describe("GET /admin/users", () => {
     expect(page.json.data).toHaveLength(1)
     expect(tooMany.status).toBe(422)
   })
+
+  it("ne garde que les comptes de l'état demandé, un bannissement échu comptant pour actif", async () => {
+    const { members } = await createOrganizationWithMembers({
+      name: "États",
+      roles: ["owner", "admin", "member"],
+    })
+    const [banni, echu, desactive] = members.map((member) => member.user)
+    const { members: autres } = await createOrganizationWithMembers({
+      name: "Partants",
+      roles: ["owner"],
+    })
+    const efface = autres[0].user
+
+    await harness.prisma.user.update({
+      where: { id: banni.id },
+      data: { banned: true, banReason: "abus" },
+    })
+    await harness.prisma.user.update({
+      where: { id: echu.id },
+      data: {
+        banned: true,
+        banReason: "abus",
+        banExpires: new Date(Date.now() - 1000),
+      },
+    })
+    await harness.prisma.user.update({
+      where: { id: desactive.id },
+      data: { deactivatedAt: new Date(), deactivatedReason: "inactif" },
+    })
+    await harness.prisma.user.update({
+      where: { id: efface.id },
+      data: { deletionAt: new Date(), deletionReason: "demande" },
+    })
+
+    const admin = await platformAdmin()
+    const suspended = await apiRequest<UsersBody>(
+      "/admin/users?state=suspended",
+      { session: admin }
+    )
+    const deactivated = await apiRequest<UsersBody>(
+      "/admin/users?state=deactivated",
+      { session: admin }
+    )
+    const deleting = await apiRequest<UsersBody>(
+      "/admin/users?state=deleting",
+      {
+        session: admin,
+      }
+    )
+    const active = await apiRequest<UsersBody>("/admin/users?state=active", {
+      session: admin,
+    })
+    const searched = await apiRequest<UsersBody>(
+      `/admin/users?state=active&q=${encodeURIComponent(echu.email)}`,
+      { session: admin }
+    )
+    const unknown = await apiRequest<ErrorBody>("/admin/users?state=ailleurs", {
+      session: admin,
+    })
+    const ids = active.json.data.map((user) => user.id)
+
+    expect(suspended.json.total).toBe(1)
+    expect(suspended.json.data[0]?.id).toBe(banni.id)
+    expect(deactivated.json.total).toBe(1)
+    expect(deactivated.json.data[0]?.id).toBe(desactive.id)
+    expect(deleting.json.total).toBe(1)
+    expect(deleting.json.data[0]?.id).toBe(efface.id)
+    expect(ids).toContain(echu.id)
+    expect(ids).not.toContain(banni.id)
+    expect(ids).not.toContain(desactive.id)
+    expect(ids).not.toContain(efface.id)
+    expect(searched.json.total).toBe(1)
+    expect(unknown.status).toBe(422)
+  })
 })

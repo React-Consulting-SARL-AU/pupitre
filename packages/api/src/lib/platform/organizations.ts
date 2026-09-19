@@ -5,12 +5,14 @@ import {
   type OrganizationState,
 } from "@pupitre/shared/platform"
 import { getPrisma } from "../api/prisma"
+import { SEATED_STATUSES } from "../billing/seats"
 import { liveAmong } from "../billing/subscription"
 import { type AdminServerView, listServersForPlatform } from "../servers/admin"
 import { type AdminEventView, recentEvents } from "./events"
 import { organizationStateOf } from "./lifecycle"
 
 export interface AdminOrganizationSubscription {
+  id: string
   status: string
   product: string
   quantity: number
@@ -65,16 +67,23 @@ export interface AdminOrganizationSubscriptionRow {
   updated_at: Date
 }
 
+export interface AdminOrganizationSeats {
+  paid: number
+  used: number
+}
+
 export interface AdminOrganizationDetail
   extends Omit<AdminOrganizationView, "members" | "servers"> {
   members: AdminOrganizationMember[]
   servers: AdminServerView[]
   subscriptions: AdminOrganizationSubscriptionRow[]
+  seats: AdminOrganizationSeats
   events: AdminEventView[]
 }
 
 export interface AdminOrganizationFilter {
   q?: string
+  state?: OrganizationState
   limit: number
   offset: number
 }
@@ -111,6 +120,7 @@ function toSubscriptionSummary(
 ): AdminOrganizationSubscription | null {
   return subscription
     ? {
+        id: subscription.id,
         status: subscription.status,
         product: subscription.product,
         quantity: subscription.quantity,
@@ -199,12 +209,29 @@ function toView(
   }
 }
 
+/** The state the column shows, read back as a query: the same priority, so a page and its total agree. */
+const STATE_WHERE: Record<OrganizationState, Prisma.OrganizationWhereInput> = {
+  deleting: { deletionAt: { not: null } },
+  closed: { deletionAt: null, closedAt: { not: null } },
+  suspended: { deletionAt: null, closedAt: null, suspendedAt: { not: null } },
+  active: { deletionAt: null, closedAt: null, suspendedAt: null },
+}
+
 function whereOf(
   filter: AdminOrganizationFilter
 ): Prisma.OrganizationWhereInput {
   const q = filter.q?.trim()
+  const clauses: Prisma.OrganizationWhereInput[] = []
 
-  return q ? { OR: [{ name: { contains: q } }, { slug: { contains: q } }] } : {}
+  if (q) {
+    clauses.push({ OR: [{ name: { contains: q } }, { slug: { contains: q } }] })
+  }
+
+  if (filter.state) {
+    clauses.push(STATE_WHERE[filter.state])
+  }
+
+  return clauses.length === 0 ? {} : { AND: clauses }
 }
 
 export async function listOrganizationsForPlatform(
@@ -247,7 +274,7 @@ export async function readOrganizationForPlatform(
     return null
   }
 
-  const [members, subscriptions, servers, events] = await Promise.all([
+  const [members, subscriptions, servers, seated, events] = await Promise.all([
     prisma.member.findMany({
       where: { organizationId },
       orderBy: { createdAt: "asc" },
@@ -262,15 +289,19 @@ export async function readOrganizationForPlatform(
       limit: ADMIN_MAX_PAGE_SIZE,
       offset: 0,
     }),
+    prisma.server.count({
+      where: { organizationId, status: { in: SEATED_STATUSES } },
+    }),
     recentEvents({ organizationId }),
   ])
 
   const byLastTouch = [...subscriptions].sort(
     (left, right) => right.updatedAt.getTime() - left.updatedAt.getTime()
   )
+  const counted = liveAmong(byLastTouch)
 
   return {
-    ...toView(organization, liveAmong(byLastTouch)),
+    ...toView(organization, counted),
     members: members.map((member) => ({
       user_id: member.userId,
       email: member.user.email,
@@ -280,6 +311,7 @@ export async function readOrganizationForPlatform(
     })),
     servers: servers.data,
     subscriptions: subscriptions.map(toSubscriptionRow),
+    seats: { paid: counted?.quantity ?? 0, used: seated },
     events,
   }
 }

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "bun:test"
 import {
-  accountIsProtected,
+  accountGestures,
+  accountLook,
+  accountReason,
   canActOnPlatform,
   canCancelSubscription,
   canDeleteSubscription,
@@ -12,6 +14,9 @@ import {
   canSuspend,
   dateInputValue,
   endOfDayIso,
+  organizationGestures,
+  organizationLook,
+  organizationReason,
   overviewFigures,
   platformOpen,
   productKey,
@@ -20,7 +25,6 @@ import {
   stripeEventStatusKey,
   subscriptionIsLive,
   suspendedReasonKey,
-  userLook,
 } from "@/lib/domain/admin"
 
 describe("platformOpen", () => {
@@ -69,17 +73,6 @@ describe("canRestore", () => {
     expect(canRestore("admin")).toBe(true)
     expect(canRestore("billing")).toBe(false)
     expect(canRestore(null)).toBe(false)
-  })
-})
-
-describe("accountIsProtected", () => {
-  it("closes the ban when the platform refused it over who the account is", () => {
-    expect(accountIsProtected(409)).toBe(true)
-  })
-
-  it("leaves it open when nothing was refused, or the refusal was another one", () => {
-    expect(accountIsProtected(undefined)).toBe(false)
-    expect(accountIsProtected(404)).toBe(false)
   })
 })
 
@@ -322,26 +315,122 @@ describe("canSuspend", () => {
   })
 })
 
-describe("userLook", () => {
-  it("reads a banned account as barred, whatever else is true", () => {
-    expect(userLook({ banned: true, email_verified: true })).toMatchObject({
+describe("accountLook", () => {
+  it("bars a suspended account and a scheduled deletion", () => {
+    expect(accountLook("suspended")).toMatchObject({
       shape: "barred",
       tone: "danger",
+      label: "admin.users.state.suspended",
+    })
+    expect(accountLook("deleting")).toMatchObject({
+      shape: "barred",
+      label: "admin.users.state.deleting",
     })
   })
 
-  it("reads an unverified email as a hollow warning", () => {
-    expect(userLook({ banned: false, email_verified: false })).toMatchObject({
+  it("warns on a deactivated account and fills an active one", () => {
+    expect(accountLook("deactivated")).toMatchObject({
       shape: "hollow",
       tone: "warn",
     })
+    expect(accountLook("active")).toMatchObject({ shape: "filled", tone: "ok" })
+  })
+})
+
+describe("organizationLook", () => {
+  it("names each organisation state with its own label", () => {
+    expect(organizationLook("closed")).toMatchObject({
+      shape: "hollow",
+      label: "admin.organizations.state.closed",
+    })
+    expect(organizationLook("suspended")).toMatchObject({
+      tone: "danger",
+      label: "admin.organizations.state.suspended",
+    })
+    expect(organizationLook("active")).toMatchObject({ tone: "ok" })
+  })
+})
+
+describe("accountGestures", () => {
+  it("offers to suspend an active account and to lift a suspended one", () => {
+    expect(accountGestures("active")).toContain("suspend")
+    expect(accountGestures("active")).not.toContain("unsuspend")
+    expect(accountGestures("suspended")).toContain("unsuspend")
+    expect(accountGestures("suspended")).not.toContain("suspend")
   })
 
-  it("reads a verified account as a filled dot", () => {
-    expect(userLook({ banned: false, email_verified: true })).toMatchObject({
-      shape: "filled",
-      tone: "ok",
-    })
+  it("offers to reactivate a deactivated account", () => {
+    expect(accountGestures("deactivated")).toEqual([
+      "reactivate",
+      "delete",
+      "revoke_sessions",
+    ])
+  })
+
+  it("offers to cancel or to hasten a scheduled deletion, and nothing that would repeat it", () => {
+    expect(accountGestures("deleting")).toEqual([
+      "cancel_deletion",
+      "purge",
+      "revoke_sessions",
+    ])
+  })
+})
+
+describe("organizationGestures", () => {
+  it("offers to suspend, close or delete an active organisation", () => {
+    expect(organizationGestures("active")).toEqual([
+      "suspend",
+      "close",
+      "delete",
+    ])
+  })
+
+  it("offers to lift a suspension and to reopen a closed organisation", () => {
+    expect(organizationGestures("suspended")).toContain("restore")
+    expect(organizationGestures("closed")).toEqual(["reopen", "delete"])
+  })
+
+  it("offers to cancel or to hasten a scheduled deletion", () => {
+    expect(organizationGestures("deleting")).toEqual([
+      "cancel_deletion",
+      "purge",
+    ])
+  })
+})
+
+describe("accountReason", () => {
+  it("reads the reason the state was written with, and no older one", () => {
+    const account = {
+      banned_reason: "abus",
+      deactivated_reason: "inactif",
+      deletion_reason: "demande",
+    }
+
+    expect(accountReason({ ...account, state: "suspended" })).toBe("abus")
+    expect(accountReason({ ...account, state: "deactivated" })).toBe("inactif")
+    expect(accountReason({ ...account, state: "deleting" })).toBe("demande")
+    expect(accountReason({ ...account, state: "active" })).toBeNull()
+  })
+})
+
+describe("organizationReason", () => {
+  it("reads the reason the state was written with", () => {
+    const organization = {
+      suspended_reason: "abus",
+      closed_reason: "demande",
+      deletion_reason: "purge",
+    }
+
+    expect(organizationReason({ ...organization, state: "suspended" })).toBe(
+      "abus"
+    )
+    expect(organizationReason({ ...organization, state: "closed" })).toBe(
+      "demande"
+    )
+    expect(organizationReason({ ...organization, state: "deleting" })).toBe(
+      "purge"
+    )
+    expect(organizationReason({ ...organization, state: "active" })).toBeNull()
   })
 })
 
