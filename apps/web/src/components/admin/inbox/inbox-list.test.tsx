@@ -106,6 +106,22 @@ describe("InboxList", () => {
     expect(container.querySelectorAll("ul > li")).toHaveLength(1)
   })
 
+  it("names the key in the title of opening and of selecting a conversation", async () => {
+    const { container, unmount } = await renderList()
+
+    mounted.push(unmount)
+
+    const box = container.querySelector(
+      "[aria-label='Select this conversation']"
+    )
+    const link = container.querySelector("a[href*='/inbox/thr_1']")
+
+    expect(box?.getAttribute("title")).toBe("Select the conversation · x")
+    expect(link?.getAttribute("title")).toBe(
+      "Open the conversation · Enter / o"
+    )
+  })
+
   it("says so when no conversation matches", async () => {
     const { container, unmount } = await renderList({ threads: [] })
 

@@ -188,6 +188,8 @@ Sous `/api/v1/admin/inbox`. **Lire demande d'être membre de l'organisation Pupi
 | GET | `/messages/:id/html` | — | le corps HTML stocké, en `text/html; charset=utf-8`, sous la CSP de *Le HTML d'un message* et `X-Content-Type-Options: nosniff`, les `src="cid:…"` réécrits. `404` quand le message n'a pas de HTML |
 | GET | `/attachments/:id/url` | `?disposition=inline\|attachment` | `{ data: { url, expires_at, mime_type, filename, size } }`. Voir *Lire une pièce jointe*. `404 not_found` |
 
+L'adresse de la console ne porte que ce que le lecteur a choisi (`parseInboxSearch` est construit sur `listSearch`) : les filtres laissés sur leur défaut n'y figurent pas, `/dashboard/admin/inbox` nue vaut la vue ouverte triée par dernière activité, et l'organisation qu'un `organization_id` nomme est lue par `GET /admin/organizations/:id`, jamais devinée depuis la page affichée.
+
 ### Les notes, les brouillons, les réponses types
 
 | Méthode | Route | Corps | Réponse |
@@ -200,7 +202,7 @@ Sous `/api/v1/admin/inbox`. **Lire demande d'être membre de l'organisation Pupi
 | DELETE | `/threads/:id/draft` | — | `204`, `404` sans brouillon. Un envoi réussi l'efface de lui-même, et la console l'efface dès que le texte redevient vide. Événement `draft.changed`. Rôle `admin` |
 | GET | `/templates` | `?mailbox_id=` | `{ data: Template[] }`. Avec `mailbox_id`, les réponses types de cette boîte **et** celles qui n'en nomment aucune |
 | POST | `/templates` | `{ name (1..80), body (1..20 000), mailbox_id? }` | `201 { data: Template }`. Une boîte inconnue vaut `422 validation`. Journal `mail.template_created`. Rôle `admin` |
-| PATCH | `/templates/:id` | `{ name?, body?, mailbox_id? }` | `{ data: Template }`, `404` sur une réponse type inconnue. Journal `mail.template_updated`. Rôle `admin` |
+| PATCH | `/templates/:id` | `{ name?, body?, mailbox_id? }` | `{ data: Template }`, `404` sur une réponse type inconnue. Journal `mail.template_updated`. Rôle `admin`. La page des réglages l'appelle : chaque réponse type porte un geste qui la charge dans le formulaire, qui enregistre alors les changements au lieu d'en créer une seconde |
 | DELETE | `/templates/:id` | — | `204`, `404`. Journal `mail.template_deleted`. Rôle `admin` |
 
 Une réponse type est **un préremplissage de la console** : `template_id` n'est jamais envoyé au serveur, c'est le texte inséré qui part.

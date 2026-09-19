@@ -8,6 +8,8 @@ export interface CheckboxProps {
   indeterminate?: boolean
   onCheckedChange: (checked: boolean) => void
   label: string
+  /** The hover bubble, when it says more than the label — a keyboard shortcut, say. */
+  title?: string
   className?: string
   disabled?: boolean
 }
@@ -19,6 +21,7 @@ export function Checkbox({
   indeterminate = false,
   onCheckedChange,
   label,
+  title,
   className,
   disabled = false,
 }: CheckboxProps) {
@@ -37,7 +40,7 @@ export function Checkbox({
       id={id}
       indeterminate={indeterminate}
       onCheckedChange={onCheckedChange}
-      title={label}
+      title={title ?? label}
     >
       <BaseCheckbox.Indicator className="flex text-inverse-ink">
         {indeterminate ? (

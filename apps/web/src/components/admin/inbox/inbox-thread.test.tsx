@@ -317,6 +317,70 @@ describe("InboxThread", () => {
     }
   })
 
+  it("folds the side pane away and names the key that closes the conversation", async () => {
+    const { threadId } = await receive()
+    const { container, unmount } = await render(
+      withDashboard(<InboxThread search={SEARCH} threadId={threadId} />, {
+        platformRole: "owner",
+      })
+    )
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("Agent refused") === true
+    )
+
+    const panels = [...container.querySelectorAll("details")]
+    const back = container.querySelector("a[href*='/dashboard/admin/inbox']")
+
+    expect(
+      panels.map((panel) => panel.querySelector("h2")?.textContent)
+    ).toEqual(["Details", "Internal notes", "Activity"])
+    expect(panels.every((panel) => panel.open)).toBe(true)
+    expect(back?.getAttribute("title")).toBe(
+      "Close the conversation or the selection · Esc"
+    )
+  })
+
+  it("keeps the reply as a draft, and throws it away once the composer is emptied", async () => {
+    const { threadId } = await receive()
+    const { prisma } = await bootApiTestServer()
+    const { container, unmount } = await render(
+      withDashboard(<InboxThread search={SEARCH} threadId={threadId} />, {
+        platformRole: "owner",
+      })
+    )
+
+    mounted.push(unmount)
+
+    await waitUntil(() => container.querySelector("#inbox-reply") !== null)
+
+    const composer = container.querySelector("#inbox-reply")
+
+    if (!(composer instanceof HTMLTextAreaElement)) {
+      throw new Error("the reply composer did not render")
+    }
+
+    await fillTextarea(composer, REPLY)
+
+    await waitUntilStored(async () => {
+      const draft = await prisma.mailDraft.findUnique({ where: { threadId } })
+
+      return draft?.body === REPLY
+    })
+
+    await fillTextarea(composer, "")
+
+    await waitUntilStored(async () => {
+      const draft = await prisma.mailDraft.findUnique({ where: { threadId } })
+
+      return draft === null
+    })
+
+    expect(container.textContent).not.toContain("Draft kept")
+  })
+
   it("gives a plain member the conversation without the composer", async () => {
     const { threadId } = await receive()
     const { container, unmount } = await render(

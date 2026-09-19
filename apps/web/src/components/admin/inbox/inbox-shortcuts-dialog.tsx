@@ -35,7 +35,7 @@ export function InboxShortcutsDialog({
       />
       <DialogPopup title={t("inbox.shortcutsTitle")}>
         <dl className="mt-gutter flex flex-col gap-2">
-          {INBOX_SHORTCUTS.map((shortcut) => (
+          {Object.values(INBOX_SHORTCUTS).map((shortcut) => (
             <div
               className="flex items-center justify-between gap-4"
               key={shortcut.label}
