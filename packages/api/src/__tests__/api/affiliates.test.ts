@@ -234,6 +234,45 @@ describe("les liens d'affiliation", () => {
     expect(tooLong.status).toBe(422)
   })
 
+  it("pose le partenaire et la note dès la création, et refuse un partenaire illisible", async () => {
+    const admin = await platformAdmin()
+    const created = await createLink(admin, {
+      name: "Salon",
+      free_months: 1,
+      partner_name: "  Ada Lovelace  ",
+      partner_email: "ada@partner.test",
+      notes: "  Rencontrée au salon  ",
+    })
+    const blank = await createLink(admin, {
+      name: "Sans partenaire",
+      free_months: 1,
+      partner_name: "   ",
+      notes: "",
+    })
+    const unreadable = await createLink(admin, {
+      name: "Illisible",
+      free_months: 1,
+      partner_email: "ada",
+    })
+
+    expect(created.status).toBe(201)
+    expect(created.json.data.partner_name).toBe("Ada Lovelace")
+
+    const detail = await readLink(admin, created.json.data.id)
+
+    expect(detail.json.data.partner).toEqual({
+      name: "Ada Lovelace",
+      email: "ada@partner.test",
+    })
+    expect(detail.json.data.notes).toBe("Rencontrée au salon")
+
+    const bare = await readLink(admin, blank.json.data.id)
+
+    expect(bare.json.data.partner).toBeNull()
+    expect(bare.json.data.notes).toBeNull()
+    expect(unreadable.status).toBe(422)
+  })
+
   it("désactive puis réactive un lien, et ne connaît pas les autres", async () => {
     const admin = await platformAdmin()
     const created = await createLink(admin, { name: "Blog", free_months: 1 })
