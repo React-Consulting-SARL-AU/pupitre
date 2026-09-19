@@ -264,6 +264,24 @@ async function onInvoicePaymentFailed(
   return true
 }
 
+/**
+ * Which subscription the delivery talks about, read off the envelope: what a
+ * later reader filters on, since the row keeps no payload.
+ */
+function announcedSubscriptionOf(
+  type: string,
+  object: Record<string, unknown>
+): string | null {
+  if (type.startsWith(SUBSCRIPTION_EVENT_PREFIX)) {
+    return idOf(object.id)
+  }
+
+  return (
+    idOf(object.subscription) ??
+    idOf((object.parent as Record<string, unknown> | undefined)?.subscription)
+  )
+}
+
 function dispatch(
   type: string,
   object: Record<string, unknown>,
@@ -301,13 +319,14 @@ function isUniqueViolation(error: unknown): boolean {
 async function claimEvent(
   id: string,
   type: string,
+  subscriptionId: string | null,
   now: Date
 ): Promise<boolean> {
   const prisma = getPrisma()
 
   try {
     await prisma.stripeEvent.create({
-      data: { id, type, status: "processing", receivedAt: now },
+      data: { id, type, subscriptionId, status: "processing", receivedAt: now },
     })
 
     return true
@@ -319,7 +338,7 @@ async function claimEvent(
 
   const retried = await prisma.stripeEvent.updateMany({
     where: { id, status: "failed" },
-    data: { status: "processing", receivedAt: now },
+    data: { status: "processing", subscriptionId, receivedAt: now },
   })
 
   return retried.count === 1
@@ -362,7 +381,11 @@ export async function handleStripeWebhook({
     throw new StripeEventMalformedError()
   }
 
-  if (!(await claimEvent(id, type, now))) {
+  const object = envelope.data?.object ?? {}
+
+  if (
+    !(await claimEvent(id, type, announcedSubscriptionOf(type, object), now))
+  ) {
     return { event_id: id, type, handled: false, duplicate: true }
   }
 
@@ -370,7 +393,7 @@ export async function handleStripeWebhook({
   let handled: boolean
 
   try {
-    handled = await dispatch(type, envelope.data?.object ?? {}, now)
+    handled = await dispatch(type, object, now)
   } catch (error) {
     await prisma.stripeEvent.update({
       where: { id },

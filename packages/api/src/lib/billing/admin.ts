@@ -9,7 +9,9 @@ import {
   restoreOrganizationServers,
   suspendExpiredGrace,
 } from "./grace"
+import { isLaunchMode } from "./launch"
 import { applyOrganizationEntitlement, mirrorSubscription } from "./mirror"
+import type { RemoteSubscription } from "./provider"
 import { getBillingProvider } from "./runtime"
 import { assertSeatsCoverUsage } from "./seats"
 import { LIVE_SUBSCRIPTION_STATUSES, liveSubscriptionOf } from "./subscription"
@@ -57,8 +59,50 @@ export class SubscriptionAlreadyCanceledError extends Error {
   }
 }
 
+export class SubscriptionNotStripeError extends Error {
+  constructor(subscriptionId: string) {
+    super(`subscription ${subscriptionId} is a product Stripe never sees`)
+    this.name = "SubscriptionNotStripeError"
+  }
+}
+
+export class SubscriptionNotTrialingError extends Error {
+  constructor(subscriptionId: string) {
+    super(`subscription ${subscriptionId} is not trialing`)
+    this.name = "SubscriptionNotTrialingError"
+  }
+}
+
+export class SubscriptionNotResumableError extends Error {
+  constructor(subscriptionId: string) {
+    super(`subscription ${subscriptionId} was not cancelled at period end`)
+    this.name = "SubscriptionNotResumableError"
+  }
+}
+
+export class TrialEndNotFutureError extends Error {
+  constructor() {
+    super("a trial ends later than now")
+    this.name = "TrialEndNotFutureError"
+  }
+}
+
+export class BillingLaunchModeError extends Error {
+  constructor() {
+    super("the platform does not call Stripe during the launch")
+    this.name = "BillingLaunchModeError"
+  }
+}
+
 function isLive(subscription: Subscription): boolean {
   return LIVE_SUBSCRIPTION_STATUSES.includes(subscription.status)
+}
+
+/** Every gesture that reaches Stripe: the launch runs without a Stripe key at all. */
+function assertStripeReachable(): void {
+  if (isLaunchMode()) {
+    throw new BillingLaunchModeError()
+  }
 }
 
 export function grantedSubscriptionId(): string {
@@ -243,6 +287,124 @@ export async function cancelSubscriptionByAdmin(
   await suspendExpiredGrace(now)
 
   return canceled
+}
+
+/** The row Stripe just wrote back, read from the mirror the webhook also writes. */
+async function mirroredAfter(
+  subscription: Subscription,
+  remote: RemoteSubscription,
+  now: Date
+): Promise<Subscription> {
+  await mirrorSubscription(subscription.organizationId, remote)
+  await applyOrganizationEntitlement(subscription.organizationId, now)
+
+  return await getPrisma().subscription.findUniqueOrThrow({
+    where: { id: subscription.id },
+  })
+}
+
+/**
+ * The team gives a trial more time. Stripe holds the trial, so Stripe moves it
+ * first and the mirror takes the answer; the webhook that follows finds the
+ * row already there.
+ */
+export async function extendSubscriptionTrial(
+  actor: PlatformBillingActor,
+  subscriptionId: string,
+  endsAt: Date,
+  now: Date = new Date()
+): Promise<Subscription | null> {
+  const subscription = await getPrisma().subscription.findUnique({
+    where: { id: subscriptionId },
+  })
+
+  if (!subscription) {
+    return null
+  }
+
+  assertStripeReachable()
+
+  if (isPlatformProduct(subscription.product)) {
+    throw new SubscriptionNotStripeError(subscription.id)
+  }
+
+  if (subscription.status !== "trialing") {
+    throw new SubscriptionNotTrialingError(subscription.id)
+  }
+
+  if (endsAt.getTime() <= now.getTime()) {
+    throw new TrialEndNotFutureError()
+  }
+
+  const remote = await getBillingProvider().extendTrial(
+    subscription.stripeSubscriptionId,
+    endsAt
+  )
+  const extended = await mirroredAfter(subscription, remote, now)
+
+  await recordEvent({
+    action: "subscription.updated",
+    actorUserId: actor.userId,
+    organizationId: subscription.organizationId,
+    targetType: "subscription",
+    targetId: subscription.stripeSubscriptionId,
+    payload: {
+      status: extended.status,
+      trial_ends_at: extended.currentPeriodEnd?.toISOString() ?? null,
+      previous_trial_ends_at:
+        subscription.currentPeriodEnd?.toISOString() ?? null,
+    },
+  })
+
+  return extended
+}
+
+/**
+ * A cancellation waiting for the end of the period is taken back: Stripe keeps
+ * billing, and nothing about the servers changes, since they never stopped.
+ */
+export async function resumeSubscriptionByAdmin(
+  actor: PlatformBillingActor,
+  subscriptionId: string,
+  now: Date = new Date()
+): Promise<Subscription | null> {
+  const subscription = await getPrisma().subscription.findUnique({
+    where: { id: subscriptionId },
+  })
+
+  if (!subscription) {
+    return null
+  }
+
+  assertStripeReachable()
+
+  if (
+    isPlatformProduct(subscription.product) ||
+    !(subscription.cancelAtPeriodEnd && isLive(subscription))
+  ) {
+    throw new SubscriptionNotResumableError(subscription.id)
+  }
+
+  const remote = await getBillingProvider().resumeSubscription(
+    subscription.stripeSubscriptionId
+  )
+  const resumed = await mirroredAfter(subscription, remote, now)
+
+  await recordEvent({
+    action: "subscription.updated",
+    actorUserId: actor.userId,
+    organizationId: subscription.organizationId,
+    targetType: "subscription",
+    targetId: subscription.stripeSubscriptionId,
+    payload: {
+      status: resumed.status,
+      cancel_at_period_end: resumed.cancelAtPeriodEnd,
+      previous_cancel_at_period_end: subscription.cancelAtPeriodEnd,
+      current_period_end: resumed.currentPeriodEnd?.toISOString() ?? null,
+    },
+  })
+
+  return resumed
 }
 
 async function followEntitlementAfterLoss(

@@ -66,6 +66,7 @@ export interface SubscriptionFixture {
   quantity?: number
   interval?: "month" | "year"
   currentPeriodEnd?: Date | null
+  cancelAtPeriodEnd?: boolean
 }
 
 export function remoteSubscription({
@@ -76,6 +77,7 @@ export function remoteSubscription({
   quantity = 2,
   interval = "month",
   currentPeriodEnd = null,
+  cancelAtPeriodEnd = false,
 }: SubscriptionFixture = {}): RemoteSubscription {
   return {
     id,
@@ -85,6 +87,7 @@ export function remoteSubscription({
     quantity,
     interval,
     current_period_end: currentPeriodEnd,
+    cancel_at_period_end: cancelAtPeriodEnd,
     organization_id: organizationId,
   }
 }
@@ -99,6 +102,7 @@ export function stripeSubscriptionObject(
     object: "subscription",
     customer: remote.customer_id,
     status: remote.status,
+    cancel_at_period_end: remote.cancel_at_period_end,
     metadata: remote.organization_id
       ? { organization_id: remote.organization_id }
       : {},
