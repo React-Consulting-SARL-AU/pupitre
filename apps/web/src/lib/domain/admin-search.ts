@@ -24,6 +24,13 @@ export interface SearchHit {
   to: LinkProps
 }
 
+const SEPARATOR = " · "
+
+/** A part the row has not got leaves no separator dangling in front of the next one. */
+function joined(parts: (string | null)[]): string {
+  return parts.filter((part) => part !== null && part !== "").join(SEPARATOR)
+}
+
 /** One flat list, in the order the arrows walk it, whatever group each hit came from. */
 export function searchHits(results: AdminSearchResults): SearchHit[] {
   return [
@@ -56,7 +63,7 @@ export function searchHits(results: AdminSearchResults): SearchHit[] {
       group: "servers" as const,
       groupLabel: "admin.search.servers" as DictionaryKey,
       primary: server.name,
-      secondary: `${server.host ?? ""} · ${server.organization.name}`,
+      secondary: joined([server.host, server.organization.name]),
       look: null,
       to: {
         to: "/dashboard/admin/servers/$id",
