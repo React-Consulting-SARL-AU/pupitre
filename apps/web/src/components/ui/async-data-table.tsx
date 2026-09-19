@@ -387,7 +387,13 @@ export function AsyncDataTable<Row>({
                         <td className="relative px-4 py-3 text-right align-middle">
                           <RowActionsMenu
                             actions={actions}
-                            label={t("table.rowActions")}
+                            label={
+                              rowLabel
+                                ? t("table.rowActionsOn", {
+                                    name: rowLabel(row),
+                                  })
+                                : t("table.rowActions")
+                            }
                           />
                         </td>
                       ) : null}

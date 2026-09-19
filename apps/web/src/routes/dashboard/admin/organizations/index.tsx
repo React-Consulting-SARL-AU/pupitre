@@ -1,3 +1,4 @@
+import { ORGANIZATION_STATES } from "@pupitre/shared/platform"
 import { createFileRoute } from "@tanstack/react-router"
 import { AdminOrganizationList } from "@/components/admin/admin-organization-list"
 import { PageHeader } from "@/components/ui/page-header"
@@ -12,7 +13,9 @@ export const Route = createFileRoute("/dashboard/admin/organizations/")({
   head: ({ match }) => ({
     meta: [{ title: documentTitle(ROUTE_ID, match.context.locale) }],
   }),
-  validateSearch: listSearch(),
+  validateSearch: listSearch({
+    filters: { state: { kind: "enum", values: ORGANIZATION_STATES } },
+  }),
 })
 
 function AdminOrganizationsPage() {
