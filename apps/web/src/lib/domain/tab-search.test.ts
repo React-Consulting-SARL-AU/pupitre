@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test"
-import { tabSearch } from "@/lib/domain/tab-search"
+import { tabNavigation, tabSearch } from "@/lib/domain/tab-search"
 
 const TABS = ["overview", "devices", "danger"] as const
 
@@ -17,5 +17,19 @@ describe("tabSearch", () => {
   it("drops a tab nobody wrote and an address without one", () => {
     expect(read({ tab: "ailleurs" })).toEqual({})
     expect(read({})).toEqual({})
+  })
+})
+
+describe("tabNavigation", () => {
+  it("names the tab the reader picked, and leaves the first one out", () => {
+    expect(tabNavigation("overview", "danger", "overview")).toEqual({
+      tab: "danger",
+    })
+    expect(tabNavigation("danger", "overview", "overview")).toEqual({})
+  })
+
+  it("goes nowhere when the address already names that tab", () => {
+    expect(tabNavigation("danger", "danger", "overview")).toBeNull()
+    expect(tabNavigation("overview", "overview", "overview")).toBeNull()
   })
 })
