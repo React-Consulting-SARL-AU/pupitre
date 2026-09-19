@@ -1,7 +1,18 @@
 import { resolveLocale } from "@pupitre/shared/i18n"
 import { ADMIN_PAGE_SIZE } from "@pupitre/shared/platform"
 import { Elysia, t } from "elysia"
-import { translate } from "../../../i18n"
+import { type MessageKey, translate } from "../../../i18n"
+import {
+  deactivateUserFromPlatform,
+  deleteUserFromPlatform,
+  EmailAlreadyVerifiedError,
+  reactivateUserFromPlatform,
+  resendVerificationFromPlatform,
+  revokeUserSessionsFromPlatform,
+  SoleOwnerError,
+  UserActiveError,
+  UserAlreadyDeactivatedError,
+} from "../../../platform/user-lifecycle"
 import {
   banUserFromPlatform,
   listUsersForPlatform,
@@ -19,6 +30,7 @@ import {
 import { requirePlatformAdmin, requirePlatformRole } from "../../plugins/guards"
 import { serializeData } from "../../prisma"
 import {
+  adminBanBody,
   adminUserDetailSchema,
   adminUserSchema,
   adminUsersQuery,
@@ -32,6 +44,28 @@ const userNotFound = (request: Request) =>
     "not_found",
     translate(resolveLocale(request.headers), "user_not_found")
   )
+
+function conflict(request: Request, message: MessageKey) {
+  const locale = resolveLocale(request.headers)
+
+  return apiError(
+    "conflict",
+    translate(locale, message),
+    translate(locale, `${message}_fix` as MessageKey)
+  )
+}
+
+const CONFLICTS: [new (...args: never[]) => Error, MessageKey][] = [
+  [PlatformMemberProtectedError, "platform_member_protected"],
+  [UserAlreadyDeactivatedError, "user_already_deactivated"],
+  [UserActiveError, "user_active"],
+  [SoleOwnerError, "sole_owner"],
+  [EmailAlreadyVerifiedError, "email_verified"],
+]
+
+function conflictKeyOf(error: unknown): MessageKey | null {
+  return CONFLICTS.find(([refusal]) => error instanceof refusal)?.[1] ?? null
+}
 
 const readRoutes = new Elysia({ name: "admin-users-read" })
   .use(requirePlatformAdmin)
@@ -85,6 +119,15 @@ const readRoutes = new Elysia({ name: "admin-users-read" })
     }
   )
 
+const detailResponse = {
+  200: dataResponse(adminUserDetailSchema),
+  401: errorResponse,
+  403: errorResponse,
+  404: errorResponse,
+  409: errorResponse,
+  422: errorResponse,
+}
+
 const writeRoutes = new Elysia({ name: "admin-users-write" })
   .use(requirePlatformRole("admin"))
   .post(
@@ -94,7 +137,8 @@ const writeRoutes = new Elysia({ name: "admin-users-write" })
         const banned = await banUserFromPlatform(
           { userId: user.id },
           params.id,
-          body.reason
+          body.reason,
+          body.until ? new Date(body.until) : null
         )
 
         if (!banned) {
@@ -105,33 +149,22 @@ const writeRoutes = new Elysia({ name: "admin-users-write" })
 
         return { data: serializeData(banned) }
       } catch (error) {
-        if (!(error instanceof PlatformMemberProtectedError)) {
+        const key = conflictKeyOf(error)
+
+        if (!key) {
           throw error
         }
 
-        const locale = resolveLocale(request.headers)
-
         set.status = 409
 
-        return apiError(
-          "conflict",
-          translate(locale, "platform_member_protected"),
-          translate(locale, "platform_member_protected_fix")
-        )
+        return conflict(request, key)
       }
     },
     {
       params: userParams,
-      body: adminReasonBody,
-      detail: { summary: "Bannir un compte, avec la raison" },
-      response: {
-        200: dataResponse(adminUserDetailSchema),
-        401: errorResponse,
-        403: errorResponse,
-        404: errorResponse,
-        409: errorResponse,
-        422: errorResponse,
-      },
+      body: adminBanBody,
+      detail: { summary: "Suspendre un compte, avec la raison et son terme" },
+      response: detailResponse,
     }
   )
   .post(
@@ -152,12 +185,197 @@ const writeRoutes = new Elysia({ name: "admin-users-write" })
     },
     {
       params: userParams,
-      detail: { summary: "Lever le bannissement d'un compte" },
+      detail: { summary: "Lever la suspension d'un compte" },
       response: {
         200: dataResponse(adminUserDetailSchema),
         401: errorResponse,
         403: errorResponse,
         404: errorResponse,
+      },
+    }
+  )
+  .post(
+    "/users/:id/deactivate",
+    async ({ user, params, body, request, set }) => {
+      try {
+        const deactivated = await deactivateUserFromPlatform(
+          { userId: user.id },
+          params.id,
+          body.reason
+        )
+
+        if (!deactivated) {
+          set.status = 404
+
+          return userNotFound(request)
+        }
+
+        return { data: serializeData(deactivated) }
+      } catch (error) {
+        const key = conflictKeyOf(error)
+
+        if (!key) {
+          throw error
+        }
+
+        set.status = 409
+
+        return conflict(request, key)
+      }
+    },
+    {
+      params: userParams,
+      body: adminReasonBody,
+      detail: {
+        summary:
+          "Désactiver un compte : sessions, appareils et attributions retirés",
+      },
+      response: detailResponse,
+    }
+  )
+  .post(
+    "/users/:id/reactivate",
+    async ({ user, params, request, set }) => {
+      try {
+        const reactivated = await reactivateUserFromPlatform(
+          { userId: user.id },
+          params.id
+        )
+
+        if (!reactivated) {
+          set.status = 404
+
+          return userNotFound(request)
+        }
+
+        return { data: serializeData(reactivated) }
+      } catch (error) {
+        const key = conflictKeyOf(error)
+
+        if (!key) {
+          throw error
+        }
+
+        set.status = 409
+
+        return conflict(request, key)
+      }
+    },
+    {
+      params: userParams,
+      detail: {
+        summary:
+          "Réactiver un compte : la désactivation et la suppression programmée tombent",
+      },
+      response: detailResponse,
+    }
+  )
+  .delete(
+    "/users/:id",
+    async ({ user, params, body, request, set }) => {
+      try {
+        const deletion = await deleteUserFromPlatform(
+          { userId: user.id },
+          params.id,
+          body.reason
+        )
+
+        if (!deletion) {
+          set.status = 404
+
+          return userNotFound(request)
+        }
+
+        if (deletion.deletion === "purged") {
+          set.status = 204
+
+          return
+        }
+
+        return { data: serializeData(deletion.user) }
+      } catch (error) {
+        const key = conflictKeyOf(error)
+
+        if (!key) {
+          throw error
+        }
+
+        set.status = 409
+
+        return conflict(request, key)
+      }
+    },
+    {
+      params: userParams,
+      body: adminReasonBody,
+      detail: {
+        summary:
+          "Programmer la purge d'un compte, puis l'effacer au second appel",
+      },
+      response: { ...detailResponse, 204: t.Void() },
+    }
+  )
+  .post(
+    "/users/:id/sessions/revoke",
+    async ({ user, params, request, set }) => {
+      const revoked = await revokeUserSessionsFromPlatform(
+        { userId: user.id },
+        params.id
+      )
+
+      if (!revoked) {
+        set.status = 404
+
+        return userNotFound(request)
+      }
+
+      set.status = 204
+    },
+    {
+      params: userParams,
+      detail: { summary: "Révoquer toutes les sessions d'un compte" },
+      response: {
+        204: t.Void(),
+        401: errorResponse,
+        403: errorResponse,
+        404: errorResponse,
+      },
+    }
+  )
+  .post(
+    "/users/:id/verification",
+    async ({ params, request, set }) => {
+      try {
+        const sent = await resendVerificationFromPlatform(params.id)
+
+        if (!sent) {
+          set.status = 404
+
+          return userNotFound(request)
+        }
+
+        set.status = 204
+      } catch (error) {
+        const key = conflictKeyOf(error)
+
+        if (!key) {
+          throw error
+        }
+
+        set.status = 409
+
+        return conflict(request, key)
+      }
+    },
+    {
+      params: userParams,
+      detail: { summary: "Renvoyer l'email de vérification d'adresse" },
+      response: {
+        204: t.Void(),
+        401: errorResponse,
+        403: errorResponse,
+        404: errorResponse,
+        409: errorResponse,
       },
     }
   )

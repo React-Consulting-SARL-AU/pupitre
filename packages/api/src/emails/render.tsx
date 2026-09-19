@@ -11,9 +11,13 @@ import { AlertEntitlementGraceEmail } from "./templates/alert-entitlement-grace"
 import { AlertServerUnreachableEmail } from "./templates/alert-server-unreachable"
 import { DeviceAddedEmail } from "./templates/device-added"
 import { EmailChangeEmail } from "./templates/email-change"
+import { EmailVerificationEmail } from "./templates/email-verification"
 import { EntitlementGraceEmail } from "./templates/entitlement-grace"
 import { InvitationEmail } from "./templates/invitation"
 import { MagicLinkEmail } from "./templates/magic-link"
+import { OrganizationClosedEmail } from "./templates/organization-closed"
+import { OrganizationRestoredEmail } from "./templates/organization-restored"
+import { OrganizationSuspendedEmail } from "./templates/organization-suspended"
 import { SeatsDriftEmail } from "./templates/seats-drift"
 import { ServerAssignedEmail } from "./templates/server-assigned"
 import { ServerDecommissionEmail } from "./templates/server-decommission"
@@ -93,6 +97,80 @@ export function renderInvitationEmail(
     "invitation.subject",
     { organization: input.organizationName, inviter: input.inviterEmail },
     <InvitationEmail {...input} />
+  )
+}
+
+export interface EmailVerificationInput {
+  locale: Locale
+  url: string
+}
+
+export function renderEmailVerificationEmail(
+  input: EmailVerificationInput
+): Promise<RenderedEmail> {
+  return compose(
+    input.locale,
+    "email_verification.subject",
+    {},
+    <EmailVerificationEmail {...input} />
+  )
+}
+
+export interface OrganizationSuspendedInput {
+  locale: Locale
+  organizationName: string
+  reason: string
+  serverCount: number
+}
+
+export function renderOrganizationSuspendedEmail(
+  input: OrganizationSuspendedInput
+): Promise<RenderedEmail> {
+  return compose(
+    input.locale,
+    "organization_suspended.subject",
+    { organization: input.organizationName, count: input.serverCount },
+    <OrganizationSuspendedEmail
+      {...input}
+      url={`mailto:${LEGAL_CONTACTS.support}`}
+    />
+  )
+}
+
+export interface OrganizationRestoredInput {
+  locale: Locale
+  organizationName: string
+  serverCount: number
+}
+
+export function renderOrganizationRestoredEmail(
+  input: OrganizationRestoredInput
+): Promise<RenderedEmail> {
+  return compose(
+    input.locale,
+    "organization_restored.subject",
+    { organization: input.organizationName, count: input.serverCount },
+    <OrganizationRestoredEmail {...input} url={consolePath("/dashboard")} />
+  )
+}
+
+export interface OrganizationClosedInput {
+  locale: Locale
+  organizationName: string
+  reason: string
+}
+
+export function renderOrganizationClosedEmail(
+  input: OrganizationClosedInput
+): Promise<RenderedEmail> {
+  return compose(
+    input.locale,
+    "organization_closed.subject",
+    { organization: input.organizationName },
+    <OrganizationClosedEmail
+      {...input}
+      url={`mailto:${LEGAL_CONTACTS.support}`}
+    />
   )
 }
 

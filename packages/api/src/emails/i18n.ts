@@ -37,6 +37,46 @@ export const EMAIL_FR = {
   "email_change.footnote":
     "Vous n'avez rien demandé ? Ignorez ce message, et changez de second facteur ou révoquez vos clés d'accès si vous doutez de votre session.",
 
+  "email_verification.subject": "Confirmez votre adresse Pupitre",
+  "email_verification.preview":
+    "Ce lien confirme l'adresse qui porte votre compte.",
+  "email_verification.title": "Confirmation d'adresse",
+  "email_verification.body":
+    "Ce lien confirme que cette adresse est bien la vôtre. Tant qu'elle ne l'est pas, Pupitre ne peut pas vous prévenir d'une suspension ni d'un serveur qui ne répond plus.",
+  "email_verification.cta": "Confirmer l'adresse",
+  "email_verification.footnote":
+    "Vous n'avez rien demandé ? Ignorez ce message : sans ce lien, rien n'est confirmé.",
+
+  "organization_suspended.subject": "{organization} est suspendue",
+  "organization_suspended.preview":
+    "L'équipe Pupitre a suspendu cette organisation. Ses serveurs ne travaillent plus.",
+  "organization_suspended.title": "{organization} est suspendue",
+  "organization_suspended.body":
+    "L'équipe Pupitre a suspendu {organization}. Ses {count} serveur(s) ne distribuent plus de clés et l'agent refuse de travailler dès son prochain contact. La console reste ouverte ; vos données, vos projets et vos services restent en place sur les machines : rien n'est effacé.",
+  "organization_suspended.cta": "Écrire au support",
+  "organization_suspended.footnote":
+    "Le remède : répondez au support avec le motif ci-dessus. Un abonnement ne lève pas cette suspension ; seule l'équipe le fait.",
+
+  "organization_restored.subject": "{organization} est rétablie",
+  "organization_restored.preview":
+    "La suspension est levée. Les serveurs reprennent leur travail.",
+  "organization_restored.title": "{organization} est rétablie",
+  "organization_restored.body":
+    "L'équipe Pupitre a levé la suspension de {organization}. Ses {count} serveur(s) reprennent le droit d'usage de son abonnement à leur prochain contact. Un serveur que l'équipe avait suspendu à part reste suspendu.",
+  "organization_restored.cta": "Ouvrir la console",
+  "organization_restored.footnote":
+    "Un serveur encore suspendu après ce message porte sa propre suspension : écrivez au support pour la lever.",
+
+  "organization_closed.subject": "{organization} est fermée",
+  "organization_closed.preview":
+    "L'équipe Pupitre a fermé cette organisation. Son abonnement est arrêté.",
+  "organization_closed.title": "{organization} est fermée",
+  "organization_closed.body":
+    "L'équipe Pupitre a fermé {organization}. Ses membres n'y entrent plus, son abonnement est arrêté et ses serveurs sont suspendus. Rien n'est effacé sur les machines, et la fermeture se lève si l'équipe rouvre l'organisation.",
+  "organization_closed.cta": "Écrire au support",
+  "organization_closed.footnote":
+    "Le remède : répondez au support avec le motif ci-dessus. Vos autres organisations restent accessibles depuis le sélecteur de la console.",
+
   "magic_link.subject": "Votre lien de connexion Pupitre",
   "magic_link.preview":
     "Ce lien ouvre votre session. Il expire dans 15 minutes.",
@@ -212,6 +252,46 @@ export const EMAIL_EN: Record<EmailMessageKey, string> = {
   "email_change.cta": "Confirm the new address",
   "email_change.footnote":
     "Did not ask for this? Ignore the message, and rotate your second factor or revoke your passkeys if you have any doubt about your session.",
+
+  "email_verification.subject": "Confirm your Pupitre address",
+  "email_verification.preview":
+    "This link confirms the address your account is held under.",
+  "email_verification.title": "Address confirmation",
+  "email_verification.body":
+    "This link confirms that this address is yours. Until it is, Pupitre cannot warn you about a suspension or about a server that stopped answering.",
+  "email_verification.cta": "Confirm the address",
+  "email_verification.footnote":
+    "Did not ask for this? Ignore the message: without the link, nothing is confirmed.",
+
+  "organization_suspended.subject": "{organization} is suspended",
+  "organization_suspended.preview":
+    "The Pupitre team suspended this organisation. Its servers no longer work.",
+  "organization_suspended.title": "{organization} is suspended",
+  "organization_suspended.body":
+    "The Pupitre team suspended {organization}. Its {count} server(s) hand out no key any more and the agent refuses to work from its next contact on. The console stays open; your data, your projects and your services stay in place on the machines: nothing is erased.",
+  "organization_suspended.cta": "Write to support",
+  "organization_suspended.footnote":
+    "The fix: answer support with the reason above. A subscription does not lift this suspension; only the team does.",
+
+  "organization_restored.subject": "{organization} is back",
+  "organization_restored.preview":
+    "The suspension is lifted. The servers go back to work.",
+  "organization_restored.title": "{organization} is back",
+  "organization_restored.body":
+    "The Pupitre team lifted the suspension on {organization}. Its {count} server(s) take back the entitlement of its subscription at their next contact. A server the team suspended on its own stays suspended.",
+  "organization_restored.cta": "Open the console",
+  "organization_restored.footnote":
+    "A server still suspended after this message carries a suspension of its own: write to support to have it lifted.",
+
+  "organization_closed.subject": "{organization} is closed",
+  "organization_closed.preview":
+    "The Pupitre team closed this organisation. Its subscription is stopped.",
+  "organization_closed.title": "{organization} is closed",
+  "organization_closed.body":
+    "The Pupitre team closed {organization}. Its members no longer enter it, its subscription is stopped and its servers are suspended. Nothing is erased on the machines, and the closure lifts if the team reopens the organisation.",
+  "organization_closed.cta": "Write to support",
+  "organization_closed.footnote":
+    "The fix: answer support with the reason above. Your other organisations stay reachable from the console switcher.",
 
   "magic_link.subject": "Your Pupitre sign-in link",
   "magic_link.preview":

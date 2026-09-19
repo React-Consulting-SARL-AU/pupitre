@@ -166,9 +166,15 @@ export async function unassignServer(
  * the console would otherwise show a name that cannot open the machine, and
  * a later invitation would hand the keys back without anyone asking.
  */
+export interface PlatformUnassignment {
+  actorUserId: string
+  reason: string
+}
+
 export async function unassignServersOfMember(
   organizationId: string,
-  userId: string
+  userId: string,
+  byPlatform: PlatformUnassignment | null = null
 ): Promise<string[]> {
   const prisma = withOrganization(getPrisma(), organizationId)
   const held = await prisma.server.findMany({
@@ -189,7 +195,7 @@ export async function unassignServersOfMember(
   for (const server of held) {
     await recordEvent({
       action: "server.unassigned",
-      actorUserId: null,
+      actorUserId: byPlatform?.actorUserId ?? null,
       organizationId,
       targetType: "server",
       targetId: server.id,
@@ -197,6 +203,7 @@ export async function unassignServersOfMember(
         name: server.name,
         assigned_user_id: userId,
         via: "member_removed",
+        ...(byPlatform ? { by_platform: true, reason: byPlatform.reason } : {}),
       },
     })
   }

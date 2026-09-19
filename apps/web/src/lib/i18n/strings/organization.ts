@@ -29,6 +29,15 @@ export const organization = {
       "Choose another name; its identifier may already be taken.",
     "organization.members": "Members",
     "organization.billing": "Billing",
+    "organization.standing.suspended":
+      "Pupitre suspended {organization}: its servers hand out no key and its agents refuse to work.",
+    "organization.standing.closed":
+      "Pupitre closed {organization}: its subscription is stopped and nobody enters it any more.",
+    "organization.standing.deleting":
+      "Pupitre scheduled the erasure of {organization}: nobody enters it, and its rows leave the platform at the end of the grace period.",
+    "organization.standing.reason": "Reason given: {reason}",
+    "organization.standing.fix":
+      "Write to {email} to have {organization} reopened. Nothing is erased on the machines.",
   },
   fr: {
     "organization.identity": "Identité",
@@ -61,5 +70,14 @@ export const organization = {
       "Choisissez un autre nom ; son identifiant est peut-être déjà pris.",
     "organization.members": "Membres",
     "organization.billing": "Facturation",
+    "organization.standing.suspended":
+      "Pupitre a suspendu {organization} : ses serveurs ne distribuent plus de clés et ses agents refusent de travailler.",
+    "organization.standing.closed":
+      "Pupitre a fermé {organization} : son abonnement est arrêté et personne n'y entre plus.",
+    "organization.standing.deleting":
+      "Pupitre a programmé l'effacement de {organization} : personne n'y entre plus, et ses lignes quittent la plateforme à la fin du délai.",
+    "organization.standing.reason": "Motif donné : {reason}",
+    "organization.standing.fix":
+      "Écrivez à {email} pour faire rouvrir {organization}. Rien n'est effacé sur les machines.",
   },
 }

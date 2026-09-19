@@ -1,10 +1,14 @@
 import type { Prisma, Subscription } from "@pupitre/db/cloudflare/client"
 import { isPlatformProduct } from "@pupitre/shared/plans"
-import { ADMIN_MAX_PAGE_SIZE } from "@pupitre/shared/platform"
+import {
+  ADMIN_MAX_PAGE_SIZE,
+  type OrganizationState,
+} from "@pupitre/shared/platform"
 import { getPrisma } from "../api/prisma"
 import { liveAmong } from "../billing/subscription"
 import { type AdminServerView, listServersForPlatform } from "../servers/admin"
 import { type AdminEventView, recentEvents } from "./events"
+import { organizationStateOf } from "./lifecycle"
 
 export interface AdminOrganizationSubscription {
   status: string
@@ -24,6 +28,13 @@ export interface AdminOrganizationView {
   slug: string
   personal: boolean
   created_at: Date
+  state: OrganizationState
+  suspended_at: Date | null
+  suspended_reason: string | null
+  closed_at: Date | null
+  closed_reason: string | null
+  deletion_at: Date | null
+  deletion_reason: string | null
   members: number
   servers: number
   subscription: AdminOrganizationSubscription | null
@@ -169,6 +180,13 @@ function toView(
     slug: organization.slug,
     personal: isPersonal(organization.metadata),
     created_at: organization.createdAt,
+    state: organizationStateOf(organization),
+    suspended_at: organization.suspendedAt,
+    suspended_reason: organization.suspendedReason,
+    closed_at: organization.closedAt,
+    closed_reason: organization.closedReason,
+    deletion_at: organization.deletionAt,
+    deletion_reason: organization.deletionReason,
     members: organization._count.members,
     servers: organization._count.servers,
     subscription: toSubscriptionSummary(subscription),

@@ -15,8 +15,8 @@ import type { OrgRole } from "@pupitre/shared/permissions"
 import { QueryClientProvider } from "@tanstack/react-query"
 import { ServerAssignment } from "@/components/dashboard/server-assignment"
 import {
+  type DashboardActiveOrganization,
   DashboardContext,
-  type DashboardOrganization,
 } from "@/lib/domain/dashboard-context"
 import { createQueryClient } from "@/lib/query/client"
 import { useSessionApiClient } from "@/testing/harness"
@@ -25,7 +25,7 @@ import { fill, pick, render, trigger, waitUntilStored } from "@/testing/render"
 const mounted: (() => void)[] = []
 
 function card(
-  organization: DashboardOrganization,
+  organization: DashboardActiveOrganization,
   role: OrgRole,
   serverId: string,
   assignedUserId: string | null = null
@@ -63,11 +63,13 @@ function organizationOf(organization: {
   id: string
   name: string
   slug: string
-}): DashboardOrganization {
+}): DashboardActiveOrganization {
   return {
     id: organization.id,
     name: organization.name,
     slug: organization.slug,
+    state: "active",
+    reason: null,
   }
 }
 

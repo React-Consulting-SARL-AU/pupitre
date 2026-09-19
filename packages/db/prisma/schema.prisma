@@ -73,6 +73,13 @@ model User {
   twoFactorEnabled Boolean?  @default(false)
   locale           String    @default("fr")
 
+  deactivatedAt       DateTime?
+  deactivatedReason   String?
+  deactivatedByUserId String?
+  deletionAt          DateTime?
+  deletionReason      String?
+  deletionByUserId    String?
+
   sessions        Session[]
   accounts        Account[]
   members         Member[]
@@ -84,6 +91,7 @@ model User {
   twoFactors      TwoFactor[]
 
   @@unique([email])
+  @@index([deletionAt])
   @@map("user")
 }
 
@@ -145,6 +153,16 @@ model Organization {
   createdAt DateTime
   metadata  String?
 
+  suspendedAt       DateTime?
+  suspendedReason   String?
+  suspendedByUserId String?
+  closedAt          DateTime?
+  closedReason      String?
+  closedByUserId    String?
+  deletionAt        DateTime?
+  deletionReason    String?
+  deletionByUserId  String?
+
   members       Member[]
   invitations   Invitation[]
   servers       Server[]
@@ -154,6 +172,7 @@ model Organization {
   referral      Referral?
 
   @@unique([slug])
+  @@index([deletionAt])
   @@map("organization")
 }
 
@@ -275,6 +294,8 @@ model Server {
   decommissionAt         DateTime?
   status                 ServerStatus          @default(enrolling)
   suspendedReason        SuspensionReason?
+  /// True for a server the suspension of its organization took down, and that the reopening gives back; a suspension the team laid on this machine alone stays.
+  suspendedByOrganization Boolean              @default(false)
   channel                ReleaseChannel        @default(stable)
   deviceId               String?
   device                 Device?               @relation("ServerEnrollingDevice", fields: [deviceId], references: [id], onDelete: SetNull)

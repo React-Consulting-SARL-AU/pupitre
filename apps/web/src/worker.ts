@@ -24,6 +24,7 @@ import {
   INTERNAL_WORKFLOW_PREFIX,
   isInternalTriggerAuthorized,
 } from "./workflows/internal-trigger"
+import { runPurgeDeletions } from "./workflows/purge-deletions"
 import { runReconcileSeats } from "./workflows/reconcile-seats"
 import { runScheduledWorkflows } from "./workflows/schedule"
 import { runSuspendExpiredGrace } from "./workflows/suspend-expired-grace"
@@ -66,6 +67,12 @@ export class EvaluateAlerts extends WorkflowEntrypoint<CloudflareEnv> {
 export class SuspendExpiredGrace extends WorkflowEntrypoint<CloudflareEnv> {
   override run(_event: CronEvent, step: WorkflowStep) {
     return withDatabase(this.env, () => runSuspendExpiredGrace(step))
+  }
+}
+
+export class PurgeDeletions extends WorkflowEntrypoint<CloudflareEnv> {
+  override run(_event: CronEvent, step: WorkflowStep) {
+    return withDatabase(this.env, () => runPurgeDeletions(step))
   }
 }
 

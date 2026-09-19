@@ -12,6 +12,7 @@
     "./client": "./src/client.ts",
     "./mail/ingest": "./src/lib/mail/ingest.ts",
     "./mail/uploads": "./src/lib/mail/uploads.ts",
+    "./platform/purge": "./src/lib/platform/purge.ts",
     "./server": "./src/server.ts",
     "./servers/expire": "./src/lib/servers/expire.ts",
     "./testing": "./src/testing/index.ts",
