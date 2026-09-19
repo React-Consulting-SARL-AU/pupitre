@@ -2,12 +2,36 @@ import type { Prisma } from "@pupitre/db/cloudflare/client"
 import { PLATFORM_ORGANIZATION_ID } from "@pupitre/shared/platform"
 import { getPrisma } from "../api/prisma"
 import { type Actor, recordEvent } from "../audit/audit"
+import {
+  listMailActivities,
+  type MailActivityView,
+  recordMailActivity,
+} from "./activity"
+import { type MailDraftView, readMailDraft } from "./drafts"
+import { listMailNotes, type MailNoteView } from "./notes"
+import { publishInboxEvent } from "./realtime"
 
 export const MAIL_PAGE_SIZE = 50
 
 export const MAIL_MAX_PAGE_SIZE = 200
 
+export const MAIL_BULK_MAX = 100
+
+export const MAIL_THREAD_SORTS = [
+  "last_activity",
+  "last_inbound_at",
+  "created_at",
+  "subject",
+] as const
+
+export type MailThreadSort = (typeof MAIL_THREAD_SORTS)[number]
+
+export type MailSortDirection = "asc" | "desc"
+
 export type MailThreadStatus = "open" | "closed"
+
+/** The rail's own value for the threads no declared mailbox claims. */
+export const MAILBOX_OTHERS = "others"
 
 /** `me`, `none`, or the identifier of the person the thread is assigned to. */
 export type MailAssignedFilter = string
@@ -18,7 +42,12 @@ export interface MailThreadFilter {
   unread?: boolean
   q?: string
   address?: string
+  mailboxId?: string
+  organizationId?: string
+  automated?: boolean
   assigned?: MailAssignedFilter
+  sort?: MailThreadSort
+  direction?: MailSortDirection
   limit: number
   offset: number
 }
@@ -40,17 +69,38 @@ export interface MailSender {
   name: string | null
 }
 
+export interface MailLinkedOrganization {
+  id: string
+  name: string
+  slug: string
+}
+
+export interface MailMailboxRef {
+  id: string
+  address: string
+  display_name: string
+  signature: string | null
+  sensitive: boolean
+  can_reply: boolean
+  enabled: boolean
+}
+
 export interface MailThreadView {
   id: string
   address: string
+  mailbox_id: string | null
   subject: string
   status: string
   unread: boolean
   assigned_user: MailPerson | null
   contact: MailContact | null
+  linked_organization: MailLinkedOrganization | null
   from: MailSender
   snippet: string | null
   messages: number
+  notes: number
+  has_draft: boolean
+  automated: boolean
   last_inbound_at: Date | null
   last_outbound_at: Date | null
   updated_at: Date
@@ -92,6 +142,12 @@ export interface MailThreadPatch {
   status?: MailThreadStatus
   unread?: boolean
   assigned_user_id?: string | null
+  linked_organization_id?: string | null
+}
+
+export interface MailBulkPatch {
+  status?: MailThreadStatus
+  unread?: boolean
 }
 
 export class MailAssigneeNotOnTheTeamError extends Error {
@@ -101,6 +157,16 @@ export class MailAssigneeNotOnTheTeamError extends Error {
     super(`${userId} is not a member of the platform organization`)
     this.name = "MailAssigneeNotOnTheTeamError"
     this.userId = userId
+  }
+}
+
+export class MailOrganizationUnknownError extends Error {
+  readonly organizationId: string
+
+  constructor(organizationId: string) {
+    super(`${organizationId} is not an organization`)
+    this.name = "MailOrganizationUnknownError"
+    this.organizationId = organizationId
   }
 }
 
@@ -118,6 +184,15 @@ const MESSAGE_SUMMARY_SELECT = {
 type MessageSummary = Prisma.MailMessageGetPayload<{
   select: typeof MESSAGE_SUMMARY_SELECT
 }>
+
+const THREAD_INCLUDE = {
+  mailbox: true,
+  linkedOrganization: { select: { id: true, name: true, slug: true } },
+  draft: { select: { threadId: true } },
+  _count: { select: { notes: true } },
+} as const
+
+type ThreadRow = Prisma.MailThreadGetPayload<{ include: typeof THREAD_INCLUDE }>
 
 export function emailList(value: unknown): string[] {
   return Array.isArray(value)
@@ -140,6 +215,36 @@ function assignedWhere(
   return { assignedUserId: assigned === "me" ? viewerId : assigned }
 }
 
+function mailboxWhere(
+  mailboxId: string | undefined
+): Prisma.MailThreadWhereInput {
+  if (!mailboxId) {
+    return {}
+  }
+
+  return mailboxId === MAILBOX_OTHERS ? { mailboxId: null } : { mailboxId }
+}
+
+function searchWhere(q: string): Prisma.MailThreadWhereInput {
+  return {
+    OR: [
+      { id: { contains: q } },
+      { subject: { contains: q } },
+      {
+        messages: {
+          some: {
+            OR: [
+              { fromEmail: { contains: q } },
+              { fromName: { contains: q } },
+              { text: { contains: q } },
+            ],
+          },
+        },
+      },
+    ],
+  }
+}
+
 function whereOf(
   filter: MailThreadFilter,
   withUnread: boolean
@@ -152,25 +257,29 @@ function whereOf(
       ? { unread: filter.unread }
       : {}),
     ...(filter.address ? { address: filter.address.toLowerCase() } : {}),
-    ...assignedWhere(filter.assigned, filter.viewerId),
-    ...(q
-      ? {
-          OR: [
-            { subject: { contains: q } },
-            {
-              messages: {
-                some: {
-                  OR: [
-                    { fromEmail: { contains: q } },
-                    { fromName: { contains: q } },
-                  ],
-                },
-              },
-            },
-          ],
-        }
+    ...mailboxWhere(filter.mailboxId),
+    ...(filter.organizationId
+      ? { linkedOrganizationId: filter.organizationId }
       : {}),
+    lastInboundAutomated: filter.automated ?? false,
+    ...assignedWhere(filter.assigned, filter.viewerId),
+    ...(q ? searchWhere(q) : {}),
   }
+}
+
+const SORT_COLUMNS: Record<MailThreadSort, string> = {
+  last_activity: "updatedAt",
+  last_inbound_at: "lastInboundAt",
+  created_at: "createdAt",
+  subject: "subject",
+}
+
+function orderOf(
+  filter: MailThreadFilter
+): Prisma.MailThreadOrderByWithRelationInput {
+  const column = SORT_COLUMNS[filter.sort ?? "last_activity"]
+
+  return { [column]: filter.direction ?? "desc" }
 }
 
 async function peopleNamed(
@@ -206,8 +315,24 @@ function senderOf(messages: MessageSummary[]): MailSender {
   return { email: emailList(last.toEmails)[0] ?? last.fromEmail, name: null }
 }
 
+function mailboxRefOf(mailbox: ThreadRow["mailbox"]): MailMailboxRef | null {
+  if (!mailbox) {
+    return null
+  }
+
+  return {
+    id: mailbox.id,
+    address: mailbox.address,
+    display_name: mailbox.displayName,
+    signature: mailbox.signature,
+    sensitive: mailbox.sensitive,
+    can_reply: mailbox.canReply,
+    enabled: mailbox.enabled,
+  }
+}
+
 function viewOf(
-  thread: Prisma.MailThreadGetPayload<Record<string, never>>,
+  thread: ThreadRow,
   messages: MessageSummary[],
   people: Map<string, MailPerson>
 ): MailThreadView {
@@ -221,6 +346,7 @@ function viewOf(
   return {
     id: thread.id,
     address: thread.address,
+    mailbox_id: thread.mailboxId,
     subject: thread.subject,
     status: thread.status,
     unread: thread.unread,
@@ -228,9 +354,13 @@ function viewOf(
     contact: contact
       ? { user_id: contact.id, email: contact.email, name: contact.name }
       : null,
+    linked_organization: thread.linkedOrganization,
     from: senderOf(messages),
     snippet: messages.at(-1)?.snippet ?? null,
     messages: messages.length,
+    notes: thread._count.notes,
+    has_draft: thread.draft !== null,
+    automated: thread.lastInboundAutomated,
     last_inbound_at: thread.lastInboundAt,
     last_outbound_at: thread.lastOutboundAt,
     updated_at: thread.updatedAt,
@@ -261,7 +391,8 @@ export async function listMailThreads(
   const [threads, total, unread] = await Promise.all([
     prisma.mailThread.findMany({
       where,
-      orderBy: { updatedAt: "desc" },
+      include: THREAD_INCLUDE,
+      orderBy: orderOf(filter),
       take: filter.limit,
       skip: filter.offset,
     }),
@@ -289,16 +420,23 @@ export async function listMailThreads(
   }
 }
 
-/** The thread opened: `messages` carries them here, where the list only counts them. */
-export type MailThreadDetail = Omit<MailThreadView, "messages"> & {
+/** The thread opened: what the list only counts — messages and notes — is carried here. */
+export type MailThreadDetail = Omit<MailThreadView, "messages" | "notes"> & {
+  mailbox: MailMailboxRef | null
   messages: MailMessageView[]
+  notes: MailNoteView[]
+  activities: MailActivityView[]
+  draft: MailDraftView | null
 }
 
 export async function readMailThread(
   threadId: string
 ): Promise<MailThreadDetail | null> {
   const prisma = getPrisma()
-  const thread = await prisma.mailThread.findUnique({ where: { id: threadId } })
+  const thread = await prisma.mailThread.findUnique({
+    where: { id: threadId },
+    include: THREAD_INCLUDE,
+  })
 
   if (!thread) {
     return null
@@ -324,9 +462,19 @@ export async function readMailThread(
     snippet: message.snippet,
     createdAt: message.createdAt,
   }))
+  const [notes, activities, draft] = await Promise.all([
+    listMailNotes(threadId),
+    listMailActivities(threadId),
+    readMailDraft(threadId),
+  ])
+  const summary = viewOf(thread, summaries, people)
 
   return {
-    ...viewOf(thread, summaries, people),
+    ...summary,
+    mailbox: mailboxRefOf(thread.mailbox),
+    notes,
+    activities,
+    draft,
     messages: messages.map((message) => {
       const sentBy = message.sentByUserId
         ? (people.get(message.sentByUserId) ?? null)
@@ -369,33 +517,121 @@ async function assertOnTheTeam(userId: string): Promise<void> {
   }
 }
 
-async function recordThreadChanges(
+async function assertOrganization(organizationId: string): Promise<void> {
+  const organization = await getPrisma().organization.findUnique({
+    where: { id: organizationId },
+    select: { id: true },
+  })
+
+  if (!organization) {
+    throw new MailOrganizationUnknownError(organizationId)
+  }
+}
+
+interface ThreadBefore {
+  status: string
+  unread: boolean
+  assignedUserId: string | null
+  linkedOrganizationId: string | null
+}
+
+async function recordStatusChange(
   actor: Actor,
   threadId: string,
-  before: { status: string; assignedUserId: string | null },
+  before: ThreadBefore,
   patch: MailThreadPatch
 ): Promise<void> {
-  if (patch.status && patch.status !== before.status) {
-    await recordEvent({
-      action: patch.status === "closed" ? "mail.closed" : "mail.reopened",
-      actorUserId: actor.userId,
-      targetType: "mail_thread",
-      targetId: threadId,
-    })
+  if (!patch.status || patch.status === before.status) {
+    return
   }
 
+  const closed = patch.status === "closed"
+
+  await recordEvent({
+    action: closed ? "mail.closed" : "mail.reopened",
+    actorUserId: actor.userId,
+    targetType: "mail_thread",
+    targetId: threadId,
+  })
+  await recordMailActivity({
+    threadId,
+    action: closed ? "closed" : "reopened",
+    actorUserId: actor.userId,
+  })
+}
+
+async function recordAssignment(
+  actor: Actor,
+  threadId: string,
+  before: ThreadBefore,
+  patch: MailThreadPatch
+): Promise<void> {
   if (
-    patch.assigned_user_id !== undefined &&
-    patch.assigned_user_id !== before.assignedUserId
+    patch.assigned_user_id === undefined ||
+    patch.assigned_user_id === before.assignedUserId
   ) {
-    await recordEvent({
-      action: "mail.assigned",
-      actorUserId: actor.userId,
-      targetType: "mail_thread",
-      targetId: threadId,
-      payload: { assigned_user_id: patch.assigned_user_id },
-    })
+    return
   }
+
+  await recordEvent({
+    action: "mail.assigned",
+    actorUserId: actor.userId,
+    targetType: "mail_thread",
+    targetId: threadId,
+    payload: { assigned_user_id: patch.assigned_user_id },
+  })
+  await recordMailActivity({
+    threadId,
+    action: patch.assigned_user_id ? "assigned" : "unassigned",
+    actorUserId: actor.userId,
+    metadata: { assigned_user_id: patch.assigned_user_id },
+  })
+}
+
+async function recordLink(
+  actor: Actor,
+  threadId: string,
+  before: ThreadBefore,
+  patch: MailThreadPatch
+): Promise<void> {
+  if (
+    patch.linked_organization_id === undefined ||
+    patch.linked_organization_id === before.linkedOrganizationId
+  ) {
+    return
+  }
+
+  await recordEvent({
+    action: "mail.linked",
+    actorUserId: actor.userId,
+    organizationId: patch.linked_organization_id,
+    targetType: "mail_thread",
+    targetId: threadId,
+    payload: { organization_id: patch.linked_organization_id },
+  })
+  await recordMailActivity({
+    threadId,
+    action: patch.linked_organization_id ? "linked" : "unlinked",
+    actorUserId: actor.userId,
+    metadata: { organization_id: patch.linked_organization_id },
+  })
+}
+
+async function recordReadState(
+  actor: Actor,
+  threadId: string,
+  before: ThreadBefore,
+  patch: MailThreadPatch
+): Promise<void> {
+  if (patch.unread === undefined || patch.unread === before.unread) {
+    return
+  }
+
+  await recordMailActivity({
+    threadId,
+    action: patch.unread ? "unread" : "read",
+    actorUserId: actor.userId,
+  })
 }
 
 export async function updateMailThread(
@@ -406,7 +642,14 @@ export async function updateMailThread(
   const prisma = getPrisma()
   const thread = await prisma.mailThread.findUnique({
     where: { id: threadId },
-    select: { id: true, status: true, assignedUserId: true },
+    select: {
+      id: true,
+      status: true,
+      unread: true,
+      assignedUserId: true,
+      linkedOrganizationId: true,
+      mailboxId: true,
+    },
   })
 
   if (!thread) {
@@ -417,6 +660,10 @@ export async function updateMailThread(
     await assertOnTheTeam(patch.assigned_user_id)
   }
 
+  if (patch.linked_organization_id) {
+    await assertOrganization(patch.linked_organization_id)
+  }
+
   await prisma.mailThread.update({
     where: { id: threadId },
     data: {
@@ -425,9 +672,155 @@ export async function updateMailThread(
       ...(patch.assigned_user_id === undefined
         ? {}
         : { assignedUserId: patch.assigned_user_id }),
+      ...(patch.linked_organization_id === undefined
+        ? {}
+        : { linkedOrganizationId: patch.linked_organization_id }),
     },
   })
-  await recordThreadChanges(actor, threadId, thread, patch)
+
+  await recordStatusChange(actor, threadId, thread, patch)
+  await recordAssignment(actor, threadId, thread, patch)
+  await recordLink(actor, threadId, thread, patch)
+  await recordReadState(actor, threadId, thread, patch)
+  await publishInboxEvent({
+    type: "thread.updated",
+    thread_id: threadId,
+    mailbox_id: thread.mailboxId,
+  })
 
   return await readMailThread(threadId)
+}
+
+export async function bulkUpdateMailThreads(
+  actor: Actor,
+  threadIds: string[],
+  patch: MailBulkPatch
+): Promise<number> {
+  const prisma = getPrisma()
+  const threads = await prisma.mailThread.findMany({
+    where: { id: { in: threadIds } },
+    select: { id: true, status: true, unread: true },
+  })
+
+  if (threads.length === 0) {
+    return 0
+  }
+
+  await prisma.mailThread.updateMany({
+    where: { id: { in: threads.map((thread) => thread.id) } },
+    data: {
+      ...(patch.status ? { status: patch.status } : {}),
+      ...(patch.unread === undefined ? {} : { unread: patch.unread }),
+    },
+  })
+
+  for (const thread of threads) {
+    if (patch.status && patch.status !== thread.status) {
+      await recordMailActivity({
+        threadId: thread.id,
+        action: patch.status === "closed" ? "closed" : "reopened",
+        actorUserId: actor.userId,
+      })
+    }
+
+    if (patch.unread !== undefined && patch.unread !== thread.unread) {
+      await recordMailActivity({
+        threadId: thread.id,
+        action: patch.unread ? "unread" : "read",
+        actorUserId: actor.userId,
+      })
+    }
+  }
+
+  if (patch.status) {
+    await recordEvent({
+      action: "mail.bulk_closed",
+      actorUserId: actor.userId,
+      targetType: "mail_thread",
+      targetId: threads[0].id,
+      payload: { status: patch.status, threads: threads.length },
+    })
+  }
+
+  if (patch.unread !== undefined) {
+    await recordEvent({
+      action: "mail.bulk_read",
+      actorUserId: actor.userId,
+      targetType: "mail_thread",
+      targetId: threads[0].id,
+      payload: { unread: patch.unread, threads: threads.length },
+    })
+  }
+
+  await publishInboxEvent({ type: "counts.changed" })
+
+  return threads.length
+}
+
+/**
+ * Opening a sensitive box is itself an act: who read a report sent to
+ * `security@`, and when. An ordinary box records nothing.
+ */
+export async function noteSensitiveThreadRead(
+  actor: Actor,
+  thread: MailThreadDetail
+): Promise<void> {
+  if (!thread.mailbox?.sensitive) {
+    return
+  }
+
+  await recordEvent({
+    action: "mail.read",
+    actorUserId: actor.userId,
+    targetType: "mail_thread",
+    targetId: thread.id,
+    payload: { mailbox_id: thread.mailbox.id },
+  })
+  await recordMailActivity({
+    threadId: thread.id,
+    action: "read",
+    actorUserId: actor.userId,
+  })
+  await publishInboxEvent({
+    type: "thread.read",
+    thread_id: thread.id,
+    mailbox_id: thread.mailbox.id,
+  })
+}
+
+export interface MailAttachmentOrigin {
+  threadId: string
+  mailboxId: string | null
+  sensitive: boolean
+}
+
+export async function attachmentOrigin(
+  attachmentId: string
+): Promise<MailAttachmentOrigin | null> {
+  const attachment = await getPrisma().mailAttachment.findUnique({
+    where: { id: attachmentId },
+    select: {
+      message: {
+        select: {
+          threadId: true,
+          thread: {
+            select: {
+              mailboxId: true,
+              mailbox: { select: { sensitive: true } },
+            },
+          },
+        },
+      },
+    },
+  })
+
+  if (!attachment) {
+    return null
+  }
+
+  return {
+    threadId: attachment.message.threadId,
+    mailboxId: attachment.message.thread.mailboxId,
+    sensitive: attachment.message.thread.mailbox?.sensitive ?? false,
+  }
 }

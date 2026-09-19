@@ -1,3 +1,9 @@
+import { ensurePlatformMailboxes } from "../lib/mail/mailboxes"
+import {
+  configureInboxRealtime,
+  type InboxEvent,
+  resetInboxRealtime,
+} from "../lib/mail/realtime"
 import {
   configureMailStorage,
   createMailUrlSigner,
@@ -24,6 +30,8 @@ export interface FakeMail {
   uploaded: Map<string, Date>
   sent: OutboundEnvelope[]
   signed: SignedMailRequest[]
+  /** What the Durable Object would have broadcast, in order. */
+  broadcast: InboxEvent[]
   storage: MailStorage
 }
 
@@ -87,6 +95,7 @@ export function useFakeMail(): FakeMail {
   const uploaded = new Map<string, Date>()
   const sent: OutboundEnvelope[] = []
   const signed: SignedMailRequest[] = []
+  const broadcast: InboxEvent[] = []
   const storage = createFakeMailStorage(objects, uploaded, signed)
 
   configureMailStorage(storage)
@@ -95,8 +104,16 @@ export function useFakeMail(): FakeMail {
 
     return Promise.resolve()
   })
+  configureInboxRealtime((event) => {
+    broadcast.push(event)
+  })
 
-  return { objects, uploaded, sent, signed, storage }
+  return { objects, uploaded, sent, signed, broadcast, storage }
+}
+
+/** The migration seeds the four legal boxes; a database emptied row by row needs them back. */
+export function seedPlatformMailboxes(): Promise<void> {
+  return ensurePlatformMailboxes()
 }
 
 export function useFailingMailTransport(error: Error): void {
@@ -106,6 +123,7 @@ export function useFailingMailTransport(error: Error): void {
 export function resetFakeMail(): void {
   resetMailStorage()
   resetMailTransport()
+  resetInboxRealtime()
 }
 
 export function textOf(object: MailObject | null | undefined): string {

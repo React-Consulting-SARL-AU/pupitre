@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query"
 import {
   Building2,
   CreditCard,
@@ -23,6 +24,7 @@ import { SidebarStartLink } from "@/components/dashboard/sidebar-start-link"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
 import { usePermission } from "@/hooks/use-permission"
+import { inboxCountsQueryOptions } from "@/lib/api/inbox-queries"
 import { isPlatformOrganization, platformOpen } from "@/lib/domain/admin"
 import { ADMIN_ROUTE, opensWhileSuspended } from "@/lib/domain/entitlement-gate"
 import { canManageOrganization } from "@/lib/domain/organization"
@@ -34,6 +36,8 @@ interface SidebarEntry {
   icon: typeof Server
   exact?: boolean
 }
+
+const INBOX_ROUTE = `${ADMIN_ROUTE}/inbox`
 
 const SERVERS_LINK: SidebarEntry = {
   to: "/dashboard/servers",
@@ -79,7 +83,7 @@ const SETTINGS_LINK: SidebarEntry = {
 
 const PLATFORM_LINKS: SidebarEntry[] = [
   { to: ADMIN_ROUTE, label: "nav.admin", icon: Gauge, exact: true },
-  { to: `${ADMIN_ROUTE}/inbox`, label: "nav.adminInbox", icon: Inbox },
+  { to: INBOX_ROUTE, label: "nav.adminInbox", icon: Inbox },
   { to: `${ADMIN_ROUTE}/users`, label: "nav.adminUsers", icon: UsersRound },
   {
     to: `${ADMIN_ROUTE}/organizations`,
@@ -110,6 +114,11 @@ export function SidebarContent() {
   const canManageBilling = usePermission("billing:manage")
   const canReadAudit = usePermission("audit:view")
   const platform = isPlatformOrganization(activeOrganization?.id)
+  const onPlatform = platformOpen(activeOrganization?.id, platformRole)
+  const inboxCounts = useQuery({
+    ...inboxCountsQueryOptions(),
+    enabled: onPlatform,
+  })
   const open = (link: SidebarEntry) =>
     entitlement !== "suspended" || opensWhileSuspended(link.to)
   const groups = [
@@ -129,9 +138,7 @@ export function SidebarContent() {
     },
     {
       label: t("nav.group.platform"),
-      links: platformOpen(activeOrganization?.id, platformRole)
-        ? PLATFORM_LINKS
-        : [],
+      links: onPlatform ? PLATFORM_LINKS : [],
     },
   ].filter((group) => group.links.length > 0)
 
@@ -159,6 +166,11 @@ export function SidebarContent() {
             <div className="flex flex-col gap-[2px]">
               {group.links.map((link) => (
                 <SidebarLink
+                  badge={
+                    link.to === INBOX_ROUTE
+                      ? inboxCounts.data?.total_unread
+                      : undefined
+                  }
                   exact={link.exact}
                   icon={link.icon}
                   key={link.to}

@@ -7,6 +7,8 @@ export interface SidebarLinkProps {
   icon: LucideIcon
   /** A parent page lights up under its children unless it says it stands alone. */
   exact?: boolean
+  /** What the page is waiting on; nothing is drawn at zero. */
+  badge?: number
 }
 
 export function SidebarLink({
@@ -14,6 +16,7 @@ export function SidebarLink({
   label,
   icon: Icon,
   exact = false,
+  badge,
 }: SidebarLinkProps) {
   return (
     <Link
@@ -27,6 +30,11 @@ export function SidebarLink({
         strokeWidth={1.5}
       />
       <span className="truncate">{label}</span>
+      {badge && badge > 0 ? (
+        <span className="ml-auto shrink-0 rounded-full bg-inverse px-1.5 font-data text-[11px] text-inverse-ink tabular-nums">
+          {badge}
+        </span>
+      ) : null}
     </Link>
   )
 }
