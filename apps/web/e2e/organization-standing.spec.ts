@@ -11,6 +11,8 @@ const OWNER_EMAIL = "standing@e2e.local"
 const REASON = "Signalement 4412 : balayage réseau sortant."
 const BANNER = "[data-testid=organization-standing-banner]"
 
+const SWITCH_LABEL = "Ouvrir une autre organisation"
+
 interface MeBody {
   active_organization: { id: string; name: string; state: string } | null
 }
@@ -57,6 +59,12 @@ test.describe("organisation retenue par la plateforme", () => {
       await expect(banner).toContainText("support@pupitre.studio")
     })
 
+    await test.step("une suspension ne propose pas de changer d'organisation", async () => {
+      await expect(
+        page.locator(BANNER).getByRole("button", { name: SWITCH_LABEL })
+      ).toHaveCount(0)
+    })
+
     await test.step("le rétablissement fait tomber le bandeau", async () => {
       const restored = await page.request.post(
         `/api/v1/admin/organizations/${organization?.id}/restore`
@@ -67,6 +75,35 @@ test.describe("organisation retenue par la plateforme", () => {
       await page.goto("/dashboard/servers")
 
       await expect(page.locator(BANNER)).toHaveCount(0)
+    })
+
+    await test.step("un second rétablissement est refusé, l'organisation n'étant plus suspendue", async () => {
+      const again = await page.request.post(
+        `/api/v1/admin/organizations/${organization?.id}/restore`
+      )
+
+      expect(again.status()).toBe(409)
+    })
+
+    await test.step("une organisation fermée ouvre le choix d'une autre", async () => {
+      const closed = await page.request.post(
+        `/api/v1/admin/organizations/${organization?.id}/close`,
+        { data: { reason: REASON } }
+      )
+
+      expect(closed.ok()).toBe(true)
+
+      await page.goto("/dashboard/start")
+
+      const banner = page.locator(BANNER)
+
+      await expect(banner).toHaveAttribute("data-tone", "danger")
+
+      await banner.getByRole("button", { name: SWITCH_LABEL }).click()
+
+      await expect(
+        page.getByRole("menuitem", { name: organization?.name ?? "" })
+      ).toBeVisible()
     })
   })
 })
