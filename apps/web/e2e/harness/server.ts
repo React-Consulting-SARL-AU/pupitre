@@ -9,9 +9,9 @@ import {
   useLaunchBilling,
 } from "@pupitre/api/testing/billing"
 import { createServer } from "@pupitre/api/testing/factories"
-import { useFakeMail } from "@pupitre/api/testing/mail"
+import { seedPlatformMailboxes, useFakeMail } from "@pupitre/api/testing/mail"
 import { joinPlatformOrganization } from "@pupitre/auth/testing"
-import { MAIL_SENDER_ADDRESSES } from "@pupitre/shared/legal"
+import { LEGAL_CONTACTS } from "@pupitre/shared/legal"
 import { serve } from "bun"
 import { HARNESS_PORT, HARNESS_PREFIX, VITE_PORT } from "./ports"
 
@@ -24,7 +24,7 @@ const BODYLESS_METHODS = new Set(["GET", "HEAD"])
 
 const TRIAL_DAYS_MS = 14 * 86_400_000
 
-const SUPPORT_ADDRESS = MAIL_SENDER_ADDRESSES[0]
+const SUPPORT_ADDRESS = LEGAL_CONTACTS.support
 
 // The console never opens a subscription: Checkout is faked and Stripe's
 // webhook is played back, exactly as in production.
@@ -192,6 +192,7 @@ async function handleHarness(
 
   if (path === "/reset") {
     await resetDb()
+    await seedPlatformMailboxes()
     billing.reset()
     chooseBillingMode({ mode: "stripe" })
 
@@ -280,6 +281,7 @@ function route(request: Request): Promise<Response> {
 }
 
 await bootApiTestServer()
+await seedPlatformMailboxes()
 
 serve({
   port: HARNESS_PORT,

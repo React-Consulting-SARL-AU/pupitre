@@ -1,4 +1,5 @@
 import {
+  DurableObject,
   WorkflowEntrypoint,
   type WorkflowEvent,
   type WorkflowStep,
@@ -16,6 +17,13 @@ import { withPrismaClient } from "@pupitre/db/scope"
 import { MAIL_MAX_BYTES } from "@pupitre/shared/legal"
 import serverEntry from "@tanstack/react-start/server-entry"
 import { API_PREFIX } from "./lib/config/urls"
+import {
+  answerInboxSocketMessage,
+  configureInboxPublisher,
+  handleInboxEventsRequest,
+  handleInboxRealtimeRequest,
+  INBOX_EVENTS_PATH,
+} from "./realtime/inbox-realtime"
 import { runDecommissionServer } from "./workflows/decommission-server"
 import { runEvaluateAlerts } from "./workflows/evaluate-alerts"
 import { runExpireEnrollments } from "./workflows/expire-enrollments"
@@ -66,6 +74,22 @@ export class EvaluateAlerts extends WorkflowEntrypoint<CloudflareEnv> {
 export class SuspendExpiredGrace extends WorkflowEntrypoint<CloudflareEnv> {
   override run(_event: CronEvent, step: WorkflowStep) {
     return withDatabase(this.env, () => runSuspendExpiredGrace(step))
+  }
+}
+
+// A durable object binding resolves against a class exported by the worker
+// entry too: this shell cannot move into `realtime/`.
+export class InboxRealtime extends DurableObject<CloudflareEnv> {
+  override fetch(request: Request) {
+    return handleInboxRealtimeRequest(this.ctx, this.env, request)
+  }
+
+  override webSocketMessage(socket: WebSocket, message: string | ArrayBuffer) {
+    answerInboxSocketMessage(socket, message)
+  }
+
+  override webSocketClose(socket: WebSocket, code: number, reason: string) {
+    socket.close(code, reason)
   }
 }
 
@@ -126,6 +150,11 @@ async function handleInternalEmail(
 }
 
 function route(request: Request, env: CloudflareEnv, pathname: string) {
+  // The socket is answered before Elysia, which cannot hand back a 101.
+  if (pathname === INBOX_EVENTS_PATH) {
+    return handleInboxEventsRequest(request, env)
+  }
+
   if (pathname.startsWith(API_PREFIX)) {
     return handleApiRequest(request)
   }
@@ -145,12 +174,16 @@ export default {
   fetch(request: Request, env: CloudflareEnv) {
     const { pathname } = new URL(request.url)
 
+    configureInboxPublisher(env)
+
     return withDatabase(env, () => route(request, env, pathname))
   },
 
   // A throw here is a temporary failure: Cloudflare keeps the message and
   // delivers it again, rather than the platform accepting a mail it lost.
   email(message: ForwardableEmailMessage, env: CloudflareEnv) {
+    configureInboxPublisher(env)
+
     return withDatabase(env, () => handleInboundEmailMessage(message))
   },
 

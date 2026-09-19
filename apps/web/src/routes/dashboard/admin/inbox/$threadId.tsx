@@ -19,6 +19,7 @@ export const Route = createFileRoute("/dashboard/admin/inbox/$threadId")({
 
 function AdminInboxThreadPage() {
   const { threadId } = Route.useParams()
+  const search = Route.useSearch()
 
-  return <InboxThread threadId={threadId} />
+  return <InboxThread search={search} threadId={threadId} />
 }
