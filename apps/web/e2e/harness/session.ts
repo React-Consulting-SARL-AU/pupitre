@@ -123,3 +123,17 @@ export async function seedServer(
 
   expect(seeded.ok()).toBe(true)
 }
+
+/** A second seat in someone else's organization; the console only hands one out by invitation. */
+export async function seedMember(
+  request: APIRequestContext,
+  data: {
+    organization_email: string
+    email: string
+    role?: "owner" | "admin" | "member"
+  }
+): Promise<void> {
+  const seeded = await request.post(harnessUrl("/members"), { data })
+
+  expect(seeded.ok()).toBe(true)
+}

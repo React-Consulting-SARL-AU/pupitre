@@ -63,6 +63,12 @@ interface InboundEmailBody {
   text: string
 }
 
+interface SeedMemberBody {
+  organization_email: string
+  email: string
+  role?: "owner" | "admin" | "member"
+}
+
 function json(payload: unknown, status = 200): Response {
   return Response.json(payload, { status })
 }
@@ -97,6 +103,26 @@ async function seedServer(body: SeedServerBody): Promise<Response> {
   })
 
   return json({ id: server.id, name: server.name })
+}
+
+/** A second seat in someone else's organization, which no console route hands out without an invitation. */
+async function seedMember(body: SeedMemberBody): Promise<Response> {
+  const { prisma } = await bootApiTestServer()
+  const organizationId = await organizationOf(body.organization_email)
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { email: body.email },
+  })
+  const member = await prisma.member.create({
+    data: {
+      id: crypto.randomUUID(),
+      organizationId,
+      userId: user.id,
+      role: body.role ?? "member",
+      createdAt: new Date(),
+    },
+  })
+
+  return json({ id: member.id })
 }
 
 /** Stripe alone opens a subscription: the harness plays its webhook, nothing else. */
@@ -229,6 +255,10 @@ async function handleHarness(
 
   if (path === "/inbound-emails") {
     return await receiveEmail((await request.json()) as InboundEmailBody)
+  }
+
+  if (path === "/members") {
+    return await seedMember((await request.json()) as SeedMemberBody)
   }
 
   return json({ error: `unknown harness route ${path}` }, 404)
