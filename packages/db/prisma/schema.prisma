@@ -331,6 +331,7 @@ model Subscription {
   quantity             Int
   status               String
   currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean      @default(false)
   note                 String?
   createdAt            DateTime     @default(now())
   updatedAt            DateTime     @updatedAt
@@ -503,9 +504,12 @@ model Event {
 }
 
 model StripeEvent {
-  id          String            @id
-  type        String
-  status      StripeEventStatus @default(processing)
-  receivedAt  DateTime          @default(now())
-  processedAt DateTime?
+  id             String            @id
+  type           String
+  status         StripeEventStatus @default(processing)
+  subscriptionId String?
+  receivedAt     DateTime          @default(now())
+  processedAt    DateTime?
+
+  @@index([subscriptionId])
 }

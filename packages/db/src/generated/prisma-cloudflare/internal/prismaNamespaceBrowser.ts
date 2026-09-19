@@ -316,6 +316,7 @@ export const SubscriptionScalarFieldEnum = {
   quantity: 'quantity',
   status: 'status',
   currentPeriodEnd: 'currentPeriodEnd',
+  cancelAtPeriodEnd: 'cancelAtPeriodEnd',
   note: 'note',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -467,6 +468,7 @@ export const StripeEventScalarFieldEnum = {
   id: 'id',
   type: 'type',
   status: 'status',
+  subscriptionId: 'subscriptionId',
   receivedAt: 'receivedAt',
   processedAt: 'processedAt'
 } as const
