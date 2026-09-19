@@ -13,10 +13,10 @@ import { ConfirmFormDialog } from "@/components/ui/confirm-form-dialog"
 import { Label } from "@/components/ui/label"
 import type { RowAction } from "@/components/ui/row-actions-menu"
 import { Select } from "@/components/ui/select"
+import { useConfirmMutation } from "@/hooks/use-confirm-mutation"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
 import { useOptimisticMutation } from "@/hooks/use-optimistic-mutation"
-import { useToast } from "@/hooks/use-toast"
 import {
   type AdminServer,
   adminServersQueryOptions,
@@ -24,7 +24,6 @@ import {
   setServerChannel,
   suspendServer,
 } from "@/lib/api/admin-queries"
-import { apiFailure } from "@/lib/api/errors"
 import {
   type AdminServerPageQuery,
   type AdminSortDirection,
@@ -38,6 +37,7 @@ import {
 } from "@/lib/domain/admin"
 import type { ListSearchHandle, SortDirection } from "@/lib/domain/list-search"
 import { SERVER_STATUSES, statusLook } from "@/lib/domain/server-status"
+import type { ConfirmFormValues } from "@/lib/schemas/confirm-form"
 
 const ALL = ""
 
@@ -46,13 +46,6 @@ export const SERVER_SORTS = ["created_at", "last_heartbeat_at", "name"] as const
 export const SERVER_SORT: ServerSort = "created_at"
 
 type ServerSort = (typeof SERVER_SORTS)[number]
-
-interface SuspendTarget {
-  id: string
-  name: string
-  organization: string
-  reason: string
-}
 
 interface ChannelTarget {
   id: string
@@ -95,7 +88,6 @@ function readFlag(value: string): boolean | undefined {
 
 export function AdminServerList({ search, setSearch }: AdminServerListProps) {
   const t = useTranslations()
-  const toasts = useToast()
   const { platformRole } = useDashboardContext()
   const [suspending, setSuspending] = useState<AdminServerRowServer | null>(
     null
@@ -119,11 +111,17 @@ export function AdminServerList({ search, setSearch }: AdminServerListProps) {
   const page = useQuery(adminServersQueryOptions(pageQuery))
   const touched = [queryKeys.admin.allServers, queryKeys.admin.overview]
 
-  const suspend = useOptimisticMutation<SuspendTarget, AdminServer>({
-    mutationFn: ({ id, reason }) => suspendServer(id, reason),
+  const suspendedName = suspending?.name ?? ""
+  const suspend = useConfirmMutation<ConfirmFormValues>({
+    mutationFn: (values) => suspendServer(suspending?.id ?? "", values.reason),
     invalidate: touched,
-    onDone: (_data, target) => {
-      toasts.done(t("admin.servers.suspended", { name: target.name }))
+    done: () => t("admin.servers.suspended", { name: suspendedName }),
+    failed: {
+      title: t("admin.servers.suspendFailed"),
+      fix: t("admin.servers.suspendFailedFix"),
+    },
+    onDone: () => {
+      setSuspending(null)
     },
   })
   const restore = useOptimisticMutation<AdminServerRowServer, AdminServer>({
@@ -316,7 +314,7 @@ export function AdminServerList({ search, setSearch }: AdminServerListProps) {
 
       {suspending ? (
         <ConfirmFormDialog
-          busy={suspend.isPending}
+          busy={suspend.busy}
           busyLabel={t("admin.servers.suspending")}
           confirmLabel={t("admin.servers.suspend")}
           description={t("admin.servers.suspendDescription", {
@@ -325,24 +323,18 @@ export function AdminServerList({ search, setSearch }: AdminServerListProps) {
           })}
           id={`suspend-${suspending.id}`}
           key={suspending.id}
-          onConfirm={(values) => {
-            suspend.mutate({
-              id: suspending.id,
-              name: suspending.name,
-              organization: suspending.organization.name,
-              reason: values.reason,
-            })
-          }}
+          onConfirm={suspend.run}
           onOpenChange={(next) => {
             if (!next) {
               setSuspending(null)
+              suspend.reset()
             }
           }}
           open
           reason="required"
           reasonLabel={t("admin.servers.reason")}
           reasonRequiredMessage={t("admin.servers.reasonRequired")}
-          refusal={apiFailure(suspend.error)}
+          refusal={suspend.refusal}
           title={t("admin.servers.suspendTitle")}
           triggerLabel={t("admin.servers.suspend")}
         />
