@@ -75,6 +75,7 @@ export interface AdminOrganizationDetail
 
 export interface AdminOrganizationFilter {
   q?: string
+  state?: OrganizationState
   limit: number
   offset: number
 }
@@ -199,12 +200,29 @@ function toView(
   }
 }
 
+/** The state the column shows, read back as a query: the same priority, so a page and its total agree. */
+const STATE_WHERE: Record<OrganizationState, Prisma.OrganizationWhereInput> = {
+  deleting: { deletionAt: { not: null } },
+  closed: { deletionAt: null, closedAt: { not: null } },
+  suspended: { deletionAt: null, closedAt: null, suspendedAt: { not: null } },
+  active: { deletionAt: null, closedAt: null, suspendedAt: null },
+}
+
 function whereOf(
   filter: AdminOrganizationFilter
 ): Prisma.OrganizationWhereInput {
   const q = filter.q?.trim()
+  const clauses: Prisma.OrganizationWhereInput[] = []
 
-  return q ? { OR: [{ name: { contains: q } }, { slug: { contains: q } }] } : {}
+  if (q) {
+    clauses.push({ OR: [{ name: { contains: q } }, { slug: { contains: q } }] })
+  }
+
+  if (filter.state) {
+    clauses.push(STATE_WHERE[filter.state])
+  }
+
+  return clauses.length === 0 ? {} : { AND: clauses }
 }
 
 export async function listOrganizationsForPlatform(

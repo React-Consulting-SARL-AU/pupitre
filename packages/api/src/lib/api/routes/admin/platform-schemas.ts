@@ -79,6 +79,14 @@ const adminWorklistsSchema = t.Object({
       used: t.Integer(),
     })
   ),
+  deletions_scheduled: worklist(
+    t.Object({
+      kind: t.UnionEnum(["user", "organization"]),
+      id: t.String(),
+      label: t.String(),
+      deletion_at: dateTime,
+    })
+  ),
 })
 
 export const adminSearchQuery = t.Object({
@@ -211,6 +219,7 @@ export const adminBanBody = t.Object({
 
 export const adminUsersQuery = t.Object({
   q: t.Optional(t.String({ maxLength: 254 })),
+  state: t.Optional(t.Union(ACCOUNT_STATES.map((state) => t.Literal(state)))),
   limit: adminLimitSchema,
   offset: adminOffsetSchema,
 })
@@ -283,6 +292,9 @@ export const adminOrganizationDetailSchema = t.Object(
 
 export const adminOrganizationsQuery = t.Object({
   q: t.Optional(t.String({ maxLength: 254 })),
+  state: t.Optional(
+    t.Union(ORGANIZATION_STATES.map((state) => t.Literal(state)))
+  ),
   limit: adminLimitSchema,
   offset: adminOffsetSchema,
 })
