@@ -27,9 +27,14 @@ const mounted: (() => void)[] = []
 
 const SETTLE_MS = 5000
 
-function list(platformRole: OrgRole = "owner") {
+const DAY_MS = 86_400_000
+
+function list(
+  platformRole: OrgRole = "owner",
+  initial?: AdminServerListSearch
+) {
   return withDashboard(
-    <ListSearchHarness<AdminServerListSearch>>
+    <ListSearchHarness<AdminServerListSearch> initial={initial}>
       {(handle) => <AdminServerList {...handle} />}
     </ListSearchHarness>,
     { platformRole }
@@ -48,6 +53,20 @@ async function storedServer(id: string, expected = "suspended") {
   }
 
   return stored
+}
+
+function menuItem(label: string): HTMLElement {
+  const found = [...document.querySelectorAll("[role=menuitem]")].find(
+    (item) => (item.textContent ?? "").trim() === label
+  )
+
+  if (!found) {
+    throw new Error(
+      `no menu item labelled ${label} in ${document.body.innerHTML}`
+    )
+  }
+
+  return found as HTMLElement
 }
 
 describe("AdminServerList", () => {
@@ -76,7 +95,7 @@ describe("AdminServerList", () => {
     }
   })
 
-  it("lists every server with its organisation, and says when nothing matches", async () => {
+  it("lists every server with its organisation, its channel and its seat", async () => {
     await createServer({ organizationId, name: "vps-one" })
     await createServer({ organizationId, name: "vps-two", status: "revoked" })
 
@@ -91,21 +110,21 @@ describe("AdminServerList", () => {
     expect(container.querySelectorAll("tbody tr")).toHaveLength(2)
     expect(container.textContent).toContain("Online")
     expect(container.textContent).toContain("Revoked")
-    expect(
-      [...container.querySelectorAll("button")].filter((button) =>
-        (button.textContent ?? "").includes("Suspend")
-      )
-    ).toHaveLength(1)
+    expect(container.textContent).toContain("Stable")
+    expect(container.textContent).toContain("Taken")
+    expect(container.textContent).toContain("Free")
   })
 
-  it("suspends a running server with the reason the owners will read", async () => {
+  it("suspends a running server from its row, with the reason the owners will read", async () => {
     const { server } = await createServer({ organizationId, name: "vps-one" })
     const { container, unmount, click } = await render(list())
 
     mounted.push(unmount)
 
     await waitUntil(() => container.textContent?.includes("vps-one") === true)
-    await click(trigger(container, "Suspend"))
+    await click(trigger(container, "Actions on this line"))
+    await waitUntil(() => document.querySelector("[role=menuitem]") !== null)
+    await click(menuItem("Suspend"))
     await waitUntil(
       () => document.querySelector(`#suspend-${server.id}-reason`) !== null
     )
@@ -138,7 +157,9 @@ describe("AdminServerList", () => {
     mounted.push(unmount)
 
     await waitUntil(() => container.textContent?.includes("vps-one") === true)
-    await click(trigger(container, "Suspend"))
+    await click(trigger(container, "Actions on this line"))
+    await waitUntil(() => document.querySelector("[role=menuitem]") !== null)
+    await click(menuItem("Suspend"))
     await waitUntil(
       () => document.querySelector("[role=dialog] button[type=submit]") !== null
     )
@@ -157,7 +178,49 @@ describe("AdminServerList", () => {
     expect((await storedServer(server.id, "active")).status).toBe("active")
   })
 
-  it("leaves a reader of the platform the rows without the suspension", async () => {
+  it("moves a server to the beta channel from its row", async () => {
+    const { server } = await createServer({ organizationId, name: "vps-one" })
+    const { prisma } = await bootApiTestServer()
+    const { container, unmount, click } = await render(list())
+
+    mounted.push(unmount)
+
+    await waitUntil(() => container.textContent?.includes("vps-one") === true)
+    await click(trigger(container, "Actions on this line"))
+    await waitUntil(() => document.querySelector("[role=menuitem]") !== null)
+    await click(menuItem("Move to beta"))
+    await waitUntil(() => container.textContent?.includes("Beta") === true)
+
+    expect(
+      (await prisma.server.findUniqueOrThrow({ where: { id: server.id } }))
+        .channel
+    ).toBe("beta")
+  })
+
+  it("keeps only the servers the freshness filter asks for", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { server } = await createServer({ organizationId, name: "vps-one" })
+    const quiet = await createServer({ organizationId, name: "vps-quiet" })
+
+    await prisma.server.update({
+      where: { id: server.id },
+      data: { lastHeartbeatAt: new Date() },
+    })
+    await prisma.server.update({
+      where: { id: quiet.server.id },
+      data: { createdAt: new Date(Date.now() - 3 * DAY_MS) },
+    })
+
+    const { container, unmount } = await render(list("owner", { stale: true }))
+
+    mounted.push(unmount)
+
+    await waitUntil(() => container.textContent?.includes("vps-quiet") === true)
+
+    expect(container.textContent).not.toContain("vps-one")
+  })
+
+  it("leaves a reader of the platform the rows without any gesture", async () => {
     await createServer({ organizationId, name: "vps-one" })
 
     const { container, unmount } = await render(list("member"))
@@ -167,6 +230,9 @@ describe("AdminServerList", () => {
     await waitUntil(() => container.textContent?.includes("vps-one") === true)
 
     expect(container.querySelectorAll("tbody tr")).toHaveLength(1)
-    expect(container.textContent).not.toContain("Suspend")
+    expect(container.textContent).not.toContain("Actions on this line")
+    expect(
+      container.querySelectorAll("[aria-label='Actions on this line']")
+    ).toHaveLength(0)
   })
 })

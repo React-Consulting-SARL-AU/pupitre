@@ -121,6 +121,37 @@ export function canResizeSubscription(product: string): boolean {
   return product === GRANTED_PRODUCT
 }
 
+/** Stripe holds the trial: only a row it still bills as `trialing` takes a new end. */
+export function canExtendTrial({ product, status }: SubscriptionRow): boolean {
+  return !isPlatformProduct(product) && status === "trialing"
+}
+
+export interface ResumableSubscription extends SubscriptionRow {
+  cancel_at_period_end: boolean
+}
+
+export function canResumeSubscription({
+  product,
+  status,
+  cancel_at_period_end,
+}: ResumableSubscription): boolean {
+  return (
+    !isPlatformProduct(product) &&
+    subscriptionIsLive(status) &&
+    cancel_at_period_end
+  )
+}
+
+const STRIPE_EVENT_STATUS_KEYS: Record<string, DictionaryKey> = {
+  processing: "admin.subscriptions.eventStatus.processing",
+  processed: "admin.subscriptions.eventStatus.processed",
+  failed: "admin.subscriptions.eventStatus.failed",
+}
+
+export function stripeEventStatusKey(status: string): DictionaryKey | null {
+  return STRIPE_EVENT_STATUS_KEYS[status] ?? null
+}
+
 export interface GrantTarget {
   organizationId: string
   hasLive: boolean

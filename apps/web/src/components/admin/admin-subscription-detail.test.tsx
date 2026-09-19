@@ -12,8 +12,14 @@ import {
   createServer,
   subscribeOrganization,
 } from "@pupitre/api/testing/factories"
+import type { OrgRole } from "@pupitre/shared/permissions"
 import { GRANTED_PRODUCT } from "@pupitre/shared/plans"
-import { AdminSubscriptionDetail } from "@/components/admin/admin-subscription-detail"
+import { useState } from "react"
+import {
+  ADMIN_SUBSCRIPTION_TAB,
+  AdminSubscriptionDetail,
+  type AdminSubscriptionTab,
+} from "@/components/admin/admin-subscription-detail"
 import {
   createConsoleUser,
   grantLaunch,
@@ -32,8 +38,20 @@ const mounted: (() => void)[] = []
 
 const DAY_MS = 86_400_000
 
-function page(id: string, platformRole: "owner" | "member" = "owner") {
-  return withDashboard(<AdminSubscriptionDetail id={id} />, { platformRole })
+function Detail({ id, start }: { id: string; start: AdminSubscriptionTab }) {
+  const [tab, setTab] = useState(start)
+
+  return <AdminSubscriptionDetail id={id} onTabChange={setTab} tab={tab} />
+}
+
+function page(
+  id: string,
+  {
+    tab = ADMIN_SUBSCRIPTION_TAB,
+    platformRole = "owner",
+  }: { tab?: AdminSubscriptionTab; platformRole?: OrgRole } = {}
+) {
+  return withDashboard(<Detail id={id} start={tab} />, { platformRole })
 }
 
 /** What the grant route writes, laid straight into the table. */
@@ -75,12 +93,14 @@ describe("AdminSubscriptionDetail", () => {
     }
   })
 
-  it("shows the organisation, the product, the seats and the note, without a Stripe id", async () => {
+  it("opens on the overview: organisation, product, seats and note, without a Stripe id", async () => {
     const { organization } = await createOrganizationWithMembers({
       name: "Atelier",
       roles: ["owner"],
     })
     const granted = await grantedSubscription(organization.id, 3)
+
+    await createServer({ organizationId: organization.id })
 
     const { container, unmount } = await render(page(granted.id))
 
@@ -89,11 +109,66 @@ describe("AdminSubscriptionDetail", () => {
     await waitUntil(() => container.textContent?.includes("Atelier") === true)
 
     expect(container.textContent).toContain("Granted")
-    expect(container.textContent).toContain("3 seats")
+    expect(container.textContent).toContain("1 of 3")
     expect(container.textContent).toContain("Partner of the launch")
     expect(container.textContent).toContain("No end date")
     expect(container.textContent).not.toContain("Stripe subscription")
-    expect(container.textContent).toContain("Resize")
+    expect(container.textContent).toContain("Actions")
+  })
+
+  it("marks the drift when the servers outnumber the seats", async () => {
+    const { organization } = await createOrganizationWithMembers({
+      name: "Atelier",
+      roles: ["owner"],
+    })
+    const granted = await grantedSubscription(organization.id, 1)
+
+    await createServer({ organizationId: organization.id })
+    await createServer({ organizationId: organization.id, status: "grace" })
+
+    const { container, unmount } = await render(page(granted.id))
+
+    mounted.push(unmount)
+
+    await waitUntil(() => container.textContent?.includes("2 of 1") === true)
+
+    expect(
+      [...container.querySelectorAll("title")].map((mark) => mark.textContent)
+    ).toContain("More servers than seats")
+  })
+
+  it("files the Stripe deliveries under their own tab", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { organization } = await createOrganizationWithMembers({
+      name: "Atelier",
+      roles: ["owner"],
+    })
+    const stripe = await subscribeOrganization({
+      organizationId: organization.id,
+      status: "active",
+      quantity: 2,
+    })
+
+    await prisma.stripeEvent.create({
+      data: {
+        id: "evt_console_1",
+        type: "invoice.payment_failed",
+        status: "failed",
+        subscriptionId: stripe.stripeSubscriptionId,
+      },
+    })
+
+    const { container, unmount } = await render(
+      page(stripe.id, { tab: "stripe" })
+    )
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("invoice.payment_failed") === true
+    )
+
+    expect(container.textContent).toContain("Failed")
   })
 
   it("stops a subscription now, with the reason, and its servers follow", async () => {
@@ -105,11 +180,20 @@ describe("AdminSubscriptionDetail", () => {
     const { server } = await createServer({ organizationId: organization.id })
     const granted = await grantedSubscription(organization.id, 2)
 
-    const { container, unmount, click } = await render(page(granted.id))
+    const { container, unmount, click } = await render(
+      page(granted.id, { tab: "actions" })
+    )
 
     mounted.push(unmount)
 
-    await waitUntil(() => container.textContent?.includes("Atelier") === true)
+    await waitUntil(
+      () => container.textContent?.includes("Stop the subscription") === true
+    )
+
+    expect(container.textContent).toContain(
+      "The servers of Atelier are suspended right away."
+    )
+
     await click(trigger(container, "Stop now"))
 
     await waitUntil(() => document.querySelector("#cancel-reason") !== null)
@@ -131,12 +215,12 @@ describe("AdminSubscriptionDetail", () => {
 
       return stored.status === "canceled" && machine.status === "suspended"
     })
-    await waitUntil(() => container.textContent?.includes("Cancelled") === true)
-
-    expect(container.textContent).not.toContain("Stop now")
+    await waitUntil(
+      () => container.textContent?.includes("Stop the subscription") === false
+    )
   })
 
-  it("deletes a launch row and leaves the page", async () => {
+  it("deletes a launch row once its identifier is retyped, and leaves the page", async () => {
     const { prisma } = await bootApiTestServer()
     const { organization } = await createOrganizationWithMembers({
       name: "Atelier",
@@ -147,24 +231,33 @@ describe("AdminSubscriptionDetail", () => {
       new Date(Date.now() + 30 * DAY_MS)
     )
 
-    const { container, unmount, click } = await render(page(launch.id))
+    const { container, unmount, click } = await render(
+      page(launch.id, { tab: "actions" })
+    )
 
     mounted.push(unmount)
 
-    await waitUntil(() => container.textContent?.includes("Launch") === true)
+    await waitUntil(
+      () =>
+        container.textContent?.includes("Delete the subscription row") === true
+    )
 
-    expect(container.textContent).not.toContain("Resize")
+    expect(container.textContent).not.toContain("Seats and end date")
 
     await click(trigger(container, "Delete the row"))
 
-    const confirm = [
-      ...document.querySelectorAll("[role=alertdialog] button"),
-    ].find((button) => button.textContent?.trim() === "Delete the row")
+    await waitUntil(() => document.querySelector("#delete-keyword") !== null)
 
-    if (!confirm) {
+    const keyword = document.querySelector("#delete-keyword")
+    const confirm = document.querySelector("[role=dialog] button[type=submit]")
+
+    if (!(keyword && confirm)) {
       throw new Error("the delete dialog did not open")
     }
 
+    expect((confirm as HTMLButtonElement).disabled).toBe(true)
+
+    await fill(keyword, launch.stripeSubscriptionId)
     await click(confirm)
     await waitUntilStored(
       async () =>
@@ -172,7 +265,7 @@ describe("AdminSubscriptionDetail", () => {
     )
   })
 
-  it("offers no deletion on a row Stripe still bills", async () => {
+  it("offers no deletion on a row Stripe still bills, and no resizing", async () => {
     const { organization } = await createOrganizationWithMembers({
       name: "Atelier",
       roles: ["owner"],
@@ -183,33 +276,62 @@ describe("AdminSubscriptionDetail", () => {
       quantity: 2,
     })
 
-    const { container, unmount } = await render(page(stripe.id))
+    const { container, unmount } = await render(
+      page(stripe.id, { tab: "actions" })
+    )
 
     mounted.push(unmount)
 
-    await waitUntil(() => container.textContent?.includes("Atelier") === true)
+    await waitUntil(
+      () => container.textContent?.includes("Stop the subscription") === true
+    )
 
-    expect(container.textContent).toContain("Stripe subscription")
-    expect(container.textContent).toContain(stripe.stripeSubscriptionId)
-    expect(container.textContent).toContain("Stop now")
-    expect(container.textContent).not.toContain("Delete the row")
-    expect(container.textContent).not.toContain("Resize")
+    expect(container.textContent).not.toContain("Delete the subscription row")
+    expect(container.textContent).not.toContain("Seats and end date")
+    expect(container.textContent).not.toContain("Push the end of the trial")
   })
 
-  it("leaves a reader of the platform without any gesture", async () => {
+  it("pushes the end of a Stripe trial", async () => {
+    const { organization } = await createOrganizationWithMembers({
+      name: "Atelier",
+      roles: ["owner"],
+    })
+    const stripe = await subscribeOrganization({
+      organizationId: organization.id,
+      status: "trialing",
+      quantity: 1,
+    })
+
+    const { container, unmount } = await render(
+      page(stripe.id, { tab: "actions" })
+    )
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () =>
+        container.textContent?.includes("Push the end of the trial") === true
+    )
+
+    expect(container.querySelector("#trial-ends-at")).not.toBeNull()
+    expect(stripe.status).toBe("trialing")
+  })
+
+  it("leaves a reader of the platform without the actions tab", async () => {
     const { organization } = await createOrganizationWithMembers({
       name: "Atelier",
       roles: ["owner"],
     })
     const granted = await grantedSubscription(organization.id, 2)
 
-    const { container, unmount } = await render(page(granted.id, "member"))
+    const { container, unmount } = await render(
+      page(granted.id, { platformRole: "member" })
+    )
 
     mounted.push(unmount)
 
     await waitUntil(() => container.textContent?.includes("Atelier") === true)
 
-    expect(container.querySelectorAll("button")).toHaveLength(0)
-    expect(container.textContent).not.toContain("Resize")
+    expect(container.textContent).not.toContain("Actions")
   })
 })

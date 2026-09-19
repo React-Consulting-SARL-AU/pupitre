@@ -33,6 +33,8 @@ interface AdminSubscription {
   note: string | null
   platform: boolean
   live: boolean
+  seats: { paid: number; used: number }
+  drifted: boolean
   organization: { id: string; name: string; slug: string }
 }
 
@@ -42,8 +44,6 @@ interface SubscriptionBody {
 
 interface SubscriptionDetailBody {
   data: AdminSubscription & {
-    seats: { paid: number; used: number }
-    drifted: boolean
     stripe_url: string | null
     stripe_events: { id: string; type: string; status: string }[]
     events: { action: string; actor: { id: string } | null; payload: unknown }[]
@@ -829,6 +829,35 @@ describe("GET /admin/subscriptions, filtres et tris", () => {
     expect(bySlug.json.data.map((row) => row.id)).toEqual([other.id])
     expect(byStripeId.json.data.map((row) => row.id)).toEqual([other.id])
     expect(nothing.json).toEqual({ data: [], total: 0 })
+  })
+
+  it("porte les sièges payés, les sièges occupés et la dérive sur chaque ligne", async () => {
+    const { organization } = await createOrganizationWithMembers({
+      name: "Atelier serré",
+      roles: ["owner"],
+    })
+    const tight = await subscribeOrganization({
+      organizationId: organization.id,
+      status: "active",
+      quantity: 1,
+    })
+    const { other } = await twoOrganizations()
+    const admin = await platformAdmin()
+
+    await createServer({ organizationId: organization.id })
+    await createServer({ organizationId: organization.id, status: "grace" })
+    await createServer({ organizationId: organization.id, status: "revoked" })
+
+    const response = await apiRequest<SubscriptionsBody>(
+      "/admin/subscriptions",
+      { session: admin }
+    )
+    const byId = new Map(response.json.data.map((row) => [row.id, row]))
+
+    expect(byId.get(tight.id)?.seats).toEqual({ paid: 1, used: 2 })
+    expect(byId.get(tight.id)?.drifted).toBe(true)
+    expect(byId.get(other.id)?.seats.used).toBe(0)
+    expect(byId.get(other.id)?.drifted).toBe(false)
   })
 
   it("trie par fin de période dans les deux sens, et refuse un tri inconnu", async () => {

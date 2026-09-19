@@ -16,6 +16,8 @@ interface AdminServer {
   status: string
   suspended_reason: string | null
   stale: boolean
+  channel: string
+  seated: boolean
   organization: { id: string; name: string; slug: string }
   assigned_user_id: string | null
 }
@@ -33,7 +35,6 @@ interface AdminServerDevice {
 }
 
 interface AdminServerDetail extends AdminServer {
-  channel: string
   enrollment_expires_at: string | null
   device: AdminServerDevice | null
   revoked_devices: {
@@ -161,6 +162,28 @@ describe("GET /admin/servers", () => {
       "vps-atelier",
     ])
     expect(none.json).toEqual({ data: [], total: 0 })
+  })
+
+  it("porte le canal de chaque machine et le siège qu'elle occupe", async () => {
+    const { one } = await twoOrganizations()
+
+    await createServer({
+      organizationId: one.organization.id,
+      name: "vps-parti",
+      status: "revoked",
+    })
+
+    const admin = await platformAdmin()
+    const response = await apiRequest<ListBody>("/admin/servers", {
+      session: admin,
+    })
+    const byName = new Map(
+      response.json.data.map((server) => [server.name, server])
+    )
+
+    expect(byName.get("vps-atelier")?.channel).toBe("stable")
+    expect(byName.get("vps-atelier")?.seated).toBe(true)
+    expect(byName.get("vps-parti")?.seated).toBe(false)
   })
 
   it("refuses an unknown status", async () => {

@@ -295,6 +295,8 @@ const adminSubscriptionViewFields = {
     slug: t.String(),
   }),
   live: t.Boolean(),
+  seats: t.Object({ paid: t.Integer(), used: t.Integer() }),
+  drifted: t.Boolean(),
 }
 
 export const adminSubscriptionSchema = t.Object(adminSubscriptionViewFields, {
@@ -304,8 +306,6 @@ export const adminSubscriptionSchema = t.Object(adminSubscriptionViewFields, {
 export const adminSubscriptionDetailSchema = t.Object(
   {
     ...adminSubscriptionViewFields,
-    seats: t.Object({ paid: t.Integer(), used: t.Integer() }),
-    drifted: t.Boolean(),
     stripe_url: t.Nullable(t.String()),
     stripe_events: t.Array(
       t.Object({

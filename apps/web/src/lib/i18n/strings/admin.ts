@@ -129,6 +129,58 @@ export const admin = {
     "admin.servers.deleteFailed": "The deletion failed.",
     "admin.servers.deleteFailedFix": "Try again in a moment.",
 
+    "admin.servers.tabs": "Server sections",
+    "admin.servers.tab.overview": "Overview",
+    "admin.servers.tab.usage": "Usage",
+    "admin.servers.tab.alerts": "Alerts",
+    "admin.servers.tab.devices": "Revoked devices",
+    "admin.servers.tab.log": "Log",
+    "admin.servers.tab.danger": "Danger",
+
+    "admin.servers.pendingAssignment": "Assignment awaiting acceptance",
+    "admin.servers.enrollmentExpiresAt": "Enrolment token valid until",
+    "admin.servers.deviceOwner": "Device account",
+    "admin.servers.heartbeat": "Last heartbeat",
+    "admin.servers.freshness": "Freshness",
+    "admin.servers.anyFreshness": "Fresh and silent",
+    "admin.servers.fresh": "Heartbeat within 24 hours",
+    "admin.servers.seat": "Seat",
+    "admin.servers.seatTaken": "Taken",
+    "admin.servers.seatFree": "Free",
+    "admin.servers.organizationFilter": "Organisation: {name}",
+    "admin.servers.everyOrganization": "Every organisation",
+
+    "admin.servers.setChannel": "Update channel",
+    "admin.servers.channelApplied": "“{name}” follows the {channel} channel.",
+    "admin.servers.channelFailed": "The channel did not change.",
+    "admin.servers.channelFailedFix":
+      "A revoked server has nothing left to update.",
+    "admin.servers.toBeta": "Move to beta",
+    "admin.servers.toStable": "Move to stable",
+
+    "admin.servers.usageAt": "Last sample",
+    "admin.servers.noUsage": "This server has reported no sample.",
+    "admin.servers.clearAlerts": "Close the alerts",
+    "admin.servers.clearingAlerts": "Closing…",
+    "admin.servers.clearAlertsTitle": "Close the open alerts of this server?",
+    "admin.servers.clearAlertsDescription":
+      "The open alerts of “{name}” close now. A condition that still holds opens an alert again at the next hourly run, and the email goes back out.",
+    "admin.servers.alertsCleared": "The alerts of “{name}” are closed.",
+    "admin.servers.clearAlertsFailed": "The alerts were not closed.",
+    "admin.servers.clearAlertsFailedFix": "Try again in a moment.",
+
+    "admin.servers.revokedDevices": "Revoked devices",
+    "admin.servers.noRevokedDevice": "No device revoked on this server.",
+    "admin.servers.revokedBy": "Revoked by",
+    "admin.servers.revokedAt": "Revoked on",
+
+    "admin.servers.suspendZoneTitle": "Suspend the server",
+    "admin.servers.restoreZoneTitle": "Hand the server back",
+    "admin.servers.restoreDescription":
+      "“{name}” takes back the right of use of {organization}: online while the subscription is paid up, in grace while it is behind, suspended for non-payment when there is none.",
+    "admin.servers.deleteZoneTitle": "Delete the server",
+    "admin.servers.purgeZoneTitle": "Delete the server row",
+
     "admin.organizations.title": "Organisations",
     "admin.organizations.profile": "Organisation",
     "admin.organizations.empty": "No organisation matches.",
@@ -170,8 +222,10 @@ export const admin = {
     "admin.subscriptions.cancel": "Stop now",
     "admin.subscriptions.canceling": "Stopping…",
     "admin.subscriptions.cancelTitle": "Stop this subscription now?",
-    "admin.subscriptions.cancelDescription":
-      "The servers of {organization} lose their right of use at the agent's next report. The reason is logged with the subscription.",
+    "admin.subscriptions.cancelUntil":
+      "The servers of {organization} go into grace until {date}, then they are suspended. The reason is logged with the subscription.",
+    "admin.subscriptions.cancelNow":
+      "The servers of {organization} are suspended right away. The reason is logged with the subscription.",
     "admin.subscriptions.cancelReasonRequired":
       "Give the reason: it is logged with the subscription.",
     "admin.subscriptions.canceled":
@@ -189,7 +243,6 @@ export const admin = {
     "admin.subscriptions.deleteFailed": "The row was not deleted.",
     "admin.subscriptions.deleteFailedFix":
       "A row Stripe still bills cannot be deleted: stop it first.",
-    "admin.subscriptions.resize": "Resize",
     "admin.subscriptions.resizeAction": "Apply",
     "admin.subscriptions.resizing": "Applying…",
     "admin.subscriptions.resized":
@@ -200,6 +253,7 @@ export const admin = {
     "admin.subscriptions.endsAt": "End date",
     "admin.subscriptions.endsAtOptional": "End date (optional)",
     "admin.subscriptions.endsAtInvalid": "A date, or nothing.",
+    "admin.subscriptions.endsAtRequired": "Pick a day.",
     "admin.subscriptions.noteOptional": "Note (optional)",
     "admin.subscriptions.grant": "Grant a subscription",
     "admin.subscriptions.grantTitle": "Grant a subscription",
@@ -212,6 +266,59 @@ export const admin = {
     "admin.subscriptions.grantFailedFix": "Try again in a moment.",
     "admin.subscriptions.grantBlocked":
       "A subscription is live: stop it before granting another.",
+
+    "admin.subscriptions.tabs": "Subscription sections",
+    "admin.subscriptions.tab.overview": "Overview",
+    "admin.subscriptions.tab.stripe": "Stripe events",
+    "admin.subscriptions.tab.log": "Log",
+    "admin.subscriptions.tab.actions": "Actions",
+
+    "admin.subscriptions.seatsUsed": "Seats taken",
+    "admin.subscriptions.seatsRatio": "{used} of {paid}",
+    "admin.subscriptions.drifted": "More servers than seats",
+    "admin.subscriptions.openInStripe": "Open in Stripe",
+    "admin.subscriptions.cancelAtPeriodEnd": "Stops at the end of the period",
+    "admin.subscriptions.organizationFilter": "Organisation: {name}",
+    "admin.subscriptions.everyOrganization": "Every organisation",
+    "admin.subscriptions.counted": "Counts for its organisation",
+    "admin.subscriptions.anyCounted": "Counted and past",
+    "admin.subscriptions.searchPlaceholder":
+      "Organisation, or Stripe subscription",
+
+    "admin.subscriptions.stripeEvents": "Stripe deliveries",
+    "admin.subscriptions.noStripeEvent":
+      "No Stripe delivery filed under this subscription.",
+    "admin.subscriptions.eventStatus.processing": "Being handled",
+    "admin.subscriptions.eventStatus.processed": "Handled",
+    "admin.subscriptions.eventStatus.failed": "Failed",
+
+    "admin.subscriptions.trial": "Extend the trial",
+    "admin.subscriptions.trialZoneTitle": "Push the end of the trial",
+    "admin.subscriptions.trialTitle": "Push the end of this trial?",
+    "admin.subscriptions.trialDescription":
+      "Stripe bills {organization} nothing until the date below. Its servers keep their right of use until then.",
+    "admin.subscriptions.trialUntil": "Trial ends",
+    "admin.subscriptions.trialing": "Pushing…",
+    "admin.subscriptions.trialExtended":
+      "The trial of {organization} runs to {date}.",
+    "admin.subscriptions.trialFailed": "The trial was not pushed.",
+    "admin.subscriptions.trialFailedFix":
+      "Only a subscription Stripe holds in trial takes a new end date.",
+
+    "admin.subscriptions.resume": "Resume the subscription",
+    "admin.subscriptions.resumeZoneTitle": "Take back the cancellation",
+    "admin.subscriptions.resumeTitle": "Take back this cancellation?",
+    "admin.subscriptions.resumeDescription":
+      "{organization} keeps its subscription past the end of the period: Stripe bills it again at the next renewal.",
+    "admin.subscriptions.resuming": "Resuming…",
+    "admin.subscriptions.resumed":
+      "The subscription of {organization} goes on.",
+    "admin.subscriptions.resumeFailed": "The cancellation stands.",
+    "admin.subscriptions.resumeFailedFix":
+      "Only a subscription Stripe still bills to the end of the period is taken back.",
+    "admin.subscriptions.resizeZoneTitle": "Seats and end date",
+    "admin.subscriptions.cancelZoneTitle": "Stop the subscription",
+    "admin.subscriptions.deleteZoneTitle": "Delete the subscription row",
 
     "admin.events.title": "Platform log",
     "admin.events.recent": "Last events",
@@ -480,6 +587,59 @@ export const admin = {
     "admin.servers.deleteFailed": "La suppression a échoué.",
     "admin.servers.deleteFailedFix": "Réessayez dans un instant.",
 
+    "admin.servers.tabs": "Sections du serveur",
+    "admin.servers.tab.overview": "Aperçu",
+    "admin.servers.tab.usage": "Usage",
+    "admin.servers.tab.alerts": "Alertes",
+    "admin.servers.tab.devices": "Appareils révoqués",
+    "admin.servers.tab.log": "Journal",
+    "admin.servers.tab.danger": "Danger",
+
+    "admin.servers.pendingAssignment": "Attribution en attente d'acceptation",
+    "admin.servers.enrollmentExpiresAt": "Jeton d'enrôlement valable jusqu'au",
+    "admin.servers.deviceOwner": "Compte de l'appareil",
+    "admin.servers.heartbeat": "Dernier battement",
+    "admin.servers.freshness": "Fraîcheur",
+    "admin.servers.anyFreshness": "À jour et sans nouvelles",
+    "admin.servers.fresh": "Battement dans les 24 h",
+    "admin.servers.seat": "Siège",
+    "admin.servers.seatTaken": "Occupé",
+    "admin.servers.seatFree": "Libre",
+    "admin.servers.organizationFilter": "Organisation : {name}",
+    "admin.servers.everyOrganization": "Toutes les organisations",
+
+    "admin.servers.setChannel": "Canal de mise à jour",
+    "admin.servers.channelApplied": "« {name} » suit le canal {channel}.",
+    "admin.servers.channelFailed": "Le canal n'a pas changé.",
+    "admin.servers.channelFailedFix":
+      "Un serveur révoqué n'a plus rien à mettre à jour.",
+    "admin.servers.toBeta": "Passer en bêta",
+    "admin.servers.toStable": "Passer en stable",
+
+    "admin.servers.usageAt": "Dernier relevé",
+    "admin.servers.noUsage": "Ce serveur n'a rapporté aucun relevé.",
+    "admin.servers.clearAlerts": "Fermer les alertes",
+    "admin.servers.clearingAlerts": "Fermeture…",
+    "admin.servers.clearAlertsTitle":
+      "Fermer les alertes ouvertes de ce serveur ?",
+    "admin.servers.clearAlertsDescription":
+      "Les alertes ouvertes de « {name} » se ferment maintenant. Une condition qui tient encore rouvre une alerte au prochain passage horaire, et l'email repart.",
+    "admin.servers.alertsCleared": "Les alertes de « {name} » sont fermées.",
+    "admin.servers.clearAlertsFailed": "Les alertes n'ont pas été fermées.",
+    "admin.servers.clearAlertsFailedFix": "Réessayez dans un instant.",
+
+    "admin.servers.revokedDevices": "Appareils révoqués",
+    "admin.servers.noRevokedDevice": "Aucun appareil révoqué sur ce serveur.",
+    "admin.servers.revokedBy": "Retiré par",
+    "admin.servers.revokedAt": "Retiré le",
+
+    "admin.servers.suspendZoneTitle": "Suspendre le serveur",
+    "admin.servers.restoreZoneTitle": "Rendre le serveur",
+    "admin.servers.restoreDescription":
+      "« {name} » reprend le droit d'usage de {organization} : en ligne tant que l'abonnement est réglé, en tolérance tant qu'il est en retard, suspendu pour impayé quand il n'y en a plus.",
+    "admin.servers.deleteZoneTitle": "Supprimer le serveur",
+    "admin.servers.purgeZoneTitle": "Effacer la ligne du serveur",
+
     "admin.organizations.title": "Organisations",
     "admin.organizations.profile": "Organisation",
     "admin.organizations.empty": "Aucune organisation ne correspond.",
@@ -521,8 +681,10 @@ export const admin = {
     "admin.subscriptions.cancel": "Arrêter maintenant",
     "admin.subscriptions.canceling": "Arrêt…",
     "admin.subscriptions.cancelTitle": "Arrêter cet abonnement maintenant ?",
-    "admin.subscriptions.cancelDescription":
-      "Les serveurs de {organization} perdent leur droit d'usage au prochain état de l'agent. Le motif est journalisé avec l'abonnement.",
+    "admin.subscriptions.cancelUntil":
+      "Les serveurs de {organization} passent en tolérance jusqu'au {date}, puis sont suspendus. Le motif est journalisé avec l'abonnement.",
+    "admin.subscriptions.cancelNow":
+      "Les serveurs de {organization} sont suspendus tout de suite. Le motif est journalisé avec l'abonnement.",
     "admin.subscriptions.cancelReasonRequired":
       "Indiquez le motif : il est journalisé avec l'abonnement.",
     "admin.subscriptions.canceled":
@@ -540,7 +702,6 @@ export const admin = {
     "admin.subscriptions.deleteFailed": "La ligne n'a pas été supprimée.",
     "admin.subscriptions.deleteFailedFix":
       "Une ligne que Stripe facture encore ne se supprime pas : arrêtez-la d'abord.",
-    "admin.subscriptions.resize": "Redimensionner",
     "admin.subscriptions.resizeAction": "Appliquer",
     "admin.subscriptions.resizing": "Application…",
     "admin.subscriptions.resized":
@@ -552,6 +713,7 @@ export const admin = {
     "admin.subscriptions.endsAt": "Date de fin",
     "admin.subscriptions.endsAtOptional": "Date de fin (facultative)",
     "admin.subscriptions.endsAtInvalid": "Une date, ou rien.",
+    "admin.subscriptions.endsAtRequired": "Choisissez un jour.",
     "admin.subscriptions.noteOptional": "Note (facultative)",
     "admin.subscriptions.grant": "Offrir un abonnement",
     "admin.subscriptions.grantTitle": "Offrir un abonnement",
@@ -564,6 +726,58 @@ export const admin = {
     "admin.subscriptions.grantFailedFix": "Réessayez dans un instant.",
     "admin.subscriptions.grantBlocked":
       "Un abonnement est en cours : arrêtez-le avant d'en offrir un autre.",
+
+    "admin.subscriptions.tabs": "Sections de l'abonnement",
+    "admin.subscriptions.tab.overview": "Aperçu",
+    "admin.subscriptions.tab.stripe": "Événements Stripe",
+    "admin.subscriptions.tab.log": "Journal",
+    "admin.subscriptions.tab.actions": "Gestes",
+
+    "admin.subscriptions.seatsUsed": "Sièges occupés",
+    "admin.subscriptions.seatsRatio": "{used} sur {paid}",
+    "admin.subscriptions.drifted": "Plus de serveurs que de sièges",
+    "admin.subscriptions.openInStripe": "Ouvrir dans Stripe",
+    "admin.subscriptions.cancelAtPeriodEnd": "S'arrête à la fin de la période",
+    "admin.subscriptions.organizationFilter": "Organisation : {name}",
+    "admin.subscriptions.everyOrganization": "Toutes les organisations",
+    "admin.subscriptions.counted": "Compte pour son organisation",
+    "admin.subscriptions.anyCounted": "Ceux qui comptent et les autres",
+    "admin.subscriptions.searchPlaceholder":
+      "Organisation, ou abonnement Stripe",
+
+    "admin.subscriptions.stripeEvents": "Livraisons Stripe",
+    "admin.subscriptions.noStripeEvent":
+      "Aucune livraison Stripe classée sous cet abonnement.",
+    "admin.subscriptions.eventStatus.processing": "En cours de traitement",
+    "admin.subscriptions.eventStatus.processed": "Traitée",
+    "admin.subscriptions.eventStatus.failed": "En échec",
+
+    "admin.subscriptions.trial": "Prolonger l'essai",
+    "admin.subscriptions.trialZoneTitle": "Repousser la fin de l'essai",
+    "admin.subscriptions.trialTitle": "Repousser la fin de cet essai ?",
+    "admin.subscriptions.trialDescription":
+      "Stripe ne facture rien à {organization} jusqu'à la date ci-dessous. Ses serveurs gardent leur droit d'usage jusque-là.",
+    "admin.subscriptions.trialUntil": "Fin de l'essai",
+    "admin.subscriptions.trialing": "Prolongation…",
+    "admin.subscriptions.trialExtended":
+      "L'essai de {organization} court jusqu'au {date}.",
+    "admin.subscriptions.trialFailed": "L'essai n'a pas été prolongé.",
+    "admin.subscriptions.trialFailedFix":
+      "Seul un abonnement que Stripe tient en essai accepte une nouvelle fin.",
+
+    "admin.subscriptions.resume": "Reprendre l'abonnement",
+    "admin.subscriptions.resumeZoneTitle": "Revenir sur la résiliation",
+    "admin.subscriptions.resumeTitle": "Revenir sur cette résiliation ?",
+    "admin.subscriptions.resumeDescription":
+      "{organization} garde son abonnement au-delà de la fin de période : Stripe le facture de nouveau à la prochaine échéance.",
+    "admin.subscriptions.resuming": "Reprise…",
+    "admin.subscriptions.resumed": "L'abonnement de {organization} continue.",
+    "admin.subscriptions.resumeFailed": "La résiliation tient.",
+    "admin.subscriptions.resumeFailedFix":
+      "Seul un abonnement que Stripe facture encore jusqu'à la fin de période se reprend.",
+    "admin.subscriptions.resizeZoneTitle": "Sièges et date de fin",
+    "admin.subscriptions.cancelZoneTitle": "Arrêter l'abonnement",
+    "admin.subscriptions.deleteZoneTitle": "Supprimer la ligne d'abonnement",
 
     "admin.events.title": "Journal de la plateforme",
     "admin.events.recent": "Derniers événements",

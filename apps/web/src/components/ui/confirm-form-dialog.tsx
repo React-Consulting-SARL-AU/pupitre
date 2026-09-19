@@ -60,7 +60,7 @@ export interface ConfirmFormDialogProps {
   tone?: ConfirmTone
   /** The server's refusal, shown inside the dialog, which stays open with the typing intact. */
   refusal?: ConfirmRefusal | null
-  /** Held outside when the gesture starts somewhere the dialog cannot put a trigger. */
+  /** Given when the gesture is offered somewhere a trigger cannot live, such as a row menu that closes on select; the dialog then carries no trigger of its own. */
   open?: boolean
   onOpenChange?: (open: boolean) => void
   onConfirm: (values: ConfirmFormValues) => void
@@ -95,20 +95,24 @@ export function ConfirmFormDialog({
   busyLabel,
   tone = "danger",
   refusal = null,
-  open: heldOpen,
+  open,
   onOpenChange,
   onConfirm,
   children,
 }: ConfirmFormDialogProps) {
   const t = useTranslations()
-  const [ownOpen, setOwnOpen] = useState(false)
-  const open = heldOpen ?? ownOpen
+  const [openHere, setOpenHere] = useState(false)
+  const driven = open !== undefined
+  const shown = driven ? open : openHere
   const setOpen = useCallback(
     (next: boolean) => {
-      setOwnOpen(next)
+      if (!driven) {
+        setOpenHere(next)
+      }
+
       onOpenChange?.(next)
     },
-    [onOpenChange]
+    [driven, onOpenChange]
   )
   const form = useForm<ConfirmFormInput, ConfirmFormValues>({
     schema: confirmFormSchema(t, {
@@ -166,9 +170,9 @@ export function ConfirmFormDialog({
           form.reset(EMPTY)
         }
       }}
-      open={open}
+      open={shown}
     >
-      {triggerLabel === undefined ? null : (
+      {driven || triggerLabel === undefined ? null : (
         <Dialog.Trigger
           render={
             <Button

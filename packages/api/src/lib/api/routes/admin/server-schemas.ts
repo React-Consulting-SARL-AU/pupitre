@@ -23,6 +23,8 @@ export const SUSPENSION_REASONS = [
 const adminServerFields = {
   ...serverFields,
   suspended_reason: t.Nullable(t.UnionEnum([...SUSPENSION_REASONS])),
+  channel: releaseChannelSchema,
+  seated: t.Boolean(),
   organization: t.Object({
     id: t.String(),
     name: t.String(),
@@ -55,7 +57,6 @@ const adminServerActorSchema = t.Object({
 export const adminServerDetailSchema = t.Object(
   {
     ...adminServerFields,
-    channel: releaseChannelSchema,
     enrollment_expires_at: t.Nullable(dateTime),
     assigned_user: t.Nullable(adminServerActorSchema),
     device: t.Nullable(adminServerDeviceSchema),
