@@ -23,6 +23,7 @@ import { sidebar } from "./strings/sidebar"
 import { start } from "./strings/start"
 import { status } from "./strings/status"
 import { statusPage } from "./strings/status-page"
+import { table } from "./strings/table"
 import { twoFactor } from "./strings/two-factor"
 
 export const en = {
@@ -50,6 +51,7 @@ export const en = {
   ...settings.en,
   ...account.en,
   ...twoFactor.en,
+  ...table.en,
   ...admin.en,
   ...inbox.en,
 }
