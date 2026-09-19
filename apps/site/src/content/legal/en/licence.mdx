@@ -1,38 +1,45 @@
 ---
 title: "Licence"
-description: "What you may do with the Pupitre desktop app and the agent, and what stays ours."
+description: "What you may do with the Pupitre desktop app and the agent, what stays ours, and the right the free launch gives you for good."
 locale: en
-updated: 2026-09-10
-draft: true
+updated: 2026-09-20
 order: 2
 ---
 
-Working draft, with no contractual value while the publisher is not incorporated and the text has not been reviewed by a lawyer.
+This licence is part of the [terms of service](/legal/terms/). It covers the desktop app, the agent installed on your machine, and the updates of both.
 
 ## Grant
 
-While your subscription is active, you get a personal, non-exclusive, non-transferable and revocable right to use the desktop app and the agent, for your professional or personal use. The right is granted, never assigned: nothing here sells you the software.
+While your organisation holds a right of use for a machine, you get a personal, non-exclusive, non-transferable and revocable right to install and use the desktop app on the computers you work from, and the agent on that machine, for your professional or personal use. The right is granted, never assigned: nothing here sells you the software.
 
-## Devices and servers
+## Machines and seats
 
-You install the app on the computers you work from. What is counted is managed servers: an enrolled server takes a seat, a removed server frees it. An organisation shares its seats between its members.
+What is counted is machines: an enrolled machine takes a seat, a removed machine frees it. An organisation shares its seats between its members. During the free launch, every organisation has one seat, at no charge.
+
+## The launch seat is yours for good
+
+An organisation that enrolled a machine during the free launch keeps one seat free of charge for as long as the service exists. That seat survives the opening of billing, a change of the responsible party, and the replacement of the machine by another. It is tied to the organisation, not to a person: a member who leaves does not take it away, and the organisation's owner cannot sell or transfer it separately from the organisation.
 
 ## Restrictions
 
-You do not redistribute the app or the agent, do not rent them out, and do not build them into a service resold to third parties. You do not try to decompile them, to bypass the entitlement check, or to run the agent on a server that has no seat.
+You do not redistribute the app or the agent, do not rent them out, and do not build them into a service resold to third parties. You do not try to decompile them, to bypass the entitlement check, to forge the platform's answers, or to run the agent on a machine that has no seat.
 
 ## Ownership
 
-The app, the agent, the service catalogue, the console and the protocol belong personally to Jordan Monier, their sole rights holder while the publishing company is not incorporated; they will be transferred to that company when it is formed. The projects you create, the code you write and the data on your servers stay yours, without exception.
+The app, the agent, the service catalogue, the console and the protocol between them belong personally to Jordan Monier, their sole rights holder. They are meant to be transferred to a company once the project has proven itself; that transfer changes the name on this page and nothing in your rights. The projects you create, the code you write, the services you install and the data on your machines are yours, without exception, and nothing here gives us any right over them.
+
+## Who signs the app
+
+The macOS and Windows builds of the desktop app are signed with certificates held by React Consulting SARL AU, a company established in Morocco and owned by Jordan Monier, so that the operating systems accept the app. That company signs the builds and does nothing else: it is not the publisher, it is not a party to this contract, and it receives no data from you. The agent is signed with an Ed25519 key that belongs to the project and that the app carries to verify every binary it installs.
 
 ## Third-party software
 
-The agent installs software on your server that is not ours. Each piece keeps its own licence, which you accept by installing it. The list of that software and its licences is shown in the app, next to each service in the catalogue.
+The agent installs software on your machine that is not ours. Each piece keeps its own licence, which you accept by installing it. The app names that software and its licence next to each service in the catalogue.
 
 ## Restricted mode
 
-Without a valid entitlement for seven days, the agent enters restricted mode: it refuses commands from the app and answers only that it is restricted. It stops no service, erases no data and touches no file. A restored subscription puts it back to work as it was.
+Without a valid right of use for seven days, or when the platform answers that the machine is suspended, the agent enters restricted mode: it refuses commands from the app and answers only that it is restricted. It stops no service, erases no data and touches no file. When the platform has answered a suspension, the agent also empties the tagged block it manages in `authorized_keys`, as the [terms](/legal/terms/) describe; when it is simply without an answer, it changes nothing. A restored right of use puts it back to work as it was.
 
 ## Termination
 
-The right to use ends with the subscription, or immediately on a serious breach of these terms or of the acceptable use policy. After termination your server stays an ordinary server: what runs keeps running, and the command to uninstall the agent is documented.
+The right to use ends with the right of use of the machine, or immediately on a serious breach of these terms or of the [acceptable use policy](/legal/acceptable-use/). After termination your machine stays an ordinary machine: what runs keeps running, and the command to uninstall the agent is documented.

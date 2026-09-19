@@ -25,6 +25,7 @@ export interface AdminUserOrganization {
   slug: string
   role: string
   subscription_status: string | null
+  subscription_id: string | null
   servers: number
 }
 
@@ -55,7 +56,7 @@ const ORGANIZATION_SELECT = {
 } as const
 
 interface OrganizationFacts {
-  subscriptionStatus: Map<string, string>
+  subscription: Map<string, { id: string; status: string }>
   seated: Map<string, number>
 }
 
@@ -63,7 +64,7 @@ async function organizationFacts(
   organizationIds: string[]
 ): Promise<OrganizationFacts> {
   if (organizationIds.length === 0) {
-    return { subscriptionStatus: new Map(), seated: new Map() }
+    return { subscription: new Map(), seated: new Map() }
   }
 
   const prisma = getPrisma()
@@ -71,7 +72,7 @@ async function organizationFacts(
     prisma.subscription.findMany({
       where: { organizationId: { in: organizationIds } },
       orderBy: { updatedAt: "desc" },
-      select: { organizationId: true, status: true },
+      select: { id: true, organizationId: true, status: true },
     }),
     prisma.server.groupBy({
       by: ["organizationId"],
@@ -82,7 +83,7 @@ async function organizationFacts(
       _count: { _all: true },
     }),
   ])
-  const byOrganization = new Map<string, { status: string }[]>()
+  const byOrganization = new Map<string, { id: string; status: string }[]>()
 
   for (const subscription of subscriptions) {
     const rows = byOrganization.get(subscription.organizationId) ?? []
@@ -91,18 +92,18 @@ async function organizationFacts(
     byOrganization.set(subscription.organizationId, rows)
   }
 
-  const subscriptionStatus = new Map<string, string>()
+  const subscription = new Map<string, { id: string; status: string }>()
 
   for (const [organizationId, rows] of byOrganization) {
     const live = liveAmong(rows)
 
     if (live) {
-      subscriptionStatus.set(organizationId, live.status)
+      subscription.set(organizationId, { id: live.id, status: live.status })
     }
   }
 
   return {
-    subscriptionStatus,
+    subscription,
     seated: new Map(seats.map((row) => [row.organizationId, row._count._all])),
   }
 }
@@ -188,7 +189,9 @@ function toUserView(user: UserRow, facts: OrganizationFacts): AdminUserView {
       ...member.organization,
       role: member.role,
       subscription_status:
-        facts.subscriptionStatus.get(member.organizationId) ?? null,
+        facts.subscription.get(member.organizationId)?.status ?? null,
+      subscription_id:
+        facts.subscription.get(member.organizationId)?.id ?? null,
       servers: facts.seated.get(member.organizationId) ?? 0,
     })),
   }

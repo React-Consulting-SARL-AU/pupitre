@@ -81,7 +81,6 @@ export const fr: Dictionary = {
   "legal.headline": "Les règles, écrites pour être lues.",
   "legal.lead": "Rien ici ne contredit ce que l’app fait sur votre machine.",
   "legal.updated": "Mise à jour",
-  "legal.draft": "Brouillon",
   "legal.subProcessor": "Sous-traitant",
   "legal.purpose": "Rôle",
   "legal.region": "Région",

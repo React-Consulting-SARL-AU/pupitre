@@ -12,7 +12,6 @@ import { InboxList } from "@/components/admin/inbox/inbox-list"
 import { InboxMailboxRail } from "@/components/admin/inbox/inbox-mailbox-rail"
 import { InboxShortcutsDialog } from "@/components/admin/inbox/inbox-shortcuts-dialog"
 import { PageHeader } from "@/components/ui/page-header"
-import { SplitView } from "@/components/ui/split-view"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useInboxRealtime } from "@/hooks/use-inbox-realtime"
 import { useInboxShortcuts } from "@/hooks/use-inbox-shortcuts"
@@ -248,7 +247,7 @@ export function InboxWorkspace({ search, setSearch }: InboxWorkspaceProps) {
     />
   )
 
-  if (onSettings) {
+  if (onSettings || openThreadId !== null) {
     return <Outlet />
   }
 
@@ -291,11 +290,7 @@ export function InboxWorkspace({ search, setSearch }: InboxWorkspaceProps) {
         <div className="flex min-w-0 flex-1 flex-col gap-gutter">
           <InboxFilterBar onChange={setSearch} search={search} />
 
-          <SplitView
-            detail={<Outlet />}
-            detailOpen={openThreadId !== null}
-            list={list}
-          />
+          {list}
         </div>
       </div>
     </>

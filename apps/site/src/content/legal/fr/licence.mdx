@@ -1,38 +1,45 @@
 ---
 title: "Licence"
-description: "Ce que vous pouvez faire avec l’app Pupitre et l’agent, et ce qui reste à nous."
+description: "Ce que vous pouvez faire de l’app desktop Pupitre et de l’agent, ce qui reste à nous, et le droit que le lancement gratuit vous donne pour de bon."
 locale: fr
-updated: 2026-09-10
-draft: true
+updated: 2026-09-20
 order: 2
 ---
 
-Brouillon de travail, sans valeur contractuelle tant que l’éditeur n’est pas immatriculé et que le texte n’a pas été relu par un avocat.
+Cette licence fait partie des [conditions d’utilisation](/fr/legal/terms/). Elle couvre l’app desktop, l’agent installé sur votre machine, et les mises à jour des deux.
 
 ## Concession
 
-Tant que votre abonnement est actif, vous recevez un droit d’usage personnel, non exclusif, non transférable et révocable sur l’app desktop et sur l’agent, pour votre usage professionnel ou personnel. Ce droit est concédé, jamais cédé : rien ici ne vous vend le logiciel.
+Tant que votre organisation détient un droit d’usage pour une machine, vous recevez un droit personnel, non exclusif, non transférable et révocable d’installer et d’utiliser l’app desktop sur les ordinateurs depuis lesquels vous travaillez, et l’agent sur cette machine, pour votre usage professionnel ou personnel. Le droit est concédé, jamais cédé : rien ici ne vous vend le logiciel.
 
-## Appareils et serveurs
+## Machines et sièges
 
-Vous installez l’app sur les ordinateurs dont vous vous servez. Ce qui se compte, ce sont les serveurs gérés : un serveur enrôlé occupe un siège, un serveur retiré le libère. Une organisation partage ses sièges entre ses membres.
+Ce qui est compté, ce sont les machines : une machine enrôlée prend un siège, une machine retirée le libère. Une organisation partage ses sièges entre ses membres. Pendant le lancement gratuit, chaque organisation a un siège, sans frais.
+
+## Le siège du lancement est à vous pour de bon
+
+Une organisation qui a enrôlé une machine pendant le lancement gratuit garde un siège sans frais aussi longtemps que le service existe. Ce siège survit à l’ouverture de la facturation, à un changement d’entité responsable et au remplacement de la machine par une autre. Il est attaché à l’organisation, pas à une personne : un membre qui part ne l’emporte pas, et le propriétaire de l’organisation ne peut ni le vendre ni le transférer séparément de l’organisation.
 
 ## Restrictions
 
-Vous ne redistribuez pas l’app ni l’agent, vous ne les louez pas, vous ne les intégrez pas à un service revendu à des tiers. Vous ne cherchez ni à les décompiler, ni à contourner la vérification du droit d’usage, ni à faire tourner l’agent sur un serveur qui n’a pas de siège.
+Vous ne redistribuez ni l’app ni l’agent, ne les louez pas, et ne les intégrez pas à un service revendu à des tiers. Vous n’essayez pas de les décompiler, de contourner la vérification du droit d’usage, de contrefaire les réponses de la plateforme, ni d’exécuter l’agent sur une machine qui n’a pas de siège.
 
 ## Propriété
 
-L’app, l’agent, le catalogue de services, la console et le protocole appartiennent personnellement à Jordan Monier, seul titulaire des droits tant que la société éditrice n’est pas immatriculée ; ils lui seront apportés à sa constitution. Les projets que vous créez, le code que vous écrivez et les données de vos serveurs restent les vôtres, sans exception.
+L’app, l’agent, le catalogue de services, la console et le protocole qui les relie appartiennent personnellement à Jordan Monier, seul titulaire des droits. Ils ont vocation à être apportés à une société une fois que le projet aura fait ses preuves ; cet apport change le nom sur cette page et rien dans vos droits. Les projets que vous créez, le code que vous écrivez, les services que vous installez et les données sur vos machines sont à vous, sans exception, et rien ici ne nous donne le moindre droit dessus.
+
+## Qui signe l’app
+
+Les versions macOS et Windows de l’app desktop sont signées avec des certificats détenus par React Consulting SARL AU, société établie au Maroc et détenue par Jordan Monier, pour que les systèmes d’exploitation acceptent l’app. Cette société signe les versions et ne fait rien d’autre : elle n’est pas l’éditeur, elle n’est pas partie à ce contrat, et elle ne reçoit aucune donnée de vous. L’agent est signé avec une clé Ed25519 qui appartient au projet et que l’app embarque pour vérifier chaque binaire qu’elle installe.
 
 ## Logiciels tiers
 
-L’agent installe sur votre serveur des logiciels qui ne sont pas les nôtres. Chacun garde sa propre licence, que vous acceptez en l’installant. La liste des logiciels et de leurs licences est affichée dans l’app, à côté de chaque service du catalogue.
+L’agent installe sur votre machine des logiciels qui ne sont pas les nôtres. Chacun garde sa propre licence, que vous acceptez en l’installant. L’app nomme ce logiciel et sa licence à côté de chaque service du catalogue.
 
 ## Mode restreint
 
-Sans droit d’usage valide pendant sept jours, l’agent passe en mode restreint : il refuse les commandes de l’app et se contente de répondre qu’il est restreint. Il n’arrête aucun service, n’efface aucune donnée et ne touche à aucun fichier. Un abonnement rétabli le remet en service tel qu’il était.
+Sans droit d’usage valide pendant sept jours, ou quand la plateforme répond que la machine est suspendue, l’agent passe en mode restreint : il refuse les commandes de l’app et répond seulement qu’il est restreint. Il n’arrête aucun service, n’efface aucune donnée et ne touche aucun fichier. Quand la plateforme a répondu une suspension, l’agent vide aussi le bloc balisé qu’il gère dans `authorized_keys`, comme les [conditions](/fr/legal/terms/) le décrivent ; quand il est simplement sans réponse, il ne change rien. Un droit d’usage rétabli le remet au travail comme avant.
 
-## Résiliation
+## Fin
 
-Le droit d’usage prend fin avec l’abonnement, ou immédiatement en cas de manquement grave aux présentes ou à la politique d’usage acceptable. Après la résiliation, votre serveur reste un serveur ordinaire : ce qui y tourne continue de tourner, et la commande de désinstallation de l’agent est documentée.
+Le droit d’utiliser s’éteint avec le droit d’usage de la machine, ou immédiatement en cas de manquement grave à ces conditions ou à la [politique d’usage acceptable](/fr/legal/acceptable-use/). Après la fin, votre machine reste une machine ordinaire : ce qui tourne continue de tourner, et la commande pour désinstaller l’agent est documentée.

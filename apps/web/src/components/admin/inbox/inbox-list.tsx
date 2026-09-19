@@ -66,7 +66,7 @@ export function InboxList({
       ) : null}
 
       {!(pending || failed) && total > 0 ? (
-        <Card>
+        <Card className="overflow-hidden">
           <CardHeader>
             <div className="flex items-center gap-3">
               <Checkbox

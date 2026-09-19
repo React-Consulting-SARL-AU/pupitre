@@ -69,16 +69,16 @@ export function InboxMailboxRail({
     <>
       <nav
         aria-label={t("inbox.mailboxes")}
-        className="hidden w-[200px] shrink-0 flex-col gap-[2px] xl:flex"
+        className="hidden w-[190px] shrink-0 flex-col gap-[2px] xl:flex"
       >
         {entries.map((entry) => (
           <button
             aria-pressed={entry.value === value}
             className={cn(
-              "flex items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left text-[13px] transition-fast",
+              "flex h-9 items-center justify-between gap-2 rounded-md px-3 text-left text-[13px] transition-fast",
               "focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2",
               entry.value === value
-                ? "bg-raised text-ink"
+                ? "bg-sunken font-medium text-ink"
                 : "text-ink-2 hover:bg-raised hover:text-ink"
             )}
             key={entry.value}
@@ -89,7 +89,12 @@ export function InboxMailboxRail({
           >
             <span className="truncate">{entry.label}</span>
             {entry.unread > 0 ? (
-              <span className="shrink-0 rounded-full bg-inverse px-1.5 font-data text-[11px] text-inverse-ink tabular-nums">
+              <span
+                className={cn(
+                  "shrink-0 font-data text-[12px] tabular-nums",
+                  entry.value === value ? "text-ink" : "text-ink-2"
+                )}
+              >
                 {entry.unread}
               </span>
             ) : null}

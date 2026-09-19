@@ -64,7 +64,7 @@ export function InboxThreadAside({
   ]
 
   return (
-    <div className="flex flex-col gap-gutter">
+    <div className="grid gap-gutter md:grid-cols-3 xl:grid-cols-1">
       <FoldableCard title={t("inbox.details")}>
         <div className="flex flex-col gap-3">
           <dl className="flex flex-col gap-2">
