@@ -62,16 +62,6 @@ export function canRestore(suspendedReason: string | null): boolean {
   return suspendedReason === "admin"
 }
 
-const CONFLICT = 409
-
-/**
- * The platform refuses to ban a member of its own organisation. The refusal is
- * about who the account is, so retrying never changes it: the control closes.
- */
-export function accountIsProtected(status: number | undefined): boolean {
-  return status === CONFLICT
-}
-
 export const SUBSCRIPTION_STATUS_FILTERS = [
   "trialing",
   "active",

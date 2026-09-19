@@ -1,7 +1,6 @@
 import { describe, expect, it } from "bun:test"
 import {
   accountGestures,
-  accountIsProtected,
   accountLook,
   accountReason,
   canActOnPlatform,
@@ -71,17 +70,6 @@ describe("canRestore", () => {
     expect(canRestore("admin")).toBe(true)
     expect(canRestore("billing")).toBe(false)
     expect(canRestore(null)).toBe(false)
-  })
-})
-
-describe("accountIsProtected", () => {
-  it("closes the ban when the platform refused it over who the account is", () => {
-    expect(accountIsProtected(409)).toBe(true)
-  })
-
-  it("leaves it open when nothing was refused, or the refusal was another one", () => {
-    expect(accountIsProtected(undefined)).toBe(false)
-    expect(accountIsProtected(404)).toBe(false)
   })
 })
 
