@@ -8,7 +8,8 @@ import {
 import { type ApiPrisma, configureApi, handleApiRequest } from "../server"
 import { bootTestDatabase } from "./database"
 
-export const TEST_BASE_URL = "http://localhost:3000"
+/** The console's e2e harness moves off 3000 when another dev server holds it; the auth links must follow. */
+export const TEST_BASE_URL = `http://localhost:${process.env.PUPITRE_E2E_PORT || "3000"}`
 
 export const TEST_AUTH_ENV: AuthEnv = {
   BETTER_AUTH_SECRET: "pupitre-test-secret-pupitre-test-secret",
@@ -87,6 +88,9 @@ async function boot(): Promise<ApiTestServer> {
   for (const name of AMBIENT_VARIABLES) {
     delete process.env[name]
   }
+
+  // The checkout's return address is read from the environment, not from the auth config.
+  process.env.VITE_APP_URL = TEST_BASE_URL
 
   const database = await bootTestDatabase()
   const sentEmails: EmailMessage[] = []

@@ -1,10 +1,25 @@
 import type { OrgRole } from "@pupitre/shared/permissions"
+import { PLATFORM_ORGANIZATION_ID } from "@pupitre/shared/platform"
 import { SERVER_STATUSES, type StatusLook } from "@/lib/domain/server-status"
 import type { DictionaryKey } from "@/lib/i18n/en"
 
 export const MAX_REASON_LENGTH = 500
 
 const ACTING_ROLES: OrgRole[] = ["owner", "admin"]
+
+/**
+ * The platform pages belong to the platform organisation: they open when it is
+ * the active one, and only for its members. On any other organisation, even the
+ * owner's own, the console shows that organisation and nothing of the platform.
+ */
+export function platformOpen(
+  activeOrganizationId: string | null | undefined,
+  platformRole: OrgRole | null
+): boolean {
+  return (
+    platformRole !== null && activeOrganizationId === PLATFORM_ORGANIZATION_ID
+  )
+}
 
 /**
  * Any member of the platform organisation reads these pages; only the two roles
@@ -77,7 +92,8 @@ export function channelKey(channel: string): DictionaryKey | null {
 export interface ReleaseBuild {
   version: string
   channel: string
-  published_at: string
+  /** Eden revives an ISO date into a `Date`; a fixture hands the string. */
+  published_at: string | Date
 }
 
 export interface ReleaseVersion {
@@ -86,6 +102,14 @@ export interface ReleaseVersion {
   builds: number
   publishedAt: string
   stable: boolean
+}
+
+function instantOf(value: string | Date): number {
+  return new Date(value).getTime()
+}
+
+function isoOf(value: string | Date): string {
+  return new Date(value).toISOString()
 }
 
 /**
@@ -101,8 +125,8 @@ export function releaseVersions(builds: ReleaseBuild[]): ReleaseVersion[] {
     if (found) {
       found.builds += 1
       found.publishedAt =
-        build.published_at > found.publishedAt
-          ? build.published_at
+        instantOf(build.published_at) > instantOf(found.publishedAt)
+          ? isoOf(build.published_at)
           : found.publishedAt
 
       if (!found.channels.includes(build.channel)) {
@@ -113,7 +137,7 @@ export function releaseVersions(builds: ReleaseBuild[]): ReleaseVersion[] {
         version: build.version,
         channels: [build.channel],
         builds: 1,
-        publishedAt: build.published_at,
+        publishedAt: isoOf(build.published_at),
         stable: false,
       })
     }
@@ -124,7 +148,10 @@ export function releaseVersions(builds: ReleaseBuild[]): ReleaseVersion[] {
       ...version,
       stable: version.channels.includes("stable"),
     }))
-    .sort((left, right) => right.publishedAt.localeCompare(left.publishedAt))
+    .sort(
+      (left, right) =>
+        instantOf(right.publishedAt) - instantOf(left.publishedAt)
+    )
 }
 
 export interface AdminUserState {
