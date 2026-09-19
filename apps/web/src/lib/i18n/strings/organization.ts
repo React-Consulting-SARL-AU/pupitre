@@ -38,6 +38,7 @@ export const organization = {
     "organization.standing.reason": "Reason given: {reason}",
     "organization.standing.fix":
       "Write to {email} to have {organization} reopened. Nothing is erased on the machines.",
+    "organization.standing.switch": "Open another organisation",
   },
   fr: {
     "organization.identity": "Identité",
@@ -79,5 +80,6 @@ export const organization = {
     "organization.standing.reason": "Motif donné : {reason}",
     "organization.standing.fix":
       "Écrivez à {email} pour faire rouvrir {organization}. Rien n'est effacé sur les machines.",
+    "organization.standing.switch": "Ouvrir une autre organisation",
   },
 }

@@ -1,6 +1,9 @@
 import { LEGAL_CONTACTS } from "@pupitre/shared/legal"
 import type { OrganizationState } from "@pupitre/shared/platform"
-import { StatusDot } from "@/components/ui/status-dot"
+import { ArrowLeftRight } from "lucide-react"
+import { OrganizationSwitcher } from "@/components/dashboard/organization-switcher"
+import { Button } from "@/components/ui/button"
+import { Callout } from "@/components/ui/callout"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
 import type { DictionaryKey } from "@/lib/i18n/en"
@@ -14,6 +17,9 @@ const STANDING_KEYS: Record<
   deleting: "organization.standing.deleting",
 }
 
+/** Nothing inside a closed organization opens it again: the way out is another organization. */
+const LOCKED_OUT: OrganizationState[] = ["closed", "deleting"]
+
 export function OrganizationStandingBanner() {
   const t = useTranslations()
   const { activeOrganization } = useDashboardContext()
@@ -25,36 +31,34 @@ export function OrganizationStandingBanner() {
   const params = { organization: activeOrganization.name }
 
   return (
-    <div
-      className="mb-gutter flex flex-col gap-2 rounded-md bg-surface px-4 py-3 shadow-raised"
+    <Callout
+      action={
+        LOCKED_OUT.includes(activeOrganization.state) ? (
+          <OrganizationSwitcher
+            trigger={
+              <Button icon={ArrowLeftRight} size="sm">
+                {t("organization.standing.switch")}
+              </Button>
+            }
+          />
+        ) : undefined
+      }
+      className="mb-gutter"
       data-testid="organization-standing-banner"
-      role="status"
+      fix={t("organization.standing.fix", {
+        ...params,
+        email: LEGAL_CONTACTS.support,
+      })}
+      title={t(STANDING_KEYS[activeOrganization.state], params)}
+      tone="danger"
     >
-      <div className="flex items-center gap-3">
-        <StatusDot
-          label={activeOrganization.state}
-          shape="barred"
-          tone="danger"
-        />
-        <p className="text-[13px] text-ink">
-          {t(STANDING_KEYS[activeOrganization.state], params)}
-        </p>
-      </div>
-
       {activeOrganization.reason ? (
-        <p className="text-[13px] text-ink-2">
+        <p className="mt-1 text-ink-2">
           {t("organization.standing.reason", {
             reason: activeOrganization.reason,
           })}
         </p>
       ) : null}
-
-      <p className="text-[13px] text-ink-3">
-        {t("organization.standing.fix", {
-          ...params,
-          email: LEGAL_CONTACTS.support,
-        })}
-      </p>
-    </div>
+    </Callout>
   )
 }

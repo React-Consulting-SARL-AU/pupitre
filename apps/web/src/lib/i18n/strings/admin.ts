@@ -85,7 +85,7 @@ export const admin = {
     "admin.users.reason": "Reason",
     "admin.users.reasonRequired": "Give the reason: it is logged with the act.",
     "admin.users.platformMember":
-      "This account belongs to the Pupitre organisation. Remove it from that organisation's members before suspending, deactivating or deleting it.",
+      "This account belongs to the Pupitre organisation. Remove it from that organisation's members before suspending, deactivating or deleting it, or before revoking its sessions or its devices.",
     "admin.users.roleRequired":
       "The owner or admin role in the Pupitre organisation is required.",
 
@@ -318,7 +318,7 @@ export const admin = {
     "admin.organizations.reasonRequired":
       "Give the reason: the owners read it.",
     "admin.organizations.platformOrganization":
-      "The Pupitre organisation is the platform's own: it is neither suspended, closed nor deleted.",
+      "The Pupitre organisation is the platform's own: it is neither suspended, closed, renamed, transferred nor deleted, and no member is removed from it.",
     "admin.organizations.roleRequired":
       "The owner or admin role in the Pupitre organisation is required.",
 
@@ -742,7 +742,7 @@ export const admin = {
     "admin.users.reasonRequired":
       "Indiquez le motif : il est journalisé avec le geste.",
     "admin.users.platformMember":
-      "Ce compte est membre de l'organisation Pupitre. Retirez-le des membres de cette organisation avant de le suspendre, de le désactiver ou de le supprimer.",
+      "Ce compte est membre de l'organisation Pupitre. Retirez-le des membres de cette organisation avant de le suspendre, de le désactiver, de le supprimer, ou de révoquer ses sessions et ses appareils.",
     "admin.users.roleRequired":
       "Le rôle owner ou admin de l'organisation Pupitre est requis.",
 
@@ -977,7 +977,7 @@ export const admin = {
     "admin.organizations.reasonRequired":
       "Indiquez le motif : les propriétaires le lisent.",
     "admin.organizations.platformOrganization":
-      "L'organisation Pupitre est celle de la plateforme : elle ne se suspend, ne se ferme ni ne se supprime.",
+      "L'organisation Pupitre est celle de la plateforme : elle ne se suspend, ne se ferme, ne se renomme, ne se transfère ni ne se supprime, et on n'en retire aucun membre.",
     "admin.organizations.roleRequired":
       "Le rôle owner ou admin de l'organisation Pupitre est requis.",
 

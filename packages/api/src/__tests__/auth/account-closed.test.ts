@@ -12,8 +12,15 @@ import { createSession, createUser } from "../../testing/session"
 
 const URL_RE = /https?:\/\/\S+/
 
+const DAY_MS = 86_400_000
+
 interface ErrorBody {
   error: { code: string; message: string; fix?: string }
+}
+
+interface RefusalBody {
+  code: string
+  message: string
 }
 
 let harness: ApiTestServer
@@ -56,18 +63,38 @@ describe("un compte fermé", () => {
     await closeAccount(user.id)
 
     const token = await magicLinkTokenFor("ferme@test.local")
-    const verified = await authRequest(
+    const verified = await authRequest<RefusalBody>(
       "GET",
       `/magic-link/verify?token=${token}&callbackURL=/dashboard`
     )
 
+    expect(verified.status).toBe(403)
+    expect(verified.json.code).toBe(ACCOUNT_DEACTIVATED_CODE)
     expect(verified.raw.headers.get("set-auth-token")).toBeNull()
     expect(
       await harness.prisma.session.count({ where: { userId: user.id } })
     ).toBe(0)
   })
 
-  it("n'ouvre plus de session par le device flow", async () => {
+  it("refuse un lien magique émis avant la fermeture", async () => {
+    const { user } = await createUser({ email: "lien-avant@test.local" })
+    const token = await magicLinkTokenFor("lien-avant@test.local")
+
+    await closeAccount(user.id)
+
+    const verified = await authRequest<RefusalBody>(
+      "GET",
+      `/magic-link/verify?token=${token}&callbackURL=/dashboard`
+    )
+
+    expect(verified.status).toBe(403)
+    expect(verified.json.code).toBe(ACCOUNT_DEACTIVATED_CODE)
+    expect(
+      await harness.prisma.session.count({ where: { userId: user.id } })
+    ).toBe(0)
+  })
+
+  it("n'ouvre plus de session par le device flow, et rend le code que l'app lit", async () => {
     const { user } = await createUser({ email: "ferme-desktop@test.local" })
     const { headers } = await createSession({ userId: user.id })
     const started = await startDeviceFlow(TEST_BASE_URL, {
@@ -91,11 +118,11 @@ describe("un compte fermé", () => {
       data: { lastPolledAt: new Date(Date.now() - 60_000) },
     })
 
-    expect(
+    await expect(
       pollDeviceFlow(TEST_BASE_URL, started.device_code, {
         fetch: harness.fetch,
       })
-    ).rejects.toThrow()
+    ).rejects.toMatchObject({ code: ACCOUNT_DEACTIVATED_CODE })
     expect(
       await harness.prisma.session.count({ where: { userId: user.id } })
     ).toBe(1)
@@ -107,14 +134,84 @@ describe("un compte fermé", () => {
 
     await closeAccount(user.id)
 
-    const refused = await apiRequest<ErrorBody>("/me", { session })
+    const refused = await apiRequest<ErrorBody>("/me", {
+      locale: "fr",
+      session,
+    })
 
     expect(refused.status).toBe(403)
     expect(refused.json.error.code).toBe("forbidden")
+    expect(refused.json.error.message).toBe("Ce compte est fermé.")
+    expect(refused.json.error.fix).toContain("support@pupitre.studio")
+  })
+})
+
+describe("un compte suspendu", () => {
+  beforeAll(async () => {
+    harness = await bootApiTestServer()
+  })
+
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it("lit le terme de sa suspension, pas une fermeture", async () => {
+    const { user } = await createUser({ email: "suspendu@test.local" })
+    const session = await createSession({ userId: user.id })
+
+    await harness.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        banned: true,
+        banReason: "signalement 4412",
+        banExpires: new Date("2026-10-01T12:00:00.000Z"),
+      },
+    })
+
+    const refused = await apiRequest<ErrorBody>("/me", {
+      locale: "fr",
+      session,
+    })
+
+    expect(refused.status).toBe(403)
+    expect(refused.json.error.code).toBe("forbidden")
+    expect(refused.json.error.message).toBe(
+      "Ce compte est suspendu jusqu'au 1 octobre 2026."
+    )
     expect(refused.json.error.fix).toContain("support@pupitre.studio")
   })
 
-  it("porte un code stable que l'app peut lire", () => {
-    expect(ACCOUNT_DEACTIVATED_CODE).toBe("ACCOUNT_DEACTIVATED")
+  it("lit une fermeture quand la suspension n'a pas de terme", async () => {
+    const { user } = await createUser({ email: "suspendu-sans-fin@test.local" })
+    const session = await createSession({ userId: user.id })
+
+    await harness.prisma.user.update({
+      where: { id: user.id },
+      data: { banned: true, banReason: "signalement 4412" },
+    })
+
+    const refused = await apiRequest<ErrorBody>("/me", {
+      locale: "fr",
+      session,
+    })
+
+    expect(refused.status).toBe(403)
+    expect(refused.json.error.message).toBe("Ce compte est fermé.")
+  })
+
+  it("ouvre de nouveau quand le terme est passé", async () => {
+    const { user } = await createUser({ email: "suspension-finie@test.local" })
+    const session = await createSession({ userId: user.id })
+
+    await harness.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        banned: true,
+        banReason: "signalement 4412",
+        banExpires: new Date(Date.now() - DAY_MS),
+      },
+    })
+
+    expect((await apiRequest("/me", { session })).status).toBe(200)
   })
 })

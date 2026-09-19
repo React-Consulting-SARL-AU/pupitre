@@ -204,6 +204,7 @@ export const adminUserDetailSchema = t.Object(
     ),
     platform_role: t.Nullable(orgRoleSchema),
     banned_reason: t.Nullable(t.String()),
+    reason: t.Nullable(t.String()),
     sessions: t.Integer(),
     last_seen_at: t.Nullable(dateTime),
     events: t.Array(adminEventSchema),
@@ -283,6 +284,7 @@ const adminOrganizationMemberSchema = t.Object({
 export const adminOrganizationDetailSchema = t.Object(
   {
     ...adminOrganizationFields,
+    reason: t.Nullable(t.String()),
     members: t.Array(adminOrganizationMemberSchema),
     servers: t.Array(adminServerSchema),
     subscriptions: t.Array(t.Object(adminSubscriptionFields)),

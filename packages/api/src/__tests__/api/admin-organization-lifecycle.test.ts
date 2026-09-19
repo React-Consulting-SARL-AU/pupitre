@@ -1,4 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
+import { joinPlatformOrganization } from "@pupitre/auth/testing"
 import { GRANTED_PRODUCT } from "@pupitre/shared/plans"
 import { PLATFORM_ORGANIZATION_ID } from "@pupitre/shared/platform"
 import { type ApiTestServer, bootApiTestServer, resetDb } from "../../testing"
@@ -20,6 +21,7 @@ interface OrganizationDetailBody {
     name: string
     slug: string
     state: string
+    reason: string | null
     suspended_reason: string | null
     closed_reason: string | null
     deletion_at: string | null
@@ -409,27 +411,250 @@ describe("le cycle de vie d'une organisation", () => {
     expect(refused.json.error.code).toBe("conflict")
   })
 
-  it("protège l'organisation Pupitre", async () => {
+  it("protège l'organisation Pupitre de la suspension, de la fermeture, de l'effacement, du renommage, du transfert et du retrait d'un membre", async () => {
     const admin = await platformAdmin()
+    const { user } = await createUser({ email: "equipe-org@pupitre.studio" })
+
+    await joinPlatformOrganization(harness.prisma, user.id, "admin")
 
     for (const call of [
       apiRequest<ErrorBody>(
         `/admin/organizations/${PLATFORM_ORGANIZATION_ID}/suspend`,
-        { body: { reason: "non" }, session: admin }
+        { body: { reason: "non" }, locale: "fr", session: admin }
       ),
       apiRequest<ErrorBody>(
         `/admin/organizations/${PLATFORM_ORGANIZATION_ID}/close`,
-        { body: { reason: "non" }, session: admin }
+        { body: { reason: "non" }, locale: "fr", session: admin }
       ),
       apiRequest<ErrorBody>(
         `/admin/organizations/${PLATFORM_ORGANIZATION_ID}`,
-        { method: "DELETE", body: { reason: "non" }, session: admin }
+        {
+          method: "DELETE",
+          body: { reason: "non" },
+          locale: "fr",
+          session: admin,
+        }
+      ),
+      apiRequest<ErrorBody>(
+        `/admin/organizations/${PLATFORM_ORGANIZATION_ID}`,
+        {
+          method: "PATCH",
+          body: { slug: "pas-pupitre" },
+          locale: "fr",
+          session: admin,
+        }
+      ),
+      apiRequest<ErrorBody>(
+        `/admin/organizations/${PLATFORM_ORGANIZATION_ID}/transfer`,
+        { body: { user_id: user.id }, locale: "fr", session: admin }
+      ),
+      apiRequest<ErrorBody>(
+        `/admin/organizations/${PLATFORM_ORGANIZATION_ID}/members/${user.id}`,
+        {
+          method: "DELETE",
+          body: { reason: "non" },
+          locale: "fr",
+          session: admin,
+        }
       ),
     ]) {
       const refused = await call
 
       expect(refused.status).toBe(409)
       expect(refused.json.error.code).toBe("conflict")
+      expect(refused.json.error.message).toContain("ne se renomme")
     }
+
+    expect(
+      await harness.prisma.organization.findUniqueOrThrow({
+        where: { id: PLATFORM_ORGANIZATION_ID },
+      })
+    ).not.toMatchObject({ slug: "pas-pupitre" })
+    expect(
+      await harness.prisma.member.findFirstOrThrow({
+        where: { organizationId: PLATFORM_ORGANIZATION_ID, userId: user.id },
+      })
+    ).toMatchObject({ role: "admin" })
+  })
+
+  it("refuse de lever une suspension qui n'existe pas, sans écrire ni prévenir personne", async () => {
+    const { organization } = await createOrganizationWithMembers({
+      roles: ["owner"],
+    })
+    const admin = await platformAdmin()
+    const sent = harness.sentEmails.length
+    const refused = await apiRequest<ErrorBody>(
+      `/admin/organizations/${organization.id}/restore`,
+      { method: "POST", session: admin }
+    )
+
+    expect(refused.status).toBe(409)
+    expect(refused.json.error.code).toBe("conflict")
+    expect(harness.sentEmails.length).toBe(sent)
+    expect(
+      await harness.prisma.event.count({
+        where: { action: "organization.restored", targetId: organization.id },
+      })
+    ).toBe(0)
+  })
+
+  it("refuse de rouvrir une organisation qui n'est ni fermée ni en suppression", async () => {
+    const { organization } = await createOrganizationWithMembers({
+      roles: ["owner"],
+    })
+    const admin = await platformAdmin()
+    const refused = await apiRequest<ErrorBody>(
+      `/admin/organizations/${organization.id}/reopen`,
+      { method: "POST", session: admin }
+    )
+
+    expect(refused.status).toBe(409)
+    expect(refused.json.error.code).toBe("conflict")
+    expect(
+      await harness.prisma.event.count({
+        where: { action: "organization.reopened", targetId: organization.id },
+      })
+    ).toBe(0)
+  })
+
+  it("refuse de fermer une organisation déjà fermée", async () => {
+    const { organization } = await createOrganizationWithMembers({
+      roles: ["owner"],
+    })
+    const admin = await platformAdmin()
+
+    await apiRequest(`/admin/organizations/${organization.id}/close`, {
+      body: { reason: "fin de la relation" },
+      session: admin,
+    })
+
+    const refused = await apiRequest<ErrorBody>(
+      `/admin/organizations/${organization.id}/close`,
+      { body: { reason: "encore" }, session: admin }
+    )
+
+    expect(refused.status).toBe(409)
+    expect(refused.json.error.code).toBe("conflict")
+    expect(
+      await harness.prisma.organization.findUniqueOrThrow({
+        where: { id: organization.id },
+      })
+    ).toMatchObject({ closedReason: "fin de la relation" })
+  })
+
+  it("refuse un slug qui ne garde aucun caractère une fois normalisé", async () => {
+    const { organization } = await createOrganizationWithMembers({
+      roles: ["owner"],
+    })
+    const admin = await platformAdmin()
+    const refused = await apiRequest<ErrorBody>(
+      `/admin/organizations/${organization.id}`,
+      { method: "PATCH", body: { slug: "!!!" }, session: admin }
+    )
+
+    expect(refused.status).toBe(422)
+    expect(refused.json.error.code).toBe("validation")
+    expect(
+      await harness.prisma.organization.findUniqueOrThrow({
+        where: { id: organization.id },
+      })
+    ).toMatchObject({ slug: organization.slug })
+  })
+
+  it("laisse un serveur en cours d'enrôlement où il est, et le rend tel quel", async () => {
+    const { organization } = await createOrganizationWithMembers({
+      roles: ["owner"],
+    })
+
+    await grantSubscription(organization.id)
+
+    const { server } = await createServer({
+      organizationId: organization.id,
+      status: "enrolling",
+    })
+    const admin = await platformAdmin()
+
+    await apiRequest(`/admin/organizations/${organization.id}/suspend`, {
+      body: { reason: "abus signalé" },
+      session: admin,
+    })
+
+    expect(
+      await harness.prisma.server.findUniqueOrThrow({
+        where: { id: server.id },
+      })
+    ).toMatchObject({ status: "enrolling", suspendedByOrganization: false })
+
+    await apiRequest(`/admin/organizations/${organization.id}/restore`, {
+      method: "POST",
+      session: admin,
+    })
+
+    expect(
+      await harness.prisma.server.findUniqueOrThrow({
+        where: { id: server.id },
+      })
+    ).toMatchObject({ status: "enrolling" })
+  })
+
+  it("garde suspendu le serveur que l'équipe a pris pendant la suspension de l'organisation", async () => {
+    const { organization } = await createOrganizationWithMembers({
+      roles: ["owner"],
+    })
+
+    await grantSubscription(organization.id)
+
+    const { server } = await createServer({ organizationId: organization.id })
+    const admin = await platformAdmin()
+
+    await apiRequest(`/admin/organizations/${organization.id}/suspend`, {
+      body: { reason: "abus signalé" },
+      session: admin,
+    })
+    await apiRequest(`/admin/servers/${server.id}/suspend`, {
+      body: { reason: "machine compromise" },
+      session: admin,
+    })
+    await apiRequest(`/admin/organizations/${organization.id}/restore`, {
+      method: "POST",
+      session: admin,
+    })
+
+    expect(
+      await harness.prisma.server.findUniqueOrThrow({
+        where: { id: server.id },
+      })
+    ).toMatchObject({ status: "suspended", suspendedReason: "admin" })
+  })
+
+  it("porte sur la fiche la raison de l'état courant", async () => {
+    const { organization } = await createOrganizationWithMembers({
+      roles: ["owner"],
+    })
+    const admin = await platformAdmin()
+
+    await apiRequest(`/admin/organizations/${organization.id}/suspend`, {
+      body: { reason: "abus signalé" },
+      session: admin,
+    })
+
+    const suspended = await apiRequest<OrganizationDetailBody>(
+      `/admin/organizations/${organization.id}`,
+      { session: admin }
+    )
+
+    expect(suspended.json.data.reason).toBe("abus signalé")
+
+    await apiRequest(`/admin/organizations/${organization.id}/close`, {
+      body: { reason: "fin de la relation" },
+      session: admin,
+    })
+
+    const closed = await apiRequest<OrganizationDetailBody>(
+      `/admin/organizations/${organization.id}`,
+      { session: admin }
+    )
+
+    expect(closed.json.data.reason).toBe("fin de la relation")
   })
 })

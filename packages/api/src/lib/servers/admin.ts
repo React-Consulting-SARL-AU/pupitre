@@ -207,7 +207,11 @@ export async function suspendServerByAdmin(
 
   await prisma.server.update({
     where: { id: server.id },
-    data: { status: "suspended", suspendedReason: "admin" },
+    data: {
+      status: "suspended",
+      suspendedReason: "admin",
+      suspendedByOrganization: false,
+    },
   })
   await recordEvent({
     action: "server.suspended",

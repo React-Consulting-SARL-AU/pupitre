@@ -13,6 +13,7 @@ import {
   renameOrganization,
 } from "@/lib/api/admin-queries"
 import { queryKeys } from "@/lib/api/queries"
+import { isPlatformOrganization } from "@/lib/domain/admin"
 import {
   MAX_ORGANIZATION_NAME_LENGTH,
   type RenameOrganizationInput,
@@ -56,6 +57,15 @@ export function AdminOrganizationSettings({
   })
   const wanted = form.watch()
   const unchanged = wanted.name === held.name && wanted.slug === held.slug
+
+  if (isPlatformOrganization(detail.id)) {
+    return (
+      <Callout
+        title={t("admin.organizations.platformOrganization")}
+        tone="warn"
+      />
+    )
+  }
 
   return (
     <Card>
