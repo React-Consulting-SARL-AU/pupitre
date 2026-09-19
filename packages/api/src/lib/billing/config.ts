@@ -83,6 +83,37 @@ export function stripeConfigFromEnv(): StripeConfig {
   return { secretKey, prices, appUrl }
 }
 
+const STRIPE_DASHBOARD_LIVE = "https://dashboard.stripe.com"
+
+const STRIPE_TEST_KEY_MARKER = "_test_"
+
+const TRAILING_SLASHES_RE = /\/+$/
+
+/**
+ * Where the team reads a subscription at Stripe. The configured key says which
+ * of the two dashboards holds it; `STRIPE_DASHBOARD_URL` overrides that reading.
+ */
+export function stripeDashboardUrl(env: BillingEnv = process.env): string {
+  const configured = env.STRIPE_DASHBOARD_URL?.replace(TRAILING_SLASHES_RE, "")
+
+  if (configured) {
+    return configured
+  }
+
+  return env.STRIPE_SECRET_KEY?.includes(STRIPE_TEST_KEY_MARKER)
+    ? `${STRIPE_DASHBOARD_LIVE}/test`
+    : STRIPE_DASHBOARD_LIVE
+}
+
+export function stripeSubscriptionUrl(
+  stripeSubscriptionId: string,
+  env: BillingEnv = process.env
+): string {
+  const id = encodeURIComponent(stripeSubscriptionId)
+
+  return `${stripeDashboardUrl(env)}/subscriptions/${id}`
+}
+
 export function webhookSecretFromEnv(): string {
   const missing: string[] = []
   const secret = readEnv("STRIPE_WEBHOOK_SECRET", missing)

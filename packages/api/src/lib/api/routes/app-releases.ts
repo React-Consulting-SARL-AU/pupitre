@@ -47,7 +47,8 @@ export const appReleasesRoutes = new Elysia({
   name: "app-releases-routes",
   tags: ["Releases"],
 })
-  .onBeforeHandle({ as: "scoped" }, ({ set }) => {
+  // Local on purpose: a scoped hook would reach every route mounted after.
+  .onBeforeHandle(({ set }) => {
     set.headers["access-control-allow-origin"] = "*"
     set.headers["cache-control"] = PUBLIC_CACHE
   })

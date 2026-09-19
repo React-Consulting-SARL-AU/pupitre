@@ -88,6 +88,12 @@ export function isPlatformProduct(product: string): boolean {
   return PLATFORM_PRODUCTS.includes(product)
 }
 
+/**
+ * Stripe names and renames its own products: the filter and the label say that
+ * a row is billed by Stripe rather than showing an identifier nobody reads.
+ */
+export const STRIPE_PRODUCT = "stripe"
+
 export const LAUNCH_SEATS = TRIAL_SEATS
 
 /** The platform's own organization enrols what it needs during the launch. */
@@ -102,6 +108,13 @@ export const AFFILIATE_COOKIE = "pupitre_ref"
 export const AFFILIATE_COOKIE_DAYS = 90
 
 export const AFFILIATE_MAX_FREE_MONTHS = 24
+
+export const AFFILIATE_PARTNER_NAME_MAX_LENGTH = 120
+
+export const AFFILIATE_NOTES_MAX_LENGTH = 2000
+
+/** How many day buckets, today included, the recent click count covers. */
+export const AFFILIATE_CLICK_WINDOW_DAYS = 30
 
 export const DAYS_PER_FREE_MONTH = 30
 

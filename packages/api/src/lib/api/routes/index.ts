@@ -7,10 +7,12 @@ import { adminInboxRoutes } from "./admin/inbox"
 import { adminOrganizationsRoutes } from "./admin/organizations"
 import { adminOverviewRoutes } from "./admin/overview"
 import { adminReleasesRoutes } from "./admin/releases"
+import { adminSearchRoutes } from "./admin/search"
 import { adminServersRoutes } from "./admin/servers"
 import { adminSubscriptionsRoutes } from "./admin/subscriptions"
 import { adminTeamRoutes } from "./admin/team"
 import { adminUsersRoutes } from "./admin/users"
+import { affiliateRoutes } from "./affiliate"
 import { agentRoutes } from "./agent"
 import { appReleasesRoutes } from "./app-releases"
 import { devicesRoutes } from "./devices"
@@ -32,6 +34,7 @@ const adminRoutes = hiddenRoutes(
     .use(adminAppReleasesRoutes)
     .use(adminServersRoutes)
     .use(adminOverviewRoutes)
+    .use(adminSearchRoutes)
     .use(adminUsersRoutes)
     .use(adminOrganizationsRoutes)
     .use(adminSubscriptionsRoutes)
@@ -52,5 +55,6 @@ export const routes = new Elysia({ name: "routes" })
   .use(agentRoutes)
   .use(releasesRoutes)
   .use(appReleasesRoutes)
+  .use(affiliateRoutes)
   .use(webhooksRoutes)
   .use(adminRoutes)

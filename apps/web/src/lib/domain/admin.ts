@@ -1,6 +1,15 @@
 import type { OrgRole } from "@pupitre/shared/permissions"
-import { GRANTED_PRODUCT, isPlatformProduct } from "@pupitre/shared/plans"
-import { PLATFORM_ORGANIZATION_ID } from "@pupitre/shared/platform"
+import {
+  GRANTED_PRODUCT,
+  isPlatformProduct,
+  LAUNCH_PRODUCT,
+  STRIPE_PRODUCT,
+} from "@pupitre/shared/plans"
+import {
+  type AccountState,
+  type OrganizationState,
+  PLATFORM_ORGANIZATION_ID,
+} from "@pupitre/shared/platform"
 import { SERVER_STATUSES, type StatusLook } from "@/lib/domain/server-status"
 import type { DictionaryKey } from "@/lib/i18n/en"
 
@@ -58,16 +67,6 @@ export function canRestore(suspendedReason: string | null): boolean {
   return suspendedReason === "admin"
 }
 
-const CONFLICT = 409
-
-/**
- * The platform refuses to ban a member of its own organisation. The refusal is
- * about who the account is, so retrying never changes it: the control closes.
- */
-export function accountIsProtected(status: number | undefined): boolean {
-  return status === CONFLICT
-}
-
 export const SUBSCRIPTION_STATUS_FILTERS = [
   "trialing",
   "active",
@@ -78,19 +77,24 @@ export const SUBSCRIPTION_STATUS_FILTERS = [
 ] as const
 
 export const SUBSCRIPTION_PRODUCT_FILTERS = [
-  "prod_server",
-  "launch",
+  LAUNCH_PRODUCT,
   GRANTED_PRODUCT,
+  STRIPE_PRODUCT,
 ] as const
 
 const PRODUCT_KEYS: Record<string, DictionaryKey> = {
-  launch: "admin.subscriptions.product.launch",
-  prod_server: "admin.subscriptions.product.server",
+  [LAUNCH_PRODUCT]: "admin.subscriptions.product.launch",
   [GRANTED_PRODUCT]: "admin.subscriptions.product.granted",
+  [STRIPE_PRODUCT]: "admin.subscriptions.product.stripe",
 }
 
+/** Stripe names its own products: the console says where the row is billed, never the identifier. */
 export function productKey(product: string | null): DictionaryKey | null {
-  return product === null ? null : (PRODUCT_KEYS[product] ?? null)
+  if (product === null) {
+    return null
+  }
+
+  return PRODUCT_KEYS[product] ?? PRODUCT_KEYS[STRIPE_PRODUCT]
 }
 
 /** The statuses under which an organisation still holds its right of use, as `/me` counts them. */
@@ -119,6 +123,37 @@ export function canDeleteSubscription({
 
 export function canResizeSubscription(product: string): boolean {
   return product === GRANTED_PRODUCT
+}
+
+/** Stripe holds the trial: only a row it still bills as `trialing` takes a new end. */
+export function canExtendTrial({ product, status }: SubscriptionRow): boolean {
+  return !isPlatformProduct(product) && status === "trialing"
+}
+
+export interface ResumableSubscription extends SubscriptionRow {
+  cancel_at_period_end: boolean
+}
+
+export function canResumeSubscription({
+  product,
+  status,
+  cancel_at_period_end,
+}: ResumableSubscription): boolean {
+  return (
+    !isPlatformProduct(product) &&
+    subscriptionIsLive(status) &&
+    cancel_at_period_end
+  )
+}
+
+const STRIPE_EVENT_STATUS_KEYS: Record<string, DictionaryKey> = {
+  processing: "admin.subscriptions.eventStatus.processing",
+  processed: "admin.subscriptions.eventStatus.processed",
+  failed: "admin.subscriptions.eventStatus.failed",
+}
+
+export function stripeEventStatusKey(status: string): DictionaryKey | null {
+  return STRIPE_EVENT_STATUS_KEYS[status] ?? null
 }
 
 export interface GrantTarget {
@@ -242,38 +277,108 @@ export function releaseVersions(builds: ReleaseBuild[]): ReleaseVersion[] {
     )
 }
 
-export interface AdminUserState {
-  banned: boolean
-  email_verified: boolean
+const ACCOUNT_LOOKS: Record<AccountState, StatusLook> = {
+  active: { shape: "filled", tone: "ok", label: "admin.users.state.active" },
+  suspended: {
+    shape: "barred",
+    tone: "danger",
+    label: "admin.users.state.suspended",
+  },
+  deactivated: {
+    shape: "hollow",
+    tone: "warn",
+    label: "admin.users.state.deactivated",
+  },
+  deleting: {
+    shape: "barred",
+    tone: "danger",
+    label: "admin.users.state.deleting",
+  },
 }
 
-const BANNED: StatusLook = {
-  shape: "barred",
-  tone: "danger",
-  label: "admin.users.banned",
+export function accountLook(state: string): StatusLook {
+  return ACCOUNT_LOOKS[state as AccountState] ?? ACCOUNT_LOOKS.active
 }
 
-const UNVERIFIED: StatusLook = {
-  shape: "hollow",
-  tone: "warn",
-  label: "admin.users.unverified",
+const ORGANIZATION_LOOKS: Record<OrganizationState, StatusLook> = {
+  active: {
+    shape: "filled",
+    tone: "ok",
+    label: "admin.organizations.state.active",
+  },
+  suspended: {
+    shape: "barred",
+    tone: "danger",
+    label: "admin.organizations.state.suspended",
+  },
+  closed: {
+    shape: "hollow",
+    tone: "warn",
+    label: "admin.organizations.state.closed",
+  },
+  deleting: {
+    shape: "barred",
+    tone: "danger",
+    label: "admin.organizations.state.deleting",
+  },
 }
 
-const ACTIVE: StatusLook = {
-  shape: "filled",
-  tone: "ok",
-  label: "admin.users.active",
+export function organizationLook(state: string): StatusLook {
+  return (
+    ORGANIZATION_LOOKS[state as OrganizationState] ?? ORGANIZATION_LOOKS.active
+  )
 }
 
-export function userLook({
-  banned,
-  email_verified,
-}: AdminUserState): StatusLook {
-  if (banned) {
-    return BANNED
+export type AccountGesture =
+  | "suspend"
+  | "unsuspend"
+  | "deactivate"
+  | "reactivate"
+  | "delete"
+  | "purge"
+  | "cancel_deletion"
+  | "revoke_sessions"
+
+/** What an account in this state has left to be done to it: the page shows these and nothing else. */
+export function accountGestures(state: string): AccountGesture[] {
+  if (state === "deleting") {
+    return ["cancel_deletion", "purge", "revoke_sessions"]
   }
 
-  return email_verified ? ACTIVE : UNVERIFIED
+  if (state === "deactivated") {
+    return ["reactivate", "delete", "revoke_sessions"]
+  }
+
+  if (state === "suspended") {
+    return ["unsuspend", "deactivate", "delete", "revoke_sessions"]
+  }
+
+  return ["suspend", "deactivate", "delete", "revoke_sessions"]
+}
+
+export type OrganizationGesture =
+  | "suspend"
+  | "restore"
+  | "close"
+  | "reopen"
+  | "delete"
+  | "purge"
+  | "cancel_deletion"
+
+export function organizationGestures(state: string): OrganizationGesture[] {
+  if (state === "deleting") {
+    return ["cancel_deletion", "purge"]
+  }
+
+  if (state === "closed") {
+    return ["reopen", "delete"]
+  }
+
+  if (state === "suspended") {
+    return ["restore", "close", "delete"]
+  }
+
+  return ["suspend", "close", "delete"]
 }
 
 export interface AdminOverview {

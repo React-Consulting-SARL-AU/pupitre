@@ -1,8 +1,9 @@
+import { ADMIN_PAGE_SIZE } from "@pupitre/shared/platform"
 import type { UseQueryResult } from "@tanstack/react-query"
-import { AdminFailure } from "@/components/admin/admin-failure"
-import { AdminReleaseRow } from "@/components/admin/admin-release-row"
-import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
-import { SkeletonRows } from "@/components/ui/skeleton"
+import { Package } from "lucide-react"
+import { useState } from "react"
+import { adminReleaseColumns } from "@/components/admin/admin-release-columns"
+import { AsyncDataTable } from "@/components/ui/async-data-table"
 import { useTranslations } from "@/hooks/use-locale"
 import { type ReleaseBuild, releaseVersions } from "@/lib/domain/admin"
 
@@ -26,53 +27,32 @@ export function AdminReleaseList({
   onPromote,
 }: AdminReleaseListProps) {
   const t = useTranslations()
-
-  if (builds.isPending) {
-    return <SkeletonRows label={t("admin.reading")} />
-  }
-
-  if (builds.isError) {
-    return (
-      <AdminFailure
-        fetching={builds.isFetching}
-        onRetry={() => {
-          builds.refetch()
-        }}
-      />
-    )
-  }
-
-  const versions = releaseVersions(builds.data)
+  const [offset, setOffset] = useState(0)
+  const versions = releaseVersions(builds.data ?? [])
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <span className="font-data text-[12px] text-ink-3 tabular-nums">
-          {versions.length}
-        </span>
-      </CardHeader>
-
-      {versions.length === 0 ? (
-        <CardBody>
-          <p className="text-[13px] text-ink-3">{t("admin.releases.empty")}</p>
-        </CardBody>
-      ) : (
-        <ul aria-busy={builds.isFetching || undefined}>
-          {versions.map((version) => (
-            <AdminReleaseRow
-              canPromote={canPromote}
-              key={version.version}
-              onPromote={() => {
-                onPromote(version.version)
-              }}
-              promoting={promoting === version.version}
-              target={target}
-              version={version}
-            />
-          ))}
-        </ul>
-      )}
-    </Card>
+    <AsyncDataTable
+      columns={adminReleaseColumns(t, {
+        canPromote,
+        target,
+        promoting,
+        onPromote,
+      })}
+      data={versions.slice(offset, offset + ADMIN_PAGE_SIZE)}
+      emptyIcon={Package}
+      emptyTitle={t("admin.releases.empty")}
+      isError={builds.isError}
+      isFetching={builds.isFetching}
+      isPending={builds.isPending}
+      limit={ADMIN_PAGE_SIZE}
+      offset={offset}
+      onOffsetChange={setOffset}
+      refetch={() => {
+        builds.refetch()
+      }}
+      rowKey={(version) => version.version}
+      title={title}
+      total={versions.length}
+    />
   )
 }

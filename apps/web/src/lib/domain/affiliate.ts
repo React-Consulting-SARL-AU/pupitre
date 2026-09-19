@@ -4,6 +4,8 @@ import {
   AFFILIATE_COOKIE,
   AFFILIATE_COOKIE_DAYS,
 } from "@pupitre/shared/plans"
+import type { OverviewFigure } from "@/lib/domain/admin"
+import type { DictionaryKey } from "@/lib/i18n/en"
 
 const SECONDS_PER_DAY = 86_400
 
@@ -16,6 +18,95 @@ export function affiliateUrlFor(code: string): string {
 
 export function isAffiliateCode(value: unknown): value is string {
   return typeof value === "string" && AFFILIATE_CODE_RE.test(value)
+}
+
+export const AFFILIATE_LINK_TABS = [
+  "overview",
+  "organizations",
+  "settings",
+  "danger",
+] as const
+
+export type AffiliateLinkTab = (typeof AFFILIATE_LINK_TABS)[number]
+
+export const AFFILIATE_LINK_TAB: AffiliateLinkTab = "overview"
+
+export function affiliateLinkTab(value: unknown): AffiliateLinkTab {
+  return AFFILIATE_LINK_TABS.find((tab) => tab === value) ?? AFFILIATE_LINK_TAB
+}
+
+const READER_TABS: AffiliateLinkTab[] = ["overview", "organizations"]
+
+/** A reader of the platform has neither settings nor danger: an address naming one opens the overview. */
+export function affiliateLinkTabFor(
+  tab: AffiliateLinkTab,
+  canAct: boolean
+): AffiliateLinkTab {
+  return canAct || READER_TABS.includes(tab) ? tab : AFFILIATE_LINK_TAB
+}
+
+export interface AffiliateConversion {
+  referred: number
+  trialing: number
+  active: number
+  past_due: number
+  canceled: number
+  seats: number
+}
+
+const CONVERSION_LABELS: [keyof AffiliateConversion, DictionaryKey][] = [
+  ["referred", "admin.links.conversion.referred"],
+  ["trialing", "admin.links.conversion.trialing"],
+  ["active", "admin.links.conversion.active"],
+  ["past_due", "admin.links.conversion.pastDue"],
+  ["canceled", "admin.links.conversion.canceled"],
+  ["seats", "admin.links.conversion.seats"],
+]
+
+/** What the link brought, in the order the reader follows it: arrived, then what became of them. */
+export function affiliateConversionFigures(
+  conversion: AffiliateConversion
+): OverviewFigure[] {
+  return CONVERSION_LABELS.map(([key, label]) => ({
+    id: key,
+    label,
+    value: conversion[key],
+    parts: [],
+  }))
+}
+
+export interface AffiliateLinkMatch {
+  name: string
+  code: string
+  partner_name: string | null
+  disabled: boolean
+}
+
+export interface AffiliateLinkFilter {
+  query: string
+  disabled: boolean | undefined
+}
+
+/** The list route takes no query: the narrowing happens on the rows the page already holds. */
+export function filterAffiliateLinks<Link extends AffiliateLinkMatch>(
+  links: Link[],
+  { query, disabled }: AffiliateLinkFilter
+): Link[] {
+  const needle = query.trim().toLowerCase()
+
+  return links.filter((link) => {
+    if (disabled !== undefined && link.disabled !== disabled) {
+      return false
+    }
+
+    if (needle === "") {
+      return true
+    }
+
+    return [link.name, link.code, link.partner_name ?? ""].some((field) =>
+      field.toLowerCase().includes(needle)
+    )
+  })
 }
 
 /** The code the marketing site, or the sign-in page, left in the browser; nothing when it is unreadable. */

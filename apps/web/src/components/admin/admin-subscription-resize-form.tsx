@@ -70,7 +70,7 @@ export function AdminSubscriptionResizeForm({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t("admin.subscriptions.resize")}</CardTitle>
+        <CardTitle>{t("admin.subscriptions.resizeZoneTitle")}</CardTitle>
       </CardHeader>
       <CardBody>
         <form

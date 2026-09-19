@@ -11,12 +11,19 @@ export type ThreadPageQuery = NonNullable<
 
 export type ThreadStatus = NonNullable<ThreadPageQuery["status"]>
 
+export type ThreadSort = NonNullable<ThreadPageQuery["sort"]>
+
+export type ThreadDirection = NonNullable<ThreadPageQuery["direction"]>
+
 export const inboxKeys = {
   threads: (page: ThreadPageQuery) => ["inbox", "threads", page] as const,
   allThreads: ["inbox", "threads"] as const,
   thread: (id: string) => ["inbox", "thread", id] as const,
   attachmentUrl: (id: string) => ["inbox", "attachment", id] as const,
-  addresses: ["inbox", "addresses"] as const,
+  mailboxes: ["inbox", "mailboxes"] as const,
+  counts: ["inbox", "counts"] as const,
+  templates: (mailboxId: string) => ["inbox", "templates", mailboxId] as const,
+  allTemplates: ["inbox", "templates"] as const,
   team: ["inbox", "team"] as const,
 }
 
@@ -46,6 +53,10 @@ type InboxThreadDetail = Awaited<ReturnType<typeof readThread>>
 
 export type InboxMessage = InboxThreadDetail["messages"][number]
 
+export type InboxNote = InboxThreadDetail["notes"][number]
+
+export type InboxActivity = InboxThreadDetail["activities"][number]
+
 export function inboxThreadQueryOptions(id: string) {
   return queryOptions({
     queryKey: inboxKeys.thread(id),
@@ -53,14 +64,48 @@ export function inboxThreadQueryOptions(id: string) {
   })
 }
 
-async function readAddresses() {
-  return unwrap(await api().api.v1.admin.inbox.addresses.get()).data
+async function readMailboxes() {
+  return unwrap(await api().api.v1.admin.inbox.mailboxes.get()).data
 }
 
-export function inboxAddressesQueryOptions() {
+export type InboxMailbox = Awaited<ReturnType<typeof readMailboxes>>[number]
+
+export function inboxMailboxesQueryOptions() {
   return queryOptions({
-    queryKey: inboxKeys.addresses,
-    queryFn: readAddresses,
+    queryKey: inboxKeys.mailboxes,
+    queryFn: readMailboxes,
+  })
+}
+
+async function readCounts() {
+  return unwrap(await api().api.v1.admin.inbox.counts.get()).data
+}
+
+export type InboxCounts = Awaited<ReturnType<typeof readCounts>>
+
+export function inboxCountsQueryOptions() {
+  return queryOptions({
+    queryKey: inboxKeys.counts,
+    queryFn: readCounts,
+    refetchInterval: INBOX_POLL_INTERVAL_MS,
+    refetchIntervalInBackground: false,
+  })
+}
+
+async function readTemplates(mailboxId: string) {
+  return unwrap(
+    await api().api.v1.admin.inbox.templates.get({
+      query: mailboxId === "" ? {} : { mailbox_id: mailboxId },
+    })
+  ).data
+}
+
+export type InboxTemplate = Awaited<ReturnType<typeof readTemplates>>[number]
+
+export function inboxTemplatesQueryOptions(mailboxId: string) {
+  return queryOptions({
+    queryKey: inboxKeys.templates(mailboxId),
+    queryFn: () => readTemplates(mailboxId),
   })
 }
 
@@ -83,6 +128,125 @@ export function patchThread(id: string, patch: ThreadPatch): Promise<void> {
   return api()
     .api.v1.admin.inbox.threads({ id })
     .patch(patch)
+    .then((response) => {
+      unwrap(response)
+    })
+}
+
+export type ThreadBulkPatch = Parameters<InboxApi["threads"]["bulk"]["post"]>[0]
+
+export function bulkPatchThreads(body: ThreadBulkPatch): Promise<number> {
+  return api()
+    .api.v1.admin.inbox.threads.bulk.post(body)
+    .then((response) => unwrap(response).data.updated)
+}
+
+export type MailboxInput = Parameters<InboxApi["mailboxes"]["post"]>[0]
+
+export async function createMailbox(input: MailboxInput) {
+  const body = unwrap(await api().api.v1.admin.inbox.mailboxes.post(input))
+
+  if (!("data" in body)) {
+    throw new ApiError(500, body, "the mailbox came back without data")
+  }
+
+  return body.data
+}
+
+export type MailboxPatch = Parameters<
+  ReturnType<InboxApi["mailboxes"]>["patch"]
+>[0]
+
+export function patchMailbox(id: string, patch: MailboxPatch): Promise<void> {
+  return api()
+    .api.v1.admin.inbox.mailboxes({ id })
+    .patch(patch)
+    .then((response) => {
+      unwrap(response)
+    })
+}
+
+export function deleteMailbox(id: string): Promise<void> {
+  return api()
+    .api.v1.admin.inbox.mailboxes({ id })
+    .delete()
+    .then((response) => {
+      unwrap(response)
+    })
+}
+
+export type NoteInput = Parameters<
+  ReturnType<InboxApi["threads"]>["notes"]["post"]
+>[0]
+
+export function createNote(id: string, input: NoteInput): Promise<void> {
+  return api()
+    .api.v1.admin.inbox.threads({ id })
+    .notes.post(input)
+    .then((response) => {
+      unwrap(response)
+    })
+}
+
+export function deleteNote(id: string, noteId: string): Promise<void> {
+  return api()
+    .api.v1.admin.inbox.threads({ id })
+    .notes({ noteId })
+    .delete()
+    .then((response) => {
+      unwrap(response)
+    })
+}
+
+export type DraftInput = Parameters<
+  ReturnType<InboxApi["threads"]>["draft"]["put"]
+>[0]
+
+export function saveDraft(id: string, input: DraftInput): Promise<void> {
+  return api()
+    .api.v1.admin.inbox.threads({ id })
+    .draft.put(input)
+    .then((response) => {
+      unwrap(response)
+    })
+}
+
+export function deleteDraft(id: string): Promise<void> {
+  return api()
+    .api.v1.admin.inbox.threads({ id })
+    .draft.delete()
+    .then((response) => {
+      unwrap(response)
+    })
+}
+
+export type TemplateInput = Parameters<InboxApi["templates"]["post"]>[0]
+
+export function createTemplate(input: TemplateInput): Promise<void> {
+  return api()
+    .api.v1.admin.inbox.templates.post(input)
+    .then((response) => {
+      unwrap(response)
+    })
+}
+
+export type TemplatePatch = Parameters<
+  ReturnType<InboxApi["templates"]>["patch"]
+>[0]
+
+export function patchTemplate(id: string, patch: TemplatePatch): Promise<void> {
+  return api()
+    .api.v1.admin.inbox.templates({ id })
+    .patch(patch)
+    .then((response) => {
+      unwrap(response)
+    })
+}
+
+export function deleteTemplate(id: string): Promise<void> {
+  return api()
+    .api.v1.admin.inbox.templates({ id })
+    .delete()
     .then((response) => {
       unwrap(response)
     })
@@ -186,10 +350,12 @@ export function replyToThread(id: string, body: ReplyBody): Promise<void> {
 
 export type ComposeEmail = Parameters<InboxApi["compose"]["post"]>[0]
 
-export function composeEmail(input: ComposeEmail): Promise<void> {
-  return api()
-    .api.v1.admin.inbox.compose.post(input)
-    .then((response) => {
-      unwrap(response)
-    })
+export async function composeEmail(input: ComposeEmail): Promise<string> {
+  const body = unwrap(await api().api.v1.admin.inbox.compose.post(input))
+
+  if (!("data" in body) || body.data === null) {
+    throw new ApiError(500, body, "the thread came back without data")
+  }
+
+  return body.data.id
 }

@@ -65,6 +65,24 @@ function idOf(value: unknown): string | null {
   return null
 }
 
+/**
+ * Which subscription an invoice belongs to: Stripe moved the field under
+ * `parent.subscription_details` in the 2025 API and kept the older shapes
+ * alive, so a delivery can carry any of the three.
+ */
+function invoiceSubscriptionOf(object: Record<string, unknown>): string | null {
+  const parent = object.parent as Record<string, unknown> | undefined
+  const details = parent?.subscription_details as
+    | Record<string, unknown>
+    | undefined
+
+  return (
+    idOf(object.subscription) ??
+    idOf(details?.subscription) ??
+    idOf(parent?.subscription)
+  )
+}
+
 function metadataOrganizationOf(
   object: Record<string, unknown>
 ): string | null {
@@ -233,9 +251,7 @@ async function onInvoicePaymentFailed(
   now: Date
 ): Promise<boolean> {
   const customerId = idOf(object.customer)
-  const subscriptionId =
-    idOf(object.subscription) ??
-    idOf((object.parent as Record<string, unknown> | undefined)?.subscription)
+  const subscriptionId = invoiceSubscriptionOf(object)
   const organizationId =
     (await organizationOfSubscription(subscriptionId)) ??
     (await organizationOfCustomer(customerId))
@@ -262,6 +278,21 @@ async function onInvoicePaymentFailed(
   })
 
   return true
+}
+
+/**
+ * Which subscription the delivery talks about, read off the envelope: what a
+ * later reader filters on, since the row keeps no payload.
+ */
+function announcedSubscriptionOf(
+  type: string,
+  object: Record<string, unknown>
+): string | null {
+  if (type.startsWith(SUBSCRIPTION_EVENT_PREFIX)) {
+    return idOf(object.id)
+  }
+
+  return invoiceSubscriptionOf(object)
 }
 
 function dispatch(
@@ -301,13 +332,14 @@ function isUniqueViolation(error: unknown): boolean {
 async function claimEvent(
   id: string,
   type: string,
+  subscriptionId: string | null,
   now: Date
 ): Promise<boolean> {
   const prisma = getPrisma()
 
   try {
     await prisma.stripeEvent.create({
-      data: { id, type, status: "processing", receivedAt: now },
+      data: { id, type, subscriptionId, status: "processing", receivedAt: now },
     })
 
     return true
@@ -319,7 +351,7 @@ async function claimEvent(
 
   const retried = await prisma.stripeEvent.updateMany({
     where: { id, status: "failed" },
-    data: { status: "processing", receivedAt: now },
+    data: { status: "processing", subscriptionId, receivedAt: now },
   })
 
   return retried.count === 1
@@ -362,7 +394,11 @@ export async function handleStripeWebhook({
     throw new StripeEventMalformedError()
   }
 
-  if (!(await claimEvent(id, type, now))) {
+  const object = envelope.data?.object ?? {}
+
+  if (
+    !(await claimEvent(id, type, announcedSubscriptionOf(type, object), now))
+  ) {
     return { event_id: id, type, handled: false, duplicate: true }
   }
 
@@ -370,7 +406,7 @@ export async function handleStripeWebhook({
   let handled: boolean
 
   try {
-    handled = await dispatch(type, envelope.data?.object ?? {}, now)
+    handled = await dispatch(type, object, now)
   } catch (error) {
     await prisma.stripeEvent.update({
       where: { id },

@@ -392,6 +392,44 @@ describe("POST /webhooks/stripe", () => {
     expect(afterGrace.json.entitlement).toBe("suspended")
   })
 
+  it("lit l'abonnement d'une facture rangé sous parent.subscription_details", async () => {
+    await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "customer.subscription.created",
+        stripeSubscriptionObject({ organizationId, quantity: 1 })
+      )
+    )
+
+    const failed = await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "invoice.payment_failed",
+        {
+          id: "in_test_parent",
+          object: "invoice",
+          customer: "cus_test_1",
+          parent: { subscription_details: { subscription: "sub_test_1" } },
+        },
+        "evt_test_parent"
+      )
+    )
+
+    expect(failed.json.handled).toBe(true)
+    expect(
+      (
+        await server.prisma.subscription.findFirstOrThrow({
+          where: { organizationId },
+        })
+      ).status
+    ).toBe("past_due")
+    expect(
+      (
+        await server.prisma.stripeEvent.findUniqueOrThrow({
+          where: { id: "evt_test_parent" },
+        })
+      ).subscriptionId
+    ).toBe("sub_test_1")
+  })
+
   it("rend leur droit d'usage aux serveurs quand l'abonnement repart", async () => {
     const enrolled = await createServer({ organizationId, status: "grace" })
 
@@ -779,5 +817,68 @@ describe("POST /webhooks/stripe", () => {
     expect(response.json).toMatchObject({ handled: false, duplicate: false })
     expect(await server.prisma.subscription.count()).toBe(0)
     expect(await server.prisma.stripeEvent.count()).toBe(1)
+  })
+
+  it("garde la résiliation en fin de période, et la retire quand Stripe la retire", async () => {
+    await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "customer.subscription.updated",
+        stripeSubscriptionObject({
+          organizationId,
+          status: "active",
+          cancelAtPeriodEnd: true,
+        })
+      )
+    )
+
+    expect(
+      await server.prisma.subscription.findFirstOrThrow({
+        where: { stripeSubscriptionId: "sub_test_1" },
+      })
+    ).toMatchObject({ status: "active", cancelAtPeriodEnd: true })
+
+    await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "customer.subscription.updated",
+        stripeSubscriptionObject({ organizationId, status: "active" })
+      )
+    )
+
+    expect(
+      await server.prisma.subscription.findFirstOrThrow({
+        where: { stripeSubscriptionId: "sub_test_1" },
+      })
+    ).toMatchObject({ cancelAtPeriodEnd: false })
+  })
+
+  it("classe chaque livraison sous l'abonnement qu'elle nomme", async () => {
+    await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "customer.subscription.created",
+        stripeSubscriptionObject({ organizationId })
+      )
+    )
+    await postStripeWebhook<AckBody>(invoicePaymentFailed("in_classement"))
+    await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "customer.subscription.created",
+        stripeSubscriptionObject({ id: "sub_orphan", customerId: "cus_orphan" })
+      )
+    )
+
+    const filed = await server.prisma.stripeEvent.findMany({
+      where: { subscriptionId: "sub_test_1" },
+      orderBy: { type: "asc" },
+    })
+
+    expect(filed.map((event) => event.type)).toEqual([
+      "customer.subscription.created",
+      "invoice.payment_failed",
+    ])
+    expect(
+      await server.prisma.stripeEvent.count({
+        where: { subscriptionId: "sub_orphan" },
+      })
+    ).toBe(1)
   })
 })

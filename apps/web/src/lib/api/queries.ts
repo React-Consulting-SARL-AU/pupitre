@@ -38,6 +38,7 @@ export const queryKeys = {
     organizations: (page: AdminPageQuery) =>
       ["admin", "organizations", page] as const,
     organization: (id: string) => ["admin", "organization", id] as const,
+    allOrganizations: ["admin", "organizations"] as const,
     subscriptions: (page: AdminSubscriptionPageQuery) =>
       ["admin", "subscriptions", page] as const,
     subscription: (id: string) => ["admin", "subscription", id] as const,
@@ -48,6 +49,7 @@ export const queryKeys = {
     releases: ["admin", "releases"] as const,
     appReleases: ["admin", "app-releases"] as const,
     team: ["admin", "team"] as const,
+    search: (query: string) => ["admin", "search", query] as const,
   },
 }
 
@@ -55,11 +57,18 @@ export interface AdminPageQuery {
   limit: number
   offset: number
   q?: string
+  /** The computed state a list narrows to; accounts and organisations each have their own. */
+  state?: string
 }
+
+export type AdminSortDirection = "asc" | "desc"
 
 export interface AdminServerPageQuery extends AdminPageQuery {
   status?: string
   organization_id?: string
+  stale?: boolean
+  sort?: "created_at" | "last_heartbeat_at" | "name"
+  direction?: AdminSortDirection
 }
 
 export interface AdminSubscriptionPageQuery {
@@ -67,6 +76,12 @@ export interface AdminSubscriptionPageQuery {
   offset: number
   status?: string
   product?: string
+  organization_id?: string
+  live?: boolean
+  drifted?: boolean
+  q?: string
+  sort?: "created_at" | "current_period_end" | "updated_at"
+  direction?: AdminSortDirection
 }
 
 export interface AdminEventPageQuery {

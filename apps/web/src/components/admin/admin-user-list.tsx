@@ -1,89 +1,94 @@
-import { ADMIN_PAGE_SIZE } from "@pupitre/shared/platform"
+import { ACCOUNT_STATES, ADMIN_PAGE_SIZE } from "@pupitre/shared/platform"
 import { useQuery } from "@tanstack/react-query"
 import { UsersRound } from "lucide-react"
-import { useState } from "react"
-import { AdminFailure } from "@/components/admin/admin-failure"
-import { AdminSearchForm } from "@/components/admin/admin-search-form"
-import { AdminUserRow } from "@/components/admin/admin-user-row"
-import { Card, CardHeader, CardTitle } from "@/components/ui/card"
-import { EmptyState } from "@/components/ui/empty-state"
-import { Pagination } from "@/components/ui/pagination"
-import { SkeletonRows } from "@/components/ui/skeleton"
+import { adminUserColumns } from "@/components/admin/admin-user-columns"
+import { AsyncDataTable } from "@/components/ui/async-data-table"
+import { Label } from "@/components/ui/label"
+import { Select } from "@/components/ui/select"
 import { useTranslations } from "@/hooks/use-locale"
 import { adminUsersQueryOptions } from "@/lib/api/admin-queries"
+import { accountLook } from "@/lib/domain/admin"
+import type { ListSearchHandle } from "@/lib/domain/list-search"
 
-export function AdminUserList() {
+const ALL_STATES = ""
+
+export interface AdminUserListSearch {
+  q?: string
+  offset?: number
+  state?: string
+}
+
+export type AdminUserListProps = ListSearchHandle<AdminUserListSearch>
+
+export function AdminUserList({ search, setSearch }: AdminUserListProps) {
   const t = useTranslations()
-  const [query, setQuery] = useState("")
-  const [offset, setOffset] = useState(0)
+  const offset = search.offset ?? 0
+  const query = search.q ?? ""
+  const state = search.state ?? ALL_STATES
   const page = useQuery(
     adminUsersQueryOptions({
       limit: ADMIN_PAGE_SIZE,
       offset,
       ...(query === "" ? {} : { q: query }),
+      ...(state === ALL_STATES ? {} : { state }),
     })
   )
 
-  function searchFor(next: string) {
-    setQuery(next)
-    setOffset(0)
-  }
-
   return (
-    <div className="flex flex-col gap-gutter">
-      <AdminSearchForm
-        id="admin-users-search"
-        onSearch={searchFor}
-        placeholder={t("admin.users.searchPlaceholder")}
-        query={query}
-      />
-
-      {page.isPending ? <SkeletonRows label={t("admin.reading")} /> : null}
-
-      {page.isError ? (
-        <AdminFailure
-          fetching={page.isFetching}
-          onRetry={() => {
-            page.refetch()
-          }}
-        />
-      ) : null}
-
-      {page.isSuccess && page.data.total === 0 ? (
-        <EmptyState icon={UsersRound} title={t("admin.users.empty")} />
-      ) : null}
-
-      {page.isSuccess && page.data.total > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("admin.users.title")}</CardTitle>
-            <span className="font-data text-[12px] text-ink-3 tabular-nums">
-              {t("admin.range", {
-                from: offset + 1,
-                to: offset + page.data.data.length,
-                total: page.data.total,
-              })}
-            </span>
-          </CardHeader>
-
-          <ul aria-busy={page.isFetching || undefined}>
-            {page.data.data.map((user) => (
-              <AdminUserRow key={user.id} user={user} />
-            ))}
-          </ul>
-        </Card>
-      ) : null}
-
-      {page.isSuccess ? (
-        <Pagination
-          nextLabel={t("admin.next")}
-          offset={offset}
-          onOffsetChange={setOffset}
-          pageSize={ADMIN_PAGE_SIZE}
-          previousLabel={t("admin.previous")}
-          total={page.data.total}
-        />
-      ) : null}
-    </div>
+    <AsyncDataTable
+      columns={adminUserColumns(t)}
+      data={page.data?.data ?? []}
+      emptyIcon={UsersRound}
+      emptyTitle={t("admin.users.empty")}
+      filters={
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="admin-users-state">
+            {t("admin.users.stateFilter")}
+          </Label>
+          <Select
+            className="w-[200px]"
+            id="admin-users-state"
+            items={[
+              { value: ALL_STATES, label: t("admin.users.allStates") },
+              ...ACCOUNT_STATES.map((candidate) => ({
+                value: candidate,
+                label: t(accountLook(candidate).label),
+              })),
+            ]}
+            onValueChange={(next) => {
+              setSearch({ state: next })
+            }}
+            value={state}
+          />
+        </div>
+      }
+      isError={page.isError}
+      isFetching={page.isFetching}
+      isPending={page.isPending}
+      limit={ADMIN_PAGE_SIZE}
+      offset={offset}
+      onOffsetChange={(next) => {
+        setSearch({ offset: next })
+      }}
+      refetch={() => {
+        page.refetch()
+      }}
+      rowKey={(user) => user.id}
+      rowLabel={(user) => user.email}
+      rowLink={(user) => ({
+        to: "/dashboard/admin/users/$id",
+        params: { id: user.id },
+      })}
+      search={{
+        id: "admin-users-search",
+        value: query,
+        placeholder: t("admin.users.searchPlaceholder"),
+        onChange: (next) => {
+          setSearch({ q: next })
+        },
+      }}
+      title={t("admin.users.title")}
+      total={page.data?.total ?? 0}
+    />
   )
 }

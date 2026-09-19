@@ -20,6 +20,8 @@
     ]
   },
   "javascript": {
+    // A Workers global the runtime declares and no type package puts on `globalThis`.
+    "globals": ["WebSocketPair"],
     "formatter": {
       "semicolons": "asNeeded"
     }

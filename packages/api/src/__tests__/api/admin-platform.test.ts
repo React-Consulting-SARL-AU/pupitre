@@ -13,6 +13,35 @@ interface ErrorBody {
   error: { code: string }
 }
 
+interface Worklist<Item> {
+  count: number
+  items: Item[]
+}
+
+interface OverviewWorklists {
+  unread_mail: Worklist<{ id: string; subject: string; address: string }>
+  past_due: Worklist<{
+    id: string
+    organization: { id: string; name: string }
+    status: string
+  }>
+  trials_ending: Worklist<{
+    id: string
+    organization: { id: string; name: string }
+    current_period_end: string | null
+  }>
+  servers_unreachable: Worklist<{
+    id: string
+    name: string
+    organization: { id: string; name: string }
+  }>
+  seats_drifted: Worklist<{
+    organization: { id: string; name: string }
+    paid: number
+    used: number
+  }>
+}
+
 interface OverviewBody {
   data: {
     users: number
@@ -21,6 +50,7 @@ interface OverviewBody {
     subscriptions: Record<string, number>
     affiliate_links: number
     referrals: number
+    worklists: OverviewWorklists
   }
 }
 
@@ -135,8 +165,11 @@ describe("GET /admin/overview", () => {
       session: admin,
     })
 
+    const { worklists, ...counters } = response.json.data
+
     expect(response.status).toBe(200)
-    expect(response.json.data).toEqual({
+    expect(worklists.past_due.count).toBe(0)
+    expect(counters).toEqual({
       users: 4,
       organizations: 7,
       servers: {
@@ -257,5 +290,79 @@ describe("GET /admin/users", () => {
     expect(page.json.total).toBe(4)
     expect(page.json.data).toHaveLength(1)
     expect(tooMany.status).toBe(422)
+  })
+
+  it("ne garde que les comptes de l'état demandé, un bannissement échu comptant pour actif", async () => {
+    const { members } = await createOrganizationWithMembers({
+      name: "États",
+      roles: ["owner", "admin", "member"],
+    })
+    const [banni, echu, desactive] = members.map((member) => member.user)
+    const { members: autres } = await createOrganizationWithMembers({
+      name: "Partants",
+      roles: ["owner"],
+    })
+    const efface = autres[0].user
+
+    await harness.prisma.user.update({
+      where: { id: banni.id },
+      data: { banned: true, banReason: "abus" },
+    })
+    await harness.prisma.user.update({
+      where: { id: echu.id },
+      data: {
+        banned: true,
+        banReason: "abus",
+        banExpires: new Date(Date.now() - 1000),
+      },
+    })
+    await harness.prisma.user.update({
+      where: { id: desactive.id },
+      data: { deactivatedAt: new Date(), deactivatedReason: "inactif" },
+    })
+    await harness.prisma.user.update({
+      where: { id: efface.id },
+      data: { deletionAt: new Date(), deletionReason: "demande" },
+    })
+
+    const admin = await platformAdmin()
+    const suspended = await apiRequest<UsersBody>(
+      "/admin/users?state=suspended",
+      { session: admin }
+    )
+    const deactivated = await apiRequest<UsersBody>(
+      "/admin/users?state=deactivated",
+      { session: admin }
+    )
+    const deleting = await apiRequest<UsersBody>(
+      "/admin/users?state=deleting",
+      {
+        session: admin,
+      }
+    )
+    const active = await apiRequest<UsersBody>("/admin/users?state=active", {
+      session: admin,
+    })
+    const searched = await apiRequest<UsersBody>(
+      `/admin/users?state=active&q=${encodeURIComponent(echu.email)}`,
+      { session: admin }
+    )
+    const unknown = await apiRequest<ErrorBody>("/admin/users?state=ailleurs", {
+      session: admin,
+    })
+    const ids = active.json.data.map((user) => user.id)
+
+    expect(suspended.json.total).toBe(1)
+    expect(suspended.json.data[0]?.id).toBe(banni.id)
+    expect(deactivated.json.total).toBe(1)
+    expect(deactivated.json.data[0]?.id).toBe(desactive.id)
+    expect(deleting.json.total).toBe(1)
+    expect(deleting.json.data[0]?.id).toBe(efface.id)
+    expect(ids).toContain(echu.id)
+    expect(ids).not.toContain(banni.id)
+    expect(ids).not.toContain(desactive.id)
+    expect(ids).not.toContain(efface.id)
+    expect(searched.json.total).toBe(1)
+    expect(unknown.status).toBe(422)
   })
 })

@@ -28,6 +28,17 @@ export const PUBLIC_RELEASES_RATE_LIMIT: RateLimitOptions = {
   windowMs: 60_000,
 }
 
+/**
+ * What one address may count toward the affiliate links.
+ *
+ * A visit sends one beacon and the counter is by day: past this budget it is a
+ * script, and the answer stays the same whether the hit counted or not.
+ */
+export const AFFILIATE_HIT_RATE_LIMIT: RateLimitOptions = {
+  limit: 60,
+  windowMs: 60_000,
+}
+
 const PRUNE_ABOVE_ENTRIES = 10_000
 
 interface Window {

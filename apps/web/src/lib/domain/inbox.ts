@@ -11,7 +11,23 @@ import type { Translate } from "@/lib/i18n/i18n"
 
 export const INBOX_PAGE_SIZE = 25
 
-export const INBOX_POLL_INTERVAL_MS = 30_000
+/** The socket carries the news; this only catches up a socket that died without saying so. */
+export const INBOX_POLL_INTERVAL_MS = 60_000
+
+/** How long the composer waits after the last keystroke before keeping the draft. */
+export const DRAFT_SAVE_DELAY_MS = 800
+
+/** Past this many messages, the older ones of a thread fold into one line. */
+export const THREAD_FOLD_THRESHOLD = 5
+
+/** What the list shows to a reader who asked for no status: the work still to do. */
+export const INBOX_STATUS = "open"
+
+export const MAILBOX_EVERY = ""
+
+export const MAILBOX_OTHERS = "others"
+
+export const MAILBOX_AUTOMATED = "automated"
 
 export const ASSIGNED_ANYONE = ""
 
@@ -129,4 +145,59 @@ export function attachmentBudget(files: readonly File[]): AttachmentBudget {
 
 export function canPreview(mimeType: string): boolean {
   return isPreviewableMailType(mimeType)
+}
+
+const INITIAL_RE = /[^\p{L}\p{N}]+/u
+
+/** Two letters standing in for a face nobody uploaded. */
+export function initialsOf({ email, name }: Correspondent): string {
+  const source = name?.trim() ? name : email.split("@")[0]
+  const words = source.split(INITIAL_RE).filter((word) => word !== "")
+
+  if (words.length === 0) {
+    return "?"
+  }
+
+  const letters =
+    words.length === 1 ? words[0].slice(0, 2) : `${words[0][0]}${words[1][0]}`
+
+  return letters.toUpperCase()
+}
+
+export interface InboxShortcut {
+  /** The key as the keyboard prints it, which is not the same word in every language. */
+  keys: DictionaryKey
+  label: DictionaryKey
+}
+
+/** One registrar in the layout holds these; each button names its own in `title`. */
+export const INBOX_SHORTCUTS = {
+  next: { keys: "inbox.keysNext", label: "inbox.shortcutNext" },
+  previous: { keys: "inbox.keysPrevious", label: "inbox.shortcutPrevious" },
+  open: { keys: "inbox.keysOpen", label: "inbox.shortcutOpen" },
+  close: { keys: "inbox.keysClose", label: "inbox.shortcutClose" },
+  unread: { keys: "inbox.keysUnread", label: "inbox.shortcutUnread" },
+  reply: { keys: "inbox.keysReply", label: "inbox.shortcutReply" },
+  select: { keys: "inbox.keysSelect", label: "inbox.shortcutSelect" },
+  escape: { keys: "inbox.keysEscape", label: "inbox.shortcutEscape" },
+  help: { keys: "inbox.keysHelp", label: "inbox.shortcutHelp" },
+} as const satisfies Record<string, InboxShortcut>
+
+/** What a button hovers: what it does, and the key that does it too. */
+export function shortcutTitle(t: Translate, shortcut: InboxShortcut): string {
+  return t("inbox.shortcutTitle", {
+    action: t(shortcut.label),
+    keys: t(shortcut.keys),
+  })
+}
+
+const TYPING_TAGS = new Set(["INPUT", "TEXTAREA", "SELECT"])
+
+/** A shortcut never fires while someone is writing. */
+export function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+
+  return TYPING_TAGS.has(target.tagName) || target.isContentEditable
 }

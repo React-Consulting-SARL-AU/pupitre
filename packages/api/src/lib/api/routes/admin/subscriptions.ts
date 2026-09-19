@@ -2,14 +2,21 @@ import { type Locale, resolveLocale } from "@pupitre/shared/i18n"
 import { ADMIN_PAGE_SIZE } from "@pupitre/shared/platform"
 import { Elysia, t } from "elysia"
 import {
+  BillingLaunchModeError,
   cancelSubscriptionByAdmin,
   deleteSubscriptionByAdmin,
+  extendSubscriptionTrial,
   grantSubscription,
   PlatformOrganizationError,
   resizeGrantedSubscription,
+  resumeSubscriptionByAdmin,
   SubscriptionAlreadyCanceledError,
   SubscriptionLiveError,
   SubscriptionNotGrantedError,
+  SubscriptionNotResumableError,
+  SubscriptionNotStripeError,
+  SubscriptionNotTrialingError,
+  TrialEndNotFutureError,
 } from "../../../billing/admin"
 import { SeatsBelowUsageError } from "../../../billing/seats"
 import { translate } from "../../../i18n"
@@ -32,6 +39,7 @@ import {
   adminSubscriptionDetailSchema,
   adminSubscriptionSchema,
   adminSubscriptionsQuery,
+  adminTrialBody,
 } from "./platform-schemas"
 import { adminReasonBody } from "./schemas"
 
@@ -46,6 +54,14 @@ function subscriptionLive(locale: Locale): ApiErrorPayload {
     "conflict",
     translate(locale, "subscription_live"),
     translate(locale, "subscription_live_fix")
+  )
+}
+
+function launchMode(locale: Locale): ApiErrorPayload {
+  return apiError(
+    "conflict",
+    translate(locale, "billing_launch_stripe"),
+    translate(locale, "billing_launch_stripe_fix")
   )
 }
 
@@ -66,6 +82,12 @@ const readRoutes = new Elysia({ name: "admin-subscriptions-read" })
         await listSubscriptionsForPlatform({
           status: query.status,
           product: query.product,
+          organization_id: query.organization_id,
+          live: query.live,
+          drifted: query.drifted,
+          q: query.q,
+          sort: query.sort,
+          direction: query.direction,
           limit: query.limit ?? ADMIN_PAGE_SIZE,
           offset: query.offset ?? 0,
         })
@@ -275,6 +297,131 @@ const writeRoutes = new Elysia({ name: "admin-subscriptions-write" })
         404: errorResponse,
         409: errorResponse,
         422: errorResponse,
+      },
+    }
+  )
+  .post(
+    "/subscriptions/:id/trial",
+    async ({ user, params, body, request, set }) => {
+      const locale = resolveLocale(request.headers)
+
+      try {
+        const extended = await extendSubscriptionTrial(
+          { userId: user.id },
+          params.id,
+          new Date(body.ends_at)
+        )
+
+        if (!extended) {
+          set.status = 404
+
+          return subscriptionNotFound(locale)
+        }
+
+        return await subscriptionView(extended.id)
+      } catch (error) {
+        if (error instanceof BillingLaunchModeError) {
+          set.status = 409
+
+          return launchMode(locale)
+        }
+
+        if (error instanceof SubscriptionNotStripeError) {
+          set.status = 409
+
+          return apiError(
+            "conflict",
+            translate(locale, "subscription_not_stripe"),
+            translate(locale, "subscription_not_stripe_fix")
+          )
+        }
+
+        if (error instanceof SubscriptionNotTrialingError) {
+          set.status = 409
+
+          return apiError(
+            "conflict",
+            translate(locale, "subscription_not_trialing"),
+            translate(locale, "subscription_not_trialing_fix")
+          )
+        }
+
+        if (error instanceof TrialEndNotFutureError) {
+          set.status = 422
+
+          return apiError(
+            "validation",
+            translate(locale, "trial_end_not_future"),
+            translate(locale, "trial_end_not_future_fix")
+          )
+        }
+
+        throw error
+      }
+    },
+    {
+      params: subscriptionParams,
+      body: adminTrialBody,
+      detail: { summary: "Repousser la fin d'un essai chez Stripe" },
+      response: {
+        200: dataResponse(adminSubscriptionSchema),
+        401: errorResponse,
+        403: errorResponse,
+        404: errorResponse,
+        409: errorResponse,
+        422: errorResponse,
+      },
+    }
+  )
+  .post(
+    "/subscriptions/:id/resume",
+    async ({ user, params, request, set }) => {
+      const locale = resolveLocale(request.headers)
+
+      try {
+        const resumed = await resumeSubscriptionByAdmin(
+          { userId: user.id },
+          params.id
+        )
+
+        if (!resumed) {
+          set.status = 404
+
+          return subscriptionNotFound(locale)
+        }
+
+        return await subscriptionView(resumed.id)
+      } catch (error) {
+        if (error instanceof BillingLaunchModeError) {
+          set.status = 409
+
+          return launchMode(locale)
+        }
+
+        if (!(error instanceof SubscriptionNotResumableError)) {
+          throw error
+        }
+
+        set.status = 409
+
+        return apiError(
+          "conflict",
+          translate(locale, "subscription_not_resumable"),
+          translate(locale, "subscription_not_resumable_fix")
+        )
+      }
+    },
+    {
+      params: subscriptionParams,
+      detail: {
+        summary: "Reprendre un abonnement résilié à la fin de la période",
+      },
+      response: {
+        200: dataResponse(adminSubscriptionSchema),
+        401: errorResponse,
+        403: errorResponse,
+        404: errorResponse,
+        409: errorResponse,
       },
     }
   )

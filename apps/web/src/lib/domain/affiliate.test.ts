@@ -1,10 +1,26 @@
 import { describe, expect, it } from "bun:test"
 import {
+  AFFILIATE_LINK_TAB,
+  AFFILIATE_LINK_TABS,
   affiliateCodeFrom,
+  affiliateConversionFigures,
   affiliateCookieDomain,
   affiliateCookieFor,
+  affiliateLinkTab,
+  affiliateLinkTabFor,
+  filterAffiliateLinks,
   isAffiliateCode,
 } from "@/lib/domain/affiliate"
+
+const LINKS = [
+  {
+    name: "Salon des makers",
+    code: "makers",
+    partner_name: "Ada Lovelace",
+    disabled: false,
+  },
+  { name: "Podcast", code: "podcast-42", partner_name: null, disabled: true },
+]
 
 describe("affiliateCodeFrom", () => {
   it("reads the code among the other cookies", () => {
@@ -73,5 +89,83 @@ describe("affiliateCookieDomain", () => {
   it("keeps it on the host anywhere else", () => {
     expect(affiliateCookieDomain("localhost")).toBeNull()
     expect(affiliateCookieDomain("notpupitre.studio")).toBeNull()
+  })
+})
+
+describe("filterAffiliateLinks", () => {
+  it("matches the name, the code and the partner, whatever the case", () => {
+    expect(
+      filterAffiliateLinks(LINKS, { query: " MAKERS ", disabled: undefined })
+    ).toEqual([LINKS[0]])
+    expect(
+      filterAffiliateLinks(LINKS, { query: "podcast-4", disabled: undefined })
+    ).toEqual([LINKS[1]])
+    expect(
+      filterAffiliateLinks(LINKS, { query: "lovelace", disabled: undefined })
+    ).toEqual([LINKS[0]])
+  })
+
+  it("keeps the state asked for, and everything when none is", () => {
+    expect(filterAffiliateLinks(LINKS, { query: "", disabled: true })).toEqual([
+      LINKS[1],
+    ])
+    expect(filterAffiliateLinks(LINKS, { query: "", disabled: false })).toEqual(
+      [LINKS[0]]
+    )
+    expect(
+      filterAffiliateLinks(LINKS, { query: "", disabled: undefined })
+    ).toHaveLength(2)
+  })
+})
+
+describe("affiliateConversionFigures", () => {
+  it("counts what arrived first, and the seats last", () => {
+    const figures = affiliateConversionFigures({
+      referred: 4,
+      trialing: 1,
+      active: 2,
+      past_due: 0,
+      canceled: 1,
+      seats: 6,
+    })
+
+    expect(figures.map((figure) => figure.id)).toEqual([
+      "referred",
+      "trialing",
+      "active",
+      "past_due",
+      "canceled",
+      "seats",
+    ])
+    expect(figures[0]).toMatchObject({
+      label: "admin.links.conversion.referred",
+      value: 4,
+    })
+    expect(figures.at(-1)?.value).toBe(6)
+  })
+})
+
+describe("affiliateLinkTabFor", () => {
+  it("gives a reader the overview instead of the settings and the danger", () => {
+    expect(affiliateLinkTabFor("settings", false)).toBe("overview")
+    expect(affiliateLinkTabFor("danger", false)).toBe("overview")
+    expect(affiliateLinkTabFor("organizations", false)).toBe("organizations")
+  })
+
+  it("leaves every tab to who acts on the platform", () => {
+    expect(affiliateLinkTabFor("settings", true)).toBe("settings")
+    expect(affiliateLinkTabFor("danger", true)).toBe("danger")
+  })
+})
+
+describe("affiliateLinkTab", () => {
+  it("keeps a tab the address names and falls back to the overview", () => {
+    for (const tab of AFFILIATE_LINK_TABS) {
+      expect(affiliateLinkTab(tab)).toBe(tab)
+    }
+
+    expect(affiliateLinkTab("billing")).toBe(AFFILIATE_LINK_TAB)
+    expect(affiliateLinkTab(undefined)).toBe(AFFILIATE_LINK_TAB)
+    expect(affiliateLinkTab(3)).toBe(AFFILIATE_LINK_TAB)
   })
 })

@@ -1,15 +1,20 @@
 import type { Prisma, ServerStatus } from "@pupitre/db/cloudflare/client"
 import { isOrgRole, type OrgRole } from "@pupitre/shared/permissions"
-import { PLATFORM_ORGANIZATION_ID } from "@pupitre/shared/platform"
+import {
+  type AccountState,
+  PLATFORM_ORGANIZATION_ID,
+} from "@pupitre/shared/platform"
 import { getPrisma } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import { SEATED_STATUSES } from "../billing/seats"
 import { liveAmong } from "../billing/subscription"
 import { removeDevice } from "../devices/devices"
 import { type AdminEventView, recentEvents } from "./events"
+import { accountReasonOf, accountStateOf } from "./lifecycle"
 
 export interface AdminUserFilter {
   q?: string
+  state?: AccountState
   limit: number
   offset: number
 }
@@ -31,6 +36,12 @@ export interface AdminUserView {
   banned: boolean
   email_verified: boolean
   created_at: Date
+  state: AccountState
+  ban_expires_at: Date | null
+  deactivated_at: Date | null
+  deactivated_reason: string | null
+  deletion_at: Date | null
+  deletion_reason: string | null
   organizations: AdminUserOrganization[]
 }
 
@@ -96,12 +107,57 @@ async function organizationFacts(
   }
 }
 
-function whereOf(filter: AdminUserFilter) {
-  const q = filter.q?.trim()
+/** The state the column shows, read back as a query: the same priority, so a page and its total agree. */
+function stateWhere(
+  state: AccountState,
+  now: Date
+): Prisma.UserWhereInput | null {
+  if (state === "deleting") {
+    return { deletionAt: { not: null } }
+  }
 
-  return q
-    ? { OR: [{ email: { contains: q } }, { name: { contains: q } }] }
-    : {}
+  if (state === "deactivated") {
+    return { deletionAt: null, deactivatedAt: { not: null } }
+  }
+
+  if (state === "suspended") {
+    return {
+      deletionAt: null,
+      deactivatedAt: null,
+      banned: true,
+      OR: [{ banExpires: null }, { banExpires: { gt: now } }],
+    }
+  }
+
+  return state === "active"
+    ? {
+        deletionAt: null,
+        deactivatedAt: null,
+        OR: [{ banned: null }, { banned: false }, { banExpires: { lte: now } }],
+      }
+    : null
+}
+
+function whereOf(
+  filter: AdminUserFilter,
+  now: Date = new Date()
+): Prisma.UserWhereInput {
+  const q = filter.q?.trim()
+  const clauses: Prisma.UserWhereInput[] = []
+
+  if (q) {
+    clauses.push({
+      OR: [{ email: { contains: q } }, { name: { contains: q } }],
+    })
+  }
+
+  const state = filter.state ? stateWhere(filter.state, now) : null
+
+  if (state) {
+    clauses.push(state)
+  }
+
+  return clauses.length === 0 ? {} : { AND: clauses }
 }
 
 const WITH_MEMBERSHIPS = {
@@ -122,6 +178,12 @@ function toUserView(user: UserRow, facts: OrganizationFacts): AdminUserView {
     banned: user.banned ?? false,
     email_verified: user.emailVerified,
     created_at: user.createdAt,
+    state: accountStateOf(user),
+    ban_expires_at: user.banExpires,
+    deactivated_at: user.deactivatedAt,
+    deactivated_reason: user.deactivatedReason,
+    deletion_at: user.deletionAt,
+    deletion_reason: user.deletionReason,
     organizations: user.members.map((member) => ({
       ...member.organization,
       role: member.role,
@@ -182,7 +244,10 @@ export interface AdminUserDetail extends AdminUserView {
   assigned_servers: AdminUserServer[]
   platform_role: OrgRole | null
   banned_reason: string | null
-  ban_expires_at: Date | null
+  /** The reason behind the state the account holds now, so the console never picks one itself. */
+  reason: string | null
+  sessions: number
+  last_seen_at: Date | null
   events: AdminEventView[]
 }
 
@@ -190,6 +255,13 @@ export class PlatformMemberProtectedError extends Error {
   constructor(userId: string) {
     super(`user ${userId} belongs to the platform organization`)
     this.name = "PlatformMemberProtectedError"
+  }
+}
+
+export class BanUntilNotFutureError extends Error {
+  constructor(until: Date) {
+    super(`the ban deadline ${until.toISOString()} has already passed`)
+    this.name = "BanUntilNotFutureError"
   }
 }
 
@@ -218,31 +290,42 @@ export async function readUserForPlatform(
     return null
   }
 
-  const [facts, devices, servers, events] = await Promise.all([
-    organizationFacts(user.members.map((member) => member.organizationId)),
-    prisma.device.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        name: true,
-        createdAt: true,
-        lastUsedAt: true,
-      },
-    }),
-    prisma.server.findMany({
-      where: { assignedUserId: userId },
-      orderBy: { createdAt: "asc" },
-      select: {
-        id: true,
-        name: true,
-        host: true,
-        status: true,
-        organization: { select: { id: true, name: true } },
-      },
-    }),
-    recentEvents({ actorUserId: userId }),
-  ])
+  const [facts, devices, servers, sessions, lastSeen, events] =
+    await Promise.all([
+      organizationFacts(user.members.map((member) => member.organizationId)),
+      prisma.device.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          name: true,
+          createdAt: true,
+          lastUsedAt: true,
+        },
+      }),
+      prisma.server.findMany({
+        where: { assignedUserId: userId },
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          name: true,
+          host: true,
+          status: true,
+          organization: { select: { id: true, name: true } },
+        },
+      }),
+      prisma.session.count({
+        where: { userId, expiresAt: { gt: new Date() } },
+      }),
+      prisma.session.findFirst({
+        where: { userId },
+        orderBy: { updatedAt: "desc" },
+        select: { updatedAt: true },
+      }),
+      recentEvents({
+        OR: [{ actorUserId: userId }, { targetType: "user", targetId: userId }],
+      }),
+    ])
 
   return {
     ...toUserView(user, facts),
@@ -255,12 +338,14 @@ export async function readUserForPlatform(
     assigned_servers: servers,
     platform_role: platformRoleOf(user),
     banned_reason: user.banReason,
-    ban_expires_at: user.banExpires,
+    reason: accountReasonOf(user),
+    sessions,
+    last_seen_at: lastSeen?.updatedAt ?? null,
     events,
   }
 }
 
-async function belongsToPlatform(userId: string): Promise<boolean> {
+export async function belongsToPlatform(userId: string): Promise<boolean> {
   const member = await getPrisma().member.findFirst({
     where: { organizationId: PLATFORM_ORGANIZATION_ID, userId },
     select: { id: true },
@@ -277,7 +362,9 @@ async function belongsToPlatform(userId: string): Promise<boolean> {
 export async function banUserFromPlatform(
   actor: PlatformUserActor,
   userId: string,
-  reason: string
+  reason: string,
+  until: Date | null = null,
+  now: Date = new Date()
 ): Promise<AdminUserDetail | null> {
   const prisma = getPrisma()
   const user = await prisma.user.findUnique({
@@ -293,30 +380,48 @@ export async function banUserFromPlatform(
     throw new PlatformMemberProtectedError(userId)
   }
 
+  if (until && until.getTime() <= now.getTime()) {
+    throw new BanUntilNotFutureError(until)
+  }
+
   await prisma.user.update({
     where: { id: userId },
-    data: { banned: true, banReason: reason },
+    data: { banned: true, banReason: reason, banExpires: until },
   })
-  await prisma.session.deleteMany({ where: { userId } })
-  await prisma.deviceCode.deleteMany({ where: { userId } })
+  await revokeSessions(userId)
   await recordEvent({
     action: "user.banned",
     actorUserId: actor.userId,
     targetType: "user",
     targetId: userId,
-    payload: { reason },
+    payload: { reason, until: until?.toISOString() ?? null },
   })
 
   return await readUserForPlatform(userId)
 }
 
-export function revokeDeviceFromPlatform(
+/** Every credential already open: the console's sessions and the device codes still waiting. */
+export async function revokeSessions(userId: string): Promise<void> {
+  const prisma = getPrisma()
+
+  await prisma.session.deleteMany({ where: { userId } })
+  await prisma.deviceCode.deleteMany({ where: { userId } })
+}
+
+export async function revokeDeviceFromPlatform(
   actor: PlatformUserActor,
   userId: string,
   deviceId: string,
   reason: string
 ): Promise<boolean> {
-  return removeDevice(userId, deviceId, { actorUserId: actor.userId, reason })
+  if (await belongsToPlatform(userId)) {
+    throw new PlatformMemberProtectedError(userId)
+  }
+
+  return await removeDevice(userId, deviceId, {
+    actorUserId: actor.userId,
+    reason,
+  })
 }
 
 export async function unbanUserFromPlatform(

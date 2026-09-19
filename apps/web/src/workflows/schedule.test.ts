@@ -17,6 +17,7 @@ function envRecording(started: string[]): CloudflareEnv {
     RECONCILE_SEATS: workflow("reconcile-seats"),
     EVALUATE_ALERTS: workflow("evaluate-alerts"),
     SUSPEND_EXPIRED_GRACE: workflow("suspend-expired-grace"),
+    PURGE_DELETIONS: workflow("purge-deletions"),
   } as unknown as CloudflareEnv
 }
 
@@ -46,6 +47,7 @@ describe("les cron triggers", () => {
       "decommission-server",
       "reconcile-seats",
       "suspend-expired-grace",
+      "purge-deletions",
     ])
   })
 
