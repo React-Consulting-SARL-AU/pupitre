@@ -3,6 +3,7 @@ import {
   ConfirmFormDialog,
   type ConfirmFormDialogProps,
 } from "@/components/ui/confirm-form-dialog"
+import { MAX_REASON_LENGTH } from "@/lib/domain/admin"
 import type { ConfirmFormValues } from "@/lib/schemas/confirm-form"
 import {
   fill,
@@ -119,6 +120,68 @@ describe("ConfirmFormDialog", () => {
     await waitUntil(() => confirmed.length > 0)
 
     expect(confirmed[0].reason).toBe("abus répété")
+  })
+
+  it("offers the reason field when the reason is optional and asks for none without it", async () => {
+    const confirmed: ConfirmFormValues[] = []
+    const rendered = await open(
+      dialog({
+        reason: "optional",
+        onConfirm: (values) => {
+          confirmed.push(values)
+        },
+      })
+    )
+    const confirm = [...document.querySelectorAll("button")].find(
+      (button) => button.getAttribute("type") === "submit"
+    )
+
+    if (!confirm) {
+      throw new Error("no confirm button")
+    }
+
+    expect(field("purge-reason")).not.toBeNull()
+
+    await rendered.click(confirm)
+    await waitUntil(() => confirmed.length > 0)
+
+    expect(confirmed[0].reason).toBe("")
+
+    for (const unmount of mounted.splice(0)) {
+      unmount()
+    }
+
+    await open(dialog())
+
+    expect(document.querySelector("#purge-reason")).toBeNull()
+  })
+
+  it("refuses a reason longer than the platform keeps", async () => {
+    const confirmed: ConfirmFormValues[] = []
+    const rendered = await open(
+      dialog({
+        reason: "optional",
+        onConfirm: (values) => {
+          confirmed.push(values)
+        },
+      })
+    )
+    const confirm = [...document.querySelectorAll("button")].find(
+      (button) => button.getAttribute("type") === "submit"
+    )
+
+    if (!confirm) {
+      throw new Error("no confirm button")
+    }
+
+    await fill(field("purge-reason"), "a".repeat(MAX_REASON_LENGTH + 1))
+    await rendered.click(confirm)
+    await waitUntil(() => document.querySelector("[role=alert]") !== null)
+
+    expect(confirmed).toHaveLength(0)
+    expect(document.body.textContent).toContain(
+      `At most ${MAX_REASON_LENGTH} characters.`
+    )
   })
 
   it("shows the refusal inside the dialog and keeps what was typed", async () => {
