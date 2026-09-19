@@ -75,6 +75,7 @@ const readRoutes = new Elysia({ name: "admin-users-read" })
       serializeData(
         await listUsersForPlatform({
           q: query.q,
+          state: query.state,
           limit: query.limit ?? ADMIN_PAGE_SIZE,
           offset: query.offset ?? 0,
         })
