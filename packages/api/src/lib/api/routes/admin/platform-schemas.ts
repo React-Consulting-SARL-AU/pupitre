@@ -345,6 +345,7 @@ export const adminSubscriptionsQuery = t.Object({
   product: t.Optional(t.String({ maxLength: 120 })),
   organization_id: t.Optional(t.String({ minLength: 1, maxLength: 120 })),
   live: t.Optional(t.Boolean()),
+  drifted: t.Optional(t.Boolean()),
   q: t.Optional(t.String({ maxLength: 254 })),
   sort: subscriptionSortSchema,
   direction: adminDirectionSchema,

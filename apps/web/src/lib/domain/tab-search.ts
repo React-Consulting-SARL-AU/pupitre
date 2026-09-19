@@ -33,6 +33,24 @@ export interface TabSearchHandle<Tab extends string> {
   onTabChange: (tab: Tab) => void
 }
 
+/**
+ * What the address becomes when a tab is picked, or nothing at all when it
+ * already names that tab: a replacing navigation that changes nothing still
+ * re-renders the page under the reader's hand, and swallows the click that
+ * follows it.
+ */
+export function tabNavigation<Tab extends string>(
+  current: Tab,
+  next: Tab,
+  fallback: Tab
+): TabSearch<Tab> | null {
+  if (next === current) {
+    return null
+  }
+
+  return next === fallback ? {} : { tab: next }
+}
+
 export function useTabSearch<Tab extends string>(
   route: TabSearchRoute<Tab>,
   tabs: readonly Tab[]
@@ -40,16 +58,19 @@ export function useTabSearch<Tab extends string>(
   const search = route.useSearch()
   const navigate = useNavigate()
   const fallback = tabs[0]
+  const current = search.tab ?? fallback
   const onTabChange = useCallback(
     (next: Tab) => {
-      navigate({
-        to: ".",
-        replace: true,
-        search: (() => (next === fallback ? {} : { tab: next })) as never,
-      })
+      const wanted = tabNavigation(current, next, fallback)
+
+      if (!wanted) {
+        return
+      }
+
+      navigate({ to: ".", replace: true, search: (() => wanted) as never })
     },
-    [navigate, fallback]
+    [navigate, fallback, current]
   )
 
-  return { tab: search.tab ?? fallback, onTabChange }
+  return { tab: current, onTabChange }
 }

@@ -78,6 +78,7 @@ export interface AdminSubscriptionPageQuery {
   product?: string
   organization_id?: string
   live?: boolean
+  drifted?: boolean
   q?: string
   sort?: "created_at" | "current_period_end" | "updated_at"
   direction?: AdminSortDirection

@@ -3,7 +3,7 @@ import { AdminAffiliateLinkDetail } from "@/components/admin/admin-affiliate-lin
 import { PageHeader } from "@/components/ui/page-header"
 import { RouteError } from "@/components/ui/route-error"
 import { useTranslations } from "@/hooks/use-locale"
-import { AFFILIATE_LINK_TABS } from "@/lib/domain/affiliate"
+import { AFFILIATE_LINK_TAB, AFFILIATE_LINK_TABS } from "@/lib/domain/affiliate"
 import { listSearch, useListSearch } from "@/lib/domain/list-search"
 import { documentTitle, pageTitle } from "@/lib/domain/page-titles"
 
@@ -32,9 +32,9 @@ function AdminAffiliateLinkPage() {
       <AdminAffiliateLinkDetail
         id={id}
         onTabChange={(tab) => {
-          setSearch({ tab: tab === "overview" ? undefined : tab })
+          setSearch({ tab: tab === AFFILIATE_LINK_TAB ? undefined : tab })
         }}
-        tab={search.tab ?? "overview"}
+        tab={search.tab ?? AFFILIATE_LINK_TAB}
       />
     </>
   )

@@ -410,14 +410,20 @@ export async function updateAffiliateLink(
   }
 
   const { data, payload } = pendingChanges(existing, input)
-  const link = await prisma.affiliateLink.update({
-    where: { id: linkId },
-    data,
-    include: WITH_REFERRAL_COUNT,
-  })
+  const changed = Object.keys(payload).length > 0
+  const link = changed
+    ? await prisma.affiliateLink.update({
+        where: { id: linkId },
+        data,
+        include: WITH_REFERRAL_COUNT,
+      })
+    : await prisma.affiliateLink.findUniqueOrThrow({
+        where: { id: linkId },
+        include: WITH_REFERRAL_COUNT,
+      })
   const clicks = await clicksOf(link.id)
 
-  if (Object.keys(payload).length > 0) {
+  if (changed) {
     await recordEvent({
       action: "affiliate_link.updated",
       actorUserId: actor.userId,
@@ -442,20 +448,20 @@ export async function deleteAffiliateLink(
   linkId: string
 ): Promise<boolean> {
   const prisma = getPrisma()
-  const link = await prisma.affiliateLink.findUnique({
-    where: { id: linkId },
-    include: WITH_REFERRAL_COUNT,
-  })
+  const link = await prisma.affiliateLink.findUnique({ where: { id: linkId } })
 
   if (!link) {
     return false
   }
 
-  if (link._count.referrals > 0) {
+  // A referral written between the read and the delete would be cascaded away.
+  const { count } = await prisma.affiliateLink.deleteMany({
+    where: { id: linkId, referrals: { none: {} } },
+  })
+
+  if (count === 0) {
     throw new AffiliateLinkReferredError()
   }
-
-  await prisma.affiliateLink.delete({ where: { id: linkId } })
 
   await recordEvent({
     action: "affiliate_link.deleted",

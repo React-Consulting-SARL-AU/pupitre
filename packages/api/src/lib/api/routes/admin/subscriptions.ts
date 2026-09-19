@@ -84,6 +84,7 @@ const readRoutes = new Elysia({ name: "admin-subscriptions-read" })
           product: query.product,
           organization_id: query.organization_id,
           live: query.live,
+          drifted: query.drifted,
           q: query.q,
           sort: query.sort,
           direction: query.direction,

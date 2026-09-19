@@ -72,6 +72,27 @@ export async function useSessionApiClient(token: string): Promise<void> {
   )
 }
 
+/** A client whose writes never reach the API: what a gesture sees when the network drops. */
+export async function useSeveredApiClient(
+  token: string,
+  severed: (url: string, method: string) => boolean
+): Promise<void> {
+  const server = await bootApiTestServer()
+
+  setApiClient(
+    createApiClient(TEST_BASE_URL, {
+      fetch: (input, init) => {
+        const request = new Request(input, init)
+
+        return severed(request.url, request.method)
+          ? Promise.reject(new TypeError("Failed to fetch"))
+          : server.fetch(input, init)
+      },
+      headers: { authorization: `Bearer ${token}` },
+    })
+  )
+}
+
 export async function apiJson<T>(
   path: string,
   init: RequestInit & { bearer?: string } = {}

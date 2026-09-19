@@ -1,9 +1,12 @@
 import { describe, expect, it } from "bun:test"
 import {
+  AFFILIATE_LINK_TAB,
+  AFFILIATE_LINK_TABS,
   affiliateCodeFrom,
   affiliateConversionFigures,
   affiliateCookieDomain,
   affiliateCookieFor,
+  affiliateLinkTab,
   affiliateLinkTabFor,
   filterAffiliateLinks,
   isAffiliateCode,
@@ -152,5 +155,17 @@ describe("affiliateLinkTabFor", () => {
   it("leaves every tab to who acts on the platform", () => {
     expect(affiliateLinkTabFor("settings", true)).toBe("settings")
     expect(affiliateLinkTabFor("danger", true)).toBe("danger")
+  })
+})
+
+describe("affiliateLinkTab", () => {
+  it("keeps a tab the address names and falls back to the overview", () => {
+    for (const tab of AFFILIATE_LINK_TABS) {
+      expect(affiliateLinkTab(tab)).toBe(tab)
+    }
+
+    expect(affiliateLinkTab("billing")).toBe(AFFILIATE_LINK_TAB)
+    expect(affiliateLinkTab(undefined)).toBe(AFFILIATE_LINK_TAB)
+    expect(affiliateLinkTab(3)).toBe(AFFILIATE_LINK_TAB)
   })
 })

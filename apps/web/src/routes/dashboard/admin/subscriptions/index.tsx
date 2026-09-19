@@ -28,6 +28,7 @@ export const Route = createFileRoute("/dashboard/admin/subscriptions/")({
       product: { kind: "enum", values: SUBSCRIPTION_PRODUCT_FILTERS },
       organization_id: { kind: "string" },
       live: { kind: "boolean" },
+      drifted: { kind: "boolean" },
     },
   }),
 })
