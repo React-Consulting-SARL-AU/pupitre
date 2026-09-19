@@ -126,6 +126,7 @@ export function AdminUserDetail({ id }: AdminUserDetailProps) {
                 }}
                 reason="required"
                 reasonLabel={t("admin.users.banReason")}
+                reasonRequiredMessage={t("admin.users.banReasonRequired")}
                 title={t("admin.users.banTitle")}
                 triggerDisabled={protectedAccount}
                 triggerIcon={Ban}
@@ -284,6 +285,9 @@ export function AdminUserDetail({ id }: AdminUserDetailProps) {
                     }}
                     reason="required"
                     reasonLabel={t("admin.servers.reason")}
+                    reasonRequiredMessage={t(
+                      "admin.users.revokeReasonRequired"
+                    )}
                     title={t("admin.users.revokeTitle")}
                     triggerIcon={ShieldOff}
                     triggerLabel={t("admin.users.revokeDevice")}

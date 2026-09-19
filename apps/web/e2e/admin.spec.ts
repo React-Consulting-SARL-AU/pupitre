@@ -22,6 +22,11 @@ const RUNNING_SERVER = "vps-admin-online"
 const REVOKED_SERVER = "vps-admin-revoked"
 const READER_SERVER = "vps-admin-reader"
 
+const SOCLE_EMAIL = "socle@e2e.local"
+const SOCLE_SERVER = "vps-socle-online"
+const SOCLE_SECOND_SERVER = "vps-socle-second"
+const SOCLE_REVOKED_SERVER = "vps-socle-revoked"
+
 const THREAD_SENDER = "ada@e2e.local"
 const THREAD_SUBJECT = "L'agent refuse le serveur"
 const THREAD_TEXT = "Mon serveur refuse l'agent."
@@ -40,6 +45,9 @@ const ADMIN_URL_RE = /\/dashboard\/admin$/
 const ADMIN_USERS_URL_RE = /\/dashboard\/admin\/users$/
 const ADMIN_USER_URL_RE = /\/dashboard\/admin\/users\/[^/]+$/
 const ADMIN_SERVERS_URL_RE = /\/dashboard\/admin\/servers$/
+const ADMIN_SERVERS_REVOKED_URL_RE =
+  /\/dashboard\/admin\/servers\?status=revoked$/
+const ADMIN_SERVER_URL_RE = /\/dashboard\/admin\/servers\/[^/]+$/
 const ADMIN_ORGANIZATIONS_URL_RE = /\/dashboard\/admin\/organizations$/
 const ADMIN_ORGANIZATION_URL_RE = /\/dashboard\/admin\/organizations\/[^/]+$/
 const ADMIN_SUBSCRIPTION_URL_RE = /\/dashboard\/admin\/subscriptions\/[^/]+$/
@@ -47,6 +55,9 @@ const ADMIN_LINKS_URL_RE = /\/dashboard\/admin\/affiliate-links$/
 const ADMIN_INBOX_URL_RE = /\/dashboard\/admin\/inbox$/
 const ADMIN_THREAD_URL_RE = /\/dashboard\/admin\/inbox\/[^/]+$/
 const START_RETURN_URL_RE = /\/dashboard\/start\?checkout=done$/
+
+const ONLINE_SERVERS_RE = /en ligne/
+const TRIALING_SUBSCRIPTIONS_RE = /essai/
 
 const FORBIDDEN = 403
 
@@ -187,12 +198,14 @@ test.describe("plateforme", () => {
         main.getByText("Organisations", { exact: true })
       ).toBeVisible()
       await expect(main.getByText("Serveurs", { exact: true })).toBeVisible()
-      await expect(main.getByText("En ligne", { exact: true })).toBeVisible()
+      await expect(main.getByText(ONLINE_SERVERS_RE)).toBeVisible()
       await expect(main.getByText("Abonnements", { exact: true })).toBeVisible()
-      await expect(main.getByText("Essai", { exact: true })).toBeVisible()
+      await expect(main.getByText(TRIALING_SUBSCRIPTIONS_RE)).toBeVisible()
       await expect(
         main.getByText("Liens d'affiliation", { exact: true })
       ).toBeVisible()
+      await expect(main.getByText("Courrier non lu")).toBeVisible()
+      await expect(main.getByText("Rien à traiter.").first()).toBeVisible()
 
       await page.screenshot({
         path: `${SHOTS}/admin-overview.png`,
@@ -208,7 +221,6 @@ test.describe("plateforme", () => {
       await expect(main.getByText(OWNER_EMAIL)).toBeVisible()
 
       await page.getByLabel("Recherche").fill(OWNER_EMAIL)
-      await page.getByRole("button", { name: "Chercher" }).click()
 
       await expect(main.getByText(ADMIN_EMAIL)).toHaveCount(0)
       await expect(main.getByText(OWNER_EMAIL)).toBeVisible()
@@ -260,12 +272,12 @@ test.describe("plateforme", () => {
 
     await test.step("suspendre un serveur demande le motif que les propriétaires liront", async () => {
       await main
-        .getByRole("listitem")
+        .getByRole("row")
         .filter({ hasText: RUNNING_SERVER })
         .getByRole("button", { name: "Suspendre" })
         .click()
 
-      const dialog = page.getByRole("alertdialog")
+      const dialog = page.getByRole("dialog")
 
       await dialog.getByRole("button", { name: "Suspendre" }).click()
 
@@ -298,7 +310,7 @@ test.describe("plateforme", () => {
 
       await expect(toasts.getByText(`« ${LINK_NAME} » est prêt.`)).toBeVisible()
 
-      const row = main.getByRole("listitem").filter({ hasText: LINK_NAME })
+      const row = main.getByRole("row").filter({ hasText: LINK_NAME })
 
       await expect(row).toContainText(LINK_URL)
       await expect(row).toContainText("2 mois offerts")
@@ -328,7 +340,7 @@ test.describe("plateforme", () => {
         main.getByText(`Le code « ${LINK_CODE} » est déjà pris.`)
       ).toBeVisible()
       await expect(
-        main.getByRole("listitem").filter({ hasText: "Un autre porteur" })
+        main.getByRole("row").filter({ hasText: "Un autre porteur" })
       ).toHaveCount(0)
     })
 
@@ -374,7 +386,7 @@ test.describe("plateforme", () => {
         toasts.getByText(`${ADMIN_ORGANIZATION} a son abonnement.`)
       ).toBeVisible()
 
-      // The log below the card also says "Abonnement offert": the seats name the row.
+      // The journal of the page names the grant too: the seats tell the row from the line.
       const row = main.getByRole("listitem").filter({ hasText: "2 sièges" })
 
       await expect(row).toContainText("Offert")
@@ -387,9 +399,8 @@ test.describe("plateforme", () => {
 
       await expect(page).toHaveURL(ADMIN_SUBSCRIPTION_URL_RE)
       await expect(main.getByText(GRANT_NOTE)).toBeVisible()
-      // The status dot carries the same word as its hidden SVG title: the badge text is the last one.
       await expect(
-        main.getByText("Actif", { exact: true }).last()
+        main.getByText("Actif", { exact: true }).filter({ visible: true })
       ).toBeVisible()
 
       await page.screenshot({
@@ -399,7 +410,7 @@ test.describe("plateforme", () => {
 
       await page.getByRole("button", { name: "Arrêter maintenant" }).click()
 
-      const stop = page.getByRole("alertdialog")
+      const stop = page.getByRole("dialog")
 
       await stop.getByLabel("Motif").fill("Fin du partenariat")
       await stop.getByRole("button", { name: "Arrêter maintenant" }).click()
@@ -408,7 +419,7 @@ test.describe("plateforme", () => {
         toasts.getByText(`L'abonnement de ${ADMIN_ORGANIZATION} est arrêté.`)
       ).toBeVisible()
       await expect(
-        main.getByText("Résilié", { exact: true }).last()
+        main.getByText("Résilié", { exact: true }).filter({ visible: true })
       ).toBeVisible()
       await expect(
         page.getByRole("button", { name: "Arrêter maintenant" })
@@ -475,7 +486,7 @@ test.describe("plateforme", () => {
       // A magic-link account carries no name, so its row link reads empty:
       // the address it points at is what opens the account.
       const account = await main
-        .getByRole("listitem")
+        .getByRole("row")
         .filter({ hasText: OWNER_EMAIL })
         .getByRole("link")
         .first()
@@ -493,7 +504,7 @@ test.describe("plateforme", () => {
 
       await expect(page).toHaveURL(ADMIN_SERVERS_URL_RE)
 
-      const row = main.getByRole("listitem").filter({ hasText: READER_SERVER })
+      const row = main.getByRole("row").filter({ hasText: READER_SERVER })
 
       await expect(row).toBeVisible()
       await expect(row.getByRole("button", { name: "Suspendre" })).toHaveCount(
@@ -506,7 +517,7 @@ test.describe("plateforme", () => {
 
       await expect(page).toHaveURL(ADMIN_LINKS_URL_RE)
 
-      const row = main.getByRole("listitem").filter({ hasText: LINK_NAME })
+      const row = main.getByRole("row").filter({ hasText: LINK_NAME })
 
       await expect(row).toContainText(LINK_URL)
       await expect(row.getByRole("button", { name: "Activer" })).toHaveCount(0)
@@ -585,5 +596,111 @@ test.describe("plateforme", () => {
     })
 
     await chooseBillingMode(request, "stripe")
+  })
+
+  test("les listes vivent dans l'adresse, la recherche ouvre une fiche, et l'effacement demande le nom", async ({
+    page,
+    request,
+  }) => {
+    await stayLocal(page)
+    await signIn(page, request, SOCLE_EMAIL)
+    await promotePlatformMember(request, SOCLE_EMAIL)
+    await openTrial(request, SOCLE_EMAIL)
+    await seedServer(request, {
+      email: SOCLE_EMAIL,
+      name: SOCLE_SERVER,
+      status: "active",
+    })
+    // Two seats held against the trial's single one: that is what the drift list raises.
+    await seedServer(request, {
+      email: SOCLE_EMAIL,
+      name: SOCLE_SECOND_SERVER,
+      status: "active",
+    })
+    await seedServer(request, {
+      email: SOCLE_EMAIL,
+      name: SOCLE_REVOKED_SERVER,
+      status: "revoked",
+    })
+    await page.goto("/dashboard/start")
+    await openPlatformOrganization(page)
+
+    const menu = page.getByRole("navigation", { name: "Menu principal" })
+    const main = page.getByRole("main")
+
+    await test.step("un filtre de liste survit à un rechargement", async () => {
+      await menu.getByRole("link", { name: "Tous les serveurs" }).click()
+
+      await expect(page).toHaveURL(ADMIN_SERVERS_URL_RE)
+
+      await page.getByLabel("Statut").click()
+      await page.getByRole("option", { name: "Révoqué" }).click()
+
+      await expect(page).toHaveURL(ADMIN_SERVERS_REVOKED_URL_RE)
+      await expect(
+        main.getByText(SOCLE_REVOKED_SERVER, { exact: true })
+      ).toBeVisible()
+
+      await page.reload()
+
+      await expect(page).toHaveURL(ADMIN_SERVERS_REVOKED_URL_RE)
+      await expect(
+        main.getByText(SOCLE_REVOKED_SERVER, { exact: true })
+      ).toBeVisible()
+      await expect(main.getByText(SOCLE_SERVER, { exact: true })).toHaveCount(0)
+    })
+
+    await test.step("une carte de travail mène à ce qu'elle liste", async () => {
+      await menu.getByRole("link", { name: "Vue d'ensemble" }).click()
+
+      await expect(page).toHaveURL(ADMIN_URL_RE)
+      await expect(main.getByText("Sièges dépassés")).toBeVisible()
+
+      await main.getByRole("link", { name: "Tout voir" }).first().click()
+
+      await expect(page).toHaveURL(ADMIN_ORGANIZATIONS_URL_RE)
+    })
+
+    await test.step("la recherche globale ouvre une fiche", async () => {
+      await page.keyboard.press("ControlOrMeta+k")
+
+      const search = page.getByRole("dialog")
+
+      await search.getByLabel("Chercher dans la plateforme").fill(SOCLE_SERVER)
+      await search.getByRole("button", { name: SOCLE_SERVER }).click()
+
+      await expect(page).toHaveURL(ADMIN_SERVER_URL_RE)
+      await expect(
+        page.getByRole("button", { name: "Suspendre" })
+      ).toBeVisible()
+    })
+
+    await test.step("effacer une ligne révoquée reste inerte tant que le nom diffère", async () => {
+      await menu.getByRole("link", { name: "Tous les serveurs" }).click()
+      await main
+        .getByRole("row")
+        .filter({ hasText: SOCLE_REVOKED_SERVER })
+        .getByRole("link")
+        .first()
+        .click()
+
+      await expect(page).toHaveURL(ADMIN_SERVER_URL_RE)
+      await page.getByRole("button", { name: "Effacer la ligne" }).click()
+
+      const purge = page.getByRole("dialog")
+      const confirm = purge.getByRole("button", { name: "Effacer la ligne" })
+      const keyword = purge.getByLabel(
+        `Retapez ${SOCLE_REVOKED_SERVER} pour confirmer`
+      )
+
+      await purge.getByLabel("Motif").fill("Plus rien à garder")
+      await keyword.fill("autre-chose")
+
+      await expect(confirm).toBeDisabled()
+
+      await keyword.fill(SOCLE_REVOKED_SERVER)
+
+      await expect(confirm).toBeEnabled()
+    })
   })
 })

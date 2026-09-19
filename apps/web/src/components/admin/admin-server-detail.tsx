@@ -192,6 +192,7 @@ export function AdminServerDetail({ id }: AdminServerDetailProps) {
                 }}
                 reason="required"
                 reasonLabel={t("admin.servers.reason")}
+                reasonRequiredMessage={t("admin.servers.reasonRequired")}
                 title={t("admin.servers.suspendTitle")}
                 triggerIcon={Ban}
                 triggerLabel={t("admin.servers.suspend")}
@@ -225,6 +226,7 @@ export function AdminServerDetail({ id }: AdminServerDetailProps) {
                 }}
                 reason="required"
                 reasonLabel={t("admin.servers.reason")}
+                reasonRequiredMessage={t("admin.servers.reasonRequired")}
                 title={deletion.title}
                 triggerIcon={Trash2}
                 triggerLabel={deletion.label}

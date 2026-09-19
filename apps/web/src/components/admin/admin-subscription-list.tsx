@@ -112,6 +112,7 @@ export function AdminSubscriptionList({
         page.refetch()
       }}
       rowKey={(subscription) => subscription.id}
+      rowLabel={(subscription) => subscription.organization.name}
       rowLink={(subscription) => ({
         to: "/dashboard/admin/subscriptions/$id",
         params: { id: subscription.id },

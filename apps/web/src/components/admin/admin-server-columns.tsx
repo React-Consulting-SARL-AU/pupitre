@@ -119,6 +119,7 @@ export function adminServerColumns(
             }}
             reason="required"
             reasonLabel={t("admin.servers.reason")}
+            reasonRequiredMessage={t("admin.servers.reasonRequired")}
             title={t("admin.servers.suspendTitle")}
             triggerIcon={Ban}
             triggerLabel={t("admin.servers.suspend")}

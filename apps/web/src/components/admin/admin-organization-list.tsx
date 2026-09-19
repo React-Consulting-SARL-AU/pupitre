@@ -48,6 +48,7 @@ export function AdminOrganizationList({
         page.refetch()
       }}
       rowKey={(organization) => organization.id}
+      rowLabel={(organization) => organization.name}
       rowLink={(organization) => ({
         to: "/dashboard/admin/organizations/$id",
         params: { id: organization.id },
