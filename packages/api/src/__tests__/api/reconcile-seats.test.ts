@@ -100,6 +100,7 @@ describe("reconcileSeats", () => {
       quantity: 2,
       interval: "month",
       current_period_end: null,
+      cancel_at_period_end: false,
       organization_id: null,
     })
 
