@@ -127,6 +127,7 @@ export function AdminServerList({ search, setSearch }: AdminServerListProps) {
         page.refetch()
       }}
       rowKey={(server) => server.id}
+      rowLabel={(server) => server.name}
       rowLink={(server) => ({
         to: "/dashboard/admin/servers/$id",
         params: { id: server.id },

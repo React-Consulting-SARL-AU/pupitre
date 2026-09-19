@@ -4,12 +4,14 @@ import type { Translate } from "@/lib/i18n/i18n"
 
 export interface ConfirmFormRules {
   reason: "optional" | "required"
+  /** Why the reason is asked for, in the words of the gesture; the generic refusal otherwise. */
+  reasonRequiredMessage?: string
   /** The word to retype, compared without case; absent when the dialog asks for none. */
   keyword?: string
   until: boolean
 }
 
-function reasonField(t: Translate, rule: ConfirmFormRules["reason"]) {
+function reasonField(t: Translate, rules: ConfirmFormRules) {
   const field = z
     .string()
     .trim()
@@ -18,7 +20,9 @@ function reasonField(t: Translate, rule: ConfirmFormRules["reason"]) {
       t("admin.servers.reasonTooLong", { max: MAX_REASON_LENGTH })
     )
 
-  return rule === "required" ? field.min(1, t("confirm.reasonRequired")) : field
+  return rules.reason === "required"
+    ? field.min(1, rules.reasonRequiredMessage ?? t("confirm.reasonRequired"))
+    : field
 }
 
 function keywordField(t: Translate, keyword: string | undefined) {
@@ -62,7 +66,7 @@ function untilField(t: Translate, asked: boolean) {
 
 export function confirmFormSchema(t: Translate, rules: ConfirmFormRules) {
   return z.object({
-    reason: reasonField(t, rules.reason),
+    reason: reasonField(t, rules),
     keyword: keywordField(t, rules.keyword),
     until: untilField(t, rules.until),
   })

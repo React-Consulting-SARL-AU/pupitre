@@ -65,6 +65,8 @@ export interface AsyncDataTableProps<Row> {
   refetch: () => void
   rowKey: (row: Row) => string
   rowLink?: (row: Row) => LinkProps
+  /** What the row link is called: the first cell shows more than the thing's name. */
+  rowLabel?: (row: Row) => string
   rowActions?: (row: Row) => RowAction[]
   search?: DataTableSearch
   filters?: ReactNode
@@ -153,6 +155,7 @@ export function AsyncDataTable<Row>({
   refetch,
   rowKey,
   rowLink,
+  rowLabel,
   rowActions,
   search,
   filters,
@@ -369,6 +372,7 @@ export function AsyncDataTable<Row>({
                           {index === 0 && link ? (
                             <Link
                               {...link}
+                              aria-label={rowLabel?.(row)}
                               className="font-medium text-ink underline-offset-2 after:absolute after:inset-0 hover:underline focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2"
                             >
                               {column.cell(row)}

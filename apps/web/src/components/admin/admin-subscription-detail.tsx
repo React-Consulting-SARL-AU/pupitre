@@ -126,6 +126,9 @@ export function AdminSubscriptionDetail({ id }: AdminSubscriptionDetailProps) {
                 }}
                 reason="required"
                 reasonLabel={t("admin.servers.reason")}
+                reasonRequiredMessage={t(
+                  "admin.subscriptions.cancelReasonRequired"
+                )}
                 title={t("admin.subscriptions.cancelTitle")}
                 triggerIcon={CircleStop}
                 triggerLabel={t("admin.subscriptions.cancel")}

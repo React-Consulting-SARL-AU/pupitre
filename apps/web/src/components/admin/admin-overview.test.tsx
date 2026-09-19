@@ -88,4 +88,33 @@ describe("AdminOverview", () => {
     )
     expect(container.textContent).toContain("See everything")
   })
+
+  it("sends an unpaid subscription on to the list already filtered", async () => {
+    const { prisma } = await bootApiTestServer()
+
+    await prisma.subscription.create({
+      data: {
+        organizationId,
+        stripeSubscriptionId: "sub_overview_past_due",
+        product: "prod_server",
+        quantity: 1,
+        status: "past_due",
+        currentPeriodEnd: new Date(),
+      },
+    })
+
+    const { container, unmount } = await render(page())
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("See everything") === true
+    )
+
+    const links = [...container.querySelectorAll("a")].map((anchor) =>
+      anchor.getAttribute("href")
+    )
+
+    expect(links).toContain("/dashboard/admin/subscriptions?status=past_due")
+  })
 })

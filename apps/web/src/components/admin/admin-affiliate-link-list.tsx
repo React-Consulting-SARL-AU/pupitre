@@ -102,6 +102,7 @@ export function AdminAffiliateLinkList({
           links.refetch()
         }}
         rowKey={(link) => link.id}
+        rowLabel={(link) => link.name}
         rowLink={(link) => ({
           to: "/dashboard/admin/affiliate-links/$id",
           params: { id: link.id },

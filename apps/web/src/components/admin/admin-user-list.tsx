@@ -44,6 +44,7 @@ export function AdminUserList({ search, setSearch }: AdminUserListProps) {
         page.refetch()
       }}
       rowKey={(user) => user.id}
+      rowLabel={(user) => user.email}
       rowLink={(user) => ({
         to: "/dashboard/admin/users/$id",
         params: { id: user.id },

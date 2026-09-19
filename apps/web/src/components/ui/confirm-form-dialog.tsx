@@ -43,6 +43,8 @@ export interface ConfirmFormDialogProps {
   description: string
   reason?: ReasonRule
   reasonLabel?: string
+  /** Why the reason is asked for, in the words of the gesture. */
+  reasonRequiredMessage?: string
   /** What has to be retyped before the button comes alive; compared without case. */
   keyword?: string
   keywordLabel?: string
@@ -78,6 +80,7 @@ export function ConfirmFormDialog({
   description,
   reason = "optional",
   reasonLabel,
+  reasonRequiredMessage,
   keyword,
   keywordLabel,
   until = false,
@@ -93,7 +96,12 @@ export function ConfirmFormDialog({
   const t = useTranslations()
   const [open, setOpen] = useState(false)
   const form = useForm<ConfirmFormInput, ConfirmFormValues>({
-    schema: confirmFormSchema(t, { reason, keyword, until }),
+    schema: confirmFormSchema(t, {
+      reason,
+      reasonRequiredMessage,
+      keyword,
+      until,
+    }),
     defaultValues: EMPTY,
   })
   const typedKeyword = form.watch("keyword") ?? ""
