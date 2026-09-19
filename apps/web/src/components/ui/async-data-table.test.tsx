@@ -120,6 +120,31 @@ describe("AsyncDataTable", () => {
     expect(link?.getAttribute("href")).toBe("/dashboard/admin/organizations/r1")
   })
 
+  it("leaves a plain cell under the row's link and lifts the cell that carries its own control", async () => {
+    const { container } = await mount(
+      table({
+        columns: [
+          ...COLUMNS,
+          {
+            key: "partner",
+            header: "Partner",
+            interactive: true,
+            cell: () => <button type="button">Copy</button>,
+          },
+        ],
+        rowLink: (row) => ({
+          to: "/dashboard/admin/organizations/$id",
+          params: { id: row.id },
+        }),
+        rowActions: () => [],
+      })
+    )
+    const cells = [...container.querySelectorAll("tbody tr:first-child td")]
+    const lifted = cells.map((cell) => cell.className.includes("relative"))
+
+    expect(lifted).toEqual([false, false, true, true])
+  })
+
   it("turns a sortable header round and says so to the screen reader", async () => {
     const changes: [string, string][] = []
     const { container, click } = await mount(

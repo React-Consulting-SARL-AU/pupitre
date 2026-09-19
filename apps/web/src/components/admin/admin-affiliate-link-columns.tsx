@@ -30,6 +30,7 @@ export function adminAffiliateLinkColumns(
       header: t("admin.links.code"),
       width: "w-[260px]",
       hideBelow: "md",
+      interactive: true,
       cell: (link) => (
         <span className="flex items-center gap-1 truncate font-data text-[12px] text-ink-3">
           <span className="truncate">{link.url}</span>
