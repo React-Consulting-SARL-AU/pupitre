@@ -17,6 +17,9 @@ import {
   renderAlertServerUnreachableEmail,
   renderDeviceAddedEmail,
   renderEntitlementGraceEmail,
+  renderOrganizationClosedEmail,
+  renderOrganizationRestoredEmail,
+  renderOrganizationSuspendedEmail,
   renderSeatsDriftEmail,
   renderServerAssignedEmail,
   renderServerDecommissionEmail,
@@ -228,6 +231,81 @@ export async function sendServerSuspendedByAdminEmail({
       organizationName: organization,
       serverName: server.name,
       address: addressOf(server),
+      reason,
+    })
+  )
+}
+
+export interface OrganizationSuspendedInput extends Addressed {
+  organizationId: string
+  reason: string
+  serverCount: number
+}
+
+export async function sendOrganizationSuspendedEmail({
+  organizationId,
+  reason,
+  serverCount,
+  ...input
+}: OrganizationSuspendedInput): Promise<void> {
+  const [recipients, organization] = await Promise.all([
+    billingRecipients(organizationId),
+    organizationName(organizationId),
+  ])
+
+  await deliverTo(recipients, input, (locale) =>
+    renderOrganizationSuspendedEmail({
+      locale,
+      organizationName: organization,
+      reason,
+      serverCount,
+    })
+  )
+}
+
+export interface OrganizationRestoredInput extends Addressed {
+  organizationId: string
+  serverCount: number
+}
+
+export async function sendOrganizationRestoredEmail({
+  organizationId,
+  serverCount,
+  ...input
+}: OrganizationRestoredInput): Promise<void> {
+  const [recipients, organization] = await Promise.all([
+    billingRecipients(organizationId),
+    organizationName(organizationId),
+  ])
+
+  await deliverTo(recipients, input, (locale) =>
+    renderOrganizationRestoredEmail({
+      locale,
+      organizationName: organization,
+      serverCount,
+    })
+  )
+}
+
+export interface OrganizationClosedInput extends Addressed {
+  organizationId: string
+  reason: string
+}
+
+export async function sendOrganizationClosedEmail({
+  organizationId,
+  reason,
+  ...input
+}: OrganizationClosedInput): Promise<void> {
+  const [recipients, organization] = await Promise.all([
+    billingRecipients(organizationId),
+    organizationName(organizationId),
+  ])
+
+  await deliverTo(recipients, input, (locale) =>
+    renderOrganizationClosedEmail({
+      locale,
+      organizationName: organization,
       reason,
     })
   )

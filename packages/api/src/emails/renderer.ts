@@ -2,12 +2,14 @@ import type {
   AuthEmailRenderer,
   EmailChangeEmailInput,
   EmailMessage,
+  EmailVerificationEmailInput,
   InvitationEmailInput,
   MagicLinkEmailInput,
 } from "@pupitre/auth/emails"
 import { localeOf } from "@pupitre/shared/i18n"
 import {
   renderEmailChangeEmail,
+  renderEmailVerificationEmail,
   renderInvitationEmail,
   renderMagicLinkEmail,
 } from "./render"
@@ -27,6 +29,17 @@ export const authEmails: AuthEmailRenderer = {
       locale: localeOf(input.acceptLanguage),
       url: input.url,
       newEmail: input.newEmail,
+    })
+
+    return { to: input.to, ...rendered }
+  },
+
+  async emailVerification(
+    input: EmailVerificationEmailInput
+  ): Promise<EmailMessage> {
+    const rendered = await renderEmailVerificationEmail({
+      locale: localeOf(input.acceptLanguage),
+      url: input.url,
     })
 
     return { to: input.to, ...rendered }

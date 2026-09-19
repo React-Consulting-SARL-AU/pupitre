@@ -2340,7 +2340,13 @@ export const UserScalarFieldEnum = {
   banReason: 'banReason',
   banExpires: 'banExpires',
   twoFactorEnabled: 'twoFactorEnabled',
-  locale: 'locale'
+  locale: 'locale',
+  deactivatedAt: 'deactivatedAt',
+  deactivatedReason: 'deactivatedReason',
+  deactivatedByUserId: 'deactivatedByUserId',
+  deletionAt: 'deletionAt',
+  deletionReason: 'deletionReason',
+  deletionByUserId: 'deletionByUserId'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
@@ -2399,7 +2405,16 @@ export const OrganizationScalarFieldEnum = {
   slug: 'slug',
   logo: 'logo',
   createdAt: 'createdAt',
-  metadata: 'metadata'
+  metadata: 'metadata',
+  suspendedAt: 'suspendedAt',
+  suspendedReason: 'suspendedReason',
+  suspendedByUserId: 'suspendedByUserId',
+  closedAt: 'closedAt',
+  closedReason: 'closedReason',
+  closedByUserId: 'closedByUserId',
+  deletionAt: 'deletionAt',
+  deletionReason: 'deletionReason',
+  deletionByUserId: 'deletionByUserId'
 } as const
 
 export type OrganizationScalarFieldEnum = (typeof OrganizationScalarFieldEnum)[keyof typeof OrganizationScalarFieldEnum]
@@ -2508,6 +2523,7 @@ export const ServerScalarFieldEnum = {
   decommissionAt: 'decommissionAt',
   status: 'status',
   suspendedReason: 'suspendedReason',
+  suspendedByOrganization: 'suspendedByOrganization',
   channel: 'channel',
   deviceId: 'deviceId',
   assignedUserId: 'assignedUserId',

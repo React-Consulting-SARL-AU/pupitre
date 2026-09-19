@@ -31,6 +31,15 @@ export type OrganizationMinAggregateOutputType = {
   logo: string | null
   createdAt: Date | null
   metadata: string | null
+  suspendedAt: Date | null
+  suspendedReason: string | null
+  suspendedByUserId: string | null
+  closedAt: Date | null
+  closedReason: string | null
+  closedByUserId: string | null
+  deletionAt: Date | null
+  deletionReason: string | null
+  deletionByUserId: string | null
 }
 
 export type OrganizationMaxAggregateOutputType = {
@@ -40,6 +49,15 @@ export type OrganizationMaxAggregateOutputType = {
   logo: string | null
   createdAt: Date | null
   metadata: string | null
+  suspendedAt: Date | null
+  suspendedReason: string | null
+  suspendedByUserId: string | null
+  closedAt: Date | null
+  closedReason: string | null
+  closedByUserId: string | null
+  deletionAt: Date | null
+  deletionReason: string | null
+  deletionByUserId: string | null
 }
 
 export type OrganizationCountAggregateOutputType = {
@@ -49,6 +67,15 @@ export type OrganizationCountAggregateOutputType = {
   logo: number
   createdAt: number
   metadata: number
+  suspendedAt: number
+  suspendedReason: number
+  suspendedByUserId: number
+  closedAt: number
+  closedReason: number
+  closedByUserId: number
+  deletionAt: number
+  deletionReason: number
+  deletionByUserId: number
   _all: number
 }
 
@@ -60,6 +87,15 @@ export type OrganizationMinAggregateInputType = {
   logo?: true
   createdAt?: true
   metadata?: true
+  suspendedAt?: true
+  suspendedReason?: true
+  suspendedByUserId?: true
+  closedAt?: true
+  closedReason?: true
+  closedByUserId?: true
+  deletionAt?: true
+  deletionReason?: true
+  deletionByUserId?: true
 }
 
 export type OrganizationMaxAggregateInputType = {
@@ -69,6 +105,15 @@ export type OrganizationMaxAggregateInputType = {
   logo?: true
   createdAt?: true
   metadata?: true
+  suspendedAt?: true
+  suspendedReason?: true
+  suspendedByUserId?: true
+  closedAt?: true
+  closedReason?: true
+  closedByUserId?: true
+  deletionAt?: true
+  deletionReason?: true
+  deletionByUserId?: true
 }
 
 export type OrganizationCountAggregateInputType = {
@@ -78,6 +123,15 @@ export type OrganizationCountAggregateInputType = {
   logo?: true
   createdAt?: true
   metadata?: true
+  suspendedAt?: true
+  suspendedReason?: true
+  suspendedByUserId?: true
+  closedAt?: true
+  closedReason?: true
+  closedByUserId?: true
+  deletionAt?: true
+  deletionReason?: true
+  deletionByUserId?: true
   _all?: true
 }
 
@@ -160,6 +214,15 @@ export type OrganizationGroupByOutputType = {
   logo: string | null
   createdAt: Date
   metadata: string | null
+  suspendedAt: Date | null
+  suspendedReason: string | null
+  suspendedByUserId: string | null
+  closedAt: Date | null
+  closedReason: string | null
+  closedByUserId: string | null
+  deletionAt: Date | null
+  deletionReason: string | null
+  deletionByUserId: string | null
   _count: OrganizationCountAggregateOutputType | null
   _min: OrganizationMinAggregateOutputType | null
   _max: OrganizationMaxAggregateOutputType | null
@@ -190,6 +253,15 @@ export type OrganizationWhereInput = {
   logo?: Prisma.StringNullableFilter<"Organization"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Organization"> | Date | string
   metadata?: Prisma.StringNullableFilter<"Organization"> | string | null
+  suspendedAt?: Prisma.DateTimeNullableFilter<"Organization"> | Date | string | null
+  suspendedReason?: Prisma.StringNullableFilter<"Organization"> | string | null
+  suspendedByUserId?: Prisma.StringNullableFilter<"Organization"> | string | null
+  closedAt?: Prisma.DateTimeNullableFilter<"Organization"> | Date | string | null
+  closedReason?: Prisma.StringNullableFilter<"Organization"> | string | null
+  closedByUserId?: Prisma.StringNullableFilter<"Organization"> | string | null
+  deletionAt?: Prisma.DateTimeNullableFilter<"Organization"> | Date | string | null
+  deletionReason?: Prisma.StringNullableFilter<"Organization"> | string | null
+  deletionByUserId?: Prisma.StringNullableFilter<"Organization"> | string | null
   members?: Prisma.MemberListRelationFilter
   invitations?: Prisma.InvitationListRelationFilter
   servers?: Prisma.ServerListRelationFilter
@@ -206,6 +278,15 @@ export type OrganizationOrderByWithRelationInput = {
   logo?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   metadata?: Prisma.SortOrderInput | Prisma.SortOrder
+  suspendedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  suspendedReason?: Prisma.SortOrderInput | Prisma.SortOrder
+  suspendedByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
+  closedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  closedReason?: Prisma.SortOrderInput | Prisma.SortOrder
+  closedByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
+  deletionAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  deletionReason?: Prisma.SortOrderInput | Prisma.SortOrder
+  deletionByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
   members?: Prisma.MemberOrderByRelationAggregateInput
   invitations?: Prisma.InvitationOrderByRelationAggregateInput
   servers?: Prisma.ServerOrderByRelationAggregateInput
@@ -225,6 +306,15 @@ export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
   logo?: Prisma.StringNullableFilter<"Organization"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Organization"> | Date | string
   metadata?: Prisma.StringNullableFilter<"Organization"> | string | null
+  suspendedAt?: Prisma.DateTimeNullableFilter<"Organization"> | Date | string | null
+  suspendedReason?: Prisma.StringNullableFilter<"Organization"> | string | null
+  suspendedByUserId?: Prisma.StringNullableFilter<"Organization"> | string | null
+  closedAt?: Prisma.DateTimeNullableFilter<"Organization"> | Date | string | null
+  closedReason?: Prisma.StringNullableFilter<"Organization"> | string | null
+  closedByUserId?: Prisma.StringNullableFilter<"Organization"> | string | null
+  deletionAt?: Prisma.DateTimeNullableFilter<"Organization"> | Date | string | null
+  deletionReason?: Prisma.StringNullableFilter<"Organization"> | string | null
+  deletionByUserId?: Prisma.StringNullableFilter<"Organization"> | string | null
   members?: Prisma.MemberListRelationFilter
   invitations?: Prisma.InvitationListRelationFilter
   servers?: Prisma.ServerListRelationFilter
@@ -241,6 +331,15 @@ export type OrganizationOrderByWithAggregationInput = {
   logo?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   metadata?: Prisma.SortOrderInput | Prisma.SortOrder
+  suspendedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  suspendedReason?: Prisma.SortOrderInput | Prisma.SortOrder
+  suspendedByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
+  closedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  closedReason?: Prisma.SortOrderInput | Prisma.SortOrder
+  closedByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
+  deletionAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  deletionReason?: Prisma.SortOrderInput | Prisma.SortOrder
+  deletionByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.OrganizationCountOrderByAggregateInput
   _max?: Prisma.OrganizationMaxOrderByAggregateInput
   _min?: Prisma.OrganizationMinOrderByAggregateInput
@@ -256,6 +355,15 @@ export type OrganizationScalarWhereWithAggregatesInput = {
   logo?: Prisma.StringNullableWithAggregatesFilter<"Organization"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Organization"> | Date | string
   metadata?: Prisma.StringNullableWithAggregatesFilter<"Organization"> | string | null
+  suspendedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Organization"> | Date | string | null
+  suspendedReason?: Prisma.StringNullableWithAggregatesFilter<"Organization"> | string | null
+  suspendedByUserId?: Prisma.StringNullableWithAggregatesFilter<"Organization"> | string | null
+  closedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Organization"> | Date | string | null
+  closedReason?: Prisma.StringNullableWithAggregatesFilter<"Organization"> | string | null
+  closedByUserId?: Prisma.StringNullableWithAggregatesFilter<"Organization"> | string | null
+  deletionAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Organization"> | Date | string | null
+  deletionReason?: Prisma.StringNullableWithAggregatesFilter<"Organization"> | string | null
+  deletionByUserId?: Prisma.StringNullableWithAggregatesFilter<"Organization"> | string | null
 }
 
 export type OrganizationCreateInput = {
@@ -265,6 +373,15 @@ export type OrganizationCreateInput = {
   logo?: string | null
   createdAt: Date | string
   metadata?: string | null
+  suspendedAt?: Date | string | null
+  suspendedReason?: string | null
+  suspendedByUserId?: string | null
+  closedAt?: Date | string | null
+  closedReason?: string | null
+  closedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
   servers?: Prisma.ServerCreateNestedManyWithoutOrganizationInput
@@ -281,6 +398,15 @@ export type OrganizationUncheckedCreateInput = {
   logo?: string | null
   createdAt: Date | string
   metadata?: string | null
+  suspendedAt?: Date | string | null
+  suspendedReason?: string | null
+  suspendedByUserId?: string | null
+  closedAt?: Date | string | null
+  closedReason?: string | null
+  closedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
   servers?: Prisma.ServerUncheckedCreateNestedManyWithoutOrganizationInput
@@ -297,6 +423,15 @@ export type OrganizationUpdateInput = {
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
   servers?: Prisma.ServerUpdateManyWithoutOrganizationNestedInput
@@ -313,6 +448,15 @@ export type OrganizationUncheckedUpdateInput = {
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
   servers?: Prisma.ServerUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -329,6 +473,15 @@ export type OrganizationCreateManyInput = {
   logo?: string | null
   createdAt: Date | string
   metadata?: string | null
+  suspendedAt?: Date | string | null
+  suspendedReason?: string | null
+  suspendedByUserId?: string | null
+  closedAt?: Date | string | null
+  closedReason?: string | null
+  closedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
 }
 
 export type OrganizationUpdateManyMutationInput = {
@@ -338,6 +491,15 @@ export type OrganizationUpdateManyMutationInput = {
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type OrganizationUncheckedUpdateManyInput = {
@@ -347,6 +509,15 @@ export type OrganizationUncheckedUpdateManyInput = {
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type OrganizationCountOrderByAggregateInput = {
@@ -356,6 +527,15 @@ export type OrganizationCountOrderByAggregateInput = {
   logo?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   metadata?: Prisma.SortOrder
+  suspendedAt?: Prisma.SortOrder
+  suspendedReason?: Prisma.SortOrder
+  suspendedByUserId?: Prisma.SortOrder
+  closedAt?: Prisma.SortOrder
+  closedReason?: Prisma.SortOrder
+  closedByUserId?: Prisma.SortOrder
+  deletionAt?: Prisma.SortOrder
+  deletionReason?: Prisma.SortOrder
+  deletionByUserId?: Prisma.SortOrder
 }
 
 export type OrganizationMaxOrderByAggregateInput = {
@@ -365,6 +545,15 @@ export type OrganizationMaxOrderByAggregateInput = {
   logo?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   metadata?: Prisma.SortOrder
+  suspendedAt?: Prisma.SortOrder
+  suspendedReason?: Prisma.SortOrder
+  suspendedByUserId?: Prisma.SortOrder
+  closedAt?: Prisma.SortOrder
+  closedReason?: Prisma.SortOrder
+  closedByUserId?: Prisma.SortOrder
+  deletionAt?: Prisma.SortOrder
+  deletionReason?: Prisma.SortOrder
+  deletionByUserId?: Prisma.SortOrder
 }
 
 export type OrganizationMinOrderByAggregateInput = {
@@ -374,6 +563,15 @@ export type OrganizationMinOrderByAggregateInput = {
   logo?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   metadata?: Prisma.SortOrder
+  suspendedAt?: Prisma.SortOrder
+  suspendedReason?: Prisma.SortOrder
+  suspendedByUserId?: Prisma.SortOrder
+  closedAt?: Prisma.SortOrder
+  closedReason?: Prisma.SortOrder
+  closedByUserId?: Prisma.SortOrder
+  deletionAt?: Prisma.SortOrder
+  deletionReason?: Prisma.SortOrder
+  deletionByUserId?: Prisma.SortOrder
 }
 
 export type OrganizationScalarRelationFilter = {
@@ -493,6 +691,15 @@ export type OrganizationCreateWithoutMembersInput = {
   logo?: string | null
   createdAt: Date | string
   metadata?: string | null
+  suspendedAt?: Date | string | null
+  suspendedReason?: string | null
+  suspendedByUserId?: string | null
+  closedAt?: Date | string | null
+  closedReason?: string | null
+  closedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
   servers?: Prisma.ServerCreateNestedManyWithoutOrganizationInput
   subscriptions?: Prisma.SubscriptionCreateNestedManyWithoutOrganizationInput
@@ -508,6 +715,15 @@ export type OrganizationUncheckedCreateWithoutMembersInput = {
   logo?: string | null
   createdAt: Date | string
   metadata?: string | null
+  suspendedAt?: Date | string | null
+  suspendedReason?: string | null
+  suspendedByUserId?: string | null
+  closedAt?: Date | string | null
+  closedReason?: string | null
+  closedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
   servers?: Prisma.ServerUncheckedCreateNestedManyWithoutOrganizationInput
   subscriptions?: Prisma.SubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
@@ -539,6 +755,15 @@ export type OrganizationUpdateWithoutMembersInput = {
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
   servers?: Prisma.ServerUpdateManyWithoutOrganizationNestedInput
   subscriptions?: Prisma.SubscriptionUpdateManyWithoutOrganizationNestedInput
@@ -554,6 +779,15 @@ export type OrganizationUncheckedUpdateWithoutMembersInput = {
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
   servers?: Prisma.ServerUncheckedUpdateManyWithoutOrganizationNestedInput
   subscriptions?: Prisma.SubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -569,6 +803,15 @@ export type OrganizationCreateWithoutInvitationsInput = {
   logo?: string | null
   createdAt: Date | string
   metadata?: string | null
+  suspendedAt?: Date | string | null
+  suspendedReason?: string | null
+  suspendedByUserId?: string | null
+  closedAt?: Date | string | null
+  closedReason?: string | null
+  closedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
   servers?: Prisma.ServerCreateNestedManyWithoutOrganizationInput
   subscriptions?: Prisma.SubscriptionCreateNestedManyWithoutOrganizationInput
@@ -584,6 +827,15 @@ export type OrganizationUncheckedCreateWithoutInvitationsInput = {
   logo?: string | null
   createdAt: Date | string
   metadata?: string | null
+  suspendedAt?: Date | string | null
+  suspendedReason?: string | null
+  suspendedByUserId?: string | null
+  closedAt?: Date | string | null
+  closedReason?: string | null
+  closedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
   servers?: Prisma.ServerUncheckedCreateNestedManyWithoutOrganizationInput
   subscriptions?: Prisma.SubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
@@ -615,6 +867,15 @@ export type OrganizationUpdateWithoutInvitationsInput = {
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
   servers?: Prisma.ServerUpdateManyWithoutOrganizationNestedInput
   subscriptions?: Prisma.SubscriptionUpdateManyWithoutOrganizationNestedInput
@@ -630,6 +891,15 @@ export type OrganizationUncheckedUpdateWithoutInvitationsInput = {
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
   servers?: Prisma.ServerUncheckedUpdateManyWithoutOrganizationNestedInput
   subscriptions?: Prisma.SubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -645,6 +915,15 @@ export type OrganizationCreateWithoutServersInput = {
   logo?: string | null
   createdAt: Date | string
   metadata?: string | null
+  suspendedAt?: Date | string | null
+  suspendedReason?: string | null
+  suspendedByUserId?: string | null
+  closedAt?: Date | string | null
+  closedReason?: string | null
+  closedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
   subscriptions?: Prisma.SubscriptionCreateNestedManyWithoutOrganizationInput
@@ -660,6 +939,15 @@ export type OrganizationUncheckedCreateWithoutServersInput = {
   logo?: string | null
   createdAt: Date | string
   metadata?: string | null
+  suspendedAt?: Date | string | null
+  suspendedReason?: string | null
+  suspendedByUserId?: string | null
+  closedAt?: Date | string | null
+  closedReason?: string | null
+  closedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
   subscriptions?: Prisma.SubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
@@ -691,6 +979,15 @@ export type OrganizationUpdateWithoutServersInput = {
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
   subscriptions?: Prisma.SubscriptionUpdateManyWithoutOrganizationNestedInput
@@ -706,6 +1003,15 @@ export type OrganizationUncheckedUpdateWithoutServersInput = {
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
   subscriptions?: Prisma.SubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -721,6 +1027,15 @@ export type OrganizationCreateWithoutSubscriptionsInput = {
   logo?: string | null
   createdAt: Date | string
   metadata?: string | null
+  suspendedAt?: Date | string | null
+  suspendedReason?: string | null
+  suspendedByUserId?: string | null
+  closedAt?: Date | string | null
+  closedReason?: string | null
+  closedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
   servers?: Prisma.ServerCreateNestedManyWithoutOrganizationInput
@@ -736,6 +1051,15 @@ export type OrganizationUncheckedCreateWithoutSubscriptionsInput = {
   logo?: string | null
   createdAt: Date | string
   metadata?: string | null
+  suspendedAt?: Date | string | null
+  suspendedReason?: string | null
+  suspendedByUserId?: string | null
+  closedAt?: Date | string | null
+  closedReason?: string | null
+  closedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
   servers?: Prisma.ServerUncheckedCreateNestedManyWithoutOrganizationInput
@@ -767,6 +1091,15 @@ export type OrganizationUpdateWithoutSubscriptionsInput = {
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
   servers?: Prisma.ServerUpdateManyWithoutOrganizationNestedInput
@@ -782,6 +1115,15 @@ export type OrganizationUncheckedUpdateWithoutSubscriptionsInput = {
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
   servers?: Prisma.ServerUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -797,6 +1139,15 @@ export type OrganizationCreateWithoutBillingInput = {
   logo?: string | null
   createdAt: Date | string
   metadata?: string | null
+  suspendedAt?: Date | string | null
+  suspendedReason?: string | null
+  suspendedByUserId?: string | null
+  closedAt?: Date | string | null
+  closedReason?: string | null
+  closedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
   servers?: Prisma.ServerCreateNestedManyWithoutOrganizationInput
@@ -812,6 +1163,15 @@ export type OrganizationUncheckedCreateWithoutBillingInput = {
   logo?: string | null
   createdAt: Date | string
   metadata?: string | null
+  suspendedAt?: Date | string | null
+  suspendedReason?: string | null
+  suspendedByUserId?: string | null
+  closedAt?: Date | string | null
+  closedReason?: string | null
+  closedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
   servers?: Prisma.ServerUncheckedCreateNestedManyWithoutOrganizationInput
@@ -843,6 +1203,15 @@ export type OrganizationUpdateWithoutBillingInput = {
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
   servers?: Prisma.ServerUpdateManyWithoutOrganizationNestedInput
@@ -858,6 +1227,15 @@ export type OrganizationUncheckedUpdateWithoutBillingInput = {
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
   servers?: Prisma.ServerUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -873,6 +1251,15 @@ export type OrganizationCreateWithoutReferralInput = {
   logo?: string | null
   createdAt: Date | string
   metadata?: string | null
+  suspendedAt?: Date | string | null
+  suspendedReason?: string | null
+  suspendedByUserId?: string | null
+  closedAt?: Date | string | null
+  closedReason?: string | null
+  closedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
   servers?: Prisma.ServerCreateNestedManyWithoutOrganizationInput
@@ -888,6 +1275,15 @@ export type OrganizationUncheckedCreateWithoutReferralInput = {
   logo?: string | null
   createdAt: Date | string
   metadata?: string | null
+  suspendedAt?: Date | string | null
+  suspendedReason?: string | null
+  suspendedByUserId?: string | null
+  closedAt?: Date | string | null
+  closedReason?: string | null
+  closedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
   servers?: Prisma.ServerUncheckedCreateNestedManyWithoutOrganizationInput
@@ -919,6 +1315,15 @@ export type OrganizationUpdateWithoutReferralInput = {
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
   servers?: Prisma.ServerUpdateManyWithoutOrganizationNestedInput
@@ -934,6 +1339,15 @@ export type OrganizationUncheckedUpdateWithoutReferralInput = {
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
   servers?: Prisma.ServerUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -949,6 +1363,15 @@ export type OrganizationCreateWithoutEventsInput = {
   logo?: string | null
   createdAt: Date | string
   metadata?: string | null
+  suspendedAt?: Date | string | null
+  suspendedReason?: string | null
+  suspendedByUserId?: string | null
+  closedAt?: Date | string | null
+  closedReason?: string | null
+  closedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
   servers?: Prisma.ServerCreateNestedManyWithoutOrganizationInput
@@ -964,6 +1387,15 @@ export type OrganizationUncheckedCreateWithoutEventsInput = {
   logo?: string | null
   createdAt: Date | string
   metadata?: string | null
+  suspendedAt?: Date | string | null
+  suspendedReason?: string | null
+  suspendedByUserId?: string | null
+  closedAt?: Date | string | null
+  closedReason?: string | null
+  closedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
   members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
   invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
   servers?: Prisma.ServerUncheckedCreateNestedManyWithoutOrganizationInput
@@ -995,6 +1427,15 @@ export type OrganizationUpdateWithoutEventsInput = {
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
   servers?: Prisma.ServerUpdateManyWithoutOrganizationNestedInput
@@ -1010,6 +1451,15 @@ export type OrganizationUncheckedUpdateWithoutEventsInput = {
   logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
   servers?: Prisma.ServerUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -1092,6 +1542,15 @@ export type OrganizationSelect<ExtArgs extends runtime.Types.Extensions.Internal
   logo?: boolean
   createdAt?: boolean
   metadata?: boolean
+  suspendedAt?: boolean
+  suspendedReason?: boolean
+  suspendedByUserId?: boolean
+  closedAt?: boolean
+  closedReason?: boolean
+  closedByUserId?: boolean
+  deletionAt?: boolean
+  deletionReason?: boolean
+  deletionByUserId?: boolean
   members?: boolean | Prisma.Organization$membersArgs<ExtArgs>
   invitations?: boolean | Prisma.Organization$invitationsArgs<ExtArgs>
   servers?: boolean | Prisma.Organization$serversArgs<ExtArgs>
@@ -1109,6 +1568,15 @@ export type OrganizationSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   logo?: boolean
   createdAt?: boolean
   metadata?: boolean
+  suspendedAt?: boolean
+  suspendedReason?: boolean
+  suspendedByUserId?: boolean
+  closedAt?: boolean
+  closedReason?: boolean
+  closedByUserId?: boolean
+  deletionAt?: boolean
+  deletionReason?: boolean
+  deletionByUserId?: boolean
 }, ExtArgs["result"]["organization"]>
 
 export type OrganizationSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1118,6 +1586,15 @@ export type OrganizationSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   logo?: boolean
   createdAt?: boolean
   metadata?: boolean
+  suspendedAt?: boolean
+  suspendedReason?: boolean
+  suspendedByUserId?: boolean
+  closedAt?: boolean
+  closedReason?: boolean
+  closedByUserId?: boolean
+  deletionAt?: boolean
+  deletionReason?: boolean
+  deletionByUserId?: boolean
 }, ExtArgs["result"]["organization"]>
 
 export type OrganizationSelectScalar = {
@@ -1127,9 +1604,18 @@ export type OrganizationSelectScalar = {
   logo?: boolean
   createdAt?: boolean
   metadata?: boolean
+  suspendedAt?: boolean
+  suspendedReason?: boolean
+  suspendedByUserId?: boolean
+  closedAt?: boolean
+  closedReason?: boolean
+  closedByUserId?: boolean
+  deletionAt?: boolean
+  deletionReason?: boolean
+  deletionByUserId?: boolean
 }
 
-export type OrganizationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "slug" | "logo" | "createdAt" | "metadata", ExtArgs["result"]["organization"]>
+export type OrganizationOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "slug" | "logo" | "createdAt" | "metadata" | "suspendedAt" | "suspendedReason" | "suspendedByUserId" | "closedAt" | "closedReason" | "closedByUserId" | "deletionAt" | "deletionReason" | "deletionByUserId", ExtArgs["result"]["organization"]>
 export type OrganizationInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   members?: boolean | Prisma.Organization$membersArgs<ExtArgs>
   invitations?: boolean | Prisma.Organization$invitationsArgs<ExtArgs>
@@ -1161,6 +1647,15 @@ export type $OrganizationPayload<ExtArgs extends runtime.Types.Extensions.Intern
     logo: string | null
     createdAt: Date
     metadata: string | null
+    suspendedAt: Date | null
+    suspendedReason: string | null
+    suspendedByUserId: string | null
+    closedAt: Date | null
+    closedReason: string | null
+    closedByUserId: string | null
+    deletionAt: Date | null
+    deletionReason: string | null
+    deletionByUserId: string | null
   }, ExtArgs["result"]["organization"]>
   composites: {}
 }
@@ -1597,6 +2092,15 @@ export interface OrganizationFieldRefs {
   readonly logo: Prisma.FieldRef<"Organization", 'String'>
   readonly createdAt: Prisma.FieldRef<"Organization", 'DateTime'>
   readonly metadata: Prisma.FieldRef<"Organization", 'String'>
+  readonly suspendedAt: Prisma.FieldRef<"Organization", 'DateTime'>
+  readonly suspendedReason: Prisma.FieldRef<"Organization", 'String'>
+  readonly suspendedByUserId: Prisma.FieldRef<"Organization", 'String'>
+  readonly closedAt: Prisma.FieldRef<"Organization", 'DateTime'>
+  readonly closedReason: Prisma.FieldRef<"Organization", 'String'>
+  readonly closedByUserId: Prisma.FieldRef<"Organization", 'String'>
+  readonly deletionAt: Prisma.FieldRef<"Organization", 'DateTime'>
+  readonly deletionReason: Prisma.FieldRef<"Organization", 'String'>
+  readonly deletionByUserId: Prisma.FieldRef<"Organization", 'String'>
 }
     
 
