@@ -7,7 +7,7 @@
     },
     "production": {
       "item": "pupitre-prod",
-      "database": "ppt-db"
+      "database": "ppt-db-enam"
     }
   }
 }

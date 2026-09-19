@@ -208,8 +208,8 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
       en: "Hosting of the site and the console, platform database (accounts, organisations, servers, subscriptions, journal), storage of binaries and attachments, inbound and outbound email",
     },
     region: {
-      fr: "Société américaine, réseau mondial ; la base de données et les fichiers en Europe de l’Ouest",
-      en: "United States company, global network; the database and the files in Western Europe",
+      fr: "Société américaine, réseau mondial ; la base de données et les fichiers en Amérique du Nord",
+      en: "United States company, global network; the database and the files in North America",
     },
   },
   {
