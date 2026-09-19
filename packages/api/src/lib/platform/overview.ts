@@ -1,6 +1,6 @@
 import type { ServerStatus } from "@pupitre/db/cloudflare/client"
 import { LAUNCH_PRODUCT, PLATFORM_PRODUCTS } from "@pupitre/shared/plans"
-import { TRIAL_WARN_DAYS, WORKLIST_ITEMS } from "@pupitre/shared/platform"
+import { TRIAL_WORKLIST_DAYS, WORKLIST_ITEMS } from "@pupitre/shared/platform"
 import { getPrisma } from "../api/prisma"
 import { PAYING_SUBSCRIPTION_STATUSES, SEATED_STATUSES } from "../billing/seats"
 
@@ -208,7 +208,7 @@ async function readSubscriptionWorklist(
 function trialDeadline(now: Date): Date {
   const deadline = new Date(now)
 
-  deadline.setDate(deadline.getDate() + TRIAL_WARN_DAYS)
+  deadline.setDate(deadline.getDate() + TRIAL_WORKLIST_DAYS)
 
   return deadline
 }
