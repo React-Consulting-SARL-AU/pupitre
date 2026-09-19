@@ -1,5 +1,7 @@
+import { ADMIN_PAGE_SIZE } from "@pupitre/shared/platform"
 import type { UseQueryResult } from "@tanstack/react-query"
 import { Package } from "lucide-react"
+import { useState } from "react"
 import { adminReleaseColumns } from "@/components/admin/admin-release-columns"
 import { AsyncDataTable } from "@/components/ui/async-data-table"
 import { useTranslations } from "@/hooks/use-locale"
@@ -15,8 +17,6 @@ export interface AdminReleaseListProps {
   onPromote: (version: string) => void
 }
 
-const PAGE_SIZE = 25
-
 /** The agent's versions and the app's read the same way: one line per version, the artefacts counted. */
 export function AdminReleaseList({
   title,
@@ -27,6 +27,7 @@ export function AdminReleaseList({
   onPromote,
 }: AdminReleaseListProps) {
   const t = useTranslations()
+  const [offset, setOffset] = useState(0)
   const versions = releaseVersions(builds.data ?? [])
 
   return (
@@ -37,15 +38,15 @@ export function AdminReleaseList({
         promoting,
         onPromote,
       })}
-      data={versions.slice(0, PAGE_SIZE)}
+      data={versions.slice(offset, offset + ADMIN_PAGE_SIZE)}
       emptyIcon={Package}
       emptyTitle={t("admin.releases.empty")}
       isError={builds.isError}
       isFetching={builds.isFetching}
       isPending={builds.isPending}
-      limit={PAGE_SIZE}
-      offset={0}
-      onOffsetChange={() => undefined}
+      limit={ADMIN_PAGE_SIZE}
+      offset={offset}
+      onOffsetChange={setOffset}
       refetch={() => {
         builds.refetch()
       }}
