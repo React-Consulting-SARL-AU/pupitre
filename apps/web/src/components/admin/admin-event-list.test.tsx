@@ -8,18 +8,25 @@ import {
 } from "bun:test"
 import { bootApiTestServer, resetDb } from "@pupitre/api/testing"
 import { createOrganizationWithMembers } from "@pupitre/api/testing/factories"
-import { AdminEventList } from "@/components/admin/admin-event-list"
-import { createConsoleUser, useSessionApiClient } from "@/testing/harness"
+import type { OrgRole } from "@pupitre/shared/permissions"
 import {
-  fill,
-  pick,
-  render,
-  trigger,
-  waitUntil,
-  withDashboard,
-} from "@/testing/render"
+  AdminEventList,
+  type AdminEventListSearch,
+} from "@/components/admin/admin-event-list"
+import { createConsoleUser, useSessionApiClient } from "@/testing/harness"
+import { ListSearchHarness } from "@/testing/list-search"
+import { fill, pick, render, waitUntil, withDashboard } from "@/testing/render"
 
 const mounted: (() => void)[] = []
+
+function list(platformRole: OrgRole) {
+  return withDashboard(
+    <ListSearchHarness<AdminEventListSearch>>
+      {(handle) => <AdminEventList {...handle} />}
+    </ListSearchHarness>,
+    { platformRole }
+  )
+}
 
 interface EventInput {
   organizationId: string | null
@@ -81,9 +88,7 @@ describe("AdminEventList", () => {
       targetId: "lnk-1",
     })
 
-    const { container, unmount } = await render(
-      withDashboard(<AdminEventList />, { platformRole: "member" })
-    )
+    const { container, unmount } = await render(list("member"))
 
     mounted.push(unmount)
 
@@ -109,9 +114,7 @@ describe("AdminEventList", () => {
       targetId: "usr-1",
     })
 
-    const { container, unmount } = await render(
-      withDashboard(<AdminEventList />, { platformRole: "owner" })
-    )
+    const { container, unmount } = await render(list("owner"))
 
     mounted.push(unmount)
 
@@ -148,9 +151,7 @@ describe("AdminEventList", () => {
       targetId: "srv-theirs",
     })
 
-    const { container, unmount, click } = await render(
-      withDashboard(<AdminEventList />, { platformRole: "owner" })
-    )
+    const { container, unmount } = await render(list("owner"))
 
     mounted.push(unmount)
 
@@ -163,7 +164,6 @@ describe("AdminEventList", () => {
     }
 
     await fill(field, organization.id)
-    await click(trigger(container, "Search"))
     await waitUntil(() => container.textContent?.includes("1–1 of 1") === true)
 
     expect(container.textContent).toContain("srv-theirs")

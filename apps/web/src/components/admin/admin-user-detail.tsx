@@ -1,15 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
-import { ShieldCheck } from "lucide-react"
-import { AdminBanDialog } from "@/components/admin/admin-ban-dialog"
+import { Ban, ShieldCheck, ShieldOff } from "lucide-react"
 import { AdminEventsCard } from "@/components/admin/admin-events-card"
 import { AdminFacts } from "@/components/admin/admin-facts"
 import { AdminFailure } from "@/components/admin/admin-failure"
 import { AdminGrantDialog } from "@/components/admin/admin-grant-dialog"
-import { AdminRevokeDeviceDialog } from "@/components/admin/admin-revoke-device-dialog"
 import { Button } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
+import { ConfirmFormDialog } from "@/components/ui/confirm-form-dialog"
 import { SkeletonCards } from "@/components/ui/skeleton"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
@@ -114,13 +113,23 @@ export function AdminUserDetail({ id }: AdminUserDetailProps) {
           <div className="flex items-center gap-3">
             <StatusBadge look={userLook(detail)} />
             {acts && !detail.banned ? (
-              <AdminBanDialog
+              <ConfirmFormDialog
                 busy={ban.isPending}
-                disabled={protectedAccount}
-                email={detail.email}
-                onConfirm={(reason) => {
-                  ban.mutate(reason)
+                busyLabel={t("admin.users.banning")}
+                confirmLabel={t("admin.users.ban")}
+                description={t("admin.users.banDescription", {
+                  email: detail.email,
+                })}
+                id={`ban-${detail.id}`}
+                onConfirm={(values) => {
+                  ban.mutate(values.reason)
                 }}
+                reason="required"
+                reasonLabel={t("admin.users.banReason")}
+                title={t("admin.users.banTitle")}
+                triggerDisabled={protectedAccount}
+                triggerIcon={Ban}
+                triggerLabel={t("admin.users.ban")}
               />
             ) : null}
             {acts && detail.banned ? (
@@ -255,19 +264,29 @@ export function AdminUserDetail({ id }: AdminUserDetailProps) {
                   {formatRelative(device.last_used_at ?? null, t)}
                 </span>
                 {manages ? (
-                  <AdminRevokeDeviceDialog
+                  <ConfirmFormDialog
                     busy={
                       revoke.isPending &&
                       revoke.variables?.deviceId === device.id
                     }
-                    device={device}
-                    onConfirm={(reason) => {
+                    busyLabel={t("admin.users.revoking")}
+                    confirmLabel={t("admin.users.revokeDevice")}
+                    description={t("admin.users.revokeDescription", {
+                      name: device.name,
+                    })}
+                    id={`revoke-${device.id}`}
+                    onConfirm={(values) => {
                       revoke.mutate({
                         deviceId: device.id,
                         name: device.name,
-                        reason,
+                        reason: values.reason,
                       })
                     }}
+                    reason="required"
+                    reasonLabel={t("admin.servers.reason")}
+                    title={t("admin.users.revokeTitle")}
+                    triggerIcon={ShieldOff}
+                    triggerLabel={t("admin.users.revokeDevice")}
                   />
                 ) : null}
               </li>

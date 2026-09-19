@@ -1,9 +1,12 @@
 import { useQuery } from "@tanstack/react-query"
+import { Link2 } from "lucide-react"
+import {
+  type AdminAffiliateLinkRowLink,
+  adminAffiliateLinkColumns,
+} from "@/components/admin/admin-affiliate-link-columns"
 import { AdminAffiliateLinkForm } from "@/components/admin/admin-affiliate-link-form"
-import { AdminAffiliateLinkRow } from "@/components/admin/admin-affiliate-link-row"
-import { AdminFailure } from "@/components/admin/admin-failure"
+import { AsyncDataTable } from "@/components/ui/async-data-table"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
-import { SkeletonRows } from "@/components/ui/skeleton"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
 import {
@@ -17,6 +20,7 @@ import {
 } from "@/lib/api/admin-queries"
 import { queryKeys } from "@/lib/api/queries"
 import { canActOnPlatform } from "@/lib/domain/admin"
+import type { ListSearchHandle } from "@/lib/domain/list-search"
 
 interface ToggleTarget {
   id: string
@@ -24,11 +28,24 @@ interface ToggleTarget {
   disabled: boolean
 }
 
-export function AdminAffiliateLinkList() {
+export interface AdminAffiliateLinkListSearch {
+  offset?: number
+}
+
+export type AdminAffiliateLinkListProps =
+  ListSearchHandle<AdminAffiliateLinkListSearch>
+
+const PAGE_SIZE = 25
+
+export function AdminAffiliateLinkList({
+  search,
+  setSearch,
+}: AdminAffiliateLinkListProps) {
   const t = useTranslations()
   const { platformRole } = useDashboardContext()
   const links = useQuery(affiliateLinksQueryOptions())
   const acts = canActOnPlatform(platformRole)
+  const offset = search.offset ?? 0
 
   const toggle = useOptimisticMutation<ToggleTarget, AffiliateLink>({
     mutationFn: ({ id, disabled }) => setAffiliateLinkDisabled(id, disabled),
@@ -58,51 +75,40 @@ export function AdminAffiliateLinkList() {
       }),
     },
   })
-  const toggling = toggle.isPending ? toggle.variables?.id : undefined
+  const all = links.data ?? []
 
   return (
     <div className="flex flex-col gap-gutter">
-      {links.isPending ? <SkeletonRows label={t("admin.reading")} /> : null}
-
-      {links.isError ? (
-        <AdminFailure
-          fetching={links.isFetching}
-          onRetry={() => {
-            links.refetch()
-          }}
-        />
-      ) : null}
-
-      {links.isSuccess ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("admin.links.title")}</CardTitle>
-            <span className="font-data text-[12px] text-ink-3 tabular-nums">
-              {links.data.length}
-            </span>
-          </CardHeader>
-
-          {links.data.length === 0 ? (
-            <CardBody>
-              <p className="text-[13px] text-ink-3">{t("admin.links.empty")}</p>
-            </CardBody>
-          ) : (
-            <ul aria-busy={links.isFetching || undefined}>
-              {links.data.map((link) => (
-                <AdminAffiliateLinkRow
-                  canAct={acts}
-                  key={link.id}
-                  link={link}
-                  onToggle={(disabled) => {
-                    toggle.mutate({ id: link.id, name: link.name, disabled })
-                  }}
-                  toggling={toggling === link.id}
-                />
-              ))}
-            </ul>
-          )}
-        </Card>
-      ) : null}
+      <AsyncDataTable
+        columns={adminAffiliateLinkColumns(t, {
+          canAct: acts,
+          toggling: toggle.isPending ? toggle.variables?.id : undefined,
+          onToggle: (link: AdminAffiliateLinkRowLink, disabled: boolean) => {
+            toggle.mutate({ id: link.id, name: link.name, disabled })
+          },
+        })}
+        data={all.slice(offset, offset + PAGE_SIZE)}
+        emptyIcon={Link2}
+        emptyTitle={t("admin.links.empty")}
+        isError={links.isError}
+        isFetching={links.isFetching}
+        isPending={links.isPending}
+        limit={PAGE_SIZE}
+        offset={offset}
+        onOffsetChange={(next) => {
+          setSearch({ offset: next })
+        }}
+        refetch={() => {
+          links.refetch()
+        }}
+        rowKey={(link) => link.id}
+        rowLink={(link) => ({
+          to: "/dashboard/admin/affiliate-links/$id",
+          params: { id: link.id },
+        })}
+        title={t("admin.links.title")}
+        total={all.length}
+      />
 
       {acts ? (
         <Card>

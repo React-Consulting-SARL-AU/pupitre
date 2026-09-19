@@ -37,6 +37,8 @@ export interface DataTableSearch {
   id: string
   value: string
   placeholder: string
+  /** What the field narrows the list by, when it is not a plain search. */
+  label?: string
   onChange: (value: string) => void
 }
 
@@ -95,7 +97,13 @@ function nextDirection(direction: SortDirection): SortDirection {
   return direction === "asc" ? "desc" : "asc"
 }
 
-function TableSearch({ id, value, placeholder, onChange }: DataTableSearch) {
+function TableSearch({
+  id,
+  value,
+  placeholder,
+  label,
+  onChange,
+}: DataTableSearch) {
   const t = useTranslations()
   const [typed, setTyped] = useState(value)
 
@@ -119,7 +127,7 @@ function TableSearch({ id, value, placeholder, onChange }: DataTableSearch) {
 
   return (
     <div className="flex min-w-[240px] flex-1 flex-col gap-2 sm:max-w-[360px]">
-      <Label htmlFor={id}>{t("table.search")}</Label>
+      <Label htmlFor={id}>{label ?? t("table.search")}</Label>
       <Input
         autoComplete="off"
         id={id}
@@ -351,7 +359,10 @@ export function AsyncDataTable<Row>({
                           className={cn(
                             "px-4 py-3 align-middle text-[13px] text-ink-2",
                             column.align === "end" && "text-right tabular-nums",
-                            column.hideBelow && HIDDEN_BELOW[column.hideBelow]
+                            column.hideBelow && HIDDEN_BELOW[column.hideBelow],
+                            // The row's link covers the row from the first cell;
+                            // the cells after it sit above it and stay clickable.
+                            !(index === 0 && link) && "relative"
                           )}
                           key={column.key}
                         >

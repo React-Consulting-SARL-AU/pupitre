@@ -210,6 +210,9 @@ export const admin = {
     "admin.releases.agentTarget": "the agents that poll the platform",
     "admin.releases.appTarget": "the download page and the app's updates",
     "admin.releases.empty": "No version published yet.",
+    "admin.releases.version": "Version",
+    "admin.releases.buildsLabel": "Artefacts",
+    "admin.releases.publishedAt": "Published",
     "admin.releases.channel.stable": "Stable",
     "admin.releases.channel.beta": "Beta",
     "admin.releases.builds.one": "{count} artefact",
@@ -224,6 +227,7 @@ export const admin = {
     "admin.releases.promoteFailedFix": "Try again in a moment.",
 
     "admin.team.title": "Team",
+    "admin.team.empty": "No member in the Pupitre organisation.",
     "admin.team.rolesLiveOnTheOrganization":
       "Platform roles are granted on the Pupitre organisation's members page.",
     "admin.team.manage": "Open the members page",
@@ -487,6 +491,9 @@ export const admin = {
     "admin.releases.appTarget":
       "la page de téléchargement et les mises à jour de l'app",
     "admin.releases.empty": "Aucune version publiée pour l'instant.",
+    "admin.releases.version": "Version",
+    "admin.releases.buildsLabel": "Artefacts",
+    "admin.releases.publishedAt": "Publiée",
     "admin.releases.channel.stable": "Stable",
     "admin.releases.channel.beta": "Bêta",
     "admin.releases.builds.one": "{count} artefact",
@@ -501,6 +508,7 @@ export const admin = {
     "admin.releases.promoteFailedFix": "Réessayez dans un instant.",
 
     "admin.team.title": "Équipe",
+    "admin.team.empty": "Aucun membre dans l'organisation Pupitre.",
     "admin.team.rolesLiveOnTheOrganization":
       "Les rôles plateforme s'accordent sur la page des membres de l'organisation Pupitre.",
     "admin.team.manage": "Ouvrir la page des membres",

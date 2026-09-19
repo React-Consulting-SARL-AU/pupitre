@@ -133,10 +133,12 @@ describe("AdminServerDetail", () => {
     await waitUntil(() => container.textContent?.includes("Online") === true)
     await click(trigger(container, "Delete"))
 
-    const reason = document.querySelector(`#delete-reason-${server.id}`)
-    const confirm = document.querySelector(
-      "[role=alertdialog] button[type=submit]"
+    await waitUntil(
+      () => document.querySelector(`#delete-${server.id}-reason`) !== null
     )
+
+    const reason = document.querySelector(`#delete-${server.id}-reason`)
+    const confirm = document.querySelector("[role=dialog] button[type=submit]")
 
     if (!(reason && confirm)) {
       throw new Error("the delete dialog did not open")
@@ -158,16 +160,23 @@ describe("AdminServerDetail", () => {
 
     await click(trigger(container, "Purge"))
 
-    const purgeReason = document.querySelector(`#delete-reason-${server.id}`)
-    const purge = document.querySelector(
-      "[role=alertdialog] button[type=submit]"
+    await waitUntil(
+      () => document.querySelector(`#delete-${server.id}-keyword`) !== null
     )
 
-    if (!(purgeReason && purge)) {
+    const purgeReason = document.querySelector(`#delete-${server.id}-reason`)
+    const keyword = document.querySelector(`#delete-${server.id}-keyword`)
+    const purge = document.querySelector("[role=dialog] button[type=submit]")
+
+    if (!(purgeReason && keyword && purge)) {
       throw new Error("the purge dialog did not open")
     }
 
     await fill(purgeReason, "Nothing left to keep")
+
+    expect((purge as HTMLButtonElement).disabled).toBe(true)
+
+    await fill(keyword, "vps-one")
     await click(purge)
     await waitUntilStored(
       async () =>

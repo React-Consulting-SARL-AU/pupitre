@@ -8,8 +8,13 @@ import {
 } from "bun:test"
 import { bootApiTestServer, resetDb } from "@pupitre/api/testing"
 import { createServer } from "@pupitre/api/testing/factories"
-import { AdminServerList } from "@/components/admin/admin-server-list"
+import type { OrgRole } from "@pupitre/shared/permissions"
+import {
+  AdminServerList,
+  type AdminServerListSearch,
+} from "@/components/admin/admin-server-list"
 import { createConsoleUser, useSessionApiClient } from "@/testing/harness"
+import { ListSearchHarness } from "@/testing/list-search"
 import {
   fill,
   render,
@@ -22,8 +27,13 @@ const mounted: (() => void)[] = []
 
 const SETTLE_MS = 5000
 
-function list() {
-  return withDashboard(<AdminServerList />, { platformRole: "owner" })
+function list(platformRole: OrgRole = "owner") {
+  return withDashboard(
+    <ListSearchHarness<AdminServerListSearch>>
+      {(handle) => <AdminServerList {...handle} />}
+    </ListSearchHarness>,
+    { platformRole }
+  )
 }
 
 /** The row moves before the platform answers: the store is read once the call has landed, or the wait is over. */
@@ -78,7 +88,7 @@ describe("AdminServerList", () => {
 
     expect(container.textContent).toContain("vps-one")
     expect(container.textContent).toContain("1–2 of 2")
-    expect(container.querySelectorAll("li")).toHaveLength(2)
+    expect(container.querySelectorAll("tbody tr")).toHaveLength(2)
     expect(container.textContent).toContain("Online")
     expect(container.textContent).toContain("Revoked")
     expect(
@@ -96,11 +106,12 @@ describe("AdminServerList", () => {
 
     await waitUntil(() => container.textContent?.includes("vps-one") === true)
     await click(trigger(container, "Suspend"))
-
-    const reason = document.querySelector(`#suspend-reason-${server.id}`)
-    const confirm = document.querySelector(
-      "[role=alertdialog] button[type=submit]"
+    await waitUntil(
+      () => document.querySelector(`#suspend-${server.id}-reason`) !== null
     )
+
+    const reason = document.querySelector(`#suspend-${server.id}-reason`)
+    const confirm = document.querySelector("[role=dialog] button[type=submit]")
 
     if (!(reason && confirm)) {
       throw new Error("the suspension dialog did not open")
@@ -128,10 +139,11 @@ describe("AdminServerList", () => {
 
     await waitUntil(() => container.textContent?.includes("vps-one") === true)
     await click(trigger(container, "Suspend"))
-
-    const confirm = document.querySelector(
-      "[role=alertdialog] button[type=submit]"
+    await waitUntil(
+      () => document.querySelector("[role=dialog] button[type=submit]") !== null
     )
+
+    const confirm = document.querySelector("[role=dialog] button[type=submit]")
 
     if (!confirm) {
       throw new Error("the suspension dialog did not open")
@@ -148,15 +160,13 @@ describe("AdminServerList", () => {
   it("leaves a reader of the platform the rows without the suspension", async () => {
     await createServer({ organizationId, name: "vps-one" })
 
-    const { container, unmount } = await render(
-      withDashboard(<AdminServerList />, { platformRole: "member" })
-    )
+    const { container, unmount } = await render(list("member"))
 
     mounted.push(unmount)
 
     await waitUntil(() => container.textContent?.includes("vps-one") === true)
 
-    expect(container.querySelectorAll("li")).toHaveLength(1)
+    expect(container.querySelectorAll("tbody tr")).toHaveLength(1)
     expect(container.textContent).not.toContain("Suspend")
   })
 })
