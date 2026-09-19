@@ -19,7 +19,11 @@ import {
   patchThread,
 } from "@/lib/api/inbox-queries"
 import { canActOnPlatform } from "@/lib/domain/admin"
-import { threadStatusLook } from "@/lib/domain/inbox"
+import {
+  INBOX_SHORTCUTS,
+  shortcutTitle,
+  threadStatusLook,
+} from "@/lib/domain/inbox"
 import type { InboxSearch } from "@/lib/domain/inbox-search"
 
 export const INBOX_THREAD_ROUTE_ID = "/dashboard/admin/inbox/$threadId"
@@ -117,6 +121,7 @@ export function InboxThread({ threadId, search }: InboxThreadProps) {
           <Link
             className="inline-flex items-center gap-1 text-[13px] text-ink-2 transition-fast hover:text-ink focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2 lg:hidden"
             search={search}
+            title={shortcutTitle(t, INBOX_SHORTCUTS.escape)}
             to="/dashboard/admin/inbox"
           >
             <ArrowLeft className="size-4" strokeWidth={1.5} />

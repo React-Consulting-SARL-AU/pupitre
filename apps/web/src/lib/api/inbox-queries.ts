@@ -211,6 +211,15 @@ export function saveDraft(id: string, input: DraftInput): Promise<void> {
     })
 }
 
+export function deleteDraft(id: string): Promise<void> {
+  return api()
+    .api.v1.admin.inbox.threads({ id })
+    .draft.delete()
+    .then((response) => {
+      unwrap(response)
+    })
+}
+
 export type TemplateInput = Parameters<InboxApi["templates"]["post"]>[0]
 
 export function createTemplate(input: TemplateInput): Promise<void> {

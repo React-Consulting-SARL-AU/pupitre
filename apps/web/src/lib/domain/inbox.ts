@@ -171,17 +171,25 @@ export interface InboxShortcut {
 }
 
 /** One registrar in the layout holds these; each button names its own in `title`. */
-export const INBOX_SHORTCUTS: readonly InboxShortcut[] = [
-  { keys: "inbox.keysNext", label: "inbox.shortcutNext" },
-  { keys: "inbox.keysPrevious", label: "inbox.shortcutPrevious" },
-  { keys: "inbox.keysOpen", label: "inbox.shortcutOpen" },
-  { keys: "inbox.keysClose", label: "inbox.shortcutClose" },
-  { keys: "inbox.keysUnread", label: "inbox.shortcutUnread" },
-  { keys: "inbox.keysReply", label: "inbox.shortcutReply" },
-  { keys: "inbox.keysSelect", label: "inbox.shortcutSelect" },
-  { keys: "inbox.keysEscape", label: "inbox.shortcutEscape" },
-  { keys: "inbox.keysHelp", label: "inbox.shortcutHelp" },
-]
+export const INBOX_SHORTCUTS = {
+  next: { keys: "inbox.keysNext", label: "inbox.shortcutNext" },
+  previous: { keys: "inbox.keysPrevious", label: "inbox.shortcutPrevious" },
+  open: { keys: "inbox.keysOpen", label: "inbox.shortcutOpen" },
+  close: { keys: "inbox.keysClose", label: "inbox.shortcutClose" },
+  unread: { keys: "inbox.keysUnread", label: "inbox.shortcutUnread" },
+  reply: { keys: "inbox.keysReply", label: "inbox.shortcutReply" },
+  select: { keys: "inbox.keysSelect", label: "inbox.shortcutSelect" },
+  escape: { keys: "inbox.keysEscape", label: "inbox.shortcutEscape" },
+  help: { keys: "inbox.keysHelp", label: "inbox.shortcutHelp" },
+} as const satisfies Record<string, InboxShortcut>
+
+/** What a button hovers: what it does, and the key that does it too. */
+export function shortcutTitle(t: Translate, shortcut: InboxShortcut): string {
+  return t("inbox.shortcutTitle", {
+    action: t(shortcut.label),
+    keys: t(shortcut.keys),
+  })
+}
 
 const TYPING_TAGS = new Set(["INPUT", "TEXTAREA", "SELECT"])
 
