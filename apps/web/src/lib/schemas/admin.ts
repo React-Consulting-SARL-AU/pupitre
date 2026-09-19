@@ -145,6 +145,21 @@ function clearableText(t: Translate, max: number) {
     .transform((value) => (value === "" ? null : value))
 }
 
+function affiliatePartnerFields(t: Translate) {
+  return {
+    partner_name: clearableText(t, AFFILIATE_PARTNER_NAME_MAX_LENGTH),
+    partner_email: z
+      .string()
+      .trim()
+      .refine(
+        (value) => value === "" || z.email().safeParse(value).success,
+        t("admin.links.partnerEmailInvalid")
+      )
+      .transform((value) => (value === "" ? null : value)),
+    notes: clearableText(t, AFFILIATE_NOTES_MAX_LENGTH),
+  }
+}
+
 export function affiliateLinkSchema(t: Translate) {
   return z.object({
     name: affiliateNameField(t),
@@ -158,6 +173,7 @@ export function affiliateLinkSchema(t: Translate) {
       ),
     free_months: affiliateFreeMonthsField(t),
     seats: affiliateSeatsField(t),
+    ...affiliatePartnerFields(t),
   })
 }
 
@@ -166,16 +182,7 @@ export function affiliateLinkEditSchema(t: Translate) {
     name: affiliateNameField(t),
     free_months: affiliateFreeMonthsField(t),
     seats: affiliateSeatsField(t),
-    partner_name: clearableText(t, AFFILIATE_PARTNER_NAME_MAX_LENGTH),
-    partner_email: z
-      .string()
-      .trim()
-      .refine(
-        (value) => value === "" || z.email().safeParse(value).success,
-        t("admin.links.partnerEmailInvalid")
-      )
-      .transform((value) => (value === "" ? null : value)),
-    notes: clearableText(t, AFFILIATE_NOTES_MAX_LENGTH),
+    ...affiliatePartnerFields(t),
   })
 }
 

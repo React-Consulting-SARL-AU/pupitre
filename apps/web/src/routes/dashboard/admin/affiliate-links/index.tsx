@@ -12,7 +12,7 @@ export const Route = createFileRoute("/dashboard/admin/affiliate-links/")({
   head: ({ match }) => ({
     meta: [{ title: documentTitle(ROUTE_ID, match.context.locale) }],
   }),
-  validateSearch: listSearch(),
+  validateSearch: listSearch({ filters: { disabled: { kind: "boolean" } } }),
 })
 
 function AdminAffiliateLinksPage() {
