@@ -25,6 +25,9 @@ export interface AffiliateLinkInput {
   code?: string
   free_months: number
   seats?: number
+  partner_name?: string | null
+  partner_email?: string | null
+  notes?: string | null
 }
 
 export interface AffiliateLinkUpdate {
@@ -290,6 +293,9 @@ export async function createAffiliateLink(
         name: input.name,
         freeMonths: input.free_months,
         seats: input.seats ?? 1,
+        partnerName: trimmedOrNull(input.partner_name) ?? null,
+        partnerEmail: trimmedOrNull(input.partner_email) ?? null,
+        notes: trimmedOrNull(input.notes) ?? null,
         createdById: actor.userId,
       },
       include: WITH_REFERRAL_COUNT,
