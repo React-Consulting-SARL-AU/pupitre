@@ -23,6 +23,7 @@ import { SidebarStartLink } from "@/components/dashboard/sidebar-start-link"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
 import { usePermission } from "@/hooks/use-permission"
+import { platformOpen } from "@/lib/domain/admin"
 import { ADMIN_ROUTE, opensWhileSuspended } from "@/lib/domain/entitlement-gate"
 import { canManageOrganization } from "@/lib/domain/organization"
 import type { DictionaryKey } from "@/lib/i18n/en"
@@ -104,7 +105,8 @@ const PLATFORM_LINKS: SidebarEntry[] = [
 /** The console's navigation, declared once: the column holds it, the panel borrows it. */
 export function SidebarContent() {
   const t = useTranslations()
-  const { role, entitlement, platformRole } = useDashboardContext()
+  const { role, entitlement, platformRole, activeOrganization } =
+    useDashboardContext()
   const canManageBilling = usePermission("billing:manage")
   const canReadAudit = usePermission("audit:view")
   const open = (link: SidebarEntry) =>
@@ -126,7 +128,9 @@ export function SidebarContent() {
     },
     {
       label: t("nav.group.platform"),
-      links: platformRole ? PLATFORM_LINKS : [],
+      links: platformOpen(activeOrganization?.id, platformRole)
+        ? PLATFORM_LINKS
+        : [],
     },
   ].filter((group) => group.links.length > 0)
 

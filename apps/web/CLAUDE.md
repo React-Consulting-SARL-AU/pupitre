@@ -46,7 +46,7 @@ packages/auth/   createAuth, plugins, clients web et desktop
 
 Intégration Elysia sur le harnais SQLite (`@pupitre/api/testing`, les mêmes migrations que D1) pour auth, guards, enrôlement, webhooks. Playwright dans `e2e/` pour connexion, device flow, serveurs, facturation en mode test. Assertions dans `it()`, pas de `.only` committé.
 
-`test:e2e` sert tout depuis une seule origine locale : `e2e/harness/server.ts` répond aux appels `/api/v1` et `/api/auth` depuis le harnais SQLite et proxie le reste vers le serveur Vite. Aucune base ni aucun service distant.
+`test:e2e` sert tout depuis une seule origine locale : `e2e/harness/server.ts` répond aux appels `/api/v1` et `/api/auth` depuis le harnais SQLite et proxie le reste vers le serveur Vite. Aucune base ni aucun service distant. L'origine est `localhost:3000` ; quand un autre serveur de développement tient ce port, `PUPITRE_E2E_PORT=3300 bun run test:e2e` déplace le harnais et Vite (port + 100) ensemble.
 
 ## Commandes
 

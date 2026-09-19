@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test"
+import { expect, type Page, test } from "@playwright/test"
 import {
   chooseBillingMode,
   harnessUrl,
@@ -31,6 +31,7 @@ const LAUNCH_ENDS_AT = "2026-12-31T12:00:00.000Z"
 const LAUNCH_DATE = "31 décembre 2026"
 
 const SERVERS_URL_RE = /\/dashboard\/servers$/
+const START_URL_RE = /\/dashboard\/start$/
 const ADMIN_URL_RE = /\/dashboard\/admin$/
 const ADMIN_USERS_URL_RE = /\/dashboard\/admin\/users$/
 const ADMIN_USER_URL_RE = /\/dashboard\/admin\/users\/[^/]+$/
@@ -44,6 +45,15 @@ const FORBIDDEN = 403
 
 /** Where the owner looks at what the run saw; the suite writes beside its own artifacts otherwise. */
 const SHOTS = process.env.PUPITRE_E2E_SHOTS ?? "../../.playwright/shots"
+
+/** The platform pages open on the platform organisation alone: the switcher takes the session there. */
+async function openPlatformOrganization(page: Page): Promise<void> {
+  await page.getByTitle("Organisations").first().click()
+  await page.getByRole("menuitem", { name: "Pupitre" }).click()
+  await expect(page.getByTitle("Organisations").first()).toContainText(
+    "Pupitre"
+  )
+}
 
 interface OverviewBody {
   data: { users: number; organizations: number }
@@ -103,6 +113,15 @@ test.describe("plateforme", () => {
     const menu = page.getByRole("navigation", { name: "Menu principal" })
     const main = page.getByRole("main")
     const toasts = page.getByTestId("toasts")
+
+    await test.step("la plateforme n'apparaît qu'une fois son organisation choisie", async () => {
+      await expect(menu.getByText("Plateforme", { exact: true })).toHaveCount(0)
+
+      await page.goto("/dashboard/admin")
+      await expect(page).toHaveURL(START_URL_RE)
+
+      await openPlatformOrganization(page)
+    })
 
     await test.step("le groupe Plateforme porte les dix pages", async () => {
       await expect(menu.getByText("Plateforme", { exact: true })).toBeVisible()
@@ -310,6 +329,7 @@ test.describe("plateforme", () => {
       text: THREAD_TEXT,
     })
     await page.goto("/dashboard/start")
+    await openPlatformOrganization(page)
 
     const menu = page.getByRole("navigation", { name: "Menu principal" })
     const main = page.getByRole("main")

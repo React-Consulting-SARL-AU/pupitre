@@ -1,40 +1,19 @@
-import { PLATFORM_ORGANIZATION_ID } from "@pupitre/shared/platform"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { useNavigate } from "@tanstack/react-router"
+import { useQuery } from "@tanstack/react-query"
+import { Link } from "@tanstack/react-router"
 import { Users } from "lucide-react"
-import { useState } from "react"
 import { AdminFailure } from "@/components/admin/admin-failure"
-import { Button } from "@/components/ui/button"
+import { buttonClassName } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { SkeletonRows } from "@/components/ui/skeleton"
 import { useTranslations } from "@/hooks/use-locale"
 import { adminTeamQueryOptions } from "@/lib/api/admin-queries"
-import { isOrganizationScoped, queryKeys } from "@/lib/api/queries"
-import { authClient } from "@/lib/auth/client"
 import { roleKey } from "@/lib/domain/roles"
 import { formatDate } from "@/lib/utils/format"
 
 export function AdminTeam() {
   const t = useTranslations()
   const team = useQuery(adminTeamQueryOptions())
-  const queryClient = useQueryClient()
-  const navigate = useNavigate()
-  const [switching, setSwitching] = useState(false)
-
-  async function manageRoles() {
-    setSwitching(true)
-    await authClient().organization.setActive({
-      organizationId: PLATFORM_ORGANIZATION_ID,
-    })
-
-    queryClient.removeQueries({
-      predicate: (query) => isOrganizationScoped(query.queryKey),
-    })
-    await queryClient.invalidateQueries({ queryKey: queryKeys.me })
-    await navigate({ to: "/dashboard/members" })
-    setSwitching(false)
-  }
 
   function roleName(role: string): string {
     const key = roleKey(role)
@@ -46,16 +25,13 @@ export function AdminTeam() {
     <div className="flex flex-col gap-gutter">
       <Callout
         action={
-          <Button
-            icon={Users}
-            loading={switching}
-            onClick={() => {
-              manageRoles()
-            }}
-            size="sm"
+          <Link
+            className={buttonClassName({ size: "sm" })}
+            to="/dashboard/members"
           >
+            <Users className="size-4 shrink-0" strokeWidth={1.5} />
             {t("admin.team.manage")}
-          </Button>
+          </Link>
         }
         title={t("admin.team.rolesLiveOnTheOrganization")}
       />

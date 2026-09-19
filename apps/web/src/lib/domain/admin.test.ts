@@ -5,10 +5,24 @@ import {
   canRestore,
   canSuspend,
   overviewFigures,
+  platformOpen,
   releaseVersions,
   suspendedReasonKey,
   userLook,
 } from "@/lib/domain/admin"
+
+describe("platformOpen", () => {
+  it("opens the platform pages on the platform organisation, for its members", () => {
+    expect(platformOpen("org_pupitre", "member")).toBe(true)
+    expect(platformOpen("org_pupitre", "owner")).toBe(true)
+  })
+
+  it("keeps them shut on any other organisation, and for anyone outside", () => {
+    expect(platformOpen("org_perso", "owner")).toBe(false)
+    expect(platformOpen(null, "owner")).toBe(false)
+    expect(platformOpen("org_pupitre", null)).toBe(false)
+  })
+})
 
 describe("canActOnPlatform", () => {
   it("lets the two roles the owner grants on the platform organisation act", () => {
@@ -84,10 +98,31 @@ describe("releaseVersions", () => {
     expect(versions[0]).toMatchObject({
       builds: 2,
       channels: ["beta"],
-      publishedAt: "2026-09-10T11:00:00Z",
+      publishedAt: "2026-09-10T11:00:00.000Z",
       stable: false,
     })
     expect(versions[1].stable).toBe(true)
+  })
+
+  it("takes the dates Eden revived, and still orders them", () => {
+    const versions = releaseVersions([
+      {
+        version: "0.5.0",
+        channel: "stable",
+        published_at: new Date("2026-09-01T10:00:00Z"),
+      },
+      {
+        version: "0.6.0",
+        channel: "beta",
+        published_at: new Date("2026-09-10T10:00:00Z"),
+      },
+    ])
+
+    expect(versions.map((version) => version.version)).toEqual([
+      "0.6.0",
+      "0.5.0",
+    ])
+    expect(versions[0].publishedAt).toBe("2026-09-10T10:00:00.000Z")
   })
 
   it("has nothing to show before the first publication", () => {
