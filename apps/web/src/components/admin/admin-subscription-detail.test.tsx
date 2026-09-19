@@ -112,10 +112,10 @@ describe("AdminSubscriptionDetail", () => {
     await waitUntil(() => container.textContent?.includes("Atelier") === true)
     await click(trigger(container, "Stop now"))
 
+    await waitUntil(() => document.querySelector("#cancel-reason") !== null)
+
     const reason = document.querySelector("#cancel-reason")
-    const confirm = document.querySelector(
-      "[role=alertdialog] button[type=submit]"
-    )
+    const confirm = document.querySelector("[role=dialog] button[type=submit]")
 
     if (!(reason && confirm)) {
       throw new Error("the stop dialog did not open")

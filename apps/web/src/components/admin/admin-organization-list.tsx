@@ -1,21 +1,27 @@
 import { ADMIN_PAGE_SIZE } from "@pupitre/shared/platform"
 import { useQuery } from "@tanstack/react-query"
 import { Building2 } from "lucide-react"
-import { useState } from "react"
-import { AdminFailure } from "@/components/admin/admin-failure"
-import { AdminOrganizationRow } from "@/components/admin/admin-organization-row"
-import { AdminSearchForm } from "@/components/admin/admin-search-form"
-import { Card, CardHeader, CardTitle } from "@/components/ui/card"
-import { EmptyState } from "@/components/ui/empty-state"
-import { Pagination } from "@/components/ui/pagination"
-import { SkeletonRows } from "@/components/ui/skeleton"
+import { adminOrganizationColumns } from "@/components/admin/admin-organization-columns"
+import { AsyncDataTable } from "@/components/ui/async-data-table"
 import { useTranslations } from "@/hooks/use-locale"
 import { adminOrganizationsQueryOptions } from "@/lib/api/admin-queries"
+import type { ListSearchHandle } from "@/lib/domain/list-search"
 
-export function AdminOrganizationList() {
+export interface AdminOrganizationListSearch {
+  q?: string
+  offset?: number
+}
+
+export type AdminOrganizationListProps =
+  ListSearchHandle<AdminOrganizationListSearch>
+
+export function AdminOrganizationList({
+  search,
+  setSearch,
+}: AdminOrganizationListProps) {
   const t = useTranslations()
-  const [query, setQuery] = useState("")
-  const [offset, setOffset] = useState(0)
+  const offset = search.offset ?? 0
+  const query = search.q ?? ""
   const page = useQuery(
     adminOrganizationsQueryOptions({
       limit: ADMIN_PAGE_SIZE,
@@ -24,69 +30,39 @@ export function AdminOrganizationList() {
     })
   )
 
-  function searchFor(next: string) {
-    setQuery(next)
-    setOffset(0)
-  }
-
   return (
-    <div className="flex flex-col gap-gutter">
-      <AdminSearchForm
-        id="admin-organizations-search"
-        onSearch={searchFor}
-        placeholder={t("admin.organizations.searchPlaceholder")}
-        query={query}
-      />
-
-      {page.isPending ? <SkeletonRows label={t("admin.reading")} /> : null}
-
-      {page.isError ? (
-        <AdminFailure
-          fetching={page.isFetching}
-          onRetry={() => {
-            page.refetch()
-          }}
-        />
-      ) : null}
-
-      {page.isSuccess && page.data.total === 0 ? (
-        <EmptyState icon={Building2} title={t("admin.organizations.empty")} />
-      ) : null}
-
-      {page.isSuccess && page.data.total > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("admin.organizations.title")}</CardTitle>
-            <span className="font-data text-[12px] text-ink-3 tabular-nums">
-              {t("admin.range", {
-                from: offset + 1,
-                to: offset + page.data.data.length,
-                total: page.data.total,
-              })}
-            </span>
-          </CardHeader>
-
-          <ul aria-busy={page.isFetching || undefined}>
-            {page.data.data.map((organization) => (
-              <AdminOrganizationRow
-                key={organization.id}
-                organization={organization}
-              />
-            ))}
-          </ul>
-        </Card>
-      ) : null}
-
-      {page.isSuccess ? (
-        <Pagination
-          nextLabel={t("admin.next")}
-          offset={offset}
-          onOffsetChange={setOffset}
-          pageSize={ADMIN_PAGE_SIZE}
-          previousLabel={t("admin.previous")}
-          total={page.data.total}
-        />
-      ) : null}
-    </div>
+    <AsyncDataTable
+      columns={adminOrganizationColumns(t)}
+      data={page.data?.data ?? []}
+      emptyIcon={Building2}
+      emptyTitle={t("admin.organizations.empty")}
+      isError={page.isError}
+      isFetching={page.isFetching}
+      isPending={page.isPending}
+      limit={ADMIN_PAGE_SIZE}
+      offset={offset}
+      onOffsetChange={(next) => {
+        setSearch({ offset: next })
+      }}
+      refetch={() => {
+        page.refetch()
+      }}
+      rowKey={(organization) => organization.id}
+      rowLabel={(organization) => organization.name}
+      rowLink={(organization) => ({
+        to: "/dashboard/admin/organizations/$id",
+        params: { id: organization.id },
+      })}
+      search={{
+        id: "admin-organizations-search",
+        value: query,
+        placeholder: t("admin.organizations.searchPlaceholder"),
+        onChange: (next) => {
+          setSearch({ q: next })
+        },
+      }}
+      title={t("admin.organizations.title")}
+      total={page.data?.total ?? 0}
+    />
   )
 }

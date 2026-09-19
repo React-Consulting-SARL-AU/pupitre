@@ -8,20 +8,23 @@ import {
 } from "bun:test"
 import { bootApiTestServer, resetDb } from "@pupitre/api/testing"
 import { createServer } from "@pupitre/api/testing/factories"
-import { AdminUserList } from "@/components/admin/admin-user-list"
-import { createConsoleUser, useSessionApiClient } from "@/testing/harness"
 import {
-  fill,
-  render,
-  trigger,
-  waitUntil,
-  withDashboard,
-} from "@/testing/render"
+  AdminUserList,
+  type AdminUserListSearch,
+} from "@/components/admin/admin-user-list"
+import { createConsoleUser, useSessionApiClient } from "@/testing/harness"
+import { ListSearchHarness } from "@/testing/list-search"
+import { fill, render, waitUntil, withDashboard } from "@/testing/render"
 
 const mounted: (() => void)[] = []
 
 function list() {
-  return withDashboard(<AdminUserList />, { platformRole: "owner" })
+  return withDashboard(
+    <ListSearchHarness<AdminUserListSearch>>
+      {(handle) => <AdminUserList {...handle} />}
+    </ListSearchHarness>,
+    { platformRole: "owner" }
+  )
 }
 
 describe("AdminUserList", () => {
@@ -74,10 +77,10 @@ describe("AdminUserList", () => {
     )
   })
 
-  it("searches by email and says when nobody matches", async () => {
+  it("searches by email after the debounce and says when nobody matches", async () => {
     await createConsoleUser({ email: "ada@test.local", name: "Ada" })
 
-    const { container, unmount, click } = await render(list())
+    const { container, unmount } = await render(list())
 
     mounted.push(unmount)
 
@@ -92,7 +95,6 @@ describe("AdminUserList", () => {
     }
 
     await fill(search, "ada")
-    await click(trigger(container, "Search"))
     await waitUntil(
       () => container.textContent?.includes("ops@test.local") === false
     )
@@ -100,7 +102,6 @@ describe("AdminUserList", () => {
     expect(container.textContent).toContain("ada@test.local")
 
     await fill(search, "nobody")
-    await click(trigger(container, "Search"))
     await waitUntil(
       () => container.textContent?.includes("No user matches") === true
     )

@@ -1,0 +1,39 @@
+export const table = {
+  en: {
+    "table.search": "Search",
+    "table.actions": "Actions",
+    "table.rowActions": "Actions on this line",
+    "table.selectRow": "Select this line",
+    "table.selectPage": "Select every line on this page",
+    "table.clearSelection": "Clear the selection",
+    "table.selected.one": "{count} line selected",
+    "table.selected.other": "{count} lines selected",
+
+    "confirm.reason": "Reason",
+    "confirm.reasonRequired": "Give the reason: it is logged with the action.",
+    "confirm.keyword": "Retype {keyword} to confirm",
+    "confirm.keywordMismatch": "Retype {keyword} exactly.",
+    "confirm.until": "Until",
+    "confirm.untilInvalid": "A date and a time, or nothing.",
+    "confirm.untilPast": "Pick a date ahead of now.",
+  },
+  fr: {
+    "table.search": "Recherche",
+    "table.actions": "Actions",
+    "table.rowActions": "Actions sur cette ligne",
+    "table.selectRow": "Sélectionner cette ligne",
+    "table.selectPage": "Sélectionner toutes les lignes de cette page",
+    "table.clearSelection": "Vider la sélection",
+    "table.selected.one": "{count} ligne sélectionnée",
+    "table.selected.other": "{count} lignes sélectionnées",
+
+    "confirm.reason": "Raison",
+    "confirm.reasonRequired":
+      "Indiquez la raison : elle est inscrite au journal avec l'action.",
+    "confirm.keyword": "Retapez {keyword} pour confirmer",
+    "confirm.keywordMismatch": "Retapez {keyword} à l'identique.",
+    "confirm.until": "Jusqu'au",
+    "confirm.untilInvalid": "Une date et une heure, ou rien.",
+    "confirm.untilPast": "Choisissez une date à venir.",
+  },
+}

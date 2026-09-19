@@ -145,14 +145,28 @@ export async function fill(input: Element, value: string): Promise<void> {
   })
 }
 
-async function key(target: Element, name: string): Promise<void> {
-  const details = { bubbles: true, cancelable: true, key: name }
+export interface KeyModifiers {
+  metaKey?: boolean
+  ctrlKey?: boolean
+  shiftKey?: boolean
+}
+
+export async function press(
+  target: Element,
+  name: string,
+  modifiers: KeyModifiers = {}
+): Promise<void> {
+  const details = { bubbles: true, cancelable: true, key: name, ...modifiers }
 
   await act(async () => {
     target.dispatchEvent(new KeyboardEvent("keydown", details))
     target.dispatchEvent(new KeyboardEvent("keyup", details))
     await Promise.resolve()
   })
+}
+
+function key(target: Element, name: string): Promise<void> {
+  return press(target, name)
 }
 
 function options(): Element[] {

@@ -1,16 +1,13 @@
 import { ADMIN_PAGE_SIZE } from "@pupitre/shared/platform"
 import { useQuery } from "@tanstack/react-query"
 import { HardDrive } from "lucide-react"
-import { useState } from "react"
-import { AdminFailure } from "@/components/admin/admin-failure"
-import { AdminSearchForm } from "@/components/admin/admin-search-form"
-import { AdminServerRow } from "@/components/admin/admin-server-row"
-import { Card, CardHeader, CardTitle } from "@/components/ui/card"
-import { EmptyState } from "@/components/ui/empty-state"
+import {
+  type AdminServerRowServer,
+  adminServerColumns,
+} from "@/components/admin/admin-server-columns"
+import { AsyncDataTable } from "@/components/ui/async-data-table"
 import { Label } from "@/components/ui/label"
-import { Pagination } from "@/components/ui/pagination"
 import { Select } from "@/components/ui/select"
-import { SkeletonRows } from "@/components/ui/skeleton"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
 import {
@@ -25,6 +22,7 @@ import {
 } from "@/lib/api/admin-queries"
 import { type AdminServerPageQuery, queryKeys } from "@/lib/api/queries"
 import { canActOnPlatform } from "@/lib/domain/admin"
+import type { ListSearchHandle } from "@/lib/domain/list-search"
 import { SERVER_STATUSES, statusLook } from "@/lib/domain/server-status"
 
 const ALL_STATUSES = ""
@@ -35,12 +33,20 @@ interface SuspendTarget {
   reason: string
 }
 
-export function AdminServerList() {
+export interface AdminServerListSearch {
+  q?: string
+  offset?: number
+  status?: string
+}
+
+export type AdminServerListProps = ListSearchHandle<AdminServerListSearch>
+
+export function AdminServerList({ search, setSearch }: AdminServerListProps) {
   const t = useTranslations()
   const { platformRole } = useDashboardContext()
-  const [status, setStatus] = useState(ALL_STATUSES)
-  const [query, setQuery] = useState("")
-  const [offset, setOffset] = useState(0)
+  const offset = search.offset ?? 0
+  const query = search.q ?? ""
+  const status = search.status ?? ALL_STATUSES
   const pageQuery: AdminServerPageQuery = {
     limit: ADMIN_PAGE_SIZE,
     offset,
@@ -74,21 +80,20 @@ export function AdminServerList() {
       }),
     },
   })
-  const suspending = suspend.isPending ? suspend.variables?.id : undefined
-
-  function filterOn(next: string) {
-    setStatus(next)
-    setOffset(0)
-  }
-
-  function searchFor(next: string) {
-    setQuery(next)
-    setOffset(0)
-  }
 
   return (
-    <div className="flex flex-col gap-gutter">
-      <div className="flex flex-wrap items-end gap-gutter">
+    <AsyncDataTable
+      columns={adminServerColumns(t, {
+        canAct: canActOnPlatform(platformRole),
+        suspending: suspend.isPending ? suspend.variables?.id : undefined,
+        onSuspend: (server: AdminServerRowServer, reason: string) => {
+          suspend.mutate({ id: server.id, name: server.name, reason })
+        },
+      })}
+      data={page.data?.data ?? []}
+      emptyIcon={HardDrive}
+      emptyTitle={t("admin.servers.empty")}
+      filters={
         <div className="flex flex-col gap-2">
           <Label htmlFor="admin-servers-status">
             {t("admin.servers.status")}
@@ -103,73 +108,40 @@ export function AdminServerList() {
                 label: t(statusLook(candidate).label),
               })),
             ]}
-            onValueChange={filterOn}
+            onValueChange={(next) => {
+              setSearch({ status: next })
+            }}
             value={status}
           />
         </div>
-
-        <AdminSearchForm
-          id="admin-servers-search"
-          onSearch={searchFor}
-          placeholder={t("admin.servers.searchPlaceholder")}
-          query={query}
-        />
-      </div>
-
-      {page.isPending ? <SkeletonRows label={t("admin.reading")} /> : null}
-
-      {page.isError ? (
-        <AdminFailure
-          fetching={page.isFetching}
-          onRetry={() => {
-            page.refetch()
-          }}
-        />
-      ) : null}
-
-      {page.isSuccess && page.data.total === 0 ? (
-        <EmptyState icon={HardDrive} title={t("admin.servers.empty")} />
-      ) : null}
-
-      {page.isSuccess && page.data.total > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("admin.servers.title")}</CardTitle>
-            <span className="font-data text-[12px] text-ink-3 tabular-nums">
-              {t("admin.range", {
-                from: offset + 1,
-                to: offset + page.data.data.length,
-                total: page.data.total,
-              })}
-            </span>
-          </CardHeader>
-
-          <ul aria-busy={page.isFetching || undefined}>
-            {page.data.data.map((server) => (
-              <AdminServerRow
-                canAct={canActOnPlatform(platformRole)}
-                key={server.id}
-                onSuspend={(reason) => {
-                  suspend.mutate({ id: server.id, name: server.name, reason })
-                }}
-                server={server}
-                suspending={suspending === server.id}
-              />
-            ))}
-          </ul>
-        </Card>
-      ) : null}
-
-      {page.isSuccess ? (
-        <Pagination
-          nextLabel={t("admin.next")}
-          offset={offset}
-          onOffsetChange={setOffset}
-          pageSize={ADMIN_PAGE_SIZE}
-          previousLabel={t("admin.previous")}
-          total={page.data.total}
-        />
-      ) : null}
-    </div>
+      }
+      isError={page.isError}
+      isFetching={page.isFetching}
+      isPending={page.isPending}
+      limit={ADMIN_PAGE_SIZE}
+      offset={offset}
+      onOffsetChange={(next) => {
+        setSearch({ offset: next })
+      }}
+      refetch={() => {
+        page.refetch()
+      }}
+      rowKey={(server) => server.id}
+      rowLabel={(server) => server.name}
+      rowLink={(server) => ({
+        to: "/dashboard/admin/servers/$id",
+        params: { id: server.id },
+      })}
+      search={{
+        id: "admin-servers-search",
+        value: query,
+        placeholder: t("admin.servers.searchPlaceholder"),
+        onChange: (next) => {
+          setSearch({ q: next })
+        },
+      }}
+      title={t("admin.servers.title")}
+      total={page.data?.total ?? 0}
+    />
   )
 }
