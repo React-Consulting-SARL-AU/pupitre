@@ -14,10 +14,15 @@ import {
   SUBSCRIPTION_STATUS_FILTERS,
 } from "@/lib/domain/admin"
 import { subscriptionStatusLook } from "@/lib/domain/billing"
-import type { ListSearchHandle, SortDirection } from "@/lib/domain/list-search"
+import {
+  FILTER_ALL,
+  flagValue,
+  type ListSearchHandle,
+  listSort,
+  readFlag,
+  type SortDirection,
+} from "@/lib/domain/list-search"
 import { formatProduct } from "@/lib/utils/format"
-
-const ALL = ""
 
 export const SUBSCRIPTION_SORTS = [
   "created_at",
@@ -43,26 +48,6 @@ export interface AdminSubscriptionListSearch {
 export type AdminSubscriptionListProps =
   ListSearchHandle<AdminSubscriptionListSearch>
 
-function toSort(value: string | undefined): SubscriptionSort {
-  return SUBSCRIPTION_SORTS.find((sort) => sort === value) ?? SUBSCRIPTION_SORT
-}
-
-function flagValue(flag: boolean | undefined): string {
-  if (flag === undefined) {
-    return ALL
-  }
-
-  return flag ? "true" : "false"
-}
-
-function readFlag(value: string): boolean | undefined {
-  if (value === ALL) {
-    return undefined
-  }
-
-  return value === "true"
-}
-
 export function AdminSubscriptionList({
   search,
   setSearch,
@@ -70,10 +55,10 @@ export function AdminSubscriptionList({
   const t = useTranslations()
   const offset = search.offset ?? 0
   const query = search.q ?? ""
-  const status = search.status ?? ALL
-  const product = search.product ?? ALL
+  const status = search.status ?? FILTER_ALL
+  const product = search.product ?? FILTER_ALL
   const organizationId = search.organization_id ?? ""
-  const sort = toSort(search.sort)
+  const sort = listSort(search.sort, SUBSCRIPTION_SORTS, SUBSCRIPTION_SORT)
   const direction: AdminSortDirection = search.direction ?? "desc"
   const page = useQuery(
     adminSubscriptionsQueryOptions({
@@ -81,8 +66,8 @@ export function AdminSubscriptionList({
       offset,
       sort,
       direction,
-      ...(status === ALL ? {} : { status }),
-      ...(product === ALL ? {} : { product }),
+      ...(status === FILTER_ALL ? {} : { status }),
+      ...(product === FILTER_ALL ? {} : { product }),
       ...(organizationId === "" ? {} : { organization_id: organizationId }),
       ...(search.live === undefined ? {} : { live: search.live }),
       ...(query === "" ? {} : { q: query }),
@@ -115,7 +100,7 @@ export function AdminSubscriptionList({
               className="w-[200px]"
               id="admin-subscriptions-status"
               items={[
-                { value: ALL, label: t("admin.servers.allStatuses") },
+                { value: FILTER_ALL, label: t("admin.servers.allStatuses") },
                 ...SUBSCRIPTION_STATUS_FILTERS.map((candidate) => ({
                   value: candidate,
                   label: statusName(candidate),
@@ -136,7 +121,10 @@ export function AdminSubscriptionList({
               className="w-[200px]"
               id="admin-subscriptions-product"
               items={[
-                { value: ALL, label: t("admin.subscriptions.allProducts") },
+                {
+                  value: FILTER_ALL,
+                  label: t("admin.subscriptions.allProducts"),
+                },
                 ...SUBSCRIPTION_PRODUCT_FILTERS.map((candidate) => ({
                   value: candidate,
                   label: formatProduct(candidate, t),
@@ -157,7 +145,10 @@ export function AdminSubscriptionList({
               className="w-[240px]"
               id="admin-subscriptions-live"
               items={[
-                { value: ALL, label: t("admin.subscriptions.anyCounted") },
+                {
+                  value: FILTER_ALL,
+                  label: t("admin.subscriptions.anyCounted"),
+                },
                 { value: "true", label: t("admin.subscriptions.counted") },
                 { value: "false", label: t("admin.subscriptions.over") },
               ]}
@@ -214,7 +205,10 @@ export function AdminSubscriptionList({
         key: sort,
         direction,
         onChange: (key, next) => {
-          setSearch({ sort: toSort(key), direction: next })
+          setSearch({
+            sort: listSort(key, SUBSCRIPTION_SORTS, SUBSCRIPTION_SORT),
+            direction: next,
+          })
         },
       }}
       title={t("admin.subscriptions.title")}
