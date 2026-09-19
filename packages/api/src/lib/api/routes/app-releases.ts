@@ -47,7 +47,10 @@ export const appReleasesRoutes = new Elysia({
   name: "app-releases-routes",
   tags: ["Releases"],
 })
-  .onBeforeHandle({ as: "scoped" }, ({ set }) => {
+  // Local, not scoped: a scoped hook reaches the parent, and every route
+  // mounted after this one answered any origin and stayed cacheable for five
+  // minutes — the admin routes and the Stripe webhook included.
+  .onBeforeHandle(({ set }) => {
     set.headers["access-control-allow-origin"] = "*"
     set.headers["cache-control"] = PUBLIC_CACHE
   })
