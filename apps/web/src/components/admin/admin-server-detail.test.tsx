@@ -12,10 +12,17 @@ import {
   subscribeOrganization,
 } from "@pupitre/api/testing/factories"
 import type { SuspensionReason } from "@pupitre/db/cloudflare/client"
-import { AdminServerDetail } from "@/components/admin/admin-server-detail"
+import type { OrgRole } from "@pupitre/shared/permissions"
+import { useState } from "react"
+import {
+  ADMIN_SERVER_TAB,
+  AdminServerDetail,
+  type AdminServerTab,
+} from "@/components/admin/admin-server-detail"
 import { createConsoleUser, useSessionApiClient } from "@/testing/harness"
 import {
   fill,
+  pick,
   render,
   trigger,
   waitUntil,
@@ -25,8 +32,20 @@ import {
 
 const mounted: (() => void)[] = []
 
-function page(id: string) {
-  return withDashboard(<AdminServerDetail id={id} />, { platformRole: "owner" })
+function Detail({ id, start }: { id: string; start: AdminServerTab }) {
+  const [tab, setTab] = useState(start)
+
+  return <AdminServerDetail id={id} onTabChange={setTab} tab={tab} />
+}
+
+function page(
+  id: string,
+  {
+    tab = ADMIN_SERVER_TAB,
+    platformRole = "owner",
+  }: { tab?: AdminServerTab; platformRole?: OrgRole } = {}
+) {
+  return withDashboard(<Detail id={id} start={tab} />, { platformRole })
 }
 
 async function suspendedServer(
@@ -72,7 +91,7 @@ describe("AdminServerDetail", () => {
     }
   })
 
-  it("shows the machine, its organisation and how it is reached", async () => {
+  it("opens on the overview, with the machine, its organisation and how it is reached", async () => {
     const { server } = await createServer({ organizationId, name: "vps-one" })
 
     const { container, unmount } = await render(page(server.id))
@@ -82,20 +101,155 @@ describe("AdminServerDetail", () => {
     await waitUntil(() => container.textContent?.includes("Online") === true)
 
     expect(container.textContent).toContain("SSH port")
-    expect(container.textContent).toContain("Channel")
-    expect(container.textContent).toContain("Suspend")
+    expect(container.textContent).toContain("Update channel")
+    expect(container.textContent).toContain("Last heartbeat")
+    expect(container.textContent).toContain("Danger")
+    expect(container.textContent).not.toContain("Suspend the server")
   })
 
-  it("lifts the suspension the team laid", async () => {
+  it("applies the channel picked on the overview", async () => {
     const { prisma } = await bootApiTestServer()
-    const server = await suspendedServer(organizationId, "admin")
+    const { server } = await createServer({ organizationId, name: "vps-one" })
 
-    const { container, unmount, click } = await render(page(server.id))
+    const { container, unmount } = await render(page(server.id))
+
+    mounted.push(unmount)
+
+    await waitUntil(() => container.textContent?.includes("Online") === true)
+
+    const control = container.querySelector(`#channel-${server.id}`)
+
+    if (!control) {
+      throw new Error("the channel selector is missing")
+    }
+
+    await pick(control, "Beta")
+    await waitUntilStored(async () => {
+      const stored = await prisma.server.findUniqueOrThrow({
+        where: { id: server.id },
+      })
+
+      return stored.channel === "beta"
+    })
+  })
+
+  it("draws the seven days on the usage tab and says when nothing came in", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { server } = await createServer({ organizationId, name: "vps-one" })
+    const sample = {
+      at: new Date().toISOString(),
+      disk: 0.42,
+      ram: 0.31,
+      load: 0.2,
+      sessions: [],
+      stack_version: "1.0.0",
+      modules: [],
+      disk_total_gb: null,
+      disk_free_gb: null,
+      ram_total_mb: null,
+      ram_used_mb: null,
+    }
+    const empty = await createServer({ organizationId, name: "vps-quiet" })
+
+    await prisma.server.update({
+      where: { id: server.id },
+      data: {
+        metrics: { samples: [sample, { ...sample, disk: 0.55 }] },
+        lastUsage: sample,
+      },
+    })
+
+    const { container, unmount } = await render(
+      page(server.id, { tab: "usage" })
+    )
 
     mounted.push(unmount)
 
     await waitUntil(
-      () => container.textContent?.includes("Suspended by the team") === true
+      () => container.textContent?.includes("The last seven days") === true
+    )
+
+    expect(container.textContent).toContain("Last sample")
+    expect(container.textContent).toContain("2 readings")
+    expect(container.querySelectorAll("polyline")).toHaveLength(3)
+
+    const quiet = await render(page(empty.server.id, { tab: "usage" }))
+
+    mounted.push(quiet.unmount)
+
+    await waitUntil(
+      () =>
+        quiet.container.textContent?.includes(
+          "This server has reported no sample."
+        ) === true
+    )
+  })
+
+  it("closes the open alerts from the alerts tab", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { server } = await createServer({ organizationId, name: "vps-one" })
+
+    await prisma.alert.create({
+      data: { serverId: server.id, kind: "disk_high" },
+    })
+
+    const { container, unmount, click } = await render(
+      page(server.id, { tab: "alerts" })
+    )
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("Close the alerts") === true
+    )
+    await click(trigger(container, "Close the alerts"))
+
+    const confirm = [
+      ...document.querySelectorAll("[role=alertdialog] button"),
+    ].find((button) => button.textContent?.trim() === "Close the alerts")
+
+    if (!confirm) {
+      throw new Error("the alert dialog did not open")
+    }
+
+    await click(confirm)
+    await waitUntilStored(async () => {
+      const stored = await prisma.alert.findFirstOrThrow({
+        where: { serverId: server.id },
+      })
+
+      return stored.resolvedAt !== null
+    })
+  })
+
+  it("names the devices this server no longer serves", async () => {
+    const { server } = await createServer({ organizationId, name: "vps-one" })
+
+    const { container, unmount } = await render(
+      page(server.id, { tab: "devices" })
+    )
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () =>
+        container.textContent?.includes("No device revoked on this server.") ===
+        true
+    )
+  })
+
+  it("lifts the suspension the team laid, from the danger tab", async () => {
+    const { prisma } = await bootApiTestServer()
+    const server = await suspendedServer(organizationId, "admin")
+
+    const { container, unmount, click } = await render(
+      page(server.id, { tab: "danger" })
+    )
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("Hand the server back") === true
     )
     await click(trigger(container, "Lift the suspension"))
     await waitUntilStored(async () => {
@@ -110,13 +264,14 @@ describe("AdminServerDetail", () => {
   it("offers nothing to lift on a server suspended for non-payment", async () => {
     const server = await suspendedServer(organizationId, "billing")
 
-    const { container, unmount } = await render(page(server.id))
+    const { container, unmount } = await render(
+      page(server.id, { tab: "danger" })
+    )
 
     mounted.push(unmount)
 
     await waitUntil(
-      () =>
-        container.textContent?.includes("Suspended for non-payment") === true
+      () => container.textContent?.includes("Delete the server") === true
     )
 
     expect(container.textContent).not.toContain("Lift the suspension")
@@ -126,11 +281,15 @@ describe("AdminServerDetail", () => {
     const { prisma } = await bootApiTestServer()
     const { server } = await createServer({ organizationId, name: "vps-one" })
 
-    const { container, unmount, click } = await render(page(server.id))
+    const { container, unmount, click } = await render(
+      page(server.id, { tab: "danger" })
+    )
 
     mounted.push(unmount)
 
-    await waitUntil(() => container.textContent?.includes("Online") === true)
+    await waitUntil(
+      () => container.textContent?.includes("Delete the server") === true
+    )
     await click(trigger(container, "Delete"))
 
     await waitUntil(
@@ -155,8 +314,7 @@ describe("AdminServerDetail", () => {
     })
     await waitUntil(() => container.textContent?.includes("Purge") === true)
 
-    expect(container.textContent).toContain("Disappears on")
-    expect(container.textContent).not.toContain("Suspend")
+    expect(container.textContent).not.toContain("Suspend the server")
 
     await click(trigger(container, "Purge"))
 
@@ -184,13 +342,11 @@ describe("AdminServerDetail", () => {
     )
   })
 
-  it("leaves a reader of the platform without either gesture", async () => {
+  it("leaves a reader of the platform without the danger tab nor the channel", async () => {
     const server = await suspendedServer(organizationId, "admin")
 
     const { container, unmount } = await render(
-      withDashboard(<AdminServerDetail id={server.id} />, {
-        platformRole: "member",
-      })
+      page(server.id, { platformRole: "member" })
     )
 
     mounted.push(unmount)
@@ -199,6 +355,7 @@ describe("AdminServerDetail", () => {
       () => container.textContent?.includes("Suspended by the team") === true
     )
 
-    expect(container.querySelectorAll("button")).toHaveLength(0)
+    expect(container.textContent).not.toContain("Danger")
+    expect(container.querySelector(`#channel-${server.id}`)).toBeNull()
   })
 })

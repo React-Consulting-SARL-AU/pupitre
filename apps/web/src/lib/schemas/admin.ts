@@ -48,6 +48,35 @@ function endsAtField(t: Translate) {
     })
 }
 
+/** A trial ends on a day: an empty field is a refusal here, not an open end. */
+function trialEndField(t: Translate) {
+  return z
+    .string()
+    .trim()
+    .transform((value, context) => {
+      const iso = value === "" ? null : endOfDayIso(value)
+
+      if (iso === null) {
+        context.addIssue({
+          code: "custom",
+          message: t("admin.subscriptions.endsAtRequired"),
+        })
+
+        return z.NEVER
+      }
+
+      return iso
+    })
+}
+
+export function trialEndSchema(t: Translate) {
+  return z.object({ ends_at: trialEndField(t) })
+}
+
+export type TrialEndInput = z.input<ReturnType<typeof trialEndSchema>>
+
+export type TrialEndValues = z.output<ReturnType<typeof trialEndSchema>>
+
 export function grantSubscriptionSchema(t: Translate) {
   return z.object({
     seats: seatsField(t),
