@@ -511,6 +511,60 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
     expect(reads[0].targetId).toBe(sensitive.threadId)
   })
 
+  it("n'écrit qu'une lecture par personne et par fenêtre, et rien en temps réel", async () => {
+    const sensitive = await ingest({
+      to: LEGAL_CONTACTS.security,
+      subject: "Faille",
+    })
+
+    mail.broadcast.length = 0
+
+    await apiRequest(`/admin/inbox/threads/${sensitive.threadId}`, {
+      session: owner.session,
+    })
+    await apiRequest(`/admin/inbox/threads/${sensitive.threadId}`, {
+      session: owner.session,
+    })
+    await apiRequest(`/admin/inbox/threads/${sensitive.threadId}`, {
+      session: member.session,
+    })
+
+    const { prisma } = await bootApiTestServer()
+    const reads = await prisma.event.findMany({
+      where: { action: "mail.read" },
+    })
+    const activities = await prisma.mailActivity.count({
+      where: { threadId: sensitive.threadId, action: "read" },
+    })
+
+    expect(reads.map((read) => read.actorUserId).sort()).toEqual(
+      [owner.userId, member.userId].sort()
+    )
+    expect(activities).toBe(2)
+    expect(mail.broadcast).toEqual([])
+  })
+
+  it("ne diffuse que la liste quand un brouillon est gardé", async () => {
+    const stored = await ingest({})
+
+    mail.broadcast.length = 0
+
+    await apiRequest(`/admin/inbox/threads/${stored.threadId}/draft`, {
+      method: "PUT",
+      body: { body: "On regarde" },
+      session: owner.session,
+    })
+    await apiRequest(`/admin/inbox/threads/${stored.threadId}/draft`, {
+      method: "DELETE",
+      session: owner.session,
+    })
+
+    expect(mail.broadcast.map((event) => event.type)).toEqual([
+      "draft.changed",
+      "draft.changed",
+    ])
+  })
+
   it("journalise la lecture d'une pièce jointe sensible", async () => {
     const stored = await ingestInboundEmail({
       envelopeFrom: "chercheuse@exemple.org",

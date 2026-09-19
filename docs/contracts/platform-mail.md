@@ -138,24 +138,28 @@ Un message HTML qui porte `<img src="cid:…">` désigne une partie du même mes
 
 ## Le temps réel
 
-`GET /api/v1/admin/inbox/events`, en **WebSocket**. Le Worker intercepte ce chemin **avant** Elysia — un routeur Elysia ne rend pas un `101` : il résout la session par `resolveAuthContext`, exige l'appartenance à l'organisation Pupitre (même règle que `requirePlatformAdmin`), puis transmet la requête au stub du Durable Object. Sans session : `401`, sans upgrade. Sans rôle plateforme : `403`. Sans en-tête `Upgrade: websocket` : `400`.
+`GET /api/v1/admin/inbox/events`, en **WebSocket**. Le Worker intercepte ce chemin **avant** Elysia — un routeur Elysia ne rend pas un `101` : il résout la session par `resolveAuthContext`, exige l'appartenance à l'organisation Pupitre (même règle que `requirePlatformAdmin`), puis transmet la requête au stub du Durable Object. Les refus suivent l'ordre de `refuseSession` : un compte que la plateforme n'honore plus (`accountRefusal`) reçoit `403` avant même que son rôle soit lu, sans session c'est `401`, hors de l'équipe `403`, et sans en-tête `Upgrade: websocket` `400`. Aucun de ces refus n'ouvre de socket.
 
 La classe `InboxRealtime` est exportée par `apps/web/src/worker.ts` — Cloudflare résout un binding d'objet durable sur l'entrée du Worker, comme les workflows — et sa logique vit dans `apps/web/src/realtime/inbox-realtime.ts`. Une seule instance, `idFromName("platform")`. Elle **ne stocke rien** : elle accepte la socket en hibernation (`state.acceptWebSocket`, `webSocketMessage`, `webSocketClose`) et diffuse. Un `ping` reçoit `pong`, rien d'autre.
 
 `packages/api/src/lib/mail/realtime.ts` expose `publishInboxEvent(event)`, configurable comme le transport (`configureInboxRealtime`, no-op par défaut). En production, le Worker installe un éditeur qui `fetch` le stub sur son chemin interne `/publish`, derrière `INTERNAL_WORKFLOW_SECRET` ; le harnais de test enregistre les événements dans `useFakeMail().broadcast`. **Une diffusion qui casse ne casse jamais l'écriture** : la console retombe sur son sondage.
 
-| Événement | Quand |
-| --- | --- |
-| `thread.received` | l'ingestion a rangé un message, doublon reconnu compris |
-| `thread.updated` | un `PATCH /threads/:id`, une note, un brouillon |
-| `thread.read` | l'ouverture d'un fil d'une boîte sensible |
-| `message.sent` | une réponse ou un nouveau message est parti |
-| `message.failed` | l'envoi a été refusé par le service d'envoi |
-| `counts.changed` | un lot, ou un changement de boîte |
+| Événement | Quand | Ce que la console refetche |
+| --- | --- | --- |
+| `thread.received` | l'ingestion a rangé un message, doublon reconnu compris | la liste, les compteurs, le fil nommé |
+| `thread.updated` | un `PATCH /threads/:id`, une note | la liste, le fil nommé |
+| `draft.changed` | un brouillon gardé ou jeté | la liste seule (`has_draft`) |
+| `message.sent` | une réponse ou un nouveau message est parti | la liste, le fil nommé |
+| `message.failed` | l'envoi a été refusé par le service d'envoi | la liste, le fil nommé |
+| `counts.changed` | un lot qui change quelque chose, ou un changement de boîte | les compteurs, les boîtes |
 
 Chaque événement porte `type`, et selon le cas `thread_id` et `mailbox_id`.
 
+**Une lecture ne se diffuse pas.** Ouvrir un fil d'une boîte sensible écrit au journal mais n'émet aucune trame : elle ne change rien pour les autres, et une trame qui aurait fait refetcher le fil aurait refait la lecture qui l'a émise — la lecture aurait bouclé sur elle-même. Pour la même raison, **la console distribue l'invalidation par type d'événement** (colonne ci-dessus) au lieu de tout invalider, et une trame d'un type qu'elle ne connaît pas ne refetche rien.
+
 Côté console, `useInboxRealtime()` est ouvert **une fois** par le layout de la boîte, se reconnecte avec un repli exponentiel plafonné à trente secondes, et invalide les requêtes que l'événement nomme. `INBOX_POLL_INTERVAL_MS` vaut 60 s et ne sert plus qu'à rattraper une socket morte : la console fonctionne sans socket, et c'est ce que fait le harnais e2e.
+
+Une socket qui jette à l'envoi est fermée et écartée de la tournée : la diffusion continue vers les autres.
 
 ## Les routes
 
@@ -176,7 +180,7 @@ Sous `/api/v1/admin/inbox`. **Lire demande d'être membre de l'organisation Pupi
 | Méthode | Route | Corps | Réponse |
 | --- | --- | --- | --- |
 | GET | `/threads` | — | `{ data: Thread[], total, unread }`. Filtres en paramètres : `status=open\|closed`, `unread=true\|false`, `q`, `address`, `mailbox_id` (`others` pour les fils qu'aucune boîte ne déclare), `organization_id`, `automated=true`, `assigned=me\|none\|<userId>`, `sort=last_activity\|last_inbound_at\|created_at\|subject` (`last_activity` par défaut), `direction=asc\|desc` (`desc` par défaut), `limit` (50 par défaut, 200 au plus), `offset`. `q` cherche dans le sujet, l'adresse et le nom des expéditeurs, **le texte des messages** et l'identifiant du fil. **Les fils dont le dernier entrant est automatique sont exclus par défaut** ; `automated=true` ne rend qu'eux. `unread` compte les fils non lus qui passent les **autres** filtres : c'est le compteur d'en-tête, il ne suit pas la case « non lus » |
-| GET | `/threads/:id` | — | `{ data: Thread & { mailbox, messages: Message[], notes: Note[], activities: Activity[], draft: Draft \| null } }`, messages du plus ancien au plus récent. **Ouvrir un fil ne le marque pas lu** : c'est la console qui le dit, par le PATCH. Sur une **boîte sensible**, l'ouverture écrit `mail.read` au journal et une activité `read` |
+| GET | `/threads/:id` | — | `{ data: Thread & { mailbox, messages: Message[], notes: Note[], activities: Activity[], draft: Draft \| null } }`, messages du plus ancien au plus récent. **Ouvrir un fil ne le marque pas lu** : c'est la console qui le dit, par le PATCH. Sur une **boîte sensible**, l'ouverture écrit `mail.read` au journal et une activité `read`, **une fois par lecteur et par fenêtre de `MAIL_READ_AUDIT_WINDOW_MS`** (`@pupitre/shared/legal`, dix minutes) : le journal dit qui a lu quoi, pas combien de fois la console a refetché |
 | PATCH | `/threads/:id` | `{ status?, unread?, assigned_user_id?, linked_organization_id? }` | `{ data: ThreadDetail }`. `unread` est ouvert à tout membre ; `status`, `assigned_user_id` et `linked_organization_id` demandent le rôle `admin`, sinon `403 forbidden`. L'attributaire doit être membre de l'organisation Pupitre, sinon `422 validation` ; une organisation inconnue vaut `422 validation` ; `null` délie. Activités `assigned`/`unassigned`/`closed`/`reopened`/`linked`/`unlinked`/`read`/`unread` |
 | POST | `/threads/bulk` | `{ ids (1..100), status?, unread? }` | `{ data: { updated } }`. `status` demande le rôle `admin`, `unread` est ouvert à tout membre. Une activité par fil qui change vraiment ; un événement de journal par lot (`mail.bulk_closed`, `mail.bulk_read`) |
 | GET | `/messages/:id/html` | — | le corps HTML stocké, en `text/html; charset=utf-8`, sous la CSP de *Le HTML d'un message* et `X-Content-Type-Options: nosniff`, les `src="cid:…"` réécrits. `404` quand le message n'a pas de HTML |

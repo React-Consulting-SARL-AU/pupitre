@@ -1,7 +1,7 @@
 export const INBOX_EVENT_TYPES = [
   "thread.received",
   "thread.updated",
-  "thread.read",
+  "draft.changed",
   "message.sent",
   "message.failed",
   "counts.changed",

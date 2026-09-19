@@ -1,4 +1,5 @@
 import type { Prisma } from "@pupitre/db/cloudflare/client"
+import { MAIL_READ_AUDIT_WINDOW_MS } from "@pupitre/shared/legal"
 import { PLATFORM_ORGANIZATION_ID } from "@pupitre/shared/platform"
 import { getPrisma } from "../api/prisma"
 import { type Actor, recordEvent } from "../audit/audit"
@@ -757,15 +758,41 @@ export async function bulkUpdateMailThreads(
   return threads.length
 }
 
+async function readAlreadyJournalled(
+  actorUserId: string | null,
+  threadId: string
+): Promise<boolean> {
+  const since = new Date(Date.now() - MAIL_READ_AUDIT_WINDOW_MS)
+  const previous = await getPrisma().event.findFirst({
+    where: {
+      action: "mail.read",
+      actorUserId,
+      targetType: "mail_thread",
+      targetId: threadId,
+      createdAt: { gte: since },
+    },
+    select: { id: true },
+  })
+
+  return previous !== null
+}
+
 /**
  * Opening a sensitive box is itself an act: who read a report sent to
  * `security@`, and when. An ordinary box records nothing.
+ *
+ * One line per reader and per window: the console refetches the open thread
+ * on every frame it receives, and each refetch is the same reading.
  */
 export async function noteSensitiveThreadRead(
   actor: Actor,
   thread: MailThreadDetail
 ): Promise<void> {
   if (!thread.mailbox?.sensitive) {
+    return
+  }
+
+  if (await readAlreadyJournalled(actor.userId, thread.id)) {
     return
   }
 
@@ -780,11 +807,6 @@ export async function noteSensitiveThreadRead(
     threadId: thread.id,
     action: "read",
     actorUserId: actor.userId,
-  })
-  await publishInboxEvent({
-    type: "thread.read",
-    thread_id: thread.id,
-    mailbox_id: thread.mailbox.id,
   })
 }
 
