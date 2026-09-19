@@ -16,6 +16,19 @@ import {
 
 const mounted: (() => void)[] = []
 
+const A_DAY_MS = 86_400_000
+
+/** What a `datetime-local` field holds: the local wall clock, without its zone. */
+function localMoment(offsetMs: number): string {
+  const moment = new Date(Date.now() + offsetMs)
+
+  moment.setSeconds(0, 0)
+
+  return new Date(moment.getTime() - moment.getTimezoneOffset() * 60_000)
+    .toISOString()
+    .slice(0, 16)
+}
+
 function dialog(overrides: Partial<ConfirmFormDialogProps> = {}) {
   const props: ConfirmFormDialogProps = {
     id: "purge",
@@ -220,5 +233,39 @@ describe("ConfirmFormDialog", () => {
     await waitUntil(() => confirmed.length > 0)
 
     expect(confirmed[0].reason).toBe("abus répété")
+  })
+
+  it("refuses a deadline already past and takes one still to come", async () => {
+    const confirmed: ConfirmFormValues[] = []
+    const rendered = await open(
+      dialog({
+        until: true,
+        onConfirm: (values) => {
+          confirmed.push(values)
+        },
+      })
+    )
+    const confirm = [...document.querySelectorAll("button")].find(
+      (button) => button.getAttribute("type") === "submit"
+    )
+
+    if (!confirm) {
+      throw new Error("no confirm button")
+    }
+
+    await fill(field("purge-until"), localMoment(-A_DAY_MS))
+    await rendered.click(confirm)
+    await waitUntil(() => document.querySelector("[role=alert]") !== null)
+
+    expect(confirmed).toHaveLength(0)
+    expect(document.body.textContent).toContain("Pick a date ahead of now.")
+
+    const ahead = localMoment(A_DAY_MS)
+
+    await fill(field("purge-until"), ahead)
+    await rendered.click(confirm)
+    await waitUntil(() => confirmed.length > 0)
+
+    expect(confirmed[0].until).toBe(new Date(ahead).toISOString())
   })
 })
