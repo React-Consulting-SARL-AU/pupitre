@@ -37,6 +37,13 @@
       "bucket_name": "ppt-mail"
     }
   ],
+  // The inbox's realtime room: one object for the whole platform, which keeps
+  // nothing and only broadcasts what a write just did. The console's socket is
+  // GET /api/v1/admin/inbox/events.
+  "durable_objects": {
+    "bindings": [{ "name": "INBOX_REALTIME", "class_name": "InboxRealtime" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["InboxRealtime"] }],
   "observability": {
     "enabled": true
   },
@@ -131,6 +138,12 @@
           "bucket_name": "ppt-mail"
         }
       ],
+      "durable_objects": {
+        "bindings": [
+          { "name": "INBOX_REALTIME", "class_name": "InboxRealtime" }
+        ]
+      },
+      "migrations": [{ "tag": "v1", "new_sqlite_classes": ["InboxRealtime"] }],
       "observability": {
         "enabled": true,
         "head_sampling_rate": 1,

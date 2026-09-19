@@ -1,104 +1,146 @@
-import { AdminSearchForm } from "@/components/admin/admin-search-form"
+import { useEffect, useState } from "react"
+import { InboxOrganizationFilter } from "@/components/admin/inbox/inbox-organization-filter"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { Select } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { useTranslations } from "@/hooks/use-locale"
-import type { ThreadStatus } from "@/lib/api/inbox-queries"
+import type {
+  ThreadDirection,
+  ThreadSort,
+  ThreadStatus,
+} from "@/lib/api/inbox-queries"
 import {
   ASSIGNED_ANYONE,
   ASSIGNED_ME,
   ASSIGNED_NOBODY,
 } from "@/lib/domain/inbox"
+import type { InboxSearch } from "@/lib/domain/inbox-search"
+
+const SEARCH_DELAY_MS = 300
 
 export interface InboxFilterBarProps {
-  status: ThreadStatus
-  onStatusChange: (status: ThreadStatus) => void
-  unreadOnly: boolean
-  onUnreadOnlyChange: (unreadOnly: boolean) => void
-  assigned: string
-  onAssignedChange: (assigned: string) => void
-  address: string
-  onAddressChange: (address: string) => void
-  addresses: string[]
-  query: string
-  onSearch: (query: string) => void
+  search: InboxSearch
+  organizationName: string | null
+  onChange: (patch: Partial<InboxSearch>) => void
 }
 
-const EVERY_ADDRESS = ""
-
 export function InboxFilterBar({
-  status,
-  onStatusChange,
-  unreadOnly,
-  onUnreadOnlyChange,
-  assigned,
-  onAssignedChange,
-  address,
-  onAddressChange,
-  addresses,
-  query,
-  onSearch,
+  search,
+  organizationName,
+  onChange,
 }: InboxFilterBarProps) {
   const t = useTranslations()
+  const [typed, setTyped] = useState(search.q)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (typed !== search.q) {
+        onChange({ q: typed })
+      }
+    }, SEARCH_DELAY_MS)
+
+    return () => {
+      clearTimeout(timer)
+    }
+  }, [typed, search.q, onChange])
 
   return (
-    <div className="flex flex-wrap items-end gap-gutter">
+    <div className="flex flex-wrap items-end gap-3">
       <div className="flex flex-col gap-2">
         <Label htmlFor="inbox-status">{t("inbox.status")}</Label>
         <SegmentedControl
-          onValueChange={onStatusChange}
+          onValueChange={(status: ThreadStatus) => {
+            onChange({ status })
+          }}
           options={[
             { value: "open", label: t("inbox.open") },
             { value: "closed", label: t("inbox.closed") },
           ]}
-          value={status}
+          value={search.status}
         />
       </div>
 
       <Switch
-        checked={unreadOnly}
+        checked={search.unread === true}
         id="inbox-unread-only"
         label={t("inbox.unreadOnly")}
-        onCheckedChange={onUnreadOnlyChange}
+        onCheckedChange={(unread) => {
+          onChange({ unread: unread ? true : undefined })
+        }}
       />
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="inbox-assigned">{t("inbox.assigned")}</Label>
         <SegmentedControl
-          onValueChange={onAssignedChange}
+          onValueChange={(assigned: string) => {
+            onChange({ assigned })
+          }}
           options={[
             { value: ASSIGNED_ANYONE, label: t("inbox.assignedAnyone") },
             { value: ASSIGNED_ME, label: t("inbox.assignedMe") },
             { value: ASSIGNED_NOBODY, label: t("inbox.assignedNobody") },
           ]}
-          value={assigned}
+          value={search.assigned}
+        />
+      </div>
+
+      <InboxOrganizationFilter
+        onOrganizationChange={(organization_id) => {
+          onChange({ organization_id })
+        }}
+        organizationId={search.organization_id}
+        organizationName={organizationName}
+      />
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="inbox-sort">{t("inbox.sort")}</Label>
+        <Select
+          className="w-[200px]"
+          id="inbox-sort"
+          items={[
+            { value: "last_activity", label: t("inbox.sortLastActivity") },
+            { value: "last_inbound_at", label: t("inbox.sortLastInbound") },
+            { value: "created_at", label: t("inbox.sortCreated") },
+            { value: "subject", label: t("inbox.sortSubject") },
+          ]}
+          onValueChange={(sort) => {
+            onChange({ sort: sort as ThreadSort })
+          }}
+          value={search.sort}
         />
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="inbox-address">{t("inbox.address")}</Label>
+        <Label htmlFor="inbox-direction">{t("inbox.direction")}</Label>
         <Select
-          className="w-[240px]"
-          id="inbox-address"
+          className="w-[200px]"
+          id="inbox-direction"
           items={[
-            { value: EVERY_ADDRESS, label: t("inbox.everyAddress") },
-            ...addresses.map((candidate) => ({
-              value: candidate,
-              label: candidate,
-            })),
+            { value: "desc", label: t("inbox.directionDesc") },
+            { value: "asc", label: t("inbox.directionAsc") },
           ]}
-          onValueChange={onAddressChange}
-          value={address}
+          onValueChange={(direction) => {
+            onChange({ direction: direction as ThreadDirection })
+          }}
+          value={search.direction}
         />
       </div>
 
-      <AdminSearchForm
-        id="inbox-search"
-        onSearch={onSearch}
-        placeholder={t("inbox.searchPlaceholder")}
-        query={query}
-      />
+      <div className="flex min-w-[220px] flex-1 flex-col gap-2 sm:max-w-[320px]">
+        <Label htmlFor="inbox-search">{t("admin.search")}</Label>
+        <Input
+          autoComplete="off"
+          id="inbox-search"
+          onChange={(event) => {
+            setTyped(event.target.value)
+          }}
+          placeholder={t("inbox.searchPlaceholder")}
+          type="search"
+          value={typed}
+        />
+      </div>
     </div>
   )
 }

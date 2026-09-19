@@ -55,8 +55,13 @@ const ADMIN_INBOX: Crumb = {
 const TITLES: Record<string, PageTitle> = {
   "/dashboard/admin": { title: "nav.admin", parents: [] },
   "/dashboard/admin/inbox": { title: "nav.adminInbox", parents: [ADMIN] },
+  "/dashboard/admin/inbox/": { title: "nav.adminInbox", parents: [ADMIN] },
   "/dashboard/admin/inbox/$threadId": {
     title: "nav.adminThread",
+    parents: [ADMIN, ADMIN_INBOX],
+  },
+  "/dashboard/admin/inbox/mailboxes": {
+    title: "nav.adminInboxMailboxes",
     parents: [ADMIN, ADMIN_INBOX],
   },
   "/dashboard/admin/users": { title: "nav.adminUsers", parents: [ADMIN] },
