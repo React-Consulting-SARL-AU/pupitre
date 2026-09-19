@@ -226,18 +226,34 @@ function mailboxWhere(
   return mailboxId === MAILBOX_OTHERS ? { mailboxId: null } : { mailboxId }
 }
 
+const SEARCH_WILDCARDS_RE = /[%_]/g
+
+/** Nothing has this identifier, so the reader who typed only wildcards gets nothing. */
+const NOTHING: Prisma.MailThreadWhereInput = { id: { in: [] } }
+
+/**
+ * `contains` becomes a `LIKE` the search text is pasted into: `%` alone would
+ * match every thread, `_` any single character. Both are read as themselves,
+ * which here means read as nothing.
+ */
 function searchWhere(q: string): Prisma.MailThreadWhereInput {
+  const literal = q.replace(SEARCH_WILDCARDS_RE, "")
+
+  if (literal === "") {
+    return NOTHING
+  }
+
   return {
     OR: [
-      { id: { contains: q } },
-      { subject: { contains: q } },
+      { id: { contains: literal } },
+      { subject: { contains: literal } },
       {
         messages: {
           some: {
             OR: [
-              { fromEmail: { contains: q } },
-              { fromName: { contains: q } },
-              { text: { contains: q } },
+              { fromEmail: { contains: literal } },
+              { fromName: { contains: literal } },
+              { text: { contains: literal } },
             ],
           },
         },
@@ -692,6 +708,10 @@ export async function updateMailThread(
   return await readMailThread(threadId)
 }
 
+/**
+ * `updated` counts the threads the lot really changed: closing what is already
+ * closed changes nothing, and a lot that changes nothing broadcasts nothing.
+ */
 export async function bulkUpdateMailThreads(
   actor: Actor,
   threadIds: string[],
@@ -703,59 +723,68 @@ export async function bulkUpdateMailThreads(
     select: { id: true, status: true, unread: true },
   })
 
-  if (threads.length === 0) {
+  const reclosed = threads.filter(
+    (thread) => patch.status !== undefined && patch.status !== thread.status
+  )
+  const remarked = threads.filter(
+    (thread) => patch.unread !== undefined && patch.unread !== thread.unread
+  )
+  const changed = threads.filter(
+    (thread) => reclosed.includes(thread) || remarked.includes(thread)
+  )
+
+  if (changed.length === 0) {
     return 0
   }
 
   await prisma.mailThread.updateMany({
-    where: { id: { in: threads.map((thread) => thread.id) } },
+    where: { id: { in: changed.map((thread) => thread.id) } },
     data: {
       ...(patch.status ? { status: patch.status } : {}),
       ...(patch.unread === undefined ? {} : { unread: patch.unread }),
     },
   })
 
-  for (const thread of threads) {
-    if (patch.status && patch.status !== thread.status) {
-      await recordMailActivity({
-        threadId: thread.id,
-        action: patch.status === "closed" ? "closed" : "reopened",
-        actorUserId: actor.userId,
-      })
-    }
-
-    if (patch.unread !== undefined && patch.unread !== thread.unread) {
-      await recordMailActivity({
-        threadId: thread.id,
-        action: patch.unread ? "unread" : "read",
-        actorUserId: actor.userId,
-      })
-    }
-  }
-
-  if (patch.status) {
-    await recordEvent({
-      action: "mail.bulk_closed",
+  for (const thread of reclosed) {
+    await recordMailActivity({
+      threadId: thread.id,
+      action: patch.status === "closed" ? "closed" : "reopened",
       actorUserId: actor.userId,
-      targetType: "mail_thread",
-      targetId: threads[0].id,
-      payload: { status: patch.status, threads: threads.length },
     })
   }
 
-  if (patch.unread !== undefined) {
+  for (const thread of remarked) {
+    await recordMailActivity({
+      threadId: thread.id,
+      action: patch.unread ? "unread" : "read",
+      actorUserId: actor.userId,
+    })
+  }
+
+  if (reclosed.length > 0) {
     await recordEvent({
-      action: "mail.bulk_read",
+      action:
+        patch.status === "closed" ? "mail.bulk_closed" : "mail.bulk_reopened",
       actorUserId: actor.userId,
       targetType: "mail_thread",
-      targetId: threads[0].id,
-      payload: { unread: patch.unread, threads: threads.length },
+      targetId: reclosed[0].id,
+      payload: { status: patch.status, threads: reclosed.length },
+    })
+  }
+
+  if (remarked.length > 0) {
+    await recordEvent({
+      action: patch.unread ? "mail.bulk_unread" : "mail.bulk_read",
+      actorUserId: actor.userId,
+      targetType: "mail_thread",
+      targetId: remarked[0].id,
+      payload: { unread: patch.unread, threads: remarked.length },
     })
   }
 
   await publishInboxEvent({ type: "counts.changed" })
 
-  return threads.length
+  return changed.length
 }
 
 async function readAlreadyJournalled(
