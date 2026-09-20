@@ -38,7 +38,12 @@ interface ErrorBody {
 
 interface MeBody {
   entitlement: string
-  subscription: { status: string; trial_ends_at: string | null } | null
+  subscription: {
+    status: string
+    trial_ends_at: string | null
+    current_period_end: string | null
+    servers: { used: number; limit: number }
+  } | null
 }
 
 interface SubscriptionBody {
@@ -302,11 +307,12 @@ describe("le lancement", () => {
     expect(stored.currentPeriodEnd).toEqual(TEST_LAUNCH_END)
     expect(await reconcileLaunch(new Date())).toEqual({
       aligned: [],
+      kept: [],
       canceled: [],
     })
   })
 
-  it("ferme un lancement dépassé et met ses serveurs en tolérance jusqu'à sa fin, que la suspension ferme le jour même", async () => {
+  it("garde pour de bon le siège d'un lancement dépassé quand une machine a été enrôlée", async () => {
     await checkout(organizationId, owner)
 
     const { server } = await createServer({ organizationId })
@@ -320,6 +326,76 @@ describe("le lancement", () => {
       where: { organizationId },
     })
 
+    expect(report.kept).toEqual([subscription.id])
+    expect(report.canceled).toEqual([])
+    expect(subscription.status).toBe("active")
+    expect(subscription.currentPeriodEnd).toBeNull()
+    expect(subscription.quantity).toBe(LAUNCH_SEATS)
+    expect(
+      await harness.prisma.event.findFirstOrThrow({
+        where: { action: "subscription.updated", organizationId },
+      })
+    ).toMatchObject({
+      payload: expect.objectContaining({ launch_seat_kept: true }),
+    })
+
+    const untouched = await harness.prisma.server.findUniqueOrThrow({
+      where: { id: server.id },
+    })
+
+    expect(untouched.status).toBe("active")
+    expect(await suspendExpiredGrace(now)).toEqual([])
+    expect(await reconcileLaunch(now)).toEqual({
+      aligned: [],
+      kept: [],
+      canceled: [],
+    })
+
+    const me = await apiRequest<MeBody>("/me", { session: owner })
+
+    expect(me.json.entitlement).toBe("valid")
+    expect(me.json.subscription).toEqual({
+      status: "active",
+      trial_ends_at: null,
+      current_period_end: null,
+      servers: { used: 1, limit: LAUNCH_SEATS },
+    })
+  })
+
+  it("garde le siège d'une machine enrôlée puis retirée : le journal s'en souvient", async () => {
+    await checkout(organizationId, owner)
+    await harness.prisma.event.create({
+      data: {
+        action: "server.exchanged",
+        organizationId,
+        targetType: "server",
+        targetId: "srv_partie",
+        payload: {},
+      },
+    })
+
+    useLaunchBilling({ endsAt: new Date(Date.now() - DAY_MS) })
+
+    const report = await reconcileLaunch(new Date())
+
+    expect(report.kept).toHaveLength(1)
+    expect(report.canceled).toEqual([])
+  })
+
+  it("ferme un lancement dépassé qui n'a jamais enrôlé de machine", async () => {
+    await checkout(organizationId, owner)
+
+    const ended = new Date(Date.now() - DAY_MS)
+
+    useLaunchBilling({ endsAt: ended })
+
+    const now = new Date()
+    const report = await reconcileLaunch(now)
+    const subscription = await harness.prisma.subscription.findFirstOrThrow({
+      where: { organizationId },
+    })
+
+    expect(report.kept).toEqual([])
     expect(report.canceled).toEqual([subscription.id])
     expect(subscription.status).toBe("canceled")
     expect(
@@ -328,18 +404,21 @@ describe("le lancement", () => {
       })
     ).toBe(1)
 
-    const graced = await harness.prisma.server.findUniqueOrThrow({
-      where: { id: server.id },
-    })
-
-    expect(graced.status).toBe("grace")
-    expect(graced.entitlementValidUntil).toEqual(ended)
-
-    expect(await suspendExpiredGrace(now)).toEqual([server.id])
-
     const me = await apiRequest<MeBody>("/me", { session: owner })
 
     expect(me.json.entitlement).toBe("suspended")
+  })
+
+  it("ne garde pas le siège d'une machine qui n'a jamais échangé son jeton", async () => {
+    await checkout(organizationId, owner)
+    await createServer({ organizationId, status: "enrolling" })
+
+    useLaunchBilling({ endsAt: new Date(Date.now() - DAY_MS) })
+
+    const report = await reconcileLaunch(new Date())
+
+    expect(report.kept).toEqual([])
+    expect(report.canceled).toHaveLength(1)
   })
 
   it("dit le mode et la fin du lancement sur /status", async () => {

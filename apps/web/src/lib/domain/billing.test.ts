@@ -3,6 +3,7 @@ import { formatUsd } from "@pupitre/shared/plans"
 import {
   amountUsd,
   INTERVAL_KEYS,
+  isLaunchSeatKept,
   isLaunchSubscription,
   SEAT_PRICE_USD_PER_MONTH,
   seatBalance,
@@ -106,6 +107,18 @@ describe("isLaunchSubscription", () => {
       isLaunchSubscription({ product: "prod_server", status: "trialing" })
     ).toBe(false)
     expect(isLaunchSubscription({ product: null, status: "trialing" })).toBe(
+      false
+    )
+  })
+})
+
+describe("isLaunchSeatKept", () => {
+  it("is the launch row once it runs active, and nothing else", () => {
+    expect(isLaunchSeatKept({ product: "launch", status: "active" })).toBe(true)
+    expect(isLaunchSeatKept({ product: "launch", status: "trialing" })).toBe(
+      false
+    )
+    expect(isLaunchSeatKept({ product: "granted", status: "active" })).toBe(
       false
     )
   })

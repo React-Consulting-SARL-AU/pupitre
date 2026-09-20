@@ -46,7 +46,8 @@ export async function createConsoleUser(input: TestUserInput = {}) {
 }
 
 /** The subscription the platform grants itself during the launch, as `packages/api/src/lib/billing/launch.ts` writes it. */
-export async function grantLaunch(organizationId: string, endsAt: Date) {
+/** The launch row as the platform grants it, or — without an end — as it keeps it for good once the launch is over. */
+export async function grantLaunch(organizationId: string, endsAt: Date | null) {
   const { prisma } = await bootApiTestServer()
 
   return await prisma.subscription.create({
@@ -55,7 +56,7 @@ export async function grantLaunch(organizationId: string, endsAt: Date) {
       stripeSubscriptionId: `launch_${organizationId}`,
       product: "launch",
       quantity: 1,
-      status: "trialing",
+      status: endsAt ? "trialing" : "active",
       currentPeriodEnd: endsAt,
     },
   })

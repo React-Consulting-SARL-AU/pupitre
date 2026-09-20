@@ -64,7 +64,7 @@ describe("le workflow SuspendExpiredGrace", () => {
     const report = await runSuspendExpiredGrace(recorder.step)
 
     expect(report).toEqual({
-      launch: { aligned: [], canceled: [] },
+      launch: { aligned: [], kept: [], canceled: [] },
       granted: [],
       suspended: [serverId],
       purgedUploads: [],
@@ -106,7 +106,7 @@ describe("le workflow SuspendExpiredGrace", () => {
     ).toMatchObject({ status: "grace" })
   })
 
-  it("ferme un lancement dépassé et suspend ses serveurs dans la même passe", async () => {
+  it("garde pour de bon le siège d'un lancement dépassé dont la machine est enrôlée, et ne suspend rien", async () => {
     const { prisma } = await bootApiTestServer()
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
@@ -129,9 +129,46 @@ describe("le workflow SuspendExpiredGrace", () => {
     const report = await runSuspendExpiredGrace(recordSteps().step)
 
     expect(report).toEqual({
-      launch: { aligned: [], canceled: [subscription.id] },
+      launch: { aligned: [], kept: [subscription.id], canceled: [] },
       granted: [],
-      suspended: [server.id],
+      suspended: [],
+      purgedUploads: [],
+    })
+    expect(
+      await prisma.subscription.findUniqueOrThrow({
+        where: { id: subscription.id },
+      })
+    ).toMatchObject({ status: "active", currentPeriodEnd: null })
+    expect(
+      await prisma.server.findUniqueOrThrow({ where: { id: server.id } })
+    ).toMatchObject({ status: "active" })
+  })
+
+  it("ferme un lancement dépassé qui n'a jamais enrôlé de machine", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { organization } = await createOrganizationWithMembers({
+      roles: ["owner"],
+    })
+    const ended = new Date(Date.now() - DAY_MS)
+    const subscription = await prisma.subscription.create({
+      data: {
+        organizationId: organization.id,
+        stripeSubscriptionId: `launch_${organization.id}`,
+        product: LAUNCH_PRODUCT,
+        quantity: 1,
+        status: "trialing",
+        currentPeriodEnd: ended,
+      },
+    })
+
+    useLaunchBilling({ endsAt: ended })
+
+    const report = await runSuspendExpiredGrace(recordSteps().step)
+
+    expect(report).toEqual({
+      launch: { aligned: [], kept: [], canceled: [subscription.id] },
+      granted: [],
+      suspended: [],
       purgedUploads: [],
     })
     expect(
@@ -139,9 +176,6 @@ describe("le workflow SuspendExpiredGrace", () => {
         where: { id: subscription.id },
       })
     ).toMatchObject({ status: "canceled" })
-    expect(
-      await prisma.server.findUniqueOrThrow({ where: { id: server.id } })
-    ).toMatchObject({ status: "suspended", suspendedReason: "billing" })
   })
 
   it("ferme un octroi arrivé à échéance et suspend ses serveurs dans la même passe", async () => {
@@ -165,7 +199,7 @@ describe("le workflow SuspendExpiredGrace", () => {
     const report = await runSuspendExpiredGrace(recordSteps().step)
 
     expect(report).toEqual({
-      launch: { aligned: [], canceled: [] },
+      launch: { aligned: [], kept: [], canceled: [] },
       granted: [subscription.id],
       suspended: [server.id],
       purgedUploads: [],

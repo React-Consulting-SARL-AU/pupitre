@@ -14,6 +14,10 @@ export const billingUi = {
     "billing.launchSeats": "One machine during the launch.",
     "billing.launchTitle": "Free launch",
     "billing.launchUntil": "Free launch until {date}",
+    "billing.launchKept":
+      "Launch seat: one machine, free for as long as Pupitre exists",
+    "billing.launchKeptSeats":
+      "One machine for good: more seats come with a subscription.",
     "billing.launchEnds":
       "When the launch ends, without a subscription, the servers go to grace, then suspended.",
     "billing.seatsFailed": "The seats could not be changed.",
@@ -72,6 +76,10 @@ export const billingUi = {
     "billing.launchSeats": "Une machine pendant le lancement.",
     "billing.launchTitle": "Lancement gratuit",
     "billing.launchUntil": "Lancement gratuit jusqu'au {date}",
+    "billing.launchKept":
+      "Siège du lancement : une machine, gratuite aussi longtemps que Pupitre existe",
+    "billing.launchKeptSeats":
+      "Une machine pour de bon : d'autres sièges viennent avec un abonnement.",
     "billing.launchEnds":
       "À la fin du lancement, sans abonnement, les serveurs passent en sursis, puis suspendus.",
     "billing.seatsFailed": "Les sièges n'ont pas pu être changés.",

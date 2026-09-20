@@ -18,6 +18,7 @@ import {
   subscriptionQueryOptions,
 } from "@/lib/api/queries"
 import {
+  isLaunchSeatKept,
   isLaunchSubscription,
   seatBalance,
   seatsLocked,
@@ -53,10 +54,32 @@ function trialNotice(t: Translate, daysLeft: number | null): string {
   return `${title} · ${remaining}`
 }
 
-function launchNotice(t: Translate, endsAt: string | null): string {
-  return endsAt
-    ? t("billing.launchUntil", { date: formatDate(endsAt, t) })
-    : t("billing.launchTitle")
+interface LaunchNotice {
+  title: string
+  fix: string | null
+}
+
+/** The launch row's callout: a seat kept for good warns of nothing; a running launch says when it ends. */
+function launchNotice(
+  t: Translate,
+  live: {
+    status: string
+    product: string | null
+    current_period_end: string | null
+  }
+): LaunchNotice {
+  if (isLaunchSeatKept(live)) {
+    return { title: t("billing.launchKept"), fix: null }
+  }
+
+  const endsAt = live.current_period_end
+
+  return {
+    title: endsAt
+      ? t("billing.launchUntil", { date: formatDate(endsAt, t) })
+      : t("billing.launchTitle"),
+    fix: t("billing.launchEnds"),
+  }
 }
 
 export function BillingPanel() {
@@ -133,12 +156,7 @@ export function BillingPanel() {
 
   return (
     <div className="flex flex-col gap-section">
-      {launch ? (
-        <Callout
-          fix={t("billing.launchEnds")}
-          title={launchNotice(t, live?.current_period_end ?? null)}
-        />
-      ) : null}
+      {live && launch ? <Callout {...launchNotice(t, live)} /> : null}
 
       {trialing ? (
         <Callout
