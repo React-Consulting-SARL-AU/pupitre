@@ -1,48 +1,81 @@
 ---
 title: "Privacy"
-description: "What Pupitre collects, what it never collects, and how to get it back or have it deleted."
+description: "What Pupitre collects, what it never collects, where it lives, how long it stays, and how to get it back or have it deleted."
 locale: en
-updated: 2026-09-06
-draft: true
+updated: 2026-09-20
 order: 4
 ---
 
 import SubProcessors from "../../../components/SubProcessors.astro"
 
-Working draft. The service is not open: no customer data is processed today. This text describes what will be processed when it opens, and will be completed with the identity of the data controller at incorporation.
+## Who is responsible
+
+The data controller is Jordan Monier, a natural person residing in Morocco, who publishes Pupitre. Write to `privacy@pupitre.studio` for anything about your data; we answer within thirty days.
 
 ## What we store
 
-Your account: email, name if you give one, language, and the devices you sign in from. Your organisation and its members. The existence of your servers — a name, an address, the agent version, the state of the entitlement — and the public half of your device keys. Your subscriptions and invoices, held by Stripe.
+**Your account.** Your email address, your name if you give one, your language, and the way you sign in: a link sent by email, a GitHub or Google account — from which we receive the email address and the name they share, and nothing else —, a passkey, or a second factor. Each sign-in session keeps its IP address and the identifier of the browser or the app it came from.
+
+**Your devices.** The name of each computer you linked the app from, and the public half of the SSH key it generated. The private half stays on that computer; we never see it.
+
+**Your organisation.** Its name, its members and their roles, its invitations, and a journal of what was done in it: who enrolled, removed, suspended or restored a machine, invited or removed a member, with the date.
+
+**Your machines.** What the [terms](/legal/terms/) list, and nothing else: the name and address you gave each machine, the public half of its SSH host key, the agent version, the processor architecture, the account that holds the SSH keys, the state of its right of use, and — refreshed every five minutes and kept as a seven-day window — its disk size and free space, its memory size and use, its load average, the version of the installed stack, the names of the installed modules and the names of the running tmux sessions, which are usually the names of your projects.
+
+**Your subscription.** During the free launch: the fact that your organisation holds the launch subscription, and its dates. No payment data exists, because nothing is paid.
+
+**What you write to us.** Every email sent to an address at `pupitre.studio` is stored on the platform — its text, its headers and its attachments — and read by the team from the console, where each reading of a sensitive thread is itself journaled.
+
+**Where you came from.** When you arrive through an affiliate link (`?ref=`), the link's code is kept for 90 days in the `pupitre_ref` cookie on `pupitre.studio`, so the console can note which link brought your organisation when it starts its subscription. It holds nothing but that code, it is sent to nobody else, and without that parameter it is never set. During the launch, that note only says where you came from.
 
 ## What we never store
 
-No code, no project file, no service secret, no application log, no terminal content, no environment variable, no private key. What lives on your server stays on your server: the platform has no technical means of fetching it.
+No code, no project file, no service secret, no application log, no terminal content, no environment variable, no database content, no private key. What lives on your machine stays on your machine: the platform has no technical means of fetching it, as the [terms](/legal/terms/) explain.
 
-## Analytics
+## Audience and usage measurement
 
-The site measures page views with PostHog, without advertising cookies and without a durable identifier, and only after you agree in the banner. Declining takes nothing away from the site. The console measures screen usage on the same terms.
+We use PostHog to measure how the site and the console are used.
 
-One functional cookie exists: when you arrive through an affiliate link (`?ref=`), the link's code is kept for 90 days in the `pupitre_ref` cookie on `pupitre.studio`, so the console can attach it to your organisation when you start your subscription. It holds nothing but that code, it is sent to nobody else, and without that parameter it is never set.
+**On the site**, page views are counted only after you accept it in the banner. The measurement runs without a cookie and without a durable identifier: nothing is written to your browser, and a view is not tied to the next one. Declining takes nothing away from the site, and you can change your answer by clearing the site's data in your browser.
+
+**The console and the desktop app** send nothing to a measurement tool today. If a version starts measuring which screens are opened and which actions are taken, it will be on the same terms — event names and technical context, never a content, never anything from your machines, never a durable identifier without your consent — and this page will say so with its date.
+
+We use no advertising network, no advertising cookie, and we never sell or share data with a third party for its own purposes.
 
 ## Transactional email
 
-We send what makes the account work: address confirmation, sign-in, invitation to an organisation, alert about a server, billing notice. Those cannot be turned off while the account exists. Optional messages — news, tips — are turned off in one click from the message itself.
+We send what makes the account work: address confirmation, sign-in link, invitation to an organisation, alert about a machine, notice about your subscription or about a change to these documents. Those cannot be turned off while the account exists. Any other message — news, tips — is turned off in one click from the message itself.
 
 ## Payments
 
-Stripe acts as merchant of record: it collects, invoices, handles taxes and holds the payment data. We keep a Stripe customer identifier, the plan, the state of the subscription and the invoice history. Never a card number.
+Nothing is paid during the launch, and no payment data exists. The day billing opens, Stripe will collect payments as merchant of record: it will invoice, handle taxes and hold the payment data. We will keep a Stripe customer identifier, the plan, the state of the subscription and the invoice history, never a card number. That day is announced by email at least thirty days ahead.
 
 ## Sub-processors
 
 <SubProcessors />
 
-The publisher will be a United States company and the platform will be hosted in the United States; the database still lives in a European region today and will be migrated before launch. [Full contact details, country of establishment for each sub-processor and the legal basis for transfers to be published when the service opens.]
+The platform runs on Cloudflare, a United States company, on its global network; its database and its files are stored in Cloudflare's Eastern North America region, and the team reads them from Morocco. Adding a sub-processor is announced by email to the owners of every organisation before it happens.
+
+## Transfers
+
+Your data is therefore processed outside the European Union: by the controller in Morocco, and by sub-processors established in the United States. For a person or an organisation in the European Union, the transfer to the controller relies on the standard contractual clauses the [data processing agreement](/legal/data-processing/) incorporates, and the transfer to each sub-processor on the clauses and the guarantees that sub-processor publishes.
 
 ## Retention
 
-The account and the organisation are kept while the account exists, then for thirty days after its deletion, in case the deletion was a mistake. Invoices are kept for as long as the applicable accounting law requires [duration to be confirmed at incorporation]. Analytics are kept for twelve months.
+Your account and your organisation are kept while the account exists. Deleting the account from the console deletes it immediately, with your devices and their public keys; a deletion we perform at your request or as a sanction is scheduled seven days ahead, so that a mistake can be undone, then carried out. Sign-in sessions expire after sixty days. Machine metrics are a sliding window of seven days. The journal of an organisation is kept with the organisation; when an account is deleted, its lines lose their author. Emails you sent us are kept as long as the exchange may still be needed to help you, and deleted on request. Audience measurement is kept for twelve months, and is never joined to your account. Invoices, the day they exist, will be kept for as long as accounting law requires.
 
 ## Your rights
 
-You can see, correct, export and have your data deleted. Deleting the account is done from the console and also deletes the organisations where you are the only member. For anything else, write to `privacy@pupitre.studio`; we answer within thirty days. [Competent supervisory authority and details of any representative to be completed at incorporation.]
+You can see, correct, export and have your data deleted, and object to a processing that is based on our legitimate interest. Deleting the account is done from the console and takes your devices with it; your machines keep running. For anything else, write to `privacy@pupitre.studio`. If you are in the European Union or the United Kingdom, you may also complain to the supervisory authority of your country.
+
+## Age
+
+The service is meant for professionals and adults. We knowingly open no account to a person under sixteen; write to us if one exists and we delete it.
+
+## Security
+
+Encryption in transit and at rest, sign-in by link, passkey or second factor, sessions bound to the device that opened them, access to production restricted to the people who need it and journaled, secrets kept out of the code, agent distributed as a signed binary, and no inbound connection to your machines. A breach that affects you is announced to you without undue delay.
+
+## Changes
+
+A change to this policy is published on this page with its date, and announced by email to active accounts when it widens what we collect or what we do with it.

@@ -37,6 +37,11 @@ const ADMIN_SERVERS: Crumb = {
   to: "/dashboard/admin/servers",
 }
 
+const ADMIN_SUBSCRIPTIONS: Crumb = {
+  title: "nav.adminSubscriptions",
+  to: "/dashboard/admin/subscriptions",
+}
+
 const ADMIN_LINKS: Crumb = {
   title: "nav.adminAffiliateLinks",
   to: "/dashboard/admin/affiliate-links",
@@ -50,8 +55,13 @@ const ADMIN_INBOX: Crumb = {
 const TITLES: Record<string, PageTitle> = {
   "/dashboard/admin": { title: "nav.admin", parents: [] },
   "/dashboard/admin/inbox": { title: "nav.adminInbox", parents: [ADMIN] },
+  "/dashboard/admin/inbox/": { title: "nav.adminInbox", parents: [ADMIN] },
   "/dashboard/admin/inbox/$threadId": {
     title: "nav.adminThread",
+    parents: [ADMIN, ADMIN_INBOX],
+  },
+  "/dashboard/admin/inbox/mailboxes": {
+    title: "nav.adminInboxMailboxes",
     parents: [ADMIN, ADMIN_INBOX],
   },
   "/dashboard/admin/users": { title: "nav.adminUsers", parents: [ADMIN] },
@@ -75,6 +85,10 @@ const TITLES: Record<string, PageTitle> = {
   "/dashboard/admin/subscriptions": {
     title: "nav.adminSubscriptions",
     parents: [ADMIN],
+  },
+  "/dashboard/admin/subscriptions/$id": {
+    title: "nav.adminSubscription",
+    parents: [ADMIN, ADMIN_SUBSCRIPTIONS],
   },
   "/dashboard/admin/affiliate-links": {
     title: "nav.adminAffiliateLinks",

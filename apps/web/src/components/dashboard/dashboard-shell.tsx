@@ -1,12 +1,16 @@
+import { useRouterState } from "@tanstack/react-router"
 import type { ReactNode } from "react"
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar"
 import { MobileNav } from "@/components/dashboard/mobile-nav"
+import { OrganizationStandingBanner } from "@/components/dashboard/organization-standing-banner"
 import { ToastProvider } from "@/components/ui/toast"
 import { useTranslations } from "@/hooks/use-locale"
 import {
   DashboardContext,
   type DashboardContextValue,
 } from "@/lib/domain/dashboard-context"
+import { isAdminRoute } from "@/lib/domain/entitlement-gate"
+import { cn } from "@/lib/utils/cn"
 
 export interface DashboardShellProps {
   value: DashboardContextValue
@@ -17,6 +21,10 @@ const MAIN_ID = "console-main"
 
 export function DashboardShell({ value, children }: DashboardShellProps) {
   const t = useTranslations()
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  })
+  const wide = isAdminRoute(pathname)
 
   return (
     <DashboardContext.Provider value={value}>
@@ -37,7 +45,10 @@ export function DashboardShell({ value, children }: DashboardShellProps) {
               className="min-w-0 flex-1 px-4 py-6 lg:px-10 lg:py-10"
               id={MAIN_ID}
             >
-              <div className="mx-auto max-w-5xl">{children}</div>
+              <div className={cn("mx-auto", wide ? "max-w-none" : "max-w-5xl")}>
+                <OrganizationStandingBanner />
+                {children}
+              </div>
             </main>
           </div>
         </div>

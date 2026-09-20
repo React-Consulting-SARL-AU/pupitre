@@ -127,15 +127,45 @@ export type OrganizationBilling = Prisma.OrganizationBillingModel
  */
 export type AffiliateLink = Prisma.AffiliateLinkModel
 /**
+ * Model AffiliateClickDay
+ * 
+ */
+export type AffiliateClickDay = Prisma.AffiliateClickDayModel
+/**
  * Model Referral
  * 
  */
 export type Referral = Prisma.ReferralModel
 /**
+ * Model MailMailbox
+ * 
+ */
+export type MailMailbox = Prisma.MailMailboxModel
+/**
  * Model MailThread
  * 
  */
 export type MailThread = Prisma.MailThreadModel
+/**
+ * Model MailNote
+ * 
+ */
+export type MailNote = Prisma.MailNoteModel
+/**
+ * Model MailDraft
+ * 
+ */
+export type MailDraft = Prisma.MailDraftModel
+/**
+ * Model MailActivity
+ * 
+ */
+export type MailActivity = Prisma.MailActivityModel
+/**
+ * Model MailTemplate
+ * 
+ */
+export type MailTemplate = Prisma.MailTemplateModel
 /**
  * Model MailMessage
  * 

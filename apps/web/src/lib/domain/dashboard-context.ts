@@ -1,11 +1,18 @@
 import type { Locale } from "@pupitre/shared/i18n"
 import type { OrgRole } from "@pupitre/shared/permissions"
+import type { OrganizationState } from "@pupitre/shared/platform"
 import { createContext } from "react"
 
 export interface DashboardOrganization {
   id: string
   name: string
   slug: string
+  state: OrganizationState
+}
+
+export interface DashboardActiveOrganization extends DashboardOrganization {
+  /** What the platform wrote when it suspended, closed or scheduled the erasure; null while the organisation is active. */
+  reason: string | null
 }
 
 export interface DashboardContextValue {
@@ -17,7 +24,7 @@ export interface DashboardContextValue {
     locale: Locale
   }
   organizations: (DashboardOrganization & { role: string })[]
-  activeOrganization: DashboardOrganization | null
+  activeOrganization: DashboardActiveOrganization | null
   role: OrgRole | null
   entitlement: string
   /** The role held in the platform organization: it opens the platform pages whatever the active organisation. */

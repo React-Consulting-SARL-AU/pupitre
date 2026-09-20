@@ -20,12 +20,24 @@ export interface AuthSessionRecord {
   activeOrganizationId: string | null
 }
 
+export interface AuthUserStanding {
+  id: string
+  email: string
+  deactivatedAt?: Date | null
+  deletionAt?: Date | null
+}
+
 export interface AuthPrisma {
   user: {
     findUnique(args: {
       where: { id: string }
-      select: { id: true; email: true }
-    }): Promise<{ id: string; email: string } | null>
+      select: {
+        id: true
+        email: true
+        deactivatedAt?: true
+        deletionAt?: true
+      }
+    }): Promise<AuthUserStanding | null>
     create(args: {
       data: {
         id: string

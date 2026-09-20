@@ -2,6 +2,7 @@ import {
   ANNUAL_FREE_MONTHS,
   type BillingMode,
   getPlan,
+  isPlatformProduct,
   LAUNCH_PRODUCT,
 } from "@pupitre/shared/plans"
 import type { StatusLook } from "@/lib/domain/server-status"
@@ -67,9 +68,16 @@ export function isLaunchSubscription({
   return product === LAUNCH_PRODUCT
 }
 
-/** Stripe holds a trial to one machine, and so does the launch: the seat form waits for the first payment. */
+/** The launch seat an organization keeps for good: the launch row, active and without an end. */
+export function isLaunchSeatKept(subscription: SubscriptionProduct): boolean {
+  return isLaunchSubscription(subscription) && subscription.status === "active"
+}
+
+/** Stripe holds a trial to one machine; the launch and a granted subscription have no Stripe to resize: the seat form waits for a paid one. */
 export function seatsLocked({ status, product }: SubscriptionProduct): boolean {
-  return status === "trialing" || isLaunchSubscription({ product, status })
+  return (
+    status === "trialing" || (product !== null && isPlatformProduct(product))
+  )
 }
 
 /** A status Stripe invents after this was written has no name of ours to show. */

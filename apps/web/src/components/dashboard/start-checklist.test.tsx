@@ -76,6 +76,7 @@ describe("StartChecklist", () => {
       id: console.organization.id,
       name: console.organization.name,
       slug: console.organization.slug,
+      state: "active",
     }
   })
 
@@ -90,11 +91,12 @@ describe("StartChecklist", () => {
 
     mounted.push(unmount)
 
-    await waitUntil(() => currentStep(container).length > 0)
+    await waitUntil(
+      () => container.textContent?.includes("No card is asked for") ?? false
+    )
 
     expect(doneSteps(container)).toBe(1)
     expect(currentStep(container)).toContain("Start for free")
-    expect(container.textContent).toContain("No card is asked for")
     expect(container.textContent).toContain("Rent a server and add it")
   })
 

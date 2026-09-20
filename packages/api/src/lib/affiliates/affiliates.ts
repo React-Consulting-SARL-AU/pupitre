@@ -1,9 +1,10 @@
-import type { AffiliateLink } from "@pupitre/db/cloudflare/client"
+import type { AffiliateLink, Prisma } from "@pupitre/db/cloudflare/client"
 import { PUPITRE_ORIGINS } from "@pupitre/shared/legal"
 import { AFFILIATE_CODE_LENGTH, AFFILIATE_CODE_RE } from "@pupitre/shared/plans"
 import { getPrisma, isUniqueViolation } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
-import { liveAmong } from "../billing/subscription"
+import { LIVE_SUBSCRIPTION_STATUSES, liveAmong } from "../billing/subscription"
+import { type AffiliateClicks, clicksInWindow, clicksOf } from "./clicks"
 
 export interface AffiliateLinkView {
   id: string
@@ -14,6 +15,8 @@ export interface AffiliateLinkView {
   disabled: boolean
   created_at: Date
   referrals: number
+  partner_name: string | null
+  clicks_30_days: number
   url: string
 }
 
@@ -22,6 +25,19 @@ export interface AffiliateLinkInput {
   code?: string
   free_months: number
   seats?: number
+  partner_name?: string | null
+  partner_email?: string | null
+  notes?: string | null
+}
+
+export interface AffiliateLinkUpdate {
+  disabled?: boolean
+  name?: string
+  free_months?: number
+  seats?: number
+  partner_name?: string | null
+  partner_email?: string | null
+  notes?: string | null
 }
 
 export interface AffiliateActor {
@@ -62,7 +78,7 @@ export function affiliateUrl(code: string): string {
   return `${PUPITRE_ORIGINS.site}/?ref=${encodeURIComponent(code)}`
 }
 
-function toView(link: LinkRow): AffiliateLinkView {
+function toView(link: LinkRow, clicks30Days: number): AffiliateLinkView {
   return {
     id: link.id,
     code: link.code,
@@ -72,6 +88,8 @@ function toView(link: LinkRow): AffiliateLinkView {
     disabled: link.disabledAt !== null,
     created_at: link.createdAt,
     referrals: link._count.referrals,
+    partner_name: link.partnerName,
+    clicks_30_days: clicks30Days,
     url: affiliateUrl(link.code),
   }
 }
@@ -81,8 +99,9 @@ export async function listAffiliateLinks(): Promise<AffiliateLinkView[]> {
     orderBy: { createdAt: "desc" },
     include: WITH_REFERRAL_COUNT,
   })
+  const clicks = await clicksInWindow(links.map((link) => link.id))
 
-  return links.map(toView)
+  return links.map((link) => toView(link, clicks.get(link.id) ?? 0))
 }
 
 export interface AffiliateReferredOrganization {
@@ -94,8 +113,80 @@ export interface AffiliateReferredOrganization {
   referred_at: Date
 }
 
+export interface AffiliatePartner {
+  name: string | null
+  email: string | null
+}
+
+export interface AffiliateConversion {
+  referred: number
+  trialing: number
+  active: number
+  past_due: number
+  canceled: number
+  seats: number
+}
+
 export interface AffiliateLinkDetail extends AffiliateLinkView {
+  partner: AffiliatePartner | null
+  notes: string | null
+  clicks: AffiliateClicks
+  conversion: AffiliateConversion
   organizations: AffiliateReferredOrganization[]
+}
+
+interface CountingSubscription {
+  status: string
+  quantity: number
+}
+
+const COUNTED_STATUSES = ["trialing", "active", "past_due", "canceled"] as const
+
+type CountedStatus = (typeof COUNTED_STATUSES)[number]
+
+function isCounted(status: string): status is CountedStatus {
+  return (COUNTED_STATUSES as readonly string[]).includes(status)
+}
+
+/**
+ * What the link brought: one subscription per organization, the one that
+ * counts, so an old row that still receives events never speaks for the new.
+ */
+function conversionOf(
+  counting: (CountingSubscription | null)[]
+): AffiliateConversion {
+  const conversion: AffiliateConversion = {
+    referred: counting.length,
+    trialing: 0,
+    active: 0,
+    past_due: 0,
+    canceled: 0,
+    seats: 0,
+  }
+
+  for (const subscription of counting) {
+    if (!subscription) {
+      continue
+    }
+
+    if (isCounted(subscription.status)) {
+      conversion[subscription.status] += 1
+    }
+
+    if (LIVE_SUBSCRIPTION_STATUSES.includes(subscription.status)) {
+      conversion.seats += subscription.quantity
+    }
+  }
+
+  return conversion
+}
+
+function partnerOf(link: AffiliateLink): AffiliatePartner | null {
+  if (link.partnerName === null && link.partnerEmail === null) {
+    return null
+  }
+
+  return { name: link.partnerName, email: link.partnerEmail }
 }
 
 export async function readAffiliateLink(
@@ -128,9 +219,9 @@ export async function readAffiliateLink(
       },
     },
     orderBy: { updatedAt: "desc" },
-    select: { organizationId: true, status: true },
+    select: { organizationId: true, status: true, quantity: true },
   })
-  const byOrganization = new Map<string, { status: string }[]>()
+  const byOrganization = new Map<string, CountingSubscription[]>()
 
   for (const subscription of subscriptions) {
     const kept = byOrganization.get(subscription.organizationId) ?? []
@@ -139,16 +230,27 @@ export async function readAffiliateLink(
     byOrganization.set(subscription.organizationId, kept)
   }
 
+  const counting = new Map(
+    link.referrals.map((referral) => [
+      referral.organizationId,
+      liveAmong(byOrganization.get(referral.organizationId) ?? []),
+    ])
+  )
+  const clicks = await clicksOf(link.id)
+
   return {
-    ...toView(link),
+    ...toView(link, clicks.last_30_days),
+    partner: partnerOf(link),
+    notes: link.notes,
+    clicks,
+    conversion: conversionOf([...counting.values()]),
     organizations: link.referrals.map((referral) => ({
       id: referral.organization.id,
       name: referral.organization.name,
       slug: referral.organization.slug,
       created_at: referral.organization.createdAt,
       subscription_status:
-        liveAmong(byOrganization.get(referral.organizationId) ?? [])?.status ??
-        null,
+        counting.get(referral.organizationId)?.status ?? null,
       referred_at: referral.createdAt,
     })),
   }
@@ -191,6 +293,9 @@ export async function createAffiliateLink(
         name: input.name,
         freeMonths: input.free_months,
         seats: input.seats ?? 1,
+        partnerName: trimmedOrNull(input.partner_name) ?? null,
+        partnerEmail: trimmedOrNull(input.partner_email) ?? null,
+        notes: trimmedOrNull(input.notes) ?? null,
         createdById: actor.userId,
       },
       include: WITH_REFERRAL_COUNT,
@@ -216,39 +321,157 @@ export async function createAffiliateLink(
     },
   })
 
-  return toView(link)
+  return toView(link, 0)
 }
 
-export async function setAffiliateLinkDisabled(
+function trimmedOrNull(
+  value: string | null | undefined
+): string | null | undefined {
+  if (value === undefined || value === null) {
+    return value
+  }
+
+  const trimmed = value.trim()
+
+  return trimmed === "" ? null : trimmed
+}
+
+interface PendingChanges {
+  data: Prisma.AffiliateLinkUpdateInput
+  payload: Record<string, string | number | boolean | null>
+}
+
+function pendingChanges(
+  existing: AffiliateLink,
+  input: AffiliateLinkUpdate
+): PendingChanges {
+  const data: Prisma.AffiliateLinkUpdateInput = {}
+  const payload: Record<string, string | number | boolean | null> = {}
+  const partnerName = trimmedOrNull(input.partner_name)
+  const partnerEmail = trimmedOrNull(input.partner_email)
+  const notes = trimmedOrNull(input.notes)
+
+  if (input.name !== undefined && input.name !== existing.name) {
+    data.name = input.name
+    payload.name = input.name
+  }
+
+  if (
+    input.free_months !== undefined &&
+    input.free_months !== existing.freeMonths
+  ) {
+    data.freeMonths = input.free_months
+    payload.free_months = input.free_months
+  }
+
+  if (input.seats !== undefined && input.seats !== existing.seats) {
+    data.seats = input.seats
+    payload.seats = input.seats
+  }
+
+  if (partnerName !== undefined && partnerName !== existing.partnerName) {
+    data.partnerName = partnerName
+    payload.partner_name = partnerName
+  }
+
+  if (partnerEmail !== undefined && partnerEmail !== existing.partnerEmail) {
+    data.partnerEmail = partnerEmail
+    payload.partner_email = partnerEmail
+  }
+
+  if (notes !== undefined && notes !== existing.notes) {
+    data.notes = notes
+    payload.notes = notes
+  }
+
+  if (
+    input.disabled !== undefined &&
+    input.disabled !== (existing.disabledAt !== null)
+  ) {
+    data.disabledAt = input.disabled ? new Date() : null
+    payload.disabled = input.disabled
+  }
+
+  return { data, payload }
+}
+
+export async function updateAffiliateLink(
   actor: AffiliateActor,
   linkId: string,
-  disabled: boolean
+  input: AffiliateLinkUpdate
 ): Promise<AffiliateLinkView | null> {
   const prisma = getPrisma()
   const existing = await prisma.affiliateLink.findUnique({
     where: { id: linkId },
-    select: { id: true },
   })
 
   if (!existing) {
     return null
   }
 
-  const link = await prisma.affiliateLink.update({
-    where: { id: linkId },
-    data: { disabledAt: disabled ? new Date() : null },
-    include: WITH_REFERRAL_COUNT,
+  const { data, payload } = pendingChanges(existing, input)
+  const changed = Object.keys(payload).length > 0
+  const link = changed
+    ? await prisma.affiliateLink.update({
+        where: { id: linkId },
+        data,
+        include: WITH_REFERRAL_COUNT,
+      })
+    : await prisma.affiliateLink.findUniqueOrThrow({
+        where: { id: linkId },
+        include: WITH_REFERRAL_COUNT,
+      })
+  const clicks = await clicksOf(link.id)
+
+  if (changed) {
+    await recordEvent({
+      action: "affiliate_link.updated",
+      actorUserId: actor.userId,
+      targetType: "affiliate_link",
+      targetId: link.id,
+      payload: { code: link.code, ...payload },
+    })
+  }
+
+  return toView(link, clicks.last_30_days)
+}
+
+export class AffiliateLinkReferredError extends Error {
+  constructor() {
+    super("the affiliate link already brought an organization")
+    this.name = "AffiliateLinkReferredError"
+  }
+}
+
+export async function deleteAffiliateLink(
+  actor: AffiliateActor,
+  linkId: string
+): Promise<boolean> {
+  const prisma = getPrisma()
+  const link = await prisma.affiliateLink.findUnique({ where: { id: linkId } })
+
+  if (!link) {
+    return false
+  }
+
+  // A referral written between the read and the delete would be cascaded away.
+  const { count } = await prisma.affiliateLink.deleteMany({
+    where: { id: linkId, referrals: { none: {} } },
   })
 
+  if (count === 0) {
+    throw new AffiliateLinkReferredError()
+  }
+
   await recordEvent({
-    action: "affiliate_link.updated",
+    action: "affiliate_link.deleted",
     actorUserId: actor.userId,
     targetType: "affiliate_link",
     targetId: link.id,
-    payload: { code: link.code, disabled },
+    payload: { code: link.code, name: link.name },
   })
 
-  return toView(link)
+  return true
 }
 
 export async function referralLinkOf(

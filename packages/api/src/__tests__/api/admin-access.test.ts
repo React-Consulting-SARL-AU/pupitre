@@ -4,6 +4,7 @@ import { type ApiTestServer, bootApiTestServer, resetDb } from "../../testing"
 import {
   createOrganizationWithMembers,
   createServer,
+  subscribeOrganization,
 } from "../../testing/factories"
 import { apiRequest } from "../../testing/request"
 import { createSession, createUser } from "../../testing/session"
@@ -40,8 +41,12 @@ async function aServerAndALink() {
   const link = await harness.prisma.affiliateLink.create({
     data: { code: "blog", name: "Blog", freeMonths: 1 },
   })
+  const subscription = await subscribeOrganization({
+    organizationId: organization.id,
+    status: "active",
+  })
 
-  return { organization, server, link }
+  return { organization, server, link, subscription }
 }
 
 describe("les pages de la plateforme", () => {
@@ -54,7 +59,7 @@ describe("les pages de la plateforme", () => {
   })
 
   it("s'ouvrent en lecture à un membre de l'organisation Pupitre", async () => {
-    const { organization, server, link } = await aServerAndALink()
+    const { organization, server, link, subscription } = await aServerAndALink()
     const reader = await platformMember()
     const paths = [
       "/admin/overview",
@@ -65,6 +70,7 @@ describe("les pages de la plateforme", () => {
       "/admin/servers",
       `/admin/servers/${server.id}`,
       "/admin/subscriptions",
+      `/admin/subscriptions/${subscription.id}`,
       "/admin/events",
       "/admin/affiliate-links",
       `/admin/affiliate-links/${link.id}`,
@@ -80,14 +86,38 @@ describe("les pages de la plateforme", () => {
   })
 
   it("refusent d'agir à ce même membre, et disent le rôle qu'il faut", async () => {
-    const { server, link } = await aServerAndALink()
+    const { organization, server, link, subscription } = await aServerAndALink()
     const { user: banned } = await createUser({ email: "client@test.local" })
     const reader = await platformMember()
     const actions: { path: string; method?: string; body?: unknown }[] = [
       { path: `/admin/servers/${server.id}/suspend`, body: { reason: "abus" } },
       { path: `/admin/servers/${server.id}/restore`, method: "POST" },
+      {
+        path: `/admin/servers/${server.id}`,
+        method: "DELETE",
+        body: { reason: "abus" },
+      },
       { path: `/admin/users/${banned.id}/ban`, body: { reason: "abus" } },
       { path: `/admin/users/${banned.id}/unban`, method: "POST" },
+      {
+        path: `/admin/users/${banned.id}/devices/appareil`,
+        method: "DELETE",
+        body: { reason: "abus" },
+      },
+      {
+        path: `/admin/organizations/${organization.id}/subscriptions`,
+        body: { seats: 1 },
+      },
+      {
+        path: `/admin/subscriptions/${subscription.id}`,
+        method: "PATCH",
+        body: { seats: 2 },
+      },
+      {
+        path: `/admin/subscriptions/${subscription.id}/cancel`,
+        body: { reason: "abus" },
+      },
+      { path: `/admin/subscriptions/${subscription.id}`, method: "DELETE" },
       {
         path: "/admin/affiliate-links",
         body: { name: "Forum", free_months: 1 },
@@ -137,6 +167,12 @@ describe("les pages de la plateforme", () => {
 
     expect(await harness.prisma.affiliateLink.count()).toBe(1)
     expect(await harness.prisma.release.count()).toBe(0)
+    expect(await harness.prisma.subscription.count()).toBe(1)
+    expect(
+      await harness.prisma.server.findUniqueOrThrow({
+        where: { id: server.id },
+      })
+    ).toMatchObject({ status: "active" })
   })
 
   it("laissent agir un membre promu administrateur de l'organisation Pupitre", async () => {

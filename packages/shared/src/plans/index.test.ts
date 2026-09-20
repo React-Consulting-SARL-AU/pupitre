@@ -11,12 +11,15 @@ import {
   BillingModeSchema,
   DAYS_PER_FREE_MONTH,
   formatUsd,
+  GRANTED_PRODUCT,
   getPlan,
+  isPlatformProduct,
   LAUNCH_ADMIN_SEATS,
   LAUNCH_PRODUCT,
   LAUNCH_SEATS,
   MeSubscriptionSchema,
   PLANS,
+  PLATFORM_PRODUCTS,
   PlanIdSchema,
   PlanSchema,
   TRIAL_DAYS,
@@ -63,6 +66,14 @@ describe("plans", () => {
     expect(LAUNCH_PRODUCT).toBe("launch")
     expect(LAUNCH_SEATS).toBe(TRIAL_SEATS)
     expect(LAUNCH_ADMIN_SEATS).toBeGreaterThan(LAUNCH_SEATS)
+  })
+
+  it("names the products Stripe never sees: the launch, and what the team grants", () => {
+    expect(GRANTED_PRODUCT).toBe("granted")
+    expect(PLATFORM_PRODUCTS).toEqual([LAUNCH_PRODUCT, GRANTED_PRODUCT])
+    expect(isPlatformProduct("launch")).toBe(true)
+    expect(isPlatformProduct("granted")).toBe(true)
+    expect(isPlatformProduct("prod_server")).toBe(false)
   })
 
   it("bounds an affiliate code and its promise", () => {

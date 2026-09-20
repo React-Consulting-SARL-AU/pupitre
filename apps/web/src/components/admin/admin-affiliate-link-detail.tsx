@@ -1,24 +1,36 @@
 import { useQuery } from "@tanstack/react-query"
-import { Link } from "@tanstack/react-router"
-import { AdminFacts } from "@/components/admin/admin-facts"
+import { AdminAffiliateLinkDanger } from "@/components/admin/admin-affiliate-link-danger"
+import { AdminAffiliateLinkOrganizations } from "@/components/admin/admin-affiliate-link-organizations"
+import { AdminAffiliateLinkOverview } from "@/components/admin/admin-affiliate-link-overview"
+import { AdminAffiliateLinkSettings } from "@/components/admin/admin-affiliate-link-settings"
 import { AdminFailure } from "@/components/admin/admin-failure"
-import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
-import { CopyButton } from "@/components/ui/copy-button"
+import { Card, CardHeader, CardTitle } from "@/components/ui/card"
+import { PageTabs } from "@/components/ui/page-tabs"
 import { SkeletonCards } from "@/components/ui/skeleton"
 import { StatusDot } from "@/components/ui/status-dot"
+import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
 import { affiliateLinkQueryOptions } from "@/lib/api/admin-queries"
-import { subscriptionStatusLook } from "@/lib/domain/billing"
-import { formatDate, formatDateTime } from "@/lib/utils/format"
+import { canActOnPlatform } from "@/lib/domain/admin"
+import {
+  type AffiliateLinkTab,
+  affiliateLinkTab,
+  affiliateLinkTabFor,
+} from "@/lib/domain/affiliate"
 
 export interface AdminAffiliateLinkDetailProps {
   id: string
+  tab: AffiliateLinkTab
+  onTabChange: (tab: AffiliateLinkTab) => void
 }
 
 export function AdminAffiliateLinkDetail({
   id,
+  tab,
+  onTabChange,
 }: AdminAffiliateLinkDetailProps) {
   const t = useTranslations()
+  const { platformRole } = useDashboardContext()
   const link = useQuery(affiliateLinkQueryOptions(id))
 
   if (link.isPending) {
@@ -40,6 +52,8 @@ export function AdminAffiliateLinkDetail({
   const state = detail.disabled
     ? t("admin.links.disabled")
     : t("admin.links.enabled")
+  const acts = canActOnPlatform(platformRole)
+  const current = affiliateLinkTabFor(tab, acts)
 
   return (
     <div className="flex flex-col gap-gutter">
@@ -55,84 +69,45 @@ export function AdminAffiliateLinkDetail({
             {state}
           </span>
         </CardHeader>
-
-        <AdminFacts
-          facts={[
-            { label: t("admin.links.code"), value: detail.code },
-            {
-              label: t("admin.links.freeMonthsField"),
-              value: detail.free_months,
-            },
-            { label: t("admin.links.seatsField"), value: detail.seats },
-            {
-              label: t("admin.users.createdAt"),
-              value: formatDateTime(detail.created_at, t),
-            },
-            {
-              label: t("admin.links.referredOrganizations"),
-              value: detail.referrals,
-            },
-          ]}
-        />
-
-        <CardBody className="flex items-center gap-2 border-line border-t">
-          <span className="min-w-0 flex-1 truncate font-data text-[12px] text-ink-2">
-            {detail.url}
-          </span>
-          <CopyButton
-            copiedLabel={t("admin.links.copied")}
-            failedLabel={t("admin.links.copyFailed")}
-            label={t("admin.links.copy")}
-            value={detail.url}
-          />
-        </CardBody>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("admin.links.referredOrganizations")}</CardTitle>
-        </CardHeader>
-
-        {detail.organizations.length === 0 ? (
-          <CardBody>
-            <p className="text-[13px] text-ink-3">
-              {t("admin.links.noReferral")}
-            </p>
-          </CardBody>
-        ) : (
-          <ul>
-            {detail.organizations.map((organization) => {
-              const look = organization.subscription_status
-                ? subscriptionStatusLook(organization.subscription_status)
-                : null
-
-              return (
-                <li
-                  className="flex flex-wrap items-center gap-4 border-line border-b px-4 py-3 last:border-b-0"
-                  key={organization.id}
-                >
-                  <Link
-                    className="min-w-0 flex-1 truncate text-[13px] text-ink underline-offset-2 hover:underline"
-                    params={{ id: organization.id }}
-                    to="/dashboard/admin/organizations/$id"
-                  >
-                    {organization.name}
-                  </Link>
-                  <span className="min-w-0 truncate font-data text-[12px] text-ink-3 sm:w-40">
-                    {organization.slug}
-                  </span>
-                  <span className="text-[12px] text-ink-2 sm:w-36">
-                    {look ? t(look.label) : t("admin.users.noSubscription")}
-                  </span>
-                  <span className="font-data text-[12px] text-ink-3 tabular-nums sm:w-28 sm:text-right">
-                    {formatDate(organization.referred_at, t)}
-                  </span>
-                </li>
-              )
-            })}
-          </ul>
-        )}
-      </Card>
+      <PageTabs
+        label={t("admin.links.tabsLabel")}
+        onValueChange={(next) => {
+          onTabChange(affiliateLinkTab(next))
+        }}
+        tabs={[
+          {
+            value: "overview",
+            label: t("admin.links.tab.overview"),
+            panel: <AdminAffiliateLinkOverview link={detail} />,
+          },
+          {
+            value: "organizations",
+            label: t("admin.links.tab.organizations"),
+            panel: (
+              <AdminAffiliateLinkOrganizations
+                organizations={detail.organizations}
+              />
+            ),
+          },
+          ...(acts
+            ? [
+                {
+                  value: "settings",
+                  label: t("admin.links.tab.settings"),
+                  panel: <AdminAffiliateLinkSettings link={detail} />,
+                },
+                {
+                  value: "danger",
+                  label: t("admin.links.tab.danger"),
+                  panel: <AdminAffiliateLinkDanger link={detail} />,
+                },
+              ]
+            : []),
+        ]}
+        value={current}
+      />
     </div>
   )
 }

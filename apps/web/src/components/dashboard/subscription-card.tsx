@@ -14,8 +14,10 @@ import {
   type BillingIntervalName,
   INTERVAL_KEYS,
   isBillingIntervalName,
+  isLaunchSeatKept,
   subscriptionStatusLook,
 } from "@/lib/domain/billing"
+import type { Translate } from "@/lib/i18n/i18n"
 import { formatDate, formatDateTime } from "@/lib/utils/format"
 
 export interface SubscriptionCardSubscription {
@@ -42,6 +44,28 @@ function intervalOf(value: string | null): BillingIntervalName | null {
 
 const FACT = "text-[10.5px] text-ink-3 uppercase tracking-[0.08em]"
 
+function launchPeriod(
+  t: Translate,
+  kept: boolean,
+  endsAt: string | null
+): string {
+  if (kept) {
+    return t("billing.launchKept")
+  }
+
+  return endsAt
+    ? t("billing.launchUntil", { date: formatDate(endsAt, t) })
+    : t("billing.launchTitle")
+}
+
+function launchSeatsNote(t: Translate, launch: boolean, kept: boolean): string {
+  if (kept) {
+    return t("billing.launchKeptSeats")
+  }
+
+  return launch ? t("billing.launchSeats") : t("billing.seatsLocked")
+}
+
 export function SubscriptionCard({
   organizationId,
   subscription,
@@ -57,6 +81,7 @@ export function SubscriptionCard({
   const interval = intervalOf(subscription.interval)
   const seats = subscription.quantity
   const endsAt = subscription.current_period_end
+  const kept = isLaunchSeatKept(subscription)
 
   return (
     <Card>
@@ -82,9 +107,7 @@ export function SubscriptionCard({
             <div>
               <dt className={FACT}>{t("billing.period")}</dt>
               <dd className="mt-1 text-[13px] text-ink-2">
-                {endsAt
-                  ? t("billing.launchUntil", { date: formatDate(endsAt, t) })
-                  : t("billing.launchTitle")}
+                {launchPeriod(t, kept, endsAt)}
               </dd>
             </div>
           ) : (
@@ -117,7 +140,7 @@ export function SubscriptionCard({
 
         {seatsLocked ? (
           <p className="border-line border-t pt-gutter text-[13px] text-ink-2">
-            {launch ? t("billing.launchSeats") : t("billing.seatsLocked")}
+            {launchSeatsNote(t, launch, kept)}
           </p>
         ) : (
           <SeatQuantityForm

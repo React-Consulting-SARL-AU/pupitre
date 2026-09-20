@@ -11,6 +11,7 @@ import {
   platformTeamQueryOptions,
   type ThreadPatch,
 } from "@/lib/api/inbox-queries"
+import { INBOX_SHORTCUTS, shortcutTitle } from "@/lib/domain/inbox"
 
 const NOBODY = ""
 
@@ -33,7 +34,11 @@ export function InboxThreadActions({
   const team = useQuery({ ...platformTeamQueryOptions(), enabled: canAct })
   const change = useOptimisticMutation<ThreadPatch, unknown>({
     mutationFn: (patch) => patchThread(threadId, patch),
-    invalidate: [inboxKeys.thread(threadId), inboxKeys.allThreads],
+    invalidate: [
+      inboxKeys.thread(threadId),
+      inboxKeys.allThreads,
+      inboxKeys.counts,
+    ],
     toast: {
       failed: () => ({
         title: t("inbox.changeFailed"),
@@ -52,6 +57,7 @@ export function InboxThreadActions({
           change.mutate({ unread: !unread })
         }}
         size="sm"
+        title={unread ? undefined : shortcutTitle(t, INBOX_SHORTCUTS.unread)}
       >
         {unread ? t("inbox.markRead") : t("inbox.markUnread")}
       </Button>
@@ -64,6 +70,7 @@ export function InboxThreadActions({
             change.mutate({ status: closed ? "open" : "closed" })
           }}
           size="sm"
+          title={closed ? undefined : shortcutTitle(t, INBOX_SHORTCUTS.close)}
         >
           {closed ? t("inbox.reopenThread") : t("inbox.closeThread")}
         </Button>
@@ -73,7 +80,7 @@ export function InboxThreadActions({
         <div className="flex items-center gap-2">
           <Label htmlFor="inbox-assignee">{t("inbox.assignee")}</Label>
           <Select
-            className="w-[200px]"
+            className="w-[180px]"
             id="inbox-assignee"
             items={[
               { value: NOBODY, label: t("inbox.assignedNobody") },

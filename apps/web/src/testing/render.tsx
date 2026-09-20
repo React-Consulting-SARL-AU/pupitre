@@ -5,8 +5,8 @@ import type { ReactElement } from "react"
 import { act } from "react"
 import { createRoot, type Root } from "react-dom/client"
 import {
+  type DashboardActiveOrganization,
   DashboardContext,
-  type DashboardOrganization,
 } from "@/lib/domain/dashboard-context"
 import { createQueryClient } from "@/lib/query/client"
 import { getRouter } from "@/router"
@@ -24,8 +24,14 @@ export function withRouter(element: ReactElement): ReactElement {
   )
 }
 
+export type HarnessOrganization = Pick<
+  DashboardActiveOrganization,
+  "id" | "name" | "slug"
+> &
+  Partial<DashboardActiveOrganization>
+
 export interface DashboardHarness {
-  organization?: DashboardOrganization | null
+  organization?: HarnessOrganization | null
   role?: OrgRole
   entitlement?: string
   platformRole?: OrgRole | null
@@ -53,7 +59,9 @@ export function withDashboard(
             locale: "fr",
           },
           organizations: [],
-          activeOrganization: organization,
+          activeOrganization: organization
+            ? { state: "active", reason: null, ...organization }
+            : null,
           role: organization ? role : null,
           entitlement,
           platformRole,
@@ -123,9 +131,10 @@ export async function waitUntil(
   throw new Error("condition not met before the deadline")
 }
 
+/** An input or a textarea: React listens on the prototype's setter, so the value goes through it. */
 export async function fill(input: Element, value: string): Promise<void> {
   const setter = Object.getOwnPropertyDescriptor(
-    HTMLInputElement.prototype,
+    Object.getPrototypeOf(input),
     "value"
   )?.set
 
@@ -136,14 +145,28 @@ export async function fill(input: Element, value: string): Promise<void> {
   })
 }
 
-async function key(target: Element, name: string): Promise<void> {
-  const details = { bubbles: true, cancelable: true, key: name }
+export interface KeyModifiers {
+  metaKey?: boolean
+  ctrlKey?: boolean
+  shiftKey?: boolean
+}
+
+export async function press(
+  target: Element,
+  name: string,
+  modifiers: KeyModifiers = {}
+): Promise<void> {
+  const details = { bubbles: true, cancelable: true, key: name, ...modifiers }
 
   await act(async () => {
     target.dispatchEvent(new KeyboardEvent("keydown", details))
     target.dispatchEvent(new KeyboardEvent("keyup", details))
     await Promise.resolve()
   })
+}
+
+function key(target: Element, name: string): Promise<void> {
+  return press(target, name)
 }
 
 function options(): Element[] {

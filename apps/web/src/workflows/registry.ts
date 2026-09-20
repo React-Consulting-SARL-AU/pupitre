@@ -4,6 +4,7 @@ export const WORKFLOW_BINDINGS = {
   "reconcile-seats": "RECONCILE_SEATS",
   "evaluate-alerts": "EVALUATE_ALERTS",
   "suspend-expired-grace": "SUSPEND_EXPIRED_GRACE",
+  "purge-deletions": "PURGE_DELETIONS",
 } as const satisfies Record<string, keyof CloudflareEnv>
 
 export type WorkflowName = keyof typeof WORKFLOW_BINDINGS
@@ -20,6 +21,7 @@ export const WORKFLOW_CRONS = {
     "decommission-server",
     "reconcile-seats",
     "suspend-expired-grace",
+    "purge-deletions",
   ],
 } as const satisfies Record<string, readonly WorkflowName[]>
 

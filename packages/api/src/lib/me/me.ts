@@ -5,6 +5,10 @@ import { getPrisma, withOrganization } from "../api/prisma"
 import { entitlementForOrganization } from "../billing/entitlement"
 import { countSeatedServers } from "../billing/seats"
 import { liveSubscriptionOf } from "../billing/subscription"
+import {
+  organizationReasonOf,
+  organizationStateOf,
+} from "../platform/lifecycle"
 
 export interface MeInput {
   user: SessionUser
@@ -59,7 +63,19 @@ export async function loadMe({
       where: { userId: user.id },
       orderBy: { createdAt: "asc" },
       include: {
-        organization: { select: { id: true, name: true, slug: true } },
+        organization: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            suspendedAt: true,
+            suspendedReason: true,
+            closedAt: true,
+            closedReason: true,
+            deletionAt: true,
+            deletionReason: true,
+          },
+        },
       },
     }),
     prisma.user.findUnique({
@@ -88,10 +104,21 @@ export async function loadMe({
       created_at: user.createdAt,
     },
     organizations: memberships.map(({ organization, role: memberRole }) => ({
-      ...organization,
+      id: organization.id,
+      name: organization.name,
+      slug: organization.slug,
+      state: organizationStateOf(organization),
       role: memberRole,
     })),
-    active_organization: active,
+    active_organization: active
+      ? {
+          id: active.id,
+          name: active.name,
+          slug: active.slug,
+          state: organizationStateOf(active),
+          reason: organizationReasonOf(active),
+        }
+      : null,
     role,
     platform_role: platformRole,
     entitlement,

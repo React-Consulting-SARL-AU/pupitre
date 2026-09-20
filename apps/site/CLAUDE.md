@@ -16,7 +16,7 @@ Astro 5 statique, servi par un Worker Cloudflare à assets statiques (`wrangler.
 - **Les prix viennent de `@pupitre/shared/plans`.** Le site et la console affichent les mêmes chiffres par construction.
 - **Chaque page existe en fr et en en dans la même passe.** Un script vérifie la parité des routes.
 - **Le site ne vend pas.** Le bouton de commande ouvre la console ; aucune logique de compte ici.
-- **Légal** : l'éditeur, les contacts, les origines, le registre des documents et l'avertissement de développement viennent de `@pupitre/shared/legal` ; aucune page n'écrit un nom d'entreprise à la main. Les textes sont des brouillons tant que la société n'est pas immatriculée ; un `TODO` légal fait échouer le build de production. Voir [`docs/legal.md`](../../docs/legal.md).
+- **Légal** : l'éditeur, la société qui signe l'app, les contacts, les origines, le registre des documents et les sous-traitants viennent de `@pupitre/shared/legal` ; aucune page n'écrit un nom d'entreprise à la main. Les textes sont publiés et engagent : un `TODO`, un `draft: true` ou un passage entre crochets fait échouer le build de production et `check:content`. Ce que les conditions disent de l'agent — ce qu'il envoie, ce que la plateforme peut lui faire faire — se met à jour avant le code qui le change. Voir [`docs/legal.md`](../../docs/legal.md).
 
 ## Architecture
 
@@ -27,7 +27,7 @@ src/layouts/     Base · Docs · Post
 src/components/  Nav · Footer · Hero · Steps · Section · PageHeader · Card·like (Feature, Claim) · Pricing · Download · Integrations · Docs* · Callout · ProductShot · StatusMark · Analytics
 src/lib/         releases.ts · docs.ts · docs-entries.ts · og.ts · og-pages.ts · feeds.ts · platform.ts · analytics.ts · affiliate.ts (cookie `?ref=` pour la console) · i18n.ts · theme.ts · seo.ts · structured-data.ts
 src/assets/fonts Bricolage et JetBrains Mono, lues au build pour les images Open Graph seulement
-scripts/         check-content.ts (parité, mots interdits) · legal.ts (garde des TODO légaux, intégration Astro) · redirects.ts (chaque page de premier niveau a sa redirection)
+scripts/         check-content.ts (parité, mots interdits) · legal.ts (garde des pages légales, intégration Astro) · redirects.ts (chaque page de premier niveau a sa redirection)
 worker/          index.ts — `www` → apex, puis les assets ; rien d'autre
 public/          robots.txt · _headers · _redirects · favicons et manifeste, copiés du kit `bun --cwd=packages/design run brand`
 ```
@@ -51,8 +51,8 @@ Les collections de contenu ne se chargent pas dans le conteneur Astro de Vitest 
 ```bash
 bun run dev
 bun run build
-bun run build:production    # PUPITRE_ENV=production : le garde légal refuse un TODO, PUBLIC_RELEASES_URL de la console
+bun run build:production    # PUPITRE_ENV=production : le garde légal refuse une page incomplète, PUBLIC_RELEASES_URL de la console
 bun run deploy:production   # wrangler deploy --env production → pupitre.studio et www
 bun run test
-bun run check:content     # parité, mots interdits, TODO légaux
+bun run check:content     # parité, mots interdits, pages légales complètes
 ```

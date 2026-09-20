@@ -1,7 +1,11 @@
 export const EMAIL_TEMPLATE_IDS = [
   "magic_link",
   "email_change",
+  "email_verification",
   "invitation",
+  "organization_suspended",
+  "organization_restored",
+  "organization_closed",
   "server_enrolled",
   "server_assigned",
   "device_added",

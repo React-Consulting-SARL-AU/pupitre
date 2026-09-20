@@ -6,32 +6,24 @@ export interface AdminFigureProps {
   figure: OverviewFigure
 }
 
+/** One counter of the overview: what it counts, how many, and its breakdown underneath. */
 export function AdminFigure({ figure }: AdminFigureProps) {
   const t = useTranslations()
 
   return (
-    <Card className="flex flex-col gap-3 p-4">
-      <p className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
+    <Card className="flex min-w-0 flex-col gap-1 px-4 py-3">
+      <p className="truncate text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
         {t(figure.label)}
       </p>
-      <p className="font-bold font-display text-[28px] text-ink tabular-nums leading-[1.2] tracking-[-0.01em]">
+      <p className="font-bold font-display text-[24px] text-ink tabular-nums leading-[1.2] tracking-[-0.01em]">
         {figure.value}
       </p>
-
       {figure.parts.length > 0 ? (
-        <dl className="flex flex-col gap-1 border-line border-t pt-3">
-          {figure.parts.map((part) => (
-            <div
-              className="flex items-baseline justify-between gap-4"
-              key={part.label}
-            >
-              <dt className="text-[12px] text-ink-2">{t(part.label)}</dt>
-              <dd className="font-data text-[12px] text-ink tabular-nums">
-                {part.value}
-              </dd>
-            </div>
-          ))}
-        </dl>
+        <p className="font-data text-[12px] text-ink-3 tabular-nums leading-[1.5]">
+          {figure.parts
+            .map((part) => `${part.value} ${t(part.label).toLowerCase()}`)
+            .join(" · ")}
+        </p>
       ) : null}
     </Card>
   )

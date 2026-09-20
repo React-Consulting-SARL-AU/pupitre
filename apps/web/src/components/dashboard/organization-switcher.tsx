@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query"
 import { Link, useNavigate } from "@tanstack/react-router"
 import { Check, ChevronsUpDown, Plus, Settings2 } from "lucide-react"
-import { useState } from "react"
+import { type ReactElement, useState } from "react"
 import { CreateOrganizationDialog } from "@/components/dashboard/create-organization-dialog"
 import {
   MenuGroup,
@@ -19,7 +19,12 @@ import { authClient } from "@/lib/auth/client"
 import { canManageOrganization, initialOf } from "@/lib/domain/organization"
 import { roleKey } from "@/lib/domain/roles"
 
-export function OrganizationSwitcher() {
+export interface OrganizationSwitcherProps {
+  /** Another control that opens the same menu, for a caller outside the sidebar. */
+  trigger?: ReactElement<Record<string, unknown>>
+}
+
+export function OrganizationSwitcher({ trigger }: OrganizationSwitcherProps) {
   const t = useTranslations()
   const { organizations, activeOrganization, role } = useDashboardContext()
   const queryClient = useQueryClient()
@@ -49,27 +54,33 @@ export function OrganizationSwitcher() {
   return (
     <>
       <MenuRoot>
-        <MenuTrigger
-          className="flex w-full items-center gap-2.5 rounded-md border border-line bg-sunken px-2 py-2 text-left transition-fast hover:bg-raised focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2 disabled:text-ink-4"
-          disabled={switching}
-          title={t("nav.organizations")}
-        >
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-inverse font-bold font-display text-[13px] text-inverse-ink">
-            {initialOf(name)}
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-[13px] text-ink">{name}</span>
-            {roleLabel ? (
-              <span className="block truncate text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-                {roleLabel}
+        {trigger ? (
+          <MenuTrigger disabled={switching} render={trigger} />
+        ) : (
+          <MenuTrigger
+            className="flex w-full items-center gap-2.5 rounded-md border border-line bg-sunken px-2 py-2 text-left transition-fast hover:bg-raised focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2 disabled:text-ink-4"
+            disabled={switching}
+            title={t("nav.organizations")}
+          >
+            <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-inverse font-bold font-display text-[13px] text-inverse-ink">
+              {initialOf(name)}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[13px] text-ink">
+                {name}
               </span>
-            ) : null}
-          </span>
-          <ChevronsUpDown
-            className="size-4 shrink-0 text-ink-3"
-            strokeWidth={1.5}
-          />
-        </MenuTrigger>
+              {roleLabel ? (
+                <span className="block truncate text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
+                  {roleLabel}
+                </span>
+              ) : null}
+            </span>
+            <ChevronsUpDown
+              className="size-4 shrink-0 text-ink-3"
+              strokeWidth={1.5}
+            />
+          </MenuTrigger>
+        )}
 
         <MenuPopup className="w-[248px]">
           <MenuGroup>

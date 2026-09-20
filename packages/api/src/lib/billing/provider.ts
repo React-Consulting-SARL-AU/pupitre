@@ -37,6 +37,8 @@ export interface RemoteSubscription {
   quantity: number
   interval: BillingIntervalName | null
   current_period_end: Date | null
+  /** Still billed to the end of the period, and stopped there: not the same as stopped. */
+  cancel_at_period_end: boolean
   organization_id: string | null
 }
 
@@ -48,6 +50,12 @@ export interface BillingProvider {
     subscriptionId: string,
     quantity: number
   ): Promise<RemoteSubscription>
+  /** Moves the end of a trial; the answer is what the mirror keeps. */
+  extendTrial(subscriptionId: string, endsAt: Date): Promise<RemoteSubscription>
+  /** Takes back a cancellation that was waiting for the end of the period. */
+  resumeSubscription(subscriptionId: string): Promise<RemoteSubscription>
+  /** Cancels now: the customer stops being billed, and the answer is what the mirror keeps. */
+  cancelSubscription(subscriptionId: string): Promise<RemoteSubscription>
 }
 
 export class BillingProviderError extends Error {

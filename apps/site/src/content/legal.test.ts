@@ -1,7 +1,13 @@
 import { existsSync, readFileSync } from "node:fs"
 import path from "node:path"
-import { LEGAL_DOCUMENTS, LEGAL_ENTITY } from "@pupitre/shared/legal"
+import {
+  CODE_SIGNING_ENTITY,
+  LEGAL_CONTACTS,
+  LEGAL_DOCUMENTS,
+  LEGAL_ENTITY,
+} from "@pupitre/shared/legal"
 import { describe, expect, it } from "vitest"
+import { checkLegalPages } from "../../scripts/legal"
 import { LOCALES } from "../lib/i18n"
 
 const ROOT = "src/content/legal"
@@ -36,14 +42,8 @@ describe("les pages légales", () => {
     }
   })
 
-  it("se déclarent brouillons tant que le contrat partagé les dit brouillons", () => {
-    for (const locale of LOCALES) {
-      for (const document of LEGAL_DOCUMENTS) {
-        expect(read(locale, document.slug), document.slug).toContain(
-          `draft: ${document.status === "draft"}`
-        )
-      }
-    }
+  it("ne sont plus des brouillons et ne laissent aucun passage à compléter", () => {
+    expect(checkLegalPages(process.cwd())).toEqual([])
   })
 
   it("ne revendiquent aucune forme juridique qui n'existe pas", () => {
@@ -57,11 +57,21 @@ describe("les pages légales", () => {
     }
   })
 
-  it("nomment le titulaire des droits tant que la société n'existe pas", () => {
+  it("nomment l'éditeur, personne physique, et la société qui signe l'app", () => {
     for (const locale of LOCALES) {
-      for (const slug of ["terms", "licence"]) {
+      for (const slug of ["terms", "licence", "privacy", "data-processing"]) {
         expect(read(locale, slug), slug).toContain(LEGAL_ENTITY.owner)
       }
+
+      expect(read(locale, "licence")).toContain(CODE_SIGNING_ENTITY.name)
+    }
+  })
+
+  it("donnent l'adresse de contact que le contrat partagé déclare", () => {
+    for (const locale of LOCALES) {
+      expect(read(locale, "terms")).toContain(LEGAL_CONTACTS.legal)
+      expect(read(locale, "privacy")).toContain(LEGAL_CONTACTS.privacy)
+      expect(read(locale, "acceptable-use")).toContain(LEGAL_CONTACTS.support)
     }
   })
 

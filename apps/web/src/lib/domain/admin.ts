@@ -1,10 +1,42 @@
 import type { OrgRole } from "@pupitre/shared/permissions"
+import {
+  GRANTED_PRODUCT,
+  isPlatformProduct,
+  LAUNCH_PRODUCT,
+  STRIPE_PRODUCT,
+} from "@pupitre/shared/plans"
+import {
+  type AccountState,
+  type OrganizationState,
+  PLATFORM_ORGANIZATION_ID,
+} from "@pupitre/shared/platform"
 import { SERVER_STATUSES, type StatusLook } from "@/lib/domain/server-status"
 import type { DictionaryKey } from "@/lib/i18n/en"
 
 export const MAX_REASON_LENGTH = 500
 
 const ACTING_ROLES: OrgRole[] = ["owner", "admin"]
+
+/**
+ * The platform pages belong to the platform organisation: they open when it is
+ * the active one, and only for its members. On any other organisation, even the
+ * owner's own, the console shows that organisation and nothing of the platform.
+ */
+export function platformOpen(
+  activeOrganizationId: string | null | undefined,
+  platformRole: OrgRole | null
+): boolean {
+  return (
+    platformRole !== null && activeOrganizationId === PLATFORM_ORGANIZATION_ID
+  )
+}
+
+/** The platform organisation has no trial, no subscription and no onboarding: its right of use is permanent. */
+export function isPlatformOrganization(
+  organizationId: string | null | undefined
+): boolean {
+  return organizationId === PLATFORM_ORGANIZATION_ID
+}
 
 /**
  * Any member of the platform organisation reads these pages; only the two roles
@@ -35,16 +67,6 @@ export function canRestore(suspendedReason: string | null): boolean {
   return suspendedReason === "admin"
 }
 
-const CONFLICT = 409
-
-/**
- * The platform refuses to ban a member of its own organisation. The refusal is
- * about who the account is, so retrying never changes it: the control closes.
- */
-export function accountIsProtected(status: number | undefined): boolean {
-  return status === CONFLICT
-}
-
 export const SUBSCRIPTION_STATUS_FILTERS = [
   "trialing",
   "active",
@@ -54,15 +76,131 @@ export const SUBSCRIPTION_STATUS_FILTERS = [
   "incomplete",
 ] as const
 
-export const SUBSCRIPTION_PRODUCT_FILTERS = ["prod_server", "launch"] as const
+export const SUBSCRIPTION_PRODUCT_FILTERS = [
+  LAUNCH_PRODUCT,
+  GRANTED_PRODUCT,
+  STRIPE_PRODUCT,
+] as const
 
 const PRODUCT_KEYS: Record<string, DictionaryKey> = {
-  launch: "admin.subscriptions.product.launch",
-  prod_server: "admin.subscriptions.product.server",
+  [LAUNCH_PRODUCT]: "admin.subscriptions.product.launch",
+  [GRANTED_PRODUCT]: "admin.subscriptions.product.granted",
+  [STRIPE_PRODUCT]: "admin.subscriptions.product.stripe",
 }
 
+/** Stripe names its own products: the console says where the row is billed, never the identifier. */
 export function productKey(product: string | null): DictionaryKey | null {
-  return product === null ? null : (PRODUCT_KEYS[product] ?? null)
+  if (product === null) {
+    return null
+  }
+
+  return PRODUCT_KEYS[product] ?? PRODUCT_KEYS[STRIPE_PRODUCT]
+}
+
+/** The statuses under which an organisation still holds its right of use, as `/me` counts them. */
+const LIVE_SUBSCRIPTION_STATUSES = ["active", "trialing", "past_due"]
+
+export function subscriptionIsLive(status: string): boolean {
+  return LIVE_SUBSCRIPTION_STATUSES.includes(status)
+}
+
+export function canCancelSubscription(status: string): boolean {
+  return status !== "canceled"
+}
+
+export interface SubscriptionRow {
+  product: string
+  status: string
+}
+
+/** A platform row is the team's to remove; a Stripe row only once Stripe has let go of it. */
+export function canDeleteSubscription({
+  product,
+  status,
+}: SubscriptionRow): boolean {
+  return isPlatformProduct(product) || !subscriptionIsLive(status)
+}
+
+export function canResizeSubscription(product: string): boolean {
+  return product === GRANTED_PRODUCT
+}
+
+/** Stripe holds the trial: only a row it still bills as `trialing` takes a new end. */
+export function canExtendTrial({ product, status }: SubscriptionRow): boolean {
+  return !isPlatformProduct(product) && status === "trialing"
+}
+
+export interface ResumableSubscription extends SubscriptionRow {
+  cancel_at_period_end: boolean
+}
+
+export function canResumeSubscription({
+  product,
+  status,
+  cancel_at_period_end,
+}: ResumableSubscription): boolean {
+  return (
+    !isPlatformProduct(product) &&
+    subscriptionIsLive(status) &&
+    cancel_at_period_end
+  )
+}
+
+const STRIPE_EVENT_STATUS_KEYS: Record<string, DictionaryKey> = {
+  processing: "admin.subscriptions.eventStatus.processing",
+  processed: "admin.subscriptions.eventStatus.processed",
+  failed: "admin.subscriptions.eventStatus.failed",
+}
+
+export function stripeEventStatusKey(status: string): DictionaryKey | null {
+  return STRIPE_EVENT_STATUS_KEYS[status] ?? null
+}
+
+export interface GrantTarget {
+  organizationId: string
+  hasLive: boolean
+}
+
+export function canGrantSubscription({
+  organizationId,
+  hasLive,
+}: GrantTarget): boolean {
+  return !(isPlatformOrganization(organizationId) || hasLive)
+}
+
+const DATE_INPUT_RE = /^(\d{4})-(\d{2})-(\d{2})$/
+
+/** A day picked in the console ends where the team sits: the right of use covers the whole of it. */
+export function endOfDayIso(date: string): string | null {
+  const parts = DATE_INPUT_RE.exec(date)
+
+  if (!parts) {
+    return null
+  }
+
+  const end = new Date(
+    Number(parts[1]),
+    Number(parts[2]) - 1,
+    Number(parts[3]),
+    23,
+    59,
+    59,
+    999
+  )
+
+  return Number.isNaN(end.getTime()) ? null : end.toISOString()
+}
+
+export function dateInputValue(value: string | Date | null): string {
+  if (!value) {
+    return ""
+  }
+
+  const date = new Date(value)
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+
+  return `${date.getFullYear()}-${month}-${day}`
 }
 
 const CHANNEL_KEYS: Record<string, DictionaryKey> = {
@@ -77,7 +215,8 @@ export function channelKey(channel: string): DictionaryKey | null {
 export interface ReleaseBuild {
   version: string
   channel: string
-  published_at: string
+  /** Eden revives an ISO date into a `Date`; a fixture hands the string. */
+  published_at: string | Date
 }
 
 export interface ReleaseVersion {
@@ -86,6 +225,14 @@ export interface ReleaseVersion {
   builds: number
   publishedAt: string
   stable: boolean
+}
+
+function instantOf(value: string | Date): number {
+  return new Date(value).getTime()
+}
+
+function isoOf(value: string | Date): string {
+  return new Date(value).toISOString()
 }
 
 /**
@@ -101,8 +248,8 @@ export function releaseVersions(builds: ReleaseBuild[]): ReleaseVersion[] {
     if (found) {
       found.builds += 1
       found.publishedAt =
-        build.published_at > found.publishedAt
-          ? build.published_at
+        instantOf(build.published_at) > instantOf(found.publishedAt)
+          ? isoOf(build.published_at)
           : found.publishedAt
 
       if (!found.channels.includes(build.channel)) {
@@ -113,7 +260,7 @@ export function releaseVersions(builds: ReleaseBuild[]): ReleaseVersion[] {
         version: build.version,
         channels: [build.channel],
         builds: 1,
-        publishedAt: build.published_at,
+        publishedAt: isoOf(build.published_at),
         stable: false,
       })
     }
@@ -124,41 +271,114 @@ export function releaseVersions(builds: ReleaseBuild[]): ReleaseVersion[] {
       ...version,
       stable: version.channels.includes("stable"),
     }))
-    .sort((left, right) => right.publishedAt.localeCompare(left.publishedAt))
+    .sort(
+      (left, right) =>
+        instantOf(right.publishedAt) - instantOf(left.publishedAt)
+    )
 }
 
-export interface AdminUserState {
-  banned: boolean
-  email_verified: boolean
+const ACCOUNT_LOOKS: Record<AccountState, StatusLook> = {
+  active: { shape: "filled", tone: "ok", label: "admin.users.state.active" },
+  suspended: {
+    shape: "barred",
+    tone: "danger",
+    label: "admin.users.state.suspended",
+  },
+  deactivated: {
+    shape: "hollow",
+    tone: "warn",
+    label: "admin.users.state.deactivated",
+  },
+  deleting: {
+    shape: "barred",
+    tone: "danger",
+    label: "admin.users.state.deleting",
+  },
 }
 
-const BANNED: StatusLook = {
-  shape: "barred",
-  tone: "danger",
-  label: "admin.users.banned",
+export function accountLook(state: string): StatusLook {
+  return ACCOUNT_LOOKS[state as AccountState] ?? ACCOUNT_LOOKS.active
 }
 
-const UNVERIFIED: StatusLook = {
-  shape: "hollow",
-  tone: "warn",
-  label: "admin.users.unverified",
+const ORGANIZATION_LOOKS: Record<OrganizationState, StatusLook> = {
+  active: {
+    shape: "filled",
+    tone: "ok",
+    label: "admin.organizations.state.active",
+  },
+  suspended: {
+    shape: "barred",
+    tone: "danger",
+    label: "admin.organizations.state.suspended",
+  },
+  closed: {
+    shape: "hollow",
+    tone: "warn",
+    label: "admin.organizations.state.closed",
+  },
+  deleting: {
+    shape: "barred",
+    tone: "danger",
+    label: "admin.organizations.state.deleting",
+  },
 }
 
-const ACTIVE: StatusLook = {
-  shape: "filled",
-  tone: "ok",
-  label: "admin.users.active",
+export function organizationLook(state: string): StatusLook {
+  return (
+    ORGANIZATION_LOOKS[state as OrganizationState] ?? ORGANIZATION_LOOKS.active
+  )
 }
 
-export function userLook({
-  banned,
-  email_verified,
-}: AdminUserState): StatusLook {
-  if (banned) {
-    return BANNED
+export type AccountGesture =
+  | "suspend"
+  | "unsuspend"
+  | "deactivate"
+  | "reactivate"
+  | "delete"
+  | "purge"
+  | "cancel_deletion"
+  | "revoke_sessions"
+
+/** What an account in this state has left to be done to it: the page shows these and nothing else. */
+export function accountGestures(state: string): AccountGesture[] {
+  if (state === "deleting") {
+    return ["cancel_deletion", "purge", "revoke_sessions"]
   }
 
-  return email_verified ? ACTIVE : UNVERIFIED
+  if (state === "deactivated") {
+    return ["reactivate", "delete", "revoke_sessions"]
+  }
+
+  if (state === "suspended") {
+    return ["unsuspend", "deactivate", "delete", "revoke_sessions"]
+  }
+
+  return ["suspend", "deactivate", "delete", "revoke_sessions"]
+}
+
+export type OrganizationGesture =
+  | "suspend"
+  | "restore"
+  | "close"
+  | "reopen"
+  | "delete"
+  | "purge"
+  | "cancel_deletion"
+
+export function organizationGestures(state: string): OrganizationGesture[] {
+  if (state === "deleting") {
+    return ["cancel_deletion", "purge"]
+  }
+
+  if (state === "closed") {
+    return ["reopen", "delete"]
+  }
+
+  if (state === "suspended") {
+    return ["restore", "close", "delete"]
+  }
+
+  return ["suspend", "close", "delete"]
 }
 
 export interface AdminOverview {

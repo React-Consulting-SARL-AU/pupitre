@@ -68,8 +68,14 @@ export const ModelName = {
   Subscription: 'Subscription',
   OrganizationBilling: 'OrganizationBilling',
   AffiliateLink: 'AffiliateLink',
+  AffiliateClickDay: 'AffiliateClickDay',
   Referral: 'Referral',
+  MailMailbox: 'MailMailbox',
   MailThread: 'MailThread',
+  MailNote: 'MailNote',
+  MailDraft: 'MailDraft',
+  MailActivity: 'MailActivity',
+  MailTemplate: 'MailTemplate',
   MailMessage: 'MailMessage',
   MailAttachment: 'MailAttachment',
   Release: 'Release',
@@ -104,7 +110,13 @@ export const UserScalarFieldEnum = {
   banReason: 'banReason',
   banExpires: 'banExpires',
   twoFactorEnabled: 'twoFactorEnabled',
-  locale: 'locale'
+  locale: 'locale',
+  deactivatedAt: 'deactivatedAt',
+  deactivatedReason: 'deactivatedReason',
+  deactivatedByUserId: 'deactivatedByUserId',
+  deletionAt: 'deletionAt',
+  deletionReason: 'deletionReason',
+  deletionByUserId: 'deletionByUserId'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
@@ -163,7 +175,16 @@ export const OrganizationScalarFieldEnum = {
   slug: 'slug',
   logo: 'logo',
   createdAt: 'createdAt',
-  metadata: 'metadata'
+  metadata: 'metadata',
+  suspendedAt: 'suspendedAt',
+  suspendedReason: 'suspendedReason',
+  suspendedByUserId: 'suspendedByUserId',
+  closedAt: 'closedAt',
+  closedReason: 'closedReason',
+  closedByUserId: 'closedByUserId',
+  deletionAt: 'deletionAt',
+  deletionReason: 'deletionReason',
+  deletionByUserId: 'deletionByUserId'
 } as const
 
 export type OrganizationScalarFieldEnum = (typeof OrganizationScalarFieldEnum)[keyof typeof OrganizationScalarFieldEnum]
@@ -272,6 +293,7 @@ export const ServerScalarFieldEnum = {
   decommissionAt: 'decommissionAt',
   status: 'status',
   suspendedReason: 'suspendedReason',
+  suspendedByOrganization: 'suspendedByOrganization',
   channel: 'channel',
   deviceId: 'deviceId',
   assignedUserId: 'assignedUserId',
@@ -316,6 +338,8 @@ export const SubscriptionScalarFieldEnum = {
   quantity: 'quantity',
   status: 'status',
   currentPeriodEnd: 'currentPeriodEnd',
+  cancelAtPeriodEnd: 'cancelAtPeriodEnd',
+  note: 'note',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -340,12 +364,26 @@ export const AffiliateLinkScalarFieldEnum = {
   name: 'name',
   freeMonths: 'freeMonths',
   seats: 'seats',
+  partnerName: 'partnerName',
+  partnerEmail: 'partnerEmail',
+  notes: 'notes',
   createdById: 'createdById',
   createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
   disabledAt: 'disabledAt'
 } as const
 
 export type AffiliateLinkScalarFieldEnum = (typeof AffiliateLinkScalarFieldEnum)[keyof typeof AffiliateLinkScalarFieldEnum]
+
+
+export const AffiliateClickDayScalarFieldEnum = {
+  id: 'id',
+  linkId: 'linkId',
+  day: 'day',
+  count: 'count'
+} as const
+
+export type AffiliateClickDayScalarFieldEnum = (typeof AffiliateClickDayScalarFieldEnum)[keyof typeof AffiliateClickDayScalarFieldEnum]
 
 
 export const ReferralScalarFieldEnum = {
@@ -357,22 +395,92 @@ export const ReferralScalarFieldEnum = {
 export type ReferralScalarFieldEnum = (typeof ReferralScalarFieldEnum)[keyof typeof ReferralScalarFieldEnum]
 
 
+export const MailMailboxScalarFieldEnum = {
+  id: 'id',
+  address: 'address',
+  displayName: 'displayName',
+  signature: 'signature',
+  sensitive: 'sensitive',
+  canReply: 'canReply',
+  enabled: 'enabled',
+  sortOrder: 'sortOrder',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MailMailboxScalarFieldEnum = (typeof MailMailboxScalarFieldEnum)[keyof typeof MailMailboxScalarFieldEnum]
+
+
 export const MailThreadScalarFieldEnum = {
   id: 'id',
   address: 'address',
+  mailboxId: 'mailboxId',
   subject: 'subject',
   normalizedSubject: 'normalizedSubject',
   status: 'status',
   unread: 'unread',
   assignedUserId: 'assignedUserId',
   contactUserId: 'contactUserId',
+  linkedOrganizationId: 'linkedOrganizationId',
   lastInboundAt: 'lastInboundAt',
+  lastInboundAutomated: 'lastInboundAutomated',
   lastOutboundAt: 'lastOutboundAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type MailThreadScalarFieldEnum = (typeof MailThreadScalarFieldEnum)[keyof typeof MailThreadScalarFieldEnum]
+
+
+export const MailNoteScalarFieldEnum = {
+  id: 'id',
+  threadId: 'threadId',
+  body: 'body',
+  createdByUserId: 'createdByUserId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MailNoteScalarFieldEnum = (typeof MailNoteScalarFieldEnum)[keyof typeof MailNoteScalarFieldEnum]
+
+
+export const MailDraftScalarFieldEnum = {
+  id: 'id',
+  threadId: 'threadId',
+  body: 'body',
+  to: 'to',
+  cc: 'cc',
+  attachments: 'attachments',
+  updatedByUserId: 'updatedByUserId',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MailDraftScalarFieldEnum = (typeof MailDraftScalarFieldEnum)[keyof typeof MailDraftScalarFieldEnum]
+
+
+export const MailActivityScalarFieldEnum = {
+  id: 'id',
+  threadId: 'threadId',
+  action: 'action',
+  actorUserId: 'actorUserId',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+} as const
+
+export type MailActivityScalarFieldEnum = (typeof MailActivityScalarFieldEnum)[keyof typeof MailActivityScalarFieldEnum]
+
+
+export const MailTemplateScalarFieldEnum = {
+  id: 'id',
+  mailboxId: 'mailboxId',
+  name: 'name',
+  body: 'body',
+  createdByUserId: 'createdByUserId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MailTemplateScalarFieldEnum = (typeof MailTemplateScalarFieldEnum)[keyof typeof MailTemplateScalarFieldEnum]
 
 
 export const MailMessageScalarFieldEnum = {
@@ -466,6 +574,7 @@ export const StripeEventScalarFieldEnum = {
   id: 'id',
   type: 'type',
   status: 'status',
+  subscriptionId: 'subscriptionId',
   receivedAt: 'receivedAt',
   processedAt: 'processedAt'
 } as const

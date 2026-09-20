@@ -76,6 +76,12 @@ describe("le port des gabarits", () => {
             subject: `Adresse ${input.newEmail}`,
             text: input.url,
           }),
+        emailVerification: (input) =>
+          Promise.resolve({
+            to: input.to,
+            subject: "Confirmation d'adresse",
+            text: input.url,
+          }),
       },
       sendEmail: (message) => {
         sent.push(message)

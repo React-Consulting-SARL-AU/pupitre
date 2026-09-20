@@ -46,7 +46,8 @@ export async function createConsoleUser(input: TestUserInput = {}) {
 }
 
 /** The subscription the platform grants itself during the launch, as `packages/api/src/lib/billing/launch.ts` writes it. */
-export async function grantLaunch(organizationId: string, endsAt: Date) {
+/** The launch row as the platform grants it, or — without an end — as it keeps it for good once the launch is over. */
+export async function grantLaunch(organizationId: string, endsAt: Date | null) {
   const { prisma } = await bootApiTestServer()
 
   return await prisma.subscription.create({
@@ -55,18 +56,50 @@ export async function grantLaunch(organizationId: string, endsAt: Date) {
       stripeSubscriptionId: `launch_${organizationId}`,
       product: "launch",
       quantity: 1,
-      status: "trialing",
+      status: endsAt ? "trialing" : "active",
       currentPeriodEnd: endsAt,
     },
   })
 }
 
-export async function useSessionApiClient(token: string): Promise<void> {
+export interface SessionApiClientOptions {
+  /** A request the network never carries: the client throws instead of answering. */
+  cut?: (url: string, init?: RequestInit) => boolean
+}
+
+export async function useSessionApiClient(
+  token: string,
+  { cut }: SessionApiClientOptions = {}
+): Promise<void> {
   const server = await bootApiTestServer()
 
   setApiClient(
     createApiClient(TEST_BASE_URL, {
-      fetch: server.fetch,
+      fetch: (input, init) =>
+        cut?.(String(input), init)
+          ? Promise.reject(new Error("the network went away"))
+          : server.fetch(input, init),
+      headers: { authorization: `Bearer ${token}` },
+    })
+  )
+}
+
+/** A client whose writes never reach the API: what a gesture sees when the network drops. */
+export async function useSeveredApiClient(
+  token: string,
+  severed: (url: string, method: string) => boolean
+): Promise<void> {
+  const server = await bootApiTestServer()
+
+  setApiClient(
+    createApiClient(TEST_BASE_URL, {
+      fetch: (input, init) => {
+        const request = new Request(input, init)
+
+        return severed(request.url, request.method)
+          ? Promise.reject(new TypeError("Failed to fetch"))
+          : server.fetch(input, init)
+      },
       headers: { authorization: `Bearer ${token}` },
     })
   )

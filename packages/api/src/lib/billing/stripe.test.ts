@@ -11,6 +11,7 @@ const CONFIG: StripeConfig = {
 
 interface StripeCall {
   path: string
+  method: string
   body: URLSearchParams
 }
 
@@ -22,6 +23,7 @@ function stubStripe(payload: unknown): StripeCall[] {
   globalThis.fetch = ((input: string, init: RequestInit) => {
     calls.push({
       path: String(input),
+      method: init.method ?? "GET",
       body: new URLSearchParams(String(init.body ?? "")),
     })
 
@@ -147,5 +149,29 @@ describe("createCheckoutSession", () => {
     await checkout("year")
 
     expect(calls[0].body.get("line_items[0][price]")).toBe("price_year")
+  })
+})
+
+describe("cancelSubscription", () => {
+  it("résilie sur-le-champ par DELETE et rend ce que Stripe répond", async () => {
+    const calls = stubStripe({
+      id: "sub_1",
+      customer: "cus_1",
+      status: "canceled",
+      current_period_end: 1_800_000_000,
+      items: { data: [{ id: "si_1", quantity: 3, price: { product: "p" } }] },
+    })
+
+    const canceled =
+      await createStripeBilling(CONFIG).cancelSubscription("sub_1")
+
+    expect(calls[0].method).toBe("DELETE")
+    expect(calls[0].path).toBe("https://api.stripe.com/v1/subscriptions/sub_1")
+    expect(canceled).toMatchObject({
+      id: "sub_1",
+      status: "canceled",
+      quantity: 3,
+      current_period_end: new Date(1_800_000_000_000),
+    })
   })
 })

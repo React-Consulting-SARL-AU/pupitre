@@ -1,5 +1,5 @@
 import { LOCALES, type Locale } from "@pupitre/shared/i18n"
-import { copyrightHolder, developmentNotice } from "@pupitre/shared/legal"
+import { copyrightHolder } from "@pupitre/shared/legal"
 import type { LucideIcon } from "lucide-react"
 import { Languages, Monitor, Moon, Sun } from "lucide-react"
 import {
@@ -46,8 +46,6 @@ export function ConsoleFooter() {
             entity: copyrightHolder(),
           })}
         </p>
-
-        <p>{developmentNotice(locale).short}</p>
 
         <nav
           aria-label={t("footer.legal")}

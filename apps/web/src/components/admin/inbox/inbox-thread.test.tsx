@@ -12,10 +12,12 @@ import { bootApiTestServer, resetDb } from "@pupitre/api/testing"
 import {
   type FakeMail,
   resetFakeMail,
+  seedPlatformMailboxes,
   useFakeMail,
 } from "@pupitre/api/testing/mail"
 import { act } from "react"
 import { InboxThread } from "@/components/admin/inbox/inbox-thread"
+import { parseInboxSearch } from "@/lib/domain/inbox-search"
 import { createConsoleUser, useSessionApiClient } from "@/testing/harness"
 import {
   render,
@@ -36,6 +38,8 @@ const SENDER = "ada@test.local"
 const INBOUND_MESSAGE_ID = "agent-refused-1@test.local"
 
 const REPLY = "The agent needs the key we just sent you."
+
+const SEARCH = parseInboxSearch({})
 
 function eml(): ArrayBuffer {
   const lines = [
@@ -102,6 +106,7 @@ describe("InboxThread", () => {
   beforeEach(async () => {
     await resetDb()
     mail = useFakeMail()
+    await seedPlatformMailboxes()
 
     const console = await createConsoleUser({
       email: "ops@test.local",
@@ -122,8 +127,8 @@ describe("InboxThread", () => {
   it("shows the exchange and marks the conversation read once opened", async () => {
     const { threadId } = await receive()
     const { prisma } = await bootApiTestServer()
-    const { container, unmount } = await render(
-      withDashboard(<InboxThread threadId={threadId} />, {
+    const { container, unmount, click } = await render(
+      withDashboard(<InboxThread search={SEARCH} threadId={threadId} />, {
         platformRole: "owner",
       })
     )
@@ -131,15 +136,18 @@ describe("InboxThread", () => {
     mounted.push(unmount)
 
     await waitUntil(
-      () =>
-        container.textContent?.includes("My server refuses the agent.") === true
+      () => container.textContent?.includes("Ada Lovelace") === true
     )
 
-    expect(container.textContent).toContain("Ada Lovelace")
+    expect(container.textContent).toContain("Agent refused")
     expect(container.textContent).toContain(`To ${ADDRESS}`)
     expect(container.textContent).toContain("Cc bo@test.local")
-    expect(container.textContent).toContain("Show the HTML version")
     expect(container.textContent).toContain("journal.txt")
+    expect(container.querySelector("iframe")).not.toBeNull()
+
+    await click(trigger(container, "Show the plain text"))
+
+    expect(container.textContent).toContain("My server refuses the agent.")
 
     await waitUntilStored(async () => {
       const stored = await prisma.mailThread.findUniqueOrThrow({
@@ -154,7 +162,7 @@ describe("InboxThread", () => {
     const { threadId } = await receive()
     const { prisma } = await bootApiTestServer()
     const { container, unmount, click } = await render(
-      withDashboard(<InboxThread threadId={threadId} />, {
+      withDashboard(<InboxThread search={SEARCH} threadId={threadId} />, {
         platformRole: "owner",
       })
     )
@@ -229,7 +237,7 @@ describe("InboxThread", () => {
 
     try {
       const { container, unmount, click } = await render(
-        withDashboard(<InboxThread threadId={threadId} />, {
+        withDashboard(<InboxThread search={SEARCH} threadId={threadId} />, {
           platformRole: "owner",
         })
       )
@@ -309,10 +317,74 @@ describe("InboxThread", () => {
     }
   })
 
+  it("folds the side pane away and names the key that closes the conversation", async () => {
+    const { threadId } = await receive()
+    const { container, unmount } = await render(
+      withDashboard(<InboxThread search={SEARCH} threadId={threadId} />, {
+        platformRole: "owner",
+      })
+    )
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("Agent refused") === true
+    )
+
+    const panels = [...container.querySelectorAll("details")]
+    const back = container.querySelector(
+      "a[title='Close the conversation or the selection · Esc']"
+    )
+
+    expect(
+      panels.map((panel) => panel.querySelector("h2")?.textContent)
+    ).toEqual(["Details", "Internal notes", "Activity"])
+    expect(panels.every((panel) => panel.open)).toBe(true)
+    expect(back?.getAttribute("href")).toContain("/dashboard/admin/inbox")
+  })
+
+  it("keeps the reply as a draft, and throws it away once the composer is emptied", async () => {
+    const { threadId } = await receive()
+    const { prisma } = await bootApiTestServer()
+    const { container, unmount } = await render(
+      withDashboard(<InboxThread search={SEARCH} threadId={threadId} />, {
+        platformRole: "owner",
+      })
+    )
+
+    mounted.push(unmount)
+
+    await waitUntil(() => container.querySelector("#inbox-reply") !== null)
+
+    const composer = container.querySelector("#inbox-reply")
+
+    if (!(composer instanceof HTMLTextAreaElement)) {
+      throw new Error("the reply composer did not render")
+    }
+
+    await fillTextarea(composer, REPLY)
+
+    await waitUntilStored(async () => {
+      const draft = await prisma.mailDraft.findUnique({ where: { threadId } })
+
+      return draft?.body === REPLY
+    })
+
+    await fillTextarea(composer, "")
+
+    await waitUntilStored(async () => {
+      const draft = await prisma.mailDraft.findUnique({ where: { threadId } })
+
+      return draft === null
+    })
+
+    expect(container.textContent).not.toContain("Draft kept")
+  })
+
   it("gives a plain member the conversation without the composer", async () => {
     const { threadId } = await receive()
     const { container, unmount } = await render(
-      withDashboard(<InboxThread threadId={threadId} />, {
+      withDashboard(<InboxThread search={SEARCH} threadId={threadId} />, {
         platformRole: "member",
       })
     )
@@ -320,8 +392,7 @@ describe("InboxThread", () => {
     mounted.push(unmount)
 
     await waitUntil(
-      () =>
-        container.textContent?.includes("My server refuses the agent.") === true
+      () => container.textContent?.includes("Agent refused") === true
     )
 
     expect(container.querySelector("#inbox-reply")).toBeNull()

@@ -354,6 +354,23 @@ export type EnumMailThreadStatusWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumMailThreadStatusFilter<$PrismaModel>
 }
 
+export type EnumMailActivityActionFilter<$PrismaModel = never> = {
+  equals?: $Enums.MailActivityAction | Prisma.EnumMailActivityActionFieldRefInput<$PrismaModel>
+  in?: $Enums.MailActivityAction[]
+  notIn?: $Enums.MailActivityAction[]
+  not?: Prisma.NestedEnumMailActivityActionFilter<$PrismaModel> | $Enums.MailActivityAction
+}
+
+export type EnumMailActivityActionWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.MailActivityAction | Prisma.EnumMailActivityActionFieldRefInput<$PrismaModel>
+  in?: $Enums.MailActivityAction[]
+  notIn?: $Enums.MailActivityAction[]
+  not?: Prisma.NestedEnumMailActivityActionWithAggregatesFilter<$PrismaModel> | $Enums.MailActivityAction
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMailActivityActionFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMailActivityActionFilter<$PrismaModel>
+}
+
 export type EnumMailDirectionFilter<$PrismaModel = never> = {
   equals?: $Enums.MailDirection | Prisma.EnumMailDirectionFieldRefInput<$PrismaModel>
   in?: $Enums.MailDirection[]
@@ -796,6 +813,23 @@ export type NestedEnumMailThreadStatusWithAggregatesFilter<$PrismaModel = never>
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumMailThreadStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumMailThreadStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumMailActivityActionFilter<$PrismaModel = never> = {
+  equals?: $Enums.MailActivityAction | Prisma.EnumMailActivityActionFieldRefInput<$PrismaModel>
+  in?: $Enums.MailActivityAction[]
+  notIn?: $Enums.MailActivityAction[]
+  not?: Prisma.NestedEnumMailActivityActionFilter<$PrismaModel> | $Enums.MailActivityAction
+}
+
+export type NestedEnumMailActivityActionWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.MailActivityAction | Prisma.EnumMailActivityActionFieldRefInput<$PrismaModel>
+  in?: $Enums.MailActivityAction[]
+  notIn?: $Enums.MailActivityAction[]
+  not?: Prisma.NestedEnumMailActivityActionWithAggregatesFilter<$PrismaModel> | $Enums.MailActivityAction
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumMailActivityActionFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumMailActivityActionFilter<$PrismaModel>
 }
 
 export type NestedEnumMailDirectionFilter<$PrismaModel = never> = {

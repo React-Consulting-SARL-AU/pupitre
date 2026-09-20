@@ -1,3 +1,4 @@
+import { PLATFORM_ORGANIZATION_ID } from "@pupitre/shared/platform"
 import { getPrisma } from "../api/prisma"
 import type { ServerRow } from "../servers/server-row"
 import { liveSubscriptionOf } from "./subscription"
@@ -88,10 +89,41 @@ async function entitlementOf(
   return { state, valid_until: subscription.currentPeriodEnd ?? now }
 }
 
+/** The platform's own organization is entitled by what it is, not by a subscription. */
+function isPlatform(organizationId: string): boolean {
+  return organizationId === PLATFORM_ORGANIZATION_ID
+}
+
+/**
+ * A standing the team laid down outranks the money: as long as the
+ * organization is suspended or closed, nothing it pays gives its machines
+ * back.
+ */
+async function isHeldByPlatform(organizationId: string): Promise<boolean> {
+  const organization = await getPrisma().organization.findUnique({
+    where: { id: organizationId },
+    select: { suspendedAt: true, closedAt: true, deletionAt: true },
+  })
+
+  return Boolean(
+    organization?.suspendedAt ||
+      organization?.closedAt ||
+      organization?.deletionAt
+  )
+}
+
 export async function entitlementForOrganization(
   organizationId: string,
   now: Date = new Date()
 ): Promise<Entitlement> {
+  if (isPlatform(organizationId)) {
+    return { state: "valid", valid_until: entitlementWindow(now) }
+  }
+
+  if (await isHeldByPlatform(organizationId)) {
+    return { state: "suspended", valid_until: now }
+  }
+
   const subscription = await liveSubscriptionOf(organizationId)
 
   if (!subscription) {
@@ -105,6 +137,14 @@ export async function entitlementRefusalFor(
   organizationId: string,
   now: Date = new Date()
 ): Promise<EntitlementRefusal | null> {
+  if (isPlatform(organizationId)) {
+    return null
+  }
+
+  if (await isHeldByPlatform(organizationId)) {
+    return "server_suspended"
+  }
+
   const subscription = await liveSubscriptionOf(organizationId)
 
   if (!subscription) {

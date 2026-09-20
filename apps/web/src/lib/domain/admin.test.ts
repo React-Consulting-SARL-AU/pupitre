@@ -1,14 +1,42 @@
 import { describe, expect, it } from "bun:test"
 import {
-  accountIsProtected,
+  accountGestures,
+  accountLook,
   canActOnPlatform,
+  canCancelSubscription,
+  canDeleteSubscription,
+  canExtendTrial,
+  canGrantSubscription,
+  canResizeSubscription,
   canRestore,
+  canResumeSubscription,
   canSuspend,
+  dateInputValue,
+  endOfDayIso,
+  organizationGestures,
+  organizationLook,
   overviewFigures,
+  platformOpen,
+  productKey,
   releaseVersions,
+  SUBSCRIPTION_PRODUCT_FILTERS,
+  stripeEventStatusKey,
+  subscriptionIsLive,
   suspendedReasonKey,
-  userLook,
 } from "@/lib/domain/admin"
+
+describe("platformOpen", () => {
+  it("opens the platform pages on the platform organisation, for its members", () => {
+    expect(platformOpen("org_pupitre", "member")).toBe(true)
+    expect(platformOpen("org_pupitre", "owner")).toBe(true)
+  })
+
+  it("keeps them shut on any other organisation, and for anyone outside", () => {
+    expect(platformOpen("org_perso", "owner")).toBe(false)
+    expect(platformOpen(null, "owner")).toBe(false)
+    expect(platformOpen("org_pupitre", null)).toBe(false)
+  })
+})
 
 describe("canActOnPlatform", () => {
   it("lets the two roles the owner grants on the platform organisation act", () => {
@@ -46,14 +74,178 @@ describe("canRestore", () => {
   })
 })
 
-describe("accountIsProtected", () => {
-  it("closes the ban when the platform refused it over who the account is", () => {
-    expect(accountIsProtected(409)).toBe(true)
+describe("productKey", () => {
+  it("names the two products of the platform, and Stripe for every other", () => {
+    expect(productKey("launch")).toBe("admin.subscriptions.product.launch")
+    expect(productKey("granted")).toBe("admin.subscriptions.product.granted")
+    expect(productKey("stripe")).toBe("admin.subscriptions.product.stripe")
+    expect(productKey("prod_server")).toBe("admin.subscriptions.product.stripe")
+    expect(productKey("prod_other")).toBe("admin.subscriptions.product.stripe")
+    expect(productKey(null)).toBeNull()
   })
 
-  it("leaves it open when nothing was refused, or the refusal was another one", () => {
-    expect(accountIsProtected(undefined)).toBe(false)
-    expect(accountIsProtected(404)).toBe(false)
+  it("offers the launch, the granted one and Stripe as filters", () => {
+    expect([...SUBSCRIPTION_PRODUCT_FILTERS]).toEqual([
+      "launch",
+      "granted",
+      "stripe",
+    ])
+  })
+})
+
+describe("subscriptionIsLive", () => {
+  it("counts what Stripe still bills, and what a trial or a granted right still covers", () => {
+    for (const status of ["active", "trialing", "past_due"]) {
+      expect(subscriptionIsLive(status), status).toBe(true)
+    }
+
+    for (const status of ["canceled", "unpaid", "incomplete_expired"]) {
+      expect(subscriptionIsLive(status), status).toBe(false)
+    }
+  })
+})
+
+describe("canCancelSubscription", () => {
+  it("stops anything that is not already cancelled", () => {
+    expect(canCancelSubscription("active")).toBe(true)
+    expect(canCancelSubscription("trialing")).toBe(true)
+    expect(canCancelSubscription("canceled")).toBe(false)
+  })
+})
+
+describe("canDeleteSubscription", () => {
+  it("deletes a platform row whatever its status", () => {
+    expect(
+      canDeleteSubscription({ product: "launch", status: "trialing" })
+    ).toBe(true)
+    expect(
+      canDeleteSubscription({ product: "granted", status: "active" })
+    ).toBe(true)
+  })
+
+  it("deletes a Stripe row only once Stripe no longer bills it", () => {
+    expect(
+      canDeleteSubscription({ product: "prod_server", status: "canceled" })
+    ).toBe(true)
+    expect(
+      canDeleteSubscription({ product: "prod_server", status: "active" })
+    ).toBe(false)
+    expect(
+      canDeleteSubscription({ product: "prod_server", status: "past_due" })
+    ).toBe(false)
+  })
+})
+
+describe("canResizeSubscription", () => {
+  it("resizes the granted product alone", () => {
+    expect(canResizeSubscription("granted")).toBe(true)
+    expect(canResizeSubscription("launch")).toBe(false)
+    expect(canResizeSubscription("prod_server")).toBe(false)
+  })
+})
+
+describe("canExtendTrial", () => {
+  it("pushes the end of a Stripe trial alone", () => {
+    expect(canExtendTrial({ product: "prod_server", status: "trialing" })).toBe(
+      true
+    )
+    expect(canExtendTrial({ product: "prod_server", status: "active" })).toBe(
+      false
+    )
+    expect(canExtendTrial({ product: "launch", status: "trialing" })).toBe(
+      false
+    )
+    expect(canExtendTrial({ product: "granted", status: "trialing" })).toBe(
+      false
+    )
+  })
+})
+
+describe("canResumeSubscription", () => {
+  it("takes back a Stripe cancellation that still runs to the end of the period", () => {
+    expect(
+      canResumeSubscription({
+        product: "prod_server",
+        status: "active",
+        cancel_at_period_end: true,
+      })
+    ).toBe(true)
+    expect(
+      canResumeSubscription({
+        product: "prod_server",
+        status: "active",
+        cancel_at_period_end: false,
+      })
+    ).toBe(false)
+    expect(
+      canResumeSubscription({
+        product: "prod_server",
+        status: "canceled",
+        cancel_at_period_end: true,
+      })
+    ).toBe(false)
+    expect(
+      canResumeSubscription({
+        product: "granted",
+        status: "active",
+        cancel_at_period_end: true,
+      })
+    ).toBe(false)
+  })
+})
+
+describe("stripeEventStatusKey", () => {
+  it("names the three states the webhook files, and nothing else", () => {
+    expect(stripeEventStatusKey("processed")).toBe(
+      "admin.subscriptions.eventStatus.processed"
+    )
+    expect(stripeEventStatusKey("failed")).toBe(
+      "admin.subscriptions.eventStatus.failed"
+    )
+    expect(stripeEventStatusKey("processing")).toBe(
+      "admin.subscriptions.eventStatus.processing"
+    )
+    expect(stripeEventStatusKey("invented")).toBeNull()
+  })
+})
+
+describe("canGrantSubscription", () => {
+  it("grants to an organisation with nothing live", () => {
+    expect(
+      canGrantSubscription({ organizationId: "org_perso", hasLive: false })
+    ).toBe(true)
+  })
+
+  it("refuses the platform organisation and one with a live subscription", () => {
+    expect(
+      canGrantSubscription({ organizationId: "org_pupitre", hasLive: false })
+    ).toBe(false)
+    expect(
+      canGrantSubscription({ organizationId: "org_perso", hasLive: true })
+    ).toBe(false)
+  })
+})
+
+describe("endOfDayIso", () => {
+  it("sends the last instant of the chosen day, and reads it back as that day", () => {
+    const iso = endOfDayIso("2026-12-31")
+
+    expect(iso).not.toBeNull()
+
+    const sent = new Date(iso ?? "")
+
+    expect(sent.getFullYear()).toBe(2026)
+    expect(sent.getMonth()).toBe(11)
+    expect(sent.getDate()).toBe(31)
+    expect(sent.getHours()).toBe(23)
+    expect(sent.getMinutes()).toBe(59)
+    expect(dateInputValue(iso)).toBe("2026-12-31")
+  })
+
+  it("sends nothing for an empty field, and refuses what is not a date", () => {
+    expect(endOfDayIso("")).toBeNull()
+    expect(endOfDayIso("soon")).toBeNull()
+    expect(dateInputValue(null)).toBe("")
   })
 })
 
@@ -84,10 +276,31 @@ describe("releaseVersions", () => {
     expect(versions[0]).toMatchObject({
       builds: 2,
       channels: ["beta"],
-      publishedAt: "2026-09-10T11:00:00Z",
+      publishedAt: "2026-09-10T11:00:00.000Z",
       stable: false,
     })
     expect(versions[1].stable).toBe(true)
+  })
+
+  it("takes the dates Eden revived, and still orders them", () => {
+    const versions = releaseVersions([
+      {
+        version: "0.5.0",
+        channel: "stable",
+        published_at: new Date("2026-09-01T10:00:00Z"),
+      },
+      {
+        version: "0.6.0",
+        channel: "beta",
+        published_at: new Date("2026-09-10T10:00:00Z"),
+      },
+    ])
+
+    expect(versions.map((version) => version.version)).toEqual([
+      "0.6.0",
+      "0.5.0",
+    ])
+    expect(versions[0].publishedAt).toBe("2026-09-10T10:00:00.000Z")
   })
 
   it("has nothing to show before the first publication", () => {
@@ -105,26 +318,86 @@ describe("canSuspend", () => {
   })
 })
 
-describe("userLook", () => {
-  it("reads a banned account as barred, whatever else is true", () => {
-    expect(userLook({ banned: true, email_verified: true })).toMatchObject({
+describe("accountLook", () => {
+  it("bars a suspended account and a scheduled deletion", () => {
+    expect(accountLook("suspended")).toMatchObject({
       shape: "barred",
       tone: "danger",
+      label: "admin.users.state.suspended",
+    })
+    expect(accountLook("deleting")).toMatchObject({
+      shape: "barred",
+      label: "admin.users.state.deleting",
     })
   })
 
-  it("reads an unverified email as a hollow warning", () => {
-    expect(userLook({ banned: false, email_verified: false })).toMatchObject({
+  it("warns on a deactivated account and fills an active one", () => {
+    expect(accountLook("deactivated")).toMatchObject({
       shape: "hollow",
       tone: "warn",
     })
+    expect(accountLook("active")).toMatchObject({ shape: "filled", tone: "ok" })
+  })
+})
+
+describe("organizationLook", () => {
+  it("names each organisation state with its own label", () => {
+    expect(organizationLook("closed")).toMatchObject({
+      shape: "hollow",
+      label: "admin.organizations.state.closed",
+    })
+    expect(organizationLook("suspended")).toMatchObject({
+      tone: "danger",
+      label: "admin.organizations.state.suspended",
+    })
+    expect(organizationLook("active")).toMatchObject({ tone: "ok" })
+  })
+})
+
+describe("accountGestures", () => {
+  it("offers to suspend an active account and to lift a suspended one", () => {
+    expect(accountGestures("active")).toContain("suspend")
+    expect(accountGestures("active")).not.toContain("unsuspend")
+    expect(accountGestures("suspended")).toContain("unsuspend")
+    expect(accountGestures("suspended")).not.toContain("suspend")
   })
 
-  it("reads a verified account as a filled dot", () => {
-    expect(userLook({ banned: false, email_verified: true })).toMatchObject({
-      shape: "filled",
-      tone: "ok",
-    })
+  it("offers to reactivate a deactivated account", () => {
+    expect(accountGestures("deactivated")).toEqual([
+      "reactivate",
+      "delete",
+      "revoke_sessions",
+    ])
+  })
+
+  it("offers to cancel or to hasten a scheduled deletion, and nothing that would repeat it", () => {
+    expect(accountGestures("deleting")).toEqual([
+      "cancel_deletion",
+      "purge",
+      "revoke_sessions",
+    ])
+  })
+})
+
+describe("organizationGestures", () => {
+  it("offers to suspend, close or delete an active organisation", () => {
+    expect(organizationGestures("active")).toEqual([
+      "suspend",
+      "close",
+      "delete",
+    ])
+  })
+
+  it("offers to lift a suspension and to reopen a closed organisation", () => {
+    expect(organizationGestures("suspended")).toContain("restore")
+    expect(organizationGestures("closed")).toEqual(["reopen", "delete"])
+  })
+
+  it("offers to cancel or to hasten a scheduled deletion", () => {
+    expect(organizationGestures("deleting")).toEqual([
+      "cancel_deletion",
+      "purge",
+    ])
   })
 })
 

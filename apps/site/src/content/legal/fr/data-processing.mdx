@@ -1,50 +1,61 @@
 ---
 title: "Traitement des données"
-description: "L’accord de traitement des données pour les organisations qui en ont besoin, et les sous-traitants qu’il nomme."
+description: "L’accord de traitement des données qui engage Pupitre envers chaque organisation, les sous-traitants qu’il nomme, et les clauses qui couvrent les transferts."
 locale: fr
-updated: 2026-09-06
-draft: true
+updated: 2026-09-20
 order: 5
 ---
 
 import SubProcessors from "../../../components/SubProcessors.astro"
 
-Brouillon de travail. Aucun accord n’est signé aujourd’hui : l’éditeur n’est pas immatriculé et le texte n’a pas été relu par un avocat. Il est publié pour que vous sachiez ce qu’il contiendra.
+Cet accord fait partie des [conditions d’utilisation](/fr/legal/terms/) et s’applique à chaque organisation dès qu’elle existe, sans signature. Une organisation qui a besoin d’un exemplaire signé le demande à `legal@pupitre.studio` et le reçoit en retour, signé.
+
+## Parties et rôles
+
+L’organisation est responsable du traitement des données personnelles qu’elle apporte à la plateforme. Le sous-traitant est Jordan Monier, personne physique résidant au Maroc, qui édite Pupitre. Là où le droit applicable nomme ces rôles autrement, les obligations ci-dessous s’appliquent tout de même.
 
 ## Périmètre
 
-L’accord couvre les données personnelles que nous traitons pour le compte de votre organisation quand vous utilisez la console et la plateforme : les comptes de vos membres, leurs appareils, et les métadonnées de vos serveurs.
+L’accord couvre les données personnelles que nous traitons pour le compte de votre organisation quand vous utilisez la console, l’app et la plateforme : les comptes et les sessions de vos membres, leurs appareils et les moitiés publiques de leurs clés, le journal de l’organisation, et les métadonnées de vos machines énumérées dans la [politique de confidentialité](/fr/legal/privacy/).
 
-Il ne couvre pas les données qui vivent sur vos serveurs. Nous n’y avons pas accès : pour elles, vous n’êtes pas notre client, vous êtes seul aux commandes.
+Il ne couvre pas les données qui vivent sur vos machines. Nous n’y avons aucun accès et aucun moyen technique de les obtenir : pour ces données, nous ne sommes pas votre sous-traitant, et vous êtes seul aux commandes.
 
 ## Instructions
 
-Nous traitons ces données uniquement pour fournir le service, sur vos instructions documentées, et pour rien d’autre. Nous ne les vendons pas, nous ne les partageons pas, nous n’entraînons aucun modèle avec.
+Nous ne traitons ces données que pour fournir le service, sur vos instructions documentées — ces conditions et ce que vous faites dans la console — et pour rien d’autre. Nous ne les vendons pas, nous ne les partageons pas pour les fins propres de qui que ce soit, et nous n’entraînons aucun modèle dessus. Si une instruction nous paraissait enfreindre la loi, nous vous le dirions avant d’y donner suite.
+
+## Confidentialité
+
+Les personnes qui peuvent lire les données de la plateforme sont les membres de l’organisation Pupitre, chacun tenu à la confidentialité, et chaque lecture d’un fil sensible est journalisée.
 
 ## Mesures de sécurité
 
-Chiffrement en transit et au repos, accès aux systèmes de production limité aux personnes qui en ont besoin et tracé, secrets tenus hors du dépôt, agent distribué en binaire signé, aucune connexion entrante vers vos machines. [Liste complète des mesures techniques et organisationnelles à annexer avant signature.]
+Chiffrement en transit et au repos. Connexion par lien, clé d’accès ou second facteur. Sessions liées à l’appareil qui les a ouvertes. Accès aux systèmes de production limité aux personnes qui en ont besoin, et journalisé. Secrets tenus hors du code, injectés par un gestionnaire de mots de passe. Agent distribué en binaire signé, vérifié avant installation. Aucune connexion entrante vers vos machines, aucune commande exécutée dessus, aucun fichier lu dessus. Dépendances surveillées pour les failles publiées et mises à jour dans la journée pour celles qui vous connectent.
 
 ## Sous-traitants
 
 <SubProcessors />
 
-Vous êtes prévenu par email avant l’ajout d’un sous-traitant, et vous pouvez y objecter.
+Vous êtes prévenu par email avant l’ajout d’un sous-traitant, et vous pouvez vous y opposer ; si nous ne pouvons pas répondre à l’objection, vous pouvez supprimer votre organisation avant que le changement prenne effet.
 
 ## Transferts
 
-L’éditeur sera une société américaine et la plateforme sera hébergée aux États-Unis : les données de votre organisation y seront traitées, comme celles que Stripe et GitHub traitent déjà. La base de données vit encore en région européenne aujourd’hui ; elle est migrée avant que le service accueille son premier client.
+La base de données et les fichiers de la plateforme sont stockés dans la région Est de l’Amérique du Nord de Cloudflare ; le sous-traitant les lit depuis le Maroc, et les sous-traitants ultérieurs sont établis aux États-Unis.
 
-Pour une organisation établie dans l’Union européenne, le transfert s’appuiera sur les clauses contractuelles types et sur les garanties publiées par chaque sous-traitant. [Références exactes des clauses et analyse d’impact du transfert à annexer avant signature.]
+Pour une organisation établie dans l’Union européenne ou au Royaume-Uni, le transfert vers le sous-traitant repose sur les clauses contractuelles types adoptées par la Commission européenne par la décision 2021/914, module deux (responsable du traitement vers sous-traitant), que cet accord incorpore par référence avec l’organisation comme exportateur de données et le sous-traitant comme importateur, ainsi que l’addendum du Royaume-Uni là où il s’applique. Le transfert vers chaque sous-traitant ultérieur repose sur les clauses et les garanties que ce sous-traitant publie dans ses propres conditions de traitement.
 
-## Assistance et audits
+## Assistance et violations
 
-Nous vous aidons à répondre aux demandes des personnes concernées et aux obligations qui vous incombent, et nous vous prévenons sans délai injustifié d’une violation de données qui vous touche. Les documents attestant nos mesures vous sont fournis sur demande. [Modalités et fréquence des audits à arrêter avant signature.]
+Nous vous aidons à répondre aux demandes des personnes concernées et à remplir les obligations qui vous incombent, dans ce que la plateforme permet. Nous vous informons sans retard injustifié, et dans les soixante-douze heures après en avoir eu connaissance, d’une violation de données personnelles qui touche votre organisation, avec ce que nous savons de sa nature, de son étendue et des mesures prises.
+
+## Audits
+
+Les documents qui attestent nos mesures sont fournis sur demande. Une fois par an, avec un préavis de trente jours, vous ou un auditeur que vous mandatez pouvez les vérifier ; l’audit est à votre charge et ne touche à rien qui concerne une autre organisation.
 
 ## Suppression
 
-À la fin du contrat, les données de votre organisation sont supprimées dans les trente jours, sauf ce que le droit comptable nous impose de conserver. Une copie de vos données vous est remise sur demande avant la suppression.
+Quand vous supprimez votre organisation, ou votre compte avec les organisations dont vous étiez le seul membre, ses données sont supprimées aussitôt ; une suppression que nous faisons à votre demande est programmée sept jours à l’avance, puis exécutée. Avant cela, un export des données de votre organisation vous est remis sur demande. Ce que le droit comptable nous imposera de garder, le jour où des factures existeront, est gardé pour cette raison et cette durée seulement.
 
 ## Obtenir un exemplaire signé
 
-À l’ouverture du service, la demande se fera depuis la console et l’accord sera signé par voie électronique. En attendant, écrivez à `legal@pupitre.studio` : nous ne pouvons rien signer avant l’immatriculation, mais nous vous dirons où en est le texte.
+Écrivez à `legal@pupitre.studio` depuis l’adresse d’un propriétaire de l’organisation. Vous recevez cet accord, daté et signé, avec les clauses contractuelles types complétées pour votre organisation.

@@ -1,64 +1,106 @@
 ---
 title: "Terms of service"
-description: "The contract between you and the publisher of Pupitre: what the subscription gives you, what it does not, and what happens when it ends."
+description: "The contract between you and the publisher of Pupitre: what the service gives you, what it never does on your machine, what is free, and what happens when it ends."
 locale: en
-updated: 2026-09-10
-draft: true
+updated: 2026-09-20
 order: 1
 ---
 
-Working draft. The text describes what Pupitre will do the day the service opens. It binds no one while the publisher is not incorporated and the document has not been reviewed by a lawyer. Passages in brackets wait for legal or tax information that does not exist yet.
+These terms apply from the moment you create an account on `app.pupitre.studio` or install the Pupitre app. Read them with the [licence](/legal/licence/), the [acceptable use policy](/legal/acceptable-use/), the [privacy policy](/legal/privacy/) and the [data processing agreement](/legal/data-processing/): together they are the whole contract.
 
 ## Who we are
 
-The service is published by [legal name, company form, capital and registered address to be completed at incorporation]. You contract with that entity and with it alone. While it is not incorporated, Pupitre — the code, the brand, the domain names and the platform — belongs personally to Jordan Monier, who will transfer it to the company when it is formed. The product is called Pupitre; the site is `pupitre.studio`, the console `app.pupitre.studio`.
+Pupitre is published by Jordan Monier, a natural person residing in Morocco, who is also the publication director. There is no company behind the service yet: the code, the brand, the domain names and the platform belong personally to Jordan Monier. You contract with him and with him alone. Write to `legal@pupitre.studio`.
 
-Registration number, tax number, VAT number where applicable and publication director: [to be completed at incorporation]. Write to us: `legal@pupitre.studio`.
+The site and the console are hosted by Cloudflare, San Francisco, United States.
 
-## What the subscription covers
+## The responsible party may change
 
-The subscription gives you the right to use the desktop app, the agent installed on your servers and the console, and to receive their updates. It is counted per managed server, paid monthly or yearly, and the prices shown on the pricing page are the ones that apply.
+The project is meant to be transferred to a company once it has proven itself. When that happens, the company takes over these terms, the licence, the accounts and the data as they stand, without any change to your rights or to what you pay. The same goes for the way payments are collected and invoiced, and for the payment provider, the day billing opens.
 
-It does not cover the server, its hosting, your model provider subscriptions, or the licences of the third-party software the agent installs for you.
+Any such change is announced by email to every active account at least thirty days before it takes effect. If you do not want to continue with the new party, you delete your account before that date: your servers keep running, as described below.
+
+## The service
+
+Pupitre is a desktop app, an agent installed on a machine you own — a VPS, a dedicated server, a computer — and a console. The app inspects your machine, installs the services you choose, hardens it, and becomes your window onto it: projects, terminals, coding agents, databases, remote editors. The console holds your account, your organisation, the list of your machines and your subscription.
+
+An account is required. Everything belongs to an organisation: a personal one is created with your account, and you may create or join others.
+
+## The free launch
+
+The service is free during its launch. No payment is collected, no card is asked for, and no invoice is issued. During the launch, the subscription that gives a machine its right of use is granted by the platform itself, at no charge, for one machine per organisation.
+
+The prices shown on the [pricing page](/pricing/) are the prices that will apply the day billing opens. That day is announced by email at least thirty days ahead. Nothing is ever charged without an explicit action on your part: billing opens when you subscribe, not when the launch ends.
+
+**What the launch gives you for good.** Every organisation that enrolled a machine during the free launch keeps, for as long as the service exists, the right to use Pupitre on one machine without paying. That right is not lost when billing opens, when the responsible party changes, or when the machine is replaced by another. Machines beyond that one follow the prices in force.
 
 ## What you bring
 
-You bring the server, the host account that bills it, and the model subscriptions your agents use. You stay responsible for what runs on the machine, for the data it holds, and for the backups you keep of it.
+You bring the machine, the hosting account that bills it, and the subscriptions of the model providers your coding agents use. You stay responsible for what runs on the machine, for the data it holds, for the backups you keep of it, and for the bills of your host and of your providers.
 
 Your private keys never leave your computer. We hold no copy and have no way of obtaining one.
 
-## What we never do
+## What Pupitre receives from your machine
 
-No inbound connection to your server: your app calls out, never the other way round. No custody of your private keys. No support access to your machine — if support needs to see a log, it asks you to send it. Nothing readable dropped on the server: a binary and configuration files, nothing else.
+The agent on your machine only ever makes outbound connections, to `app.pupitre.studio`. It reads its state every thirty seconds and sends a heartbeat every five minutes. Here is everything the platform receives, and nothing else:
 
-## Trial and payment
+- at enrolment: the name and address you gave the machine in the app, the public half of its SSH host key, the agent version and the processor architecture;
+- with each heartbeat: the size and the free space of the disk, the size and the use of the memory, the load average, the version of the installed stack, the names of the installed catalogue modules, the name of the account that holds the SSH keys, and the names of the running tmux sessions — which are usually the names of your projects;
+- from the app, not from the machine: the public halves of your devices' SSH keys, so that the agent can authorise them.
 
-Fourteen days of trial, without a card. Then a monthly or yearly subscription, cancellable at any time from the console, running until the end of the period you paid for.
+The platform never receives a file, a line of code, an environment variable, a secret, a log, the content of a terminal or of a database, the output of a command, or anything that lives inside your projects. It has no technical means of asking for them: the protocol between the agent and the platform has no such message.
 
-Payments are collected by Stripe as merchant of record: Stripe invoices, collects the applicable taxes and holds the payment data. We never see a card number. [Refund policy to be settled before the service opens.]
+## What Pupitre can do on your machine, and what it cannot
 
-## When the subscription ends
+The platform has exactly three levers on your machine, all of them applied by the agent itself when it reads its state:
 
-Your server keeps running. Installed services stay installed, your projects stay yours, nothing is erased.
+1. **The right of use.** The platform tells the agent whether your organisation's subscription is valid. Without a valid answer for seven days, or when the answer is a suspension, the agent enters restricted mode: it refuses commands from the app and nothing else. It stops no service, deletes no data and touches no file.
+2. **The list of authorised keys.** The platform gives the agent the public keys of the devices of the members of your organisation who are assigned to that machine. The agent writes them into a tagged block of the `authorized_keys` file of the SSH account it manages, atomically, without touching any line outside that block. Revoking a device or removing a member removes its key on the next read. A suspended machine receives an empty list: the keys of your Pupitre devices leave that block, and nothing else changes — keys you added yourself outside the block, and any other access you keep to the machine, stay as they are.
+3. **The version to run.** The platform names the agent version to install. The agent downloads it from the platform and verifies its Ed25519 signature against the key it carries before installing it. A binary that does not carry that signature is never installed.
 
-The agent enters restricted mode seven days after the entitlement ends: it stops accepting commands from the app without stopping anything that runs. You lose the app, not the machine. Uninstalling the agent is documented and takes one command.
+Everything else is impossible by construction, not by policy:
+
+- the platform cannot open a connection to your machine: nothing listens for it, it holds no address it could reach, no credential and no key that would open a session;
+- it cannot run a command, read, write or delete a file, start or stop a service, project or process;
+- there is no hidden access, no support access and no maintenance access. When support needs to see something on your machine, it asks you to send it;
+- the app on your computer talks to your machine directly, over SSH, with your own key. The platform is not on that path and nothing that passes between the app and the machine goes through Pupitre. When a project is exposed on a domain, the tunnel is on your own Cloudflare account, mounted from your computer, and the platform is not on that path either.
+
+What the agent does on your machine — installing, configuring, starting, stopping — it does on the orders of your app, on your computer, sent over your SSH session. Nothing happens on the machine without a gesture of yours, except what the agent does on its own for the three levers above and for the services it monitors.
+
+## Your machine, your data
+
+Because of the above, the data on your machine is yours alone: we do not hold it, we cannot reach it, and we cannot restore it. We take no responsibility for it — not for its loss, its corruption, its exposure, its backup, or for what a service installed on the machine, a coding agent you started, or a third party who reached the machine does with it. The app makes it easy to run things on your machine; what you run there is your decision and your responsibility.
+
+## Third-party software and model providers
+
+The agent installs software on your machine that is not ours — runtimes, databases, coding agents, tools. Each keeps its own licence, which you accept by installing it, and the app names it next to each service. The coding agents you run use your own subscriptions and remain subject to the terms of the provider whose model they call.
+
+## When the right of use ends
+
+When your organisation's subscription ends, or when a machine is suspended, your machine keeps running. Installed services stay installed, your projects stay yours, nothing is erased. The agent enters restricted mode as described above: you lose the app, not the machine. Uninstalling the agent is documented and takes one command.
 
 ## Availability and support
 
-The app stays usable for seven days without the platform: an outage on our side does not cut you off from your servers. [Availability commitment and response times to be settled before the service opens.]
+The service is provided without an availability commitment. The app stays usable for seven days without the platform, so an outage on our side does not cut you off from your machines. We do our best to answer support at `support@pupitre.studio`, in French or in English, without a promised response time.
 
-Support answers by email at `support@pupitre.studio`, in French or in English.
+## We may stop
+
+We may suspend or discontinue the service, in whole or in part, at any time. A planned discontinuation is announced by email to every active account at least thirty days ahead. An interruption required by security, by law or by a technical failure may be immediate. In every case, your machines keep running, and the agent can be uninstalled.
+
+## Ending the contract
+
+You end it by deleting your account from the console, at any time. We end it, for your organisation or for one of its machines, on a serious breach of these terms or of the acceptable use policy, or when the law requires it. A suspension based on a mistake is lifted as soon as the mistake is established.
 
 ## Liability
 
-The service is provided as is, within the limits the applicable law allows. We are not liable for data lost on a server you administer, for what an agent you started does, or for bills from a host or a model provider.
+The service is provided as is, free of charge during the launch, and without any warranty beyond what the law imposes. To the fullest extent the applicable law allows, we are not liable for indirect damage, loss of data, loss of revenue or business interruption, nor for what a coding agent you started does, for the bills of a host or a model provider, or for the acts of a third party who reached your machine.
 
-[Liability cap, exclusions and statutory warranties to be drafted by a lawyer before the service opens.]
+To the same extent, our total liability for everything arising from the service is limited to what you paid us in the twelve months preceding the event that gives rise to the claim. Nothing here excludes or limits a liability that the applicable law does not allow to be excluded or limited.
 
 ## Changes to these terms
 
-A change is published on this page with its date. When it is unfavourable to you, it is announced by email to active accounts and takes effect at least thirty days later; you can cancel until then. Other changes take effect when they are published.
+A change is published on this page with its date. When it is unfavourable to you, it is announced by email to active accounts and takes effect at least thirty days later; you can delete your account until then. Other changes take effect when they are published.
 
 ## Law and jurisdiction
 
-[Governing law and competent courts to be completed at incorporation, following the publisher's registered seat.] Nothing here removes the rights the law of your own country guarantees you as a consumer.
+These terms are governed by the law of Morocco, and a dispute that cannot be settled by writing to `legal@pupitre.studio` goes before the competent courts of Morocco. Nothing here removes the protection the law of your own country of residence guarantees you as a consumer, including the right to bring a claim before your own courts where that law gives it to you.

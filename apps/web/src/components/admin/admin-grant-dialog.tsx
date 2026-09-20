@@ -1,0 +1,213 @@
+import { Dialog } from "@base-ui-components/react/dialog"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { Gift } from "lucide-react"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Callout } from "@/components/ui/callout"
+import { FieldError } from "@/components/ui/field-error"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { useForm } from "@/hooks/use-form"
+import { useTranslations } from "@/hooks/use-locale"
+import { useToast } from "@/hooks/use-toast"
+import { grantSubscription } from "@/lib/api/admin-queries"
+import { apiFailure } from "@/lib/api/errors"
+import { queryKeys } from "@/lib/api/queries"
+import { isPlatformOrganization } from "@/lib/domain/admin"
+import {
+  type GrantSubscriptionInput,
+  type GrantSubscriptionValues,
+  grantSubscriptionSchema,
+  MAX_SUBSCRIPTION_NOTE_LENGTH,
+} from "@/lib/schemas/admin"
+import { MAX_SEATS, MIN_SEATS } from "@/lib/schemas/billing"
+
+export interface AdminGrantDialogOrganization {
+  id: string
+  name: string
+}
+
+export interface AdminGrantDialogProps {
+  organization: AdminGrantDialogOrganization
+  /** A live subscription takes the place a granted one would: the control says so beside itself. */
+  blocked: boolean
+  /** What the page that opened the dialog reads again once the row exists. */
+  onGranted?: () => Promise<void> | void
+}
+
+const EMPTY: GrantSubscriptionInput = {
+  seats: MIN_SEATS,
+  ends_at: "",
+  note: "",
+}
+
+/** The platform organisation holds its right of use for good: nothing to grant it. */
+export function AdminGrantDialog({
+  organization,
+  blocked,
+  onGranted,
+}: AdminGrantDialogProps) {
+  const t = useTranslations()
+  const queryClient = useQueryClient()
+  const toasts = useToast()
+  const [open, setOpen] = useState(false)
+  const prefix = `grant-${organization.id}`
+  const form = useForm<GrantSubscriptionInput, GrantSubscriptionValues>({
+    schema: grantSubscriptionSchema(t),
+    defaultValues: EMPTY,
+  })
+  const grant = useMutation({
+    mutationFn: (values: GrantSubscriptionValues) =>
+      grantSubscription(organization.id, {
+        seats: values.seats,
+        ends_at: values.ends_at,
+        ...(values.note === "" ? {} : { note: values.note }),
+      }),
+    onSuccess: async () => {
+      form.reset(EMPTY)
+      setOpen(false)
+      toasts.done(
+        t("admin.subscriptions.granted", { organization: organization.name })
+      )
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.admin.organization(organization.id),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.admin.allSubscriptions,
+        }),
+        onGranted?.(),
+      ])
+    },
+  })
+  const refused = grant.isError ? apiFailure(grant.error) : null
+
+  if (isPlatformOrganization(organization.id)) {
+    return null
+  }
+
+  const submit = form.handleSubmit((values) => {
+    grant.mutate(values)
+  })
+
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <Dialog.Root
+        onOpenChange={(next) => {
+          setOpen(next)
+
+          if (!next) {
+            grant.reset()
+          }
+        }}
+        open={open}
+      >
+        <Dialog.Trigger
+          render={
+            <Button disabled={blocked} icon={Gift} size="sm">
+              {t("admin.subscriptions.grant")}
+            </Button>
+          }
+        />
+        <Dialog.Portal>
+          <Dialog.Backdrop className="fixed inset-0 bg-base/70 backdrop-blur-[2px]" />
+          <Dialog.Popup className="fixed top-1/2 left-1/2 w-[min(440px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 rounded-lg bg-surface p-6 shadow-overlay outline-none">
+            <Dialog.Title className="font-bold font-display text-[16px] text-ink leading-[1.2]">
+              {t("admin.subscriptions.grantTitle")}
+            </Dialog.Title>
+            <Dialog.Description className="mt-2 text-[13px] text-ink-2">
+              {t("admin.subscriptions.grantDescription", {
+                organization: organization.name,
+              })}
+            </Dialog.Description>
+
+            <form
+              className="mt-gutter flex flex-col gap-gutter"
+              noValidate
+              onSubmit={(event) => {
+                submit(event)
+              }}
+            >
+              <div className="flex flex-col gap-2">
+                <Label htmlFor={`${prefix}-seats`}>
+                  {t("admin.subscriptions.seats")}
+                </Label>
+                <Input
+                  className="w-24 font-data tabular-nums"
+                  id={`${prefix}-seats`}
+                  inputMode="numeric"
+                  max={MAX_SEATS}
+                  min={MIN_SEATS}
+                  type="number"
+                  {...form.register("seats")}
+                />
+                <FieldError>{form.formState.errors.seats?.message}</FieldError>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Label htmlFor={`${prefix}-ends-at`}>
+                  {t("admin.subscriptions.endsAtOptional")}
+                </Label>
+                <Input
+                  className="w-44 font-data tabular-nums"
+                  id={`${prefix}-ends-at`}
+                  type="date"
+                  {...form.register("ends_at")}
+                />
+                <FieldError>
+                  {form.formState.errors.ends_at?.message}
+                </FieldError>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Label htmlFor={`${prefix}-note`}>
+                  {t("admin.subscriptions.noteOptional")}
+                </Label>
+                <Textarea
+                  className="min-h-20"
+                  id={`${prefix}-note`}
+                  maxLength={MAX_SUBSCRIPTION_NOTE_LENGTH}
+                  {...form.register("note")}
+                />
+                <FieldError>{form.formState.errors.note?.message}</FieldError>
+              </div>
+
+              {grant.isError ? (
+                <Callout
+                  fix={refused?.fix ?? t("admin.subscriptions.grantFailedFix")}
+                  title={
+                    refused?.message ?? t("admin.subscriptions.grantFailed")
+                  }
+                  tone="danger"
+                />
+              ) : null}
+
+              <div className="flex justify-end gap-2">
+                <Dialog.Close
+                  render={<Button variant="ghost">{t("common.cancel")}</Button>}
+                />
+                <Button
+                  icon={Gift}
+                  loading={grant.isPending}
+                  type="submit"
+                  variant="primary"
+                >
+                  {grant.isPending
+                    ? t("admin.subscriptions.granting")
+                    : t("admin.subscriptions.grantAction")}
+                </Button>
+              </div>
+            </form>
+          </Dialog.Popup>
+        </Dialog.Portal>
+      </Dialog.Root>
+
+      {blocked ? (
+        <p className="text-[12px] text-ink-3">
+          {t("admin.subscriptions.grantBlocked")}
+        </p>
+      ) : null}
+    </div>
+  )
+}

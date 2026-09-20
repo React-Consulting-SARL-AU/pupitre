@@ -1,48 +1,81 @@
 ---
 title: "Confidentialité"
-description: "Ce que Pupitre collecte, ce qu’il ne collecte jamais, et comment le récupérer ou le faire supprimer."
+description: "Ce que Pupitre collecte, ce qu’il ne collecte jamais, où ça vit, combien de temps ça reste, et comment le récupérer ou le faire supprimer."
 locale: fr
-updated: 2026-09-06
-draft: true
+updated: 2026-09-20
 order: 4
 ---
 
 import SubProcessors from "../../../components/SubProcessors.astro"
 
-Brouillon de travail. Le service n’est pas ouvert : aucune donnée client n’est traitée aujourd’hui. Ce texte décrit ce qui sera traité à l’ouverture, et sera complété par l’identité du responsable de traitement à l’immatriculation.
+## Qui est responsable
+
+Le responsable du traitement est Jordan Monier, personne physique résidant au Maroc, qui édite Pupitre. Écrivez à `privacy@pupitre.studio` pour tout ce qui concerne vos données ; nous répondons sous trente jours.
 
 ## Ce que nous stockons
 
-Votre compte : email, nom si vous en donnez un, langue, et les appareils depuis lesquels vous vous connectez. Votre organisation et ses membres. L’existence de vos serveurs — un nom, une adresse, la version de l’agent, l’état du droit d’usage — et la moitié publique des clés de vos appareils. Vos abonnements et vos factures, tenus par Stripe.
+**Votre compte.** Votre adresse email, votre nom si vous le donnez, votre langue, et votre manière de vous connecter : un lien envoyé par email, un compte GitHub ou Google — dont nous recevons l’adresse email et le nom qu’ils partagent, et rien d’autre —, une clé d’accès, ou un second facteur. Chaque session de connexion garde son adresse IP et l’identifiant du navigateur ou de l’app dont elle vient.
+
+**Vos appareils.** Le nom de chaque ordinateur depuis lequel vous avez lié l’app, et la moitié publique de la clé SSH qu’il a générée. La moitié privée reste sur cet ordinateur ; nous ne la voyons jamais.
+
+**Votre organisation.** Son nom, ses membres et leurs rôles, ses invitations, et un journal de ce qui y a été fait : qui a enrôlé, retiré, suspendu ou rétabli une machine, invité ou retiré un membre, avec la date.
+
+**Vos machines.** Ce que les [conditions](/fr/legal/terms/) énumèrent, et rien d’autre : le nom et l’adresse que vous avez donnés à chaque machine, la moitié publique de sa clé d’hôte SSH, la version de l’agent, l’architecture du processeur, le compte qui porte les clés SSH, l’état de son droit d’usage, et — rafraîchis toutes les cinq minutes et gardés sur une fenêtre de sept jours — la taille et l’espace libre de son disque, la taille et l’occupation de sa mémoire, sa charge moyenne, la version de la stack installée, les noms des modules installés et les noms des sessions tmux en cours, qui sont en général les noms de vos projets.
+
+**Votre abonnement.** Pendant le lancement gratuit : le fait que votre organisation détient l’abonnement de lancement, et ses dates. Aucune donnée de paiement n’existe, puisque rien n’est payé.
+
+**Ce que vous nous écrivez.** Chaque email envoyé à une adresse en `pupitre.studio` est stocké sur la plateforme — son texte, ses en-têtes et ses pièces jointes — et lu par l’équipe depuis la console, où chaque lecture d’un fil sensible est elle-même journalisée.
+
+**D’où vous venez.** Quand vous arrivez par un lien d’affiliation (`?ref=`), le code du lien est gardé 90 jours dans le cookie `pupitre_ref` sur `pupitre.studio`, pour que la console note quel lien a amené votre organisation quand elle démarre son abonnement. Il ne contient rien d’autre que ce code, il n’est envoyé à personne d’autre, et sans ce paramètre il n’est jamais posé. Pendant le lancement, cette note ne dit que d’où vous venez.
 
 ## Ce que nous ne stockons jamais
 
-Aucun code, aucun fichier de projet, aucun secret de service, aucun journal applicatif, aucun contenu de terminal, aucune variable d’environnement, aucune clé privée. Ce qui vit sur votre serveur reste sur votre serveur : la plateforme n’a aucun moyen technique d’aller le chercher.
+Aucun code, aucun fichier de projet, aucun secret de service, aucun journal applicatif, aucun contenu de terminal, aucune variable d’environnement, aucun contenu de base de données, aucune clé privée. Ce qui vit sur votre machine reste sur votre machine : la plateforme n’a aucun moyen technique d’aller le chercher, comme les [conditions](/fr/legal/terms/) l’expliquent.
 
-## Mesure d’audience
+## Mesure d’audience et d’usage
 
-Le site mesure les pages vues avec PostHog, sans cookie publicitaire et sans identifiant durable, et seulement après votre accord donné dans le bandeau. Refuser n’enlève rien au site. La console mesure l’usage des écrans dans les mêmes conditions.
+Nous utilisons PostHog pour mesurer comment le site et la console sont utilisés.
 
-Un seul cookie fonctionnel existe : quand vous arrivez par un lien d’affiliation (`?ref=`), le code du lien est gardé pendant 90 jours dans le cookie `pupitre_ref`, sur `pupitre.studio`, pour que la console l’attache à votre organisation quand vous démarrez votre abonnement. Il ne contient rien d’autre que ce code, il n’est envoyé à personne d’autre, et sans ce paramètre il n’est jamais posé.
+**Sur le site**, les pages vues ne sont comptées qu’après votre accord dans le bandeau. La mesure fonctionne sans cookie et sans identifiant durable : rien n’est écrit dans votre navigateur, et une visite n’est pas reliée à la suivante. Refuser ne retire rien au site, et vous changez votre réponse en effaçant les données du site dans votre navigateur.
+
+**La console et l’app desktop** n’envoient rien à un outil de mesure aujourd’hui. Si une version se met à mesurer quels écrans sont ouverts et quelles actions sont faites, ce sera aux mêmes conditions — des noms d’événements et un contexte technique, jamais un contenu, jamais rien de vos machines, jamais un identifiant durable sans votre accord — et cette page le dira avec sa date.
+
+Nous n’utilisons aucun réseau publicitaire, aucun cookie publicitaire, et nous ne vendons ni ne partageons jamais de données avec un tiers pour ses propres fins.
 
 ## Emails transactionnels
 
-Nous envoyons ce qui fait fonctionner le compte : confirmation d’adresse, connexion, invitation dans une organisation, alerte sur un serveur, avis de facturation. Ces messages ne se refusent pas tant que le compte existe. Les messages facultatifs — nouveautés, conseils — se coupent en un clic depuis le message lui-même.
+Nous envoyons ce qui fait fonctionner le compte : confirmation d’adresse, lien de connexion, invitation à une organisation, alerte sur une machine, avis sur votre abonnement ou sur un changement de ces documents. Ils ne se désactivent pas tant que le compte existe. Tout autre message — nouveautés, conseils — se désactive en un clic depuis le message lui-même.
 
 ## Paiements
 
-Stripe agit en marchand officiel : il encaisse, facture, collecte les taxes et détient les données de paiement. Nous conservons de vous un identifiant client Stripe, le plan, l’état de l’abonnement et l’historique des factures. Jamais un numéro de carte.
+Rien n’est payé pendant le lancement, et aucune donnée de paiement n’existe. Le jour où la facturation ouvrira, Stripe encaissera les paiements en marchand officiel : il facturera, gérera les taxes et détiendra les données de paiement. Nous garderons un identifiant client Stripe, l’offre, l’état de l’abonnement et l’historique des factures, jamais un numéro de carte. Ce jour est annoncé par email au moins trente jours à l’avance.
 
 ## Sous-traitants
 
 <SubProcessors />
 
-L’éditeur sera une société américaine et la plateforme sera hébergée aux États-Unis ; la base de données vit encore en région européenne aujourd’hui et sera migrée avant l’ouverture. [Coordonnées complètes, pays d’établissement de chaque sous-traitant et base légale des transferts à publier à l’ouverture du service.]
+La plateforme tourne chez Cloudflare, société américaine, sur son réseau mondial ; sa base de données et ses fichiers sont stockés dans la région Est de l’Amérique du Nord de Cloudflare, et l’équipe les lit depuis le Maroc. L’ajout d’un sous-traitant est annoncé par email aux propriétaires de chaque organisation avant d’avoir lieu.
+
+## Transferts
+
+Vos données sont donc traitées hors de l’Union européenne : par le responsable du traitement au Maroc, et par des sous-traitants établis aux États-Unis. Pour une personne ou une organisation dans l’Union européenne, le transfert vers le responsable du traitement repose sur les clauses contractuelles types que l’[accord de traitement des données](/fr/legal/data-processing/) incorpore, et le transfert vers chaque sous-traitant sur les clauses et les garanties que ce sous-traitant publie.
 
 ## Conservation
 
-Le compte et l’organisation sont conservés tant que le compte existe, puis trente jours après sa suppression, le temps d’un retour en arrière demandé par erreur. Les factures sont conservées le temps qu’impose le droit comptable applicable [durée à confirmer à l’immatriculation]. Les mesures d’audience sont conservées douze mois.
+Votre compte et votre organisation sont gardés tant que le compte existe. Supprimer le compte depuis la console le supprime immédiatement, avec vos appareils et leurs clés publiques ; une suppression que nous faisons à votre demande ou en sanction est programmée sept jours à l’avance, pour qu’une erreur puisse être rattrapée, puis exécutée. Les sessions de connexion expirent après soixante jours. Les mesures des machines sont une fenêtre glissante de sept jours. Le journal d’une organisation est gardé avec l’organisation ; quand un compte est supprimé, ses lignes perdent leur auteur. Les emails que vous nous avez envoyés sont gardés tant que l’échange peut encore servir à vous aider, et supprimés sur demande. La mesure d’audience est gardée douze mois, et n’est jamais reliée à votre compte. Les factures, le jour où elles existeront, seront gardées aussi longtemps que le droit comptable l’exige.
 
 ## Vos droits
 
-Vous pouvez consulter, corriger, exporter et faire supprimer vos données. La suppression du compte se fait depuis la console et supprime aussi les organisations dont vous êtes seul membre. Pour tout le reste, écrivez à `privacy@pupitre.studio` ; nous répondons sous trente jours. [Autorité de contrôle compétente et coordonnées d’un éventuel représentant à compléter à l’immatriculation.]
+Vous pouvez voir, corriger, exporter et faire supprimer vos données, et vous opposer à un traitement fondé sur notre intérêt légitime. La suppression du compte se fait depuis la console et emporte vos appareils ; vos machines continuent de fonctionner. Pour tout le reste, écrivez à `privacy@pupitre.studio`. Si vous êtes dans l’Union européenne ou au Royaume-Uni, vous pouvez aussi vous plaindre auprès de l’autorité de contrôle de votre pays.
+
+## Âge
+
+Le service s’adresse aux professionnels et aux adultes. Nous n’ouvrons sciemment aucun compte à une personne de moins de seize ans ; écrivez-nous s’il en existe un et nous le supprimons.
+
+## Sécurité
+
+Chiffrement en transit et au repos, connexion par lien, clé d’accès ou second facteur, sessions liées à l’appareil qui les a ouvertes, accès à la production limité aux personnes qui en ont besoin et journalisé, secrets tenus hors du code, agent distribué en binaire signé, et aucune connexion entrante vers vos machines. Une violation qui vous concerne vous est annoncée sans retard injustifié.
+
+## Modifications
+
+Une modification de cette politique est publiée sur cette page avec sa date, et annoncée par email aux comptes actifs quand elle élargit ce que nous collectons ou ce que nous en faisons.

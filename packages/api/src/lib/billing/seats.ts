@@ -1,8 +1,9 @@
 import type { ServerStatus } from "@pupitre/db/cloudflare/client"
-import { LAUNCH_PRODUCT } from "@pupitre/shared/plans"
+import { isPlatformProduct, PLATFORM_PRODUCTS } from "@pupitre/shared/plans"
+import { PLATFORM_ORGANIZATION_ID } from "@pupitre/shared/platform"
 import { getPrisma, type OrganizationPrisma } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
-import { getBillingProvider } from "./runtime"
+import { getBillingMode, getBillingProvider } from "./runtime"
 import {
   LIVE_SUBSCRIPTION_STATUSES,
   liveSubscriptionOf,
@@ -19,16 +20,25 @@ export const SEATED_STATUSES: ServerStatus[] = [
 
 export const PAYING_SUBSCRIPTION_STATUSES = LIVE_SUBSCRIPTION_STATUSES
 
-export type SeatQuotaSource = "subscription" | "none"
+export type SeatQuotaSource = "subscription" | "platform" | "none"
 
 export interface SeatQuota {
   quota: number
   source: SeatQuotaSource
 }
 
+/**
+ * The platform's own organization holds the team's seats without any
+ * subscription: nobody bills Pupitre for Pupitre.
+ */
 export async function seatQuotaFor(
-  prisma: OrganizationPrisma
+  prisma: OrganizationPrisma,
+  organizationId: string
 ): Promise<SeatQuota> {
+  if (organizationId === PLATFORM_ORGANIZATION_ID) {
+    return { quota: getBillingMode().adminSeats, source: "platform" }
+  }
+
   const subscription = await prisma.subscription.findFirst({
     where: { status: { in: PAYING_SUBSCRIPTION_STATUSES } },
     orderBy: { updatedAt: "desc" },
@@ -46,6 +56,53 @@ export function countSeatedServers(
   prisma: OrganizationPrisma
 ): Promise<number> {
   return prisma.server.count({ where: { status: { in: SEATED_STATUSES } } })
+}
+
+function billedSubscriptions() {
+  return getPrisma().subscription.findMany({
+    where: {
+      status: { in: PAYING_SUBSCRIPTION_STATUSES },
+      product: { notIn: [...PLATFORM_PRODUCTS] },
+    },
+    orderBy: { createdAt: "asc" },
+    include: { organization: { select: { id: true, name: true, slug: true } } },
+  })
+}
+
+export interface SeatUsage {
+  subscription: Awaited<ReturnType<typeof billedSubscriptions>>[number]
+  seated: number
+}
+
+/**
+ * What every billed organisation pays for and what it actually seats, in two
+ * queries: the reconciliation writes from it, the overview only reads it.
+ */
+export async function readSeatUsage(): Promise<SeatUsage[]> {
+  const subscriptions = await billedSubscriptions()
+
+  if (subscriptions.length === 0) {
+    return []
+  }
+
+  const seats = await getPrisma().server.groupBy({
+    by: ["organizationId"],
+    where: {
+      status: { in: SEATED_STATUSES },
+      organizationId: {
+        in: subscriptions.map((subscription) => subscription.organizationId),
+      },
+    },
+    _count: { _all: true },
+  })
+  const seatedByOrganization = new Map(
+    seats.map((row) => [row.organizationId, row._count._all])
+  )
+
+  return subscriptions.map((subscription) => ({
+    subscription,
+    seated: seatedByOrganization.get(subscription.organizationId) ?? 0,
+  }))
 }
 
 export async function payingSubscriptionOf(organizationId: string) {
@@ -66,7 +123,7 @@ export class NoPayingSubscriptionError extends Error {
 
 export class SeatsLockedError extends Error {
   constructor() {
-    super("seats do not change while trialing or during the launch")
+    super("seats do not change while trialing or on a platform product")
     this.name = "SeatsLockedError"
   }
 }
@@ -86,6 +143,19 @@ export interface SeatsActor {
   userId: string
 }
 
+export async function assertSeatsCoverUsage(
+  organizationId: string,
+  quantity: number
+): Promise<void> {
+  const seated = await getPrisma().server.count({
+    where: { organizationId, status: { in: SEATED_STATUSES } },
+  })
+
+  if (quantity < seated) {
+    throw new SeatsBelowUsageError(seated)
+  }
+}
+
 export async function resizeSeats(
   actor: SeatsActor,
   quantity: number
@@ -99,19 +169,14 @@ export async function resizeSeats(
 
   if (
     subscription.status === "trialing" ||
-    subscription.product === LAUNCH_PRODUCT
+    isPlatformProduct(subscription.product)
   ) {
     throw new SeatsLockedError()
   }
 
   const prisma = getPrisma()
-  const seated = await prisma.server.count({
-    where: { organizationId, status: { in: SEATED_STATUSES } },
-  })
 
-  if (quantity < seated) {
-    throw new SeatsBelowUsageError(seated)
-  }
+  await assertSeatsCoverUsage(organizationId, quantity)
 
   if (quantity === subscription.quantity) {
     return await readSubscription(organizationId)

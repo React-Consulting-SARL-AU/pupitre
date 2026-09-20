@@ -7,6 +7,7 @@ import { auth } from "./strings/auth"
 import { billing } from "./strings/billing"
 import { billingUi } from "./strings/billing-ui"
 import { common } from "./strings/common"
+import { confirm } from "./strings/confirm"
 import { download } from "./strings/download"
 import { footer } from "./strings/footer"
 import { format } from "./strings/format"
@@ -24,6 +25,7 @@ import { sidebar } from "./strings/sidebar"
 import { start } from "./strings/start"
 import { status } from "./strings/status"
 import { statusPage } from "./strings/status-page"
+import { table } from "./strings/table"
 import { twoFactor } from "./strings/two-factor"
 
 export const fr: Dictionary = {
@@ -51,6 +53,8 @@ export const fr: Dictionary = {
   ...settings.fr,
   ...account.fr,
   ...twoFactor.fr,
+  ...table.fr,
+  ...confirm.fr,
   ...admin.fr,
   ...inbox.fr,
 }
