@@ -68,6 +68,11 @@ export function isLaunchSubscription({
   return product === LAUNCH_PRODUCT
 }
 
+/** The launch seat an organization keeps for good: the launch row, active and without an end. */
+export function isLaunchSeatKept(subscription: SubscriptionProduct): boolean {
+  return isLaunchSubscription(subscription) && subscription.status === "active"
+}
+
 /** Stripe holds a trial to one machine; the launch and a granted subscription have no Stripe to resize: the seat form waits for a paid one. */
 export function seatsLocked({ status, product }: SubscriptionProduct): boolean {
   return (

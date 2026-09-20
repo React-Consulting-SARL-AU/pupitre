@@ -223,6 +223,24 @@ describe("BillingPanel", () => {
     expect(container.querySelector("#seats")).toBeNull()
   })
 
+  it("names the launch seat kept for good, without an end or a warning", async () => {
+    await grantLaunch(organization.id, null)
+
+    const { container, unmount } = await render(panel(organization, "owner"))
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("Launch seat") === true
+    )
+
+    expect(container.textContent).toContain("One machine for good")
+    expect(container.textContent).not.toContain("Free launch until")
+    expect(container.textContent).not.toContain("When the launch ends")
+    expect(container.textContent).not.toContain("Manage the subscription")
+    expect(container.querySelector("#seats")).toBeNull()
+  })
+
   it("locks the seats of a running trial to its one machine", async () => {
     await payFor(billing, organization.id, 1, "trialing")
 
