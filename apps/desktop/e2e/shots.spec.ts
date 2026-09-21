@@ -184,10 +184,15 @@ test.describe("la galerie", () => {
       await expect(page.locator("[data-shot]")).toHaveCount(3);
     });
 
-    await test.step("les vignettes reçoivent leurs octets par le canal", async () => {
-      await expect(
-        page.locator('[data-shot="2026-09-05/panier.png"] img')
-      ).toBeVisible();
+    await test.step("les vignettes reçoivent leurs octets par le canal, et la page les dessine", async () => {
+      const thumbnail = page.locator('[data-shot="2026-09-05/panier.png"] img');
+
+      await expect(thumbnail).toBeVisible();
+      await expect
+        .poll(() =>
+          thumbnail.evaluate((img: HTMLImageElement) => img.naturalWidth)
+        )
+        .toBeGreaterThan(0);
     });
 
     await test.step("l'écran tient l'accessibilité", async () => {

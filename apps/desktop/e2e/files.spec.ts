@@ -16,6 +16,7 @@ import { launchPupitre, type Running } from "./harness/launch";
 const FLYMATE_CARD = /^flymate-api/;
 const SAVED = /^Enregistré /;
 const DIGEST = /^[0-9a-f]{64}$/;
+const BLOB_URL = /^blob:/;
 
 /** What the harness kept of the writes the window sent. */
 interface Written {
@@ -100,12 +101,22 @@ test.describe("les fichiers d'un projet", () => {
             (one) => one.name === nameOf(path)
           );
 
-        const mediaOf = (path: string) => {
-          if (tree.texts[path] !== undefined) {
-            return { media_type: "text/plain" };
+        const mediaTypeOf = (path: string): string | null => {
+          if (path.endsWith(".svg")) {
+            return "image/svg+xml";
           }
 
-          return path.endsWith(".png") ? { media_type: "image/png" } : {};
+          if (path.endsWith(".png")) {
+            return "image/png";
+          }
+
+          return tree.texts[path] === undefined ? null : "text/plain";
+        };
+
+        const mediaOf = (path: string) => {
+          const mediaType = mediaTypeOf(path);
+
+          return mediaType === null ? {} : { media_type: mediaType };
         };
 
         const stat = (path: string) => {
@@ -303,7 +314,7 @@ test.describe("les fichiers d'un projet", () => {
               ok: true,
               result: {
                 chunks: 1,
-                media_type: "text/plain",
+                media_type: mediaTypeOf(asked.path) ?? "text/plain",
                 path: asked.path,
                 sha256: await digest(text),
                 size_bytes: Buffer.byteLength(text),
@@ -341,7 +352,7 @@ test.describe("les fichiers d'un projet", () => {
           rows.map((row) => row.getAttribute("data-entry"))
         );
 
-      expect(order).toEqual(["src", "dump.tar.gz", "README.md"]);
+      expect(order).toEqual(["src", "dump.tar.gz", "logo.svg", "README.md"]);
 
       await assertAccessible(page, "files/list");
     });
@@ -356,6 +367,69 @@ test.describe("les fichiers d'un projet", () => {
       await expect(
         page.getByRole("button", { name: "Télécharger" })
       ).toBeEnabled();
+    });
+
+    await test.step("un Markdown s'ouvre rendu, se lit en code, et le rendu suit le tampon", async () => {
+      await page.locator('[data-entry="README.md"] button').first().click();
+
+      const rendered = page.locator('[data-rendered="markdown"]');
+      await expect(rendered).toBeVisible();
+      await expect(
+        rendered.getByRole("heading", { name: "Flymate" })
+      ).toBeVisible();
+      await expect(rendered.getByRole("cell", { name: "3000" })).toBeVisible();
+      await expect(page.locator(".cm-content")).toHaveCount(0);
+
+      const views = page.getByRole("group", { name: "Vue" });
+      await expect(
+        views.getByRole("button", { name: "Rendu" })
+      ).toHaveAttribute("aria-pressed", "true");
+
+      await assertAccessible(page, "files/markdown");
+
+      await views.getByRole("button", { name: "Code" }).click();
+      await expect(rendered).toHaveCount(0);
+      await expect(page.locator(".cm-content")).toContainText("# Flymate");
+
+      await page.locator(".cm-content").click();
+      await page.keyboard.press("ControlOrMeta+End");
+      await page.keyboard.type("\n\nEdited line");
+
+      await views.getByRole("button", { name: "Rendu" }).click();
+      await expect(rendered.getByText("Edited line")).toBeVisible();
+      await expect(page.getByLabel("Modifié, non enregistré")).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Enregistrer" })
+      ).toBeEnabled();
+
+      await page.getByRole("button", { name: "Fermer le fichier" }).click();
+      await page
+        .getByRole("button", { name: "Abandonner les modifications" })
+        .click();
+      await expect(page.locator("[data-preview]")).toHaveCount(0);
+    });
+
+    await test.step("un SVG s'ouvre dessiné, avec sa fiche, et se lit en code", async () => {
+      await page.locator('[data-entry="logo.svg"] button').first().click();
+
+      const image = page.getByRole("img", { name: "Image logo.svg" });
+      await expect(image).toBeVisible();
+      await expect(image).toHaveAttribute("src", BLOB_URL);
+      await expect
+        .poll(() => image.evaluate((img: HTMLImageElement) => img.naturalWidth))
+        .toBe(64);
+      await expect(
+        page.getByLabel("Fichier logo.svg").getByText("118 o")
+      ).toBeVisible();
+
+      await assertAccessible(page, "files/svg");
+
+      await page
+        .getByRole("group", { name: "Vue" })
+        .getByRole("button", { name: "Code" })
+        .click();
+      await expect(image).toHaveCount(0);
+      await expect(page.locator(".cm-content")).toContainText("<svg");
     });
 
     await test.step("un nouveau dossier se demande en haut, dans un dialogue, et paraît dans la liste", async () => {

@@ -153,7 +153,9 @@ export function FileBrowser({
           onSave={() => store.save(serverId)}
           onShow={(path) => store.show(serverId, path)}
           onStay={store.stay}
+          onView={store.setView}
           preview={preview}
+          view={store.view}
           write={store.write}
         />
       </section>

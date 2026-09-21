@@ -1,35 +1,54 @@
 import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { nameOf } from "@renderer/lib/files";
-import { since } from "@renderer/lib/format";
-import type { PreviewState, WriteState } from "@renderer/stores/files";
-import { Download, FileQuestion, RotateCw, Save, X } from "lucide-react";
+import { nameOf, renderedFormOf } from "@renderer/lib/files";
+import type {
+  PreviewState,
+  PreviewView,
+  WriteState,
+} from "@renderer/stores/files";
+import { Download, FileQuestion, RotateCw, X } from "lucide-react";
 import { Button } from "../ui/button";
 import { Callout } from "../ui/callout";
 import { EmptyState } from "../ui/empty-state";
 import { ErrorNotice } from "../ui/error-notice";
 import { IconButton } from "../ui/icon-button";
+import { Segmented } from "../ui/segmented";
 import { Skeleton } from "../ui/skeleton";
 import { StatusDot } from "../ui/status-dot";
 import { WaitingLine } from "../ui/waiting-line";
-import { FileEditor } from "./file-editor";
 import { FileSheet } from "./file-sheet";
+import { FileTextPane } from "./file-text-pane";
+
+const VIEWS: readonly PreviewView[] = ["rendered", "source"];
+
+const VIEW_KEY: Record<
+  PreviewView,
+  "files.view.rendered" | "files.view.source"
+> = {
+  rendered: "files.view.rendered",
+  source: "files.view.source",
+};
 
 /**
  * The right pane: the file the reader picked, in whatever form it takes.
  *
  * Text is edited and saved from here, an image is shown, and a file the
  * channel does not carry shows its sheet and offers the one way to open it:
- * a transfer to this computer, on its own channel. A write the agent refused
- * because the file changed is said as such, with the one way out: reading it
- * again, which drops the buffer, and says so.
+ * a transfer to this computer, on its own channel. A text that also has a
+ * drawn form — Markdown, SVG — opens drawn, and a word in the header turns it
+ * into the code it is; the drawing follows the buffer, so an edit is seen
+ * before it is saved. A write the agent refused because the file changed is
+ * said as such, with the one way out: reading it again, which drops the
+ * buffer, and says so.
  */
 export function FilePreview({
   preview,
+  view,
   write,
   draft,
   leaving,
   onShow,
+  onView,
   onSave,
   onReread,
   onClose,
@@ -39,11 +58,13 @@ export function FilePreview({
   onDownload,
 }: {
   preview: PreviewState;
+  view: PreviewView;
   write: WriteState;
   draft: string | null;
   /** True while a gesture that would drop the buffer waits for the reader's word. */
   leaving: boolean;
   onShow: (path: string) => Promise<void>;
+  onView: (view: PreviewView) => void;
   onSave: () => Promise<void>;
   onReread: () => Promise<void>;
   onClose: () => void;
@@ -62,6 +83,7 @@ export function FilePreview({
   const name = nameOf(preview.path);
   const edited = draft !== null;
   const stale = write.status === "stale" ? agentText(t, write.error) : null;
+  const form = preview.status === "text" ? renderedFormOf(preview.path) : null;
 
   return (
     <section
@@ -82,6 +104,18 @@ export function FilePreview({
             />
           ) : null}
         </span>
+
+        {form ? (
+          <Segmented
+            label={t("files.view.label")}
+            onChange={onView}
+            options={VIEWS.map((candidate) => ({
+              label: t(VIEW_KEY[candidate]),
+              value: candidate,
+            }))}
+            value={view}
+          />
+        ) : null}
 
         <IconButton
           icon={X}
@@ -151,41 +185,16 @@ export function FilePreview({
       ) : null}
 
       {preview.status === "text" ? (
-        <>
-          <FileEditor
-            draft={draft}
-            onChange={onEdit}
-            onSave={onSave}
-            path={preview.path}
-            text={preview.text}
-          />
-
-          <footer className="flex items-center justify-between gap-3">
-            <span
-              className="flex items-center gap-2 font-data text-[11px] text-ink-3"
-              role="status"
-            >
-              {write.status === "written" ? (
-                <>
-                  <StatusDot shape="filled" size={8} tone="ok" />
-                  {t("files.save.done", { when: since(write.at) })}
-                </>
-              ) : null}
-            </span>
-
-            <Button
-              disabled={!edited}
-              hint={t("files.save.title")}
-              icon={Save}
-              loading={write.status === "writing"}
-              onClick={onSave}
-              size="sm"
-              variant={edited ? "inverse" : "default"}
-            >
-              {t("files.save")}
-            </Button>
-          </footer>
-        </>
+        <FileTextPane
+          draft={draft}
+          onEdit={onEdit}
+          onSave={onSave}
+          path={preview.path}
+          stat={preview.stat}
+          text={preview.text}
+          view={view}
+          write={write}
+        />
       ) : null}
 
       {preview.status === "image" ? (
