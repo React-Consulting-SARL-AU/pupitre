@@ -5,13 +5,18 @@ import type {
 } from "@pupitre/shared/agent-protocol/files";
 import { renderToStaticMarkup } from "react-dom/server";
 import { mount } from "../../__tests__/dom";
-import type { ListingState, PreviewState } from "../../stores/files";
+import type {
+  ListingState,
+  PreviewState,
+  PreviewView,
+} from "../../stores/files";
 import { EntryCreate } from "../files/entry-create";
 import { EntryCreateDialog } from "../files/entry-create-dialog";
 import { FileEntryMenu } from "../files/file-entry-menu";
 import { FileList } from "../files/file-list";
 import { FilePreview } from "../files/file-preview";
 import { FileRow } from "../files/file-row";
+import { FileSvgView } from "../files/file-svg-view";
 
 /**
  * What the file browser shows in each of its states. The two panes take
@@ -90,7 +95,11 @@ function list(
   );
 }
 
-function preview(state: PreviewState, draft: string | null = null) {
+function preview(
+  state: PreviewState,
+  draft: string | null = null,
+  view: PreviewView = "rendered"
+) {
   return renderToStaticMarkup(
     <FilePreview
       draft={draft}
@@ -103,10 +112,22 @@ function preview(state: PreviewState, draft: string | null = null) {
       onSave={later}
       onShow={later}
       onStay={noop}
+      onView={noop}
       preview={state}
+      view={view}
       write={{ status: "idle" }}
     />
   );
+}
+
+function textOf(path: string, text: string): PreviewState {
+  return {
+    path,
+    sha256: "a".repeat(64),
+    stat: { ...STAT, path },
+    status: "text",
+    text,
+  };
 }
 
 function names(html: string): string[] {
@@ -338,6 +359,71 @@ describe("l'aperçu d'un fichier", () => {
     expect(html).toContain("Enregistrer");
     expect(html).toContain("disabled");
     expect(html).not.toContain("Modifié, non enregistré");
+    expect(html).not.toContain("Rendu");
+  });
+
+  it("ouvre un Markdown rendu, sans HTML brut, et offre le code", () => {
+    const html = preview(
+      textOf(
+        "projects/atlas/README.md",
+        "# Atlas\n\nThe API.\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n<script>alert(1)</script>\n"
+      )
+    );
+
+    expect(html).toContain('data-rendered="markdown"');
+    expect(html).toContain("<h1");
+    expect(html).toContain("Atlas");
+    expect(html).toContain("<table");
+    expect(html).not.toContain("<script");
+    expect(html).not.toContain('data-editor="projects/atlas/README.md"');
+    expect(html).toContain("Rendu");
+    expect(html).toContain("Code");
+    expect(html).toContain("Enregistrer");
+  });
+
+  it("montre le code d'un Markdown quand on le demande, et rend le tampon modifié", () => {
+    const source = preview(
+      textOf("projects/atlas/README.md", "# Atlas\n"),
+      null,
+      "source"
+    );
+
+    expect(source).toContain('data-editor="projects/atlas/README.md"');
+    expect(source).not.toContain('data-rendered="markdown"');
+
+    const edited = preview(
+      textOf("projects/atlas/README.md", "# Atlas\n"),
+      "# Atlas renamed\n"
+    );
+
+    expect(edited).toContain("Atlas renamed");
+    expect(edited).toContain("Modifié, non enregistré");
+  });
+
+  it("dessine un SVG depuis son texte, avec sa fiche, et l'édite en code", async () => {
+    const view = await mount(
+      <FileSvgView
+        path="projects/atlas/logo.svg"
+        stat={{ ...STAT, path: "projects/atlas/logo.svg" }}
+        text='<svg xmlns="http://www.w3.org/2000/svg"></svg>'
+      />
+    );
+    const html = view.html();
+
+    expect(html).toContain('alt="Image logo.svg"');
+    expect(html).toContain('src="blob:');
+    expect(html).toContain("12 o");
+
+    view.unmount();
+
+    const source = preview(
+      textOf("projects/atlas/logo.svg", "<svg />"),
+      null,
+      "source"
+    );
+
+    expect(source).toContain('data-editor="projects/atlas/logo.svg"');
+    expect(source).toContain("Rendu");
   });
 
   it("marque un tampon modifié d'un point et arme Enregistrer", () => {

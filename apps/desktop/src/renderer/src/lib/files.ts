@@ -107,6 +107,26 @@ export function heldCount(message: string): number | null {
   return found ? Number(found[1]) : null;
 }
 
+export type RenderedForm = "markdown" | "svg";
+
+const RENDERED_FORMS: Record<string, RenderedForm> = {
+  markdown: "markdown",
+  md: "markdown",
+  svg: "svg",
+};
+
+/** The drawn form a text file also has, when the app knows how to draw it. */
+export function renderedFormOf(path: string): RenderedForm | null {
+  const name = nameOf(path);
+  const dot = name.lastIndexOf(".");
+
+  if (dot <= 0) {
+    return null;
+  }
+
+  return RENDERED_FORMS[name.slice(dot + 1).toLowerCase()] ?? null;
+}
+
 const NAME_OK = /^[^/\0]+$/;
 
 /** One entry name: never empty, never a path, never the folder itself or the one above. */

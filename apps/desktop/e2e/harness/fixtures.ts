@@ -148,6 +148,13 @@ export const FILES: {
         name: "dump.tar.gz",
         size_bytes: 24_000_000,
       },
+      {
+        kind: "file",
+        mode: "0644",
+        modified_at: "2026-09-05T11:00:00Z",
+        name: "logo.svg",
+        size_bytes: 118,
+      },
     ],
     "projects/flymate/src": [
       {
@@ -164,7 +171,9 @@ export const FILES: {
     ".bashrc": "export PATH=$HOME/.bun/bin:$PATH\n",
     "projects/flymate/.env": "PORT=3000\n",
     "projects/flymate/README.md":
-      "# Flymate\n\nThe API behind the booking app.\n",
+      "# Flymate\n\nThe API behind the booking app.\n\n| Route | Port |\n|---|---|\n| api | 3000 |\n",
+    "projects/flymate/logo.svg":
+      '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32"><rect width="64" height="32" fill="#000"/></svg>',
     "projects/flymate/src/index.ts":
       "export const port = 3000;\nexport const host = 'x';\n",
   },

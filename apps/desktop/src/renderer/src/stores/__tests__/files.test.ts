@@ -62,7 +62,7 @@ async function readAnswer(
     ok: true,
     result: {
       chunks: 1,
-      media_type: "text/plain",
+      media_type: path.endsWith(".svg") ? "image/svg+xml" : "text/plain",
       path,
       sha256: await fingerprint(bytes),
       size_bytes: bytes.length,
@@ -287,6 +287,31 @@ describe("l'aperçu d'un fichier", () => {
       status: "text",
       text: ENV,
     });
+  });
+
+  it("lit un SVG comme du texte, pour l'éditer comme pour le rendre", async () => {
+    await opened();
+
+    await useFiles.getState().show(SERVER, "projects/atlas/logo.svg");
+
+    expect(useFiles.getState().preview).toMatchObject({
+      path: "projects/atlas/logo.svg",
+      status: "text",
+      text: ENV,
+    });
+  });
+
+  it("ouvre chaque fichier sur sa forme rendue, et garde le code demandé jusqu'au suivant", async () => {
+    await opened();
+
+    await useFiles.getState().show(SERVER, "projects/atlas/README.md");
+    expect(useFiles.getState().view).toBe("rendered");
+
+    useFiles.getState().setView("source");
+    expect(useFiles.getState().view).toBe("source");
+
+    await useFiles.getState().show(SERVER, "projects/atlas/logo.svg");
+    expect(useFiles.getState().view).toBe("rendered");
   });
 
   it("refuse un fichier dont l'empreinte n'est pas celle du reçu", async () => {
@@ -554,6 +579,7 @@ describe("les gestes sur une entrée", () => {
       path: "projects/atlas/notes.md",
       status: "text",
     });
+    expect(useFiles.getState().view).toBe("source");
     expect(useFiles.getState().problem).toBeNull();
   });
 
