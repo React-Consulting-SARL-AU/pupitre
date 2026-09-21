@@ -115,12 +115,13 @@ export function FileBrowser({
         listing={store.listing}
         onAct={act}
         onBrowse={(path) => store.browse(serverId, path)}
-        onCreate={(name) => store.makeFolder(serverId, name)}
         onDismiss={store.dismiss}
         onDrop={async (dir, files) => {
           await dropAndUpload(serverId, dir, files);
         }}
         onHidden={store.setHidden}
+        onMakeFile={(name) => store.makeFile(serverId, name)}
+        onMakeFolder={(name) => store.makeFolder(serverId, name)}
         onRefresh={store.refresh}
         onRemove={(path, recursive) => store.remove(serverId, path, recursive)}
         onRename={(path, to) => store.rename(serverId, path, to)}

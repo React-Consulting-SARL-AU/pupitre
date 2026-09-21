@@ -22,9 +22,9 @@ import { IconButton } from "../ui/icon-button";
 import { Segmented } from "../ui/segmented";
 import { SkeletonRows } from "../ui/skeleton";
 import { WaitingLine } from "../ui/waiting-line";
+import { EntryCreate } from "./entry-create";
 import { FileRow, type RowMode } from "./file-row";
 import { FileTrail } from "./file-trail";
-import { FolderCreate } from "./folder-create";
 
 /** The one row that is being renamed or asked about, by its path. */
 interface Editing {
@@ -65,7 +65,8 @@ export function FileList({
   onSort,
   onHidden,
   onRefresh,
-  onCreate,
+  onMakeFolder,
+  onMakeFile,
   onRename,
   onRemove,
   onAct,
@@ -88,7 +89,8 @@ export function FileList({
   onSort: (sort: FileSort) => void;
   onHidden: (hidden: boolean) => void;
   onRefresh: () => Promise<void>;
-  onCreate: (name: string) => Promise<void>;
+  onMakeFolder: (name: string) => Promise<void>;
+  onMakeFile: (name: string) => Promise<void>;
   onRename: (path: string, to: string) => Promise<void>;
   onRemove: (path: string, recursive: boolean) => Promise<void>;
   /** A gesture the list does not answer itself: an editor, a terminal, the path copied. */
@@ -213,10 +215,18 @@ export function FileList({
           </div>
 
           <div className="ml-auto flex items-center gap-1">
-            <FolderCreate
+            <EntryCreate
               disabled={listing.status !== "read"}
+              kind="file"
+              name="files.newFile"
+              onCreate={onMakeFile}
+            />
+
+            <EntryCreate
+              disabled={listing.status !== "read"}
+              kind="dir"
               name="files.newFolder"
-              onCreate={onCreate}
+              onCreate={onMakeFolder}
             />
 
             <IconButton

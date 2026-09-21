@@ -4,8 +4,8 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { crumbsOf, under } from "@renderer/lib/files";
 import { ChevronRight, Folder, RefreshCw } from "lucide-react";
 import type { FolderState } from "../../stores/project-add";
+import { EntryCreate } from "../files/entry-create";
 import { FileTrail } from "../files/file-trail";
-import { FolderCreate } from "../files/folder-create";
 import { Button } from "../ui/button";
 import { Callout } from "../ui/callout";
 import { EmptyState } from "../ui/empty-state";
@@ -46,8 +46,9 @@ export function ProjectAddFolders({
           rootLabel={t("projectAdd.folders.root")}
         />
 
-        <FolderCreate
+        <EntryCreate
           disabled={state.status !== "ready"}
+          kind="dir"
           name="project.newFolder"
           onCreate={onCreate}
         />

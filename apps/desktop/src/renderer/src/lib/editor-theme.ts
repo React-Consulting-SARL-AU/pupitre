@@ -115,7 +115,9 @@ export const editorTheme = EditorView.theme({
   ".cm-line": { padding: "0 12px" },
   ".cm-cursor, .cm-dropCursor": { borderLeftColor: INK },
   "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection":
-    { backgroundColor: "var(--raised)" },
+    { backgroundColor: "var(--line-strong)" },
+  // The app's global ::selection inverts the ink, which vanishes on the grey layer CodeMirror draws behind the text.
+  ".cm-content ::selection, .cm-content::selection": { color: "currentColor" },
   ".cm-activeLine": { backgroundColor: "var(--surface)" },
   ".cm-selectionMatch": { backgroundColor: "var(--raised)" },
   "&.cm-focused .cm-matchingBracket, &.cm-focused .cm-nonmatchingBracket": {

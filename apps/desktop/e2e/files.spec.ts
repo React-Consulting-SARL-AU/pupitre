@@ -183,6 +183,13 @@ test.describe("les fichiers d'un projet", () => {
                 "utf8"
               );
 
+              if (asked.sha256 === undefined && entryOf(asked.path)) {
+                return refused(
+                  `entrée déjà présente : ${asked.path}`,
+                  "Choisissez un autre nom."
+                );
+              }
+
               if (
                 current !== undefined &&
                 asked.sha256 !== (await digest(current))
@@ -191,6 +198,16 @@ test.describe("les fichiers d'un projet", () => {
                   `${asked.path} a changé depuis la lecture`,
                   "Relisez le fichier avec fs.read, reportez-y vos modifications, puis réécrivez avec la nouvelle empreinte."
                 );
+              }
+
+              if (current === undefined) {
+                tree.folders[parentOf(asked.path)]?.push({
+                  kind: "file",
+                  mode: "0644",
+                  modified_at: "2026-09-01T10:00:00Z",
+                  name: nameOf(asked.path),
+                  size_bytes: Buffer.byteLength(text),
+                });
               }
 
               tree.texts[asked.path] = text;
@@ -472,11 +489,70 @@ test.describe("les fichiers d'un projet", () => {
       expect(written).toHaveLength(2);
     });
 
-    await test.step("l'écran tient la passe d'accessibilité dans les deux thèmes", async () => {
+    await test.step("un nouveau fichier se demande en haut, s'écrit vide sans empreinte et s'ouvre", async () => {
+      await page.getByRole("button", { name: "Nouveau fichier" }).click();
+
+      const dialog = page.getByRole("dialog", { name: "Nouveau fichier" });
+      await expect(dialog).toBeVisible();
+      await expect(dialog.getByLabel("Nom")).toBeFocused();
+
+      await assertAccessible(page, "files/new-file");
+
+      await dialog.getByLabel("Nom").fill("notes.md");
+      await page.keyboard.press("Enter");
+
+      await expect(dialog).toHaveCount(0);
+      await expect(page.locator('[data-entry="notes.md"]')).toBeVisible();
+      await expect(page.getByLabel("Fichier notes.md")).toBeVisible();
+      await expect(page.locator(".cm-content")).toHaveText("");
+
+      const written = await running.app.evaluate(
+        () => (globalThis as { written?: Written[] }).written ?? []
+      );
+
+      expect(written).toHaveLength(3);
+      expect(written[2]).toEqual({
+        path: "projects/flymate/src/notes.md",
+        sha256: undefined,
+        text: "",
+      });
+    });
+
+    await test.step("un nom déjà pris est refusé sous l'en-tête, et le fichier ouvert reste", async () => {
+      await page.getByRole("button", { name: "Nouveau fichier" }).click();
+      await page
+        .getByRole("dialog", { name: "Nouveau fichier" })
+        .getByLabel("Nom")
+        .fill("index.ts");
+      await page.keyboard.press("Enter");
+
+      await expect(
+        page.getByText("entrée déjà présente : projects/flymate/src/index.ts")
+      ).toBeVisible();
+      await expect(page.getByLabel("Fichier notes.md")).toBeVisible();
+
+      await page.getByRole("button", { name: "Masquer" }).click();
+    });
+
+    await test.step("l'écran tient la passe d'accessibilité et le texte sélectionné garde sa couleur, dans les deux thèmes", async () => {
       for (const theme of ["dark", "light"] as const) {
         await themed(page, theme);
         await openFiles(page);
         await expect(page.locator('[data-preview="text"]')).toBeVisible();
+
+        await page.locator('[data-entry="src"] button').first().click();
+        await page.locator('[data-entry="index.ts"] button').first().click();
+        await expect(page.locator(".cm-content")).toContainText("export");
+
+        const colours = await page
+          .locator(".cm-line span")
+          .first()
+          .evaluate((token) => ({
+            own: getComputedStyle(token).color,
+            selected: getComputedStyle(token, "::selection").color,
+          }));
+
+        expect(colours.selected).toBe(colours.own);
 
         await assertAccessible(page, `files/${theme}`);
       }
