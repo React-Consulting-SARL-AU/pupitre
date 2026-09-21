@@ -31,6 +31,9 @@
     },
     {
       "serverName": "claude.ai Google Drive"
+    },
+    {
+      "serverName": "claude.ai react-box"
     }
   ]
 }
