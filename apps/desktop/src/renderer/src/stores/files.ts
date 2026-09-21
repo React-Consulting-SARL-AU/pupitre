@@ -135,6 +135,8 @@ interface FilesStore {
     recursive?: boolean
   ) => Promise<void>;
   makeFolder: (serverId: string, name: string) => Promise<void>;
+  /** Makes an empty file in the folder on screen and opens it, unless a buffer is being edited. */
+  makeFile: (serverId: string, name: string) => Promise<void>;
   setSort: (sort: FileSort) => void;
   setHidden: (hidden: boolean) => void;
   dismiss: () => void;
@@ -605,6 +607,35 @@ export const useFiles = create<FilesStore>((set, get) => {
       }
 
       await get().refresh();
+    },
+
+    async makeFile(serverId, name) {
+      const { listing } = get();
+
+      if (listing.status === "idle") {
+        return;
+      }
+
+      set({ problem: null });
+
+      const path = under(listing.path, name);
+
+      const answer = await call<FsWriteResult>(serverId, "fs.write", {
+        content: "",
+        path,
+      });
+
+      if (!answer.ok) {
+        set({ problem: answer.error });
+
+        return;
+      }
+
+      await get().refresh();
+
+      if (get().draft === null) {
+        await get().show(serverId, path);
+      }
     },
 
     setSort(sort) {

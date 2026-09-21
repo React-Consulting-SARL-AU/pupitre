@@ -62,10 +62,11 @@ function list(listing: ListingState): string {
       listing={listing}
       onAct={noop}
       onBrowse={later}
-      onCreate={later}
       onDismiss={noop}
       onDrop={later}
       onHidden={noop}
+      onMakeFile={later}
+      onMakeFolder={later}
       onRefresh={later}
       onRemove={later}
       onRename={later}

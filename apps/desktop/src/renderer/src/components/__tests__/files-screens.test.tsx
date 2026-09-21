@@ -6,12 +6,12 @@ import type {
 import { renderToStaticMarkup } from "react-dom/server";
 import { mount } from "../../__tests__/dom";
 import type { ListingState, PreviewState } from "../../stores/files";
+import { EntryCreate } from "../files/entry-create";
+import { EntryCreateDialog } from "../files/entry-create-dialog";
 import { FileEntryMenu } from "../files/file-entry-menu";
 import { FileList } from "../files/file-list";
 import { FilePreview } from "../files/file-preview";
 import { FileRow } from "../files/file-row";
-import { FolderCreate } from "../files/folder-create";
-import { FolderCreateDialog } from "../files/folder-create-dialog";
 
 /**
  * What the file browser shows in each of its states. The two panes take
@@ -70,10 +70,11 @@ function list(
       listing={listing}
       onAct={noop}
       onBrowse={later}
-      onCreate={later}
       onDismiss={noop}
       onDrop={later}
       onHidden={noop}
+      onMakeFile={later}
+      onMakeFolder={later}
       onRefresh={later}
       onRemove={later}
       onRename={later}
@@ -112,18 +113,20 @@ function names(html: string): string[] {
   return [...html.matchAll(/data-entry="([^"]+)"/g)].map((found) => found[1]);
 }
 
-describe("le nouveau dossier", () => {
-  it("se demande depuis l'en-tête, sans champ dans la liste tant qu'on ne l'ouvre pas", () => {
+describe("le nouveau fichier et le nouveau dossier", () => {
+  it("se demandent depuis l'en-tête, sans champ dans la liste tant qu'on ne les ouvre pas", () => {
     const html = list(READ);
 
+    expect(html).toContain("Nouveau fichier");
     expect(html).toContain("Nouveau dossier");
     expect(html).not.toContain('role="dialog"');
+    expect(html).not.toContain('id="files.newFile"');
     expect(html).not.toContain('id="files.newFolder"');
   });
 
-  it("attend un dossier à l'écran avant d'être offert", () => {
+  it("attendent un dossier à l'écran avant d'être offerts", () => {
     const html = renderToStaticMarkup(
-      <FolderCreate disabled name="files.newFolder" onCreate={later} />
+      <EntryCreate disabled kind="file" name="files.newFile" onCreate={later} />
     );
 
     expect(html).toContain("disabled");
@@ -131,7 +134,8 @@ describe("le nouveau dossier", () => {
 
   it("s'ouvre en dialogue avec le nom à taper et le bouton Créer", async () => {
     const view = await mount(
-      <FolderCreateDialog
+      <EntryCreateDialog
+        kind="dir"
         name="files.newFolder"
         onClose={noop}
         onCreate={later}
@@ -142,10 +146,30 @@ describe("le nouveau dossier", () => {
     expect(html).toContain('role="dialog"');
     expect(html).toContain('data-dialog="files.newFolder"');
     expect(html).toContain("Nouveau dossier");
+    expect(html).toContain('placeholder="mon-dossier"');
     expect(html).toContain('id="files.newFolder"');
     expect(html).toContain("Créer");
     expect(html).toContain("Annuler");
     expect(document.activeElement?.id).toBe("files.newFolder");
+
+    view.unmount();
+  });
+
+  it("nomme le fichier, sans jamais prendre un chemin", async () => {
+    const view = await mount(
+      <EntryCreateDialog
+        kind="file"
+        name="files.newFile"
+        onClose={noop}
+        onCreate={later}
+      />
+    );
+    const html = view.html();
+
+    expect(html).toContain("Nouveau fichier");
+    expect(html).toContain('placeholder="notes.md"');
+    expect(html).toContain('data-dialog="files.newFile"');
+    expect(document.activeElement?.id).toBe("files.newFile");
 
     view.unmount();
   });

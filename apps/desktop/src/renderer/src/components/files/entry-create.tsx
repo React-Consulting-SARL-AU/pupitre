@@ -1,24 +1,30 @@
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { FolderPlus } from "lucide-react";
 import { useState } from "react";
 import { IconButton } from "../ui/icon-button";
-import { FolderCreateDialog } from "./folder-create-dialog";
+import {
+  ENTRY_CREATE_ICON,
+  ENTRY_CREATE_KEYS,
+  EntryCreateDialog,
+  type EntryKind,
+} from "./entry-create-dialog";
 
 /**
- * The gesture that makes a folder where the reader stands: one button in the
- * header, and the dialog it opens. The dialog is mounted anew each time, so
- * it never remembers a name from before.
+ * The gesture that makes a file or a folder where the reader stands: one
+ * button in the header, and the dialog it opens. The dialog is mounted anew
+ * each time, so it never remembers a name from before.
  */
-export function FolderCreate({
+export function EntryCreate({
+  kind,
   name,
   disabled = false,
   onCreate,
 }: {
+  kind: EntryKind;
   /** Ties the caption and the help to the input, and names it in a test. */
   name: string;
-  /** No folder is on screen yet, so none can be made in it. */
+  /** No folder is on screen yet, so nothing can be made in it. */
   disabled?: boolean;
-  onCreate: (folder: string) => Promise<void>;
+  onCreate: (entry: string) => Promise<void>;
 }) {
   const t = useTranslations();
 
@@ -28,13 +34,14 @@ export function FolderCreate({
     <>
       <IconButton
         disabled={disabled}
-        icon={FolderPlus}
-        label={t("files.newFolder.title")}
+        icon={ENTRY_CREATE_ICON[kind]}
+        label={t(ENTRY_CREATE_KEYS[kind].title)}
         onClick={() => setAsking(true)}
       />
 
       {asking ? (
-        <FolderCreateDialog
+        <EntryCreateDialog
+          kind={kind}
           name={name}
           onClose={() => setAsking(false)}
           onCreate={onCreate}
