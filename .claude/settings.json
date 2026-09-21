@@ -15,5 +15,22 @@
       "Bash(git diff:*)",
       "Bash(git log:*)"
     ]
-  }
+  },
+  "deniedMcpServers": [
+    {
+      "serverName": "claude.ai Gmail"
+    },
+    {
+      "serverName": "claude.ai Expo"
+    },
+    {
+      "serverName": "claude.ai Claude Docs"
+    },
+    {
+      "serverName": "claude.ai visualize"
+    },
+    {
+      "serverName": "claude.ai Google Drive"
+    }
+  ]
 }
