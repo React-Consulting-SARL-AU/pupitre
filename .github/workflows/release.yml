@@ -198,16 +198,42 @@ jobs:
           key: electron-${{ runner.os }}-${{ hashFiles('apps/desktop/package.json') }}
 
       # node-pty links against the Spectre-mitigated MSVC libraries, which the
-      # Blacksmith Windows image does not carry; the installer it has adds them.
+      # Blacksmith Windows image does not always carry; the installer it has
+      # adds them, on whichever Visual Studio the image ships — the edition and
+      # its path change with the image, so vswhere names it. The step only
+      # prepares the ground: what it could not do is printed with the
+      # installer's own log, and the build of node-pty right after is the
+      # judge, with an error that names what is missing.
       - name: Install the Spectre-mitigated MSVC libraries
         if: runner.os == 'Windows'
         shell: powershell
         run: |
-          $installer = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe"
-          $buildTools = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\BuildTools"
-          $arguments = @("modify", "--installPath", "`"$buildTools`"", "--add", "Microsoft.VisualStudio.Component.VC.Runtimes.x86.x64.Spectre", "--quiet", "--norestart", "--nocache")
+          $root = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer"
+          $vswhere = Join-Path $root "vswhere.exe"
+          $installer = Join-Path $root "vs_installer.exe"
+
+          if (-not (Test-Path $vswhere) -or -not (Test-Path $installer)) {
+            Write-Host "no Visual Studio installer on this image: $root"
+            exit 0
+          }
+
+          $path = & $vswhere -products * -latest -prerelease -property installationPath | Select-Object -First 1
+          if (-not $path) {
+            Write-Host "vswhere found no Visual Studio instance"
+            exit 0
+          }
+          Write-Host "Visual Studio at $path"
+
+          $since = Get-Date
+          $arguments = @("modify", "--installPath", "`"$path`"", "--add", "Microsoft.VisualStudio.Component.VC.Runtimes.x86.x64.Spectre", "--quiet", "--norestart", "--nocache")
           $process = Start-Process -FilePath $installer -ArgumentList $arguments -Wait -PassThru
-          if ($process.ExitCode -ne 0 -and $process.ExitCode -ne 3010) { exit $process.ExitCode }
+
+          if ($process.ExitCode -eq 0 -or $process.ExitCode -eq 3010) { exit 0 }
+
+          Write-Host "the installer answered $($process.ExitCode); its log follows"
+          Get-ChildItem $env:TEMP -Filter "dd_*.log" |
+            Where-Object { $_.LastWriteTime -ge $since } |
+            ForEach-Object { Write-Host "--- $($_.Name)"; Get-Content $_.FullName -Tail 40 }
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
