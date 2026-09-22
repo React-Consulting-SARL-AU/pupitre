@@ -1,6 +1,7 @@
 package state
 
 import (
+	"context"
 	"regexp"
 	"sort"
 	"strconv"
@@ -446,6 +447,19 @@ func (r *Reader) Diff(name, path string) (contract.ProjectDiff, error) {
 }
 
 func (r *Reader) Pull(name string) (contract.ProjectPull, error) {
+	var pulled contract.ProjectPull
+
+	err := r.withInstallLock(func() error {
+		var lockErr error
+		pulled, lockErr = r.pullOf(name)
+
+		return lockErr
+	})
+
+	return pulled, err
+}
+
+func (r *Reader) pullOf(name string) (contract.ProjectPull, error) {
 	project, root, err := r.repo(name)
 	if err != nil {
 		return contract.ProjectPull{}, err
@@ -464,24 +478,33 @@ func (r *Reader) Pull(name string) (contract.ProjectPull, error) {
 	return contract.ProjectPull{Pulled: pulled, State: current.State}, nil
 }
 
-// Sync is the pull then the install, one command: what the install prints travels on emit.
-func (r *Reader) Sync(name string, emit func(string)) (contract.ProjectSync, error) {
-	pulled, err := r.Pull(name)
-	if err != nil {
-		return contract.ProjectSync{}, err
-	}
+// Sync is the pull then the install, one command: what the install prints
+// travels on emit, and the whole of it ends with the channel that asked.
+func (r *Reader) Sync(channel context.Context, name string, emit func(string)) (contract.ProjectSync, error) {
+	var synced contract.ProjectSync
 
-	installed, err := r.Install(name, "", emit)
-	if err != nil {
-		return contract.ProjectSync{}, err
-	}
+	err := r.withInstallLock(func() error {
+		pulled, pullErr := r.pullOf(name)
+		if pullErr != nil {
+			return pullErr
+		}
 
-	current, err := r.one(name)
-	if err != nil {
-		return contract.ProjectSync{}, err
-	}
+		installed, installErr := r.install(channel, name, "", emit)
+		if installErr != nil {
+			return installErr
+		}
 
-	return contract.ProjectSync{Pulled: pulled.Pulled, Installed: len(installed) > 0, State: current.State}, nil
+		current, stateErr := r.one(name)
+		if stateErr != nil {
+			return stateErr
+		}
+
+		synced = contract.ProjectSync{Pulled: pulled.Pulled, Installed: len(installed) > 0, State: current.State}
+
+		return nil
+	})
+
+	return synced, err
 }
 
 func (r *Reader) pull(project registry.Project, root string) (bool, error) {

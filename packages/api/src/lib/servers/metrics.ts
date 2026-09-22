@@ -2,7 +2,12 @@ import type { Prisma } from "@pupitre/db/cloudflare/client"
 
 export const METRICS_WINDOW_MS = 604_800_000
 
-const MAX_SAMPLES = 2016
+/**
+ * What a detail answer carries, whatever the window holds: the chart draws a
+ * sparkline, and three hundred and sixty points of it cover seven days as
+ * well as the twenty-eight hundred the agent sends.
+ */
+export const CHART_MAX_POINTS = 360
 
 export interface MetricSample {
   at: string
@@ -38,7 +43,8 @@ function toQuantity(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null
 }
 
-function toSample(value: unknown): MetricSample | null {
+/** A sample read back from a row, or null when the row holds nothing usable. */
+export function toSample(value: unknown): MetricSample | null {
   if (!isRecord(value) || typeof value.at !== "string") {
     return null
   }
@@ -100,35 +106,27 @@ export function toStoredUsage(usage: ServerUsage): Prisma.InputJsonValue {
   return usage as unknown as Prisma.InputJsonValue
 }
 
-export function readSamples(metrics: unknown): MetricSample[] {
-  const samples = isRecord(metrics) ? metrics.samples : null
+export function toStoredSample(sample: MetricSample): Prisma.InputJsonValue {
+  return sample as unknown as Prisma.InputJsonValue
+}
 
-  if (!Array.isArray(samples)) {
-    return []
+/**
+ * The window's points reduced to what a chart shows, keeping the first and the
+ * last: an even stride across the middle, so the newest reading is always the
+ * one the answer ends on.
+ */
+export function decimateSamples(
+  samples: MetricSample[],
+  maxPoints = CHART_MAX_POINTS
+): MetricSample[] {
+  if (samples.length <= maxPoints) {
+    return samples
   }
 
-  return samples.flatMap((entry) => {
-    const sample = toSample(entry)
+  const stride = (samples.length - 1) / (maxPoints - 1)
 
-    return sample ? [sample] : []
-  })
-}
-
-export function appendSample(
-  metrics: unknown,
-  sample: MetricSample,
-  now: Date
-): MetricSample[] {
-  const floor = now.getTime() - METRICS_WINDOW_MS
-  const kept = readSamples(metrics).filter(
-    (entry) => Date.parse(entry.at) >= floor
+  return Array.from(
+    { length: maxPoints },
+    (_, index) => samples[Math.round(index * stride)]
   )
-
-  return [...kept, sample].slice(-MAX_SAMPLES)
-}
-
-export function toStoredMetrics(
-  samples: MetricSample[]
-): Prisma.InputJsonValue {
-  return { samples } as unknown as Prisma.InputJsonValue
 }

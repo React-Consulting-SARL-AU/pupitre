@@ -6,7 +6,12 @@ import { api } from "@/lib/api/client"
 import { readAffiliateCode } from "@/lib/domain/affiliate"
 import type { BillingIntervalName, CheckoutReturn } from "@/lib/domain/billing"
 
-export const SERVERS_POLL_INTERVAL_MS = 5000
+/**
+ * How often the console re-reads its servers. The heartbeat the numbers come
+ * from lands every five minutes; fifteen seconds keeps the page live without
+ * interrogating the database for what has not changed.
+ */
+export const SERVERS_POLL_INTERVAL_MS = 15_000
 
 export const STATUS_POLL_INTERVAL_MS = 30_000
 

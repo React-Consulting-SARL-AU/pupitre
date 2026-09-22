@@ -17,6 +17,12 @@ import { withPrismaClient } from "@pupitre/db/scope"
 import { MAIL_MAX_BYTES } from "@pupitre/shared/legal"
 import serverEntry from "@tanstack/react-start/server-entry"
 import { API_PREFIX } from "./lib/config/urls"
+import { withSecurityHeaders } from "./lib/security-headers"
+import {
+  configureRateLimits,
+  handleRateLimitRequest,
+  sweepExpired,
+} from "./rate-limit/rate-limit"
 import {
   answerInboxSocketMessage,
   configureInboxPublisher,
@@ -100,6 +106,17 @@ export class InboxRealtime extends DurableObject<CloudflareEnv> {
   }
 }
 
+// Same as the room above: the counter's shell stays beside the entry.
+export class RateLimit extends DurableObject<CloudflareEnv> {
+  override fetch(request: Request) {
+    return handleRateLimitRequest(this.ctx, request)
+  }
+
+  override alarm() {
+    return sweepExpired(this.ctx)
+  }
+}
+
 /**
  * The same mail path as Email Routing, reachable with the internal secret so a
  * message can be injected by curl on a machine no domain points at.
@@ -156,34 +173,58 @@ async function handleInternalEmail(
   return Response.json({ data: result }, { status: 202 })
 }
 
-function route(request: Request, env: CloudflareEnv, pathname: string) {
+interface Routed {
+  response: Response
+  /** A document the console renders, rather than an answer of the API's. */
+  document: boolean
+}
+
+function route(
+  request: Request,
+  env: CloudflareEnv,
+  pathname: string
+): Promise<Routed> {
   // The socket is answered before Elysia, which cannot hand back a 101.
   if (pathname === INBOX_EVENTS_PATH) {
-    return handleInboxEventsRequest(request, env)
+    return handleInboxEventsRequest(request, env).then(answered)
   }
 
   if (pathname.startsWith(API_PREFIX)) {
-    return handleApiRequest(request)
+    return handleApiRequest(request).then(answered)
   }
 
   if (pathname === INTERNAL_EMAIL_PATH) {
-    return handleInternalEmail(request, env)
+    return handleInternalEmail(request, env).then(answered)
   }
 
   if (pathname.startsWith(INTERNAL_WORKFLOW_PREFIX)) {
-    return handleInternalWorkflowTrigger(request, env)
+    return handleInternalWorkflowTrigger(request, env).then(answered)
   }
 
-  return serverEntry.fetch(request)
+  return Promise.resolve(serverEntry.fetch(request)).then(
+    (response: Response) => ({
+      response,
+      document: true,
+    })
+  )
+}
+
+function answered(response: Response): Routed {
+  return { response, document: false }
 }
 
 export default {
-  fetch(request: Request, env: CloudflareEnv) {
+  async fetch(request: Request, env: CloudflareEnv) {
     const { pathname } = new URL(request.url)
 
     configureInboxPublisher(env)
+    configureRateLimits(env)
 
-    return withDatabase(env, () => route(request, env, pathname))
+    const { response, document } = await withDatabase(env, () =>
+      route(request, env, pathname)
+    )
+
+    return withSecurityHeaders(response, env, { document })
   },
 
   // A throw here is a temporary failure: Cloudflare keeps the message and

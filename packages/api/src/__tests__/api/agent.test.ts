@@ -353,10 +353,19 @@ describe("POST /agent/heartbeat", () => {
     expect(stored.agentVersion).toBe("1.5.0")
     expect(stored.lastHeartbeatAt).not.toBeNull()
 
-    const samples = (stored.metrics as { samples: { disk: number }[] }).samples
+    const samples = await prisma.serverMetric.findMany({
+      where: { serverId: server.id },
+    })
 
     expect(samples).toHaveLength(1)
-    expect(samples[0].disk).toBe(41)
+
+    const [row] = samples
+
+    if (!row) {
+      throw new Error("the heartbeat wrote no sample")
+    }
+
+    expect((row.sample as { disk: number }).disk).toBe(41)
   })
 
   it("keeps the last sample beside the window, for the lists to read", async () => {
@@ -456,29 +465,32 @@ describe("POST /agent/heartbeat", () => {
     const { server, token } = await createServer({
       organizationId: organization.id,
     })
-    const old = new Date(Date.now() - 8 * DAY_MS).toISOString()
-    const recent = new Date(Date.now() - DAY_MS).toISOString()
+    const old = new Date(Date.now() - 8 * DAY_MS)
+    const recent = new Date(Date.now() - DAY_MS)
+    const sampleOf = (disk: number, at: Date) => ({
+      at: at.toISOString(),
+      disk,
+      ram: 1,
+      load: 0,
+      sessions: [],
+      modules: [],
+    })
 
-    await prisma.server.update({
-      where: { id: server.id },
-      data: {
-        metrics: {
-          samples: [
-            { at: old, disk: 1, ram: 1, load: 0, sessions: [], modules: [] },
-            { at: recent, disk: 2, ram: 2, load: 0, sessions: [], modules: [] },
-          ],
-        },
-      },
+    await prisma.serverMetric.createMany({
+      data: [
+        { serverId: server.id, at: old, sample: sampleOf(1, old) },
+        { serverId: server.id, at: recent, sample: sampleOf(2, recent) },
+      ],
     })
     await apiRequest("/agent/heartbeat", { body: HEARTBEAT, bearer: token })
 
-    const stored = await prisma.server.findUniqueOrThrow({
-      where: { id: server.id },
+    const samples = await prisma.serverMetric.findMany({
+      where: { serverId: server.id },
+      orderBy: { at: "asc" },
     })
-    const samples = (stored.metrics as { samples: { at: string }[] }).samples
 
     expect(samples).toHaveLength(2)
     expect(samples.map((sample) => sample.at)).not.toContain(old)
-    expect(samples[0].at).toBe(recent)
+    expect(samples[0]?.at.getTime()).toBe(recent.getTime())
   })
 })

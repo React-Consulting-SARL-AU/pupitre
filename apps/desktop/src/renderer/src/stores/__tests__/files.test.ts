@@ -62,7 +62,7 @@ async function readAnswer(
     ok: true,
     result: {
       chunks: 1,
-      media_type: "text/plain",
+      media_type: path.endsWith(".svg") ? "image/svg+xml" : "text/plain",
       path,
       sha256: await fingerprint(bytes),
       size_bytes: bytes.length,
@@ -287,6 +287,31 @@ describe("l'aperçu d'un fichier", () => {
       status: "text",
       text: ENV,
     });
+  });
+
+  it("lit un SVG comme du texte, pour l'éditer comme pour le rendre", async () => {
+    await opened();
+
+    await useFiles.getState().show(SERVER, "projects/atlas/logo.svg");
+
+    expect(useFiles.getState().preview).toMatchObject({
+      path: "projects/atlas/logo.svg",
+      status: "text",
+      text: ENV,
+    });
+  });
+
+  it("ouvre chaque fichier sur sa forme rendue, et garde le code demandé jusqu'au suivant", async () => {
+    await opened();
+
+    await useFiles.getState().show(SERVER, "projects/atlas/README.md");
+    expect(useFiles.getState().view).toBe("rendered");
+
+    useFiles.getState().setView("source");
+    expect(useFiles.getState().view).toBe("source");
+
+    await useFiles.getState().show(SERVER, "projects/atlas/logo.svg");
+    expect(useFiles.getState().view).toBe("rendered");
   });
 
   it("refuse un fichier dont l'empreinte n'est pas celle du reçu", async () => {
@@ -539,5 +564,57 @@ describe("les gestes sur une entrée", () => {
       { path: "projects/atlas/docs" },
     ]);
     expect(calls(agent, "fs.list")).toHaveLength(2);
+  });
+
+  it("crée un fichier vide sans empreinte, relit le dossier et l'ouvre", async () => {
+    const agent = await opened();
+
+    await useFiles.getState().makeFile(SERVER, "notes.md");
+
+    expect(calls(agent, "fs.write").map((c) => c.params)).toEqual([
+      { content: "", path: "projects/atlas/notes.md" },
+    ]);
+    expect(calls(agent, "fs.list")).toHaveLength(2);
+    expect(useFiles.getState().preview).toMatchObject({
+      path: "projects/atlas/notes.md",
+      status: "text",
+    });
+    expect(useFiles.getState().view).toBe("source");
+    expect(useFiles.getState().problem).toBeNull();
+  });
+
+  it("montre le refus d'un fichier qui existe déjà et garde ce qui est ouvert", async () => {
+    const agent = await opened({
+      calls: [],
+      write: () =>
+        refused("projects/atlas/.env existe déjà", "Choisissez un autre nom."),
+    });
+    await useFiles.getState().show(SERVER, "projects/atlas/.env");
+
+    await useFiles.getState().makeFile(SERVER, ".env");
+
+    expect(useFiles.getState().problem).toMatchObject({
+      message: "projects/atlas/.env existe déjà",
+    });
+    expect(useFiles.getState().preview).toMatchObject({
+      path: "projects/atlas/.env",
+      status: "text",
+    });
+    expect(calls(agent, "fs.list")).toHaveLength(1);
+  });
+
+  it("crée le fichier mais laisse le tampon modifié à l'écran", async () => {
+    await opened();
+    await useFiles.getState().show(SERVER, "projects/atlas/.env");
+    useFiles.getState().edit("PORT=3100\n");
+
+    await useFiles.getState().makeFile(SERVER, "notes.md");
+
+    expect(useFiles.getState().preview).toMatchObject({
+      path: "projects/atlas/.env",
+      status: "text",
+    });
+    expect(useFiles.getState().draft).toBe("PORT=3100\n");
+    expect(useFiles.getState().leaving).toBeNull();
   });
 });

@@ -13,6 +13,7 @@ import (
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/env"
 	"pupitre.studio/agent/internal/sys/file"
+	"pupitre.studio/agent/internal/sys/lock"
 	"pupitre.studio/agent/internal/sys/user"
 	"pupitre.studio/agent/internal/tmux"
 )
@@ -546,6 +547,15 @@ func (r *Reader) Logs(name, id string, lines int) ([]string, error) {
 // A line travels once it is whole. A read lands between two writes of the
 // same line — a download counter, a Gradle progress bar — and emitting the
 // half read would show it as two lines; the rest waits for its newline.
+// What a follow holds between two reads, and what one read hands over: a
+// process that prints without newlines — progress bars, binary output — cannot
+// grow a root process without bound, and one burst cannot deliver megabytes in
+// a single poll.
+const (
+	followPartialLimit = 64 << 10
+	followReadLimit    = 1 << 20
+)
+
 func (r *Reader) Follow(channel context.Context, name, id string, lines int, emit func(string)) error {
 	tail, err := r.Logs(name, id, lines)
 	if err != nil {
@@ -574,6 +584,15 @@ func (r *Reader) Follow(channel context.Context, name, id string, lines int, emi
 		if readErr != nil || len(raw) == 0 {
 			continue
 		}
+
+		// A burst wider than one read keeps only its end: the journal caps what
+		// it shows, and the start of a burst that size is hours old by the time
+		// the reader sees it.
+		if len(raw) > followReadLimit {
+			skipped := int64(len(raw) - followReadLimit)
+			seen += skipped
+			raw = raw[skipped:]
+		}
 		seen += int64(len(raw))
 
 		pieces := strings.Split(partial+string(raw), "\n")
@@ -581,6 +600,13 @@ func (r *Reader) Follow(channel context.Context, name, id string, lines int, emi
 
 		for _, line := range pieces[:len(pieces)-1] {
 			emit(line)
+		}
+
+		// A stretch this long without a newline leaves as it stands, rather
+		// than growing until the follow's own deadline.
+		if len(partial) > followPartialLimit {
+			emit(partial)
+			partial = ""
 		}
 	}
 
@@ -613,8 +639,42 @@ func (r *Reader) pause(channel context.Context, delay time.Duration) {
 	}
 }
 
+// The install a session asked for ends with the session: a retry after a cut
+// finds the lock free rather than a twin still running in the same directory.
+func (r *Reader) withInstallLock(fn func() error) error {
+	path := r.options.InstallLock
+	if path == "" {
+		return fn()
+	}
+
+	release, held, err := lock.Acquire(path)
+	if err != nil {
+		return err
+	}
+	if !held {
+		return protocol.NewError(contract.ErrorBusy, i18n.T("state.project.busy")).
+			WithFix(i18n.T("state.project.busy.fix"))
+	}
+	defer release()
+
+	return fn()
+}
+
 // Install runs the install line of every process of the project, or of the one named; each line is printed before it runs, since how a project's dependencies were installed should never be a guess. What the command prints travels on emit as it comes.
-func (r *Reader) Install(name, id string, emit func(string)) ([]contract.ProcessInstall, error) {
+func (r *Reader) Install(channel context.Context, name, id string, emit func(string)) ([]contract.ProcessInstall, error) {
+	var installed []contract.ProcessInstall
+
+	err := r.withInstallLock(func() error {
+		var lockErr error
+		installed, lockErr = r.install(channel, name, id, emit)
+
+		return lockErr
+	})
+
+	return installed, err
+}
+
+func (r *Reader) install(channel context.Context, name, id string, emit func(string)) ([]contract.ProcessInstall, error) {
 	project, err := r.project(name)
 	if err != nil {
 		return nil, err
@@ -649,7 +709,7 @@ func (r *Reader) Install(name, id string, emit func(string)) ([]contract.Process
 		ctx.Logf("%s : %s", project.Window(process.ID), command)
 
 		// The declared line needs a shell to honour its "&&" and its variables; it travels as one argv word, and runs as dev, never as root.
-		if err := user.StreamIn(ctx, r.options.Tmux.User, dir, emit, "zsh", "-lc", command); err != nil {
+		if err := user.StreamIn(channel, ctx, r.options.Tmux.User, dir, emit, "zsh", "-lc", command); err != nil {
 			return installed, protocol.NewError(contract.ErrorInternal, i18n.T("state.project.install.failed", project.Window(process.ID), command)).
 				WithFix(i18n.T("state.project.install.failed.fix"))
 		}

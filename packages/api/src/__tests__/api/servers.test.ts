@@ -5,6 +5,7 @@ import {
   DECOMMISSION_DELAY_MS,
   decommissionDueServers,
 } from "../../lib/servers/expire"
+import { CHART_MAX_POINTS } from "../../lib/servers/metrics"
 import { bootApiTestServer, resetDb } from "../../testing"
 import { createOrganizationWithMembers } from "../../testing/factories"
 import { ED25519_KEY, SECOND_ED25519_KEY } from "../../testing/keys"
@@ -829,6 +830,45 @@ describe("GET /servers/:id", () => {
 
     expect(response.status).toBe(404)
     expect(response.json.error.code).toBe("not_found")
+  })
+
+  it("reduces the window to what a chart draws, newest reading last", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { members } = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: {},
+    })
+    const [owner] = members
+    const { serverId } = await enrolledServer(owner, "vps.test")
+    const rows = Array.from({ length: CHART_MAX_POINTS * 2 }, (_, index) => {
+      const at = new Date(Date.now() - (CHART_MAX_POINTS * 2 - index) * 60_000)
+
+      return {
+        serverId,
+        at,
+        sample: {
+          at: at.toISOString(),
+          disk: index,
+          ram: 1,
+          load: 0,
+          sessions: [],
+          stack_version: null,
+          modules: [],
+        },
+      }
+    })
+
+    await prisma.serverMetric.createMany({ data: rows })
+
+    const response = await apiRequest<{
+      data: { metrics: { disk: number }[] }
+    }>(`/servers/${serverId}`, { session: owner })
+
+    expect(response.status).toBe(200)
+    expect(response.json.data.metrics).toHaveLength(CHART_MAX_POINTS)
+    expect(response.json.data.metrics.at(-1)?.disk).toBe(
+      CHART_MAX_POINTS * 2 - 1
+    )
   })
 })
 

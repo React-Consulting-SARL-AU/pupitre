@@ -9,6 +9,7 @@ import {
   isEntryName,
   nameOf,
   parentOf,
+  renderedFormOf,
   sortedEntries,
   under,
   within,
@@ -171,5 +172,19 @@ describe("le menu d'une entrée", () => {
     expect(
       entryActions(entry("a.ts"), []).find((a) => a.id === "download")?.folder
     ).toBe(false);
+  });
+});
+
+describe("la forme rendue d'un fichier", () => {
+  it("se lit sur l'extension, sans la casse", () => {
+    expect(renderedFormOf("projects/atlas/README.md")).toBe("markdown");
+    expect(renderedFormOf("notes.markdown")).toBe("markdown");
+    expect(renderedFormOf("Logo.SVG")).toBe("svg");
+  });
+
+  it("n'existe pas pour ce qui se lit tel quel", () => {
+    expect(renderedFormOf("index.ts")).toBeNull();
+    expect(renderedFormOf(".env")).toBeNull();
+    expect(renderedFormOf("md")).toBeNull();
   });
 });

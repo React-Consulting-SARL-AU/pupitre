@@ -306,7 +306,9 @@ model Server {
   revokedDevices         ServerRevokedDevice[]
   alerts                 Alert[]
   lastHeartbeatAt        DateTime?
-  metrics                Json?
+  /// One row per heartbeat reading, pruned past the seven-day window: the
+  /// heartbeat writes its sample alone, never the window it belongs to.
+  metricSamples          ServerMetric[]
   lastUsage              Json?
   createdAt              DateTime              @default(now())
   updatedAt              DateTime              @updatedAt
@@ -317,6 +319,17 @@ model Server {
   @@index([status])
   @@index([decommissionAt])
   @@index([pendingAssignmentEmail])
+  @@index([lastHeartbeatAt])
+}
+
+model ServerMetric {
+  id       String   @id @default(cuid())
+  serverId String
+  server   Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  at       DateTime
+  sample   Json
+
+  @@index([serverId, at])
 }
 
 model Alert {
@@ -488,6 +501,7 @@ model MailThread {
   activities MailActivity[]
 
   @@index([status, updatedAt])
+  @@index([unread, updatedAt])
   @@index([address, normalizedSubject])
   @@index([assignedUserId])
   @@index([contactUserId])

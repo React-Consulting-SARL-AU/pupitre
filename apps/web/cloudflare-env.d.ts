@@ -5,6 +5,7 @@ interface CloudflareEnv {
   DB: D1Database
   MAIL: R2Bucket
   INBOX_REALTIME: DurableObjectNamespace
+  RATE_LIMIT: DurableObjectNamespace
   DECOMMISSION_SERVER: Workflow
   EVALUATE_ALERTS: Workflow
   EXPIRE_ENROLLMENTS: Workflow

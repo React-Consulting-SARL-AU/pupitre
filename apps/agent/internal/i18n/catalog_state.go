@@ -106,6 +106,14 @@ var stateCatalog = map[string]Message{
 		FR: "%s : %s a échoué",
 		EN: "%s: %s failed",
 	},
+	"state.project.busy": {
+		FR: "une installation, une synchronisation ou un pull tourne déjà sur cette machine",
+		EN: "an install, a sync or a pull is already running on this machine",
+	},
+	"state.project.busy.fix": {
+		FR: "laissez-la finir, puis relancez : deux exécutions dans les mêmes dossiers se corrompent l'une l'autre",
+		EN: "let it finish, then run yours again: two runs in the same directories corrupt each other",
+	},
 	"state.debug.service": {
 		FR: "%s est un service : systemd le tient, pas une fenêtre tmux",
 		EN: "%s is a service: systemd holds it, not a tmux window",

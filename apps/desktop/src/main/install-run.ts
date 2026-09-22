@@ -153,6 +153,16 @@ export async function enrolAgent(
   ) {
     await retry.sleep(retry.delayMs);
 
+    // A cut that fell after the exchange leaves the machine enrolled with no
+    // answer to show for it. The probe opens a channel whose hello now names
+    // the server — `ping` answers in every state an agent can be in — so a
+    // retry that would replay a spent token becomes the success it was.
+    const probed = await deps.client.request(serverId, "ping", {});
+
+    if (probed.ok && deps.identity?.(serverId)) {
+      return { ok: true, result: null };
+    }
+
     answer = await sendEnrolment(serverId, granted, deps.client);
   }
 

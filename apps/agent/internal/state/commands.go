@@ -318,7 +318,7 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 			return nil, err
 		}
 
-		installed, err := reader.Install(params.Name, params.Process, logEmitter(ctx))
+		installed, err := reader.Install(ctx.Channel(), params.Name, params.Process, logEmitter(ctx))
 		if err != nil {
 			return nil, err
 		}
@@ -346,7 +346,7 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 			return nil, err
 		}
 
-		return reader.Sync(params.Name, logEmitter(ctx))
+		return reader.Sync(ctx.Channel(), params.Name, logEmitter(ctx))
 	})
 	server.Register("project.branches", named(func(name string) (any, error) { return reader.Branches(name) }))
 	server.Register("project.git_status", named(func(name string) (any, error) { return reader.GitStatus(name) }))

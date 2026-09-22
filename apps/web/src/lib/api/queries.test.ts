@@ -30,9 +30,9 @@ describe("serversQueryOptions", () => {
     await resetDb()
   })
 
-  it("polls every five seconds", () => {
+  it("polls at the pace the heartbeat justifies", () => {
     expect(serversQueryOptions().refetchInterval).toBe(SERVERS_POLL_INTERVAL_MS)
-    expect(SERVERS_POLL_INTERVAL_MS).toBe(5000)
+    expect(SERVERS_POLL_INTERVAL_MS).toBeGreaterThan(5000)
   })
 
   it(

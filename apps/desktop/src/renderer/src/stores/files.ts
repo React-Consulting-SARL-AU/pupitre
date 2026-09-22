@@ -92,6 +92,9 @@ export type WriteState =
   | { status: "stale"; error: AgentError }
   | { status: "failed"; error: AgentError };
 
+/** How a file that has a rendered form is looked at: drawn, or as the text it is. */
+export type PreviewView = "rendered" | "source";
+
 /** A folder the agent would not remove because it holds something. */
 export interface Removal {
   path: string;
@@ -106,6 +109,8 @@ interface FilesStore {
   root: string | null;
   listing: ListingState;
   preview: PreviewState;
+  /** Rendered anew for every file opened; the source stays until the next. */
+  view: PreviewView;
   write: WriteState;
   /** The buffer as edited, or nothing while it still reads as the file. */
   draft: string | null;
@@ -123,6 +128,7 @@ interface FilesStore {
   show: (serverId: string, path: string) => Promise<void>;
   close: () => void;
   edit: (text: string) => void;
+  setView: (view: PreviewView) => void;
   save: (serverId: string) => Promise<void>;
   /** Reads the open file again and drops the buffer, which is what a stale write leaves to do. */
   reread: (serverId: string) => Promise<void>;
@@ -135,6 +141,8 @@ interface FilesStore {
     recursive?: boolean
   ) => Promise<void>;
   makeFolder: (serverId: string, name: string) => Promise<void>;
+  /** Makes an empty file in the folder on screen and opens it as code to write, unless a buffer is being edited. */
+  makeFile: (serverId: string, name: string) => Promise<void>;
   setSort: (sort: FileSort) => void;
   setHidden: (hidden: boolean) => void;
   dismiss: () => void;
@@ -190,6 +198,7 @@ const EMPTY = {
   preview: { status: "idle" } as PreviewState,
   problem: null,
   removal: null,
+  view: "rendered" as PreviewView,
   write: { status: "idle" } as WriteState,
 };
 
@@ -304,7 +313,7 @@ export const useFiles = create<FilesStore>((set, get) => {
 
     const { media_type: mediaType, sha256 } = answer.result;
 
-    if (mediaType === "text/plain") {
+    if (mediaType === "text/plain" || mediaType === "image/svg+xml") {
       set({
         preview: { path, sha256, stat, status: "text", text: textOf(bytes) },
       });
@@ -393,6 +402,7 @@ export const useFiles = create<FilesStore>((set, get) => {
         set({
           draft: null,
           preview: { path, status: "reading" },
+          view: "rendered",
           write: { status: "idle" },
         });
 
@@ -456,6 +466,10 @@ export const useFiles = create<FilesStore>((set, get) => {
       }
 
       set({ draft: text === preview.text ? null : text });
+    },
+
+    setView(view) {
+      set({ view });
     },
 
     async save(serverId) {
@@ -605,6 +619,36 @@ export const useFiles = create<FilesStore>((set, get) => {
       }
 
       await get().refresh();
+    },
+
+    async makeFile(serverId, name) {
+      const { listing } = get();
+
+      if (listing.status === "idle") {
+        return;
+      }
+
+      set({ problem: null });
+
+      const path = under(listing.path, name);
+
+      const answer = await call<FsWriteResult>(serverId, "fs.write", {
+        content: "",
+        path,
+      });
+
+      if (!answer.ok) {
+        set({ problem: answer.error });
+
+        return;
+      }
+
+      await get().refresh();
+
+      if (get().draft === null) {
+        await get().show(serverId, path);
+        set({ view: "source" });
+      }
     },
 
     setSort(sort) {

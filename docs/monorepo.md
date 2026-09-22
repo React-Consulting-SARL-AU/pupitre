@@ -157,6 +157,7 @@ Deux branches longues, et rien d'autre qui vive plus qu'une pull request.
 | Email Routing | règle catch-all sur la zone `pupitre.studio` → *Send to a Worker*, `ppt-web-production` |
 | Workflows | `ppt-expire-enrollments`, `ppt-decommission-server`, `ppt-reconcile-seats`, `ppt-evaluate-alerts`, `ppt-suspend-expired-grace`, `ppt-purge-deletions` |
 | Durable Object | `INBOX_REALTIME`, classe `InboxRealtime` (migration `v1`, `new_sqlite_classes`) ; une seule instance, `idFromName("platform")`, qui ne stocke rien et diffuse le temps réel de la boîte |
+| Durable Object | `RATE_LIMIT`, classe `RateLimit` (migration `v2`, `new_sqlite_classes`) ; huit instances, `idFromName` du hachage de la clé, qui portent les budgets de l'API et des routes d'authentification — sans lui, chaque isolate compterait seul |
 | Déclencheur | Cloudflare Builds sur un push de `main` |
 | Stripe | mode live |
 

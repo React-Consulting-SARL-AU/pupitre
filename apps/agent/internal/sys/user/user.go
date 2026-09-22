@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"strings"
 
 	"pupitre.studio/agent/internal/sys"
@@ -36,8 +37,10 @@ func RunIn(ctx sys.Context, name, dir string, argv ...string) (string, error) {
 	return RunWith(ctx, name, Input{Dir: dir}, argv...)
 }
 
-// StreamIn runs the command as the user, from dir, and hands each line it prints over as it comes.
-func StreamIn(ctx sys.Context, name, dir string, emit func(string), argv ...string) error {
+// StreamIn runs the command as the user, from dir, and hands each line it
+// prints over as it comes. The command ends with gone — the channel that asked
+// for it — rather than outliving the reader who hung up.
+func StreamIn(gone context.Context, ctx sys.Context, name, dir string, emit func(string), argv ...string) error {
 	home := Home(name)
 	if name == "" {
 		name = "root"
@@ -47,7 +50,7 @@ func StreamIn(ctx sys.Context, name, dir string, emit func(string), argv ...stri
 		dir = home
 	}
 
-	command := sys.Command{User: name, Argv: argv, Dir: dir, Env: Environment(name)}
+	command := sys.Command{User: name, Argv: argv, Dir: dir, Env: Environment(name), Context: gone}
 	ctx.Logf("$ %s", sys.Describe(command))
 
 	return ctx.Sys().Stream(command, func(line string) {

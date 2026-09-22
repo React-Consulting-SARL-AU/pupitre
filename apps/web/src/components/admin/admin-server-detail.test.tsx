@@ -159,10 +159,17 @@ describe("AdminServerDetail", () => {
 
     await prisma.server.update({
       where: { id: server.id },
-      data: {
-        metrics: { samples: [sample, { ...sample, disk: 0.55 }] },
-        lastUsage: sample,
-      },
+      data: { lastUsage: sample },
+    })
+    await prisma.serverMetric.createMany({
+      data: [
+        { serverId: server.id, at: new Date(), sample },
+        {
+          serverId: server.id,
+          at: new Date(),
+          sample: { ...sample, disk: 0.55 },
+        },
+      ],
     })
 
     const { container, unmount } = await render(

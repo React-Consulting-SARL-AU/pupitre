@@ -39,6 +39,7 @@ import {
 } from "./lifecycle"
 import { ensurePersonalOrganization } from "./personal-organization"
 import type { AuthPrisma } from "./prisma"
+import { configuredRateLimitStorage } from "./rate-limit-storage"
 import { twoFactorChallenge } from "./two-factor-policy"
 
 export type {
@@ -165,6 +166,7 @@ export function createAuth({
 }: CreateAuthOptions) {
   const secureCookies = !isLocalhostUrl(env.BETTER_AUTH_URL)
   const invitationBaseUrl = `${consoleUrl(env)}${INVITATION_PATH}`
+  const rateLimitStorage = configuredRateLimitStorage()
 
   const instance = betterAuth({
     baseURL: env.BETTER_AUTH_URL,
@@ -178,7 +180,12 @@ export function createAuth({
       expiresIn: SESSION_EXPIRES_IN,
       updateAge: SESSION_UPDATE_AGE,
     },
-    rateLimit: { enabled: true },
+    rateLimit: {
+      enabled: true,
+      // A configured storage wins over the library's per-isolate memory; the
+      // custom storage carries its own atomic consume.
+      ...(rateLimitStorage ? { customStorage: rateLimitStorage } : {}),
+    },
     emailVerification: {
       sendVerificationEmail: async (
         { user, url }: { user: { email: string }; url: string },

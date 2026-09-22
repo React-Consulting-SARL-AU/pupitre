@@ -358,7 +358,6 @@ export async function exchangeEnrollmentToken(
   const enrollmentTokenHash = await hashEnrollmentToken(input.enrollment_token)
   const server = await prisma.server.findUnique({
     where: { enrollmentTokenHash },
-    omit: { metrics: true },
   })
 
   if (!server) {
@@ -409,7 +408,6 @@ export async function exchangeEnrollmentToken(
 
   const ready = await prisma.server.findUnique({
     where: { id: server.id },
-    omit: { metrics: true },
   })
 
   if (ready) {

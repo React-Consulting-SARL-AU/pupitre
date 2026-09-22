@@ -117,7 +117,6 @@ export type ServerCountAggregateOutputType = {
   assignedUserId: number
   pendingAssignmentEmail: number
   lastHeartbeatAt: number
-  metrics: number
   lastUsage: number
   createdAt: number
   updatedAt: number
@@ -216,7 +215,6 @@ export type ServerCountAggregateInputType = {
   assignedUserId?: true
   pendingAssignmentEmail?: true
   lastHeartbeatAt?: true
-  metrics?: true
   lastUsage?: true
   createdAt?: true
   updatedAt?: true
@@ -334,7 +332,6 @@ export type ServerGroupByOutputType = {
   assignedUserId: string | null
   pendingAssignmentEmail: string | null
   lastHeartbeatAt: Date | null
-  metrics: runtime.JsonValue | null
   lastUsage: runtime.JsonValue | null
   createdAt: Date
   updatedAt: Date
@@ -388,7 +385,6 @@ export type ServerWhereInput = {
   assignedUserId?: Prisma.StringNullableFilter<"Server"> | string | null
   pendingAssignmentEmail?: Prisma.StringNullableFilter<"Server"> | string | null
   lastHeartbeatAt?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
-  metrics?: Prisma.JsonNullableFilter<"Server">
   lastUsage?: Prisma.JsonNullableFilter<"Server">
   createdAt?: Prisma.DateTimeFilter<"Server"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Server"> | Date | string
@@ -397,6 +393,7 @@ export type ServerWhereInput = {
   assignedUser?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   revokedDevices?: Prisma.ServerRevokedDeviceListRelationFilter
   alerts?: Prisma.AlertListRelationFilter
+  metricSamples?: Prisma.ServerMetricListRelationFilter
 }
 
 export type ServerOrderByWithRelationInput = {
@@ -424,7 +421,6 @@ export type ServerOrderByWithRelationInput = {
   assignedUserId?: Prisma.SortOrderInput | Prisma.SortOrder
   pendingAssignmentEmail?: Prisma.SortOrderInput | Prisma.SortOrder
   lastHeartbeatAt?: Prisma.SortOrderInput | Prisma.SortOrder
-  metrics?: Prisma.SortOrderInput | Prisma.SortOrder
   lastUsage?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -433,6 +429,7 @@ export type ServerOrderByWithRelationInput = {
   assignedUser?: Prisma.UserOrderByWithRelationInput
   revokedDevices?: Prisma.ServerRevokedDeviceOrderByRelationAggregateInput
   alerts?: Prisma.AlertOrderByRelationAggregateInput
+  metricSamples?: Prisma.ServerMetricOrderByRelationAggregateInput
 }
 
 export type ServerWhereUniqueInput = Prisma.AtLeast<{
@@ -463,7 +460,6 @@ export type ServerWhereUniqueInput = Prisma.AtLeast<{
   assignedUserId?: Prisma.StringNullableFilter<"Server"> | string | null
   pendingAssignmentEmail?: Prisma.StringNullableFilter<"Server"> | string | null
   lastHeartbeatAt?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
-  metrics?: Prisma.JsonNullableFilter<"Server">
   lastUsage?: Prisma.JsonNullableFilter<"Server">
   createdAt?: Prisma.DateTimeFilter<"Server"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Server"> | Date | string
@@ -472,6 +468,7 @@ export type ServerWhereUniqueInput = Prisma.AtLeast<{
   assignedUser?: Prisma.XOR<Prisma.UserNullableScalarRelationFilter, Prisma.UserWhereInput> | null
   revokedDevices?: Prisma.ServerRevokedDeviceListRelationFilter
   alerts?: Prisma.AlertListRelationFilter
+  metricSamples?: Prisma.ServerMetricListRelationFilter
 }, "id" | "serverTokenHash" | "enrollmentTokenHash" | "enrollmentKey">
 
 export type ServerOrderByWithAggregationInput = {
@@ -499,7 +496,6 @@ export type ServerOrderByWithAggregationInput = {
   assignedUserId?: Prisma.SortOrderInput | Prisma.SortOrder
   pendingAssignmentEmail?: Prisma.SortOrderInput | Prisma.SortOrder
   lastHeartbeatAt?: Prisma.SortOrderInput | Prisma.SortOrder
-  metrics?: Prisma.SortOrderInput | Prisma.SortOrder
   lastUsage?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -538,7 +534,6 @@ export type ServerScalarWhereWithAggregatesInput = {
   assignedUserId?: Prisma.StringNullableWithAggregatesFilter<"Server"> | string | null
   pendingAssignmentEmail?: Prisma.StringNullableWithAggregatesFilter<"Server"> | string | null
   lastHeartbeatAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Server"> | Date | string | null
-  metrics?: Prisma.JsonNullableWithAggregatesFilter<"Server">
   lastUsage?: Prisma.JsonNullableWithAggregatesFilter<"Server">
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Server"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Server"> | Date | string
@@ -566,7 +561,6 @@ export type ServerCreateInput = {
   channel?: $Enums.ReleaseChannel
   pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -575,6 +569,7 @@ export type ServerCreateInput = {
   assignedUser?: Prisma.UserCreateNestedOneWithoutAssignedServersInput
   revokedDevices?: Prisma.ServerRevokedDeviceCreateNestedManyWithoutServerInput
   alerts?: Prisma.AlertCreateNestedManyWithoutServerInput
+  metricSamples?: Prisma.ServerMetricCreateNestedManyWithoutServerInput
 }
 
 export type ServerUncheckedCreateInput = {
@@ -602,12 +597,12 @@ export type ServerUncheckedCreateInput = {
   assignedUserId?: string | null
   pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   revokedDevices?: Prisma.ServerRevokedDeviceUncheckedCreateNestedManyWithoutServerInput
   alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutServerInput
+  metricSamples?: Prisma.ServerMetricUncheckedCreateNestedManyWithoutServerInput
 }
 
 export type ServerUpdateInput = {
@@ -632,7 +627,6 @@ export type ServerUpdateInput = {
   channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -641,6 +635,7 @@ export type ServerUpdateInput = {
   assignedUser?: Prisma.UserUpdateOneWithoutAssignedServersNestedInput
   revokedDevices?: Prisma.ServerRevokedDeviceUpdateManyWithoutServerNestedInput
   alerts?: Prisma.AlertUpdateManyWithoutServerNestedInput
+  metricSamples?: Prisma.ServerMetricUpdateManyWithoutServerNestedInput
 }
 
 export type ServerUncheckedUpdateInput = {
@@ -668,12 +663,12 @@ export type ServerUncheckedUpdateInput = {
   assignedUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   revokedDevices?: Prisma.ServerRevokedDeviceUncheckedUpdateManyWithoutServerNestedInput
   alerts?: Prisma.AlertUncheckedUpdateManyWithoutServerNestedInput
+  metricSamples?: Prisma.ServerMetricUncheckedUpdateManyWithoutServerNestedInput
 }
 
 export type ServerCreateManyInput = {
@@ -701,7 +696,6 @@ export type ServerCreateManyInput = {
   assignedUserId?: string | null
   pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -729,7 +723,6 @@ export type ServerUpdateManyMutationInput = {
   channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -760,7 +753,6 @@ export type ServerUncheckedUpdateManyInput = {
   assignedUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -801,7 +793,6 @@ export type ServerCountOrderByAggregateInput = {
   assignedUserId?: Prisma.SortOrder
   pendingAssignmentEmail?: Prisma.SortOrder
   lastHeartbeatAt?: Prisma.SortOrder
-  metrics?: Prisma.SortOrder
   lastUsage?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
@@ -1016,6 +1007,20 @@ export type EnumReleaseChannelFieldUpdateOperationsInput = {
   set?: $Enums.ReleaseChannel
 }
 
+export type ServerCreateNestedOneWithoutMetricSamplesInput = {
+  create?: Prisma.XOR<Prisma.ServerCreateWithoutMetricSamplesInput, Prisma.ServerUncheckedCreateWithoutMetricSamplesInput>
+  connectOrCreate?: Prisma.ServerCreateOrConnectWithoutMetricSamplesInput
+  connect?: Prisma.ServerWhereUniqueInput
+}
+
+export type ServerUpdateOneRequiredWithoutMetricSamplesNestedInput = {
+  create?: Prisma.XOR<Prisma.ServerCreateWithoutMetricSamplesInput, Prisma.ServerUncheckedCreateWithoutMetricSamplesInput>
+  connectOrCreate?: Prisma.ServerCreateOrConnectWithoutMetricSamplesInput
+  upsert?: Prisma.ServerUpsertWithoutMetricSamplesInput
+  connect?: Prisma.ServerWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ServerUpdateToOneWithWhereWithoutMetricSamplesInput, Prisma.ServerUpdateWithoutMetricSamplesInput>, Prisma.ServerUncheckedUpdateWithoutMetricSamplesInput>
+}
+
 export type ServerCreateNestedOneWithoutAlertsInput = {
   create?: Prisma.XOR<Prisma.ServerCreateWithoutAlertsInput, Prisma.ServerUncheckedCreateWithoutAlertsInput>
   connectOrCreate?: Prisma.ServerCreateOrConnectWithoutAlertsInput
@@ -1066,7 +1071,6 @@ export type ServerCreateWithoutAssignedUserInput = {
   channel?: $Enums.ReleaseChannel
   pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1074,6 +1078,7 @@ export type ServerCreateWithoutAssignedUserInput = {
   device?: Prisma.DeviceCreateNestedOneWithoutEnrolledServersInput
   revokedDevices?: Prisma.ServerRevokedDeviceCreateNestedManyWithoutServerInput
   alerts?: Prisma.AlertCreateNestedManyWithoutServerInput
+  metricSamples?: Prisma.ServerMetricCreateNestedManyWithoutServerInput
 }
 
 export type ServerUncheckedCreateWithoutAssignedUserInput = {
@@ -1100,12 +1105,12 @@ export type ServerUncheckedCreateWithoutAssignedUserInput = {
   deviceId?: string | null
   pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   revokedDevices?: Prisma.ServerRevokedDeviceUncheckedCreateNestedManyWithoutServerInput
   alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutServerInput
+  metricSamples?: Prisma.ServerMetricUncheckedCreateNestedManyWithoutServerInput
 }
 
 export type ServerCreateOrConnectWithoutAssignedUserInput = {
@@ -1161,7 +1166,6 @@ export type ServerScalarWhereInput = {
   assignedUserId?: Prisma.StringNullableFilter<"Server"> | string | null
   pendingAssignmentEmail?: Prisma.StringNullableFilter<"Server"> | string | null
   lastHeartbeatAt?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
-  metrics?: Prisma.JsonNullableFilter<"Server">
   lastUsage?: Prisma.JsonNullableFilter<"Server">
   createdAt?: Prisma.DateTimeFilter<"Server"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Server"> | Date | string
@@ -1189,7 +1193,6 @@ export type ServerCreateWithoutOrganizationInput = {
   channel?: $Enums.ReleaseChannel
   pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1197,6 +1200,7 @@ export type ServerCreateWithoutOrganizationInput = {
   assignedUser?: Prisma.UserCreateNestedOneWithoutAssignedServersInput
   revokedDevices?: Prisma.ServerRevokedDeviceCreateNestedManyWithoutServerInput
   alerts?: Prisma.AlertCreateNestedManyWithoutServerInput
+  metricSamples?: Prisma.ServerMetricCreateNestedManyWithoutServerInput
 }
 
 export type ServerUncheckedCreateWithoutOrganizationInput = {
@@ -1223,12 +1227,12 @@ export type ServerUncheckedCreateWithoutOrganizationInput = {
   assignedUserId?: string | null
   pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   revokedDevices?: Prisma.ServerRevokedDeviceUncheckedCreateNestedManyWithoutServerInput
   alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutServerInput
+  metricSamples?: Prisma.ServerMetricUncheckedCreateNestedManyWithoutServerInput
 }
 
 export type ServerCreateOrConnectWithoutOrganizationInput = {
@@ -1278,7 +1282,6 @@ export type ServerCreateWithoutDeviceInput = {
   channel?: $Enums.ReleaseChannel
   pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1286,6 +1289,7 @@ export type ServerCreateWithoutDeviceInput = {
   assignedUser?: Prisma.UserCreateNestedOneWithoutAssignedServersInput
   revokedDevices?: Prisma.ServerRevokedDeviceCreateNestedManyWithoutServerInput
   alerts?: Prisma.AlertCreateNestedManyWithoutServerInput
+  metricSamples?: Prisma.ServerMetricCreateNestedManyWithoutServerInput
 }
 
 export type ServerUncheckedCreateWithoutDeviceInput = {
@@ -1312,12 +1316,12 @@ export type ServerUncheckedCreateWithoutDeviceInput = {
   assignedUserId?: string | null
   pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   revokedDevices?: Prisma.ServerRevokedDeviceUncheckedCreateNestedManyWithoutServerInput
   alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutServerInput
+  metricSamples?: Prisma.ServerMetricUncheckedCreateNestedManyWithoutServerInput
 }
 
 export type ServerCreateOrConnectWithoutDeviceInput = {
@@ -1345,6 +1349,150 @@ export type ServerUpdateManyWithWhereWithoutDeviceInput = {
   data: Prisma.XOR<Prisma.ServerUpdateManyMutationInput, Prisma.ServerUncheckedUpdateManyWithoutDeviceInput>
 }
 
+export type ServerCreateWithoutMetricSamplesInput = {
+  id?: string
+  name: string
+  host?: string | null
+  port?: number
+  sshUser?: string
+  hostFingerprint?: string | null
+  arch: string
+  agentVersion?: string | null
+  targetVersion?: string | null
+  serverTokenHash?: string | null
+  enrollmentTokenHash?: string | null
+  enrollmentKey?: string | null
+  enrollmentExpiresAt?: Date | string | null
+  entitlementValidUntil?: Date | string | null
+  decommissionAt?: Date | string | null
+  status?: $Enums.ServerStatus
+  suspendedReason?: $Enums.SuspensionReason | null
+  suspendedByOrganization?: boolean
+  channel?: $Enums.ReleaseChannel
+  pendingAssignmentEmail?: string | null
+  lastHeartbeatAt?: Date | string | null
+  lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  organization: Prisma.OrganizationCreateNestedOneWithoutServersInput
+  device?: Prisma.DeviceCreateNestedOneWithoutEnrolledServersInput
+  assignedUser?: Prisma.UserCreateNestedOneWithoutAssignedServersInput
+  revokedDevices?: Prisma.ServerRevokedDeviceCreateNestedManyWithoutServerInput
+  alerts?: Prisma.AlertCreateNestedManyWithoutServerInput
+}
+
+export type ServerUncheckedCreateWithoutMetricSamplesInput = {
+  id?: string
+  organizationId: string
+  name: string
+  host?: string | null
+  port?: number
+  sshUser?: string
+  hostFingerprint?: string | null
+  arch: string
+  agentVersion?: string | null
+  targetVersion?: string | null
+  serverTokenHash?: string | null
+  enrollmentTokenHash?: string | null
+  enrollmentKey?: string | null
+  enrollmentExpiresAt?: Date | string | null
+  entitlementValidUntil?: Date | string | null
+  decommissionAt?: Date | string | null
+  status?: $Enums.ServerStatus
+  suspendedReason?: $Enums.SuspensionReason | null
+  suspendedByOrganization?: boolean
+  channel?: $Enums.ReleaseChannel
+  deviceId?: string | null
+  assignedUserId?: string | null
+  pendingAssignmentEmail?: string | null
+  lastHeartbeatAt?: Date | string | null
+  lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  revokedDevices?: Prisma.ServerRevokedDeviceUncheckedCreateNestedManyWithoutServerInput
+  alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutServerInput
+}
+
+export type ServerCreateOrConnectWithoutMetricSamplesInput = {
+  where: Prisma.ServerWhereUniqueInput
+  create: Prisma.XOR<Prisma.ServerCreateWithoutMetricSamplesInput, Prisma.ServerUncheckedCreateWithoutMetricSamplesInput>
+}
+
+export type ServerUpsertWithoutMetricSamplesInput = {
+  update: Prisma.XOR<Prisma.ServerUpdateWithoutMetricSamplesInput, Prisma.ServerUncheckedUpdateWithoutMetricSamplesInput>
+  create: Prisma.XOR<Prisma.ServerCreateWithoutMetricSamplesInput, Prisma.ServerUncheckedCreateWithoutMetricSamplesInput>
+  where?: Prisma.ServerWhereInput
+}
+
+export type ServerUpdateToOneWithWhereWithoutMetricSamplesInput = {
+  where?: Prisma.ServerWhereInput
+  data: Prisma.XOR<Prisma.ServerUpdateWithoutMetricSamplesInput, Prisma.ServerUncheckedUpdateWithoutMetricSamplesInput>
+}
+
+export type ServerUpdateWithoutMetricSamplesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  host?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  port?: Prisma.IntFieldUpdateOperationsInput | number
+  sshUser?: Prisma.StringFieldUpdateOperationsInput | string
+  hostFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  arch?: Prisma.StringFieldUpdateOperationsInput | string
+  agentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  serverTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
+  suspendedReason?: Prisma.NullableEnumSuspensionReasonFieldUpdateOperationsInput | $Enums.SuspensionReason | null
+  suspendedByOrganization?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
+  pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  organization?: Prisma.OrganizationUpdateOneRequiredWithoutServersNestedInput
+  device?: Prisma.DeviceUpdateOneWithoutEnrolledServersNestedInput
+  assignedUser?: Prisma.UserUpdateOneWithoutAssignedServersNestedInput
+  revokedDevices?: Prisma.ServerRevokedDeviceUpdateManyWithoutServerNestedInput
+  alerts?: Prisma.AlertUpdateManyWithoutServerNestedInput
+}
+
+export type ServerUncheckedUpdateWithoutMetricSamplesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  host?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  port?: Prisma.IntFieldUpdateOperationsInput | number
+  sshUser?: Prisma.StringFieldUpdateOperationsInput | string
+  hostFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  arch?: Prisma.StringFieldUpdateOperationsInput | string
+  agentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  serverTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
+  suspendedReason?: Prisma.NullableEnumSuspensionReasonFieldUpdateOperationsInput | $Enums.SuspensionReason | null
+  suspendedByOrganization?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
+  deviceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assignedUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  revokedDevices?: Prisma.ServerRevokedDeviceUncheckedUpdateManyWithoutServerNestedInput
+  alerts?: Prisma.AlertUncheckedUpdateManyWithoutServerNestedInput
+}
+
 export type ServerCreateWithoutAlertsInput = {
   id?: string
   name: string
@@ -1367,7 +1515,6 @@ export type ServerCreateWithoutAlertsInput = {
   channel?: $Enums.ReleaseChannel
   pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1375,6 +1522,7 @@ export type ServerCreateWithoutAlertsInput = {
   device?: Prisma.DeviceCreateNestedOneWithoutEnrolledServersInput
   assignedUser?: Prisma.UserCreateNestedOneWithoutAssignedServersInput
   revokedDevices?: Prisma.ServerRevokedDeviceCreateNestedManyWithoutServerInput
+  metricSamples?: Prisma.ServerMetricCreateNestedManyWithoutServerInput
 }
 
 export type ServerUncheckedCreateWithoutAlertsInput = {
@@ -1402,11 +1550,11 @@ export type ServerUncheckedCreateWithoutAlertsInput = {
   assignedUserId?: string | null
   pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   revokedDevices?: Prisma.ServerRevokedDeviceUncheckedCreateNestedManyWithoutServerInput
+  metricSamples?: Prisma.ServerMetricUncheckedCreateNestedManyWithoutServerInput
 }
 
 export type ServerCreateOrConnectWithoutAlertsInput = {
@@ -1447,7 +1595,6 @@ export type ServerUpdateWithoutAlertsInput = {
   channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1455,6 +1602,7 @@ export type ServerUpdateWithoutAlertsInput = {
   device?: Prisma.DeviceUpdateOneWithoutEnrolledServersNestedInput
   assignedUser?: Prisma.UserUpdateOneWithoutAssignedServersNestedInput
   revokedDevices?: Prisma.ServerRevokedDeviceUpdateManyWithoutServerNestedInput
+  metricSamples?: Prisma.ServerMetricUpdateManyWithoutServerNestedInput
 }
 
 export type ServerUncheckedUpdateWithoutAlertsInput = {
@@ -1482,11 +1630,11 @@ export type ServerUncheckedUpdateWithoutAlertsInput = {
   assignedUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   revokedDevices?: Prisma.ServerRevokedDeviceUncheckedUpdateManyWithoutServerNestedInput
+  metricSamples?: Prisma.ServerMetricUncheckedUpdateManyWithoutServerNestedInput
 }
 
 export type ServerCreateWithoutRevokedDevicesInput = {
@@ -1511,7 +1659,6 @@ export type ServerCreateWithoutRevokedDevicesInput = {
   channel?: $Enums.ReleaseChannel
   pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1519,6 +1666,7 @@ export type ServerCreateWithoutRevokedDevicesInput = {
   device?: Prisma.DeviceCreateNestedOneWithoutEnrolledServersInput
   assignedUser?: Prisma.UserCreateNestedOneWithoutAssignedServersInput
   alerts?: Prisma.AlertCreateNestedManyWithoutServerInput
+  metricSamples?: Prisma.ServerMetricCreateNestedManyWithoutServerInput
 }
 
 export type ServerUncheckedCreateWithoutRevokedDevicesInput = {
@@ -1546,11 +1694,11 @@ export type ServerUncheckedCreateWithoutRevokedDevicesInput = {
   assignedUserId?: string | null
   pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutServerInput
+  metricSamples?: Prisma.ServerMetricUncheckedCreateNestedManyWithoutServerInput
 }
 
 export type ServerCreateOrConnectWithoutRevokedDevicesInput = {
@@ -1591,7 +1739,6 @@ export type ServerUpdateWithoutRevokedDevicesInput = {
   channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1599,6 +1746,7 @@ export type ServerUpdateWithoutRevokedDevicesInput = {
   device?: Prisma.DeviceUpdateOneWithoutEnrolledServersNestedInput
   assignedUser?: Prisma.UserUpdateOneWithoutAssignedServersNestedInput
   alerts?: Prisma.AlertUpdateManyWithoutServerNestedInput
+  metricSamples?: Prisma.ServerMetricUpdateManyWithoutServerNestedInput
 }
 
 export type ServerUncheckedUpdateWithoutRevokedDevicesInput = {
@@ -1626,11 +1774,11 @@ export type ServerUncheckedUpdateWithoutRevokedDevicesInput = {
   assignedUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   alerts?: Prisma.AlertUncheckedUpdateManyWithoutServerNestedInput
+  metricSamples?: Prisma.ServerMetricUncheckedUpdateManyWithoutServerNestedInput
 }
 
 export type ServerCreateManyAssignedUserInput = {
@@ -1657,7 +1805,6 @@ export type ServerCreateManyAssignedUserInput = {
   deviceId?: string | null
   pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1685,7 +1832,6 @@ export type ServerUpdateWithoutAssignedUserInput = {
   channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1693,6 +1839,7 @@ export type ServerUpdateWithoutAssignedUserInput = {
   device?: Prisma.DeviceUpdateOneWithoutEnrolledServersNestedInput
   revokedDevices?: Prisma.ServerRevokedDeviceUpdateManyWithoutServerNestedInput
   alerts?: Prisma.AlertUpdateManyWithoutServerNestedInput
+  metricSamples?: Prisma.ServerMetricUpdateManyWithoutServerNestedInput
 }
 
 export type ServerUncheckedUpdateWithoutAssignedUserInput = {
@@ -1719,12 +1866,12 @@ export type ServerUncheckedUpdateWithoutAssignedUserInput = {
   deviceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   revokedDevices?: Prisma.ServerRevokedDeviceUncheckedUpdateManyWithoutServerNestedInput
   alerts?: Prisma.AlertUncheckedUpdateManyWithoutServerNestedInput
+  metricSamples?: Prisma.ServerMetricUncheckedUpdateManyWithoutServerNestedInput
 }
 
 export type ServerUncheckedUpdateManyWithoutAssignedUserInput = {
@@ -1751,7 +1898,6 @@ export type ServerUncheckedUpdateManyWithoutAssignedUserInput = {
   deviceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1781,7 +1927,6 @@ export type ServerCreateManyOrganizationInput = {
   assignedUserId?: string | null
   pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1809,7 +1954,6 @@ export type ServerUpdateWithoutOrganizationInput = {
   channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1817,6 +1961,7 @@ export type ServerUpdateWithoutOrganizationInput = {
   assignedUser?: Prisma.UserUpdateOneWithoutAssignedServersNestedInput
   revokedDevices?: Prisma.ServerRevokedDeviceUpdateManyWithoutServerNestedInput
   alerts?: Prisma.AlertUpdateManyWithoutServerNestedInput
+  metricSamples?: Prisma.ServerMetricUpdateManyWithoutServerNestedInput
 }
 
 export type ServerUncheckedUpdateWithoutOrganizationInput = {
@@ -1843,12 +1988,12 @@ export type ServerUncheckedUpdateWithoutOrganizationInput = {
   assignedUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   revokedDevices?: Prisma.ServerRevokedDeviceUncheckedUpdateManyWithoutServerNestedInput
   alerts?: Prisma.AlertUncheckedUpdateManyWithoutServerNestedInput
+  metricSamples?: Prisma.ServerMetricUncheckedUpdateManyWithoutServerNestedInput
 }
 
 export type ServerUncheckedUpdateManyWithoutOrganizationInput = {
@@ -1875,7 +2020,6 @@ export type ServerUncheckedUpdateManyWithoutOrganizationInput = {
   assignedUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1905,7 +2049,6 @@ export type ServerCreateManyDeviceInput = {
   assignedUserId?: string | null
   pendingAssignmentEmail?: string | null
   lastHeartbeatAt?: Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
@@ -1933,7 +2076,6 @@ export type ServerUpdateWithoutDeviceInput = {
   channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
   pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1941,6 +2083,7 @@ export type ServerUpdateWithoutDeviceInput = {
   assignedUser?: Prisma.UserUpdateOneWithoutAssignedServersNestedInput
   revokedDevices?: Prisma.ServerRevokedDeviceUpdateManyWithoutServerNestedInput
   alerts?: Prisma.AlertUpdateManyWithoutServerNestedInput
+  metricSamples?: Prisma.ServerMetricUpdateManyWithoutServerNestedInput
 }
 
 export type ServerUncheckedUpdateWithoutDeviceInput = {
@@ -1967,12 +2110,12 @@ export type ServerUncheckedUpdateWithoutDeviceInput = {
   assignedUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   revokedDevices?: Prisma.ServerRevokedDeviceUncheckedUpdateManyWithoutServerNestedInput
   alerts?: Prisma.AlertUncheckedUpdateManyWithoutServerNestedInput
+  metricSamples?: Prisma.ServerMetricUncheckedUpdateManyWithoutServerNestedInput
 }
 
 export type ServerUncheckedUpdateManyWithoutDeviceInput = {
@@ -1999,7 +2142,6 @@ export type ServerUncheckedUpdateManyWithoutDeviceInput = {
   assignedUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-  metrics?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -2013,11 +2155,13 @@ export type ServerUncheckedUpdateManyWithoutDeviceInput = {
 export type ServerCountOutputType = {
   revokedDevices: number
   alerts: number
+  metricSamples: number
 }
 
 export type ServerCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   revokedDevices?: boolean | ServerCountOutputTypeCountRevokedDevicesArgs
   alerts?: boolean | ServerCountOutputTypeCountAlertsArgs
+  metricSamples?: boolean | ServerCountOutputTypeCountMetricSamplesArgs
 }
 
 /**
@@ -2042,6 +2186,13 @@ export type ServerCountOutputTypeCountRevokedDevicesArgs<ExtArgs extends runtime
  */
 export type ServerCountOutputTypeCountAlertsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.AlertWhereInput
+}
+
+/**
+ * ServerCountOutputType without action
+ */
+export type ServerCountOutputTypeCountMetricSamplesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ServerMetricWhereInput
 }
 
 
@@ -2070,7 +2221,6 @@ export type ServerSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   assignedUserId?: boolean
   pendingAssignmentEmail?: boolean
   lastHeartbeatAt?: boolean
-  metrics?: boolean
   lastUsage?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -2079,6 +2229,7 @@ export type ServerSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   assignedUser?: boolean | Prisma.Server$assignedUserArgs<ExtArgs>
   revokedDevices?: boolean | Prisma.Server$revokedDevicesArgs<ExtArgs>
   alerts?: boolean | Prisma.Server$alertsArgs<ExtArgs>
+  metricSamples?: boolean | Prisma.Server$metricSamplesArgs<ExtArgs>
   _count?: boolean | Prisma.ServerCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["server"]>
 
@@ -2107,7 +2258,6 @@ export type ServerSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   assignedUserId?: boolean
   pendingAssignmentEmail?: boolean
   lastHeartbeatAt?: boolean
-  metrics?: boolean
   lastUsage?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -2141,7 +2291,6 @@ export type ServerSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   assignedUserId?: boolean
   pendingAssignmentEmail?: boolean
   lastHeartbeatAt?: boolean
-  metrics?: boolean
   lastUsage?: boolean
   createdAt?: boolean
   updatedAt?: boolean
@@ -2175,19 +2324,19 @@ export type ServerSelectScalar = {
   assignedUserId?: boolean
   pendingAssignmentEmail?: boolean
   lastHeartbeatAt?: boolean
-  metrics?: boolean
   lastUsage?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type ServerOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "name" | "host" | "port" | "sshUser" | "hostFingerprint" | "arch" | "agentVersion" | "targetVersion" | "serverTokenHash" | "enrollmentTokenHash" | "enrollmentKey" | "enrollmentExpiresAt" | "entitlementValidUntil" | "decommissionAt" | "status" | "suspendedReason" | "suspendedByOrganization" | "channel" | "deviceId" | "assignedUserId" | "pendingAssignmentEmail" | "lastHeartbeatAt" | "metrics" | "lastUsage" | "createdAt" | "updatedAt", ExtArgs["result"]["server"]>
+export type ServerOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "name" | "host" | "port" | "sshUser" | "hostFingerprint" | "arch" | "agentVersion" | "targetVersion" | "serverTokenHash" | "enrollmentTokenHash" | "enrollmentKey" | "enrollmentExpiresAt" | "entitlementValidUntil" | "decommissionAt" | "status" | "suspendedReason" | "suspendedByOrganization" | "channel" | "deviceId" | "assignedUserId" | "pendingAssignmentEmail" | "lastHeartbeatAt" | "lastUsage" | "createdAt" | "updatedAt", ExtArgs["result"]["server"]>
 export type ServerInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
   device?: boolean | Prisma.Server$deviceArgs<ExtArgs>
   assignedUser?: boolean | Prisma.Server$assignedUserArgs<ExtArgs>
   revokedDevices?: boolean | Prisma.Server$revokedDevicesArgs<ExtArgs>
   alerts?: boolean | Prisma.Server$alertsArgs<ExtArgs>
+  metricSamples?: boolean | Prisma.Server$metricSamplesArgs<ExtArgs>
   _count?: boolean | Prisma.ServerCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ServerIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2209,6 +2358,11 @@ export type $ServerPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     assignedUser: Prisma.$UserPayload<ExtArgs> | null
     revokedDevices: Prisma.$ServerRevokedDevicePayload<ExtArgs>[]
     alerts: Prisma.$AlertPayload<ExtArgs>[]
+    /**
+     * One row per heartbeat reading, pruned past the seven-day window: the
+     * heartbeat writes its sample alone, never the window it belongs to.
+     */
+    metricSamples: Prisma.$ServerMetricPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2238,7 +2392,6 @@ export type $ServerPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     assignedUserId: string | null
     pendingAssignmentEmail: string | null
     lastHeartbeatAt: Date | null
-    metrics: runtime.JsonValue | null
     lastUsage: runtime.JsonValue | null
     createdAt: Date
     updatedAt: Date
@@ -2641,6 +2794,7 @@ export interface Prisma__ServerClient<T, Null = never, ExtArgs extends runtime.T
   assignedUser<T extends Prisma.Server$assignedUserArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Server$assignedUserArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   revokedDevices<T extends Prisma.Server$revokedDevicesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Server$revokedDevicesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ServerRevokedDevicePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   alerts<T extends Prisma.Server$alertsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Server$alertsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AlertPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  metricSamples<T extends Prisma.Server$metricSamplesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Server$metricSamplesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ServerMetricPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2694,7 +2848,6 @@ export interface ServerFieldRefs {
   readonly assignedUserId: Prisma.FieldRef<"Server", 'String'>
   readonly pendingAssignmentEmail: Prisma.FieldRef<"Server", 'String'>
   readonly lastHeartbeatAt: Prisma.FieldRef<"Server", 'DateTime'>
-  readonly metrics: Prisma.FieldRef<"Server", 'Json'>
   readonly lastUsage: Prisma.FieldRef<"Server", 'Json'>
   readonly createdAt: Prisma.FieldRef<"Server", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Server", 'DateTime'>
@@ -3180,6 +3333,30 @@ export type Server$alertsArgs<ExtArgs extends runtime.Types.Extensions.InternalA
   take?: number
   skip?: number
   distinct?: Prisma.AlertScalarFieldEnum | Prisma.AlertScalarFieldEnum[]
+}
+
+/**
+ * Server.metricSamples
+ */
+export type Server$metricSamplesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ServerMetric
+   */
+  select?: Prisma.ServerMetricSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ServerMetric
+   */
+  omit?: Prisma.ServerMetricOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ServerMetricInclude<ExtArgs> | null
+  where?: Prisma.ServerMetricWhereInput
+  orderBy?: Prisma.ServerMetricOrderByWithRelationInput | Prisma.ServerMetricOrderByWithRelationInput[]
+  cursor?: Prisma.ServerMetricWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ServerMetricScalarFieldEnum | Prisma.ServerMetricScalarFieldEnum[]
 }
 
 /**

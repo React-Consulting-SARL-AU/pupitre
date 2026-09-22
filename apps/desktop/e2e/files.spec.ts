@@ -16,6 +16,7 @@ import { launchPupitre, type Running } from "./harness/launch";
 const FLYMATE_CARD = /^flymate-api/;
 const SAVED = /^Enregistré /;
 const DIGEST = /^[0-9a-f]{64}$/;
+const BLOB_URL = /^blob:/;
 
 /** What the harness kept of the writes the window sent. */
 interface Written {
@@ -100,12 +101,22 @@ test.describe("les fichiers d'un projet", () => {
             (one) => one.name === nameOf(path)
           );
 
-        const mediaOf = (path: string) => {
-          if (tree.texts[path] !== undefined) {
-            return { media_type: "text/plain" };
+        const mediaTypeOf = (path: string): string | null => {
+          if (path.endsWith(".svg")) {
+            return "image/svg+xml";
           }
 
-          return path.endsWith(".png") ? { media_type: "image/png" } : {};
+          if (path.endsWith(".png")) {
+            return "image/png";
+          }
+
+          return tree.texts[path] === undefined ? null : "text/plain";
+        };
+
+        const mediaOf = (path: string) => {
+          const mediaType = mediaTypeOf(path);
+
+          return mediaType === null ? {} : { media_type: mediaType };
         };
 
         const stat = (path: string) => {
@@ -183,6 +194,13 @@ test.describe("les fichiers d'un projet", () => {
                 "utf8"
               );
 
+              if (asked.sha256 === undefined && entryOf(asked.path)) {
+                return refused(
+                  `entrée déjà présente : ${asked.path}`,
+                  "Choisissez un autre nom."
+                );
+              }
+
               if (
                 current !== undefined &&
                 asked.sha256 !== (await digest(current))
@@ -191,6 +209,16 @@ test.describe("les fichiers d'un projet", () => {
                   `${asked.path} a changé depuis la lecture`,
                   "Relisez le fichier avec fs.read, reportez-y vos modifications, puis réécrivez avec la nouvelle empreinte."
                 );
+              }
+
+              if (current === undefined) {
+                tree.folders[parentOf(asked.path)]?.push({
+                  kind: "file",
+                  mode: "0644",
+                  modified_at: "2026-09-01T10:00:00Z",
+                  name: nameOf(asked.path),
+                  size_bytes: Buffer.byteLength(text),
+                });
               }
 
               tree.texts[asked.path] = text;
@@ -286,7 +314,7 @@ test.describe("les fichiers d'un projet", () => {
               ok: true,
               result: {
                 chunks: 1,
-                media_type: "text/plain",
+                media_type: mediaTypeOf(asked.path) ?? "text/plain",
                 path: asked.path,
                 sha256: await digest(text),
                 size_bytes: Buffer.byteLength(text),
@@ -324,7 +352,7 @@ test.describe("les fichiers d'un projet", () => {
           rows.map((row) => row.getAttribute("data-entry"))
         );
 
-      expect(order).toEqual(["src", "dump.tar.gz", "README.md"]);
+      expect(order).toEqual(["src", "dump.tar.gz", "logo.svg", "README.md"]);
 
       await assertAccessible(page, "files/list");
     });
@@ -339,6 +367,69 @@ test.describe("les fichiers d'un projet", () => {
       await expect(
         page.getByRole("button", { name: "Télécharger" })
       ).toBeEnabled();
+    });
+
+    await test.step("un Markdown s'ouvre rendu, se lit en code, et le rendu suit le tampon", async () => {
+      await page.locator('[data-entry="README.md"] button').first().click();
+
+      const rendered = page.locator('[data-rendered="markdown"]');
+      await expect(rendered).toBeVisible();
+      await expect(
+        rendered.getByRole("heading", { name: "Flymate" })
+      ).toBeVisible();
+      await expect(rendered.getByRole("cell", { name: "3000" })).toBeVisible();
+      await expect(page.locator(".cm-content")).toHaveCount(0);
+
+      const views = page.getByRole("group", { name: "Vue" });
+      await expect(
+        views.getByRole("button", { name: "Rendu" })
+      ).toHaveAttribute("aria-pressed", "true");
+
+      await assertAccessible(page, "files/markdown");
+
+      await views.getByRole("button", { name: "Code" }).click();
+      await expect(rendered).toHaveCount(0);
+      await expect(page.locator(".cm-content")).toContainText("# Flymate");
+
+      await page.locator(".cm-content").click();
+      await page.keyboard.press("ControlOrMeta+End");
+      await page.keyboard.type("\n\nEdited line");
+
+      await views.getByRole("button", { name: "Rendu" }).click();
+      await expect(rendered.getByText("Edited line")).toBeVisible();
+      await expect(page.getByLabel("Modifié, non enregistré")).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Enregistrer" })
+      ).toBeEnabled();
+
+      await page.getByRole("button", { name: "Fermer le fichier" }).click();
+      await page
+        .getByRole("button", { name: "Abandonner les modifications" })
+        .click();
+      await expect(page.locator("[data-preview]")).toHaveCount(0);
+    });
+
+    await test.step("un SVG s'ouvre dessiné, avec sa fiche, et se lit en code", async () => {
+      await page.locator('[data-entry="logo.svg"] button').first().click();
+
+      const image = page.getByRole("img", { name: "Image logo.svg" });
+      await expect(image).toBeVisible();
+      await expect(image).toHaveAttribute("src", BLOB_URL);
+      await expect
+        .poll(() => image.evaluate((img: HTMLImageElement) => img.naturalWidth))
+        .toBe(64);
+      await expect(
+        page.getByLabel("Fichier logo.svg").getByText("118 o")
+      ).toBeVisible();
+
+      await assertAccessible(page, "files/svg");
+
+      await page
+        .getByRole("group", { name: "Vue" })
+        .getByRole("button", { name: "Code" })
+        .click();
+      await expect(image).toHaveCount(0);
+      await expect(page.locator(".cm-content")).toContainText("<svg");
     });
 
     await test.step("un nouveau dossier se demande en haut, dans un dialogue, et paraît dans la liste", async () => {
@@ -472,11 +563,70 @@ test.describe("les fichiers d'un projet", () => {
       expect(written).toHaveLength(2);
     });
 
-    await test.step("l'écran tient la passe d'accessibilité dans les deux thèmes", async () => {
+    await test.step("un nouveau fichier se demande en haut, s'écrit vide sans empreinte et s'ouvre", async () => {
+      await page.getByRole("button", { name: "Nouveau fichier" }).click();
+
+      const dialog = page.getByRole("dialog", { name: "Nouveau fichier" });
+      await expect(dialog).toBeVisible();
+      await expect(dialog.getByLabel("Nom")).toBeFocused();
+
+      await assertAccessible(page, "files/new-file");
+
+      await dialog.getByLabel("Nom").fill("notes.md");
+      await page.keyboard.press("Enter");
+
+      await expect(dialog).toHaveCount(0);
+      await expect(page.locator('[data-entry="notes.md"]')).toBeVisible();
+      await expect(page.getByLabel("Fichier notes.md")).toBeVisible();
+      await expect(page.locator(".cm-content")).toHaveText("");
+
+      const written = await running.app.evaluate(
+        () => (globalThis as { written?: Written[] }).written ?? []
+      );
+
+      expect(written).toHaveLength(3);
+      expect(written[2]).toEqual({
+        path: "projects/flymate/src/notes.md",
+        sha256: undefined,
+        text: "",
+      });
+    });
+
+    await test.step("un nom déjà pris est refusé sous l'en-tête, et le fichier ouvert reste", async () => {
+      await page.getByRole("button", { name: "Nouveau fichier" }).click();
+      await page
+        .getByRole("dialog", { name: "Nouveau fichier" })
+        .getByLabel("Nom")
+        .fill("index.ts");
+      await page.keyboard.press("Enter");
+
+      await expect(
+        page.getByText("entrée déjà présente : projects/flymate/src/index.ts")
+      ).toBeVisible();
+      await expect(page.getByLabel("Fichier notes.md")).toBeVisible();
+
+      await page.getByRole("button", { name: "Masquer" }).click();
+    });
+
+    await test.step("l'écran tient la passe d'accessibilité et le texte sélectionné garde sa couleur, dans les deux thèmes", async () => {
       for (const theme of ["dark", "light"] as const) {
         await themed(page, theme);
         await openFiles(page);
         await expect(page.locator('[data-preview="text"]')).toBeVisible();
+
+        await page.locator('[data-entry="src"] button').first().click();
+        await page.locator('[data-entry="index.ts"] button').first().click();
+        await expect(page.locator(".cm-content")).toContainText("export");
+
+        const colours = await page
+          .locator(".cm-line span")
+          .first()
+          .evaluate((token) => ({
+            own: getComputedStyle(token).color,
+            selected: getComputedStyle(token, "::selection").color,
+          }));
+
+        expect(colours.selected).toBe(colours.own);
 
         await assertAccessible(page, `files/${theme}`);
       }
