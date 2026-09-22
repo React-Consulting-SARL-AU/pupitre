@@ -1,0 +1,43 @@
+---
+title: A Markdown and an SVG open drawn, two installs no longer run over each other, and the launch is free with a machine kept for good
+description: Markdown and SVG files open rendered with a Rendered · Code switch in the preview header, image previews and gallery thumbnails draw again, a file is created from the explorer and selected text in the editor stays readable; on the machine, an install, a sync and a pull share one lock and a followed log bounds what it holds; the launch is free without a card, an organisation that enrolled a machine during it keeps one machine for as long as the service exists, and the legal documents are published.
+locale: en
+version: 0.7.0
+channel: stable
+date: 2026-09-22
+order: 14
+---
+
+App and agent both to update: the app offers the agent update on the servers it knows.
+
+## The app
+
+- A text that has a drawn shape opens drawn: Markdown with tables, task lists and links, and SVG from its source. **Rendered · Code** sits in the preview header, the rendering follows what you are editing, and a file you have just created opens in code.
+- Image previews and the gallery thumbnails were blank: the app's own content security policy refused the images it had just built itself. They draw again.
+- A **New file** button in the explorer writes an empty file, reads the folder again and opens it. It is not offered while a file with unsaved changes is on screen.
+- Text selected in the editor was invisible, in both themes, since the selection band inverted the ink CodeMirror paints its own layer behind. Selected text keeps its colour, on a band that shows.
+- The shortcuts card takes focus when it is long enough to scroll, so it can be read with the keyboard; the viewer's arrow keys move from one file to the next wherever the focus fell when it opened.
+- What a terminal prints reaches the screen in frames of 16 ms instead of line by line: a command that floods its output no longer slows the window down.
+- An enrolment cut in the middle is resumed only after the machine's identity has been checked again.
+
+## The agent
+
+- `project.install`, a sync and a pull share one lock on the machine. A second run answers « an install, a sync or a pull is already running on this machine », and says to let it finish — two runs in the same directories corrupt each other. A run ends with the session that asked for it, so a retry after a cut finds the lock free.
+- A followed log bounds what it holds: a process that prints without newlines — a progress bar, binary output — no longer grows the agent without limit, and a burst wider than one read hands over its end rather than hours-old lines.
+- The protocol caps a line at 4 MiB at both ends.
+
+## The platform
+
+- The launch is free: no card, no payment, no invoice. Starting grants your organisation the launch subscription, for one machine, until the announced date.
+- **An organisation that enrolled a machine during the free launch keeps one machine without paying, for as long as the service exists.** The console shows that seat with no expiry date and no end-of-launch warning.
+- The prices announced for the day billing opens are $5 per server per month, $50 per year, and the trial is thirty days on one machine, without a card. Nothing is ever charged without an explicit action on your part.
+- The legal documents are published and binding — terms, licence, acceptable use, privacy, data processing. They name the publisher, Jordan Monier, a natural person residing in Morocco; what the launch gives for good; everything the platform receives from your machine, heartbeat by heartbeat; the three levers it has on it — the right of use, the list of authorised keys, the agent version — and what it cannot do, by construction rather than by policy.
+- The platform's database and files now live in Cloudflare's Eastern North America region, as the privacy policy and the data processing agreement say.
+- Arriving through an affiliate link keeps that link's code for ninety days in a cookie on `pupitre.studio`, so the console can note which link brought an organisation when it starts its subscription. During the launch, it says nothing but where you came from.
+- The console's documents carry a content security policy and HSTS in production, and the API's rate limits are now counted across the whole platform rather than in each isolate: a call without a signed address draws from a shared budget instead of getting through.
+
+## Known limits
+
+- The runtime versions of a project are chosen in its settings once it is added; the add screen does not ask for them yet.
+- A macOS app 0.1.2 or later finds this version on its own; 0.1.0 and 0.1.1 still cannot, and need 0.7.0 installed from the download page.
+- The Windows installer is still unsigned: SmartScreen warns at first launch.
