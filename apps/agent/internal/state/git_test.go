@@ -1,6 +1,7 @@
 package state_test
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -373,7 +374,7 @@ func TestCheckoutRefusesABranchNameGitMustNeverSee(t *testing.T) {
 func TestSyncClonesWhatIsMissingAndPullsWhatIsThere(t *testing.T) {
 	repo := gitFixture(t)
 
-	fresh, err := repo.reader.Sync("fresh", func(string) {})
+	fresh, err := repo.reader.Sync(context.Background(), "fresh", func(string) {})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -386,7 +387,7 @@ func TestSyncClonesWhatIsMissingAndPullsWhatIsThere(t *testing.T) {
 		t.Fatalf("the repository must have been cloned: %v", err)
 	}
 
-	web, err := repo.reader.Sync("web", func(string) {})
+	web, err := repo.reader.Sync(context.Background(), "web", func(string) {})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -524,7 +525,7 @@ func TestSyncClonesTheBranchTheRegistryNames(t *testing.T) {
 		Sleep:        func(time.Duration) {},
 	})
 
-	if _, err := reader.Sync("two", func(string) {}); err != nil {
+	if _, err := reader.Sync(context.Background(), "two", func(string) {}); err != nil {
 		t.Fatal(err)
 	}
 

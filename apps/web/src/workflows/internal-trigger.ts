@@ -5,7 +5,7 @@ export const INTERNAL_WORKFLOW_PREFIX = "/internal/workflows/"
 
 export const INTERNAL_SECRET_HEADER = "x-pupitre-internal-secret"
 
-function equalsInConstantTime(left: string, right: string): boolean {
+export function equalsInConstantTime(left: string, right: string): boolean {
   if (left.length !== right.length) {
     return false
   }

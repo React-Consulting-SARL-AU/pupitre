@@ -409,6 +409,7 @@ export const ModelName = {
   TwoFactor: 'TwoFactor',
   Device: 'Device',
   Server: 'Server',
+  ServerMetric: 'ServerMetric',
   Alert: 'Alert',
   ServerRevokedDevice: 'ServerRevokedDevice',
   Subscription: 'Subscription',
@@ -443,7 +444,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "deviceCode" | "passkey" | "twoFactor" | "device" | "server" | "alert" | "serverRevokedDevice" | "subscription" | "organizationBilling" | "affiliateLink" | "affiliateClickDay" | "referral" | "mailMailbox" | "mailThread" | "mailNote" | "mailDraft" | "mailActivity" | "mailTemplate" | "mailMessage" | "mailAttachment" | "release" | "appRelease" | "event" | "stripeEvent"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "deviceCode" | "passkey" | "twoFactor" | "device" | "server" | "serverMetric" | "alert" | "serverRevokedDevice" | "subscription" | "organizationBilling" | "affiliateLink" | "affiliateClickDay" | "referral" | "mailMailbox" | "mailThread" | "mailNote" | "mailDraft" | "mailActivity" | "mailTemplate" | "mailMessage" | "mailAttachment" | "release" | "appRelease" | "event" | "stripeEvent"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1332,6 +1333,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.ServerCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.ServerCountAggregateOutputType> | number
+        }
+      }
+    }
+    ServerMetric: {
+      payload: Prisma.$ServerMetricPayload<ExtArgs>
+      fields: Prisma.ServerMetricFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ServerMetricFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServerMetricPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ServerMetricFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServerMetricPayload>
+        }
+        findFirst: {
+          args: Prisma.ServerMetricFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServerMetricPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ServerMetricFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServerMetricPayload>
+        }
+        findMany: {
+          args: Prisma.ServerMetricFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServerMetricPayload>[]
+        }
+        create: {
+          args: Prisma.ServerMetricCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServerMetricPayload>
+        }
+        createMany: {
+          args: Prisma.ServerMetricCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ServerMetricCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServerMetricPayload>[]
+        }
+        delete: {
+          args: Prisma.ServerMetricDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServerMetricPayload>
+        }
+        update: {
+          args: Prisma.ServerMetricUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServerMetricPayload>
+        }
+        deleteMany: {
+          args: Prisma.ServerMetricDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ServerMetricUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ServerMetricUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServerMetricPayload>[]
+        }
+        upsert: {
+          args: Prisma.ServerMetricUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ServerMetricPayload>
+        }
+        aggregate: {
+          args: Prisma.ServerMetricAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateServerMetric>
+        }
+        groupBy: {
+          args: Prisma.ServerMetricGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ServerMetricGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ServerMetricCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ServerMetricCountAggregateOutputType> | number
         }
       }
     }
@@ -2979,13 +3054,22 @@ export const ServerScalarFieldEnum = {
   assignedUserId: 'assignedUserId',
   pendingAssignmentEmail: 'pendingAssignmentEmail',
   lastHeartbeatAt: 'lastHeartbeatAt',
-  metrics: 'metrics',
   lastUsage: 'lastUsage',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type ServerScalarFieldEnum = (typeof ServerScalarFieldEnum)[keyof typeof ServerScalarFieldEnum]
+
+
+export const ServerMetricScalarFieldEnum = {
+  id: 'id',
+  serverId: 'serverId',
+  at: 'at',
+  sample: 'sample'
+} as const
+
+export type ServerMetricScalarFieldEnum = (typeof ServerMetricScalarFieldEnum)[keyof typeof ServerMetricScalarFieldEnum]
 
 
 export const AlertScalarFieldEnum = {
@@ -3604,6 +3688,7 @@ export type GlobalOmitConfig = {
   twoFactor?: Prisma.TwoFactorOmit
   device?: Prisma.DeviceOmit
   server?: Prisma.ServerOmit
+  serverMetric?: Prisma.ServerMetricOmit
   alert?: Prisma.AlertOmit
   serverRevokedDevice?: Prisma.ServerRevokedDeviceOmit
   subscription?: Prisma.SubscriptionOmit

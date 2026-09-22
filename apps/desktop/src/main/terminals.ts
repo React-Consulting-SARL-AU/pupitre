@@ -5,6 +5,7 @@ import * as pty from "node-pty";
 
 import { current, terminalOptions } from "./platform";
 import { targetOf } from "./servers";
+import { createTerminalBatch, type TerminalBatch } from "./terminal-batch";
 import { type LoginAddress, loginAddress } from "./terminal-links";
 import { isSessionName } from "./terminal-run";
 import { openScreen, type Screen } from "./terminal-screen";
@@ -23,11 +24,25 @@ interface Session extends Activity {
   screen: Screen;
   /** The login address this session last printed, kept out of the renderer. */
   login: LoginAddress | null;
+  /** This session's share of the bridge: dropped with it, unread. */
+  batch: TerminalBatch;
 }
 
 const sessions = new Map<string, Session>();
 
 const BELL = "\u0007";
+
+/**
+ * The pipe to the renderer, one frame wide: chunks of the same session are
+ * joined before they cross, and the recipient is whoever last opened one.
+ */
+function batchFor(recipient: WebContents) {
+  return createTerminalBatch((id, data) => {
+    if (!recipient.isDestroyed()) {
+      recipient.send("terminal-data", { id, data });
+    }
+  });
+}
 
 export function states(): Record<string, AgentState> {
   const all: Record<string, AgentState> = {};
@@ -85,6 +100,7 @@ export function open(request: OpenTerminal, recipient: WebContents): void {
 
   close(id);
 
+  const batch = batchFor(recipient);
   const proc = pty.spawn(
     "ssh",
     ["-tt", ...targetOf(request.serverId), request.command],
@@ -100,9 +116,7 @@ export function open(request: OpenTerminal, recipient: WebContents): void {
       }
       session.screen.write(data, () => noteLogin(id, session, recipient));
     }
-    if (!recipient.isDestroyed()) {
-      recipient.send("terminal-data", { id, data });
-    }
+    batch.push(id, data);
   });
 
   proc.onExit(({ exitCode }) => {
@@ -110,6 +124,8 @@ export function open(request: OpenTerminal, recipient: WebContents): void {
     if (session) {
       session.finished = true;
     }
+    // The last bytes leave before the door closes on them.
+    batch.flush();
     if (!recipient.isDestroyed()) {
       recipient.send("terminal-exit", { id, code: exitCode });
     }
@@ -122,6 +138,7 @@ export function open(request: OpenTerminal, recipient: WebContents): void {
     project: request.project,
     screen: openScreen(request.cols, request.rows),
     login: null,
+    batch,
   });
   watch(recipient);
 }
@@ -241,6 +258,9 @@ export function close(id: string): void {
     // Already dead.
   }
   session.screen.dispose();
+  // A replacement opens under the same id: what this one still held is not
+  // its bytes to deliver.
+  session.batch.drop(id);
   sessions.delete(id);
 }
 

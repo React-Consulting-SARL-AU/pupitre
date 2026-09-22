@@ -136,6 +136,7 @@ func stateOptions() state.Options {
 			Backups: pathFromEnv("PUPITRE_BACKUPS_PATH", migrate.DefaultBackups),
 			Lock:    projectsLockPath(),
 		},
+		InstallLock: pathFromEnv("PUPITRE_PROJECT_INSTALL_LOCK_PATH", state.DefaultInstallLock),
 	}
 }
 

@@ -3,7 +3,10 @@ import {
   configureInboxRealtime,
   type InboxEvent,
 } from "@pupitre/api/mail/realtime"
-import { INTERNAL_SECRET_HEADER } from "@/workflows/internal-trigger"
+import {
+  equalsInConstantTime,
+  INTERNAL_SECRET_HEADER,
+} from "@/workflows/internal-trigger"
 
 /** Where the console opens its socket, and where the API pushes what it just wrote. */
 export const INBOX_EVENTS_PATH = "/api/v1/admin/inbox/events"
@@ -84,7 +87,7 @@ export function answerInboxSocketMessage(
 function internalSecretMatches(request: Request, secret?: string): boolean {
   const presented = request.headers.get(INTERNAL_SECRET_HEADER)
 
-  return Boolean(secret && presented && secret === presented)
+  return Boolean(secret && presented && equalsInConstantTime(secret, presented))
 }
 
 export async function handleInboxRealtimeRequest(

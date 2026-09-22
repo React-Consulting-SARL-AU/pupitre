@@ -99,6 +99,11 @@ export type Device = Prisma.DeviceModel
  */
 export type Server = Prisma.ServerModel
 /**
+ * Model ServerMetric
+ * 
+ */
+export type ServerMetric = Prisma.ServerMetricModel
+/**
  * Model Alert
  * 
  */

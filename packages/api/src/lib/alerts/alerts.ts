@@ -8,7 +8,7 @@ import {
 import { getPrisma } from "../api/prisma"
 import { CHANNEL_SOURCES } from "../releases/releases"
 import { readUsage } from "../servers/metrics"
-import { type ServerRow, WITHOUT_METRICS } from "../servers/server-row"
+import type { ServerRow } from "../servers/server-row"
 import { type AlertState, detectAlerts, latestVersionOf } from "./detect"
 
 export interface AlertView {
@@ -148,7 +148,6 @@ export async function evaluateAlerts(
       ],
     },
     orderBy: { createdAt: "asc" },
-    omit: WITHOUT_METRICS,
   })
   const runs: AlertRun[] = []
 
