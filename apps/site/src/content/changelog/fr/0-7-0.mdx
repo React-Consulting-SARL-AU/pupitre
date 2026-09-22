@@ -1,0 +1,43 @@
+---
+title: Un Markdown et un SVG s’ouvrent dessinés, deux installations ne se marchent plus dessus, et le lancement est gratuit avec une machine gardée pour de bon
+description: Les fichiers Markdown et SVG s’ouvrent rendus, avec une bascule Rendu · Code dans l’en-tête de l’aperçu, l’aperçu des images et les vignettes de la galerie se dessinent de nouveau, un fichier se crée depuis l’explorateur et le texte sélectionné dans l’éditeur se lit ; sur la machine, une installation, une synchronisation et un pull partagent un verrou et un journal suivi borne ce qu’il retient ; le lancement est gratuit sans carte, une organisation qui y a enrôlé une machine en garde une aussi longtemps que le service existe, et les documents légaux sont publiés.
+locale: fr
+version: 0.7.0
+channel: stable
+date: 2026-09-22
+order: 14
+---
+
+App et agent tous deux à mettre à jour : l’app propose la mise à jour de l’agent sur les serveurs qu’elle connaît.
+
+## L’app
+
+- Un texte qui a une forme dessinée s’ouvre dessiné : le Markdown avec ses tableaux, ses listes de tâches et ses liens, et le SVG depuis son source. **Rendu · Code** se tient dans l’en-tête de l’aperçu, le rendu suit ce que vous êtes en train de modifier, et un fichier que vous venez de créer s’ouvre en code.
+- L’aperçu des images et les vignettes de la galerie restaient vides : la politique de sécurité de l’app refusait les images qu’elle venait elle-même de construire. Elles se dessinent de nouveau.
+- Un bouton **Nouveau fichier** dans l’explorateur écrit un fichier vide, relit le dossier et l’ouvre. Il n’est pas proposé tant qu’un fichier aux modifications non enregistrées est à l’écran.
+- Le texte sélectionné dans l’éditeur était invisible, dans les deux thèmes, la bande de sélection inversant l’encre derrière laquelle CodeMirror peint sa propre couche. Le texte sélectionné garde sa couleur, sur une bande qui se voit.
+- La fiche des raccourcis prend le focus quand elle est assez longue pour défiler, et se lit donc au clavier ; les flèches de la visionneuse passent d’un fichier au suivant où que le focus soit tombé à l’ouverture.
+- Ce qu’un terminal imprime arrive à l’écran par trames de 16 ms plutôt que ligne à ligne : une commande qui inonde sa sortie ne ralentit plus la fenêtre.
+- Un enrôlement coupé en chemin n’est repris qu’après une nouvelle vérification de l’identité de la machine.
+
+## L’agent
+
+- `project.install`, une synchronisation et un pull partagent un verrou sur la machine. Une seconde exécution répond « une installation, une synchronisation ou un pull tourne déjà sur cette machine », et dit de la laisser finir — deux exécutions dans les mêmes dossiers se corrompent l’une l’autre. Une exécution meurt avec la session qui l’a demandée, si bien qu’un nouvel essai après une coupure trouve le verrou libre.
+- Un journal suivi borne ce qu’il retient : un processus qui imprime sans saut de ligne — une barre de progression, une sortie binaire — ne fait plus grossir l’agent sans limite, et une rafale plus large qu’une lecture livre sa fin plutôt que des lignes vieilles de plusieurs heures.
+- Le protocole borne une ligne à 4 Mio des deux côtés.
+
+## La plateforme
+
+- Le lancement est gratuit : ni carte, ni paiement, ni facture. Démarrer accorde à votre organisation l’abonnement de lancement, pour une machine, jusqu’à la date annoncée.
+- **Une organisation qui a enrôlé une machine pendant le lancement gratuit garde une machine sans payer, aussi longtemps que le service existe.** La console montre ce siège sans échéance et sans avertissement de fin de lancement.
+- Les prix annoncés pour le jour où la facturation ouvrira sont de 5 $ par serveur et par mois, 50 $ par an, et l’essai est de trente jours sur une machine, sans carte. Rien n’est jamais prélevé sans un geste explicite de votre part.
+- Les documents légaux sont publiés et engagent — conditions, licence, usage acceptable, confidentialité, traitement des données. Ils nomment l’éditeur, Jordan Monier, personne physique résidant au Maroc ; ce que le lancement donne pour de bon ; tout ce que la plateforme reçoit de votre machine, battement après battement ; les trois leviers qu’elle a dessus — le droit d’usage, la liste des clés autorisées, la version de l’agent — et ce qu’elle ne peut pas faire, par construction et non par promesse.
+- La base et les fichiers de la plateforme vivent désormais dans la région Amérique du Nord Est de Cloudflare, comme le disent la politique de confidentialité et l’accord de traitement.
+- Arriver par un lien d’affiliation garde le code de ce lien pendant quatre-vingt-dix jours dans un cookie sur `pupitre.studio`, pour que la console note quel lien a amené une organisation au moment où elle démarre son abonnement. Pendant le lancement, il ne dit rien d’autre que d’où vous venez.
+- Les documents de la console portent une politique de sécurité du contenu et HSTS en production, et les limites de débit de l’API se comptent désormais sur toute la plateforme plutôt que dans chaque isolat : un appel sans adresse signée puise dans un bac commun au lieu de passer.
+
+## Limites connues
+
+- Les versions de runtime d’un projet se choisissent dans ses réglages une fois le projet ajouté ; l’écran d’ajout ne les demande pas encore.
+- Une app macOS 0.1.2 ou plus récente trouve cette version seule ; les 0.1.0 et 0.1.1 ne le peuvent toujours pas, et demandent la 0.7.0 installée depuis la page de téléchargement.
+- L’installateur Windows n’est toujours pas signé : SmartScreen avertit au premier lancement.
