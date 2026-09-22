@@ -15,10 +15,9 @@ import {
 } from "../billing/entitlement"
 import { SEATED_STATUSES } from "../billing/seats"
 import { type AdminEventView, recentEvents } from "../platform/events"
-import { metricsOf } from "./agent-state"
+import { metricsForServer } from "./agent-state"
 import type { MetricSample } from "./metrics"
 import type { ServerRow } from "./server-row"
-import { WITHOUT_METRICS } from "./server-row"
 import {
   deleteServer,
   type ServerView,
@@ -160,7 +159,6 @@ export async function listServersForPlatform(
       orderBy: orderOf(filter),
       skip: filter.offset,
       take: filter.limit,
-      omit: WITHOUT_METRICS,
       include: { organization: ORGANIZATION_SELECT },
     }),
     prisma.server.count({ where }),
@@ -193,7 +191,6 @@ export async function suspendServerByAdmin(
   const prisma = getPrisma()
   const server = await prisma.server.findUnique({
     where: { id: serverId },
-    omit: WITHOUT_METRICS,
     include: { organization: ORGANIZATION_SELECT },
   })
 
@@ -230,7 +227,6 @@ export async function suspendServerByAdmin(
 
   const suspended = await prisma.server.findUniqueOrThrow({
     where: { id: server.id },
-    omit: WITHOUT_METRICS,
     include: { organization: ORGANIZATION_SELECT },
   })
   const alerts = await activeAlertsFor([suspended.id])
@@ -325,10 +321,11 @@ async function revocationActorsOf(
 }
 
 async function detailOf(server: ServerDetailRow): Promise<AdminServerDetail> {
-  const [alerts, events, actors] = await Promise.all([
+  const [alerts, events, actors, metrics] = await Promise.all([
     activeAlertsFor([server.id]),
     recentEvents({ targetType: "server", targetId: server.id }),
     revocationActorsOf(server.revokedDevices),
+    metricsForServer(server.id),
   ])
 
   return {
@@ -343,7 +340,7 @@ async function detailOf(server: ServerDetailRow): Promise<AdminServerDetail> {
         : null,
       revoked_at: revocation.revokedAt,
     })),
-    metrics: metricsOf(server),
+    metrics,
     events,
   }
 }
@@ -514,7 +511,6 @@ export async function deleteServerByAdmin(
 ): Promise<AdminServerDeletion | null> {
   const server = await getPrisma().server.findUnique({
     where: { id: serverId },
-    omit: WITHOUT_METRICS,
   })
 
   if (!server) {

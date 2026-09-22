@@ -63,6 +63,7 @@ export const ModelName = {
   TwoFactor: 'TwoFactor',
   Device: 'Device',
   Server: 'Server',
+  ServerMetric: 'ServerMetric',
   Alert: 'Alert',
   ServerRevokedDevice: 'ServerRevokedDevice',
   Subscription: 'Subscription',
@@ -299,13 +300,22 @@ export const ServerScalarFieldEnum = {
   assignedUserId: 'assignedUserId',
   pendingAssignmentEmail: 'pendingAssignmentEmail',
   lastHeartbeatAt: 'lastHeartbeatAt',
-  metrics: 'metrics',
   lastUsage: 'lastUsage',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type ServerScalarFieldEnum = (typeof ServerScalarFieldEnum)[keyof typeof ServerScalarFieldEnum]
+
+
+export const ServerMetricScalarFieldEnum = {
+  id: 'id',
+  serverId: 'serverId',
+  at: 'at',
+  sample: 'sample'
+} as const
+
+export type ServerMetricScalarFieldEnum = (typeof ServerMetricScalarFieldEnum)[keyof typeof ServerMetricScalarFieldEnum]
 
 
 export const AlertScalarFieldEnum = {

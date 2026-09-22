@@ -41,9 +41,17 @@
   // nothing and only broadcasts what a write just did. The console's socket is
   // GET /api/v1/admin/inbox/events.
   "durable_objects": {
-    "bindings": [{ "name": "INBOX_REALTIME", "class_name": "InboxRealtime" }]
+    "bindings": [
+      { "name": "INBOX_REALTIME", "class_name": "InboxRealtime" },
+      { "name": "RATE_LIMIT", "class_name": "RateLimit" }
+    ]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["InboxRealtime"] }],
+  // The budgets every isolate shares: eight shards, keys spread by hash, the
+  // API's fixed windows and the auth routes' rolling rules in one object.
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["InboxRealtime"] },
+    { "tag": "v2", "new_sqlite_classes": ["RateLimit"] }
+  ],
   "observability": {
     "enabled": true
   },
@@ -145,10 +153,14 @@
       ],
       "durable_objects": {
         "bindings": [
-          { "name": "INBOX_REALTIME", "class_name": "InboxRealtime" }
+          { "name": "INBOX_REALTIME", "class_name": "InboxRealtime" },
+          { "name": "RATE_LIMIT", "class_name": "RateLimit" }
         ]
       },
-      "migrations": [{ "tag": "v1", "new_sqlite_classes": ["InboxRealtime"] }],
+      "migrations": [
+        { "tag": "v1", "new_sqlite_classes": ["InboxRealtime"] },
+        { "tag": "v2", "new_sqlite_classes": ["RateLimit"] }
+      ],
       "observability": {
         "enabled": true,
         "head_sampling_rate": 1,

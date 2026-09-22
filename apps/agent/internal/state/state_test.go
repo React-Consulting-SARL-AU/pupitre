@@ -3,6 +3,7 @@ package state_test
 import (
 	"context"
 	"errors"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -15,6 +16,7 @@ import (
 	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/state"
 	"pupitre.studio/agent/internal/sys"
+	"pupitre.studio/agent/internal/sys/lock"
 	"pupitre.studio/agent/internal/tmux"
 )
 
@@ -553,7 +555,7 @@ func TestUrlPrefersTheTunnelWhenTheMachineHasADomain(t *testing.T) {
 func TestInstallRunsTheDerivedCommandInTheProjectFolder(t *testing.T) {
 	fake, reader := fixture(t)
 
-	installed, err := reader.Install("web", "", func(string) {})
+	installed, err := reader.Install(context.Background(), "web", "", func(string) {})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -759,7 +761,7 @@ func TestSyncHandsARootOwnedFolderBackBeforeCloning(t *testing.T) {
 	fake.Dirs["/home/dev/projects/api"] = true
 	fake.Owners["/home/dev/projects/api"] = "root:root"
 
-	synced, err := reader.Sync("api", func(string) {})
+	synced, err := reader.Sync(context.Background(), "api", func(string) {})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -786,12 +788,110 @@ func TestInstallHandsTheOutputOverLineByLine(t *testing.T) {
 	fake.Replies["zsh"] = "bun install v1.2.3\n42 packages installed\n"
 
 	var lines []string
-	if _, err := reader.Install("web", "", func(line string) { lines = append(lines, line) }); err != nil {
+	if _, err := reader.Install(context.Background(), "web", "", func(line string) { lines = append(lines, line) }); err != nil {
 		t.Fatal(err)
 	}
 
 	if strings.Join(lines, "|") != "bun install v1.2.3|42 packages installed" {
 		t.Fatalf("got %q", lines)
+	}
+}
+
+// A machine busy installing answers busy rather than racing: the second run
+// would work the same directories as the first, whichever session sent it.
+func lockedReader(t *testing.T, fake *modtest.FakeSys) (*state.Reader, func()) {
+	t.Helper()
+
+	path := filepath.Join(t.TempDir(), "project-install.lock")
+	release, held, err := lock.Acquire(path)
+	if err != nil || !held {
+		t.Fatalf("the lock could not be taken: held=%v err=%v", held, err)
+	}
+
+	reader := state.New(state.Options{
+		Sys:          fake,
+		Now:          modtest.NewClock(time.Millisecond).Now,
+		Registry:     modules.NewRegistry(),
+		Entitlement:  func() contract.Entitlement { return contract.EntitlementDev },
+		AgentVersion: "0.0.0-test",
+		Follow:       state.FollowOptions{Sleep: func(time.Duration) {}},
+		InstallLock:  path,
+	})
+
+	return reader, release
+}
+
+func TestAnInstallAlreadyRunningAnswersBusy(t *testing.T) {
+	fake, _ := fixture(t)
+	reader, release := lockedReader(t, fake)
+	defer release()
+
+	_, err := reader.Install(context.Background(), "web", "", func(string) {})
+
+	refused, ok := err.(*protocol.Error)
+	if !ok || refused.Code != contract.ErrorBusy {
+		t.Fatalf("a second install must be refused as busy: %v", err)
+	}
+}
+
+func TestAPullOnABusyMachineAnswersBusy(t *testing.T) {
+	fake, _ := fixture(t)
+	reader, release := lockedReader(t, fake)
+	defer release()
+
+	_, err := reader.Pull("web")
+
+	refused, ok := err.(*protocol.Error)
+	if !ok || refused.Code != contract.ErrorBusy {
+		t.Fatalf("a pull against a running install must be refused as busy: %v", err)
+	}
+}
+
+// The install ends with the channel that asked for it: a session cut mid-run
+// leaves no twin behind on the machine.
+type waitingSys struct {
+	*modtest.FakeSys
+}
+
+func (w waitingSys) Stream(cmd sys.Command, emit func(string)) error {
+	if cmd.Context == nil {
+		return w.FakeSys.Stream(cmd, emit)
+	}
+
+	<-cmd.Context.Done()
+
+	return errors.New("killed with its channel")
+}
+
+func TestTheInstallEndsWithTheChannelThatAskedForIt(t *testing.T) {
+	fake, _ := fixture(t)
+	path := filepath.Join(t.TempDir(), "project-install.lock")
+	reader := state.New(state.Options{
+		Sys:          waitingSys{fake},
+		Now:          modtest.NewClock(time.Millisecond).Now,
+		Registry:     modules.NewRegistry(),
+		Entitlement:  func() contract.Entitlement { return contract.EntitlementDev },
+		AgentVersion: "0.0.0-test",
+		Follow:       state.FollowOptions{Sleep: func(time.Duration) {}},
+		InstallLock:  path,
+	})
+	channel, cancel := context.WithCancel(context.Background())
+	done := make(chan error)
+
+	go func() {
+		_, err := reader.Install(channel, "web", "", func(string) {})
+		done <- err
+	}()
+
+	cancel()
+
+	select {
+	case err := <-done:
+		if err == nil {
+			t.Fatal("an install killed with its channel reports the failure, not a success")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("the install kept running after its channel was cut")
 	}
 }
 

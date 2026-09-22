@@ -750,6 +750,10 @@ var moduleCatalog = map[string]Message{
 		FR: "requête illisible : un objet JSON {id, cmd, params?} par ligne est attendu",
 		EN: "the request cannot be read: one JSON object {id, cmd, params?} per line is expected",
 	},
+	"protocol.line.too_long": {
+		FR: "ligne trop longue : aucune ligne du protocole ne dépasse quatre mébioctets",
+		EN: "the line is too long: no line of the protocol exceeds four mebibytes",
+	},
 	"protocol.id.invalid": {
 		FR: "id manquant ou invalide : entier ≥ 0 attendu",
 		EN: "the id is missing or invalid: an integer >= 0 is expected",

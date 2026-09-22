@@ -13,6 +13,7 @@ import {
   createRateLimiter,
   GLOBAL_RATE_LIMIT,
   type RateLimitVerdict,
+  UNKNOWN_CLIENT,
 } from "./lib/api/rate-limit"
 import { routes } from "./lib/api/routes"
 import { describeValidationError } from "./lib/api/validation-errors"
@@ -152,14 +153,14 @@ function tooManyRequests(
 }
 
 export async function handleApiRequest(request: Request): Promise<Response> {
-  const clientIp = request.headers.get(CLIENT_IP_HEADER)
+  // The edge sets this header on every custom domain; a request it did not
+  // sign still draws from a budget, a tight one shared by all such callers,
+  // rather than passing without a limit at all.
+  const clientIp = request.headers.get(CLIENT_IP_HEADER) ?? UNKNOWN_CLIENT
+  const verdict = await globalRateLimiter.check(`global:${clientIp}`)
 
-  if (clientIp) {
-    const verdict = globalRateLimiter.check(clientIp)
-
-    if (!verdict.allowed) {
-      return tooManyRequests(request, verdict)
-    }
+  if (!verdict.allowed) {
+    return tooManyRequests(request, verdict)
   }
 
   return await app.handle(request)

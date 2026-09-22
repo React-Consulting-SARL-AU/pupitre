@@ -4,13 +4,13 @@ import { sendServerDecommissionEmail } from "../../emails/notifications"
 import { type AlertView, activeAlertsFor } from "../alerts/alerts"
 import { getPrisma, withOrganization } from "../api/prisma"
 import { type Actor, recordEvent } from "../audit/audit"
-import { metricsOf } from "./agent-state"
+import { metricsForServer } from "./agent-state"
 import { settleAssignment, settleAssignments } from "./assign"
 import { keyReadyByServer } from "./authorized-keys"
 import { RELEASED_ENROLLMENT } from "./enrollment-key"
 import { decommissionDeadline } from "./expire"
 import { type MetricSample, readUsage, type ServerUsage } from "./metrics"
-import { type ServerRow, WITHOUT_METRICS } from "./server-row"
+import type { ServerRow } from "./server-row"
 import { hashServerToken, isServerToken } from "./tokens"
 
 export const STALE_AFTER_MS = 86_400_000
@@ -113,7 +113,6 @@ export async function findServerByToken(
 
   return await getPrisma().server.findUnique({
     where: { serverTokenHash },
-    omit: WITHOUT_METRICS,
   })
 }
 
@@ -124,7 +123,6 @@ export async function listServersForUser(
   const servers = await prisma.server.findMany({
     where: { assignedUserId: userId, status: { not: "revoked" } },
     orderBy: { createdAt: "asc" },
-    omit: WITHOUT_METRICS,
     include: { organization: { select: { id: true, name: true } } },
   })
 
@@ -162,7 +160,7 @@ export async function listServersForOrganization(
   const found = await withOrganization(
     getPrisma(),
     organizationId
-  ).server.findMany({ orderBy: { createdAt: "asc" }, omit: WITHOUT_METRICS })
+  ).server.findMany({ orderBy: { createdAt: "asc" } })
   const servers = await settleAssignments(found)
   const now = new Date()
   const visible = seesEveryServer(viewer)
@@ -193,18 +191,19 @@ export async function getServerForOrganization(
     return null
   }
 
-  const [events, alerts] = await Promise.all([
+  const [events, alerts, metrics] = await Promise.all([
     prisma.event.findMany({
       where: { targetType: "server", targetId: server.id },
       orderBy: { createdAt: "desc" },
       take: 50,
     }),
     activeAlertsFor([server.id]),
+    metricsForServer(server.id),
   ])
 
   return {
     ...toServerView(server, new Date(), alerts.get(server.id) ?? []),
-    metrics: metricsOf(found),
+    metrics,
     events: events.map((event) => ({
       id: event.id,
       action: event.action,
@@ -292,7 +291,7 @@ export async function deleteServerForOrganization(
   const server = await withOrganization(
     getPrisma(),
     actor.organizationId
-  ).server.findFirst({ where: { id: serverId }, omit: WITHOUT_METRICS })
+  ).server.findFirst({ where: { id: serverId } })
 
   if (!server) {
     return null

@@ -39,6 +39,11 @@ func (f FollowOptions) resolved() FollowOptions {
 // How long a command waits its turn on the registry, the running record and /etc/hosts: their holders are gone in milliseconds.
 const registryWait = 5 * time.Second
 
+// DefaultInstallLock is the one lock an install, a sync or a pull takes: the
+// second run on the same machine answers busy instead of racing the first in
+// the same directories.
+const DefaultInstallLock = "/var/lib/pupitre/project-install.lock"
+
 type Options struct {
 	Sys          sys.Sys
 	Now          func() time.Time
@@ -47,6 +52,10 @@ type Options struct {
 	AgentVersion string
 	Paths        registry.Paths
 	Tmux         tmux.Options
+	// InstallLock guards a running install, sync or pull across sessions —
+	// each channel is its own process, so only a file lock spans them; empty is
+	// no lock, which the tests take.
+	InstallLock string
 	// InstallPath is the install.json the modules are read on, the one the engine writes; empty is the default path.
 	InstallPath string
 	// Deferred names the modules put on the machine without their settings: what

@@ -484,7 +484,13 @@ describe("GET /admin/servers/:id", () => {
         enrollmentExpiresAt: expiresAt,
         pendingAssignmentEmail: "nouvelle@atelier.test",
         lastUsage: sample,
-        metrics: { samples: [sample] },
+      },
+    })
+    await server.prisma.serverMetric.create({
+      data: {
+        serverId: active.server.id,
+        at: new Date(),
+        sample,
       },
     })
     await server.prisma.alert.create({

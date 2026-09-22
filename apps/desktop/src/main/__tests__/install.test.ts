@@ -980,7 +980,8 @@ describe("un enrôlement repris", () => {
 
   /**
    * A cut is not a refusal: the enrolment is sent again on a fresh channel, and
-   * the seat is claimed on the attempt the line finally holds.
+   * the seat is claimed on the attempt the line finally holds. The probe that
+   * watches for an enrolment that already landed reads as a ping.
    */
   it("renvoie l'enrôlement quand le canal tombe, jusqu'à ce qu'il passe", async () => {
     const codes = ["disconnected", "disconnected"];
@@ -994,7 +995,14 @@ describe("un enrôlement repris", () => {
       {
         client: {
           close: () => undefined,
-          request: () => {
+          request: (_id, cmd) => {
+            if (cmd === "ping") {
+              return Promise.resolve({
+                ok: true,
+                result: { ts: "now" },
+              } as never);
+            }
+
             const code = codes.shift();
 
             return Promise.resolve(
@@ -1021,6 +1029,55 @@ describe("un enrôlement repris", () => {
       result: { enrolled: true, entitlement: "valid" },
     });
     expect(codes).toEqual([]);
+  });
+
+  /**
+   * The cut the retry fears can fall after the exchange: the token is spent
+   * and the machine enrolled, and the probe says so before another enrolment
+   * replays what cannot be replayed.
+   */
+  it("voit un échange tombé après la remise comme l'enrôlement réussi qu'il fut", async () => {
+    let enrolled = false;
+    const commands: string[] = [];
+
+    const answer = await enrolAgent(
+      "srv-1",
+      {
+        release: { available: true, channel: "stable", version: "0.4.0" },
+        serverId: "plt-1",
+      },
+      {
+        client: {
+          close: () => undefined,
+          request: (_id, cmd) => {
+            commands.push(cmd);
+
+            if (cmd === "ping") {
+              enrolled = true;
+
+              return Promise.resolve({
+                ok: true,
+                result: { ts: "now" },
+              } as never);
+            }
+
+            return Promise.resolve({
+              error: { code: "disconnected", message: "coupé" },
+              ok: false,
+            } as never);
+          },
+        },
+        enrollment: () => ({
+          platformUrl: "https://app.pupitre.test",
+          token: "enr-1",
+        }),
+        identity: () => (enrolled ? "plt-1" : null),
+      },
+      instant
+    );
+
+    expect(answer).toEqual({ ok: true, result: null });
+    expect(commands).toEqual(["enroll", "ping"]);
   });
 
   /** A refusal that is not a cut is not retried: it stands as it came. */
@@ -1060,7 +1117,8 @@ describe("un enrôlement repris", () => {
 
   /** A channel that never comes back gives up bounded, not for ever. */
   it("renonce après un nombre borné de coupures", async () => {
-    let calls = 0;
+    let enrolments = 0;
+    let probes = 0;
 
     const answer = await enrolAgent(
       "srv-1",
@@ -1071,8 +1129,17 @@ describe("un enrôlement repris", () => {
       {
         client: {
           close: () => undefined,
-          request: () => {
-            calls += 1;
+          request: (_id, cmd) => {
+            if (cmd === "ping") {
+              probes += 1;
+
+              return Promise.resolve({
+                ok: true,
+                result: { ts: "now" },
+              } as never);
+            }
+
+            enrolments += 1;
 
             return Promise.resolve({
               error: { code: "disconnected", message: "coupé" },
@@ -1090,7 +1157,8 @@ describe("un enrôlement repris", () => {
     );
 
     expect(answer).toMatchObject({ error: { code: "disconnected" } });
-    expect(calls).toBe(instant.attempts + 1);
+    expect(enrolments).toBe(instant.attempts + 1);
+    expect(probes).toBe(instant.attempts);
   });
 });
 

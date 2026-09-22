@@ -1,4 +1,3 @@
-import type { Server } from "@pupitre/db/cloudflare/client"
 import { getPrisma } from "../api/prisma"
 import {
   type EntitlementState,
@@ -8,10 +7,11 @@ import { resolveTargetVersion } from "../releases/releases"
 import { settleAssignment } from "./assign"
 import { authorizedKeysForServer } from "./authorized-keys"
 import {
-  appendSample,
+  decimateSamples,
+  METRICS_WINDOW_MS,
   type MetricSample,
-  readSamples,
-  toStoredMetrics,
+  toSample,
+  toStoredSample,
   toStoredUsage,
   toUsage,
 } from "./metrics"
@@ -103,9 +103,11 @@ export async function recordHeartbeat(
     ram_total_mb: input.ram_total_mb ?? null,
     ram_used_mb: input.ram_used_mb ?? null,
   }
-  const window = await prisma.server.findUnique({
-    where: { id: server.id },
-    select: { metrics: true },
+
+  // The heartbeat writes its sample alone: the window it belongs to is the
+  // table, not a column the row rewrites whole every five minutes.
+  await prisma.serverMetric.create({
+    data: { serverId: server.id, at: now, sample: toStoredSample(sample) },
   })
 
   await prisma.server.update({
@@ -114,12 +116,40 @@ export async function recordHeartbeat(
       lastHeartbeatAt: now,
       agentVersion: input.agent_version ?? server.agentVersion,
       sshUser: input.ssh_user ?? server.sshUser,
-      metrics: toStoredMetrics(appendSample(window?.metrics, sample, now)),
       lastUsage: toStoredUsage(toUsage(sample)),
+    },
+  })
+
+  await prisma.serverMetric.deleteMany({
+    where: {
+      serverId: server.id,
+      at: { lt: new Date(now.getTime() - METRICS_WINDOW_MS) },
     },
   })
 }
 
-export function metricsOf(server: Pick<Server, "metrics">): MetricSample[] {
-  return readSamples(server.metrics)
+/**
+ * The window as the console reads it: every row the seven days hold, reduced
+ * to what a chart draws.
+ */
+export async function metricsForServer(
+  serverId: string,
+  now: Date = new Date()
+): Promise<MetricSample[]> {
+  const rows = await getPrisma().serverMetric.findMany({
+    where: {
+      serverId,
+      at: { gte: new Date(now.getTime() - METRICS_WINDOW_MS) },
+    },
+    orderBy: { at: "asc" },
+    select: { sample: true },
+  })
+
+  return decimateSamples(
+    rows.flatMap((row) => {
+      const sample = toSample(row.sample)
+
+      return sample ? [sample] : []
+    })
+  )
 }

@@ -308,6 +308,40 @@ func TestServeSurvivesInvalidInputAndReturnsNilAtEOF(t *testing.T) {
 	}
 }
 
+func TestALinePastTheLimitIsRefusedAndEndsTheSession(t *testing.T) {
+	var out bytes.Buffer
+	flood := strings.Repeat("a", lineLimit+1024)
+	input := strings.NewReader(
+		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}` + "\n" + flood + "\n",
+	)
+
+	if err := newTestServer(contract.EntitlementDev).Serve(input, &out); err == nil {
+		t.Fatal("a flood must end the session, not pass as EOF")
+	}
+
+	if !strings.Contains(out.String(), "protocol.line") && !strings.Contains(out.String(), "quatre mébioctets") && !strings.Contains(out.String(), "four mebibytes") {
+		t.Fatalf("the flood must be refused with the limit said:\n%s", out.String())
+	}
+}
+
+func TestTheLargestLegalLineStillPasses(t *testing.T) {
+	var out bytes.Buffer
+	// The largest line the contract carries is a fs.write just under the cap;
+	// a ping padded with whitespace to the same length must go through.
+	padded := `{"id":2,"cmd":"ping","params":{}}` + strings.Repeat(" ", lineLimit-len(`{"id":2,"cmd":"ping","params":{}}`)-1)
+	input := strings.NewReader(
+		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}` + "\n" + padded + "\n",
+	)
+
+	if err := newTestServer(contract.EntitlementDev).Serve(input, &out); err != nil {
+		t.Fatalf("serve: %v", err)
+	}
+
+	if !strings.Contains(out.String(), `"ok":true,"result":{"ts"`) {
+		t.Fatalf("the padded line must be served:\n%s", out.String())
+	}
+}
+
 func TestRegisterRefusesCommandsOutsideTheContract(t *testing.T) {
 	server := NewServer(Options{AgentVersion: testAgentVersion, Entitlement: entitlement.Fixed(contract.EntitlementDev)})
 

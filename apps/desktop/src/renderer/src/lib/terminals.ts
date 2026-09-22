@@ -116,6 +116,48 @@ interface Live {
 }
 
 /**
+ * One listener for every session's output.
+ *
+ * A busy machine writes hundreds of chunks a second, and one listener per open
+ * terminal meant each chunk waking all of them. The bridge hands a chunk to
+ * whoever holds its session, and only to them.
+ */
+const dataListeners = new Map<string, Set<(data: string) => void>>();
+
+let bridgeInstalled = false;
+
+function onTerminalData(
+  id: string,
+  listener: (data: string) => void
+): () => void {
+  if (!bridgeInstalled) {
+    bridgeInstalled = true;
+    window.pupitre.onTerminalData((payload) => {
+      for (const held of dataListeners.get(payload.id) ?? []) {
+        held(payload.data);
+      }
+    });
+  }
+
+  let held = dataListeners.get(id);
+
+  if (!held) {
+    held = new Set();
+    dataListeners.set(id, held);
+  }
+
+  held.add(listener);
+
+  return () => {
+    held.delete(listener);
+
+    if (held.size === 0) {
+      dataListeners.delete(id);
+    }
+  };
+}
+
+/**
  * Terminals live here, outside React.
  *
  * An unmounted xterm loses its screen, and remounting it does not bring it back:
@@ -255,11 +297,9 @@ export function obtain(id: string, kind: TerminalKind): Live {
     noteStatus(id, { matches: { count: resultCount, index: resultIndex } });
   });
 
-  const detachData = window.pupitre.onTerminalData((payload) => {
-    if (payload.id === id) {
-      xterm.write(payload.data, afterWrite);
-    }
-  });
+  const detachData = onTerminalData(id, (data) =>
+    xterm.write(data, afterWrite)
+  );
   const detachExit = window.pupitre.onTerminalExit((payload) => {
     if (payload.id === id) {
       xterm.writeln(

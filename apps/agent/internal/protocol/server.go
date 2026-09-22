@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"sort"
@@ -194,12 +195,43 @@ type read struct {
 	err  error
 }
 
+// The longest line this server will hold: the desktop's own flood line,
+// mirrored, so a peer that lost its cap cannot grow this process without one.
+const lineLimit = 4 << 20
+
+var errLineTooLong = errors.New("protocol: line over the limit")
+
+// One line, bounded: ReadBytes would gather whatever the peer sends, and the
+// reader runs as root.
+func readLine(in *bufio.Reader) ([]byte, error) {
+	var line []byte
+
+	for {
+		chunk, err := in.ReadSlice('\n')
+		line = append(line, chunk...)
+
+		if len(line) > lineLimit {
+			return nil, errLineTooLong
+		}
+
+		if err == bufio.ErrBufferFull {
+			continue
+		}
+
+		return line, err
+	}
+}
+
 // One line ahead of the loop, never more: a request queued behind a long
 // command stays unread, and the end of the input is known the moment it comes,
 // even while a handler holds the loop.
 func (s *session) read(in *bufio.Reader) {
 	for {
-		line, err := in.ReadBytes('\n')
+		line, err := readLine(in)
+		if err == errLineTooLong {
+			// The refusal leaves before the door closes on the session.
+			s.fail(0, badRequest(i18n.T("protocol.line.too_long")))
+		}
 		if err != nil {
 			close(s.closed)
 		}

@@ -3,7 +3,11 @@ import { resolveLocale } from "@pupitre/shared/i18n"
 import { Elysia } from "elysia"
 import { translate } from "../../i18n"
 import { apiError } from "../errors"
-import { createRateLimiter, type RateLimitOptions } from "../rate-limit"
+import {
+  createRateLimiter,
+  type RateLimitOptions,
+  UNKNOWN_CLIENT,
+} from "../rate-limit"
 
 /**
  * A budget of its own, for a group of routes that answers without a session.
@@ -13,16 +17,14 @@ import { createRateLimiter, type RateLimitOptions } from "../rate-limit"
  * eats the budget the same address needs for the console.
  */
 
-const UNKNOWN_CLIENT = "unknown"
-
 export function rateLimit(name: string, options: RateLimitOptions) {
   const limiter = createRateLimiter(options)
 
   return new Elysia({ name: `rateLimit:${name}` }).onBeforeHandle(
     { as: "scoped" },
-    ({ request, set }) => {
+    async ({ request, set }) => {
       const client = request.headers.get(CLIENT_IP_HEADER) ?? UNKNOWN_CLIENT
-      const verdict = limiter.check(client)
+      const verdict = await limiter.check(`${name}:${client}`)
 
       if (verdict.allowed) {
         return

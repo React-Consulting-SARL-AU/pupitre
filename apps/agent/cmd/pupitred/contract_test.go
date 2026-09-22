@@ -31,6 +31,7 @@ func TestTheServerAnswersEveryCommandOfTheContract(t *testing.T) {
 func TestEveryAnswerMatchesItsResultDefinition(t *testing.T) {
 	fake, dir := setupCLI(t)
 	t.Setenv("PUPITRE_LOCK_PATH", filepath.Join(dir, "install.lock"))
+	t.Setenv("PUPITRE_PROJECT_INSTALL_LOCK_PATH", filepath.Join(dir, "project-install.lock"))
 	declareProject(fake)
 	fake.Files["/home/dev/shots/2026-09-04/login.png"] = []byte("\x89PNG\r\n\x1a\n")
 	fake.Files["/home/dev/projects/web/README.md"] = []byte("# web\n")
