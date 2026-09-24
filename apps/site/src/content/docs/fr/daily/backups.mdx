@@ -30,7 +30,7 @@ Une sauvegarde est stockée dans votre propre seau ; Pupitre n’en garde qu’u
 1. Créez un seau dans le tableau de bord Cloudflare.
 2. Allez dans **R2 › Manage API tokens** et créez un jeton limité à **Object Read & Write**, restreint à ce seau.
 3. Notez l’**Access Key ID**, la **Secret Access Key**, et l’identifiant de votre compte, affiché sur la page d’accueil de R2 et dans le point d’accès S3 `https://<compte>.r2.cloudflarestorage.com`.
-4. Dans l’app, ouvrez la page **Sauvegardes** du serveur : la mise en place demande d’abord le seau — choisissez Cloudflare R2, puis donnez l’identifiant du compte, le nom du seau et la clé — et l’éprouve par une écriture d’essai avant de continuer. Le même seau peut aussi se donner une fois pour cet ordinateur dans **Réglages › Connexions › Sauvegardes (S3)**.
+4. Dans l’app, ouvrez la page **Sauvegardes** du serveur : la mise en place demande d’abord le seau — choisissez Cloudflare R2, puis donnez l’identifiant du compte, le nom du seau et la clé — et l’éprouve par une écriture d’essai avant de continuer. Cet ordinateur garde le seau pour ses autres serveurs ; l’onglet **Destination** de la même page le change, et applique aussitôt le changement au serveur, clé secrète comprise.
 
 ## Utiliser AWS S3 à la place
 

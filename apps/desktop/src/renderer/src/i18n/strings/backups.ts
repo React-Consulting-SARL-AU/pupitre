@@ -163,8 +163,24 @@ export const backups = {
       "Only “Back up now” starts a backup, and none is ever deleted.",
 
     "backups.destination.title": "Destination",
+    "backups.destination.edit": "Change the destination",
+    "backups.destination.saveAndApply": "Save and apply to the server",
+    "backups.destination.applyHeld": "Apply this computer's connection",
+    "backups.destination.resend":
+      "Send this computer's key to the server again",
+    "backups.destination.noKey":
+      "This computer does not hold this bucket's key: give it to change the destination or to restore from here.",
+    "backups.reset.title": "Start over",
+    "backups.reset.consequence":
+      "Backups stop on this server and its backup settings are erased; the backups already made stay in the bucket and in the list. The setup starts again from the first step.",
+    "backups.reset.forget": "Also forget this computer's bucket and key",
+    "backups.reset.forgetDetail":
+      "The other servers keep backing up with what they hold; this computer asks for the bucket again to set up or restore.",
+    "backups.reset.open": "Reset backups",
+    "backups.reset.question": "Take backups off this server?",
+    "backups.reset.confirm": "Reset",
     "backups.destination.drift":
-      "This server does not back up to this computer's bucket and key yet: apply the settings to align it.",
+      "This server backs up with another bucket or key than this computer's connection.",
 
     "backups.schedule.title": "Frequency and retention",
     "backups.contents.title": "What backups carry",
@@ -470,8 +486,24 @@ export const backups = {
       "Seul « Sauvegarder maintenant » lance une sauvegarde, et aucune n'est jamais effacée.",
 
     "backups.destination.title": "Destination",
+    "backups.destination.edit": "Modifier la destination",
+    "backups.destination.saveAndApply": "Enregistrer et appliquer au serveur",
+    "backups.destination.applyHeld": "Appliquer la connexion de cet ordinateur",
+    "backups.destination.resend":
+      "Renvoyer la clé de cet ordinateur au serveur",
+    "backups.destination.noKey":
+      "Cet ordinateur n'a pas la clé de ce seau : donnez-la pour changer la destination ou restaurer d'ici.",
+    "backups.reset.title": "Recommencer",
+    "backups.reset.consequence":
+      "Les sauvegardes s'arrêtent sur ce serveur et ses réglages de sauvegarde sont effacés ; les sauvegardes déjà faites restent dans le seau et dans la liste. La mise en place reprend à la première étape.",
+    "backups.reset.forget": "Oublier aussi le seau et la clé de cet ordinateur",
+    "backups.reset.forgetDetail":
+      "Les autres serveurs continuent de sauvegarder avec ce qu'ils détiennent ; cet ordinateur redemande le seau pour mettre en place ou restaurer.",
+    "backups.reset.open": "Réinitialiser les sauvegardes",
+    "backups.reset.question": "Retirer les sauvegardes de ce serveur ?",
+    "backups.reset.confirm": "Réinitialiser",
     "backups.destination.drift":
-      "Ce serveur ne sauvegarde pas encore vers le seau et pour la clé de cet ordinateur : appliquez les réglages pour l'y aligner.",
+      "Ce serveur sauvegarde avec un autre seau ou une autre clé que la connexion de cet ordinateur.",
 
     "backups.schedule.title": "Fréquence et rétention",
     "backups.contents.title": "Contenu des sauvegardes",

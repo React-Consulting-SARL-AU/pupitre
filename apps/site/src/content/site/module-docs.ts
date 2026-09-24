@@ -94,8 +94,8 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
     ],
     asks: [
       {
-        en: "Nothing about the bucket, once the Backups (S3) connection is set up in the app: endpoint, bucket and keys come from it, with the public key backups are encrypted to.",
-        fr: "Rien sur le seau, une fois la connexion Sauvegardes (S3) réglée dans l’app : point d’accès, seau et clés en viennent, avec la clé publique pour laquelle les sauvegardes sont chiffrées.",
+        en: "Nothing about the bucket once the Backups page of the server has it: endpoint, bucket and keys come from there, with the public key backups are encrypted to.",
+        fr: "Rien sur le seau une fois qu’il est donné sur la page Sauvegardes du serveur : point d’accès, seau et clés en viennent, avec la clé publique pour laquelle les sauvegardes sont chiffrées.",
       },
       {
         en: "The interval in hours — 0 for on demand only — the hour a daily backup starts, and how many scheduled backups to keep.",

@@ -14,6 +14,7 @@ import { create } from "zustand";
 import { agentCall } from "../lib/agent-call";
 import { type ModuleProgress, record, stepOf } from "../lib/module-progress";
 import { restoredConfig } from "../lib/restored-config";
+import { useBackupConnection } from "./backup-connection";
 import { useInstall } from "./install";
 
 /**
@@ -124,6 +125,11 @@ interface BackupsStore {
     serverId: string,
     uninstall: readonly string[]
   ) => Promise<void>;
+  /** Backups taken off the server — its module uninstalled — and this computer's bucket forgotten when asked. */
+  reset: (
+    serverId: string,
+    forgetConnection: boolean
+  ) => Promise<AgentError | null>;
   dismissRevert: () => void;
   dismissRun: () => void;
   forget: () => void;
@@ -483,6 +489,29 @@ export const useBackups = create<BackupsStore>((set, get) => {
       }
 
       await restoreData(serverId, backupId);
+    },
+
+    async reset(serverId, forgetConnection) {
+      set({ run: { status: "idle" }, steps: [] });
+
+      const answer = await window.pupitre.agentStream(
+        serverId,
+        "uninstall",
+        { modules: [BACKUP_MODULE_ID] },
+        note
+      );
+
+      if (!answer.ok) {
+        return answer.error;
+      }
+
+      if (forgetConnection) {
+        await useBackupConnection.getState().forget();
+      }
+
+      await get().read(serverId);
+
+      return null;
     },
 
     dismissRevert() {

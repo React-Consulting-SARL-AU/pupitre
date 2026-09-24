@@ -1221,6 +1221,34 @@ describe("la configuration pesée avant l'installation", () => {
     client.closeAll();
   });
 
+  it("ne retient pas le verdict sur un seau jugé avec l'ancienne clé secrète", async () => {
+    const client = agent("install-check-old-secret.jsonl");
+
+    const answer = await runCheck(
+      SERVER,
+      ["core.backup"],
+      { "core.backup": { interval_hours: 24 } },
+      checkDeps(client, { "core.backup": { access_key_id: "new-key" } })
+    );
+
+    expect(answer).toEqual({
+      ok: true,
+      result: {
+        problems: [
+          {
+            code: "max",
+            field: "keep",
+            message: "trop grand",
+            module: "core.backup",
+          },
+        ],
+        warnings: [],
+      },
+    });
+
+    client.closeAll();
+  });
+
   it("refuse un module que l'agent ne déclare pas, sans toucher au canal", async () => {
     const client = agent("install-check.jsonl");
 

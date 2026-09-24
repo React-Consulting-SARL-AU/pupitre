@@ -132,7 +132,7 @@ export function OnboardingRestoreScreen({
       {connected || !connection ? null : (
         <Section title={t("connections.backup.title")}>
           <Panel inset="lg">
-            <BackupConnectionCard compact connection={connection} />
+            <BackupConnectionCard connection={connection} />
           </Panel>
         </Section>
       )}
