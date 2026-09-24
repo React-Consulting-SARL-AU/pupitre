@@ -46,6 +46,8 @@ export const READING_COMMANDS: ReadonlySet<CommandName> = new Set([
   "fs.read",
   "db.url",
   "tunnel.status",
+  "backup.status",
+  "backup.contents",
   "keys.list",
   "doctor",
   "diag",

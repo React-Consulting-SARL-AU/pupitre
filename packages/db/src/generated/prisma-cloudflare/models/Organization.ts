@@ -270,6 +270,7 @@ export type OrganizationWhereInput = {
   events?: Prisma.EventListRelationFilter
   referral?: Prisma.XOR<Prisma.ReferralNullableScalarRelationFilter, Prisma.ReferralWhereInput> | null
   mailThreads?: Prisma.MailThreadListRelationFilter
+  backups?: Prisma.BackupListRelationFilter
 }
 
 export type OrganizationOrderByWithRelationInput = {
@@ -296,6 +297,7 @@ export type OrganizationOrderByWithRelationInput = {
   events?: Prisma.EventOrderByRelationAggregateInput
   referral?: Prisma.ReferralOrderByWithRelationInput
   mailThreads?: Prisma.MailThreadOrderByRelationAggregateInput
+  backups?: Prisma.BackupOrderByRelationAggregateInput
 }
 
 export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
@@ -325,6 +327,7 @@ export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
   events?: Prisma.EventListRelationFilter
   referral?: Prisma.XOR<Prisma.ReferralNullableScalarRelationFilter, Prisma.ReferralWhereInput> | null
   mailThreads?: Prisma.MailThreadListRelationFilter
+  backups?: Prisma.BackupListRelationFilter
 }, "id" | "slug">
 
 export type OrganizationOrderByWithAggregationInput = {
@@ -393,6 +396,7 @@ export type OrganizationCreateInput = {
   events?: Prisma.EventCreateNestedManyWithoutOrganizationInput
   referral?: Prisma.ReferralCreateNestedOneWithoutOrganizationInput
   mailThreads?: Prisma.MailThreadCreateNestedManyWithoutLinkedOrganizationInput
+  backups?: Prisma.BackupCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateInput = {
@@ -419,6 +423,7 @@ export type OrganizationUncheckedCreateInput = {
   events?: Prisma.EventUncheckedCreateNestedManyWithoutOrganizationInput
   referral?: Prisma.ReferralUncheckedCreateNestedOneWithoutOrganizationInput
   mailThreads?: Prisma.MailThreadUncheckedCreateNestedManyWithoutLinkedOrganizationInput
+  backups?: Prisma.BackupUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUpdateInput = {
@@ -445,6 +450,7 @@ export type OrganizationUpdateInput = {
   events?: Prisma.EventUpdateManyWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUpdateOneWithoutOrganizationNestedInput
   mailThreads?: Prisma.MailThreadUpdateManyWithoutLinkedOrganizationNestedInput
+  backups?: Prisma.BackupUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateInput = {
@@ -471,6 +477,7 @@ export type OrganizationUncheckedUpdateInput = {
   events?: Prisma.EventUncheckedUpdateManyWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUncheckedUpdateOneWithoutOrganizationNestedInput
   mailThreads?: Prisma.MailThreadUncheckedUpdateManyWithoutLinkedOrganizationNestedInput
+  backups?: Prisma.BackupUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateManyInput = {
@@ -633,6 +640,20 @@ export type OrganizationUpdateOneRequiredWithoutServersNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUpdateToOneWithWhereWithoutServersInput, Prisma.OrganizationUpdateWithoutServersInput>, Prisma.OrganizationUncheckedUpdateWithoutServersInput>
 }
 
+export type OrganizationCreateNestedOneWithoutBackupsInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutBackupsInput, Prisma.OrganizationUncheckedCreateWithoutBackupsInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutBackupsInput
+  connect?: Prisma.OrganizationWhereUniqueInput
+}
+
+export type OrganizationUpdateOneRequiredWithoutBackupsNestedInput = {
+  create?: Prisma.XOR<Prisma.OrganizationCreateWithoutBackupsInput, Prisma.OrganizationUncheckedCreateWithoutBackupsInput>
+  connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutBackupsInput
+  upsert?: Prisma.OrganizationUpsertWithoutBackupsInput
+  connect?: Prisma.OrganizationWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.OrganizationUpdateToOneWithWhereWithoutBackupsInput, Prisma.OrganizationUpdateWithoutBackupsInput>, Prisma.OrganizationUncheckedUpdateWithoutBackupsInput>
+}
+
 export type OrganizationCreateNestedOneWithoutSubscriptionsInput = {
   create?: Prisma.XOR<Prisma.OrganizationCreateWithoutSubscriptionsInput, Prisma.OrganizationUncheckedCreateWithoutSubscriptionsInput>
   connectOrCreate?: Prisma.OrganizationCreateOrConnectWithoutSubscriptionsInput
@@ -730,6 +751,7 @@ export type OrganizationCreateWithoutMembersInput = {
   events?: Prisma.EventCreateNestedManyWithoutOrganizationInput
   referral?: Prisma.ReferralCreateNestedOneWithoutOrganizationInput
   mailThreads?: Prisma.MailThreadCreateNestedManyWithoutLinkedOrganizationInput
+  backups?: Prisma.BackupCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutMembersInput = {
@@ -755,6 +777,7 @@ export type OrganizationUncheckedCreateWithoutMembersInput = {
   events?: Prisma.EventUncheckedCreateNestedManyWithoutOrganizationInput
   referral?: Prisma.ReferralUncheckedCreateNestedOneWithoutOrganizationInput
   mailThreads?: Prisma.MailThreadUncheckedCreateNestedManyWithoutLinkedOrganizationInput
+  backups?: Prisma.BackupUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutMembersInput = {
@@ -796,6 +819,7 @@ export type OrganizationUpdateWithoutMembersInput = {
   events?: Prisma.EventUpdateManyWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUpdateOneWithoutOrganizationNestedInput
   mailThreads?: Prisma.MailThreadUpdateManyWithoutLinkedOrganizationNestedInput
+  backups?: Prisma.BackupUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutMembersInput = {
@@ -821,6 +845,7 @@ export type OrganizationUncheckedUpdateWithoutMembersInput = {
   events?: Prisma.EventUncheckedUpdateManyWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUncheckedUpdateOneWithoutOrganizationNestedInput
   mailThreads?: Prisma.MailThreadUncheckedUpdateManyWithoutLinkedOrganizationNestedInput
+  backups?: Prisma.BackupUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutInvitationsInput = {
@@ -846,6 +871,7 @@ export type OrganizationCreateWithoutInvitationsInput = {
   events?: Prisma.EventCreateNestedManyWithoutOrganizationInput
   referral?: Prisma.ReferralCreateNestedOneWithoutOrganizationInput
   mailThreads?: Prisma.MailThreadCreateNestedManyWithoutLinkedOrganizationInput
+  backups?: Prisma.BackupCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutInvitationsInput = {
@@ -871,6 +897,7 @@ export type OrganizationUncheckedCreateWithoutInvitationsInput = {
   events?: Prisma.EventUncheckedCreateNestedManyWithoutOrganizationInput
   referral?: Prisma.ReferralUncheckedCreateNestedOneWithoutOrganizationInput
   mailThreads?: Prisma.MailThreadUncheckedCreateNestedManyWithoutLinkedOrganizationInput
+  backups?: Prisma.BackupUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutInvitationsInput = {
@@ -912,6 +939,7 @@ export type OrganizationUpdateWithoutInvitationsInput = {
   events?: Prisma.EventUpdateManyWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUpdateOneWithoutOrganizationNestedInput
   mailThreads?: Prisma.MailThreadUpdateManyWithoutLinkedOrganizationNestedInput
+  backups?: Prisma.BackupUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutInvitationsInput = {
@@ -937,6 +965,7 @@ export type OrganizationUncheckedUpdateWithoutInvitationsInput = {
   events?: Prisma.EventUncheckedUpdateManyWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUncheckedUpdateOneWithoutOrganizationNestedInput
   mailThreads?: Prisma.MailThreadUncheckedUpdateManyWithoutLinkedOrganizationNestedInput
+  backups?: Prisma.BackupUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutServersInput = {
@@ -962,6 +991,7 @@ export type OrganizationCreateWithoutServersInput = {
   events?: Prisma.EventCreateNestedManyWithoutOrganizationInput
   referral?: Prisma.ReferralCreateNestedOneWithoutOrganizationInput
   mailThreads?: Prisma.MailThreadCreateNestedManyWithoutLinkedOrganizationInput
+  backups?: Prisma.BackupCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutServersInput = {
@@ -987,6 +1017,7 @@ export type OrganizationUncheckedCreateWithoutServersInput = {
   events?: Prisma.EventUncheckedCreateNestedManyWithoutOrganizationInput
   referral?: Prisma.ReferralUncheckedCreateNestedOneWithoutOrganizationInput
   mailThreads?: Prisma.MailThreadUncheckedCreateNestedManyWithoutLinkedOrganizationInput
+  backups?: Prisma.BackupUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutServersInput = {
@@ -1028,6 +1059,7 @@ export type OrganizationUpdateWithoutServersInput = {
   events?: Prisma.EventUpdateManyWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUpdateOneWithoutOrganizationNestedInput
   mailThreads?: Prisma.MailThreadUpdateManyWithoutLinkedOrganizationNestedInput
+  backups?: Prisma.BackupUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutServersInput = {
@@ -1048,6 +1080,127 @@ export type OrganizationUncheckedUpdateWithoutServersInput = {
   deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
+  subscriptions?: Prisma.SubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
+  billing?: Prisma.OrganizationBillingUncheckedUpdateOneWithoutOrganizationNestedInput
+  events?: Prisma.EventUncheckedUpdateManyWithoutOrganizationNestedInput
+  referral?: Prisma.ReferralUncheckedUpdateOneWithoutOrganizationNestedInput
+  mailThreads?: Prisma.MailThreadUncheckedUpdateManyWithoutLinkedOrganizationNestedInput
+  backups?: Prisma.BackupUncheckedUpdateManyWithoutOrganizationNestedInput
+}
+
+export type OrganizationCreateWithoutBackupsInput = {
+  id: string
+  name: string
+  slug: string
+  logo?: string | null
+  createdAt: Date | string
+  metadata?: string | null
+  suspendedAt?: Date | string | null
+  suspendedReason?: string | null
+  suspendedByUserId?: string | null
+  closedAt?: Date | string | null
+  closedReason?: string | null
+  closedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
+  members?: Prisma.MemberCreateNestedManyWithoutOrganizationInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutOrganizationInput
+  servers?: Prisma.ServerCreateNestedManyWithoutOrganizationInput
+  subscriptions?: Prisma.SubscriptionCreateNestedManyWithoutOrganizationInput
+  billing?: Prisma.OrganizationBillingCreateNestedOneWithoutOrganizationInput
+  events?: Prisma.EventCreateNestedManyWithoutOrganizationInput
+  referral?: Prisma.ReferralCreateNestedOneWithoutOrganizationInput
+  mailThreads?: Prisma.MailThreadCreateNestedManyWithoutLinkedOrganizationInput
+}
+
+export type OrganizationUncheckedCreateWithoutBackupsInput = {
+  id: string
+  name: string
+  slug: string
+  logo?: string | null
+  createdAt: Date | string
+  metadata?: string | null
+  suspendedAt?: Date | string | null
+  suspendedReason?: string | null
+  suspendedByUserId?: string | null
+  closedAt?: Date | string | null
+  closedReason?: string | null
+  closedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
+  members?: Prisma.MemberUncheckedCreateNestedManyWithoutOrganizationInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutOrganizationInput
+  servers?: Prisma.ServerUncheckedCreateNestedManyWithoutOrganizationInput
+  subscriptions?: Prisma.SubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
+  billing?: Prisma.OrganizationBillingUncheckedCreateNestedOneWithoutOrganizationInput
+  events?: Prisma.EventUncheckedCreateNestedManyWithoutOrganizationInput
+  referral?: Prisma.ReferralUncheckedCreateNestedOneWithoutOrganizationInput
+  mailThreads?: Prisma.MailThreadUncheckedCreateNestedManyWithoutLinkedOrganizationInput
+}
+
+export type OrganizationCreateOrConnectWithoutBackupsInput = {
+  where: Prisma.OrganizationWhereUniqueInput
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutBackupsInput, Prisma.OrganizationUncheckedCreateWithoutBackupsInput>
+}
+
+export type OrganizationUpsertWithoutBackupsInput = {
+  update: Prisma.XOR<Prisma.OrganizationUpdateWithoutBackupsInput, Prisma.OrganizationUncheckedUpdateWithoutBackupsInput>
+  create: Prisma.XOR<Prisma.OrganizationCreateWithoutBackupsInput, Prisma.OrganizationUncheckedCreateWithoutBackupsInput>
+  where?: Prisma.OrganizationWhereInput
+}
+
+export type OrganizationUpdateToOneWithWhereWithoutBackupsInput = {
+  where?: Prisma.OrganizationWhereInput
+  data: Prisma.XOR<Prisma.OrganizationUpdateWithoutBackupsInput, Prisma.OrganizationUncheckedUpdateWithoutBackupsInput>
+}
+
+export type OrganizationUpdateWithoutBackupsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  members?: Prisma.MemberUpdateManyWithoutOrganizationNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutOrganizationNestedInput
+  servers?: Prisma.ServerUpdateManyWithoutOrganizationNestedInput
+  subscriptions?: Prisma.SubscriptionUpdateManyWithoutOrganizationNestedInput
+  billing?: Prisma.OrganizationBillingUpdateOneWithoutOrganizationNestedInput
+  events?: Prisma.EventUpdateManyWithoutOrganizationNestedInput
+  referral?: Prisma.ReferralUpdateOneWithoutOrganizationNestedInput
+  mailThreads?: Prisma.MailThreadUpdateManyWithoutLinkedOrganizationNestedInput
+}
+
+export type OrganizationUncheckedUpdateWithoutBackupsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  slug?: Prisma.StringFieldUpdateOperationsInput | string
+  logo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  metadata?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  suspendedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  suspendedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  closedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  closedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  members?: Prisma.MemberUncheckedUpdateManyWithoutOrganizationNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutOrganizationNestedInput
+  servers?: Prisma.ServerUncheckedUpdateManyWithoutOrganizationNestedInput
   subscriptions?: Prisma.SubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
   billing?: Prisma.OrganizationBillingUncheckedUpdateOneWithoutOrganizationNestedInput
   events?: Prisma.EventUncheckedUpdateManyWithoutOrganizationNestedInput
@@ -1078,6 +1231,7 @@ export type OrganizationCreateWithoutSubscriptionsInput = {
   events?: Prisma.EventCreateNestedManyWithoutOrganizationInput
   referral?: Prisma.ReferralCreateNestedOneWithoutOrganizationInput
   mailThreads?: Prisma.MailThreadCreateNestedManyWithoutLinkedOrganizationInput
+  backups?: Prisma.BackupCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutSubscriptionsInput = {
@@ -1103,6 +1257,7 @@ export type OrganizationUncheckedCreateWithoutSubscriptionsInput = {
   events?: Prisma.EventUncheckedCreateNestedManyWithoutOrganizationInput
   referral?: Prisma.ReferralUncheckedCreateNestedOneWithoutOrganizationInput
   mailThreads?: Prisma.MailThreadUncheckedCreateNestedManyWithoutLinkedOrganizationInput
+  backups?: Prisma.BackupUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutSubscriptionsInput = {
@@ -1144,6 +1299,7 @@ export type OrganizationUpdateWithoutSubscriptionsInput = {
   events?: Prisma.EventUpdateManyWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUpdateOneWithoutOrganizationNestedInput
   mailThreads?: Prisma.MailThreadUpdateManyWithoutLinkedOrganizationNestedInput
+  backups?: Prisma.BackupUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutSubscriptionsInput = {
@@ -1169,6 +1325,7 @@ export type OrganizationUncheckedUpdateWithoutSubscriptionsInput = {
   events?: Prisma.EventUncheckedUpdateManyWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUncheckedUpdateOneWithoutOrganizationNestedInput
   mailThreads?: Prisma.MailThreadUncheckedUpdateManyWithoutLinkedOrganizationNestedInput
+  backups?: Prisma.BackupUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutBillingInput = {
@@ -1194,6 +1351,7 @@ export type OrganizationCreateWithoutBillingInput = {
   events?: Prisma.EventCreateNestedManyWithoutOrganizationInput
   referral?: Prisma.ReferralCreateNestedOneWithoutOrganizationInput
   mailThreads?: Prisma.MailThreadCreateNestedManyWithoutLinkedOrganizationInput
+  backups?: Prisma.BackupCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutBillingInput = {
@@ -1219,6 +1377,7 @@ export type OrganizationUncheckedCreateWithoutBillingInput = {
   events?: Prisma.EventUncheckedCreateNestedManyWithoutOrganizationInput
   referral?: Prisma.ReferralUncheckedCreateNestedOneWithoutOrganizationInput
   mailThreads?: Prisma.MailThreadUncheckedCreateNestedManyWithoutLinkedOrganizationInput
+  backups?: Prisma.BackupUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutBillingInput = {
@@ -1260,6 +1419,7 @@ export type OrganizationUpdateWithoutBillingInput = {
   events?: Prisma.EventUpdateManyWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUpdateOneWithoutOrganizationNestedInput
   mailThreads?: Prisma.MailThreadUpdateManyWithoutLinkedOrganizationNestedInput
+  backups?: Prisma.BackupUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutBillingInput = {
@@ -1285,6 +1445,7 @@ export type OrganizationUncheckedUpdateWithoutBillingInput = {
   events?: Prisma.EventUncheckedUpdateManyWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUncheckedUpdateOneWithoutOrganizationNestedInput
   mailThreads?: Prisma.MailThreadUncheckedUpdateManyWithoutLinkedOrganizationNestedInput
+  backups?: Prisma.BackupUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutReferralInput = {
@@ -1310,6 +1471,7 @@ export type OrganizationCreateWithoutReferralInput = {
   billing?: Prisma.OrganizationBillingCreateNestedOneWithoutOrganizationInput
   events?: Prisma.EventCreateNestedManyWithoutOrganizationInput
   mailThreads?: Prisma.MailThreadCreateNestedManyWithoutLinkedOrganizationInput
+  backups?: Prisma.BackupCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutReferralInput = {
@@ -1335,6 +1497,7 @@ export type OrganizationUncheckedCreateWithoutReferralInput = {
   billing?: Prisma.OrganizationBillingUncheckedCreateNestedOneWithoutOrganizationInput
   events?: Prisma.EventUncheckedCreateNestedManyWithoutOrganizationInput
   mailThreads?: Prisma.MailThreadUncheckedCreateNestedManyWithoutLinkedOrganizationInput
+  backups?: Prisma.BackupUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutReferralInput = {
@@ -1376,6 +1539,7 @@ export type OrganizationUpdateWithoutReferralInput = {
   billing?: Prisma.OrganizationBillingUpdateOneWithoutOrganizationNestedInput
   events?: Prisma.EventUpdateManyWithoutOrganizationNestedInput
   mailThreads?: Prisma.MailThreadUpdateManyWithoutLinkedOrganizationNestedInput
+  backups?: Prisma.BackupUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutReferralInput = {
@@ -1401,6 +1565,7 @@ export type OrganizationUncheckedUpdateWithoutReferralInput = {
   billing?: Prisma.OrganizationBillingUncheckedUpdateOneWithoutOrganizationNestedInput
   events?: Prisma.EventUncheckedUpdateManyWithoutOrganizationNestedInput
   mailThreads?: Prisma.MailThreadUncheckedUpdateManyWithoutLinkedOrganizationNestedInput
+  backups?: Prisma.BackupUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutMailThreadsInput = {
@@ -1426,6 +1591,7 @@ export type OrganizationCreateWithoutMailThreadsInput = {
   billing?: Prisma.OrganizationBillingCreateNestedOneWithoutOrganizationInput
   events?: Prisma.EventCreateNestedManyWithoutOrganizationInput
   referral?: Prisma.ReferralCreateNestedOneWithoutOrganizationInput
+  backups?: Prisma.BackupCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutMailThreadsInput = {
@@ -1451,6 +1617,7 @@ export type OrganizationUncheckedCreateWithoutMailThreadsInput = {
   billing?: Prisma.OrganizationBillingUncheckedCreateNestedOneWithoutOrganizationInput
   events?: Prisma.EventUncheckedCreateNestedManyWithoutOrganizationInput
   referral?: Prisma.ReferralUncheckedCreateNestedOneWithoutOrganizationInput
+  backups?: Prisma.BackupUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutMailThreadsInput = {
@@ -1492,6 +1659,7 @@ export type OrganizationUpdateWithoutMailThreadsInput = {
   billing?: Prisma.OrganizationBillingUpdateOneWithoutOrganizationNestedInput
   events?: Prisma.EventUpdateManyWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUpdateOneWithoutOrganizationNestedInput
+  backups?: Prisma.BackupUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutMailThreadsInput = {
@@ -1517,6 +1685,7 @@ export type OrganizationUncheckedUpdateWithoutMailThreadsInput = {
   billing?: Prisma.OrganizationBillingUncheckedUpdateOneWithoutOrganizationNestedInput
   events?: Prisma.EventUncheckedUpdateManyWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUncheckedUpdateOneWithoutOrganizationNestedInput
+  backups?: Prisma.BackupUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationCreateWithoutEventsInput = {
@@ -1542,6 +1711,7 @@ export type OrganizationCreateWithoutEventsInput = {
   billing?: Prisma.OrganizationBillingCreateNestedOneWithoutOrganizationInput
   referral?: Prisma.ReferralCreateNestedOneWithoutOrganizationInput
   mailThreads?: Prisma.MailThreadCreateNestedManyWithoutLinkedOrganizationInput
+  backups?: Prisma.BackupCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationUncheckedCreateWithoutEventsInput = {
@@ -1567,6 +1737,7 @@ export type OrganizationUncheckedCreateWithoutEventsInput = {
   billing?: Prisma.OrganizationBillingUncheckedCreateNestedOneWithoutOrganizationInput
   referral?: Prisma.ReferralUncheckedCreateNestedOneWithoutOrganizationInput
   mailThreads?: Prisma.MailThreadUncheckedCreateNestedManyWithoutLinkedOrganizationInput
+  backups?: Prisma.BackupUncheckedCreateNestedManyWithoutOrganizationInput
 }
 
 export type OrganizationCreateOrConnectWithoutEventsInput = {
@@ -1608,6 +1779,7 @@ export type OrganizationUpdateWithoutEventsInput = {
   billing?: Prisma.OrganizationBillingUpdateOneWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUpdateOneWithoutOrganizationNestedInput
   mailThreads?: Prisma.MailThreadUpdateManyWithoutLinkedOrganizationNestedInput
+  backups?: Prisma.BackupUpdateManyWithoutOrganizationNestedInput
 }
 
 export type OrganizationUncheckedUpdateWithoutEventsInput = {
@@ -1633,6 +1805,7 @@ export type OrganizationUncheckedUpdateWithoutEventsInput = {
   billing?: Prisma.OrganizationBillingUncheckedUpdateOneWithoutOrganizationNestedInput
   referral?: Prisma.ReferralUncheckedUpdateOneWithoutOrganizationNestedInput
   mailThreads?: Prisma.MailThreadUncheckedUpdateManyWithoutLinkedOrganizationNestedInput
+  backups?: Prisma.BackupUncheckedUpdateManyWithoutOrganizationNestedInput
 }
 
 
@@ -1647,6 +1820,7 @@ export type OrganizationCountOutputType = {
   subscriptions: number
   events: number
   mailThreads: number
+  backups: number
 }
 
 export type OrganizationCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1656,6 +1830,7 @@ export type OrganizationCountOutputTypeSelect<ExtArgs extends runtime.Types.Exte
   subscriptions?: boolean | OrganizationCountOutputTypeCountSubscriptionsArgs
   events?: boolean | OrganizationCountOutputTypeCountEventsArgs
   mailThreads?: boolean | OrganizationCountOutputTypeCountMailThreadsArgs
+  backups?: boolean | OrganizationCountOutputTypeCountBackupsArgs
 }
 
 /**
@@ -1710,6 +1885,13 @@ export type OrganizationCountOutputTypeCountMailThreadsArgs<ExtArgs extends runt
   where?: Prisma.MailThreadWhereInput
 }
 
+/**
+ * OrganizationCountOutputType without action
+ */
+export type OrganizationCountOutputTypeCountBackupsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.BackupWhereInput
+}
+
 
 export type OrganizationSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1735,6 +1917,7 @@ export type OrganizationSelect<ExtArgs extends runtime.Types.Extensions.Internal
   events?: boolean | Prisma.Organization$eventsArgs<ExtArgs>
   referral?: boolean | Prisma.Organization$referralArgs<ExtArgs>
   mailThreads?: boolean | Prisma.Organization$mailThreadsArgs<ExtArgs>
+  backups?: boolean | Prisma.Organization$backupsArgs<ExtArgs>
   _count?: boolean | Prisma.OrganizationCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["organization"]>
 
@@ -1802,6 +1985,7 @@ export type OrganizationInclude<ExtArgs extends runtime.Types.Extensions.Interna
   events?: boolean | Prisma.Organization$eventsArgs<ExtArgs>
   referral?: boolean | Prisma.Organization$referralArgs<ExtArgs>
   mailThreads?: boolean | Prisma.Organization$mailThreadsArgs<ExtArgs>
+  backups?: boolean | Prisma.Organization$backupsArgs<ExtArgs>
   _count?: boolean | Prisma.OrganizationCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type OrganizationIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -1818,6 +2002,7 @@ export type $OrganizationPayload<ExtArgs extends runtime.Types.Extensions.Intern
     events: Prisma.$EventPayload<ExtArgs>[]
     referral: Prisma.$ReferralPayload<ExtArgs> | null
     mailThreads: Prisma.$MailThreadPayload<ExtArgs>[]
+    backups: Prisma.$BackupPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2237,6 +2422,7 @@ export interface Prisma__OrganizationClient<T, Null = never, ExtArgs extends run
   events<T extends Prisma.Organization$eventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$eventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   referral<T extends Prisma.Organization$referralArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$referralArgs<ExtArgs>>): Prisma.Prisma__ReferralClient<runtime.Types.Result.GetResult<Prisma.$ReferralPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   mailThreads<T extends Prisma.Organization$mailThreadsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$mailThreadsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MailThreadPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  backups<T extends Prisma.Organization$backupsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Organization$backupsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BackupPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2851,6 +3037,30 @@ export type Organization$mailThreadsArgs<ExtArgs extends runtime.Types.Extension
   take?: number
   skip?: number
   distinct?: Prisma.MailThreadScalarFieldEnum | Prisma.MailThreadScalarFieldEnum[]
+}
+
+/**
+ * Organization.backups
+ */
+export type Organization$backupsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Backup
+   */
+  select?: Prisma.BackupSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Backup
+   */
+  omit?: Prisma.BackupOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.BackupInclude<ExtArgs> | null
+  where?: Prisma.BackupWhereInput
+  orderBy?: Prisma.BackupOrderByWithRelationInput | Prisma.BackupOrderByWithRelationInput[]
+  cursor?: Prisma.BackupWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.BackupScalarFieldEnum | Prisma.BackupScalarFieldEnum[]
 }
 
 /**

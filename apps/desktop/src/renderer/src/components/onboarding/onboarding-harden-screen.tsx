@@ -21,10 +21,13 @@ import { OnboardingHardenOutcome } from "./onboarding-harden-outcome";
 export function OnboardingHardenScreen({
   serverId,
   serverName,
+  finishLabel,
   onContinue,
 }: {
   serverId: string;
   serverName?: string;
+  /** What the way on is called when the sequence is not over after the hardening: a backup's data still to come. */
+  finishLabel?: string;
   onContinue?: () => void;
 }) {
   const t = useTranslations();
@@ -48,7 +51,9 @@ export function OnboardingHardenScreen({
             onClick={onContinue}
             variant="inverse"
           >
-            {t(action.label)}
+            {action.label === "onboarding.finish" && finishLabel
+              ? finishLabel
+              : t(action.label)}
           </Button>
         </ActionBar>
       }

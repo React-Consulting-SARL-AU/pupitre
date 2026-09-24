@@ -17,6 +17,10 @@ const (
 	ErrorDowngradeRefused    ErrorCode = "downgrade_refused"
 	ErrorMigrationRequired   ErrorCode = "migration_required"
 	ErrorBusy                ErrorCode = "busy"
+	ErrorStorageRefused      ErrorCode = "storage_refused"
+	ErrorBackupMissing       ErrorCode = "backup_missing"
+	ErrorBackupUnsupported   ErrorCode = "backup_unsupported"
+	ErrorBackupCorrupt       ErrorCode = "backup_corrupt"
 	ErrorInternal            ErrorCode = "internal"
 )
 
@@ -35,6 +39,10 @@ var ErrorCodes = []ErrorCode{
 	ErrorDowngradeRefused,
 	ErrorMigrationRequired,
 	ErrorBusy,
+	ErrorStorageRefused,
+	ErrorBackupMissing,
+	ErrorBackupUnsupported,
+	ErrorBackupCorrupt,
 	ErrorInternal,
 }
 

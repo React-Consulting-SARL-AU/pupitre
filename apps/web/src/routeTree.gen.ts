@@ -19,6 +19,7 @@ import { Route as AuthTwoFactorRouteImport } from './routes/auth/two-factor'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardAdminRouteImport } from './routes/dashboard/admin'
 import { Route as DashboardAuditRouteImport } from './routes/dashboard/audit'
+import { Route as DashboardBackupsRouteImport } from './routes/dashboard/backups'
 import { Route as DashboardBillingRouteImport } from './routes/dashboard/billing'
 import { Route as DashboardDevicesRouteImport } from './routes/dashboard/devices'
 import { Route as DashboardDownloadRouteImport } from './routes/dashboard/download'
@@ -97,6 +98,11 @@ const DashboardAdminRoute = DashboardAdminRouteImport.update({
 const DashboardAuditRoute = DashboardAuditRouteImport.update({
   id: '/audit',
   path: '/audit',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardBackupsRoute = DashboardBackupsRouteImport.update({
+  id: '/backups',
+  path: '/backups',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardBillingRoute = DashboardBillingRouteImport.update({
@@ -266,6 +272,7 @@ export interface FileRoutesByFullPath {
   '/auth/two-factor': typeof AuthTwoFactorRoute
   '/dashboard/admin': typeof DashboardAdminRouteWithChildren
   '/dashboard/audit': typeof DashboardAuditRoute
+  '/dashboard/backups': typeof DashboardBackupsRoute
   '/dashboard/billing': typeof DashboardBillingRoute
   '/dashboard/devices': typeof DashboardDevicesRoute
   '/dashboard/download': typeof DashboardDownloadRoute
@@ -305,6 +312,7 @@ export interface FileRoutesByTo {
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/two-factor': typeof AuthTwoFactorRoute
   '/dashboard/audit': typeof DashboardAuditRoute
+  '/dashboard/backups': typeof DashboardBackupsRoute
   '/dashboard/billing': typeof DashboardBillingRoute
   '/dashboard/devices': typeof DashboardDevicesRoute
   '/dashboard/download': typeof DashboardDownloadRoute
@@ -346,6 +354,7 @@ export interface FileRoutesById {
   '/auth/two-factor': typeof AuthTwoFactorRoute
   '/dashboard/admin': typeof DashboardAdminRouteWithChildren
   '/dashboard/audit': typeof DashboardAuditRoute
+  '/dashboard/backups': typeof DashboardBackupsRoute
   '/dashboard/billing': typeof DashboardBillingRoute
   '/dashboard/devices': typeof DashboardDevicesRoute
   '/dashboard/download': typeof DashboardDownloadRoute
@@ -389,6 +398,7 @@ export interface FileRouteTypes {
     | '/auth/two-factor'
     | '/dashboard/admin'
     | '/dashboard/audit'
+    | '/dashboard/backups'
     | '/dashboard/billing'
     | '/dashboard/devices'
     | '/dashboard/download'
@@ -428,6 +438,7 @@ export interface FileRouteTypes {
     | '/auth/sign-in'
     | '/auth/two-factor'
     | '/dashboard/audit'
+    | '/dashboard/backups'
     | '/dashboard/billing'
     | '/dashboard/devices'
     | '/dashboard/download'
@@ -468,6 +479,7 @@ export interface FileRouteTypes {
     | '/auth/two-factor'
     | '/dashboard/admin'
     | '/dashboard/audit'
+    | '/dashboard/backups'
     | '/dashboard/billing'
     | '/dashboard/devices'
     | '/dashboard/download'
@@ -582,6 +594,13 @@ declare module '@tanstack/react-router' {
       path: '/audit'
       fullPath: '/dashboard/audit'
       preLoaderRoute: typeof DashboardAuditRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/backups': {
+      id: '/dashboard/backups'
+      path: '/backups'
+      fullPath: '/dashboard/backups'
+      preLoaderRoute: typeof DashboardBackupsRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/billing': {
@@ -849,6 +868,7 @@ const DashboardAdminRouteWithChildren = DashboardAdminRoute._addFileChildren(
 interface DashboardRouteChildren {
   DashboardAdminRoute: typeof DashboardAdminRouteWithChildren
   DashboardAuditRoute: typeof DashboardAuditRoute
+  DashboardBackupsRoute: typeof DashboardBackupsRoute
   DashboardBillingRoute: typeof DashboardBillingRoute
   DashboardDevicesRoute: typeof DashboardDevicesRoute
   DashboardDownloadRoute: typeof DashboardDownloadRoute
@@ -864,6 +884,7 @@ interface DashboardRouteChildren {
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardAdminRoute: DashboardAdminRouteWithChildren,
   DashboardAuditRoute: DashboardAuditRoute,
+  DashboardBackupsRoute: DashboardBackupsRoute,
   DashboardBillingRoute: DashboardBillingRoute,
   DashboardDevicesRoute: DashboardDevicesRoute,
   DashboardDownloadRoute: DashboardDownloadRoute,

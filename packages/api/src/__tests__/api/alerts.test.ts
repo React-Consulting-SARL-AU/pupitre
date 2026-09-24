@@ -1,6 +1,7 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
 import type { EmailMessage } from "@pupitre/auth/server"
 import type { Server } from "@pupitre/db/cloudflare/client"
+import type { BackupBeat } from "@pupitre/shared/backup"
 import {
   activeAlertsFor,
   evaluateAlerts,
@@ -235,6 +236,107 @@ describe("les autres genres d'alerte", () => {
 
     expect(verdict.opened).toEqual(["entitlement_grace"])
     expect(alertEmails()).toHaveLength(1)
+  })
+})
+
+describe("les alertes de sauvegarde", () => {
+  beforeAll(async () => {
+    harness = await bootApiTestServer()
+  })
+
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  async function beating(backup: BackupBeat) {
+    const { organization, members } = await createOrganizationWithMembers({
+      roles: ["owner"],
+    })
+    const { server } = await createServer({
+      organizationId: organization.id,
+      assignedUserId: members[0].user.id,
+    })
+
+    await harness.prisma.server.update({
+      where: { id: server.id },
+      data: { lastHeartbeatAt: new Date(), backup },
+    })
+
+    return await reload(server.id)
+  }
+
+  it("signale une sauvegarde en échec avec l'erreur de l'agent, puis se ferme au succès suivant", async () => {
+    const server = await beating({
+      interval_hours: 24,
+      last_run_at: minutesAgo(10).toISOString(),
+      last_ok_at: minutesAgo(60 * 25).toISOString(),
+      last_error: "PutObject: AccessDenied",
+    })
+
+    const verdict = await evaluateServerAlerts(server)
+
+    expect(verdict.opened).toEqual(["backup_failed"])
+    expect(alertEmails()).toHaveLength(1)
+    expect(alertEmails()[0].text).toContain("PutObject: AccessDenied")
+
+    const again = await evaluateServerAlerts(await reload(server.id))
+
+    expect(again.opened).toEqual([])
+    expect(alertEmails()).toHaveLength(1)
+
+    await harness.prisma.server.update({
+      where: { id: server.id },
+      data: {
+        backup: {
+          interval_hours: 24,
+          last_run_at: minutesAgo(1).toISOString(),
+          last_ok_at: minutesAgo(1).toISOString(),
+        },
+      },
+    })
+
+    const healed = await evaluateServerAlerts(await reload(server.id))
+
+    expect(healed.resolved).toEqual(["backup_failed"])
+  })
+
+  it("signale une sauvegarde qui n'a pas réussi depuis deux intervalles", async () => {
+    const server = await beating({
+      interval_hours: 6,
+      last_run_at: minutesAgo(60 * 13).toISOString(),
+      last_ok_at: minutesAgo(60 * 13).toISOString(),
+    })
+
+    const verdict = await evaluateServerAlerts(server)
+
+    expect(verdict.opened).toEqual(["backup_stale"])
+    expect(alertEmails()).toHaveLength(1)
+    expect(alertEmails()[0].subject).toContain(server.name)
+    expect(alertEmails()[0].text).toContain("6 h")
+  })
+
+  it("laisse tranquille un serveur sans module de sauvegarde ou à la planification coupée", async () => {
+    const off = await beating({
+      interval_hours: 0,
+      last_ok_at: minutesAgo(60 * 24 * 30).toISOString(),
+    })
+
+    expect((await evaluateServerAlerts(off)).opened).toEqual([])
+
+    const { organization } = await createOrganizationWithMembers({
+      roles: ["owner"],
+    })
+    const { server } = await createServer({ organizationId: organization.id })
+
+    await harness.prisma.server.update({
+      where: { id: server.id },
+      data: { lastHeartbeatAt: new Date() },
+    })
+
+    expect(
+      (await evaluateServerAlerts(await reload(server.id))).opened
+    ).toEqual([])
+    expect(alertEmails()).toHaveLength(0)
   })
 })
 

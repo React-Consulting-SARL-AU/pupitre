@@ -1,5 +1,6 @@
 import type { Manifest } from "@pupitre/shared/catalog";
 import type { AgentError } from "@shared/agent";
+import type { RestoredSetup } from "@shared/backups";
 import type { AgentDelivery, AgentSendPhase } from "@shared/install";
 import { create } from "zustand";
 import { translate } from "../i18n/translate";
@@ -21,6 +22,7 @@ import {
   type OnboardingStep,
   transition,
 } from "./onboarding-machine";
+import { useRestore } from "./restore";
 import { useServers } from "./servers";
 
 export type DeliveryState =
@@ -40,6 +42,8 @@ interface Saved {
    */
   selected: readonly string[];
   values: Record<string, Record<string, unknown>>;
+  /** The backup the machine took its configuration from, and the data parts it still owes. */
+  restored: RestoredSetup | null;
 }
 
 const KEY = "pupitre.onboarding";
@@ -106,6 +110,7 @@ export function savedOnboarding(): Saved | null {
 
     return {
       installed: saved.installed === true,
+      restored: saved.restored ?? null,
       selected: Array.isArray(saved.selected) ? saved.selected : [],
       serverId: saved.serverId ?? null,
       step: saved.step,
@@ -134,6 +139,15 @@ interface OnboardingStore extends MachineState {
   canGoBack: () => boolean;
   replay: (moduleId: string) => OnboardingStep;
   sendAgent: () => Promise<void>;
+  /** The machine takes a backup's configuration; the catalogue opens on its choice. */
+  restoreFrom: (backupId: string, passphrase: string) => Promise<void>;
+  /** The data parts chosen, brought back once the machine stands; then the sequence is done. */
+  bringData: (
+    parts: readonly string[],
+    passphrase: string | null
+  ) => Promise<void>;
+  /** The restore mark is let go and the data left in the bucket. */
+  skipData: () => Promise<void>;
   close: () => void;
   resume: () => Promise<void>;
   reset: () => void;
@@ -207,8 +221,9 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
 
     const held = pending?.serverId === serverId ? pending.draft : null;
     const own = ownDraft(serverId) ?? held ?? shelved();
+    const restored = get().restored ? useRestore.getState().restored : null;
 
-    keep({ installed, serverId, step, ...own });
+    keep({ installed, restored, serverId, step, ...own });
   }
 
   /**
@@ -278,6 +293,12 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
       case "inspect":
         useInspection.getState().inspect(effect.serverId);
         break;
+      case "listBackups":
+        listBackups();
+        break;
+      case "abortRestore":
+        useRestore.getState().abort(effect.serverId);
+        break;
       case "sendAgent":
         get().sendAgent();
         break;
@@ -308,6 +329,25 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
         break;
       default:
         break;
+    }
+  }
+
+  /**
+   * Whether the organization has backups to start from: the platform is asked
+   * once the machine is chosen, and a platform out of reach offers none rather
+   * than holding the sequence.
+   */
+  async function listBackups(): Promise<void> {
+    const own = sequence;
+
+    if (!bridge().listBackups) {
+      return;
+    }
+
+    const count = await useRestore.getState().list();
+
+    if (own === sequence) {
+      send({ any: count > 0, type: "backupsListed" });
     }
   }
 
@@ -447,12 +487,14 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
     open() {
       sequence += 1;
       set({ delivery: { status: "idle" } });
+      useRestore.getState().reset();
       send({ type: "open" });
     },
 
     begin(serverId) {
       sequence += 1;
       set({ delivery: { status: "idle" } });
+      useRestore.getState().reset();
       send({ serverId, type: "begin" });
     },
 
@@ -505,6 +547,43 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
       });
     },
 
+    async restoreFrom(backupId, passphrase) {
+      const { serverId } = get();
+      const own = sequence;
+
+      if (!serverId) {
+        return;
+      }
+
+      const taken = await useRestore
+        .getState()
+        .start(serverId, backupId, passphrase);
+
+      if (taken && own === sequence) {
+        send({ backupId, type: "restored" });
+      }
+    },
+
+    async bringData(parts, passphrase) {
+      const { serverId } = get();
+
+      if (!serverId) {
+        return;
+      }
+
+      await useRestore.getState().bringData(serverId, parts, passphrase);
+    },
+
+    async skipData() {
+      const { serverId } = get();
+
+      if (serverId) {
+        await useRestore.getState().abort(serverId);
+      }
+
+      send({ type: "dataSkipped" });
+    },
+
     /** Leaving the wizard keeps the progress: the servers screen offers it back. */
     close() {
       send({ type: "close" });
@@ -528,8 +607,10 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
 
       sequence += 1;
       set({ delivery: { status: "idle" } });
+      useRestore.getState().adopt(saved.restored);
       send({
         installed: saved.installed,
+        restored: saved.restored?.backupId ?? null,
         serverId: saved.serverId,
         step: saved.step,
         type: "resume",
@@ -541,6 +622,7 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
     reset() {
       sequence += 1;
       keep(null);
+      useRestore.getState().reset();
       set({ ...CLOSED, delivery: { status: "idle" }, recovering: false });
     },
   };

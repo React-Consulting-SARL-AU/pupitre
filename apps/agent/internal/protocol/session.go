@@ -53,10 +53,19 @@ func (s *Server) hello(ctx *Context, raw json.RawMessage) (any, error) {
 	return helloResult{
 		AgentVersion: s.options.AgentVersion,
 		Protocol:     contract.ProtocolVersion,
+		ServerID:     s.serverID(),
 		Entitlement:  s.Entitlement().Entitlement,
 		Capabilities: s.Capabilities(),
 		Config:       s.config(),
 	}, nil
+}
+
+func (s *Server) serverID() string {
+	if s.options.ServerID == nil {
+		return ""
+	}
+
+	return s.options.ServerID()
 }
 
 func (s *Server) config() *contract.ConfigRevision {

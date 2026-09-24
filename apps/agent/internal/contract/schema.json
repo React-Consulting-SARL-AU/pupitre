@@ -335,6 +335,10 @@
         "downgrade_refused",
         "migration_required",
         "busy",
+        "storage_refused",
+        "backup_missing",
+        "backup_unsupported",
+        "backup_corrupt",
         "internal"
       ]
     },
@@ -1342,7 +1346,8 @@
                   "neon",
                   "vercel",
                   "supabase",
-                  "stripe"
+                  "stripe",
+                  "backup"
                 ]
               },
               "version": {
@@ -1493,7 +1498,8 @@
                   "neon",
                   "vercel",
                   "supabase",
-                  "stripe"
+                  "stripe",
+                  "backup"
                 ]
               },
               "version": {
@@ -1585,7 +1591,8 @@
             "neon",
             "vercel",
             "supabase",
-            "stripe"
+            "stripe",
+            "backup"
           ]
         },
         "version": {
@@ -1725,7 +1732,8 @@
             "neon",
             "vercel",
             "supabase",
-            "stripe"
+            "stripe",
+            "backup"
           ]
         },
         "version": {
@@ -1835,7 +1843,8 @@
             "neon",
             "vercel",
             "supabase",
-            "stripe"
+            "stripe",
+            "backup"
           ]
         },
         "version": {
@@ -1945,7 +1954,8 @@
             "neon",
             "vercel",
             "supabase",
-            "stripe"
+            "stripe",
+            "backup"
           ]
         },
         "version": {
@@ -4831,6 +4841,1385 @@
         "routes"
       ]
     },
+    "BackupStatusParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "BackupStatusResult": {
+      "type": "object",
+      "properties": {
+        "configured": {
+          "type": "boolean"
+        },
+        "interval_hours": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 720
+        },
+        "keep": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "next_run_at": {
+          "type": "string"
+        },
+        "running": {
+          "type": "boolean"
+        },
+        "last": {
+          "type": "object",
+          "properties": {
+            "at": {
+              "type": "string"
+            },
+            "ok": {
+              "type": "boolean"
+            },
+            "id": {
+              "type": "string",
+              "pattern": "^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{6}$"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "error": {
+              "type": "string"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "at",
+            "ok"
+          ]
+        }
+      },
+      "required": [
+        "configured",
+        "interval_hours",
+        "keep",
+        "running"
+      ]
+    },
+    "BackupContentsParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "BackupContentsResult": {
+      "type": "object",
+      "properties": {
+        "projects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "repo": {
+                "type": "boolean"
+              },
+              "included": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "name",
+              "repo",
+              "included"
+            ]
+          }
+        },
+        "databases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "engine": {
+                "type": "string",
+                "enum": [
+                  "postgres",
+                  "mysql",
+                  "mongodb",
+                  "redis"
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "item": {
+                "type": "string"
+              },
+              "included": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "engine",
+              "name",
+              "item",
+              "included"
+            ]
+          }
+        },
+        "unreadable": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "postgres",
+              "mysql",
+              "mongodb",
+              "redis"
+            ]
+          }
+        }
+      },
+      "required": [
+        "projects",
+        "databases",
+        "unreadable"
+      ]
+    },
+    "BackupRunParams": {
+      "type": "object",
+      "properties": {
+        "databases": {
+          "type": "boolean"
+        },
+        "projects": {
+          "type": "string",
+          "enum": [
+            "full",
+            "env",
+            "none"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "BackupRunResult": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{6}$"
+        },
+        "key": {
+          "type": "string"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "parts": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
+                  },
+                  "bytes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "fingerprint": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "setup"
+                  }
+                },
+                "required": [
+                  "key",
+                  "bytes",
+                  "sha256",
+                  "kind"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
+                  },
+                  "bytes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "fingerprint": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "home"
+                  },
+                  "paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "key",
+                  "bytes",
+                  "sha256",
+                  "kind",
+                  "paths"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
+                  },
+                  "bytes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "fingerprint": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "database"
+                  },
+                  "engine": {
+                    "type": "string",
+                    "enum": [
+                      "postgres",
+                      "mysql",
+                      "mongodb",
+                      "redis"
+                    ]
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "pg_custom",
+                      "pg_roles",
+                      "sql",
+                      "mysql_users",
+                      "mongo_archive",
+                      "rdb"
+                    ]
+                  }
+                },
+                "required": [
+                  "key",
+                  "bytes",
+                  "sha256",
+                  "kind",
+                  "engine",
+                  "name",
+                  "format"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
+                  },
+                  "bytes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "fingerprint": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "project"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "full",
+                      "env"
+                    ]
+                  },
+                  "git": {
+                    "type": "object",
+                    "properties": {
+                      "repo": {
+                        "type": "string"
+                      },
+                      "branch": {
+                        "type": "string"
+                      },
+                      "dirty": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "ahead": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "repo",
+                      "branch",
+                      "dirty",
+                      "ahead"
+                    ]
+                  }
+                },
+                "required": [
+                  "key",
+                  "bytes",
+                  "sha256",
+                  "kind",
+                  "name",
+                  "mode"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
+                  },
+                  "bytes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "fingerprint": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "path"
+                  },
+                  "path": {
+                    "type": "string",
+                    "pattern": "^([A-Za-z0-9_~@+-]|\\.[A-Za-z0-9_~@+-])[A-Za-z0-9._~@+-]*(\\/([A-Za-z0-9_~@+-]|\\.[A-Za-z0-9_~@+-])[A-Za-z0-9._~@+-]*)*\\/?$"
+                  }
+                },
+                "required": [
+                  "key",
+                  "bytes",
+                  "sha256",
+                  "kind",
+                  "path"
+                ]
+              }
+            ]
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "declared": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "id",
+        "key",
+        "bytes",
+        "parts",
+        "warnings",
+        "declared"
+      ]
+    },
+    "BackupDeleteParams": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{6}$"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "BackupDeleteResult": {
+      "type": "object",
+      "properties": {
+        "deleted": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "deleted"
+      ]
+    },
+    "BackupInspectParams": {
+      "type": "object",
+      "properties": {
+        "location": {
+          "type": "object",
+          "properties": {
+            "endpoint": {
+              "type": "string",
+              "pattern": "^https:\\/\\/[^\\s/?#]+(\\/[^\\s?#]*)?$"
+            },
+            "region": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,64}$"
+            },
+            "bucket": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+            },
+            "key": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "path_style": {
+              "type": "boolean"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "endpoint",
+            "region",
+            "bucket",
+            "key",
+            "path_style"
+          ],
+          "additionalProperties": false
+        },
+        "secrets_stdin": {
+          "type": "boolean",
+          "const": true
+        }
+      },
+      "required": [
+        "location",
+        "secrets_stdin"
+      ],
+      "additionalProperties": false
+    },
+    "BackupInspectResult": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "type": "number",
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{6}$"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "trigger": {
+          "type": "string",
+          "enum": [
+            "schedule",
+            "manual"
+          ]
+        },
+        "server": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "hostname": {
+              "type": "string"
+            },
+            "arch": {
+              "type": "string"
+            },
+            "agent_version": {
+              "type": "string"
+            },
+            "config_revision": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "id",
+            "hostname",
+            "arch",
+            "agent_version",
+            "config_revision"
+          ]
+        },
+        "recipient": {
+          "type": "string",
+          "minLength": 44,
+          "maxLength": 44,
+          "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+        },
+        "kdf": {
+          "type": "object",
+          "properties": {
+            "alg": {
+              "type": "string",
+              "const": "pbkdf2-sha256"
+            },
+            "iterations": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "salt": {
+              "type": "string",
+              "minLength": 24,
+              "maxLength": 24,
+              "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+            }
+          },
+          "required": [
+            "alg",
+            "iterations",
+            "salt"
+          ]
+        },
+        "modules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "running": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "excluded": {
+          "type": "object",
+          "properties": {
+            "projects": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9._-]*$"
+              }
+            },
+            "databases": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^((postgres|mysql|mongodb):[A-Za-z0-9_-]{1,64}|redis:\\*)$"
+              }
+            }
+          },
+          "required": [
+            "projects",
+            "databases"
+          ]
+        },
+        "parts": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
+                  },
+                  "bytes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "fingerprint": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "setup"
+                  }
+                },
+                "required": [
+                  "key",
+                  "bytes",
+                  "sha256",
+                  "kind"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
+                  },
+                  "bytes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "fingerprint": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "home"
+                  },
+                  "paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "key",
+                  "bytes",
+                  "sha256",
+                  "kind",
+                  "paths"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
+                  },
+                  "bytes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "fingerprint": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "database"
+                  },
+                  "engine": {
+                    "type": "string",
+                    "enum": [
+                      "postgres",
+                      "mysql",
+                      "mongodb",
+                      "redis"
+                    ]
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "pg_custom",
+                      "pg_roles",
+                      "sql",
+                      "mysql_users",
+                      "mongo_archive",
+                      "rdb"
+                    ]
+                  }
+                },
+                "required": [
+                  "key",
+                  "bytes",
+                  "sha256",
+                  "kind",
+                  "engine",
+                  "name",
+                  "format"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
+                  },
+                  "bytes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "fingerprint": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "project"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "full",
+                      "env"
+                    ]
+                  },
+                  "git": {
+                    "type": "object",
+                    "properties": {
+                      "repo": {
+                        "type": "string"
+                      },
+                      "branch": {
+                        "type": "string"
+                      },
+                      "dirty": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "ahead": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "repo",
+                      "branch",
+                      "dirty",
+                      "ahead"
+                    ]
+                  }
+                },
+                "required": [
+                  "key",
+                  "bytes",
+                  "sha256",
+                  "kind",
+                  "name",
+                  "mode"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
+                  },
+                  "bytes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "fingerprint": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "path"
+                  },
+                  "path": {
+                    "type": "string",
+                    "pattern": "^([A-Za-z0-9_~@+-]|\\.[A-Za-z0-9_~@+-])[A-Za-z0-9._~@+-]*(\\/([A-Za-z0-9_~@+-]|\\.[A-Za-z0-9_~@+-])[A-Za-z0-9._~@+-]*)*\\/?$"
+                  }
+                },
+                "required": [
+                  "key",
+                  "bytes",
+                  "sha256",
+                  "kind",
+                  "path"
+                ]
+              }
+            ]
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "format",
+        "id",
+        "created_at",
+        "trigger",
+        "server",
+        "recipient",
+        "kdf",
+        "modules",
+        "running",
+        "parts",
+        "warnings"
+      ]
+    },
+    "BackupRestoreSetupParams": {
+      "type": "object",
+      "properties": {
+        "location": {
+          "type": "object",
+          "properties": {
+            "endpoint": {
+              "type": "string",
+              "pattern": "^https:\\/\\/[^\\s/?#]+(\\/[^\\s?#]*)?$"
+            },
+            "region": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,64}$"
+            },
+            "bucket": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+            },
+            "key": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "path_style": {
+              "type": "boolean"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "endpoint",
+            "region",
+            "bucket",
+            "key",
+            "path_style"
+          ],
+          "additionalProperties": false
+        },
+        "revert": {
+          "type": "boolean"
+        },
+        "secrets_stdin": {
+          "type": "boolean",
+          "const": true
+        }
+      },
+      "required": [
+        "location",
+        "secrets_stdin"
+      ],
+      "additionalProperties": false
+    },
+    "BackupRestoreSetupResult": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{6}$"
+        },
+        "modules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "defer": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "extra": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "projects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dropped": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "parts": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
+                  },
+                  "bytes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "fingerprint": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "setup"
+                  }
+                },
+                "required": [
+                  "key",
+                  "bytes",
+                  "sha256",
+                  "kind"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
+                  },
+                  "bytes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "fingerprint": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "home"
+                  },
+                  "paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "key",
+                  "bytes",
+                  "sha256",
+                  "kind",
+                  "paths"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
+                  },
+                  "bytes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "fingerprint": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "database"
+                  },
+                  "engine": {
+                    "type": "string",
+                    "enum": [
+                      "postgres",
+                      "mysql",
+                      "mongodb",
+                      "redis"
+                    ]
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "pg_custom",
+                      "pg_roles",
+                      "sql",
+                      "mysql_users",
+                      "mongo_archive",
+                      "rdb"
+                    ]
+                  }
+                },
+                "required": [
+                  "key",
+                  "bytes",
+                  "sha256",
+                  "kind",
+                  "engine",
+                  "name",
+                  "format"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
+                  },
+                  "bytes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "fingerprint": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "project"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "full",
+                      "env"
+                    ]
+                  },
+                  "git": {
+                    "type": "object",
+                    "properties": {
+                      "repo": {
+                        "type": "string"
+                      },
+                      "branch": {
+                        "type": "string"
+                      },
+                      "dirty": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "ahead": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "repo",
+                      "branch",
+                      "dirty",
+                      "ahead"
+                    ]
+                  }
+                },
+                "required": [
+                  "key",
+                  "bytes",
+                  "sha256",
+                  "kind",
+                  "name",
+                  "mode"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
+                  },
+                  "bytes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "fingerprint": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "path"
+                  },
+                  "path": {
+                    "type": "string",
+                    "pattern": "^([A-Za-z0-9_~@+-]|\\.[A-Za-z0-9_~@+-])[A-Za-z0-9._~@+-]*(\\/([A-Za-z0-9_~@+-]|\\.[A-Za-z0-9_~@+-])[A-Za-z0-9._~@+-]*)*\\/?$"
+                  }
+                },
+                "required": [
+                  "key",
+                  "bytes",
+                  "sha256",
+                  "kind",
+                  "path"
+                ]
+              }
+            ]
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "modules",
+        "defer",
+        "extra",
+        "projects",
+        "dropped",
+        "parts",
+        "warnings"
+      ]
+    },
+    "BackupRestoreDataParams": {
+      "type": "object",
+      "properties": {
+        "location": {
+          "type": "object",
+          "properties": {
+            "endpoint": {
+              "type": "string",
+              "pattern": "^https:\\/\\/[^\\s/?#]+(\\/[^\\s?#]*)?$"
+            },
+            "region": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,64}$"
+            },
+            "bucket": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+            },
+            "key": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "path_style": {
+              "type": "boolean"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "endpoint",
+            "region",
+            "bucket",
+            "key",
+            "path_style"
+          ],
+          "additionalProperties": false
+        },
+        "parts": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "start": {
+          "type": "boolean"
+        },
+        "secrets_stdin": {
+          "type": "boolean",
+          "const": true
+        }
+      },
+      "required": [
+        "location",
+        "parts",
+        "secrets_stdin"
+      ],
+      "additionalProperties": false
+    },
+    "BackupRestoreDataResult": {
+      "type": "object",
+      "properties": {
+        "restored": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "failed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "started": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "restored",
+        "failed",
+        "started",
+        "warnings"
+      ]
+    },
+    "BackupRestoreAbortParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "BackupRestoreAbortResult": {
+      "type": "object",
+      "properties": {
+        "done": {
+          "type": "boolean",
+          "const": true
+        }
+      },
+      "required": [
+        "done"
+      ]
+    },
     "EnrollParams": {
       "type": "object",
       "properties": {
@@ -5201,6 +6590,571 @@
       ],
       "additionalProperties": false
     },
+    "BackupSecrets": {
+      "type": "object",
+      "properties": {
+        "access_key_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "secret_access_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "private_key": {
+          "type": "string",
+          "minLength": 44,
+          "maxLength": 44
+        }
+      },
+      "required": [
+        "access_key_id",
+        "secret_access_key"
+      ],
+      "additionalProperties": false
+    },
+    "BackupManifest": {
+      "type": "object",
+      "properties": {
+        "format": {
+          "type": "number",
+          "const": 1
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{6}$"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "trigger": {
+          "type": "string",
+          "enum": [
+            "schedule",
+            "manual"
+          ]
+        },
+        "server": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "hostname": {
+              "type": "string"
+            },
+            "arch": {
+              "type": "string"
+            },
+            "agent_version": {
+              "type": "string"
+            },
+            "config_revision": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "id",
+            "hostname",
+            "arch",
+            "agent_version",
+            "config_revision"
+          ]
+        },
+        "recipient": {
+          "type": "string",
+          "minLength": 44,
+          "maxLength": 44,
+          "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+        },
+        "kdf": {
+          "type": "object",
+          "properties": {
+            "alg": {
+              "type": "string",
+              "const": "pbkdf2-sha256"
+            },
+            "iterations": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "salt": {
+              "type": "string",
+              "minLength": 24,
+              "maxLength": 24,
+              "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+            }
+          },
+          "required": [
+            "alg",
+            "iterations",
+            "salt"
+          ]
+        },
+        "modules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "running": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "excluded": {
+          "type": "object",
+          "properties": {
+            "projects": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9._-]*$"
+              }
+            },
+            "databases": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^((postgres|mysql|mongodb):[A-Za-z0-9_-]{1,64}|redis:\\*)$"
+              }
+            }
+          },
+          "required": [
+            "projects",
+            "databases"
+          ]
+        },
+        "parts": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
+                  },
+                  "bytes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "fingerprint": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "setup"
+                  }
+                },
+                "required": [
+                  "key",
+                  "bytes",
+                  "sha256",
+                  "kind"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
+                  },
+                  "bytes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "fingerprint": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "home"
+                  },
+                  "paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "key",
+                  "bytes",
+                  "sha256",
+                  "kind",
+                  "paths"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
+                  },
+                  "bytes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "fingerprint": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "database"
+                  },
+                  "engine": {
+                    "type": "string",
+                    "enum": [
+                      "postgres",
+                      "mysql",
+                      "mongodb",
+                      "redis"
+                    ]
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "pg_custom",
+                      "pg_roles",
+                      "sql",
+                      "mysql_users",
+                      "mongo_archive",
+                      "rdb"
+                    ]
+                  }
+                },
+                "required": [
+                  "key",
+                  "bytes",
+                  "sha256",
+                  "kind",
+                  "engine",
+                  "name",
+                  "format"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
+                  },
+                  "bytes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "fingerprint": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "project"
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "full",
+                      "env"
+                    ]
+                  },
+                  "git": {
+                    "type": "object",
+                    "properties": {
+                      "repo": {
+                        "type": "string"
+                      },
+                      "branch": {
+                        "type": "string"
+                      },
+                      "dirty": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "ahead": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "repo",
+                      "branch",
+                      "dirty",
+                      "ahead"
+                    ]
+                  }
+                },
+                "required": [
+                  "key",
+                  "bytes",
+                  "sha256",
+                  "kind",
+                  "name",
+                  "mode"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
+                  },
+                  "bytes": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "fingerprint": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "const": "path"
+                  },
+                  "path": {
+                    "type": "string",
+                    "pattern": "^([A-Za-z0-9_~@+-]|\\.[A-Za-z0-9_~@+-])[A-Za-z0-9._~@+-]*(\\/([A-Za-z0-9_~@+-]|\\.[A-Za-z0-9_~@+-])[A-Za-z0-9._~@+-]*)*\\/?$"
+                  }
+                },
+                "required": [
+                  "key",
+                  "bytes",
+                  "sha256",
+                  "kind",
+                  "path"
+                ]
+              }
+            ]
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "format",
+        "id",
+        "created_at",
+        "trigger",
+        "server",
+        "recipient",
+        "kdf",
+        "modules",
+        "running",
+        "parts",
+        "warnings"
+      ]
+    },
+    "BackupDeclaration": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{6}$"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "trigger": {
+          "type": "string",
+          "enum": [
+            "schedule",
+            "manual"
+          ]
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "counts": {
+          "type": "object",
+          "properties": {
+            "setup": {
+              "type": "boolean"
+            },
+            "home": {
+              "type": "boolean"
+            },
+            "databases": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "projects": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "paths": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "setup",
+            "home",
+            "databases",
+            "projects",
+            "paths"
+          ]
+        },
+        "config_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "agent_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recipient": {
+          "type": "string",
+          "minLength": 44,
+          "maxLength": 44,
+          "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+        },
+        "kdf_salt": {
+          "type": "string",
+          "minLength": 24,
+          "maxLength": 24,
+          "pattern": "^[A-Za-z0-9+/]+={0,2}$"
+        },
+        "location": {
+          "type": "object",
+          "properties": {
+            "endpoint": {
+              "type": "string",
+              "pattern": "^https:\\/\\/[^\\s/?#]+(\\/[^\\s?#]*)?$"
+            },
+            "region": {
+              "type": "string",
+              "pattern": "^[a-z0-9-]{1,64}$"
+            },
+            "bucket": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+            },
+            "key": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            },
+            "path_style": {
+              "type": "boolean"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "endpoint",
+            "region",
+            "bucket",
+            "key",
+            "path_style",
+            "sha256"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "id",
+        "created_at",
+        "trigger",
+        "bytes",
+        "counts",
+        "config_revision",
+        "agent_version",
+        "recipient",
+        "kdf_salt",
+        "location"
+      ]
+    },
+    "BackupBeat": {
+      "type": "object",
+      "properties": {
+        "interval_hours": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 720
+        },
+        "last_run_at": {
+          "type": "string"
+        },
+        "last_ok_at": {
+          "type": "string"
+        },
+        "last_error": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "last_warnings": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "interval_hours"
+      ]
+    },
     "Manifest": {
       "type": "object",
       "properties": {
@@ -5288,7 +7242,8 @@
             "neon",
             "vercel",
             "supabase",
-            "stripe"
+            "stripe",
+            "backup"
           ]
         },
         "runs": {
@@ -5926,6 +7881,7 @@
       "const": [
         "core.system",
         "core.hardening",
+        "core.backup",
         "runtime.node",
         "runtime.java",
         "runtime.python",
@@ -6013,6 +7969,7 @@
           "modules": [
             "core.system",
             "core.hardening",
+            "core.backup",
             "runtime.node",
             "runtime.java",
             "runtime.python",
@@ -6083,6 +8040,71 @@
         "size": "^[0-9]+[KkMmGg]?[Bb]?$",
         "timezone": "^(UTC|[A-Za-z][A-Za-z_+-]*(/[A-Za-z0-9][A-Za-z0-9_+-]*){1,2})$",
         "url": "^https?://[^\\s]+$"
+      }
+    },
+    "Backup": {
+      "type": "object",
+      "const": {
+        "format": 1,
+        "container": {
+          "magic": "PUPITRE\u0001",
+          "headerBytes": 52,
+          "chunkBytes": 1048576,
+          "minChunkBytes": 16,
+          "maxChunkBytes": 16777216,
+          "tagBytes": 16,
+          "info": "pupitre-backup-v1"
+        },
+        "kdf": {
+          "alg": "pbkdf2-sha256",
+          "iterations": 600000,
+          "saltBytes": 16,
+          "keyBytes": 32
+        },
+        "id_pattern": "^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{6}$",
+        "extra_path_pattern": "^([A-Za-z0-9_~@+-]|\\.[A-Za-z0-9_~@+-])[A-Za-z0-9._~@+-]*(/([A-Za-z0-9_~@+-]|\\.[A-Za-z0-9_~@+-])[A-Za-z0-9._~@+-]*)*/?$",
+        "database_item_pattern": "^((postgres|mysql|mongodb):[A-Za-z0-9_-]{1,64}|redis:\\*)$",
+        "endpoint_pattern": "^https://[^\\s/?#]+(/[^\\s?#]*)?$",
+        "bucket_pattern": "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$",
+        "region_pattern": "^[a-z0-9-]{1,64}$",
+        "project_item_pattern": "^[a-z0-9][a-z0-9._-]*$",
+        "excluded_dirs": [
+          "node_modules",
+          ".pnpm-store",
+          "vendor",
+          "target",
+          "build",
+          "dist",
+          ".next",
+          ".nuxt",
+          ".svelte-kit",
+          ".turbo",
+          ".venv",
+          "__pycache__",
+          ".gradle",
+          ".cache"
+        ],
+        "home_paths": [
+          ".ssh",
+          ".gitconfig",
+          ".git-credentials",
+          ".config/gh",
+          ".claude",
+          ".claude.json",
+          ".codex",
+          ".gemini",
+          ".cursor",
+          ".copilot",
+          ".config/opencode",
+          ".openclaw",
+          ".config/hermes",
+          ".npmrc",
+          ".docker/config.json",
+          ".zsh_history"
+        ],
+        "home_excluded": [
+          ".ssh/authorized_keys"
+        ]
       }
     }
   }

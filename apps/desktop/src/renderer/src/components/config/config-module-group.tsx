@@ -32,10 +32,13 @@ export function ConfigModuleGroup({
   deferred = false,
   onDefer,
   handlers,
+  held,
 }: {
   group: FieldGroup;
   values: Record<string, unknown>;
   marks?: Record<string, SecretMark>;
+  /** The secrets the machine already holds, restored from a backup. */
+  held?: readonly string[];
   /** What this service gets wrong, already filtered to what may be shown. */
   problems: readonly FieldProblemView[];
   /** The connection this service declares, when it declares one. */
@@ -72,6 +75,7 @@ export function ConfigModuleGroup({
       <ConfigFieldControl
         field={field}
         handlers={handlers}
+        held={held}
         key={field.key}
         marks={marks}
         moduleId={group.module.id}

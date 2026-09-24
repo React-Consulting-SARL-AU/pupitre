@@ -1,4 +1,8 @@
-import type { ModuleCategory, ModuleId } from "@pupitre/shared/catalog"
+import {
+  MANDATORY_MODULE_IDS,
+  type ModuleCategory,
+  type ModuleId,
+} from "@pupitre/shared/catalog"
 import type { Localized } from "../../lib/i18n"
 
 export interface CatalogEntry {
@@ -10,15 +14,19 @@ export interface CatalogEntry {
 export interface CatalogGroup {
   id: ModuleCategory
   label: Localized
-  note?: Localized
   entries: CatalogEntry[]
+}
+
+export const REQUIRED_LABEL: Localized = { en: "Required", fr: "Obligatoire" }
+
+export function isRequired(id: ModuleId): boolean {
+  return (MANDATORY_MODULE_IDS as readonly ModuleId[]).includes(id)
 }
 
 export const CATALOG: CatalogGroup[] = [
   {
     id: "core",
     label: { en: "Base", fr: "Socle" },
-    note: { en: "Required", fr: "Obligatoire" },
     entries: [
       {
         id: "core.system",
@@ -34,6 +42,14 @@ export const CATALOG: CatalogGroup[] = [
         detail: {
           en: "ufw on SSH only, fail2ban, root closed and passwords off once a key opens dev.",
           fr: "ufw sur SSH seul, fail2ban, root fermé et mots de passe désactivés une fois qu’une clé ouvre dev.",
+        },
+      },
+      {
+        id: "core.backup",
+        name: { en: "Backups", fr: "Sauvegardes" },
+        detail: {
+          en: "Configuration, secrets, databases and projects, encrypted on the server and sent to your own S3 bucket on the interval you set.",
+          fr: "Configuration, secrets, bases et projets, chiffrés sur le serveur et envoyés dans votre propre seau S3 à l’intervalle que vous choisissez.",
         },
       },
     ],

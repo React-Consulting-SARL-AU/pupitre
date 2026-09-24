@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import {
+  Archive,
   Building2,
   CreditCard,
   Gauge,
@@ -44,6 +45,12 @@ const SERVERS_LINK: SidebarEntry = {
   to: "/dashboard/servers",
   label: "nav.servers",
   icon: Server,
+}
+
+const BACKUPS_LINK: SidebarEntry = {
+  to: "/dashboard/backups",
+  label: "nav.backups",
+  icon: Archive,
 }
 
 const MEMBERS_LINK: SidebarEntry = {
@@ -127,6 +134,7 @@ export function SidebarContent() {
       label: t("nav.group.organization"),
       links: [
         SERVERS_LINK,
+        BACKUPS_LINK,
         MEMBERS_LINK,
         ...(canReadAudit ? [AUDIT_LINK] : []),
         ...(canManageBilling && !platform ? [BILLING_LINK] : []),

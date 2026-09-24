@@ -36,6 +36,9 @@ func (Real) Run(cmd Command) (Output, error) {
 	var stdout, stderr bytes.Buffer
 	child.process.Stdout = &stdout
 	child.process.Stderr = &stderr
+	if cmd.Output != nil {
+		child.process.Stdout = cmd.Output
+	}
 
 	err = child.process.Run()
 	out := Output{Stdout: stdout.String(), Stderr: stderr.String()}
@@ -144,6 +147,10 @@ func prepare(cmd Command) (child, error) {
 	process.Dir = cmd.Dir
 	if len(cmd.Stdin) > 0 {
 		process.Stdin = bytes.NewReader(cmd.Stdin)
+	}
+
+	if cmd.Input != nil {
+		process.Stdin = cmd.Input
 	}
 
 	if cmd.StdinPath != "" {

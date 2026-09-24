@@ -15,6 +15,7 @@ import { adminUsersRoutes } from "./admin/users"
 import { affiliateRoutes } from "./affiliate"
 import { agentRoutes } from "./agent"
 import { appReleasesRoutes } from "./app-releases"
+import { backupsRoutes } from "./backups"
 import { devicesRoutes } from "./devices"
 import { healthRoutes } from "./health"
 import { meRoutes } from "./me"
@@ -51,6 +52,7 @@ export const routes = new Elysia({ name: "routes" })
   .use(meRoutes)
   .use(devicesRoutes)
   .use(serversRoutes)
+  .use(backupsRoutes)
   .use(orgsRoutes)
   .use(agentRoutes)
   .use(releasesRoutes)

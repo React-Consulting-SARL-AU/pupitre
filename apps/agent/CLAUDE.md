@@ -24,7 +24,8 @@ Go 1.26 (la version de `go.mod`), bibliothèque standard d'abord. Binaire statiq
 ## Architecture
 
 ```
-cmd/pupitred/            main.go : version · serve · daemon · enroll · install · migrate · report · probe · gallery · dev ; un cli_*.go par sous-commande
+cmd/pupitred/            main.go : version · serve · daemon · enroll · install · migrate · report · probe · gallery · dev · backup open ; un cli_*.go par sous-commande
+internal/backup/         sauvegardes et restauration : parties en flux, manifeste, élagage, ordonnancement, commandes backup.* ; seal/ le conteneur chiffré et la clé d'une phrase, archive/ les tar du compte dev et leur extraction sûre
 internal/contract/       schema.json exporté de packages/shared, codes d'erreur, règles des champs, feuille de compatibilité
 internal/daemon/         pupitred daemon : lecture de /agent/state, clés, heartbeat, unité systemd, enrôlement, keys.list
 internal/devcli/         grammaire et rendu de pupitred dev, élévation sudo ; la même grammaire que completions rend
@@ -38,6 +39,7 @@ internal/platform/       client HTTPS de la plateforme, jeton de serveur
 internal/probe/          probe.sh (sh POSIX, embarqué), son analyse et le verdict
 internal/protocol/       enveloppe, dispatch, sessions, événements, flux secret
 internal/registry/       projets et leurs processus, projects.local.json, projects.conf du dépôt
+internal/s3/             client S3 en bibliothèque standard : SigV4, envoi multipart en flux, copie dans le seau, listes ; s3test/ un seau en mémoire qui vérifie chaque signature
 internal/release/        signature et publication des binaires par la chaîne de release ; rien n'en est lié dans pupitred
 internal/selfupdate/     agent.upgrade : téléchargement, empreinte et signature, plancher de version, remplacement
 internal/shots/          la galerie de captures et son serveur en lecture seule
@@ -60,7 +62,7 @@ Un module = un dossier avec `manifest.go`, `module.go`, `module_test.go`. Les é
 PUPITRE_STAGING_HOST=root@<adresse> go test -tags staging ./test/staging/...
 ```
 
-Sans la variable, ils se sautent au lieu d'échouer. La réinstallation du VPS est manuelle, chez l'hébergeur. Un module sans test de staging n'est pas fini.
+Sans la variable, ils se sautent au lieu d'échouer. Le test des sauvegardes vise en plus un vrai seau, R2 ou AWS, celui de qui lance le test, nommé sur la ligne de commande par `PUPITRE_STAGING_S3_ENDPOINT`, `_REGION`, `_BUCKET`, `_ACCESS_KEY_ID` et `_SECRET_ACCESS_KEY`, et se saute sans eux. Ces clés ne vont dans aucun fichier du dépôt ni dans 1Password : un seau de sauvegardes est celui d'un client, et Pupitre n'en tient aucun. La réinstallation du VPS est manuelle, chez l'hébergeur. Un module sans test de staging n'est pas fini.
 
 ## Commandes
 

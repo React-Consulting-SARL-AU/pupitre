@@ -1,0 +1,97 @@
+---
+title: Sauvegardes
+description: Ce que contient une sauvegarde, la configuration de votre propre seau S3, la phrase de passe, et la restauration d’un serveur.
+locale: fr
+section: daily
+sectionOrder: 2
+order: 10
+---
+
+Une sauvegarde est ce qu’il faut pour refaire un serveur Pupitre ailleurs, ou le remettre dans l’état d’hier. L’agent la fabrique, la chiffre, et l’envoie vers un seau qui est le vôtre. Pupitre n’en garde que l’adresse et un résumé.
+
+## Ce qu’une sauvegarde contient
+
+- **La configuration et les secrets des modules** — le catalogue, ses réglages, et les jetons et mots de passe que garde chaque module.
+- **Les bases** — un dump par base, les rôles PostgreSQL, et l’instantané Redis.
+- **Les projets tels qu’ils sont** — le dossier entier, `.git` compris, avec le travail non commité.
+- **Le compte dev** — ses clés SSH et ses sessions d’agents de code.
+- **Des dossiers supplémentaires** que vous nommez sous `/home/dev`.
+
+## Ce qu’elle ne contient pas
+
+Les binaires, les runtimes et les dépendances des projets — réinstallés, jamais restaurés. Les volumes Docker. Les clés d’hôte et `authorized_keys` : un serveur restauré est une machine différente, avec sa propre identité.
+
+## Le coût
+
+Une sauvegarde est stockée dans votre propre seau ; Pupitre n’en garde qu’une référence, jamais son contenu. Sur Cloudflare R2, le palier gratuit actuellement publié couvre 10 Go-mois de stockage et ne facture aucune sortie — ce que vous payez dépend de la taille de votre seau et des tarifs publiés par votre fournisseur.
+
+## Configurer Cloudflare R2
+
+1. Créez un seau dans le tableau de bord Cloudflare.
+2. Allez dans **R2 › Manage API tokens** et créez un jeton limité à **Object Read & Write**, restreint à ce seau.
+3. Notez l’**Access Key ID**, la **Secret Access Key**, et le point d’accès S3 `https://<compte>.r2.cloudflarestorage.com`. La région est `auto`.
+4. Collez-les dans l’app avec le nom du seau, dans **Réglages › Connexions › Sauvegardes (S3)**.
+
+## Utiliser AWS S3 à la place
+
+Créez un seau et un utilisateur IAM avec une politique limitée à ce seau :
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:ListBucket"],
+      "Resource": "arn:aws:s3:::votre-seau"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "s3:AbortMultipartUpload",
+        "s3:ListMultipartUploadParts"
+      ],
+      "Resource": "arn:aws:s3:::votre-seau/*"
+    }
+  ]
+}
+```
+
+Le point d’accès est `https://s3.<région>.amazonaws.com`. Tout autre fournisseur compatible S3 fonctionne de la même façon : un seau, une clé restreinte à ce seau, et son point d’accès.
+
+## La phrase de passe
+
+Vous choisissez une phrase de passe une fois, la tapez une fois, et elle est dérivée en clé de chiffrement sur votre laptop — jamais gardée, ni par l’app, ni par le serveur, ni par Pupitre. Les sauvegardes sont chiffrées sur le serveur pour la moitié publique de cette clé ; le serveur lui-même ne peut pas les lire.
+
+La phrase n’est redemandée que pour restaurer, et vous pouvez la taper depuis n’importe quel ordinateur. Perdue, les sauvegardes qu’elle protège deviennent illisibles, et personne — ni Pupitre, ni le support — ne peut la recouvrer. Un second ordinateur de la même organisation reprend la clé existante et ne redemande pas la phrase, sauf pour restaurer depuis lui.
+
+## Réglages
+
+Sur la fiche du serveur, section Sauvegardes : l’intervalle en heures (0 garde les sauvegardes à la demande seulement), l’heure où partent les sauvegardes planifiées, leur nombre à garder — les manuelles restent jusqu’à ce que vous les supprimiez —, et ce qu’il faut inclure. **Sauvegarder maintenant** en lance une tout de suite.
+
+Ce qu’il faut inclure se choisit élément par élément : chaque projet et chaque base du serveur sont listés avec une case, toutes cochées par défaut. Décochez une base que vous gardez déjà ailleurs, ou un projet dont vous n’aurez pas besoin ; un projet ou une base créés plus tard sont sauvegardés tant que vous ne les décochez pas. Un interrupteur coupe toute une catégorie.
+
+Ce qu’une restauration fait d’un élément laissé dehors : sur un serveur neuf, un projet qui a un dépôt est cloné — son code revient, pas son travail en cours — et un projet sans dépôt est laissé de côté ; une base laissée dehors n’est pas créée. Sur un serveur qu’on remet à une sauvegarde, ce qui était laissé dehors reste tel quel.
+
+## Restaurer
+
+**Un serveur neuf ou réinstallé, pendant l’onboarding.** Quand votre organisation a déjà des sauvegardes, l’app demande « Repartir d’une sauvegarde ? » avant même le catalogue.
+
+**Un serveur existant qu’on remet à une sauvegarde.** L’app propose d’abord une sauvegarde de l’état actuel, pour qu’un retour en arrière puisse lui-même être annulé. Les modules que la sauvegarde choisie ne connaît pas peuvent être désinstallés ; les projets qu’elle ne connaît pas quittent la liste, mais leurs dossiers restent sur le disque.
+
+Dans les deux cas, les projets que la sauvegarde décrit redémarrent une fois la restauration terminée.
+
+## Recommandation
+
+Qui détient la clé S3 peut effacer ce qu’il y a dans le seau. Activez le versionnage ou le verrouillage d’objets sur ce seau, pour qu’une sauvegarde effacée ou écrasée reste là à récupérer.
+
+Qui peut lire le seau peut aussi lire le manifeste de chaque sauvegarde, qui n’est pas chiffré : le nom du serveur, les noms de ses projets, de ses bases et de ses dossiers, l’adresse et la branche de chaque dépôt. Rien de ce qu’ils contiennent — aucun fichier, aucune donnée, aucun secret — ne se lit sans votre phrase de passe. Gardez le seau privé, ce que sont par défaut les seaux R2 et S3.
+
+L’app n’accepte qu’un point d’accès en `https://` : en HTTP simple, la signature de chaque requête passerait en clair sur le réseau.
+
+## Ouvrir une sauvegarde sans Pupitre
+
+`pupitred backup open` lit une sauvegarde seule, avec le fichier et la phrase de passe — pour le jour où vous voulez regarder dedans sans l’app.

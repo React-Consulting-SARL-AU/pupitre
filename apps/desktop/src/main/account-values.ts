@@ -45,7 +45,9 @@ export function accountValues(
   manifests: readonly Manifest[],
   held: (kind: ConnectionKind) => HeldConnection | null,
   /** Modules whose managed values are derived elsewhere, the tunnel's above all. */
-  derived: readonly string[] = []
+  derived: readonly string[] = [],
+  /** A restored machine already holds what an absent connection would have given. */
+  lenient = false
 ): AgentResponse<ManagedValues> {
   const secrets: InstallSecrets = {};
   const config: ManagedValues["config"] = {};
@@ -64,6 +66,10 @@ export function accountValues(
     }
 
     const connection = held(kind);
+
+    if (!connection && lenient) {
+      continue;
+    }
 
     // Refusing here leaves the machine untouched; letting the install start
     // would leave half of one, stopped on a module that had no way to work.

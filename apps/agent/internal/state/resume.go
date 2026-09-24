@@ -2,6 +2,7 @@ package state
 
 import (
 	"encoding/json"
+	"slices"
 	"sort"
 
 	"pupitre.studio/agent/internal/registry"
@@ -26,6 +27,20 @@ func (r *Reader) recorded() []string {
 	}
 
 	return record.Windows
+}
+
+// Wanted names the projects with a window the reader wants up, in the record's order: what a backup calls running.
+func (r *Reader) Wanted() []string {
+	names := []string{}
+
+	for _, window := range r.recorded() {
+		name, _, ours := registry.SplitWindow(window)
+		if ours && !slices.Contains(names, name) {
+			names = append(names, name)
+		}
+	}
+
+	return names
 }
 
 func (r *Reader) record(windows map[string]bool) error {

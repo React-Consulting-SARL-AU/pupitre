@@ -184,10 +184,10 @@ export const LegalDocumentSchema = z.object({
 export type LegalDocument = z.infer<typeof LegalDocumentSchema>
 
 export const LEGAL_DOCUMENTS: readonly LegalDocument[] = [
-  { slug: "terms", order: 1, updated: "2026-09-20" },
+  { slug: "terms", order: 1, updated: "2026-09-24" },
   { slug: "licence", order: 2, updated: "2026-09-20" },
   { slug: "acceptable-use", order: 3, updated: "2026-09-20" },
-  { slug: "privacy", order: 4, updated: "2026-09-20" },
+  { slug: "privacy", order: 4, updated: "2026-09-24" },
   { slug: "data-processing", order: 5, updated: "2026-09-20" },
 ]
 

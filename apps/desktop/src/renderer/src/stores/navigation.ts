@@ -38,6 +38,7 @@ export const VIEWS = [
   "activity",
   "shots",
   "files",
+  "backups",
   "terminals",
   "settings",
   "help",

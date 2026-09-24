@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"maps"
 	"path"
@@ -76,6 +77,8 @@ type FakeSys struct {
 	Calls      []sys.Command
 	Mutations  []string
 	Updates    int
+	// Fed is what each command read on a streamed input, by its command line.
+	Fed map[string][]byte
 }
 
 // A row of ps, in the units ps prints: RSS in kilobytes, Etimes in seconds.
@@ -126,6 +129,7 @@ func NewFakeSys() *FakeSys {
 		Extensions: map[string]string{},
 		Times:      map[string]time.Time{},
 		Now:        Epoch,
+		Fed:        map[string][]byte{},
 	}
 }
 
@@ -188,7 +192,37 @@ func (f *FakeSys) Commands() []string {
 	return lines
 }
 
+// A streamed input is drained and kept under the command line, a streamed output receives what the command answers.
 func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
+	if cmd.Input != nil {
+		fed, _ := io.ReadAll(cmd.Input)
+		f.Fed[strings.Join(cmd.Argv, " ")] = fed
+	}
+
+	out, err := f.run(cmd)
+	if cmd.Output != nil && out.Stdout != "" {
+		if _, written := io.WriteString(cmd.Output, out.Stdout); written != nil {
+			return sys.Output{}, written
+		}
+
+		out.Stdout = ""
+	}
+
+	return out, err
+}
+
+// FedTo is what the command whose line holds fragment read on a streamed input.
+func (f *FakeSys) FedTo(fragment string) []byte {
+	for line, fed := range f.Fed {
+		if strings.Contains(line, fragment) {
+			return fed
+		}
+	}
+
+	return nil
+}
+
+func (f *FakeSys) run(cmd sys.Command) (sys.Output, error) {
 	f.Calls = append(f.Calls, cmd)
 	if f.Observe != nil {
 		f.Observe(cmd)

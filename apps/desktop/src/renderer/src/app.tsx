@@ -9,6 +9,7 @@ import { AccountFailedScreen } from "./components/account/account-failed-screen"
 import { AccountGateScreen } from "./components/account/account-gate-screen";
 import { AccountReadingScreen } from "./components/account/account-reading-screen";
 import { ActivityPanel } from "./components/activity/activity-panel";
+import { BackupsScreen } from "./components/backups/backups-screen";
 import { DashboardPanel } from "./components/dashboard/dashboard-panel";
 import { FilesScreen } from "./components/files/files-screen";
 import { HelpScreen } from "./components/help/help-screen";
@@ -384,6 +385,13 @@ export function App() {
       />
     ),
     shots: <ShotsScreen serverId={serverId} serverName={serverName} />,
+    backups: (
+      <BackupsScreen
+        installed={snapshot.services.map((service) => service.id)}
+        serverId={serverId}
+        serverName={serverName}
+      />
+    ),
     help: (
       <HelpScreen
         activeId={serverId}

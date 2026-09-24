@@ -56,10 +56,12 @@ const ONWARD: Record<OnboardingStep, Event> = {
   server: { serverId: "srv-1", type: "serverChosen" },
   inspection: { type: "needsAgent" },
   agent: { type: "agentSent" },
+  restore: { type: "restoreSkipped" },
   catalog: { type: "chosen" },
   config: { type: "configured" },
   install: { type: "installed" },
   harden: { type: "hardened" },
+  data: { type: "dataSkipped" },
   done: { type: "close" },
 };
 
@@ -168,8 +170,8 @@ describe("l'ordre de l'onboarding", () => {
     expect(useOnboarding.getState().step).toBe("harden");
   });
 
-  it("finit sur l'écran de fin, sitôt le durcissement passé", () => {
-    expect(ONBOARDING_STEPS.slice(-2)).toEqual(["harden", "done"]);
+  it("finit sur l'écran de fin, sitôt le durcissement et les données passés", () => {
+    expect(ONBOARDING_STEPS.slice(-3)).toEqual(["harden", "data", "done"]);
   });
 
   it("revient en arrière tant que rien n'est installé", () => {

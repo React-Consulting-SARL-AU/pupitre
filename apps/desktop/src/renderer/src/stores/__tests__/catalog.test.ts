@@ -445,6 +445,7 @@ describe("les comptes et les valeurs lues avec le catalogue", () => {
       connectionsState: () =>
         Promise.resolve({
           "1password": { status: "absent" },
+          backup: { status: "absent" },
           cloudflare: {
             account: { id: "acc-1", name: "Ada" },
             sealed: true,

@@ -28,6 +28,8 @@ type Context struct {
 	warning string
 	// The step under way, which the report in progress shows as started.
 	open string
+	// The command that replays a failed step, when it is not the module's install.
+	replay string
 }
 
 type ContextOptions struct {
@@ -103,8 +105,41 @@ func (c *Context) ProjectsLock() string {
 	return c.run.projectsLock
 }
 
+// Replay is the command that runs a failed step again: the module's install, unless the caller named another one.
 func (c *Context) Replay() string {
+	if c.replay != "" {
+		return c.replay
+	}
+
 	return Replay(c.manifest.ID)
+}
+
+// Replaying names the command that replays the steps to come, for a command whose steps are not an install.
+func (c *Context) Replaying(command string) {
+	c.replay = command
+}
+
+// Hide keeps secrets the context did not start with — a key read from a secret line — out of the journal and the events.
+func (c *Context) Hide(secrets ...string) {
+	for _, secret := range secrets {
+		if strings.TrimSpace(secret) != "" {
+			c.run.journal.hide(secret)
+		}
+	}
+}
+
+// Sibling is another module read through the same engine run, on what install.json remembers; a module's own steps never reach for one.
+func (c *Context) Sibling(id string) (*Context, bool) {
+	if c.run.registry == nil {
+		return nil, false
+	}
+
+	module, known := c.run.registry.Get(id)
+	if !known {
+		return nil, false
+	}
+
+	return c.run.recalled(module.Manifest(), c.run.remembered), true
 }
 
 func (c *Context) Value(key string) any {
@@ -380,6 +415,10 @@ type run struct {
 	events       []contract.StepEvent
 	warned       []string
 	projectsLock string
+
+	// What a command's siblings are read from: the catalogue, and install.json as the run found it.
+	registry   *Registry
+	remembered Request
 
 	// The report as the modules already settled left it, the one at work, and
 	// how the two reach the disk: before every step event, so the report is

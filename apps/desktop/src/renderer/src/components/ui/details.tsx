@@ -38,7 +38,7 @@ export function Details({
 
   return (
     <Collapsible.Root
-      className={`group text-[12px] text-ink-3 leading-relaxed ${className}`}
+      className={`group/details text-[12px] text-ink-3 leading-relaxed ${className}`}
       data-details={name}
       defaultOpen={onOpenChange ? undefined : open}
       {...held}
@@ -46,7 +46,7 @@ export function Details({
       <Collapsible.Trigger className="clickable -mx-1.5 inline-flex min-h-7 cursor-pointer items-center gap-1 rounded-sm px-1.5 text-ink-2 transition-soft hover:bg-raised hover:text-ink">
         <ChevronRight
           aria-hidden="true"
-          className="shrink-0 transition-soft group-data-[open]:rotate-90"
+          className="shrink-0 transition-soft group-data-[open]/details:rotate-90"
           size={13}
           strokeWidth={1.5}
         />

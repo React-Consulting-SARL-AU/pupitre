@@ -1,5 +1,5 @@
 import { logoFor } from "@pupitre/design/logos"
-import { MODULE_IDS } from "@pupitre/shared/catalog"
+import { MANDATORY_MODULE_IDS, MODULE_IDS } from "@pupitre/shared/catalog"
 import { describe, expect, it } from "vitest"
 import { render } from "../test/render"
 import CatalogList from "./CatalogList.astro"
@@ -18,13 +18,15 @@ describe("CatalogList", () => {
     expect(html).toContain(">PostgreSQL</p>")
   })
 
-  it("names every module of the contract, and flags the mandatory group alone", async () => {
+  it("names every module of the contract, and flags the mandatory ones alone", async () => {
     const html = await render(CatalogList, { path: "/" })
 
     for (const id of MODULE_IDS) {
       expect(html, id).toContain(`<li data-module="${id}"`)
     }
-    expect(html.match(/>Required<\/span>/g)).toHaveLength(1)
+    expect(html.match(/>Required<\/span>/g)).toHaveLength(
+      MANDATORY_MODULE_IDS.length
+    )
   })
 
   it("speaks French under /fr", async () => {

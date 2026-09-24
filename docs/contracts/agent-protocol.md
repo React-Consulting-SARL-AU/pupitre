@@ -49,7 +49,7 @@ Tout ce qui suit est dans le contrat et répond sur `pupitred serve`. Neuf comma
 
 | Commande | Paramètres | Résultat |
 | --- | --- | --- |
-| `hello` | `{ app_version, protocol, locale? }` | `{ agent_version, protocol, server_id?, entitlement: "valid" \| "grace" \| "restricted" \| "dev", capabilities[], config? }`. Un `protocol` incompatible renvoie `protocol_mismatch` avec la version attendue. `locale` vaut `fr` ou `en` — les langues que le produit sert — et vaut pour toute la session : l'agent répond dans cette langue quand il la connaît, dans la sienne sinon. Jamais une erreur, jamais un champ vide. Un agent d'une version antérieure ignore le champ et répond comme avant ; la version de protocole ne bouge donc pas. `server_id` est réservé : aucun agent ne l'émet encore. `config` dit où en est la configuration de la machine face au binaire qui la lit — `{ revision, expected, state }` — et voir [migrations de configuration](./config-migrations.md) ; un agent antérieur au registre ne le rend pas, et l'app tient alors la configuration pour courante |
+| `hello` | `{ app_version, protocol, locale? }` | `{ agent_version, protocol, server_id?, entitlement: "valid" \| "grace" \| "restricted" \| "dev", capabilities[], config? }`. Un `protocol` incompatible renvoie `protocol_mismatch` avec la version attendue. `locale` vaut `fr` ou `en` — les langues que le produit sert — et vaut pour toute la session : l'agent répond dans cette langue quand il la connaît, dans la sienne sinon. Jamais une erreur, jamais un champ vide. Un agent d'une version antérieure ignore le champ et répond comme avant ; la version de protocole ne bouge donc pas. `server_id` est l'identifiant du serveur sur la plateforme, dès que le daemon l'a lu de `/agent/state` et gardé dans `/etc/pupitre/server.id` ; absent avant. `config` dit où en est la configuration de la machine face au binaire qui la lit — `{ revision, expected, state }` — et voir [migrations de configuration](./config-migrations.md) ; un agent antérieur au registre ne le rend pas, et l'app tient alors la configuration pour courante |
 | `ping` | — | `{ ts }` |
 
 ### Inspection et installation
@@ -253,6 +253,21 @@ Le `subdomain` d'une route accepte **plusieurs étiquettes séparées par des po
 | `secrets.sync` | `{ project }` |
 | `db.dump` / `db.import` / `db.shell` / `db.url` | `{ engine, name? }` |
 | `tunnel.status` / `tunnel.sync` / `tunnel.restart` | — |
+
+### Sauvegardes
+
+Le format, le chiffrement et le déroulé sont dans [backups.md](./backups.md). Aucune de ces commandes n'est ouverte en mode restreint, avant l'enrôlement ou pendant une migration en retard. Celles qui lisent un seau annoncent `secrets_stdin: true` et lisent la ligne `BackupSecrets` — `{ access_key_id, secret_access_key, private_key? }` — juste après la requête, comme `install`.
+
+| Commande | Paramètres | Résultat |
+| --- | --- | --- |
+| `backup.status` | — | `{ configured, interval_hours, keep, next_run_at?, running, last?: { at, ok, id?, bytes?, error?, warnings? } }` |
+| `backup.contents` | — | `{ projects[]: { name, repo, included }, databases[]: { engine, name, item, included }, unreadable[] }` : ce que ce serveur tient et que les sauvegardes peuvent emporter, chacun avec son état d'après `exclude_projects`, `exclude_databases` et les interrupteurs `projects` et `databases`. Un moteur qui ne répond pas est nommé dans `unreadable` au lieu de faire échouer la liste. Répond aussi sans `core.backup` installé : tout y est alors `included` |
+| `backup.run` | `{ databases?, projects? }` pour dévier du réglage, une fois | événements `step` du module `core.backup`, puis `{ id, key, bytes, parts[], warnings[], declared }`. Refus `busy` quand une sauvegarde ou une installation tient le verrou, `module_not_found` sans `core.backup` configuré, `storage_refused` quand le seau refuse |
+| `backup.delete` | `{ id }` | efface les objets de cette sauvegarde de ce serveur dans le seau, puis la référence sur la plateforme : `{ deleted }` |
+| `backup.inspect` | `{ location, secrets_stdin: true }` | le manifeste, vérifié contre `location.sha256`. `backup_missing` sans manifeste, `backup_corrupt` sur une empreinte qui diffère, `backup_unsupported` sur un format que ce binaire ne lit pas |
+| `backup.restore.setup` | `{ location, revert?, secrets_stdin: true }` — la ligne porte `private_key` | `{ id, modules[], defer[], extra[], projects[], dropped[], parts[], warnings[] }`. Sans `revert`, refus `bad_request` sur une machine déjà installée ; `backup_unsupported` sur une configuration plus récente que ce binaire |
+| `backup.restore.data` | `{ location, parts[], start?, secrets_stdin: true }` — la ligne porte `private_key` | une étape par partie, puis `{ restored[], failed[], started[], warnings[] }` |
+| `backup.restore.abort` | — | `{ done: true }` |
 
 ### Système
 

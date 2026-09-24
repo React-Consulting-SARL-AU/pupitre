@@ -48,6 +48,13 @@ enum AlertKind {
   disk_high
   agent_outdated
   entitlement_grace
+  backup_failed
+  backup_stale
+}
+
+enum BackupTrigger {
+  schedule
+  manual
 }
 
 enum StripeEventStatus {
@@ -171,6 +178,7 @@ model Organization {
   events        Event[]
   referral      Referral?
   mailThreads   MailThread[]
+  backups       Backup[]
 
   @@unique([slug])
   @@index([deletionAt])
@@ -310,6 +318,9 @@ model Server {
   /// heartbeat writes its sample alone, never the window it belongs to.
   metricSamples          ServerMetric[]
   lastUsage              Json?
+  /// The heartbeat's last word on backups, a `BackupBeat`; a heartbeat without one keeps it.
+  backup                 Json?
+  backups                Backup[]
   createdAt              DateTime              @default(now())
   updatedAt              DateTime              @updatedAt
 
@@ -343,6 +354,37 @@ model Alert {
 
   @@index([serverId, kind])
   @@index([resolvedAt])
+}
+
+/// A backup lying in the client's own bucket: where it is and how big, never what it holds.
+model Backup {
+  id             String        @id @default(cuid())
+  backupId       String
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  serverId       String?
+  server         Server?       @relation(fields: [serverId], references: [id], onDelete: SetNull)
+  serverName     String
+  createdAt      DateTime
+  declaredAt     DateTime      @default(now())
+  trigger        BackupTrigger
+  bytes          BigInt
+  counts         Json
+  configRevision Int
+  agentVersion   String
+  recipient      String
+  kdfSalt        String
+  endpoint       String
+  region         String
+  bucket         String
+  key            String
+  pathStyle      Boolean
+  manifestSha256 String
+  forgottenAt    DateTime?
+
+  @@unique([organizationId, backupId])
+  @@index([organizationId, createdAt])
+  @@index([serverId])
 }
 
 model ServerRevokedDevice {

@@ -93,6 +93,26 @@ describe("le coffre des connexions", () => {
     expect(held.account("github")).toEqual({ id: "42", name: "ada" });
   });
 
+  it("garde à côté du jeton ce qui n'est pas un secret : l'adresse d'un seau", () => {
+    const { dir, vault: held } = vault();
+
+    held.connect(
+      "backup",
+      "s3-secret",
+      { id: "pupitre-backups", name: "pupitre-backups" },
+      { bucket: "pupitre-backups", endpoint: "https://acme.example" }
+    );
+
+    expect(held.settings("backup")).toEqual({
+      bucket: "pupitre-backups",
+      endpoint: "https://acme.example",
+    });
+    expect(held.settings("github")).toBeNull();
+    expect(readFileSync(join(dir, "backup.json"), "utf8")).not.toContain(
+      "s3-secret"
+    );
+  });
+
   /** Cloudflare wrote the account under two other names before there was a second connection. */
   it("relit le compte Cloudflare écrit par une version précédente", () => {
     const { dir, vault: held } = vault();

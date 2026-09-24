@@ -14,6 +14,7 @@ import type {
   BuildKind,
   Entitlement,
 } from "@shared/account";
+import type { PlatformBackup } from "@shared/backups";
 import type { FleetServer } from "@shared/servers";
 
 /**
@@ -164,6 +165,17 @@ export interface PlatformClient {
    */
   deleteServer: (
     token: string,
+    serverId: string
+  ) => Promise<AccountResponse<null>>;
+  /** The backups of the active organization, or of one server, the most recent first. */
+  backups: (
+    token: string,
+    serverId?: string
+  ) => Promise<AccountResponse<PlatformBackup[]>>;
+  /** Notes in the journal that a backup was restored on that server. */
+  backupRestored: (
+    token: string,
+    backupId: string,
     serverId: string
   ) => Promise<AccountResponse<null>>;
 }
@@ -520,6 +532,25 @@ export function createPlatformClient({
       return call<null>(token, `/servers/${encodeURIComponent(serverId)}`, {
         method: "DELETE",
       });
+    },
+
+    async backups(token, serverId) {
+      const answer = await call<{ data: PlatformBackup[] }>(
+        token,
+        serverId
+          ? `/servers/${encodeURIComponent(serverId)}/backups`
+          : "/backups"
+      );
+
+      return answer.ok ? { ok: true, result: answer.result.data } : answer;
+    },
+
+    backupRestored(token, backupId, serverId) {
+      return call<null>(
+        token,
+        `/backups/${encodeURIComponent(backupId)}/restored`,
+        { body: JSON.stringify({ server_id: serverId }), method: "POST" }
+      );
     },
   };
 }

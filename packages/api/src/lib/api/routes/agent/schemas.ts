@@ -1,5 +1,6 @@
 import { t } from "elysia"
 import { dateTime } from "../../openapi-models"
+import { backupBeatSchema } from "../backups/schemas"
 import { architectureSchema } from "../servers/schemas"
 
 export const exchangeBody = t.Object({
@@ -22,6 +23,7 @@ export const agentStateSchema = t.Object(
     target_version: t.Nullable(t.String()),
     minimum_version: t.Nullable(t.String()),
     hostname: t.String(),
+    server_id: t.String(),
   },
   { $id: "AgentState" }
 )
@@ -53,4 +55,5 @@ export const heartbeatBody = t.Object({
   disk_free_gb: t.Optional(t.Number({ minimum: 0 })),
   ram_total_mb: t.Optional(t.Number({ minimum: 0 })),
   ram_used_mb: t.Optional(t.Number({ minimum: 0 })),
+  backup: t.Optional(backupBeatSchema),
 })

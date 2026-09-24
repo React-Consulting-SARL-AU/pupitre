@@ -2,6 +2,7 @@ package core
 
 import (
 	"pupitre.studio/agent/internal/modules"
+	_ "pupitre.studio/agent/internal/modules/core/backup"
 	"pupitre.studio/agent/internal/modules/core/hardening"
 	_ "pupitre.studio/agent/internal/modules/core/system"
 	"pupitre.studio/agent/internal/protocol"

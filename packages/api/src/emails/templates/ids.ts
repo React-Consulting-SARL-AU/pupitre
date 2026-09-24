@@ -18,6 +18,8 @@ export const EMAIL_TEMPLATE_IDS = [
   "alert_disk_high",
   "alert_agent_outdated",
   "alert_entitlement_grace",
+  "alert_backup_failed",
+  "alert_backup_stale",
 ] as const
 
 export type EmailTemplateId = (typeof EMAIL_TEMPLATE_IDS)[number]
