@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -12,6 +13,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"pupitre.studio/agent/internal/contract"
 )
 
 const (
@@ -22,8 +25,12 @@ const (
 	// it, and everything the server does alone afterwards — the heartbeat, the
 	// entitlement it renews, the keys it reads — has no one to ask otherwise.
 	DefaultBaseURLPath = "/etc/pupitre/platform.url"
-	DefaultMaxBytes    = 128 << 20
-	DefaultTimeout     = 5 * time.Minute
+
+	// DefaultServerIDPath keeps what /agent/state names this server: the prefix of its backups in the client's bucket.
+	DefaultServerIDPath = "/etc/pupitre/server.id"
+
+	DefaultMaxBytes = 128 << 20
+	DefaultTimeout  = 5 * time.Minute
 	// Two exchanges fit under the timeout the app grants a command: the agent must answer before the app gives up.
 	DefaultControlTimeout = 20 * time.Second
 	maxRedirects          = 5
@@ -96,6 +103,8 @@ type State struct {
 	TargetVersion  string    `json:"target_version"`
 	MinimumVersion string    `json:"minimum_version"`
 	Hostname       string    `json:"hostname"`
+	// ServerID names this server on the platform, and its prefix in the backup bucket.
+	ServerID string `json:"server_id"`
 }
 
 type Enrollment struct {
@@ -124,6 +133,9 @@ type Heartbeat struct {
 	DiskFreeGB  float64 `json:"disk_free_gb,omitempty"`
 	RAMTotalMB  float64 `json:"ram_total_mb,omitempty"`
 	RAMUsedMB   float64 `json:"ram_used_mb,omitempty"`
+
+	// Backup is sent only by a server whose backup module is installed: silence leaves what the platform knew.
+	Backup *contract.BackupBeat `json:"backup,omitempty"`
 }
 
 // What the publication chain deposited for a version: the platform's own word on what the binary must hash to, and the signature that binds it.
@@ -210,6 +222,32 @@ func (c Client) Beat(ctx context.Context, beat Heartbeat) error {
 	}
 
 	_, err = c.do(ctx, http.MethodPost, "/agent/heartbeat", body, true, c.control())
+
+	return err
+}
+
+// DeclareBackup tells the platform a backup exists and where; declaring the same one twice is not an error.
+func (c Client) DeclareBackup(ctx context.Context, declaration contract.BackupDeclaration) error {
+	body, err := json.Marshal(declaration)
+	if err != nil {
+		return &Error{Path: "/agent/backups", Cause: err}
+	}
+
+	_, err = c.do(ctx, http.MethodPost, "/agent/backups", body, true, c.control())
+
+	return err
+}
+
+// ForgetBackup withdraws the reference of a backup whose objects left the bucket; one the platform never knew is already gone.
+func (c Client) ForgetBackup(ctx context.Context, id string) error {
+	path := "/agent/backups/" + url.PathEscape(id)
+
+	_, err := c.do(ctx, http.MethodDelete, path, nil, true, c.control())
+
+	var failure *Error
+	if errors.As(err, &failure) && failure.NotFound() {
+		return nil
+	}
 
 	return err
 }

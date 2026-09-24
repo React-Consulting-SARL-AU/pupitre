@@ -6,6 +6,7 @@ import {
 import { ARCHITECTURES } from "@pupitre/shared/catalog"
 import { t } from "elysia"
 import { dateTime } from "../../openapi-models"
+import { backupBeatSchema } from "../backups/schemas"
 
 export const SERVER_STATUSES = [
   ServerStatus.enrolling,
@@ -72,6 +73,8 @@ export const ALERT_KINDS = [
   AlertKind.disk_high,
   AlertKind.agent_outdated,
   AlertKind.entitlement_grace,
+  AlertKind.backup_failed,
+  AlertKind.backup_stale,
 ] as const
 
 export const alertKindSchema = t.UnionEnum([...ALERT_KINDS])
@@ -103,6 +106,7 @@ export const serverFields = {
   entitlement_valid_until: t.Nullable(dateTime),
   decommission_at: t.Nullable(dateTime),
   usage: t.Nullable(serverUsageSchema),
+  backup: t.Nullable(backupBeatSchema),
   alerts: t.Array(alertSchema),
   created_at: dateTime,
 }

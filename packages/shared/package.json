@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./agent-protocol": "./src/agent-protocol/index.ts",
+    "./agent-protocol/backup": "./src/agent-protocol/backup.ts",
     "./agent-protocol/envelope": "./src/agent-protocol/envelope.ts",
     "./agent-protocol/errors": "./src/agent-protocol/errors.ts",
     "./agent-protocol/files": "./src/agent-protocol/files.ts",
@@ -19,6 +20,8 @@
     "./agent-protocol/timeouts": "./src/agent-protocol/timeouts.ts",
     "./api/errors": "./src/api/errors.ts",
     "./app-links": "./src/app-links/index.ts",
+    "./backup": "./src/backup/index.ts",
+    "./backup/crypto": "./src/backup/crypto.ts",
     "./catalog": "./src/catalog/index.ts",
     "./catalog/formats": "./src/catalog/formats.ts",
     "./catalog/validate": "./src/catalog/validate.ts",

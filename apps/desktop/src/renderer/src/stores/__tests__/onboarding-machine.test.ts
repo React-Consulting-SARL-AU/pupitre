@@ -22,6 +22,92 @@ function effectsOf(state: MachineState, event: Event): string[] {
 
 const OPENED = walk(CLOSED, { serverId: "srv-1", type: "begin" });
 
+/** An organization without backups: nothing to start from, nothing to bring back. */
+const PLAIN = { backups: false, restored: null };
+
+describe("repartir d'une sauvegarde", () => {
+  const listed = walk(OPENED, { any: true, type: "backupsListed" });
+
+  it("demande la liste des sauvegardes en entrant dans l'inspection", () => {
+    expect(effectsOf(CLOSED, { serverId: "srv-1", type: "begin" })).toContain(
+      "listBackups"
+    );
+  });
+
+  it("propose l'étape seulement quand l'organisation a des sauvegardes", () => {
+    expect(walk(OPENED, { type: "inspected" }).step).toBe("catalog");
+    expect(walk(listed, { type: "inspected" }).step).toBe("restore");
+    expect(
+      walk(listed, { type: "needsAgent" }, { type: "agentSent" }).step
+    ).toBe("restore");
+  });
+
+  it("mène au catalogue, que la sauvegarde soit prise ou non", () => {
+    const at = walk(listed, { type: "inspected" });
+
+    expect(walk(at, { type: "restoreSkipped" })).toMatchObject({
+      restored: null,
+      step: "catalog",
+    });
+    expect(
+      walk(at, { backupId: "20260919T031500Z-7f3a2c", type: "restored" })
+    ).toMatchObject({ restored: "20260919T031500Z-7f3a2c", step: "catalog" });
+  });
+
+  it("ne prend une sauvegarde que depuis son étape", () => {
+    expect(
+      walk(OPENED, { backupId: "20260919T031500Z-7f3a2c", type: "restored" })
+        .step
+    ).toBe("inspection");
+  });
+
+  it("lâche la sauvegarde prise quand on revient la choisir", () => {
+    const taken = walk(
+      listed,
+      { type: "inspected" },
+      { backupId: "20260919T031500Z-7f3a2c", type: "restored" }
+    );
+    const { state, effects } = transition(taken, { type: "back" });
+
+    expect(state).toMatchObject({ restored: null, step: "restore" });
+    expect(effects).toContainEqual({
+      kind: "abortRestore",
+      serverId: "srv-1",
+    });
+  });
+
+  it("ramène les données après le durcissement, puis finit", () => {
+    const hardened = walk(
+      listed,
+      { type: "inspected" },
+      { backupId: "20260919T031500Z-7f3a2c", type: "restored" },
+      { type: "chosen" },
+      { type: "configured" },
+      { type: "installed" },
+      { type: "hardened" }
+    );
+
+    expect(hardened.step).toBe("data");
+    expect(effectsOf(hardened, { type: "dataRestored" })).toEqual(
+      expect.arrayContaining(["platformSync", "reloadFleet"])
+    );
+    expect(walk(hardened, { type: "dataSkipped" }).step).toBe("done");
+  });
+
+  it("compte les étapes de sauvegarde seulement quand elles ont lieu", () => {
+    const steps = plannedSteps(
+      { backups: true, restored: "b", step: "catalog", trail: ["restore"] },
+      null
+    );
+
+    expect(steps).toContain("restore");
+    expect(steps).toContain("data");
+    expect(
+      plannedSteps({ ...PLAIN, step: "catalog", trail: [] }, null)
+    ).not.toContain("data");
+  });
+});
+
 describe("l'ordre des étapes", () => {
   it("va du serveur au projet, l'agent avant le catalogue", () => {
     const steps = [
@@ -265,11 +351,12 @@ describe("une reprise", () => {
       installed: false,
       serverId: "srv-1",
       step: "config",
+      restored: null,
       type: "resume",
     });
 
     expect(state.step).toBe("config");
-    expect(effects.map((one) => one.kind)).toEqual(["inspect"]);
+    expect(effects.map((one) => one.kind)).toEqual(["inspect", "listBackups"]);
   });
 
   it("part sur ce qui manque, et rien d'autre", () => {
@@ -287,6 +374,7 @@ describe("une reprise", () => {
       installed: true,
       serverId: "srv-1",
       step: "harden",
+      restored: null,
       type: "resume",
     });
 
@@ -297,7 +385,7 @@ describe("une reprise", () => {
 
 describe("les étapes déclarées", () => {
   it("sont celles que le rail compte", () => {
-    expect(ONBOARDING_STEPS.length).toBe(8);
+    expect(ONBOARDING_STEPS.length).toBe(10);
     expect(ONBOARDING_STEPS[0]).toBe("server");
     expect(ONBOARDING_STEPS.at(-1)).toBe("done");
   });
@@ -305,17 +393,20 @@ describe("les étapes déclarées", () => {
 
 describe("les étapes qu'une séquence parcourt", () => {
   it("compte l'agent tant que rien ne dit qu'il est déjà là", () => {
-    expect(plannedSteps({ step: "server", trail: [] }, null)).toEqual(
-      ONBOARDING_STEPS
+    expect(plannedSteps({ ...PLAIN, step: "server", trail: [] }, null)).toEqual(
+      ONBOARDING_STEPS.filter((step) => step !== "restore" && step !== "data")
     );
     expect(
-      plannedSteps({ step: "inspection", trail: ["server"] }, { kind: "bare" })
+      plannedSteps(
+        { ...PLAIN, step: "inspection", trail: ["server"] },
+        { kind: "bare" }
+      )
     ).toContain("agent");
   });
 
   it("retire l'agent d'une machine gérée et à jour, avant même d'y entrer", () => {
     const steps = plannedSteps(
-      { step: "inspection", trail: ["server"] },
+      { ...PLAIN, step: "inspection", trail: ["server"] },
       { kind: "managed", up_to_date: true }
     );
 
@@ -326,7 +417,7 @@ describe("les étapes qu'une séquence parcourt", () => {
   it("garde l'agent d'une machine gérée en retard : le lecteur décide", () => {
     expect(
       plannedSteps(
-        { step: "inspection", trail: ["server"] },
+        { ...PLAIN, step: "inspection", trail: ["server"] },
         { kind: "managed", up_to_date: false }
       )
     ).toContain("agent");
@@ -356,6 +447,7 @@ describe("la trace d'une reprise", () => {
       installed: false,
       serverId: "srv-1",
       step: "config",
+      restored: null,
       type: "resume",
     }).state;
 
@@ -373,6 +465,7 @@ describe("la trace d'une reprise", () => {
         installed: false,
         serverId: "srv-1",
         step: "config",
+        restored: null,
         type: "resume",
       }).state,
       { remaining: [], step: "agent", type: "resumeAt" }
@@ -387,6 +480,7 @@ describe("la trace d'une reprise", () => {
       installed: true,
       serverId: "srv-1",
       step: "harden",
+      restored: null,
       type: "resume",
     }).state;
 

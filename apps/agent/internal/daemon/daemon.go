@@ -34,12 +34,20 @@ type Options struct {
 	Arch              string
 	TokenPath         string
 	BaseURLPath       string
+	ServerIDPath      string
+	Backups           Backups
 	KeysPath          string
 	KeysOwner         string
 	HostKeyPath       string
 	LogPath           string
 	StateInterval     time.Duration
 	HeartbeatInterval time.Duration
+}
+
+// Backups is what the daemon asks of the backups on its own; a turn never holds the loop.
+type Backups interface {
+	Turn()
+	Beat() *contract.BackupBeat
 }
 
 // The outgoing half of the agent: it pulls what the platform knows and pushes what the machine is, and never listens.
@@ -66,6 +74,9 @@ func New(options Options) *Daemon {
 	}
 	if options.BaseURLPath == "" {
 		options.BaseURLPath = platform.DefaultBaseURLPath
+	}
+	if options.ServerIDPath == "" {
+		options.ServerIDPath = platform.DefaultServerIDPath
 	}
 	if options.KeysPath == "" {
 		options.KeysPath = DefaultKeysPath
@@ -123,6 +134,12 @@ func (d *Daemon) SyncAt(ctx context.Context, platformURL string) (Sync, error) {
 
 	if err := d.options.Entitlement.Remember(answer); err != nil {
 		return Sync{}, err
+	}
+
+	if written, err := platform.SaveServerID(d.options.Sys, d.options.ServerIDPath, answer.ServerID); err != nil {
+		d.journal.Logf("server id not written to %s: %s", d.options.ServerIDPath, err)
+	} else if written {
+		d.journal.Logf("server id %s written to %s", answer.ServerID, d.options.ServerIDPath)
 	}
 
 	wanted, refused := keys.ParseAll(answer.AuthorizedKeys)
@@ -201,6 +218,10 @@ func (d *Daemon) sample() platform.Heartbeat {
 		SSHUser:      d.options.KeysOwner,
 		Sessions:     []string{},
 		Modules:      []string{},
+	}
+
+	if d.options.Backups != nil {
+		beat.Backup = d.options.Backups.Beat()
 	}
 
 	if d.options.Reader == nil {
@@ -318,13 +339,14 @@ func (d *Daemon) SyncedAt() time.Time {
 }
 
 func (d *Daemon) client(platformURL string) (platform.Client, error) {
-	token, err := platform.LoadToken(d.options.Sys, d.options.TokenPath)
+	client, err := platform.Stored(d.options.Sys, d.options.Platform, d.options.TokenPath, d.options.BaseURLPath)
 	if err != nil {
 		return platform.Client{}, err
 	}
 
-	client := d.platform(platformURL)
-	client.Token = token
+	if platformURL != "" {
+		client.BaseURL = platformURL
+	}
 
 	return client, nil
 }
@@ -333,15 +355,12 @@ func (d *Daemon) client(platformURL string) (platform.Client, error) {
 // a sync of its own accord — falls back to the one the enrolment wrote down,
 // then to whatever this build was told at launch.
 func (d *Daemon) platform(platformURL string) platform.Client {
-	client := d.options.Platform
-
 	if platformURL == "" {
-		platformURL = platform.LoadBaseURL(d.options.Sys, d.options.BaseURLPath)
+		return platform.Located(d.options.Sys, d.options.Platform, d.options.BaseURLPath)
 	}
 
-	if platformURL != "" {
-		client.BaseURL = platformURL
-	}
+	client := d.options.Platform
+	client.BaseURL = platformURL
 
 	return client
 }

@@ -12,6 +12,8 @@ import {
 import {
   type RenderedEmail,
   renderAlertAgentOutdatedEmail,
+  renderAlertBackupFailedEmail,
+  renderAlertBackupStaleEmail,
   renderAlertDiskHighEmail,
   renderAlertEntitlementGraceEmail,
   renderAlertServerUnreachableEmail,
@@ -423,6 +425,53 @@ export async function sendAgentOutdatedEmail({
       serverName: server.name,
       agentVersion: server.agentVersion ?? "—",
       latestVersion,
+    })
+  )
+}
+
+export interface BackupFailedInput extends Addressed {
+  server: ServerRow
+  lastError: string | null
+  missing: number
+  lastRunAt: Date | null
+}
+
+export async function sendBackupFailedEmail({
+  server,
+  lastError,
+  missing,
+  lastRunAt,
+  ...input
+}: BackupFailedInput): Promise<boolean> {
+  return await deliverTo(await serverRecipients(server), input, (locale) =>
+    renderAlertBackupFailedEmail({
+      locale,
+      serverName: server.name,
+      lastError,
+      missing,
+      lastRunAt,
+    })
+  )
+}
+
+export interface BackupStaleInput extends Addressed {
+  server: ServerRow
+  lastOkAt: Date | null
+  intervalHours: number
+}
+
+export async function sendBackupStaleEmail({
+  server,
+  lastOkAt,
+  intervalHours,
+  ...input
+}: BackupStaleInput): Promise<boolean> {
+  return await deliverTo(await serverRecipients(server), input, (locale) =>
+    renderAlertBackupStaleEmail({
+      locale,
+      serverName: server.name,
+      lastOkAt,
+      intervalHours,
     })
   )
 }

@@ -17,6 +17,10 @@ export const PROTOCOL_ERROR_CODES = [
   "downgrade_refused",
   "migration_required",
   "busy",
+  "storage_refused",
+  "backup_missing",
+  "backup_unsupported",
+  "backup_corrupt",
   "internal",
 ] as const
 

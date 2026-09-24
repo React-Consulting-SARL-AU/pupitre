@@ -38,6 +38,16 @@ func (r *Reader) checkRuntimes(runtimes map[string]string) error {
 	return nil
 }
 
+// PinRuntimes lays a declared project's pins where mise reads them, as project.add does once the folder is there.
+func (r *Reader) PinRuntimes(name string) error {
+	project, err := r.project(name)
+	if err != nil {
+		return err
+	}
+
+	return r.pinRuntimes(project)
+}
+
 // The pins land where mise reads them, once the folder is there: a repository not yet cloned gets them with its clone.
 func (r *Reader) pinRuntimes(project registry.Project) error {
 	root := project.Path(r.options.Paths.Resolved().Projects)

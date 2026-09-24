@@ -1,0 +1,92 @@
+{
+  "kdf": [
+    {
+      "passphrase": "correct horse battery staple",
+      "normalized": "correct horse battery staple",
+      "salt": "lneDgZnxLTb17pcdSfaKvA==",
+      "iterations": 600000,
+      "private_key": "3/kJOuP+i9Ij0TrB+P4qgR/v3lb1+P8Tc5eNFVeKsEk=",
+      "recipient": "A10gydBSR5g4m/L8q8Msuz7sSJNSPyytp4QgelrXxEw="
+    },
+    {
+      "passphrase": "  lune orage cuivre fenêtre sable oubli  ",
+      "normalized": "lune orage cuivre fenêtre sable oubli",
+      "salt": "E0t5IJHl4s3imATzCsWnYg==",
+      "iterations": 600000,
+      "private_key": "/sWQHRA2t2CN8zBMbx/nzyyryS0TWLuQPJaLdUAW88w=",
+      "recipient": "+FGy/cTz2rTnnBeaNT4bzfNPKbqRPk+v4tM1Z9P4l08="
+    },
+    {
+      "passphrase": "café crème",
+      "normalized": "café crème",
+      "salt": "eBUw5k0aoPKhvhZQrVeqkw==",
+      "iterations": 600000,
+      "private_key": "eW3hW9Vvr2LDZ9wMD6cg5zwTvYanXGHj69XH2unriAo=",
+      "recipient": "8Bo1US6WUgUk7y84E5KZSqinoU6cF5++6PK1YPllhGM="
+    }
+  ],
+  "containers": [
+    {
+      "name": "empty",
+      "private_key": "3/kJOuP+i9Ij0TrB+P4qgR/v3lb1+P8Tc5eNFVeKsEk=",
+      "recipient": "A10gydBSR5g4m/L8q8Msuz7sSJNSPyytp4QgelrXxEw=",
+      "ephemeral_private_key": "M54imYu3UIzKq+OqFSVHUrYZF9luATkwsrgtkq2RL+I=",
+      "nonce_prefix": "RPzASQKOgy8=",
+      "chunk_bytes": 16,
+      "plaintext": "",
+      "sealed": "UFVQSVRSRQFlNMpVQRYJPOPgwhG34YHlqfvA5+q0Wtnp5K1sAdOUZET8wEkCjoMvAAAAEEFUMB/hQMOnpMW8mHhERuo="
+    },
+    {
+      "name": "short",
+      "private_key": "3/kJOuP+i9Ij0TrB+P4qgR/v3lb1+P8Tc5eNFVeKsEk=",
+      "recipient": "A10gydBSR5g4m/L8q8Msuz7sSJNSPyytp4QgelrXxEw=",
+      "ephemeral_private_key": "wvGKj1D+Tazx3BikqIm91sKKi69sPSXdjUxHM26S26s=",
+      "nonce_prefix": "xWA6SKb03Dg=",
+      "chunk_bytes": 16,
+      "plaintext": "aGVsbG8sIHB1cGl0cmU=",
+      "sealed": "UFVQSVRSRQHYAIRZCkxTtA+fyiPByCjjHGM3cE2WUL5XJaRUIc2cCsVgOkim9Nw4AAAAEN4DgNTe3clBMdJUXxqVR8uaHlbnUVuJFz6dz+tGTA=="
+    },
+    {
+      "name": "two exact chunks",
+      "private_key": "3/kJOuP+i9Ij0TrB+P4qgR/v3lb1+P8Tc5eNFVeKsEk=",
+      "recipient": "A10gydBSR5g4m/L8q8Msuz7sSJNSPyytp4QgelrXxEw=",
+      "ephemeral_private_key": "XksBZI1XQ4yXh9NoZ49/gLksyu4dhtO9EAlb6xmBM10=",
+      "nonce_prefix": "CjOxVFYS0vU=",
+      "chunk_bytes": 16,
+      "plaintext": "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
+      "sealed": "UFVQSVRSRQGc74vcIoSVSS/ex5g6gEpi4repeui1HPpuYSytow+oaAozsVRWEtL1AAAAEI34mnvgipxS8UPASQkYIDvW2BehCpmda3UejAdNuAPapZ+o6TWI88MqCQFZWdZngbUUZ830BATMD+zNzKj/KW/5XFa41Gubh3dHdx04MmSi"
+    },
+    {
+      "name": "two chunks and a tail",
+      "private_key": "3/kJOuP+i9Ij0TrB+P4qgR/v3lb1+P8Tc5eNFVeKsEk=",
+      "recipient": "A10gydBSR5g4m/L8q8Msuz7sSJNSPyytp4QgelrXxEw=",
+      "ephemeral_private_key": "0st0Wi3BJjpiRCTrZn5u9zqeNzTpvmKLzQxpGa0g4fs=",
+      "nonce_prefix": "pkTtmjTloS8=",
+      "chunk_bytes": 16,
+      "plaintext": "VGhlIHNlcnZlciBlbmNyeXB0czsgdGhlIGxhcHRvcCBvcGVucy4gdGFpbA==",
+      "sealed": "UFVQSVRSRQFShgGmf5q/P+gmJy87TnVr38UNvxrfus5XXKBZYzw4GKZE7Zo05aEvAAAAEAxKiliEDGBJLKv2zonKp3f+mKi7NSQ5eChTXXAHEdH/4+8cXK+IvWdVd6KXzF7k7rwIcWv5rRCow5+iujgPXjBi47MNDKjcAISYeacgXC5c+ACXHXx+4zosdV0="
+    }
+  ],
+  "refusals": [
+    {
+      "name": "cut at a chunk boundary",
+      "private_key": "3/kJOuP+i9Ij0TrB+P4qgR/v3lb1+P8Tc5eNFVeKsEk=",
+      "sealed": "UFVQSVRSRQFShgGmf5q/P+gmJy87TnVr38UNvxrfus5XXKBZYzw4GKZE7Zo05aEvAAAAEAxKiliEDGBJLKv2zonKp3f+mKi7NSQ5eChTXXAHEdH/4+8cXK+IvWdVd6KXzF7k7rwIcWv5rRCow5+iujgPXjA="
+    },
+    {
+      "name": "one byte altered",
+      "private_key": "3/kJOuP+i9Ij0TrB+P4qgR/v3lb1+P8Tc5eNFVeKsEk=",
+      "sealed": "UFVQSVRSRQFShgGmf5q/P+gmJy87TnVr38UNvxrfus5XXKBZYzw4GKZE7Zo05aEvAAAAEAxKiliEDGBJLav2zonKp3f+mKi7NSQ5eChTXXAHEdH/4+8cXK+IvWdVd6KXzF7k7rwIcWv5rRCow5+iujgPXjBi47MNDKjcAISYeacgXC5c+ACXHXx+4zosdV0="
+    },
+    {
+      "name": "another key",
+      "private_key": "/sWQHRA2t2CN8zBMbx/nzyyryS0TWLuQPJaLdUAW88w=",
+      "sealed": "UFVQSVRSRQFShgGmf5q/P+gmJy87TnVr38UNvxrfus5XXKBZYzw4GKZE7Zo05aEvAAAAEAxKiliEDGBJLKv2zonKp3f+mKi7NSQ5eChTXXAHEdH/4+8cXK+IvWdVd6KXzF7k7rwIcWv5rRCow5+iujgPXjBi47MNDKjcAISYeacgXC5c+ACXHXx+4zosdV0="
+    },
+    {
+      "name": "header only",
+      "private_key": "3/kJOuP+i9Ij0TrB+P4qgR/v3lb1+P8Tc5eNFVeKsEk=",
+      "sealed": "UFVQSVRSRQFShgGmf5q/P+gmJy87TnVr38UNvxrfus5XXKBZYzw4GKZE7Zo05aEvAAAAEA=="
+    }
+  ]
+}

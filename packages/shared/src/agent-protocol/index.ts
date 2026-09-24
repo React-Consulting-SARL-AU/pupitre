@@ -1,6 +1,20 @@
 import type { z } from "zod"
 
 import {
+  BackupContentsResultSchema,
+  BackupDeleteParamsSchema,
+  BackupDeleteResultSchema,
+  BackupInspectParamsSchema,
+  BackupInspectResultSchema,
+  BackupRestoreDataParamsSchema,
+  BackupRestoreDataResultSchema,
+  BackupRestoreSetupParamsSchema,
+  BackupRestoreSetupResultSchema,
+  BackupRunParamsSchema,
+  BackupRunResultSchema,
+  BackupStatusResultSchema,
+} from "./backup"
+import {
   FsListParamsSchema,
   FsListResultSchema,
   FsMkdirParamsSchema,
@@ -299,6 +313,38 @@ export const COMMANDS = {
   "tunnel.restart": {
     params: EmptyParamsSchema,
     result: TunnelStatusResultSchema,
+  },
+  "backup.status": {
+    params: EmptyParamsSchema,
+    result: BackupStatusResultSchema,
+  },
+  "backup.contents": {
+    params: EmptyParamsSchema,
+    result: BackupContentsResultSchema,
+  },
+  "backup.run": {
+    params: BackupRunParamsSchema,
+    result: BackupRunResultSchema,
+  },
+  "backup.delete": {
+    params: BackupDeleteParamsSchema,
+    result: BackupDeleteResultSchema,
+  },
+  "backup.inspect": {
+    params: BackupInspectParamsSchema,
+    result: BackupInspectResultSchema,
+  },
+  "backup.restore.setup": {
+    params: BackupRestoreSetupParamsSchema,
+    result: BackupRestoreSetupResultSchema,
+  },
+  "backup.restore.data": {
+    params: BackupRestoreDataParamsSchema,
+    result: BackupRestoreDataResultSchema,
+  },
+  "backup.restore.abort": {
+    params: EmptyParamsSchema,
+    result: DoneResultSchema,
   },
   enroll: { params: EnrollParamsSchema, result: EnrollResultSchema },
   "keys.list": { params: EmptyParamsSchema, result: KeysListResultSchema },

@@ -32,6 +32,13 @@ func syncLocalNames(ctx sys.Context, reg *registry.File) error {
 	return file.WriteAtomic(ctx, hostsPath, updated, 0o644)
 }
 
+// SyncHosts writes the .localhost names of the registry as it stands: a restored registry arrives whole, and none of its rows went through project.add here.
+func (r *Reader) SyncHosts() error {
+	return r.rewrite(func(reg *registry.File) error {
+		return syncLocalNames(r.ctx(), reg)
+	})
+}
+
 func renderLocalNames(projects []registry.Project) []byte {
 	seen := map[string]bool{}
 	lines := []string{}

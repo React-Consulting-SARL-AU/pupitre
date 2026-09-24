@@ -43,6 +43,7 @@ import {
 import { registerAgentUpdate } from "./agent-update";
 import { registerAppearance } from "./appearance";
 import { attentionWatcher } from "./attention";
+import { registerBackups } from "./backups";
 import { broadcast, broadcastTo } from "./broadcast";
 import { registerCatalog } from "./catalog";
 import { completions } from "./completion";
@@ -904,6 +905,7 @@ function registerChannels(): void {
   registerLanguage();
   registerProjects({ root: workRoot });
   registerConnections();
+  registerBackups();
 
   ipcMain.handle("github:repos", (_event, refresh: unknown) =>
     githubRepos(refresh === true)

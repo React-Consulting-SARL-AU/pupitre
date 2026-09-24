@@ -3,6 +3,8 @@ import { consoleUrl } from "./config"
 import {
   type RenderedEmail,
   renderAlertAgentOutdatedEmail,
+  renderAlertBackupFailedEmail,
+  renderAlertBackupStaleEmail,
   renderAlertDiskHighEmail,
   renderAlertEntitlementGraceEmail,
   renderAlertServerUnreachableEmail,
@@ -49,6 +51,10 @@ export const SAMPLE = {
   suspensionReason:
     "Signalement 4412 : balayage réseau sortant depuis la machine.",
   paidSeats: 2,
+  backupError: "PutObject: AccessDenied (403) on backups/srv_42/manifest.json",
+  lastBackupRunAt: new Date("2026-09-04T03:00:00Z"),
+  lastBackupOkAt: new Date("2026-09-02T03:00:00Z"),
+  backupIntervalHours: 24,
 } as const
 
 export interface EmailPreview {
@@ -184,6 +190,21 @@ const RENDERERS: Record<
       serverName: SAMPLE.serverName,
       organizationName: SAMPLE.organizationName,
       deadline: SAMPLE.deadline,
+    }),
+  alert_backup_failed: (locale) =>
+    renderAlertBackupFailedEmail({
+      locale,
+      serverName: SAMPLE.serverName,
+      lastError: SAMPLE.backupError,
+      missing: 0,
+      lastRunAt: SAMPLE.lastBackupRunAt,
+    }),
+  alert_backup_stale: (locale) =>
+    renderAlertBackupStaleEmail({
+      locale,
+      serverName: SAMPLE.serverName,
+      lastOkAt: SAMPLE.lastBackupOkAt,
+      intervalHours: SAMPLE.backupIntervalHours,
     }),
 }
 

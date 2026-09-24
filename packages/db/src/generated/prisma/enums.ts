@@ -57,10 +57,20 @@ export const AlertKind = {
   server_unreachable: 'server_unreachable',
   disk_high: 'disk_high',
   agent_outdated: 'agent_outdated',
-  entitlement_grace: 'entitlement_grace'
+  entitlement_grace: 'entitlement_grace',
+  backup_failed: 'backup_failed',
+  backup_stale: 'backup_stale'
 } as const
 
 export type AlertKind = (typeof AlertKind)[keyof typeof AlertKind]
+
+
+export const BackupTrigger = {
+  schedule: 'schedule',
+  manual: 'manual'
+} as const
+
+export type BackupTrigger = (typeof BackupTrigger)[keyof typeof BackupTrigger]
 
 
 export const StripeEventStatus = {

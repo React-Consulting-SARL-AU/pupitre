@@ -38,6 +38,10 @@ export const AUDIT_ACTIONS = [
   "server.restored",
   "server.updated",
   "server.alerts_cleared",
+  "backup.created",
+  "backup.deleted",
+  "backup.forgotten",
+  "backup.restored",
   "mail.replied",
   "mail.composed",
   "mail.closed",
@@ -100,6 +104,10 @@ const ACTION_KEYS: Record<AuditAction, DictionaryKey> = {
   "server.restored": "audit.action.server.restored",
   "server.updated": "audit.action.server.updated",
   "server.alerts_cleared": "audit.action.server.alerts_cleared",
+  "backup.created": "audit.action.backup.created",
+  "backup.deleted": "audit.action.backup.deleted",
+  "backup.forgotten": "audit.action.backup.forgotten",
+  "backup.restored": "audit.action.backup.restored",
   "mail.replied": "audit.action.mail.replied",
   "mail.composed": "audit.action.mail.composed",
   "mail.closed": "audit.action.mail.closed",
@@ -124,6 +132,7 @@ const ACTION_KEYS: Record<AuditAction, DictionaryKey> = {
 
 export const AUDIT_TARGET_TYPES = [
   "server",
+  "backup",
   "device",
   "invitation",
   "subscription",
@@ -138,6 +147,7 @@ export const AUDIT_TARGET_TYPES = [
 
 const TARGET_KEYS: Record<string, DictionaryKey> = {
   server: "audit.target.server",
+  backup: "audit.target.backup",
   device: "audit.target.device",
   invitation: "audit.target.invitation",
   subscription: "audit.target.subscription",

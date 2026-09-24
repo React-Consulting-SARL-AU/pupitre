@@ -46,6 +46,10 @@ export const BRIDGE_COMMANDS: ReadonlySet<CommandName> = new Set<CommandName>([
   "fs.remove",
   "tunnel.status",
   "tunnel.sync",
+  "backup.status",
+  "backup.contents",
+  "backup.run",
+  "backup.delete",
 ]);
 
 export interface BridgeCall {

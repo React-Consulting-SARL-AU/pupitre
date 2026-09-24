@@ -33,6 +33,25 @@ export const MODULE_LOOK: Record<ModuleStatus, Look> = {
   },
 };
 
+/** What a module's run is doing: installing it, backing it up, or bringing it back. */
+export type ModuleWording = "install" | "backup" | "restore";
+
+/** The fates a backup or a restore words its own way; the others read as an install's. */
+export const MODULE_WORDS: Record<
+  ModuleWording,
+  Partial<Record<ModuleStatus, DictionaryKey>>
+> = {
+  backup: {
+    ok: "install.moduleStatus.backedUp",
+    running: "install.moduleStatus.backingUp",
+  },
+  install: {},
+  restore: {
+    ok: "install.moduleStatus.restored",
+    running: "install.moduleStatus.restoring",
+  },
+};
+
 /** A step that went through, but had something to say. */
 export const WARNED_STEP: Look = {
   label: "install.stepStatus.warned",

@@ -16,6 +16,7 @@ import {
   sendAgentBinary,
 } from "./agent-binary";
 import { AGENT_RELEASE_PUBLIC_KEY } from "./agent-release";
+import { restoring } from "./backups";
 import { declaredModules } from "./catalog";
 import { managedValues } from "./connections";
 import { prepareAgent } from "./enrollment-run";
@@ -228,7 +229,7 @@ export function registerInstall(): void {
           deliver,
           enrollment: enrollmentGrant,
           forgetSecrets,
-          managed: managedValues,
+          managed: (id, asked) => managedValues(id, asked, restoring(id)),
           probe: inspect,
           secrets: readSecrets,
         },

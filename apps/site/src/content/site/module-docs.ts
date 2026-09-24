@@ -81,6 +81,36 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
       fr: "Ce module est obligatoire, et c’est celui qui peut vous enfermer dehors. Il refuse de fermer root tant qu’une clé n’a pas réellement ouvert dev ; si cette vérification échoue, rien n’est fermé et l’app dit pourquoi. Un module d’exposition qui a besoin des ports 80 et 443 les ouvre sous des règles à lui, que celui-ci ne reprend jamais.",
     },
   },
+  "core.backup": {
+    installs: [
+      {
+        en: "Nothing but its settings: the agent itself dumps, archives, encrypts and sends, on the interval you set or when you ask.",
+        fr: "Rien d’autre que ses réglages : l’agent lui-même exporte, archive, chiffre et envoie, à l’intervalle choisi ou quand vous le demandez.",
+      },
+      {
+        en: "Each backup in your bucket: the configuration and secrets of the modules, the project list, every database, each project’s folder with its git history, the dev account’s SSH keys and coding-agent sessions, and the extra folders you name.",
+        fr: "Chaque sauvegarde dans votre seau : la configuration et les secrets des modules, la liste des projets, chaque base, le dossier de chaque projet avec son historique git, les clés SSH et les sessions des agents de code du compte dev, et les dossiers supplémentaires que vous nommez.",
+      },
+    ],
+    asks: [
+      {
+        en: "Nothing about the bucket, once the Backups (S3) connection is set up in the app: endpoint, bucket and keys come from it, with the public key backups are encrypted to.",
+        fr: "Rien sur le seau, une fois la connexion Sauvegardes (S3) réglée dans l’app : point d’accès, seau et clés en viennent, avec la clé publique pour laquelle les sauvegardes sont chiffrées.",
+      },
+      {
+        en: "The interval in hours — 0 for on demand only — the hour a daily backup starts, and how many scheduled backups to keep.",
+        fr: "L’intervalle en heures — 0 pour la demande seule —, l’heure où part une sauvegarde quotidienne, et combien de sauvegardes planifiées garder.",
+      },
+      {
+        en: "What to include: databases, the dev account’s keys and sessions, projects whole or only their environment files, and extra folders.",
+        fr: "Ce qu’il faut inclure : les bases, les clés et sessions du compte dev, les projets entiers ou leurs seuls fichiers d’environnement, et des dossiers supplémentaires.",
+      },
+    ],
+    notes: {
+      en: "The server encrypts and cannot decrypt: only your passphrase opens a backup, and nobody keeps it. A part that did not change since the last backup is copied inside the bucket instead of being sent again. Docker volumes are not backed up. See the Backups guide to set up the bucket and to restore.",
+      fr: "Le serveur chiffre et ne peut pas déchiffrer : seule votre phrase de passe ouvre une sauvegarde, et personne ne la garde. Une partie inchangée depuis la dernière sauvegarde est copiée dans le seau au lieu d’être renvoyée. Les volumes Docker ne sont pas sauvegardés. Le guide Sauvegardes dit comment régler le seau et restaurer.",
+    },
+  },
   "runtime.node": {
     installs: [
       {

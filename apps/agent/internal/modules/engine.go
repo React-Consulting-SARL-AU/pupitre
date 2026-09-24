@@ -290,6 +290,8 @@ func (e *Engine) Command(id string, sink Sink, fn func(ctx *Context) error) erro
 
 	recalled := e.recall(r)
 	r.redactAll(recalled.Secrets)
+	r.registry = e.Registry
+	r.remembered = recalled
 
 	return fn(r.recalled(module.Manifest(), recalled))
 }
@@ -308,6 +310,8 @@ func (e *Engine) Inspect(id string, fn func(ctx *Context) error) error {
 
 	recalled := e.recall(r)
 	r.redactAll(recalled.Secrets)
+	r.registry = e.Registry
+	r.remembered = recalled
 
 	return fn(r.recalled(module.Manifest(), recalled))
 }

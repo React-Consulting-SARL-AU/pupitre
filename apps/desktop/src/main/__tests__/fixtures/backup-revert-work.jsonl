@@ -1,0 +1,16 @@
+# Un retour en arrière : la machine est d'abord sauvegardée telle qu'elle est,
+# puis la configuration de la sauvegarde choisie est posée. La ligne de secrets
+# porte la clé S3 et la clé privée dérivée ; aucune n'entre dans params.
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","backup.run","backup.restore.setup","backup.restore.data"]}}
+> {"id":2,"cmd":"backup.run","params":{}}
+< {"id":2,"event":"step","module":"core.backup","step":"setup","status":"ok","ms":210}
+< {"id":2,"event":"step","module":"core.backup","step":"manifest","status":"ok","ms":40}
+< {"id":2,"ok":true,"result":{"id":"20260924T101500Z-a1b2c3","key":"pupitre/srv-platform-1/20260924T101500Z-a1b2c3","bytes":4096,"parts":[],"warnings":[],"declared":true}}
+> {"id":3,"cmd":"backup.restore.setup","params":{"location":{"endpoint":"https://acme.r2.cloudflarestorage.com","region":"auto","bucket":"pupitre-backups","key":"pupitre/srv-platform-1/20260919T031500Z-7f3a2c","path_style":true,"sha256":"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"},"revert":true,"secrets_stdin":true}}
+$ *
+< {"id":3,"ok":true,"result":{"id":"20260919T031500Z-7f3a2c","modules":["core.system","db.postgres"],"defer":[],"extra":["tool.github"],"projects":["intranet"],"dropped":[],"parts":[{"key":"setup.pupitre","kind":"setup","bytes":3812,"sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},{"key":"db-postgres-flymate.pupitre","kind":"database","engine":"postgres","name":"flymate","format":"pg_custom","bytes":48213990,"sha256":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}],"warnings":[]}}
+> {"id":4,"cmd":"backup.restore.data","params":{"location":{"endpoint":"https://acme.r2.cloudflarestorage.com","region":"auto","bucket":"pupitre-backups","key":"pupitre/srv-platform-1/20260919T031500Z-7f3a2c","path_style":true,"sha256":"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"},"parts":["db-postgres-flymate.pupitre"],"secrets_stdin":true}}
+$ *
+< {"id":4,"event":"step","module":"core.backup","step":"db:postgres:flymate","status":"ok","ms":5300}
+< {"id":4,"ok":true,"result":{"restored":["db-postgres-flymate.pupitre"],"failed":[],"started":["intranet"],"warnings":[]}}

@@ -1,11 +1,14 @@
 import type { Alert, AlertKind } from "@pupitre/db/cloudflare/client"
 import {
   sendAgentOutdatedEmail,
+  sendBackupFailedEmail,
+  sendBackupStaleEmail,
   sendDiskHighEmail,
   sendServerGraceEmail,
   sendServerUnreachableEmail,
 } from "../../emails/notifications"
 import { getPrisma } from "../api/prisma"
+import { readBackupBeat } from "../backups/beat"
 import { CHANNEL_SOURCES } from "../releases/releases"
 import { readUsage } from "../servers/metrics"
 import type { ServerRow } from "../servers/server-row"
@@ -51,7 +54,12 @@ export function alertStateOf(
     disk: last ? last.disk : null,
     agentVersion: server.agentVersion,
     publishedVersions,
+    backup: readBackupBeat(server.backup),
   }
+}
+
+function dateOf(value: string | undefined): Date | null {
+  return value ? new Date(value) : null
 }
 
 function notify(
@@ -75,6 +83,23 @@ function notify(
     return sendAgentOutdatedEmail({
       server,
       latestVersion: latestVersionOf(state.publishedVersions) ?? "—",
+    })
+  }
+
+  if (kind === "backup_failed") {
+    return sendBackupFailedEmail({
+      server,
+      lastError: state.backup?.last_error ?? null,
+      missing: state.backup?.last_warnings ?? 0,
+      lastRunAt: dateOf(state.backup?.last_run_at),
+    })
+  }
+
+  if (kind === "backup_stale") {
+    return sendBackupStaleEmail({
+      server,
+      lastOkAt: dateOf(state.backup?.last_ok_at),
+      intervalHours: state.backup?.interval_hours ?? 0,
     })
   }
 

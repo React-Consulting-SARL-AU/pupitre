@@ -75,6 +75,13 @@ interface CatalogStore {
    * stops after putting them on the machine.
    */
   deferred: readonly string[];
+  /**
+   * The secrets a restored machine already holds, by module: they count as
+   * answered, are never generated again, and are left off the secret line.
+   */
+  held: Record<string, readonly string[]>;
+  /** The modules a backup brought: a connection this computer lacks does not hold them back. */
+  restoredModules: readonly string[];
 
   load: (serverId: string, installed?: Installed) => Promise<void>;
   /** Puts back the choice an interrupted onboarding had written down. */
@@ -82,6 +89,13 @@ interface CatalogStore {
     selected: readonly string[],
     values: Record<string, Record<string, unknown>>
   ) => void;
+  /** The choice a backup made, with what the machine now holds for it. */
+  adoptRestore: (restored: {
+    selected: readonly string[];
+    values: Record<string, Record<string, unknown>>;
+    held: Record<string, readonly string[]>;
+    deferred: readonly string[];
+  }) => void;
   toggle: (moduleId: string) => void;
   /** Puts a service's questions off, or takes them back up. */
   defer: (moduleId: string, later: boolean) => void;
@@ -122,6 +136,26 @@ interface CatalogStore {
 
 const EMPTY: CatalogResult = { modules: [], presets: [] };
 
+/** A secret the machine holds weighs as one given: filled, neither typed nor generated here. */
+function withHeld(
+  secrets: SecretMarks,
+  held: Record<string, readonly string[]>
+): SecretMarks {
+  const merged: SecretMarks = { ...secrets };
+
+  for (const [moduleId, keys] of Object.entries(held)) {
+    const marks = { ...merged[moduleId] };
+
+    for (const key of keys) {
+      marks[key] ??= { filled: true, generated: false, revealed: false };
+    }
+
+    merged[moduleId] = marks;
+  }
+
+  return merged;
+}
+
 function serverOf(state: CatalogState): string | null {
   return state.status === "idle" ? null : state.serverId;
 }
@@ -151,7 +185,10 @@ export const useCatalog = create<CatalogStore>((set, get) => {
       }
 
       for (const key of generatedKeysOf(module)) {
-        if (get().secrets[module.id]?.[key]?.filled) {
+        if (
+          get().secrets[module.id]?.[key]?.filled ||
+          get().held[module.id]?.includes(key)
+        ) {
           continue;
         }
 
@@ -221,9 +258,11 @@ export const useCatalog = create<CatalogStore>((set, get) => {
     attempted: false,
     catalog: { status: "idle" },
     deferred: [],
+    held: {},
     installed: [],
     problem: null,
     refused: [],
+    restoredModules: [],
     selected: [],
     touched: new Set<string>(),
     values: {},
@@ -251,8 +290,10 @@ export const useCatalog = create<CatalogStore>((set, get) => {
         attempted: false,
         catalog: { catalog: answer.result, serverId, status: "ready" },
         deferred: [],
+        held: {},
         problem: null,
         refused: [],
+        restoredModules: [],
         secrets: {},
         selected: [],
         touched: new Set<string>(),
@@ -273,6 +314,25 @@ export const useCatalog = create<CatalogStore>((set, get) => {
       }
 
       set({ values: { ...values } });
+      reselect(restored(get().modules(), selected, get().installed));
+    },
+
+    /**
+     * What the backup held is chosen and answered already: its values fill the
+     * form, and the secrets the machine holds are neither asked nor made again
+     * — a database password drawn anew would lock the restored projects out.
+     */
+    adoptRestore({ selected, values, held, deferred }) {
+      if (get().catalog.status !== "ready") {
+        return;
+      }
+
+      set({
+        deferred: [...deferred],
+        held,
+        restoredModules: [...selected],
+        values: { ...values },
+      });
       reselect(restored(get().modules(), selected, get().installed));
     },
 
@@ -435,13 +495,21 @@ export const useCatalog = create<CatalogStore>((set, get) => {
     },
 
     problems() {
+      const restoredKinds: ReadonlySet<string> = new Set(
+        get()
+          .modules()
+          .filter((module) => get().restoredModules.includes(module.id))
+          .flatMap((module) => (module.connection ? [module.connection] : []))
+      );
+
       return [
         ...problemsOf(
           get().modules(),
           get().selected,
           get().values,
-          get().secrets,
-          (kind) => useConnections.getState().holds(kind),
+          withHeld(get().secrets, get().held),
+          (kind) =>
+            useConnections.getState().holds(kind) || restoredKinds.has(kind),
           get().deferred
         ),
         ...get().refused,
@@ -574,8 +642,10 @@ export const useCatalog = create<CatalogStore>((set, get) => {
       set({
         attempted: false,
         catalog: { status: "idle" },
+        held: {},
         installed: [],
         refused: [],
+        restoredModules: [],
         secrets: {},
         selected: [],
         touched: new Set<string>(),

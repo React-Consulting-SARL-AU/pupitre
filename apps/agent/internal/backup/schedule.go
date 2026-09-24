@@ -1,0 +1,200 @@
+package backup
+
+import (
+	"errors"
+	"time"
+
+	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/modules"
+	module "pupitre.studio/agent/internal/modules/core/backup"
+	"pupitre.studio/agent/internal/protocol"
+	"pupitre.studio/agent/internal/sys/lock"
+)
+
+const (
+	hoursPerDay = 24
+	maxBeatText = 500
+)
+
+// Next is an interval after the last attempt, on the configured hour for a day or more; a date already past is a missed backup, run once.
+func Next(settings module.Settings, last, now time.Time, location *time.Location) time.Time {
+	base := now
+	if !last.IsZero() {
+		base = last.Add(time.Duration(settings.IntervalHours) * time.Hour)
+	}
+
+	if settings.IntervalHours < hoursPerDay {
+		return base
+	}
+
+	local := base.In(location)
+
+	return time.Date(local.Year(), local.Month(), local.Day(), settings.Hour, 0, 0, 0, location)
+}
+
+// Status says where the backups of this server stand, without waiting on anything: a backup under way is read as one.
+func (s *Service) Status() (contract.BackupStatusResult, error) {
+	var status contract.BackupStatusResult
+
+	err := s.options.Engine.Inspect(module.ID, func(ctx *modules.Context) error {
+		settings := module.Read(ctx)
+		record := s.record(ctx)
+
+		status = contract.BackupStatusResult{
+			Configured:    settings.Configured(),
+			IntervalHours: settings.IntervalHours,
+			Keep:          settings.Keep,
+			Running:       record.RunningSince != "" && s.lockHeld(),
+			Last:          lastRun(record),
+		}
+
+		if status.Configured && settings.IntervalHours > 0 {
+			status.NextRunAt = Next(settings, record.lastRun(), s.now(), s.options.Location).UTC().Format(time.RFC3339)
+		}
+
+		return nil
+	})
+
+	return status, err
+}
+
+func lastRun(record Record) *contract.BackupLastRun {
+	if record.LastRunAt == "" {
+		return nil
+	}
+
+	last := &contract.BackupLastRun{At: record.LastRunAt, OK: record.LastError == "" && record.LastOKAt == record.LastRunAt}
+	if !last.OK {
+		last.Error = record.LastError
+
+		return last
+	}
+
+	if record.Last != nil {
+		last.ID = record.Last.ID
+		last.Bytes = record.Last.Bytes
+		last.Warnings = record.Last.Warnings
+	}
+
+	return last
+}
+
+// lastWarnings counts what the last backup could not carry, when that backup is the last run.
+func lastWarnings(record Record) int {
+	if record.Last == nil || record.LastOKAt != record.LastRunAt {
+		return 0
+	}
+
+	return len(record.Last.Warnings)
+}
+
+func (s *Service) lockHeld() bool {
+	release, acquired, err := lock.Acquire(s.options.Engine.LockPath)
+	if err != nil {
+		return false
+	}
+
+	if !acquired {
+		return true
+	}
+
+	release()
+
+	return false
+}
+
+// Beat is the heartbeat's word on backups, nothing when the module is not there.
+func (s *Service) Beat() *contract.BackupBeat {
+	var beat *contract.BackupBeat
+
+	_ = s.options.Engine.Inspect(module.ID, func(ctx *modules.Context) error {
+		settings := module.Read(ctx)
+		if !settings.Configured() {
+			return nil
+		}
+
+		record := s.record(ctx)
+		beat = &contract.BackupBeat{
+			IntervalHours: settings.IntervalHours,
+			LastRunAt:     record.LastRunAt,
+			LastOKAt:      record.LastOKAt,
+			LastError:     cut(record.LastError, maxBeatText),
+			LastWarnings:  lastWarnings(record),
+		}
+
+		return nil
+	})
+
+	return beat
+}
+
+// Turn runs apart from the daemon's loop, one at a time; a held lock or restricted mode waits for a later turn.
+func (s *Service) Turn() {
+	if !s.turning.CompareAndSwap(false, true) {
+		return
+	}
+
+	go func() {
+		defer s.turning.Store(false)
+
+		s.Tend()
+	}()
+}
+
+// Tend is one turn, waited for.
+func (s *Service) Tend() {
+	s.tell()
+
+	if !s.due() {
+		return
+	}
+
+	if _, err := s.Run(nil, contract.BackupTriggerSchedule, Overrides{}); err != nil && !waiting(err) {
+		s.log("scheduled backup failed: %s", err)
+	}
+}
+
+func (s *Service) due() bool {
+	due := false
+
+	_ = s.options.Engine.Inspect(module.ID, func(ctx *modules.Context) error {
+		settings := module.Read(ctx)
+		if !settings.Configured() || settings.IntervalHours == 0 {
+			return nil
+		}
+
+		now := s.now()
+		due = !now.Before(Next(settings, s.record(ctx).lastRun(), now, s.options.Location))
+
+		return nil
+	})
+
+	return due
+}
+
+// What says to try again later rather than that something went wrong.
+func waiting(err error) bool {
+	var refusal *protocol.Error
+	if !errors.As(err, &refusal) {
+		return false
+	}
+
+	return refusal.Code == contract.ErrorBusy || refusal.Code == contract.ErrorEntitlementRequired
+}
+
+func (s *Service) log(format string, args ...any) {
+	_ = s.options.Engine.Inspect(module.ID, func(ctx *modules.Context) error {
+		ctx.Logf(format, args...)
+
+		return nil
+	})
+}
+
+func cut(text string, limit int) string {
+	runes := []rune(text)
+	if len(runes) <= limit {
+		return text
+	}
+
+	return string(runes[:limit-1]) + "…"
+}

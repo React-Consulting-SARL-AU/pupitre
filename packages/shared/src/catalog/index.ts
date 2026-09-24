@@ -62,6 +62,7 @@ export function runtimeVersionsKey(tool: RuntimeTool): string {
 export const MODULE_IDS = [
   "core.system",
   "core.hardening",
+  "core.backup",
   "runtime.node",
   "runtime.java",
   "runtime.python",
@@ -269,6 +270,10 @@ export type Resources = z.infer<typeof ResourcesSchema>
  * makes tunnels and DNS records from the laptop and never leaves it, the second
  * is exported into the server's shell for Wrangler. One token for both would
  * put the rights over the client's domain where their agents run.
+ *
+ * `backup` is the client's S3 bucket and the public key backups are encrypted
+ * to. The passphrase that key comes from is typed, derived and forgotten: the
+ * connection never holds it.
  */
 export const CONNECTION_KINDS = [
   "cloudflare",
@@ -279,6 +284,7 @@ export const CONNECTION_KINDS = [
   "vercel",
   "supabase",
   "stripe",
+  "backup",
 ] as const
 
 export const ConnectionKindSchema = z.enum(CONNECTION_KINDS)

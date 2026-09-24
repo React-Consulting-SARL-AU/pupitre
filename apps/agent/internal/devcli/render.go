@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/protocol"
 )
 
@@ -121,6 +122,72 @@ func (p *printer) status(status contract.Status) {
 			p.line(fmt.Sprintf("  %-22s %-9s %s", process.ID, process.State, port(process.Port)))
 		}
 	}
+}
+
+// Each part of a backup as it leaves: sent, copied inside the bucket, or refused with what the bucket said.
+func (p *printer) stepEvent(event string, fields map[string]any) {
+	if event != "step" || p.json {
+		return
+	}
+
+	step, _ := fields["step"].(string)
+	message, _ := fields["message"].(string)
+
+	switch fields["status"] {
+	case string(contract.StepOK):
+		p.line("  ✓ " + step)
+	case string(contract.StepSkip):
+		p.line("  · " + step + " (" + i18n.T("devcli.backup.copied") + ")")
+	case string(contract.StepFail):
+		p.line("  ✗ " + step + " : " + message)
+	}
+}
+
+func (p *printer) backupRun(result contract.BackupRunResult) {
+	p.line(i18n.T("devcli.backup.made", result.ID, len(result.Parts), megabytes(result.Bytes)))
+
+	if !result.Declared {
+		p.line("  ! " + i18n.T("devcli.backup.undeclared"))
+	}
+
+	for _, warning := range result.Warnings {
+		p.line("  ! " + warning)
+	}
+}
+
+func (p *printer) backupStatus(status contract.BackupStatusResult) {
+	if !status.Configured {
+		p.line(i18n.T("devcli.backup.unconfigured"))
+
+		return
+	}
+
+	if status.IntervalHours == 0 {
+		p.line(i18n.T("devcli.backup.manual", status.Keep))
+	} else {
+		p.line(i18n.T("devcli.backup.schedule", status.IntervalHours, status.Keep))
+	}
+
+	if status.NextRunAt != "" {
+		p.line(i18n.T("devcli.backup.next", status.NextRunAt))
+	}
+
+	if status.Running {
+		p.line(i18n.T("devcli.backup.running"))
+	}
+
+	switch {
+	case status.Last == nil:
+		p.line(i18n.T("devcli.backup.never"))
+	case status.Last.OK:
+		p.line(i18n.T("devcli.backup.last.ok", status.Last.At, status.Last.ID, megabytes(status.Last.Bytes)))
+	default:
+		p.line(i18n.T("devcli.backup.last.failed", status.Last.At, status.Last.Error))
+	}
+}
+
+func megabytes(bytes int64) string {
+	return fmt.Sprintf("%.1f", float64(bytes)/(1<<20))
 }
 
 func port(value int) string {

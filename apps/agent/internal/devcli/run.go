@@ -98,6 +98,7 @@ var verbs = map[string]handler{
 	"branch":  runBranch,
 	"db":      runDB,
 	"doctor":  runDoctor,
+	"backup":  runBackup,
 }
 
 func action(cmd string) handler {
@@ -331,6 +332,28 @@ func engineOf(options Options, asked request) (string, error) {
 	}
 
 	return engines[0], nil
+}
+
+// A backup from the terminal goes through the handler the app calls: the same lock, the same steps, the same bucket.
+func runBackup(options Options, asked request, out *printer) int {
+	switch at(asked.words, 0) {
+	case "now":
+		result, err := options.Server.Call("backup.run", nil, out.stepEvent)
+		if err != nil {
+			return out.failure(err)
+		}
+
+		return render(out, result, out.backupRun)
+	case "status":
+		result, err := options.Server.Call("backup.status", nil, nil)
+		if err != nil {
+			return out.failure(err)
+		}
+
+		return render(out, result, out.backupStatus)
+	}
+
+	return out.usage(errors.New(i18n.T("devcli.backup.expected")))
 }
 
 func runDoctor(options Options, _ request, out *printer) int {

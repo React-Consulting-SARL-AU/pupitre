@@ -109,6 +109,8 @@ describe("ce que le droit d'usage laisse passer", () => {
     expect([...READING_COMMANDS].sort()).toEqual(
       (
         [
+          "backup.contents",
+          "backup.status",
           "catalog",
           "completions",
           "db.url",

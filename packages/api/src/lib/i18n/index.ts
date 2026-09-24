@@ -22,6 +22,11 @@ const FR = {
   server_token_revoked_fix: "Réinstallez l'agent depuis l'app.",
   not_found: "Cette ressource n'existe pas.",
   device_not_found: "Cet appareil n'existe pas.",
+  backup_not_found: "Cette sauvegarde n'existe pas.",
+  backup_id_taken:
+    "Un autre serveur de l'organisation a déjà déclaré la sauvegarde {id}.",
+  backup_id_taken_fix:
+    "Relancez la sauvegarde : elle tirera un nouvel identifiant.",
   key_not_ed25519: "Seules les clés ed25519 sont acceptées.",
   key_not_ed25519_fix: "générez une clé ed25519 : ssh-keygen -t ed25519",
   key_malformed: "Cette clé publique est illisible.",
@@ -324,6 +329,10 @@ const EN: Record<MessageKey, string> = {
   server_token_revoked_fix: "Reinstall the agent from the app.",
   not_found: "This resource does not exist.",
   device_not_found: "This device does not exist.",
+  backup_not_found: "This backup does not exist.",
+  backup_id_taken:
+    "Another server of the organization already declared backup {id}.",
+  backup_id_taken_fix: "Run the backup again: it will draw a new identifier.",
   key_not_ed25519: "Only ed25519 keys are accepted.",
   key_not_ed25519_fix: "generate an ed25519 key: ssh-keygen -t ed25519",
   key_malformed: "This public key is unreadable.",

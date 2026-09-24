@@ -7,6 +7,7 @@ import type {
   SignInProgress,
   UsageRight,
 } from "@shared/account";
+import type { PlatformBackup } from "@shared/backups";
 import type { FleetServer } from "@shared/servers";
 import type { AccountRecord, TokenVault } from "./account-vault";
 import type { EnrollInput, PlatformClient } from "./platform-client";
@@ -110,6 +111,14 @@ export interface Account {
    * gesture for that, and it says what it costs.
    */
   revokeDevice: (deviceId: string) => Promise<AccountResponse<null>>;
+  /** The organization's backups, or one server's when its platform id is given. */
+  backups: (
+    platformServerId?: string
+  ) => Promise<AccountResponse<PlatformBackup[]>>;
+  backupRestored: (
+    backupId: string,
+    platformServerId: string
+  ) => Promise<AccountResponse<null>>;
 }
 
 function keyBody(line: string): string {
@@ -634,6 +643,18 @@ export function createAccount(deps: AccountDeps): Account {
       }
 
       return withToken((token) => deps.platform.removeDevice(token, deviceId));
+    },
+
+    backups(platformServerId) {
+      return withToken((token) =>
+        deps.platform.backups(token, platformServerId)
+      );
+    },
+
+    backupRestored(backupId, platformServerId) {
+      return withToken((token) =>
+        deps.platform.backupRestored(token, backupId, platformServerId)
+      );
     },
   };
 }

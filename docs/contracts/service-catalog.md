@@ -1,6 +1,6 @@
 # Catalogue de services
 
-Le catalogue est une **bibliothèque des stacks les plus utilisées**, choisies parce qu'elles s'installent et se gèrent proprement. Il est complet : trente-sept modules, tous livrés. Il ne cherche pas l'exhaustivité : ce qui n'y est pas, le client l'installe lui-même sur sa machine, et Pupitre ne s'y oppose pas. La sonde signale ce qu'elle trouve, les modules ne touchent qu'à ce qu'ils ont installé.
+Le catalogue est une **bibliothèque des stacks les plus utilisées**, choisies parce qu'elles s'installent et se gèrent proprement. Il est complet : trente-huit modules, tous livrés. Il ne cherche pas l'exhaustivité : ce qui n'y est pas, le client l'installe lui-même sur sa machine, et Pupitre ne s'y oppose pas. La sonde signale ce qu'elle trouve, les modules ne touchent qu'à ce qu'ils ont installé.
 
 Un service est un **module** de l'agent : une unité Go qui sait s'installer, se vérifier, se configurer, se mettre à jour, se désinstaller et rapporter son état, sur Ubuntu 22.04 et 24.04, amd64 et arm64. L'app ne connaît aucun service par son nom : elle affiche les manifestes que l'agent déclare.
 
@@ -19,7 +19,7 @@ type Manifest = {
   resources: { ram_mb: number; disk_mb: number }
   arch: ("amd64" | "arm64")[]
   fields: Field[]                // ce que l'écran de configuration demande
-  connection?: ConnectionKind    // le compte tiers que ce module exige de l'app : `CONNECTION_KINDS` de `packages/shared` — cloudflare, wrangler, github, 1password, neon, vercel, supabase, stripe
+  connection?: ConnectionKind    // le compte tiers que ce module exige de l'app : `CONNECTION_KINDS` de `packages/shared` — cloudflare, wrangler, github, 1password, neon, vercel, supabase, stripe, backup
   runs: boolean                  // le module tient un processus, ou en lance un à tout moment
   mandatory: boolean             // true pour core.system et core.hardening
   since: string                  // version de l'agent
@@ -47,7 +47,7 @@ type Field =
 
 Une **connexion** est un compte tiers que l'app détient pour le client, sur son poste, et qui vaut pour tous ses serveurs. Un **module** est une unité que l'agent installe sur un serveur. Un module qui exige une connexion le déclare, et l'écran de configuration la demande au-dessus de ses propres questions plutôt que trois écrans plus loin.
 
-Huit connexions existent : **Cloudflare**, **Wrangler**, **GitHub**, **1Password**, **Neon**, **Vercel**, **Supabase** et **Stripe**. L'app retient le jeton de chacune dans le trousseau système, un fichier par connexion, et le chiffré seul touche le disque.
+Neuf connexions existent : **Cloudflare**, **Wrangler**, **GitHub**, **1Password**, **Neon**, **Vercel**, **Supabase**, **Stripe** et **Sauvegardes** (`backup`, un seau S3). L'app retient le jeton de chacune dans le trousseau système, un fichier par connexion, et le chiffré seul touche le disque. La connexion `backup` tient en plus la clé publique des sauvegardes et son sel, qui ne sont pas des secrets ; la phrase de passe dont ils viennent n'est gardée nulle part ([backups.md](./backups.md#le-chiffrement)).
 
 Un jeton Cloudflare peut ouvrir plusieurs comptes. L'app n'agit que sur un — ses zones sont celles proposées pour un domaine, son tunnel celui qu'elle crée, son identifiant celui sur lequel Wrangler déploie — et ce compte est **choisi par le client** à la connexion quand il y en a plusieurs, jamais le premier que Cloudflare liste. `connections:connect` répond alors `{ status: "choose", accounts }` et rien n'est retenu tant que le jeton n'est pas renvoyé avec le compte choisi ; « Vérifier » pèse ensuite le jeton sur ce compte-là, et refuse un jeton qui ne l'ouvre plus.
 
@@ -60,6 +60,7 @@ Cloudflare et Wrangler ouvrent le même compte avec deux jetons, parce qu'ils ne
 | `github` | `GET /user` : le compte qu'ouvre le jeton | le champ `managed` `token` de `tool.github` |
 | `1password` | rien : un jeton de compte de service ne répond à aucun appel depuis le poste. Il est retenu sans nom, et le serveur dit à l'installation s'il ouvre un coffre | le champ `managed` `service_account_token` de `tool.1password` |
 | `neon` | `GET /users/me` : le compte qu'ouvre la clé | le champ `managed` `api_key` de `tool.neon` |
+| `backup` | le seau, depuis le poste ([backups.md](./backups.md#lapp)) ; le serveur le sonde à son tour à l'installation (`verify-bucket`) | les neuf champs `managed` de `core.backup` — `endpoint`, `region`, `bucket`, `prefix`, `path_style`, `access_key_id`, `secret_access_key`, `recipient`, `kdf_salt` |
 
 **Rien ne change sur le fil** pour un jeton passé d'un formulaire à une connexion. Il atteint la machine sur la ligne de secrets de l'`install`, groupé par identifiant de module comme les autres, écrit par le processus principal de l'app, et se range dans `/etc/pupitre/env` sous root seul. Un jeton qu'un CLI lit lui-même dans son environnement (`NEON_API_KEY`, `OP_SERVICE_ACCOUNT_TOKEN`, `CLOUDFLARE_API_TOKEN`) est aussi exporté dans `/home/dev/.config/pupitre/env`, 0600 sous `dev`, que `~/.zshenv` lit : sans quoi `neon me`, `op whoami` ou `wrangler whoami` dans un terminal ne voient aucun compte. Ce qui change est d'où l'app le tient : un compte connecté une fois, au lieu d'un champ retapé pour chaque serveur. Un module dont le compte n'est pas connecté est refusé **avant la première étape**, avec le problème `connection`.
 
@@ -118,12 +119,15 @@ Un module dont le CLI se connecte à un compte implémente en plus `Login` : il 
 
 ## Modules
 
-### Socle — obligatoires
+### Socle
+
+`core.system` et `core.hardening` sont obligatoires ; `core.backup` est facultatif.
 
 | Id | Fait | Champs |
 | --- | --- | --- |
 | `core.system` | paquets de base — dont `rsync`, que l'app emploie pour transférer des fichiers avec reprise ; une machine installée avant lui le reçoit à la mise à niveau suivante des modules — fuseau, mises à jour de sécurité automatiques sans redémarrage, swap dimensionné, garde-fou mémoire (`systemd-oomd` ou `earlyoom`), utilisateur `dev` avec sudo, dont `authorized_keys` reçoit les clés non restreintes de root pour qu'une clé l'ouvre avant le durcissement, tmux, zsh et bash avec les marqueurs de prompt (OSC 133) lus par l'app, commande `dev` liée au binaire, identité git | `timezone`, `git_name`, `git_email`, `projects_dir` |
 | `core.hardening` | ufw sur SSH seul (22, et 443 en option), fail2ban, root fermé et mots de passe désactivés **après** vérification qu'une clé ouvre `dev`, `AllowUsers dev`, `ClientAlive`. Avec `keep_root`, root garde sa place dans `AllowUsers` et passe en `PermitRootLogin prohibit-password` : par clé, jamais par mot de passe | `ssh_443` (boolean), `keep_root` (boolean) |
+| `core.backup` | rien sur la machine hormis ses valeurs dans `install.json` : l'installation sonde le seau (`verify-bucket`), le daemon sauvegarde à l'échéance, chiffré pour la clé publique du client ; désinstallé, il ne planifie plus rien et laisse le seau tel qu'il est. Tout part par défaut : les réglages nomment ce qui reste dehors, projet par projet et base par base, et `backup.contents` rend la liste à cocher. Voir [backups.md](./backups.md) | `endpoint` (text, HTTPS seulement, motif `BACKUP_ENDPOINT_PATTERN`), `region`, `bucket` (motifs S3), `prefix`, `path_style` (boolean), `access_key_id`, `secret_access_key` (secret), `recipient`, `kdf_salt` — tous `managed` par la connexion `backup` — ; `interval_hours` (0–720), `hour` (0–23), `keep` (1–365), `databases`, `home`, `projects`, `projects_env_only` (boolean), `extra_paths` (list de text), `exclude_projects` (list de text, motif `BACKUP_PROJECT_ITEM_PATTERN`), `exclude_databases` (list de text, motif `BACKUP_DATABASE_ITEM_PATTERN` : `postgres:shop`, `redis:*`) |
 
 ### Runtimes
 

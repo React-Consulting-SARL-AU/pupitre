@@ -361,6 +361,50 @@ export type EnumAlertKindWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumAlertKindFilter<$PrismaModel>
 }
 
+export type EnumBackupTriggerFilter<$PrismaModel = never> = {
+  equals?: $Enums.BackupTrigger | Prisma.EnumBackupTriggerFieldRefInput<$PrismaModel>
+  in?: $Enums.BackupTrigger[]
+  notIn?: $Enums.BackupTrigger[]
+  not?: Prisma.NestedEnumBackupTriggerFilter<$PrismaModel> | $Enums.BackupTrigger
+}
+
+export type BigIntFilter<$PrismaModel = never> = {
+  equals?: bigint | number | Prisma.BigIntFieldRefInput<$PrismaModel>
+  in?: bigint[] | number[]
+  notIn?: bigint[] | number[]
+  lt?: bigint | number | Prisma.BigIntFieldRefInput<$PrismaModel>
+  lte?: bigint | number | Prisma.BigIntFieldRefInput<$PrismaModel>
+  gt?: bigint | number | Prisma.BigIntFieldRefInput<$PrismaModel>
+  gte?: bigint | number | Prisma.BigIntFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedBigIntFilter<$PrismaModel> | bigint | number
+}
+
+export type EnumBackupTriggerWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.BackupTrigger | Prisma.EnumBackupTriggerFieldRefInput<$PrismaModel>
+  in?: $Enums.BackupTrigger[]
+  notIn?: $Enums.BackupTrigger[]
+  not?: Prisma.NestedEnumBackupTriggerWithAggregatesFilter<$PrismaModel> | $Enums.BackupTrigger
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumBackupTriggerFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumBackupTriggerFilter<$PrismaModel>
+}
+
+export type BigIntWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: bigint | number | Prisma.BigIntFieldRefInput<$PrismaModel>
+  in?: bigint[] | number[]
+  notIn?: bigint[] | number[]
+  lt?: bigint | number | Prisma.BigIntFieldRefInput<$PrismaModel>
+  lte?: bigint | number | Prisma.BigIntFieldRefInput<$PrismaModel>
+  gt?: bigint | number | Prisma.BigIntFieldRefInput<$PrismaModel>
+  gte?: bigint | number | Prisma.BigIntFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _avg?: Prisma.NestedFloatFilter<$PrismaModel>
+  _sum?: Prisma.NestedBigIntFilter<$PrismaModel>
+  _min?: Prisma.NestedBigIntFilter<$PrismaModel>
+  _max?: Prisma.NestedBigIntFilter<$PrismaModel>
+}
+
 export type EnumBillingIntervalFilter<$PrismaModel = never> = {
   equals?: $Enums.BillingInterval | Prisma.EnumBillingIntervalFieldRefInput<$PrismaModel>
   in?: $Enums.BillingInterval[]
@@ -798,6 +842,50 @@ export type NestedEnumAlertKindWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumAlertKindFilter<$PrismaModel>
   _max?: Prisma.NestedEnumAlertKindFilter<$PrismaModel>
+}
+
+export type NestedEnumBackupTriggerFilter<$PrismaModel = never> = {
+  equals?: $Enums.BackupTrigger | Prisma.EnumBackupTriggerFieldRefInput<$PrismaModel>
+  in?: $Enums.BackupTrigger[]
+  notIn?: $Enums.BackupTrigger[]
+  not?: Prisma.NestedEnumBackupTriggerFilter<$PrismaModel> | $Enums.BackupTrigger
+}
+
+export type NestedBigIntFilter<$PrismaModel = never> = {
+  equals?: bigint | number | Prisma.BigIntFieldRefInput<$PrismaModel>
+  in?: bigint[] | number[]
+  notIn?: bigint[] | number[]
+  lt?: bigint | number | Prisma.BigIntFieldRefInput<$PrismaModel>
+  lte?: bigint | number | Prisma.BigIntFieldRefInput<$PrismaModel>
+  gt?: bigint | number | Prisma.BigIntFieldRefInput<$PrismaModel>
+  gte?: bigint | number | Prisma.BigIntFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedBigIntFilter<$PrismaModel> | bigint | number
+}
+
+export type NestedEnumBackupTriggerWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.BackupTrigger | Prisma.EnumBackupTriggerFieldRefInput<$PrismaModel>
+  in?: $Enums.BackupTrigger[]
+  notIn?: $Enums.BackupTrigger[]
+  not?: Prisma.NestedEnumBackupTriggerWithAggregatesFilter<$PrismaModel> | $Enums.BackupTrigger
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumBackupTriggerFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumBackupTriggerFilter<$PrismaModel>
+}
+
+export type NestedBigIntWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: bigint | number | Prisma.BigIntFieldRefInput<$PrismaModel>
+  in?: bigint[] | number[]
+  notIn?: bigint[] | number[]
+  lt?: bigint | number | Prisma.BigIntFieldRefInput<$PrismaModel>
+  lte?: bigint | number | Prisma.BigIntFieldRefInput<$PrismaModel>
+  gt?: bigint | number | Prisma.BigIntFieldRefInput<$PrismaModel>
+  gte?: bigint | number | Prisma.BigIntFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedBigIntWithAggregatesFilter<$PrismaModel> | bigint | number
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _avg?: Prisma.NestedFloatFilter<$PrismaModel>
+  _sum?: Prisma.NestedBigIntFilter<$PrismaModel>
+  _min?: Prisma.NestedBigIntFilter<$PrismaModel>
+  _max?: Prisma.NestedBigIntFilter<$PrismaModel>
 }
 
 export type NestedEnumBillingIntervalFilter<$PrismaModel = never> = {

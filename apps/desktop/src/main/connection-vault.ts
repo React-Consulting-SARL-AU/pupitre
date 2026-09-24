@@ -26,12 +26,15 @@ export interface ConnectionVault {
   sealed: () => boolean;
   token: (kind: ConnectionKind) => string | null;
   account: (kind: ConnectionKind) => ConnectionAccount | null;
+  /** What a connection keeps beside its token that is not a secret: a bucket's address, a public key. */
+  settings: (kind: ConnectionKind) => Record<string, unknown> | null;
   /** True once a token is held, whether or not the provider could name it. */
   holds: (kind: ConnectionKind) => boolean;
   connect: (
     kind: ConnectionKind,
     token: string,
-    account: ConnectionAccount | null
+    account: ConnectionAccount | null,
+    settings?: Record<string, unknown>
   ) => void;
   clear: (kind: ConnectionKind) => void;
 }
@@ -101,23 +104,35 @@ export function createConnectionVault({
     }
   }
 
-  function account(kind: ConnectionKind): ConnectionAccount | null {
+  function record(
+    kind: ConnectionKind
+  ): { connection?: unknown; settings?: unknown } | null {
     try {
-      const record = JSON.parse(
-        readFileSync(recordPath(kind), "utf8")
-      ) as unknown;
-
-      return readAccount(
-        (record as { connection?: unknown } | null)?.connection ?? null
-      );
+      return JSON.parse(readFileSync(recordPath(kind), "utf8")) as {
+        connection?: unknown;
+        settings?: unknown;
+      } | null;
     } catch {
       return null;
     }
   }
 
+  function account(kind: ConnectionKind): ConnectionAccount | null {
+    return readAccount(record(kind)?.connection ?? null);
+  }
+
+  function settings(kind: ConnectionKind): Record<string, unknown> | null {
+    const held = record(kind)?.settings;
+
+    return typeof held === "object" && held !== null
+      ? (held as Record<string, unknown>)
+      : null;
+  }
+
   return {
     account,
     sealed,
+    settings,
     token,
 
     /**
@@ -129,7 +144,7 @@ export function createConnectionVault({
       return existsSync(recordPath(kind));
     },
 
-    connect(kind, value, named) {
+    connect(kind, value, named, kept) {
       held.set(kind, value);
       ensureDir(dir);
 
@@ -144,7 +159,11 @@ export function createConnectionVault({
 
       writeFileSync(
         path,
-        `${JSON.stringify({ connection: named }, null, 2)}\n`,
+        `${JSON.stringify(
+          kept ? { connection: named, settings: kept } : { connection: named },
+          null,
+          2
+        )}\n`,
         {
           mode: FILE_MODE,
         }

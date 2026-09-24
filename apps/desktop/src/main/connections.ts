@@ -1,4 +1,6 @@
+import { BACKUP_MODULE_ID } from "@pupitre/shared/backup";
 import type { AgentResponse } from "@shared/agent";
+import type { BackupConnectionView } from "@shared/backups";
 import type { CloudflareZone } from "@shared/cloudflare";
 import type {
   ConnectionAccount,
@@ -19,6 +21,7 @@ import {
 import { accountValues } from "./account-values";
 import type { Sealer } from "./account-vault";
 import { agentClient } from "./agent";
+import { backupManaged, backupViewOf, type HeldBackup } from "./backups-run";
 import { declaredManifests } from "./catalog";
 import { type CloudflareApi, cloudflareApi } from "./cloudflare-api";
 import { createConnectionVault } from "./connection-vault";
@@ -117,9 +120,34 @@ const deps: TunnelDeps = {
   exposureOf,
 };
 
+/** The bucket this computer hands its servers, and the secret key beside it. */
+export function heldBackup(): HeldBackup | null {
+  const view = backupViewOf(vault.settings("backup"));
+  const secret = vault.token("backup");
+
+  return view && secret ? { secret, view } : null;
+}
+
+export function keepBackup(view: BackupConnectionView, secret: string): void {
+  vault.connect(
+    "backup",
+    secret,
+    { id: view.bucket, name: view.bucket },
+    { ...view }
+  );
+}
+
+/**
+ * The managed values of an install, from the connections.
+ *
+ * `lenient` is a machine a backup was just restored on: its modules' managed
+ * values are already there, and a connection this computer lacks is left out
+ * rather than refusing an install that needs nothing from it.
+ */
 export async function managedValues(
   serverId: string,
-  modules: readonly string[]
+  modules: readonly string[],
+  lenient = false
 ): Promise<AgentResponse<ManagedValues>> {
   const declared = await declaredManifests(serverId);
 
@@ -135,14 +163,27 @@ export async function managedValues(
 
       return token ? { account: vault.account(kind), token } : null;
     },
-    [CLOUDFLARE_EXPOSURE]
+    [CLOUDFLARE_EXPOSURE, BACKUP_MODULE_ID],
+    lenient
   );
 
   if (!accounts.ok) {
     return accounts;
   }
 
-  const tunnel = await resolveManaged(serverId, modules, deps);
+  const bucket = backupManaged(modules, heldBackup(), lenient);
+
+  if (!bucket.ok) {
+    return bucket;
+  }
+
+  const tunnel = await resolveManaged(
+    serverId,
+    lenient && !vault.token("cloudflare")
+      ? modules.filter((id) => id !== CLOUDFLARE_EXPOSURE)
+      : modules,
+    deps
+  );
 
   if (!tunnel.ok) {
     return tunnel;
@@ -151,8 +192,16 @@ export async function managedValues(
   return {
     ok: true,
     result: {
-      config: { ...accounts.result.config, ...tunnel.result.config },
-      secrets: { ...accounts.result.secrets, ...tunnel.result.secrets },
+      config: {
+        ...accounts.result.config,
+        ...bucket.result.config,
+        ...tunnel.result.config,
+      },
+      secrets: {
+        ...accounts.result.secrets,
+        ...bucket.result.secrets,
+        ...tunnel.result.secrets,
+      },
     },
   };
 }
@@ -292,13 +341,18 @@ function known(kind: unknown): kind is ConnectionKind {
   return (CONNECTION_KINDS as readonly string[]).includes(String(kind));
 }
 
+/** A connection given as one token: the bucket is given through its own form, `backup:connect`. */
+function tokenKind(kind: unknown): kind is ConnectionKind {
+  return known(kind) && kind !== "backup";
+}
+
 export function registerConnections(): void {
   ipcMain.handle("connections:state", () => connectionsState());
 
   ipcMain.handle(
     "connections:connect",
     (_event, kind: unknown, token: unknown, accountId: unknown) => {
-      if (!known(kind)) {
+      if (!tokenKind(kind)) {
         return refuseWith("bad_request", "refusal.connection.kind", {
           kind: String(kind),
         });
@@ -331,7 +385,7 @@ export function registerConnections(): void {
   });
 
   ipcMain.handle("connections:verify", (_event, kind: unknown) => {
-    if (!known(kind)) {
+    if (!tokenKind(kind)) {
       return refuseWith("bad_request", "refusal.connection.kind", {
         kind: String(kind),
       });

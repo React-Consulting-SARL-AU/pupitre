@@ -35,6 +35,7 @@ them. Each is named below with what it lacks, never dropped in silence.
 const secret = "s3cret-de-test"
 
 var elsewhere = map[string]string{
+	"core.backup":         "its bucket is proven over the S3 API",
 	"ai.hermes":           "its providers are a list of secrets that only the form composes",
 	"ai.openclaw":         "its providers are a list of secrets that only the form composes",
 	"db.mysql":            "its accounts are read by querying mysql",

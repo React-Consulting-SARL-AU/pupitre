@@ -16,3 +16,4 @@ Une décision par fichier, numérotée, jamais réécrite : une décision qui ch
 | [0010](./0010-code-generated-by-agents.md) | Tout le code est produit par des agents |
 | [0011](./0011-cloudflare-d1.md) | Cloudflare D1 plutôt que Neon : toute la plateforme chez Cloudflare |
 | [0012](./0012-ssh-config-include.md) | Une ligne `Include` dans `~/.ssh/config`, sur demande |
+| [0013](./0013-sauvegardes-s3-chiffrees.md) | Sauvegardes chiffrées dans le seau S3 du client |

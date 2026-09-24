@@ -1,5 +1,5 @@
 ---
-import { CATALOG } from "../content/site/catalog"
+import { CATALOG, isRequired, REQUIRED_LABEL } from "../content/site/catalog"
 import { localeFromPath } from "../lib/i18n"
 import BrandLogo from "./BrandLogo.astro"
 
@@ -14,11 +14,8 @@ const locale = localeFromPath(Astro.url.pathname)
         aria-label={group.label[locale]}
         class="card-soft mb-6 break-inside-avoid p-7 md:p-8"
       >
-        <header class="flex items-baseline gap-3">
+        <header>
           <h3 class="heading-3">{group.label[locale]}</h3>
-          {group.note && (
-            <span class="label text-ink-3">{group.note[locale]}</span>
-          )}
         </header>
 
         <ul class="mt-5 flex flex-col gap-4">
@@ -26,6 +23,9 @@ const locale = localeFromPath(Astro.url.pathname)
             <li data-module={entry.id} class="flex items-center gap-3">
               <BrandLogo name={entry.name[locale]} module={entry.id} />
               <p class="heading-4">{entry.name[locale]}</p>
+              {isRequired(entry.id) && (
+                <span class="label text-ink-3">{REQUIRED_LABEL[locale]}</span>
+              )}
             </li>
           ))}
         </ul>

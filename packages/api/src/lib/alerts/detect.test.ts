@@ -4,6 +4,8 @@ import {
   DISK_ALERT_PERCENT,
   detectAlerts,
   isAgentOutdated,
+  isBackupFailed,
+  isBackupStale,
   isDiskHigh,
   isEntitlementGrace,
   isUnreachable,
@@ -25,12 +27,17 @@ function state(overrides: Partial<AlertState> = {}): AlertState {
     disk: 12,
     agentVersion: "1.4.0",
     publishedVersions: ["1.4.0"],
+    backup: null,
     ...overrides,
   }
 }
 
 function minutesAgo(minutes: number): Date {
   return new Date(NOW.getTime() - minutes * MINUTE_MS)
+}
+
+function hoursAgo(hours: number): string {
+  return minutesAgo(hours * 60).toISOString()
 }
 
 describe("serveur injoignable", () => {
@@ -151,15 +158,137 @@ describe("la décision d'ensemble", () => {
         disk: 97,
         agentVersion: "1.0.0",
         publishedVersions: ["1.1.0", "1.2.0"],
+        backup: {
+          interval_hours: 24,
+          last_run_at: hoursAgo(1),
+          last_ok_at: hoursAgo(72),
+          last_error: "boom",
+        },
       }),
       NOW
     )
 
     expect(kinds.sort()).toEqual([
       "agent_outdated",
+      "backup_failed",
+      "backup_stale",
       "disk_high",
       "entitlement_grace",
       "server_unreachable",
     ])
+  })
+})
+
+describe("sauvegarde en échec", () => {
+  it("se lève quand la dernière tentative a échoué après le dernier succès", () => {
+    expect(
+      isBackupFailed(
+        state({
+          backup: {
+            interval_hours: 24,
+            last_run_at: hoursAgo(1),
+            last_ok_at: hoursAgo(25),
+            last_error: "AccessDenied",
+          },
+        })
+      )
+    ).toBe(true)
+  })
+
+  it("se lève pour un serveur qui n'a jamais réussi", () => {
+    expect(
+      isBackupFailed(
+        state({
+          backup: {
+            interval_hours: 24,
+            last_run_at: hoursAgo(1),
+            last_error: "NoSuchBucket",
+          },
+        })
+      )
+    ).toBe(true)
+  })
+
+  it("se lève quand la dernière sauvegarde a laissé des parties derrière elle", () => {
+    expect(
+      isBackupFailed(
+        state({
+          backup: {
+            interval_hours: 24,
+            last_run_at: hoursAgo(1),
+            last_ok_at: hoursAgo(1),
+            last_warnings: 1,
+          },
+        })
+      )
+    ).toBe(true)
+  })
+
+  it("se tait quand un succès a suivi l'erreur", () => {
+    expect(
+      isBackupFailed(
+        state({
+          backup: {
+            interval_hours: 24,
+            last_run_at: hoursAgo(1),
+            last_ok_at: hoursAgo(1),
+            last_error: "AccessDenied",
+          },
+        })
+      )
+    ).toBe(false)
+  })
+
+  it("se tait sans erreur, sans battement, ou sur un serveur suspendu", () => {
+    const failing = {
+      interval_hours: 24,
+      last_run_at: hoursAgo(1),
+      last_error: "AccessDenied",
+    }
+
+    expect(
+      isBackupFailed(
+        state({ backup: { interval_hours: 24, last_run_at: hoursAgo(1) } })
+      )
+    ).toBe(false)
+    expect(isBackupFailed(state({ backup: null }))).toBe(false)
+    expect(
+      isBackupFailed(state({ status: "suspended", backup: failing }))
+    ).toBe(false)
+  })
+})
+
+describe("sauvegarde en retard", () => {
+  it("se lève après deux intervalles sans succès", () => {
+    expect(
+      isBackupStale(
+        state({ backup: { interval_hours: 24, last_ok_at: hoursAgo(49) } }),
+        NOW
+      )
+    ).toBe(true)
+  })
+
+  it("laisse passer un succès vieux de moins de deux intervalles", () => {
+    expect(
+      isBackupStale(
+        state({ backup: { interval_hours: 24, last_ok_at: hoursAgo(47) } }),
+        NOW
+      )
+    ).toBe(false)
+  })
+
+  it("se tait quand la planification est coupée ou qu'aucun succès n'existe", () => {
+    expect(
+      isBackupStale(
+        state({ backup: { interval_hours: 0, last_ok_at: hoursAgo(500) } }),
+        NOW
+      )
+    ).toBe(false)
+    expect(
+      isBackupStale(
+        state({ backup: { interval_hours: 24, last_run_at: hoursAgo(100) } }),
+        NOW
+      )
+    ).toBe(false)
   })
 })

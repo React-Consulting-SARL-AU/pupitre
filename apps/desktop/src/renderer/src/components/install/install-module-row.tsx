@@ -5,7 +5,11 @@ import { Details } from "../ui/details";
 import { LiveDuration } from "../ui/live-duration";
 import { plateOf, ServiceLogo } from "../ui/service-logo";
 import { StatusDot } from "../ui/status-dot";
-import { MODULE_LOOK } from "./install-status";
+import {
+  MODULE_LOOK,
+  MODULE_WORDS,
+  type ModuleWording,
+} from "./install-status";
 import { InstallStepRow } from "./install-step-row";
 import { InstallStepWait } from "./install-step-wait";
 
@@ -27,13 +31,16 @@ const LOGO = 20;
 export function InstallModuleRow({
   module,
   name,
+  wording = "install",
 }: {
   module: ModuleProgress;
   name: string;
+  wording?: ModuleWording;
 }) {
   const t = useTranslations();
 
   const look = MODULE_LOOK[module.status];
+  const said = t(MODULE_WORDS[wording][module.status] ?? look.label);
   const current = module.steps.find((step) => step.status === "start");
   const crossed = module.steps.filter((step) => step.status !== "start");
   const replay = module.steps.find((step) => step.replay)?.replay;
@@ -53,7 +60,7 @@ export function InstallModuleRow({
           style={{ minHeight: plateOf(LOGO) }}
         >
           <StatusDot
-            label={`${name} — ${t(look.label)}`}
+            label={`${name} — ${said}`}
             shape={look.shape}
             size={10}
             tone={look.tone}
@@ -61,9 +68,7 @@ export function InstallModuleRow({
           <span className="min-w-0 flex-1 truncate font-medium text-ink">
             {name}
           </span>
-          <span className="shrink-0 text-[12px] text-ink-3">
-            {t(look.label)}
-          </span>
+          <span className="shrink-0 text-[12px] text-ink-3">{said}</span>
           {module.status === "running" ? (
             <LiveDuration className={duration} />
           ) : null}

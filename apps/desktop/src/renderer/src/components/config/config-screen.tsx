@@ -56,6 +56,7 @@ export function ConfigScreen({
   const shown = useCatalog((state) => state.shown);
   const values = useCatalog((state) => state.values);
   const secrets = useCatalog((state) => state.secrets);
+  const held = useCatalog((state) => state.held);
   const setValue = useCatalog((state) => state.setValue);
   const setSecret = useCatalog((state) => state.setSecret);
   const generate = useCatalog((state) => state.generate);
@@ -226,6 +227,7 @@ export function ConfigScreen({
               focus={moved}
               group={current}
               handlers={handlersFor(current.module.id)}
+              held={held[current.module.id]}
               key={current.module.id}
               marks={secrets[current.module.id]}
               onDefer={(later) => defer(current.module.id, later)}

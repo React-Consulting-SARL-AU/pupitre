@@ -3,6 +3,7 @@ import { admin } from "./strings/admin"
 import { audit } from "./strings/audit"
 import { auditUi } from "./strings/audit-ui"
 import { auth } from "./strings/auth"
+import { backups } from "./strings/backups"
 import { billing } from "./strings/billing"
 import { billingUi } from "./strings/billing-ui"
 import { common } from "./strings/common"
@@ -42,6 +43,7 @@ export const en = {
   ...billingUi.en,
   ...download.en,
   ...servers.en,
+  ...backups.en,
   ...start.en,
   ...members.en,
   ...organization.en,

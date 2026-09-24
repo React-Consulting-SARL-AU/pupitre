@@ -5,7 +5,7 @@ import {
 } from "@pupitre/shared/catalog"
 import { describe, expect, it } from "vitest"
 import { LOCALES } from "../../lib/i18n"
-import { CATALOG, CATALOG_ENTRIES } from "./catalog"
+import { CATALOG, CATALOG_ENTRIES, isRequired } from "./catalog"
 
 describe("catalog content", () => {
   it("lists every module of the shared contract exactly once", () => {
@@ -22,18 +22,10 @@ describe("catalog content", () => {
     }
   })
 
-  it("flags the mandatory core group and no other", () => {
-    const core = CATALOG.find((group) => group.id === "core")
+  it("marks the mandatory modules as required, and them alone", () => {
+    const required = CATALOG_ENTRIES.filter((entry) => isRequired(entry.id))
 
-    expect(core?.note).toBeDefined()
-    expect(core?.entries.map((entry) => entry.id)).toEqual([
-      ...MANDATORY_MODULE_IDS,
-    ])
-    for (const group of CATALOG.filter(
-      (candidate) => candidate.id !== "core"
-    )) {
-      expect(group.note).toBeUndefined()
-    }
+    expect(required.map((entry) => entry.id)).toEqual([...MANDATORY_MODULE_IDS])
   })
 
   it("names groups and entries in both languages", () => {

@@ -1,3 +1,4 @@
+import type { BackupCounts } from "@pupitre/shared/backup"
 import { productKey } from "@/lib/domain/admin"
 import type { Translate } from "@/lib/i18n/i18n"
 
@@ -96,6 +97,32 @@ export function formatRelative(
   }
 
   return t("format.daysAgo", { count: Math.floor(elapsed / DAY_MS) })
+}
+
+/** What a backup carries, by kind and count: the platform never learns the names. */
+export function formatBackupContents(
+  counts: BackupCounts,
+  t: Translate
+): string {
+  const parts = [
+    counts.setup ? t("backups.contents.setup") : null,
+    counts.home ? t("backups.contents.home") : null,
+    counts.projects > 0
+      ? t.plural("backups.contents.projects", counts.projects)
+      : null,
+    counts.databases > 0
+      ? t.plural("backups.contents.databases", counts.databases)
+      : null,
+    counts.paths > 0 ? t.plural("backups.contents.paths", counts.paths) : null,
+  ]
+
+  return parts.filter((part) => part !== null).join(" · ") || t("format.none")
+}
+
+export function formatBackupInterval(hours: number, t: Translate): string {
+  return hours > 0
+    ? t("backups.everyHours", { hours })
+    : t("backups.manualOnly")
 }
 
 export function formatProduct(product: string | null, t: Translate): string {

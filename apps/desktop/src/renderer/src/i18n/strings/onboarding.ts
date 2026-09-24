@@ -118,6 +118,35 @@ export const onboarding = {
     "onboarding.step.install": "Installation",
     "onboarding.step.inspection": "Inspection",
     "onboarding.step.server": "Server",
+    "onboarding.step.restore": "Backup",
+    "onboarding.step.data": "Data",
+
+    "onboarding.restore.title": "Start from a backup?",
+    "onboarding.restore.backups": "Backups of the organization",
+    "onboarding.restore.backupLabel": "{server} — {date}",
+    "onboarding.restore.passphraseHelp":
+      "Checked on this computer before the server is asked anything.",
+    "onboarding.restore.needsConnection":
+      "Connect the backup bucket to start from a backup.",
+    "onboarding.restore.needsPassphrase":
+      "Type the backup passphrase to start from a backup.",
+    "onboarding.restore.skip": "Start from an empty server",
+    "onboarding.restore.start": "Start from this backup",
+    "onboarding.restore.running":
+      "Putting the backup's configuration on the server",
+
+    "onboarding.harden.toData": "Go on to the data",
+    "onboarding.data.title": "Data",
+    "onboarding.data.parts": "What comes back from the backup",
+    "onboarding.data.passphraseHelp":
+      "The app was closed since the backup was chosen: its key has to be derived again.",
+    "onboarding.data.skip": "Leave the data in the bucket",
+    "onboarding.data.start.one": "Bring back {count} part",
+    "onboarding.data.start.other": "Bring back {count} parts",
+    "onboarding.data.running":
+      "Bringing the data back, then starting the projects",
+    "onboarding.data.done": "The data is back and the projects are started.",
+    "onboarding.data.continue": "Finish",
 
     "onboarding.replay.notice":
       "{name} had a password or a key the app did not keep. Enter it again, or let the app generate one, before running it again.",
@@ -256,6 +285,35 @@ export const onboarding = {
     "onboarding.step.install": "Installation",
     "onboarding.step.inspection": "Inspection",
     "onboarding.step.server": "Serveur",
+    "onboarding.step.restore": "Sauvegarde",
+    "onboarding.step.data": "Données",
+
+    "onboarding.restore.title": "Repartir d'une sauvegarde ?",
+    "onboarding.restore.backups": "Sauvegardes de l'organisation",
+    "onboarding.restore.backupLabel": "{server} — {date}",
+    "onboarding.restore.passphraseHelp":
+      "Vérifiée sur cet ordinateur avant que le serveur ne reçoive quoi que ce soit.",
+    "onboarding.restore.needsConnection":
+      "Connectez le seau des sauvegardes pour repartir d'une sauvegarde.",
+    "onboarding.restore.needsPassphrase":
+      "Tapez la phrase de passe des sauvegardes pour repartir d'une sauvegarde.",
+    "onboarding.restore.skip": "Partir d'un serveur vierge",
+    "onboarding.restore.start": "Repartir de cette sauvegarde",
+    "onboarding.restore.running":
+      "Pose de la configuration de la sauvegarde sur le serveur",
+
+    "onboarding.harden.toData": "Passer aux données",
+    "onboarding.data.title": "Données",
+    "onboarding.data.parts": "Ce qui revient de la sauvegarde",
+    "onboarding.data.passphraseHelp":
+      "L'app a été fermée depuis le choix de la sauvegarde : sa clé doit être dérivée à nouveau.",
+    "onboarding.data.skip": "Laisser les données dans le seau",
+    "onboarding.data.start.one": "Ramener {count} partie",
+    "onboarding.data.start.other": "Ramener {count} parties",
+    "onboarding.data.running": "Retour des données, puis démarrage des projets",
+    "onboarding.data.done":
+      "Les données sont revenues et les projets sont démarrés.",
+    "onboarding.data.continue": "Terminer",
 
     "onboarding.replay.notice":
       "{name} avait un mot de passe ou une clé que l'app n'a pas gardés. Saisissez-le à nouveau, ou laissez l'app en générer un, avant de relancer.",

@@ -30,6 +30,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 			return nil
 		case <-states.C:
 			d.syncOnce(ctx)
+			d.backupTurn()
 		case <-beats.C:
 			d.beatOnce(ctx)
 		}
@@ -46,6 +47,12 @@ func (d *Daemon) syncOnce(ctx context.Context) {
 
 	if synced.KeysChanged {
 		d.journal.Logf("entitlement %s, target version %s", synced.Entitlement, orNone(synced.TargetVersion))
+	}
+}
+
+func (d *Daemon) backupTurn() {
+	if d.options.Backups != nil {
+		d.options.Backups.Turn()
 	}
 }
 

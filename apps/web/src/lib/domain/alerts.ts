@@ -6,6 +6,8 @@ export const ALERT_KINDS = [
   "disk_high",
   "agent_outdated",
   "entitlement_grace",
+  "backup_failed",
+  "backup_stale",
 ] as const
 
 export type AlertKind = (typeof ALERT_KINDS)[number]
@@ -41,6 +43,18 @@ const LOOKS: Record<AlertKind, AlertLook> = {
     tone: "warn",
     label: "alert.entitlement_grace",
     fix: "alert.entitlement_grace.fix",
+  },
+  backup_failed: {
+    shape: "barred",
+    tone: "danger",
+    label: "alert.backup_failed",
+    fix: "alert.backup_failed.fix",
+  },
+  backup_stale: {
+    shape: "hollow",
+    tone: "warn",
+    label: "alert.backup_stale",
+    fix: "alert.backup_stale.fix",
   },
 }
 
