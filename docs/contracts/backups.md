@@ -165,7 +165,7 @@ Une table `Backup`, des routes, deux alertes. Le détail est dans [platform-api.
 
 ## L'app
 
-- **Réglages › Connexions › Sauvegardes (S3)** : point d'accès, région, seau, préfixe, adressage, clé d'accès et clé secrète (au trousseau), et la phrase de passe — tapée deux fois, ou générée, puis oubliée. Si l'organisation a déjà des sauvegardes, l'identité de la plus récente est reprise sans phrase.
+- **La page Sauvegardes d'un serveur** — l'assistant de mise en place, puis l'onglet Destination, qui applique au serveur tout changement aussitôt enregistré ; plus rien dans les Réglages : point d'accès, région, seau, préfixe, adressage, clé d'accès et clé secrète (au trousseau), et la phrase de passe — tapée deux fois, ou générée, puis oubliée. Si l'organisation a déjà des sauvegardes, l'identité de la plus récente est reprise sans phrase.
 - **La fiche du serveur, section Sauvegardes** : l'état, le formulaire du module (intervalle, heure, rétention, contenu), « Sauvegarder maintenant », la liste lue de la plateforme avec, pour chacune, « Revenir à cette sauvegarde » et « Supprimer ».
 - **L'onboarding** : quand l'organisation a des sauvegardes, l'étape « Repartir d'une sauvegarde ? » vient après l'agent et avant le catalogue ; l'étape « Données » vient après le durcissement.
 

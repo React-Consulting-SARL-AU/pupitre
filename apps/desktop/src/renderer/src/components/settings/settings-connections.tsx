@@ -8,6 +8,11 @@ import { useEffect } from "react";
 import { CONNECTIONS } from "../connections/connection-descriptors";
 import { ConnectionRow } from "../connections/connection-row";
 
+/** The backup bucket is set where backups are, on each server's Backups page. */
+const ACCOUNT_CONNECTIONS = CONNECTIONS.filter(
+  (connection) => connection.kind !== "backup"
+);
+
 /**
  * The third-party accounts the app holds, seen from the preferences.
  *
@@ -39,7 +44,7 @@ export function SettingsConnections() {
 
   return (
     <Panel list>
-      {CONNECTIONS.map((connection) => (
+      {ACCOUNT_CONNECTIONS.map((connection) => (
         <ConnectionRow
           connection={connection}
           installed={installed}

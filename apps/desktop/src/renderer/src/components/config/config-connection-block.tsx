@@ -57,7 +57,7 @@ export function ConfigConnectionBlock({ module }: { module: Manifest }) {
       )}
 
       {connection.kind === "backup" ? (
-        <BackupConnectionCard compact connection={connection} />
+        <BackupConnectionCard connection={connection} />
       ) : (
         <ConnectionCard compact connection={connection} />
       )}

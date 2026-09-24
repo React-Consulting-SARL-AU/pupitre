@@ -34,12 +34,18 @@ import type { ConnectionDescriptor } from "./connection-descriptors";
 export function BackupConnectionForm({
   connection,
   initial,
+  start,
+  saveLabel,
   onSaved,
   onCancel,
 }: {
   connection: ConnectionDescriptor;
   initial: BackupConnectionView | null;
-  onSaved?: () => void;
+  /** The bucket to start from when this computer holds none: the one a server already backs up to. */
+  start?: BackupStorage;
+  /** What saving does beyond keeping the connection, when it does more. */
+  saveLabel?: string;
+  onSaved?: () => Promise<void> | void;
   onCancel?: () => void;
 }) {
   const t = useTranslations();
@@ -49,11 +55,11 @@ export function BackupConnectionForm({
   const problem = useBackupConnection((store) => store.problem);
   const save = useBackupConnection((store) => store.save);
 
-  const [storage, setStorage] = useState<BackupStorage>(() =>
-    storageOf(initial)
+  const [storage, setStorage] = useState<BackupStorage>(
+    () => start ?? storageOf(initial)
   );
   const [provider, setProvider] = useState<BackupProvider>(() =>
-    providerOf(initial?.endpoint ?? "")
+    providerOf(initial?.endpoint ?? start?.endpoint ?? "")
   );
   const [secret, setSecret] = useState("");
   const [renewing, setRenewing] = useState(false);
@@ -94,7 +100,7 @@ export function BackupConnectionForm({
       setPhrase(NO_PHRASE);
       setRenewing(false);
       setAttempted(false);
-      onSaved?.();
+      await onSaved?.();
     }
   }
 
@@ -159,7 +165,7 @@ export function BackupConnectionForm({
           submit
           variant="inverse"
         >
-          {t("backups.connection.save")}
+          {saveLabel ?? t("backups.connection.save")}
         </Button>
       </div>
     </form>
