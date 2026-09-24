@@ -42,7 +42,10 @@ import {
   BACKUP_REGION_PATTERN,
   BackupBeatSchema,
   BackupDeclarationSchema,
+  BackupLocationSchema,
   BackupManifestSchema,
+  BackupPartKeySchema,
+  BackupPartSchema,
 } from "../backup"
 import {
   FieldSchema,
@@ -116,6 +119,11 @@ export const CONTRACT_DEFINITIONS: Readonly<Record<string, z.ZodType>> = {
   BackupManifest: BackupManifestSchema,
   BackupDeclaration: BackupDeclarationSchema,
   BackupBeat: BackupBeatSchema,
+  // Declared once and referenced: inlined, it repeats in every result that
+  // carries parts, and the schema is embedded in the agent unobfuscated.
+  BackupPart: BackupPartSchema,
+  BackupPartKey: BackupPartKeySchema,
+  BackupLocation: BackupLocationSchema,
   Manifest: ManifestSchema,
   Field: FieldSchema,
   FieldProblem: FieldProblemSchema,

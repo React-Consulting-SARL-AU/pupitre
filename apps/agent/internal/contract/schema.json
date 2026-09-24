@@ -5025,248 +5025,7 @@
         "parts": {
           "type": "array",
           "items": {
-            "oneOf": [
-              {
-                "type": "object",
-                "properties": {
-                  "key": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
-                  },
-                  "bytes": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "sha256": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "fingerprint": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "kind": {
-                    "type": "string",
-                    "const": "setup"
-                  }
-                },
-                "required": [
-                  "key",
-                  "bytes",
-                  "sha256",
-                  "kind"
-                ]
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "key": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
-                  },
-                  "bytes": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "sha256": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "fingerprint": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "kind": {
-                    "type": "string",
-                    "const": "home"
-                  },
-                  "paths": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "required": [
-                  "key",
-                  "bytes",
-                  "sha256",
-                  "kind",
-                  "paths"
-                ]
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "key": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
-                  },
-                  "bytes": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "sha256": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "fingerprint": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "kind": {
-                    "type": "string",
-                    "const": "database"
-                  },
-                  "engine": {
-                    "type": "string",
-                    "enum": [
-                      "postgres",
-                      "mysql",
-                      "mongodb",
-                      "redis"
-                    ]
-                  },
-                  "name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 128
-                  },
-                  "format": {
-                    "type": "string",
-                    "enum": [
-                      "pg_custom",
-                      "pg_roles",
-                      "sql",
-                      "mysql_users",
-                      "mongo_archive",
-                      "rdb"
-                    ]
-                  }
-                },
-                "required": [
-                  "key",
-                  "bytes",
-                  "sha256",
-                  "kind",
-                  "engine",
-                  "name",
-                  "format"
-                ]
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "key": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
-                  },
-                  "bytes": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "sha256": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "fingerprint": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "kind": {
-                    "type": "string",
-                    "const": "project"
-                  },
-                  "name": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "mode": {
-                    "type": "string",
-                    "enum": [
-                      "full",
-                      "env"
-                    ]
-                  },
-                  "git": {
-                    "type": "object",
-                    "properties": {
-                      "repo": {
-                        "type": "string"
-                      },
-                      "branch": {
-                        "type": "string"
-                      },
-                      "dirty": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
-                      },
-                      "ahead": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
-                      }
-                    },
-                    "required": [
-                      "repo",
-                      "branch",
-                      "dirty",
-                      "ahead"
-                    ]
-                  }
-                },
-                "required": [
-                  "key",
-                  "bytes",
-                  "sha256",
-                  "kind",
-                  "name",
-                  "mode"
-                ]
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "key": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
-                  },
-                  "bytes": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "sha256": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "fingerprint": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "kind": {
-                    "type": "string",
-                    "const": "path"
-                  },
-                  "path": {
-                    "type": "string",
-                    "pattern": "^([A-Za-z0-9_~@+-]|\\.[A-Za-z0-9_~@+-])[A-Za-z0-9._~@+-]*(\\/([A-Za-z0-9_~@+-]|\\.[A-Za-z0-9_~@+-])[A-Za-z0-9._~@+-]*)*\\/?$"
-                  }
-                },
-                "required": [
-                  "key",
-                  "bytes",
-                  "sha256",
-                  "kind",
-                  "path"
-                ]
-              }
-            ]
+            "$ref": "#/$defs/BackupPart"
           }
         },
         "warnings": {
@@ -5316,41 +5075,7 @@
       "type": "object",
       "properties": {
         "location": {
-          "type": "object",
-          "properties": {
-            "endpoint": {
-              "type": "string",
-              "pattern": "^https:\\/\\/[^\\s/?#]+(\\/[^\\s?#]*)?$"
-            },
-            "region": {
-              "type": "string",
-              "pattern": "^[a-z0-9-]{1,64}$"
-            },
-            "bucket": {
-              "type": "string",
-              "pattern": "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
-            },
-            "key": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 512
-            },
-            "path_style": {
-              "type": "boolean"
-            },
-            "sha256": {
-              "type": "string",
-              "pattern": "^[0-9a-f]{64}$"
-            }
-          },
-          "required": [
-            "endpoint",
-            "region",
-            "bucket",
-            "key",
-            "path_style"
-          ],
-          "additionalProperties": false
+          "$ref": "#/$defs/BackupLocation"
         },
         "secrets_stdin": {
           "type": "boolean",
@@ -5484,248 +5209,7 @@
           "minItems": 1,
           "type": "array",
           "items": {
-            "oneOf": [
-              {
-                "type": "object",
-                "properties": {
-                  "key": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
-                  },
-                  "bytes": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "sha256": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "fingerprint": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "kind": {
-                    "type": "string",
-                    "const": "setup"
-                  }
-                },
-                "required": [
-                  "key",
-                  "bytes",
-                  "sha256",
-                  "kind"
-                ]
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "key": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
-                  },
-                  "bytes": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "sha256": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "fingerprint": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "kind": {
-                    "type": "string",
-                    "const": "home"
-                  },
-                  "paths": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "required": [
-                  "key",
-                  "bytes",
-                  "sha256",
-                  "kind",
-                  "paths"
-                ]
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "key": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
-                  },
-                  "bytes": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "sha256": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "fingerprint": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "kind": {
-                    "type": "string",
-                    "const": "database"
-                  },
-                  "engine": {
-                    "type": "string",
-                    "enum": [
-                      "postgres",
-                      "mysql",
-                      "mongodb",
-                      "redis"
-                    ]
-                  },
-                  "name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 128
-                  },
-                  "format": {
-                    "type": "string",
-                    "enum": [
-                      "pg_custom",
-                      "pg_roles",
-                      "sql",
-                      "mysql_users",
-                      "mongo_archive",
-                      "rdb"
-                    ]
-                  }
-                },
-                "required": [
-                  "key",
-                  "bytes",
-                  "sha256",
-                  "kind",
-                  "engine",
-                  "name",
-                  "format"
-                ]
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "key": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
-                  },
-                  "bytes": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "sha256": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "fingerprint": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "kind": {
-                    "type": "string",
-                    "const": "project"
-                  },
-                  "name": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "mode": {
-                    "type": "string",
-                    "enum": [
-                      "full",
-                      "env"
-                    ]
-                  },
-                  "git": {
-                    "type": "object",
-                    "properties": {
-                      "repo": {
-                        "type": "string"
-                      },
-                      "branch": {
-                        "type": "string"
-                      },
-                      "dirty": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
-                      },
-                      "ahead": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
-                      }
-                    },
-                    "required": [
-                      "repo",
-                      "branch",
-                      "dirty",
-                      "ahead"
-                    ]
-                  }
-                },
-                "required": [
-                  "key",
-                  "bytes",
-                  "sha256",
-                  "kind",
-                  "name",
-                  "mode"
-                ]
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "key": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
-                  },
-                  "bytes": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "sha256": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "fingerprint": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "kind": {
-                    "type": "string",
-                    "const": "path"
-                  },
-                  "path": {
-                    "type": "string",
-                    "pattern": "^([A-Za-z0-9_~@+-]|\\.[A-Za-z0-9_~@+-])[A-Za-z0-9._~@+-]*(\\/([A-Za-z0-9_~@+-]|\\.[A-Za-z0-9_~@+-])[A-Za-z0-9._~@+-]*)*\\/?$"
-                  }
-                },
-                "required": [
-                  "key",
-                  "bytes",
-                  "sha256",
-                  "kind",
-                  "path"
-                ]
-              }
-            ]
+            "$ref": "#/$defs/BackupPart"
           }
         },
         "warnings": {
@@ -5753,41 +5237,7 @@
       "type": "object",
       "properties": {
         "location": {
-          "type": "object",
-          "properties": {
-            "endpoint": {
-              "type": "string",
-              "pattern": "^https:\\/\\/[^\\s/?#]+(\\/[^\\s?#]*)?$"
-            },
-            "region": {
-              "type": "string",
-              "pattern": "^[a-z0-9-]{1,64}$"
-            },
-            "bucket": {
-              "type": "string",
-              "pattern": "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
-            },
-            "key": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 512
-            },
-            "path_style": {
-              "type": "boolean"
-            },
-            "sha256": {
-              "type": "string",
-              "pattern": "^[0-9a-f]{64}$"
-            }
-          },
-          "required": [
-            "endpoint",
-            "region",
-            "bucket",
-            "key",
-            "path_style"
-          ],
-          "additionalProperties": false
+          "$ref": "#/$defs/BackupLocation"
         },
         "revert": {
           "type": "boolean"
@@ -5843,248 +5293,7 @@
         "parts": {
           "type": "array",
           "items": {
-            "oneOf": [
-              {
-                "type": "object",
-                "properties": {
-                  "key": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
-                  },
-                  "bytes": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "sha256": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "fingerprint": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "kind": {
-                    "type": "string",
-                    "const": "setup"
-                  }
-                },
-                "required": [
-                  "key",
-                  "bytes",
-                  "sha256",
-                  "kind"
-                ]
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "key": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
-                  },
-                  "bytes": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "sha256": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "fingerprint": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "kind": {
-                    "type": "string",
-                    "const": "home"
-                  },
-                  "paths": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "required": [
-                  "key",
-                  "bytes",
-                  "sha256",
-                  "kind",
-                  "paths"
-                ]
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "key": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
-                  },
-                  "bytes": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "sha256": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "fingerprint": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "kind": {
-                    "type": "string",
-                    "const": "database"
-                  },
-                  "engine": {
-                    "type": "string",
-                    "enum": [
-                      "postgres",
-                      "mysql",
-                      "mongodb",
-                      "redis"
-                    ]
-                  },
-                  "name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 128
-                  },
-                  "format": {
-                    "type": "string",
-                    "enum": [
-                      "pg_custom",
-                      "pg_roles",
-                      "sql",
-                      "mysql_users",
-                      "mongo_archive",
-                      "rdb"
-                    ]
-                  }
-                },
-                "required": [
-                  "key",
-                  "bytes",
-                  "sha256",
-                  "kind",
-                  "engine",
-                  "name",
-                  "format"
-                ]
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "key": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
-                  },
-                  "bytes": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "sha256": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "fingerprint": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "kind": {
-                    "type": "string",
-                    "const": "project"
-                  },
-                  "name": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "mode": {
-                    "type": "string",
-                    "enum": [
-                      "full",
-                      "env"
-                    ]
-                  },
-                  "git": {
-                    "type": "object",
-                    "properties": {
-                      "repo": {
-                        "type": "string"
-                      },
-                      "branch": {
-                        "type": "string"
-                      },
-                      "dirty": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
-                      },
-                      "ahead": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
-                      }
-                    },
-                    "required": [
-                      "repo",
-                      "branch",
-                      "dirty",
-                      "ahead"
-                    ]
-                  }
-                },
-                "required": [
-                  "key",
-                  "bytes",
-                  "sha256",
-                  "kind",
-                  "name",
-                  "mode"
-                ]
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "key": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
-                  },
-                  "bytes": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "sha256": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "fingerprint": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "kind": {
-                    "type": "string",
-                    "const": "path"
-                  },
-                  "path": {
-                    "type": "string",
-                    "pattern": "^([A-Za-z0-9_~@+-]|\\.[A-Za-z0-9_~@+-])[A-Za-z0-9._~@+-]*(\\/([A-Za-z0-9_~@+-]|\\.[A-Za-z0-9_~@+-])[A-Za-z0-9._~@+-]*)*\\/?$"
-                  }
-                },
-                "required": [
-                  "key",
-                  "bytes",
-                  "sha256",
-                  "kind",
-                  "path"
-                ]
-              }
-            ]
+            "$ref": "#/$defs/BackupPart"
           }
         },
         "warnings": {
@@ -6109,41 +5318,7 @@
       "type": "object",
       "properties": {
         "location": {
-          "type": "object",
-          "properties": {
-            "endpoint": {
-              "type": "string",
-              "pattern": "^https:\\/\\/[^\\s/?#]+(\\/[^\\s?#]*)?$"
-            },
-            "region": {
-              "type": "string",
-              "pattern": "^[a-z0-9-]{1,64}$"
-            },
-            "bucket": {
-              "type": "string",
-              "pattern": "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
-            },
-            "key": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 512
-            },
-            "path_style": {
-              "type": "boolean"
-            },
-            "sha256": {
-              "type": "string",
-              "pattern": "^[0-9a-f]{64}$"
-            }
-          },
-          "required": [
-            "endpoint",
-            "region",
-            "bucket",
-            "key",
-            "path_style"
-          ],
-          "additionalProperties": false
+          "$ref": "#/$defs/BackupLocation"
         },
         "parts": {
           "minItems": 1,
@@ -6734,248 +5909,7 @@
           "minItems": 1,
           "type": "array",
           "items": {
-            "oneOf": [
-              {
-                "type": "object",
-                "properties": {
-                  "key": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
-                  },
-                  "bytes": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "sha256": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "fingerprint": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "kind": {
-                    "type": "string",
-                    "const": "setup"
-                  }
-                },
-                "required": [
-                  "key",
-                  "bytes",
-                  "sha256",
-                  "kind"
-                ]
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "key": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
-                  },
-                  "bytes": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "sha256": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "fingerprint": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "kind": {
-                    "type": "string",
-                    "const": "home"
-                  },
-                  "paths": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "required": [
-                  "key",
-                  "bytes",
-                  "sha256",
-                  "kind",
-                  "paths"
-                ]
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "key": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
-                  },
-                  "bytes": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "sha256": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "fingerprint": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "kind": {
-                    "type": "string",
-                    "const": "database"
-                  },
-                  "engine": {
-                    "type": "string",
-                    "enum": [
-                      "postgres",
-                      "mysql",
-                      "mongodb",
-                      "redis"
-                    ]
-                  },
-                  "name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 128
-                  },
-                  "format": {
-                    "type": "string",
-                    "enum": [
-                      "pg_custom",
-                      "pg_roles",
-                      "sql",
-                      "mysql_users",
-                      "mongo_archive",
-                      "rdb"
-                    ]
-                  }
-                },
-                "required": [
-                  "key",
-                  "bytes",
-                  "sha256",
-                  "kind",
-                  "engine",
-                  "name",
-                  "format"
-                ]
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "key": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
-                  },
-                  "bytes": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "sha256": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "fingerprint": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "kind": {
-                    "type": "string",
-                    "const": "project"
-                  },
-                  "name": {
-                    "type": "string",
-                    "minLength": 1
-                  },
-                  "mode": {
-                    "type": "string",
-                    "enum": [
-                      "full",
-                      "env"
-                    ]
-                  },
-                  "git": {
-                    "type": "object",
-                    "properties": {
-                      "repo": {
-                        "type": "string"
-                      },
-                      "branch": {
-                        "type": "string"
-                      },
-                      "dirty": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
-                      },
-                      "ahead": {
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
-                      }
-                    },
-                    "required": [
-                      "repo",
-                      "branch",
-                      "dirty",
-                      "ahead"
-                    ]
-                  }
-                },
-                "required": [
-                  "key",
-                  "bytes",
-                  "sha256",
-                  "kind",
-                  "name",
-                  "mode"
-                ]
-              },
-              {
-                "type": "object",
-                "properties": {
-                  "key": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
-                  },
-                  "bytes": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  "sha256": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "fingerprint": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{64}$"
-                  },
-                  "kind": {
-                    "type": "string",
-                    "const": "path"
-                  },
-                  "path": {
-                    "type": "string",
-                    "pattern": "^([A-Za-z0-9_~@+-]|\\.[A-Za-z0-9_~@+-])[A-Za-z0-9._~@+-]*(\\/([A-Za-z0-9_~@+-]|\\.[A-Za-z0-9_~@+-])[A-Za-z0-9._~@+-]*)*\\/?$"
-                  }
-                },
-                "required": [
-                  "key",
-                  "bytes",
-                  "sha256",
-                  "kind",
-                  "path"
-                ]
-              }
-            ]
+            "$ref": "#/$defs/BackupPart"
           }
         },
         "warnings": {
@@ -7154,6 +6088,286 @@
       "required": [
         "interval_hours"
       ]
+    },
+    "BackupPart": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/BackupPartKey"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "fingerprint": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "kind": {
+              "type": "string",
+              "const": "setup"
+            }
+          },
+          "required": [
+            "key",
+            "bytes",
+            "sha256",
+            "kind"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/BackupPartKey"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "fingerprint": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "kind": {
+              "type": "string",
+              "const": "home"
+            },
+            "paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "key",
+            "bytes",
+            "sha256",
+            "kind",
+            "paths"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/BackupPartKey"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "fingerprint": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "kind": {
+              "type": "string",
+              "const": "database"
+            },
+            "engine": {
+              "type": "string",
+              "enum": [
+                "postgres",
+                "mysql",
+                "mongodb",
+                "redis"
+              ]
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "format": {
+              "type": "string",
+              "enum": [
+                "pg_custom",
+                "pg_roles",
+                "sql",
+                "mysql_users",
+                "mongo_archive",
+                "rdb"
+              ]
+            }
+          },
+          "required": [
+            "key",
+            "bytes",
+            "sha256",
+            "kind",
+            "engine",
+            "name",
+            "format"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/BackupPartKey"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "fingerprint": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "kind": {
+              "type": "string",
+              "const": "project"
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "mode": {
+              "type": "string",
+              "enum": [
+                "full",
+                "env"
+              ]
+            },
+            "git": {
+              "type": "object",
+              "properties": {
+                "repo": {
+                  "type": "string"
+                },
+                "branch": {
+                  "type": "string"
+                },
+                "dirty": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "ahead": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "repo",
+                "branch",
+                "dirty",
+                "ahead"
+              ]
+            }
+          },
+          "required": [
+            "key",
+            "bytes",
+            "sha256",
+            "kind",
+            "name",
+            "mode"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "key": {
+              "$ref": "#/$defs/BackupPartKey"
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "fingerprint": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "kind": {
+              "type": "string",
+              "const": "path"
+            },
+            "path": {
+              "type": "string",
+              "pattern": "^([A-Za-z0-9_~@+-]|\\.[A-Za-z0-9_~@+-])[A-Za-z0-9._~@+-]*(\\/([A-Za-z0-9_~@+-]|\\.[A-Za-z0-9_~@+-])[A-Za-z0-9._~@+-]*)*\\/?$"
+            }
+          },
+          "required": [
+            "key",
+            "bytes",
+            "sha256",
+            "kind",
+            "path"
+          ]
+        }
+      ]
+    },
+    "BackupPartKey": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]+\\.pupitre$"
+    },
+    "BackupLocation": {
+      "type": "object",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "pattern": "^https:\\/\\/[^\\s/?#]+(\\/[^\\s?#]*)?$"
+        },
+        "region": {
+          "type": "string",
+          "pattern": "^[a-z0-9-]{1,64}$"
+        },
+        "bucket": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+        },
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "path_style": {
+          "type": "boolean"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "endpoint",
+        "region",
+        "bucket",
+        "key",
+        "path_style"
+      ],
+      "additionalProperties": false
     },
     "Manifest": {
       "type": "object",
