@@ -1,6 +1,6 @@
 {
   "name": "@pupitre/desktop",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "description": "Pupitre desktop app: drives a remote development server over SSH",
   "homepage": "https://pupitre.studio",
   "desktopName": "pupitre.desktop",

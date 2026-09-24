@@ -1,0 +1,42 @@
+---
+title: Backups are set up step by step, kept in tabs, and a backup can be given a name
+description: A server with no backups walks through four steps — the bucket chosen by provider and proved by a test write, the passphrase, the frequency said in words, the content — and once they run, the Backups page holds a dashboard, frequency, content and destination in tabs; a manual backup can be named to be found again.
+locale: en
+version: 0.9.0
+channel: stable
+date: 2026-09-24
+order: 17
+---
+
+App and agent both to update: the app offers the agent update on the servers it knows.
+
+## Setting backups up
+
+- On a server that has none, the **Backups** page is a setup in four steps: the bucket, the passphrase, the frequency, then what goes in. **Turn on backups** applies the module and runs a first backup.
+- The bucket is chosen by **provider**: Cloudflare R2 asks only for the account ID, Amazon S3 for the region, and any other S3-compatible service for its endpoint. The keys are checked by a single test write into the bucket before being kept.
+- The frequency is picked among the usual ones — every hour, 6 hours, 12 hours, every day, every week, on demand only, or an interval of your own — and the number of backups kept is said back as how far the history reaches: about so many days or weeks in the bucket. A manual backup is never deleted by retention.
+- If this computer already sends backups to a bucket, the step offers to keep it, and the passphrase step says the key is already chosen: it is only asked again to restore.
+
+## The Backups page
+
+- Once backups run, the page is laid out in tabs: **Dashboard** (the running backup, the last one, the next one, the list), **Frequency**, **Content**, **Destination**. Its state is re-read every ten seconds while the page is open.
+- The **Destination** tab says when a server does not yet back up to this computer's bucket and key, and applying the settings aligns it.
+
+## Named backups
+
+- **Back up now** asks for an optional name — *Before the migration* — shown beside the date in the app and in the console, so a backup can be found again. Left empty, the date is enough.
+- The name travels with the backup and is kept by the platform. The terms and the privacy policy say so.
+
+## Fixes
+
+- A first setting of the backups module was refused with a count of values no field showed; the settings are now weighed with the bucket this computer holds, and a refusal that names no field is shown at the foot of the form.
+- The bucket’s **Continue** and **Save the connection** no longer spin forever when the app does not answer the call: the refusal and its remedy are shown.
+- The **+** and **−** buttons of a numeric field point to their field again for screen readers.
+
+## Known limits
+
+- Docker volumes are not backed up; the app says so when the Docker runtime is installed.
+- Whoever can read the bucket reads the manifests, which are in clear: the server's name, the names of the projects, the databases and the folders, the address and branch of the repositories. Never a content, never a secret — those are sealed.
+- Whoever holds the S3 key can erase the backups: object versioning or object lock on the bucket is the answer, and the guide says so.
+- Lose the passphrase and the backups are unreadable — nobody can recover it.
+- The Windows installer is still unsigned: SmartScreen warns at first launch.
