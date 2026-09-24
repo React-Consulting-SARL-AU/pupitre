@@ -45,6 +45,7 @@ export type BackupMinAggregateOutputType = {
   createdAt: Date | null
   declaredAt: Date | null
   trigger: $Enums.BackupTrigger | null
+  name: string | null
   bytes: bigint | null
   configRevision: number | null
   agentVersion: string | null
@@ -68,6 +69,7 @@ export type BackupMaxAggregateOutputType = {
   createdAt: Date | null
   declaredAt: Date | null
   trigger: $Enums.BackupTrigger | null
+  name: string | null
   bytes: bigint | null
   configRevision: number | null
   agentVersion: string | null
@@ -91,6 +93,7 @@ export type BackupCountAggregateOutputType = {
   createdAt: number
   declaredAt: number
   trigger: number
+  name: number
   bytes: number
   counts: number
   configRevision: number
@@ -127,6 +130,7 @@ export type BackupMinAggregateInputType = {
   createdAt?: true
   declaredAt?: true
   trigger?: true
+  name?: true
   bytes?: true
   configRevision?: true
   agentVersion?: true
@@ -150,6 +154,7 @@ export type BackupMaxAggregateInputType = {
   createdAt?: true
   declaredAt?: true
   trigger?: true
+  name?: true
   bytes?: true
   configRevision?: true
   agentVersion?: true
@@ -173,6 +178,7 @@ export type BackupCountAggregateInputType = {
   createdAt?: true
   declaredAt?: true
   trigger?: true
+  name?: true
   bytes?: true
   counts?: true
   configRevision?: true
@@ -284,6 +290,7 @@ export type BackupGroupByOutputType = {
   createdAt: Date
   declaredAt: Date
   trigger: $Enums.BackupTrigger
+  name: string | null
   bytes: bigint
   counts: runtime.JsonValue
   configRevision: number
@@ -331,6 +338,7 @@ export type BackupWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"Backup"> | Date | string
   declaredAt?: Prisma.DateTimeFilter<"Backup"> | Date | string
   trigger?: Prisma.EnumBackupTriggerFilter<"Backup"> | $Enums.BackupTrigger
+  name?: Prisma.StringNullableFilter<"Backup"> | string | null
   bytes?: Prisma.BigIntFilter<"Backup"> | bigint | number
   counts?: Prisma.JsonFilter<"Backup">
   configRevision?: Prisma.IntFilter<"Backup"> | number
@@ -357,6 +365,7 @@ export type BackupOrderByWithRelationInput = {
   createdAt?: Prisma.SortOrder
   declaredAt?: Prisma.SortOrder
   trigger?: Prisma.SortOrder
+  name?: Prisma.SortOrderInput | Prisma.SortOrder
   bytes?: Prisma.SortOrder
   counts?: Prisma.SortOrder
   configRevision?: Prisma.SortOrder
@@ -387,6 +396,7 @@ export type BackupWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"Backup"> | Date | string
   declaredAt?: Prisma.DateTimeFilter<"Backup"> | Date | string
   trigger?: Prisma.EnumBackupTriggerFilter<"Backup"> | $Enums.BackupTrigger
+  name?: Prisma.StringNullableFilter<"Backup"> | string | null
   bytes?: Prisma.BigIntFilter<"Backup"> | bigint | number
   counts?: Prisma.JsonFilter<"Backup">
   configRevision?: Prisma.IntFilter<"Backup"> | number
@@ -413,6 +423,7 @@ export type BackupOrderByWithAggregationInput = {
   createdAt?: Prisma.SortOrder
   declaredAt?: Prisma.SortOrder
   trigger?: Prisma.SortOrder
+  name?: Prisma.SortOrderInput | Prisma.SortOrder
   bytes?: Prisma.SortOrder
   counts?: Prisma.SortOrder
   configRevision?: Prisma.SortOrder
@@ -445,6 +456,7 @@ export type BackupScalarWhereWithAggregatesInput = {
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Backup"> | Date | string
   declaredAt?: Prisma.DateTimeWithAggregatesFilter<"Backup"> | Date | string
   trigger?: Prisma.EnumBackupTriggerWithAggregatesFilter<"Backup"> | $Enums.BackupTrigger
+  name?: Prisma.StringNullableWithAggregatesFilter<"Backup"> | string | null
   bytes?: Prisma.BigIntWithAggregatesFilter<"Backup"> | bigint | number
   counts?: Prisma.JsonWithAggregatesFilter<"Backup">
   configRevision?: Prisma.IntWithAggregatesFilter<"Backup"> | number
@@ -467,6 +479,7 @@ export type BackupCreateInput = {
   createdAt: Date | string
   declaredAt?: Date | string
   trigger: $Enums.BackupTrigger
+  name?: string | null
   bytes: bigint | number
   counts: Prisma.JsonNullValueInput | runtime.InputJsonValue
   configRevision: number
@@ -493,6 +506,7 @@ export type BackupUncheckedCreateInput = {
   createdAt: Date | string
   declaredAt?: Date | string
   trigger: $Enums.BackupTrigger
+  name?: string | null
   bytes: bigint | number
   counts: Prisma.JsonNullValueInput | runtime.InputJsonValue
   configRevision: number
@@ -515,6 +529,7 @@ export type BackupUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   declaredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   trigger?: Prisma.EnumBackupTriggerFieldUpdateOperationsInput | $Enums.BackupTrigger
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   counts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   configRevision?: Prisma.IntFieldUpdateOperationsInput | number
@@ -541,6 +556,7 @@ export type BackupUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   declaredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   trigger?: Prisma.EnumBackupTriggerFieldUpdateOperationsInput | $Enums.BackupTrigger
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   counts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   configRevision?: Prisma.IntFieldUpdateOperationsInput | number
@@ -565,6 +581,7 @@ export type BackupCreateManyInput = {
   createdAt: Date | string
   declaredAt?: Date | string
   trigger: $Enums.BackupTrigger
+  name?: string | null
   bytes: bigint | number
   counts: Prisma.JsonNullValueInput | runtime.InputJsonValue
   configRevision: number
@@ -587,6 +604,7 @@ export type BackupUpdateManyMutationInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   declaredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   trigger?: Prisma.EnumBackupTriggerFieldUpdateOperationsInput | $Enums.BackupTrigger
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   counts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   configRevision?: Prisma.IntFieldUpdateOperationsInput | number
@@ -611,6 +629,7 @@ export type BackupUncheckedUpdateManyInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   declaredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   trigger?: Prisma.EnumBackupTriggerFieldUpdateOperationsInput | $Enums.BackupTrigger
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   counts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   configRevision?: Prisma.IntFieldUpdateOperationsInput | number
@@ -650,6 +669,7 @@ export type BackupCountOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   declaredAt?: Prisma.SortOrder
   trigger?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   bytes?: Prisma.SortOrder
   counts?: Prisma.SortOrder
   configRevision?: Prisma.SortOrder
@@ -679,6 +699,7 @@ export type BackupMaxOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   declaredAt?: Prisma.SortOrder
   trigger?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   bytes?: Prisma.SortOrder
   configRevision?: Prisma.SortOrder
   agentVersion?: Prisma.SortOrder
@@ -702,6 +723,7 @@ export type BackupMinOrderByAggregateInput = {
   createdAt?: Prisma.SortOrder
   declaredAt?: Prisma.SortOrder
   trigger?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   bytes?: Prisma.SortOrder
   configRevision?: Prisma.SortOrder
   agentVersion?: Prisma.SortOrder
@@ -824,6 +846,7 @@ export type BackupCreateWithoutOrganizationInput = {
   createdAt: Date | string
   declaredAt?: Date | string
   trigger: $Enums.BackupTrigger
+  name?: string | null
   bytes: bigint | number
   counts: Prisma.JsonNullValueInput | runtime.InputJsonValue
   configRevision: number
@@ -848,6 +871,7 @@ export type BackupUncheckedCreateWithoutOrganizationInput = {
   createdAt: Date | string
   declaredAt?: Date | string
   trigger: $Enums.BackupTrigger
+  name?: string | null
   bytes: bigint | number
   counts: Prisma.JsonNullValueInput | runtime.InputJsonValue
   configRevision: number
@@ -900,6 +924,7 @@ export type BackupScalarWhereInput = {
   createdAt?: Prisma.DateTimeFilter<"Backup"> | Date | string
   declaredAt?: Prisma.DateTimeFilter<"Backup"> | Date | string
   trigger?: Prisma.EnumBackupTriggerFilter<"Backup"> | $Enums.BackupTrigger
+  name?: Prisma.StringNullableFilter<"Backup"> | string | null
   bytes?: Prisma.BigIntFilter<"Backup"> | bigint | number
   counts?: Prisma.JsonFilter<"Backup">
   configRevision?: Prisma.IntFilter<"Backup"> | number
@@ -922,6 +947,7 @@ export type BackupCreateWithoutServerInput = {
   createdAt: Date | string
   declaredAt?: Date | string
   trigger: $Enums.BackupTrigger
+  name?: string | null
   bytes: bigint | number
   counts: Prisma.JsonNullValueInput | runtime.InputJsonValue
   configRevision: number
@@ -946,6 +972,7 @@ export type BackupUncheckedCreateWithoutServerInput = {
   createdAt: Date | string
   declaredAt?: Date | string
   trigger: $Enums.BackupTrigger
+  name?: string | null
   bytes: bigint | number
   counts: Prisma.JsonNullValueInput | runtime.InputJsonValue
   configRevision: number
@@ -994,6 +1021,7 @@ export type BackupCreateManyOrganizationInput = {
   createdAt: Date | string
   declaredAt?: Date | string
   trigger: $Enums.BackupTrigger
+  name?: string | null
   bytes: bigint | number
   counts: Prisma.JsonNullValueInput | runtime.InputJsonValue
   configRevision: number
@@ -1016,6 +1044,7 @@ export type BackupUpdateWithoutOrganizationInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   declaredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   trigger?: Prisma.EnumBackupTriggerFieldUpdateOperationsInput | $Enums.BackupTrigger
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   counts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   configRevision?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1040,6 +1069,7 @@ export type BackupUncheckedUpdateWithoutOrganizationInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   declaredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   trigger?: Prisma.EnumBackupTriggerFieldUpdateOperationsInput | $Enums.BackupTrigger
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   counts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   configRevision?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1063,6 +1093,7 @@ export type BackupUncheckedUpdateManyWithoutOrganizationInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   declaredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   trigger?: Prisma.EnumBackupTriggerFieldUpdateOperationsInput | $Enums.BackupTrigger
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   counts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   configRevision?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1086,6 +1117,7 @@ export type BackupCreateManyServerInput = {
   createdAt: Date | string
   declaredAt?: Date | string
   trigger: $Enums.BackupTrigger
+  name?: string | null
   bytes: bigint | number
   counts: Prisma.JsonNullValueInput | runtime.InputJsonValue
   configRevision: number
@@ -1108,6 +1140,7 @@ export type BackupUpdateWithoutServerInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   declaredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   trigger?: Prisma.EnumBackupTriggerFieldUpdateOperationsInput | $Enums.BackupTrigger
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   counts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   configRevision?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1132,6 +1165,7 @@ export type BackupUncheckedUpdateWithoutServerInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   declaredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   trigger?: Prisma.EnumBackupTriggerFieldUpdateOperationsInput | $Enums.BackupTrigger
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   counts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   configRevision?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1155,6 +1189,7 @@ export type BackupUncheckedUpdateManyWithoutServerInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   declaredAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   trigger?: Prisma.EnumBackupTriggerFieldUpdateOperationsInput | $Enums.BackupTrigger
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   bytes?: Prisma.BigIntFieldUpdateOperationsInput | bigint | number
   counts?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   configRevision?: Prisma.IntFieldUpdateOperationsInput | number
@@ -1181,6 +1216,7 @@ export type BackupSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   createdAt?: boolean
   declaredAt?: boolean
   trigger?: boolean
+  name?: boolean
   bytes?: boolean
   counts?: boolean
   configRevision?: boolean
@@ -1207,6 +1243,7 @@ export type BackupSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   createdAt?: boolean
   declaredAt?: boolean
   trigger?: boolean
+  name?: boolean
   bytes?: boolean
   counts?: boolean
   configRevision?: boolean
@@ -1233,6 +1270,7 @@ export type BackupSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   createdAt?: boolean
   declaredAt?: boolean
   trigger?: boolean
+  name?: boolean
   bytes?: boolean
   counts?: boolean
   configRevision?: boolean
@@ -1259,6 +1297,7 @@ export type BackupSelectScalar = {
   createdAt?: boolean
   declaredAt?: boolean
   trigger?: boolean
+  name?: boolean
   bytes?: boolean
   counts?: boolean
   configRevision?: boolean
@@ -1274,7 +1313,7 @@ export type BackupSelectScalar = {
   forgottenAt?: boolean
 }
 
-export type BackupOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "backupId" | "organizationId" | "serverId" | "serverName" | "createdAt" | "declaredAt" | "trigger" | "bytes" | "counts" | "configRevision" | "agentVersion" | "recipient" | "kdfSalt" | "endpoint" | "region" | "bucket" | "key" | "pathStyle" | "manifestSha256" | "forgottenAt", ExtArgs["result"]["backup"]>
+export type BackupOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "backupId" | "organizationId" | "serverId" | "serverName" | "createdAt" | "declaredAt" | "trigger" | "name" | "bytes" | "counts" | "configRevision" | "agentVersion" | "recipient" | "kdfSalt" | "endpoint" | "region" | "bucket" | "key" | "pathStyle" | "manifestSha256" | "forgottenAt", ExtArgs["result"]["backup"]>
 export type BackupInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
   server?: boolean | Prisma.Backup$serverArgs<ExtArgs>
@@ -1303,6 +1342,7 @@ export type $BackupPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     createdAt: Date
     declaredAt: Date
     trigger: $Enums.BackupTrigger
+    name: string | null
     bytes: bigint
     counts: runtime.JsonValue
     configRevision: number
@@ -1749,6 +1789,7 @@ export interface BackupFieldRefs {
   readonly createdAt: Prisma.FieldRef<"Backup", 'DateTime'>
   readonly declaredAt: Prisma.FieldRef<"Backup", 'DateTime'>
   readonly trigger: Prisma.FieldRef<"Backup", 'BackupTrigger'>
+  readonly name: Prisma.FieldRef<"Backup", 'String'>
   readonly bytes: Prisma.FieldRef<"Backup", 'BigInt'>
   readonly counts: Prisma.FieldRef<"Backup", 'Json'>
   readonly configRevision: Prisma.FieldRef<"Backup", 'Int'>

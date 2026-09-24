@@ -5,6 +5,7 @@ import type {
   OrganizationIdentity,
 } from "@shared/backups";
 import { create } from "zustand";
+import { bridged } from "../lib/bridged";
 import { useConnections } from "./connections";
 
 /**
@@ -32,17 +33,23 @@ interface BackupConnectionStore {
   held: HeldState;
   identity: IdentityState;
   saving: boolean;
+  probing: boolean;
   problem: AgentError | null;
 
   read: () => Promise<void>;
+  /** True once the bucket took a test write; false on a refusal, which the form shows. */
+  probe: (input: BackupConnectionInput) => Promise<boolean>;
   /** True once the connection is kept; false on a refusal, which the form shows. */
   save: (input: BackupConnectionInput) => Promise<boolean>;
   forget: () => Promise<void>;
+  /** The refusal belongs to the step that got it: moving on leaves it behind. */
+  dismiss: () => void;
 }
 
 export const useBackupConnection = create<BackupConnectionStore>((set) => ({
   held: { status: "idle" },
   identity: { status: "idle" },
+  probing: false,
   problem: null,
   saving: false,
 
@@ -68,10 +75,24 @@ export const useBackupConnection = create<BackupConnectionStore>((set) => ({
     });
   },
 
+  async probe(input) {
+    set({ probing: true, problem: null });
+
+    const answer = await bridged("backup:probe", () =>
+      window.pupitre.probeBackup(input)
+    );
+
+    set({ probing: false, problem: answer.ok ? null : answer.error });
+
+    return answer.ok;
+  },
+
   async save(input) {
     set({ problem: null, saving: true });
 
-    const answer = await window.pupitre.connectBackup(input);
+    const answer = await bridged("backup:connect", () =>
+      window.pupitre.connectBackup(input)
+    );
 
     if (!answer.ok) {
       set({ problem: answer.error, saving: false });
@@ -89,5 +110,9 @@ export const useBackupConnection = create<BackupConnectionStore>((set) => ({
     await useConnections.getState().forget("backup");
 
     set({ held: { status: "read", view: null }, problem: null });
+  },
+
+  dismiss() {
+    set({ problem: null });
   },
 }));

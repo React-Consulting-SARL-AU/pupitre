@@ -121,7 +121,7 @@ Dans `agent-protocol.md`, section « Sauvegardes ». Aucune n'est ouverte en mod
 | --- | --- |
 | `backup.status` | où en sont les sauvegardes de ce serveur |
 | `backup.contents` | les projets et les bases que ce serveur tient, et si chacun part dans les sauvegardes |
-| `backup.run` | une sauvegarde maintenant, événements `step` du module `core.backup` (`setup`, `home`, `db:<moteur>:<nom>`, `project:<nom>`, `path:<chemin>`, `manifest`, `declare`, `prune`) |
+| `backup.run` | une sauvegarde maintenant, avec le nom facultatif que le lecteur lui donne (`name`, 80 caractères au plus, ni espace au bord ni caractère de contrôle — `BACKUP_NAME_PATTERN`), porté par le manifeste et la déclaration ; événements `step` du module `core.backup` (`setup`, `home`, `db:<moteur>:<nom>`, `project:<nom>`, `path:<chemin>`, `manifest`, `declare`, `prune`) |
 | `backup.delete` | efface une sauvegarde de ce serveur dans le seau, puis sur la plateforme |
 | `backup.inspect` | lit et vérifie le manifeste d'une sauvegarde, sans rien écrire |
 | `backup.restore.setup` | pose la configuration d'une sauvegarde, migrée à la révision du binaire |
@@ -173,7 +173,7 @@ Une table `Backup`, des routes, deux alertes. Le détail est dans [platform-api.
 
 - Les volumes Docker ne sont pas sauvegardés ; l'app le dit quand `runtime.docker` est installé.
 - Un mot de passe de base de données changé à la main hors de Pupitre revient à celui que `install.json` tient.
-- La plateforme voit une adresse, des tailles, des comptes, une révision et une clé publique ; elle ne voit aucun nom de projet ni de base.
+- La plateforme voit une adresse, des tailles, des comptes, une révision, une clé publique et, pour une sauvegarde manuelle, le nom que le lecteur lui a donné ; elle ne voit aucun nom de projet ni de base.
 - Qui tient la clé S3 peut effacer les sauvegardes : le versionnage ou le verrouillage d'objets du seau sont la parade, et le guide les mentionne.
 - Qui lit le seau lit les manifestes, en clair : le nom du serveur, les noms des projets, des bases et des dossiers, l'adresse et la branche des dépôts. Jamais un contenu, un secret ni un fichier : ceux-là sont scellés. C'est le prix d'un écran de restauration qui montre ce qu'une sauvegarde contient avant qu'on donne la phrase, et le guide le dit.
 - La confidentialité est de bout en bout ; l'authenticité d'une sauvegarde repose sur l'empreinte de son manifeste que garde la plateforme. Une plateforme compromise ne lirait rien, mais pourrait désigner une sauvegarde plus ancienne du même client à la place de la dernière.

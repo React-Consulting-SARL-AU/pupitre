@@ -3169,6 +3169,7 @@ export const BackupScalarFieldEnum = {
   createdAt: 'createdAt',
   declaredAt: 'declaredAt',
   trigger: 'trigger',
+  name: 'name',
   bytes: 'bytes',
   counts: 'counts',
   configRevision: 'configRevision',

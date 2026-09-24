@@ -4,7 +4,7 @@ import { CheckLine } from "@renderer/components/ui/check-line";
 import { Dialog } from "@renderer/components/ui/dialog";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { dated } from "@renderer/lib/format";
+import { backupLabel } from "@renderer/lib/backups";
 import type { AgentError } from "@shared/agent";
 import type { PlatformBackup } from "@shared/backups";
 import { History } from "lucide-react";
@@ -65,7 +65,7 @@ export function BackupsRevertDialog({
       onClose={close}
       open={backup !== null}
       title={t("backups.revert.title", {
-        date: backup ? dated(backup.created_at) : "",
+        backup: backup ? backupLabel(t, backup) : "",
       })}
       width="wide"
     >

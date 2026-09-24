@@ -4,9 +4,20 @@ import { Fact, FactList } from "@renderer/components/ui/fact";
 import { Panel } from "@renderer/components/ui/panel";
 import { Section } from "@renderer/components/ui/section";
 import { SkeletonRows } from "@renderer/components/ui/skeleton";
+import type { Translate } from "@renderer/i18n/i18n";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import { choiceOf } from "@renderer/lib/backup-schedule";
 import { dated, weight } from "@renderer/lib/format";
 import type { StatusState } from "@renderer/stores/backups";
+
+/** The interval in the words the settings choose it with. */
+function frequencyLabel(t: Translate, interval: number): string {
+  const choice = choiceOf(interval);
+
+  return choice === "custom"
+    ? t.plural("backups.status.hours", interval)
+    : t(`backups.frequency.choice.${choice}`);
+}
 
 /** Where this server's backups stand, in the agent's own words. */
 export function BackupsStatus({
@@ -33,12 +44,6 @@ export function BackupsStatus({
 
       {state.status === "read" ? (
         <>
-          {state.backup.configured ? null : (
-            <Callout name="backup-unconfigured">
-              {t("backups.status.unconfigured")}
-            </Callout>
-          )}
-
           {state.backup.running ? (
             <Callout name="backup-running">
               {t("backups.status.running")}
@@ -76,12 +81,7 @@ export function BackupsStatus({
                 detail={t.plural("backups.status.keep", state.backup.keep)}
                 label={t("backups.status.every")}
               >
-                {state.backup.interval_hours > 0
-                  ? t.plural(
-                      "backups.status.hours",
-                      state.backup.interval_hours
-                    )
-                  : t("backups.status.manual")}
+                {frequencyLabel(t, state.backup.interval_hours)}
               </Fact>
             </FactList>
           </Panel>

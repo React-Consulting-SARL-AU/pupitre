@@ -1,7 +1,7 @@
 import { Button } from "@renderer/components/ui/button";
 import { ConfirmButton } from "@renderer/components/ui/confirm-button";
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { countsLabel } from "@renderer/lib/backups";
+import { backupLabel, countsLabel } from "@renderer/lib/backups";
 import { dated, weight } from "@renderer/lib/format";
 import type { PlatformBackup } from "@shared/backups";
 import { History, Trash2 } from "lucide-react";
@@ -30,6 +30,9 @@ export function BackupsRow({
     >
       <div className="min-w-0 flex-1">
         <p className="text-[13px] text-ink">
+          {backup.name ? (
+            <span className="mr-2 font-medium">{backup.name}</span>
+          ) : null}
           {when}
           <span className="ml-2 text-[12px] text-ink-3">
             {t(
@@ -53,7 +56,9 @@ export function BackupsRow({
           disabled={busy}
           icon={Trash2}
           onConfirm={onRemove}
-          question={t("backups.remove.question", { date: when })}
+          question={t("backups.remove.question", {
+            backup: backupLabel(t, backup),
+          })}
           size="sm"
           variant="danger"
         >

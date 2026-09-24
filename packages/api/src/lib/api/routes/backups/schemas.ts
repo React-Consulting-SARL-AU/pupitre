@@ -3,6 +3,8 @@ import {
   BACKUP_ENDPOINT_PATTERN,
   BACKUP_ID_PATTERN,
   BACKUP_INTERVAL_MAX_HOURS,
+  BACKUP_NAME_MAX,
+  BACKUP_NAME_PATTERN,
   BACKUP_REGION_PATTERN,
   BACKUP_TRIGGERS,
 } from "@pupitre/shared/backup"
@@ -16,6 +18,11 @@ const SHA256_PATTERN = "^[0-9a-f]{64}$"
 export const backupIdSchema = t.String({ pattern: BACKUP_ID_PATTERN })
 
 export const backupTriggerSchema = t.UnionEnum([...BACKUP_TRIGGERS])
+
+const backupNameSchema = t.String({
+  pattern: BACKUP_NAME_PATTERN,
+  maxLength: BACKUP_NAME_MAX,
+})
 
 export const backupCountsSchema = t.Object(
   {
@@ -53,6 +60,7 @@ export const backupDeclarationBody = t.Object({
   id: backupIdSchema,
   created_at: dateTime,
   trigger: backupTriggerSchema,
+  name: t.Optional(backupNameSchema),
   bytes: t.Integer({ minimum: 0 }),
   counts: backupCountsSchema,
   config_revision: t.Integer({ minimum: 0 }),
@@ -69,6 +77,7 @@ export const backupSchema = t.Object(
     server_name: t.String(),
     created_at: dateTime,
     trigger: backupTriggerSchema,
+    name: t.Optional(t.String()),
     bytes: t.Integer(),
     counts: backupCountsSchema,
     config_revision: t.Integer(),

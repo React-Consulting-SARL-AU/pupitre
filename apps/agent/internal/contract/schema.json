@@ -4993,6 +4993,11 @@
     "BackupRunParams": {
       "type": "object",
       "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 80,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$"
+        },
         "databases": {
           "type": "boolean"
         },
@@ -5108,6 +5113,11 @@
             "schedule",
             "manual"
           ]
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 80,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$"
         },
         "server": {
           "type": "object",
@@ -5809,6 +5819,11 @@
             "manual"
           ]
         },
+        "name": {
+          "type": "string",
+          "maxLength": 80,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$"
+        },
         "server": {
           "type": "object",
           "properties": {
@@ -5949,6 +5964,11 @@
             "schedule",
             "manual"
           ]
+        },
+        "name": {
+          "type": "string",
+          "maxLength": 80,
+          "pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$"
         },
         "bytes": {
           "type": "integer",
@@ -7281,6 +7301,8 @@
         "endpoint_pattern": "^https://[^\\s/?#]+(/[^\\s?#]*)?$",
         "bucket_pattern": "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$",
         "region_pattern": "^[a-z0-9-]{1,64}$",
+        "name_pattern": "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$",
+        "name_max": 80,
         "project_item_pattern": "^[a-z0-9][a-z0-9._-]*$",
         "excluded_dirs": [
           "node_modules",

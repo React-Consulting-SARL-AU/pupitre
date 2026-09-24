@@ -18,6 +18,7 @@ import {
   type DataDeps,
   type HeldBackup,
   latestIdentity,
+  probeConnection,
   restoreData,
   restoreSetup,
   type SetupDeps,
@@ -252,6 +253,50 @@ describe("la connexion des sauvegardes", () => {
 
     expect(latestIdentity([older, newer])?.server_name).toBe("vitrine");
     expect(latestIdentity([])).toBeNull();
+  });
+});
+
+describe("l'écriture d'essai seule", () => {
+  it("éprouve le seau avec la clé tenue quand aucune n'est tapée, et ne garde rien", async () => {
+    const before = await held();
+    const probed: string[] = [];
+    const deps = connectDeps({
+      held: () => before,
+      probe: (_storage, secret) => {
+        probed.push(secret);
+
+        return Promise.resolve({ ok: true, result: null });
+      },
+    });
+
+    const answer = await probeConnection(
+      { ...STORAGE, bucket: "autre-seau" },
+      deps
+    );
+
+    expect(answer.ok).toBe(true);
+    expect(probed).toEqual(["s3-secret"]);
+    expect(deps.kept).toEqual([]);
+  });
+
+  it("refuse sans clé secrète, ni tapée ni tenue, sans rien écrire", async () => {
+    let probes = 0;
+    const answer = await probeConnection(
+      STORAGE,
+      connectDeps({
+        probe: () => {
+          probes += 1;
+
+          return Promise.resolve({ ok: true, result: null });
+        },
+      })
+    );
+
+    expect(answer).toMatchObject({
+      error: { phrase: { id: "refusal.backup.secret.none" } },
+      ok: false,
+    });
+    expect(probes).toBe(0);
   });
 });
 

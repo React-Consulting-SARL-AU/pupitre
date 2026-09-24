@@ -108,7 +108,10 @@ interface BackupsStore {
   problem: AgentError | null;
 
   read: (serverId: string) => Promise<void>;
-  runNow: (serverId: string) => Promise<void>;
+  /** Where backups stand, read again; the list too once a backup under way has ended. */
+  refresh: (serverId: string) => Promise<void>;
+  /** A backup now, known by the name the reader gave it, or by its date. */
+  runNow: (serverId: string, name?: string) => Promise<void>;
   remove: (serverId: string, backupId: string) => Promise<void>;
   revertTo: (
     serverId: string,
@@ -304,7 +307,32 @@ export const useBackups = create<BackupsStore>((set, get) => {
       ]);
     },
 
-    async runNow(serverId) {
+    async refresh(serverId) {
+      const before = get().state;
+      const held = before.status === "read" && before.serverId === serverId;
+      const answer = await agentCall<BackupStatusResult>(
+        serverId,
+        "backup.status"
+      );
+
+      // A beat that misses keeps what was read: the page does not flicker to an
+      // error for one answer that did not come.
+      if (!answer.ok) {
+        if (!held) {
+          set({ state: { error: answer.error, serverId, status: "failed" } });
+        }
+
+        return;
+      }
+
+      set({ state: { backup: answer.result, serverId, status: "read" } });
+
+      if (held && before.backup.running && !answer.result.running) {
+        await readList(serverId);
+      }
+    },
+
+    async runNow(serverId, name) {
       set({
         revert: { status: "idle" },
         run: { serverId, status: "running" },
@@ -314,7 +342,7 @@ export const useBackups = create<BackupsStore>((set, get) => {
       const answer = (await window.pupitre.agentStream(
         serverId,
         "backup.run",
-        {},
+        name ? { name } : {},
         note
       )) as AgentResponse<BackupRunResult>;
 

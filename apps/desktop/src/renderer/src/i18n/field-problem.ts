@@ -1,3 +1,4 @@
+import type { Manifest } from "@pupitre/shared/catalog";
 import type { FieldProblem } from "@pupitre/shared/catalog/validate";
 import type { Translate } from "./i18n";
 
@@ -39,6 +40,31 @@ export function problemText(t: Translate, problem: FieldProblem): string {
     default:
       return formatText(t, expected);
   }
+}
+
+/**
+ * The refusals a form has no field to put under — a value the app fills from
+ * a connection, a verdict on the whole module — each said with the name of the
+ * field it concerns, so that none is left as a bare count.
+ */
+export function strayProblems(
+  t: Translate,
+  problems: readonly FieldProblem[],
+  drawn: readonly string[],
+  manifest: Manifest | null
+): string[] {
+  const said = problems
+    .filter((problem) => !drawn.includes(problem.field))
+    .map((problem) => {
+      const label = manifest?.fields.find(
+        (field) => field.key === problem.field
+      )?.label;
+      const text = problemText(t, problem);
+
+      return label ? t("config.problem.named", { label, text }) : text;
+    });
+
+  return [...new Set(said)];
 }
 
 const FORMATS = [

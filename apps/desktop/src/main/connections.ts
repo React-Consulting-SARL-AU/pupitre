@@ -1,3 +1,4 @@
+import type { ModuleConfig } from "@pupitre/shared/agent-protocol/install";
 import { BACKUP_MODULE_ID } from "@pupitre/shared/backup";
 import type { AgentResponse } from "@shared/agent";
 import type { BackupConnectionView } from "@shared/backups";
@@ -18,7 +19,7 @@ import {
   chosenAccount,
   tokenRefusal,
 } from "./account-tokens";
-import { accountValues } from "./account-values";
+import { accountValues, type HeldConnection } from "./account-values";
 import type { Sealer } from "./account-vault";
 import { agentClient } from "./agent";
 import { backupManaged, backupViewOf, type HeldBackup } from "./backups-run";
@@ -137,6 +138,12 @@ export function keepBackup(view: BackupConnectionView, secret: string): void {
   );
 }
 
+function heldAccount(kind: ConnectionKind): HeldConnection | null {
+  const token = vault.token(kind);
+
+  return token ? { account: vault.account(kind), token } : null;
+}
+
 /**
  * The managed values of an install, from the connections.
  *
@@ -158,11 +165,7 @@ export async function managedValues(
   const accounts = accountValues(
     modules,
     declared.result,
-    (kind) => {
-      const token = vault.token(kind);
-
-      return token ? { account: vault.account(kind), token } : null;
-    },
+    heldAccount,
     [CLOUDFLARE_EXPOSURE, BACKUP_MODULE_ID],
     lenient
   );
@@ -203,6 +206,36 @@ export async function managedValues(
         ...tunnel.result.secrets,
       },
     },
+  };
+}
+
+/**
+ * The managed values a form is weighed with: the accounts' and the bucket's,
+ * read from the keychain. No secret leaves, no tunnel is opened, and a
+ * connection this computer lacks adds nothing — the install says so.
+ */
+export async function weighedValues(
+  serverId: string,
+  modules: readonly string[]
+): Promise<ModuleConfig> {
+  const declared = await declaredManifests(serverId);
+
+  if (!declared.ok) {
+    return {};
+  }
+
+  const accounts = accountValues(
+    modules,
+    declared.result,
+    heldAccount,
+    [CLOUDFLARE_EXPOSURE, BACKUP_MODULE_ID],
+    true
+  );
+  const bucket = backupManaged(modules, heldBackup(), true);
+
+  return {
+    ...(accounts.ok ? accounts.result.config : {}),
+    ...(bucket.ok ? bucket.result.config : {}),
   };
 }
 

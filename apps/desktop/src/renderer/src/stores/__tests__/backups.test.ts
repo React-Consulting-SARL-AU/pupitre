@@ -229,10 +229,20 @@ describe("la page des sauvegardes d'un serveur", () => {
 
     await useBackups.getState().runNow(SERVER);
 
-    expect(calls.streamed.map((one) => one.cmd)).toEqual(["backup.run"]);
+    expect(calls.streamed).toEqual([{ cmd: "backup.run", params: {} }]);
     expect(useBackups.getState().run).toMatchObject({ status: "done" });
     expect(useBackups.getState().steps[0]?.id).toBe("core.backup");
     expect(useBackups.getState().list.status).toBe("read");
+  });
+
+  it("envoie le nom donné à la sauvegarde, et rien d'autre", async () => {
+    const calls = server();
+
+    await useBackups.getState().runNow(SERVER, "Avant la migration");
+
+    expect(calls.streamed).toEqual([
+      { cmd: "backup.run", params: { name: "Avant la migration" } },
+    ]);
   });
 
   it("supprime une sauvegarde par l'agent, qui efface le seau puis la plateforme", async () => {
@@ -325,5 +335,60 @@ describe("revenir à une sauvegarde", () => {
       status: "failed",
     });
     expect(calls.data).toEqual([]);
+  });
+});
+
+describe("l'état suivi pendant que la page est ouverte", () => {
+  function answering(answers: AgentResponse<typeof STATUS>[]): {
+    listed: () => number;
+  } {
+    let lists = 0;
+
+    stubPupitre({
+      agentCall: () =>
+        Promise.resolve(
+          answers.shift() ?? { ok: true, result: STATUS }
+        ) as never,
+      listBackups: () => {
+        lists += 1;
+
+        return Promise.resolve({ ok: true, result: [BACKUP] });
+      },
+    });
+
+    return { listed: () => lists };
+  }
+
+  it("relit la liste quand une sauvegarde en cours se termine", async () => {
+    useBackups.setState({
+      state: {
+        backup: { ...STATUS, running: true },
+        serverId: SERVER,
+        status: "read",
+      },
+    });
+    const beat = answering([{ ok: true, result: STATUS }]);
+
+    await useBackups.getState().refresh(SERVER);
+
+    expect(useBackups.getState().state).toMatchObject({
+      backup: { running: false },
+      status: "read",
+    });
+    expect(beat.listed()).toBe(1);
+  });
+
+  it("garde ce qui était lu quand un battement manque", async () => {
+    useBackups.setState({
+      state: { backup: STATUS, serverId: SERVER, status: "read" },
+    });
+    const beat = answering([
+      { error: { code: "disconnected", message: "coupé" }, ok: false },
+    ]);
+
+    await useBackups.getState().refresh(SERVER);
+
+    expect(useBackups.getState().state.status).toBe("read");
+    expect(beat.listed()).toBe(0);
   });
 });

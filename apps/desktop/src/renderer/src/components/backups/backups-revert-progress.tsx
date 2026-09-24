@@ -20,7 +20,7 @@ export function BackupsRevertProgress({
   phases,
   steps,
   installing,
-  when,
+  named,
   nameOf,
   onSettle,
   onDismiss,
@@ -32,7 +32,8 @@ export function BackupsRevertProgress({
   steps: readonly ModuleProgress[];
   /** The modules the install is putting back. */
   installing: readonly ModuleProgress[];
-  when: string;
+  /** The backup as the sentences name it: its name if it has one, and its date. */
+  named: string;
   nameOf: (moduleId: string) => string;
   onSettle: (uninstall: readonly string[]) => Promise<void>;
   onDismiss: () => void;
@@ -60,7 +61,7 @@ export function BackupsRevertProgress({
           : undefined
       }
       name="backup-revert"
-      title={t("backups.revert.progressTitle", { date: when })}
+      title={t("backups.revert.progressTitle", { backup: named })}
     >
       {revert.status === "running" ? (
         <WaitingNotice
@@ -88,7 +89,7 @@ export function BackupsRevertProgress({
 
       {revert.status === "done" ? (
         <BackupsRestoreResult
-          headline={t("backups.revert.done", { date: when })}
+          headline={t("backups.revert.done", { backup: named })}
           result={revert.result}
         />
       ) : null}

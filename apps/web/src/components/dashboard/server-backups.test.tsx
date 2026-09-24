@@ -34,7 +34,8 @@ async function serverWithBackup() {
     body: JSON.stringify({
       id: "20260919T031500Z-7f3a2c",
       created_at: "2026-09-19T03:15:00Z",
-      trigger: "schedule",
+      trigger: "manual",
+      name: "Before the migration",
       bytes: 2048,
       counts: { setup: true, home: true, databases: 0, projects: 1, paths: 0 },
       config_revision: 4,
@@ -100,8 +101,9 @@ describe("ServerBackups", () => {
     expect(view.container.textContent).toContain("2 d ago")
     expect(view.container.textContent).toContain("PutObject: AccessDenied")
     expect(view.container.textContent).toContain(
-      "Scheduled · Setup · Home folder · 1 project"
+      "Manual · Setup · Home folder · 1 project"
     )
+    expect(view.container.textContent).toContain("Before the migration")
   })
 
   it("says what the last backup lacks instead of an empty error", async () => {

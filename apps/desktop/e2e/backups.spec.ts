@@ -7,8 +7,10 @@ import {
   answerBucket,
   BACKUP_ID,
   installedConfigs,
+  markRunning,
   PASSPHRASE,
   sealInMemory,
+  streamedCalls,
 } from "./harness/backups";
 import { launchPupitre, type Running } from "./harness/launch";
 
@@ -31,6 +33,10 @@ const HTTP_REFUSED =
   /en http, les signatures des requêtes passeraient en clair/;
 
 const REVERTED = /Le serveur est revenu à la sauvegarde/;
+
+const KEY_HELD = /déjà choisie sur cet ordinateur/;
+
+const WEEKS_KEPT = /Environ 14 semaines d'historique/;
 
 /** Every file the app wrote, the link it keeps back to its own folder aside. */
 function filesUnder(dir: string): string[] {
@@ -70,6 +76,7 @@ test.describe("sauvegardes", () => {
     const save = page.getByRole("button", { name: "Enregistrer la connexion" });
 
     await test.step("un point d'accès en http est refusé, pour sa raison", async () => {
+      await page.getByRole("radio", { name: "Autre service S3" }).click();
       await page
         .locator("#backup-endpoint")
         .fill("http://acme.r2.cloudflarestorage.com");
@@ -131,23 +138,94 @@ test.describe("sauvegardes", () => {
     expect(written.some((text) => text.includes(SECRET_KEY))).toBe(false);
   });
 
-  test("la page d'un serveur dit où en sont ses sauvegardes et en fait une", async () => {
+  test("un serveur sans sauvegardes les met en place pas à pas", async () => {
     const { app, page } = running;
 
-    await answerBackups(app, { docker: true });
+    await answerBackups(app, { configured: false, docker: true });
     await page
       .getByRole("button", { exact: true, name: "Sauvegardes" })
       .click();
 
+    const setup = page.locator('[data-section="backup-setup"]');
+    const next = setup.getByRole("button", { name: "Continuer" });
+
     await expect(
-      page.getByRole("heading", { exact: true, name: "Sauvegardes" })
+      setup.getByText(
+        "Cet ordinateur envoie déjà les sauvegardes de ses serveurs vers ce seau."
+      )
     ).toBeVisible();
-    await expect(page.getByText("Toutes les 24 heures")).toBeVisible();
     await expect(
-      page.getByText("Les volumes Docker ne sont pas dans les sauvegardes")
-    ).toBeVisible();
-    await expect(page.locator(`[data-backup="${BACKUP_ID}"]`)).toBeVisible();
+      page.getByRole("button", { name: "Sauvegarder maintenant" })
+    ).toHaveCount(0);
+    await assertAccessible(page, "backups-setup");
+    await next.click();
+
+    await expect(setup.getByText(KEY_HELD)).toBeVisible();
+    await next.click();
+
+    await test.step("la fréquence se choisit en mots, la rétention se dit en temps", async () => {
+      await setup.getByRole("combobox", { name: "Fréquence" }).click();
+      await page.getByRole("option", { name: "Chaque semaine" }).click();
+
+      await expect(setup.getByText(WEEKS_KEPT)).toBeVisible();
+      await assertAccessible(page, "backups-setup-frequency");
+    });
+    await next.click();
+
+    await setup
+      .locator('[data-setup="content"]')
+      .getByRole("checkbox", { name: "PostgreSQL · flymate" })
+      .click();
+    await setup
+      .getByRole("button", { name: "Activer les sauvegardes" })
+      .click();
+
+    await expect.poll(async () => (await installedConfigs(app)).length).toBe(1);
+
+    const [sent] = await installedConfigs(app);
+
+    expect(sent?.config["core.backup"]?.interval_hours).toBe(168);
+    expect(sent?.config["core.backup"]?.exclude_databases).toEqual([
+      "postgres:flymate",
+    ]);
+    await expect(page.getByText(BACKUP_DONE)).toBeVisible();
+    await expect(setup).toHaveCount(0);
+  });
+
+  test("la page d'un serveur dit où en sont ses sauvegardes et en fait une", async () => {
+    const { app, page } = running;
+
+    await answerBackups(app, { docker: true });
+    await markRunning(app, true);
+    await page.getByRole("button", { name: "Services" }).click();
+    await page
+      .getByRole("button", { exact: true, name: "Sauvegardes" })
+      .click();
+
+    await test.step("le tableau de bord montre ce qui tourne, la dernière et la prochaine", async () => {
+      await expect(
+        page.getByRole("tab", { name: "Tableau de bord" })
+      ).toHaveAttribute("aria-selected", "true");
+      await expect(
+        page.getByText("Une sauvegarde de ce serveur est en cours.")
+      ).toBeVisible();
+      await expect(
+        page.locator('[data-section="backup-status"]').getByText("Chaque jour")
+      ).toBeVisible();
+      await expect(
+        page.getByText("Les volumes Docker ne sont pas dans les sauvegardes")
+      ).toBeVisible();
+      await expect(page.locator(`[data-backup="${BACKUP_ID}"]`)).toBeVisible();
+      await expect(
+        page.locator('[data-section="backup-contents"]')
+      ).toHaveCount(0);
+      await assertAccessible(page, "backups");
+      await markRunning(app, false);
+    });
+
     await test.step("le contenu se choisit base par base et projet par projet", async () => {
+      await page.getByRole("tab", { name: "Contenu" }).click();
+
       const content = page.locator('[data-section="backup-contents"]');
 
       await expect(
@@ -164,7 +242,7 @@ test.describe("sauvegardes", () => {
         content.getByText("Sans dépôt : toujours sauvegardé en entier.")
       ).toBeVisible();
 
-      await assertAccessible(page, "backups");
+      await assertAccessible(page, "backups/content");
 
       await content
         .getByRole("checkbox", { name: "PostgreSQL · flymate" })
@@ -186,9 +264,26 @@ test.describe("sauvegardes", () => {
       expect(sent?.config["core.backup"]?.projects).toBe(true);
     });
 
-    await page.getByRole("button", { name: "Sauvegarder maintenant" }).click();
+    await test.step("une sauvegarde manuelle se nomme, ou garde sa date", async () => {
+      await page
+        .getByRole("button", { name: "Sauvegarder maintenant" })
+        .click();
 
-    await expect(page.getByText(BACKUP_DONE)).toBeVisible();
+      const dialog = page.locator('[data-dialog="backup-name"]');
+
+      await expect(dialog).toBeVisible();
+      await dialog.locator("#backup-name").fill(" avant la migration ");
+      await assertAccessible(page, "backups/name");
+      await dialog.getByRole("button", { name: "Sauvegarder" }).click();
+
+      await expect(page.getByText(BACKUP_DONE)).toBeVisible();
+
+      const run = (await streamedCalls(app)).find(
+        (call) => call.cmd === "backup.run"
+      );
+
+      expect(run?.params).toEqual({ name: "avant la migration" });
+    });
   });
 
   test("revenir à une sauvegarde vérifie la phrase, puis mène jusqu'aux données", async () => {

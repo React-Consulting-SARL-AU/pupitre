@@ -1,9 +1,13 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import type { ProbeResult } from "@pupitre/shared/agent-protocol/install";
+import type {
+  ModuleConfig,
+  ProbeResult,
+} from "@pupitre/shared/agent-protocol/install";
 import type { AgentResponse } from "@shared/agent";
 import type { AgentDelivery } from "../agent-binary";
 import { type AgentClient, createAgentClient } from "../agent-client";
 import {
+  type CheckDeps,
   enrolAgent,
   type InstallDeps,
   type InstallUpdate,
@@ -81,6 +85,7 @@ function deps(
           "runtime.node",
           "db.postgres",
           "db.mysql",
+          "core.backup",
         ],
       }),
     deliver: () =>
@@ -101,6 +106,10 @@ function deps(
     secrets: () => ({}),
     ...over,
   };
+}
+
+function checkDeps(client: AgentClient, weighed: ModuleConfig = {}): CheckDeps {
+  return { ...deps(client), weighed: () => Promise.resolve(weighed) };
 }
 
 /** The vault as `install.ts` wires it: read on the way out, emptied once taken. */
@@ -1170,7 +1179,7 @@ describe("la configuration pesée avant l'installation", () => {
       SERVER,
       ["db.postgres"],
       { "db.postgres": { port: 5432 } },
-      deps(client)
+      checkDeps(client)
     );
 
     expect(answer).toEqual({
@@ -1192,6 +1201,26 @@ describe("la configuration pesée avant l'installation", () => {
     client.closeAll();
   });
 
+  it("pèse le formulaire avec les valeurs que l'app remplira depuis le trousseau", async () => {
+    const client = agent("install-check-managed.jsonl");
+
+    const answer = await runCheck(
+      SERVER,
+      ["core.backup"],
+      { "core.backup": { interval_hours: 24 } },
+      checkDeps(client, {
+        "core.backup": { bucket: "backups", endpoint: "https://s3.test" },
+      })
+    );
+
+    expect(answer).toEqual({
+      ok: true,
+      result: { problems: [], warnings: [] },
+    });
+
+    client.closeAll();
+  });
+
   it("refuse un module que l'agent ne déclare pas, sans toucher au canal", async () => {
     const client = agent("install-check.jsonl");
 
@@ -1199,7 +1228,7 @@ describe("la configuration pesée avant l'installation", () => {
       SERVER,
       ["db.oracle"],
       { "db.oracle": {} },
-      deps(client)
+      checkDeps(client)
     );
 
     expect(answer).toMatchObject({
@@ -1213,7 +1242,7 @@ describe("la configuration pesée avant l'installation", () => {
   it("ne demande rien quand rien n'est choisi", async () => {
     const client = agent("install-check.jsonl");
 
-    const answer = await runCheck(SERVER, [], {}, deps(client));
+    const answer = await runCheck(SERVER, [], {}, checkDeps(client));
 
     expect(answer).toEqual({
       ok: true,

@@ -70,6 +70,18 @@ export interface InstallDeps {
   identity?: (serverId: string) => string | null;
 }
 
+export interface CheckDeps extends Pick<InstallDeps, "client" | "declared"> {
+  /**
+   * The managed values the keychain holds, without a secret and without a
+   * tunnel: a form is weighed with what the install will add to it, or every
+   * field the app fills reads as missing.
+   */
+  weighed: (
+    serverId: string,
+    modules: readonly string[]
+  ) => Promise<ModuleConfig>;
+}
+
 /** What the agent needs to buy its server token, and nothing else. */
 export interface EnrollmentGrant {
   token: string;
@@ -395,7 +407,7 @@ export async function runCheck(
   serverId: string,
   modules: readonly string[],
   config: ModuleConfig,
-  deps: Pick<InstallDeps, "client" | "declared">,
+  deps: CheckDeps,
   defer: readonly string[] = []
 ): Promise<AgentResponse<InstallCheckResult>> {
   if (modules.length === 0) {
@@ -416,8 +428,11 @@ export async function runCheck(
     });
   }
 
+  const asked = modules.filter((id) => !defer.includes(id));
+  const managed = await deps.weighed(serverId, asked);
+
   return await deps.client.request(serverId, "install.check", {
-    config: only(config, modules),
+    config: only(merged(config, managed), modules),
     ...deferring(defer),
     modules: [...modules],
   });

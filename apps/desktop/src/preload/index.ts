@@ -460,6 +460,9 @@ const api = {
   /** The identity of the organization's latest backup, which a second computer adopts. */
   backupIdentity: (): Promise<AgentResponse<OrganizationIdentity | null>> =>
     ipcRenderer.invoke("backup:identity"),
+  /** A test write in the bucket, and nothing kept: the secret key left out is the keychain's. */
+  probeBackup: (input: BackupConnectionInput): Promise<AgentResponse<null>> =>
+    ipcRenderer.invoke("backup:probe", input),
   connectBackup: (
     input: BackupConnectionInput
   ): Promise<AgentResponse<BackupConnectionView>> =>
