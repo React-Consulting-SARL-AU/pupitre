@@ -6,6 +6,7 @@ import {
 } from "@pupitre/shared/backup/crypto";
 import type { AgentResponse } from "@shared/agent";
 import type {
+  BackupStorage,
   OrganizationIdentity,
   PlatformBackup,
   RestoreUpdate,
@@ -17,6 +18,7 @@ import {
   connectBackup,
   type DataDeps,
   latestIdentity,
+  probeConnection,
   restoreData,
   restoreSetup,
   type SetupDeps,
@@ -152,16 +154,25 @@ export function registerBackups(): void {
 
   ipcMain.handle("backup:identity", () => organizationIdentity());
 
+  const connectDeps = {
+    derive: deriveBackupIdentity,
+    drawSalt: drawBackupSalt,
+    held: heldBackup,
+    identity: organizationIdentity,
+    keep: keepBackup,
+    normalize: normalizePassphrase,
+    probe: (storage: BackupStorage, secret: string) =>
+      probeBucket(storage, secret),
+  };
+
+  ipcMain.handle("backup:probe", async (_event, input: unknown) => {
+    const probed = await probeConnection(input, connectDeps);
+
+    return probed.ok ? { ok: true, result: null } : probed;
+  });
+
   ipcMain.handle("backup:connect", (_event, input: unknown) =>
-    connectBackup(input, {
-      derive: deriveBackupIdentity,
-      drawSalt: drawBackupSalt,
-      held: heldBackup,
-      identity: organizationIdentity,
-      keep: keepBackup,
-      normalize: normalizePassphrase,
-      probe: (storage, secret) => probeBucket(storage, secret),
-    })
+    connectBackup(input, connectDeps)
   );
 
   ipcMain.handle("backup:list", (_event, serverId: unknown) => {

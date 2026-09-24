@@ -109,10 +109,18 @@ export function OnboardingRestoreScreen({
                   data-restore-backup={backup.id}
                   detail={`${weight(backup.bytes)} · ${countsLabel(t, backup.counts)}`}
                   key={backup.id}
-                  label={t("onboarding.restore.backupLabel", {
-                    date: dated(backup.created_at),
-                    server: backup.server_name,
-                  })}
+                  label={
+                    backup.name
+                      ? t("onboarding.restore.backupLabelNamed", {
+                          date: dated(backup.created_at),
+                          name: backup.name,
+                          server: backup.server_name,
+                        })
+                      : t("onboarding.restore.backupLabel", {
+                          date: dated(backup.created_at),
+                          server: backup.server_name,
+                        })
+                  }
                   value={backup.id}
                 />
               ))}

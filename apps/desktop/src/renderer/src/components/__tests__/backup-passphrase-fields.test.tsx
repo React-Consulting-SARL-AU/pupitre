@@ -8,12 +8,13 @@ function render(drawn: string | null, noted: boolean, attempted: boolean) {
   return renderToStaticMarkup(
     <BackupPassphraseFields
       attempted={attempted}
-      confirm={drawn ?? ""}
-      drawn={drawn}
-      noted={noted}
       onChange={() => undefined}
-      onNoted={() => undefined}
-      passphrase={drawn ?? ""}
+      phrase={{
+        confirm: drawn ?? "",
+        drawn,
+        noted,
+        passphrase: drawn ?? "",
+      }}
       shown={attempted}
     />
   );

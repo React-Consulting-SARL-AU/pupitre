@@ -24,7 +24,16 @@ export function backupColumns(
       key: "created_at",
       header: t("backups.column.date"),
       cell: (backup) => (
-        <span className="text-ink">{formatDateTime(backup.created_at, t)}</span>
+        <span className="flex flex-col">
+          <span className="text-ink">
+            {formatDateTime(backup.created_at, t)}
+          </span>
+          {backup.name ? (
+            <span className="truncate text-[12px] text-ink-3">
+              {backup.name}
+            </span>
+          ) : null}
+        </span>
       ),
     },
     {

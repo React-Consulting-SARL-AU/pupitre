@@ -2,6 +2,8 @@ package backup
 
 import (
 	"encoding/json"
+	"regexp"
+	"unicode/utf16"
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/i18n"
@@ -32,6 +34,7 @@ func RegisterCommands(server *protocol.Server, service *Service) {
 
 	server.Register("backup.run", func(ctx *protocol.Context, raw json.RawMessage) (any, error) {
 		var params struct {
+			Name      string `json:"name"`
 			Databases *bool  `json:"databases"`
 			Projects  string `json:"projects"`
 		}
@@ -39,7 +42,11 @@ func RegisterCommands(server *protocol.Server, service *Service) {
 			return nil, unreadable(err)
 		}
 
-		return service.Run(modules.Emitter(ctx), contract.BackupTriggerManual, Overrides{Databases: params.Databases, Projects: params.Projects})
+		if params.Name != "" && !Nameable(params.Name) {
+			return nil, protocol.NewError(contract.ErrorBadRequest, i18n.T("backup.name.invalid", contract.Backup.NameMax))
+		}
+
+		return service.Run(modules.Emitter(ctx), contract.BackupTriggerManual, Overrides{Name: params.Name, Databases: params.Databases, Projects: params.Projects})
 	})
 
 	server.Register("backup.delete", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
@@ -113,6 +120,13 @@ func bucketRequest(ctx *protocol.Context, raw json.RawMessage) (bucketParams, co
 	}
 
 	return params, secrets, nil
+}
+
+var namePattern = regexp.MustCompile(contract.Backup.NamePattern)
+
+// Nameable holds a backup's name to the contract's rules: its pattern, and a length counted in UTF-16 units, as the platform counts it before taking the declaration.
+func Nameable(name string) bool {
+	return namePattern.MatchString(name) && len(utf16.Encode([]rune(name))) <= contract.Backup.NameMax
 }
 
 func unreadable(err error) error {

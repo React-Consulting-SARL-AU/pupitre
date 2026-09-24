@@ -23,7 +23,7 @@ func TestTheBackupConstantsComeFromTheSchema(t *testing.T) {
 		t.Fatalf("constants = %+v", Backup)
 	}
 
-	for _, pattern := range []string{Backup.DatabaseItem, Backup.ProjectItem, Backup.EndpointPattern, Backup.BucketPattern, Backup.RegionPattern} {
+	for _, pattern := range []string{Backup.DatabaseItem, Backup.ProjectItem, Backup.EndpointPattern, Backup.BucketPattern, Backup.RegionPattern, Backup.NamePattern} {
 		if pattern == "" {
 			t.Fatalf("a pattern is missing: %+v", Backup)
 		}

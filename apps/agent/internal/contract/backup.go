@@ -13,6 +13,8 @@ type BackupConstants struct {
 	EndpointPattern  string             `json:"endpoint_pattern"`
 	BucketPattern    string             `json:"bucket_pattern"`
 	RegionPattern    string             `json:"region_pattern"`
+	NamePattern      string             `json:"name_pattern"`
+	NameMax          int                `json:"name_max"`
 	ExcludedDirs     []string           `json:"excluded_dirs"`
 	HomePaths        []string           `json:"home_paths"`
 	HomeExcluded     []string           `json:"home_excluded"`
@@ -106,6 +108,7 @@ type BackupManifest struct {
 	ID        string       `json:"id"`
 	CreatedAt string       `json:"created_at"`
 	Trigger   string       `json:"trigger"`
+	Name      string       `json:"name,omitempty"`
 	Server    BackupServer `json:"server"`
 	Recipient string       `json:"recipient"`
 	KDF       BackupKDF    `json:"kdf"`
@@ -168,6 +171,7 @@ type BackupDeclaration struct {
 	ID             string         `json:"id"`
 	CreatedAt      string         `json:"created_at"`
 	Trigger        string         `json:"trigger"`
+	Name           string         `json:"name,omitempty"`
 	Bytes          int64          `json:"bytes"`
 	Counts         BackupCounts   `json:"counts"`
 	ConfigRevision int            `json:"config_revision"`

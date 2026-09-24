@@ -5,6 +5,7 @@ import {
   BackupIntervalSchema,
   BackupLocationSchema,
   BackupManifestSchema,
+  BackupNameSchema,
   BackupPartSchema,
   BackupProjectModeSchema,
 } from "../backup"
@@ -66,8 +67,9 @@ export const BackupContentsResultSchema = z.object({
 
 export type BackupContentsResult = z.infer<typeof BackupContentsResultSchema>
 
-/** A backup now, departing from the module's settings for this one run only. */
+/** A backup now, named or not, departing from the module's settings for this one run only. */
 export const BackupRunParamsSchema = z.strictObject({
+  name: BackupNameSchema.optional(),
   databases: z.boolean().optional(),
   projects: BackupProjectModeSchema.optional(),
 })

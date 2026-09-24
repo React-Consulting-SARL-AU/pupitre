@@ -14,6 +14,30 @@ export function passphraseProblem(
   return passphrase === confirm ? null : "mismatch";
 }
 
+/** The passphrase as a form holds it until it is sent. */
+export interface PhraseDraft {
+  passphrase: string;
+  confirm: string;
+  /** The phrase the app drew, while it is the one in the fields. */
+  drawn: string | null;
+  noted: boolean;
+}
+
+export const NO_PHRASE: PhraseDraft = {
+  confirm: "",
+  drawn: null,
+  noted: false,
+  passphrase: "",
+};
+
+/** Whether the phrase can be sent: well formed, and noted when drawn. */
+export function phraseReady(phrase: PhraseDraft): boolean {
+  return (
+    passphraseProblem(phrase.passphrase, phrase.confirm) === null &&
+    (phrase.drawn === null || phrase.noted)
+  );
+}
+
 /**
  * A passphrase drawn for the reader, to write down rather than invent.
  *

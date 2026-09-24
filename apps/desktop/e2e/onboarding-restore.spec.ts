@@ -50,13 +50,14 @@ test.describe("onboarding depuis une sauvegarde", () => {
       await expect(
         page.locator('[data-step="restore"] [data-current]')
       ).toHaveCount(1);
-      await expect(page.getByRole("radio")).toHaveCount(2);
+      await expect(page.locator("[data-restore-backup]")).toHaveCount(2);
     });
 
     await test.step("le seau se donne sans la phrase : la clé de l'organisation est reprise", async () => {
       await expect(page.getByText(ADOPTED)).toBeVisible();
       await expect(page.locator("#backup-passphrase")).toHaveCount(0);
 
+      await page.getByRole("radio", { name: "Autre service S3" }).click();
       await page
         .locator("#backup-endpoint")
         .fill("https://acme.r2.cloudflarestorage.com");

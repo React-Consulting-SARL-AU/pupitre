@@ -368,6 +368,7 @@ model Backup {
   createdAt      DateTime
   declaredAt     DateTime      @default(now())
   trigger        BackupTrigger
+  name           String?
   bytes          BigInt
   counts         Json
   configRevision Int

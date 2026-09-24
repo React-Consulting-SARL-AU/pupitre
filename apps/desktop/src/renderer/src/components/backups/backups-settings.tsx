@@ -1,47 +1,59 @@
-import type { Field, Manifest } from "@pupitre/shared/catalog";
-import { ConfigFieldControl } from "@renderer/components/config/config-field-control";
+import type { Manifest } from "@pupitre/shared/catalog";
+import { BackupConnectionCard } from "@renderer/components/connections/backup-connection-card";
+import { descriptorOf } from "@renderer/components/connections/connection-descriptors";
 import { ServiceConfigFooter } from "@renderer/components/services/service-config-footer";
 import { ServiceConfigOutcome } from "@renderer/components/services/service-config-outcome";
+import { Button } from "@renderer/components/ui/button";
+import { Callout } from "@renderer/components/ui/callout";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { Panel } from "@renderer/components/ui/panel";
 import { Section } from "@renderer/components/ui/section";
 import { SkeletonRows } from "@renderer/components/ui/skeleton";
-import { SwitchLine } from "@renderer/components/ui/switch";
-import { problemText } from "@renderer/i18n/field-problem";
+import { problemText, strayProblems } from "@renderer/i18n/field-problem";
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { listOf } from "@renderer/lib/backups";
+import { driftsFrom } from "@renderer/lib/backup-providers";
+import { CONTENT_FIELDS, FREQUENCY_FIELDS } from "@renderer/lib/backup-setup";
+import { useBackupConnection } from "@renderer/stores/backup-connection";
 import type { ContentsState } from "@renderer/stores/backups";
 import { useServices } from "@renderer/stores/services";
-import { BackupsContentDatabases } from "./backups-content-databases";
-import { BackupsContentProjects } from "./backups-content-projects";
+import { RefreshCw } from "lucide-react";
+import { BackupsContentFields } from "./backups-content-fields";
+import { BackupsFrequencyFields } from "./backups-frequency-fields";
 
-const SCHEDULE = ["interval_hours", "hour", "keep"] as const;
+export type BackupsSettingsPane = "frequency" | "content" | "destination";
+
+const PANE_FIELDS: Record<BackupsSettingsPane, readonly string[]> = {
+  content: CONTENT_FIELDS,
+  destination: [],
+  frequency: FREQUENCY_FIELDS,
+};
 
 /**
- * `core.backup`'s settings, drawn for what they mean: when backups run and how
- * many stay, then what they carry — the categories and, inside them, each
- * database and project the server holds. Everything goes by default; unticking
- * an item puts it in the module's exclusion list. One draft of the module's
- * configuration, one Apply at the foot, the same store the services page uses.
+ * One pane of the settings of backups already in place: how often, what they
+ * carry, or where they go. The panes share one draft of `core.backup`, so an
+ * Apply sends everything changed; a refusal no field of the pane carries is
+ * named at its foot.
  */
 export function BackupsSettings({
+  pane,
   serverId,
   manifest,
   contents,
-  configured,
   nameOf,
   onRetryContents,
 }: {
+  pane: BackupsSettingsPane;
   serverId: string;
   manifest: Manifest;
   contents: ContentsState;
-  configured: boolean;
   nameOf: (moduleId: string) => string;
   onRetryContents: () => Promise<void>;
 }) {
   const t = useTranslations();
 
   const store = useServices();
+  const held = useBackupConnection((state) => state.held);
+  const connection = descriptorOf("backup");
   const { config, apply, values, steps } = store;
 
   if (config.status === "failed") {
@@ -52,135 +64,114 @@ export function BackupsSettings({
     return <SkeletonRows framed rows={4} />;
   }
 
-  const moduleId = manifest.id;
-  const refused = store.shown().filter((problem) => problem.field !== "");
+  const shown = store.shown();
+  const stray = strayProblems(t, shown, PANE_FIELDS[pane], manifest);
+  const view = held.status === "read" ? held.view : null;
+  const drifting = view !== null && driftsFrom(view, config.baseline);
   const running = apply.status === "running";
-  const read = contents.status === "read" ? contents.contents : null;
-
-  function fieldOf(key: string): Field | undefined {
-    return manifest.fields.find((field) => field.key === key);
-  }
 
   function problemOf(key: string): string | undefined {
-    const problem = refused.find((one) => one.field === key);
+    const found = shown.find((problem) => problem.field === key);
 
-    return problem ? problemText(t, problem) : undefined;
+    return found ? problemText(t, found) : undefined;
   }
 
-  function control(key: string) {
-    const field = fieldOf(key);
-
-    return field ? (
-      <ConfigFieldControl
-        field={field}
-        handlers={{ onValue: store.setValue }}
-        held={config.status === "ready" ? config.held : []}
-        key={key}
-        moduleId={moduleId}
-        problem={problemOf(key)}
-        value={values[key]}
-      />
-    ) : null;
+  function applyAll(): Promise<void> {
+    return store.reconfigure(serverId, manifest.id);
   }
 
-  const set = (key: string) => (next: unknown) => store.setValue(key, next);
-  const home = fieldOf("home");
-  const envOnly = fieldOf("projects_env_only");
+  const outcome = (
+    <ServiceConfigOutcome
+      apply={apply}
+      name={manifest.name}
+      nameOf={nameOf}
+      secretsDropped={store.secretsDropped}
+      steps={steps}
+    />
+  );
+
+  if (pane === "destination") {
+    return (
+      <Section name="backup-destination" title={t("backups.destination.title")}>
+        {drifting ? (
+          <Callout
+            action={
+              <Button
+                icon={RefreshCw}
+                loading={running}
+                onClick={applyAll}
+                size="sm"
+                variant="inverse"
+              >
+                {t("services.config.apply")}
+              </Button>
+            }
+            name="backup-drift"
+            tone="warn"
+          >
+            {t("backups.destination.drift")}
+          </Callout>
+        ) : null}
+
+        {connection ? (
+          <Panel inset="lg">
+            <BackupConnectionCard compact connection={connection} />
+          </Panel>
+        ) : null}
+
+        {outcome}
+      </Section>
+    );
+  }
+
+  const frequency = pane === "frequency";
 
   return (
     <form
       className="flex flex-col gap-section"
-      data-backup-settings=""
+      data-backup-settings={pane}
       noValidate
       onSubmit={(event) => {
         event.preventDefault();
-        store.reconfigure(serverId, moduleId);
+        applyAll();
       }}
     >
-      <Section name="backup-schedule" title={t("backups.schedule.title")}>
-        <Panel className="grid gap-6 sm:grid-cols-3" inset="lg">
-          {SCHEDULE.map(control)}
-        </Panel>
-      </Section>
-
-      <Section name="backup-contents" title={t("backups.contents.title")}>
+      <Section
+        name={frequency ? "backup-schedule" : "backup-contents"}
+        title={t(
+          frequency ? "backups.schedule.title" : "backups.contents.title"
+        )}
+      >
         <Panel className="flex flex-col" inset="none">
-          <div className="flex flex-col gap-6 p-6">
-            {contents.status === "loading" ? <SkeletonRows rows={3} /> : null}
-
-            {contents.status === "failed" ? (
-              <ErrorNotice
-                bare
-                error={contents.error}
-                onRetry={onRetryContents}
+          <div className="p-6">
+            {frequency ? (
+              <BackupsFrequencyFields
+                onValue={store.setValue}
+                problemOf={problemOf}
+                values={values}
               />
-            ) : null}
-
-            {fieldOf("databases") ? (
-              <BackupsContentDatabases
-                carried={values.databases !== false}
-                databases={read?.databases ?? null}
-                excluded={listOf(values.exclude_databases)}
-                label={fieldOf("databases")?.label ?? ""}
-                onCarried={set("databases")}
-                onExcluded={set("exclude_databases")}
-                problem={problemOf("exclude_databases")}
-                unreadable={read?.unreadable ?? []}
+            ) : (
+              <BackupsContentFields
+                contents={contents}
+                manifest={manifest}
+                onRetryContents={onRetryContents}
+                problemOf={problemOf}
               />
-            ) : null}
-
-            {fieldOf("projects") ? (
-              <BackupsContentProjects
-                carried={values.projects !== false}
-                envOnly={
-                  envOnly
-                    ? {
-                        detail: envOnly.help,
-                        label: envOnly.label,
-                        onChange: set("projects_env_only"),
-                        value: values.projects_env_only === true,
-                      }
-                    : null
-                }
-                excluded={listOf(values.exclude_projects)}
-                label={fieldOf("projects")?.label ?? ""}
-                onCarried={set("projects")}
-                onExcluded={set("exclude_projects")}
-                problem={problemOf("exclude_projects")}
-                projects={read?.projects ?? null}
-              />
-            ) : null}
-
-            {home ? (
-              <SwitchLine
-                checked={values.home !== false}
-                detail={home.help}
-                label={home.label}
-                name="backup-home"
-                onChange={set("home")}
-              />
-            ) : null}
-
-            {control("extra_paths")}
+            )}
           </div>
 
           <ServiceConfigFooter
-            applicable={!configured}
+            applicable={drifting}
             dirty={store.dirty()}
             onDiscard={() => store.discard(serverId)}
-            refused={refused.length}
+            refused={shown.filter((problem) => problem.field !== "").length}
             running={running}
+            stray={stray}
           />
         </Panel>
       </Section>
 
-      <ServiceConfigOutcome
-        apply={apply}
-        name={manifest.name}
-        nameOf={nameOf}
-        secretsDropped={store.secretsDropped}
-        steps={steps}
-      />
+      {outcome}
     </form>
   );
 }

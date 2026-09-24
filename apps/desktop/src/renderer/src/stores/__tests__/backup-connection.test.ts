@@ -24,6 +24,7 @@ beforeEach(() => {
   useBackupConnection.setState({
     held: { status: "idle" },
     identity: { status: "idle" },
+    probing: false,
     problem: null,
     saving: false,
   });
@@ -108,5 +109,25 @@ describe("la connexion des sauvegardes", () => {
     expect(useBackupConnection.getState().problem?.phrase?.id).toBe(
       "refusal.backup.passphrase.none"
     );
+  });
+
+  it("rend la main quand le pont lève au lieu de répondre, plutôt que d'attendre sans fin", async () => {
+    stubPupitre({
+      probeBackup: () =>
+        Promise.reject(new Error("No handler registered for 'backup:probe'")),
+    });
+
+    const proven = await useBackupConnection.getState().probe(STORAGE);
+
+    expect(proven).toBe(false);
+    expect(useBackupConnection.getState()).toMatchObject({
+      probing: false,
+      problem: {
+        phrase: {
+          id: "refusal.bridge.failed",
+          values: { channel: "backup:probe" },
+        },
+      },
+    });
   });
 });
