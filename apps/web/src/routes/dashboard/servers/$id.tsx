@@ -6,6 +6,7 @@ import { RotateCw } from "lucide-react"
 import { ServerActions } from "@/components/dashboard/server-actions"
 import { ServerAlerts } from "@/components/dashboard/server-alerts"
 import { ServerAssignment } from "@/components/dashboard/server-assignment"
+import { ServerBackups } from "@/components/dashboard/server-backups"
 import { ServerDevices } from "@/components/dashboard/server-devices"
 import { ServerEvents } from "@/components/dashboard/server-events"
 import { ServerMetrics } from "@/components/dashboard/server-metrics"
@@ -179,6 +180,8 @@ function ServerPage() {
           modules={last?.modules ?? []}
           stackVersion={last?.stack_version ?? null}
         />
+
+        <ServerBackups beat={detail.backup} serverId={detail.id} />
 
         <ServerDevices
           assignedUserId={detail.assigned_user_id}

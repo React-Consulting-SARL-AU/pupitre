@@ -6,6 +6,7 @@ import {
   RESTRICTED_COMMANDS,
   UNENROLLED_COMMANDS,
 } from "../agent-protocol"
+import { BackupSecretsSchema } from "../agent-protocol/backup"
 import {
   EventSchema,
   LogEventSchema,
@@ -25,6 +26,27 @@ import { ShotEventSchema } from "../agent-protocol/processes"
 import { SecretEventSchema } from "../agent-protocol/secrets"
 import { ProjectSchema } from "../agent-protocol/state"
 import { EnrollSecretsSchema } from "../agent-protocol/system"
+import {
+  BACKUP_BUCKET_PATTERN,
+  BACKUP_CONTAINER,
+  BACKUP_DATABASE_ITEM_PATTERN,
+  BACKUP_ENDPOINT_PATTERN,
+  BACKUP_EXCLUDED_DIRS,
+  BACKUP_EXTRA_PATH_PATTERN,
+  BACKUP_FORMAT,
+  BACKUP_HOME_EXCLUDED,
+  BACKUP_HOME_PATHS,
+  BACKUP_ID_PATTERN,
+  BACKUP_KDF,
+  BACKUP_PROJECT_ITEM_PATTERN,
+  BACKUP_REGION_PATTERN,
+  BackupBeatSchema,
+  BackupDeclarationSchema,
+  BackupLocationSchema,
+  BackupManifestSchema,
+  BackupPartKeySchema,
+  BackupPartSchema,
+} from "../backup"
 import {
   FieldSchema,
   MANDATORY_MODULE_IDS,
@@ -93,6 +115,15 @@ export const CONTRACT_DEFINITIONS: Readonly<Record<string, z.ZodType>> = {
   ...commandDefinitions(),
   InstallSecrets: InstallSecretsSchema,
   EnrollSecrets: EnrollSecretsSchema,
+  BackupSecrets: BackupSecretsSchema,
+  BackupManifest: BackupManifestSchema,
+  BackupDeclaration: BackupDeclarationSchema,
+  BackupBeat: BackupBeatSchema,
+  // Declared once and referenced: inlined, it repeats in every result that
+  // carries parts, and the schema is embedded in the agent unobfuscated.
+  BackupPart: BackupPartSchema,
+  BackupPartKey: BackupPartKeySchema,
+  BackupLocation: BackupLocationSchema,
   Manifest: ManifestSchema,
   Field: FieldSchema,
   FieldProblem: FieldProblemSchema,
@@ -126,6 +157,25 @@ export const CONTRACT_CONSTANTS: Readonly<Record<string, JsonObject>> = {
   FieldFormats: {
     type: "object",
     const: FORMAT_PATTERNS,
+  },
+  /** The backup format: container, key derivation, identifiers and what a project archive leaves out. */
+  Backup: {
+    type: "object",
+    const: {
+      format: BACKUP_FORMAT,
+      container: BACKUP_CONTAINER,
+      kdf: BACKUP_KDF,
+      id_pattern: BACKUP_ID_PATTERN,
+      extra_path_pattern: BACKUP_EXTRA_PATH_PATTERN,
+      database_item_pattern: BACKUP_DATABASE_ITEM_PATTERN,
+      endpoint_pattern: BACKUP_ENDPOINT_PATTERN,
+      bucket_pattern: BACKUP_BUCKET_PATTERN,
+      region_pattern: BACKUP_REGION_PATTERN,
+      project_item_pattern: BACKUP_PROJECT_ITEM_PATTERN,
+      excluded_dirs: BACKUP_EXCLUDED_DIRS,
+      home_paths: BACKUP_HOME_PATHS,
+      home_excluded: BACKUP_HOME_EXCLUDED,
+    },
   },
 }
 

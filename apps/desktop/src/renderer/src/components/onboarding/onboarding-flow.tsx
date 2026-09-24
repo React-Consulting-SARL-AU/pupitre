@@ -3,7 +3,7 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { STEP_COLUMN } from "@renderer/lib/layout";
 import { useStepShift } from "@renderer/lib/use-step-shift";
 import type { HardenOutcome } from "@shared/harden";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useCatalog } from "../../stores/catalog";
 import { useHarden } from "../../stores/harden";
 import { useInspection } from "../../stores/inspection";
@@ -11,6 +11,7 @@ import { useInstall } from "../../stores/install";
 import { useOnboarding } from "../../stores/onboarding";
 import {
   ONBOARDING_STEPS,
+  type OnboardingStep,
   plannedSteps,
   type ServerStage,
 } from "../../stores/onboarding-machine";
@@ -21,9 +22,11 @@ import { WaitingNotice } from "../ui/waiting-notice";
 import { OnboardingAgentScreen } from "./onboarding-agent-screen";
 import { OnboardingBanner } from "./onboarding-banner";
 import { OnboardingConfigStep } from "./onboarding-config-step";
+import { OnboardingDataScreen } from "./onboarding-data-screen";
 import { OnboardingDoneScreen } from "./onboarding-done-screen";
 import { OnboardingHardenScreen } from "./onboarding-harden-screen";
 import { OnboardingInspectionScreen } from "./onboarding-inspection-screen";
+import { OnboardingRestoreScreen } from "./onboarding-restore-screen";
 import { OnboardingServerScreen } from "./onboarding-server-screen";
 import { OnboardingShell } from "./onboarding-shell";
 
@@ -48,6 +51,8 @@ export function OnboardingFlow() {
 
   const step = useOnboarding((state) => state.step);
   const trail = useOnboarding((state) => state.trail);
+  const backups = useOnboarding((state) => state.backups);
+  const restored = useOnboarding((state) => state.restored);
   const serverId = useOnboarding((state) => state.serverId);
   const replaying = useOnboarding((state) => state.replaying);
   const remaining = useOnboarding((state) => state.remaining);
@@ -85,7 +90,7 @@ export function OnboardingFlow() {
   const verdict = useInspection((state) =>
     serverId ? (state.probes[serverId]?.verdict ?? null) : null
   );
-  const steps = plannedSteps({ step, trail }, verdict);
+  const steps = plannedSteps({ backups, restored, step, trail }, verdict);
   const outcome = useHarden((state) =>
     state.harden.status === "done" ? state.harden.outcome : null
   );
@@ -144,13 +149,38 @@ export function OnboardingFlow() {
       );
     }
 
-    if (shown === "agent") {
-      return (
+    // The steps whose screen takes the machine's name and a single answer.
+    const answered: Partial<Record<OnboardingStep, ReactNode>> = {
+      agent: (
         <OnboardingAgentScreen
           onContinue={() => send({ type: "agentSent" })}
           serverName={server.name}
         />
-      );
+      ),
+      data: (
+        <OnboardingDataScreen
+          onContinue={() => send({ type: "dataRestored" })}
+          serverName={server.name}
+        />
+      ),
+      harden: (
+        <OnboardingHardenScreen
+          finishLabel={restored ? t("onboarding.harden.toData") : undefined}
+          onContinue={() => send({ type: "hardened" })}
+          serverId={serverId}
+          serverName={server.name}
+        />
+      ),
+      restore: (
+        <OnboardingRestoreScreen
+          onSkip={() => send({ type: "restoreSkipped" })}
+          serverName={server.name}
+        />
+      ),
+    };
+
+    if (answered[shown]) {
+      return answered[shown];
     }
 
     if (shown === "catalog") {
@@ -186,16 +216,6 @@ export function OnboardingFlow() {
           onContinue={() => send({ type: "installed" })}
           onReplay={replayModule}
           plain
-          serverId={serverId}
-          serverName={server.name}
-        />
-      );
-    }
-
-    if (shown === "harden") {
-      return (
-        <OnboardingHardenScreen
-          onContinue={() => send({ type: "hardened" })}
           serverId={serverId}
           serverName={server.name}
         />

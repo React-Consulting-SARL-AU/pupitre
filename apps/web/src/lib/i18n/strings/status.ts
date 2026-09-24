@@ -27,6 +27,12 @@ export const status = {
     "alert.entitlement_grace": "Licence in grace period",
     "alert.entitlement_grace.fix":
       "Update the payment method from the billing page.",
+    "alert.backup_failed": "Last backup failed",
+    "alert.backup_failed.fix":
+      "Read the error under Backups, fix the bucket or its key from the Pupitre app, then back up again.",
+    "alert.backup_stale": "No backup for two intervals",
+    "alert.backup_stale.fix":
+      "Check the agent with systemctl status pupitred, then back up from the Pupitre app.",
     "alert.unknown": "Alert",
     "alert.unknown.fix": "Open the server to find out more.",
     "alert.banner.one": "{alerts} active alert on {servers}",
@@ -77,6 +83,12 @@ export const status = {
     "alert.entitlement_grace": "Droit d'usage en tolérance",
     "alert.entitlement_grace.fix":
       "Mettez le moyen de paiement à jour depuis la facturation.",
+    "alert.backup_failed": "Dernière sauvegarde en échec",
+    "alert.backup_failed.fix":
+      "Lisez l'erreur sous Sauvegardes, corrigez le seau ou sa clé depuis l'app Pupitre, puis relancez une sauvegarde.",
+    "alert.backup_stale": "Aucune sauvegarde depuis deux intervalles",
+    "alert.backup_stale.fix":
+      "Vérifiez l'agent avec systemctl status pupitred, puis sauvegardez depuis l'app Pupitre.",
     "alert.unknown": "Alerte",
     "alert.unknown.fix": "Ouvrez la fiche du serveur pour en savoir plus.",
     "alert.banner.one": "{alerts} alerte active sur {servers}",

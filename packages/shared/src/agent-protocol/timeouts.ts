@@ -25,6 +25,11 @@ const UNIT_MS = 240_000
 
 export const COMMAND_TIMEOUTS_MS: Partial<Record<CommandName, number>> = {
   "agent.upgrade": LONG_MS,
+  /** Every database dumped and every project archived, streamed to the bucket: a slow uplink and a big base. */
+  "backup.run": LONG_MS,
+  "backup.status": QUICK_MS,
+  "backup.restore.data": LONG_MS,
+  "backup.restore.setup": LONG_MS,
   completions: QUICK_MS,
   "db.dump": LONG_MS,
   "db.import": LONG_MS,

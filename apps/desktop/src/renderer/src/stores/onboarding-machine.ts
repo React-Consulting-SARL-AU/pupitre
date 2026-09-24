@@ -16,10 +16,12 @@ export const ONBOARDING_STEPS = [
   "server",
   "inspection",
   "agent",
+  "restore",
   "catalog",
   "config",
   "install",
   "harden",
+  "data",
   "done",
 ] as const;
 
@@ -44,6 +46,10 @@ export interface MachineState {
   remaining: readonly string[];
   /** The platform has not confirmed the usage right: every step holds where it is. */
   frozen: boolean;
+  /** The organization has backups: a new machine may start from one. */
+  backups: boolean;
+  /** The backup whose configuration the machine took: its data comes back after the hardening. */
+  restored: string | null;
   /**
    * The steps actually walked, in order.
    *
@@ -56,10 +62,12 @@ export interface MachineState {
 }
 
 export const CLOSED: MachineState = {
+  backups: false,
   frozen: false,
   installed: false,
   remaining: [],
   replaying: null,
+  restored: null,
   serverId: null,
   step: "closed",
   trail: [],
@@ -69,6 +77,8 @@ export type Effect =
   | { kind: "persist" }
   | { kind: "forget" }
   | { kind: "inspect"; serverId: string }
+  | { kind: "listBackups" }
+  | { kind: "abortRestore"; serverId: string }
   | { kind: "sendAgent"; serverId: string }
   | { kind: "startInstall"; serverId: string; modules: readonly string[] }
   | { kind: "startHarden"; serverId: string }
@@ -83,6 +93,11 @@ export type Event =
   | { type: "inspected" }
   | { type: "needsAgent" }
   | { type: "agentSent" }
+  | { type: "backupsListed"; any: boolean }
+  | { type: "restored"; backupId: string }
+  | { type: "restoreSkipped" }
+  | { type: "dataRestored" }
+  | { type: "dataSkipped" }
   | { type: "chosen" }
   | { type: "configured" }
   | { type: "touched" }
@@ -95,6 +110,7 @@ export type Event =
       step: OnboardingStep;
       serverId: string | null;
       installed: boolean;
+      restored: string | null;
     }
   | { type: "resumeAt"; step: OnboardingStep; remaining: readonly string[] }
   | { type: "back" }
@@ -118,9 +134,12 @@ export interface Transition {
  * machine that is up to date never enters it, a bare one always does, and one
  * whose agent is behind may go either way, so it is counted until the reader
  * decides. Without a verdict every step is counted.
+ *
+ * The backup steps are there only when they can be: the choice of a backup
+ * when the organization holds one, the data when a backup was taken.
  */
 export function plannedSteps(
-  state: Pick<MachineState, "step" | "trail">,
+  state: Pick<MachineState, "step" | "trail" | "backups" | "restored">,
   verdict: { kind: string; up_to_date?: boolean } | null
 ): readonly OnboardingStep[] {
   const here = ONBOARDING_STEPS.indexOf(state.step as OnboardingStep);
@@ -134,17 +153,35 @@ export function plannedSteps(
     withAgent = !(verdict.kind === "managed" && verdict.up_to_date !== false);
   }
 
-  return ONBOARDING_STEPS.filter((step) => step !== "agent" || withAgent);
+  const withRestore =
+    state.backups ||
+    state.step === "restore" ||
+    state.trail.includes("restore");
+  const withData = state.restored !== null || state.step === "data";
+
+  return ONBOARDING_STEPS.filter(
+    (step) =>
+      (step !== "agent" || withAgent) &&
+      (step !== "restore" || withRestore) &&
+      (step !== "data" || withData)
+  );
 }
 
 /**
  * The steps a resumed sequence stands on: everything before the resumed step,
  * the agent step aside — a machine resumed past it already runs the agent, and
- * a way back to a delivery screen with nothing to deliver would be a lie.
+ * a way back to a delivery screen with nothing to deliver would be a lie — and
+ * the choice of a backup unless one was taken.
  */
-export function walkedBefore(step: OnboardingStep): readonly OnboardingStep[] {
+export function walkedBefore(
+  step: OnboardingStep,
+  restored: string | null = null
+): readonly OnboardingStep[] {
   return ONBOARDING_STEPS.slice(0, ONBOARDING_STEPS.indexOf(step)).filter(
-    (walked) => walked !== "agent"
+    (walked) =>
+      walked !== "agent" &&
+      walked !== "data" &&
+      (walked !== "restore" || restored !== null)
   );
 }
 
@@ -162,7 +199,11 @@ const ANSWERED_AT: Partial<Record<Event["type"], readonly OnboardingStep[]>> = {
   agentSent: ["agent"],
   chosen: ["catalog"],
   configured: ["config"],
+  dataRestored: ["data"],
+  dataSkipped: ["data"],
   hardened: ["harden"],
+  restoreSkipped: ["restore"],
+  restored: ["restore"],
   inspected: ["inspection"],
   installed: ["install"],
   needsAgent: ["inspection"],
@@ -182,7 +223,7 @@ function onEnter(state: MachineState): Effect[] {
 
   switch (step) {
     case "inspection":
-      return [{ kind: "inspect", serverId }];
+      return [{ kind: "inspect", serverId }, { kind: "listBackups" }];
     case "agent":
       return [{ kind: "sendAgent", serverId }];
     case "install":
@@ -287,13 +328,25 @@ export function transition(state: MachineState, event: Event): Transition {
     }
 
     case "inspected":
-      return move(state, "catalog");
+    case "agentSent":
+      return afterAgent(state);
 
     case "needsAgent":
       return move(state, "agent");
 
-    case "agentSent":
+    /** Said on the way in, whatever the step: it only decides where the agent step leads. */
+    case "backupsListed":
+      return { effects: [], state: { ...state, backups: event.any } };
+
+    case "restored":
+      return move({ ...state, restored: event.backupId }, "catalog");
+
+    case "restoreSkipped":
       return move(state, "catalog");
+
+    case "dataRestored":
+    case "dataSkipped":
+      return finish(state);
 
     case "chosen":
       return move(state, "config");
@@ -311,11 +364,8 @@ export function transition(state: MachineState, event: Event): Transition {
     case "installed":
       return withSync(move({ ...state, installed: true }, "harden"));
 
-    case "hardened": {
-      const done = withSync(move(state, "done"));
-
-      return { ...done, effects: [...done.effects, { kind: "reloadFleet" }] };
-    }
+    case "hardened":
+      return afterHardening(state);
 
     /**
      * The vault was emptied when the secrets left, so a module that carried one
@@ -329,21 +379,8 @@ export function transition(state: MachineState, event: Event): Transition {
     case "replayConfigured":
       return move({ ...state, replaying: null }, "install");
 
-    case "back": {
-      if (!canGoBack(state)) {
-        return { effects: [], state };
-      }
-
-      const back = state.trail.at(-1) as OnboardingStep;
-      const walked = state.trail.slice(0, -1);
-
-      // A step walked back to was already entered and already acted: nothing
-      // is sent or read again, and the trail does not count it twice.
-      return {
-        effects: [{ kind: "persist" }],
-        state: { ...state, step: back, trail: walked },
-      };
-    }
+    case "back":
+      return stepBack(state);
 
     /**
      * A resumed onboarding takes the step from the shelf and everything else
@@ -355,6 +392,7 @@ export function transition(state: MachineState, event: Event): Transition {
         effects: event.serverId
           ? [
               { kind: "inspect", serverId: event.serverId },
+              { kind: "listBackups" },
               // The hardening leaves no report to read back: a sequence
               // taken up on that step runs it again, like entering it does.
               ...(event.step === "harden"
@@ -365,11 +403,12 @@ export function transition(state: MachineState, event: Event): Transition {
         state: {
           ...CLOSED,
           installed: event.installed,
+          restored: event.restored,
           serverId: event.serverId,
           step: event.step,
           // A resumed onboarding walked its steps in another run: the trail is
           // put back as that run must have walked it, so the way back stands.
-          trail: walkedBefore(event.step),
+          trail: walkedBefore(event.step, event.restored),
         },
       };
 
@@ -382,7 +421,10 @@ export function transition(state: MachineState, event: Event): Transition {
 
       return {
         ...moved,
-        state: { ...moved.state, trail: walkedBefore(event.step) },
+        state: {
+          ...moved.state,
+          trail: walkedBefore(event.step, state.restored),
+        },
       };
     }
 
@@ -401,6 +443,53 @@ export function transition(state: MachineState, event: Event): Transition {
     default:
       return { effects: [], state };
   }
+}
+
+/** A machine that runs the agent may start from one of the organization's backups before its services are chosen. */
+function afterAgent(state: MachineState): Transition {
+  return move(state, state.backups ? "restore" : "catalog");
+}
+
+/** A restored machine has its data to take back before it is done. */
+function afterHardening(state: MachineState): Transition {
+  return state.restored ? move(state, "data") : finish(state);
+}
+
+/** The machine is ready: the console learns it, and the fleet is read again. */
+function finish(state: MachineState): Transition {
+  const done = withSync(move(state, "done"));
+
+  return { ...done, effects: [...done.effects, { kind: "reloadFleet" }] };
+}
+
+/**
+ * One step back along the trail. A step walked back to was already entered
+ * and already acted: nothing is sent or read again, and the trail does not
+ * count it twice — except the choice of a backup, where the one taken is let
+ * go, so the machine drops its configuration and the choice is the reader's
+ * again.
+ */
+function stepBack(state: MachineState): Transition {
+  if (!canGoBack(state)) {
+    return { effects: [], state };
+  }
+
+  const back = state.trail.at(-1) as OnboardingStep;
+  const walked = state.trail.slice(0, -1);
+  const letGo = back === "restore" && state.restored ? state.serverId : null;
+
+  return {
+    effects: [
+      ...(letGo ? [{ kind: "abortRestore" as const, serverId: letGo }] : []),
+      { kind: "persist" },
+    ],
+    state: {
+      ...state,
+      restored: letGo ? null : state.restored,
+      step: back,
+      trail: walked,
+    },
+  };
 }
 
 /** The console learns what the machine now runs, rather than at the daemon's next turn. */

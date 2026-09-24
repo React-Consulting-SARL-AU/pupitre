@@ -104,6 +104,25 @@ func TestRealRunStreamsStdinFromAFile(t *testing.T) {
 	}
 }
 
+func TestRealRunStreamsBothEndsWithoutHoldingThem(t *testing.T) {
+	var out strings.Builder
+
+	captured, err := Real{}.Run(Command{Argv: []string{"tr", "a-z", "A-Z"}, Input: strings.NewReader("pg_dump streams\n"), Output: &out})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if out.String() != "PG_DUMP STREAMS\n" || captured.Stdout != "" {
+		t.Fatalf("streamed %q, captured %q", out.String(), captured.Stdout)
+	}
+}
+
+func TestIdleRunsBehindEverythingElse(t *testing.T) {
+	if got := strings.Join(Idle("pg_dump", "shop"), " "); got != "nice -n 10 ionice -c3 pg_dump shop" {
+		t.Fatalf("Idle = %q", got)
+	}
+}
+
 func TestDescribeShowsTheRedirectedFile(t *testing.T) {
 	got := Describe(Command{User: "dev", Argv: []string{"mysql", "shop"}, StdinPath: "/home/dev/dumps/shop.sql"})
 	if got != "(dev) mysql shop < /home/dev/dumps/shop.sql" {

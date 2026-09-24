@@ -1,6 +1,7 @@
 import { account } from "./strings/account";
 import { activity } from "./strings/activity";
 import { app } from "./strings/app";
+import { backups } from "./strings/backups";
 import { catalog } from "./strings/catalog";
 import { common } from "./strings/common";
 import { config } from "./strings/config";
@@ -39,6 +40,7 @@ export const en = {
   ...app.en,
   ...account.en,
   ...activity.en,
+  ...backups.en,
   ...catalog.en,
   ...config.en,
   ...connections.en,

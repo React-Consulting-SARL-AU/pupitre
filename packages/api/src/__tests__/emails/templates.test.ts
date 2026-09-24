@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test"
 import { LOCALES } from "@pupitre/shared/i18n"
 import { EMAIL_PREVIEWS, previewOf, SAMPLE } from "../../emails/catalog"
+import { renderAlertBackupFailedEmail } from "../../emails/render"
 import { EMAIL_TEMPLATE_IDS } from "../../emails/templates/ids"
 
 function href(url: string): string {
@@ -18,13 +19,15 @@ describe("le catalogue des gabarits", () => {
     )
   })
 
-  it("compte les quinze moments et les quatre alertes", () => {
-    expect(EMAIL_TEMPLATE_IDS).toHaveLength(19)
+  it("compte les quinze moments et les six alertes", () => {
+    expect(EMAIL_TEMPLATE_IDS).toHaveLength(21)
     expect(EMAIL_TEMPLATE_IDS.filter((id) => id.startsWith("alert_"))).toEqual([
       "alert_server_unreachable",
       "alert_disk_high",
       "alert_agent_outdated",
       "alert_entitlement_grace",
+      "alert_backup_failed",
+      "alert_backup_stale",
     ])
   })
 })
@@ -125,6 +128,35 @@ describe("les données passent dans le rendu", () => {
 
     expect(email.subject).toContain(SAMPLE.serverName)
     expect(email.html).toContain("2026")
+  })
+
+  it("l'échec de sauvegarde porte l'erreur telle que l'agent l'a dite", async () => {
+    const email = await previewOf("alert_backup_failed").render("en")
+
+    expect(email.subject).toContain(SAMPLE.serverName)
+    expect(email.text).toContain(SAMPLE.backupError)
+  })
+
+  it("une sauvegarde incomplète dit combien de parties manquent, et non une erreur vide", async () => {
+    const email = await renderAlertBackupFailedEmail({
+      locale: "fr",
+      serverName: SAMPLE.serverName,
+      lastError: null,
+      missing: 2,
+      lastRunAt: SAMPLE.lastBackupRunAt,
+    })
+
+    expect(email.subject).toContain("incomplète")
+    expect(email.text).toContain("Parties manquantes")
+    expect(email.text).not.toContain("Dernière erreur")
+  })
+
+  it("la sauvegarde en retard dit l'intervalle et la dernière réussite", async () => {
+    const email = await previewOf("alert_backup_stale").render("fr")
+
+    expect(email.subject).toContain(SAMPLE.serverName)
+    expect(email.text).toContain(`${SAMPLE.backupIntervalHours} h`)
+    expect(email.text).toContain("2 septembre 2026")
   })
 })
 

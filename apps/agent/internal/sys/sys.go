@@ -3,6 +3,7 @@ package sys
 import (
 	"context"
 	"fmt"
+	"io"
 	"io/fs"
 	"strings"
 	"syscall"
@@ -26,9 +27,17 @@ type Command struct {
 	Dir       string
 	Stdin     []byte
 	StdinPath string
-	Timeout   time.Duration
+	// Input streams the standard input and Output takes the standard output as it comes: a dump of gigabytes never sits in memory.
+	Input   io.Reader
+	Output  io.Writer
+	Timeout time.Duration
 	// Context, when set, ends the command before its timeout: a follow ends with the channel that reads it.
 	Context context.Context
+}
+
+// Idle runs a heavy command behind everything else on the machine: nice 10 for the processor, the idle class for the disk.
+func Idle(argv ...string) []string {
+	return append([]string{"nice", "-n", "10", "ionice", "-c3"}, argv...)
 }
 
 type Output struct {

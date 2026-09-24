@@ -1,9 +1,11 @@
 import type { ServerStatus } from "@pupitre/db/cloudflare/client"
+import type { BackupBeat } from "@pupitre/shared/backup"
 import type { OrgRole } from "@pupitre/shared/permissions"
 import { sendServerDecommissionEmail } from "../../emails/notifications"
 import { type AlertView, activeAlertsFor } from "../alerts/alerts"
 import { getPrisma, withOrganization } from "../api/prisma"
 import { type Actor, recordEvent } from "../audit/audit"
+import { readBackupBeat } from "../backups/beat"
 import { metricsForServer } from "./agent-state"
 import { settleAssignment, settleAssignments } from "./assign"
 import { keyReadyByServer } from "./authorized-keys"
@@ -47,6 +49,7 @@ export interface ServerView {
   /** When the row disappears for good. Null as long as nothing has revoked it. */
   decommission_at: Date | null
   usage: ServerUsage | null
+  backup: BackupBeat | null
   alerts: AlertView[]
   created_at: Date
 }
@@ -97,6 +100,7 @@ export function toServerView(
     entitlement_valid_until: server.entitlementValidUntil,
     decommission_at: server.decommissionAt,
     usage: readUsage(server.lastUsage),
+    backup: readBackupBeat(server.backup),
     alerts,
     created_at: server.createdAt,
   }
@@ -149,7 +153,7 @@ export interface Viewer {
   role: OrgRole
 }
 
-function seesEveryServer(viewer: Viewer): boolean {
+export function seesEveryServer(viewer: Viewer): boolean {
   return viewer.role !== "member"
 }
 
@@ -173,13 +177,16 @@ export async function listServersForOrganization(
   )
 }
 
-export async function getServerForOrganization(
+/** A server of the organization the viewer may open: every one for an admin, their own for a member. */
+export async function findVisibleServer(
   organizationId: string,
   serverId: string,
   viewer: Viewer
-): Promise<ServerDetail | null> {
-  const prisma = withOrganization(getPrisma(), organizationId)
-  const found = await prisma.server.findFirst({ where: { id: serverId } })
+): Promise<ServerRow | null> {
+  const found = await withOrganization(
+    getPrisma(),
+    organizationId
+  ).server.findFirst({ where: { id: serverId } })
 
   if (!found) {
     return null
@@ -187,7 +194,20 @@ export async function getServerForOrganization(
 
   const server = await settleAssignment(found)
 
-  if (!(seesEveryServer(viewer) || server.assignedUserId === viewer.userId)) {
+  return seesEveryServer(viewer) || server.assignedUserId === viewer.userId
+    ? server
+    : null
+}
+
+export async function getServerForOrganization(
+  organizationId: string,
+  serverId: string,
+  viewer: Viewer
+): Promise<ServerDetail | null> {
+  const prisma = withOrganization(getPrisma(), organizationId)
+  const server = await findVisibleServer(organizationId, serverId, viewer)
+
+  if (!server) {
     return null
   }
 

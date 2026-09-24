@@ -411,6 +411,7 @@ export const ModelName = {
   Server: 'Server',
   ServerMetric: 'ServerMetric',
   Alert: 'Alert',
+  Backup: 'Backup',
   ServerRevokedDevice: 'ServerRevokedDevice',
   Subscription: 'Subscription',
   OrganizationBilling: 'OrganizationBilling',
@@ -444,7 +445,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "deviceCode" | "passkey" | "twoFactor" | "device" | "server" | "serverMetric" | "alert" | "serverRevokedDevice" | "subscription" | "organizationBilling" | "affiliateLink" | "affiliateClickDay" | "referral" | "mailMailbox" | "mailThread" | "mailNote" | "mailDraft" | "mailActivity" | "mailTemplate" | "mailMessage" | "mailAttachment" | "release" | "appRelease" | "event" | "stripeEvent"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "deviceCode" | "passkey" | "twoFactor" | "device" | "server" | "serverMetric" | "alert" | "backup" | "serverRevokedDevice" | "subscription" | "organizationBilling" | "affiliateLink" | "affiliateClickDay" | "referral" | "mailMailbox" | "mailThread" | "mailNote" | "mailDraft" | "mailActivity" | "mailTemplate" | "mailMessage" | "mailAttachment" | "release" | "appRelease" | "event" | "stripeEvent"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1481,6 +1482,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.AlertCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.AlertCountAggregateOutputType> | number
+        }
+      }
+    }
+    Backup: {
+      payload: Prisma.$BackupPayload<ExtArgs>
+      fields: Prisma.BackupFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.BackupFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackupPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.BackupFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackupPayload>
+        }
+        findFirst: {
+          args: Prisma.BackupFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackupPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.BackupFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackupPayload>
+        }
+        findMany: {
+          args: Prisma.BackupFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackupPayload>[]
+        }
+        create: {
+          args: Prisma.BackupCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackupPayload>
+        }
+        createMany: {
+          args: Prisma.BackupCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.BackupCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackupPayload>[]
+        }
+        delete: {
+          args: Prisma.BackupDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackupPayload>
+        }
+        update: {
+          args: Prisma.BackupUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackupPayload>
+        }
+        deleteMany: {
+          args: Prisma.BackupDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.BackupUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.BackupUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackupPayload>[]
+        }
+        upsert: {
+          args: Prisma.BackupUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$BackupPayload>
+        }
+        aggregate: {
+          args: Prisma.BackupAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateBackup>
+        }
+        groupBy: {
+          args: Prisma.BackupGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BackupGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.BackupCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.BackupCountAggregateOutputType> | number
         }
       }
     }
@@ -3055,6 +3130,7 @@ export const ServerScalarFieldEnum = {
   pendingAssignmentEmail: 'pendingAssignmentEmail',
   lastHeartbeatAt: 'lastHeartbeatAt',
   lastUsage: 'lastUsage',
+  backup: 'backup',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -3082,6 +3158,33 @@ export const AlertScalarFieldEnum = {
 } as const
 
 export type AlertScalarFieldEnum = (typeof AlertScalarFieldEnum)[keyof typeof AlertScalarFieldEnum]
+
+
+export const BackupScalarFieldEnum = {
+  id: 'id',
+  backupId: 'backupId',
+  organizationId: 'organizationId',
+  serverId: 'serverId',
+  serverName: 'serverName',
+  createdAt: 'createdAt',
+  declaredAt: 'declaredAt',
+  trigger: 'trigger',
+  bytes: 'bytes',
+  counts: 'counts',
+  configRevision: 'configRevision',
+  agentVersion: 'agentVersion',
+  recipient: 'recipient',
+  kdfSalt: 'kdfSalt',
+  endpoint: 'endpoint',
+  region: 'region',
+  bucket: 'bucket',
+  key: 'key',
+  pathStyle: 'pathStyle',
+  manifestSha256: 'manifestSha256',
+  forgottenAt: 'forgottenAt'
+} as const
+
+export type BackupScalarFieldEnum = (typeof BackupScalarFieldEnum)[keyof typeof BackupScalarFieldEnum]
 
 
 export const ServerRevokedDeviceScalarFieldEnum = {
@@ -3471,6 +3574,20 @@ export type EnumAlertKindFieldRefInput<$PrismaModel> = FieldRefInputType<$Prisma
 
 
 /**
+ * Reference to a field of type 'BackupTrigger'
+ */
+export type EnumBackupTriggerFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BackupTrigger'>
+    
+
+
+/**
+ * Reference to a field of type 'BigInt'
+ */
+export type BigIntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BigInt'>
+    
+
+
+/**
  * Reference to a field of type 'BillingInterval'
  */
 export type EnumBillingIntervalFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'BillingInterval'>
@@ -3690,6 +3807,7 @@ export type GlobalOmitConfig = {
   server?: Prisma.ServerOmit
   serverMetric?: Prisma.ServerMetricOmit
   alert?: Prisma.AlertOmit
+  backup?: Prisma.BackupOmit
   serverRevokedDevice?: Prisma.ServerRevokedDeviceOmit
   subscription?: Prisma.SubscriptionOmit
   organizationBilling?: Prisma.OrganizationBillingOmit

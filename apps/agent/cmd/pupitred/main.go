@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	"pupitre.studio/agent/internal/backup"
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/daemon"
 	"pupitre.studio/agent/internal/devcli"
@@ -30,6 +31,7 @@ import (
 	"pupitre.studio/agent/internal/shots"
 	"pupitre.studio/agent/internal/state"
 	"pupitre.studio/agent/internal/sys"
+	"pupitre.studio/agent/internal/sys/env"
 	"pupitre.studio/agent/internal/tmux"
 )
 
@@ -91,6 +93,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return runResume(state.FromEngine(engine, stateOptions()), migrator.State(), stdout)
 	case "gallery":
 		return runGallery(args[1:], stderr)
+	case "backup":
+		return runBackup(args[1:], stdin, stdout, stderr)
 	}
 
 	usage(stderr)
@@ -98,7 +102,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 }
 
 func usage(stderr io.Writer) {
-	fmt.Fprintln(stderr, "usage: pupitred <serve|daemon|enroll|install [--only=id,id] [--skip=id,id]|migrate [--status] [--restore=NAME]|probe [--script] [--projects=DIR]|report|resume|dev|shot|gallery|version>")
+	fmt.Fprintln(stderr, "usage: pupitred <serve|daemon|enroll|install [--only=id,id] [--skip=id,id]|migrate [--status] [--restore=NAME]|probe [--script] [--projects=DIR]|report|resume|dev|shot|gallery|backup open [--salt=B64|--private-key] FILE|version>")
 }
 
 // The configuration is brought to this binary's shape before the binary reads
@@ -109,10 +113,14 @@ func newServer(engine *modules.Engine) *protocol.Server {
 	migrator := newMigrator(engine)
 	brought(migrator, engine)
 
+	reader := state.FromEngine(engine, stateOptions()).WithJournal(engine.LogPath)
+	backups := newBackups(engine, reader)
+
 	server := protocol.NewServer(protocol.Options{
 		AgentVersion: version,
 		Config:       migrator.State,
 		Entitlement:  newResolver(engine).State,
+		ServerID:     backups.ServerID,
 	})
 	modules.RegisterCommands(server, engine)
 	core.RegisterCommands(server, engine)
@@ -123,9 +131,42 @@ func newServer(engine *modules.Engine) *protocol.Server {
 	selfupdate.RegisterCommands(server, upgradeOptions(engine))
 	migrate.RegisterCommands(server, migrator)
 	daemon.RegisterCommands(server, daemonOptions(engine))
-	state.RegisterCommands(server, state.FromEngine(engine, stateOptions()).WithJournal(engine.LogPath))
+	state.RegisterCommands(server, reader)
+	backup.RegisterCommands(server, backups)
 
 	return server
+}
+
+// The backups read the machine the way the state reader does and write where the configuration lives; every path follows the one the agent was told.
+func newBackups(engine *modules.Engine, reader *state.Reader) *backup.Service {
+	projects := stateOptions().Paths.Resolved()
+	ledger := pathFromEnv("PUPITRE_LEDGER_PATH", migrate.DefaultLedger)
+
+	return backup.New(backup.Options{
+		Engine:       engine,
+		Reader:       reader,
+		Migrate:      migrateOptions(engine),
+		Platform:     storedPlatform(engine),
+		AgentVersion: version,
+		Paths: backup.Paths{
+			State:    pathFromEnv("PUPITRE_BACKUP_STATE_PATH", backup.DefaultStatePath),
+			Marker:   pathFromEnv("PUPITRE_RESTORE_MARKER_PATH", backup.DefaultMarkerPath),
+			Staging:  pathFromEnv("PUPITRE_RESTORE_STAGING_PATH", backup.DefaultStagingPath),
+			ServerID: serverIDPath(),
+			Home:     pathFromEnv("PUPITRE_HOME", backup.DefaultHome),
+			Setup:    backup.Setup(engine.InstallPath, projects.Local, projects.Conf, ledger, env.Path, projects.Running),
+		},
+	})
+}
+
+func storedPlatform(engine *modules.Engine) func() (platform.Client, error) {
+	return func() (platform.Client, error) {
+		return platform.Stored(engine.Sys, platform.Client{BaseURL: os.Getenv("PUPITRE_PLATFORM_URL"), Version: version}, tokenPath(), "")
+	}
+}
+
+func serverIDPath() string {
+	return pathFromEnv("PUPITRE_SERVER_ID_PATH", platform.DefaultServerIDPath)
 }
 
 // The pause between the C-c and the kill leaves a dev server the time to close its port; nothing else waits.
@@ -150,6 +191,7 @@ func newDaemon(engine *modules.Engine) *daemon.Daemon {
 
 	options := daemonOptions(engine)
 	options.Reader = state.FromEngine(engine, stateOptions()).WithJournal(engine.LogPath)
+	options.Backups = newBackups(engine, options.Reader)
 
 	return daemon.New(options)
 }
@@ -160,6 +202,7 @@ func daemonOptions(engine *modules.Engine) daemon.Options {
 		Entitlement:  newResolver(engine),
 		AgentVersion: version,
 		TokenPath:    tokenPath(),
+		ServerIDPath: serverIDPath(),
 		KeysPath:     pathFromEnv("PUPITRE_KEYS_PATH", daemon.DefaultKeysPath),
 		HostKeyPath:  pathFromEnv("PUPITRE_HOST_KEY_PATH", daemon.DefaultHostKeyPath),
 		LogPath:      engine.LogPath,
@@ -216,7 +259,11 @@ func newEngine() *modules.Engine {
 }
 
 func newMigrator(engine *modules.Engine) *migrate.Runner {
-	return migrate.New(migrate.Options{
+	return migrate.New(migrateOptions(engine))
+}
+
+func migrateOptions(engine *modules.Engine) migrate.Options {
+	return migrate.Options{
 		AgentVersion: version,
 		Logf:         journalOf(engine),
 		Paths: migrate.Paths{
@@ -226,7 +273,7 @@ func newMigrator(engine *modules.Engine) *migrate.Runner {
 			Lock:    engine.LockPath,
 		},
 		Sys: engine.Sys,
-	})
+	}
 }
 
 // A migration that refuses does not stop the agent from starting: a server

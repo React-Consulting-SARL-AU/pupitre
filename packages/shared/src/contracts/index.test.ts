@@ -11,6 +11,7 @@ import {
   buildContractSchema,
   CONTRACT_CONSTANTS,
   CONTRACT_DEFINITIONS,
+  renderContractSchema,
 } from "./index"
 
 const EXPECTED = [
@@ -64,6 +65,14 @@ describe("CONTRACT_DEFINITIONS", () => {
 
 describe("buildContractSchema", () => {
   const schema = buildContractSchema()
+
+  // The agent embeds this document where the obfuscator cannot reach it, and
+  // the release refuses a binary that names the product more than ten times.
+  it("names the product three times at most: a schema repeated inline would spill it", () => {
+    const named = renderContractSchema().match(/pupitre/g) ?? []
+
+    expect(named.length).toBeLessThanOrEqual(3)
+  })
 
   it("is one document with named definitions and a protocol version", () => {
     expect(schema.$schema).toBe("https://json-schema.org/draft/2020-12/schema")

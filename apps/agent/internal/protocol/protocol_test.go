@@ -240,6 +240,32 @@ func TestHelloAnswersADirectCallWithoutASession(t *testing.T) {
 	}
 }
 
+// A server the platform has named says so in hello; one it has not named yet says nothing rather than an empty name.
+func TestHelloNamesTheServerOnceThePlatformHas(t *testing.T) {
+	named := ""
+	server := NewServer(Options{AgentVersion: "1.0.0", ServerID: func() string { return named }})
+	params := map[string]any{"app_version": "0.2.0", "protocol": contract.ProtocolVersion}
+
+	unnamed, err := server.Call("hello", params, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if encoded, _ := json.Marshal(unnamed); strings.Contains(string(encoded), "server_id") {
+		t.Fatalf("hello = %s", encoded)
+	}
+
+	named = "srv_42"
+	result, err := server.Call("hello", params, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if encoded, _ := json.Marshal(result); !strings.Contains(string(encoded), `"server_id":"srv_42"`) {
+		t.Fatalf("hello = %s", encoded)
+	}
+}
+
 func TestAnIdThatDoesNotGrowIsRefused(t *testing.T) {
 	var out bytes.Buffer
 	input := strings.NewReader(strings.Join([]string{

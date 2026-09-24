@@ -96,6 +96,29 @@ func inspect(engine *modules.Engine, chosen provider, run reporter) (any, error)
 	return answer, nil
 }
 
+// Resync is tunnel.sync for a caller that already holds the run lock, and answers whether an exposure was there to sync.
+func Resync(sibling func(id string) (*modules.Context, bool)) (bool, error) {
+	for _, candidate := range providers {
+		ctx, known := sibling(candidate.id)
+		if !known {
+			continue
+		}
+
+		answer, err := candidate.status(ctx)
+		if err != nil {
+			return false, err
+		}
+
+		if answer.Installed {
+			_, err := candidate.sync(ctx)
+
+			return true, err
+		}
+	}
+
+	return false, nil
+}
+
 // The app asks the server what its exposure is doing, never a vendor by name:
 // the module that is actually there answers, and nobody answers for it. A
 // module that could not be read is an error, not an absence: absent is what

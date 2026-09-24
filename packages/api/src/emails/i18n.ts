@@ -26,6 +26,11 @@ export const EMAIL_FR = {
   "label.new_email": "Nouvelle adresse",
   "label.reason": "Motif",
   "label.seats_paid": "Sièges payés",
+  "label.last_error": "Dernière erreur",
+  "label.missing_parts": "Parties manquantes",
+  "label.last_run": "Dernière tentative",
+  "label.last_ok": "Dernière réussite",
+  "label.interval": "Intervalle",
 
   "email_change.subject": "Confirmez le changement d'adresse",
   "email_change.preview":
@@ -193,6 +198,36 @@ export const EMAIL_FR = {
   "alert_agent_outdated.footnote":
     "Le remède : l'agent se met à jour tout seul à son prochain contact. S'il ne le fait pas, relancez la mise à jour depuis l'app Pupitre.",
 
+  "alert_backup_failed.subject": "La sauvegarde de {server} a échoué",
+  "alert_backup_failed.preview":
+    "La dernière tentative s'est arrêtée sur une erreur.",
+  "alert_backup_failed.title": "La sauvegarde de {server} a échoué",
+  "alert_backup_failed.body":
+    "La dernière sauvegarde de ce serveur n'a pas abouti. Les sauvegardes réussies avant elle restent dans votre seau : un échec n'en efface aucune.",
+  "alert_backup_failed.cta": "Ouvrir la console",
+  "alert_backup_failed.footnote":
+    "Le remède : lisez l'erreur ci-dessus, corrigez le seau ou la clé d'accès dans l'app Pupitre, puis lancez « Sauvegarder maintenant » depuis la fiche du serveur.",
+  "alert_backup_incomplete.subject":
+    "La dernière sauvegarde de {server} est incomplète",
+  "alert_backup_incomplete.preview":
+    "Des parties du serveur n'ont pas pu être sauvegardées.",
+  "alert_backup_incomplete.title":
+    "La dernière sauvegarde de {server} est incomplète",
+  "alert_backup_incomplete.body":
+    "La sauvegarde est dans votre seau, mais sans certaines de ses parties : une base qui ne s'est pas exportée, un projet qui ne s'est pas archivé. Ce qui manque ne reviendrait pas avec une restauration.",
+  "alert_backup_incomplete.footnote":
+    "Le remède : la page Sauvegardes du serveur, dans l'app Pupitre, nomme chaque partie manquante et sa raison ; corrigez-la, puis lancez « Sauvegarder maintenant ».",
+
+  "alert_backup_stale.subject": "{server} n'est plus sauvegardé",
+  "alert_backup_stale.preview":
+    "Aucune sauvegarde réussie depuis deux intervalles.",
+  "alert_backup_stale.title": "{server} n'est plus sauvegardé",
+  "alert_backup_stale.body":
+    "Aucune sauvegarde de ce serveur n'a réussi depuis plus de deux intervalles. Si la machine tombait maintenant, vous repartiriez de la dernière sauvegarde réussie.",
+  "alert_backup_stale.cta": "Ouvrir la console",
+  "alert_backup_stale.footnote":
+    "Le remède : vérifiez que l'agent tourne avec systemctl status pupitred, puis lancez « Sauvegarder maintenant » depuis la fiche du serveur dans l'app Pupitre.",
+
   "alert_entitlement_grace.subject": "{server} tourne en tolérance",
   "alert_entitlement_grace.preview":
     "Le droit d'usage de ce serveur expire le {deadline}.",
@@ -242,6 +277,11 @@ export const EMAIL_EN: Record<EmailMessageKey, string> = {
   "label.new_email": "New address",
   "label.reason": "Reason",
   "label.seats_paid": "Paid seats",
+  "label.last_error": "Last error",
+  "label.missing_parts": "Missing parts",
+  "label.last_run": "Last attempt",
+  "label.last_ok": "Last success",
+  "label.interval": "Interval",
 
   "email_change.subject": "Confirm the address change",
   "email_change.preview":
@@ -406,6 +446,33 @@ export const EMAIL_EN: Record<EmailMessageKey, string> = {
   "alert_agent_outdated.cta": "Open the console",
   "alert_agent_outdated.footnote":
     "The fix: the agent updates itself on its next contact. If it does not, start the update from the Pupitre app.",
+
+  "alert_backup_failed.subject": "The backup of {server} failed",
+  "alert_backup_failed.preview": "The last attempt stopped on an error.",
+  "alert_backup_failed.title": "The backup of {server} failed",
+  "alert_backup_failed.body":
+    "The last backup of this server did not complete. The successful backups before it stay in your bucket: a failure deletes none of them.",
+  "alert_backup_failed.cta": "Open the console",
+  "alert_backup_failed.footnote":
+    "The fix: read the error above, correct the bucket or the access key in the Pupitre app, then run “Back up now” from the server's page.",
+  "alert_backup_incomplete.subject":
+    "The last backup of {server} is incomplete",
+  "alert_backup_incomplete.preview":
+    "Parts of the server could not be backed up.",
+  "alert_backup_incomplete.title": "The last backup of {server} is incomplete",
+  "alert_backup_incomplete.body":
+    "The backup is in your bucket, but without some of its parts: a database that did not dump, a project that did not archive. What is missing would not come back with a restore.",
+  "alert_backup_incomplete.footnote":
+    "The fix: the server's Backups page in the Pupitre app names each missing part and why; correct it, then run “Back up now”.",
+
+  "alert_backup_stale.subject": "{server} is no longer backed up",
+  "alert_backup_stale.preview": "No successful backup for two intervals.",
+  "alert_backup_stale.title": "{server} is no longer backed up",
+  "alert_backup_stale.body":
+    "No backup of this server has succeeded for more than two intervals. If the machine went down now, you would start again from the last successful backup.",
+  "alert_backup_stale.cta": "Open the console",
+  "alert_backup_stale.footnote":
+    "The fix: check that the agent runs with systemctl status pupitred, then run “Back up now” from the server's page in the Pupitre app.",
 
   "alert_entitlement_grace.subject": "{server} is running in grace",
   "alert_entitlement_grace.preview":

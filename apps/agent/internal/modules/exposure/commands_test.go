@@ -98,3 +98,32 @@ func TestAStatusThatCannotBeReadIsAnErrorNotAnAbsence(t *testing.T) {
 		t.Fatalf("sync = %v, want the read error", err)
 	}
 }
+
+// A restore already holds the run: it syncs the exposure that is there through its own contexts, and a machine without one has nothing to sync.
+func TestAResyncReachesTheExposureThatIsThere(t *testing.T) {
+	kept := providers
+	defer func() { providers = kept }()
+
+	synced := ""
+	providers = []provider{
+		{id: caddy.ID, status: func(*modules.Context) (routes.Report, error) { return routes.Report{}, nil }},
+		{id: cloudflare.ID, status: func(*modules.Context) (routes.Report, error) { return routes.Report{Installed: true}, nil }, sync: func(ctx *modules.Context) (routes.Report, error) {
+			synced = ctx.Module()
+
+			return routes.Report{}, nil
+		}},
+	}
+
+	contexts := func(id string) (*modules.Context, bool) {
+		return modtest.NewContext(t, modtest.NewFakeSys(), modtest.Options{Module: id}), true
+	}
+
+	if found, err := Resync(contexts); !found || err != nil || synced != cloudflare.ID {
+		t.Fatalf("found %v, %v, synced %q", found, err, synced)
+	}
+
+	providers = providers[:1]
+	if found, err := Resync(contexts); found || err != nil {
+		t.Fatalf("nothing to sync: found %v, %v", found, err)
+	}
+}

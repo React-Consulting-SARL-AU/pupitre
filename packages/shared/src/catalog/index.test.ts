@@ -255,6 +255,7 @@ describe("module ids", () => {
     expect(MODULE_IDS).toEqual([
       "core.system",
       "core.hardening",
+      "core.backup",
       "runtime.node",
       "runtime.java",
       "runtime.python",

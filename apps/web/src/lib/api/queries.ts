@@ -21,6 +21,8 @@ export const queryKeys = {
   me: ["me"] as const,
   servers: ["servers"] as const,
   server: (id: string) => ["servers", id] as const,
+  serverBackups: (id: string) => ["servers", id, "backups"] as const,
+  backups: ["backups"] as const,
   devices: ["devices"] as const,
   subscription: (organizationId: string) =>
     ["subscription", organizationId] as const,
@@ -101,6 +103,7 @@ export interface AdminEventPageQuery {
 /** The query roots whose answers belong to one organisation and to no other. */
 export const ORGANIZATION_SCOPED_ROOTS = [
   "servers",
+  "backups",
   "subscription",
   "members",
   "events",
@@ -177,6 +180,36 @@ export function serverQueryOptions(id: string) {
     refetchInterval: SERVERS_POLL_INTERVAL_MS,
     refetchIntervalInBackground: false,
   })
+}
+
+async function readBackups() {
+  return unwrap(await api().api.v1.backups.get()).data
+}
+
+export type Backup = Awaited<ReturnType<typeof readBackups>>[number]
+
+export function backupsQueryOptions() {
+  return queryOptions({
+    queryKey: queryKeys.backups,
+    queryFn: readBackups,
+  })
+}
+
+export function serverBackupsQueryOptions(id: string) {
+  return queryOptions({
+    queryKey: queryKeys.serverBackups(id),
+    queryFn: async () =>
+      unwrap(await api().api.v1.servers({ id }).backups.get()).data,
+  })
+}
+
+export function forgetBackup(id: string): Promise<void> {
+  return api()
+    .api.v1.backups({ id })
+    .forget.post()
+    .then((response) => {
+      unwrap(response)
+    })
 }
 
 async function readDevices() {

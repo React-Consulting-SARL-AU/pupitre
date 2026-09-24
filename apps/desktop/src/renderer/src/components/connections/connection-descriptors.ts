@@ -111,6 +111,17 @@ export const CONNECTIONS: readonly ConnectionDescriptor[] = [
     label: "connections.stripe.tokenLabel",
     url: "https://dashboard.stripe.com/apikeys",
   },
+  {
+    intro: "connections.backup.intro",
+    kind: "backup",
+    logo: "core.backup",
+    named: false,
+    title: "connections.backup.title",
+    help: "connections.backup.tokenHelp",
+    hint: "connections.backup.tokenHint",
+    label: "connections.backup.tokenLabel",
+    url: "https://developers.cloudflare.com/r2/api/tokens/",
+  },
 ];
 
 export function descriptorOf(kind: string): ConnectionDescriptor | null {

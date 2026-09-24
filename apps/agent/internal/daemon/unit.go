@@ -30,6 +30,7 @@ WantedBy=multi-user.target
 `
 
 // The outgoing half of the agent runs on its own, apart from the ssh sessions: a client who never opens the app still has his keys and his entitlement up to date.
+// It writes /etc/pupitre for the server id the platform names and the credentials file a scheduled mongodump reads.
 const UnitFile = `[Unit]
 Description=Pupitre agent
 After=network-online.target
@@ -44,7 +45,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 StateDirectory=pupitre
-ReadWritePaths=/var/log /home/dev/.ssh
+ReadWritePaths=/var/log /home/dev/.ssh -/etc/pupitre
 ProtectKernelTunables=true
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 

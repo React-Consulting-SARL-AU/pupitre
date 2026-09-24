@@ -15,6 +15,10 @@ export type AuditAction =
   | "server.restored"
   | "server.updated"
   | "server.alerts_cleared"
+  | "backup.created"
+  | "backup.deleted"
+  | "backup.forgotten"
+  | "backup.restored"
   | "member.invited"
   | "user.banned"
   | "user.unbanned"
@@ -70,6 +74,7 @@ export type AuditAction =
 export type AuditTargetType =
   | "device"
   | "server"
+  | "backup"
   | "user"
   | "organization"
   | "release"

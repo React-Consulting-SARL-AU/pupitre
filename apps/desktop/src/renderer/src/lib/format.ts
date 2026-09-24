@@ -105,6 +105,20 @@ export function clock(iso: string): string {
   }).format(moment);
 }
 
+/** A day and a time someone dated, on the reader's calendar; a date it cannot read is shown as it came. */
+export function dated(iso: string): string {
+  const moment = new Date(iso);
+
+  if (Number.isNaN(moment.getTime())) {
+    return iso;
+  }
+
+  return new Intl.DateTimeFormat(currentLocale(), {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(moment);
+}
+
 const BYTES_PER_KB = 1024;
 
 /** A file's weight, the way a reader judges whether it is worth keeping. */

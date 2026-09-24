@@ -1,5 +1,6 @@
 import type { MeSubscription } from "@pupitre/shared/plans";
 import type { AccountDevice, AccountIdentity } from "@shared/account";
+import type { PlatformBackup } from "@shared/backups";
 import type { FleetServer } from "@shared/servers";
 import type { Sealer } from "../../account-vault";
 import type {
@@ -68,6 +69,7 @@ export interface FakePlatformOptions {
   latest?: { version: string; sha256: string; signature: string };
   binary?: Uint8Array;
   servers?: FleetServer[];
+  backups?: PlatformBackup[];
 }
 
 export interface FakePlatform extends PlatformClient {
@@ -79,6 +81,8 @@ export interface FakePlatform extends PlatformClient {
   deletions: string[];
   /** The devices revoked, in order. */
   revokedDevices: string[];
+  /** The restorations noted, as `<backup> on <server>`. */
+  restored: string[];
 }
 
 const READY_RELEASE: EnrollBody["release"] = {
@@ -98,6 +102,7 @@ export function fakePlatform(options: FakePlatformOptions = {}): FakePlatform {
   const switched: string[] = [];
   const deletions: string[] = [];
   const revokedDevices: string[] = [];
+  const restored: string[] = [];
 
   function seen<T>(token: string, result: T) {
     seenTokens.push(token);
@@ -110,9 +115,26 @@ export function fakePlatform(options: FakePlatformOptions = {}): FakePlatform {
     baseUrl: "https://app.pupitre.test",
     deletions,
     enrolled,
+    restored,
     revokedDevices,
     seenTokens,
     switched,
+
+    backups: (token, serverId) =>
+      Promise.resolve(
+        seen(
+          token,
+          (options.backups ?? []).filter(
+            (backup) => !serverId || backup.server_id === serverId
+          )
+        )
+      ),
+
+    backupRestored: (token, backupId, serverId) => {
+      restored.push(`${backupId} on ${serverId}`);
+
+      return Promise.resolve(seen(token, null));
+    },
 
     deviceCode: () =>
       Promise.resolve({

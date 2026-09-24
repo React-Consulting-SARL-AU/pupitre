@@ -1,3 +1,4 @@
+import type { BackupBeat } from "@pupitre/shared/backup"
 import { getPrisma } from "../api/prisma"
 import {
   type EntitlementState,
@@ -29,6 +30,7 @@ export interface AgentState {
   target_version: string | null
   minimum_version: string | null
   hostname: string
+  server_id: string
 }
 
 export interface HeartbeatInput {
@@ -44,6 +46,7 @@ export interface HeartbeatInput {
   disk_free_gb?: number
   ram_total_mb?: number
   ram_used_mb?: number
+  backup?: BackupBeat
 }
 
 function horizonMoved(stored: Date | null, computed: Date): boolean {
@@ -81,6 +84,7 @@ export async function readAgentState(input: ServerRow): Promise<AgentState> {
     target_version: targetVersion,
     minimum_version: server.agentVersion,
     hostname: server.host ?? server.name,
+    server_id: server.id,
   }
 }
 
@@ -117,6 +121,7 @@ export async function recordHeartbeat(
       agentVersion: input.agent_version ?? server.agentVersion,
       sshUser: input.ssh_user ?? server.sshUser,
       lastUsage: toStoredUsage(toUsage(sample)),
+      backup: input.backup,
     },
   })
 

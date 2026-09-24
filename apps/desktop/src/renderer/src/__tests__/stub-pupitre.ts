@@ -1,3 +1,4 @@
+import { NO_CONNECTIONS } from "@shared/connections";
 import type { PupitreApi } from "../../../preload";
 
 /**
@@ -15,17 +16,7 @@ const QUIET: Partial<PupitreApi> = {
   checkInstall: () =>
     Promise.resolve({ ok: true, result: { problems: [], warnings: [] } }),
   closeTerminal: () => undefined,
-  connectionsState: () =>
-    Promise.resolve({
-      "1password": { status: "absent" },
-      cloudflare: { status: "absent" },
-      github: { status: "absent" },
-      neon: { status: "absent" },
-      stripe: { status: "absent" },
-      supabase: { status: "absent" },
-      vercel: { status: "absent" },
-      wrangler: { status: "absent" },
-    }),
+  connectionsState: () => Promise.resolve(NO_CONNECTIONS),
   devDefaults: () => Promise.resolve(null),
   fleet: () =>
     Promise.resolve({

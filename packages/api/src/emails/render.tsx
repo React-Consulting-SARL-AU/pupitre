@@ -6,6 +6,8 @@ import { consolePath } from "./config"
 import { formatDate, formatDateTime } from "./format"
 import { type EmailMessageKey, type EmailParams, translateEmail } from "./i18n"
 import { AlertAgentOutdatedEmail } from "./templates/alert-agent-outdated"
+import { AlertBackupFailedEmail } from "./templates/alert-backup-failed"
+import { AlertBackupStaleEmail } from "./templates/alert-backup-stale"
 import { AlertDiskHighEmail } from "./templates/alert-disk-high"
 import { AlertEntitlementGraceEmail } from "./templates/alert-entitlement-grace"
 import { AlertServerUnreachableEmail } from "./templates/alert-server-unreachable"
@@ -412,6 +414,67 @@ export function renderAlertAgentOutdatedEmail({
     <AlertAgentOutdatedEmail
       agentVersion={agentVersion}
       latestVersion={latestVersion}
+      locale={locale}
+      serverName={serverName}
+      url={consolePath("/dashboard/servers")}
+    />
+  )
+}
+
+export interface AlertBackupFailedInput {
+  locale: Locale
+  serverName: string
+  lastError: string | null
+  missing: number
+  lastRunAt: Date | null
+}
+
+export function renderAlertBackupFailedEmail({
+  locale,
+  serverName,
+  lastError,
+  missing,
+  lastRunAt,
+}: AlertBackupFailedInput): Promise<RenderedEmail> {
+  const incomplete = !lastError && missing > 0
+
+  return compose(
+    locale,
+    incomplete
+      ? "alert_backup_incomplete.subject"
+      : "alert_backup_failed.subject",
+    { server: serverName },
+    <AlertBackupFailedEmail
+      lastError={lastError}
+      lastRun={lastRunAt ? formatDateTime(locale, lastRunAt) : "—"}
+      locale={locale}
+      missing={missing}
+      serverName={serverName}
+      url={consolePath("/dashboard/servers")}
+    />
+  )
+}
+
+export interface AlertBackupStaleInput {
+  locale: Locale
+  serverName: string
+  lastOkAt: Date | null
+  intervalHours: number
+}
+
+export function renderAlertBackupStaleEmail({
+  locale,
+  serverName,
+  lastOkAt,
+  intervalHours,
+}: AlertBackupStaleInput): Promise<RenderedEmail> {
+  return compose(
+    locale,
+    "alert_backup_stale.subject",
+    { server: serverName },
+    <AlertBackupStaleEmail
+      intervalHours={intervalHours}
+      lastOk={lastOkAt ? formatDateTime(locale, lastOkAt) : "—"}
       locale={locale}
       serverName={serverName}
       url={consolePath("/dashboard/servers")}

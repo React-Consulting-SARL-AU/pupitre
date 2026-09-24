@@ -239,6 +239,23 @@ func (r *Reader) GitStatus(name string) (contract.ProjectGitStatus, error) {
 	return status, nil
 }
 
+// Held is what a working tree holds that its remote may not; it never fetches, a backup reads the machine and not the network.
+func (r *Reader) Held(name string) (contract.BackupGitState, bool) {
+	project, top, err := r.top(name)
+	if err != nil || top == "" {
+		return contract.BackupGitState{}, false
+	}
+
+	branch, _ := r.git(top, "rev-parse", "--abbrev-ref", "HEAD")
+
+	return contract.BackupGitState{
+		Repo:   project.Contract(r.options.Paths.Resolved().Projects).Repo,
+		Branch: branch,
+		Dirty:  len(r.porcelain(top, "--untracked-files=all")),
+		Ahead:  number(r.line(top, "rev-list", "--count", "HEAD", "--not", "--remotes")),
+	}, true
+}
+
 func (r *Reader) fetch(top string) string {
 	out, err := sys.Exec(r.ctx(), r.fetchCommand(top, "fetch", "--quiet", "--prune"))
 	if err == nil {

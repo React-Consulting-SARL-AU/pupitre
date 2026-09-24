@@ -63,6 +63,7 @@ const ORGANIZATION_SCOPED_MODELS = new Set<string>([
   "Member",
   "Invitation",
   "Server",
+  "Backup",
   "Subscription",
   "OrganizationBilling",
   "Event",

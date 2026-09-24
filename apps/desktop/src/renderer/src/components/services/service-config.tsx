@@ -11,8 +11,9 @@ import type { ModuleProgress } from "@renderer/lib/module-progress";
 import type { ApplyState, ConfigState } from "@renderer/stores/services";
 import type { CloudflareZone } from "@shared/cloudflare";
 import type { SecretMarks } from "@shared/secrets";
-import { RefreshCw, Undo2 } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { ServiceConfigField } from "./service-config-field";
+import { ServiceConfigFooter } from "./service-config-footer";
 import { ServiceConfigOutcome } from "./service-config-outcome";
 
 /**
@@ -165,38 +166,13 @@ export function ServiceConfig({
             </div>
           )}
 
-          <div className="flex flex-wrap items-center gap-3 border-line border-t px-6 py-4">
-            {refused.length > 0 ? (
-              <span className="text-[12px] text-danger" data-config-refused="">
-                {t.plural("services.config.refused", refused.length)}
-              </span>
-            ) : null}
-
-            <div className="ml-auto flex flex-wrap items-center gap-2">
-              {dirty && !accountOnly && onDiscard ? (
-                <Button
-                  disabled={running}
-                  icon={Undo2}
-                  onClick={onDiscard}
-                  size="sm"
-                  variant="discreet"
-                >
-                  {t("services.config.discard")}
-                </Button>
-              ) : null}
-
-              <Button
-                disabled={running || !(dirty || accountOnly)}
-                icon={RefreshCw}
-                loading={running}
-                size="sm"
-                submit
-                variant="inverse"
-              >
-                {t("services.config.apply")}
-              </Button>
-            </div>
-          </div>
+          <ServiceConfigFooter
+            applicable={accountOnly}
+            dirty={dirty && !accountOnly}
+            onDiscard={onDiscard}
+            refused={refused.length}
+            running={running}
+          />
         </form>
       ) : null}
 

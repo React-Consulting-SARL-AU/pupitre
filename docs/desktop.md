@@ -49,6 +49,16 @@ Un fichier lourd ne passe pas par le canal de l'agent. `transfers-run.ts` lance 
 
 L'ordre est une machine, les écrans dessinent. `stores/onboarding-machine.ts` dit quelle étape suit quelle réponse et ce qu'entrer dans une étape déclenche ; le store exécute les effets. Aucun écran de l'onboarding n'agit dans un `useEffect`, et une étape ne se rejoint que par un événement qui la justifie.
 
+Entrer dans l'inspection demande aussi à la plateforme les sauvegardes de l'organisation (`backupsListed`) : quand elle en a, l'agent mène à l'étape « Repartir d'une sauvegarde ? » plutôt qu'au catalogue. Une sauvegarde prise (`restored`) ouvre le catalogue et la configuration sur ce qu'elle tenait, lu par `module.config` ; les secrets que la machine tient déjà comptent pour donnés et ne sont ni redemandés ni régénérés. Revenir au choix abandonne la restauration (`backup.restore.abort`). Après la sécurité, une machine restaurée passe par l'étape « Données » avant d'être prête.
+
+## Les sauvegardes
+
+Le contrat est [`contracts/backups.md`](./contracts/backups.md). La connexion « Sauvegardes (S3) » garde les réglages du seau et la clé publique dans `backup.json`, la clé secrète dans `safeStorage` comme tout jeton ; la phrase de passe traverse le pont une fois, est dérivée dans le main (`@pupitre/shared/backup/crypto`) et n'est gardée nulle part. Un premier ordinateur choisit la phrase ; les suivants reprennent la clé publique et le sel de la dernière sauvegarde que la plateforme liste. Une phrase tirée par l'app ne s'enregistre qu'une fois cochée « notée ailleurs ». Avant de garder quoi que ce soit, le main écrit puis efface un petit objet `<prefix>/.pupitre-probe-<hasard>` avec une requête signée SigV4 (`src/main/s3.ts`, `node:crypto`, vérifié sur l'exemple de référence d'AWS) : seau inconnu, droit d'écrire ou d'effacer manquant, identifiant ou clé secrète faux, point d'accès muet, horloge décalée ont chacun leur phrase sous le formulaire. Le point d'accès n'est accepté qu'en `https://`. La connexion tenue montre une empreinte courte de la clé publique (seize chiffres hexadécimaux du SHA-256 du destinataire), la même sur chaque ordinateur de l'organisation.
+
+Restaurer passe par `backup:restore-setup` puis `backup:restore-data` (`src/main/backups.ts`, déroulé dans `backups-run.ts`) : la phrase est vérifiée sur ce laptop contre la clé publique de la sauvegarde avant que rien ne parte, puis la clé S3 et la clé privée dérivée partent sur la ligne de secrets. Entre la configuration et les données — l'installation et le durcissement courent entre les deux — le main tient la clé privée en mémoire pour ce serveur, et la met à zéro une fois les données revenues ou la restauration abandonnée ; un app relancée entre-temps redemande la phrase. Pendant ce temps, une connexion que ce laptop n'a pas ne bloque pas l'installation d'un module restauré : ses valeurs gérées sont déjà sur la machine.
+
+La page « Sauvegardes » d'un serveur lit `backup.status`, `backup.contents` et la liste de la plateforme. Les réglages de `core.backup` s'y dessinent pour ce qu'ils veulent dire — « Fréquence et rétention », puis « Contenu des sauvegardes » : chaque base et chaque projet que le serveur tient, cochés par défaut ; décocher un élément l'ajoute à `exclude_databases` ou `exclude_projects`, et une exclusion qui nomme un élément disparu reste affichée, décochée, plutôt que d'être perdue — sur le même brouillon du store `services` et le même Appliquer que la page d'un service. « Revenir à cette sauvegarde » enchaîne, chaque phase dite : sauvegarde de l'état actuel (cochée par défaut), configuration, installation, choix des modules que la sauvegarde ne tient pas, données, `platform.sync` et note de la restauration sur la plateforme.
+
 ## La trace en développement
 
 `trace.ts` écrit ce que fait le processus principal — chaque `ssh`, chaque commande de l'agent, chaque phase d'un enrôlement — sur la sortie du processus principal et dans la console de la fenêtre. Rien dans un build empaqueté ; `PUPITRE_TRACE=1` l'allume ailleurs. Aucune valeur dont le nom sent le secret n'y est écrite.
@@ -61,7 +71,7 @@ src/preload/     index.ts — la surface IPC, typée
 src/renderer/src/
   components/ui/          Base UI + shadcn, un composant par fichier
   components/shell/       barre latérale et son volet des transferts, écrans de garde (premier lancement, aucun serveur, serveur restreint ou non prêt), frontière d'erreur
-  components/onboarding/  le parcours : serveur · inspection · agent · config · durcissement · fin, et son rail
+  components/onboarding/  le parcours : serveur · inspection · agent · sauvegarde · config · durcissement · données · fin, et son rail
   components/catalog/     choix des modules et des presets
   components/config/      le formulaire d'un module : champs, secrets, listes, bloc de connexion
   components/install/     progression, journal, rapport
@@ -74,12 +84,13 @@ src/renderer/src/
   components/activity/    sessions et processus
   components/fleet/       les organisations et leurs serveurs
   components/shots/       la galerie
+  components/backups/     les sauvegardes d'un serveur : état, réglages, liste, sauvegarde immédiate, retour à une sauvegarde
   components/files/       le navigateur de fichiers et l'éditeur basique : liste d'un dossier, fil d'Ariane, menu d'une entrée, aperçu, CodeMirror sur la palette ANSI du terminal
   components/updates/     bandeau et notes de mise à jour de l'agent, migration de sa configuration, mise à niveau des modules
   components/account/     connexion, identité, usage, abonnement
   components/settings/    apparence, connexions, terminal, notifications, démarrage, à propos (version, canal, mise à jour de l'app)
   components/help/        la vue « Aide » (bas de la barre latérale) : comment ssh, Claude Code, Codex et les éditeurs joignent le serveur piloté, avec ses valeurs lues du fichier SSH de l'app (`ssh-share:state`) et les modules du snapshot
-  stores/                 un store Zustand par sujet : servers · snapshot · onboarding et onboarding-machine (l'ordre, pur) · install · harden · inspection · catalog · connections · services · project · project-add · files · transfers · terminals · shots · fleet · account · agent-update · app-update · preferences · reenroll · tunnel · channel · announcements · navigation · locale · theme
+  stores/                 un store Zustand par sujet : servers · snapshot · onboarding et onboarding-machine (l'ordre, pur) · install · harden · inspection · catalog · connections · services · project · project-add · files · transfers · terminals · shots · backups · backup-connection · restore · fleet · account · agent-update · app-update · preferences · reenroll · tunnel · channel · announcements · navigation · locale · theme
   lib/                    fonctions pures et hooks : format, duration, memory (navigation), completion, terminals, remedy, refusals, roles, use-pending, use-history-shortcuts…
   i18n/strings/           les textes, un fichier par sujet, `en` et `fr`
 ```

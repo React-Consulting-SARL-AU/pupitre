@@ -1,0 +1,97 @@
+---
+title: Backups
+description: What a backup holds, setting up your own S3 bucket, the passphrase, and restoring a server.
+locale: en
+section: daily
+sectionOrder: 2
+order: 10
+---
+
+A backup is what it takes to rebuild a Pupitre server elsewhere, or put it back the way it was yesterday. The agent makes it, encrypts it, and sends it to a bucket that is yours. Pupitre keeps only its address and a summary.
+
+## What a backup holds
+
+- **Configuration and module secrets** — the catalogue, its settings, and the tokens and passwords each module keeps.
+- **Databases** — a dump per database, PostgreSQL roles, and the Redis snapshot.
+- **Projects as they are** — the whole folder, `.git` and uncommitted work included.
+- **The dev account** — its SSH keys and coding-agent sessions.
+- **Extra folders** you name under `/home/dev`.
+
+## What it doesn't hold
+
+Binaries, runtimes and project dependencies — reinstalled, not restored. Docker volumes. Host keys and `authorized_keys`: a restored server is a different machine, with its own identity.
+
+## Cost
+
+A backup is stored in your own bucket; Pupitre keeps only a reference to it, never its content. On Cloudflare R2, the current published free tier covers 10 GB-month of storage and charges no egress — what you pay depends on your bucket's size and your provider's published rates.
+
+## Setting up Cloudflare R2
+
+1. Create a bucket in the Cloudflare dashboard.
+2. Go to **R2 › Manage API tokens** and create a token scoped to **Object Read & Write**, limited to that bucket.
+3. Note the **Access Key ID**, the **Secret Access Key**, and the S3 endpoint `https://<account id>.r2.cloudflarestorage.com`. The region is `auto`.
+4. Paste them in the app with the bucket name, under **Settings › Connections › Backups (S3)**.
+
+## Using AWS S3 instead
+
+Create a bucket and an IAM user with a policy limited to it:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:ListBucket"],
+      "Resource": "arn:aws:s3:::your-bucket"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "s3:AbortMultipartUpload",
+        "s3:ListMultipartUploadParts"
+      ],
+      "Resource": "arn:aws:s3:::your-bucket/*"
+    }
+  ]
+}
+```
+
+The endpoint is `https://s3.<region>.amazonaws.com`. Any other S3-compatible provider works the same way: a bucket, a key scoped to it, and its endpoint.
+
+## The passphrase
+
+You choose a passphrase once, type it once, and it is derived into an encryption key on your laptop — never stored, by the app, by the server, or by Pupitre. Backups are encrypted on the server to the public half of that key; the server itself cannot read them.
+
+You need the passphrase again only to restore, and you can type it from any computer. If it is lost, the backups it protects are unreadable, and nobody — not Pupitre, not support — can recover it. A second computer of the same organisation reuses the existing key and does not ask for the passphrase again, unless you are restoring from it.
+
+## Settings
+
+On the server's own page, under Backups: the interval in hours (0 keeps backups on demand only), the hour scheduled backups start, how many scheduled backups to keep — manual ones stay until you delete them — and what to include. **Back up now** runs one immediately.
+
+What to include is chosen item by item: every project and every database of the server is listed with a box, all ticked by default. Untick a database you already keep safe elsewhere, or a project you don't need back; a project or a database created later is backed up until you untick it. A switch turns a whole category off.
+
+What a restore does with an item left out: on a new server, a project with a repository is cloned — its code comes back, not its work in progress — and one without a repository is left out; a database left out is not created. On a server taken back to a backup, what was left out stays as it is.
+
+## Restoring
+
+**Onboarding a new or reinstalled server.** When your organisation already has backups, the app asks "Start from a backup?" before you touch the catalogue.
+
+**Reverting an existing server.** The app offers a backup of the current state first, so a revert can itself be undone. Modules the chosen backup does not have can be uninstalled; projects it does not know leave the list, but their folders stay on disk.
+
+Either way, the projects the backup describes run again once the restore ends.
+
+## Recommendation
+
+Whoever holds the S3 key can delete what is in the bucket. Turn on object versioning or object lock on it, so a deleted or overwritten backup is still there to recover.
+
+Whoever can read the bucket can also read each backup's manifest, which is not encrypted: the server's name, the names of its projects, databases and folders, and the address and branch of each repository. Nothing inside them — no file, no data, no secret — can be read without your passphrase. Keep the bucket private, which R2 and S3 buckets are by default.
+
+The app only accepts an `https://` endpoint: over plain HTTP, the signature of every request would cross the network in clear.
+
+## Opening a backup without Pupitre
+
+`pupitred backup open` reads a backup on its own, given the file and the passphrase — for the day you want to look inside one without the app.

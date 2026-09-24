@@ -203,6 +203,7 @@ export function answerOnboarding(
 
       answer("connections:state", () => ({
         "1password": { status: "absent" },
+        backup: { status: "absent" },
         cloudflare: { status: "absent" },
         github: { status: "absent" },
         neon: { status: "absent" },

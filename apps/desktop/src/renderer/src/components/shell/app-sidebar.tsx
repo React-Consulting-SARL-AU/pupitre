@@ -16,6 +16,7 @@ import {
   Activity,
   Boxes,
   CircleHelp,
+  DatabaseBackup,
   Files,
   FolderPlus,
   Images,
@@ -129,6 +130,13 @@ export function AppSidebar({
           onClick={() => onView("files")}
         >
           {t("shell.sidebar.files")}
+        </SidebarEntry>
+        <SidebarEntry
+          active={view === "backups"}
+          bullet={<DatabaseBackup size={14} strokeWidth={1.5} />}
+          onClick={() => onView("backups")}
+        >
+          {t("shell.sidebar.backups")}
         </SidebarEntry>
       </SidebarGroup>
 

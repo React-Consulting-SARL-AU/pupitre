@@ -24,7 +24,9 @@ type Options struct {
 	// binary. Nil is a server with no ledger to consult — a test, a direct
 	// call — and its commands are gated by the entitlement alone.
 	Config func() contract.ConfigRevision
-	Now    func() time.Time
+	// ServerID names this server on the platform once the daemon has read it; empty says nothing yet.
+	ServerID func() string
+	Now      func() time.Time
 }
 
 type Server struct {

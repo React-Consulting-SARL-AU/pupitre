@@ -90,6 +90,14 @@ export const connections = {
     "connections.stripe.tokenHint":
       "A restricted key, in test mode, created in Developers › API keys. Never the live secret key: the CLI listens to webhooks and forwards them, nothing more.",
 
+    "connections.backup.title": "Backups (S3)",
+    "connections.backup.intro":
+      "The bucket every server of the organization sends its encrypted backups to: Cloudflare R2, AWS S3, or any S3-compatible storage.",
+    "connections.backup.tokenLabel": "Secret access key",
+    "connections.backup.tokenHelp": "Kept in this computer's keychain.",
+    "connections.backup.tokenHint":
+      "An access key limited to this bucket, with read and write rights. On R2: R2 › Manage API tokens › Object Read & Write.",
+
     "connections.accounts.label": "Account",
     "connections.accounts.help":
       "This token opens several accounts. Pupitre acts on one: its zones are offered for a domain, its tunnel is created, its identifier is what Wrangler deploys to.",
@@ -193,6 +201,15 @@ export const connections = {
       "Gardée dans le trousseau de cet ordinateur.",
     "connections.stripe.tokenHint":
       "Une clé restreinte, en mode test, créée dans Developers › API keys. Jamais la clé secrète de production : le CLI écoute les webhooks et les relaie, rien de plus.",
+
+    "connections.backup.title": "Sauvegardes (S3)",
+    "connections.backup.intro":
+      "Le seau où chaque serveur de l'organisation dépose ses sauvegardes chiffrées : Cloudflare R2, AWS S3, ou tout stockage compatible S3.",
+    "connections.backup.tokenLabel": "Clé d'accès secrète",
+    "connections.backup.tokenHelp":
+      "Gardée dans le trousseau de cet ordinateur.",
+    "connections.backup.tokenHint":
+      "Une clé d'accès limitée à ce seau, en lecture et écriture. Sur R2 : R2 › Manage API tokens › Object Read & Write.",
 
     "connections.accounts.label": "Compte",
     "connections.accounts.help":

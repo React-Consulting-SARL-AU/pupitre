@@ -65,6 +65,7 @@ export const ModelName = {
   Server: 'Server',
   ServerMetric: 'ServerMetric',
   Alert: 'Alert',
+  Backup: 'Backup',
   ServerRevokedDevice: 'ServerRevokedDevice',
   Subscription: 'Subscription',
   OrganizationBilling: 'OrganizationBilling',
@@ -301,6 +302,7 @@ export const ServerScalarFieldEnum = {
   pendingAssignmentEmail: 'pendingAssignmentEmail',
   lastHeartbeatAt: 'lastHeartbeatAt',
   lastUsage: 'lastUsage',
+  backup: 'backup',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -328,6 +330,33 @@ export const AlertScalarFieldEnum = {
 } as const
 
 export type AlertScalarFieldEnum = (typeof AlertScalarFieldEnum)[keyof typeof AlertScalarFieldEnum]
+
+
+export const BackupScalarFieldEnum = {
+  id: 'id',
+  backupId: 'backupId',
+  organizationId: 'organizationId',
+  serverId: 'serverId',
+  serverName: 'serverName',
+  createdAt: 'createdAt',
+  declaredAt: 'declaredAt',
+  trigger: 'trigger',
+  bytes: 'bytes',
+  counts: 'counts',
+  configRevision: 'configRevision',
+  agentVersion: 'agentVersion',
+  recipient: 'recipient',
+  kdfSalt: 'kdfSalt',
+  endpoint: 'endpoint',
+  region: 'region',
+  bucket: 'bucket',
+  key: 'key',
+  pathStyle: 'pathStyle',
+  manifestSha256: 'manifestSha256',
+  forgottenAt: 'forgottenAt'
+} as const
+
+export type BackupScalarFieldEnum = (typeof BackupScalarFieldEnum)[keyof typeof BackupScalarFieldEnum]
 
 
 export const ServerRevokedDeviceScalarFieldEnum = {

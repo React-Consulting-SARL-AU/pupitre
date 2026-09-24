@@ -38,6 +38,7 @@ func grammar() []contract.SubCommand {
 		{Name: "branch", Help: i18n.T("devcli.branch.help"), Args: [][]string{{ProjectToken}, {JSONFlag}}},
 		{Name: "db", Help: i18n.T("devcli.db.help"), Args: [][]string{{"url", "shell", "dump", "import"}, {"mysql", "postgres", "mongodb"}, {JSONFlag}}},
 		{Name: "doctor", Help: i18n.T("devcli.doctor.help"), Args: [][]string{{JSONFlag}}},
+		{Name: "backup", Help: i18n.T("devcli.backup.help"), Args: [][]string{{"now", "status"}, {JSONFlag}}},
 	}
 }
 
@@ -58,6 +59,7 @@ var forms = map[string]string{
 	"attach":  "<project> [process]",
 	"branch":  "[project] [branch]",
 	"db":      "<url|shell|dump|import> [engine]",
+	"backup":  "<now|status>",
 }
 
 func Usage() string {

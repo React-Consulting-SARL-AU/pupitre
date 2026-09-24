@@ -1,4 +1,8 @@
 import type { CommandName } from "@pupitre/shared/agent-protocol";
+import type {
+  BackupRestoreDataResult,
+  BackupRestoreSetupResult,
+} from "@pupitre/shared/agent-protocol/backup";
 import type { Event } from "@pupitre/shared/agent-protocol/envelope";
 import type {
   CatalogResult,
@@ -52,6 +56,14 @@ import type {
 } from "@shared/agent-update";
 import type { AppAbout, AppUpdateState } from "@shared/app-update";
 import type { Appearance } from "@shared/appearance";
+import type {
+  BackupConnectionInput,
+  BackupConnectionView,
+  OrganizationIdentity,
+  PlatformBackup,
+  RestoreSetupOptions,
+  RestoreUpdate,
+} from "@shared/backups";
 import type { CloudflareZone } from "@shared/cloudflare";
 import type {
   ConnectionCheck,
@@ -437,6 +449,76 @@ const api = {
   /** The zones the connected account carries, read fresh rather than remembered. */
   connectionZones: (): Promise<AgentResponse<CloudflareZone[]>> =>
     ipcRenderer.invoke("connections:zones"),
+  /**
+   * The bucket backups go to, and the public key they are encrypted to.
+   *
+   * The secret access key goes to the keychain and never comes back; the
+   * passphrase crosses once, is derived in the main process and kept nowhere.
+   */
+  backupConnection: (): Promise<BackupConnectionView | null> =>
+    ipcRenderer.invoke("backup:connection"),
+  /** The identity of the organization's latest backup, which a second computer adopts. */
+  backupIdentity: (): Promise<AgentResponse<OrganizationIdentity | null>> =>
+    ipcRenderer.invoke("backup:identity"),
+  connectBackup: (
+    input: BackupConnectionInput
+  ): Promise<AgentResponse<BackupConnectionView>> =>
+    ipcRenderer.invoke("backup:connect", input),
+  /** The backups the platform lists: one server's, or the organization's with `null`. */
+  listBackups: (
+    serverId: string | null
+  ): Promise<AgentResponse<PlatformBackup[]>> =>
+    ipcRenderer.invoke("backup:list", serverId),
+  /**
+   * A backup's configuration, put on a machine once its passphrase is checked
+   * on this computer. The updates say when the check passed and what a save
+   * made first is doing.
+   */
+  restoreBackupSetup: (
+    serverId: string,
+    backupId: string,
+    passphrase: string,
+    options: RestoreSetupOptions,
+    onUpdate: (update: RestoreUpdate) => void
+  ): Promise<AgentResponse<BackupRestoreSetupResult>> =>
+    streamedToEnd<
+      AgentResponse<BackupRestoreSetupResult>,
+      { update: RestoreUpdate }
+    >(
+      "backup:restore-setup",
+      "backup:restore-update",
+      (payload) => onUpdate(payload.update),
+      serverId,
+      backupId,
+      passphrase,
+      options
+    ),
+  /** The data parts brought back; the passphrase only when this run of the app never held the key. */
+  restoreBackupData: (
+    serverId: string,
+    backupId: string,
+    parts: readonly string[],
+    passphrase: string | null,
+    onEvent: (event: Event) => void
+  ): Promise<AgentResponse<BackupRestoreDataResult>> =>
+    streamedToEnd<
+      AgentResponse<BackupRestoreDataResult>,
+      { update: RestoreUpdate }
+    >(
+      "backup:restore-data",
+      "backup:restore-update",
+      (payload) => {
+        if (payload.update.kind === "event") {
+          onEvent(payload.update.event);
+        }
+      },
+      serverId,
+      backupId,
+      parts,
+      passphrase
+    ),
+  abortRestore: (serverId: string): Promise<AgentResponse<{ done: true }>> =>
+    ipcRenderer.invoke("backup:restore-abort", serverId),
   /**
    * The repositories of the connected GitHub account.
    *

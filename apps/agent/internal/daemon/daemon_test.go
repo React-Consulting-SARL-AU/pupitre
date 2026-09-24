@@ -41,7 +41,8 @@ type fakePlatform struct {
 	refuseCode string
 	refused    func()
 
-	echo bool
+	echo     bool
+	serverID string
 
 	states int
 	beats  []platform.Heartbeat
@@ -77,6 +78,7 @@ func (p *fakePlatform) serve() *httptest.Server {
 				"authorized_keys": p.authorized,
 				"target_version":  p.target,
 				"hostname":        "vps",
+				"server_id":       p.serverID,
 			})
 		case "/agent/heartbeat":
 			var beat platform.Heartbeat
@@ -432,7 +434,7 @@ func TestTheUnitConfinesTheDaemon(t *testing.T) {
 	for _, directive := range []string{
 		"ProtectSystem=strict",
 		"StateDirectory=pupitre",
-		"ReadWritePaths=/var/log /home/dev/.ssh",
+		"ReadWritePaths=/var/log /home/dev/.ssh -/etc/pupitre",
 		"ProtectKernelTunables=true",
 		"RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX",
 		"NoNewPrivileges=true",

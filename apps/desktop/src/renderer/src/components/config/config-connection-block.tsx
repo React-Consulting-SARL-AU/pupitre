@@ -3,6 +3,7 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { useConnections } from "@renderer/stores/connections";
 import { useEffect } from "react";
 import { useCatalog } from "../../stores/catalog";
+import { BackupConnectionCard } from "../connections/backup-connection-card";
 import { ConnectionCard } from "../connections/connection-card";
 import { descriptorOf } from "../connections/connection-descriptors";
 import { ConfigZoneField } from "./config-zone-field";
@@ -55,7 +56,11 @@ export function ConfigConnectionBlock({ module }: { module: Manifest }) {
         </p>
       )}
 
-      <ConnectionCard compact connection={connection} />
+      {connection.kind === "backup" ? (
+        <BackupConnectionCard compact connection={connection} />
+      ) : (
+        <ConnectionCard compact connection={connection} />
+      )}
 
       {picksZone && zones.length > 0 ? (
         <ConfigZoneField

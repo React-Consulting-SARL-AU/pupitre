@@ -1,0 +1,313 @@
+// Package archive turns a tree of the dev account into a tar and back, never writing outside the folder it restores into.
+package archive
+
+import (
+	"archive/tar"
+	"crypto/sha256"
+	"encoding/hex"
+	"errors"
+	"fmt"
+	"io"
+	"io/fs"
+	"os"
+	"path"
+	"path/filepath"
+	"slices"
+	"strings"
+	"time"
+)
+
+// Source is what one archive holds: entries under Root, each a relative path, and what Skip leaves out wherever it lies.
+type Source struct {
+	Root    string
+	Entries []string
+	Skip    func(rel string, dir bool) bool
+}
+
+// Whole is the entry that names the root itself.
+const Whole = "."
+
+// ExcludingDirs leaves out every folder with one of these names, at any depth.
+func ExcludingDirs(names []string) func(string, bool) bool {
+	return func(rel string, dir bool) bool {
+		return dir && slices.Contains(names, path.Base(rel))
+	}
+}
+
+// ExcludingPaths leaves out these exact paths.
+func ExcludingPaths(paths []string) func(string, bool) bool {
+	return func(rel string, _ bool) bool {
+		return slices.Contains(paths, rel)
+	}
+}
+
+type visit func(rel, full string, info fs.FileInfo, target string) error
+
+// walk goes over what the source holds in lexical order, the same walk for the archive and for its fingerprint.
+func (s Source) walk(each visit) error {
+	for _, entry := range s.Entries {
+		start := filepath.Join(s.Root, filepath.FromSlash(entry))
+
+		if _, err := os.Lstat(start); errors.Is(err, fs.ErrNotExist) {
+			continue
+		}
+
+		err := filepath.WalkDir(start, func(full string, entry fs.DirEntry, err error) error {
+			if err != nil {
+				if errors.Is(err, fs.ErrNotExist) {
+					return nil
+				}
+
+				return err
+			}
+
+			rel, err := filepath.Rel(s.Root, full)
+			if err != nil {
+				return err
+			}
+			rel = filepath.ToSlash(rel)
+
+			if rel != Whole && s.Skip != nil && s.Skip(rel, entry.IsDir()) {
+				if entry.IsDir() {
+					return filepath.SkipDir
+				}
+
+				return nil
+			}
+
+			info, err := entry.Info()
+			if errors.Is(err, fs.ErrNotExist) {
+				return nil
+			}
+			if err != nil {
+				return err
+			}
+
+			return s.visit(rel, full, info, each)
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// A link is kept only when what it names stays under the root; sockets, pipes and devices never are.
+func (s Source) visit(rel, full string, info fs.FileInfo, each visit) error {
+	switch {
+	case info.Mode()&fs.ModeSymlink != 0:
+		target, err := os.Readlink(full)
+		if err != nil || !Inside(s.Root, rel, target) {
+			return nil
+		}
+
+		return each(rel, full, info, target)
+	case info.IsDir(), info.Mode().IsRegular():
+		return each(rel, full, info, "")
+	}
+
+	return nil
+}
+
+// Inside says whether a link at rel, under root, points somewhere under root.
+func Inside(root, rel, target string) bool {
+	resolved := target
+	if !filepath.IsAbs(target) {
+		resolved = filepath.Join(root, filepath.Dir(filepath.FromSlash(rel)), target)
+	}
+
+	cleanRoot := filepath.Clean(root)
+	resolved = filepath.Clean(resolved)
+
+	return resolved == cleanRoot || strings.HasPrefix(resolved, cleanRoot+string(filepath.Separator))
+}
+
+// Write archives the source into w. A file that grows or shrinks while it is read is cut or padded to the size its header announced.
+func Write(w io.Writer, source Source) error {
+	archive := tar.NewWriter(w)
+
+	err := source.walk(func(rel, full string, info fs.FileInfo, target string) error {
+		if info.Mode().IsRegular() {
+			return writeFile(archive, rel, full)
+		}
+
+		header, err := tar.FileInfoHeader(info, target)
+		if err != nil {
+			return err
+		}
+
+		header.Name = entryName(rel, info.IsDir())
+		anonymous(header)
+
+		return archive.WriteHeader(header)
+	})
+	if err != nil {
+		return err
+	}
+
+	return archive.Close()
+}
+
+func writeFile(archive *tar.Writer, rel, full string) error {
+	file, err := os.Open(full)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	info, err := file.Stat()
+	if err != nil {
+		return err
+	}
+
+	header, err := tar.FileInfoHeader(info, "")
+	if err != nil {
+		return err
+	}
+
+	header.Name = rel
+	anonymous(header)
+
+	if err := archive.WriteHeader(header); err != nil {
+		return err
+	}
+
+	copied, err := io.CopyN(archive, file, header.Size)
+	if errors.Is(err, io.EOF) {
+		_, err = io.CopyN(archive, zeros{}, header.Size-copied)
+	}
+
+	return err
+}
+
+type zeros struct{}
+
+func (zeros) Read(out []byte) (int, error) {
+	clear(out)
+
+	return len(out), nil
+}
+
+// Owners are the restore's to decide: whoever the archive names on this machine, everything goes back to the dev account.
+func anonymous(header *tar.Header) {
+	header.Uid, header.Gid = 0, 0
+	header.Uname, header.Gname = "", ""
+}
+
+func entryName(rel string, dir bool) string {
+	if dir && rel != Whole {
+		return rel + "/"
+	}
+
+	return rel
+}
+
+// Fingerprint digests what the archive would hold without reading a byte of it: every path, kind, size, mode, date and link.
+func Fingerprint(source Source, flavor string) (string, error) {
+	digest := sha256.New()
+	fmt.Fprintf(digest, "%s\n", flavor)
+
+	err := source.walk(func(rel, _ string, info fs.FileInfo, target string) error {
+		size := info.Size()
+		if info.IsDir() {
+			size = 0
+		}
+
+		fmt.Fprintf(digest, "%s\x00%s\x00%d\x00%o\x00%d\x00%s\n", rel, info.Mode().Type(), size, info.Mode().Perm(), info.ModTime().UnixNano(), target)
+
+		return nil
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(digest.Sum(nil)), nil
+}
+
+// File is one entry of an archive made in memory: the configuration files of setup.
+type File struct {
+	Name    string
+	Content []byte
+	Mode    fs.FileMode
+	ModTime time.Time
+}
+
+func WriteFiles(w io.Writer, files []File) error {
+	archive := tar.NewWriter(w)
+
+	for _, file := range files {
+		header := &tar.Header{Name: file.Name, Mode: int64(file.Mode.Perm()), Size: int64(len(file.Content)), ModTime: file.ModTime, Typeflag: tar.TypeReg}
+		if err := archive.WriteHeader(header); err != nil {
+			return err
+		}
+
+		if _, err := archive.Write(file.Content); err != nil {
+			return err
+		}
+	}
+
+	return archive.Close()
+}
+
+// ReadFiles reads the regular files of a small archive into memory, refusing a name that would climb out.
+func ReadFiles(r io.Reader, limit int64) (map[string][]byte, error) {
+	archive := tar.NewReader(r)
+	files := map[string][]byte{}
+
+	for {
+		header, err := archive.Next()
+		if errors.Is(err, io.EOF) {
+			return files, nil
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		name, ok := Clean(header.Name)
+		if !ok {
+			return nil, &UnsafeError{Name: header.Name}
+		}
+
+		if header.Typeflag != tar.TypeReg {
+			continue
+		}
+
+		if header.Size > limit {
+			return nil, fmt.Errorf("%s: %d bytes, over %d", name, header.Size, limit)
+		}
+
+		content, err := io.ReadAll(archive)
+		if err != nil {
+			return nil, err
+		}
+
+		files[name] = content
+	}
+}
+
+// UnsafeError is an entry that names a path outside the folder it is restored into.
+type UnsafeError struct {
+	Name string
+}
+
+func (e *UnsafeError) Error() string {
+	return "unsafe entry in the archive: " + e.Name
+}
+
+// Clean reads an entry name as a path under the root, or refuses it: absolute, climbing, or empty.
+func Clean(name string) (string, bool) {
+	if name == "" || strings.HasPrefix(name, "/") {
+		return "", false
+	}
+
+	cleaned := path.Clean(strings.TrimSuffix(name, "/"))
+	if cleaned == ".." || strings.HasPrefix(cleaned, "../") {
+		return "", false
+	}
+
+	return cleaned, true
+}

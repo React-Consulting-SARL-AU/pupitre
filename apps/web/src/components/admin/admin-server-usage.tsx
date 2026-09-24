@@ -1,5 +1,6 @@
 import { Activity } from "lucide-react"
 import { AdminFacts } from "@/components/admin/admin-facts"
+import { ServerBackupBeat } from "@/components/dashboard/server-backup-beat"
 import { ServerMetrics } from "@/components/dashboard/server-metrics"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
@@ -15,8 +16,9 @@ export function AdminServerUsage({ server }: AdminServerUsageProps) {
   const t = useTranslations()
   const usage = server.usage
   const samples = server.metrics
+  const beat = server.backup
 
-  if (!usage && samples.length === 0) {
+  if (!(usage || beat) && samples.length === 0) {
     return <EmptyState icon={Activity} title={t("admin.servers.noUsage")} />
   }
 
@@ -38,6 +40,15 @@ export function AdminServerUsage({ server }: AdminServerUsageProps) {
               { label: t("servers.load"), value: usage.load },
             ]}
           />
+        </Card>
+      ) : null}
+
+      {beat ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("backups.title")}</CardTitle>
+          </CardHeader>
+          <ServerBackupBeat beat={beat} />
         </Card>
       ) : null}
 
