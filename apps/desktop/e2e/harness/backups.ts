@@ -494,6 +494,8 @@ export function answerBackups(
         status: Record<string, unknown>;
         contents: unknown;
         configured: boolean;
+        recipient: string;
+        salt: string;
       }
     ) => {
       const answer = (
@@ -509,7 +511,15 @@ export function answerBackups(
       let configured = fixtures.configured;
       const values: Record<string, Record<string, unknown>> = {
         "core.backup": {
+          access_key_id: "AKIA-SERVER",
+          bucket: "pupitre-backups",
           databases: true,
+          endpoint: "https://acme.r2.cloudflarestorage.com",
+          kdf_salt: fixtures.salt,
+          path_style: true,
+          prefix: "pupitre",
+          recipient: fixtures.recipient,
+          region: "auto",
           home: true,
           hour: 3,
           interval_hours: 24,
@@ -604,6 +614,13 @@ export function answerBackups(
             cmd,
             params,
           });
+
+          if (
+            cmd === "uninstall" &&
+            (params as { modules: string[] }).modules.includes("core.backup")
+          ) {
+            configured = false;
+          }
 
           const step = (name: string) =>
             event.sender.send("agent:event", {
@@ -848,6 +865,8 @@ export function answerBackups(
         : SNAPSHOT,
       configured: options.configured !== false,
       contents: CONTENTS,
+      recipient: RECIPIENT,
+      salt: SALT,
       status: STATUS,
     }
   );

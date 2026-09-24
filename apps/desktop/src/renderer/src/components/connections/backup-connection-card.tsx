@@ -1,5 +1,4 @@
 import { SkeletonRows } from "@renderer/components/ui/skeleton";
-import { useTranslations } from "@renderer/i18n/use-translations";
 import { useBackupConnection } from "@renderer/stores/backup-connection";
 import { useConnections } from "@renderer/stores/connections";
 import { useEffect, useState } from "react";
@@ -8,19 +7,15 @@ import { BackupConnectionHeld } from "./backup-connection-held";
 import type { ConnectionDescriptor } from "./connection-descriptors";
 
 /**
- * The backup connection, wherever an account is asked for: the preferences,
- * the configuration of a module, a server's backups. Held, it says where
- * backups go; otherwise, or when the reader edits it, it is the form.
+ * The backup connection where a restore or a module's configuration asks for
+ * it. Held, it says where backups go; otherwise, or when the reader edits it,
+ * it is the form.
  */
 export function BackupConnectionCard({
   connection,
-  compact = false,
 }: {
   connection: ConnectionDescriptor;
-  compact?: boolean;
 }) {
-  const t = useTranslations();
-
   const held = useBackupConnection((store) => store.held);
   const read = useBackupConnection((store) => store.read);
   const forget = useBackupConnection((store) => store.forget);
@@ -51,10 +46,6 @@ export function BackupConnectionCard({
 
   return (
     <div className="flex flex-col gap-4" data-connection="backup">
-      {compact || view ? null : (
-        <p className="text-ink-3 leading-relaxed">{t(connection.intro)}</p>
-      )}
-
       <BackupConnectionForm
         connection={connection}
         initial={view}

@@ -5,7 +5,6 @@ import { StatusDot } from "@renderer/components/ui/status-dot";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { useConnections } from "@renderer/stores/connections";
 import { ChevronRight } from "lucide-react";
-import { BackupConnectionCard } from "./backup-connection-card";
 import { ConnectionCard } from "./connection-card";
 import type { ConnectionDescriptor } from "./connection-descriptors";
 
@@ -75,16 +74,12 @@ export function ConnectionRow({
       </Collapsible.Trigger>
 
       <Collapsible.Panel className="px-5 pt-1 pb-5">
-        {connection.kind === "backup" ? (
-          <BackupConnectionCard connection={connection} />
-        ) : (
-          <ConnectionCard
-            connection={connection}
-            installed={installed}
-            manifests={manifests}
-            serverName={serverName}
-          />
-        )}
+        <ConnectionCard
+          connection={connection}
+          installed={installed}
+          manifests={manifests}
+          serverName={serverName}
+        />
       </Collapsible.Panel>
     </Collapsible.Root>
   );

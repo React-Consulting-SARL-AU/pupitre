@@ -1,0 +1,27 @@
+---
+title: La clé du seau arrive jusqu’au serveur, les sauvegardes se règlent au même endroit, et tout peut recommencer
+description: Changer les clés du seau les applique enfin vraiment au serveur, si bien que les sauvegardes cessent d’échouer sur une clé secrète qui ne correspond pas ; la connexion au seau vit dans la seule page Sauvegardes, et Réinitialiser les sauvegardes ramène la mise en place à sa première étape sans toucher aux sauvegardes déjà faites.
+locale: fr
+version: 0.9.1
+channel: stable
+date: 2026-09-24
+order: 18
+---
+
+Des corrections dans l’app ; l’agent ne change pas dans cette version.
+
+## Les sauvegardes
+
+- **Changer les clés du seau arrive désormais jusqu’au serveur.** La pesée d’avant **Appliquer** ne retient plus le verdict de l’agent sur un seau dont l’app fournit elle-même les valeurs : l’agent jugeait le seau avec la nouvelle clé d’accès et l’ancienne clé secrète, refusait, et **Appliquer** ne faisait rien — le serveur gardait l’ancienne clé secrète et chaque sauvegarde échouait sur « la clé secrète ne correspond pas ».
+- La connexion au seau **quitte Réglages › Connexions**. L’onglet **Destination** montre ce que le serveur tient — seau, point d’accès, identifiant de clé, empreinte —, enregistre une destination changée et l’applique aussitôt au serveur, clé secrète comprise, remet à la demande la clé de cet ordinateur, et dit ses refus sur place.
+- **Réinitialiser les sauvegardes** désinstalle le module de sauvegarde du serveur et, par défaut, oublie le seau de cet ordinateur : la mise en place reprend à sa première étape. Les sauvegardes déjà faites restent dans le seau et dans la liste.
+- La page d’un service de sauvegarde renvoie à la page **Sauvegardes** du serveur.
+- Un serveur dont les sauvegardes échouent déjà sur la clé secrète se répare depuis l’onglet **Destination** : **Renvoyer la clé de cet ordinateur au serveur** si cet ordinateur tient les bonnes clés, sinon **Modifier la destination** et recoller la clé secrète.
+
+## Limites connues
+
+- Les volumes Docker ne sont pas sauvegardés ; l’app le dit quand le runtime Docker est installé.
+- Qui lit le seau lit les manifestes, en clair : le nom du serveur, les noms des projets, des bases et des dossiers, l’adresse et la branche des dépôts. Jamais un contenu, jamais un secret — ceux-là sont scellés.
+- Qui tient la clé S3 peut effacer les sauvegardes : le versionnage ou le verrouillage d’objets du seau sont la parade, et le guide le dit.
+- Perdue, la phrase de passe rend les sauvegardes illisibles — personne ne peut la recouvrer.
+- L’installateur Windows n’est toujours pas signé : SmartScreen avertit au premier lancement.

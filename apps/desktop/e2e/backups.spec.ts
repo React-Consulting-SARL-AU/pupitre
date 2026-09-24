@@ -34,9 +34,9 @@ const HTTP_REFUSED =
 
 const REVERTED = /Le serveur est revenu à la sauvegarde/;
 
-const KEY_HELD = /déjà choisie sur cet ordinateur/;
-
 const WEEKS_KEPT = /Environ 14 semaines d'historique/;
+
+const DRIFT = /Ce serveur sauvegarde avec un autre seau ou une autre clé/;
 
 /** Every file the app wrote, the link it keeps back to its own folder aside. */
 function filesUnder(dir: string): string[] {
@@ -59,21 +59,31 @@ test.describe("sauvegardes", () => {
     running = await launchPupitre();
     await sealInMemory(running.app);
     await answerBucket(running.app);
-    await answerBackups(running.app, { docker: true, listed: false });
+    await answerBackups(running.app, {
+      configured: false,
+      docker: true,
+      listed: false,
+    });
   });
 
   test.afterAll(async () => {
     await running.app.close();
   });
 
-  test("la connexion garde le seau et la clé publique, jamais la phrase", async () => {
+  test("la mise en place garde le seau et la clé publique, jamais la phrase, puis active les sauvegardes", async () => {
     const { app, page } = running;
 
-    await page.getByRole("button", { name: "Réglages" }).click();
-    await page.getByRole("tab", { name: "Connexions" }).click();
-    await page.locator('[data-connection-row="backup"] button').first().click();
+    await page
+      .getByRole("button", { exact: true, name: "Sauvegardes" })
+      .click();
 
-    const save = page.getByRole("button", { name: "Enregistrer la connexion" });
+    const setup = page.locator('[data-section="backup-setup"]');
+    const next = setup.getByRole("button", { name: "Continuer" });
+
+    await expect(
+      page.getByRole("button", { name: "Sauvegarder maintenant" })
+    ).toHaveCount(0);
+    await assertAccessible(page, "backups-setup");
 
     await test.step("un point d'accès en http est refusé, pour sa raison", async () => {
       await page.getByRole("radio", { name: "Autre service S3" }).click();
@@ -83,12 +93,25 @@ test.describe("sauvegardes", () => {
       await page.locator("#backup-bucket").fill("pupitre-backups");
       await page.locator("#backup-access-key-id").fill("AKIA-E2E");
       await page.locator("#backup-secret-access-key").fill(SECRET_KEY);
-      await save.click();
+      await next.click();
 
       await expect(page.getByText(HTTP_REFUSED)).toBeVisible();
       await page
         .locator("#backup-endpoint")
         .fill("https://acme.r2.cloudflarestorage.com");
+    });
+
+    await test.step("un seau qui refuse l'écriture d'essai arrête à la première étape", async () => {
+      await answerBucket(app, { code: "AccessDenied", status: 403 });
+      await next.click();
+
+      await expect(
+        page.getByText(
+          "Cette clé n'a pas le droit d'écrire dans ce seau, ou aucun seau ne porte ce nom."
+        )
+      ).toBeVisible();
+      await answerBucket(app);
+      await next.click();
     });
 
     await test.step("deux phrases qui diffèrent sont refusées sur place", async () => {
@@ -99,32 +122,16 @@ test.describe("sauvegardes", () => {
 
       await expect(page.getByText("Les deux phrases diffèrent.")).toBeVisible();
       await page.locator("#backup-passphrase-confirm").fill(PASSPHRASE);
+      await next.click();
     });
 
-    await test.step("un seau qui refuse l'écriture d'essai ne garde rien", async () => {
-      await answerBucket(app, { code: "AccessDenied", status: 403 });
-      await save.click();
+    await test.step("la fréquence se choisit en mots, la rétention se dit en temps", async () => {
+      await setup.getByRole("combobox", { name: "Fréquence" }).click();
+      await page.getByRole("option", { name: "Chaque semaine" }).click();
 
-      await expect(
-        page.getByText(
-          "Cette clé n'a pas le droit d'écrire dans ce seau, ou aucun seau ne porte ce nom."
-        )
-      ).toBeVisible();
-      await answerBucket(app);
+      await expect(setup.getByText(WEEKS_KEPT)).toBeVisible();
+      await assertAccessible(page, "backups-setup-frequency");
     });
-
-    await save.click();
-
-    await expect(
-      page.getByText("Empreinte de la clé des sauvegardes")
-    ).toBeVisible();
-    await expect(
-      page
-        .locator('[data-connection-row="backup"]')
-        .getByText("pupitre-backups")
-    ).toHaveCount(2);
-
-    await assertAccessible(page, "settings/backup-connection");
 
     const userData = await app.evaluate(({ app: electron }) =>
       electron.getPath("userData")
@@ -136,42 +143,8 @@ test.describe("sauvegardes", () => {
     expect(written.some((text) => text.includes("pupitre-backups"))).toBe(true);
     expect(written.some((text) => text.includes(PASSPHRASE))).toBe(false);
     expect(written.some((text) => text.includes(SECRET_KEY))).toBe(false);
-  });
 
-  test("un serveur sans sauvegardes les met en place pas à pas", async () => {
-    const { app, page } = running;
-
-    await answerBackups(app, { configured: false, docker: true });
-    await page
-      .getByRole("button", { exact: true, name: "Sauvegardes" })
-      .click();
-
-    const setup = page.locator('[data-section="backup-setup"]');
-    const next = setup.getByRole("button", { name: "Continuer" });
-
-    await expect(
-      setup.getByText(
-        "Cet ordinateur envoie déjà les sauvegardes de ses serveurs vers ce seau."
-      )
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Sauvegarder maintenant" })
-    ).toHaveCount(0);
-    await assertAccessible(page, "backups-setup");
     await next.click();
-
-    await expect(setup.getByText(KEY_HELD)).toBeVisible();
-    await next.click();
-
-    await test.step("la fréquence se choisit en mots, la rétention se dit en temps", async () => {
-      await setup.getByRole("combobox", { name: "Fréquence" }).click();
-      await page.getByRole("option", { name: "Chaque semaine" }).click();
-
-      await expect(setup.getByText(WEEKS_KEPT)).toBeVisible();
-      await assertAccessible(page, "backups-setup-frequency");
-    });
-    await next.click();
-
     await setup
       .locator('[data-setup="content"]')
       .getByRole("checkbox", { name: "PostgreSQL · flymate" })
@@ -335,5 +308,45 @@ test.describe("sauvegardes", () => {
 
     await expect(page.getByText(REVERTED)).toBeVisible();
     await expect(page.getByText("intranet", { exact: true })).toBeVisible();
+  });
+
+  test("la destination dit ce que tient le serveur, l'aligne, et tout peut recommencer", async () => {
+    const { app, page } = running;
+
+    await answerBackups(app, { docker: true });
+    await page.getByRole("button", { name: "Services" }).click();
+    await page
+      .getByRole("button", { exact: true, name: "Sauvegardes" })
+      .click();
+    await page.getByRole("tab", { name: "Destination" }).click();
+
+    const destination = page.locator('[data-section="backup-destination"]');
+
+    await expect(destination.getByText("AKIA-SERVER")).toBeVisible();
+    await expect(page.getByText(DRIFT)).toBeVisible();
+    await assertAccessible(page, "backups/destination");
+
+    await destination
+      .getByRole("button", { name: "Appliquer la connexion de cet ordinateur" })
+      .click();
+    await expect.poll(async () => (await installedConfigs(app)).length).toBe(1);
+
+    await test.step("réinitialiser retire le module et reprend la mise en place", async () => {
+      await page
+        .getByRole("button", { name: "Réinitialiser les sauvegardes" })
+        .click();
+      await page
+        .getByRole("button", { exact: true, name: "Réinitialiser" })
+        .click();
+
+      await expect(page.locator('[data-section="backup-setup"]')).toBeVisible();
+      await expect(page.locator("#backup-r2-account")).toBeVisible();
+
+      const uninstall = (await streamedCalls(app)).find(
+        (call) => call.cmd === "uninstall"
+      );
+
+      expect(uninstall?.params).toEqual({ modules: ["core.backup"] });
+    });
   });
 });

@@ -21,6 +21,9 @@ export const services = {
     "services.config.applying":
       "The server is replaying {name} with these values…",
     "services.config.discard": "Discard the changes",
+    "services.backups.elsewhere":
+      "Backups are set on the server's Backups page: destination, frequency and content.",
+    "services.backups.open": "Open backups",
     "services.config.refused.one": "{count} value is refused",
     "services.config.refused.other": "{count} values are refused",
     "services.config.accountNote":
@@ -157,6 +160,9 @@ export const services = {
     "services.config.apply": "Appliquer",
     "services.config.applying": "Le serveur rejoue {name} avec ces valeurs…",
     "services.config.discard": "Annuler les modifications",
+    "services.backups.elsewhere":
+      "Les sauvegardes se règlent sur la page Sauvegardes du serveur : destination, fréquence et contenu.",
+    "services.backups.open": "Ouvrir les sauvegardes",
     "services.config.refused.one": "{count} valeur refusée",
     "services.config.refused.other": "{count} valeurs refusées",
     "services.config.accountNote":

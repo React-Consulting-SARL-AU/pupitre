@@ -430,10 +430,34 @@ export async function runCheck(
 
   const asked = modules.filter((id) => !defer.includes(id));
   const managed = await deps.weighed(serverId, asked);
-
-  return await deps.client.request(serverId, "install.check", {
+  const answer = await deps.client.request(serverId, "install.check", {
     config: only(merged(config, managed), modules),
     ...deferring(defer),
     modules: [...modules],
   });
+
+  return answer.ok
+    ? {
+        ok: true,
+        result: {
+          ...answer.result,
+          problems: answer.result.problems.filter(
+            (problem) => !judgedWithAnOldSecret(problem, managed)
+          ),
+        },
+      }
+    : answer;
+}
+
+/**
+ * The agent weighs a connection with the secret it already holds, while the
+ * install will bring the one this computer keeps — proven when it was kept.
+ * Its verdict on a new key with the old secret would block the very Apply that
+ * replaces that secret.
+ */
+function judgedWithAnOldSecret(
+  problem: InstallCheckResult["problems"][number],
+  managed: ModuleConfig
+): boolean {
+  return problem.code === "connection" && problem.module in managed;
 }

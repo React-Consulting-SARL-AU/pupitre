@@ -1,3 +1,4 @@
+import { BACKUP_MODULE_ID } from "@pupitre/shared/backup";
 import type { Manifest } from "@pupitre/shared/catalog";
 import { Button } from "@renderer/components/ui/button";
 import { Callout } from "@renderer/components/ui/callout";
@@ -11,10 +12,11 @@ import { SERVICE_LOOK } from "@renderer/lib/project-state";
 import { removalOf } from "@renderer/lib/service-removal";
 import { useCatalog } from "@renderer/stores/catalog";
 import { useConnections } from "@renderer/stores/connections";
+import { useNavigation } from "@renderer/stores/navigation";
 import { useServices } from "@renderer/stores/services";
 import { forwardsOf, useTunnel } from "@renderer/stores/tunnel";
 import { databaseEngineOf } from "@shared/services";
-import { ArrowLeft, RefreshCw } from "lucide-react";
+import { ArrowLeft, HardDriveUpload, RefreshCw } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { ServiceAccount } from "./service-account";
 import { ServiceConfig } from "./service-config";
@@ -233,35 +235,52 @@ export function ServicePanel({
         onReveal={(label) => store.reveal(serverId, moduleId, label)}
       />
 
-      <ServiceConfig
-        apply={apply}
-        catalogHeld={catalogHeld}
-        config={config}
-        configured={detail.detail.configured}
-        dirty={store.dirty()}
-        manifest={manifest}
-        name={detail.detail.name}
-        nameOf={(id) =>
-          id === moduleId
-            ? detail.detail.name
-            : (catalog().find((one) => one.id === id)?.name ?? id)
-        }
-        onApply={() => store.reconfigure(serverId, moduleId)}
-        onDiscard={() => store.discard(serverId)}
-        onGenerate={(key) => store.generate(serverId, moduleId, key)}
-        onReloadCatalog={onReloadCatalog}
-        onReveal={(key) => store.revealSecret(serverId, moduleId, key)}
-        onSecret={(key, value) => {
-          store.setSecret(serverId, moduleId, key, value);
-        }}
-        onValue={store.setValue}
-        problems={store.shown()}
-        secrets={secrets}
-        secretsDropped={store.secretsDropped}
-        steps={steps}
-        values={values}
-        zones={picksZone ? zones : []}
-      />
+      {moduleId === BACKUP_MODULE_ID ? (
+        <Callout
+          action={
+            <Button
+              icon={HardDriveUpload}
+              onClick={() => useNavigation.getState().goTo("backups")}
+              size="sm"
+            >
+              {t("services.backups.open")}
+            </Button>
+          }
+          name="service-backups"
+        >
+          {t("services.backups.elsewhere")}
+        </Callout>
+      ) : (
+        <ServiceConfig
+          apply={apply}
+          catalogHeld={catalogHeld}
+          config={config}
+          configured={detail.detail.configured}
+          dirty={store.dirty()}
+          manifest={manifest}
+          name={detail.detail.name}
+          nameOf={(id) =>
+            id === moduleId
+              ? detail.detail.name
+              : (catalog().find((one) => one.id === id)?.name ?? id)
+          }
+          onApply={() => store.reconfigure(serverId, moduleId)}
+          onDiscard={() => store.discard(serverId)}
+          onGenerate={(key) => store.generate(serverId, moduleId, key)}
+          onReloadCatalog={onReloadCatalog}
+          onReveal={(key) => store.revealSecret(serverId, moduleId, key)}
+          onSecret={(key, value) => {
+            store.setSecret(serverId, moduleId, key, value);
+          }}
+          onValue={store.setValue}
+          problems={store.shown()}
+          secrets={secrets}
+          secretsDropped={store.secretsDropped}
+          steps={steps}
+          values={values}
+          zones={picksZone ? zones : []}
+        />
+      )}
 
       {isDatabase ? (
         <ServiceDatabase

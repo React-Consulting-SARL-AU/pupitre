@@ -30,7 +30,7 @@ A backup is stored in your own bucket; Pupitre keeps only a reference to it, nev
 1. Create a bucket in the Cloudflare dashboard.
 2. Go to **R2 › Manage API tokens** and create a token scoped to **Object Read & Write**, limited to that bucket.
 3. Note the **Access Key ID**, the **Secret Access Key**, and your account ID, shown on the R2 overview and in the S3 endpoint `https://<account id>.r2.cloudflarestorage.com`.
-4. In the app, open the server's **Backups** page: the setup asks for the bucket first — pick Cloudflare R2, then give the account ID, the bucket name and the key — and checks it with a test write before going on. The same bucket can also be set once for this computer under **Settings › Connections › Backups (S3)**.
+4. In the app, open the server's **Backups** page: the setup asks for the bucket first — pick Cloudflare R2, then give the account ID, the bucket name and the key — and checks it with a test write before going on. This computer keeps the bucket for its other servers; the **Destination** tab of the same page changes it, and applies the change to the server at once, secret key included.
 
 ## Using AWS S3 instead
 

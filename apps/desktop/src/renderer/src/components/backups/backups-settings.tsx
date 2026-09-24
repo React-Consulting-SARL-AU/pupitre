@@ -1,10 +1,6 @@
 import type { Manifest } from "@pupitre/shared/catalog";
-import { BackupConnectionCard } from "@renderer/components/connections/backup-connection-card";
-import { descriptorOf } from "@renderer/components/connections/connection-descriptors";
 import { ServiceConfigFooter } from "@renderer/components/services/service-config-footer";
 import { ServiceConfigOutcome } from "@renderer/components/services/service-config-outcome";
-import { Button } from "@renderer/components/ui/button";
-import { Callout } from "@renderer/components/ui/callout";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { Panel } from "@renderer/components/ui/panel";
 import { Section } from "@renderer/components/ui/section";
@@ -16,21 +12,19 @@ import { CONTENT_FIELDS, FREQUENCY_FIELDS } from "@renderer/lib/backup-setup";
 import { useBackupConnection } from "@renderer/stores/backup-connection";
 import type { ContentsState } from "@renderer/stores/backups";
 import { useServices } from "@renderer/stores/services";
-import { RefreshCw } from "lucide-react";
 import { BackupsContentFields } from "./backups-content-fields";
 import { BackupsFrequencyFields } from "./backups-frequency-fields";
 
-export type BackupsSettingsPane = "frequency" | "content" | "destination";
+export type BackupsSettingsPane = "frequency" | "content";
 
 const PANE_FIELDS: Record<BackupsSettingsPane, readonly string[]> = {
   content: CONTENT_FIELDS,
-  destination: [],
   frequency: FREQUENCY_FIELDS,
 };
 
 /**
- * One pane of the settings of backups already in place: how often, what they
- * carry, or where they go. The panes share one draft of `core.backup`, so an
+ * One pane of the settings of backups already in place: how often, or what
+ * they carry. The panes share one draft of `core.backup`, so an
  * Apply sends everything changed; a refusal no field of the pane carries is
  * named at its foot.
  */
@@ -53,7 +47,6 @@ export function BackupsSettings({
 
   const store = useServices();
   const held = useBackupConnection((state) => state.held);
-  const connection = descriptorOf("backup");
   const { config, apply, values, steps } = store;
 
   if (config.status === "failed") {
@@ -89,40 +82,6 @@ export function BackupsSettings({
       steps={steps}
     />
   );
-
-  if (pane === "destination") {
-    return (
-      <Section name="backup-destination" title={t("backups.destination.title")}>
-        {drifting ? (
-          <Callout
-            action={
-              <Button
-                icon={RefreshCw}
-                loading={running}
-                onClick={applyAll}
-                size="sm"
-                variant="inverse"
-              >
-                {t("services.config.apply")}
-              </Button>
-            }
-            name="backup-drift"
-            tone="warn"
-          >
-            {t("backups.destination.drift")}
-          </Callout>
-        ) : null}
-
-        {connection ? (
-          <Panel inset="lg">
-            <BackupConnectionCard compact connection={connection} />
-          </Panel>
-        ) : null}
-
-        {outcome}
-      </Section>
-    );
-  }
 
   const frequency = pane === "frequency";
 

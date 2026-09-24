@@ -6,13 +6,14 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { poll } from "@renderer/lib/poll";
 import { useBackups } from "@renderer/stores/backups";
 import { useServices } from "@renderer/stores/services";
+import type { AgentError } from "@shared/agent";
 import type { PlatformBackup } from "@shared/backups";
 import { HardDriveUpload } from "lucide-react";
 import { useEffect, useState } from "react";
 import { BackupsNameDialog } from "./backups-name-dialog";
 import { BackupsOverview } from "./backups-overview";
+import { BackupsPane } from "./backups-pane";
 import { BackupsRevertDialog } from "./backups-revert-dialog";
-import { BackupsSettings } from "./backups-settings";
 import { BackupsSetup } from "./backups-setup";
 import { BackupsStatus } from "./backups-status";
 import { type BackupsTab, BackupsTabs } from "./backups-tabs";
@@ -143,17 +144,16 @@ export function BackupsScreen({
     />
   );
 
-  const settings =
-    tab !== "overview" && manifest ? (
-      <BackupsSettings
-        contents={store.contents}
-        manifest={manifest}
-        nameOf={nameOf}
-        onRetryContents={() => read(serverId)}
-        pane={tab}
-        serverId={serverId}
-      />
-    ) : null;
+  async function reset(forgetConnection: boolean): Promise<AgentError | null> {
+    const refusal = await store.reset(serverId, forgetConnection);
+
+    if (!refusal && manifest) {
+      setTab("overview");
+      await useServices.getState().open(serverId, BACKUP_MODULE_ID, manifest);
+    }
+
+    return refusal;
+  }
 
   return (
     <Screen
@@ -175,7 +175,16 @@ export function BackupsScreen({
     >
       {configured ? (
         <BackupsTabs onTab={setTab} tab={tab}>
-          {tab === "overview" ? overview : settings}
+          <BackupsPane
+            contents={store.contents}
+            manifest={manifest}
+            nameOf={nameOf}
+            onReset={reset}
+            onRetryContents={() => read(serverId)}
+            overview={overview}
+            serverId={serverId}
+            tab={tab}
+          />
         </BackupsTabs>
       ) : null}
 
