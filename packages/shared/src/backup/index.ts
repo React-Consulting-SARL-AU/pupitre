@@ -29,6 +29,22 @@ export const BackupTriggerSchema = z.enum(BACKUP_TRIGGERS)
 export type BackupTrigger = z.infer<typeof BackupTriggerSchema>
 
 /**
+ * The name the reader gives a manual backup, shown beside its date. The
+ * platform keeps it with the reference: it is the one word of a declaration
+ * that the reader wrote, never the name of anything the backup holds.
+ */
+export const BACKUP_NAME_MAX = 80
+
+/** No control character, no space at either end. */
+export const BACKUP_NAME_PATTERN =
+  "^[^\\s\\x00-\\x1f\\x7f](?:[^\\x00-\\x1f\\x7f]*[^\\s\\x00-\\x1f\\x7f])?$"
+
+export const BackupNameSchema = z
+  .string()
+  .max(BACKUP_NAME_MAX)
+  .regex(new RegExp(BACKUP_NAME_PATTERN))
+
+/**
  * The interval between two scheduled backups, in hours; 0 turns the schedule
  * off and leaves the manual backup. An interval of a day or more starts at
  * `hour`, the server's local time, so a daily backup lands at night.
@@ -377,6 +393,8 @@ export const BackupManifestSchema = z.object({
   id: BackupIdSchema,
   created_at: z.string(),
   trigger: BackupTriggerSchema,
+  /** Absent from a scheduled backup, and from a manual one left unnamed. */
+  name: BackupNameSchema.optional(),
   server: BackupServerSchema,
   recipient: BackupRecipientSchema,
   kdf: BackupKdfSchema,
@@ -403,13 +421,15 @@ export type BackupCounts = z.infer<typeof BackupCountsSchema>
 
 /**
  * What a server declares to the platform once a manifest is written: the
- * address and a summary without a single name, so the platform learns that a
- * backup exists and where, and nothing of what it holds.
+ * address, a summary without the name of anything it holds, and the name the
+ * reader gave it, if any — so the platform learns that a backup exists and
+ * where, and nothing of what it holds.
  */
 export const BackupDeclarationSchema = z.object({
   id: BackupIdSchema,
   created_at: z.string(),
   trigger: BackupTriggerSchema,
+  name: BackupNameSchema.optional(),
   bytes: z.int().nonnegative(),
   counts: BackupCountsSchema,
   config_revision: z.int().nonnegative(),

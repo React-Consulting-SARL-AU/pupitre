@@ -44,6 +44,7 @@ export function NumberField({
   return (
     <Base.Root
       disabled={disabled}
+      id={id}
       max={max}
       min={min}
       name={name}
@@ -63,7 +64,6 @@ export function NumberField({
         </Base.Decrement>
         <Base.Input
           className="min-w-0 flex-1 border-line-strong border-x bg-transparent px-3 py-2 text-center font-data text-[13px] text-ink tabular-nums outline-none"
-          id={id}
           {...aria}
         />
         <Base.Increment aria-label={incrementLabel} className={STEPPER}>

@@ -17,6 +17,7 @@ interface BackupBody {
   server_id: string | null
   server_name: string
   created_at: string
+  name?: string
   bytes: number
   counts: BackupDeclaration["counts"]
   location: BackupDeclaration["location"]
@@ -215,6 +216,28 @@ describe("POST /agent/backups", () => {
     expect(event.organizationId).toBe(organization.id)
     expect(event.targetType).toBe("backup")
     expect(event.targetId).toBe(body.id)
+  })
+
+  it("garde le nom donné à une sauvegarde manuelle et le rend avec elle", async () => {
+    const { owner, mine } = await organizationWithServers()
+    const body = declaration({ trigger: "manual", name: "Avant la migration" })
+
+    const response = await declare(mine.token, body)
+    const listed = await apiRequest<ListBody>("/backups", { session: owner })
+
+    expect(response.status).toBe(201)
+    expect(response.json.data.name).toBe("Avant la migration")
+    expect(listed.json.data[0]?.name).toBe("Avant la migration")
+  })
+
+  it("refuse un nom hors du contrat", async () => {
+    const { mine } = await organizationWithServers()
+
+    for (const name of [" avant ", "a\nb", "x".repeat(81)]) {
+      const response = await declare(mine.token, declaration({ name }))
+
+      expect(response.status).toBe(422)
+    }
   })
 
   it("rend 200 et la même ligne quand le même serveur redéclare", async () => {

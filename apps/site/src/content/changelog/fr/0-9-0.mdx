@@ -1,0 +1,42 @@
+---
+title: Les sauvegardes se mettent en place pas à pas, se rangent en onglets, et une sauvegarde peut recevoir un nom
+description: Un serveur sans sauvegardes suit quatre étapes — le seau choisi par fournisseur et éprouvé par une écriture d’essai, la phrase de passe, la fréquence dite en mots, le contenu — et une fois qu’elles tournent, la page Sauvegardes range en onglets le tableau de bord, la fréquence, le contenu et la destination ; une sauvegarde manuelle peut être nommée pour la retrouver.
+locale: fr
+version: 0.9.0
+channel: stable
+date: 2026-09-24
+order: 17
+---
+
+App et agent tous deux à mettre à jour : l’app propose la mise à jour de l’agent sur les serveurs qu’elle connaît.
+
+## Mettre les sauvegardes en place
+
+- Sur un serveur qui n’en a aucune, la page **Sauvegardes** est une mise en place en quatre étapes : le seau, la phrase de passe, la fréquence, puis ce qui part. **Activer les sauvegardes** applique le module et lance une première sauvegarde.
+- Le seau se choisit par **fournisseur** : Cloudflare R2 ne demande que l’identifiant du compte, Amazon S3 la région, et tout autre service compatible S3 son point d’accès. Les clés sont éprouvées par une seule écriture d’essai dans le seau avant d’être gardées.
+- La fréquence se prend parmi les usuelles — toutes les heures, 6 heures, 12 heures, chaque jour, chaque semaine, à la demande seulement, ou un intervalle à vous — et le nombre de sauvegardes gardées est redit en durée : à peu près tant de jours ou de semaines d’histoire dans le seau. Une sauvegarde manuelle n’est jamais supprimée par la rétention.
+- Si cet ordinateur envoie déjà ses sauvegardes vers un seau, l’étape propose de le garder, et l’étape de la phrase de passe dit que la clé est déjà choisie : elle n’est redemandée que pour restaurer.
+
+## La page Sauvegardes
+
+- Une fois les sauvegardes en place, la page se range en onglets : **Tableau de bord** (la sauvegarde en cours, la dernière, la prochaine, la liste), **Fréquence**, **Contenu**, **Destination**. Son état est relu toutes les dix secondes tant que la page est ouverte.
+- L’onglet **Destination** dit quand un serveur ne sauvegarde pas encore vers le seau et la clé de cet ordinateur ; appliquer les réglages l’aligne.
+
+## Des sauvegardes nommées
+
+- **Sauvegarder maintenant** demande un nom facultatif — *Avant la migration* — affiché à côté de la date dans l’app et dans la console, pour retrouver une sauvegarde. Laissé vide, la date suffit.
+- Le nom accompagne la sauvegarde et est gardé par la plateforme. Les conditions et la politique de confidentialité le disent.
+
+## Corrections
+
+- Un premier réglage du module de sauvegarde se voyait refuser un nombre de valeurs qu’aucun champ ne montrait ; les réglages sont désormais pesés avec le seau que cet ordinateur tient, et un refus qui ne nomme aucun champ s’affiche au pied du formulaire.
+- **Continuer** et **Enregistrer la connexion** du seau ne tournent plus sans fin quand l’app ne répond pas à l’appel : le refus et son remède s’affichent.
+- Les boutons **+** et **−** d’un champ numérique désignent de nouveau leur champ pour les lecteurs d’écran.
+
+## Limites connues
+
+- Les volumes Docker ne sont pas sauvegardés ; l’app le dit quand le runtime Docker est installé.
+- Qui lit le seau lit les manifestes, en clair : le nom du serveur, les noms des projets, des bases et des dossiers, l’adresse et la branche des dépôts. Jamais un contenu, jamais un secret — ceux-là sont scellés.
+- Qui tient la clé S3 peut effacer les sauvegardes : le versionnage ou le verrouillage d’objets du seau sont la parade, et le guide le dit.
+- Perdue, la phrase de passe rend les sauvegardes illisibles — personne ne peut la recouvrer.
+- L’installateur Windows n’est toujours pas signé : SmartScreen avertit au premier lancement.

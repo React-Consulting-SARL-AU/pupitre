@@ -5,7 +5,7 @@ import { Callout } from "@renderer/components/ui/callout";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
 import { panelClass } from "@renderer/components/ui/panel";
 import { Section } from "@renderer/components/ui/section";
-import { problemText } from "@renderer/i18n/field-problem";
+import { problemText, strayProblems } from "@renderer/i18n/field-problem";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { ModuleProgress } from "@renderer/lib/module-progress";
 import type { ApplyState, ConfigState } from "@renderer/stores/services";
@@ -118,6 +118,12 @@ export function ServiceConfig({
   const ready = config.status === "ready";
   const held = ready ? config.held : [];
   const refused = problems.filter((problem) => problem.field !== "");
+  const stray = strayProblems(
+    t,
+    problems,
+    fields.map((field) => field.key),
+    manifest
+  );
   const accountOnly = fields.length === 0;
 
   function problemOf(key: string): string | undefined {
@@ -172,6 +178,7 @@ export function ServiceConfig({
             onDiscard={onDiscard}
             refused={refused.length}
             running={running}
+            stray={stray}
           />
         </form>
       ) : null}

@@ -4,6 +4,7 @@ import { CopyField } from "@renderer/components/ui/copy-field";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import {
   drawPassphrase,
+  type PhraseDraft,
   passphraseProblem,
 } from "@renderer/lib/backup-passphrase";
 import { BACKUP_PASSPHRASE_MIN } from "@shared/backups";
@@ -19,35 +20,31 @@ import { BackupConnectionTextField } from "./backup-connection-text-field";
  * phrase is one nobody remembers.
  */
 export function BackupPassphraseFields({
-  passphrase,
-  confirm,
-  drawn,
-  noted,
+  phrase,
   shown,
   attempted,
   onChange,
-  onNoted,
 }: {
-  passphrase: string;
-  confirm: string;
-  /** The phrase the app drew, while it is still the one in the fields. */
-  drawn: string | null;
-  noted: boolean;
+  phrase: PhraseDraft;
   /** Whether a refusal may be said yet: once typed in, or once sent. */
   shown: boolean;
   /** The form was sent: what is still owed is said. */
   attempted: boolean;
-  onChange: (passphrase: string, confirm: string, drawn: string | null) => void;
-  onNoted: (next: boolean) => void;
+  onChange: (next: PhraseDraft) => void;
 }) {
   const t = useTranslations();
 
+  const { passphrase, confirm, drawn, noted } = phrase;
   const problem = shown ? passphraseProblem(passphrase, confirm) : null;
+
+  function typed(next: Pick<PhraseDraft, "passphrase" | "confirm">): void {
+    onChange({ ...next, drawn: null, noted: false });
+  }
 
   function draw(): void {
     const next = drawPassphrase();
 
-    onChange(next, next, next);
+    onChange({ confirm: next, drawn: next, noted: false, passphrase: next });
   }
 
   return (
@@ -62,7 +59,7 @@ export function BackupPassphraseFields({
           kind="prose"
           label={t("backups.passphrase.label")}
           name="backup-passphrase"
-          onChange={(value) => onChange(value, confirm, null)}
+          onChange={(value) => typed({ confirm, passphrase: value })}
           problem={
             problem === "short"
               ? t("backups.passphrase.short", { min: BACKUP_PASSPHRASE_MIN })
@@ -75,7 +72,7 @@ export function BackupPassphraseFields({
           kind="prose"
           label={t("backups.passphrase.confirm")}
           name="backup-passphrase-confirm"
-          onChange={(value) => onChange(passphrase, value, null)}
+          onChange={(value) => typed({ confirm: value, passphrase })}
           problem={
             problem === "mismatch"
               ? t("backups.passphrase.mismatch")
@@ -103,7 +100,7 @@ export function BackupPassphraseFields({
             checked={noted}
             label={t("backups.passphrase.noted")}
             name="backup-passphrase-noted"
-            onChange={onNoted}
+            onChange={(next) => onChange({ ...phrase, noted: next })}
           />
           {attempted && !noted ? (
             <span className="text-[12px] text-danger">

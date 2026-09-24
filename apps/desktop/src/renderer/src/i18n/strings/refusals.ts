@@ -346,6 +346,9 @@ export const refusals = {
       "The agent {agent} on this server does not know the command {cmd}.",
     "refusal.capability.missing.fix":
       "Update the agent from the server's page: this app drives agents from {floor} up.",
+    "refusal.bridge.failed": "The app's main process did not answer {channel}.",
+    "refusal.bridge.failed.fix":
+      "Quit and reopen the app: its window is newer than the process behind it.",
     "refusal.bridge.command": "{cmd} cannot be called from here.",
     "refusal.bridge.command.fix":
       "This command has a screen of its own, or none: nothing sends it from here.",
@@ -727,6 +730,10 @@ export const refusals = {
       "L'agent {agent} de ce serveur ne connaît pas la commande {cmd}.",
     "refusal.capability.missing.fix":
       "Mettez l'agent à jour depuis la page du serveur : cette app pilote les agents à partir de {floor}.",
+    "refusal.bridge.failed":
+      "Le processus principal de l'app n'a pas répondu à {channel}.",
+    "refusal.bridge.failed.fix":
+      "Quittez et rouvrez l'app : sa fenêtre est plus récente que le processus qui la sert.",
     "refusal.bridge.command": "{cmd} ne peut pas être appelé d'ici.",
     "refusal.bridge.command.fix":
       "Cette commande a un écran à elle, ou aucun : rien ne l'envoie d'ici.",

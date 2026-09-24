@@ -124,6 +124,7 @@ export const onboarding = {
     "onboarding.restore.title": "Start from a backup?",
     "onboarding.restore.backups": "Backups of the organization",
     "onboarding.restore.backupLabel": "{server} — {date}",
+    "onboarding.restore.backupLabelNamed": "{server} — {name}, {date}",
     "onboarding.restore.passphraseHelp":
       "Checked on this computer before the server is asked anything.",
     "onboarding.restore.needsConnection":
@@ -291,6 +292,7 @@ export const onboarding = {
     "onboarding.restore.title": "Repartir d'une sauvegarde ?",
     "onboarding.restore.backups": "Sauvegardes de l'organisation",
     "onboarding.restore.backupLabel": "{server} — {date}",
+    "onboarding.restore.backupLabelNamed": "{server} — {name}, {date}",
     "onboarding.restore.passphraseHelp":
       "Vérifiée sur cet ordinateur avant que le serveur ne reçoive quoi que ce soit.",
     "onboarding.restore.needsConnection":

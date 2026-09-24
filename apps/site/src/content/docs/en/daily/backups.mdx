@@ -29,8 +29,8 @@ A backup is stored in your own bucket; Pupitre keeps only a reference to it, nev
 
 1. Create a bucket in the Cloudflare dashboard.
 2. Go to **R2 › Manage API tokens** and create a token scoped to **Object Read & Write**, limited to that bucket.
-3. Note the **Access Key ID**, the **Secret Access Key**, and the S3 endpoint `https://<account id>.r2.cloudflarestorage.com`. The region is `auto`.
-4. Paste them in the app with the bucket name, under **Settings › Connections › Backups (S3)**.
+3. Note the **Access Key ID**, the **Secret Access Key**, and your account ID, shown on the R2 overview and in the S3 endpoint `https://<account id>.r2.cloudflarestorage.com`.
+4. In the app, open the server's **Backups** page: the setup asks for the bucket first — pick Cloudflare R2, then give the account ID, the bucket name and the key — and checks it with a test write before going on. The same bucket can also be set once for this computer under **Settings › Connections › Backups (S3)**.
 
 ## Using AWS S3 instead
 
@@ -70,7 +70,7 @@ You need the passphrase again only to restore, and you can type it from any comp
 
 ## Settings
 
-On the server's own page, under Backups: the interval in hours (0 keeps backups on demand only), the hour scheduled backups start, how many scheduled backups to keep — manual ones stay until you delete them — and what to include. **Back up now** runs one immediately.
+The first time, the server's **Backups** page walks four steps: the bucket, the passphrase, the frequency, the content; **Turn on backups** applies them, and runs a first backup unless you untick it. Afterwards the same page holds the settings: how often — every hour, 6 or 12 hours, every day, every week, on demand only, or any other interval —, the hour a daily or weekly backup starts, how many scheduled backups to keep, shown as the history it amounts to — manual ones stay until you delete them — and what to include. **Back up now** runs one immediately, and offers to give it a name — “Before the migration”, say — shown beside its date; left empty, the date is enough. That name is the one thing you write that the platform keeps with the reference.
 
 What to include is chosen item by item: every project and every database of the server is listed with a box, all ticked by default. Untick a database you already keep safe elsewhere, or a project you don't need back; a project or a database created later is backed up until you untick it. A switch turns a whole category off.
 

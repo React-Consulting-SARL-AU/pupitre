@@ -2,10 +2,9 @@ import { Button } from "@renderer/components/ui/button";
 import { ConfirmButton } from "@renderer/components/ui/confirm-button";
 import { Fact, FactList } from "@renderer/components/ui/fact";
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { recipientFingerprint } from "@renderer/lib/backups";
+import { useFingerprint } from "@renderer/lib/use-fingerprint";
 import type { BackupConnectionView } from "@shared/backups";
 import { Pencil, Unplug } from "lucide-react";
-import { useEffect, useState } from "react";
 
 /**
  * The bucket this computer hands its servers, as it holds it: where backups
@@ -27,21 +26,7 @@ export function BackupConnectionHeld({
 }) {
   const t = useTranslations();
 
-  const [fingerprint, setFingerprint] = useState("");
-
-  useEffect(() => {
-    let current = true;
-
-    recipientFingerprint(view.recipient).then((value) => {
-      if (current) {
-        setFingerprint(value);
-      }
-    });
-
-    return () => {
-      current = false;
-    };
-  }, [view.recipient]);
+  const fingerprint = useFingerprint(view.recipient);
 
   return (
     <div

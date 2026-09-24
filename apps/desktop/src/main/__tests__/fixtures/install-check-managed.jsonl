@@ -1,0 +1,5 @@
+# La configuration pesée porte les valeurs du seau que l'app tient, jamais sa clé secrète.
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","ping","catalog","install","install.check"]}}
+> {"id":2,"cmd":"install.check","params":{"modules":["core.backup"],"config":{"core.backup":{"interval_hours":24,"bucket":"backups","endpoint":"https://s3.test"}}}}
+< {"id":2,"ok":true,"result":{"problems":[],"warnings":[]}}

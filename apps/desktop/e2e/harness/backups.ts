@@ -52,6 +52,7 @@ export const BACKUPS = [
     created_at: "2026-09-19T03:15:00Z",
     id: BACKUP_ID,
     kdf_salt: SALT,
+    name: "Avant la migration",
     location: {
       bucket: "pupitre-backups",
       endpoint: "https://acme.r2.cloudflarestorage.com",
@@ -331,6 +332,8 @@ export interface BackupsHarness {
   listed?: boolean;
   /** Docker on the machine, for what its volumes are left out of. */
   docker?: boolean;
+  /** Whether the server has backups in place already; one without walks the setup. */
+  configured?: boolean;
 }
 
 /**
@@ -350,6 +353,29 @@ export function sealInMemory(app: ElectronApplication): Promise<void> {
       isEncryptionAvailable: () => true,
     });
   });
+}
+
+/** A scheduled backup under way on the server, as `backup.status` says it. */
+export function markRunning(
+  app: ElectronApplication,
+  running: boolean
+): Promise<void> {
+  return app.evaluate((_electron, flag) => {
+    (globalThis as { backupRunning?: boolean }).backupRunning = flag;
+  }, running);
+}
+
+/** The commands streamed to the agent, with their parameters, in order. */
+export function streamedCalls(
+  app: ElectronApplication
+): Promise<{ cmd: string; params: Record<string, unknown> }[]> {
+  return app.evaluate(
+    () =>
+      ((globalThis as { streamed?: unknown[] }).streamed ?? []) as {
+        cmd: string;
+        params: Record<string, unknown>;
+      }[]
+  );
 }
 
 /** The configurations the installs carried, in order. */
@@ -465,8 +491,9 @@ export function answerBackups(
         passphrase: string;
         setup: unknown;
         snapshot: unknown;
-        status: unknown;
+        status: Record<string, unknown>;
         contents: unknown;
+        configured: boolean;
       }
     ) => {
       const answer = (
@@ -479,6 +506,7 @@ export function answerBackups(
 
       const held = globalThis as { answers?: Record<string, unknown> };
       const answers = held.answers ?? {};
+      let configured = fixtures.configured;
       const values: Record<string, Record<string, unknown>> = {
         "core.backup": {
           databases: true,
@@ -503,6 +531,13 @@ export function answerBackups(
         "db.postgres": ["app_password"],
       };
 
+      // A server without backups in place holds no value of the module yet.
+      const moduleConfig = (id: string) => ({
+        id,
+        secrets: secrets[id] ?? [],
+        values: id === "core.backup" && !configured ? {} : (values[id] ?? {}),
+      });
+
       answer("agent:call", (_serverId, cmd, params) => {
         const id = (params as { id?: string } | undefined)?.id ?? "";
 
@@ -511,7 +546,22 @@ export function answerBackups(
         }
 
         if (cmd === "backup.status") {
-          return { ok: true, result: fixtures.status };
+          return {
+            ok: true,
+            result: configured
+              ? {
+                  ...fixtures.status,
+                  running:
+                    (globalThis as { backupRunning?: boolean })
+                      .backupRunning === true,
+                }
+              : {
+                  ...fixtures.status,
+                  configured: false,
+                  last: null,
+                  next_run_at: null,
+                },
+          };
         }
 
         if (cmd === "backup.contents") {
@@ -523,14 +573,7 @@ export function answerBackups(
         }
 
         if (cmd === "module.config") {
-          return {
-            ok: true,
-            result: {
-              id,
-              secrets: secrets[id] ?? [],
-              values: values[id] ?? {},
-            },
-          };
+          return { ok: true, result: moduleConfig(id) };
         }
 
         const result = answers[String(cmd)];
@@ -546,10 +589,22 @@ export function answerBackups(
           : { ok: true, result };
       });
 
+      (globalThis as { streamed?: unknown[] }).streamed = [];
       ipcMain.removeHandler("agent:stream");
       ipcMain.handle(
         "agent:stream",
-        async (event, token: unknown, _serverId: unknown, cmd: unknown) => {
+        async (
+          event,
+          token: unknown,
+          _serverId: unknown,
+          cmd: unknown,
+          params: unknown
+        ) => {
+          (globalThis as { streamed?: unknown[] }).streamed?.push({
+            cmd,
+            params,
+          });
+
           const step = (name: string) =>
             event.sender.send("agent:event", {
               event: {
@@ -661,6 +716,7 @@ export function answerBackups(
 
       answer("install:start", (_token, _serverId, modules, config) => {
         installs.installed?.push({ config, modules });
+        configured ||= (modules as string[]).includes("core.backup");
 
         return {
           ok: true,
@@ -790,6 +846,7 @@ export function answerBackups(
             ],
           }
         : SNAPSHOT,
+      configured: options.configured !== false,
       contents: CONTENTS,
       status: STATUS,
     }

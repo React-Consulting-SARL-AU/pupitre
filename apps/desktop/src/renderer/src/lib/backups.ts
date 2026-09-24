@@ -4,12 +4,25 @@ import type {
   BackupPart,
 } from "@pupitre/shared/backup";
 import type { Translate } from "@renderer/i18n/i18n";
+import { dated } from "./format";
 
 /**
  * A backup in words: what it holds, counted, and each part named the way a
  * reader would look for it — a database by its engine and name, a project by
  * its name. The platform never names them; a restored manifest does.
  */
+
+/** A backup as the sentences name it: its name when it was given one, and its date. */
+export function backupLabel(
+  t: Translate,
+  backup: { created_at: string; name?: string }
+): string {
+  const date = dated(backup.created_at);
+
+  return backup.name
+    ? t("backups.label.named", { date, name: backup.name })
+    : t("backups.label.dated", { date });
+}
 
 export function countsLabel(t: Translate, counts: BackupCounts): string {
   const said = [

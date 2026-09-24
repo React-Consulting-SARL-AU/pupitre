@@ -1,37 +1,33 @@
 import { BACKUP_MODULE_ID } from "@pupitre/shared/backup";
-import { BackupConnectionCard } from "@renderer/components/connections/backup-connection-card";
-import { descriptorOf } from "@renderer/components/connections/connection-descriptors";
 import { Button } from "@renderer/components/ui/button";
-import { Panel } from "@renderer/components/ui/panel";
 import { Screen } from "@renderer/components/ui/screen";
-import { Section } from "@renderer/components/ui/section";
+import { SkeletonRows } from "@renderer/components/ui/skeleton";
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { dated } from "@renderer/lib/format";
-import {
-  REVERT_PHASES,
-  type RevertPhase,
-  useBackups,
-} from "@renderer/stores/backups";
-import { useConnections } from "@renderer/stores/connections";
-import { useInstall } from "@renderer/stores/install";
+import { poll } from "@renderer/lib/poll";
+import { useBackups } from "@renderer/stores/backups";
 import { useServices } from "@renderer/stores/services";
 import type { PlatformBackup } from "@shared/backups";
 import { HardDriveUpload } from "lucide-react";
 import { useEffect, useState } from "react";
-import { BackupsList } from "./backups-list";
+import { BackupsNameDialog } from "./backups-name-dialog";
+import { BackupsOverview } from "./backups-overview";
 import { BackupsRevertDialog } from "./backups-revert-dialog";
-import { BackupsRevertProgress } from "./backups-revert-progress";
-import { BackupsRunOutcome } from "./backups-run-outcome";
 import { BackupsSettings } from "./backups-settings";
+import { BackupsSetup } from "./backups-setup";
 import { BackupsStatus } from "./backups-status";
+import { type BackupsTab, BackupsTabs } from "./backups-tabs";
+
+/** A scheduled backup starts on its own: the state is read again while the page is open. */
+const STATUS_POLL_MS = 10_000;
 
 /**
- * A server's backups: where they stand, where they go, how often, and the
- * ones that exist — each one a state the server can be taken back to.
+ * A server's backups.
  *
- * The settings are `core.backup`'s own form, the one the services page draws
- * for any module; the bucket is the connection this computer holds, asked here
- * when it is missing.
+ * A server without backups yet walks a setup, one question at a time. Once
+ * they are on, the page is a column of tabs: the dashboard — a backup under
+ * way, the last one, the next, and every backup to go back to — then the
+ * frequency, the content and the destination, each its own pane of
+ * `core.backup`'s settings.
  */
 export function BackupsScreen({
   serverId,
@@ -47,21 +43,28 @@ export function BackupsScreen({
 
   const store = useBackups();
   const applied = useServices((state) => state.apply.status === "done");
-  const installing = useInstall((state) => state.modules);
-  const connected = useConnections(
-    (state) => state.state.backup.status === "connected"
-  );
-  const readConnections = useConnections((state) => state.read);
 
   const [asking, setAsking] = useState<PlatformBackup | null>(null);
+  const [tab, setTab] = useState<BackupsTab>("overview");
+  const [naming, setNaming] = useState(false);
 
-  const { read, manifest, revert, run } = store;
+  const { read, refresh, manifest, revert, runNow: run } = store;
   const manifestId = manifest?.id ?? null;
+  const configured =
+    store.state.status === "read" && store.state.backup.configured;
+  const settingUp =
+    store.state.status === "read" && !store.state.backup.configured;
 
   useEffect(() => {
+    setTab("overview");
     read(serverId);
-    readConnections();
-  }, [serverId, read, readConnections]);
+  }, [serverId, read]);
+
+  useEffect(() => {
+    if (configured) {
+      return poll(() => refresh(serverId), STATUS_POLL_MS);
+    }
+  }, [configured, serverId, refresh]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: the form opens once the module's manifest is known, not on every catalogue object
   useEffect(() => {
@@ -83,37 +86,28 @@ export function BackupsScreen({
   }, [applied, serverId, read]);
 
   const verifying = revert.status === "running" && revert.phase === "verify";
-  const progress =
-    revert.status === "idle" || revert.status === "refused" || verifying
-      ? null
-      : revert;
-  const reverting = progress !== null;
+  const reverting = !(
+    revert.status === "idle" ||
+    revert.status === "refused" ||
+    verifying
+  );
 
   // The dialog has done its part once the passphrase is known good: the
-  // revert goes on on the page, and nothing typed in it is kept.
+  // revert goes on on the dashboard, and nothing typed in it is kept.
   useEffect(() => {
     if (reverting) {
       setAsking(null);
+      setTab("overview");
     }
   }, [reverting]);
 
-  const configured =
-    store.state.status === "read" && store.state.backup.configured;
   const busy =
     revert.status === "running" ||
     revert.status === "choosing" ||
-    run.status === "running" ||
+    store.run.status === "running" ||
     store.removing !== null;
   const listed = store.list.status === "read" ? store.list.backups : [];
-  const reverted = listed.find((one) => one.id === progress?.backupId);
-  const when = reverted ? dated(reverted.created_at) : "";
-  const phases = REVERT_PHASES.filter(
-    (phase: RevertPhase) =>
-      phase !== "verify" &&
-      (phase !== "save" || store.saveFirst) &&
-      (phase !== "extra" || (store.setup?.extra.length ?? 0) > 0)
-  );
-  const connection = descriptorOf("backup");
+  const docker = installed.includes("runtime.docker");
 
   function nameOf(moduleId: string): string {
     return (
@@ -121,77 +115,98 @@ export function BackupsScreen({
     );
   }
 
+  function runNamed(name: string | undefined): Promise<void> {
+    setNaming(false);
+    setTab("overview");
+
+    return run(serverId, name);
+  }
+
+  async function activated(runFirst: boolean): Promise<void> {
+    setTab("overview");
+    await read(serverId);
+
+    if (runFirst) {
+      await run(serverId);
+    }
+  }
+
+  const overview = (
+    <BackupsOverview
+      busy={busy}
+      docker={docker}
+      nameOf={nameOf}
+      onRevert={setAsking}
+      serverId={serverId}
+      withList={configured || listed.length > 0}
+      withStatus={configured}
+    />
+  );
+
+  const settings =
+    tab !== "overview" && manifest ? (
+      <BackupsSettings
+        contents={store.contents}
+        manifest={manifest}
+        nameOf={nameOf}
+        onRetryContents={() => read(serverId)}
+        pane={tab}
+        serverId={serverId}
+      />
+    ) : null;
+
   return (
     <Screen
       actions={
-        <Button
-          disabled={!configured || busy}
-          icon={HardDriveUpload}
-          loading={run.status === "running"}
-          onClick={() => store.runNow(serverId)}
-          variant="inverse"
-        >
-          {t("backups.run.now")}
-        </Button>
+        configured ? (
+          <Button
+            disabled={busy}
+            icon={HardDriveUpload}
+            loading={store.run.status === "running"}
+            onClick={() => setNaming(true)}
+            variant="inverse"
+          >
+            {t("backups.run.now")}
+          </Button>
+        ) : null
       }
       eyebrow={serverName}
       title={t("backups.title")}
     >
-      {progress ? (
-        <BackupsRevertProgress
-          installing={installing}
-          nameOf={nameOf}
-          onDismiss={store.dismissRevert}
-          onSettle={(uninstall) => store.settleExtra(serverId, uninstall)}
-          phases={phases}
-          revert={progress}
-          steps={store.steps}
-          when={when}
-        />
+      {configured ? (
+        <BackupsTabs onTab={setTab} tab={tab}>
+          {tab === "overview" ? overview : settings}
+        </BackupsTabs>
       ) : null}
 
-      {run.status === "idle" ? null : (
-        <BackupsRunOutcome
-          nameOf={nameOf}
-          onDismiss={store.dismissRun}
-          onRetry={() => store.runNow(serverId)}
-          run={run}
-          steps={store.steps}
-        />
-      )}
-
-      <BackupsStatus
-        docker={installed.includes("runtime.docker")}
-        onRetry={() => read(serverId)}
-        state={store.state}
-      />
-
-      {connected || !connection ? null : (
-        <Section name="backup-connection" title={t("connections.backup.title")}>
-          <Panel inset="lg">
-            <BackupConnectionCard compact connection={connection} />
-          </Panel>
-        </Section>
-      )}
-
-      {manifest ? (
-        <BackupsSettings
-          configured={configured}
+      {settingUp && manifest ? (
+        <BackupsSetup
           contents={store.contents}
+          docker={docker}
           manifest={manifest}
           nameOf={nameOf}
+          onActivated={activated}
           onRetryContents={() => read(serverId)}
           serverId={serverId}
         />
       ) : null}
 
-      <BackupsList
-        busy={busy}
-        list={store.list}
-        onRemove={(backup) => store.remove(serverId, backup.id)}
-        onRetry={() => read(serverId)}
-        onRevert={setAsking}
-        problem={store.problem}
+      {settingUp && !manifest ? <SkeletonRows framed rows={5} /> : null}
+
+      {settingUp ? overview : null}
+
+      {configured || settingUp ? null : (
+        <BackupsStatus
+          docker={docker}
+          onRetry={() => read(serverId)}
+          state={store.state}
+        />
+      )}
+
+      <BackupsNameDialog
+        onClose={() => setNaming(false)}
+        onConfirm={runNamed}
+        open={naming}
       />
 
       {asking && !reverting ? (

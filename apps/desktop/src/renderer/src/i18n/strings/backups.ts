@@ -1,10 +1,13 @@
 export const backups = {
   en: {
     "backups.title": "Backups",
+    "backups.tabs": "Backup panes",
+    "backups.tab.overview": "Dashboard",
+    "backups.tab.frequency": "Frequency",
+    "backups.tab.content": "Content",
+    "backups.tab.destination": "Destination",
 
     "backups.status.title": "State",
-    "backups.status.unconfigured":
-      "Backups are not set up on this server yet: fill in the settings below, then apply them.",
     "backups.status.running": "A backup of this server is running.",
     "backups.status.last": "Last backup",
     "backups.status.lastOk": "{date} · {weight}",
@@ -13,7 +16,6 @@ export const backups = {
     "backups.status.next": "Next backup",
     "backups.status.onDemand": "Only when asked",
     "backups.status.every": "Frequency",
-    "backups.status.manual": "Manual only",
     "backups.status.hours.one": "Every hour",
     "backups.status.hours.other": "Every {count} hours",
     "backups.status.keep.one": "The last scheduled backup is kept",
@@ -26,6 +28,16 @@ export const backups = {
       "The last backup is incomplete: {count} parts could not be backed up, and would not come back with a restore.",
 
     "backups.run.now": "Back up now",
+    "backups.label.dated": "of {date}",
+    "backups.label.named": "“{name}” of {date}",
+    "backups.name.title": "Back up now",
+    "backups.name.label": "Name of the backup",
+    "backups.name.help":
+      "Optional: shown beside its date, to find it again. Left empty, the date is enough.",
+    "backups.name.placeholder": "Before the migration",
+    "backups.name.problem":
+      "At most {max} characters, with no space at either end and no control character.",
+    "backups.name.confirm": "Back up",
     "backups.run.title": "Backup now",
     "backups.run.running": "Backing the server up to the bucket",
     "backups.run.done": "Backup done: {weight} in the bucket.",
@@ -49,10 +61,10 @@ export const backups = {
     "backups.remove.label": "Delete",
     "backups.remove.confirm": "Delete the backup",
     "backups.remove.question":
-      "The backup of {date} is erased from the bucket. Nobody can go back to it afterwards.",
+      "The backup {backup} is erased from the bucket. Nobody can go back to it afterwards.",
 
     "backups.revert.open": "Go back to this backup",
-    "backups.revert.title": "Go back to the backup of {date}",
+    "backups.revert.title": "Go back to the backup {backup}",
     "backups.revert.consequence":
       "The server's projects stop, and its configuration and data are replaced by the backup's. Projects the backup does not know leave the list; their folders stay.",
     "backups.revert.saveFirst": "Back up the current state first",
@@ -61,7 +73,7 @@ export const backups = {
     "backups.revert.passphraseHelp":
       "Checked on this computer before anything is sent to the server.",
     "backups.revert.confirm": "Go back to this backup",
-    "backups.revert.progressTitle": "Going back to the backup of {date}",
+    "backups.revert.progressTitle": "Going back to the backup {backup}",
     "backups.revert.phase.verify": "Checking the passphrase",
     "backups.revert.phase.save": "Backing up the current state",
     "backups.revert.phase.setup": "Putting the backup's configuration in place",
@@ -71,7 +83,7 @@ export const backups = {
     "backups.revert.phase.data":
       "Bringing the data back and starting the projects",
     "backups.revert.stoppedAt": "Stopped at: {phase}",
-    "backups.revert.done": "The server is back to the backup of {date}.",
+    "backups.revert.done": "The server is back to the backup {backup}.",
     "backups.revert.dismiss": "Close",
 
     "backups.extra.question":
@@ -90,6 +102,69 @@ export const backups = {
     "backups.database.whole.mysql": "accounts",
     "backups.database.whole.mongodb": "whole server",
     "backups.database.whole.redis": "snapshot",
+
+    "backups.setup.title": "Set up backups",
+    "backups.setup.progress": "Setup steps",
+    "backups.setup.step.bucket": "S3 bucket",
+    "backups.setup.step.passphrase": "Passphrase",
+    "backups.setup.step.frequency": "Frequency",
+    "backups.setup.step.content": "Content",
+    "backups.setup.back": "Back",
+    "backups.setup.next": "Continue",
+    "backups.setup.activate": "Turn on backups",
+    "backups.setup.runFirst": "Run a first backup as soon as they are on",
+    "backups.setup.bucket.lead":
+      "Backups go into your own bucket: Pupitre keeps none of them.",
+    "backups.setup.bucket.held":
+      "This computer already sends its servers' backups to this bucket.",
+    "backups.setup.bucket.other": "Use another bucket",
+    "backups.setup.bucket.keep": "Keep this bucket",
+    "backups.setup.passphrase.held":
+      "Backups are encrypted for the key with fingerprint {fingerprint}, already chosen on this computer. Its passphrase is only asked to restore.",
+
+    "backups.provider.label": "Provider",
+    "backups.provider.r2.title": "Cloudflare R2",
+    "backups.provider.r2.detail":
+      "No egress fees: downloading a backup to restore it costs nothing.",
+    "backups.provider.aws.title": "Amazon S3",
+    "backups.provider.aws.detail": "The endpoint follows the bucket's region.",
+    "backups.provider.other.title": "Another S3 service",
+    "backups.provider.other.detail":
+      "Backblaze B2, Scaleway, Wasabi, MinIO…: any S3-compatible endpoint over HTTPS.",
+    "backups.field.r2Account": "Cloudflare account ID",
+    "backups.field.r2AccountHelp":
+      "Shown on the R2 overview, or in the S3 API address https://<account ID>.r2.cloudflarestorage.com, which can be pasted whole.",
+    "backups.field.awsRegionHelp":
+      "As the S3 console shows it next to the bucket, for example eu-west-3.",
+    "backups.field.problem.r2Account":
+      "32 characters, digits and the letters a to f.",
+
+    "backups.frequency.every": "Frequency",
+    "backups.frequency.choice.1": "Every hour",
+    "backups.frequency.choice.6": "Every 6 hours",
+    "backups.frequency.choice.12": "Every 12 hours",
+    "backups.frequency.choice.24": "Every day",
+    "backups.frequency.choice.168": "Every week",
+    "backups.frequency.choice.0": "On demand only",
+    "backups.frequency.choice.custom": "Another interval",
+    "backups.frequency.hours": "Interval, in hours",
+    "backups.frequency.hour": "Starting time",
+    "backups.frequency.hourHelp": "In the server's time zone.",
+    "backups.frequency.keep": "Backups kept",
+    "backups.frequency.keepHelp":
+      "About {history} of history in the bucket. Older scheduled backups are deleted; a manual one never is.",
+    "backups.frequency.span.hours.one": "{count} hour",
+    "backups.frequency.span.hours.other": "{count} hours",
+    "backups.frequency.span.days.one": "{count} day",
+    "backups.frequency.span.days.other": "{count} days",
+    "backups.frequency.span.weeks.one": "{count} week",
+    "backups.frequency.span.weeks.other": "{count} weeks",
+    "backups.frequency.manual":
+      "Only “Back up now” starts a backup, and none is ever deleted.",
+
+    "backups.destination.title": "Destination",
+    "backups.destination.drift":
+      "This server does not back up to this computer's bucket and key yet: apply the settings to align it.",
 
     "backups.schedule.title": "Frequency and retention",
     "backups.contents.title": "What backups carry",
@@ -232,10 +307,13 @@ export const backups = {
   },
   fr: {
     "backups.title": "Sauvegardes",
+    "backups.tabs": "Volets des sauvegardes",
+    "backups.tab.overview": "Tableau de bord",
+    "backups.tab.frequency": "Fréquence",
+    "backups.tab.content": "Contenu",
+    "backups.tab.destination": "Destination",
 
     "backups.status.title": "État",
-    "backups.status.unconfigured":
-      "Les sauvegardes ne sont pas encore en place sur ce serveur : renseignez les réglages ci-dessous, puis appliquez-les.",
     "backups.status.running": "Une sauvegarde de ce serveur est en cours.",
     "backups.status.last": "Dernière sauvegarde",
     "backups.status.lastOk": "{date} · {weight}",
@@ -244,7 +322,6 @@ export const backups = {
     "backups.status.next": "Prochaine sauvegarde",
     "backups.status.onDemand": "Seulement à la demande",
     "backups.status.every": "Fréquence",
-    "backups.status.manual": "Manuelle seulement",
     "backups.status.hours.one": "Toutes les heures",
     "backups.status.hours.other": "Toutes les {count} heures",
     "backups.status.keep.one": "La dernière sauvegarde planifiée est gardée",
@@ -258,6 +335,16 @@ export const backups = {
       "La dernière sauvegarde est incomplète : {count} parties n'ont pas pu être sauvegardées, et ne reviendraient pas avec une restauration.",
 
     "backups.run.now": "Sauvegarder maintenant",
+    "backups.label.dated": "du {date}",
+    "backups.label.named": "« {name} » du {date}",
+    "backups.name.title": "Sauvegarder maintenant",
+    "backups.name.label": "Nom de la sauvegarde",
+    "backups.name.help":
+      "Facultatif : affiché à côté de sa date, pour la retrouver. Laissé vide, la date suffit.",
+    "backups.name.placeholder": "Avant la migration",
+    "backups.name.problem":
+      "Au plus {max} caractères, sans espace au début ni à la fin ni caractère de contrôle.",
+    "backups.name.confirm": "Sauvegarder",
     "backups.run.title": "Sauvegarde immédiate",
     "backups.run.running": "Sauvegarde du serveur vers le seau",
     "backups.run.done": "Sauvegarde terminée : {weight} dans le seau.",
@@ -281,10 +368,10 @@ export const backups = {
     "backups.remove.label": "Supprimer",
     "backups.remove.confirm": "Supprimer la sauvegarde",
     "backups.remove.question":
-      "La sauvegarde du {date} est effacée du seau. Personne ne pourra plus y revenir.",
+      "La sauvegarde {backup} est effacée du seau. Personne ne pourra plus y revenir.",
 
     "backups.revert.open": "Revenir à cette sauvegarde",
-    "backups.revert.title": "Revenir à la sauvegarde du {date}",
+    "backups.revert.title": "Revenir à la sauvegarde {backup}",
     "backups.revert.consequence":
       "Les projets du serveur s'arrêtent, sa configuration et ses données sont remplacées par celles de la sauvegarde. Les projets que la sauvegarde ne connaît pas quittent la liste ; leurs dossiers restent.",
     "backups.revert.saveFirst": "Sauvegarder l'état actuel d'abord",
@@ -293,7 +380,7 @@ export const backups = {
     "backups.revert.passphraseHelp":
       "Vérifiée sur cet ordinateur avant que rien ne parte vers le serveur.",
     "backups.revert.confirm": "Revenir à cette sauvegarde",
-    "backups.revert.progressTitle": "Retour à la sauvegarde du {date}",
+    "backups.revert.progressTitle": "Retour à la sauvegarde {backup}",
     "backups.revert.phase.verify": "Vérification de la phrase de passe",
     "backups.revert.phase.save": "Sauvegarde de l'état actuel",
     "backups.revert.phase.setup": "Pose de la configuration de la sauvegarde",
@@ -303,7 +390,7 @@ export const backups = {
       "Désinstallation des services absents de la sauvegarde",
     "backups.revert.phase.data": "Retour des données et démarrage des projets",
     "backups.revert.stoppedAt": "Arrêté à l'étape : {phase}",
-    "backups.revert.done": "Le serveur est revenu à la sauvegarde du {date}.",
+    "backups.revert.done": "Le serveur est revenu à la sauvegarde {backup}.",
     "backups.revert.dismiss": "Fermer",
 
     "backups.extra.question":
@@ -322,6 +409,69 @@ export const backups = {
     "backups.database.whole.mysql": "comptes",
     "backups.database.whole.mongodb": "serveur entier",
     "backups.database.whole.redis": "instantané",
+
+    "backups.setup.title": "Mettre en place les sauvegardes",
+    "backups.setup.progress": "Étapes de la mise en place",
+    "backups.setup.step.bucket": "Seau S3",
+    "backups.setup.step.passphrase": "Phrase de passe",
+    "backups.setup.step.frequency": "Fréquence",
+    "backups.setup.step.content": "Contenu",
+    "backups.setup.back": "Retour",
+    "backups.setup.next": "Continuer",
+    "backups.setup.activate": "Activer les sauvegardes",
+    "backups.setup.runFirst": "Lancer une première sauvegarde dès l'activation",
+    "backups.setup.bucket.lead":
+      "Les sauvegardes partent dans votre propre seau : Pupitre n'en garde aucune.",
+    "backups.setup.bucket.held":
+      "Cet ordinateur envoie déjà les sauvegardes de ses serveurs vers ce seau.",
+    "backups.setup.bucket.other": "Utiliser un autre seau",
+    "backups.setup.bucket.keep": "Garder ce seau",
+    "backups.setup.passphrase.held":
+      "Les sauvegardes sont chiffrées pour la clé d'empreinte {fingerprint}, déjà choisie sur cet ordinateur. Sa phrase de passe n'est demandée que pour restaurer.",
+
+    "backups.provider.label": "Fournisseur",
+    "backups.provider.r2.title": "Cloudflare R2",
+    "backups.provider.r2.detail":
+      "Sans frais de sortie : télécharger une sauvegarde pour la restaurer ne coûte rien.",
+    "backups.provider.aws.title": "Amazon S3",
+    "backups.provider.aws.detail": "Le point d'accès suit la région du seau.",
+    "backups.provider.other.title": "Autre service S3",
+    "backups.provider.other.detail":
+      "Backblaze B2, Scaleway, Wasabi, MinIO… : tout point d'accès compatible S3 en HTTPS.",
+    "backups.field.r2Account": "Identifiant du compte Cloudflare",
+    "backups.field.r2AccountHelp":
+      "Affiché sur la page d'accueil de R2, ou dans l'adresse de l'API S3 https://<identifiant>.r2.cloudflarestorage.com, qui peut être collée entière.",
+    "backups.field.awsRegionHelp":
+      "Telle que la console S3 l'affiche à côté du seau, par exemple eu-west-3.",
+    "backups.field.problem.r2Account":
+      "32 caractères : des chiffres et les lettres de a à f.",
+
+    "backups.frequency.every": "Fréquence",
+    "backups.frequency.choice.1": "Toutes les heures",
+    "backups.frequency.choice.6": "Toutes les 6 heures",
+    "backups.frequency.choice.12": "Toutes les 12 heures",
+    "backups.frequency.choice.24": "Chaque jour",
+    "backups.frequency.choice.168": "Chaque semaine",
+    "backups.frequency.choice.0": "À la demande seulement",
+    "backups.frequency.choice.custom": "Un autre intervalle",
+    "backups.frequency.hours": "Intervalle, en heures",
+    "backups.frequency.hour": "Heure de départ",
+    "backups.frequency.hourHelp": "À l'heure du serveur.",
+    "backups.frequency.keep": "Sauvegardes gardées",
+    "backups.frequency.keepHelp":
+      "Environ {history} d'historique dans le seau. Les sauvegardes planifiées plus anciennes sont effacées ; une sauvegarde manuelle ne l'est jamais.",
+    "backups.frequency.span.hours.one": "{count} heure",
+    "backups.frequency.span.hours.other": "{count} heures",
+    "backups.frequency.span.days.one": "{count} jour",
+    "backups.frequency.span.days.other": "{count} jours",
+    "backups.frequency.span.weeks.one": "{count} semaine",
+    "backups.frequency.span.weeks.other": "{count} semaines",
+    "backups.frequency.manual":
+      "Seul « Sauvegarder maintenant » lance une sauvegarde, et aucune n'est jamais effacée.",
+
+    "backups.destination.title": "Destination",
+    "backups.destination.drift":
+      "Ce serveur ne sauvegarde pas encore vers le seau et pour la clé de cet ordinateur : appliquez les réglages pour l'y aligner.",
 
     "backups.schedule.title": "Fréquence et rétention",
     "backups.contents.title": "Contenu des sauvegardes",

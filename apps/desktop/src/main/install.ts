@@ -18,7 +18,7 @@ import {
 import { AGENT_RELEASE_PUBLIC_KEY } from "./agent-release";
 import { restoring } from "./backups";
 import { declaredModules } from "./catalog";
-import { managedValues } from "./connections";
+import { managedValues, weighedValues } from "./connections";
 import { prepareAgent } from "./enrollment-run";
 import { inspect } from "./inspection";
 import {
@@ -262,7 +262,11 @@ export function registerInstall(): void {
         call.serverId,
         call.modules,
         configOf(config),
-        { client: agentClient, declared: declaredModules },
+        {
+          client: agentClient,
+          declared: declaredModules,
+          weighed: weighedValues,
+        },
         deferredOf(defer)
       );
     }

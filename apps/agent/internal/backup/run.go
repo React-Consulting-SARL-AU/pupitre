@@ -24,8 +24,9 @@ import (
 
 const idStamp = "20060102T150405Z"
 
-// Overrides depart from the module's settings for one backup.
+// Overrides depart from the module's settings for one backup, and name it when the reader did.
 type Overrides struct {
+	Name      string
 	Databases *bool
 	Projects  string
 }
@@ -188,7 +189,7 @@ func (j *job) make(trigger string, overrides Overrides, started time.Time) (made
 	j.projects(overrides.projects(j.settings))
 	j.paths()
 
-	manifest := j.manifest(trigger, started)
+	manifest := j.manifest(trigger, overrides.Name, started)
 
 	digest, bytes, err := j.writeManifest(manifest)
 	if err != nil {
@@ -339,7 +340,7 @@ func seals(out io.Writer, recipient []byte, produce func(io.Writer) error) error
 	return sealer.Close()
 }
 
-func (j *job) manifest(trigger string, started time.Time) contract.BackupManifest {
+func (j *job) manifest(trigger, name string, started time.Time) contract.BackupManifest {
 	remembered, _ := modules.Remembered(j.ctx.Sys(), j.service.options.Engine.InstallPath)
 
 	hostname, err := os.Hostname()
@@ -352,6 +353,7 @@ func (j *job) manifest(trigger string, started time.Time) contract.BackupManifes
 		ID:        j.id,
 		CreatedAt: stamp(started),
 		Trigger:   trigger,
+		Name:      name,
 		Server: contract.BackupServer{
 			ID:             j.server,
 			Hostname:       hostname,
@@ -415,6 +417,7 @@ func (j *job) declaration(manifest contract.BackupManifest, digest string, bytes
 		ID:             manifest.ID,
 		CreatedAt:      manifest.CreatedAt,
 		Trigger:        manifest.Trigger,
+		Name:           manifest.Name,
 		Bytes:          bytes,
 		Counts:         contract.CountsOf(manifest.Parts),
 		ConfigRevision: manifest.Server.ConfigRevision,

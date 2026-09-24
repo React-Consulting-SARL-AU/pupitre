@@ -118,6 +118,10 @@ var backupCatalog = map[string]Message{
 		FR: "moteur:nom, ou redis:* pour l'instantané Redis. Toutes les autres partent, celles créées plus tard comprises.",
 		EN: "engine:name, or redis:* for the Redis snapshot. Every other one goes, those created later included.",
 	},
+	"backup.name.invalid": {
+		FR: "le nom d'une sauvegarde tient en %d caractères au plus, sans espace au début ni à la fin ni caractère de contrôle",
+		EN: "a backup's name holds at most %d characters, with no space at either end and no control character",
+	},
 	"backup.excluded.cloned": {
 		FR: "le projet %s était hors de la sauvegarde : son code revient par un clone, pas son travail en cours",
 		EN: "the project %s was left out of the backup: its code comes back through a clone, not its work in progress",

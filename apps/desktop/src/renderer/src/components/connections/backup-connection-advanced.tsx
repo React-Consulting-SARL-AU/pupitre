@@ -1,6 +1,7 @@
 import { Details } from "@renderer/components/ui/details";
 import { SwitchLine } from "@renderer/components/ui/switch";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import type { BackupProvider } from "@renderer/lib/backup-providers";
 import type { BackupStorage } from "@shared/backups";
 import { useState } from "react";
 import { BackupConnectionTextField } from "./backup-connection-text-field";
@@ -8,14 +9,17 @@ import { BackupConnectionTextField } from "./backup-connection-text-field";
 type Advanced = Pick<BackupStorage, "region" | "prefix" | "path_style">;
 
 /**
- * What a bucket rarely needs changed — the region, the prefix, the addressing —
- * folded away, and opened on its own when one of them is refused.
+ * What a bucket rarely needs changed, folded away and opened on its own when
+ * one of them is refused: the prefix, and for a service Pupitre does not know,
+ * the region and the addressing.
  */
 export function BackupConnectionAdvanced({
+  provider,
   values,
   problems,
   onChange,
 }: {
+  provider: BackupProvider;
   values: Advanced;
   problems: { region?: string; prefix?: string };
   onChange: <K extends keyof BackupStorage>(
@@ -27,6 +31,7 @@ export function BackupConnectionAdvanced({
 
   const [opened, setOpened] = useState(false);
   const refused = Boolean(problems.region || problems.prefix);
+  const other = provider === "other";
 
   return (
     <Details
@@ -37,13 +42,15 @@ export function BackupConnectionAdvanced({
     >
       <div className="flex flex-col gap-6 pt-3 text-[13px]">
         <div className="grid gap-6 sm:grid-cols-2">
-          <BackupConnectionTextField
-            label={t("backups.field.region")}
-            name="backup-region"
-            onChange={(value) => onChange("region", value)}
-            problem={problems.region}
-            value={values.region}
-          />
+          {other ? (
+            <BackupConnectionTextField
+              label={t("backups.field.region")}
+              name="backup-region"
+              onChange={(value) => onChange("region", value)}
+              problem={problems.region}
+              value={values.region}
+            />
+          ) : null}
           <BackupConnectionTextField
             help={t("backups.field.prefixHelp")}
             label={t("backups.field.prefix")}
@@ -54,13 +61,15 @@ export function BackupConnectionAdvanced({
           />
         </div>
 
-        <SwitchLine
-          checked={values.path_style}
-          detail={t("backups.field.pathStyleDetail")}
-          label={t("backups.field.pathStyle")}
-          name="backup-path-style"
-          onChange={(next) => onChange("path_style", next)}
-        />
+        {other ? (
+          <SwitchLine
+            checked={values.path_style}
+            detail={t("backups.field.pathStyleDetail")}
+            label={t("backups.field.pathStyle")}
+            name="backup-path-style"
+            onChange={(next) => onChange("path_style", next)}
+          />
+        ) : null}
       </div>
     </Details>
   );

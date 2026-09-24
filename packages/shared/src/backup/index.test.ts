@@ -15,6 +15,7 @@ import {
   BackupIdSchema,
   BackupLocationSchema,
   BackupManifestSchema,
+  BackupNameSchema,
   backupDatabaseItem,
   countsOf,
 } from "./index"
@@ -301,5 +302,20 @@ describe("the location and the declaration", () => {
       BackupDeclarationSchema.safeParse({ ...declaration, location: unsigned })
         .success
     ).toBe(false)
+  })
+})
+
+describe("the name of a manual backup", () => {
+  test.each(["Avant la migration", "v2 — prod", "a"])("takes %j", (name) => {
+    expect(BackupNameSchema.safeParse(name).success).toBe(true)
+  })
+
+  test.each([
+    ["an empty name", ""],
+    ["a space at either end", " avant "],
+    ["a control character", "avant\nmigration"],
+    ["more than 80 characters", "x".repeat(81)],
+  ])("refuses %s", (_what, name) => {
+    expect(BackupNameSchema.safeParse(name).success).toBe(false)
   })
 })

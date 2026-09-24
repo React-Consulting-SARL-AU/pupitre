@@ -28,6 +28,8 @@ export interface BackupView {
   server_name: string
   created_at: Date
   trigger: BackupTrigger
+  /** The name given to a manual backup; absent when none was. */
+  name?: string
   bytes: number
   counts: BackupCounts
   config_revision: number
@@ -60,6 +62,7 @@ export function toBackupView(backup: Backup): BackupView {
     server_name: backup.serverName,
     created_at: backup.createdAt,
     trigger: backup.trigger,
+    ...(backup.name ? { name: backup.name } : {}),
     bytes: Number(backup.bytes),
     counts: counts.success ? counts.data : NO_COUNTS,
     config_revision: backup.configRevision,
@@ -109,6 +112,7 @@ function rowOf(
     serverName: server.name,
     createdAt: new Date(input.created_at),
     trigger: input.trigger,
+    name: input.name ?? null,
     bytes: BigInt(input.bytes),
     counts: input.counts,
     configRevision: input.config_revision,

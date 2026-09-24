@@ -192,16 +192,19 @@ async function identityOf(
     : refuseWith("bad_request", "refusal.backup.passphrase.none");
 }
 
-export async function connectBackup(
+/**
+ * The bucket as the reader typed it, written to then cleared: the secret key
+ * typed, or the one the keychain holds when none was.
+ */
+export async function probeConnection(
   raw: unknown,
-  deps: ConnectDeps
-): Promise<AgentResponse<BackupConnectionView>> {
+  deps: Pick<ConnectDeps, "held" | "probe">,
+  cmd = "backup:probe"
+): Promise<AgentResponse<{ input: BackupConnectionInput; secret: string }>> {
   const input = checkedConnectionInput(raw);
 
   if (!input) {
-    return refuseWith("bad_request", "refusal.params.invalid", {
-      cmd: "backup:connect",
-    });
+    return refuseWith("bad_request", "refusal.params.invalid", { cmd });
   }
 
   const [field] = Object.keys(backupStorageProblems(input));
@@ -218,10 +221,20 @@ export async function connectBackup(
 
   const probed = await deps.probe(input, secret);
 
+  return probed.ok ? { ok: true, result: { input, secret } } : probed;
+}
+
+export async function connectBackup(
+  raw: unknown,
+  deps: ConnectDeps
+): Promise<AgentResponse<BackupConnectionView>> {
+  const probed = await probeConnection(raw, deps, "backup:connect");
+
   if (!probed.ok) {
     return probed;
   }
 
+  const { input, secret } = probed.result;
   const identity = await identityOf(input, deps);
 
   if (!identity.ok) {

@@ -80,8 +80,17 @@ export function ServerBackups({ serverId, beat }: ServerBackupsProps) {
               key={backup.id}
             >
               <div className="min-w-0">
-                <p className="text-[13px] text-ink">
-                  {formatDateTime(backup.created_at, t)}
+                <p className="truncate text-[13px] text-ink">
+                  {backup.name ? (
+                    <>
+                      {backup.name}{" "}
+                      <span className="text-ink-3">
+                        · {formatDateTime(backup.created_at, t)}
+                      </span>
+                    </>
+                  ) : (
+                    formatDateTime(backup.created_at, t)
+                  )}
                 </p>
                 <p className="truncate text-[12px] text-ink-3">
                   {t(`backups.trigger.${backup.trigger}`)} ·{" "}

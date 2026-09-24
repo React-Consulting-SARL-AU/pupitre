@@ -127,3 +127,43 @@ func TestABackupFromTheProtocolStreamsItsSteps(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestAManualBackupCarriesTheNameGivenToItToTheManifestAndThePlatform(t *testing.T) {
+	b := newBench(t, s3test.New(t, bucketName)).configured()
+
+	lines := session(t, b,
+		`{"id":2,"cmd":"backup.run","params":{"name":"Avant la migration 🙂"}}`,
+		`{"id":3,"cmd":"backup.run","params":{"name":" avant "}}`,
+		`{"id":4,"cmd":"backup.run","params":{"name":"`+strings.Repeat("é", 81)+`"}}`,
+	)
+
+	if ran := answer(lines, 2); !ran.OK {
+		t.Fatalf("run = %+v", ran)
+	}
+
+	declared := b.platform.declarations()
+	if len(declared) != 1 || declared[0].Name != "Avant la migration 🙂" {
+		t.Fatalf("declared = %+v", declared)
+	}
+
+	if err := contract.ValidateValue("BackupDeclaration", declared[0]); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, id := range []int{3, 4} {
+		if refused := answer(lines, id); refused.OK || refused.Error.Code != contract.ErrorBadRequest {
+			t.Fatalf("request %d: %+v", id, refused)
+		}
+	}
+}
+
+func TestAScheduledBackupHasNoName(t *testing.T) {
+	b := newBench(t, s3test.New(t, bucketName)).configured()
+
+	b.run(contract.BackupTriggerSchedule)
+
+	encoded, _ := json.Marshal(b.platform.declarations()[0])
+	if strings.Contains(string(encoded), `"name"`) {
+		t.Fatalf("declaration = %s", encoded)
+	}
+}
