@@ -59,7 +59,7 @@ export const catalog = {
       "En conflit avec « {name} », déjà sur ce serveur : retirez-le d'abord, depuis Services.",
     "catalog.blocked.installed": "Déjà installé sur ce serveur.",
     "catalog.category.ai": "Agents IA",
-    "catalog.category.core": "Socle",
+    "catalog.category.core": "Base",
     "catalog.category.database": "Bases de données",
     "catalog.category.editor": "Éditeurs distants",
     "catalog.category.exposure": "Exposition",
@@ -68,7 +68,7 @@ export const catalog = {
     "catalog.presets.title": "Pour commencer",
     "catalog.presets.chooses.one": "Un service à choisir",
     "catalog.presets.chooses.other": "Un service à choisir parmi {count}",
-    "catalog.presets.coreOnly": "Le socle seul, rien d'autre.",
+    "catalog.presets.coreOnly": "La base seule, rien d'autre.",
     "catalog.presets.nothing": "Tout ce qu'il apporte est déjà sur ce serveur.",
     "catalog.presets.chooseOne":
       "{preset} — l'un de ceux-ci, ils se refusent l'un l'autre",

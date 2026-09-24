@@ -86,7 +86,7 @@ export const agentExchangeRoutes = new Elysia({
   {
     body: exchangeBody,
     detail: {
-      summary: "Échanger un jeton d'enrôlement contre un jeton de serveur",
+      summary: "Échanger un token de rattachement contre un token de serveur",
     },
     response: {
       200: serverTokenSchema,

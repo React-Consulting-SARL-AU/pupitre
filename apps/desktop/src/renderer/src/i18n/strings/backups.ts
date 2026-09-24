@@ -362,8 +362,8 @@ export const backups = {
       "Au plus {max} caractères, sans espace au début ni à la fin ni caractère de contrôle.",
     "backups.name.confirm": "Sauvegarder",
     "backups.run.title": "Sauvegarde immédiate",
-    "backups.run.running": "Sauvegarde du serveur vers le seau",
-    "backups.run.done": "Sauvegarde terminée : {weight} dans le seau.",
+    "backups.run.running": "Sauvegarde du serveur vers le bucket",
+    "backups.run.done": "Sauvegarde terminée : {weight} dans le bucket.",
     "backups.run.undeclared":
       "La plateforme n'a pas répondu : le serveur déclarera cette sauvegarde au tour suivant.",
     "backups.run.dismiss": "Fermer",
@@ -384,7 +384,7 @@ export const backups = {
     "backups.remove.label": "Supprimer",
     "backups.remove.confirm": "Supprimer la sauvegarde",
     "backups.remove.question":
-      "La sauvegarde {backup} est effacée du seau. Personne ne pourra plus y revenir.",
+      "La sauvegarde {backup} est effacée du bucket. Personne ne pourra plus y revenir.",
 
     "backups.revert.open": "Revenir à cette sauvegarde",
     "backups.revert.title": "Revenir à la sauvegarde {backup}",
@@ -397,7 +397,7 @@ export const backups = {
       "Vérifiée sur cet ordinateur avant que rien ne parte vers le serveur.",
     "backups.revert.confirm": "Revenir à cette sauvegarde",
     "backups.revert.progressTitle": "Retour à la sauvegarde {backup}",
-    "backups.revert.phase.verify": "Vérification de la phrase de passe",
+    "backups.revert.phase.verify": "Vérification de la passphrase",
     "backups.revert.phase.save": "Sauvegarde de l'état actuel",
     "backups.revert.phase.setup": "Pose de la configuration de la sauvegarde",
     "backups.revert.phase.install":
@@ -424,12 +424,12 @@ export const backups = {
     "backups.database.whole.postgres": "rôles",
     "backups.database.whole.mysql": "comptes",
     "backups.database.whole.mongodb": "serveur entier",
-    "backups.database.whole.redis": "instantané",
+    "backups.database.whole.redis": "snapshot",
 
     "backups.setup.title": "Mettre en place les sauvegardes",
     "backups.setup.progress": "Étapes de la mise en place",
-    "backups.setup.step.bucket": "Seau S3",
-    "backups.setup.step.passphrase": "Phrase de passe",
+    "backups.setup.step.bucket": "Bucket S3",
+    "backups.setup.step.passphrase": "Passphrase",
     "backups.setup.step.frequency": "Fréquence",
     "backups.setup.step.content": "Contenu",
     "backups.setup.back": "Retour",
@@ -437,28 +437,28 @@ export const backups = {
     "backups.setup.activate": "Activer les sauvegardes",
     "backups.setup.runFirst": "Lancer une première sauvegarde dès l'activation",
     "backups.setup.bucket.lead":
-      "Les sauvegardes partent dans votre propre seau : Pupitre n'en garde aucune.",
+      "Les sauvegardes partent dans votre propre bucket : Pupitre n'en garde aucune.",
     "backups.setup.bucket.held":
-      "Cet ordinateur envoie déjà les sauvegardes de ses serveurs vers ce seau.",
-    "backups.setup.bucket.other": "Utiliser un autre seau",
-    "backups.setup.bucket.keep": "Garder ce seau",
+      "Cet ordinateur envoie déjà les sauvegardes de ses serveurs vers ce bucket.",
+    "backups.setup.bucket.other": "Utiliser un autre bucket",
+    "backups.setup.bucket.keep": "Garder ce bucket",
     "backups.setup.passphrase.held":
-      "Les sauvegardes sont chiffrées pour la clé d'empreinte {fingerprint}, déjà choisie sur cet ordinateur. Sa phrase de passe n'est demandée que pour restaurer.",
+      "Les sauvegardes sont chiffrées pour la clé d'empreinte {fingerprint}, déjà choisie sur cet ordinateur. Sa passphrase n'est demandée que pour restaurer.",
 
     "backups.provider.label": "Fournisseur",
     "backups.provider.r2.title": "Cloudflare R2",
     "backups.provider.r2.detail":
       "Sans frais de sortie : télécharger une sauvegarde pour la restaurer ne coûte rien.",
     "backups.provider.aws.title": "Amazon S3",
-    "backups.provider.aws.detail": "Le point d'accès suit la région du seau.",
+    "backups.provider.aws.detail": "L'endpoint suit la région du bucket.",
     "backups.provider.other.title": "Autre service S3",
     "backups.provider.other.detail":
-      "Backblaze B2, Scaleway, Wasabi, MinIO… : tout point d'accès compatible S3 en HTTPS.",
+      "Backblaze B2, Scaleway, Wasabi, MinIO… : tout endpoint compatible S3 en HTTPS.",
     "backups.field.r2Account": "Identifiant du compte Cloudflare",
     "backups.field.r2AccountHelp":
       "Affiché sur la page d'accueil de R2, ou dans l'adresse de l'API S3 https://<identifiant>.r2.cloudflarestorage.com, qui peut être collée entière.",
     "backups.field.awsRegionHelp":
-      "Telle que la console S3 l'affiche à côté du seau, par exemple eu-west-3.",
+      "Telle que la console S3 l'affiche à côté du bucket, par exemple eu-west-3.",
     "backups.field.problem.r2Account":
       "32 caractères : des chiffres et les lettres de a à f.",
 
@@ -475,7 +475,7 @@ export const backups = {
     "backups.frequency.hourHelp": "À l'heure du serveur.",
     "backups.frequency.keep": "Sauvegardes gardées",
     "backups.frequency.keepHelp":
-      "Environ {history} d'historique dans le seau. Les sauvegardes planifiées plus anciennes sont effacées ; une sauvegarde manuelle ne l'est jamais.",
+      "Environ {history} d'historique dans le bucket. Les sauvegardes planifiées plus anciennes sont effacées ; une sauvegarde manuelle ne l'est jamais.",
     "backups.frequency.span.hours.one": "{count} heure",
     "backups.frequency.span.hours.other": "{count} heures",
     "backups.frequency.span.days.one": "{count} jour",
@@ -492,18 +492,19 @@ export const backups = {
     "backups.destination.resend":
       "Renvoyer la clé de cet ordinateur au serveur",
     "backups.destination.noKey":
-      "Cet ordinateur n'a pas la clé de ce seau : donnez-la pour changer la destination ou restaurer d'ici.",
+      "Cet ordinateur n'a pas la clé de ce bucket : donnez-la pour changer la destination ou restaurer d'ici.",
     "backups.reset.title": "Recommencer",
     "backups.reset.consequence":
-      "Les sauvegardes s'arrêtent sur ce serveur et ses réglages de sauvegarde sont effacés ; les sauvegardes déjà faites restent dans le seau et dans la liste. La mise en place reprend à la première étape.",
-    "backups.reset.forget": "Oublier aussi le seau et la clé de cet ordinateur",
+      "Les sauvegardes s'arrêtent sur ce serveur et ses réglages de sauvegarde sont effacés ; les sauvegardes déjà faites restent dans le bucket et dans la liste. La mise en place reprend à la première étape.",
+    "backups.reset.forget":
+      "Oublier aussi le bucket et la clé de cet ordinateur",
     "backups.reset.forgetDetail":
-      "Les autres serveurs continuent de sauvegarder avec ce qu'ils détiennent ; cet ordinateur redemande le seau pour mettre en place ou restaurer.",
+      "Les autres serveurs continuent de sauvegarder avec ce qu'ils détiennent ; cet ordinateur redemande le bucket pour mettre en place ou restaurer.",
     "backups.reset.open": "Réinitialiser les sauvegardes",
     "backups.reset.question": "Retirer les sauvegardes de ce serveur ?",
     "backups.reset.confirm": "Réinitialiser",
     "backups.destination.drift":
-      "Ce serveur sauvegarde avec un autre seau ou une autre clé que la connexion de cet ordinateur.",
+      "Ce serveur sauvegarde avec un autre bucket ou une autre clé que la connexion de cet ordinateur.",
 
     "backups.schedule.title": "Fréquence et rétention",
     "backups.contents.title": "Contenu des sauvegardes",
@@ -529,17 +530,17 @@ export const backups = {
     "backups.connection.forgetQuestion":
       "Les serveurs continuent de sauvegarder avec ce qu'ils détiennent. Cet ordinateur ne pourra plus mettre en place de sauvegardes ni en restaurer une avant d'être reconnecté.",
 
-    "backups.field.endpoint": "Point d'accès S3",
+    "backups.field.endpoint": "Endpoint S3",
     "backups.field.endpointHelp":
       "Cloudflare R2 : https://<identifiant du compte>.r2.cloudflarestorage.com, affiché sur la page d'accueil de R2. AWS : https://s3.<région>.amazonaws.com.",
-    "backups.guide": "Créer un seau R2 et sa clé",
+    "backups.guide": "Créer un bucket R2 et sa clé",
     "backups.guideUrl": "https://pupitre.studio/fr/docs/daily/backups/",
     "backups.advanced": "Réglages avancés",
     "backups.field.region": "Région",
-    "backups.field.bucket": "Seau",
+    "backups.field.bucket": "Bucket",
     "backups.field.prefix": "Préfixe",
     "backups.field.prefixHelp":
-      "Le dossier du seau sous lequel partent les sauvegardes, sans barre oblique au bout.",
+      "Le dossier du bucket sous lequel partent les sauvegardes, sans slash à la fin.",
     "backups.field.accessKeyId": "Identifiant de la clé d'accès",
     "backups.field.secretKept":
       "Laissez vide pour garder la clé secrète du trousseau de cet ordinateur.",
@@ -554,58 +555,58 @@ export const backups = {
     "backups.field.problem.bucket":
       "De 3 à 63 caractères : minuscules, chiffres, points et tirets, commençant et finissant par une lettre ou un chiffre.",
     "backups.field.problem.region":
-      "auto pour Cloudflare R2, ou la région du seau chez AWS, par exemple eu-west-3 : minuscules, chiffres et tirets.",
+      "auto pour Cloudflare R2, ou la région du bucket chez AWS, par exemple eu-west-3 : minuscules, chiffres et tirets.",
     "backups.field.problem.prefix":
       "Lettres, chiffres, points, tirets et soulignés, en dossiers séparés par des barres obliques, sans barre au début ni à la fin.",
 
-    "backups.passphrase.label": "Phrase de passe des sauvegardes",
-    "backups.passphrase.confirm": "Phrase de passe, une seconde fois",
+    "backups.passphrase.label": "Passphrase des sauvegardes",
+    "backups.passphrase.confirm": "Passphrase, une seconde fois",
     "backups.passphrase.help":
       "Au moins {min} caractères. Redemandée seulement pour restaurer.",
     "backups.passphrase.short": "Au moins {min} caractères.",
-    "backups.passphrase.mismatch": "Les deux phrases diffèrent.",
+    "backups.passphrase.mismatch": "Les deux passphrases diffèrent.",
     "backups.passphrase.lost":
-      "Perdue, la phrase de passe rend toutes les sauvegardes illisibles : personne, Pupitre compris, ne peut la retrouver.",
-    "backups.passphrase.draw": "Tirer une phrase de passe",
-    "backups.passphrase.drawn": "Phrase de passe tirée",
+      "Perdue, la passphrase rend toutes les sauvegardes illisibles : personne, Pupitre compris, ne peut la retrouver.",
+    "backups.passphrase.draw": "Générer une passphrase",
+    "backups.passphrase.drawn": "Passphrase générée",
     "backups.passphrase.drawnHelp":
       "Notez-la en lieu sûr avant d'enregistrer : elle n'est plus jamais affichée.",
     "backups.passphrase.noted":
-      "J'ai noté cette phrase ailleurs que sur cet ordinateur",
+      "J'ai noté cette passphrase ailleurs que sur cet ordinateur",
     "backups.passphrase.notedMissing":
-      "Cochez cette case une fois la phrase notée : sans elle, aucune sauvegarde ne se restaure.",
+      "Cochez cette case une fois la passphrase notée : sans elle, aucune sauvegarde ne se restaure.",
     "backups.passphrase.adopted":
-      "Votre organisation a déjà des sauvegardes (la dernière de {server}, le {date}) : cet ordinateur reprend leur clé publique. La phrase de passe ne sera demandée que pour restaurer.",
-    "backups.passphrase.own": "Choisir une nouvelle phrase de passe",
-    "backups.passphrase.renew": "Changer la phrase de passe",
+      "Votre organisation a déjà des sauvegardes (la dernière de {server}, le {date}) : cet ordinateur reprend leur clé publique. La passphrase ne sera demandée que pour restaurer.",
+    "backups.passphrase.own": "Choisir une nouvelle passphrase",
+    "backups.passphrase.renew": "Changer la passphrase",
     "backups.passphrase.renewDetail":
       "Les sauvegardes suivantes emploient la nouvelle ; les précédentes s'ouvrent toujours avec l'ancienne.",
 
-    "refusal.backup.field": "Le champ {field} du seau n'est pas valide.",
+    "refusal.backup.field": "Le champ {field} du bucket n'est pas valide.",
     "refusal.backup.field.fix":
       "Corrigez le champ, puis enregistrez à nouveau.",
     "refusal.backup.secret.none": "La clé d'accès secrète manque.",
     "refusal.backup.secret.none.fix":
       "Collez la clé secrète fournie avec l'identifiant de la clé d'accès.",
-    "refusal.backup.passphrase.short": "La phrase de passe est trop courte.",
+    "refusal.backup.passphrase.short": "La passphrase est trop courte.",
     "refusal.backup.passphrase.short.fix": "Tapez au moins {min} caractères.",
     "refusal.backup.passphrase.none":
-      "Votre organisation n'a pas encore de sauvegarde : une phrase de passe doit être choisie.",
+      "Votre organisation n'a pas encore de sauvegarde : une passphrase doit être choisie.",
     "refusal.backup.passphrase.none.fix":
-      "Tapez une phrase de passe deux fois, ou tirez-en une, puis enregistrez.",
+      "Tapez une passphrase deux fois, ou générez-en une, puis enregistrez.",
     "refusal.backup.passphrase.wrong":
-      "Cette phrase de passe n'ouvre pas cette sauvegarde.",
+      "Cette passphrase n'ouvre pas cette sauvegarde.",
     "refusal.backup.passphrase.wrong.fix":
-      "Tapez la phrase choisie quand la sauvegarde a été faite. Rien n'a été envoyé au serveur.",
+      "Tapez la passphrase choisie quand la sauvegarde a été faite. Rien n'a été envoyé au serveur.",
     "refusal.backup.passphrase.needed":
       "Ce lancement de l'app ne tient plus la clé de la sauvegarde.",
     "refusal.backup.passphrase.needed.fix":
-      "Tapez à nouveau la phrase de passe des sauvegardes pour ramener les données.",
+      "Tapez à nouveau la passphrase des sauvegardes pour ramener les données.",
     "refusal.backup.unknown": "La plateforme ne liste pas la sauvegarde {id}.",
     "refusal.backup.unknown.fix":
       "Rechargez la liste des sauvegardes : elle a peut-être été supprimée entre-temps.",
     "refusal.backup.unenrolled":
-      "Ce serveur n'est pas enrôlé auprès de la plateforme : aucune sauvegarde ne lui est listée.",
+      "Ce serveur n'est pas rattaché à la plateforme : aucune sauvegarde ne lui est listée.",
     "refusal.backup.unenrolled.fix":
       "Ouvrez le serveur une fois pour que son agent réponde, puis rechargez la page.",
     "refusal.backup.parts.none": "Aucune partie de la sauvegarde n'est cochée.",
@@ -614,15 +615,15 @@ export const backups = {
       "Des services ne se sont pas installés : {modules}.",
     "refusal.backup.install.failed.fix":
       "Leurs lignes disent ce qui a échoué et la commande qui les répare ; les données attendent qu'ils tournent.",
-    "refusal.backup.probe.bucket": "Aucun seau de ce nom à ce point d'accès.",
+    "refusal.backup.probe.bucket": "Aucun bucket de ce nom à cet endpoint.",
     "refusal.backup.probe.bucket.fix":
-      "Vérifiez le nom du seau et le point d'accès. Sur R2, un seau se crée dans R2 › Create bucket.",
+      "Vérifiez le nom du bucket et l'endpoint. Sur R2, un bucket se crée dans R2 › Create bucket.",
     "refusal.backup.probe.denied":
-      "Cette clé n'a pas le droit d'écrire dans ce seau, ou aucun seau ne porte ce nom.",
+      "Cette clé n'a pas le droit d'écrire dans ce bucket, ou aucun bucket ne porte ce nom.",
     "refusal.backup.probe.denied.fix":
-      "Vérifiez le nom du seau : une clé limitée à un seau répond de même pour un nom qu'elle n'ouvre pas. Puis donnez à la clé Object Read & Write sur ce seau (R2 › Manage API tokens), et enregistrez à nouveau.",
+      "Vérifiez le nom du bucket : une clé limitée à un bucket répond de même pour un nom qu'elle n'ouvre pas. Puis donnez à la clé Object Read & Write sur ce bucket (R2 › Manage API tokens), et enregistrez à nouveau.",
     "refusal.backup.probe.delete":
-      "Cette clé écrit dans le seau mais n'a pas le droit d'y effacer.",
+      "Cette clé écrit dans le bucket mais n'a pas le droit d'y effacer.",
     "refusal.backup.probe.delete.fix":
       "Les anciennes sauvegardes s'effacent avec la même clé : donnez-lui le droit de supprimer des objets, puis enregistrez à nouveau.",
     "refusal.backup.probe.keyId":
@@ -639,10 +640,10 @@ export const backups = {
       "Réglez la date et l'heure automatiquement dans les réglages du système, puis enregistrez à nouveau.",
     "refusal.backup.probe.unreachable": "{endpoint} ne répond pas : {reason}.",
     "refusal.backup.probe.unreachable.fix":
-      "Vérifiez le point d'accès et la connexion de cet ordinateur, puis enregistrez à nouveau.",
+      "Vérifiez l'endpoint et la connexion de cet ordinateur, puis enregistrez à nouveau.",
     "refusal.backup.probe.refused":
-      "Le seau a refusé l'écriture d'essai ({code}).",
+      "Le bucket a refusé l'écriture d'essai ({code}).",
     "refusal.backup.probe.refused.fix":
-      "Vérifiez le seau, la clé et ses droits, puis enregistrez à nouveau.",
+      "Vérifiez le bucket, la clé et ses droits, puis enregistrez à nouveau.",
   },
 };

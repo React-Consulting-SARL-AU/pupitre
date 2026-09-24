@@ -76,7 +76,7 @@ export const audit = {
     "audit.target.mail_template": "Canned reply",
   },
   fr: {
-    "audit.action.server.enrolled": "Serveur enrôlé",
+    "audit.action.server.enrolled": "Serveur rattaché",
     "audit.action.server.exchanged": "Agent installé",
     "audit.action.server.assigned": "Serveur attribué",
     "audit.action.server.unassigned": "Attribution retirée",

@@ -119,7 +119,7 @@ var stateCatalog = map[string]Message{
 		EN: "%s is a service: systemd holds it, not a tmux window",
 	},
 	"state.debug.service.fix": {
-		FR: "Déboguer ne vaut que pour un projet lancé par la pile.",
+		FR: "Déboguer ne vaut que pour un projet lancé par la stack.",
 		EN: "Debugging only applies to a project the stack starts.",
 	},
 	"state.debug.undeclared": {
@@ -131,7 +131,7 @@ var stateCatalog = map[string]Message{
 		EN: "Declare it in /etc/pupitre/env: %s=\"%s:5005\".",
 	},
 	"state.project.install.failed.fix": {
-		FR: "Ouvrez le journal du projet, ou corrigez la colonne install du registre.",
+		FR: "Ouvrez les logs du projet, ou corrigez la colonne install du registre.",
 		EN: "Open the project's journal, or fix the install column of the registry.",
 	},
 	"state.service.unknown": {
@@ -159,7 +159,7 @@ var stateCatalog = map[string]Message{
 		EN: "Read service.logs %s for what the unit said.",
 	},
 	"state.service.journal.unreadable": {
-		FR: "%s : le journal de l'unité est illisible : %s",
+		FR: "%s : les logs de l'unité sont illisibles : %s",
 		EN: "%s: the unit's journal cannot be read: %s",
 	},
 	"state.secret.foreign": {
@@ -283,15 +283,15 @@ var stateCatalog = map[string]Message{
 		EN: "invalid branch name: %s",
 	},
 	"state.branch.invalid.fix": {
-		FR: "Lettres, chiffres, point, tiret, souligné et barre oblique.",
+		FR: "Lettres, chiffres, point, tiret, tiret bas et slash.",
 		EN: "Letters, digits, dot, dash, underscore and slash.",
 	},
 	"state.tree.dirty": {
-		FR: "%s a des modifications non validées",
+		FR: "%s a des modifications non commitées",
 		EN: "%s has uncommitted changes",
 	},
 	"state.tree.dirty.fix": {
-		FR: "Validez-les, mettez-les de côté avec git stash, ou annulez-les avant de changer de branche.",
+		FR: "Commitez-les, mettez-les de côté avec git stash, ou annulez-les avant de changer de branche.",
 		EN: "Commit them, set them aside with git stash, or drop them before switching branch.",
 	},
 	"state.remote.unreachable": {
@@ -404,7 +404,7 @@ var stateCatalog = map[string]Message{
 		EN: "a process folder could not be created: %s",
 	},
 	"state.project.warning.pin": {
-		FR: "l'épingle des runtimes n'a pas pu être écrite : %s",
+		FR: "les versions épinglées des runtimes n'ont pas pu être écrites : %s",
 		EN: "the runtime pin could not be written: %s",
 	},
 	"state.project.warning.stop": {

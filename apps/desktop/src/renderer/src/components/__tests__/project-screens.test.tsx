@@ -144,7 +144,7 @@ describe("les onglets d'un projet", () => {
     );
 
     expect(html).toContain("Vue d&#x27;ensemble");
-    expect(html).toContain("Journal");
+    expect(html).toContain("Logs");
     expect(html).toContain("Terminaux");
     expect(html).toContain("Agents");
     expect(html).not.toContain("Claude");

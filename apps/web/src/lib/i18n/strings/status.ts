@@ -56,7 +56,7 @@ export const status = {
     "service.doesNotRespond": "Does not respond",
   },
   fr: {
-    "status.enrolling": "Enrôlement",
+    "status.enrolling": "Rattachement",
     "status.active": "En ligne",
     "status.grace": "Tolérance",
     "status.suspended": "Suspendu",
@@ -76,7 +76,7 @@ export const status = {
       "Ouvrez une session SSH sur la machine et vérifiez le service : systemctl status pupitred.",
     "alert.disk_high": "Disque au-dessus de 90 %",
     "alert.disk_high.fix":
-      "Effacez les journaux et les images inutiles, ou agrandissez le volume chez votre hébergeur.",
+      "Effacez les logs et les images inutiles, ou agrandissez le volume chez votre hébergeur.",
     "alert.agent_outdated": "Agent périmé de deux versions",
     "alert.agent_outdated.fix":
       "L'agent se met à jour à son prochain contact ; relancez la mise à jour depuis l'app si rien ne bouge.",
@@ -85,7 +85,7 @@ export const status = {
       "Mettez le moyen de paiement à jour depuis la facturation.",
     "alert.backup_failed": "Dernière sauvegarde en échec",
     "alert.backup_failed.fix":
-      "Lisez l'erreur sous Sauvegardes, corrigez le seau ou sa clé depuis l'app Pupitre, puis relancez une sauvegarde.",
+      "Lisez l'erreur sous Sauvegardes, corrigez le bucket ou sa clé depuis l'app Pupitre, puis relancez une sauvegarde.",
     "alert.backup_stale": "Aucune sauvegarde depuis deux intervalles",
     "alert.backup_stale.fix":
       "Vérifiez l'agent avec systemctl status pupitred, puis sauvegardez depuis l'app Pupitre.",

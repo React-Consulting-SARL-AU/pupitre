@@ -13,7 +13,7 @@ import { launchPupitre, type Running } from "./harness/launch";
  * else is possible, and offers the one repair it can carry out itself.
  */
 
-const REPAIR = "Ré-enrôler ce serveur";
+const REPAIR = "Rattacher à nouveau ce serveur";
 
 const SIGNED_IN = {
   build: "production",

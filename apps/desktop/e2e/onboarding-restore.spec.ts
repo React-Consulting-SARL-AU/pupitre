@@ -73,7 +73,7 @@ test.describe("onboarding depuis une sauvegarde", () => {
       await expect(page.locator("#backup-endpoint")).toHaveCount(0);
       await expect(
         page.getByText(
-          "Tapez la phrase de passe des sauvegardes pour repartir d'une sauvegarde."
+          "Tapez la passphrase des sauvegardes pour repartir d'une sauvegarde."
         )
       ).toBeVisible();
     });

@@ -1,18 +1,18 @@
 ---
 title: Sauvegardes
-description: Ce que contient une sauvegarde, la configuration de votre propre seau S3, la phrase de passe, et la restauration d’un serveur.
+description: Ce que contient une sauvegarde, la configuration de votre propre bucket S3, la passphrase, et la restauration d’un serveur.
 locale: fr
 section: daily
 sectionOrder: 2
 order: 10
 ---
 
-Une sauvegarde est ce qu’il faut pour refaire un serveur Pupitre ailleurs, ou le remettre dans l’état d’hier. L’agent la fabrique, la chiffre, et l’envoie vers un seau qui est le vôtre. Pupitre n’en garde que l’adresse et un résumé.
+Une sauvegarde est ce qu’il faut pour refaire un serveur Pupitre ailleurs, ou le remettre dans l’état d’hier. L’agent la fabrique, la chiffre, et l’envoie vers un bucket qui est le vôtre. Pupitre n’en garde que l’adresse et un résumé.
 
 ## Ce qu’une sauvegarde contient
 
-- **La configuration et les secrets des modules** — le catalogue, ses réglages, et les jetons et mots de passe que garde chaque module.
-- **Les bases** — un dump par base, les rôles PostgreSQL, et l’instantané Redis.
+- **La configuration et les secrets des modules** — le catalogue, ses réglages, et les tokens et mots de passe que garde chaque module.
+- **Les bases** — un dump par base, les rôles PostgreSQL, et le snapshot Redis.
 - **Les projets tels qu’ils sont** — le dossier entier, `.git` compris, avec le travail non commité.
 - **Le compte dev** — ses clés SSH et ses sessions d’agents de code.
 - **Des dossiers supplémentaires** que vous nommez sous `/home/dev`.
@@ -23,18 +23,18 @@ Les binaires, les runtimes et les dépendances des projets — réinstallés, ja
 
 ## Le coût
 
-Une sauvegarde est stockée dans votre propre seau ; Pupitre n’en garde qu’une référence, jamais son contenu. Sur Cloudflare R2, le palier gratuit actuellement publié couvre 10 Go-mois de stockage et ne facture aucune sortie — ce que vous payez dépend de la taille de votre seau et des tarifs publiés par votre fournisseur.
+Une sauvegarde est stockée dans votre propre bucket ; Pupitre n’en garde qu’une référence, jamais son contenu. Sur Cloudflare R2, l’offre gratuite actuellement publiée couvre 10 Go-mois de stockage et ne facture pas l’egress — ce que vous payez dépend de la taille de votre bucket et des tarifs publiés par votre fournisseur.
 
 ## Configurer Cloudflare R2
 
-1. Créez un seau dans le tableau de bord Cloudflare.
-2. Allez dans **R2 › Manage API tokens** et créez un jeton limité à **Object Read & Write**, restreint à ce seau.
-3. Notez l’**Access Key ID**, la **Secret Access Key**, et l’identifiant de votre compte, affiché sur la page d’accueil de R2 et dans le point d’accès S3 `https://<compte>.r2.cloudflarestorage.com`.
-4. Dans l’app, ouvrez la page **Sauvegardes** du serveur : la mise en place demande d’abord le seau — choisissez Cloudflare R2, puis donnez l’identifiant du compte, le nom du seau et la clé — et l’éprouve par une écriture d’essai avant de continuer. Cet ordinateur garde le seau pour ses autres serveurs ; l’onglet **Destination** de la même page le change, et applique aussitôt le changement au serveur, clé secrète comprise.
+1. Créez un bucket dans le tableau de bord Cloudflare.
+2. Allez dans **R2 › Manage API tokens** et créez un token limité à **Object Read & Write**, restreint à ce bucket.
+3. Notez l’**Access Key ID**, la **Secret Access Key**, et l’identifiant de votre compte, affiché sur la page d’accueil de R2 et dans l’endpoint S3 `https://<compte>.r2.cloudflarestorage.com`.
+4. Dans l’app, ouvrez la page **Sauvegardes** du serveur : la mise en place demande d’abord le bucket — choisissez Cloudflare R2, puis donnez l’identifiant du compte, le nom du bucket et la clé — et le teste par une écriture d’essai avant de continuer. Cet ordinateur garde le bucket pour ses autres serveurs ; l’onglet **Destination** de la même page le change, et applique aussitôt le changement au serveur, clé secrète comprise.
 
 ## Utiliser AWS S3 à la place
 
-Créez un seau et un utilisateur IAM avec une politique limitée à ce seau :
+Créez un bucket et un utilisateur IAM avec une politique limitée à ce bucket :
 
 ```json
 {
@@ -43,7 +43,7 @@ Créez un seau et un utilisateur IAM avec une politique limitée à ce seau :
     {
       "Effect": "Allow",
       "Action": ["s3:ListBucket"],
-      "Resource": "arn:aws:s3:::votre-seau"
+      "Resource": "arn:aws:s3:::votre-bucket"
     },
     {
       "Effect": "Allow",
@@ -54,23 +54,23 @@ Créez un seau et un utilisateur IAM avec une politique limitée à ce seau :
         "s3:AbortMultipartUpload",
         "s3:ListMultipartUploadParts"
       ],
-      "Resource": "arn:aws:s3:::votre-seau/*"
+      "Resource": "arn:aws:s3:::votre-bucket/*"
     }
   ]
 }
 ```
 
-Le point d’accès est `https://s3.<région>.amazonaws.com`. Tout autre fournisseur compatible S3 fonctionne de la même façon : un seau, une clé restreinte à ce seau, et son point d’accès.
+L’endpoint est `https://s3.<région>.amazonaws.com`. Tout autre fournisseur compatible S3 fonctionne de la même façon : un bucket, une clé restreinte à ce bucket, et son endpoint.
 
-## La phrase de passe
+## La passphrase
 
-Vous choisissez une phrase de passe une fois, la tapez une fois, et elle est dérivée en clé de chiffrement sur votre laptop — jamais gardée, ni par l’app, ni par le serveur, ni par Pupitre. Les sauvegardes sont chiffrées sur le serveur pour la moitié publique de cette clé ; le serveur lui-même ne peut pas les lire.
+Vous choisissez une passphrase une fois, la tapez une fois, et elle est dérivée en clé de chiffrement sur votre laptop — jamais gardée, ni par l’app, ni par le serveur, ni par Pupitre. Les sauvegardes sont chiffrées sur le serveur pour la moitié publique de cette clé ; le serveur lui-même ne peut pas les lire.
 
-La phrase n’est redemandée que pour restaurer, et vous pouvez la taper depuis n’importe quel ordinateur. Perdue, les sauvegardes qu’elle protège deviennent illisibles, et personne — ni Pupitre, ni le support — ne peut la recouvrer. Un second ordinateur de la même organisation reprend la clé existante et ne redemande pas la phrase, sauf pour restaurer depuis lui.
+La passphrase n’est redemandée que pour restaurer, et vous pouvez la taper depuis n’importe quel ordinateur. Perdue, les sauvegardes qu’elle protège deviennent illisibles, et personne — ni Pupitre, ni le support — ne peut la récupérer. Un second ordinateur de la même organisation reprend la clé existante et ne redemande pas la passphrase, sauf pour restaurer depuis lui.
 
 ## Réglages
 
-La première fois, la page **Sauvegardes** du serveur passe par quatre étapes : le seau, la phrase de passe, la fréquence, le contenu ; **Activer les sauvegardes** les applique, et lance une première sauvegarde sauf si vous la décochez. Ensuite, la même page tient les réglages : la fréquence — toutes les heures, toutes les 6 ou 12 heures, chaque jour, chaque semaine, à la demande seulement, ou un autre intervalle —, l’heure où part une sauvegarde quotidienne ou hebdomadaire, le nombre de sauvegardes planifiées à garder, traduit en historique — les manuelles restent jusqu’à ce que vous les supprimiez —, et ce qu’il faut inclure. **Sauvegarder maintenant** en lance une tout de suite, et propose de lui donner un nom — « Avant la migration », par exemple — affiché à côté de sa date ; laissé vide, la date suffit. Ce nom est la seule chose que vous écrivez que la plateforme garde avec la référence.
+La première fois, la page **Sauvegardes** du serveur passe par quatre étapes : le bucket, la passphrase, la fréquence, le contenu ; **Activer les sauvegardes** les applique, et lance une première sauvegarde sauf si vous la décochez. Ensuite, la même page tient les réglages : la fréquence — toutes les heures, toutes les 6 ou 12 heures, chaque jour, chaque semaine, à la demande seulement, ou un autre intervalle —, l’heure où part une sauvegarde quotidienne ou hebdomadaire, le nombre de sauvegardes planifiées à garder, traduit en historique — les manuelles restent jusqu’à ce que vous les supprimiez —, et ce qu’il faut inclure. **Sauvegarder maintenant** en lance une tout de suite, et propose de lui donner un nom — « Avant la migration », par exemple — affiché à côté de sa date ; laissé vide, la date suffit. Ce nom est la seule chose que vous écrivez que la plateforme garde avec la référence.
 
 Ce qu’il faut inclure se choisit élément par élément : chaque projet et chaque base du serveur sont listés avec une case, toutes cochées par défaut. Décochez une base que vous gardez déjà ailleurs, ou un projet dont vous n’aurez pas besoin ; un projet ou une base créés plus tard sont sauvegardés tant que vous ne les décochez pas. Un interrupteur coupe toute une catégorie.
 
@@ -86,12 +86,12 @@ Dans les deux cas, les projets que la sauvegarde décrit redémarrent une fois l
 
 ## Recommandation
 
-Qui détient la clé S3 peut effacer ce qu’il y a dans le seau. Activez le versionnage ou le verrouillage d’objets sur ce seau, pour qu’une sauvegarde effacée ou écrasée reste là à récupérer.
+Qui détient la clé S3 peut effacer ce qu’il y a dans le bucket. Activez le versioning ou l’Object Lock sur ce bucket, pour qu’une sauvegarde effacée ou écrasée reste là à récupérer.
 
-Qui peut lire le seau peut aussi lire le manifeste de chaque sauvegarde, qui n’est pas chiffré : le nom du serveur, les noms de ses projets, de ses bases et de ses dossiers, l’adresse et la branche de chaque dépôt. Rien de ce qu’ils contiennent — aucun fichier, aucune donnée, aucun secret — ne se lit sans votre phrase de passe. Gardez le seau privé, ce que sont par défaut les seaux R2 et S3.
+Qui peut lire le bucket peut aussi lire le manifeste de chaque sauvegarde, qui n’est pas chiffré : le nom du serveur, les noms de ses projets, de ses bases et de ses dossiers, l’adresse et la branche de chaque dépôt. Rien de ce qu’ils contiennent — aucun fichier, aucune donnée, aucun secret — ne se lit sans votre passphrase. Gardez le bucket privé, ce que sont par défaut les buckets R2 et S3.
 
-L’app n’accepte qu’un point d’accès en `https://` : en HTTP simple, la signature de chaque requête passerait en clair sur le réseau.
+L’app n’accepte qu’un endpoint en `https://` : en HTTP simple, la signature de chaque requête passerait en clair sur le réseau.
 
 ## Ouvrir une sauvegarde sans Pupitre
 
-`pupitred backup open` lit une sauvegarde seule, avec le fichier et la phrase de passe — pour le jour où vous voulez regarder dedans sans l’app.
+`pupitred backup open` lit une sauvegarde seule, avec le fichier et la passphrase — pour le jour où vous voulez regarder dedans sans l’app.

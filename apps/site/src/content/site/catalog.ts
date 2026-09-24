@@ -26,7 +26,7 @@ export function isRequired(id: ModuleId): boolean {
 export const CATALOG: CatalogGroup[] = [
   {
     id: "core",
-    label: { en: "Base", fr: "Socle" },
+    label: { en: "Base", fr: "Base" },
     entries: [
       {
         id: "core.system",
@@ -38,7 +38,7 @@ export const CATALOG: CatalogGroup[] = [
       },
       {
         id: "core.hardening",
-        name: { en: "Hardening", fr: "Durcissement" },
+        name: { en: "Hardening", fr: "Sécurisation" },
         detail: {
           en: "ufw on SSH only, fail2ban, root closed and passwords off once a key opens dev.",
           fr: "ufw sur SSH seul, fail2ban, root fermé et mots de passe désactivés une fois qu’une clé ouvre dev.",
@@ -49,7 +49,7 @@ export const CATALOG: CatalogGroup[] = [
         name: { en: "Backups", fr: "Sauvegardes" },
         detail: {
           en: "Configuration, secrets, databases and projects, encrypted on the server and sent to your own S3 bucket on the interval you set.",
-          fr: "Configuration, secrets, bases et projets, chiffrés sur le serveur et envoyés dans votre propre seau S3 à l’intervalle que vous choisissez.",
+          fr: "Configuration, secrets, bases et projets, chiffrés sur le serveur et envoyés dans votre propre bucket S3 à l’intervalle que vous choisissez.",
         },
       },
     ],
@@ -165,7 +165,7 @@ export const CATALOG: CatalogGroup[] = [
         name: { en: "Mailpit", fr: "Mailpit" },
         detail: {
           en: "A local SMTP server that catches everything your projects send, and the interface that shows it, both on the loopback.",
-          fr: "Un serveur SMTP local qui capture tout ce que vos projets envoient, et l’interface qui le montre, tous deux sur la boucle locale.",
+          fr: "Un serveur SMTP local qui capture tout ce que vos projets envoient, et l’interface qui le montre, tous deux sur localhost.",
         },
       },
     ],
@@ -179,7 +179,7 @@ export const CATALOG: CatalogGroup[] = [
         name: { en: "Claude Code", fr: "Claude Code" },
         detail: {
           en: "The native binary, checksum verified, with the machine context, the Pupitre skills and your own subscription.",
-          fr: "Le binaire natif, somme de contrôle vérifiée, avec le contexte machine, les skills Pupitre et votre propre abonnement.",
+          fr: "Le binaire natif, checksum vérifié, avec le contexte machine, les skills Pupitre et votre propre abonnement.",
         },
       },
       {
@@ -219,7 +219,7 @@ export const CATALOG: CatalogGroup[] = [
         name: { en: "OpenCode", fr: "OpenCode" },
         detail: {
           en: "The open-source agent, its binary checked against the digest GitHub publishes, tied to no provider: a Claude, ChatGPT or Copilot subscription, or any key.",
-          fr: "L’agent open source, binaire vérifié par la somme que GitHub publie, sans fournisseur imposé : un abonnement Claude, ChatGPT ou Copilot, ou n’importe quelle clé.",
+          fr: "L’agent open source, binaire vérifié par le checksum que GitHub publie, sans fournisseur imposé : un abonnement Claude, ChatGPT ou Copilot, ou n’importe quelle clé.",
         },
       },
       {
@@ -235,7 +235,7 @@ export const CATALOG: CatalogGroup[] = [
         name: { en: "OpenClaw", fr: "OpenClaw" },
         detail: {
           en: "The personal assistant reached from Telegram, Discord or WhatsApp, its gateway as a systemd service, the model providers you configure.",
-          fr: "L’assistant personnel joignable depuis Telegram, Discord ou WhatsApp, sa passerelle en service systemd, les fournisseurs de modèles que vous configurez.",
+          fr: "L’assistant personnel joignable depuis Telegram, Discord ou WhatsApp, sa gateway en service systemd, les fournisseurs de modèles que vous configurez.",
         },
       },
       {
@@ -243,7 +243,7 @@ export const CATALOG: CatalogGroup[] = [
         name: { en: "Browser and gallery", fr: "Navigateur et galerie" },
         detail: {
           en: "Headless Chrome and the Playwright libraries, the shot command, and a gallery served on the loopback.",
-          fr: "Chrome sans interface et les bibliothèques Playwright, la commande shot, et une galerie servie sur la boucle locale.",
+          fr: "Chrome headless et les bibliothèques Playwright, la commande shot, et une galerie servie sur localhost.",
         },
       },
     ],
@@ -325,7 +325,7 @@ export const CATALOG: CatalogGroup[] = [
         name: { en: "1Password", fr: "1Password" },
         detail: {
           en: "CLI and service account token, checked at install time, so a project builds its env file from your vault.",
-          fr: "CLI et jeton de compte de service, vérifié à l’installation, pour qu’un projet construise son fichier d’environnement depuis votre coffre.",
+          fr: "CLI et token de compte de service, vérifié à l’installation, pour qu’un projet construise son fichier d’environnement depuis votre coffre.",
         },
       },
       {
@@ -341,7 +341,7 @@ export const CATALOG: CatalogGroup[] = [
         name: { en: "Wrangler", fr: "Wrangler" },
         detail: {
           en: "Cloudflare’s CLI and your API token in the dev shell; Workers, D1 and Pages deploy from the server.",
-          fr: "Le CLI de Cloudflare et votre jeton d’API dans le shell de dev ; Workers, D1 et Pages se déploient depuis le serveur.",
+          fr: "Le CLI de Cloudflare et votre token d’API dans le shell de dev ; Workers, D1 et Pages se déploient depuis le serveur.",
         },
       },
       {
@@ -349,7 +349,7 @@ export const CATALOG: CatalogGroup[] = [
         name: { en: "Vercel", fr: "Vercel" },
         detail: {
           en: "The Vercel CLI and your token in the dev shell; deploy, env and logs answer from the server.",
-          fr: "Le CLI Vercel et votre jeton dans le shell de dev ; deploy, env et logs répondent depuis le serveur.",
+          fr: "Le CLI Vercel et votre token dans le shell de dev ; deploy, env et logs répondent depuis le serveur.",
         },
       },
       {
@@ -357,7 +357,7 @@ export const CATALOG: CatalogGroup[] = [
         name: { en: "Supabase", fr: "Supabase" },
         detail: {
           en: "The Supabase CLI, its release binary checksum verified, and your access token in the dev shell; migrations, types and functions push from the server.",
-          fr: "Le CLI Supabase, binaire de release vérifié par sa somme, et votre jeton d’accès dans le shell de dev ; migrations, types et fonctions se poussent depuis le serveur.",
+          fr: "Le CLI Supabase, binaire de release vérifié par son checksum, et votre token d’accès dans le shell de dev ; migrations, types et fonctions se déploient depuis le serveur.",
         },
       },
       {
@@ -365,7 +365,7 @@ export const CATALOG: CatalogGroup[] = [
         name: { en: "Stripe", fr: "Stripe" },
         detail: {
           en: "The Stripe CLI, its release binary checksum verified, and a restricted key in the dev shell; stripe listen forwards webhooks to a project on the machine.",
-          fr: "Le CLI Stripe, binaire de release vérifié par sa somme, et une clé restreinte dans le shell de dev ; stripe listen relaie les webhooks vers un projet de la machine.",
+          fr: "Le CLI Stripe, binaire de release vérifié par son checksum, et une clé restreinte dans le shell de dev ; stripe listen relaie les webhooks vers un projet de la machine.",
         },
       },
     ],

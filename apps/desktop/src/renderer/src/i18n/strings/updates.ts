@@ -56,11 +56,11 @@ export const updates = {
     "updates.agent.staleDetail":
       "pupitred {installed} sur le serveur, {floor} au minimum pour cette app",
     "updates.agent.staleBody":
-      "Cet agent ne parle plus le protocole de cette app : elle ne peut pas lui demander sa propre mise à jour. Réinstalle l'agent sur ce serveur depuis l'écran de réparation.",
+      "Cet agent ne parle plus le protocole de cette app : elle ne peut pas lui demander sa propre mise à jour. Réinstallez l'agent sur ce serveur depuis l'écran de réparation.",
     "updates.agent.unsignedBody":
       "Cette app ne porte pas la signature de cette version, et ce serveur n'atteint plus la console qui la sert : l'agent refuserait la mise à jour.",
     "updates.agent.unsignedFix":
-      "bun --cwd=apps/agent run release, puis reconstruis l'app.",
+      "bun --cwd=apps/agent run release, puis reconstruisez l'app.",
     "updates.agent.upgraded": "Agent {previous} remplacé par {version}.",
     "updates.agent.upgradedRestarted":
       "Agent {previous} remplacé par {version}, service redémarré.",
@@ -77,7 +77,7 @@ export const updates = {
       "Les fichiers d'avant la migration ont été remis en place. Rien n'est resté à moitié changé sur le serveur.",
     "updates.config.aheadTitle": "Configuration plus récente que cet agent",
     "updates.config.aheadBody":
-      "Ce serveur a été configuré par un agent plus récent. Remets l'agent à jour plutôt que de le laisser lire une forme qu'il ne connaît pas.",
+      "Ce serveur a été configuré par un agent plus récent. Remettez l'agent à jour plutôt que de le laisser lire une forme qu'il ne connaît pas.",
     "updates.config.migrateButton": "Migrer la configuration",
     "updates.config.migrated": "Configuration migrée en révision {revision}.",
     "updates.config.upToDate": "Configuration déjà en révision {revision}.",

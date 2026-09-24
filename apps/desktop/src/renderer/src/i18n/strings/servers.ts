@@ -177,7 +177,7 @@ export const servers = {
     "servers.add.port.problem": "Un port est un nombre entier de 1 à {max}.",
     "servers.add.port.label": "Port",
     "servers.add.user.help":
-      "root au premier contact, dev une fois la machine durcie",
+      "root au premier contact, dev une fois la machine sécurisée",
     "servers.add.user.label": "Utilisateur",
     "servers.add.user.placeholder": "root",
     "servers.add.keyFile.label": "Fichier de la clé privée",
@@ -194,7 +194,7 @@ export const servers = {
       "Le serveur peut quand même être ajouté : l'app vous donnera alors la clé et la ligne à coller.",
     "servers.add.password.label": "Mot de passe du compte distant",
     "servers.add.password.help":
-      "Il sert à cette seule connexion, n'est gardé nulle part et n'est jamais écrit dans un fichier ni un journal.",
+      "Il sert à cette seule connexion, n'est gardé nulle part et n'est jamais écrit dans un fichier ni dans des logs.",
     "servers.add.installing": "Installation de la clé…",
     "servers.add.submitWithPassword": "Ajouter et installer la clé",
     "servers.add.submitAnyway": "Ajouter quand même",
@@ -217,7 +217,7 @@ export const servers = {
       "Aucune clé de cet ordinateur n'ouvre {user}@{host}. Son mot de passe permet à l'app d'en poser une, une fois.",
     "servers.key.password.label": "Mot de passe du compte distant",
     "servers.key.password.help":
-      "Utilisé pour cette seule connexion, gardé nulle part, jamais écrit dans un fichier ni dans un journal.",
+      "Utilisé pour cette seule connexion, gardé nulle part, jamais écrit dans un fichier ni dans des logs.",
     "servers.key.password.refused":
       "Le serveur a refusé ce mot de passe. C'est celui du compte ci-dessus, celui que votre hébergeur vous a donné.",
     "servers.key.password.submit": "Installer la clé",

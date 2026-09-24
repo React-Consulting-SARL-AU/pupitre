@@ -888,13 +888,14 @@ export const admin = {
     "admin.servers.tab.danger": "Danger",
 
     "admin.servers.pendingAssignment": "Attribution en attente d'acceptation",
-    "admin.servers.enrollmentExpiresAt": "Jeton d'enrôlement valable jusqu'au",
+    "admin.servers.enrollmentExpiresAt":
+      "Token de rattachement valable jusqu'au",
     "admin.servers.deviceOwner": "Compte de l'appareil",
-    "admin.servers.heartbeat": "Dernier battement",
-    "admin.servers.createdAt": "Enrôlé",
+    "admin.servers.heartbeat": "Dernier heartbeat",
+    "admin.servers.createdAt": "Rattaché",
     "admin.servers.freshness": "Fraîcheur",
     "admin.servers.anyFreshness": "À jour et sans nouvelles",
-    "admin.servers.fresh": "Battement dans les 24 h",
+    "admin.servers.fresh": "Heartbeat dans les 24 h",
     "admin.servers.seat": "Siège",
     "admin.servers.seatTaken": "Occupé",
     "admin.servers.seatFree": "Libre",

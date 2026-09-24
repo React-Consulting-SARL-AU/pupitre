@@ -79,7 +79,7 @@ export const account = {
       "Réduisez le nombre de serveurs dans l'abonnement ci-dessus : vous payez des sièges que personne n'utilise.",
     "seats.fullTitle": "Tous les sièges sont occupés.",
     "seats.fullFix":
-      "Augmentez le nombre de serveurs dans l'abonnement ci-dessus pour en enrôler un de plus.",
+      "Augmentez le nombre de serveurs dans l'abonnement ci-dessus pour en rattacher un de plus.",
 
     "profile.title": "Profil",
     "profile.name": "Nom",

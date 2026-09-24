@@ -95,9 +95,9 @@ export const config = {
     "config.problem.connection": "Ce compte n'est pas encore connecté.",
     "config.problem.format.port": "Un port entre 1 et 65535 est attendu.",
     "config.problem.format.hostname":
-      "Un nom d'hôte est attendu, sans espace ni barre oblique.",
+      "Un nom d'hôte est attendu, sans espace ni slash.",
     "config.problem.format.domain":
-      "Un domaine est attendu, comme flymate.dev, sans schéma ni barre oblique.",
+      "Un domaine est attendu, comme flymate.dev, sans schéma ni slash.",
     "config.problem.format.email": "Une adresse électronique est attendue.",
     "config.problem.format.identifier":
       "Un identifiant est attendu : minuscules, chiffres et tirets bas, commençant par une lettre.",

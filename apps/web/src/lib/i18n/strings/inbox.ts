@@ -417,7 +417,7 @@ export const inbox = {
     "inbox.attachmentsOverBudget":
       "Au plus {count} fichiers et {max} par email ; rien n'a été ajouté.",
     "inbox.uploading": "Envoi de {name}…",
-    "inbox.uploadFailed": "{name} n'a pas été téléversé.",
+    "inbox.uploadFailed": "{name} n'a pas été envoyé.",
     "inbox.uploadFailedFix": "Rien n'est parti. Réessayez dans un instant.",
 
     "inbox.reply": "Réponse",

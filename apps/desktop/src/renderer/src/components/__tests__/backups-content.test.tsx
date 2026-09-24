@@ -48,7 +48,7 @@ describe("le contenu des sauvegardes", () => {
 
     expect(html).toContain("PostgreSQL · shop");
     expect(html).toContain("MySQL · intranet");
-    expect(html).toContain("Redis · instantané");
+    expect(html).toContain("Redis · snapshot");
   });
 
   it("décoche ce que les réglages laissent dehors, et garde une exclusion d'une base partie", () => {

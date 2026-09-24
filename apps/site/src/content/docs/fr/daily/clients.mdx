@@ -107,7 +107,7 @@ tmux new -A -s claude
 cd ~/projects/votre-projet && claude
 ```
 
-Dans les deux cas vous vous connectez une fois, depuis la session où vous êtes : l’outil affiche une URL, vous l’approuvez dans votre navigateur. C’est votre abonnement ; Pupitre ne revend rien et ne stocke aucun jeton pour vous.
+Dans les deux cas vous vous connectez une fois, depuis la session où vous êtes : l’outil affiche une URL, vous l’approuvez dans votre navigateur. C’est votre abonnement ; Pupitre ne revend rien et ne stocke aucun token pour vous.
 
 ## Codex
 
@@ -142,7 +142,7 @@ dev db url                    la chaîne de connexion, pour un client sur votre 
 dev doctor                    un diagnostic court de la machine
 ```
 
-L’agent lit son enrôlement et son droit d’usage dans des fichiers que seul root ouvre : la commande se relance donc elle-même sous le `sudo` sans mot de passe que le durcissement laisse à l’utilisateur `dev`. Taper `sudo dev …` vous-même ne change rien.
+L’agent lit son rattachement et son droit d’usage dans des fichiers que seul root ouvre : la commande se relance donc elle-même sous le `sudo` sans mot de passe que la sécurisation laisse à l’utilisateur `dev`. Taper `sudo dev …` vous-même ne change rien.
 
 `dev db` accepte aussi `shell`, `dump` et `import`, et le moteur va de soi quand la machine n’a qu’une base — `dev db url postgres` quand elle en a deux.
 
@@ -167,6 +167,6 @@ Un appareil retiré dans la console perd sa clé sur le serveur au prochain rend
 
 ## Ce qui reste dans l’app
 
-Pupitre reste l’endroit des choses qu’un client de conversation n’a pas à faire : inspecter la machine, installer et configurer les services, durcir, le rapport d’installation en direct, l’enregistrement des projets, les secrets, l’état des services que l’agent rapporte, les mises à jour et les alertes.
+Pupitre reste l’endroit des choses qu’un client de conversation n’a pas à faire : inspecter la machine, installer et configurer les services, sécuriser, le rapport d’installation en direct, l’enregistrement des projets, les secrets, l’état des services que l’agent rapporte, les mises à jour et les alertes.
 
-Son terminal est là le jour où vous en voulez un — la première connexion, un journal à regarder, une commande que vous préférez lancer là où l’installation a eu lieu. Ce n’est pas le prix d’entrée.
+Son terminal est là le jour où vous en voulez un — la première connexion, des logs à regarder, une commande que vous préférez lancer là où l’installation a eu lieu. Ce n’est pas le prix d’entrée.

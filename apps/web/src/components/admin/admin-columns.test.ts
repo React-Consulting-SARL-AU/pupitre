@@ -23,7 +23,7 @@ describe("adminServerColumns", () => {
 
   it("sorts on the enrolment date, out of sight on a narrow screen", () => {
     expect(column(columns, "created_at")).toMatchObject({
-      header: "Enrôlé",
+      header: "Rattaché",
       sortable: true,
       hideBelow: "lg",
     })

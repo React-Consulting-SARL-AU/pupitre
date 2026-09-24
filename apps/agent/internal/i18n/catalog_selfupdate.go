@@ -51,7 +51,7 @@ var selfupdateCatalog = map[string]Message{
 		EN: "Pick a published version, or let the app ask for the latest.",
 	},
 	"selfupdate.token.refused": {
-		FR: "la plateforme refuse le jeton de ce serveur : %s",
+		FR: "la plateforme refuse le token de ce serveur : %s",
 		EN: "the platform refuses this server's token: %s",
 	},
 	"selfupdate.token.refused.fix": {
@@ -87,7 +87,7 @@ var selfupdateCatalog = map[string]Message{
 		EN: "Stay on this version; report the incident so the published one gets fixed.",
 	},
 	"selfupdate.token.missing.fix": {
-		FR: "Réinstallez ce serveur depuis l'app pour lui rendre un jeton de serveur.",
+		FR: "Réinstallez ce serveur depuis l'app pour lui rendre un token de serveur.",
 		EN: "Reinstall this server from the app to give it a server token back.",
 	},
 	"selfupdate.root.required.fix": {

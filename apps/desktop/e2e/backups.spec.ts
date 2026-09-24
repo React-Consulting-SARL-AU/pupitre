@@ -36,7 +36,7 @@ const REVERTED = /Le serveur est revenu à la sauvegarde/;
 
 const WEEKS_KEPT = /Environ 14 semaines d'historique/;
 
-const DRIFT = /Ce serveur sauvegarde avec un autre seau ou une autre clé/;
+const DRIFT = /Ce serveur sauvegarde avec un autre bucket ou une autre clé/;
 
 /** Every file the app wrote, the link it keeps back to its own folder aside. */
 function filesUnder(dir: string): string[] {
@@ -107,7 +107,7 @@ test.describe("sauvegardes", () => {
 
       await expect(
         page.getByText(
-          "Cette clé n'a pas le droit d'écrire dans ce seau, ou aucun seau ne porte ce nom."
+          "Cette clé n'a pas le droit d'écrire dans ce bucket, ou aucun bucket ne porte ce nom."
         )
       ).toBeVisible();
       await answerBucket(app);
@@ -120,7 +120,9 @@ test.describe("sauvegardes", () => {
         .locator("#backup-passphrase-confirm")
         .fill("autre chose encore");
 
-      await expect(page.getByText("Les deux phrases diffèrent.")).toBeVisible();
+      await expect(
+        page.getByText("Les deux passphrases diffèrent.")
+      ).toBeVisible();
       await page.locator("#backup-passphrase-confirm").fill(PASSPHRASE);
       await next.click();
     });
@@ -205,7 +207,7 @@ test.describe("sauvegardes", () => {
         content.getByRole("checkbox", { name: "PostgreSQL · shop" })
       ).toBeChecked();
       await expect(
-        content.getByRole("checkbox", { name: "Redis · instantané" })
+        content.getByRole("checkbox", { name: "Redis · snapshot" })
       ).not.toBeChecked();
       await expect(
         content.getByRole("checkbox", { name: "MySQL · archives" })
@@ -285,7 +287,7 @@ test.describe("sauvegardes", () => {
         .click();
 
       await expect(
-        dialog.getByText("Cette phrase de passe n'ouvre pas cette sauvegarde.")
+        dialog.getByText("Cette passphrase n'ouvre pas cette sauvegarde.")
       ).toBeVisible();
     });
 

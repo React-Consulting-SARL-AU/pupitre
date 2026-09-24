@@ -12,15 +12,15 @@ var commandCatalog = map[string]Message{
 	},
 
 	"daemon.enroll.refused": {
-		FR: "la plateforme refuse ce jeton d'enrôlement : %s",
+		FR: "la plateforme refuse ce token de rattachement : %s",
 		EN: "the platform refuses this enrolment token: %s",
 	},
 	"daemon.enroll.refused.fix": {
-		FR: "Relancez l'installation depuis l'app pour obtenir un jeton neuf.",
+		FR: "Relancez l'installation depuis l'app pour obtenir un nouveau token.",
 		EN: "Run the installation again from the app to get a fresh token.",
 	},
 	"daemon.enroll.failed": {
-		FR: "enrôlement impossible : %s",
+		FR: "rattachement impossible : %s",
 		EN: "enrolment failed: %s",
 	},
 	"daemon.enroll.failed.fix": {
@@ -60,7 +60,7 @@ var commandCatalog = map[string]Message{
 		EN: "the platform redirects from one address to the next without end",
 	},
 	"platform.token.none": {
-		FR: "ce serveur n'a pas de jeton : il n'est pas enrôlé",
+		FR: "ce serveur n'a pas de token : il n'est pas rattaché",
 		EN: "this server has no token: it is not enrolled",
 	},
 	"platform.answer.unreadable": {
@@ -76,11 +76,11 @@ var commandCatalog = map[string]Message{
 		EN: "the platform is unreachable: %v",
 	},
 	"daemon.token.missing.fix": {
-		FR: "Réinstallez ce serveur depuis l'app pour lui rendre un jeton de serveur.",
+		FR: "Réinstallez ce serveur depuis l'app pour lui rendre un token de serveur.",
 		EN: "Reinstall this server from the app to give it a server token back.",
 	},
 	"daemon.token.refused": {
-		FR: "la plateforme refuse le jeton de ce serveur : %s",
+		FR: "la plateforme refuse le token de ce serveur : %s",
 		EN: "the platform refuses this server's token: %s",
 	},
 	"daemon.token.refused.fix": {
@@ -96,11 +96,11 @@ var commandCatalog = map[string]Message{
 		EN: "Check that the server reaches the platform over outbound HTTPS, then run keys.sync again.",
 	},
 	"tmux.journal.none": {
-		FR: "aucun journal pour %s",
+		FR: "aucun log pour %s",
 		EN: "no journal for %s",
 	},
 	"tmux.journal.none.fix": {
-		FR: "Démarrez-le avec project.up : le journal naît au premier démarrage.",
+		FR: "Démarrez-le avec project.up : les logs commencent au premier démarrage.",
 		EN: "Start it with project.up: the journal is born at the first start.",
 	},
 	"registry.project.versioned": {
@@ -176,7 +176,7 @@ var commandCatalog = map[string]Message{
 		EN: "Write the secrets grouped by module identifier, like config: {\"<module id>\": {\"<key>\": \"<value>\"}}.",
 	},
 	"daemon.enroll.token.fix": {
-		FR: "Écrivez le jeton d'enrôlement sur la ligne suivante, sous la forme {\"enrollment_token\": \"<jeton>\"}.",
+		FR: "Écrivez le token de rattachement sur la ligne suivante, sous la forme {\"enrollment_token\": \"<token>\"}.",
 		EN: "Write the enrolment token on the next line, as {\"enrollment_token\": \"<token>\"}.",
 	},
 	"devcli.usage": {
@@ -208,7 +208,7 @@ var commandCatalog = map[string]Message{
 		EN: "db %s: pick url, shell, dump or import",
 	},
 	"devcli.elevate.required": {
-		FR: "cette commande lit l'enrôlement et le droit d'usage du serveur, deux fichiers que seul root ouvre",
+		FR: "cette commande lit le rattachement et le droit d'usage du serveur, deux fichiers que seul root ouvre",
 		EN: "this command reads the server's enrolment and entitlement, two files only root opens",
 	},
 	"devcli.elevate.password.fix": {
@@ -240,7 +240,7 @@ var commandCatalog = map[string]Message{
 		EN: "what runs, the ports, the services",
 	},
 	"devcli.logs.help": {
-		FR: "les dernières lignes du journal d'un projet",
+		FR: "les dernières lignes des logs d'un projet",
 		EN: "the last lines of a project's journal",
 	},
 	"devcli.sync.help": {

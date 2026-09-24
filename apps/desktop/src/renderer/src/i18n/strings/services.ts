@@ -158,7 +158,7 @@ export const services = {
     "services.config.unconfigured":
       "Ce service a été installé sans être configuré. Répondez à ses questions et appliquez.",
     "services.config.apply": "Appliquer",
-    "services.config.applying": "Le serveur rejoue {name} avec ces valeurs…",
+    "services.config.applying": "Le serveur relance {name} avec ces valeurs…",
     "services.config.discard": "Annuler les modifications",
     "services.backups.elsewhere":
       "Les sauvegardes se règlent sur la page Sauvegardes du serveur : destination, fréquence et contenu.",
@@ -190,15 +190,15 @@ export const services = {
       "Redémarrer {name} ? Ce qui y est connecté est coupé un instant.",
     "services.control.restartConfirm": "Redémarrer maintenant",
     "services.control.failedHint":
-      "{name} s'est arrêté sur une erreur. Redémarrez-le ; s'il retombe, le journal ci-dessous dit pourquoi.",
+      "{name} s'est arrêté sur une erreur. Redémarrez-le ; s'il retombe, les logs ci-dessous disent pourquoi.",
 
-    "services.journal.title": "Journal",
-    "services.journal.label": "Journal de {name}",
+    "services.journal.title": "Logs",
+    "services.journal.label": "Logs de {name}",
     "services.journal.follow": "Suivre",
     "services.journal.copyAll": "Copier",
     "services.journal.lines.one": "{count} ligne",
     "services.journal.lines.other": "{count} lignes",
-    "services.journal.copyAllHint": "Copier le journal de {name}",
+    "services.journal.copyAllHint": "Copier les logs de {name}",
     "services.journal.waiting": "En attente des premières lignes de {name}",
     "services.journal.cut":
       "Seules les {count} dernières lignes sont gardées : les plus anciennes ont été retirées.",
@@ -249,7 +249,7 @@ export const services = {
     "services.screen.emptyTitle": "Aucun service",
 
     "services.add.quit": "Quitter l'ajout",
-    "services.add.replay": "Rejouer ce module",
+    "services.add.replay": "Relancer ce module",
     "services.add.submit": "Ajouter",
 
     "services.tunnel.title": "Tunnel",

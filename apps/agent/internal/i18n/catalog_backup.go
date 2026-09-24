@@ -7,11 +7,11 @@ var backupCatalog = map[string]Message{
 		EN: "Backups",
 	},
 	"module.core.backup.summary": {
-		FR: "Configuration, secrets, bases, projets et sessions du compte dev, chiffrés sur le serveur pour une clé que vous seul ouvrez, dans votre seau S3.",
+		FR: "Configuration, secrets, bases, projets et sessions du compte dev, chiffrés sur le serveur pour une clé que vous seul ouvrez, dans votre bucket S3.",
 		EN: "Configuration, secrets, databases, projects and the dev account's sessions, encrypted on the server for a key only you open, in your own S3 bucket.",
 	},
 	"module.core.backup.endpoint.label": {
-		FR: "Point d'accès S3",
+		FR: "Endpoint S3",
 		EN: "S3 endpoint",
 	},
 	"module.core.backup.region.label": {
@@ -19,7 +19,7 @@ var backupCatalog = map[string]Message{
 		EN: "Region",
 	},
 	"module.core.backup.bucket.label": {
-		FR: "Seau",
+		FR: "Bucket",
 		EN: "Bucket",
 	},
 	"module.core.backup.prefix.label": {
@@ -27,7 +27,7 @@ var backupCatalog = map[string]Message{
 		EN: "Prefix",
 	},
 	"module.core.backup.path_style.label": {
-		FR: "Adressage par chemin",
+		FR: "Adressage path-style",
 		EN: "Path-style addressing",
 	},
 	"module.core.backup.access_key_id.label": {
@@ -43,7 +43,7 @@ var backupCatalog = map[string]Message{
 		EN: "Encryption public key",
 	},
 	"module.core.backup.kdf_salt.label": {
-		FR: "Sel de la phrase de passe",
+		FR: "Sel de la passphrase",
 		EN: "Passphrase salt",
 	},
 	"module.core.backup.interval_hours.label": {
@@ -91,7 +91,7 @@ var backupCatalog = map[string]Message{
 		EN: "Only their environment files",
 	},
 	"module.core.backup.projects_env_only.help": {
-		FR: "Le code revient alors par un clone : les modifications non commitées et les commits non poussés ne reviennent pas. Un projet sans dépôt est toujours sauvegardé en entier.",
+		FR: "Le code revient alors par un clone : les modifications non commitées et les commits non pushés ne reviennent pas. Un projet sans dépôt est toujours sauvegardé en entier.",
 		EN: "The code then comes back through a clone: uncommitted changes and unpushed commits do not. A project without a repository is always backed up whole.",
 	},
 	"module.core.backup.extra_paths.label": {
@@ -115,7 +115,7 @@ var backupCatalog = map[string]Message{
 		EN: "Databases left out of the backups",
 	},
 	"module.core.backup.exclude_databases.help": {
-		FR: "moteur:nom, ou redis:* pour l'instantané Redis. Toutes les autres partent, celles créées plus tard comprises.",
+		FR: "moteur:nom, ou redis:* pour le snapshot Redis. Toutes les autres partent, celles créées plus tard comprises.",
 		EN: "engine:name, or redis:* for the Redis snapshot. Every other one goes, those created later included.",
 	},
 	"backup.name.invalid": {
@@ -140,31 +140,31 @@ var backupCatalog = map[string]Message{
 		EN: "%s — %s",
 	},
 	"backup.storage.address": {
-		FR: "le point d'accès %s n'est pas une adresse HTTPS, ou le seau ou la région ne sont pas des noms S3",
+		FR: "l'endpoint %s n'est pas une adresse HTTPS, ou le bucket ou la région ne sont pas des noms S3",
 		EN: "the endpoint %s is not an HTTPS address, or the bucket or the region are not S3 names",
 	},
 	"backup.storage.unreachable": {
-		FR: "le point d'accès S3 ne répond pas : %s",
+		FR: "l'endpoint S3 ne répond pas : %s",
 		EN: "the S3 endpoint does not answer: %s",
 	},
 	"backup.storage.unreachable.fix": {
-		FR: "Vérifiez l'adresse du point d'accès dans Réglages › Connexions › Sauvegardes, et que le serveur sort en HTTPS.",
+		FR: "Vérifiez l'adresse de l'endpoint dans Réglages › Connexions › Sauvegardes, et que le serveur sort en HTTPS.",
 		EN: "Check the endpoint address in Settings › Connections › Backups, and that the server can reach out over HTTPS.",
 	},
 	"backup.storage.bucket": {
-		FR: "le seau n'existe pas sur ce point d'accès",
+		FR: "le bucket n'existe pas sur cet endpoint",
 		EN: "the bucket does not exist on this endpoint",
 	},
 	"backup.storage.bucket.fix": {
-		FR: "Créez le seau chez votre fournisseur, ou corrigez son nom dans Réglages › Connexions › Sauvegardes.",
+		FR: "Créez le bucket chez votre fournisseur, ou corrigez son nom dans Réglages › Connexions › Sauvegardes.",
 		EN: "Create the bucket at your provider, or correct its name in Settings › Connections › Backups.",
 	},
 	"backup.storage.denied": {
-		FR: "le seau refuse l'accès : %s",
+		FR: "le bucket refuse l'accès : %s",
 		EN: "the bucket refuses access: %s",
 	},
 	"backup.storage.denied.fix": {
-		FR: "Donnez à la clé d'accès la lecture, l'écriture et la suppression d'objets sur ce seau.",
+		FR: "Donnez à la clé d'accès la lecture, l'écriture et la suppression d'objets sur ce bucket.",
 		EN: "Give the access key read, write and delete rights on the objects of this bucket.",
 	},
 	"backup.storage.key": {
@@ -184,7 +184,7 @@ var backupCatalog = map[string]Message{
 		EN: "Copy the secret key from your provider into Settings › Connections › Backups again.",
 	},
 	"backup.storage.skewed": {
-		FR: "l'horloge du serveur est trop décalée pour que le seau accepte ses requêtes",
+		FR: "l'horloge du serveur est trop décalée pour que le bucket accepte ses requêtes",
 		EN: "the server's clock is too far off for the bucket to accept its requests",
 	},
 	"backup.storage.skewed.fix": {
@@ -192,19 +192,19 @@ var backupCatalog = map[string]Message{
 		EN: "Set the clock right: sudo timedatectl set-ntp true.",
 	},
 	"backup.storage.region": {
-		FR: "le seau est dans une autre région (%s)",
+		FR: "le bucket est dans une autre région (%s)",
 		EN: "the bucket lives in another region (%s)",
 	},
 	"backup.storage.region.fix": {
-		FR: "Donnez la région du seau, et le point d'accès de cette région, dans Réglages › Connexions › Sauvegardes.",
+		FR: "Donnez la région du bucket, et l'endpoint de cette région, dans Réglages › Connexions › Sauvegardes.",
 		EN: "Give the bucket's region, and that region's endpoint, in Settings › Connections › Backups.",
 	},
 	"backup.storage.other": {
-		FR: "le seau refuse : %s",
+		FR: "le bucket refuse : %s",
 		EN: "the bucket refuses: %s",
 	},
 	"backup.storage.other.fix": {
-		FR: "Vérifiez le seau et ses droits chez votre fournisseur, puis recommencez.",
+		FR: "Vérifiez le bucket et ses droits chez votre fournisseur, puis recommencez.",
 		EN: "Check the bucket and its rights at your provider, then try again.",
 	},
 
@@ -213,7 +213,7 @@ var backupCatalog = map[string]Message{
 		EN: "backups are not configured on this server",
 	},
 	"backup.unconfigured.fix": {
-		FR: "Connectez un seau dans Réglages › Connexions › Sauvegardes, puis installez core.backup sur ce serveur.",
+		FR: "Connectez un bucket dans Réglages › Connexions › Sauvegardes, puis installez core.backup sur ce serveur.",
 		EN: "Connect a bucket in Settings › Connections › Backups, then install core.backup on this server.",
 	},
 	"backup.server_id.unknown": {
@@ -258,7 +258,7 @@ var backupCatalog = map[string]Message{
 		EN: "no backup under %s: the manifest is missing",
 	},
 	"backup.missing.fix": {
-		FR: "La sauvegarde a été effacée du seau ; choisissez-en une autre.",
+		FR: "La sauvegarde a été effacée du bucket ; choisissez-en une autre.",
 		EN: "The backup was deleted from the bucket; choose another one.",
 	},
 	"backup.corrupt.manifest": {
@@ -270,7 +270,7 @@ var backupCatalog = map[string]Message{
 		EN: "%s does not match the recorded digest: it changed since the backup",
 	},
 	"backup.corrupt.absent": {
-		FR: "%s manque dans le seau",
+		FR: "%s manque dans le bucket",
 		EN: "%s is missing from the bucket",
 	},
 	"backup.corrupt.part": {
@@ -302,7 +302,7 @@ var backupCatalog = map[string]Message{
 		EN: "the secret line carries no private key",
 	},
 	"backup.key.missing.fix": {
-		FR: "Tapez la phrase de passe des sauvegardes : l'app en dérive la clé.",
+		FR: "Tapez la passphrase des sauvegardes : l'app en dérive la clé.",
 		EN: "Type the backups' passphrase: the app derives the key from it.",
 	},
 	"backup.key.wrong": {
@@ -310,7 +310,7 @@ var backupCatalog = map[string]Message{
 		EN: "this key does not open this backup",
 	},
 	"backup.key.wrong.fix": {
-		FR: "Tapez la phrase de passe en vigueur quand la sauvegarde a été faite.",
+		FR: "Tapez la passphrase en vigueur quand la sauvegarde a été faite.",
 		EN: "Type the passphrase that was in use when the backup was made.",
 	},
 	"backup.secrets.fix": {
@@ -346,7 +346,7 @@ var backupCatalog = map[string]Message{
 		EN: "the restored configuration still waits for a migration",
 	},
 	"backup.restore.migration.fix": {
-		FR: "La configuration d'avant a été remise ; écrivez au support avec le journal /var/log/pupitre.log.",
+		FR: "La configuration d'avant a été remise ; écrivez au support avec les logs de /var/log/pupitre.log.",
 		EN: "The previous configuration was put back; write to support with the journal /var/log/pupitre.log.",
 	},
 	"backup.restore.engine": {
@@ -367,15 +367,15 @@ var backupCatalog = map[string]Message{
 	},
 
 	"backup.redis.snapshot.timeout": {
-		FR: "%s n'a pas fini son instantané en dix minutes",
+		FR: "%s n'a pas fini son snapshot en dix minutes",
 		EN: "%s did not finish its snapshot within ten minutes",
 	},
 	"backup.redis.snapshot.failed": {
-		FR: "%s n'a pas pu écrire son instantané : voyez journalctl -u redis-server",
+		FR: "%s n'a pas pu écrire son snapshot : voyez journalctl -u redis-server",
 		EN: "%s could not write its snapshot: see journalctl -u redis-server",
 	},
 	"backup.redis.rewrite.timeout": {
-		FR: "%s n'a pas fini de réécrire son journal d'ajout en dix minutes",
+		FR: "%s n'a pas fini de réécrire son fichier append-only en dix minutes",
 		EN: "%s did not finish rewriting its append-only file within ten minutes",
 	},
 	"backup.mongodb.refused": {
@@ -404,7 +404,7 @@ var backupCatalog = map[string]Message{
 		EN: "backup %s: %d part(s), %s MB",
 	},
 	"devcli.backup.undeclared": {
-		FR: "la plateforme n'a pas répondu : le démon la déclarera à son prochain tour",
+		FR: "la plateforme n'a pas répondu : le daemon la déclarera à son prochain tour",
 		EN: "the platform did not answer: the daemon will declare it at its next turn",
 	},
 	"devcli.backup.unconfigured": {
@@ -437,7 +437,7 @@ var backupCatalog = map[string]Message{
 	},
 
 	"cli.backup.usage": {
-		FR: "usage : pupitred backup open --salt=<sel> FICHIER (la phrase de passe sur l'entrée standard), ou pupitred backup open --private-key FICHIER (la clé sur l'entrée standard)",
+		FR: "usage : pupitred backup open --salt=<sel> FICHIER (la passphrase sur l'entrée standard), ou pupitred backup open --private-key FICHIER (la clé sur l'entrée standard)",
 		EN: "usage: pupitred backup open --salt=<salt> FILE (the passphrase on standard input), or pupitred backup open --private-key FILE (the key on standard input)",
 	},
 	"cli.backup.failed": {
@@ -445,11 +445,11 @@ var backupCatalog = map[string]Message{
 		EN: "%s does not open: %s",
 	},
 	"cli.backup.wrong": {
-		FR: "la phrase ou la clé n'ouvre pas ce fichier, ou il a été modifié ou coupé",
+		FR: "la passphrase ou la clé n'ouvre pas ce fichier, ou il a été modifié ou coupé",
 		EN: "the passphrase or the key does not open this file, or it was altered or cut",
 	},
 	"cli.backup.decomposed": {
-		FR: "la phrase porte une marque combinante que cet outil ne sait pas composer : tapez-la avec des caractères précomposés, telle que l'app l'affiche, ou passez la clé avec --private-key",
+		FR: "la passphrase porte un diacritique combinant que cet outil ne sait pas composer : tapez-la avec des caractères précomposés, telle que l'app l'affiche, ou passez la clé avec --private-key",
 		EN: "the passphrase holds a combining mark this tool cannot compose: type it with precomposed characters, as the app shows it, or pass the key with --private-key",
 	},
 	"cli.backup.foreign": {

@@ -18,33 +18,33 @@ La première version de Pupitre. Elle transforme un VPS Ubuntu nu en atelier pou
 - L’app tient sa propre configuration SSH : son fichier de config, des clés en 0600, la clé d’hôte épinglée et tout changement annoncé. Votre `~/.ssh/config` n’est jamais touché. Un hôte existant peut être désigné.
 - L’inspection avant d’écrire quoi que ce soit : distribution, architecture, mémoire, disque, sudo, ports écoutés, ce qui est déjà installé, et un verdict — prêt, avertissement ou bloqué.
 - Le catalogue, tiré des manifestes que l’agent déclare : vingt-cinq modules, trois préréglages, les ressources additionnées au fil des choix. Les écrans de configuration sont générés depuis chaque manifeste et validés avant la première étape : une valeur fausse est refusée avec le champ nommé, jamais remplacée par un défaut.
-- Les comptes tiers donnés une fois et gardés dans le trousseau système — Cloudflare, GitHub, 1Password, Neon — puis réutilisés sur chaque serveur, au lieu d’un jeton retapé par machine. Le tunnel Cloudflare est créé depuis l’app sur votre compte ; le serveur ne reçoit que de quoi le faire tourner.
-- L’installation en direct : module, étape, compteur, durée et journal. Une étape en échec nomme sa commande de rejeu. Une connexion qui tombe pendant l’installation se rouvre, et le rapport se relit jusqu’à la fin.
-- Le durcissement, et la bascule de root vers `dev` : root se ferme en dernier, seulement après vérification qu’une clé ouvre `dev`. `keep_root` laisse root ouvert par clé.
+- Les comptes tiers donnés une fois et gardés dans le trousseau système — Cloudflare, GitHub, 1Password, Neon — puis réutilisés sur chaque serveur, au lieu d’un token retapé par machine. Le tunnel Cloudflare est créé depuis l’app sur votre compte ; le serveur ne reçoit que de quoi le faire tourner.
+- L’installation en direct : module, étape, compteur, durée et logs. Une étape en échec nomme sa commande de relance. Une connexion qui tombe pendant l’installation se rouvre, et le rapport se relit jusqu’à la fin.
+- La sécurisation, et la bascule de root vers `dev` : root se ferme en dernier, seulement après vérification qu’une clé ouvre `dev`. `keep_root` laisse root ouvert par clé.
 - L’onboarding reprend là où il s’est arrêté. Un service peut se configurer plus tard.
 
 ### Au quotidien
 
-- Le tableau de bord : la machine, les services qui tournent et les projets, depuis un seul instantané rafraîchi toutes les trois secondes.
-- Les projets : en ajouter un depuis un dossier, une URL git ou un dépôt du compte GitHub connecté. L’app détecte le gestionnaire de paquets, la commande de démarrage et le port, workspaces Turborepo et pnpm compris. Puis démarrer, arrêter, redémarrer, journaux, synchronisation, dépendances, `.env.local` depuis 1Password, branches et checkout, diff par fichier, ports et URL, débogage JVM, et ouverture dans VS Code, Cursor, JetBrains Gateway ou Zed.
+- Le tableau de bord : la machine, les services qui tournent et les projets, depuis un seul snapshot rafraîchi toutes les trois secondes.
+- Les projets : en ajouter un depuis un dossier, une URL git ou un dépôt du compte GitHub connecté. L’app détecte le gestionnaire de paquets, la commande de démarrage et le port, workspaces Turborepo et pnpm compris. Puis démarrer, arrêter, redémarrer, logs, synchronisation, dépendances, `.env.local` depuis 1Password, branches et checkout, diff par fichier, ports et URL, débogage JVM, et ouverture dans VS Code, Cursor, JetBrains Gateway ou Zed.
 - Les terminaux : onglets par serveur, barre d’état, complétion de la commande `dev` et des chemins, recherche. Une connexion qu’un CLI imprime s’ouvre dans votre propre navigateur et revient sur le CLI qui l’attend.
 - Les agents : Claude Code, Codex et Hermes ouverts dans la session tmux d’un projet. Les sessions et les processus sont listés, avec leur mémoire, et peuvent être arrêtés.
-- Les services : état, version, port et unité ; identifiants révélés à la demande ; démarrer, arrêter, redémarrer et journaux ; dumps, imports et shell de base de données ; un port du serveur ramené par SSH pour que vos clients de bureau atteignent une base qui reste sur le loopback ; état et réparation du tunnel ; désinstallation, avec ce qui sera perdu dit d’abord.
+- Les services : état, version, port et unité ; identifiants révélés à la demande ; démarrer, arrêter, redémarrer et logs ; dumps, imports et shell de base de données ; un port du serveur ramené par SSH pour que vos clients de bureau atteignent une base qui reste sur le loopback ; état et réparation du tunnel ; désinstallation, avec ce qui sera perdu dit d’abord.
 - Les fichiers : un navigateur sur la racine des projets, aperçu, un éditeur basique, création, renommage et suppression. Les fichiers lourds passent par `rsync` avec reprise et progression, deux à la fois, relancés après une coupure réseau et repris au lancement suivant.
 - La galerie : les captures que vos agents prennent sur le serveur, vues depuis l’app.
 - La flotte : vos organisations et leurs serveurs, le passage d’un serveur à l’autre, et un serveur restreint ou pas prêt réparé depuis l’app.
 - Les mises à jour : l’agent se met à jour depuis un bandeau avec ses notes, sa configuration migre dans le même geste, les modules montent de version ensuite. L’app se met à jour elle-même sur macOS, Windows et AppImage ; chaque artefact est vérifié contre la signature de release avant d’être installé.
 - Palette de commandes, historique de navigation, liens `pupitre://`, menu système, notifications, lancement à l’ouverture de session.
 - Les réglages : apparence et arrondis du système, connexions, terminal, notifications, démarrage, à propos. Thèmes clair et sombre. Français et anglais partout, jusque dans ce que l’agent répond.
-- Le compte : lier l’app par le code affiché sur la console, appareils, usage, abonnement. Sans abonnement en cours, l’app n’enrôle rien.
+- Le compte : lier l’app par le code affiché sur la console, appareils, usage, abonnement. Sans abonnement en cours, l’app ne rattache rien.
 
 ## L’agent
 
 - Un seul binaire statique, `pupitred`, pour Ubuntu 22.04 et 24.04 sur amd64 et arm64. Aucune connexion entrante : il ne répond que sur la session SSH que l’app tient, et parle en HTTPS sortant à la plateforme. Rien de lisible n’est laissé sur le serveur — le binaire, `/etc/pupitre` sous root, des unités systemd générées.
 - La sonde, le moteur de modules, la validation avant la première étape, des étapes idempotentes, un rapport écrit avant chaque étape, une seule installation à la fois.
-- Le catalogue : socle et durcissement ; Node, Java, Python, Go, PHP, Ruby et Docker ; MySQL ou MariaDB, PostgreSQL, MongoDB et Redis ; Claude Code, Codex, Hermes et un navigateur headless ; les backends distants JetBrains, VS Code et Zed ; un tunnel Cloudflare ou Caddy pour l’exposition ; les CLI GitHub, 1Password et Neon. Chaque service n’écoute que sur le loopback.
+- Le catalogue : base et sécurisation ; Node, Java, Python, Go, PHP, Ruby et Docker ; MySQL ou MariaDB, PostgreSQL, MongoDB et Redis ; Claude Code, Codex, Hermes et un navigateur headless ; les backends distants JetBrains, VS Code et Zed ; un tunnel Cloudflare ou Caddy pour l’exposition ; les CLI GitHub, 1Password et Neon. Chaque service n’écoute que sur le loopback.
 - La commande `dev` sur le serveur : projets, sessions, services, bases, secrets, captures — la grammaire que l’app complète dans ses terminaux.
-- L’enrôlement par le flux secret, le jeton de serveur, le heartbeat avec ses mesures, les clés synchronisées depuis la plateforme, le droit d’usage avec sept jours de tolérance hors ligne, le mode restreint quand elle est épuisée.
+- Le rattachement par le flux secret, le token de serveur, le heartbeat avec ses mesures, les clés synchronisées depuis la plateforme, le droit d’usage avec sept jours de tolérance hors ligne, le mode restreint quand elle est épuisée.
 - La mise à jour de l’agent depuis un binaire signé, avec un plancher de version ; aucun retour en arrière sans geste explicite. Des migrations de configuration numérotées, avec sauvegarde et restauration.
 - Chaque message en français et en anglais.
 
@@ -54,8 +54,8 @@ La première version de Pupitre. Elle transforme un VPS Ubuntu nu en atelier pou
 - Essai de quatorze jours sans carte. Abonnement par serveur par Stripe Checkout et le portail client ; sièges changés depuis la console ; tolérance puis suspension sur un paiement refusé. Quand l’abonnement s’arrête, votre serveur continue de fonctionner comme un serveur normal — il perd Pupitre, rien d’autre.
 - Les organisations : membres, rôles, invitations, un serveur attribué à une personne, journal d’audit.
 - Les appareils : une clé par appareil, poussée sur les serveurs qu’il peut ouvrir, révoquée sur un serveur ou sur tous.
-- Les serveurs : enrôlement, statut, sept jours de mesures, événements, retrait en deux temps.
-- Distribution signée de l’agent aux serveurs enrôlés ; distribution publique de l’app avec ses notes, sur les canaux stable et bêta.
+- Les serveurs : rattachement, statut, sept jours de mesures, événements, retrait en deux temps.
+- Distribution signée de l’agent aux serveurs rattachés ; distribution publique de l’app avec ses notes, sur les canaux stable et bêta.
 - Une page de statut publique. Une console d’administration pour le support, sans aucun accès aux machines des clients.
 - Français et anglais, clair et sombre.
 

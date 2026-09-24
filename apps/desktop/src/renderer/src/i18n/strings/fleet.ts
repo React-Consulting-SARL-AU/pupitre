@@ -58,7 +58,7 @@ export const fleet = {
     "fleet.row.withdrawnDetail":
       "La console a suspendu ce serveur. Il revient de lui-même dès que l'abonnement revient.",
     "fleet.status.active": "actif",
-    "fleet.status.enrolling": "en cours d'enrôlement",
+    "fleet.status.enrolling": "rattachement en cours",
     "fleet.status.grace": "en tolérance",
     "fleet.status.suspended": "suspendu",
     "fleet.status.revoked": "révoqué",

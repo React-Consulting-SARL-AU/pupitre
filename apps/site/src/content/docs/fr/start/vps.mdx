@@ -16,7 +16,7 @@ Pupitre ne vous vend pas de serveur et n’en loue pas pour vous. Vous apportez 
 - **amd64 ou arm64.** Les deux sont traités à égalité. arm64 est souvent moins cher à mémoire égale.
 - **20 Go de disque libre.** Un runtime, une base et quelques projets tiennent à l’aise ; un backend JetBrains, non.
 - **Root, ou un compte avec sudo**, pour la première connexion seulement.
-- **Le port 22 joignable.** Si votre réseau le bloque, le module de durcissement peut aussi poser SSH sur le 443.
+- **Le port 22 joignable.** Si votre réseau le bloque, le module de sécurisation peut aussi poser SSH sur le 443.
 
 ## Ce qu’il faut prendre plus large
 
@@ -29,9 +29,9 @@ Pupitre ne vous vend pas de serveur et n’en loue pas pour vous. Vous apportez 
 
 ## Hébergeurs
 
-N’importe quel hébergeur qui vous donne une image Ubuntu nue convient : Hetzner, netcup, OVH, Scaleway, DigitalOcean, Vultr, Contabo, ou une machine dans votre propre baie. Il n’y a aucune intégration à configurer et aucun jeton d’API à confier. Pupitre se connecte en SSH comme vous le feriez.
+N’importe quel hébergeur qui vous donne une image Ubuntu nue convient : Hetzner, netcup, OVH, Scaleway, DigitalOcean, Vultr, Contabo, ou une machine dans votre propre baie. Il n’y a aucune intégration à configurer et aucun token d’API à confier. Pupitre se connecte en SSH comme vous le feriez.
 
-Évitez les images livrées avec un panneau de contrôle, une pile web préinstallée ou un noyau verrouillé. Pupitre rapporte ce qu’il trouve, mais une machine qui a déjà son idée de la gestion des services rend l’installation plus bruyante.
+Évitez les images livrées avec un panel d’administration, une stack web préinstallée ou un noyau verrouillé. Pupitre rapporte ce qu’il trouve, mais une machine qui a déjà son idée de la gestion des services rend l’installation plus bruyante.
 
 Regardez le processeur autant que la mémoire. Les offres d’entrée de gamme partagent des cœurs lents ou bridés, et tout ce que vous ferez depuis Pupitre — builds, tests, agents, terminaux — tournera dessus. Un CPU lent se sent à chaque commande : l’expérience sera dégradée par rapport à votre machine actuelle, quelle que soit la RAM. Comparez la génération et la fréquence du processeur entre deux offres avant de comparer leur prix.
 

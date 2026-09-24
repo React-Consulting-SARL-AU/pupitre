@@ -3,7 +3,7 @@ package i18n
 // The long form of a field's help, shown behind a bubble: where a value is found, and what it costs to get it wrong.
 var hintCatalog = map[string]Message{
 	"module.core.system.timezone.hint": {
-		FR: "Le fuseau du serveur, au format IANA : Europe/Paris, America/New_York, Africa/Casablanca. Il décide de l'heure des journaux, des tâches planifiées et des horodatages des projets. « timedatectl list-timezones » donne la liste complète sur une machine Ubuntu.",
+		FR: "Le fuseau du serveur, au format IANA : Europe/Paris, America/New_York, Africa/Casablanca. Il décide de l'heure des logs, des tâches planifiées et des horodatages des projets. « timedatectl list-timezones » donne la liste complète sur une machine Ubuntu.",
 		EN: "The server's time zone, in IANA form: Europe/Paris, America/New_York, Africa/Casablanca. It decides the time of the journals, the scheduled tasks and the projects' timestamps. `timedatectl list-timezones` gives the full list on an Ubuntu machine.",
 	},
 	"module.core.system.git_name.help": {
@@ -23,31 +23,31 @@ var hintCatalog = map[string]Message{
 		EN: "An absolute path, with no space, owned by the dev account. The default suits almost everyone; you change it to put the projects on a larger disk mounted elsewhere. The directory is created if absent, and never emptied if it exists.",
 	},
 	"module.core.hardening.ssh_443.hint": {
-		FR: "Ouvrez SSH sur le port 443 en plus du 22. Utile depuis un réseau d'entreprise ou un wifi public qui ne laisse sortir que le web. Le port 22 reste ouvert, et aucune des deux portes n'accepte de mot de passe une fois le durcissement passé.",
+		FR: "Ouvrez SSH sur le port 443 en plus du 22. Utile depuis un réseau d'entreprise ou un wifi public qui ne laisse sortir que le web. Le port 22 reste ouvert, et aucune des deux portes n'accepte de mot de passe une fois la sécurisation passée.",
 		EN: "Opens SSH on port 443 as well as 22. Useful from a corporate network or a public wifi that only lets the web out. Port 22 stays open, and neither door accepts a password once the hardening has run.",
 	},
 	"module.core.hardening.keep_root.hint": {
-		FR: "Laissez root joignable par clé SSH, jamais par mot de passe, et appliquez tout le reste du durcissement. Pour qui veut garder une seconde porte sur sa machine. Sans cette option, root est fermé, et le compte dev devient le seul accès — l'app vérifie qu'une clé l'ouvre avant de fermer quoi que ce soit.",
+		FR: "Laissez root joignable par clé SSH, jamais par mot de passe, et appliquez tout le reste de la sécurisation. Pour qui veut garder une seconde porte sur sa machine. Sans cette option, root est fermé, et le compte dev devient le seul accès — l'app vérifie qu'une clé l'ouvre avant de fermer quoi que ce soit.",
 		EN: "Leaves root reachable by SSH key, never by password, and applies the whole rest of the hardening. For whoever wants to keep a second door onto their machine. Without it root is closed and the dev account becomes the only way in — the app checks a key opens it before closing anything.",
 	},
 	"module.db.remote.hint": {
-		FR: "Le compte que votre poste utilise pour ouvrir la base depuis un client graphique, à travers le tunnel SSH que l'app ouvre. Il est distinct du compte applicatif : ce que vous inspectez à la main et ce que le projet écrit ne portent pas le même nom dans les journaux.",
+		FR: "Le compte que votre poste utilise pour ouvrir la base depuis un client graphique, à travers le tunnel SSH que l'app ouvre. Il est distinct du compte applicatif : ce que vous inspectez à la main et ce que le projet écrit ne portent pas le même nom dans les logs.",
 		EN: "The account your workstation uses to open the database from a graphical client, through the SSH tunnel the app opens. It is separate from the application account: what you inspect by hand and what the project writes do not share a name in the journals.",
 	},
 	"module.db.mysql.buffer_pool.hint": {
-		FR: "La mémoire que le moteur garde pour ses pages, comme 512M ou 2G. Laissé vide, le module dimensionne au quart de la mémoire de la machine, ce qui convient à un serveur qui fait aussi tourner des projets. On l'augmente pour une base qui devient le poste de travail principal.",
+		FR: "La mémoire que le moteur garde pour ses pages, comme 512M ou 2G. Laissé vide, le module dimensionne au quart de la mémoire de la machine, ce qui convient à un serveur qui fait aussi tourner des projets. On l'augmente pour une base qui devient la charge principale de la machine.",
 		EN: "The memory the engine keeps for its pages, like 512M or 2G. Left empty, the module sizes it at a quarter of the machine's memory, which suits a server that also runs projects. You raise it for a database that becomes the main workload.",
 	},
 	"module.db.mongodb.cache_mb.hint": {
-		FR: "La mémoire que le moteur garde pour ses pages. Laissé à 0, le module dimensionne au quart de la mémoire de la machine, ce qui convient à un serveur qui fait aussi tourner des projets — MongoDB laissé seul en prendrait la moitié. On l'augmente pour une base qui devient le poste de travail principal.",
+		FR: "La mémoire que le moteur garde pour ses pages. Laissé à 0, le module dimensionne au quart de la mémoire de la machine, ce qui convient à un serveur qui fait aussi tourner des projets — MongoDB laissé seul en prendrait la moitié. On l'augmente pour une base qui devient la charge principale de la machine.",
 		EN: "The memory the engine keeps for its pages. Left at 0, the module sizes it at a quarter of the machine's memory, which suits a server that also runs projects — MongoDB left alone would take half. You raise it for a database that becomes the main workload.",
 	},
 	"module.db.postgres.shared_buffers.hint": {
-		FR: "La mémoire que le cluster garde pour ses pages, comme 512MB ou 2GB. Laissé vide, le module dimensionne au quart de la mémoire de la machine, ce qui convient à un serveur qui fait aussi tourner des projets. On l'augmente pour une base qui devient le poste de travail principal.",
+		FR: "La mémoire que le cluster garde pour ses pages, comme 512MB ou 2GB. Laissé vide, le module dimensionne au quart de la mémoire de la machine, ce qui convient à un serveur qui fait aussi tourner des projets. On l'augmente pour une base qui devient la charge principale de la machine.",
 		EN: "The memory the cluster keeps for its pages, like 512MB or 2GB. Left empty, the module sizes it at a quarter of the machine's memory, which suits a server that also runs projects. You raise it for a database that becomes the main workload.",
 	},
 	"module.runtime.php.memory_limit.hint": {
-		FR: "La limite de mémoire d'un script PHP, comme 256M ou 1G. Laissé vide, la valeur compilée par défaut s'applique. Un « memory_limit » atteint se voit dans les journaux du projet, pas dans une page blanche.",
+		FR: "La limite de mémoire d'un script PHP, comme 256M ou 1G. Laissé vide, la valeur compilée par défaut s'applique. Un « memory_limit » atteint se voit dans les logs du projet, pas dans une page blanche.",
 		EN: "The memory limit of a PHP script, like 256M or 1G. Left empty, the compiled default applies. A `memory_limit` reached shows in the project's journal, not in a blank page.",
 	},
 	"module.runtime.docker.data_root.hint": {
@@ -63,11 +63,11 @@ var hintCatalog = map[string]Message{
 		EN: "The remote backend must match the JetBrains Gateway version installed on your workstation, which `Gateway › About` shows. `latest` follows the latest published version of the chosen product.",
 	},
 	"module.editor.vscode.extensions.hint": {
-		FR: "Un identifiant par ligne, sous la forme éditeur.extension — biomejs.biome, golang.go. Il se lit dans l'URL de la place de marché, ou par « Copier l'identifiant de l'extension » dans le menu contextuel de VS Code. Elles sont posées côté serveur, là où le code vit.",
+		FR: "Un identifiant par ligne, sous la forme éditeur.extension — biomejs.biome, golang.go. Il se lit dans l'URL du Marketplace, ou par « Copier l'identifiant de l'extension » dans le menu contextuel de VS Code. Elles sont posées côté serveur, là où le code vit.",
 		EN: "One identifier per line, in the form publisher.extension — biomejs.biome, golang.go. You read it in the marketplace URL, or through `Copy Extension ID` in VS Code's context menu. They are installed on the server side, where the code lives.",
 	},
 	"module.ai.hermes.providers.hint": {
-		FR: "Une entrée par fournisseur, sous la forme fournisseur=clé : openai=sk-…, anthropic=sk-ant-…, openrouter=sk-or-…. Chaque clé se crée sur le tableau de bord du fournisseur. Elles partent sur le flux secret et sont écrites sur le serveur en 0600, jamais dans un journal.",
+		FR: "Une entrée par fournisseur, sous la forme fournisseur=clé : openai=sk-…, anthropic=sk-ant-…, openrouter=sk-or-…. Chaque clé se crée sur le tableau de bord du fournisseur. Elles partent sur le flux secret et sont écrites sur le serveur en 0600, jamais dans les logs.",
 		EN: "One entry per provider, in the form provider=key: openai=sk-…, anthropic=sk-ant-…, openrouter=sk-or-…. Each key is created on that provider's dashboard. They leave on the secret stream and are written on the server at 0600, never in a journal.",
 	},
 }

@@ -29,7 +29,7 @@ Le dossier `keys` porte `device` pour cet ordinateur et un `srv-…` par serveur
 
 ## Ce qui part sur le serveur
 
-La moitié publique, et elle seule, arrive dans `authorized_keys` de l’utilisateur `dev`. Le module `core.system` recopie les clés non restreintes déjà posées sur root, pour qu’une clé ouvre `dev` **avant** que le durcissement ne ferme root. Cet ordre compte : c’est lui qui empêche une installation de vous enfermer dehors de votre propre machine.
+La moitié publique, et elle seule, arrive dans `authorized_keys` de l’utilisateur `dev`. Le module `core.system` recopie les clés non restreintes déjà posées sur root, pour qu’une clé ouvre `dev` **avant** que la sécurisation ne ferme root. Cet ordre compte : c’est lui qui empêche une installation de vous enfermer dehors de votre propre machine.
 
 ## Ce que voit la plateforme
 

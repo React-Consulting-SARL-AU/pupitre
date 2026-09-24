@@ -181,7 +181,7 @@ export const shell = {
       "Cet écran n'a pas pu être dessiné. Rien n'a changé sur le serveur.",
     "shell.failure.retry": "Le dessiner à nouveau",
     "shell.restricted.console": "Ouvrir la console",
-    "shell.restricted.repair": "Ré-enrôler ce serveur",
+    "shell.restricted.repair": "Rattacher à nouveau ce serveur",
     "shell.restricted.message":
       "Ce serveur n'a plus de droit d'usage valide : il se laisse lire, et refuse tout le reste. Rien de ce qui tournait dessus ne s'est arrêté.",
     "shell.restricted.fix":
@@ -195,7 +195,7 @@ export const shell = {
       "Distribution, mémoire, disque, ports écoutés, comptes existants. Rien n'est écrit sur le serveur.",
     "shell.firstRun.step.install.title": "Il installe ce que vous choisissez",
     "shell.firstRun.step.install.detail":
-      "Bases de données, runtimes, éditeurs, agents IA, chacun rejouable s'il échoue.",
+      "Bases de données, runtimes, éditeurs, agents IA, chacun relançable s'il échoue.",
     "shell.firstRun.step.harden.title": "Il referme la porte derrière lui",
     "shell.firstRun.step.harden.detail":
       "Un compte dev, un pare-feu, puis root et les mots de passe fermés une fois qu'une clé ouvre la machine.",

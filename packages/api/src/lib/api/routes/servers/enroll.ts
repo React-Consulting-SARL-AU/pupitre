@@ -90,7 +90,7 @@ export const enrollRoutes = new Elysia({ name: "servers-enroll-routes" })
     },
     {
       body: enrollBody,
-      detail: { summary: "Enrôler un serveur" },
+      detail: { summary: "Rattacher un serveur" },
       response: {
         201: enrollmentSchema,
         401: errorResponse,

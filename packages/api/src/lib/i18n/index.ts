@@ -3,7 +3,7 @@ import type { Locale } from "@pupitre/shared/i18n"
 const FR = {
   unauthenticated: "Authentification requise.",
   unauthenticated_fix:
-    "Connectez-vous, ou envoyez un jeton valide dans l'en-tête Authorization.",
+    "Connectez-vous, ou envoyez un token valide dans l'en-tête Authorization.",
   forbidden: "Action non autorisée.",
   no_active_organization: "Aucune organisation active.",
   no_active_organization_fix:
@@ -13,11 +13,11 @@ const FR = {
   platform_admin_required: "Réservé à l'équipe Pupitre.",
   platform_role_required:
     "Le rôle {role} dans l'organisation Pupitre est requis pour agir ici.",
-  publish_token_invalid: "Jeton de publication invalide.",
+  publish_token_invalid: "Token de publication invalide.",
   publish_token_invalid_fix:
     "Vérifiez PUPITRE_PUBLISH_TOKEN des deux côtés : le Worker et GitHub Actions.",
-  server_token_required: "Jeton de serveur requis.",
-  server_token_unknown: "Jeton de serveur inconnu.",
+  server_token_required: "Token de serveur requis.",
+  server_token_unknown: "Token de serveur inconnu.",
   server_token_revoked: "Ce serveur a été révoqué.",
   server_token_revoked_fix: "Réinstallez l'agent depuis l'app.",
   not_found: "Cette ressource n'existe pas.",
@@ -26,7 +26,7 @@ const FR = {
   backup_id_taken:
     "Un autre serveur de l'organisation a déjà déclaré la sauvegarde {id}.",
   backup_id_taken_fix:
-    "Relancez la sauvegarde : elle tirera un nouvel identifiant.",
+    "Relancez la sauvegarde : elle générera un nouvel identifiant.",
   key_not_ed25519: "Seules les clés ed25519 sont acceptées.",
   key_not_ed25519_fix: "générez une clé ed25519 : ssh-keygen -t ed25519",
   key_malformed: "Cette clé publique est illisible.",
@@ -188,7 +188,7 @@ const FR = {
     "Donnez une date postérieure à maintenant, au format ISO.",
   affiliate_code_taken: "Le code « {code} » est déjà pris.",
   affiliate_code_taken_fix:
-    "Choisissez un autre code, ou laissez la plateforme en tirer un.",
+    "Choisissez un autre code, ou laissez la plateforme en générer un.",
   affiliate_link_not_found: "Ce lien d'affiliation n'existe pas.",
   affiliate_link_referred:
     "Ce lien a déjà amené une organisation : il ne s'efface plus.",
@@ -217,10 +217,10 @@ const FR = {
   mail_attachments_too_large_fix:
     "Retirez une pièce jointe, ou envoyez-la dans un second message.",
   mail_upload_missing:
-    "Le fichier « {filename} » n'a pas été reçu par le seau.",
-  mail_upload_missing_fix: "Téléversez-le à nouveau, puis renvoyez le message.",
+    "Le fichier « {filename} » n'a pas été reçu par le bucket.",
+  mail_upload_missing_fix: "Envoyez-le à nouveau, puis renvoyez le message.",
   mail_upload_foreign:
-    "Le fichier « {filename} » n'a pas été téléversé depuis votre session.",
+    "Le fichier « {filename} » n'a pas été envoyé depuis votre session.",
   mail_upload_foreign_fix:
     "Ajoutez la pièce jointe depuis ce formulaire, puis renvoyez le message.",
   mail_upload_size_mismatch:
@@ -271,11 +271,11 @@ const FR = {
   stripe_signature_invalid: "Signature Stripe invalide.",
   stripe_signature_invalid_fix:
     "Signez le corps brut avec le secret du webhook, dans les cinq minutes.",
-  enrollment_unknown: "Ce jeton d'enrôlement n'existe pas.",
-  enrollment_used: "Ce jeton d'enrôlement a déjà été échangé.",
-  enrollment_expired: "Ce jeton d'enrôlement a expiré.",
+  enrollment_unknown: "Ce token de rattachement n'existe pas.",
+  enrollment_used: "Ce token de rattachement a déjà été échangé.",
+  enrollment_expired: "Ce token de rattachement a expiré.",
   enrollment_restart_fix:
-    "Relancez l'installation depuis l'app pour obtenir un nouveau jeton.",
+    "Relancez l'installation depuis l'app pour obtenir un nouveau token.",
   internal: "Erreur interne (référence {ref}).",
   rate_limited: "Trop de requêtes.",
   rate_limited_fix: "Réessayez dans {seconds} secondes.",

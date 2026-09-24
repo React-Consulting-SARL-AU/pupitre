@@ -15,7 +15,7 @@ var engineCatalog = map[string]Message{
 		EN: "the report cannot be read %s: %s",
 	},
 	"engine.step.panic": {
-		FR: "panique : %v",
+		FR: "panic : %v",
 		EN: "panic: %v",
 	},
 	"engine.report.none": {

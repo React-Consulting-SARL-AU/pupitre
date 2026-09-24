@@ -261,7 +261,7 @@ describe("l'écart avec le dépôt distant", () => {
       />
     );
 
-    expect(text(html)).toContain("Tirer et réinstaller");
+    expect(text(html)).toContain("Pull et réinstaller");
     expect(html).toContain("git pull puis réinstallation");
   });
 
@@ -278,7 +278,7 @@ describe("l'écart avec le dépôt distant", () => {
       />
     );
 
-    expect(text(html)).not.toContain("Tirer");
+    expect(text(html)).not.toContain("Pull et réinstaller");
   });
 });
 
@@ -408,7 +408,7 @@ describe("un compte tiers connecté", () => {
       />
     );
 
-    expect(text(html)).toContain("Ce jeton ouvre plusieurs comptes");
+    expect(text(html)).toContain("Ce token ouvre plusieurs comptes");
     expect(text(html)).toContain("Flymate");
     expect(text(html)).toContain("Atelier");
     expect(html).toContain('data-account-option="acc-1"');
@@ -455,8 +455,8 @@ describe("un compte tiers connecté", () => {
     );
 
     expect(text(answered)).toContain("répond comme ada");
-    expect(text(refused)).toContain("ne répond plus à ce jeton");
-    expect(text(refused)).toContain("Créez un nouveau jeton");
+    expect(text(refused)).toContain("ne répond plus à ce token");
+    expect(text(refused)).toContain("Créez un nouveau token");
   });
 });
 

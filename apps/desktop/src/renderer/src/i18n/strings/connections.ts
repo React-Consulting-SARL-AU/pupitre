@@ -111,21 +111,21 @@ export const connections = {
     "connections.state.on": "connecté",
     "connections.state.off": "non connecté",
     "connections.connected": "Connecté en tant que {account}.",
-    "connections.held": "Jeton en place.",
+    "connections.held": "Token en place.",
     "connections.unsealed":
-      "Cet ordinateur n'a pas de trousseau système : le jeton n'est gardé que pour cette session.",
+      "Cet ordinateur n'a pas de trousseau système : le token n'est gardé que pour cette session.",
     "connections.forget": "Déconnecter",
     "connections.forgetConfirm": "Déconnecter",
     "connections.forgetQuestion.unknown":
-      "Le jeton quitte cet ordinateur ; chaque serveur qui a besoin de ce compte ne peut plus installer ses services tant qu'un autre n'est pas connecté.",
+      "Le token quitte cet ordinateur ; chaque serveur qui a besoin de ce compte ne peut plus installer ses services tant qu'un autre n'est pas connecté.",
     "connections.forgetQuestion.unused":
-      "Le jeton quitte cet ordinateur. Aucun service installé sur {server} ne l'utilise aujourd'hui.",
+      "Le token quitte cet ordinateur. Aucun service installé sur {server} ne l'utilise aujourd'hui.",
     "connections.forgetQuestion.used":
-      "Le jeton quitte cet ordinateur. Sur {server}, {modules} l'utilisent : leur prochaine installation ou mise à jour sera refusée tant qu'un autre n'est pas connecté.",
+      "Le token quitte cet ordinateur. Sur {server}, {modules} l'utilisent : leur prochaine installation ou mise à jour sera refusée tant qu'un autre n'est pas connecté.",
     "connections.verify": "Vérifier",
     "connections.health.checking": "interrogation du fournisseur…",
     "connections.health.unaskable":
-      "Ce fournisseur ne répond à aucun appel d'ici : le serveur dit à l'installation si le jeton ouvre quelque chose.",
+      "Ce fournisseur ne répond à aucun appel d'ici : le serveur dit à l'installation si le token ouvre quelque chose.",
     "connections.health.answered": "répond comme {account} — vérifié {when}",
     "connections.save": "Connecter",
     "connections.required":
@@ -134,38 +134,38 @@ export const connections = {
     "connections.cloudflare.title": "Compte Cloudflare pour les tunnels",
     "connections.cloudflare.intro":
       "Pour rendre vos projets accessibles sur internet, Pupitre passe par votre propre compte Cloudflare.",
-    "connections.cloudflare.tokenLabel": "Jeton d'API",
+    "connections.cloudflare.tokenLabel": "Token d'API",
     "connections.cloudflare.tokenHelp":
       "Gardé dans le trousseau de cet ordinateur. Il n'atteint jamais le serveur : le tunnel se crée d'ici.",
     "connections.cloudflare.tokenHint":
-      "Créez un jeton sur le tableau de bord Cloudflare avec trois permissions : Account · Account Settings · Read, pour que Pupitre lise quel compte il ouvre ; Account · Cloudflare Tunnel · Edit ; et Zone · DNS · Edit sur la zone sous laquelle vos projets publient.",
+      "Créez un token sur le tableau de bord Cloudflare avec trois permissions : Account · Account Settings · Read, pour que Pupitre lise quel compte il ouvre ; Account · Cloudflare Tunnel · Edit ; et Zone · DNS · Edit sur la zone sous laquelle vos projets publient.",
 
     "connections.wrangler.title": "Compte Cloudflare pour Wrangler",
     "connections.wrangler.intro":
-      "Pour déployer avec Wrangler depuis le serveur, un second jeton du même compte : celui-ci part sur le serveur, il porte donc les droits de déploiement et aucun sur vos tunnels ni votre domaine.",
-    "connections.wrangler.tokenLabel": "Jeton d'API",
+      "Pour déployer avec Wrangler depuis le serveur, un second token du même compte : celui-ci part sur le serveur, il porte donc les droits de déploiement et aucun sur vos tunnels ni votre domaine.",
+    "connections.wrangler.tokenLabel": "Token d'API",
     "connections.wrangler.tokenHelp":
       "Gardé dans le trousseau de cet ordinateur, puis exporté dans le shell du serveur en CLOUDFLARE_API_TOKEN.",
     "connections.wrangler.tokenHint":
-      "Créez un jeton distinct avec Account · Account Settings · Read, pour que Pupitre lise quel compte il ouvre, puis ce que le serveur déploie : Account · Workers Scripts · Edit, et D1, Pages, KV ou R2 · Edit s'il les déploie. Aucune permission Tunnel ni DNS.",
+      "Créez un token distinct avec Account · Account Settings · Read, pour que Pupitre lise quel compte il ouvre, puis ce que le serveur déploie : Account · Workers Scripts · Edit, et D1, Pages, KV ou R2 · Edit s'il les déploie. Aucune permission Tunnel ni DNS.",
 
     "connections.github.title": "Compte GitHub",
     "connections.github.intro":
       "La commande gh, le clone HTTPS sans clé, et la clé publique du serveur enregistrée sur votre compte.",
-    "connections.github.tokenLabel": "Jeton d'accès",
+    "connections.github.tokenLabel": "Token d'accès",
     "connections.github.tokenHelp":
       "Gardé dans le trousseau de cet ordinateur.",
     "connections.github.tokenHint":
-      "Un jeton avec les droits repo, read:org et admin:public_key, pour que le serveur clone en HTTPS et enregistre sa propre clé.",
+      "Un token avec les droits repo, read:org et admin:public_key, pour que le serveur clone en HTTPS et enregistre sa propre clé.",
 
     "connections.1password.title": "Compte 1Password",
     "connections.1password.intro":
-      "La commande op et un compte de service, pour produire le .env.local d'un projet depuis le gabarit que son dépôt versionne.",
-    "connections.1password.tokenLabel": "Jeton du compte de service",
+      "La commande op et un compte de service, pour produire le .env.local d'un projet depuis le template que son dépôt versionne.",
+    "connections.1password.tokenLabel": "Token du compte de service",
     "connections.1password.tokenHelp":
       "Gardé dans le trousseau de cet ordinateur. Le serveur dit à l'installation s'il ouvre un coffre.",
     "connections.1password.tokenHint":
-      "Un jeton de compte de service, pas votre mot de passe principal. Créez-le dans Développeur › Comptes de service, et n'autorisez que le coffre qui porte les secrets de vos projets.",
+      "Un token de compte de service, pas votre mot de passe principal. Créez-le dans Développeur › Comptes de service, et n'autorisez que le coffre qui porte les secrets de vos projets.",
 
     "connections.neon.title": "Compte Neon",
     "connections.neon.intro":
@@ -177,21 +177,21 @@ export const connections = {
 
     "connections.vercel.title": "Compte Vercel",
     "connections.vercel.intro":
-      "Le CLI Vercel sur le serveur, et le jeton qu'il prend par VERCEL_TOKEN.",
-    "connections.vercel.tokenLabel": "Jeton",
+      "Le CLI Vercel sur le serveur, et le token qu'il prend par VERCEL_TOKEN.",
+    "connections.vercel.tokenLabel": "Token",
     "connections.vercel.tokenHelp":
       "Gardé dans le trousseau de cet ordinateur.",
     "connections.vercel.tokenHint":
-      "Un jeton de compte, créé dans Account settings › Tokens. Limitez-le à l'équipe où vivent les projets.",
+      "Un token de compte, créé dans Account settings › Tokens. Limitez-le à l'équipe où vivent les projets.",
 
     "connections.supabase.title": "Compte Supabase",
     "connections.supabase.intro":
-      "Le CLI Supabase sur le serveur, et le jeton qu'il prend par SUPABASE_ACCESS_TOKEN.",
-    "connections.supabase.tokenLabel": "Jeton d'accès",
+      "Le CLI Supabase sur le serveur, et le token qu'il prend par SUPABASE_ACCESS_TOKEN.",
+    "connections.supabase.tokenLabel": "Token d'accès",
     "connections.supabase.tokenHelp":
       "Gardé dans le trousseau de cet ordinateur.",
     "connections.supabase.tokenHint":
-      "Un jeton d'accès personnel, créé dans Account › Access Tokens. Il ouvre toutes les organisations dont vous êtes membre.",
+      "Un token d'accès personnel, créé dans Account › Access Tokens. Il ouvre toutes les organisations dont vous êtes membre.",
 
     "connections.stripe.title": "Compte Stripe",
     "connections.stripe.intro":
@@ -204,16 +204,16 @@ export const connections = {
 
     "connections.backup.title": "Sauvegardes (S3)",
     "connections.backup.intro":
-      "Le seau où chaque serveur de l'organisation dépose ses sauvegardes chiffrées : Cloudflare R2, AWS S3, ou tout stockage compatible S3.",
+      "Le bucket où chaque serveur de l'organisation dépose ses sauvegardes chiffrées : Cloudflare R2, AWS S3, ou tout stockage compatible S3.",
     "connections.backup.tokenLabel": "Clé d'accès secrète",
     "connections.backup.tokenHelp":
       "Gardée dans le trousseau de cet ordinateur.",
     "connections.backup.tokenHint":
-      "Une clé d'accès limitée à ce seau, en lecture et écriture. Sur R2 : R2 › Manage API tokens › Object Read & Write.",
+      "Une clé d'accès limitée à ce bucket, en lecture et écriture. Sur R2 : R2 › Manage API tokens › Object Read & Write.",
 
     "connections.accounts.label": "Compte",
     "connections.accounts.help":
-      "Ce jeton ouvre plusieurs comptes. Pupitre agit sur un seul : ce sont ses zones qui sont proposées pour un domaine, son tunnel qui est créé, son identifiant sur lequel Wrangler déploie.",
+      "Ce token ouvre plusieurs comptes. Pupitre agit sur un seul : ce sont ses zones qui sont proposées pour un domaine, son tunnel qui est créé, son identifiant sur lequel Wrangler déploie.",
 
     "connections.zone.label": "Zone",
     "connections.zone.help":

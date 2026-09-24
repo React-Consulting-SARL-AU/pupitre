@@ -1,6 +1,6 @@
 ---
-title: Chaque serveur se sauvegarde, chiffré, dans votre propre seau S3 — et en revient
-description: Un serveur envoie sa configuration et ses secrets, ses bases avec leurs rôles et leurs comptes, ses projets tels qu’ils sont avec leur .git et les sessions du compte dev vers votre seau Cloudflare R2, AWS S3 ou tout service compatible, scellés sur la machine pour une clé dérivée d’une phrase de passe que personne ne garde ; un serveur neuf repart d’une sauvegarde pendant l’onboarding, un serveur existant y revient, et la plateforme n’en garde qu’une référence.
+title: Chaque serveur se sauvegarde, chiffré, dans votre propre bucket S3 — et en revient
+description: Un serveur envoie sa configuration et ses secrets, ses bases avec leurs rôles et leurs comptes, ses projets tels qu’ils sont avec leur .git et les sessions du compte dev vers votre bucket Cloudflare R2, AWS S3 ou tout service compatible, scellés sur la machine pour une clé dérivée d’une passphrase que personne ne garde ; un serveur neuf repart d’une sauvegarde pendant l’onboarding, un serveur existant y revient, et la plateforme n’en garde qu’une référence.
 locale: fr
 version: 0.8.1
 channel: stable
@@ -13,28 +13,28 @@ App et agent tous deux à mettre à jour : l’app propose la mise à jour de l�
 ## Les sauvegardes
 
 - Un serveur sauvegarde ce qu’il faut pour le refaire ailleurs, ou pour le remettre dans l’état d’hier : sa configuration et ses secrets, ses bases (PostgreSQL avec ses rôles, MySQL avec ses comptes, MongoDB, Redis), ses projets tels qu’ils sont — `.git` compris — et les sessions du compte `dev`.
-- Elles partent dans **votre propre seau** : Cloudflare R2, AWS S3 ou tout service compatible, en HTTPS seulement. Les clés sont les vôtres, tapées dans l’app, qui les vérifie par une écriture d’essai avant de les garder ; Pupitre ne garde aucune sauvegarde.
-- **Le serveur chiffre et ne peut pas déchiffrer.** Vous choisissez une phrase de passe une fois, sur votre laptop ; l’app en dérive une clé X25519, garde la moitié publique et le sel, puis oublie la phrase. Chaque partie est scellée pour cette clé dans un conteneur AES-256-GCM. Un seau exposé, un hébergeur curieux, une clé S3 volée ne rendent que des octets opaques. Perdue, la phrase rend les sauvegardes illisibles — personne ne peut la recouvrer, et l’app le dit au moment de la choisir.
-- Le nouveau module **Sauvegardes**, relié une fois pour toutes au seau par la connexion **Sauvegardes (S3)** des réglages de l’app, porte l’intervalle, l’heure et la rétention, et ce qui part, projet par projet et base par base. Tout part par défaut : les réglages nomment ce qui reste en dehors, si bien qu’un projet ou une base créés ensuite sont sauvegardés tant que personne ne les décoche. Une partie inchangée depuis la dernière sauvegarde est copiée dans le seau au lieu d’être renvoyée.
+- Elles partent dans **votre propre bucket** : Cloudflare R2, AWS S3 ou tout service compatible, en HTTPS seulement. Les clés sont les vôtres, tapées dans l’app, qui les vérifie par une écriture d’essai avant de les garder ; Pupitre ne garde aucune sauvegarde.
+- **Le serveur chiffre et ne peut pas déchiffrer.** Vous choisissez une passphrase une fois, sur votre laptop ; l’app en dérive une clé X25519, garde la moitié publique et le sel, puis oublie la passphrase. Chaque partie est scellée pour cette clé dans un conteneur AES-256-GCM. Un bucket exposé, un hébergeur curieux, une clé S3 volée ne rendent que des octets opaques. Perdue, la passphrase rend les sauvegardes illisibles — personne ne peut la recouvrer, et l’app le dit au moment de la choisir.
+- Le nouveau module **Sauvegardes**, relié une fois pour toutes au bucket par la connexion **Sauvegardes (S3)** des réglages de l’app, porte l’intervalle, l’heure et la rétention, et ce qui part, projet par projet et base par base. Tout part par défaut : les réglages nomment ce qui reste en dehors, si bien qu’un projet ou une base créés ensuite sont sauvegardés tant que personne ne les décoche. Une partie inchangée depuis la dernière sauvegarde est copiée dans le bucket au lieu d’être renvoyée.
 - **Sauvegarder maintenant** depuis la page Sauvegardes du serveur, qui liste aussi les sauvegardes que la plateforme connaît, chacune avec **Revenir à cette sauvegarde** et **Supprimer**.
 
 ## Restaurer
 
-- Un **serveur neuf** repart d’une sauvegarde pendant l’onboarding : l’étape vient après l’agent et avant le catalogue, et les données reviennent après le durcissement. Rien n’est redemandé — les modules retrouvent leurs secrets, les projets reviennent avec leur branche, leurs fichiers modifiés et leurs commits non poussés, et ceux qui tournaient redémarrent.
+- Un **serveur neuf** repart d’une sauvegarde pendant l’onboarding : l’étape vient après l’agent et avant le catalogue, et les données reviennent après la sécurisation. Rien n’est redemandé — les modules retrouvent leurs secrets, les projets reviennent avec leur branche, leurs fichiers modifiés et leurs commits non pushés, et ceux qui tournaient redémarrent.
 - Un **serveur existant** revient à une sauvegarde : l’app propose d’abord de sauvegarder l’état actuel, pour pouvoir revenir en arrière du retour en arrière, et nomme les modules que la sauvegarde ne tient pas, à désinstaller si vous le voulez.
-- La phrase de passe est demandée à ce moment-là, vérifiée sur votre laptop avant le moindre envoi, et l’agent ne tient la clé privée qu’en mémoire.
-- Sans Pupitre : `pupitred backup open` déchiffre une partie avec la phrase de passe ou la clé privée.
+- La passphrase est demandée à ce moment-là, vérifiée sur votre laptop avant le moindre envoi, et l’agent ne tient la clé privée qu’en mémoire.
+- Sans Pupitre : `pupitred backup open` déchiffre une partie avec la passphrase ou la clé privée.
 
 ## La plateforme
 
 - La plateforme garde une **référence** par sauvegarde — une adresse, des tailles, des comptes, une clé publique — et jamais un nom de projet, un nom de base ni un contenu.
 - Deux alertes : **backup_failed** quand la dernière sauvegarde a signalé une erreur ou n’a pas pu tout emporter, et **backup_stale** quand deux intervalles sont passés sans succès. La console liste les sauvegardes de l’organisation, et un membre ne voit que celles des serveurs qui lui sont attribués.
-- Les conditions et la politique de confidentialité disent ce qu’une sauvegarde contient, où elle part et ce que la plateforme en voit ; un guide du site couvre la mise en place d’un seau, le choix de la phrase et la restauration.
+- Les conditions et la politique de confidentialité disent ce qu’une sauvegarde contient, où elle part et ce que la plateforme en voit ; un guide du site couvre la mise en place d’un bucket, le choix de la passphrase et la restauration.
 
 ## Limites connues
 
 - Les volumes Docker ne sont pas sauvegardés ; l’app le dit quand le runtime Docker est installé.
-- Qui lit le seau lit les manifestes, en clair : le nom du serveur, les noms des projets, des bases et des dossiers, l’adresse et la branche des dépôts. Jamais un contenu, jamais un secret — ceux-là sont scellés.
-- Qui tient la clé S3 peut effacer les sauvegardes : le versionnage ou le verrouillage d’objets du seau sont la parade, et le guide le dit.
+- Qui lit le bucket lit les manifestes, en clair : le nom du serveur, les noms des projets, des bases et des dossiers, l’adresse et la branche des dépôts. Jamais un contenu, jamais un secret — ceux-là sont scellés.
+- Qui tient la clé S3 peut effacer les sauvegardes : le versionnage ou le verrouillage d’objets du bucket sont la parade, et le guide le dit.
 - Un mot de passe de base changé à la main hors de Pupitre revient à celui que la configuration tient.
 - L’installateur Windows n’est toujours pas signé : SmartScreen avertit au premier lancement.

@@ -198,7 +198,7 @@ export const projectAdd = {
     "projectAdd.form.bootDetail":
       "Le projet revient de lui-même après un redémarrage du serveur.",
     "projectAdd.processes.idLabel": "Processus",
-    "projectAdd.processes.idHelp": "Nomme la fenêtre et le journal.",
+    "projectAdd.processes.idHelp": "Nomme la fenêtre et les logs.",
     "projectAdd.processes.idPlaceholder": "server",
     "projectAdd.processes.dirLabel": "Dossier",
     "projectAdd.processes.dirHelp": "Relatif au projet ; vide pour sa racine.",
@@ -208,7 +208,7 @@ export const projectAdd = {
     "projectAdd.processes.idTaken":
       "Un autre processus de ce projet porte cet identifiant.",
     "projectAdd.processes.dir":
-      "Un dossier dans le projet : pas de barre oblique en tête, pas de « .. ».",
+      "Un dossier dans le projet : pas de slash en tête, pas de « .. ».",
     "projectAdd.processes.cmd": "Il faut une commande de démarrage.",
     "projectAdd.processes.main": "principal",
     "projectAdd.processes.unnamed": "Processus sans nom",
@@ -311,7 +311,7 @@ export const projectAdd = {
     "projectAdd.phase.install.title": "Installation des dépendances",
     "projectAdd.phase.up.title": "Démarrage",
     "projectAdd.phase.publish.title": "Nom sur le web",
-    "projectAdd.phase.logs.title": "Adresse et journal",
+    "projectAdd.phase.logs.title": "Adresse et logs",
     "projectAdd.phaseStatus.pending": "en attente",
     "projectAdd.phaseStatus.running": "en cours",
     "projectAdd.phaseStatus.ok": "faite",
@@ -326,11 +326,11 @@ export const projectAdd = {
     "projectAdd.form.startNowLabel": "Démarrer le projet une fois prêt",
     "projectAdd.form.bootLabel": "Démarrer le projet avec le serveur",
     "projectAdd.up.notRunningFix":
-      "Lisez le journal ci-dessous, corrigez la commande de démarrage, puis réessayez.",
+      "Lisez les logs ci-dessous, corrigez la commande de démarrage, puis réessayez.",
     "projectAdd.up.notRunningMessage":
       "{name} ne tourne pas : l'agent le donne {state}.",
 
-    "projectAdd.journal.title": "Journal du projet",
+    "projectAdd.journal.title": "Logs du projet",
     "projectAdd.journal.lines": "{count} lignes",
     "projectAdd.outcome.unknownAddress": "adresse inconnue",
     "projectAdd.outcome.open": "Ouvrir",

@@ -18,11 +18,11 @@ Le responsable du traitement est Jordan Monier, personne physique résidant au M
 
 **Vos appareils.** Le nom de chaque ordinateur depuis lequel vous avez lié l’app, et la moitié publique de la clé SSH qu’il a générée. La moitié privée reste sur cet ordinateur ; nous ne la voyons jamais.
 
-**Votre organisation.** Son nom, ses membres et leurs rôles, ses invitations, et un journal de ce qui y a été fait : qui a enrôlé, retiré, suspendu ou rétabli une machine, invité ou retiré un membre, avec la date.
+**Votre organisation.** Son nom, ses membres et leurs rôles, ses invitations, et un journal de ce qui y a été fait : qui a rattaché, retiré, suspendu ou rétabli une machine, invité ou retiré un membre, avec la date.
 
 **Vos machines.** Ce que les [conditions](/fr/legal/terms/) énumèrent, et rien d’autre : le nom et l’adresse que vous avez donnés à chaque machine, la moitié publique de sa clé d’hôte SSH, la version de l’agent, l’architecture du processeur, le compte qui porte les clés SSH, l’état de son droit d’usage, et — rafraîchis toutes les cinq minutes et gardés sur une fenêtre de sept jours — la taille et l’espace libre de son disque, la taille et l’occupation de sa mémoire, sa charge moyenne, la version de la stack installée, les noms des modules installés et les noms des sessions tmux en cours, qui sont en général les noms de vos projets.
 
-**Vos sauvegardes.** Quand vous les activez, une référence par sauvegarde : sa place dans votre propre stockage (point d’accès, seau, préfixe des objets), l’empreinte de son manifeste, sa taille, combien de bases, de projets et de dossiers elle contient, la révision de la configuration, la version de l’agent, la clé publique pour laquelle elle est chiffrée, et le nom que vous donnez à une sauvegarde lancée vous-même, si vous lui en donnez un ; et, avec le heartbeat, l’intervalle des sauvegardes, et la date et l’erreur de la dernière tentative. La sauvegarde elle-même vit dans votre stockage, chiffrée pour une clé que seule votre phrase de passe donne ; nous ne la recevons jamais, et personne ne garde la phrase. Une référence est gardée jusqu’à ce que la machine efface la sauvegarde ou qu’un administrateur de votre organisation l’oublie.
+**Vos sauvegardes.** Quand vous les activez, une référence par sauvegarde : sa place dans votre propre stockage (endpoint, bucket, préfixe des objets), l’empreinte de son manifeste, sa taille, combien de bases, de projets et de dossiers elle contient, la révision de la configuration, la version de l’agent, la clé publique pour laquelle elle est chiffrée, et le nom que vous donnez à une sauvegarde lancée vous-même, si vous lui en donnez un ; et, avec le heartbeat, l’intervalle des sauvegardes, et la date et l’erreur de la dernière tentative. La sauvegarde elle-même vit dans votre stockage, chiffrée pour une clé que seule votre passphrase donne ; nous ne la recevons jamais, et personne ne garde la passphrase. Une référence est gardée jusqu’à ce que la machine efface la sauvegarde ou qu’un administrateur de votre organisation l’oublie.
 
 **Votre abonnement.** Pendant le lancement gratuit : le fait que votre organisation détient l’abonnement de lancement, et ses dates. Aucune donnée de paiement n’existe, puisque rien n’est payé.
 
@@ -32,7 +32,7 @@ Le responsable du traitement est Jordan Monier, personne physique résidant au M
 
 ## Ce que nous ne stockons jamais
 
-Aucun code, aucun fichier de projet, aucun secret de service, aucun journal applicatif, aucun contenu de terminal, aucune variable d’environnement, aucun contenu de base de données, aucune clé privée. Ce qui vit sur votre machine reste sur votre machine : la plateforme n’a aucun moyen technique d’aller le chercher, comme les [conditions](/fr/legal/terms/) l’expliquent.
+Aucun code, aucun fichier de projet, aucun secret de service, aucun log applicatif, aucun contenu de terminal, aucune variable d’environnement, aucun contenu de base de données, aucune clé privée. Ce qui vit sur votre machine reste sur votre machine : la plateforme n’a aucun moyen technique d’aller le chercher, comme les [conditions](/fr/legal/terms/) l’expliquent.
 
 ## Mesure d’audience et d’usage
 
@@ -50,7 +50,7 @@ Nous envoyons ce qui fait fonctionner le compte : confirmation d’adresse, lien
 
 ## Paiements
 
-Rien n’est payé pendant le lancement, et aucune donnée de paiement n’existe. Le jour où la facturation ouvrira, Stripe encaissera les paiements en marchand officiel : il facturera, gérera les taxes et détiendra les données de paiement. Nous garderons un identifiant client Stripe, l’offre, l’état de l’abonnement et l’historique des factures, jamais un numéro de carte. Ce jour est annoncé par email au moins trente jours à l’avance.
+Rien n’est payé pendant le lancement, et aucune donnée de paiement n’existe. Le jour où la facturation ouvrira, Stripe encaissera les paiements en tant que merchant of record : il facturera, gérera les taxes et détiendra les données de paiement. Nous garderons un identifiant client Stripe, l’offre, l’état de l’abonnement et l’historique des factures, jamais un numéro de carte. Ce jour est annoncé par email au moins trente jours à l’avance.
 
 ## Sous-traitants
 

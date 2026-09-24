@@ -118,7 +118,7 @@ test.describe("le clavier sur la page d'un projet", () => {
       await selected("Vue d'ensemble");
 
       await page.keyboard.press(`${PROJECT_CHORD}+Digit3`);
-      await selected("Journal");
+      await selected("Logs");
 
       await page.keyboard.press(`${PROJECT_CHORD}+Digit1`);
       await selected("Vue d'ensemble");
@@ -134,7 +134,7 @@ test.describe("le clavier sur la page d'un projet", () => {
 
     await test.step("⌘/ ouvre la fiche des raccourcis, échap la ferme", async () => {
       await page.keyboard.press(`${PROJECT_CHORD}+Digit3`);
-      await selected("Journal");
+      await selected("Logs");
       await menu("shortcuts");
 
       const sheet = page.getByRole("dialog", { name: "Raccourcis clavier" });

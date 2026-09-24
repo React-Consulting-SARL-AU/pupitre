@@ -40,7 +40,7 @@ test.describe("services", () => {
               ok: true,
               result: {
                 configured: true,
-                credentials: ["Jeton d'accès"],
+                credentials: ["Token d'accès"],
                 id: "tool.github",
                 login: {
                   fix: "Reconnectez le compte GitHub dans l'app puis appliquez la configuration de ce service.",
@@ -189,7 +189,7 @@ test.describe("services", () => {
       ).toBeVisible();
       // The copy button fades in from its disabled shade once the journal answers; measured mid-fade it reads grey.
       await expect(
-        page.locator('[data-tooltip="Copier le journal de PostgreSQL"]')
+        page.locator('[data-tooltip="Copier les logs de PostgreSQL"]')
       ).toBeEnabled();
       await assertAccessible(page, "services/panel");
     });

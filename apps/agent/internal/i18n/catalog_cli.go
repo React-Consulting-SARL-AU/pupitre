@@ -31,7 +31,7 @@ var cliCatalog = map[string]Message{
 		EN: "already done",
 	},
 	"cli.step.replay": {
-		FR: "rejeu : %s",
+		FR: "relance : %s",
 		EN: "replay: %s",
 	},
 	"cli.summary.clean": {
@@ -47,11 +47,11 @@ var cliCatalog = map[string]Message{
 		EN: "Report: %s",
 	},
 	"cli.enroll.token.expected": {
-		FR: "jeton d'enrôlement attendu sur l'entrée standard",
+		FR: "token de rattachement attendu sur l'entrée standard",
 		EN: "enrolment token expected on standard input",
 	},
 	"cli.enroll.done": {
-		FR: "serveur enrôlé",
+		FR: "serveur rattaché",
 		EN: "server enrolled",
 	},
 	"cli.enroll.sync.failed": {

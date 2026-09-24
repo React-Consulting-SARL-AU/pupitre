@@ -77,7 +77,7 @@ export const CORE_BACKUP = {
     {
       key: "endpoint",
       kind: "text",
-      label: "Point d'accès",
+      label: "Endpoint",
       managed: true,
       required: true,
     },
@@ -92,7 +92,7 @@ export const CORE_BACKUP = {
     {
       key: "bucket",
       kind: "text",
-      label: "Seau",
+      label: "Bucket",
       managed: true,
       required: true,
     },
@@ -193,7 +193,7 @@ export const CORE_BACKUP = {
     },
     {
       default: false,
-      help: "Le code revient alors par un clone : les modifications non commitées et les commits non poussés ne reviennent pas. Un projet sans dépôt est toujours sauvegardé en entier.",
+      help: "Le code revient alors par un clone : les modifications non commitées et les commits non pushés ne reviennent pas. Un projet sans dépôt est toujours sauvegardé en entier.",
       key: "projects_env_only",
       kind: "boolean",
       label: "Seulement leurs fichiers d'environnement",
@@ -219,7 +219,7 @@ export const CORE_BACKUP = {
       required: false,
     },
     {
-      help: "moteur:nom, ou redis:* pour l'instantané Redis. Toutes les autres partent, celles créées plus tard comprises.",
+      help: "moteur:nom, ou redis:* pour le snapshot Redis. Toutes les autres partent, celles créées plus tard comprises.",
       items: "text",
       key: "exclude_databases",
       kind: "list",
@@ -235,7 +235,7 @@ export const CORE_BACKUP = {
   resources: { disk_mb: 0, ram_mb: 0 },
   runs: false,
   since: "0.8.0",
-  summary: "Sauvegardes chiffrées vers un seau S3.",
+  summary: "Sauvegardes chiffrées vers un bucket S3.",
 };
 
 /**

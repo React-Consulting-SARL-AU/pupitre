@@ -105,7 +105,7 @@ export const account = {
     "account.devices.self": "connecté ici",
     "account.devices.revoke": "Révoquer",
     "account.devices.revokeQuestion":
-      "{name} cesse d'ouvrir les serveurs de ce compte à la prochaine poussée de la plateforme.",
+      "{name} cesse d'ouvrir les serveurs de ce compte au prochain push de la plateforme.",
     "account.usage.openConsole": "Ouvrir la console",
     "account.usage.manageSubscription": "Gérer l'abonnement",
     "account.usage.choosePlan": "Choisir une offre",

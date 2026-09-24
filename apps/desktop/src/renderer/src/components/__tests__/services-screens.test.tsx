@@ -152,7 +152,7 @@ describe("la liste des services", () => {
     ].map((match) => match[1]);
 
     expect(categories).toEqual(["core", "runtime", "database", "ai"]);
-    expect(text(html)).toMatch(/Socle.*Runtimes.*Bases de données.*Agents IA/);
+    expect(text(html)).toMatch(/Base.*Runtimes.*Bases de données.*Agents IA/);
   });
 
   it("garde dans une catégorie l'ordre du snapshot", () => {

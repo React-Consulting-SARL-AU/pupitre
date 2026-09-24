@@ -22,7 +22,7 @@ Un tel changement est annoncé par email à chaque compte actif au moins trente 
 
 ## Le service
 
-Pupitre, c’est une app desktop, un agent installé sur une machine qui vous appartient — un VPS, un serveur dédié, un ordinateur — et une console. L’app inspecte votre machine, installe les services que vous choisissez, la durcit, et devient votre fenêtre sur elle : projets, terminaux, agents de code, bases de données, éditeurs distants. La console tient votre compte, votre organisation, la liste de vos machines et votre abonnement.
+Pupitre, c’est une app desktop, un agent installé sur une machine qui vous appartient — un VPS, un serveur dédié, un ordinateur — et une console. L’app inspecte votre machine, installe les services que vous choisissez, la sécurise, et devient votre fenêtre sur elle : projets, terminaux, agents de code, bases de données, éditeurs distants. La console tient votre compte, votre organisation, la liste de vos machines et votre abonnement.
 
 Un compte est requis. Tout appartient à une organisation : une organisation personnelle naît avec votre compte, et vous pouvez en créer ou en rejoindre d’autres.
 
@@ -32,7 +32,7 @@ Le service est gratuit pendant son lancement. Aucun paiement n’est encaissé, 
 
 Les prix affichés sur la [page des tarifs](/fr/pricing/) sont ceux qui s’appliqueront le jour où la facturation ouvrira. Ce jour est annoncé par email au moins trente jours à l’avance. Rien n’est jamais prélevé sans une action explicite de votre part : la facturation ouvre quand vous souscrivez, pas quand le lancement se termine.
 
-**Ce que le lancement vous donne pour de bon.** Toute organisation qui a enrôlé une machine pendant le lancement gratuit garde, aussi longtemps que le service existe, le droit d’utiliser Pupitre sur une machine sans payer. Ce droit ne se perd ni à l’ouverture de la facturation, ni au changement d’entité responsable, ni quand la machine est remplacée par une autre. Les machines au-delà de celle-là suivent les prix en vigueur.
+**Ce que le lancement vous donne pour de bon.** Toute organisation qui a rattaché une machine pendant le lancement gratuit garde, aussi longtemps que le service existe, le droit d’utiliser Pupitre sur une machine sans payer. Ce droit ne se perd ni à l’ouverture de la facturation, ni au changement d’entité responsable, ni quand la machine est remplacée par une autre. Les machines au-delà de celle-là suivent les prix en vigueur.
 
 ## Ce que vous apportez
 
@@ -44,12 +44,12 @@ Vos clés privées ne quittent jamais votre ordinateur. Nous n’en détenons au
 
 L’agent sur votre machine n’ouvre jamais que des connexions sortantes : vers `app.pupitre.studio`, et, quand vous activez les sauvegardes, vers le stockage S3 que vous avez choisi. Il lit son état toutes les trente secondes et envoie un heartbeat toutes les cinq minutes. Voici tout ce que la plateforme reçoit, et rien d’autre :
 
-- à l’enrôlement : le nom et l’adresse que vous avez donnés à la machine dans l’app, la moitié publique de sa clé d’hôte SSH, la version de l’agent et l’architecture du processeur ;
+- au rattachement : le nom et l’adresse que vous avez donnés à la machine dans l’app, la moitié publique de sa clé d’hôte SSH, la version de l’agent et l’architecture du processeur ;
 - à chaque heartbeat : la taille et l’espace libre du disque, la taille et l’occupation de la mémoire, la charge moyenne, la version de la stack installée, les noms des modules du catalogue installés, le nom du compte qui porte les clés SSH, et les noms des sessions tmux en cours — qui sont en général les noms de vos projets ; quand les sauvegardes sont activées, leur intervalle, et la date et l’erreur de la dernière tentative ;
-- pour chaque sauvegarde, quand les sauvegardes sont activées : sa place dans votre stockage (point d’accès, seau et préfixe des objets), l’empreinte de son manifeste, sa taille, combien de bases, de projets et de dossiers elle contient, la révision de la configuration, la version de l’agent, la clé publique pour laquelle elle est chiffrée, et le nom que vous lui donnez si vous la lancez vous-même — jamais le nom de ce qu’elle contient, un fichier, ni quoi que ce soit qui l’ouvre ;
+- pour chaque sauvegarde, quand les sauvegardes sont activées : sa place dans votre stockage (endpoint, bucket et préfixe des objets), l’empreinte de son manifeste, sa taille, combien de bases, de projets et de dossiers elle contient, la révision de la configuration, la version de l’agent, la clé publique pour laquelle elle est chiffrée, et le nom que vous lui donnez si vous la lancez vous-même — jamais le nom de ce qu’elle contient, un fichier, ni quoi que ce soit qui l’ouvre ;
 - depuis l’app, et non depuis la machine : les moitiés publiques des clés SSH de vos appareils, pour que l’agent puisse les autoriser.
 
-La plateforme ne reçoit jamais un fichier, une ligne de code, une variable d’environnement, un secret, un journal, le contenu d’un terminal ou d’une base de données, la sortie d’une commande, ni quoi que ce soit qui vit dans vos projets. Elle n’a aucun moyen technique de les demander : le protocole entre l’agent et la plateforme ne contient aucun message pour cela. Une sauvegarde va de votre machine à votre stockage, chiffrée pour une clé que seule votre phrase de passe donne, sans passer par la plateforme ; ni l’app, ni la machine, ni Pupitre ne gardent cette phrase.
+La plateforme ne reçoit jamais un fichier, une ligne de code, une variable d’environnement, un secret, des logs, le contenu d’un terminal ou d’une base de données, la sortie d’une commande, ni quoi que ce soit qui vit dans vos projets. Elle n’a aucun moyen technique de les demander : le protocole entre l’agent et la plateforme ne contient aucun message pour cela. Une sauvegarde va de votre machine à votre stockage, chiffrée pour une clé que seule votre passphrase donne, sans passer par la plateforme ; ni l’app, ni la machine, ni Pupitre ne gardent cette passphrase.
 
 ## Ce que Pupitre peut faire sur votre machine, et ce qu’il ne peut pas
 

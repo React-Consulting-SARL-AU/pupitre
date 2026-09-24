@@ -7,7 +7,7 @@ var registryCatalog = map[string]Message{
 		EN: "invalid project name: %s",
 	},
 	"registry.name.invalid.fix": {
-		FR: "Minuscules, chiffres, point, tiret et souligné, en commençant par une lettre ou un chiffre.",
+		FR: "Minuscules, chiffres, point, tiret et tiret bas, en commençant par une lettre ou un chiffre.",
 		EN: "Lower case, digits, dot, dash and underscore, starting with a letter or a digit.",
 	},
 	"registry.dir.invalid": {
@@ -47,7 +47,7 @@ var registryCatalog = map[string]Message{
 		EN: "invalid subdomain: %s",
 	},
 	"registry.sub.invalid.fix": {
-		FR: "Minuscules, chiffres et tirets, en commençant et en finissant par une lettre ou un chiffre. Plusieurs niveaux séparés par des points sont acceptés, mais le certificat joker ne couvre que le premier.",
+		FR: "Minuscules, chiffres et tirets, en commençant et en finissant par une lettre ou un chiffre. Plusieurs niveaux séparés par des points sont acceptés, mais le certificat wildcard ne couvre que le premier.",
 		EN: "Lower case, digits and dashes, starting and ending on a letter or a digit. Several levels separated by dots are accepted, but the wildcard certificate only covers the first.",
 	},
 	"registry.branch.invalid": {

@@ -42,7 +42,7 @@ export const agentBackupsRoutes = new Elysia({ name: "agent-backups-routes" })
     },
     {
       body: backupDeclarationBody,
-      detail: { summary: "Déclarer une sauvegarde écrite dans le seau" },
+      detail: { summary: "Déclarer une sauvegarde écrite dans le bucket" },
       response: {
         200: dataResponse(backupSchema),
         201: dataResponse(backupSchema),

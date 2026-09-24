@@ -138,7 +138,7 @@ export const project = {
     "project.clean": "propre",
     "project.tabs": "Les pages du projet",
     "project.tab.overview": "Vue d'ensemble",
-    "project.tab.logs": "Journal",
+    "project.tab.logs": "Logs",
     "project.tab.diff": "Diff",
     "project.tab.files": "Fichiers",
     "project.tab.terminals": "Terminaux",
@@ -180,11 +180,11 @@ export const project = {
     "project.branches.exists":
       "{branch} existe déjà : choisissez-la dans la liste.",
     "project.branches.dirtyCreate":
-      "Créer {branch} sera refusé tant que des changements ne sont pas commités : commitez-les ou remisez-les d'abord.",
+      "Créer {branch} sera refusé tant que des changements ne sont pas commités : commitez-les ou stashez-les d'abord.",
     "project.branches.dirty":
       "changements non commités — le changement de branche sera refusé",
     "project.branches.dirtySwitch":
-      "Passer sur {branch} sera refusé tant que des changements ne sont pas commités : commitez-les ou remisez-les d'abord.",
+      "Passer sur {branch} sera refusé tant que des changements ne sont pas commités : commitez-les ou stashez-les d'abord.",
     "project.branches.switch": "Changer",
     "project.branches.localCount.one": "{count} locale",
     "project.branches.localCount.other": "{count} locales",
@@ -201,7 +201,7 @@ export const project = {
     "project.diff.readingTree": "lecture de l'arbre de travail…",
     "project.diff.nothingToCompare": "il n'y a rien à comparer",
     "project.diff.notRepo": "Ce projet n'est pas un dépôt git.",
-    "project.diff.detachedHead": "tête détachée",
+    "project.diff.detachedHead": "HEAD détachée",
     "project.diff.readOnly": "lecture seule",
     "project.diff.reloadTree": "Relire l'arbre de travail",
     "project.diff.nothingChanged": "Rien n'a changé depuis le dernier commit.",
@@ -213,13 +213,13 @@ export const project = {
     "project.git.noUpstream": "aucune branche distante suivie",
     "project.git.behind": "{commits} à récupérer",
     "project.git.upToDate": "à jour avec {upstream}",
-    "project.git.ahead": "{commits} à pousser",
+    "project.git.ahead": "{commits} à push",
     "project.git.lastCommit": "dernier : {subject}",
     "project.git.readAt": "lu {when}",
     "project.git.querying": "interrogation du dépôt distant…",
     "project.git.notRepo": "ce dossier n'est pas un dépôt git",
     "project.git.queryLabel": "Interroger le dépôt distant",
-    "project.git.pull": "Tirer et réinstaller",
+    "project.git.pull": "Pull et réinstaller",
 
     "project.header.seeDiff": "Voir les fichiers changés",
     "project.header.restart": "Redémarrer",
@@ -229,7 +229,7 @@ export const project = {
     "project.header.sync": "Synchroniser",
     "project.header.eyebrow": "Projet",
 
-    "project.logs.journal": "journal de {name}",
+    "project.logs.journal": "logs de {name}",
     "project.logs.process": "Processus",
     "project.logs.follow": "suivre la fin",
     "project.logs.waiting": "en attente de la première ligne de {name}…",

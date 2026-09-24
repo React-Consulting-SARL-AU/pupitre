@@ -29,13 +29,13 @@ Vérifiez : `ls /etc/pupitre/` et ses permissions.
 
 ## Le support ne peut pas entrer
 
-Le support voit qu’un serveur est enrôlé et quelle version de l’agent il fait tourner. Il n’y a pas d’usurpation de votre machine, pas de shell distant, et aucune clé de support dans `authorized_keys`. Si un ingénieur du support a besoin de voir quelque chose sur votre serveur, c’est vous qui le collez.
+Le support voit qu’un serveur est rattaché et quelle version de l’agent il fait tourner. Il n’y a pas d’usurpation de votre machine, pas de shell distant, et aucune clé de support dans `authorized_keys`. Si un ingénieur du support a besoin de voir quelque chose sur votre serveur, c’est vous qui le collez.
 
-## Le durcissement, dans l’ordre
+## La sécurisation, dans l’ordre
 
 `core.hardening` ferme root **en dernier**, et seulement après que l’app a vérifié que votre clé ouvre `dev`. Si cette vérification échoue, rien n’est fermé et l’app dit quoi corriger. C’est la seule étape qui pourrait vous enfermer dehors, et elle est écrite pour ne pas le pouvoir.
 
-Si vous préférez garder une seconde porte sur votre propre machine, l’option « Garder l’accès root » du module laisse root joignable par clé SSH. Jamais par mot de passe : l’authentification par mot de passe tombe dans les deux cas, comme tout le reste de ce que fait le durcissement.
+Si vous préférez garder une seconde porte sur votre propre machine, l’option « Garder l’accès root » du module laisse root joignable par clé SSH. Jamais par mot de passe : l’authentification par mot de passe tombe dans les deux cas, comme tout le reste de ce que fait la sécurisation.
 
 ## Ce dont Pupitre ne vous protège pas
 

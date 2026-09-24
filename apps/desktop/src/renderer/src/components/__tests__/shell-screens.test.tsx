@@ -274,7 +274,7 @@ describe("le mode restreint de l'agent", () => {
   it("offre le ré-enrôlement à côté de la console", () => {
     const html = restricted();
 
-    expect(html).toContain("Ré-enrôler ce serveur");
+    expect(html).toContain("Rattacher à nouveau ce serveur");
     expect(html).toContain("Ouvrir la console");
   });
 
@@ -294,7 +294,7 @@ describe("le mode restreint de l'agent", () => {
   it("n'offre pas la réparation quand le compte n'a pas de droit d'usage", () => {
     const html = restricted({ repairable: false });
 
-    expect(html).not.toContain("Ré-enrôler ce serveur");
+    expect(html).not.toContain("Rattacher à nouveau ce serveur");
     expect(html).toContain("Ouvrir la console");
     expect(html).toContain("se laisse lire");
   });

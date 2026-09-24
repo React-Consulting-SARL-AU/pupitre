@@ -28,7 +28,7 @@ export const backupsForgetRoutes = new Elysia({ name: "backups-forget-routes" })
     },
     {
       params: t.Object({ id: t.String() }),
-      detail: { summary: "Oublier une sauvegarde sans toucher au seau" },
+      detail: { summary: "Oublier une sauvegarde sans toucher au bucket" },
       response: {
         204: t.Void(),
         401: errorResponse,

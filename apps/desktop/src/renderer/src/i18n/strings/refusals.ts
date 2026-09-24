@@ -434,7 +434,7 @@ export const refusals = {
       "Relancez la commande, ou lancez un diagnostic.",
     "refusal.platform.silent.local": "La console n'a pas répondu : {reason}.",
     "refusal.platform.silent.local.fix":
-      "Aucune console ne répond sur {baseUrl} : lance `bun run dev:web`.",
+      "Aucune console ne répond sur {baseUrl} : lancez `bun run dev:web`.",
     "refusal.platform.silent.fix":
       "Vérifiez votre connexion. Pupitre reste utilisable sept jours sans connexion.",
     "refusal.platform.refused.fix":
@@ -446,7 +446,7 @@ export const refusals = {
     "refusal.account.stale":
       "La console n'a pas répondu depuis plus de sept jours : l'abonnement doit être vérifié à nouveau.",
     "refusal.enrollment.none":
-      "La console n'a remis aucun jeton pour ce serveur.",
+      "La console n'a remis aucun token pour ce serveur.",
     "refusal.binary.mismatch":
       "L'agent reçu par le serveur ne correspond pas à celui envoyé.",
     "refusal.setup.host":
@@ -458,7 +458,7 @@ export const refusals = {
       "Un port entre 1 et 65535 : 22 pour un serveur SSH ordinaire.",
     "refusal.setup.user": "« {user} » n'est pas un nom d'utilisateur.",
     "refusal.setup.user.fix":
-      "Le compte à ouvrir sur le serveur : « root » au premier contact, « dev » une fois la machine durcie.",
+      "Le compte à ouvrir sur le serveur : « root » au premier contact, « dev » une fois la machine sécurisée.",
     "refusal.setup.sshName": "Rien de « {name} » ne tient dans un nom SSH.",
     "refusal.setup.sshName.fix":
       "Des lettres, des chiffres et des tirets — « atelier » ou « vps-2 » — et pas « pupitre- », que l'app garde pour elle.",
@@ -480,7 +480,7 @@ export const refusals = {
       "Installez OpenSSH sur cet ordinateur, ou importez une clé que vous avez déjà.",
     "refusal.key.unreadable": "Cette clé privée n'a pas pu être lue.",
     "refusal.key.unreadable.fix":
-      "Une clé protégée par une phrase de passe ne convient pas ici : importez-en une sans phrase de passe, ou laissez l'app en générer une.",
+      "Une clé protégée par une passphrase ne convient pas ici : importez-en une sans passphrase, ou laissez l'app en générer une.",
     "refusal.key.missing": "Le fichier {source} est introuvable.",
     "refusal.key.missing.fix":
       "Choisissez le fichier de la clé, celui qui ne porte pas l'extension .pub.",
@@ -532,7 +532,7 @@ export const refusals = {
     "refusal.keyInstall.windows.fix":
       "Collez la ligne ci-dessous dans un terminal : elle demande le mot de passe elle-même.",
     "refusal.release.checksum":
-      "Le binaire téléchargé ne correspond pas à la somme annoncée pour {version}.",
+      "Le binaire téléchargé ne correspond pas au checksum annoncé pour {version}.",
     "refusal.release.checksum.fix":
       "Relancez l'installation : la console a peut-être servi un fichier tronqué.",
     "refusal.release.unsigned":
@@ -555,7 +555,7 @@ export const refusals = {
     "refusal.fleet.pending":
       "La console n'a pas encore posé votre clé sur ce serveur.",
     "refusal.fleet.pending.fix":
-      "Laissez la fenêtre ouverte : l'app réessayez toute seule.",
+      "Laissez la fenêtre ouverte : l'app réessaie toute seule.",
     "refusal.module.none": "Ce service n'a pas de nom.",
     "refusal.module.none.fix": "Choisissez un service dans la liste.",
     "refusal.module.notDatabase": "{module} n'est pas une base de données.",
@@ -595,22 +595,22 @@ export const refusals = {
       "Connectez le compte dans les réglages : un service qui en a besoin ne s'installe pas sans lui.",
     "refusal.connection.call": "{kind} a refusé : {reason}.",
     "refusal.connection.revoked":
-      "{kind} ne répond plus à ce jeton : {reason}.",
+      "{kind} ne répond plus à ce token : {reason}.",
     "refusal.connection.revoked.fix":
-      "Créez un nouveau jeton chez le fournisseur et reconnectez-le ici ; chaque serveur qui l'utilise prend le nouveau à sa prochaine installation.",
+      "Créez un nouveau token chez le fournisseur et reconnectez-le ici ; chaque serveur qui l'utilise prend le nouveau à sa prochaine installation.",
     "refusal.connection.call.fix":
-      "Vérifiez que le jeton est toujours valide et porte toujours les droits que le service demande.",
+      "Vérifiez que le token est toujours valide et porte toujours les droits que le service demande.",
     "refusal.connection.cloudflare.unlisted":
-      "Cloudflare accepte ce jeton mais ne lui nomme aucun compte.",
+      "Cloudflare accepte ce token mais ne lui nomme aucun compte.",
     "refusal.connection.cloudflare.unlisted.fix":
-      "Ajoutez au jeton la permission Account · Account Settings · Read : c'est elle qui laisse Pupitre lire quel compte le jeton ouvre. Gardez les autres.",
+      "Ajoutez au token la permission Account · Account Settings · Read : c'est elle qui laisse Pupitre lire quel compte le token ouvre. Gardez les autres.",
     "refusal.connection.account.gone":
-      "Ce jeton n'ouvre plus le compte {account}.",
+      "Ce token n'ouvre plus le compte {account}.",
     "refusal.connection.account.gone.fix":
-      "Déconnectez ce compte et reconnectez le jeton : vous choisirez parmi les comptes qu'il ouvre aujourd'hui.",
-    "refusal.connection.token.none": "Ce jeton est vide.",
+      "Déconnectez ce compte et reconnectez le token : vous choisirez parmi les comptes qu'il ouvre aujourd'hui.",
+    "refusal.connection.token.none": "Ce token est vide.",
     "refusal.connection.token.none.fix":
-      "Collez le jeton du compte, avec les droits que le service demande.",
+      "Collez le token du compte, avec les droits que le service demande.",
     "refusal.connection.kind": "Compte inconnu : {kind}.",
     "refusal.connection.kind.fix":
       "Connectez l'un des comptes que les réglages listent.",
@@ -638,7 +638,7 @@ export const refusals = {
       "Revenez aux services et refaites votre sélection.",
     "refusal.command.unknown": "Commande inconnue : {cmd}.",
     "refusal.harden.account.fix":
-      "Ouvrez les réglages et corrigez le compte de ce serveur, puis reconnectezz-vous.",
+      "Ouvrez les réglages et corrigez le compte de ce serveur, puis reconnectez-vous.",
     "refusal.account.suspended":
       "L'abonnement de cette organisation est suspendu.",
     "refusal.account.unsubscribed": "Cette organisation n'a pas d'abonnement.",
@@ -668,7 +668,7 @@ export const refusals = {
     "refusal.probe.unreadable.fix":
       "Relancez l'inspection ; si le serveur affiche un message d'accueil à la connexion, retirez-le.",
     "refusal.binary.missing.fix":
-      "Construisez l'agent avec bun --cwd=apps/agent run build, puis reconstruis l'app.",
+      "Construisez l'agent avec bun --cwd=apps/agent run build, puis reconstruisez l'app.",
     "refusal.binary.mismatch.fix":
       "Relancez l'installation ; si l'écart persiste, vérifiez l'espace disque du serveur.",
     "refusal.release.none":
@@ -680,7 +680,7 @@ export const refusals = {
     "refusal.server.added.fix":
       "Réessayez ; si cela recommence, générez la clé plutôt que de l'importer.",
     "refusal.terminal.unknown": "Ce terminal n'a pas d'identifiant.",
-    "refusal.terminal.unknown.fix": "Fermez cet onglet et ouvre-en un autre.",
+    "refusal.terminal.unknown.fix": "Fermez cet onglet et ouvrez-en un autre.",
     "refusal.release.unpublished.fix":
       "Publiez une version de l'agent, ou restez sur un build de développement.",
     "refusal.release.storage.fix":

@@ -1,5 +1,5 @@
 ---
-title: PHP s’installe, l’enrôlement tient malgré une coupure
+title: PHP s’installe, le rattachement tient malgré une coupure
 description: Le service PHP s’installe sur toutes les architectures, une coupure ne laisse plus un serveur en mode restreint, et le site liste tous les services sur une page Intégrations.
 locale: fr
 version: 0.2.2
@@ -12,7 +12,7 @@ Deux correctifs dans l’app, un dans l’agent, et une nouvelle page sur le sit
 
 ## L’app
 
-- L’enrôlement d’un serveur résiste désormais à une coupure. Quand le canal tombait pendant la commande d’enrôlement, l’app abandonnait et le serveur restait en mode restreint ; elle renvoie maintenant la demande sur un canal neuf jusqu’à ce qu’elle passe, et seul un vrai refus l’arrête.
+- Le rattachement d’un serveur résiste désormais à une coupure. Quand le canal tombait pendant la commande de rattachement, l’app abandonnait et le serveur restait en mode restreint ; elle renvoie maintenant la demande sur un canal neuf jusqu’à ce qu’elle passe, et seul un vrai refus l’arrête.
 - Un refus du stockage des versions est désormais nommé pour ce qu’il est. Un 400 du stockage qui tient les versions de l’agent s’affichait « La console a refusé la demande (400) » avec « Reconnectez-vous » pour remède ; l’app lit maintenant le code et le message du stockage lui-même et les affiche, en précisant que ni votre serveur ni votre compte ne sont en cause.
 
 ## L’agent

@@ -3,7 +3,7 @@ package i18n
 // The catalogue manifests: what the configuration screen shows for each module.
 var moduleCatalog = map[string]Message{
 	"module.ai.browser.summary": {
-		FR: "Chrome sans interface et les bibliothèques dont Playwright a besoin, la commande shot qui range ses captures dans ~/shots, et la galerie qui les sert en local.",
+		FR: "Chrome headless et les bibliothèques dont Playwright a besoin, la commande shot qui range ses captures dans ~/shots, et la galerie qui les sert en local.",
 		EN: "Headless Chrome and the libraries Playwright needs, the shot command that files its captures under ~/shots, and the gallery that serves them locally.",
 	},
 	"module.ai.browser.name": {
@@ -31,7 +31,7 @@ var moduleCatalog = map[string]Message{
 		EN: "The Cursor CLI installed for dev, with the Pupitre skills. Cursor has no global context file: your rules stay in your account. Signing in goes through the URL cursor-agent login prints and your own Cursor subscription.",
 	},
 	"module.ai.openclaw.summary": {
-		FR: "OpenClaw posé par mise sur le Node 24 de la machine : l'assistant personnel joignable depuis Telegram, Discord ou WhatsApp, avec les fournisseurs de modèles de votre choix, sa passerelle en service systemd, et les skills Pupitre. Les canaux se branchent par openclaw onboard dans un terminal.",
+		FR: "OpenClaw posé par mise sur le Node 24 de la machine : l'assistant personnel joignable depuis Telegram, Discord ou WhatsApp, avec les fournisseurs de modèles de votre choix, sa gateway en service systemd, et les skills Pupitre. Les canaux se branchent par openclaw onboard dans un terminal.",
 		EN: "OpenClaw installed through mise on the machine's Node 24: the personal assistant reached from Telegram, Discord or WhatsApp, with the model providers of your choice, its gateway as a systemd service, and the Pupitre skills. Channels are wired with openclaw onboard in a terminal.",
 	},
 	"module.ai.openclaw.providers.label": {
@@ -43,15 +43,15 @@ var moduleCatalog = map[string]Message{
 		EN: "One provider per line, as name:key — anthropic:sk-…, openai:sk-…",
 	},
 	"module.ai.openclaw.providers.hint": {
-		FR: "Le nom devient la variable que la passerelle lit : anthropic donne ANTHROPIC_API_KEY, openai OPENAI_API_KEY, gemini GEMINI_API_KEY. Les clés vivent dans un fichier que seul dev peut lire.",
+		FR: "Le nom devient la variable que la gateway lit : anthropic donne ANTHROPIC_API_KEY, openai OPENAI_API_KEY, gemini GEMINI_API_KEY. Les clés vivent dans un fichier que seul dev peut lire.",
 		EN: "The name becomes the variable the gateway reads: anthropic gives ANTHROPIC_API_KEY, openai OPENAI_API_KEY, gemini GEMINI_API_KEY. The keys live in a file only dev can read.",
 	},
 	"module.ai.openclaw.always_on.label": {
-		FR: "Passerelle toujours active",
+		FR: "Gateway toujours active",
 		EN: "Gateway always on",
 	},
 	"module.ai.openclaw.always_on.help": {
-		FR: "Un service systemd garde la passerelle en marche sur 127.0.0.1:18789 : c'est elle que les canaux joignent.",
+		FR: "Un service systemd garde la gateway en marche sur 127.0.0.1:18789 : c'est elle que les canaux joignent.",
 		EN: "A systemd service keeps the gateway running on 127.0.0.1:18789: it is what the channels reach.",
 	},
 	"modules.openclaw.node_too_old": {
@@ -87,7 +87,7 @@ var moduleCatalog = map[string]Message{
 		EN: "Keep root access",
 	},
 	"module.core.hardening.name": {
-		FR: "Durcissement",
+		FR: "Sécurisation",
 		EN: "Hardening",
 	},
 	"module.core.hardening.ssh_443.help": {
@@ -163,7 +163,7 @@ var moduleCatalog = map[string]Message{
 		EN: "Port",
 	},
 	"module.db.mailpit.summary": {
-		FR: "Mailpit, binaire de la release GitHub vérifié par sa somme, en service systemd sous dev : un serveur SMTP local qui capture tout ce que vos projets envoient, et l'interface qui le montre, sur la boucle locale.",
+		FR: "Mailpit, binaire de la release GitHub vérifié par son checksum, en service systemd sous dev : un serveur SMTP local qui capture tout ce que vos projets envoient, et l'interface qui le montre, sur localhost.",
 		EN: "Mailpit, the GitHub release binary checked against its digest, as a systemd service under dev: a local SMTP server that catches everything your projects send, and the interface that shows it, on the loopback.",
 	},
 	"module.db.mailpit.smtp_port.label": {
@@ -171,7 +171,7 @@ var moduleCatalog = map[string]Message{
 		EN: "SMTP port",
 	},
 	"module.db.mailpit.smtp_port.help": {
-		FR: "Celui que vos projets mettent dans leur configuration de courrier.",
+		FR: "Celui que vos projets mettent dans leur configuration mail.",
 		EN: "The one your projects put in their mail configuration.",
 	},
 	"module.db.mailpit.http_port.label": {
@@ -195,7 +195,7 @@ var moduleCatalog = map[string]Message{
 		EN: "Application account password",
 	},
 	"module.db.mysql.app_user.help": {
-		FR: "Celui que vos applications utilisent en TCP sur la boucle locale.",
+		FR: "Celui que vos applications utilisent en TCP sur localhost.",
 		EN: "The one your applications use over TCP on the loopback.",
 	},
 	"module.db.mysql.app_user.label": {
@@ -327,7 +327,7 @@ var moduleCatalog = map[string]Message{
 		EN: "Password",
 	},
 	"module.db.redis.persistence.help": {
-		FR: "Le journal append-only : les données survivent à un redémarrage.",
+		FR: "Le fichier append-only : les données survivent à un redémarrage.",
 		EN: "The append-only journal: the data survives a restart.",
 	},
 	"module.db.redis.persistence.label": {
@@ -387,7 +387,7 @@ var moduleCatalog = map[string]Message{
 		EN: "The domain under which the projects' subdomains answer, for example flymate.dev. Its DNS record must already point at this server.",
 	},
 	"module.exposure.caddy.domain.hint": {
-		FR: "Chez votre registrar, créez un enregistrement A qui pointe ce domaine et le joker *.domaine sur l'adresse IP de ce serveur. Let's Encrypt vérifie ce chemin avant d'émettre le certificat : sans lui, l'installation démarre mais aucun projet n'obtient de certificat.",
+		FR: "Chez votre registrar, créez un enregistrement A qui pointe ce domaine et le wildcard *.domaine sur l'adresse IP de ce serveur. Let's Encrypt vérifie ce chemin avant d'émettre le certificat : sans lui, l'installation démarre mais aucun projet n'obtient de certificat.",
 		EN: "At your registrar, create an A record pointing this domain and the wildcard *.domain at this server's IP address. Let's Encrypt checks that path before issuing the certificate: without it the install runs but no project gets one.",
 	},
 	"module.exposure.caddy.domain.label": {
@@ -519,7 +519,7 @@ var moduleCatalog = map[string]Message{
 		EN: "Size of one log file",
 	},
 	"module.runtime.docker.summary": {
-		FR: "Docker Engine et Compose depuis le dépôt de Docker, l'utilisateur dev dans le groupe docker, le démon lié à sa socket et à rien d'autre.",
+		FR: "Docker Engine et Compose depuis le dépôt de Docker, l'utilisateur dev dans le groupe docker, le daemon lié à sa socket et à rien d'autre.",
 		EN: "Docker Engine and Compose from Docker's own repository, the dev user in the docker group, and the daemon bound to its socket and nothing else.",
 	},
 	"module.runtime.go.go_versions.label": {
@@ -555,7 +555,7 @@ var moduleCatalog = map[string]Message{
 		EN: "Temurin through mise at the chosen versions, JAVA_HOME for every shell, and a Gradle daemon sized after the machine's memory.",
 	},
 	"module.runtime.node.bun.help": {
-		FR: "Exécution et gestionnaire de paquets JavaScript.",
+		FR: "Runtime et gestionnaire de paquets JavaScript.",
 		EN: "A JavaScript runtime and package manager.",
 	},
 	"module.runtime.node.bun.label": {
@@ -663,19 +663,19 @@ var moduleCatalog = map[string]Message{
 		EN: "Ruby compiled by mise at the chosen versions, Bundler optional, active in every shell.",
 	},
 	"module.tool.1password.service_account_token.label": {
-		FR: "Jeton du compte de service",
+		FR: "Token du compte de service",
 		EN: "Service account token",
 	},
 	"module.tool.1password.summary": {
-		FR: "La CLI op et un compte de service, pour produire le .env.local d'un projet depuis le gabarit que son dépôt versionne.",
+		FR: "La CLI op et un compte de service, pour produire le .env.local d'un projet depuis le template que son dépôt versionne.",
 		EN: "The op CLI and a service account, to produce a project's .env.local from the template its repository versions.",
 	},
 	"module.tool.github.summary": {
-		FR: "La commande gh, le clone HTTPS sans clé grâce au jeton, et la clé publique du serveur enregistrée sur le compte.",
+		FR: "La commande gh, le clone HTTPS sans clé grâce au token, et la clé publique du serveur enregistrée sur le compte.",
 		EN: "The gh command, HTTPS clones without a key thanks to the token, and the server's public key registered on the account.",
 	},
 	"module.tool.github.token.label": {
-		FR: "Jeton d'accès",
+		FR: "Token d'accès",
 		EN: "Access token",
 	},
 	"module.tool.neon.api_key.label": {
@@ -687,7 +687,7 @@ var moduleCatalog = map[string]Message{
 		EN: "The Neon CLI installed, and the key kept on the machine: your projects talk to your own Neon account, which stays yours to shape.",
 	},
 	"module.tool.wrangler.api_token.label": {
-		FR: "Jeton d'API",
+		FR: "Token d'API",
 		EN: "API token",
 	},
 	"module.tool.wrangler.account_id.label": {
@@ -695,23 +695,23 @@ var moduleCatalog = map[string]Message{
 		EN: "Account identifier",
 	},
 	"module.tool.vercel.summary": {
-		FR: "Le CLI Vercel posé par mise, avec le jeton de votre compte Vercel dans VERCEL_TOKEN : vercel deploy, vercel env et vercel logs répondent depuis le serveur sans connexion à refaire.",
+		FR: "Le CLI Vercel posé par mise, avec le token de votre compte Vercel dans VERCEL_TOKEN : vercel deploy, vercel env et vercel logs répondent depuis le serveur sans connexion à refaire.",
 		EN: "The Vercel CLI installed through mise, with your Vercel account's token in VERCEL_TOKEN: vercel deploy, vercel env and vercel logs answer from the server with no sign-in to redo.",
 	},
 	"module.tool.vercel.token.label": {
-		FR: "Jeton Vercel",
+		FR: "Token Vercel",
 		EN: "Vercel token",
 	},
 	"module.tool.supabase.summary": {
-		FR: "Le CLI Supabase, binaire de la release GitHub vérifié par sa somme, avec le jeton de votre compte dans SUPABASE_ACCESS_TOKEN : migrations, types et fonctions se poussent depuis le serveur.",
+		FR: "Le CLI Supabase, binaire de la release GitHub vérifié par son checksum, avec le token de votre compte dans SUPABASE_ACCESS_TOKEN : vous pushez migrations, types et fonctions depuis le serveur.",
 		EN: "The Supabase CLI, the GitHub release binary checked against its checksum, with your account's token in SUPABASE_ACCESS_TOKEN: migrations, types and functions push from the server.",
 	},
 	"module.tool.supabase.access_token.label": {
-		FR: "Jeton d'accès Supabase",
+		FR: "Token d'accès Supabase",
 		EN: "Supabase access token",
 	},
 	"module.tool.stripe.summary": {
-		FR: "Le CLI Stripe, binaire de la release GitHub vérifié par sa somme, avec une clé de votre compte dans STRIPE_API_KEY : stripe listen renvoie les webhooks sur un projet de cette machine.",
+		FR: "Le CLI Stripe, binaire de la release GitHub vérifié par son checksum, avec une clé de votre compte dans STRIPE_API_KEY : stripe listen renvoie les webhooks sur un projet de cette machine.",
 		EN: "The Stripe CLI, the GitHub release binary checked against its checksum, with a key of your account in STRIPE_API_KEY: stripe listen forwards the webhooks to a project on this machine.",
 	},
 	"module.tool.stripe.api_key.label": {
@@ -719,7 +719,7 @@ var moduleCatalog = map[string]Message{
 		EN: "Stripe API key",
 	},
 	"module.tool.wrangler.summary": {
-		FR: "Wrangler, le CLI de Cloudflare, et le jeton gardé sur la machine : vos Workers, vos bases D1 et vos Pages se déploient depuis le serveur.",
+		FR: "Wrangler, le CLI de Cloudflare, et le token gardé sur la machine : vos Workers, vos bases D1 et vos Pages se déploient depuis le serveur.",
 		EN: "Wrangler, Cloudflare's CLI, with the token kept on the machine: your Workers, D1 databases and Pages deploy from the server.",
 	},
 	"module.ai.hermes.providers.help": {
@@ -763,7 +763,7 @@ var moduleCatalog = map[string]Message{
 		EN: "step failed",
 	},
 	"modules.step.replay": {
-		FR: "  rejeu : %s",
+		FR: "  relance : %s",
 		EN: "  replay: %s",
 	},
 	"modules.uninstall.required": {
@@ -855,7 +855,7 @@ var moduleCatalog = map[string]Message{
 		EN: "memory_limit %s written as %s: PHP reads K, M or G alone, and would have taken the value in bytes",
 	},
 	"warn.github.logout.failed": {
-		FR: "gh n'a pas pu se déconnecter, %s a été retiré avec le jeton qu'il tenait : %s",
+		FR: "gh n'a pas pu se déconnecter, %s a été retiré avec le token qu'il tenait : %s",
 		EN: "gh could not sign out, %s was removed with the token it held: %s",
 	},
 	"engine.uninstall.foreign": {
@@ -867,7 +867,7 @@ var moduleCatalog = map[string]Message{
 		EN: "What you installed yourself is removed by hand; install %s from the app for Pupitre to take it over.",
 	},
 	"modules.download.checksum_mismatch": {
-		FR: "la somme SHA-256 de %s n'est pas celle publiée : %s",
+		FR: "le checksum SHA-256 de %s n'est pas celui publié : %s",
 		EN: "the SHA-256 of %s is not the published one: %s",
 	},
 	"modules.download.checksum_missing": {
@@ -883,7 +883,7 @@ var moduleCatalog = map[string]Message{
 		EN: "%s is missing from %s after extraction",
 	},
 	"modules.download.checksum_unpublished": {
-		FR: "aucune somme publiée pour %s dans %s",
+		FR: "aucun checksum publié pour %s dans %s",
 		EN: "no published checksum for %s in %s",
 	},
 	"modules.system.packages_refused": {
@@ -919,7 +919,7 @@ var moduleCatalog = map[string]Message{
 		EN: "no %s build of Claude Code %s in the manifest",
 	},
 	"modules.claude.checksum_mismatch": {
-		FR: "la somme de Claude Code %s n'est pas celle du manifeste : %s",
+		FR: "le checksum de Claude Code %s n'est pas celui du manifeste : %s",
 		EN: "checksum of Claude Code %s differs from the manifest: %s",
 	},
 	"modules.claude.missing_after_install": {

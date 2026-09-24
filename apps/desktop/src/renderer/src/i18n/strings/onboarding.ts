@@ -31,7 +31,7 @@ export const onboarding = {
     "onboarding.organization.switchLabel": "Enrol for another organization",
     "onboarding.enrollment.title": "Server declared",
 
-    "onboarding.entry.unfinished": "L'installation n'est pas terminée.",
+    "onboarding.entry.unfinished": "The install is not finished.",
     "onboarding.entry.noAgent": "Not installed yet.",
     "onboarding.entry.resume": "Resume the install",
     "onboarding.entry.install": "Install Pupitre",
@@ -189,13 +189,12 @@ export const onboarding = {
     "onboarding.done.rootOpen":
       "L'accès root est resté ouvert : relancez la sécurisation une fois la cause réglée.",
 
-    "onboarding.organization.title": "Enrôlé pour {organization}",
+    "onboarding.organization.title": "Rattaché à {organization}",
     "onboarding.organization.role": "Votre rôle : {role}.",
     "onboarding.organization.none": "Aucune organisation active",
     "onboarding.organization.noneDetail":
-      "Choisissez une organisation dans la console avant d'enrôler un serveur.",
-    "onboarding.organization.switchLabel":
-      "Enrôler pour une autre organisation",
+      "Choisissez une organisation dans la console avant de rattacher un serveur.",
+    "onboarding.organization.switchLabel": "Rattacher à une autre organisation",
     "onboarding.enrollment.title": "Serveur déclaré",
 
     "onboarding.entry.unfinished": "L'installation n'est pas terminée.",
@@ -272,7 +271,7 @@ export const onboarding = {
     "onboarding.stage.pick": "Choisir",
     "onboarding.stage.add": "Ajouter",
     "onboarding.stage.key": "Clé",
-    "onboarding.failure.journal": "Voir le journal",
+    "onboarding.failure.journal": "Voir les logs",
     "onboarding.channel.lost": "Connexion à {name} perdue.",
     "onboarding.channel.retrying": "Nouvelle tentative…",
     "onboarding.channel.back": "Connexion à {name} rétablie.",
@@ -296,9 +295,9 @@ export const onboarding = {
     "onboarding.restore.passphraseHelp":
       "Vérifiée sur cet ordinateur avant que le serveur ne reçoive quoi que ce soit.",
     "onboarding.restore.needsConnection":
-      "Connectez le seau des sauvegardes pour repartir d'une sauvegarde.",
+      "Connectez le bucket des sauvegardes pour repartir d'une sauvegarde.",
     "onboarding.restore.needsPassphrase":
-      "Tapez la phrase de passe des sauvegardes pour repartir d'une sauvegarde.",
+      "Tapez la passphrase des sauvegardes pour repartir d'une sauvegarde.",
     "onboarding.restore.skip": "Partir d'un serveur vierge",
     "onboarding.restore.start": "Repartir de cette sauvegarde",
     "onboarding.restore.running":
@@ -309,7 +308,7 @@ export const onboarding = {
     "onboarding.data.parts": "Ce qui revient de la sauvegarde",
     "onboarding.data.passphraseHelp":
       "L'app a été fermée depuis le choix de la sauvegarde : sa clé doit être dérivée à nouveau.",
-    "onboarding.data.skip": "Laisser les données dans le seau",
+    "onboarding.data.skip": "Laisser les données dans le bucket",
     "onboarding.data.start.one": "Ramener {count} partie",
     "onboarding.data.start.other": "Ramener {count} parties",
     "onboarding.data.running": "Retour des données, puis démarrage des projets",
@@ -324,7 +323,7 @@ export const onboarding = {
     "onboarding.server.key.title": "La clé qui l'ouvre",
     "onboarding.server.knownHeading": "Vos serveurs",
 
-    "onboarding.config.replaySubmit": "Rejouer ce module",
+    "onboarding.config.replaySubmit": "Relancer ce module",
     "onboarding.config.resumeSubmit": "Reprendre l'installation",
 
     "onboarding.resume.readingTitle": "On regarde où en est le serveur",

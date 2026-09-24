@@ -213,7 +213,7 @@ export const EXEMPTIONS: Readonly<Partial<Record<ModuleId, string>>> = {
   "core.hardening":
     "Durcissement du système : aucun produit de marque à nommer.",
   "core.backup":
-    "Sauvegardes de Pupitre vers le seau du client, quel qu'en soit le fournisseur : aucun produit de marque à nommer.",
+    "Sauvegardes de Pupitre vers le bucket du client, quel qu'en soit le fournisseur : aucun produit de marque à nommer.",
 }
 
 /**

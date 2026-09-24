@@ -20,7 +20,7 @@ Ils vivent dans ` + SkillsDir + `, et couvrent ce qui revient sans cesse :
 - ` + "`capture`" + ` — montrer une image : ` + "`shot`" + ` écrit une URL publique, et la réponse se
   termine par cette URL, jamais par un chemin local que personne ne peut ouvrir d'ici.
   Les captures sont rangées dans ` + GalleryDir + `.
-- ` + "`ship`" + `, ` + "`branch`" + `, ` + "`pr`" + ` — commiter, pousser, ouvrir une pull request, dans la
+- ` + "`ship`" + `, ` + "`branch`" + `, ` + "`pr`" + ` — commiter, pusher, ouvrir une pull request, dans la
   convention du dépôt.
 `
 

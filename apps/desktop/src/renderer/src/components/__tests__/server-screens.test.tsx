@@ -320,7 +320,7 @@ describe("l'organisation de l'enrôlement", () => {
     const html = note(identity);
 
     expect(html).toContain('data-enrolling-for="org-1"');
-    expect(text(html)).toContain("Enrôlé pour Atelier Ada");
+    expect(text(html)).toContain("Rattaché à Atelier Ada");
     expect(text(html)).toContain("Administrateur");
     expect(text(html)).not.toContain("admin");
   });

@@ -88,7 +88,7 @@ export const dashboard = {
     "dashboard.remedy.load":
       "Le processeur est en retard sur son travail, et aucun projet ne tourne : un terminal montre ce qui l'occupe.",
     "dashboard.remedy.disk":
-      "Le disque est plein à plus de neuf dixièmes : les sessions terminées gardent encore leurs journaux et leurs fichiers.",
+      "Le disque est plein à plus de neuf dixièmes : les sessions terminées gardent encore leurs logs et leurs fichiers.",
     "dashboard.services.open": "Ouvrir {name}",
     "dashboard.panel.startAll": "Tout démarrer",
     "dashboard.panel.stopAll": "Tout arrêter",

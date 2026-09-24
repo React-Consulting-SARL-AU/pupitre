@@ -84,6 +84,6 @@ export const shots = {
     "shots.brokenMessage":
       "La capture n'est pas arrivée entière : ce qui a été reçu ne correspond pas à l'empreinte que le serveur a donnée.",
     "shots.brokenFix":
-      "Relis la capture ; si elle échoue encore, le fichier est abîmé sur le serveur.",
+      "Relisez la capture ; si elle échoue encore, le fichier est abîmé sur le serveur.",
   },
 } as const;

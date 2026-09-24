@@ -19,9 +19,9 @@ La sonde lit la distribution, la RAM, le disque, l’architecture et ce qui est 
 
 ## 3. Poser l'agent
 
-Le serveur est enrôlé auprès de la plateforme, puis le binaire signé part sur la session SSH déjà ouverte. La somme de contrôle de ce que le serveur a reçu est comparée à celle de l'app avant la suite. Le catalogue des services est celui de l'agent : il n'existe qu'une fois l'agent en place.
+Le serveur est rattaché à la plateforme, puis le binaire signé part sur la session SSH déjà ouverte. Le checksum de ce que le serveur a reçu est comparé à celui de l'app avant la suite. Le catalogue des services est celui de l'agent : il n'existe qu'une fois l'agent en place.
 
-Une machine qui porte déjà son identité n'est pas enrôlée deux fois : une connexion coupée entre l'échange et sa réponse se reprend, elle ne se rejoue pas.
+Une machine qui porte déjà son identité n'est pas rattachée deux fois : une connexion coupée entre l'échange et sa réponse se reprend, elle n'est pas relancée.
 
 ## 4. Choisir les services
 
@@ -29,25 +29,25 @@ Le catalogue, groupé par catégorie. `core.system` et `core.hardening` sont tou
 
 ## 5. Configurer
 
-Versions, ports, comptes, secrets. Chaque champ dit ce qu'il attend et refuse ce qui n'a pas la forme voulue, à sa hauteur, au moment où vous le remplissez — jamais une liste de reproches en haut de la page. Une bulle à côté du libellé dit où trouver une valeur : les permissions exactes d'un jeton, la page qui le délivre, ce qu'il en coûte de se tromper. L'action est en bas, là où votre lecture s'arrête.
+Versions, ports, comptes, secrets. Chaque champ dit ce qu'il attend et refuse ce qui n'a pas la forme voulue, à sa hauteur, au moment où vous le remplissez — jamais une liste de reproches en haut de la page. Une bulle à côté du libellé dit où trouver une valeur : les permissions exactes d'un token, la page qui le délivre, ce qu'il en coûte de se tromper. L'action est en bas, là où votre lecture s'arrête.
 
 Un secret passe par l'entrée standard de la session SSH ; il n'est jamais écrit dans un fichier que vous n'avez pas demandé, et jamais réaffiché après saisie.
 
-Un module qui passe par un de vos comptes — Cloudflare, GitHub, 1Password, Neon, Vercel, Supabase, Stripe — demande ce compte ici, au-dessus de ses propres questions, et non trois écrans plus loin. Vous donnez chaque jeton une fois, pour tous vos serveurs, et l'app le vérifie à la seconde où vous le collez : elle lit le compte qu'il ouvre plutôt que de vous faire recopier un identifiant. Le jeton reste dans le trousseau de votre ordinateur ; ce qu'un serveur en a besoin s'écrit sur la ligne de secrets de l'installation, et nulle part ailleurs. Ce qui reste un choix par serveur est ce qui l'est vraiment — le domaine sous lequel cette machine publie, par exemple.
+Un module qui passe par un de vos comptes — Cloudflare, GitHub, 1Password, Neon, Vercel, Supabase, Stripe — demande ce compte ici, au-dessus de ses propres questions, et non trois écrans plus loin. Vous donnez chaque token une fois, pour tous vos serveurs, et l'app le vérifie à la seconde où vous le collez : elle lit le compte qu'il ouvre plutôt que de vous faire recopier un identifiant. Le token reste dans le trousseau de votre ordinateur ; ce qu'un serveur en a besoin s'écrit sur la ligne de secrets de l'installation, et nulle part ailleurs. Ce qui reste un choix par serveur est ce qui l'est vraiment — le domaine sous lequel cette machine publie, par exemple.
 
 Avant de lancer, l'app demande au serveur de peser la configuration : un port que quelque chose écoute déjà, un dossier qui est un fichier, un fuseau que cette machine ignore. Ce qu'il refuse revient sur le champ concerné.
 
 ## 6. Installer
 
-Étape par étape, en direct : le module, l'étape, le compteur, la durée. Une configuration qui ne tiendrait pas est refusée **avant la première étape**, machine intacte et champs nommés. Une étape qui échoue n'arrête pas les autres modules — elle est notée avec la commande qui la rejoue. Chaque étape est idempotente : l'installation entière peut être relancée sans dégât.
+Étape par étape, en direct : le module, l'étape, le compteur, la durée. Une configuration qui ne tiendrait pas est refusée **avant la première étape**, machine intacte et champs nommés. Une étape qui échoue n'arrête pas les autres modules — elle est notée avec la commande qui la relance. Chaque étape est idempotente : l'installation entière peut être relancée sans dégât.
 
 À la fin, l'app prévient la plateforme sans attendre : la console montre les modules tout de suite, au lieu d'un serveur vide pendant cinq minutes.
 
-## 7. Durcir et basculer sur dev
+## 7. Sécuriser et basculer sur dev
 
 `ufw` sur SSH seul, `fail2ban`, mots de passe désactivés, `AllowUsers dev`. Root est fermé **en dernier**, et seulement après que l’app a vérifié que votre clé ouvre bien `dev`. Si cette vérification échoue, rien n’est fermé.
 
-À la configuration, l’option « Garder l’accès root » laisse root joignable par clé SSH — jamais par mot de passe — et applique tout le reste du durcissement. Pour qui veut garder la main sur son serveur.
+À la configuration, l’option « Garder l’accès root » laisse root joignable par clé SSH — jamais par mot de passe — et applique tout le reste de la sécurisation. Pour qui veut garder la main sur son serveur.
 
 ## 8. Premier projet
 
