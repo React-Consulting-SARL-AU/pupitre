@@ -1,0 +1,40 @@
+---
+title: Every server backs itself up, encrypted, into your own S3 bucket — and comes back from it
+description: A server sends its configuration and its secrets, its databases with their roles and accounts, its projects as they are with their .git, and the dev account's sessions to your Cloudflare R2, AWS S3 or any S3-compatible bucket, sealed on the machine for a key derived from a passphrase nobody keeps; a new server starts from a backup during onboarding, an existing one goes back to one, and the platform only ever holds a reference.
+locale: en
+version: 0.8.1
+channel: stable
+date: 2026-09-24
+order: 16
+---
+
+App and agent both to update: the app offers the agent update on the servers it knows. Version 0.8.0 was never published — its build stopped before release — and everything it was to bring is here.
+
+## Backups
+
+- A server backs up what it takes to rebuild it elsewhere, or to put it back the way it was yesterday: its configuration and its secrets, its databases (PostgreSQL with its roles, MySQL with its accounts, MongoDB, Redis), its projects as they are — `.git` included — and the `dev` account's sessions.
+- They go into **your own bucket**: Cloudflare R2, AWS S3, or any S3-compatible service, over HTTPS only. The keys are yours, typed in the app, which checks them with a test write before keeping them; Pupitre stores no backup.
+- **The server encrypts and cannot decrypt.** You choose a passphrase once, on your laptop; the app derives an X25519 key from it, keeps the public half and the salt, and forgets the passphrase. Each part is sealed for that key in an AES-256-GCM container. A leaked bucket, a curious host, a stolen S3 key return opaque bytes. Lose the passphrase and the backups are unreadable — nobody can recover it, and the app says so as you choose it.
+- The new **Backups** module, set up once through the **Backups (S3)** connection in the app's settings, holds the interval, the hour and the retention, and what goes in, project by project and database by database. Everything goes by default: the settings name what stays out, so a project or a database created afterwards is backed up until someone unchecks it. A part that has not changed since the last backup is copied inside the bucket instead of being sent again.
+- **Back up now** from the server's Backups page, which also lists the backups the platform knows, each with **Go back to this backup** and **Delete**.
+
+## Restoring
+
+- A **new server** starts from a backup during onboarding: the step comes after the agent and before the catalogue, and the data comes back after hardening. Nothing is asked again — the modules find their secrets, the projects come back with their branch, their modified files and their unpushed commits, and those that were running start again.
+- An **existing server** goes back to a backup: the app first offers to back up the current state, so the revert itself can be undone, and names the modules the backup does not hold so you can uninstall them.
+- The passphrase is asked at that moment, checked on your laptop before anything is sent, and the agent only ever holds the private key in memory.
+- Without Pupitre: `pupitred backup open` decrypts a part with the passphrase or the private key.
+
+## The platform
+
+- The platform keeps a **reference** per backup — an address, sizes, counts, a public key — and never a project name, a database name or any content.
+- Two alerts: **backup_failed** when the last backup reported an error or could not carry everything, and **backup_stale** when two intervals have gone by without a success. The console lists an organisation's backups, and a member sees only those of the servers assigned to them.
+- The terms and the privacy policy say what a backup holds, where it goes and what the platform sees of it; a guide on the site covers setting up a bucket, choosing a passphrase and restoring.
+
+## Known limits
+
+- Docker volumes are not backed up; the app says so when the Docker runtime is installed.
+- Whoever can read the bucket reads the manifests, which are in clear: the server's name, the names of the projects, the databases and the folders, the address and branch of the repositories. Never a content, never a secret — those are sealed.
+- Whoever holds the S3 key can erase the backups: object versioning or object lock on the bucket is the answer, and the guide says so.
+- A database password changed by hand outside Pupitre comes back to the one the configuration holds.
+- The Windows installer is still unsigned: SmartScreen warns at first launch.
