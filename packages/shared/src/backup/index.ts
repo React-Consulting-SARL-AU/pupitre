@@ -289,8 +289,12 @@ export type BackupLocation = z.infer<typeof BackupLocationSchema>
  * `CopyObject`) instead of sending it again: nothing leaves the server for a
  * project nobody touched.
  */
+export const BackupPartKeySchema = z
+  .string()
+  .regex(/^[A-Za-z0-9._-]+\.pupitre$/)
+
 const PartBaseSchema = z.object({
-  key: z.string().regex(/^[A-Za-z0-9._-]+\.pupitre$/),
+  key: BackupPartKeySchema,
   bytes: z.int().nonnegative(),
   sha256: Sha256Schema,
   fingerprint: Sha256Schema.optional(),
