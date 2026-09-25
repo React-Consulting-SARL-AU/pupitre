@@ -14,8 +14,7 @@ Tout ce qu'un agent doit lire avant de toucher au code, et tout ce que le propri
 | [`runbook.md`](./runbook.md) | Un incident de production : onboarding qui meurt, « Abonnement requis », release en échec, mail perdu, ban fail2ban, mot de passe sudo ou appareils perdus | le propriétaire |
 | [`desktop.md`](./desktop.md) | L'app desktop de l'intérieur : canaux vers l'agent, SSH et clés, compte, mises à jour, transferts, arborescence | desktop |
 | [`security.md`](./security.md) | Modèle de menace, protection du code, droit d'usage, jetons | web, desktop, agent |
-| [`legal.md`](./legal.md) | L'éditeur, les pages légales en brouillon, ce qui reste à remplir à l'immatriculation | tout le monde |
-| [`incorporation.pdf`](./incorporation.pdf) | Constitution de Pupitre Inc. au Delaware, comptes à ouvrir, échéances de conformité annuelles | le propriétaire |
+| [`legal.md`](./legal.md) | L'éditeur, les pages légales publiées, ce qui change à l'immatriculation | tout le monde |
 | [`contracts/agent-protocol.md`](./contracts/agent-protocol.md) | Le protocole JSON entre l'app et l'agent, sur SSH | desktop, agent |
 | [`contracts/platform-api.md`](./contracts/platform-api.md) | L'API `/api/v1` consommée par la console, l'app et l'agent | web, desktop, agent |
 | [`contracts/service-catalog.md`](./contracts/service-catalog.md) | Les modules du catalogue, leurs manifestes, leurs champs | desktop, agent |

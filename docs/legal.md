@@ -4,7 +4,7 @@ Ce que le dépôt dit de l'éditeur, où il le dit, et ce qui change le jour où
 
 ## L'état actuel
 
-Le service est ouvert, gratuit pendant le lancement, et édité par une personne physique : Jordan Monier, résidant au Maroc. Il n'y a pas de société ; le dépôt ne revendique donc aucune raison sociale, aucune forme juridique, aucun siège et aucun numéro. Le projet — code, marque, noms de domaine, plateforme — lui appartient personnellement, et les documents disent que l'entité responsable, le mode d'encaissement et le prestataire de paiement pourront changer, avec trente jours de préavis par email. Le plan d'immatriculation vit hors dépôt, dans [`incorporation.pdf`](./incorporation.pdf).
+Le service est ouvert, gratuit pendant le lancement, et édité par une personne physique : Jordan Monier, résidant au Maroc. Il n'y a pas de société ; le dépôt ne revendique donc aucune raison sociale, aucune forme juridique, aucun siège et aucun numéro. Le projet — code, marque, noms de domaine, plateforme — lui appartient personnellement, et les documents disent que l'entité responsable, le mode d'encaissement et le prestataire de paiement pourront changer, avec trente jours de préavis par email. Le plan d'immatriculation vit hors du dépôt, chez le propriétaire : il porte des données personnelles et n'a rien à faire dans l'historique Git.
 
 Ce que la source partagée fixe :
 
