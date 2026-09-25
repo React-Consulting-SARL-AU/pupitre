@@ -14,7 +14,6 @@ import {
   hostKeyDecision,
   keyLines,
   liveKeys,
-  looksLikeHostKeyChange,
   REINSTALLED_ACTION,
   recordHostKey,
 } from "../host-keys";
@@ -84,23 +83,6 @@ describe("la décision sur la clé d'hôte", () => {
       throw new Error("attendu : changed");
     }
     expect(decision.actions).toEqual([REINSTALLED_ACTION, "cancel"]);
-  });
-});
-
-describe("le refus que ssh renvoie", () => {
-  it("se reconnaît à l'avertissement d'OpenSSH", () => {
-    expect(
-      looksLikeHostKeyChange(
-        "@@@ WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED! @@@"
-      )
-    ).toBe(true);
-    expect(looksLikeHostKeyChange("Host key verification failed.")).toBe(true);
-  });
-
-  it("ne confond pas un refus de mot de passe avec un changement de clé", () => {
-    expect(looksLikeHostKeyChange("Permission denied (publickey).")).toBe(
-      false
-    );
   });
 });
 

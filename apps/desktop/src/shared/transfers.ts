@@ -27,15 +27,6 @@ export type TransferStatus =
   | "failed"
   | "cancelled";
 
-export const TRANSFER_STATUSES: readonly TransferStatus[] = [
-  "queued",
-  "running",
-  "paused",
-  "done",
-  "failed",
-  "cancelled",
-];
-
 /** The states a transfer can still leave: what the app keeps across a launch. */
 export const UNSETTLED: readonly TransferStatus[] = [
   "queued",
@@ -81,10 +72,6 @@ export interface Transfer {
 export interface TransferList {
   revision: number;
   transfers: Transfer[];
-}
-
-export function isTransferStatus(value: unknown): value is TransferStatus {
-  return TRANSFER_STATUSES.includes(value as TransferStatus);
 }
 
 export function settled(transfer: Pick<Transfer, "status">): boolean {

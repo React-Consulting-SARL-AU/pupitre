@@ -1,20 +1,35 @@
 import { describe, expect, it } from "bun:test";
 import { createPlatformClient } from "../platform-client";
 
-/**
- * What `/me` says of the subscription reaches the identity as it came, and a
- * platform that does not say it yet leaves the identity without one rather
- * than refusing the whole account.
- */
-
 const ME = {
-  active_organization: { id: "org-1", name: "Atelier Ada", slug: "ada" },
+  active_organization: {
+    id: "org-1",
+    name: "Atelier Ada",
+    reason: null,
+    slug: "ada",
+    state: "active",
+  },
   entitlement: "valid",
   organizations: [
-    { id: "org-1", name: "Atelier Ada", role: "owner", slug: "ada" },
+    {
+      id: "org-1",
+      name: "Atelier Ada",
+      role: "owner",
+      slug: "ada",
+      state: "active",
+    },
   ],
+  platform_role: null,
   role: "owner",
-  user: { email: "ada@pupitre.studio", name: "Ada Lovelace" },
+  subscription: null,
+  user: {
+    created_at: "2026-09-01T10:00:00.000Z",
+    email: "ada@pupitre.studio",
+    id: "usr-1",
+    image: null,
+    locale: "fr",
+    name: "Ada Lovelace",
+  },
 };
 
 const SUBSCRIPTION = {
@@ -53,7 +68,7 @@ describe("l'identité lue sur la plateforme", () => {
     });
   });
 
-  it("reste lisible quand la plateforme ne dit rien de l'abonnement", async () => {
+  it("garde de l'organisation active ce que le compte retient, sans son état", async () => {
     const platform = createPlatformClient({
       baseUrl: "https://app.pupitre.studio",
       fetch: answering(ME),
@@ -61,9 +76,46 @@ describe("l'identité lue sur la plateforme", () => {
 
     const identity = await platform.me("jeton");
 
-    expect(identity).toMatchObject({
+    expect(identity).toEqual({
       ok: true,
-      result: { subscription: null },
+      result: {
+        email: "ada@pupitre.studio",
+        entitlement: "valid",
+        name: "Ada Lovelace",
+        organization: { id: "org-1", name: "Atelier Ada", slug: "ada" },
+        organizations: [
+          { id: "org-1", name: "Atelier Ada", role: "owner", slug: "ada" },
+        ],
+        role: "owner",
+        subscription: null,
+      },
     });
+  });
+
+  it("refuse un /me qu'elle ne sait pas lire plutôt que d'inventer une identité", async () => {
+    const { subscription: _subscription, ...withoutSubscription } = ME;
+
+    for (const body of [
+      withoutSubscription,
+      { ...ME, entitlement: "unknown" },
+      { ...ME, role: "superuser" },
+    ]) {
+      const platform = createPlatformClient({
+        baseUrl: "https://app.pupitre.studio",
+        fetch: answering(body),
+      });
+
+      expect(await platform.me("jeton")).toEqual({
+        error: {
+          code: "internal",
+          message: "refusal.platform.unreadable",
+          phrase: {
+            id: "refusal.platform.unreadable",
+            values: { path: "/me" },
+          },
+        },
+        ok: false,
+      });
+    }
   });
 });

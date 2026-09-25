@@ -421,11 +421,24 @@ describe("les routes de la plateforme", () => {
   }
 
   it("lit les demandes dans l'enveloppe data", async () => {
-    const { platform, seen } = recording(200, { data: [{ server: {} }] });
+    const pending = {
+      device: {
+        fingerprint: `SHA256:${"a".repeat(43)}`,
+        id: "dev-1",
+        name: "MacBook",
+        public_key:
+          "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINIqIikYhGRpaqoJuvKifjn/NLVieWICV3MrBVyZO2Lj",
+      },
+      reported_at: "2026-09-19T03:15:00.000Z",
+      server: { id: "srv-1", name: "vps" },
+      signers: [],
+      user: { email: "ada@example.org", id: "usr-1", name: "Ada" },
+    };
+    const { platform, seen } = recording(200, { data: [pending] });
 
     const answer = await platform.keyApprovals("jeton");
 
-    expect(answer).toEqual({ ok: true, result: [{ server: {} }] as never });
+    expect(answer).toEqual({ ok: true, result: [pending] });
     expect(seen).toEqual([
       {
         body: null,

@@ -1,7 +1,7 @@
 import type { ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
-import type { ShellSpawn } from "../key-install";
+import type { ShellSpawn } from "../ssh-run";
 
 /**
  * An `ssh` that answers from a script: what it was given, and what it says

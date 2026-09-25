@@ -13,7 +13,6 @@ import {
   type ProjectDeps,
   projectHostnames,
   projectLogs,
-  projectUrl,
   pullProject,
   startProject,
   updateProject,
@@ -133,7 +132,6 @@ describe("un dépôt du formulaire au journal", () => {
     const pulled = await pullProject(SERVER, VITE.name, calls);
     const installed = await installProject(SERVER, VITE.name, calls);
     const started = await startProject(SERVER, VITE.name, calls);
-    const address = await projectUrl(SERVER, VITE.name, calls);
 
     const lines: string[] = [];
     const journal = await projectLogs(
@@ -156,7 +154,6 @@ describe("un dépôt du formulaire au journal", () => {
       { command: "bun install", process: "vite-starter" },
     ]);
     expect(started.ok && started.result).toMatchObject({ state: "online" });
-    expect(address.ok && address.result.url).toBe("http://127.0.0.1:3000");
     expect(journal.ok).toBe(true);
     expect(lines).toEqual([
       "> vite-starter@0.0.0 dev",
@@ -183,8 +180,8 @@ describe("un projet à plusieurs ports", () => {
 
     expect(added.ok).toBe(true);
     expect(projectHostnames(SERVER, "shop")).toEqual([
-      "shop.flymate.dev",
-      "api-shop.flymate.dev",
+      "shop.flyleaf.dev",
+      "api-shop.flyleaf.dev",
     ]);
 
     const shop = {
@@ -216,10 +213,10 @@ describe("un projet à plusieurs ports", () => {
     );
 
     expect(renamed.ok && renamed.result.url).toBe(
-      "https://boutique.flymate.dev"
+      "https://boutique.flyleaf.dev"
     );
-    expect(released).toEqual(["shop.flymate.dev", "api-shop.flymate.dev"]);
-    expect(projectHostnames(SERVER, "shop")).toEqual(["boutique.flymate.dev"]);
+    expect(released).toEqual(["shop.flyleaf.dev", "api-shop.flyleaf.dev"]);
+    expect(projectHostnames(SERVER, "shop")).toEqual(["boutique.flyleaf.dev"]);
 
     const command = await updateProject(
       SERVER,
@@ -232,7 +229,7 @@ describe("un projet à plusieurs ports", () => {
               cmd: "bunx turbo run dev --filter=web...",
               routes: [
                 {
-                  hostname: "boutique.flymate.dev",
+                  hostname: "boutique.flyleaf.dev",
                   label: "web",
                   port: 3100,
                 },
@@ -254,9 +251,9 @@ describe("un projet à plusieurs ports", () => {
 
     expect(removed.ok).toBe(true);
     expect(released).toEqual([
-      "shop.flymate.dev",
-      "api-shop.flymate.dev",
-      "boutique.flymate.dev",
+      "shop.flyleaf.dev",
+      "api-shop.flyleaf.dev",
+      "boutique.flyleaf.dev",
     ]);
     expect(projectHostnames(SERVER, "shop")).toEqual([]);
   });

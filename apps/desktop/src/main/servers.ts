@@ -1,12 +1,4 @@
-import {
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  renameSync,
-  writeFileSync,
-} from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
 import { isSshHost, isSshUser } from "@pupitre/shared/ssh";
 import type {
   HostKeyDecision,
@@ -58,9 +50,8 @@ import {
 import { includeLine, shareAt, sharedAt } from "./ssh-share";
 import {
   expectedRevision,
-  type JsonObject,
-  keepCopy,
-  migrate,
+  type VersionedFile,
+  versionedFile,
 } from "./store-migrations";
 import { trace } from "./trace";
 
@@ -190,28 +181,21 @@ function normalise(raw: ServersConfig): Configuration {
   return { active, dismissed, servers, version: VERSION };
 }
 
-function parsed(): Configuration | null {
-  const raw = JSON.parse(readFileSync(path(), "utf8")) as JsonObject;
-  const held = raw as unknown as ServersConfig;
+let file: VersionedFile | null = null;
 
-  if (!Array.isArray(held.servers)) {
-    return null;
+function serversFile(): VersionedFile {
+  if (file?.path === path()) {
+    return file;
   }
 
-  const from = typeof raw.version === "number" ? raw.version : 1;
-  const migrated = migrate(raw, SERVERS_MIGRATIONS);
-  const clean = normalise(migrated.document as unknown as ServersConfig);
+  file = versionedFile({
+    baseline: SERVERS_BASELINE,
+    migrations: SERVERS_MIGRATIONS,
+    path: path(),
+    valid: (document) => Array.isArray(document.servers),
+  });
 
-  // An older configuration goes back to disk completed, once: otherwise
-  // every launch would complete it in memory, and the day the defaults
-  // changed it would change with them. The file as it was stays beside it,
-  // for a reader who has to go back to the version they came from.
-  if (from < VERSION) {
-    keepCopy(path(), from);
-    save(clean);
-  }
-
-  return clean;
+  return file;
 }
 
 /** The file read again, whatever was held: what a write does before touching a file it could not read. */
@@ -226,43 +210,45 @@ export function read(): Configuration {
     return cache;
   }
 
-  if (!existsSync(path())) {
-    unreadable = false;
+  const held = serversFile().read();
+
+  unreadable = held.status === "corrupt";
+
+  if (held.status === "corrupt") {
+    trace("servers", "unreadable", { copy: held.copy });
+  }
+
+  if (held.status !== "read") {
     cache = EMPTY;
 
     return EMPTY;
   }
 
-  let clean: Configuration | null = null;
-
-  try {
-    clean = parsed();
-  } catch {
-    clean = null;
+  if (serversFile().frozen()) {
+    trace("servers", "newer", { revision: held.revision });
   }
 
-  if (!clean) {
-    copyFileSync(path(), corruptPath());
-    trace("servers", "unreadable", { copy: corruptPath() });
+  const clean = normalise(held.document as unknown as ServersConfig);
+
+  // An older configuration goes back to disk completed, once: otherwise
+  // every launch would complete it in memory, and the day the defaults
+  // changed it would change with them.
+  if (held.migrated) {
+    save(clean);
   }
 
-  unreadable = clean === null;
-  cache = clean ?? EMPTY;
+  cache = clean;
 
-  return cache;
+  return clean;
 }
 
 /**
- * Written aside and renamed over: a crash in the middle leaves either the
- * previous file or the new one, never a truncated list of servers.
+ * A file stamped by a newer version of the app is not written: the change
+ * holds for this run and the SSH file follows it, and the version that wrote
+ * the file finds it whole after a rollback.
  */
 function save(config: Configuration): void {
-  const target = path();
-  const staging = `${target}.tmp`;
-
-  mkdirSync(dirname(target), { recursive: true });
-  writeFileSync(staging, JSON.stringify(config, null, 2), "utf8");
-  renameSync(staging, target);
+  serversFile().write({ ...config });
   writeSshConfig(config.servers, paths(), sshHosts());
 }
 
@@ -294,13 +280,6 @@ export function write(
   return clean;
 }
 
-/** No server yet is a state the app has to show, not one it can guess around. */
-export function active(): Server | null {
-  const config = read();
-
-  return config.servers.find((s) => s.id === config.active) ?? null;
-}
-
 export function byId(id: string): Server | null {
   return read().servers.find((server) => server.id === id) ?? null;
 }
@@ -310,13 +289,6 @@ export function targetOf(serverId: string): string[] {
   const server = byId(serverId);
 
   return server ? sshArgs(server, paths()) : [];
-}
-
-/** What to write when naming the server: the alias, never a bare address. */
-export function activeHost(): string {
-  const server = active();
-
-  return server ? alias(server) : "";
 }
 
 /**

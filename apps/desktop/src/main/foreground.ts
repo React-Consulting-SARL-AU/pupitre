@@ -1,5 +1,6 @@
 import { app, shell } from "electron";
 import { HARNESSED } from "./harness";
+import { trace } from "./trace";
 
 /**
  * Whether the app is allowed to take the screen.
@@ -28,5 +29,9 @@ export function openOutside(url: string): void {
     return;
   }
 
-  shell.openExternal(url);
+  shell.openExternal(url).catch((failure: unknown) =>
+    trace("app", "open-external-failed", {
+      reason: failure instanceof Error ? failure.message : String(failure),
+    })
+  );
 }

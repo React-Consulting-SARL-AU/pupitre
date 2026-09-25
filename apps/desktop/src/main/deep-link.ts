@@ -79,7 +79,9 @@ export function parseDeepLink(
   }
 
   if (kind === "account" && first === "callback" && second === undefined) {
-    return { kind: "account", query: Object.fromEntries(url.searchParams) };
+    return url.searchParams.get("device") === "approved"
+      ? { kind: "account", query: { device: "approved" } }
+      : { kind: "account", query: {} };
   }
 
   return null;

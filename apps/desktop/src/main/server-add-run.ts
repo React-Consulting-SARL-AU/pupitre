@@ -1,5 +1,6 @@
 import type { AgentResponse } from "@shared/agent";
 import type {
+  KeyChoice,
   KeyInstall,
   Server,
   ServerAdded,
@@ -30,6 +31,50 @@ export interface AddRunDeps {
     password: string
   ) => Promise<AgentResponse<KeyInstall>>;
   config: () => ServerAdded["config"];
+}
+
+const MAX_PORT = 65_535;
+
+function isKeyChoice(value: unknown): value is KeyChoice {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const key = value as Record<string, unknown>;
+
+  switch (key.mode) {
+    case "generate":
+      return true;
+    case "import":
+      return typeof key.file === "string";
+    case "system":
+      return typeof key.host === "string";
+    default:
+      return false;
+  }
+}
+
+/** The form's draft as it crossed the bridge: the shape only, the values are checked where they are used. */
+export function isServerDraft(value: unknown): value is ServerDraft {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const draft = value as Record<string, unknown>;
+
+  return (
+    typeof draft.name === "string" &&
+    typeof draft.host === "string" &&
+    typeof draft.user === "string" &&
+    Number.isInteger(draft.port) &&
+    (draft.port as number) >= 1 &&
+    (draft.port as number) <= MAX_PORT &&
+    (draft.slug === undefined || typeof draft.slug === "string") &&
+    (draft.password === undefined ||
+      draft.password === null ||
+      typeof draft.password === "string") &&
+    isKeyChoice(draft.key)
+  );
 }
 
 function refusal(error: unknown): AgentResponse<ServerAdded> {

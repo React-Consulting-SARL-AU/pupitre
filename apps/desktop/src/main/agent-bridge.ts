@@ -22,14 +22,12 @@ export const BRIDGE_COMMANDS: ReadonlySet<CommandName> = new Set<CommandName>([
   "process.kill",
   "sessions.clean",
   "reboot",
-  "project.list",
   "project.detect",
   "module.config",
   "uninstall",
   "service.start",
   "service.stop",
   "service.restart",
-  "service.logs",
   "db.dump",
   "db.import",
   "db.shell",
@@ -65,12 +63,11 @@ export interface BridgeDeps {
   declaresService: (serverId: string, id: string) => boolean;
 }
 
-/** The commands that name a service by its `id`, and drive or read it. */
+/** The commands that name a service by its `id`, and drive it. */
 const SERVICE_COMMANDS: ReadonlySet<CommandName> = new Set<CommandName>([
   "service.start",
   "service.stop",
   "service.restart",
-  "service.logs",
 ]);
 
 export function isRefusal(

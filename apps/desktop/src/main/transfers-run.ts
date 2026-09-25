@@ -1,14 +1,7 @@
 import type { ChildProcess } from "node:child_process";
 import { spawn as spawnChild } from "node:child_process";
 import { createHash } from "node:crypto";
-import {
-  createReadStream,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  statSync,
-  writeFileSync,
-} from "node:fs";
+import { createReadStream, mkdirSync, statSync } from "node:fs";
 import { basename, dirname, isAbsolute, join } from "node:path";
 import type { FsStatResult } from "@pupitre/shared/agent-protocol/files";
 import type { AgentError, AgentResponse } from "@shared/agent";
@@ -24,11 +17,10 @@ import type { Platform } from "./platform";
 import { refusalOf, refuseWith } from "./refusal";
 import { argument } from "./ssh-config";
 import {
+  diskIo,
   expectedRevision,
   type JsonObject,
-  keepCopy,
-  migrate,
-  REVISION_KEY,
+  versionedFile,
 } from "./store-migrations";
 import { trace } from "./trace";
 import {
@@ -351,10 +343,12 @@ function sha256Of(path: string): Promise<string> {
   });
 }
 
+const STORE_IO = diskIo();
+
 const DISK: LocalFiles = {
   ensureDir: (path) => mkdirSync(path, { recursive: true }),
   hash: sha256Of,
-  readStore: (path) => (existsSync(path) ? readFileSync(path, "utf8") : null),
+  readStore: STORE_IO.read,
   stat: (path) => {
     try {
       const stat = statSync(path);
@@ -368,10 +362,7 @@ const DISK: LocalFiles = {
       return null;
     }
   },
-  writeStore: (path, text) => {
-    mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(path, text, "utf8");
-  },
+  writeStore: STORE_IO.write,
 };
 
 function candidatesOn(platform: Platform): string[] {
@@ -441,7 +432,13 @@ export function createTransferQueue(deps: TransferDeps): TransferQueue {
   let revision = 0;
   let counter = 0;
   let progressTimer: ReturnType<typeof setTimeout> | null = null;
-  let storeFrozen = false;
+
+  const store = versionedFile({
+    baseline: TRANSFERS_BASELINE,
+    io: { read: local.readStore, write: local.writeStore },
+    migrations: TRANSFERS_MIGRATIONS,
+    path: deps.storePath,
+  });
 
   function list(): TransferList {
     return { revision, transfers: transfers.map((one) => ({ ...one })) };
@@ -475,10 +472,6 @@ export function createTransferQueue(deps: TransferDeps): TransferQueue {
   }
 
   function persist(): void {
-    if (storeFrozen) {
-      return;
-    }
-
     const kept = transfers
       .filter((one) => UNSETTLED.includes(one.status))
       .map(
@@ -488,10 +481,21 @@ export function createTransferQueue(deps: TransferDeps): TransferQueue {
         })
       );
 
-    local.writeStore(
-      deps.storePath,
-      `${JSON.stringify({ [REVISION_KEY]: TRANSFERS_VERSION, transfers: kept }, null, 2)}\n`
-    );
+    store.write({ transfers: kept });
+  }
+
+  function restoreFrom(document: JsonObject): void {
+    const kept = Array.isArray(document.transfers) ? document.transfers : [];
+
+    for (const one of kept) {
+      const transfer = restoredTransfer(one);
+
+      if (transfer && !byId(transfer.id)) {
+        transfers.push(transfer);
+      }
+    }
+
+    counter = transfers.length;
   }
 
   function byId(id: unknown): Transfer | null {
@@ -1151,45 +1155,24 @@ export function createTransferQueue(deps: TransferDeps): TransferQueue {
     },
 
     restore() {
-      const text = local.readStore(deps.storePath);
+      const held = store.read();
 
-      if (text === null) {
+      if (held.status === "absent") {
         return list();
       }
 
-      try {
-        const raw = JSON.parse(text) as JsonObject;
-        const from =
-          typeof raw[REVISION_KEY] === "number" ? raw[REVISION_KEY] : 0;
+      if (store.frozen()) {
+        trace("transfer", "store-newer", {
+          revision: held.status === "read" ? held.revision : 0,
+        });
 
-        if (from > TRANSFERS_VERSION) {
-          storeFrozen = true;
-          trace("transfer", "store-newer", { revision: from });
+        return list();
+      }
 
-          return list();
-        }
-
-        const migrated = migrate(raw, TRANSFERS_MIGRATIONS);
-
-        if (migrated.applied.length > 0) {
-          keepCopy(deps.storePath, from);
-        }
-
-        const kept = Array.isArray(migrated.document.transfers)
-          ? migrated.document.transfers
-          : [];
-
-        for (const one of kept) {
-          const transfer = restoredTransfer(one);
-
-          if (transfer && !byId(transfer.id)) {
-            transfers.push(transfer);
-          }
-        }
-
-        counter = transfers.length;
-      } catch {
-        trace("transfer", "store-unreadable");
+      if (held.status === "corrupt") {
+        trace("transfer", "store-unreadable", { copy: held.copy });
+      } else {
+        restoreFrom(held.document);
       }
 
       persist();

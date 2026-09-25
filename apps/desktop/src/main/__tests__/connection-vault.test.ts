@@ -1,5 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Sealer } from "../account-vault";
@@ -129,5 +135,23 @@ describe("le coffre des connexions", () => {
       id: "acc-1",
       name: "Atelier Ada",
     });
+    expect(
+      JSON.parse(readFileSync(join(dir, "cloudflare.json"), "utf8"))
+    ).toEqual({
+      connection: { id: "acc-1", name: "Atelier Ada" },
+      version: 1,
+    });
+    expect(existsSync(join(dir, "cloudflare.json.r0"))).toBe(true);
+  });
+
+  it("écrit chaque fiche avec sa révision, en 0600", () => {
+    const { dir, vault: held } = vault();
+
+    held.connect("github", "ghp_de_test", { id: "42", name: "ada" });
+
+    const path = join(dir, "github.json");
+
+    expect(JSON.parse(readFileSync(path, "utf8")).version).toBe(1);
+    expect(statSync(path).mode & 0o777).toBe(0o600);
   });
 });

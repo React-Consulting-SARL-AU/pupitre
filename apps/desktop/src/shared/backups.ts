@@ -4,8 +4,8 @@ import {
   BACKUP_BUCKET_PATTERN,
   BACKUP_ENDPOINT_PATTERN,
   BACKUP_REGION_PATTERN,
-  type BackupDeclaration,
   type BackupPart,
+  type PlatformBackup as SharedPlatformBackup,
 } from "@pupitre/shared/backup";
 
 /**
@@ -52,11 +52,7 @@ export interface OrganizationIdentity extends BackupIdentity {
   server_name: string;
 }
 
-/** A backup as `GET /backups` lists it: the declaration, and the server it came from. */
-export type PlatformBackup = BackupDeclaration & {
-  server_id: string | null;
-  server_name: string;
-};
+export type PlatformBackup = SharedPlatformBackup;
 
 /** The phases of a restore the main process relays while the passphrase is already verified. */
 export type RestorePhase = "save" | "setup";

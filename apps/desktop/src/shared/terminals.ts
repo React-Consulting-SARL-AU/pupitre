@@ -17,6 +17,12 @@ export type TerminalAgent =
 
 export type TerminalKind = "shell" | TerminalAgent;
 
+/** The grid a terminal draws, in characters. */
+export interface TerminalSize {
+  cols: number;
+  rows: number;
+}
+
 export const TERMINAL_KINDS: readonly TerminalKind[] = [
   "shell",
   "claude",

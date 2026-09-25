@@ -154,10 +154,6 @@ export function readSecrets(serverId: string): InstallSecrets {
   return line;
 }
 
-export function holdsSecrets(serverId: string): boolean {
-  return (vaults.get(serverId)?.size ?? 0) > 0;
-}
-
 export function forgetSecrets(serverId: string): void {
   vaults.get(serverId)?.clear();
   vaults.delete(serverId);

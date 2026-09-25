@@ -9,6 +9,13 @@ import {
 import { join } from "node:path";
 import type { ConnectionAccount, ConnectionKind } from "@shared/connections";
 import type { Sealer } from "./account-vault";
+import { CONNECTIONS_MIGRATIONS } from "./connections-migrations";
+import {
+  forgetCopies,
+  type JsonObject,
+  type VersionedFile,
+  versionedFile,
+} from "./store-migrations";
 
 /**
  * The client's third-party accounts, and nothing of their servers.
@@ -39,23 +46,24 @@ export interface ConnectionVault {
   clear: (kind: ConnectionKind) => void;
 }
 
-/**
- * Cloudflare wrote `accountId` and `accountName` before there was a second
- * connection. A laptop that connected then keeps its account rather than being
- * asked for the token again.
- */
 function readAccount(value: unknown): ConnectionAccount | null {
   if (typeof value !== "object" || value === null) {
     return null;
   }
 
-  const held = value as Partial<
-    ConnectionAccount & { accountId: string; accountName: string }
-  >;
-  const id = held.id ?? held.accountId;
-  const name = held.name ?? held.accountName;
+  const { id, name } = value as Partial<ConnectionAccount>;
 
-  return id && name ? { id, name } : null;
+  return typeof id === "string" && id && typeof name === "string" && name
+    ? { id, name }
+    : null;
+}
+
+function recordFile(path: string): VersionedFile {
+  return versionedFile({
+    migrations: CONNECTIONS_MIGRATIONS,
+    modes: { dir: DIR_MODE, file: FILE_MODE },
+    path,
+  });
 }
 
 function ensureDir(dir: string): void {
@@ -104,17 +112,20 @@ export function createConnectionVault({
     }
   }
 
-  function record(
-    kind: ConnectionKind
-  ): { connection?: unknown; settings?: unknown } | null {
-    try {
-      return JSON.parse(readFileSync(recordPath(kind), "utf8")) as {
-        connection?: unknown;
-        settings?: unknown;
-      } | null;
-    } catch {
+  /** A record written before the ledger is brought to today's shape, and written back once. */
+  function record(kind: ConnectionKind): JsonObject | null {
+    const file = recordFile(recordPath(kind));
+    const held = file.read();
+
+    if (held.status !== "read") {
       return null;
     }
+
+    if (held.migrated) {
+      file.write(held.document);
+    }
+
+    return held.document;
   }
 
   function account(kind: ConnectionKind): ConnectionAccount | null {
@@ -155,26 +166,17 @@ export function createConnectionVault({
         chmodSync(path, FILE_MODE);
       }
 
-      const path = recordPath(kind);
-
-      writeFileSync(
-        path,
-        `${JSON.stringify(
-          kept ? { connection: named, settings: kept } : { connection: named },
-          null,
-          2
-        )}\n`,
-        {
-          mode: FILE_MODE,
-        }
+      recordFile(recordPath(kind)).write(
+        kept ? { connection: named, settings: kept } : { connection: named }
       );
-      chmodSync(path, FILE_MODE);
     },
 
     clear(kind) {
       held.delete(kind);
       rmSync(tokenPath(kind), { force: true });
       rmSync(recordPath(kind), { force: true });
+      rmSync(`${recordPath(kind)}.corrupt`, { force: true });
+      forgetCopies(recordPath(kind));
     },
   };
 }

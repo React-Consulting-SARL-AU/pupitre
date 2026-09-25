@@ -24,6 +24,7 @@ import {
 } from "@pupitre/shared/agent-protocol/projects";
 import type { Route } from "@pupitre/shared/agent-protocol/state";
 import type { AgentError, AgentResponse } from "@shared/agent";
+import { PROJECT_ACTIONS, type ProjectAction } from "@shared/projects";
 import type { AgentClient } from "./agent-client";
 import { refuseWith } from "./refusal";
 
@@ -489,28 +490,6 @@ export function installProject(
   return onProject("project.install", serverId, name, deps);
 }
 
-export function projectUrl(
-  serverId: unknown,
-  name: unknown,
-  deps: ProjectDeps
-): Promise<AgentResponse<ProjectUrlResult>> {
-  return onProject("project.url", serverId, name, deps);
-}
-
-export type ProjectAction = "project.up" | "project.down" | "project.restart";
-
-const ACTIONS: readonly ProjectAction[] = [
-  "project.up",
-  "project.down",
-  "project.restart",
-];
-
-/**
- * Start, stop or restart — one project, or every one of them.
- *
- * "all" is the agent's own word, not a name the renderer made up, so it is the
- * one target that does not go through the declared list.
- */
 /** A process id as the contract spells it: one DNS label, or nothing. */
 function processOf(process: unknown): string | null {
   return typeof process === "string" && PROCESS_OK.test(process)
@@ -518,6 +497,16 @@ function processOf(process: unknown): string | null {
     : null;
 }
 
+function isProjectAction(action: unknown): action is ProjectAction {
+  return PROJECT_ACTIONS.includes(action as ProjectAction);
+}
+
+/**
+ * Start, stop or restart — one project, or every one of them.
+ *
+ * "all" is the agent's own word, not a name the renderer made up, so it is the
+ * one target that does not go through the declared list.
+ */
 export async function actOnProject(
   action: unknown,
   serverId: unknown,
@@ -525,7 +514,7 @@ export async function actOnProject(
   process: unknown,
   deps: ProjectDeps
 ): Promise<AgentResponse<ProjectActionResult>> {
-  if (!ACTIONS.includes(action as ProjectAction)) {
+  if (!isProjectAction(action)) {
     return refuse("bad_request", "refusal.project.action.unknown", {
       action: String(action),
     });
@@ -535,7 +524,7 @@ export async function actOnProject(
 
   if (name === "all") {
     return server
-      ? await deps.client.request(server, action as ProjectAction, {
+      ? await deps.client.request(server, action, {
           name: "all",
         })
       : unknownServer();
@@ -546,7 +535,7 @@ export async function actOnProject(
 
   return isRefusal(call)
     ? call
-    : await deps.client.request(call.serverId, action as ProjectAction, {
+    : await deps.client.request(call.serverId, action, {
         name: call.name,
         ...(scoped ? { process: scoped } : {}),
       });

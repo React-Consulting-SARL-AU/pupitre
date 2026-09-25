@@ -9,8 +9,8 @@ import {
   PROBE_REMOTE_COMMAND,
   probeSshArgs,
   runShellProbe,
-  type ShellSpawn,
 } from "../probe-shell";
+import type { ShellSpawn } from "../ssh-run";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DESKTOP = join(HERE, "..", "..", "..");

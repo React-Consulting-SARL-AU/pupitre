@@ -37,7 +37,7 @@ describe("ce que le renderer peut demander à l'agent", () => {
     });
   });
 
-  it("laisse piloter et lire un service par son identifiant, et rien de plus", () => {
+  it("laisse piloter un service par son identifiant, et rien de plus", () => {
     for (const cmd of [
       "service.start",
       "service.stop",
@@ -53,22 +53,6 @@ describe("ce que le renderer peut demander à l'agent", () => {
         refusalOf("srv-1", cmd, { id: "db.postgres", force: true })?.id
       ).toBe("refusal.params.invalid");
     }
-
-    expect(
-      checkedCall(
-        "srv-1",
-        "service.logs",
-        { id: "db.postgres", lines: 50, follow: true },
-        knows
-      )
-    ).toEqual({
-      serverId: "srv-1",
-      cmd: "service.logs",
-      params: { id: "db.postgres", lines: 50, follow: true },
-    });
-    expect(
-      refusalOf("srv-1", "service.logs", { id: "db.postgres", lines: 0 })?.id
-    ).toBe("refusal.params.invalid");
   });
 
   /**
@@ -81,7 +65,6 @@ describe("ce que le renderer peut demander à l'agent", () => {
       "service.start",
       "service.stop",
       "service.restart",
-      "service.logs",
     ] as const) {
       expect(refusalOf("srv-1", cmd, { id: "db.inventé" })).toEqual({
         code: "service_not_found",
@@ -90,12 +73,13 @@ describe("ce que le renderer peut demander à l'agent", () => {
     }
   });
 
-  it("laisse un écran relire la liste des projets", () => {
-    expect(checkedCall("srv-1", "project.list", undefined, knows)).toEqual({
-      serverId: "srv-1",
-      cmd: "project.list",
-      params: {},
-    });
+  it("renvoie vers leur canal la liste des projets et les journaux d'un service", () => {
+    expect(refusalOf("srv-1", "project.list")?.id).toBe(
+      "refusal.bridge.command"
+    );
+    expect(
+      refusalOf("srv-1", "service.logs", { id: "db.postgres", lines: 50 })?.id
+    ).toBe("refusal.bridge.command");
   });
 
   it("efface une capture par son chemin listé, ou toute la galerie", () => {

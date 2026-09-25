@@ -1,7 +1,8 @@
 import type { CompletionsResult } from "@pupitre/shared/agent-protocol/state";
 import type { AgentResponse } from "@shared/agent";
+import { ipcMain } from "electron";
 import { agentClient } from "./agent";
-import { refusalOf } from "./refusal";
+import { refuseWith } from "./refusal";
 import { byId } from "./servers";
 
 const PATH_OK = /^[\w.\-/+@ ]{0,240}$/;
@@ -26,15 +27,33 @@ export function completions(
   path: unknown
 ): Promise<AgentResponse<CompletionsResult>> {
   if (typeof serverId !== "string" || !byId(serverId)) {
-    return Promise.resolve({
-      error: {
-        ...refusalOf("bad_request", "refusal.server.unknown"),
-      },
-      ok: false,
-    });
+    return Promise.resolve(refuseWith("bad_request", "refusal.server.unknown"));
   }
 
   return agentClient.request(serverId, "completions", {
     path: askedPath(path),
   });
+}
+
+/**
+ * The root of the server's files, as the agent's own completions name it: the
+ * folder above the projects root. It is what a folder of the server view
+ * counts from, and it is never a string the renderer chose.
+ */
+export async function workRoot(serverId: string): Promise<string | null> {
+  const named = await completions(serverId, "");
+
+  if (!named.ok) {
+    return null;
+  }
+
+  const at = named.result.root.lastIndexOf("/");
+
+  return at > 0 ? named.result.root.slice(0, at) : null;
+}
+
+export function registerCompletions(): void {
+  ipcMain.handle("completions", (_e, serverId: unknown, path: unknown) =>
+    completions(serverId, path)
+  );
 }

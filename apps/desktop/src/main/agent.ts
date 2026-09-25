@@ -1,3 +1,4 @@
+import type { CommandName } from "@pupitre/shared/agent-protocol";
 import type { Event } from "@pupitre/shared/agent-protocol/envelope";
 import { app, ipcMain } from "electron";
 import { account } from "./account";
@@ -66,10 +67,20 @@ export function currentLanguage(): string {
   return language;
 }
 
+/** Results that end up in a pty's command line or a local path: weighed in every build. */
+const ARGV_RESULTS: ReadonlySet<CommandName> = new Set<CommandName>([
+  "agent.open",
+  "completions",
+  "db.shell",
+  "fs.stat",
+  "project.list",
+]);
+
 export const agentClient = createAgentClient({
   onChannel: (serverId, state) =>
     broadcast("agent:channel", { serverId, state }),
   appVersion: appVersion(),
+  enforcedResults: ARGV_RESULTS,
   locale: () => language,
   gate: () => usageError(() => account.guard()),
   spawn: sshSpawn(target),
@@ -83,10 +94,15 @@ const bridge = {
     read().servers.some((server) => server.id === serverId),
 };
 
-export function registerLanguage(): void {
+/** `changed` hears the language the renderer settles on, once per change. */
+export function registerLanguage(changed: (locale: string) => void): void {
+  let said: string | null = null;
+
   ipcMain.on("locale:set", (_event, locale: unknown) => {
-    if (locale === "fr" || locale === "en") {
+    if ((locale === "fr" || locale === "en") && locale !== said) {
+      said = locale;
       rememberLanguage(locale);
+      changed(locale);
     }
   });
 }

@@ -1,12 +1,7 @@
 import type { PendingKeyApproval } from "@pupitre/shared/keys";
+import type { KeyApprovalReceipt as SharedKeyApprovalReceipt } from "@pupitre/shared/platform-api/account";
 
-/** What the platform keeps of an approval it accepted: `POST /me/key-approvals`, 201. */
-export interface KeyApprovalReceipt {
-  server_id: string;
-  device_id: string;
-  signer: string;
-  issued_at: string;
-}
+export type KeyApprovalReceipt = SharedKeyApprovalReceipt;
 
 /** One pending key, named the way the renderer asks for it: a server and a device. */
 export function approvalKeyOf(

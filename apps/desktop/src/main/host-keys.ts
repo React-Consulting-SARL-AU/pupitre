@@ -23,12 +23,6 @@ const run = promisify(execFile);
 
 export const REINSTALLED_ACTION: HostKeyAction = "reinstalled";
 
-const CHANGED_MARKS = [
-  "REMOTE HOST IDENTIFICATION HAS CHANGED",
-  "HOST KEY HAS CHANGED",
-  "Host key verification failed",
-];
-
 const FINGERPRINT = /SHA256:[A-Za-z0-9+/=]+/;
 const FINGERPRINTS = /SHA256:[A-Za-z0-9+/=]+/g;
 const ED25519_LISTED = /\sED25519\s+SHA256:/;
@@ -162,11 +156,6 @@ export function recordHostKey(line: string, paths: SshPaths): void {
   writeFileSync(paths.knownHostsPath, `${held}${lead}${line}\n`, {
     mode: FILE_MODE,
   });
-}
-
-/** What ssh says when it refuses for that reason, and not for another. */
-export function looksLikeHostKeyChange(output: string): boolean {
-  return CHANGED_MARKS.some((mark) => output.includes(mark));
 }
 
 /**

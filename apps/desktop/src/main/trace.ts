@@ -20,6 +20,8 @@ export type { TraceEntry } from "@shared/trace";
 export type TraceSink = (entry: TraceEntry) => void;
 
 const SECRET = /password|passphrase|secret|token|credential|private/i;
+const SECRET_IN_TEXT =
+  /((?:bearer|password|passphrase|secret|token|credential)\w*["']?\s*[:= ]\s*["']?)[^\s"',;&]+/gi;
 const REDACTED = "•••";
 const VALUE_LIMIT = 200;
 const PAD = 2;
@@ -53,11 +55,21 @@ function readable(value: unknown): string {
   return String(value);
 }
 
-function safe(detail: Record<string, unknown>): Record<string, unknown> {
+/** A value named like a secret goes, and so does what follows a secret's name inside a sentence. */
+export function scrubbed(
+  detail: Record<string, unknown>
+): Record<string, unknown> {
   const clean: Record<string, unknown> = {};
 
   for (const [name, value] of Object.entries(detail)) {
-    clean[name] = SECRET.test(name) ? REDACTED : value;
+    if (SECRET.test(name)) {
+      clean[name] = REDACTED;
+    } else {
+      clean[name] =
+        typeof value === "string"
+          ? value.replace(SECRET_IN_TEXT, `$1${REDACTED}`)
+          : value;
+    }
   }
 
   return clean;
@@ -93,7 +105,7 @@ export function trace(
     at: Date.now(),
     event,
     scope,
-    ...(detail ? { detail: safe(detail) } : {}),
+    ...(detail ? { detail: scrubbed(detail) } : {}),
   };
 
   console.debug(traceLine(entry));

@@ -143,7 +143,7 @@ describe("le menu de l'application", () => {
   it("libelle ses entrées dans la langue du système", () => {
     expect(
       byId(menuTemplate("darwin", true, "fr-FR"), "preferences")?.label
-    ).toBe("Préférences…");
+    ).toBe("Réglages…");
     expect(byId(menuTemplate("darwin", true, "en-US"), "sign-out")?.label).toBe(
       "Sign Out…"
     );

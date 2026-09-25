@@ -3,6 +3,7 @@ import type {
   PendingKeyApproval,
 } from "@pupitre/shared/keys";
 import type { MeSubscription } from "@pupitre/shared/plans";
+import type { ServerEnrollment } from "@pupitre/shared/platform-api/account";
 import type {
   AccountDevice,
   AccountError,
@@ -11,11 +12,7 @@ import type {
 import type { PlatformBackup } from "@shared/backups";
 import type { FleetServer } from "@shared/servers";
 import type { Sealer } from "../../account-vault";
-import type {
-  EnrollBody,
-  EnrollInput,
-  PlatformClient,
-} from "../../platform-client";
+import type { EnrollInput, PlatformClient } from "../../platform-client";
 
 /**
  * A platform that answers from memory.
@@ -73,7 +70,7 @@ export interface FakePlatformOptions {
     | "denied"
     | "expired"
   )[];
-  release?: EnrollBody["release"];
+  release?: ServerEnrollment["release"];
   latest?: { version: string; sha256: string; signature: string };
   binary?: Uint8Array;
   servers?: FleetServer[];
@@ -98,7 +95,7 @@ export interface FakePlatform extends PlatformClient {
   approvals: KeyApprovalSubmission[];
 }
 
-const READY_RELEASE: EnrollBody["release"] = {
+const READY_RELEASE: ServerEnrollment["release"] = {
   channel: "stable",
   sha256: "",
   signature: "",

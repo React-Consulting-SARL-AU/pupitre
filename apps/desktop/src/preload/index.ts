@@ -83,6 +83,7 @@ import type {
   InstallUpdate,
 } from "@shared/install";
 import type { KeyApprovalReceipt } from "@shared/key-approvals";
+import type { ProjectAction } from "@shared/projects";
 import type { SecretMarks } from "@shared/secrets";
 import type {
   FleetView,
@@ -124,7 +125,20 @@ import { contextBridge, ipcRenderer, webUtils } from "electron";
  * project and an action, and the main process decides what that becomes.
  */
 
-export type ProjectAction = "project.up" | "project.down" | "project.restart";
+/** A channel the main process pushes on, heard until the returned function is called. */
+function subscribe<T>(
+  channel: string
+): (listener: (payload: T) => void) => () => void {
+  return (listener) => {
+    const handler = (_event: unknown, payload: T) => listener(payload);
+
+    ipcRenderer.on(channel, handler);
+
+    return () => {
+      ipcRenderer.removeListener(channel, handler);
+    };
+  };
+}
 
 /**
  * One long command, its events routed to the caller that started it.
@@ -579,20 +593,9 @@ const api = {
    * It belongs to no call in particular: the command in flight learns of it
    * through its own refusal, and the screens learn of it here.
    */
-  onChannel: (
-    callback: (change: { serverId: string; state: "open" | "lost" }) => void
-  ): (() => void) => {
-    const listener = (
-      _event: unknown,
-      change: { serverId: string; state: "open" | "lost" }
-    ) => callback(change);
-
-    ipcRenderer.on("agent:channel", listener);
-
-    return () => {
-      ipcRenderer.removeListener("agent:channel", listener);
-    };
-  },
+  onChannel: subscribe<{ serverId: string; state: "open" | "lost" }>(
+    "agent:channel"
+  ),
   /**
    * The platform, told now rather than at the daemon's next turn.
    *
@@ -825,16 +828,7 @@ const api = {
   portForwards: (serverId?: string): Promise<PortForward[]> =>
     ipcRenderer.invoke("service:forwards", serverId ?? null),
   /** The list whole, every time it changes — a forward can die on its own. */
-  onPortForwards: (
-    listener: (forwards: PortForward[]) => void
-  ): (() => void) => {
-    const handler = (_e: unknown, list: PortForward[]) => listener(list);
-
-    ipcRenderer.on("service:forwards-changed", handler);
-
-    return () =>
-      ipcRenderer.removeListener("service:forwards-changed", handler);
-  },
+  onPortForwards: subscribe<PortForward[]>("service:forwards-changed"),
 
   /**
    * The shell of a database, as a terminal tab rather than a line to paste.
@@ -897,13 +891,7 @@ const api = {
     ipcRenderer.invoke("transfer:cancel", id),
   dismissTransfer: (id: string): Promise<TransferList> =>
     ipcRenderer.invoke("transfer:dismiss", id),
-  onTransfers: (listener: (list: TransferList) => void): (() => void) => {
-    const handler = (_e: unknown, list: TransferList) => listener(list);
-
-    ipcRenderer.on("transfer:changed", handler);
-
-    return () => ipcRenderer.removeListener("transfer:changed", handler);
-  },
+  onTransfers: subscribe<TransferList>("transfer:changed"),
   /**
    * The path of a file dropped on the window.
    *
@@ -1092,13 +1080,7 @@ const api = {
    * What the main process does, for the devtools console. Nothing arrives in a
    * packaged build: the trace is off there, and nobody emits.
    */
-  onTrace: (listener: (entry: TraceEntry) => void): (() => void) => {
-    const handler = (_e: unknown, entry: TraceEntry) => listener(entry);
-
-    ipcRenderer.on("trace", handler);
-
-    return () => ipcRenderer.removeListener("trace", handler);
-  },
+  onTrace: subscribe<TraceEntry>("trace"),
 
   hostKey: (id: string): Promise<AgentResponse<HostKeyDecision>> =>
     ipcRenderer.invoke("server-host-key", id),
@@ -1115,22 +1097,10 @@ const api = {
    * A gesture the native menu asked for: the window performs it as it would a
    * click, with its own confirmation where one exists.
    */
-  onMenuCommand: (listener: (command: MenuCommand) => void): (() => void) => {
-    const handler = (_e: unknown, command: MenuCommand) => listener(command);
-
-    ipcRenderer.on("menu:command", handler);
-
-    return () => ipcRenderer.removeListener("menu:command", handler);
-  },
+  onMenuCommand: subscribe<MenuCommand>("menu:command"),
 
   /** A `pupitre://` link the main process has already checked, as a navigation. */
-  onDeepLink: (listener: (link: DeepLink) => void): (() => void) => {
-    const handler = (_e: unknown, link: DeepLink) => listener(link);
-
-    ipcRenderer.on("deep-link", handler);
-
-    return () => ipcRenderer.removeListener("deep-link", handler);
-  },
+  onDeepLink: subscribe<DeepLink>("deep-link"),
   /** The link the app was opened with, before this page could listen; handed over once. */
   pendingDeepLink: (): Promise<DeepLink | null> =>
     ipcRenderer.invoke("deep-link:pending"),
@@ -1149,13 +1119,7 @@ const api = {
     ipcRenderer.invoke("app-update:check"),
   installAppUpdate: (): Promise<AppUpdateState> =>
     ipcRenderer.invoke("app-update:install"),
-  onAppUpdate: (listener: (state: AppUpdateState) => void): (() => void) => {
-    const handler = (_e: unknown, state: AppUpdateState) => listener(state);
-
-    ipcRenderer.on("app-update:changed", handler);
-
-    return () => ipcRenderer.removeListener("app-update:changed", handler);
-  },
+  onAppUpdate: subscribe<AppUpdateState>("app-update:changed"),
 
   /**
    * Whether a session that waits for the reader may say so outside the window.
@@ -1235,44 +1199,17 @@ const api = {
   /** `end` names the session to kill: a tab closed for good takes it with it. */
   closeTerminal: (id: string, end: TerminalEnd | null = null): void =>
     ipcRenderer.send("terminal-close", id, end),
-  onTerminalData: (
-    callback: (payload: { id: string; data: string }) => void
-  ): (() => void) => {
-    const listener = (_e: unknown, payload: { id: string; data: string }) =>
-      callback(payload);
-    ipcRenderer.on("terminal-data", listener);
-    return () => ipcRenderer.removeListener("terminal-data", listener);
-  },
-  onTerminalStates: (
-    callback: (states: Record<string, AgentState>) => void
-  ): (() => void) => {
-    const listener = (_e: unknown, states: Record<string, AgentState>) =>
-      callback(states);
-    ipcRenderer.on("terminal-states", listener);
-    return () => ipcRenderer.removeListener("terminal-states", listener);
-  },
-  onTerminalExit: (
-    callback: (payload: { id: string; code: number }) => void
-  ): (() => void) => {
-    const listener = (_e: unknown, payload: { id: string; code: number }) =>
-      callback(payload);
-    ipcRenderer.on("terminal-exit", listener);
-    return () => ipcRenderer.removeListener("terminal-exit", listener);
-  },
+  onTerminalData: subscribe<{ id: string; data: string }>("terminal-data"),
+  onTerminalStates: subscribe<Record<string, AgentState>>("terminal-states"),
+  onTerminalExit: subscribe<{ id: string; code: number }>("terminal-exit"),
 
   /** The address never crosses: this side names a session, and the browser opens it. */
-  onTerminalLink: (callback: (link: TerminalLink) => void): (() => void) => {
-    const listener = (_e: unknown, link: TerminalLink) => callback(link);
-    ipcRenderer.on("terminal-link", listener);
-    return () => ipcRenderer.removeListener("terminal-link", listener);
-  },
+  onTerminalLink: subscribe<TerminalLink>("terminal-link"),
   /** A notification was clicked: the session it named is the one to bring up. */
-  onTerminalWanted: (callback: (id: string) => void): (() => void) => {
-    const listener = (_e: unknown, payload: { id: string }) =>
-      callback(payload.id);
-    ipcRenderer.on("terminal-wanted", listener);
-    return () => ipcRenderer.removeListener("terminal-wanted", listener);
-  },
+  onTerminalWanted: (callback: (id: string) => void): (() => void) =>
+    subscribe<{ id: string }>("terminal-wanted")((payload) =>
+      callback(payload.id)
+    ),
   openLogin: (id: string): Promise<boolean> =>
     ipcRenderer.invoke("login-open", id),
   /** An address clicked in a session: what it needs from the server travels with it. */

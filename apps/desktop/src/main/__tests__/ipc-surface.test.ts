@@ -52,6 +52,7 @@ const invoked = new Set([
 
 const listened = new Set([
   ...all(preload, /ipcRenderer\.on\(\s*"([^"]+)"/g),
+  ...all(preload, /subscribe<[^()]*?>\(\s*"([^"]+)"/g),
   ...streams.map((match) => match[2] as string),
 ]);
 
@@ -60,8 +61,13 @@ const pushed = new Set([
   ...follows.map((match) => match[3] as string),
 ]);
 
-const handled = new Set(all(main, /ipcMain\.handle\(\s*\n?\s*"([^"]+)"/g));
-const heard = new Set(all(main, /ipcMain\.on\(\s*\n?\s*"([^"]+)"/g));
+/** `ipcMain.handle` and `ipc.ts`'s `handle`, which guards the same channel. */
+const handled = new Set(
+  all(main, /(?:ipcMain\.|\b)handle\(\s*\n?\s*"([^"]+)"/g)
+);
+const heard = new Set(
+  all(main, /(?:ipcMain\.on|\blisten)\(\s*\n?\s*"([^"]+)"/g)
+);
 const emitted = new Set([
   ...all(main, /\.send\(\s*\n?\s*"([^"]+)"/g),
   ...all(main, /broadcast\(\s*\n?\s*"([^"]+)"/g),

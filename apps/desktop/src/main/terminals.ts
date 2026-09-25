@@ -88,6 +88,13 @@ function noteLogin(id: string, session: Session, recipient: WebContents): void {
   }
 }
 
+/** Another shell now holds this tab: what the old one still says is not the tab's. */
+function replaced(id: string, proc: pty.IPty): boolean {
+  const holder = sessions.get(id);
+
+  return holder !== undefined && holder.proc !== proc;
+}
+
 /**
  * The session, on the app's own SSH configuration.
  *
@@ -108,6 +115,10 @@ export function open(request: OpenTerminal, recipient: WebContents): void {
   );
 
   proc.onData((data) => {
+    if (replaced(id, proc)) {
+      return;
+    }
+
     const session = sessions.get(id);
     if (session) {
       noteOutput(session, data.length, Date.now());
@@ -120,6 +131,10 @@ export function open(request: OpenTerminal, recipient: WebContents): void {
   });
 
   proc.onExit(({ exitCode }) => {
+    if (replaced(id, proc)) {
+      return;
+    }
+
     const session = sessions.get(id);
     if (session) {
       session.finished = true;

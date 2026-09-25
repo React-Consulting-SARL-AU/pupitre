@@ -1,4 +1,12 @@
-import { copyFileSync, existsSync, readdirSync, rmSync } from "node:fs";
+import {
+  chmodSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { basename, dirname, join } from "node:path";
 
 /**
@@ -90,6 +98,72 @@ export function migrate(
   };
 }
 
+/** Where a file's bytes come from and go to: the disk, or a test's map. */
+export interface StoreIo {
+  /** The text, or `null` when there is no such file. */
+  read: (path: string) => string | null;
+  write: (path: string, text: string) => void;
+}
+
+export interface FileModes {
+  file?: number;
+  dir?: number;
+}
+
+function missing(failure: unknown): boolean {
+  return (failure as NodeJS.ErrnoException | null)?.code === "ENOENT";
+}
+
+/**
+ * Written aside and renamed over: a crash in the middle leaves either the
+ * previous file or the new one, never a truncated one.
+ */
+export function writeAtomically(
+  path: string,
+  text: string,
+  modes: FileModes = {}
+): void {
+  const dir = dirname(path);
+  const staging = `${path}.tmp`;
+
+  mkdirSync(dir, {
+    recursive: true,
+    ...(modes.dir ? { mode: modes.dir } : {}),
+  });
+
+  if (modes.dir) {
+    chmodSync(dir, modes.dir);
+  }
+
+  writeFileSync(staging, text, {
+    encoding: "utf8",
+    ...(modes.file ? { mode: modes.file } : {}),
+  });
+
+  if (modes.file) {
+    chmodSync(staging, modes.file);
+  }
+
+  renameSync(staging, path);
+}
+
+export function diskIo(modes: FileModes = {}): StoreIo {
+  return {
+    read: (path) => {
+      try {
+        return readFileSync(path, "utf8");
+      } catch (failure) {
+        if (missing(failure)) {
+          return null;
+        }
+
+        throw failure;
+      }
+    },
+    write: (path, text) => writeAtomically(path, text, modes),
+  };
+}
+
 /**
  * The file as it was, kept beside itself under the revision it held.
  *
@@ -97,16 +171,158 @@ export function migrate(
  * shape is the one worth keeping, and a batch replayed on a repaired file must
  * not erase what the reader would go back to.
  */
-export function keepCopy(path: string, revision: number): string | null {
+export function keepCopy(
+  path: string,
+  revision: number,
+  io: StoreIo = diskIo()
+): string | null {
   const copy = `${path}.r${revision}`;
 
-  if (!existsSync(path) || existsSync(copy)) {
-    return existsSync(copy) ? copy : null;
+  if (io.read(copy) !== null) {
+    return copy;
   }
 
-  copyFileSync(path, copy);
+  const text = io.read(path);
+
+  if (text === null) {
+    return null;
+  }
+
+  io.write(copy, text);
 
   return copy;
+}
+
+export type VersionedRead =
+  | { status: "absent" }
+  | { status: "corrupt"; copy: string }
+  | {
+      status: "read";
+      document: JsonObject;
+      revision: number;
+      /** Migrations ran: the caller writes the document back, once. */
+      migrated: boolean;
+    };
+
+export interface VersionedFile {
+  readonly path: string;
+  /** The revision this code writes. */
+  readonly version: number;
+  read: () => VersionedRead;
+  /** Written by a newer version of the app: read, never written. */
+  frozen: () => boolean;
+  /** Stamped and written whole; `false` when the file is frozen. */
+  write: (document: JsonObject) => boolean;
+  corruptPath: () => string;
+}
+
+export interface VersionedFileOptions {
+  path: string;
+  migrations: readonly StoreMigration[];
+  /** The revision the file was stamped with before its first migration. */
+  baseline?: number;
+  /** A document of the right revision that still is not this file's shape. */
+  valid?: (document: JsonObject) => boolean;
+  modes?: FileModes;
+  io?: StoreIo;
+}
+
+function isObject(value: unknown): value is JsonObject {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * One file the app keeps, with its ledger around it.
+ *
+ * Reading migrates and keeps the previous shape beside the file; a file that
+ * does not parse is copied to `<file>.corrupt` before anything can write over
+ * it; a file stamped by a newer version is frozen, so the version that reads it
+ * finds it as it left it after a rollback.
+ */
+export function versionedFile(options: VersionedFileOptions): VersionedFile {
+  const { path, migrations } = options;
+  const io = options.io ?? diskIo(options.modes);
+  const version = Math.max(options.baseline ?? 0, expectedRevision(migrations));
+  const corruptPath = () => `${path}.corrupt`;
+
+  let loaded = false;
+  let frozen = false;
+
+  function corrupt(text: string): VersionedRead {
+    io.write(corruptPath(), text);
+
+    return { copy: corruptPath(), status: "corrupt" };
+  }
+
+  function read(): VersionedRead {
+    loaded = true;
+    frozen = false;
+
+    const text = io.read(path);
+
+    if (text === null) {
+      return { status: "absent" };
+    }
+
+    let raw: unknown;
+
+    try {
+      raw = JSON.parse(text);
+    } catch (failure) {
+      if (failure instanceof SyntaxError) {
+        return corrupt(text);
+      }
+
+      throw failure;
+    }
+
+    if (!isObject(raw) || (options.valid && !options.valid(raw))) {
+      return corrupt(text);
+    }
+
+    const from = revisionOf(raw);
+    const migrated = migrate(raw, migrations);
+
+    frozen = migrated.revision > version;
+
+    if (migrated.applied.length > 0) {
+      keepCopy(path, from, io);
+    }
+
+    return {
+      document: migrated.document,
+      migrated: migrated.applied.length > 0,
+      revision: migrated.revision,
+      status: "read",
+    };
+  }
+
+  return {
+    corruptPath,
+    frozen: () => frozen,
+    path,
+    read,
+    version,
+
+    write(document) {
+      if (!loaded) {
+        read();
+      }
+
+      if (frozen) {
+        return false;
+      }
+
+      const { [REVISION_KEY]: _held, ...rest } = document;
+
+      io.write(
+        path,
+        `${JSON.stringify({ [REVISION_KEY]: version, ...rest }, null, 2)}\n`
+      );
+
+      return true;
+    },
+  };
 }
 
 /**

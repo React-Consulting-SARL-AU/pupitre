@@ -1,4 +1,5 @@
 import type { MeSubscription } from "@pupitre/shared/plans";
+import type { AccountEntitlement } from "@pupitre/shared/platform-api";
 import type { ErrorPhrase } from "./agent";
 /**
  * What the two processes say to each other about the account.
@@ -9,7 +10,7 @@ import type { ErrorPhrase } from "./agent";
  * whether the usage right still stands.
  */
 
-export type Entitlement = "none" | "valid" | "grace" | "suspended";
+export type Entitlement = AccountEntitlement;
 
 export type BuildKind = "development" | "production";
 

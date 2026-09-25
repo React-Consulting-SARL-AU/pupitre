@@ -1,8 +1,3 @@
-import {
-  type ChildProcess,
-  type SpawnOptions,
-  spawn as spawnChild,
-} from "node:child_process";
 import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -11,6 +6,12 @@ import type { KeyInstall, KeyInstallPhase, Server } from "@shared/servers";
 import { current, type Platform } from "./platform";
 import { refusalOf } from "./refusal";
 import { type SshPaths, sshArgs } from "./ssh-config";
+import {
+  lastLine,
+  runSsh,
+  type ShellSpawn,
+  type SshRunOptions,
+} from "./ssh-run";
 import { trace } from "./trace";
 
 /**
@@ -51,12 +52,6 @@ const HOST_KEY_REFUSAL =
 const UNREACHABLE =
   /Connection (refused|timed out|closed)|No route to host|could not resolve|Operation timed out|Network is unreachable/i;
 const DENIED = /Permission denied|Authentication failed/i;
-
-export type ShellSpawn = (
-  command: string,
-  args: string[],
-  options: SpawnOptions
-) => ChildProcess;
 
 /**
  * What the machine answered when the app knocked, and only that.
@@ -242,63 +237,25 @@ export interface Ran {
   stderr: string;
 }
 
-export function runSsh(
+/**
+ * How an account answered, in the words `rebuffOf` reads: a clock that ran
+ * out reads as the network's own timeout, an `ssh` that never started as its
+ * error.
+ */
+export async function askSsh(
   args: string[],
-  {
-    stdin,
-    env,
-    spawn,
-    timeoutMs,
-  }: {
-    stdin?: string;
-    env?: NodeJS.ProcessEnv;
-    spawn: ShellSpawn;
-    timeoutMs: number;
-  }
+  options: Omit<SshRunOptions, "scope">
 ): Promise<Ran> {
-  return new Promise((resolve) => {
-    trace("key", "ssh", { args });
+  const run = await runSsh(args, { ...options, scope: "key" });
 
-    const child = spawn("ssh", args, {
-      ...(env ? { env } : {}),
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-
-    let stderr = "";
-    let settled = false;
-
-    function settle(ran: Ran): void {
-      if (settled) {
-        return;
-      }
-
-      settled = true;
-      clearTimeout(timer);
-      trace("key", "ssh.done", {
-        code: ran.code,
-        ...(ran.stderr ? { stderr: lastLine(ran.stderr) } : {}),
-      });
-      resolve(ran);
-    }
-
-    const timer = setTimeout(() => {
-      child.kill();
-      settle({ code: null, stderr: "Operation timed out" });
-    }, timeoutMs);
-
-    child.stderr?.setEncoding("utf8");
-    child.stderr?.on("data", (chunk: string) => {
-      stderr += chunk;
-    });
-    child.stdout?.resume();
-
-    child.on("error", (error: Error) =>
-      settle({ code: null, stderr: error.message })
-    );
-    child.on("close", (code: number | null) => settle({ code, stderr }));
-
-    child.stdin?.end(stdin ?? "");
-  });
+  switch (run.status) {
+    case "exited":
+      return { code: run.code, stderr: run.stderr };
+    case "timeout":
+      return { code: null, stderr: "Operation timed out" };
+    default:
+      return { code: null, stderr: run.message };
+  }
 }
 
 const PHRASES: Record<Rebuff, string> = {
@@ -321,17 +278,6 @@ function manual(rebuff: Rebuff, detail: string): AgentResponse<KeyInstall> {
     ok: true,
     result: { status: "manual", phrase: rebuffPhrase(rebuff, detail) },
   };
-}
-
-/** The last line of what `ssh` complained about, which is the one that names it. */
-export function lastLine(stderr: string): string {
-  return (
-    stderr
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0)
-      .at(-1) ?? ""
-  );
 }
 
 export interface KeyInstallOptions {
@@ -359,7 +305,7 @@ export async function installKey({
   password = null,
   freshKey = false,
   onPhase = () => undefined,
-  spawn = spawnChild as ShellSpawn,
+  spawn,
   platform = current(),
   timeoutMs = RUN_TIMEOUT_MS,
 }: KeyInstallOptions): Promise<AgentResponse<KeyInstall>> {
@@ -398,7 +344,7 @@ export async function installKey({
   if (!freshKey) {
     onPhase("reaching");
 
-    const already = await runSsh(opensArgs(server, paths), {
+    const already = await askSsh(opensArgs(server, paths), {
       spawn,
       timeoutMs,
     });
@@ -413,13 +359,13 @@ export async function installKey({
   onPhase("authorizing");
 
   const pushed = password
-    ? await runSsh(passwordArgs(server, paths), {
+    ? await askSsh(passwordArgs(server, paths), {
         env: askpassEnv(paths, password),
         spawn,
         stdin: script,
         timeoutMs,
       })
-    : await runSsh(offeredArgs(server, paths), {
+    : await askSsh(offeredArgs(server, paths), {
         spawn,
         stdin: script,
         timeoutMs,
@@ -442,7 +388,7 @@ export async function installKey({
 
   onPhase("verifying");
 
-  const opened = await runSsh(opensArgs(server, paths), { spawn, timeoutMs });
+  const opened = await askSsh(opensArgs(server, paths), { spawn, timeoutMs });
 
   trace("key", "install.verified", {
     opened: opened.code === 0,

@@ -1,3 +1,4 @@
+import type { TerminalSize } from "@shared/terminals";
 import type { IPtyForkOptions, IWindowsPtyForkOptions } from "node-pty";
 
 /**
@@ -56,11 +57,6 @@ export function windowChrome(platform: Platform): WindowChrome {
   return platform === "darwin"
     ? { titleBarStyle: "hiddenInset" }
     : { titleBarOverlay: true, titleBarStyle: "hidden" };
-}
-
-export interface TerminalSize {
-  cols: number;
-  rows: number;
 }
 
 /**

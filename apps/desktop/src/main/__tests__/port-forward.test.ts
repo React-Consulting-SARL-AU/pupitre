@@ -80,6 +80,10 @@ describe("un tunnel vers un port du serveur", () => {
       "BatchMode=yes",
       "-o",
       "ExitOnForwardFailure=yes",
+      "-o",
+      "ControlMaster=no",
+      "-o",
+      "ControlPath=none",
       "-N",
       "-L",
       "55001:127.0.0.1:5432",
@@ -87,6 +91,16 @@ describe("un tunnel vers un port du serveur", () => {
       "/tmp/config",
       "pupitre-srv-1",
     ]);
+  });
+
+  it("tient sa propre connexion, pour que le fermer libère le port", async () => {
+    const harness = deps();
+
+    await openForward(SERVER, 5432, "db.postgres", harness.deps);
+    closeForwards();
+
+    expect(harness.spawned[0]).toContain("ControlPath=none");
+    expect(harness.born[0]?.killed).toBe(true);
   });
 
   it("réutilise celui qui est déjà ouvert sur ce port", async () => {
@@ -114,7 +128,7 @@ describe("un tunnel vers un port du serveur", () => {
     const borrowed = await openForward(SERVER, 54_545, "login", harness.deps);
 
     expect(login.ok && login.result.localPort).toBe(54_545);
-    expect(harness.spawned[0]?.[6]).toBe("54545:127.0.0.1:54545");
+    expect(harness.spawned[0]).toContain("54545:127.0.0.1:54545");
     expect(again.ok ? again.result.id : null).toBe(
       login.ok ? login.result.id : ""
     );

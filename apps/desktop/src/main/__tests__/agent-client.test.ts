@@ -1665,3 +1665,47 @@ describe("la forme des réponses, en développement", () => {
     agent.closeAll();
   });
 });
+
+describe("la forme des réponses qui deviennent une ligne de commande", () => {
+  it("refuse, dans tous les builds, un résultat hors contrat avant qu'il n'atteigne le pty", async () => {
+    const { agent, ssh } = scriptedClient({
+      enforcedResults: new Set(["snapshot"]),
+    });
+
+    const asked = agent.request(SERVER, "snapshot");
+
+    await untilWritten(ssh, 1);
+    ssh.say(GREETING);
+    await untilWritten(ssh, 2);
+    ssh.say(
+      JSON.stringify({ id: 2, ok: true, result: { command: ["sh", "-c"] } })
+    );
+
+    const answer = await asked;
+
+    expect(answer.ok).toBe(false);
+    expect(answer.ok ? null : answer.error.phrase).toEqual({
+      id: "refusal.agent.shape",
+      values: { cmd: "snapshot" },
+    });
+
+    agent.closeAll();
+  });
+
+  it("laisse passer ce qui a la forme du contrat", async () => {
+    const { agent } = client("db-shell-control.jsonl", {
+      enforcedResults: new Set(["db.shell"]),
+    });
+
+    const answer = await agent.request(SERVER, "db.shell", {
+      engine: "postgres",
+    });
+
+    expect(answer).toEqual({
+      ok: true,
+      result: { command: "sudo -u postgres psql app" },
+    });
+
+    agent.closeAll();
+  });
+});

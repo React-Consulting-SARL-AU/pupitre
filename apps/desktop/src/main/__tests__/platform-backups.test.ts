@@ -40,18 +40,51 @@ function recording(body: unknown, status = 200) {
   };
 }
 
+const BACKUP = {
+  agent_version: "1.2.3",
+  bytes: 133,
+  config_revision: 3,
+  counts: { databases: 1, home: true, paths: 0, projects: 1, setup: true },
+  created_at: "2026-09-19T03:15:00.000Z",
+  id: "20260919T031500Z-7f3a2c",
+  kdf_salt: "A".repeat(22).concat("=="),
+  location: {
+    bucket: "backups",
+    endpoint: "https://s3.example.org",
+    key: "pupitre/srv-1/20260919T031500Z-7f3a2c",
+    path_style: false,
+    region: "auto",
+    sha256: "a".repeat(64),
+  },
+  recipient: "A".repeat(43).concat("="),
+  server_id: "srv-1",
+  server_name: "vps",
+  trigger: "schedule",
+};
+
 describe("les sauvegardes sur la plateforme", () => {
   it("liste celles de l'organisation, puis celles d'un serveur", async () => {
-    const { platform, seen } = recording({ data: [{ id: "b-1" }] });
+    const { platform, seen } = recording({ data: [BACKUP] });
 
     const all = await platform.backups("jeton");
     await platform.backups("jeton", "srv-1");
 
-    expect(all).toEqual({ ok: true, result: [{ id: "b-1" }] as never });
+    expect(all).toEqual({ ok: true, result: [BACKUP] as never });
     expect(seen.map((one) => one.url)).toEqual([
       "https://app.pupitre.studio/api/v1/backups",
       "https://app.pupitre.studio/api/v1/servers/srv-1/backups",
     ]);
+  });
+
+  it("refuse une liste qu'elle ne sait pas lire plutôt que de la croire", async () => {
+    const { platform } = recording({ data: [{ id: "b-1" }] });
+
+    const all = await platform.backups("jeton");
+
+    expect(all).toMatchObject({
+      error: { code: "internal", message: "refusal.platform.unreadable" },
+      ok: false,
+    });
   });
 
   it("note une restauration avec le serveur qui l'a reçue", async () => {

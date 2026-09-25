@@ -1,4 +1,5 @@
 import { basename } from "node:path";
+import { PUPITRE_ORIGINS } from "@pupitre/shared/legal";
 import {
   RELEASE_CHANNELS,
   type ReleaseChannel,
@@ -19,7 +20,7 @@ import { signatureHolds } from "./agent-release";
  * update the app, which is what keeps an app usable while the platform is not.
  */
 
-export const DEFAULT_DOWNLOADS_URL = "https://dl.pupitre.studio";
+export const DEFAULT_DOWNLOADS_URL = PUPITRE_ORIGINS.downloads;
 
 export const DEFAULT_UPDATE_CHANNEL: ReleaseChannel = "stable";
 

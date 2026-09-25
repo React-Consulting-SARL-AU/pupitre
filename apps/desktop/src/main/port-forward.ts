@@ -280,11 +280,16 @@ export async function openForward(
     ...(movedFrom === undefined ? {} : { movedFrom }),
   };
 
+  // Through the master a forward would live in the master, and survive the kill.
   const child = (deps.spawn ?? sshForward)([
     "-o",
     "BatchMode=yes",
     "-o",
     "ExitOnForwardFailure=yes",
+    "-o",
+    "ControlMaster=no",
+    "-o",
+    "ControlPath=none",
     "-N",
     "-L",
     `${localPort}:127.0.0.1:${remotePort}`,

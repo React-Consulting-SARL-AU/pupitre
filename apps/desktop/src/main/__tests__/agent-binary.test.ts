@@ -23,9 +23,9 @@ import {
   agentSshArgs,
   carriedRelease,
   installCommandAs,
-  type ShellSpawn,
   sendAgentBinary,
 } from "../agent-binary";
+import type { ShellSpawn } from "../ssh-run";
 
 const AMD64 = "le binaire linux-amd64, en faux";
 const ARM64 = "le binaire linux-arm64, en faux";

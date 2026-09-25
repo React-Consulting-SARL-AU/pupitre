@@ -1,4 +1,3 @@
-import { spawn as spawnChild } from "node:child_process";
 import { isSshHost, isSshUser } from "@pupitre/shared/ssh";
 import type {
   AddressReach,
@@ -9,19 +8,18 @@ import type {
 import { designatedKeyFile } from "./key-files";
 import {
   ALONE,
+  askSsh,
   CONNECT_TIMEOUT_S,
   installsWithPassword,
-  lastLine,
   ownIdentities,
   RUN_TIMEOUT_MS,
   rebuffOf,
   rebuffPhrase,
-  runSsh,
-  type ShellSpawn,
 } from "./key-install";
 import { current, type Platform } from "./platform";
 import { reachFailure, reachSsh } from "./reach";
 import { argument, type SshPaths } from "./ssh-config";
+import { lastLine, type ShellSpawn } from "./ssh-run";
 import { trace } from "./trace";
 
 /**
@@ -91,7 +89,7 @@ export async function probeAccess(
   target: ServerKnock,
   paths: SshPaths,
   {
-    spawn = spawnChild as ShellSpawn,
+    spawn,
     identities = ownIdentities(),
     platform = current(),
     timeoutMs = RUN_TIMEOUT_MS,
@@ -109,7 +107,7 @@ export async function probeAccess(
   });
 
   const args = knockArgs({ ...target, keyFile }, paths, identities);
-  let ran = await runSsh(args, { spawn, timeoutMs });
+  let ran = await askSsh(args, { spawn, timeoutMs });
 
   if (ran.code !== 0 && rebuffOf(ran.stderr) === "host-key") {
     const dropped = await forgetStalePin();
@@ -117,7 +115,7 @@ export async function probeAccess(
     trace("knock", "stale-pin", { dropped, host: target.host });
 
     if (dropped) {
-      ran = await runSsh(args, { spawn, timeoutMs });
+      ran = await askSsh(args, { spawn, timeoutMs });
     }
   }
 
@@ -144,6 +142,26 @@ export async function probeAccess(
 }
 
 /** The address, then the account: the second question is only worth asking once the first answers. */
+const MAX_PORT = 65_535;
+
+/** What the form asks to knock on, as it crossed the bridge. */
+export function isServerKnock(value: unknown): value is ServerKnock {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const target = value as Record<string, unknown>;
+
+  return (
+    typeof target.host === "string" &&
+    typeof target.user === "string" &&
+    Number.isInteger(target.port) &&
+    (target.port as number) >= 1 &&
+    (target.port as number) <= MAX_PORT &&
+    (target.keyFile === null || typeof target.keyFile === "string")
+  );
+}
+
 export async function knock(
   target: ServerKnock,
   paths: SshPaths,

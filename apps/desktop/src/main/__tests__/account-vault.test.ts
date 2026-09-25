@@ -5,10 +5,13 @@ import {
   readFileSync,
   rmSync,
   statSync,
+  writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createTokenVault, type Sealer } from "../account-vault";
+import { ACCOUNT_MIGRATIONS } from "../account-migrations";
+import { createTokenVault, EMPTY_RECORD, type Sealer } from "../account-vault";
+import { expectedRevision } from "../store-migrations";
 
 /**
  * The token never lands readable.
@@ -134,6 +137,44 @@ describe("le coffre du jeton", () => {
     expect(vault.token()).toBe(TOKEN);
     expect(everyFile(dir)).toEqual([]);
     expect(createTokenVault({ dir, sealer: refusing }).token()).toBeNull();
+  });
+
+  it("estampille la fiche de sa révision", () => {
+    const dir = scratch();
+
+    createTokenVault({ dir, sealer: keychain }).remember(EMPTY_RECORD);
+
+    expect(
+      JSON.parse(readFileSync(join(dir, "account.json"), "utf8")).version
+    ).toBe(expectedRevision(ACCOUNT_MIGRATIONS));
+  });
+
+  it("met de côté une fiche illisible au lieu de l'écraser", () => {
+    const dir = scratch();
+    const path = join(dir, "account.json");
+    writeFileSync(path, "{ tronqué");
+
+    const vault = createTokenVault({ dir, sealer: keychain });
+
+    expect(vault.record()).toEqual(EMPTY_RECORD);
+    expect(readFileSync(`${path}.corrupt`, "utf8")).toBe("{ tronqué");
+    expect(statSync(`${path}.corrupt`).mode & 0o777).toBe(0o600);
+  });
+
+  it("ne réécrit pas la fiche d'une version plus récente, et tient la nouvelle pour la session", () => {
+    const dir = scratch();
+    const path = join(dir, "account.json");
+    const newer = JSON.stringify({ ...EMPTY_RECORD, later: 1, version: 99 });
+    writeFileSync(path, newer);
+
+    const vault = createTokenVault({ dir, sealer: keychain });
+    const fresh = { ...EMPTY_RECORD, checkedAt: "2026-09-25T10:00:00Z" };
+
+    vault.record();
+    vault.remember(fresh);
+
+    expect(readFileSync(path, "utf8")).toBe(newer);
+    expect(vault.record()).toEqual(fresh);
   });
 
   it("emporte le jeton et la fiche à la déconnexion", () => {

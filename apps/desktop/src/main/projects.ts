@@ -3,6 +3,7 @@ import { ipcMain } from "electron";
 import { agentClient } from "./agent";
 import { releaseHostname } from "./connections";
 import { openOutside } from "./foreground";
+import { githubRepos } from "./github";
 import {
   actOnProject,
   addProject,
@@ -54,6 +55,10 @@ export function registerProjects({
 
   ipcMain.handle("project:list", (_event, serverId: unknown) =>
     listProjects(serverId, deps)
+  );
+
+  ipcMain.handle("github:repos", (_event, refresh: unknown) =>
+    githubRepos(refresh === true)
   );
 
   ipcMain.handle("project:add", (_event, serverId: unknown, params: unknown) =>

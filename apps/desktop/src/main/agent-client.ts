@@ -183,6 +183,12 @@ export interface AgentClientOptions {
    * is what tells a developer the two sides disagree.
    */
   validateResults?: boolean;
+  /**
+   * The commands whose result becomes an argument of a local command or a
+   * path — a pty's command line, a folder `rsync` writes under — weighed in
+   * every build, and refused when they do not have the contract's shape.
+   */
+  enforcedResults?: ReadonlySet<CommandName>;
   /** How long the privileged channel stays open with nothing to carry. */
   idleMs?: number;
   /** Whether this computer holds the server's sudo password: what a refusal of sudo says. */
@@ -738,8 +744,15 @@ class AgentChannel {
 
       trace("agent", `${cmd}.done`, { ms: Date.now() - started });
 
-      if (this.options.validateResults) {
-        this.weigh(cmd, result);
+      const fits =
+        this.options.validateResults || this.options.enforcedResults.has(cmd)
+          ? this.weigh(cmd, result)
+          : true;
+
+      if (!fits && this.options.enforcedResults.has(cmd)) {
+        throw new AgentCallError(
+          refusalOf("internal", "refusal.agent.shape", { cmd })
+        );
       }
 
       return result as CommandResult<C>;
@@ -850,11 +863,11 @@ class AgentChannel {
   }
 
   /** A result the contract does not describe is traced, and handed on as it came. */
-  private weigh(cmd: CommandName, result: unknown): void {
+  private weigh(cmd: CommandName, result: unknown): boolean {
     const shape = COMMANDS[cmd].result.safeParse(result);
 
     if (shape.success) {
-      return;
+      return true;
     }
 
     trace("agent", `${cmd}.shape`, {
@@ -864,6 +877,8 @@ class AgentChannel {
       ),
       server: this.serverId,
     });
+
+    return false;
   }
 
   private alive(): boolean {
@@ -1278,6 +1293,7 @@ export class AgentClient {
       skewMs: options.skewMs ?? DEFAULT_SKEW_MS,
       now: options.now ?? Date.now,
       validateResults: options.validateResults ?? false,
+      enforcedResults: options.enforcedResults ?? new Set(),
       idleMs: options.idleMs ?? PRIVILEGED_IDLE_MS,
       sudoHeld: options.sudoHeld ?? (() => true),
     };

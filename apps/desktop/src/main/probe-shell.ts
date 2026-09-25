@@ -1,8 +1,8 @@
-import { type ChildProcess, spawn as spawnChild } from "node:child_process";
 import type { ProbeResult } from "@pupitre/shared/agent-protocol/install";
 import { ProbeResultSchema } from "@pupitre/shared/agent-protocol/install";
 import type { AgentResponse } from "@shared/agent";
-import { refusalOf } from "./refusal";
+import { refuseWith } from "./refusal";
+import { lastLine, runSsh, type ShellSpawn } from "./ssh-run";
 import { trace } from "./trace";
 
 /**
@@ -17,8 +17,6 @@ export const PROBE_REMOTE_COMMAND = "sh -s";
 
 const PROBE_TIMEOUT_MS = 30_000;
 
-export type ShellSpawn = (command: string, args: string[]) => ChildProcess;
-
 export interface ShellProbeOptions {
   /** What names the server: `-F <app config> <alias>`, or a system host. */
   args: string[];
@@ -27,32 +25,18 @@ export interface ShellProbeOptions {
   timeoutMs?: number;
 }
 
-function defaultSpawn(command: string, args: string[]): ChildProcess {
-  return spawnChild(command, args, { stdio: ["pipe", "pipe", "pipe"] });
-}
-
 export function probeSshArgs(args: string[]): string[] {
   return ["-o", "BatchMode=yes", ...args, PROBE_REMOTE_COMMAND];
 }
 
 function unreachable(detail: string): AgentResponse<never> {
-  return {
-    ok: false,
-    error: {
-      ...(detail
-        ? refusalOf("disconnected", "refusal.probe.failed.detail", { detail })
-        : refusalOf("disconnected", "refusal.probe.failed")),
-    },
-  };
+  return detail
+    ? refuseWith("disconnected", "refusal.probe.failed.detail", { detail })
+    : refuseWith("disconnected", "refusal.probe.failed");
 }
 
 function unreadable(): AgentResponse<never> {
-  return {
-    ok: false,
-    error: {
-      ...refusalOf("internal", "refusal.probe.unreadable"),
-    },
-  };
+  return refuseWith("internal", "refusal.probe.unreadable");
 }
 
 /**
@@ -84,78 +68,40 @@ function parse(output: string): ProbeResult | null {
   return null;
 }
 
-export function runShellProbe({
+export async function runShellProbe({
   args,
   script,
-  spawn = defaultSpawn,
+  spawn,
   timeoutMs = PROBE_TIMEOUT_MS,
 }: ShellProbeOptions): Promise<AgentResponse<ProbeResult>> {
-  return new Promise((resolve) => {
-    const sshArguments = probeSshArgs(args);
-
-    trace("probe", "ssh", { args: sshArguments });
-
-    const child = spawn("ssh", sshArguments);
-
-    let out = "";
-    let err = "";
-    let settled = false;
-
-    function settle(answer: AgentResponse<ProbeResult>): void {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      clearTimeout(timer);
-      resolve(answer);
-    }
-
-    const timer = setTimeout(() => {
-      child.kill();
-      settle({
-        ok: false,
-        error: {
-          ...refusalOf("timeout", "refusal.probe.timeout", {
-            seconds: Math.round(timeoutMs / 1000),
-          }),
-        },
-      });
-    }, timeoutMs);
-
-    child.stdout?.setEncoding("utf8");
-    child.stdout?.on("data", (chunk: string) => {
-      out += chunk;
-    });
-    child.stderr?.setEncoding("utf8");
-    child.stderr?.on("data", (chunk: string) => {
-      err += chunk;
-    });
-
-    child.on("error", (error: Error) => settle(unreachable(error.message)));
-
-    child.on("close", (code: number | null) => {
-      const probe = parse(out);
-
-      trace("probe", "done", {
-        agent: probe?.agent_version ?? "none",
-        code,
-        modules: probe?.installed_modules.length ?? 0,
-        read: Boolean(probe),
-        ...(probe ? {} : { stderr: err.trim().split("\n").at(-1) ?? "" }),
-      });
-
-      if (probe) {
-        settle({ ok: true, result: probe });
-        return;
-      }
-
-      settle(
-        code === 0
-          ? unreadable()
-          : unreachable(err.trim().split("\n").at(-1) ?? "")
-      );
-    });
-
-    child.stdin?.end(script);
+  const run = await runSsh(probeSshArgs(args), {
+    scope: "probe",
+    spawn,
+    stdin: script,
+    timeoutMs,
   });
+
+  if (run.status === "failed") {
+    return unreachable(run.message);
+  }
+
+  if (run.status === "timeout") {
+    return refuseWith("timeout", "refusal.probe.timeout", {
+      seconds: Math.round(timeoutMs / 1000),
+    });
+  }
+
+  const probe = parse(run.stdout);
+
+  trace("probe", "done", {
+    agent: probe?.agent_version ?? "none",
+    modules: probe?.installed_modules.length ?? 0,
+    read: Boolean(probe),
+  });
+
+  if (probe) {
+    return { ok: true, result: probe };
+  }
+
+  return run.code === 0 ? unreadable() : unreachable(lastLine(run.stderr));
 }

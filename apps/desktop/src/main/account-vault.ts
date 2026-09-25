@@ -11,9 +11,8 @@ import type { AccountDevice, AccountIdentity } from "@shared/account";
 import { ACCOUNT_MIGRATIONS } from "./account-migrations";
 import {
   forgetCopies,
-  type JsonObject,
-  keepCopy,
-  migrate,
+  type VersionedFile,
+  versionedFile,
 } from "./store-migrations";
 
 /**
@@ -58,6 +57,14 @@ export interface TokenVault {
   clear: () => void;
 }
 
+function recordFile(path: string): VersionedFile {
+  return versionedFile({
+    migrations: ACCOUNT_MIGRATIONS,
+    modes: { dir: DIR_MODE, file: FILE_MODE },
+    path,
+  });
+}
+
 function ensureDir(dir: string): void {
   mkdirSync(dir, { mode: DIR_MODE, recursive: true });
   chmodSync(dir, DIR_MODE);
@@ -99,35 +106,40 @@ export function createTokenVault({
     }
   }
 
+  let file = recordFile(recordPath);
+  /** What a newer version's file could not take: held for the run, never written over it. */
+  let unsaved: AccountRecord | null = null;
+
   function remember(record: AccountRecord): void {
-    ensureDir(dir);
-    writeFileSync(recordPath, `${JSON.stringify(record, null, 2)}\n`, {
-      mode: FILE_MODE,
-    });
-    chmodSync(recordPath, FILE_MODE);
+    if (!file.write({ ...record })) {
+      unsaved = record;
+    }
   }
 
   /**
    * A record written by an older version of the app goes back to disk in
    * today's shape, once. Completing it in memory on every launch would mean
    * that the day a default changed, every record already written changed
-   * with it.
+   * with it. One that does not parse is kept aside as `account.json.corrupt`.
    */
   function record(): AccountRecord {
-    try {
-      const raw = JSON.parse(readFileSync(recordPath, "utf8")) as JsonObject;
-      const migrated = migrate(raw, ACCOUNT_MIGRATIONS);
-      const held = { ...EMPTY_RECORD, ...migrated.document } as AccountRecord;
+    if (unsaved) {
+      return unsaved;
+    }
 
-      if (migrated.applied.length > 0) {
-        keepCopy(recordPath, 0);
-        remember(held);
-      }
+    const held = file.read();
 
-      return held;
-    } catch {
+    if (held.status !== "read") {
       return EMPTY_RECORD;
     }
+
+    const kept = { ...EMPTY_RECORD, ...held.document } as AccountRecord;
+
+    if (held.migrated) {
+      file.write({ ...kept });
+    }
+
+    return kept;
   }
 
   return {
@@ -150,9 +162,12 @@ export function createTokenVault({
 
     clear() {
       held = null;
+      unsaved = null;
       rmSync(tokenPath, { force: true });
       rmSync(recordPath, { force: true });
+      rmSync(file.corruptPath(), { force: true });
       forgetCopies(recordPath);
+      file = recordFile(recordPath);
     },
   };
 }

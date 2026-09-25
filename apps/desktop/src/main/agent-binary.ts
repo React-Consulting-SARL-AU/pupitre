@@ -1,4 +1,3 @@
-import { type ChildProcess, spawn as spawnChild } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -6,7 +5,8 @@ import type { AgentResponse } from "@shared/agent";
 import type { CarriedAgent } from "@shared/agent-update";
 import type { AgentDelivery } from "@shared/install";
 import { AGENT_MANIFEST, type AgentManifest } from "../../scripts/embed-agent";
-import { refusalOf } from "./refusal";
+import { refusalOf, refuseWith } from "./refusal";
+import { lastLine, runSsh, type ShellSpawn } from "./ssh-run";
 
 const SPACES = /\s+/;
 
@@ -134,8 +134,6 @@ export interface AgentPayload extends PushedRelease {
   content: Buffer;
 }
 
-export type ShellSpawn = (command: string, args: string[]) => ChildProcess;
-
 export function agentSshArgs(args: string[], command: string): string[] {
   return ["-o", "BatchMode=yes", ...args, command];
 }
@@ -238,10 +236,6 @@ export function agentPayload(
   };
 }
 
-function defaultSpawn(command: string, args: string[]): ChildProcess {
-  return spawnChild(command, args, { stdio: ["pipe", "pipe", "pipe"] });
-}
-
 /** The hash `sha256sum` prints, first field of its line. */
 function receivedSum(output: string): string | null {
   for (const line of output.split("\n")) {
@@ -255,12 +249,12 @@ function receivedSum(output: string): string | null {
   return null;
 }
 
-export function sendAgentBinary({
+export async function sendAgentBinary({
   args,
   payload,
   user,
   password = null,
-  spawn = defaultSpawn,
+  spawn,
   timeoutMs = SEND_TIMEOUT_MS,
 }: {
   args: string[];
@@ -275,102 +269,49 @@ export function sendAgentBinary({
   const command = installCommandAs(user, payload);
 
   if (command === null) {
-    return Promise.resolve({
-      ok: false,
-      error: {
-        ...refusalOf("internal", "refusal.binary.install", {
-          detail: payload.version,
-        }),
-      },
+    return refuseWith("internal", "refusal.binary.install", {
+      detail: payload.version,
     });
   }
 
-  return new Promise((resolve) => {
-    const child = spawn("ssh", agentSshArgs(args, command));
-
-    let out = "";
-    let err = "";
-    let settled = false;
-
-    function settle(answer: AgentResponse<AgentDelivery>): void {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      clearTimeout(timer);
-      resolve(answer);
-    }
-
-    const timer = setTimeout(() => {
-      child.kill();
-      settle({
-        ok: false,
-        error: {
-          ...refusalOf("timeout", "refusal.binary.timeout", {
-            seconds: Math.round(timeoutMs / 1000),
-          }),
-        },
-      });
-    }, timeoutMs);
-
-    child.stdout?.setEncoding("utf8");
-    child.stdout?.on("data", (chunk: string) => {
-      out += chunk;
-    });
-    child.stderr?.setEncoding("utf8");
-    child.stderr?.on("data", (chunk: string) => {
-      err += chunk;
-    });
-
-    child.on("error", (error: Error) =>
-      settle({
-        ok: false,
-        error: {
-          ...refusalOf("disconnected", "refusal.binary.send", {
-            detail: error.message,
-          }),
-        },
-      })
-    );
-
-    child.on("close", (code: number | null) => {
-      const received = receivedSum(out);
-
-      if (code !== 0 || !received) {
-        settle({
-          ok: false,
-          error: {
-            ...refusalOf("internal", "refusal.binary.install", {
-              detail: err.trim().split("\n").at(-1) ?? String(code),
-            }),
-          },
-        });
-
-        return;
-      }
-
-      if (received !== payload.sha256) {
-        settle({
-          ok: false,
-          error: {
-            ...refusalOf("internal", "refusal.binary.mismatch"),
-          },
-        });
-
-        return;
-      }
-
-      settle({
-        ok: true,
-        result: {
-          arch: payload.arch,
-          bytes: payload.bytes,
-          path: AGENT_REMOTE_PATH,
-          sha256: received,
-        },
-      });
-    });
-
-    child.stdin?.end(pushedInput(user, payload, password));
+  const run = await runSsh(agentSshArgs(args, command), {
+    scope: "binary",
+    spawn,
+    stdin: pushedInput(user, payload, password),
+    timeoutMs,
   });
+
+  if (run.status === "failed") {
+    return refuseWith("disconnected", "refusal.binary.send", {
+      detail: run.message,
+    });
+  }
+
+  if (run.status === "timeout") {
+    return refuseWith("timeout", "refusal.binary.timeout", {
+      seconds: Math.round(timeoutMs / 1000),
+    });
+  }
+
+  const received = receivedSum(run.stdout);
+
+  if (run.code !== 0 || !received) {
+    return refuseWith("internal", "refusal.binary.install", {
+      detail: lastLine(run.stderr) || String(run.code),
+    });
+  }
+
+  if (received !== payload.sha256) {
+    return refuseWith("internal", "refusal.binary.mismatch");
+  }
+
+  return {
+    ok: true,
+    result: {
+      arch: payload.arch,
+      bytes: payload.bytes,
+      path: AGENT_REMOTE_PATH,
+      sha256: received,
+    },
+  };
 }

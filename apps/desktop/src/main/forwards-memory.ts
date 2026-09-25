@@ -1,12 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname } from "node:path";
 import { FORWARDS_BASELINE, FORWARDS_MIGRATIONS } from "./forwards-migrations";
 import {
-  expectedRevision,
   type JsonObject,
-  keepCopy,
-  migrate,
-  REVISION_KEY,
+  type VersionedFile,
+  versionedFile,
 } from "./store-migrations";
 
 /**
@@ -19,11 +15,6 @@ import {
  */
 
 const MAX_PORT = 65_535;
-
-const VERSION = Math.max(
-  FORWARDS_BASELINE,
-  expectedRevision(FORWARDS_MIGRATIONS)
-);
 
 export interface ForwardMemory {
   recall: (serverId: string, remotePort: number) => number | null;
@@ -65,28 +56,23 @@ function portsOf(document: JsonObject): Ports {
   return ports;
 }
 
+function forwardsFile(path: string): VersionedFile {
+  return versionedFile({
+    baseline: FORWARDS_BASELINE,
+    migrations: FORWARDS_MIGRATIONS,
+    path,
+  });
+}
+
+function portsIn(file: VersionedFile): Ports {
+  const held = file.read();
+
+  return held.status === "read" ? portsOf(held.document) : {};
+}
+
 /** What the file holds, brought to today's shape; nothing on a file we cannot read. */
-export function readForwardMemory(path: string): {
-  ports: Ports;
-  revision: number;
-} {
-  if (!existsSync(path)) {
-    return { ports: {}, revision: VERSION };
-  }
-
-  try {
-    const raw = JSON.parse(readFileSync(path, "utf8")) as JsonObject;
-    const from = typeof raw[REVISION_KEY] === "number" ? raw[REVISION_KEY] : 0;
-    const migrated = migrate(raw, FORWARDS_MIGRATIONS);
-
-    if (migrated.applied.length > 0) {
-      keepCopy(path, from);
-    }
-
-    return { ports: portsOf(migrated.document), revision: migrated.revision };
-  } catch {
-    return { ports: {}, revision: VERSION };
-  }
+export function readForwardMemory(path: string): { ports: Ports } {
+  return { ports: portsIn(forwardsFile(path)) };
 }
 
 /**
@@ -96,21 +82,11 @@ export function readForwardMemory(path: string): {
  * ports it holds are still good, the shape it has is not ours to change.
  */
 export function forwardMemory(path: string): ForwardMemory {
-  const held = readForwardMemory(path);
-  const frozen = held.revision > VERSION;
-  const ports = held.ports;
+  const file = forwardsFile(path);
+  const ports = portsIn(file);
 
   function save(): void {
-    if (frozen) {
-      return;
-    }
-
-    mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(
-      path,
-      `${JSON.stringify({ [REVISION_KEY]: VERSION, ports }, null, 2)}\n`,
-      "utf8"
-    );
+    file.write({ ports });
   }
 
   return {
