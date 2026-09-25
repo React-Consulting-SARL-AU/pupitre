@@ -3,7 +3,7 @@ import { RequestIdSchema } from "./envelope"
 import { ProjectEnvResultSchema } from "./projects"
 import { ProcessIdSchema, ProjectNameSchema } from "./state"
 
-export const SecretKeySchema = z.string().regex(/^[A-Z][A-Z0-9_]*$/)
+const SecretKeySchema = z.string().regex(/^[A-Z][A-Z0-9_]*$/)
 
 export const ServiceSecretParamsSchema = z.strictObject({
   id: z.string().min(1),
@@ -32,7 +32,7 @@ export const SecretsSyncResultSchema = ProjectEnvResultSchema
 
 export const DB_ENGINES = ["mysql", "postgres", "mongodb"] as const
 
-export const DbEngineSchema = z.enum(DB_ENGINES)
+const DbEngineSchema = z.enum(DB_ENGINES)
 
 export type DbEngine = z.infer<typeof DbEngineSchema>
 
@@ -62,9 +62,9 @@ export const DbUrlResultSchema = z.object({
   url: z.string(),
 })
 
-export const TUNNEL_STATES = ["running", "stopped", "failed", "absent"] as const
+const TUNNEL_STATES = ["running", "stopped", "failed", "absent"] as const
 
-export const TunnelStateSchema = z.enum(TUNNEL_STATES)
+const TunnelStateSchema = z.enum(TUNNEL_STATES)
 
 export type TunnelState = z.infer<typeof TunnelStateSchema>
 
@@ -76,14 +76,12 @@ export const TunnelRouteSchema = z.object({
 
 export type TunnelRoute = z.infer<typeof TunnelRouteSchema>
 
-export const EXPOSURE_PROVIDERS = ["cloudflare", "caddy"] as const
+const EXPOSURE_PROVIDERS = ["cloudflare", "caddy"] as const
 
-export const ExposureProviderSchema = z.enum(EXPOSURE_PROVIDERS)
+const ExposureProviderSchema = z.enum(EXPOSURE_PROVIDERS)
 
-export type ExposureProvider = z.infer<typeof ExposureProviderSchema>
-
-/** `provider` names the module that answered, and is null when none holds the machine. */
 export const TunnelStatusResultSchema = z.object({
+  // Null when no exposure module holds the machine.
   provider: ExposureProviderSchema.nullable(),
   installed: z.boolean(),
   state: TunnelStateSchema,

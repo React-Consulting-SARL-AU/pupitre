@@ -40,6 +40,8 @@ export const MeSchema = z.object({
   active_organization: ActiveOrganizationSchema.nullable(),
   role: OrgRoleSchema.nullable(),
   platform_role: OrgRoleSchema.nullable(),
+  // A new app may read an older platform during a release: an absent right reads as none.
+  platform_can_act: z.boolean().default(false),
   entitlement: AccountEntitlementSchema,
   subscription: MeSubscriptionSchema.nullable(),
 })
@@ -85,7 +87,7 @@ export const ServerEnrollmentSchema = z.object({
 
 export type ServerEnrollment = z.infer<typeof ServerEnrollmentSchema>
 
-/** `GET /releases/agent/latest`: enough to name and verify a version of the agent, not to read it. */
+// Enough to name and verify a version of the agent, not to read it.
 export const LatestAgentReleaseSchema = z.object({
   version: z.string(),
   arch: z.string(),
@@ -95,7 +97,6 @@ export const LatestAgentReleaseSchema = z.object({
 
 export type LatestAgentRelease = z.infer<typeof LatestAgentReleaseSchema>
 
-/** What the platform keeps of an approval it accepted: `POST /me/key-approvals`, 201. */
 export const KeyApprovalReceiptSchema = z.object({
   server_id: z.string(),
   device_id: z.string(),
@@ -105,12 +106,10 @@ export const KeyApprovalReceiptSchema = z.object({
 
 export type KeyApprovalReceipt = z.infer<typeof KeyApprovalReceiptSchema>
 
-/** Every list the platform answers with: `{ data: T[] }`. */
 export function listOf<Item extends z.ZodType>(item: Item) {
   return z.object({ data: z.array(item) })
 }
 
-/** Every single record the platform answers with: `{ data: T }`. */
 export function recordOf<Item extends z.ZodType>(item: Item) {
   return z.object({ data: item })
 }

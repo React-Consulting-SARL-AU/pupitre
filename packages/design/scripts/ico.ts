@@ -1,10 +1,4 @@
-/**
- * Packs already-rendered PNGs into a Windows icon.
- *
- * An .ico is a six-byte header, one sixteen-byte entry per image, then the
- * images themselves. Storing PNGs rather than bitmaps is what every browser and
- * every Windows since Vista reads, and it keeps the file small.
- */
+// PNG entries rather than bitmaps: every browser and every Windows since Vista reads them, and they stay small.
 const HEADER = 6
 const ENTRY = 16
 
@@ -24,8 +18,7 @@ export function ico(images: { size: number; png: Uint8Array }[]): Uint8Array {
   images.forEach((image, index) => {
     const entry = HEADER + ENTRY * index
 
-    // 256 is written as 0: the field is one byte and the format has no other way
-    // to say it.
+    // 256 is written as 0: the field is one byte.
     file[entry] = image.size === 256 ? 0 : image.size
     file[entry + 1] = image.size === 256 ? 0 : image.size
     view.setUint16(entry + 4, 1, true)

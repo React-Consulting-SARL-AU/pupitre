@@ -1,16 +1,12 @@
 import type { ModuleId } from "@pupitre/shared/catalog"
 
-export interface LogoSource {
+interface LogoSource {
   id: ModuleId
   slug: string
+  // Published black by Simple Icons: it takes `currentColor` and follows the theme.
   monochrome: boolean
 }
 
-/**
- * A brand keeps its own colour, except where the mark has no chromatic
- * identity: Simple Icons publishes it as black, so it takes `currentColor` and
- * follows the theme like any other ink.
- */
 export const SOURCES: readonly LogoSource[] = [
   { id: "runtime.node", slug: "nodedotjs", monochrome: false },
   { id: "runtime.python", slug: "python", monochrome: false },
@@ -43,24 +39,18 @@ export const SOURCES: readonly LogoSource[] = [
   { id: "runtime.rust", slug: "rust", monochrome: true },
 ]
 
-export interface VendorSource {
-  /** Names both the module and the file under `scripts/vendor`. */
+interface VendorSource {
   id: string
   title: string
   source: string
   monochrome: boolean
-  /** A brand the catalogue does not name: keyed in `MARKS`, filed as `mark-<id>`. */
+  // A brand the catalogue does not name: keyed in `MARKS`, filed as `mark-<id>`.
   mark?: boolean
-  /** When this file was taken from the source, if not on the sweep date. */
+  // When this file was taken from the source, if not on the sweep date.
   retrieved?: string
 }
 
-/**
- * A mark Simple Icons does not publish, taken from the brand's own SVG as
- * collected by [svgl](https://svgl.app) and committed under `scripts/vendor`
- * so the build stays offline. Same nominative use as the rest, but the path is
- * not under the CC0 licence the Simple Icons ones are.
- */
+// Committed so the build stays offline; unlike Simple Icons, not under the CC0 licence.
 export const VENDOR_SOURCES: readonly VendorSource[] = [
   {
     id: "editor.vscode",
@@ -111,7 +101,6 @@ export const VENDOR_SOURCES: readonly VendorSource[] = [
   },
 ]
 
-/** A module with no logo, and why. Inlined into the generated `src/logos/index.ts`. */
 export const EXEMPTIONS: Readonly<Partial<Record<ModuleId, string>>> = {
   "core.system": "Socle système : aucun produit de marque à nommer.",
   "core.hardening":

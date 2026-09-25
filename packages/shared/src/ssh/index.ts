@@ -21,7 +21,7 @@ const IPV6 = [
   `(?:${HEX_GROUP}:){1,4}:${IPV4}`,
 ].join("|")
 
-/** Anything else would reach ssh_config or argv as a new directive, an option or a `%` token. */
+// Anything else would reach ssh_config or argv as a new directive, an option or a `%` token.
 export const SSH_HOST_PATTERN = `^(?:${DNS_NAME}|${IPV6})$`
 
 export const SSH_HOST_MAX = 253

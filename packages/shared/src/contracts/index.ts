@@ -85,7 +85,7 @@ import {
   ServerTokenSchema,
 } from "../platform-api/agent"
 
-export const CONTRACT_ID = "https://pupitre.studio/contracts/agent/schema.json"
+const CONTRACT_ID = "https://pupitre.studio/contracts/agent/schema.json"
 
 const COMMAND_SEPARATOR_RE = /[._]/
 
@@ -96,7 +96,6 @@ export interface ContractSchema {
   $id: string
   title: string
   protocol: number
-  /** The compatibility sheet, as the agent will read it compiled into itself. */
   compatibility: readonly Generation[]
   $defs: Record<string, JsonObject | undefined>
 }
@@ -146,8 +145,7 @@ export const CONTRACT_DEFINITIONS: Readonly<Record<string, z.ZodType>> = {
   BackupManifest: BackupManifestSchema,
   BackupDeclaration: BackupDeclarationSchema,
   BackupBeat: BackupBeatSchema,
-  // Declared once and referenced: inlined, it repeats in every result that
-  // carries parts, and the schema is embedded in the agent unobfuscated.
+  // Referenced, not inlined: each repeat would spill the product name into the agent binary.
   BackupPart: BackupPartSchema,
   BackupPartKey: BackupPartKeySchema,
   BackupLocation: BackupLocationSchema,
@@ -166,7 +164,6 @@ export const CONTRACT_DEFINITIONS: Readonly<Record<string, z.ZodType>> = {
 }
 
 export const CONTRACT_CONSTANTS: Readonly<Record<string, JsonObject>> = {
-  /** The whole catalogue, so the agent's registry can be held to it. */
   ModuleIds: {
     type: "array",
     items: { type: "string" },
@@ -177,7 +174,6 @@ export const CONTRACT_CONSTANTS: Readonly<Record<string, JsonObject>> = {
     items: { type: "string" },
     const: MANDATORY_MODULE_IDS,
   },
-  /** The runtimes a project pins a version of, so the agent holds a pin to the same names. */
   RuntimeTools: {
     type: "array",
     items: { type: "string" },
@@ -188,12 +184,10 @@ export const CONTRACT_CONSTANTS: Readonly<Record<string, JsonObject>> = {
     items: { $ref: "#/$defs/Preset" },
     const: PRESETS,
   },
-  /** The regular expressions the agent holds a formatted field to, ours verbatim. */
   FieldFormats: {
     type: "object",
     const: FORMAT_PATTERNS,
   },
-  /** The backup format: container, key derivation, identifiers and what a project archive leaves out. */
   Backup: {
     type: "object",
     const: {
@@ -214,11 +208,7 @@ export const CONTRACT_CONSTANTS: Readonly<Record<string, JsonObject>> = {
       home_excluded: BACKUP_HOME_EXCLUDED,
     },
   },
-  /**
-   * What an approval is held to (decision 0014). The namespace and the header
-   * name the product, so they stay out of this document: the agent holds them
-   * as its own constants, checked against key-approval.fixtures.json.
-   */
+  // No namespace nor header: they name the product, so the agent holds them itself, checked against the fixtures.
   KeyApprovalRules: {
     type: "object",
     const: {

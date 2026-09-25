@@ -4,7 +4,6 @@ import { COMPACT, glyphSvg, MARK, markSvg, ON_DARK, ON_LIGHT } from "."
 const HEX_RE = /#[0-9a-f]{3,8}/g
 const PALETTE = new Set([ON_LIGHT.square, ON_LIGHT.glyph, ON_DARK.square])
 
-/** What the glyph inks, round caps included. */
 function inked(grow = 1, weight = 1) {
   const centre = MARK.grid / 2
   const cap = (MARK.stroke * weight * grow) / 2

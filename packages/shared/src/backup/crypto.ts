@@ -12,14 +12,7 @@ import {
 import { promisify } from "node:util"
 import { BACKUP_CONTAINER, BACKUP_KDF } from "./index"
 
-/**
- * The reference implementation of the backup key and container, for Node.
- *
- * The laptop derives the identity from the passphrase here; the agent does the
- * same in Go, and both are held to `fixtures.json`. Nothing on the web side
- * imports this file.
- */
-
+// Node only, so nothing on the web side imports this file; the Go agent is held to the same `fixtures.json`.
 const derive = promisify(pbkdf2)
 
 const PKCS8_X25519 = Buffer.from("302e020100300506032b656e04220420", "hex")
@@ -35,9 +28,8 @@ const FINAL = Buffer.from([1])
 const NOT_FINAL = Buffer.from([0])
 
 export interface BackupIdentity {
-  /** The 32-byte X25519 scalar. It leaves the laptop only on the secret line of a restore. */
+  // It leaves the laptop only on the secret line of a restore.
   privateKey: Buffer
-  /** The public half, standard base64: what the server encrypts to. */
   recipient: string
 }
 
@@ -72,7 +64,7 @@ function publicKeyObject(publicKey: Buffer): KeyObject {
   })
 }
 
-export function recipientOf(privateKey: Buffer): string {
+function recipientOf(privateKey: Buffer): string {
   const spki = createPublicKey(privateKeyObject(privateKey)).export({
     format: "der",
     type: "spki",
@@ -119,7 +111,7 @@ function nonceOf(prefix: Buffer, counter: number): Buffer {
   return nonce
 }
 
-export interface SealOptions {
+interface SealOptions {
   ephemeralPrivateKey?: Buffer
   noncePrefix?: Buffer
   chunkBytes?: number

@@ -29,7 +29,7 @@ interface Artefact {
   content: string
 }
 
-/** The platform the agent speaks to by default: product names stay out of schema.json, so a test holds the Go constant to this. */
+// Product names stay out of schema.json, so a Go test holds the agent's default platform to this.
 function platformFixtures(): string {
   const platform = {
     api_url: `${PUPITRE_ORIGINS.app}${PLATFORM_API_PATH}`,
@@ -38,11 +38,7 @@ function platformFixtures(): string {
   return `${JSON.stringify(platform, null, 2)}\n`
 }
 
-/**
- * The field fixtures travel with the schema: they are the only proof that the
- * app and the agent refuse the same value for the same reason, and a Go test
- * that read them across the workspaces would break the day one moves.
- */
+// Fixtures are copied beside the schema: a Go test reading them across workspaces would break the day one moves.
 function artefacts(): Artefact[] {
   return [
     {

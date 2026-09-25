@@ -1,14 +1,6 @@
-/**
- * The mark: the prompt glyph `>_` in a square with `md` corners.
- *
- * Everything that carries the brand is drawn from here — the app icon, the
- * favicon, the lockups, the files uploaded to Stripe — so the geometry lives in
- * one place and nothing drifts. The 1024 grid is the app-icon grid; every other
- * size is this one scaled.
- *
- * On that grid the glyph's inked box, round caps included, is exactly centred:
- * 257 → 767 horizontally, 321 → 703 vertically.
- */
+import { DARK, LIGHT } from "../tokens"
+
+// The inked glyph, round caps included, is exactly centred on the grid: 257 → 767, 321 → 703.
 export const MARK = {
   grid: 1024,
   radius: 256,
@@ -17,14 +9,7 @@ export const MARK = {
   underscore: "M 556 660 L 724 660",
 } as const
 
-/**
- * The small cut: the same drawing, bigger and heavier.
- *
- * Below about 24 pixels the chevron of the normal cut falls under two pixels a
- * stroke and closes into a blob. Growing the glyph and thickening the line
- * keeps the two arms apart in a browser tab, and the mark still reads as
- * itself next to the large one.
- */
+// Below ~24 px the normal chevron's stroke drops under two pixels and closes into a blob.
 export const COMPACT = { glyph: 1.15, stroke: 1.35 } as const
 
 export interface MarkColors {
@@ -32,34 +17,28 @@ export interface MarkColors {
   glyph: string
 }
 
-/** Near-black square, white glyph. Goes on a white or light background. */
-export const ON_LIGHT: MarkColors = { square: "#0a0a0a", glyph: "#ffffff" }
+export const ON_LIGHT: MarkColors = {
+  square: LIGHT.inverse,
+  glyph: LIGHT["inverse-ink"],
+}
 
-/** Near-white square, black glyph. Goes on a black or dark background. */
-export const ON_DARK: MarkColors = { square: "#f5f5f5", glyph: "#0a0a0a" }
+export const ON_DARK: MarkColors = {
+  square: DARK.inverse,
+  glyph: DARK["inverse-ink"],
+}
 
-export interface MarkOptions {
+interface MarkOptions {
   colors?: MarkColors
-  /** Side of the viewBox. The square fills it unless `inset` says otherwise. */
   canvas?: number
-  /** Margin between the edge of the viewBox and the square. */
   inset?: number
-  /** Corner radius of the square. Defaults to the `md` ratio of its side. */
   radius?: number
-  /** `width` and `height` attributes. Left out when absent, so the SVG scales. */
+  // Left out when absent, so the SVG scales.
   size?: number
-  /**
-   * A full-bleed rectangle behind the square. Painted in the square's own
-   * colour it makes the corners disappear, which is what a maskable icon and a
-   * round avatar both want.
-   */
+  // Painted in the square's colour, it hides the corners for a maskable icon or a round avatar.
   background?: string
-  /** Draws the small cut. Worth it at 24 pixels and under, wrong above. */
+  // Worth it at 24 px and under, wrong above.
   compact?: boolean
-  /**
-   * Swaps the two colours under `prefers-color-scheme: dark` instead of fixing
-   * them. What a favicon wants, and what an uploaded file never does.
-   */
+  // Follows prefers-color-scheme: right for a favicon, never for an uploaded file.
   adaptive?: boolean
   title?: string
 }
@@ -93,10 +72,6 @@ function glyph(
   </g>`
 }
 
-/**
- * The mark as a standalone SVG document, ready to be written to a file or
- * handed to a rasteriser.
- */
 export function markSvg(options: MarkOptions = {}): string {
   const {
     colors = ON_LIGHT,
@@ -141,10 +116,6 @@ ${glyph(scale, inset, stroke, compact)}
 `
 }
 
-/**
- * The glyph alone, no square, no background. For a surface that already carries
- * the brand's black or white, and for anything that has to be recoloured.
- */
 export function glyphSvg(color = ON_LIGHT.square, size?: number): string {
   const box = { x: 257, y: 321, width: 510, height: 382 }
   const dimensions = size

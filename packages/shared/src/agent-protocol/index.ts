@@ -390,11 +390,7 @@ export function isCommandName(value: string): value is CommandName {
   return Object.hasOwn(COMMANDS, value)
 }
 
-/**
- * `platform.sync` is among them on purpose: a restricted agent is one whose
- * usage right the platform has not confirmed, and this is how it asks again
- * without waiting for the daemon's next turn.
- */
+// `platform.sync` is how a restricted agent asks the platform again without waiting for the daemon.
 export const RESTRICTED_COMMANDS = [
   "hello",
   "ping",
@@ -407,23 +403,7 @@ export const RESTRICTED_COMMANDS = [
   "platform.sync",
 ] as const satisfies readonly CommandName[]
 
-/**
- * A binary on a server that was never enrolled has no state to show and no
- * server to upgrade: it says who it is, answers a ping, hands out a diagnostic,
- * and takes the enrolment that gives it a server.
- */
-/**
- * What a server answers while its configuration is not at the revision the
- * binary expects.
- *
- * The agent migrates itself at start-up, so this list is normally never
- * reached. It is reached when a migration refused: the files were put back as
- * they were, and a binary that reads a shape it does not understand would get
- * it wrong in ways nobody sees. Refusing is the safe answer — but a server one
- * cannot look at is a server one cannot repair, so what remains open is the
- * view of the machine, the diagnostic, the ways out (another version of the
- * agent, another attempt at the migration) and the platform.
- */
+// Reached only after a refused migration: a server one cannot look at is a server one cannot repair.
 export const MIGRATION_COMMANDS = [
   "hello",
   "ping",
@@ -445,20 +425,7 @@ export const UNENROLLED_COMMANDS = [
   "enroll",
 ] as const satisfies readonly CommandName[]
 
-/**
- * What `pupitred serve` answers without `--privileged`: the session sudo opens
- * for `dev` without a password (decision 0015), which anything running as
- * `dev` can open too — an AI agent, a `postinstall`.
- *
- * Each command here is at worst an inconvenience in such hands: a read that
- * reveals no secret root holds, a gesture on `dev`'s own projects, files and
- * processes, a unit already configured started or stopped, a signed agent
- * placed above its floor. What configures the machine, reveals a secret,
- * changes whom the server trusts or where it reports, restores, deletes a
- * backup or reboots stays with `pupitred serve --privileged`, which sudo only
- * runs on the client's password. A whitelist: a command added to the contract
- * is privileged until it is declared here.
- */
+// Reachable by anything running as `dev`: a command stays privileged until listed here.
 export const LIMITED_COMMANDS = [
   "hello",
   "ping",
@@ -527,7 +494,7 @@ export const LIMITED_COMMANDS = [
   "diag",
 ] as const satisfies readonly CommandName[]
 
-/** `allow_downgrade` lifts the version floor: a signed but older, known-faulty agent is root code of the caller's choosing. */
+// A downgrade would run a signed but known-faulty agent as root, of the caller's choosing.
 export function requiresPrivilege(cmd: string, params?: unknown): boolean {
   if (!(LIMITED_COMMANDS as readonly string[]).includes(cmd)) {
     return true

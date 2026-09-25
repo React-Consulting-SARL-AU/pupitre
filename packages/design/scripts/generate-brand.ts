@@ -11,13 +11,6 @@ import {
 import { ico } from "./ico"
 import { lockupSvg, stackedLockupSvg, wordmarkSvg } from "./lockup"
 
-/**
- * Renders the brand kit: every file the mark is ever needed as, outside the
- * apps. Stripe, an app store listing, a social profile, a slide, a press page.
- *
- * The output is a build artefact, not source — `src/brand/index.ts` is the
- * source, and this rebuilds the kit from it in a couple of seconds.
- */
 const OUT = path.join(import.meta.dir, "../dist/brand")
 
 const MARK_SIZES = [16, 32, 48, 64, 128, 180, 192, 256, 512, 1024]
@@ -46,7 +39,6 @@ const TITLE_RE = /<title>[^<]*<\/title>/
 
 const OG = { width: 1200, height: 630, lockup: 560 }
 
-/** A card with nothing but the lockup on it, for a page that has no image. */
 function ogCard(lockup: string, colors: MarkColors): string {
   const box = lockup.match(VIEWBOX_RE)
   const source = { width: Number(box?.[1]), height: Number(box?.[2]) }
@@ -92,9 +84,7 @@ const stacked = {
   "on-dark": await stackedLockupSvg(ON_DARK),
 }
 
-// Cropped to a circle by a social profile, to whatever a launcher fancies by a
-// maskable icon: the square bleeds to the edge and the glyph, which never
-// reaches past half the width, stays well inside either shape.
+// Bleeds to the edge for a round avatar or a maskable icon; the glyph stays well inside either crop.
 const bleeding = markSvg({ colors: ON_LIGHT, background: ON_LIGHT.square })
 
 const wordmarks = {
@@ -142,8 +132,7 @@ write(
   ico(FAVICON_SIZES.map((size) => ({ size, png: iconAt("on-light", size) })))
 )
 
-// Stripe shows both files on a white or near-white surface — receipts, the
-// Checkout header, the customer portal — so both are the on-light pair.
+// Stripe shows both on a white or near-white surface.
 write("stripe/icon-512.png", png(marks["on-light"], 512))
 write("stripe/logo-1024.png", png(lockups["on-light"], 1024))
 
@@ -157,13 +146,14 @@ write(
   png(ogCard(lockups["on-dark"], ON_DARK), 1200)
 )
 
-write("app/apple-touch-icon-180.png", png(marks["on-light"], 180, "#0a0a0a"))
+write(
+  "app/apple-touch-icon-180.png",
+  png(marks["on-light"], 180, ON_LIGHT.square)
+)
 write("app/pwa-192.png", png(marks["on-light"], 192))
 write("app/pwa-512.png", png(marks["on-light"], 512))
 write("app/pwa-maskable-512.png", png(bleeding, 512))
-// The macOS grid: an 824-wide shape centred on a 1024 canvas, with Apple's
-// corner radius rather than ours, so the icon sits right next to its siblings
-// in the Dock.
+// Apple's grid and corner radius rather than ours, so the icon sits right among its Dock siblings.
 write(
   "app/macos-1024.png",
   png(markSvg({ colors: ON_LIGHT, inset: 100, radius: 185 }), 1024)

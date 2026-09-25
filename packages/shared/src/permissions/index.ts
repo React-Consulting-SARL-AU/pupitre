@@ -52,7 +52,7 @@ export const PermissionSchema = z.enum(
   PERMISSIONS as [Permission, ...Permission[]]
 )
 
-export const PERMISSION_HIERARCHY = Object.fromEntries(
+const PERMISSION_HIERARCHY = Object.fromEntries(
   CATALOG.flatMap((entry) =>
     "implies" in entry ? [[entry.slug, entry.implies]] : []
   )

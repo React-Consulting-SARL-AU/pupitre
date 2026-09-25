@@ -12,7 +12,7 @@ export const AGENT_KINDS = [
   "hermes",
 ] as const
 
-export const AgentKindSchema = z.enum(AGENT_KINDS)
+const AgentKindSchema = z.enum(AGENT_KINDS)
 
 export type AgentKind = z.infer<typeof AgentKindSchema>
 
@@ -55,7 +55,7 @@ export const ProcessKillParamsSchema = z.strictObject({
   force: z.boolean().optional(),
 })
 
-export const ShotSchema = z.object({
+const ShotSchema = z.object({
   name: z.string(),
   path: z.string(),
   size_bytes: z.int().nonnegative(),
@@ -76,12 +76,8 @@ export const ShotsUrlResultSchema = z.object({
 
 export type ShotsUrlResult = z.infer<typeof ShotsUrlResultSchema>
 
-/**
- * Without a path, the gallery is swept of what is older than it keeps. With
- * one, that single capture goes — and the path is looked up in what
- * `shots.list` names, never resolved on the disk, exactly as `shots.read`.
- */
 export const ShotsCleanParamsSchema = z.strictObject({
+  // Looked up in what `shots.list` names, never resolved on the disk; absent, the gallery is swept by age.
   path: z.string().min(1).optional(),
 })
 
@@ -100,7 +96,7 @@ export const SHOT_MEDIA_TYPES = [
   "image/svg+xml",
 ] as const
 
-export const ShotMediaTypeSchema = z.enum(SHOT_MEDIA_TYPES)
+const ShotMediaTypeSchema = z.enum(SHOT_MEDIA_TYPES)
 
 export type ShotMediaType = z.infer<typeof ShotMediaTypeSchema>
 

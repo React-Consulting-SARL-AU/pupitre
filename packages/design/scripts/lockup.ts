@@ -1,14 +1,7 @@
 import { MARK, type MarkColors } from "../src/brand"
 import { wordmark } from "./wordmark"
 
-/**
- * The mark and the word side by side, or stacked.
- *
- * Both are built on the mark's 1024 grid, and both align the word by its cap
- * height rather than by its line box: a lockup that centres on the line box
- * sits visibly high, because "Pupitre" has a descender and no capital below the
- * baseline.
- */
+// Aligned on the cap height, not the line box: the descender of "Pupitre" would make the word sit visibly high.
 const CAP = 0.377
 const GAP = 0.286
 const STACKED_WIDTH = 1.3

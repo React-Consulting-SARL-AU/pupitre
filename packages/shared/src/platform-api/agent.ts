@@ -25,10 +25,10 @@ export const ServerTokenSchema = z.object({ server_token: z.string() })
 
 export type ServerToken = z.infer<typeof ServerTokenSchema>
 
-/** `authorized_keys` stays for agents older than the approvals, which read it instead of `keys`. */
 export const AgentStateSchema = z.object({
   entitlement: ServerEntitlementSchema,
   valid_until: InstantSchema,
+  // For agents older than the approvals, which read it instead of `keys`.
   authorized_keys: z.array(z.string()),
   keys: z.array(AgentStateKeySchema),
   target_version: z.string().nullable(),
@@ -49,7 +49,7 @@ const HeartbeatNamesSchema = z
 
 const QuantitySchema = z.number().nonnegative()
 
-/** An optional field left out keeps what the platform knew: older agents never send it. */
+// An optional field left out keeps what the platform knew: older agents never send it.
 export const HeartbeatSchema = z.object({
   disk: QuantitySchema,
   ram: QuantitySchema,

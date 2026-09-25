@@ -64,7 +64,7 @@ export const ANNUAL_FREE_MONTHS = 2
 export const TRIAL_DAYS = 30
 export const TRIAL_REQUIRES_CARD = false
 
-/** A trial, and the free launch, cover one machine; more seats come with payment. */
+// A trial, and the free launch, cover one machine; more seats come with payment.
 export const TRIAL_SEATS = 1
 
 export const BILLING_MODES = ["stripe", "launch"] as const
@@ -73,26 +73,24 @@ export const BillingModeSchema = z.enum(BILLING_MODES)
 
 export type BillingMode = z.infer<typeof BillingModeSchema>
 
-/** The product name of a subscription the platform grants itself, without Stripe. */
 export const LAUNCH_PRODUCT = "launch"
 
-/** The product name of a subscription the team grants from the console, without Stripe. */
 export const GRANTED_PRODUCT = "granted"
 
-/** The products with no Stripe counterpart: never reconciled, never resized, never given a portal. */
+// No Stripe counterpart: never reconciled, never resized, never given a portal.
 export const PLATFORM_PRODUCTS: readonly string[] = [
   LAUNCH_PRODUCT,
   GRANTED_PRODUCT,
 ]
 
-/** The statuses Stripe still bills under: the subscription that counts for an organization is the last touched of them. */
+// Stripe still bills under these: an organization's subscription is the last touched of them.
 export const LIVE_SUBSCRIPTION_STATUSES = ["active", "trialing", "past_due"]
 
 export function isLiveSubscriptionStatus(status: string): boolean {
   return LIVE_SUBSCRIPTION_STATUSES.includes(status)
 }
 
-/** What the team may do to one subscription row: the platform lists them per row, the console only shows them. */
+// The platform lists them per row; the console only shows them.
 export const SUBSCRIPTION_ACTIONS = [
   "resize",
   "extend_trial",
@@ -107,18 +105,15 @@ export function isPlatformProduct(product: string): boolean {
   return PLATFORM_PRODUCTS.includes(product)
 }
 
-/**
- * Stripe names and renames its own products: the filter and the label say that
- * a row is billed by Stripe rather than showing an identifier nobody reads.
- */
+// Stripe renames its own products, so a row it bills is labelled by this rather than by their identifier.
 export const STRIPE_PRODUCT = "stripe"
 
 export const LAUNCH_SEATS = TRIAL_SEATS
 
-/** The platform's own organization enrols what it needs during the launch. */
+// The platform's own organization enrols what it needs during the launch.
 export const LAUNCH_ADMIN_SEATS = 100
 
-/** The launch end the site announces; a site test holds it equal to the platform's `LAUNCH_ENDS_AT`. */
+// A site test holds it equal to the platform's `LAUNCH_ENDS_AT`.
 export const ANNOUNCED_LAUNCH_ENDS_AT = "2026-12-31T23:59:59Z"
 
 export const AFFILIATE_CODE_LENGTH = 8
@@ -135,7 +130,7 @@ export const AFFILIATE_PARTNER_NAME_MAX_LENGTH = 120
 
 export const AFFILIATE_NOTES_MAX_LENGTH = 2000
 
-/** How many day buckets, today included, the recent click count covers. */
+// Day buckets, today included.
 export const AFFILIATE_CLICK_WINDOW_DAYS = 30
 
 export const DAYS_PER_FREE_MONTH = 30
@@ -164,17 +159,10 @@ export function formatUsd(amount: number): string {
   return USD.format(amount)
 }
 
-/**
- * The subscription of the active organization, as `GET /me` tells the app.
- *
- * It carries what the Stripe mirror holds and nothing more: the status in
- * Stripe's own words, the end of the period, the seats paid against the
- * servers that occupy one. While a trial runs, Stripe ends the first period
- * with it, so `trial_ends_at` is that date and null otherwise. The plan is not
- * here: Solo and Team share one product, and the mirror does not name either.
- */
+// No plan here: Solo and Team share one Stripe product, and the mirror names neither.
 export const MeSubscriptionSchema = z.object({
   status: z.string().min(1),
+  // Stripe ends the first period with the trial; null once no trial runs.
   trial_ends_at: InstantSchema.nullable(),
   current_period_end: InstantSchema.nullable(),
   servers: z.object({
@@ -185,12 +173,11 @@ export const MeSubscriptionSchema = z.object({
 
 export type MeSubscription = z.infer<typeof MeSubscriptionSchema>
 
-/** Under this, a trial is about to end and the app says so in a warning tone. */
 export const TRIAL_WARN_DAYS = 3
 
 const MS_PER_DAY = 86_400_000
 
-/** A day that has begun still counts: Stripe bills at the end of the last one. */
+// A day that has begun still counts: Stripe bills at the end of the last one.
 export function trialDaysLeft(
   endsAt: string | Date | null,
   now: Date = new Date()

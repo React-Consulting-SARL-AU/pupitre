@@ -23,21 +23,13 @@ export const ProjectParamsSchema = z.strictObject({
   name: ProjectNameSchema,
 })
 
-/** A project and one of its processes: what the logs and the debugger are read on. */
 export const ProcessParamsSchema = z.strictObject({
   name: ProjectNameSchema,
   process: ProcessIdSchema,
 })
 
-export const ProjectTargetSchema = z.union([
-  ProjectNameSchema,
-  z.literal("all"),
-])
+const ProjectTargetSchema = z.union([ProjectNameSchema, z.literal("all")])
 
-/**
- * What up, down and restart act on: a project, every project, or one process
- * of a project. `all` names no process — it has none in particular.
- */
 export const ProjectTargetParamsSchema = z
   .strictObject({
     name: ProjectTargetSchema,
@@ -57,27 +49,17 @@ export const ProjectAddParamsSchema = ProjectRegistrationSchema.strict()
 
 export type ProjectAddParams = z.infer<typeof ProjectAddParamsSchema>
 
-/**
- * The declared project, and what failed once its line was written: a folder
- * that could not be created, a runtime pin, a start. The line stands either
- * way, so a retry would only answer that the project is declared already.
- */
-export const DeclaredProjectSchema = ProjectSchema.extend({
+const DeclaredProjectSchema = ProjectSchema.extend({
+  // What failed once the project's line was written: the line stands, so a retry would only say it is declared.
   warnings: z.array(z.string()).optional(),
 })
-
-export type DeclaredProject = z.infer<typeof DeclaredProjectSchema>
 
 export const ProjectAddResultSchema = DeclaredProjectSchema
 
 export type ProjectAddResult = z.infer<typeof ProjectAddResultSchema>
 
-/**
- * A route as the configuration screen sends it back: a subdomain for the agent
- * to complete with the server's domain, or a whole hostname for a reader who
- * wants another one — never both, and neither for a port that stays local.
- */
-export const RoutePatchSchema = z
+// A subdomain the agent completes with the server's domain, or a whole hostname; neither keeps the port local.
+const RoutePatchSchema = z
   .strictObject({
     label: RouteLabelSchema,
     port: PortSchema,
@@ -90,36 +72,26 @@ export const RoutePatchSchema = z
 
 export type RoutePatch = z.infer<typeof RoutePatchSchema>
 
-/**
- * A process as the configuration screen sends it back: the whole of it, its
- * routes included, each a subdomain or a hostname.
- */
-export const ProcessPatchSchema = z.strictObject({
+const ProcessPatchSchema = z.strictObject({
   id: ProcessIdSchema,
   dir: ProcessDirSchema.default(PROJECT_ROOT_DIR),
   pkgmgr: PackageManagerSchema,
   host: z.union([z.literal("127.0.0.1"), LocalhostNameSchema]),
   port: PortSchema,
   cmd: z.string().min(1),
+  // Empty hands the command back to the package manager.
   install: z.string().optional(),
   routes: z.array(RoutePatchSchema),
 })
 
 export type ProcessPatch = z.infer<typeof ProcessPatchSchema>
 
-/**
- * What can change about a declared project without removing it.
- *
- * `processes` replaces the whole list: the screen sends what it shows, a
- * process missing from it is a process that goes, and one whose command
- * changed restarts if it was running. An empty `install` hands the command
- * back to the package manager. `runtimes` replaces the whole map: a tool
- * missing from it goes back to the machine's default.
- */
-export const ProjectPatchSchema = z.strictObject({
+const ProjectPatchSchema = z.strictObject({
   branch: GitBranchSchema.optional(),
   boot: z.boolean().optional(),
+  // Replaces the whole map: a missing tool goes back to the machine's default.
   runtimes: ProjectRuntimesSchema.optional(),
+  // Replaces the whole list: a missing process goes, one whose command changed restarts.
   processes: z
     .array(ProcessPatchSchema)
     .min(1)
@@ -140,11 +112,6 @@ export const ProjectUpdateResultSchema = DeclaredProjectSchema
 
 export type ProjectUpdateResult = z.infer<typeof ProjectUpdateResultSchema>
 
-/**
- * A repository, or a folder relative to the projects root — one of the two,
- * never both. A branch only means something for a repository: a folder already
- * on the machine is read as it stands.
- */
 export const ProjectDetectParamsSchema = z.union([
   z.strictObject({
     repo: z.string().min(1),
@@ -155,34 +122,30 @@ export const ProjectDetectParamsSchema = z.union([
 
 export type ProjectDetectParams = z.infer<typeof ProjectDetectParamsSchema>
 
-/** One port a workspace of a monorepo asks for, named after that workspace. */
-export const DetectedRouteSchema = z.object({
+const DetectedRouteSchema = z.object({
   label: RouteLabelSchema,
   port: PortSchema,
 })
 
 export type DetectedRoute = z.infer<typeof DetectedRouteSchema>
 
-/**
- * What one folder of the repository asks for: the root, or a folder of the
- * first level that carries its own manifest outside the root's workspaces.
- */
-export const DetectedProcessSchema = z.object({
+// The root, or a first-level folder with its own manifest outside the root's workspaces.
+const DetectedProcessSchema = z.object({
   id: ProcessIdSchema,
   dir: ProcessDirSchema,
   pkgmgr: PackageManagerSchema,
   install: z.string().optional(),
   cmd: z.string().optional(),
   port_hint: PortSchema.optional(),
-  /** The `.localhost` name the start script binds to, when it freezes one: the host to declare, so the machine answers to it. */
+  // The `.localhost` name a start script freezes: the host to declare so the machine answers to it.
   host_hint: LocalhostNameSchema.optional(),
-  /** The ports of a monorepo's workspaces, when the root runs them all at once. */
+  // A monorepo's workspace ports, when the root runs them all at once.
   routes: z.array(DetectedRouteSchema).optional(),
 })
 
 export type DetectedProcess = z.infer<typeof DetectedProcessSchema>
 
-/** The root always answers, even with nothing to run: a folder with no manifest is a process without a command. */
+// The root always answers: a folder with no manifest is a process without a command.
 export const ProjectDetectResultSchema = z.object({
   processes: z.array(DetectedProcessSchema).min(1),
 })
@@ -196,16 +159,14 @@ export const ProjectRemoveResultSchema = z.object({
 
 export type ProjectRemoveResult = z.infer<typeof ProjectRemoveResultSchema>
 
-export const ProjectStateEntrySchema = z.object({
+const ProjectStateEntrySchema = z.object({
   name: ProjectNameSchema,
   state: ProjectStateSchema,
 })
 
-export type ProjectStateEntry = z.infer<typeof ProjectStateEntrySchema>
-
-/** The state of what was acted on: the project's, or every project's when the target was `all`. */
 export const ProjectActionResultSchema = z.object({
   state: ProjectStateSchema,
+  // Every project's, when the target was `all`.
   projects: z.array(ProjectStateEntrySchema).optional(),
 })
 
@@ -224,8 +185,8 @@ export const ProjectLogsResultSchema = z.object({
 
 export type ProjectLogsResult = z.infer<typeof ProjectLogsResultSchema>
 
-/** The sources brought up to date, and nothing else: `pulled` is false for a folder without a repository. */
 export const ProjectPullResultSchema = z.object({
+  // False for a folder without a repository.
   pulled: z.boolean(),
   state: ProjectStateSchema,
 })
@@ -238,35 +199,32 @@ export const ProjectSyncResultSchema = ProjectPullResultSchema.extend({
 
 export type ProjectSyncResult = z.infer<typeof ProjectSyncResultSchema>
 
-/** One project, or one of its processes: what install runs on. */
 export const ProjectInstallParamsSchema = z.strictObject({
   name: ProjectNameSchema,
   process: ProcessIdSchema.optional(),
 })
 
-export const ProcessInstallSchema = z.object({
+const ProcessInstallSchema = z.object({
   process: ProcessIdSchema,
   command: z.string().min(1),
 })
 
-export type ProcessInstall = z.infer<typeof ProcessInstallSchema>
-
-/** `installed` lists the install lines that ran, one per process that declares one; a process without one is not in it. */
 export const ProjectInstallResultSchema = z.object({
   done: z.literal(true),
+  // A process that declares no install line is not in it.
   installed: z.array(ProcessInstallSchema),
 })
 
 export type ProjectInstallResult = z.infer<typeof ProjectInstallResultSchema>
 
-/** The project's root, or the folder of one of its processes when the template lives there. */
 export const ProjectEnvParamsSchema = z.strictObject({
   name: ProjectNameSchema,
+  // The folder of one of its processes, when the template lives there.
   process: ProcessIdSchema.optional(),
   force: z.boolean().optional(),
 })
 
-/** A repository that versions no template is a project without an environment, not a refusal: `keys` is empty and `template` false. */
+// A repository that versions no template is not a refusal: `keys` is empty and `template` false.
 export const ProjectEnvResultSchema = z.object({
   path: z.string(),
   written: z.boolean(),
@@ -316,11 +274,11 @@ export type ProjectGitStatusResult = z.infer<
   typeof ProjectGitStatusResultSchema
 >
 
-export const FILE_STAGES = ["staged", "unstaged", "untracked"] as const
+const FILE_STAGES = ["staged", "unstaged", "untracked"] as const
 
-export const FileStageSchema = z.enum(FILE_STAGES)
+const FileStageSchema = z.enum(FILE_STAGES)
 
-export const FileChangeSchema = z.object({
+const FileChangeSchema = z.object({
   path: z.string(),
   code: z.string(),
   stage: FileStageSchema,

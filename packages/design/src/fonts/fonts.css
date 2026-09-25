@@ -1,12 +1,4 @@
-/*
- * The display face and the data face, embedded rather than fetched.
- *
- * `--font-display` names Bricolage Grotesque and the headings ask for it;
- * `--font-data` names JetBrains Mono for ports, paths, commands and versions.
- * On a machine that has not got them, nothing here reaches the network, so the
- * app and the site look the same offline as online. `NOTICE.md` says where the
- * files come from and under which licence.
- */
+/* Embedded rather than fetched, so the app and the site look the same offline. */
 
 @font-face {
   font-family: "Bricolage Grotesque";

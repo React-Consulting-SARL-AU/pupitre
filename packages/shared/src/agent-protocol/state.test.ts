@@ -263,7 +263,6 @@ describe("MachineSchema, ServiceSchema, ProjectSchema, SessionSchema", () => {
     }
   })
 
-  /** Starting with the server is asked for, never assumed: a registration and a project that say nothing do not. */
   it("starts with the server only when asked", () => {
     const registration = {
       name: "web",
@@ -288,7 +287,6 @@ describe("MachineSchema, ServiceSchema, ProjectSchema, SessionSchema", () => {
     expect(ProjectSchema.parse({ ...project, boot: true }).boot).toBe(true)
   })
 
-  /** A project names the runtime versions it runs on, by mise tool; naming none runs at the machine's default. */
   it("pins runtime versions by tool, and none by default", () => {
     const registration = {
       name: "web",

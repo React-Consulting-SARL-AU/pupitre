@@ -56,6 +56,7 @@ function me(overrides: Record<string, unknown> = {}) {
     },
     role: "owner",
     platform_role: null,
+    platform_can_act: false,
     entitlement: "valid",
     subscription: null,
     ...overrides,
@@ -164,6 +165,24 @@ describe("the app's side of the platform", () => {
         })
       ).success
     ).toBe(false)
+  })
+
+  it("reads whether the caller may act on the platform", () => {
+    expect(MeSchema.safeParse(me({ platform_can_act: true })).success).toBe(
+      true
+    )
+  })
+
+  it("reads an older platform that does not send the right as none", () => {
+    const parsed = MeSchema.safeParse(me({ platform_can_act: undefined }))
+
+    expect(parsed.success && parsed.data.platform_can_act).toBe(false)
+  })
+
+  it("lets an older reader ignore a field the platform added later", () => {
+    const olderReader = MeSchema.omit({ platform_can_act: true })
+
+    expect(olderReader.safeParse(me()).success).toBe(true)
   })
 
   it("reads the servers of an account with the platform's statuses", () => {

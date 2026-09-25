@@ -38,7 +38,7 @@ export const ApiErrorBodySchema = z.object({
   }),
 })
 
-export type ApiErrorBody = z.infer<typeof ApiErrorBodySchema>
+type ApiErrorBody = z.infer<typeof ApiErrorBodySchema>
 
 export function isApiErrorBody(value: unknown): value is ApiErrorBody {
   return ApiErrorBodySchema.safeParse(value).success

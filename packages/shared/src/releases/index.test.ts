@@ -60,8 +60,6 @@ describe("AppReleasePublishSchema", () => {
     ).toBe(false)
   })
 
-  // A key is a place in our bucket, never an address: the platform composes the
-  // URL, so nothing published can name a host.
   it("refuses a key that would leave the versions folder", () => {
     for (const r2_key of [
       "//evil.example/Pupitre.dmg",

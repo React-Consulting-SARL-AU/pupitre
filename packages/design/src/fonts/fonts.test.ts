@@ -39,8 +39,7 @@ describe("la police d'affichage", () => {
       expect(readFileSync(full).subarray(0, 4).toString("latin1")).toBe(
         WOFF2_SIGNATURE
       )
-      // A latin subset weighs tens of kilobytes; the whole variable family
-      // weighs hundreds, and shipping it would mean nobody checked.
+      // A latin subset weighs tens of kilobytes, the whole variable family hundreds.
       expect(statSync(full).size).toBeLessThan(80_000)
     }
   })

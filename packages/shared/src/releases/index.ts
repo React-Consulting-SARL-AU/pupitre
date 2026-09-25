@@ -9,21 +9,13 @@ export const MAX_VERSION_LENGTH = 64
 
 export const MAX_R2_KEY_LENGTH = 400
 
-/**
- * Where an artefact sits in the downloads bucket: `app/<version>/<file>`.
- *
- * A publication names a key, never an address: the platform composes the URL
- * from the bucket it owns, so nothing published can send a reader to a host
- * that is not ours. The version segment starts with a digit and the file name
- * with an alphanumeric, which is what forbids a `..` segment and a leading
- * slash — the two shapes that would escape the prefix.
- */
+// A key, never an address, so nothing published points elsewhere; the leading characters forbid `..` and `/`.
 export const APP_R2_KEY_PATTERN =
   "^app/[0-9][0-9A-Za-z.+-]{0,63}/[0-9A-Za-z][0-9A-Za-z._-]{0,127}$"
 
-export const MAX_NOTES_LENGTH = 20_000
+const MAX_NOTES_LENGTH = 20_000
 
-export const MAX_SIGNATURE_LENGTH = 512
+const MAX_SIGNATURE_LENGTH = 512
 
 export const RELEASE_CHANNELS = ["stable", "beta"] as const
 
@@ -33,15 +25,10 @@ export type ReleaseChannel = z.infer<typeof ReleaseChannelSchema>
 
 export const DESKTOP_SYSTEMS = ["macos", "windows", "linux"] as const
 
-/**
- * The app's architectures, which aren't a server's: an Intel Mac is `x64`
- * everywhere Electron, npm and installers name it, while the agent catalogue
- * calls the same chip `amd64`. Two vocabularies because two worlds, and
- * neither translates the other.
- */
+// Electron and installers say `x64` where the agent catalogue says `amd64`: neither translates the other.
 export const DESKTOP_ARCHITECTURES = ["arm64", "x64", "universal"] as const
 
-export const DesktopArchitectureSchema = z.enum(DESKTOP_ARCHITECTURES)
+const DesktopArchitectureSchema = z.enum(DESKTOP_ARCHITECTURES)
 
 export type DesktopArchitecture = z.infer<typeof DesktopArchitectureSchema>
 
@@ -54,10 +41,9 @@ export const VersionSchema = z
   .max(MAX_VERSION_LENGTH)
   .regex(new RegExp(SEMVER_PATTERN))
 
-/** The artefact's extension, as the download page names it: dmg, exe, AppImage, deb. */
-export const FORMAT_PATTERN = "^[A-Za-z0-9]{2,16}$"
+const FORMAT_PATTERN = "^[A-Za-z0-9]{2,16}$"
 
-export const MAX_ARTEFACT_BYTES = 4_000_000_000
+const MAX_ARTEFACT_BYTES = 4_000_000_000
 
 export const AppReleasePublishSchema = z.object({
   version: VersionSchema,
@@ -75,9 +61,7 @@ export const AppReleasePublishSchema = z.object({
   channel: ReleaseChannelSchema.optional(),
 })
 
-export type AppReleasePublish = z.infer<typeof AppReleasePublishSchema>
-
-export const AppBuildSchema = z.object({
+const AppBuildSchema = z.object({
   os: DesktopSystemSchema,
   arch: DesktopArchitectureSchema,
   format: z.string(),
@@ -99,7 +83,6 @@ export const AppReleaseSchema = z.object({
 
 export type AppRelease = z.infer<typeof AppReleaseSchema>
 
-/** One artefact with its release around it, as a publication answers. */
 export const AppReleaseBuildSchema = AppBuildSchema.extend({
   version: z.string(),
   notes: z.string(),

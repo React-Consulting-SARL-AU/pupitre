@@ -70,8 +70,7 @@ describe("CONTRACT_DEFINITIONS", () => {
 describe("buildContractSchema", () => {
   const schema = buildContractSchema()
 
-  // The agent embeds this document where the obfuscator cannot reach it, and
-  // the release refuses a binary that names the product more than ten times.
+  // Embedded unobfuscated, and the release refuses a binary naming the product over ten times.
   it("names the product three times at most: a schema repeated inline would spill it", () => {
     const named = renderContractSchema().match(/pupitre/g) ?? []
 

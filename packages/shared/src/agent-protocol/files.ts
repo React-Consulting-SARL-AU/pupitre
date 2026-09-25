@@ -2,52 +2,38 @@ import { z } from "zod"
 import { RequestIdSchema } from "./envelope"
 import { SHOT_MEDIA_TYPES } from "./processes"
 
-/**
- * The files of the client's own tree, under one root the agent holds.
- *
- * Every path is relative to that root, which is why none of these schemas takes
- * an absolute one: where the root sits is a detail of the server, exactly as
- * the projects root is, and the app has nothing to concatenate.
- */
-
-/** Past that a listing stops helping, and a folder of ten thousand entries is not read on a channel. */
+// A folder of ten thousand entries is not read on a channel.
 export const FILE_LIST_LIMIT = 2000
 
 export const FILE_IMAGE_MAX_BYTES = 16 * 1024 * 1024
 
 export const FILE_WRITE_MAX_BYTES = 1024 * 1024
 
-export const FILE_TEXT_MEDIA_TYPE = "text/plain"
+const FILE_TEXT_MEDIA_TYPE = "text/plain"
 
-/** What a read may carry: text, and the images the gallery already serves. Anything else is downloaded, not read. */
-export const FILE_MEDIA_TYPES = [
-  FILE_TEXT_MEDIA_TYPE,
-  ...SHOT_MEDIA_TYPES,
-] as const
+// Anything else is downloaded, not read.
+const FILE_MEDIA_TYPES = [FILE_TEXT_MEDIA_TYPE, ...SHOT_MEDIA_TYPES] as const
 
-export const FileMediaTypeSchema = z.enum(FILE_MEDIA_TYPES)
+const FileMediaTypeSchema = z.enum(FILE_MEDIA_TYPES)
 
 export type FileMediaType = z.infer<typeof FileMediaTypeSchema>
 
-/** `special` is a pipe, a socket or a device: listed, never read, since a read would wait on it forever. */
-export const FILE_KINDS = ["file", "dir", "link", "special"] as const
+// `special` is a pipe, a socket or a device: listed, never read, since a read would wait on it forever.
+const FILE_KINDS = ["file", "dir", "link", "special"] as const
 
-export const FileKindSchema = z.enum(FILE_KINDS)
+const FileKindSchema = z.enum(FILE_KINDS)
 
-export type FileKind = z.infer<typeof FileKindSchema>
+// An octal string: a number would read as decimal on the way in and out.
+const FileModeSchema = z.string().regex(/^[0-7]{4}$/)
 
-/** The permission bits as an octal string, `0644`: a number would read as decimal on the way in and out. */
-export const FileModeSchema = z.string().regex(/^[0-7]{4}$/)
+const FileDigestSchema = z.string().regex(/^[0-9a-f]{64}$/)
 
-export const FileDigestSchema = z.string().regex(/^[0-9a-f]{64}$/)
+const FileContentSchema = z.string().regex(/^[A-Za-z0-9+/]*={0,2}$/)
 
-/** Base64 without line breaks, as every other body on this channel travels. */
-export const FileContentSchema = z.string().regex(/^[A-Za-z0-9+/]*={0,2}$/)
+// Relative to the root the agent holds, empty for the root itself: where that root sits is the server's detail.
+const FilePathSchema = z.string()
 
-/** A path relative to the root; empty is the root itself. */
-export const FilePathSchema = z.string()
-
-export const FileEntrySchema = z.object({
+const FileEntrySchema = z.object({
   name: z.string(),
   kind: FileKindSchema,
   size_bytes: z.int().nonnegative(),
@@ -80,9 +66,9 @@ export const FsStatResultSchema = z.object({
   size_bytes: z.int().nonnegative(),
   modified_at: z.string(),
   mode: FileModeSchema,
-  /** Present when the agent recognises a content a read would carry, absent otherwise. */
+  // Absent when a read would not carry the content.
   media_type: FileMediaTypeSchema.optional(),
-  /** Only on `hash: true`: it is what a later write compares against. */
+  // Only on `hash: true`: what a later write compares against.
   sha256: FileDigestSchema.optional(),
 })
 
@@ -102,7 +88,7 @@ export const FsReadResultSchema = z.object({
 
 export type FsReadResult = z.infer<typeof FsReadResultSchema>
 
-/** The bytes of a read, one event per chunk, in order — never in the result a request log keeps whole. */
+// The bytes travel as events, never in the result a request log keeps whole.
 export const FileEventSchema = z.object({
   id: RequestIdSchema,
   event: z.literal("file"),
@@ -115,7 +101,7 @@ export type FileEvent = z.infer<typeof FileEventSchema>
 export const FsWriteParamsSchema = z.strictObject({
   path: z.string().min(1),
   content: FileContentSchema,
-  /** The digest of the version the reader read; absent means the file must not exist yet. */
+  // The digest of the version the reader read; absent, the file must not exist yet.
   sha256: FileDigestSchema.optional(),
 })
 
@@ -127,7 +113,6 @@ export const FsWriteResultSchema = z.object({
 
 export type FsWriteResult = z.infer<typeof FsWriteResultSchema>
 
-/** What a folder made and an entry moved both answer: the path they left behind. */
 export const FsPathResultSchema = z.object({
   path: FilePathSchema,
 })

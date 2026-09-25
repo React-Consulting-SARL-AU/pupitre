@@ -1,11 +1,6 @@
 import { describe, expect, it } from "bun:test"
 import { DARK, LIGHT, type ThemeColors } from "./tokens"
 
-/**
- * The hierarchy is carried by contrast alone: a grey a shade too light is not a
- * matter of taste, it is text somebody cannot read. So the ratios are computed.
- */
-
 const CHANNEL = 255
 const LOW = 0.039_28
 const SLOPE = 12.92
@@ -16,10 +11,9 @@ const GLARE = 0.05
 
 const WEIGHTS = { blue: 0.0722, green: 0.7152, red: 0.2126 }
 
-/** Body text and anything that decides. */
 const READABLE = 4.5
 
-/** A mark that is also said in words or in a shape. */
+// Enough only for a mark that is also said in words or in a shape.
 const LARGE = 3
 
 function channel(value: number): number {
@@ -48,10 +42,9 @@ function contrast(front: string, back: string): number {
 
 const THEMES: Record<string, ThemeColors> = { clair: LIGHT, sombre: DARK }
 
-/** Where a sentence is read. */
 const TEXT_SURFACES = ["base", "surface", "sunken"] as const
 
-/** Hover, a highlighted row, a menu entry: a passing state, never a page. */
+// Hover, a highlighted row, a menu entry: a passing state, never a page.
 const RAISED = "raised"
 
 const SURFACES = [...TEXT_SURFACES, RAISED] as const

@@ -55,7 +55,6 @@
   --spacing-gutter: var(--space-gutter);
   --spacing-section: var(--space-section);
 
-  --shadow-flat: var(--shadow-flat);
   --shadow-raised: var(--shadow-raised);
   --shadow-overlay: var(--shadow-overlay);
 }
@@ -92,17 +91,6 @@
   }
 }
 
-@keyframes exit {
-  from {
-    opacity: 1;
-    transform: none;
-  }
-  to {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-}
-
 @utility transition-fast {
   transition:
     color var(--motion-fast),
@@ -133,8 +121,4 @@
 @utility animate-enter {
   animation: enter var(--motion-enter) both;
   animation-delay: calc(var(--motion-stagger) * var(--stagger, 0));
-}
-
-@utility animate-exit {
-  animation: exit var(--motion-exit) forwards;
 }
