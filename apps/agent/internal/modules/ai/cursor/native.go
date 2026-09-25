@@ -19,7 +19,7 @@ import (
 // alone knows the current version: it is written into the script at release
 // time. Reading the script is how a version is learned; nothing in it runs.
 // No checksum is published beside the tarball, so the transport is the only
-// guarantee, and the download stays root's until it is in place.
+// guarantee: the download stays root's, and dev alone unpacks it, as dev.
 const (
 	installerURL = "https://cursor.com/install"
 	downloadsURL = "https://downloads.cursor.com/lab"

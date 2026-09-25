@@ -14,26 +14,24 @@ import (
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/apt"
 	"pupitre.studio/agent/internal/sys/file"
+	"pupitre.studio/agent/internal/sys/host"
 	"pupitre.studio/agent/internal/sys/systemd"
+	"pupitre.studio/agent/internal/sys/ufw"
 )
 
 const (
 	Program = "tailscale"
 	Unit    = "tailscaled"
 
-	pkg           = "tailscale"
-	keyURL        = "https://pkgs.tailscale.com/stable/ubuntu/%s.noarmor.gpg"
-	keyringPath   = "/usr/share/keyrings/tailscale-archive-keyring.gpg"
-	sourcePath    = "/etc/apt/sources.list.d/tailscale.list"
-	osReleasePath = "/etc/os-release"
+	pkg         = "tailscale"
+	keyURL      = "https://pkgs.tailscale.com/stable/ubuntu/%s.noarmor.gpg"
+	keyringPath = "/usr/share/keyrings/tailscale-archive-keyring.gpg"
+	sourcePath  = "/etc/apt/sources.list.d/tailscale.list"
 
-	defaultCodename = "noble"
-	device          = "tailscale0"
-	authKeyDir      = "/etc/pupitre"
-	authKeyPath     = authKeyDir + "/tailscale-auth-key"
+	device      = "tailscale0"
+	authKeyDir  = "/etc/pupitre"
+	authKeyPath = authKeyDir + "/tailscale-auth-key"
 
-	// ufw rewrites the whole rule set through iptables and can sit there for ever on a kernel that refuses it; a minute is more than it ever needs.
-	ufwTimeout = time.Minute
 	// Joining reaches the coordination server; a key that is refused answers within seconds, a network that is down within this.
 	joinTimeout = 2 * time.Minute
 )
@@ -64,7 +62,7 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 // Tailscale is not in the Ubuntu archive: the module adds Tailscale's own repository, key first.
 func (Module) Install(ctx *modules.Context) error {
 	if err := ctx.Step("add-repository", func() (modules.Outcome, error) {
-		release := codename(ctx)
+		release := host.Codename(ctx)
 		list := repository(release)
 		if file.Exists(ctx, keyringPath) && file.Same(ctx, sourcePath, list) {
 			return modules.Skipped, nil
@@ -78,7 +76,7 @@ func (Module) Install(ctx *modules.Context) error {
 			return modules.Failed, err
 		}
 
-		return modules.Done, apt.Refresh(ctx)
+		return modules.Done, apt.RefreshAdded(ctx, sourcePath, keyringPath)
 	}); err != nil {
 		return err
 	}
@@ -140,7 +138,7 @@ func (Module) Configure(ctx *modules.Context) error {
 			return modules.Skipped, nil
 		}
 
-		if _, err := ufw(ctx, "allow", "in", "on", device, "comment", "tailscale"); err != nil {
+		if _, err := ufw.Run(ctx, "allow", "in", "on", device, "comment", "tailscale"); err != nil {
 			ctx.Warn(i18n.T("warn.tailscale.ufw.refused", device))
 		}
 
@@ -242,7 +240,7 @@ func (Module) Uninstall(ctx *modules.Context) error {
 			return modules.Skipped, nil
 		}
 
-		_, err := ufw(ctx, "delete", "allow", "in", "on", device)
+		_, err := ufw.Run(ctx, "delete", "allow", "in", "on", device)
 
 		return modules.Done, err
 	}); err != nil {
@@ -354,19 +352,10 @@ func (Module) Login(ctx *modules.Context) (contract.Login, bool) {
 	return login.SignedIn(parsed.account())
 }
 
-func ufw(ctx *modules.Context, args ...string) (sys.Output, error) {
-	return sys.Exec(ctx, sys.Command{Argv: append([]string{"ufw"}, args...), Timeout: ufwTimeout})
-}
-
-// ufw show added lists the rules as they were given, whether the firewall is up yet or not: the hardening may come after this module.
+// Read back whether the firewall is up yet or not: the hardening may come after this module.
 func allowedOnDevice(ctx *modules.Context) bool {
-	out, err := ctx.Sys().Run(sys.Command{Argv: []string{"ufw", "show", "added"}, Timeout: ufwTimeout})
-	if err != nil {
-		return false
-	}
-
-	for _, line := range strings.Split(out.Stdout, "\n") {
-		if strings.HasPrefix(strings.TrimSpace(line), "ufw allow in on "+device) {
+	for _, rule := range ufw.Added(ctx) {
+		if strings.HasPrefix(rule, "ufw allow in on "+device) {
 			return true
 		}
 	}
@@ -376,19 +365,4 @@ func allowedOnDevice(ctx *modules.Context) bool {
 
 func repository(release string) []byte {
 	return []byte("deb [signed-by=" + keyringPath + "] https://pkgs.tailscale.com/stable/ubuntu " + release + " main\n")
-}
-
-func codename(ctx *modules.Context) string {
-	raw, err := file.Read(ctx, osReleasePath)
-	if err != nil {
-		return defaultCodename
-	}
-
-	for _, line := range strings.Split(string(raw), "\n") {
-		if value, ok := strings.CutPrefix(line, "VERSION_CODENAME="); ok {
-			return strings.Trim(value, `"`)
-		}
-	}
-
-	return defaultCodename
 }

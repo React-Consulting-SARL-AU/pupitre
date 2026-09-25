@@ -85,7 +85,7 @@ func linkedVersion(ctx *modules.Context) string {
 }
 
 func fetch(ctx *modules.Context, url string) (string, error) {
-	out, err := user.Run(ctx, shell.User, "curl", "-fsSL", "--proto", "=https", "--tlsv1.2", url)
+	out, err := user.Run(ctx, shell.User, sys.CurlText(url)...)
 
 	return strings.TrimSpace(out), err
 }
@@ -151,7 +151,7 @@ func installVersion(ctx *modules.Context, version string) error {
 	path := downloadsDir + "/" + Program + "-" + version + "-" + platform()
 	url := releasesURL + "/" + version + "/" + platform() + "/" + Program
 
-	if _, err := user.Run(ctx, shell.User, "curl", "-fsSL", "--proto", "=https", "--tlsv1.2", "-o", path, url); err != nil {
+	if _, err := user.Run(ctx, shell.User, sys.CurlFile(path, url)...); err != nil {
 		return err
 	}
 

@@ -3,11 +3,11 @@ package hardening
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"maps"
 	"slices"
 	"strconv"
 	"strings"
-	"time"
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/i18n"
@@ -16,6 +16,7 @@ import (
 	"pupitre.studio/agent/internal/sys/apt"
 	"pupitre.studio/agent/internal/sys/file"
 	"pupitre.studio/agent/internal/sys/systemd"
+	"pupitre.studio/agent/internal/sys/ufw"
 )
 
 const (
@@ -32,8 +33,6 @@ const (
 )
 
 var Packages = []string{"ufw", "fail2ban", "python3-systemd"}
-
-const ufwTimeout = time.Minute
 
 const fragmentTemplate = `PermitRootLogin %s
 PasswordAuthentication no
@@ -174,7 +173,7 @@ func applyFragment(ctx *modules.Context) error {
 		})
 	}
 
-	if result := Harden(ctx, User); result.Reason != "" {
+	if result := Harden(ctx); result.Reason != "" {
 		return errors.New(result.Reason)
 	}
 
@@ -220,20 +219,27 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 
 func (Module) Uninstall(ctx *modules.Context) error {
 	if err := ctx.Step("reopen-sshd", func() (modules.Outcome, error) {
-		removed, err := file.Remove(ctx, FragmentPath)
+		previous, err := file.Read(ctx, FragmentPath)
+		if errors.Is(err, fs.ErrNotExist) {
+			return modules.Skipped, nil
+		}
 		if err != nil {
 			return modules.Failed, err
 		}
 
-		if !removed {
-			return modules.Skipped, nil
-		}
-
-		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"sshd", "-t"}}); err != nil {
+		if _, err := file.Remove(ctx, FragmentPath); err != nil {
 			return modules.Failed, err
 		}
 
-		return modules.Done, reloadSSHD(ctx)
+		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"sshd", "-t"}}); err != nil {
+			return modules.Failed, errors.Join(err, file.WriteAtomic(ctx, FragmentPath, previous, 0o644))
+		}
+
+		if err := reloadSSHD(ctx); err != nil {
+			return modules.Failed, errors.Join(err, file.WriteAtomic(ctx, FragmentPath, previous, 0o644))
+		}
+
+		return modules.Done, nil
 	}); err != nil {
 		return err
 	}
@@ -281,7 +287,7 @@ func (Module) Uninstall(ctx *modules.Context) error {
 			return modules.Skipped, nil
 		}
 
-		_, err := ufw(ctx, "--force", "disable")
+		_, err := ufw.Run(ctx, "--force", "disable")
 
 		return modules.Done, err
 	})
@@ -359,7 +365,7 @@ func configureFirewall(ctx *modules.Context) ([]int, error) {
 		}
 
 		for _, argv := range commands {
-			if _, err := ufw(ctx, argv...); err != nil {
+			if _, err := ufw.Run(ctx, argv...); err != nil {
 				return modules.Failed, err
 			}
 		}
@@ -462,7 +468,7 @@ type firewall struct {
 }
 
 func firewallStatus(ctx *modules.Context) firewall {
-	out, err := ctx.Sys().Run(sys.Command{Argv: []string{"ufw", "status", "verbose"}, Timeout: ufwTimeout})
+	out, err := ctx.Sys().Run(sys.Command{Argv: []string{"ufw", "status", "verbose"}, Timeout: ufw.Timeout})
 	if err != nil {
 		return firewall{}
 	}
@@ -480,27 +486,9 @@ func firewallStatus(ctx *modules.Context) firewall {
 		}
 	}
 
-	status.owned = ownedRules(ctx)
+	status.owned = ufw.Commented(ctx, comment)
 
 	return status
-}
-
-// ufw show added lists the rules as they were given, comment included, whether the firewall is up or not.
-func ownedRules(ctx *modules.Context) []string {
-	out, err := ctx.Sys().Run(sys.Command{Argv: []string{"ufw", "show", "added"}, Timeout: ufwTimeout})
-	if err != nil {
-		return nil
-	}
-
-	var owned []string
-	for _, line := range strings.Split(out.Stdout, "\n") {
-		fields := strings.Fields(line)
-		if len(fields) == 5 && fields[0] == "ufw" && fields[1] == "allow" && fields[3] == "comment" && fields[4] == "'"+comment+"'" {
-			owned = append(owned, fields[2])
-		}
-	}
-
-	return owned
 }
 
 func defaultPolicies(line string) (incoming, outgoing string) {
@@ -542,11 +530,4 @@ func (f firewall) matches(wanted []int) bool {
 	}
 
 	return !f.stale(wanted)
-}
-
-// ufw rewrites the whole rule set through iptables; on a machine whose kernel
-// refuses it, the command can sit there for ever. A minute is more than it ever
-// needs, and past that the step says so instead of holding the install.
-func ufw(ctx *modules.Context, args ...string) (sys.Output, error) {
-	return sys.Exec(ctx, sys.Command{Argv: append([]string{"ufw"}, args...), Timeout: ufwTimeout})
 }

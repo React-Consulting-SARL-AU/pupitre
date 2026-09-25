@@ -161,7 +161,7 @@ func TestHardenProtectsLinksEvenWhenRootStaysOpen(t *testing.T) {
 	fake := kernelHolding("0", "0")
 	ctx := newContext(t, fake, Options{})
 
-	result := Harden(ctx, "dev")
+	result := Harden(ctx)
 	if result.RootClosed {
 		t.Fatalf("no key opens dev on a bare machine: %+v", result)
 	}
@@ -173,7 +173,7 @@ func TestHardenProtectsLinksEvenWhenRootStaysOpen(t *testing.T) {
 
 func TestConfigureProtectsLinksOnce(t *testing.T) {
 	fake := hardenedMachine(t)
-	Harden(newContext(t, fake, Options{}), "dev")
+	Harden(newContext(t, fake, Options{}))
 	delete(fake.Files, linksPath)
 
 	ctx := newContext(t, fake, Options{SSH443: true})

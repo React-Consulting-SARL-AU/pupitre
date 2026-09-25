@@ -9,6 +9,7 @@ import (
 	"pupitre.studio/agent/internal/modules/modtest"
 	"pupitre.studio/agent/internal/modules/runtime/mise"
 	"pupitre.studio/agent/internal/modules/runtime/shell"
+	"pupitre.studio/agent/internal/sys"
 )
 
 var everything = modtest.Values{"node_versions": []string{"22", "24"}, "bun": true, "pnpm": true, "yarn": true}
@@ -47,9 +48,9 @@ func TestInstallOnAMachineWithoutMise(t *testing.T) {
 
 	commands := strings.Join(fake.Commands(), "\n")
 	for _, want := range []string{
-		"curl -fsSL --proto =https --tlsv1.2 https://mise.jdx.dev/VERSION",
-		"curl -fsSL --proto =https --tlsv1.2 https://github.com/jdx/mise/releases/download/v" + modtest.MiseVersion + "/SHASUMS256.txt",
-		"curl -fsSL --proto =https --tlsv1.2 -o /var/lib/pupitre/downloads/mise https://github.com/jdx/mise/releases/download/v" + modtest.MiseVersion + "/mise-v" + modtest.MiseVersion + "-linux-",
+		strings.Join(sys.CurlText("https://mise.jdx.dev/VERSION"), " "),
+		strings.Join(sys.CurlText("https://github.com/jdx/mise/releases/download/v"+modtest.MiseVersion+"/SHASUMS256.txt"), " "),
+		strings.Join(sys.CurlFile("/var/lib/pupitre/downloads/mise", "https://github.com/jdx/mise/releases/download/v"+modtest.MiseVersion+"/mise-v"+modtest.MiseVersion+"-linux-"), " "),
 		"sha256sum /var/lib/pupitre/downloads/mise",
 		"(dev) mise install -y node@24",
 		"(dev) mise install -y node@22",

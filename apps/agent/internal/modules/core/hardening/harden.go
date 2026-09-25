@@ -34,8 +34,9 @@ func hardened(keepRoot bool, name string) Result {
 	return Result{RootClosed: !keepRoot, RootKept: keepRoot, NextUser: name}
 }
 
-// Root closes last, and only once a key opens the next user; any failure after the fragment is written puts the previous configuration back.
-func Harden(ctx *modules.Context, name string) Result {
+// Root closes last, and only once a key opens dev; any failure after the fragment is written puts the previous configuration back.
+func Harden(ctx *modules.Context) Result {
+	name := User
 	keepRoot := options(ctx).KeepRoot
 
 	if err := protectLinks(ctx); err != nil {

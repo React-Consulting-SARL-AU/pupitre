@@ -8,6 +8,7 @@ import (
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/ai/agents"
 	"pupitre.studio/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/sys"
 )
 
 const (
@@ -63,9 +64,9 @@ func TestFirstInstallLaysDownTheCliTheContextAndTheSkills(t *testing.T) {
 
 	commands := strings.Join(fake.Commands(), "\n")
 	for _, want := range []string{
-		"(dev) curl -fsSL --proto =https --tlsv1.2 https://downloads.claude.ai/claude-code-releases/latest",
-		"(dev) curl -fsSL --proto =https --tlsv1.2 https://downloads.claude.ai/claude-code-releases/2.1.263/manifest.json",
-		"(dev) curl -fsSL --proto =https --tlsv1.2 -o " + download + " https://downloads.claude.ai/claude-code-releases/2.1.263/" + platform() + "/claude",
+		"(dev) " + strings.Join(sys.CurlText("https://downloads.claude.ai/claude-code-releases/latest"), " "),
+		"(dev) " + strings.Join(sys.CurlText("https://downloads.claude.ai/claude-code-releases/2.1.263/manifest.json"), " "),
+		"(dev) " + strings.Join(sys.CurlFile(download, "https://downloads.claude.ai/claude-code-releases/2.1.263/"+platform()+"/claude"), " "),
 		"(dev) sha256sum " + download,
 		"(dev) " + download + " install",
 		"(dev) rm -f " + download,
@@ -278,12 +279,12 @@ func TestLoginReadsWhatClaudeAuthStatusSays(t *testing.T) {
 		want    contract.Login
 	}{
 		"signed in": {
-			answer: `{"loggedIn":true,"authMethod":"claude.ai","email":"jordan@example.org","orgName":"Flymate"}`,
+			answer: `{"loggedIn":true,"authMethod":"claude.ai","email":"jordan@example.org","orgName":"Flyleaf"}`,
 			want:   contract.Login{State: contract.LoginSignedIn, Account: "jordan@example.org"},
 		},
 		"an organisation without an email": {
-			answer: `{"loggedIn":true,"authMethod":"console","orgName":"Flymate"}`,
-			want:   contract.Login{State: contract.LoginSignedIn, Account: "Flymate"},
+			answer: `{"loggedIn":true,"authMethod":"console","orgName":"Flyleaf"}`,
+			want:   contract.Login{State: contract.LoginSignedIn, Account: "Flyleaf"},
 		},
 		"nobody": {
 			answer:  `{"loggedIn":false,"authMethod":"none"}`,

@@ -262,7 +262,7 @@ func resolve(ctx *modules.Context) (string, error) {
 		return strings.TrimPrefix(chosen, "v"), nil
 	}
 
-	out, err := sys.Exec(ctx, sys.Command{Argv: []string{"curl", "-fsS", "--proto", "=https", "--tlsv1.2", "-o", "/dev/null", "-w", "%{redirect_url}", assetURL(latest)}})
+	out, err := sys.Exec(ctx, sys.Command{Argv: sys.CurlRedirect(assetURL(latest))})
 	if err != nil {
 		return "", err
 	}

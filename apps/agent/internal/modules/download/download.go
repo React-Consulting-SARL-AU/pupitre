@@ -18,12 +18,9 @@ import (
 
 const Dir = "/var/lib/pupitre/downloads"
 
-var curl = []string{"curl", "-fsSL", "--proto", "=https", "--tlsv1.2"}
-
-// Text reads a small document — a version, an index, a checksum — and returns it trimmed.
-// Text fetches a body — a release index, an install script — that has no place in the journal.
+// Text fetches a small body — a version, a release index, an install script — trimmed, and keeps it out of the journal.
 func Text(ctx *modules.Context, url string) (string, error) {
-	out, err := modules.Quiet(ctx, sys.Command{Argv: append(append([]string{}, curl...), url)})
+	out, err := modules.Quiet(ctx, sys.Command{Argv: sys.CurlText(url)})
 
 	return strings.TrimSpace(out.Stdout), err
 }
@@ -37,7 +34,7 @@ func Fetch(ctx *modules.Context, name, url string) (string, func(), error) {
 	staged := Dir + "/" + name
 	remove := func() { _, _ = file.Remove(ctx, staged) }
 
-	if _, err := sys.Exec(ctx, sys.Command{Argv: append(append([]string{}, curl...), "-o", staged, url)}); err != nil {
+	if _, err := sys.Exec(ctx, sys.Command{Argv: sys.CurlFile(staged, url)}); err != nil {
 		remove()
 
 		return "", nil, err
@@ -117,22 +114,26 @@ func Install(ctx *modules.Context, staged, destination string, mode fs.FileMode,
 	return file.Chown(ctx, destination, owner, owner)
 }
 
-// Extract unpacks a staged tarball into dir as root, dropping strip leading folders, then hands everything to owner.
+// Extract unpacks a staged tarball into dir, dropping strip leading folders.
+// A user's folder is unpacked by that user from the archive on standard input: a link they planted there never carries a root write.
 func Extract(ctx *modules.Context, staged, dir string, strip int, owner string) error {
-	argv := []string{"tar", "-x", "-z", "-f", staged, "-C", dir}
+	command := sys.Command{Argv: []string{"tar", "-x", "-z", "-f", staged, "-C", dir}}
+
+	if owner != "" && owner != "root" {
+		if _, err := file.EnsureOwned(ctx, dir, owner, owner, 0o755); err != nil {
+			return err
+		}
+
+		command = sys.Command{User: owner, Argv: []string{"tar", "-x", "-z", "-f", "-", "-C", dir}, StdinPath: staged}
+	}
+
 	if strip > 0 {
-		argv = append(argv, "--strip-components="+strconv.Itoa(strip))
+		command.Argv = append(command.Argv, "--strip-components="+strconv.Itoa(strip))
 	}
 
-	if _, err := sys.Exec(ctx, sys.Command{Argv: argv}); err != nil {
-		return err
-	}
+	_, err := sys.Exec(ctx, command)
 
-	if owner == "" || owner == "root" {
-		return nil
-	}
-
-	return file.ChownAll(ctx, dir, owner, owner)
+	return err
 }
 
 const versionsDir = "/var/lib/pupitre/versions"
@@ -161,7 +162,7 @@ func Forget(ctx *modules.Context, id string) (bool, error) {
 
 // LatestVersion reads the version a vendor's "latest" link points at: GitHub answers with a redirect whose path names the tag.
 func LatestVersion(ctx *modules.Context, latestURL string) (string, error) {
-	out, err := sys.Exec(ctx, sys.Command{Argv: []string{"curl", "-fsS", "--proto", "=https", "--tlsv1.2", "-o", "/dev/null", "-w", "%{redirect_url}", latestURL}})
+	out, err := sys.Exec(ctx, sys.Command{Argv: sys.CurlRedirect(latestURL)})
 	if err != nil {
 		return "", err
 	}

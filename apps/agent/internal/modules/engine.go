@@ -491,7 +491,8 @@ func (e *Engine) writeReport(report contract.Report) error {
 		return err
 	}
 
-	return sys.Real{}.WriteFile(e.reportPath(), append(encoded, '\n'), 0o644)
+	// Like the journal, the report is the run's own record rather than a change to the machine: it is written beside it, and root's alone.
+	return sys.Real{}.WriteFile(e.reportPath(), append(encoded, '\n'), 0o600)
 }
 
 // install.json accumulates what the app asked for, so a replay from the CLI has every module, value and secret.

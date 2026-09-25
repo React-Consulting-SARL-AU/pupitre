@@ -42,10 +42,6 @@ func Sync(ctx *modules.Context) (Report, error) {
 
 	if changed {
 		if err := ctx.Step("reload-service", func() (modules.Outcome, error) {
-			if err := validate(ctx); err != nil {
-				return modules.Failed, err
-			}
-
 			return modules.Done, systemd.Reload(ctx, Unit)
 		}); err != nil {
 			return Report{}, err

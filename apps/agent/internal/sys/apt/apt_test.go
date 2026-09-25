@@ -97,6 +97,53 @@ func TestUpgradeReportsWhetherTheVersionChanged(t *testing.T) {
 	}
 }
 
+// A list apt cannot read fails every later update on the machine, whoever runs it: the repository that just broke it goes back out, key included.
+func TestARepositoryAptCannotReadIsTakenBackOut(t *testing.T) {
+	const (
+		source  = "/etc/apt/sources.list.d/mongodb-org-7.0.list"
+		keyring = "/etc/apt/keyrings/mongodb-7.0.asc"
+		refusal = "E: The repository 'https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/7.0 Release' does not have a Release file."
+	)
+
+	fake := modtest.NewFakeSys()
+	fake.Files[source] = []byte("deb https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/7.0 multiverse\n")
+	fake.Files[keyring] = []byte("key")
+	fake.FailLine("update -qq", refusal)
+	ctx := modtest.NewContext(t, fake, modtest.Options{})
+
+	err := apt.RefreshAdded(ctx, source, keyring)
+	if err == nil || !strings.Contains(err.Error(), "does not have a Release file") || !strings.Contains(err.Error(), source) {
+		t.Fatalf("refresh = %v, want apt's refusal and the list named", err)
+	}
+
+	for _, path := range []string{source, keyring} {
+		if _, kept := fake.Files[path]; kept {
+			t.Errorf("%s must not stay where apt reads it", path)
+		}
+	}
+
+	delete(fake.LineFailures, "update -qq")
+	if err := apt.Install(ctx, "caddy"); err != nil {
+		t.Fatalf("apt must stay usable after the refusal: %v", err)
+	}
+}
+
+func TestARepositoryAptReadsStays(t *testing.T) {
+	const source = "/etc/apt/sources.list.d/caddy-stable.list"
+
+	fake := modtest.NewFakeSys()
+	fake.Files[source] = []byte("deb https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main\n")
+	ctx := modtest.NewContext(t, fake, modtest.Options{})
+
+	if err := apt.RefreshAdded(ctx, source); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, kept := fake.Files[source]; !kept || fake.Updates != 1 {
+		t.Fatalf("list kept = %v, updates = %d", kept, fake.Updates)
+	}
+}
+
 func TestRemoveAndFailures(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Packages["redis-server"] = "7.0.15"

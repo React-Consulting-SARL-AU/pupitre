@@ -7,6 +7,12 @@ import (
 
 const ID = "exposure.cloudflare"
 
+// Both are written into cloudflared's YAML as they are: an account is 32 hex digits, a tunnel a UUID, and nothing else may pass.
+const (
+	AccountTagPattern = "^[0-9a-fA-F]{32}$"
+	TunnelIDPattern   = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
+
 // Three of the four are derived by the app from the client's Cloudflare account, which never comes down here; the domain is the client's own choice, one per server.
 func manifest() contract.Manifest {
 	return contract.Manifest{
@@ -29,8 +35,8 @@ func manifest() contract.Manifest {
 				Format:   contract.FormatDomain,
 				Required: true,
 			},
-			{Key: "account_tag", Kind: contract.FieldText, Label: i18n.T("module.exposure.cloudflare.account_tag.label"), Required: true, Managed: true},
-			{Key: "tunnel_id", Kind: contract.FieldText, Label: i18n.T("module.exposure.cloudflare.tunnel_id.label"), Required: true, Managed: true},
+			{Key: "account_tag", Kind: contract.FieldText, Label: i18n.T("module.exposure.cloudflare.account_tag.label"), Pattern: AccountTagPattern, Required: true, Managed: true},
+			{Key: "tunnel_id", Kind: contract.FieldText, Label: i18n.T("module.exposure.cloudflare.tunnel_id.label"), Pattern: TunnelIDPattern, Required: true, Managed: true},
 			{Key: "tunnel_secret", Kind: contract.FieldSecret, Label: i18n.T("module.exposure.cloudflare.tunnel_secret.label"), Required: true, Managed: true},
 		},
 		Connection: contract.ConnectionCloudflare,

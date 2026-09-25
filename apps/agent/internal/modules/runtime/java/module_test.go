@@ -15,7 +15,7 @@ var values = modtest.Values{"java_versions": []string{"21"}}
 
 func machine(totalKB string) *modtest.FakeSys {
 	fake := modtest.NewFakeSys()
-	fake.Files[meminfoPath] = []byte("MemTotal:       " + totalKB + " kB\nMemFree:          200000 kB\n")
+	fake.Files["/proc/meminfo"] = []byte("MemTotal:       " + totalKB + " kB\nMemFree:          200000 kB\n")
 
 	return fake
 }

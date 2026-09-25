@@ -543,6 +543,26 @@ func TestAnOpenReportWhileTheLockIsHeldStaysOpen(t *testing.T) {
 	}
 }
 
+func TestTheReportIsRootsAlone(t *testing.T) {
+	engine := newEngine(t, modtest.NewFakeSys(), demoRegistry(modtest.Passing{ID: "tool.demo"}), entitled(contract.EntitlementDev))
+	if err := os.WriteFile(engine.ReportPath, []byte("{}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := engine.Install(modules.Request{Modules: []string{"tool.demo"}}, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	info, err := os.Stat(engine.ReportPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if info.Mode().Perm() != 0o600 {
+		t.Fatalf("report mode = %o, want 0600 even over one an older agent left readable", info.Mode().Perm())
+	}
+}
+
 func TestReportBeforeAnyInstall(t *testing.T) {
 	engine := newEngine(t, modtest.NewFakeSys(), newRegistry(), entitled(contract.EntitlementValid))
 
@@ -1138,6 +1158,31 @@ func TestConfigureAndPreflightSeeWhatTheMachineHolds(t *testing.T) {
 	if fmt.Sprint(holding.upgraded) != "9001" {
 		t.Fatalf("upgrade must see the held port 9001, got %v", holding.upgraded)
 	}
+}
+
+func TestAModuleIsConfiguredWithTheValueThatWasJudged(t *testing.T) {
+	recorder := &domainRecorder{Passing: modtest.Passing{ID: "tool.domain", Asks: []contract.Field{{Key: "domain", Kind: contract.FieldText, Label: "Domaine", Format: contract.FormatDomain, Required: true}}}}
+	engine := newEngine(t, modtest.NewFakeSys(), demoRegistry(recorder), entitled(contract.EntitlementValid))
+
+	request := modules.Request{Modules: []string{"tool.domain"}, Config: map[string]map[string]any{"tool.domain": {"domain": "  Flyleaf.DEV\n"}}, Persist: true}
+	if result, err := engine.Install(request, nil); err != nil || len(result.Failed) != 0 {
+		t.Fatalf("install = %+v, %v", result, err)
+	}
+
+	if recorder.configured != "flyleaf.dev" {
+		t.Fatalf("configure read %q, the value judged was flyleaf.dev", recorder.configured)
+	}
+}
+
+type domainRecorder struct {
+	modtest.Passing
+	configured string
+}
+
+func (m *domainRecorder) Configure(ctx *modules.Context) error {
+	m.configured = ctx.String("domain")
+
+	return m.Passing.Configure(ctx)
 }
 
 // heldRecorder is a demo module that notes what Held answers in each phase.

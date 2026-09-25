@@ -9,21 +9,22 @@ import (
 	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/exposure/cloudflared"
+	"pupitre.studio/agent/internal/modules/exposure/routes"
 	"pupitre.studio/agent/internal/modules/modtest"
 	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/sys/env"
 )
 
 const (
-	account = "acc-1234"
-	tunnel  = "t-1234"
+	account = "0123456789abcdef0123456789abcdef"
+	tunnel  = "6f1d2c3b-4a5e-4f60-8a7b-9c0d1e2f3a4b"
 	secret  = "s3cret-de-test"
 	domain  = "pupitre.sh"
 	label   = "hibou-tranquille-4821"
 )
 
-const projects = `web|flymate/apps/web|-|bun|web.localhost|3000|` + label + `|bun run dev
-api|flymate/apps/api|-|bun|api.localhost|3001|-|bun run api
+const projects = `web|flyleaf/apps/web|-|bun|web.localhost|3000|` + label + `|bun run dev
+api|flyleaf/apps/api|-|bun|api.localhost|3001|-|bun run api
 `
 
 func values() modtest.Values {
@@ -197,7 +198,7 @@ func TestInstallAndConfigureAreIdempotent(t *testing.T) {
 // A new project takes its route without touching anything else: the app declares the subdomain, sync writes the ingress.
 func TestSyncFollowsTheRegistry(t *testing.T) {
 	fake := equipped(t)
-	fake.Files[registry.DefaultConf] = []byte(projects + "docs|flymate/apps/docs|-|bun|docs.localhost|3002|renard-calme-1122|bun run docs\n")
+	fake.Files[registry.DefaultConf] = []byte(projects + "docs|flyleaf/apps/docs|-|bun|docs.localhost|3002|renard-calme-1122|bun run docs\n")
 
 	report, err := Sync(newContext(t, fake, nil))
 	if err != nil {
@@ -235,6 +236,25 @@ func TestUninstallGivesBackTheMachineOnly(t *testing.T) {
 		if strings.Contains(command, "api.cloudflare.com") {
 			t.Fatalf("the uninstall must not touch the account: %s", command)
 		}
+	}
+}
+
+// A tunnel that never took the machine, left behind by a failed install, goes without the domain Caddy now serves: project.add resolves its subdomains against it.
+func TestUninstallKeepsTheDomainOfTheExposureThatHoldsTheMachine(t *testing.T) {
+	fake := equipped(t)
+	fake.Files[modePath] = routes.Marker("caddy")
+	fake.Files[env.Path] = []byte(env.DomainKey + "=caddy.example.org\n")
+
+	if err := (Module{}).Uninstall(newContext(t, fake, nil)); err != nil {
+		t.Fatal(err)
+	}
+
+	if fake.EnvValue(env.DomainKey) != "caddy.example.org" {
+		t.Fatalf("the domain Caddy holds must stay, env:\n%s", fake.Files[env.Path])
+	}
+
+	if string(fake.Files[modePath]) != "caddy\n" {
+		t.Fatalf("the marker belongs to caddy: %q", fake.Files[modePath])
 	}
 }
 
@@ -317,7 +337,7 @@ var _ modules.Module = Module{}
 // systemctl only ever says the job failed; what the client can act on is in the daemon's own journal.
 func TestAStartThatNeverComesUpNamesWhatTheDaemonSaid(t *testing.T) {
 	fake := equipped(t)
-	fake.Files[registry.DefaultConf] = []byte(projects + "shop|flymate/apps/shop|-|bun|shop.localhost|3002|-|bun run shop\n")
+	fake.Files[registry.DefaultConf] = []byte(projects + "shop|flyleaf/apps/shop|-|bun|shop.localhost|3002|-|bun run shop\n")
 	fake.FailProgram("systemctl", "Job for cloudflared.service failed because a timeout was exceeded.")
 	fake.Answer("journalctl", `ERR Register tunnel error from server side error="Unauthorized: Tunnel not found"`)
 	ctx := newContext(t, fake, modtest.Secrets{"tunnel_secret": secret})
@@ -463,5 +483,44 @@ func TestATunnelThatServesIsAccepted(t *testing.T) {
 
 	if err := cloudflared.Registered(newContext(t, fake, modtest.Secrets{})); err != nil {
 		t.Fatalf("an active unit must pass: %v", err)
+	}
+}
+
+// Both values are written into cloudflared's YAML as they are: a line break in either would write a key of its own.
+func TestTheTunnelAndTheAccountAreRefusedUnlessTheyAreWhatCloudflareIssues(t *testing.T) {
+	held := func(string, string) []string { return []string{secret} }
+
+	if problems := contract.ValidateModule(manifest(), map[string]any{"account_tag": account, "tunnel_id": tunnel, "domain": domain}, held); len(problems) != 0 {
+		t.Fatalf("what Cloudflare issues must pass: %+v", problems)
+	}
+
+	for field, value := range map[string]string{
+		"account_tag": "acc-1234",
+		"tunnel_id":   tunnel + "\ncredentials-file: /etc/shadow",
+	} {
+		config := map[string]any{"account_tag": account, "tunnel_id": tunnel, "domain": domain}
+		config[field] = value
+
+		problems := contract.ValidateModule(manifest(), config, held)
+		if len(problems) != 1 || problems[0].Field != field || problems[0].Code != contract.ProblemPattern {
+			t.Errorf("%s = %q: problems = %+v", field, value, problems)
+		}
+	}
+}
+
+func TestTheExposureMarkerIsRootsAlone(t *testing.T) {
+	fake := equipped(t)
+
+	if fake.Modes[modePath] != 0o600 {
+		t.Fatalf("%s mode = %o, want 0600", modePath, fake.Modes[modePath])
+	}
+
+	fake.Modes[modePath] = 0o644
+	if err := (Module{}).Configure(newContext(t, fake, modtest.Secrets{"tunnel_secret": secret})); err != nil {
+		t.Fatal(err)
+	}
+
+	if fake.Modes[modePath] != 0o600 {
+		t.Fatalf("a marker left readable by an older agent must be closed on the next pass: %o", fake.Modes[modePath])
 	}
 }

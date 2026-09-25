@@ -10,17 +10,11 @@ import (
 )
 
 func RegisterCommands(server *protocol.Server, engine *modules.Engine) {
-	server.Register("harden", func(ctx *protocol.Context, raw json.RawMessage) (any, error) {
-		var params struct {
-			User string `json:"user"`
-		}
-		if err := json.Unmarshal(raw, &params); err != nil {
-			return nil, protocol.NewError(contract.ErrorBadRequest, i18n.T("command.params.unreadable", err.Error()))
-		}
-
+	// The contract holds user to dev, the one account the fragment's AllowUsers names.
+	server.Register("harden", func(ctx *protocol.Context, _ json.RawMessage) (any, error) {
 		var result Result
 		err := engine.Command(ID, modules.Emitter(ctx), func(mctx *modules.Context) error {
-			result = Harden(mctx, params.User)
+			result = Harden(mctx)
 			return nil
 		})
 		if err != nil {

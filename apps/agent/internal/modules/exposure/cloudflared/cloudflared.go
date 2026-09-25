@@ -205,7 +205,7 @@ func addRepository(ctx *modules.Context) error {
 		}
 	}
 
-	return apt.Refresh(ctx)
+	return apt.RefreshAdded(ctx, SourcePath, KeyringPath)
 }
 
 func WriteCredentials(ctx *modules.Context, content Credentials) error {

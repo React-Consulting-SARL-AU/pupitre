@@ -246,5 +246,32 @@ func TestLoginReadsWhatTailscaleStatusSays(t *testing.T) {
 	}
 }
 
+// Tailscale SSH answers before sshd, so neither AllowUsers nor PermitRootLogin nor fail2ban weighs it: it stays off unless asked for.
+func TestTailscaleSSHStaysOffUnlessAskedFor(t *testing.T) {
+	if field := manifest().Fields[2]; field.Key != "ssh" || field.Default != false {
+		t.Fatalf("ssh field = %+v", field)
+	}
+
+	fake := machine()
+	ctx := newContext(t, fake, modtest.Values{})
+
+	if err := (Module{}).Install(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := (Module{}).Configure(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, line := range fake.Commands() {
+		if strings.Contains(line, "tailscale up") && strings.Contains(line, "--ssh") {
+			t.Fatalf("tailscale up must not open Tailscale SSH by default: %s", line)
+		}
+	}
+
+	if fake.Prefs.SSH {
+		t.Fatal("the node must not run Tailscale SSH by default")
+	}
+}
+
 var _ modules.Module = Module{}
 var _ modules.Account = Module{}

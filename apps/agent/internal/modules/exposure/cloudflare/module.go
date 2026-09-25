@@ -22,8 +22,8 @@ const (
 	modePath = routes.ModePath
 )
 
-// The marker /etc/pupitre/exposure says which exposure holds the machine; this one writes its name there like ssh and caddy do.
-var mode = []byte(Provider + "\n")
+// The marker /etc/pupitre/exposure says which exposure holds the machine; this one writes its name there like caddy does.
+var mode = routes.Marker(Provider)
 
 type Module struct{}
 
@@ -152,17 +152,7 @@ func storeDomain(ctx *modules.Context) error {
 }
 
 func declareMode(ctx *modules.Context) error {
-	return ctx.Step("declare-mode", func() (modules.Outcome, error) {
-		if file.Same(ctx, modePath, mode) {
-			return modules.Skipped, nil
-		}
-
-		if err := ctx.Sys().MkdirAll("/etc/pupitre", 0o700); err != nil {
-			return modules.Failed, err
-		}
-
-		return modules.Done, file.WriteAtomic(ctx, modePath, mode, 0o644)
-	})
+	return routes.DeclareMode(ctx, Provider)
 }
 
 // A daemon already running keeps the credentials and the ingress it read at
@@ -242,6 +232,8 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 
 // The tunnel and its records live on the client's Cloudflare account: uninstalling gives back the machine, and touches neither.
 func (Module) Uninstall(ctx *modules.Context) error {
+	heldByAnother := routes.HeldByAnother(ctx, Provider)
+
 	if err := ctx.Step("stop-service", func() (modules.Outcome, error) {
 		if !file.Exists(ctx, cloudflared.UnitPath) {
 			return modules.Skipped, nil
@@ -302,6 +294,10 @@ func (Module) Uninstall(ctx *modules.Context) error {
 	}
 
 	return ctx.Step("forget-domain", func() (modules.Outcome, error) {
+		if heldByAnother {
+			return modules.Skipped, nil
+		}
+
 		forgotten, err := env.Unset(ctx, env.DomainKey)
 		if err != nil {
 			return modules.Failed, err

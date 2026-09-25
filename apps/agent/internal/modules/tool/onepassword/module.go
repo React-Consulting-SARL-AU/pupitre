@@ -86,7 +86,7 @@ func addRepository(ctx *modules.Context) error {
 		}
 	}
 
-	return apt.Refresh(ctx)
+	return apt.RefreshAdded(ctx, sourcePath, keyringPath)
 }
 
 func (Module) Configure(ctx *modules.Context) error {

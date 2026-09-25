@@ -491,6 +491,7 @@ func newRun(options runOptions) *run {
 }
 
 func (r *run) context(manifest contract.Manifest, values map[string]any, secrets map[string]string) *Context {
+	values = contract.NormalizeValues(manifest, values)
 	if values == nil {
 		values = map[string]any{}
 	}

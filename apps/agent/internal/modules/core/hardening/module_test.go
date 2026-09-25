@@ -7,6 +7,7 @@ import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/sys/ufw"
 )
 
 func newContext(t *testing.T, fake *modtest.FakeSys, o Options) *modules.Context {
@@ -198,6 +199,27 @@ func TestUninstallValidatesSshdBeforeReloading(t *testing.T) {
 	if fake.Restarts["ssh"] != 0 {
 		t.Fatalf("ssh reloaded %d time(s) on a configuration sshd refused", fake.Restarts["ssh"])
 	}
+
+	if string(fake.Files[FragmentPath]) != string(Fragment(Options{})) {
+		t.Fatalf("the fragment sshd still runs on must be put back, got %q", fake.Files[FragmentPath])
+	}
+}
+
+// A reload that fails leaves sshd on what it read before: the fragment goes back so the disk says what runs.
+func TestUninstallPutsTheFragmentBackWhenTheReloadFails(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Units["ssh"] = modtest.UnitActive
+	run(t, newContext(t, fake, Options{}))
+	fake.Files[FragmentPath] = Fragment(Options{})
+	fake.FailLine("systemctl daemon-reload", "Failed to reload daemon: Access denied")
+
+	if err := (Module{}).Uninstall(newContext(t, fake, Options{})); err == nil {
+		t.Fatal("a reload that fails must fail the step")
+	}
+
+	if string(fake.Files[FragmentPath]) != string(Fragment(Options{})) {
+		t.Fatalf("the fragment must be put back, got %q", fake.Files[FragmentPath])
+	}
 }
 
 func TestEveryFirewallCallIsBounded(t *testing.T) {
@@ -210,7 +232,7 @@ func TestEveryFirewallCallIsBounded(t *testing.T) {
 	}
 
 	for _, call := range fake.Calls {
-		if call.Argv[0] == "ufw" && call.Timeout != ufwTimeout {
+		if call.Argv[0] == "ufw" && call.Timeout != ufw.Timeout {
 			t.Fatalf("ufw call without the timeout: %v", call.Argv)
 		}
 	}
@@ -239,7 +261,7 @@ func TestFirewallLeavesCaddysRuleOn443Alone(t *testing.T) {
 
 func TestConfigureOnAHardenedMachineAppliesTheChangedFragment(t *testing.T) {
 	fake := hardenedMachine(t)
-	Harden(newContext(t, fake, Options{}), "dev")
+	Harden(newContext(t, fake, Options{}))
 
 	ctx := newContext(t, fake, Options{KeepRoot: true})
 	run(t, ctx)
@@ -273,7 +295,7 @@ func TestConfigureOnAHardenedMachineAppliesTheChangedFragment(t *testing.T) {
 
 func TestConfigureOnAHardenedMachineRevertsAFragmentSshdRefuses(t *testing.T) {
 	fake := hardenedMachine(t)
-	Harden(newContext(t, fake, Options{}), "dev")
+	Harden(newContext(t, fake, Options{}))
 	fake.FailLine("sshd -t", "Port: bad port number")
 
 	ctx := newContext(t, fake, Options{SSH443: true})
@@ -301,7 +323,7 @@ func TestConfigureBeforeHardenNeverTouchesSshd(t *testing.T) {
 
 func TestConfigureNeverClosesRootItself(t *testing.T) {
 	fake := machine(t, Options{KeepRoot: true})
-	Harden(newContext(t, fake, Options{KeepRoot: true}), "dev")
+	Harden(newContext(t, fake, Options{KeepRoot: true}))
 	reloads := fake.Restarts["ssh"]
 
 	ctx := newContext(t, fake, Options{})

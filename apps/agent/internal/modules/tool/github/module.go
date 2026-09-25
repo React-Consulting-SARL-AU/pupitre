@@ -91,7 +91,7 @@ func addRepository(ctx *modules.Context) error {
 			return err
 		}
 
-		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"curl", "-fsSL", "--proto", "=https", "--tlsv1.2", "-o", keyringPath, keyURL}}); err != nil {
+		if err := apt.DownloadKey(ctx, keyURL, keyringPath); err != nil {
 			return err
 		}
 
@@ -106,7 +106,7 @@ func addRepository(ctx *modules.Context) error {
 		}
 	}
 
-	return apt.Refresh(ctx)
+	return apt.RefreshAdded(ctx, sourcePath, keyringPath)
 }
 
 func (Module) Configure(ctx *modules.Context) error {

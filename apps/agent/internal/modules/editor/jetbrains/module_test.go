@@ -21,7 +21,7 @@ func newContext(t *testing.T, fake *modtest.FakeSys, values modtest.Values) *mod
 func machine(memTotalKB string) *modtest.FakeSys {
 	fake := modtest.NewFakeSys()
 	fake.Users["dev"] = "/home/dev"
-	fake.Files[meminfoPath] = []byte("MemTotal:       " + memTotalKB + " kB\nMemFree: 1024 kB\n")
+	fake.Files["/proc/meminfo"] = []byte("MemTotal:       " + memTotalKB + " kB\nMemFree: 1024 kB\n")
 	fake.Answer("data.services.jetbrains.com", releases)
 	fake.Archives[download.Dir+"/jetbrains-idea.tar.gz"] = []string{"bin/remote-dev-server.sh", "build.txt", "product-info.json"}
 

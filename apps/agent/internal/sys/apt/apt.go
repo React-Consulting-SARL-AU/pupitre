@@ -1,8 +1,12 @@
 package apt
 
 import (
+	"errors"
+	"fmt"
+	"io/fs"
 	"strings"
 
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/sys"
 )
 
@@ -49,6 +53,22 @@ func Refresh(ctx sys.Context) error {
 	_, err := sys.Exec(ctx, command("update", "-qq"))
 
 	return err
+}
+
+// RefreshAdded reads the lists after a repository was added, and takes that repository back out if apt cannot read it: a list left broken fails every later update on the machine, whichever module runs it.
+func RefreshAdded(ctx sys.Context, source string, keyrings ...string) error {
+	err := Refresh(ctx)
+	if err == nil {
+		return nil
+	}
+
+	for _, path := range append([]string{source}, keyrings...) {
+		if removeErr := ctx.Sys().Remove(path); removeErr != nil && !errors.Is(removeErr, fs.ErrNotExist) {
+			return errors.Join(err, removeErr)
+		}
+	}
+
+	return fmt.Errorf("%w\n%s", err, i18n.T("apt.repository.dropped", source))
 }
 
 func Install(ctx sys.Context, pkgs ...string) error {

@@ -61,6 +61,27 @@ func install(t *testing.T, fake *modtest.FakeSys) *modules.Context {
 	return ctx
 }
 
+// Nothing vouches for the tarball but TLS, and it lands in dev's own folder: dev unpacks it, so root never writes through a link planted there.
+func TestTheUncheckedTarballIsUnpackedByDevNotRoot(t *testing.T) {
+	fake := machine(version)
+
+	install(t, fake)
+
+	unpacked := false
+	for _, command := range fake.Commands() {
+		if strings.Contains(command, "tar -x") {
+			unpacked = true
+			if !strings.HasPrefix(command, "(dev) tar -x -z -f - ") {
+				t.Fatalf("tar must run as dev and read the archive on its standard input: %s", command)
+			}
+		}
+	}
+
+	if !unpacked {
+		t.Fatal("the tarball was never unpacked")
+	}
+}
+
 func TestFirstInstallLaysDownTheCliUnderItsVersionAndTheSkills(t *testing.T) {
 	fake := machine(version)
 

@@ -23,7 +23,7 @@ func securedMachine(t *testing.T) *modtest.FakeSys {
 	t.Helper()
 
 	fake := hardenedMachine(t)
-	if result := Harden(newContext(t, fake, Options{}), "dev"); !result.RootClosed {
+	if result := Harden(newContext(t, fake, Options{})); !result.RootClosed {
 		t.Fatalf("harden: %+v", result)
 	}
 

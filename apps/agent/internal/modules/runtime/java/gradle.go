@@ -2,15 +2,12 @@ package java
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 
 	"pupitre.studio/agent/internal/modules"
-	"pupitre.studio/agent/internal/sys/file"
+	"pupitre.studio/agent/internal/sys/host"
 )
 
 const (
-	meminfoPath  = "/proc/meminfo"
 	minHeapMB    = 1024
 	maxHeapMB    = 4096
 	metaspaceMB  = 512
@@ -43,20 +40,8 @@ func heapMB(ctx *modules.Context) int {
 }
 
 func totalKB(ctx *modules.Context) int {
-	raw, err := file.Read(ctx, meminfoPath)
-	if err != nil {
-		return fallbackRAMB
-	}
-
-	for _, line := range strings.Split(string(raw), "\n") {
-		fields := strings.Fields(line)
-		if len(fields) < 2 || fields[0] != "MemTotal:" {
-			continue
-		}
-
-		if kb, err := strconv.Atoi(fields[1]); err == nil {
-			return kb
-		}
+	if kb, known := host.MemTotalKB(ctx); known {
+		return kb
 	}
 
 	return fallbackRAMB

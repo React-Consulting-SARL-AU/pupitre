@@ -14,6 +14,7 @@ import (
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/apt"
 	"pupitre.studio/agent/internal/sys/file"
+	"pupitre.studio/agent/internal/sys/host"
 	"pupitre.studio/agent/internal/sys/systemd"
 	"pupitre.studio/agent/internal/sys/user"
 )
@@ -34,22 +35,25 @@ const (
 	keyringPath = keyringDir + "/docker.asc"
 	sourcePath  = "/etc/apt/sources.list.d/docker.list"
 
-	osReleasePath   = "/etc/os-release"
-	defaultCodename = "noble"
-
 	configDir  = "/etc/docker"
 	configPath = configDir + "/daemon.json"
 
 	defaultLogSize = "10m"
 	logFiles       = "3"
+
+	// Docker's NAT rules are read before ufw's: a port published on every address is open to the world whatever the firewall denies.
+	publishedAddress = "127.0.0.1"
 )
 
 // live-restore keeps the containers running across a daemon restart: a rewritten configuration or an upgrade costs no project its database.
+// "ip" binds the default bridge alone; default-network-opts binds the networks docker network create and compose make after it.
 type daemon struct {
-	DataRoot    string            `json:"data-root,omitempty"`
-	LiveRestore bool              `json:"live-restore"`
-	LogDriver   string            `json:"log-driver"`
-	LogOpts     map[string]string `json:"log-opts"`
+	DataRoot           string                       `json:"data-root,omitempty"`
+	DefaultNetworkOpts map[string]map[string]string `json:"default-network-opts"`
+	IP                 string                       `json:"ip"`
+	LiveRestore        bool                         `json:"live-restore"`
+	LogDriver          string                       `json:"log-driver"`
+	LogOpts            map[string]string            `json:"log-opts"`
 }
 
 type Module struct{}
@@ -105,7 +109,7 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 // Docker Engine is not in the Ubuntu archive: the module adds Docker's own repository, key first.
 func (Module) Install(ctx *modules.Context) error {
 	if err := ctx.Step("add-repository", func() (modules.Outcome, error) {
-		list := repository(codename(ctx))
+		list := repository(host.Codename(ctx))
 		if file.Exists(ctx, keyringPath) && file.Same(ctx, sourcePath, list) {
 			return modules.Skipped, nil
 		}
@@ -114,7 +118,7 @@ func (Module) Install(ctx *modules.Context) error {
 			return modules.Failed, err
 		}
 
-		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"curl", "-fsSL", "--proto", "=https", "--tlsv1.2", "-o", keyringPath, keyURL}}); err != nil {
+		if err := apt.DownloadKey(ctx, keyURL, keyringPath); err != nil {
 			return modules.Failed, err
 		}
 
@@ -126,7 +130,7 @@ func (Module) Install(ctx *modules.Context) error {
 			return modules.Failed, err
 		}
 
-		return modules.Done, apt.Refresh(ctx)
+		return modules.Done, apt.RefreshAdded(ctx, sourcePath, keyringPath)
 	}); err != nil {
 		return err
 	}
@@ -188,7 +192,7 @@ func (Module) Configure(ctx *modules.Context) error {
 		return err
 	}
 
-	return ctx.Step("enable-service", func() (modules.Outcome, error) {
+	if err := ctx.Step("enable-service", func() (modules.Outcome, error) {
 		if systemd.Active(ctx, Unit) && !changed {
 			return modules.Skipped, nil
 		}
@@ -198,6 +202,36 @@ func (Module) Configure(ctx *modules.Context) error {
 		}
 
 		return modules.Done, systemd.Restart(ctx, Unit)
+	}); err != nil {
+		return err
+	}
+
+	return checkPublishedPorts(ctx)
+}
+
+// dockerd rebuilds its default bridge only when it restarts with no container
+// running; with nothing running the restart costs nothing, and otherwise the
+// reader is told which ports stay open and how to close them.
+func checkPublishedPorts(ctx *modules.Context) error {
+	return ctx.Step("check-published-ports", func() (modules.Outcome, error) {
+		networks := openNetworks(ctx)
+		outcome := modules.Skipped
+
+		if slices.ContainsFunc(networks, network.isDefaultBridge) && !containersRunning(ctx) {
+			if err := systemd.Restart(ctx, Unit); err != nil {
+				return modules.Failed, err
+			}
+
+			networks = openNetworks(ctx)
+			outcome = modules.Done
+		}
+
+		containers := openContainers(ctx)
+		if len(networks) > 0 || len(containers) > 0 {
+			ctx.Warn(publishedWarning(networks, containers))
+		}
+
+		return outcome, nil
 	})
 }
 
@@ -307,10 +341,12 @@ func config(ctx *modules.Context) ([]byte, error) {
 	}
 
 	content, err := json.MarshalIndent(daemon{
-		DataRoot:    strings.TrimSpace(ctx.String("data_root")),
-		LiveRestore: true,
-		LogDriver:   "json-file",
-		LogOpts:     map[string]string{"max-size": size, "max-file": logFiles},
+		DataRoot:           strings.TrimSpace(ctx.String("data_root")),
+		DefaultNetworkOpts: map[string]map[string]string{"bridge": {hostBindingOption: publishedAddress}},
+		IP:                 publishedAddress,
+		LiveRestore:        true,
+		LogDriver:          "json-file",
+		LogOpts:            map[string]string{"max-size": size, "max-file": logFiles},
 	}, "", "  ")
 	if err != nil {
 		return nil, err
@@ -321,19 +357,4 @@ func config(ctx *modules.Context) ([]byte, error) {
 
 func repository(release string) []byte {
 	return []byte("deb [arch=" + runtime.GOARCH + " signed-by=" + keyringPath + "] https://download.docker.com/linux/ubuntu " + release + " stable\n")
-}
-
-func codename(ctx *modules.Context) string {
-	raw, err := file.Read(ctx, osReleasePath)
-	if err != nil {
-		return defaultCodename
-	}
-
-	for _, line := range strings.Split(string(raw), "\n") {
-		if value, ok := strings.CutPrefix(line, "VERSION_CODENAME="); ok {
-			return strings.Trim(value, `"`)
-		}
-	}
-
-	return defaultCodename
 }

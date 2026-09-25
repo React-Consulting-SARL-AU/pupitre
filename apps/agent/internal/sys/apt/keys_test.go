@@ -9,12 +9,23 @@ import (
 )
 
 const (
-	keyURL  = "https://pkg.example.org/repo.asc"
-	keyring = "/usr/share/keyrings/example.gpg"
+	keyURL      = "https://pkg.example.org/repo.asc"
+	keyring     = "/usr/share/keyrings/example.gpg"
+	fingerprint = "9DC858229FC7DD38854AE2D88D81803C0EBFCD88"
+	forged      = "1111111111111111111111111111111111111111"
 )
 
+func pinned(t *testing.T) *modtest.FakeSys {
+	t.Helper()
+
+	apt.Pins[keyURL] = []string{fingerprint}
+	t.Cleanup(func() { delete(apt.Pins, keyURL) })
+
+	return modtest.NewFakeSys()
+}
+
 func TestDearmorKeyLeavesOnlyTheKeyringBehind(t *testing.T) {
-	fake := modtest.NewFakeSys()
+	fake := pinned(t)
 	ctx := modtest.NewContext(t, fake, modtest.Options{})
 
 	if err := apt.DearmorKey(ctx, keyURL, keyring); err != nil {
@@ -33,7 +44,8 @@ func TestDearmorKeyLeavesOnlyTheKeyringBehind(t *testing.T) {
 
 	commands := strings.Join(fake.Commands(), "\n")
 	for _, want := range []string{
-		"curl -fsSL --proto =https --tlsv1.2 -o " + keyring + ".asc " + keyURL,
+		"-o " + keyring + ".asc " + keyURL,
+		"gpg --batch --with-colons --show-keys " + keyring + ".asc",
 		"gpg --batch --yes --dearmor -o " + keyring + " " + keyring + ".asc",
 	} {
 		if !strings.Contains(commands, want) {
@@ -42,22 +54,108 @@ func TestDearmorKeyLeavesOnlyTheKeyringBehind(t *testing.T) {
 	}
 }
 
-func TestDownloadKeyPinsTheTransport(t *testing.T) {
-	fake := modtest.NewFakeSys()
+func TestDownloadKeyPinsTheTransportAndBoundsTheWait(t *testing.T) {
+	fake := pinned(t)
 	ctx := modtest.NewContext(t, fake, modtest.Options{})
 
 	if err := apt.DownloadKey(ctx, keyURL, "/etc/apt/keyrings/example.asc"); err != nil {
 		t.Fatal(err)
 	}
 
-	if got := fake.Commands()[0]; got != "curl -fsSL --proto =https --tlsv1.2 -o /etc/apt/keyrings/example.asc "+keyURL {
-		t.Fatalf("curl argv = %q", got)
+	got := fake.Commands()[0]
+	for _, want := range []string{"curl -fsSL --proto =https --tlsv1.2 ", "--connect-timeout ", "--max-time ", "-o /etc/apt/keyrings/example.asc " + keyURL} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("curl argv = %q, want %q in it", got, want)
+		}
+	}
+}
+
+func TestAKeyWithNoPinIsRefusedBeforeItIsFetched(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	ctx := modtest.NewContext(t, fake, modtest.Options{})
+
+	err := apt.DownloadKey(ctx, keyURL, "/etc/apt/keyrings/example.asc")
+	if err == nil || !strings.Contains(err.Error(), keyURL) {
+		t.Fatalf("download = %v, want the unpinned URL named", err)
+	}
+
+	if len(fake.Commands()) != 0 {
+		t.Fatalf("nothing may be fetched for an unpinned key: %v", fake.Commands())
+	}
+}
+
+func TestAKeyThatIsNotThePinnedOneIsRefusedAndRemoved(t *testing.T) {
+	for name, served := range map[string][]string{
+		"forged":        {forged},
+		"one key added": {fingerprint, forged},
+	} {
+		t.Run(name, func(t *testing.T) {
+			fake := pinned(t)
+			fake.Signers[keyURL] = served
+			ctx := modtest.NewContext(t, fake, modtest.Options{})
+
+			err := apt.DownloadKey(ctx, keyURL, "/etc/apt/keyrings/example.asc")
+			if err == nil || !strings.Contains(err.Error(), forged) {
+				t.Fatalf("download = %v, want the stranger named", err)
+			}
+
+			if _, kept := fake.Files["/etc/apt/keyrings/example.asc"]; kept {
+				t.Fatal("a refused key must not stay where apt reads it")
+			}
+		})
+	}
+}
+
+func TestPrimaryFingerprintsLeavesTheSubkeysOut(t *testing.T) {
+	listing := "pub:-:4096:1:8D81803C0EBFCD88:1487788586:::-:::scESA::::::23::0:\n" +
+		"fpr:::::::::9dc858229fc7dd38854ae2d88d81803c0ebfcd88:\n" +
+		"uid:-::::1487792064::0::Docker Release (CE deb) <docker@docker.com>::::::::::0:\n" +
+		"sub:-:4096:1:7EA0A9C3F273FCD8:1487788586::::::s::::::23:\n" +
+		"fpr:::::::::D3306A018370199E527AE7997EA0A9C3F273FCD8:\n"
+
+	got := apt.PrimaryFingerprints(listing)
+	if len(got) != 1 || got[0] != fingerprint {
+		t.Fatalf("primary fingerprints = %v", got)
+	}
+}
+
+func TestEveryPinIsAFullFingerprint(t *testing.T) {
+	for url, fingerprints := range apt.Pins {
+		if !strings.HasPrefix(url, "https://") || len(fingerprints) == 0 {
+			t.Errorf("%s: %v", url, fingerprints)
+		}
+
+		for _, pinned := range fingerprints {
+			if len(pinned) != 40 || strings.Trim(pinned, "0123456789ABCDEF") != "" {
+				t.Errorf("%s: %q is not a 40-digit upper-case fingerprint", url, pinned)
+			}
+		}
+	}
+}
+
+// Cloudflare's key file now holds only its 2025 key, while its InRelease is still signed by both: the rotation must pass, whichever key the file carries.
+func TestCloudflaresRotatedKeyIsAccepted(t *testing.T) {
+	const url = "https://pkg.cloudflare.com/cloudflare-main.gpg"
+
+	for name, served := range map[string][]string{
+		"2025 key alone": {"CC94B39C77AE7342A68B89628A682D308D4E5E73"},
+		"previous key":   {"FBA8C0EE63617C5EED695C43254B391D8CACCBF8"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			fake := modtest.NewFakeSys()
+			fake.Signers[url] = served
+			ctx := modtest.NewContext(t, fake, modtest.Options{})
+
+			if err := apt.DearmorKey(ctx, url, "/usr/share/keyrings/cloudflare-main.gpg"); err != nil {
+				t.Fatalf("dearmor = %v", err)
+			}
+		})
 	}
 }
 
 func TestDearmorKeyStopsAtTheFirstRefusal(t *testing.T) {
-	fake := modtest.NewFakeSys()
-	fake.FailProgram("gpg", "gpg: no valid OpenPGP data found.")
+	fake := pinned(t)
+	fake.LineFailures["--dearmor"] = "gpg: no valid OpenPGP data found."
 	ctx := modtest.NewContext(t, fake, modtest.Options{})
 
 	if err := apt.DearmorKey(ctx, keyURL, keyring); err == nil {

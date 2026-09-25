@@ -160,7 +160,7 @@ func addGoogleRepository(ctx *modules.Context) error {
 		}
 	}
 
-	return apt.Refresh(ctx)
+	return apt.RefreshAdded(ctx, sourcePath, keyringPath)
 }
 
 func installPlaywrightLibraries(ctx *modules.Context) error {

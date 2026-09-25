@@ -1,6 +1,7 @@
 package caddy
 
 import (
+	"errors"
 	"slices"
 	"strings"
 	"testing"
@@ -9,17 +10,19 @@ import (
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/exposure/routes"
 	"pupitre.studio/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/sys/env"
+	"pupitre.studio/agent/internal/sys/ufw"
 )
 
 const (
-	domain = "flymate.dev"
-	email  = "jordan@flymate.dev"
+	domain = "flyleaf.dev"
+	email  = "jordan@flyleaf.dev"
 )
 
-const projects = `web|flymate/apps/web|-|bun|web.localhost|3000|app|bun run dev
-api|flymate/apps/api|-|bun|api.localhost|3001|-|bun run api
+const projects = `web|flyleaf/apps/web|-|bun|web.localhost|3000|app|bun run dev
+api|flyleaf/apps/api|-|bun|api.localhost|3001|-|bun run api
 `
 
 func values() modtest.Values {
@@ -242,7 +245,7 @@ func TestSyncPicksUpANewProject(t *testing.T) {
 	fake := machine()
 	run(t, newContext(t, fake, values()))
 
-	fake.Files[registry.DefaultConf] = []byte(projects + "docs|flymate/apps/docs|-|bun|docs.localhost|3002|docs|bun run docs\n")
+	fake.Files[registry.DefaultConf] = []byte(projects + "docs|flyleaf/apps/docs|-|bun|docs.localhost|3002|docs|bun run docs\n")
 
 	ctx := newContext(t, fake, values())
 	report, err := Sync(ctx)
@@ -288,6 +291,25 @@ func TestUninstallGivesBackTheModeAndThePorts(t *testing.T) {
 	}
 }
 
+// A caddy that never took the machine goes without the domain and the marker of the tunnel that holds it.
+func TestUninstallKeepsTheDomainOfTheExposureThatHoldsTheMachine(t *testing.T) {
+	fake := machine()
+	run(t, newContext(t, fake, values()))
+	fake.Files[modePath] = routes.Marker("cloudflare")
+
+	if err := (Module{}).Uninstall(newContext(t, fake, values())); err != nil {
+		t.Fatal(err)
+	}
+
+	if fake.EnvValue(env.DomainKey) != domain || string(fake.Files[modePath]) != "cloudflare\n" {
+		t.Fatalf("domain %q, marker %q: both belong to the tunnel", fake.EnvValue(env.DomainKey), fake.Files[modePath])
+	}
+
+	if fake.EnvValue(portsKey) != "" {
+		t.Fatal("caddy's own ports go with it")
+	}
+}
+
 var _ modules.Module = Module{}
 
 // The package can be there for the client's own reasons; only the marker makes it this module's, exactly as the tunnel reads its own.
@@ -326,7 +348,7 @@ func TestEveryFirewallCallIsBounded(t *testing.T) {
 	}
 
 	for _, call := range fake.Calls {
-		if call.Argv[0] == "ufw" && call.Timeout != ufwTimeout {
+		if call.Argv[0] == "ufw" && call.Timeout != ufw.Timeout {
 			t.Fatalf("ufw call without the timeout: %v", call.Argv)
 		}
 	}
@@ -338,7 +360,7 @@ func TestACaddyfileCaddyRefusesIsNotReloadedAndTheReasonIsInTheStep(t *testing.T
 	run(t, newContext(t, fake, values()))
 	reloads := fake.Restarts[Unit]
 
-	fake.Files[registry.DefaultConf] = []byte(projects + "docs|flymate/apps/docs|-|bun|docs.localhost|3002|docs|bun run docs\n")
+	fake.Files[registry.DefaultConf] = []byte(projects + "docs|flyleaf/apps/docs|-|bun|docs.localhost|3002|docs|bun run docs\n")
 	fake.FailProgram("caddy", "Error: adapting config using caddyfile: /etc/caddy/Caddyfile:12: unrecognized directive: reverse_proxi")
 
 	ctx := newContext(t, fake, values())
@@ -347,12 +369,77 @@ func TestACaddyfileCaddyRefusesIsNotReloadedAndTheReasonIsInTheStep(t *testing.T
 		t.Fatalf("sync = %v, want the validation output", err)
 	}
 
+	var refusal *protocol.Error
+	if !errors.As(err, &refusal) || refusal.Code != contract.ErrorBadRequest || refusal.Fix == "" {
+		t.Fatalf("sync = %#v, want a bad_request refusal with its fix, not an internal error", err)
+	}
+
 	if fake.Restarts[Unit] != reloads {
 		t.Fatalf("caddy reloaded %d time(s) on a Caddyfile it refuses", fake.Restarts[Unit]-reloads)
 	}
 
 	commands := strings.Join(fake.Commands(), "\n")
-	if !strings.Contains(commands, "caddy validate --config "+configPath+" --adapter caddyfile") {
-		t.Fatalf("caddy validate must run before the reload:\n%s", commands)
+	if !strings.Contains(commands, "caddy validate --config "+candidatePath+" --adapter caddyfile") {
+		t.Fatalf("caddy validate must weigh the candidate before it replaces anything:\n%s", commands)
+	}
+}
+
+// A Caddyfile written before it was weighed would take Caddy down at its next restart, and a replay would find it identical and let it be.
+func TestARefusedCaddyfileNeverReplacesTheOneCaddyRuns(t *testing.T) {
+	fake := machine()
+	run(t, newContext(t, fake, values()))
+	serving := string(fake.Files[configPath])
+
+	fake.Files[registry.DefaultConf] = []byte(projects + "docs|flyleaf/apps/docs|-|bun|docs.localhost|3002|docs|bun run docs\n")
+	fake.FailProgram("caddy", "Error: adapting config using caddyfile: unrecognized directive: reverse_proxi")
+
+	if err := (Module{}).Configure(newContext(t, fake, values())); err == nil {
+		t.Fatal("a Caddyfile caddy refuses must fail the step")
+	}
+
+	if got := string(fake.Files[configPath]); got != serving {
+		t.Fatalf("the Caddyfile caddy runs was replaced by a refused one:\n%s", got)
+	}
+
+	if _, left := fake.Files[candidatePath]; left {
+		t.Fatal("the refused candidate must not stay behind")
+	}
+
+	delete(fake.Failures, "caddy")
+	ctx := newContext(t, fake, values())
+	if err := (Module{}).Configure(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(string(fake.Files[configPath]), "docs."+domain) || statuses(ctx)["write-caddyfile"] != contract.StepOK {
+		t.Fatalf("the replay must write what it could not before: %v", statuses(ctx))
+	}
+}
+
+func TestAReplayWeighsTheCaddyfileItFindsIdentical(t *testing.T) {
+	fake := machine()
+	run(t, newContext(t, fake, values()))
+	fake.FailProgram("caddy", "Error: adapting config using caddyfile: unrecognized directive: reverse_proxi")
+
+	err := (Module{}).Configure(newContext(t, fake, values()))
+	if err == nil || !strings.Contains(err.Error(), "unrecognized directive") {
+		t.Fatalf("configure = %v, want the refusal of the Caddyfile on disk", err)
+	}
+}
+
+func TestTheExposureMarkerIsRootsAlone(t *testing.T) {
+	fake := machine()
+	run(t, newContext(t, fake, values()))
+
+	if fake.Modes[modePath] != 0o600 {
+		t.Fatalf("%s mode = %o, want 0600", modePath, fake.Modes[modePath])
+	}
+
+	fake.Modes[modePath] = 0o644
+	ctx := newContext(t, fake, values())
+	run(t, ctx)
+
+	if fake.Modes[modePath] != 0o600 || statuses(ctx)["declare-mode"] != contract.StepOK {
+		t.Fatalf("a marker left readable by an older agent must be closed on the next pass: %o, %v", fake.Modes[modePath], statuses(ctx))
 	}
 }

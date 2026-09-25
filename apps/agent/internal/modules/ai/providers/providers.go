@@ -5,8 +5,10 @@ import (
 	"sort"
 	"strings"
 
+	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/env"
+	"pupitre.studio/agent/internal/sys/file"
 )
 
 // Shape is the pattern a manifest holds an entry to: a vendor name, a colon, the key.
@@ -104,6 +106,51 @@ func Store(ctx sys.Context, prefix string, found []Provider) (bool, error) {
 	}
 
 	return changed, nil
+}
+
+// WriteStep lays the rendered keys where the agent reads them, in a folder and a file that are owner's alone, and says whether they changed.
+func WriteStep(ctx *modules.Context, content []byte, dir, path, owner string) (bool, error) {
+	rewritten := false
+
+	err := ctx.Step("write-providers", func() (modules.Outcome, error) {
+		if file.Same(ctx, path, content) {
+			return modules.Skipped, nil
+		}
+
+		rewritten = true
+
+		if err := ctx.Sys().MkdirAll(dir, 0o700); err != nil {
+			return modules.Failed, err
+		}
+
+		if err := file.Chown(ctx, dir, owner, owner); err != nil {
+			return modules.Failed, err
+		}
+
+		if err := file.WriteAtomic(ctx, path, content, 0o600); err != nil {
+			return modules.Failed, err
+		}
+
+		return modules.Done, file.Chown(ctx, path, owner, owner)
+	})
+
+	return rewritten, err
+}
+
+// StoreStep keeps the keys in /etc/pupitre/env under prefix, so the service page can reveal them.
+func StoreStep(ctx *modules.Context, prefix string, found []Provider) error {
+	return ctx.Step("store-providers", func() (modules.Outcome, error) {
+		stored, err := Store(ctx, prefix, found)
+		if err != nil {
+			return modules.Failed, err
+		}
+
+		if !stored {
+			return modules.Skipped, nil
+		}
+
+		return modules.Done, nil
+	})
 }
 
 // Render writes one KEY=value line per provider, under prefix, as an EnvironmentFile reads it.

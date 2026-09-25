@@ -66,6 +66,17 @@ func Same(ctx sys.Context, path string, content []byte) bool {
 	return err == nil && bytes.Equal(current, content)
 }
 
+// SameAt is Same with the mode too: a file an older agent left readable is not yet the file this one writes.
+func SameAt(ctx sys.Context, path string, content []byte, mode fs.FileMode) bool {
+	if !Same(ctx, path, content) {
+		return false
+	}
+
+	node, err := ctx.Sys().StatIn(filepath.Dir(path), filepath.Base(path))
+
+	return err == nil && node.Mode.Perm() == mode.Perm()
+}
+
 func WriteAtomic(ctx sys.Context, path string, content []byte, mode fs.FileMode) error {
 	ctx.Logf("write %s (%o)", path, mode)
 

@@ -3,6 +3,7 @@ package routes
 
 import (
 	"errors"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/env"
+	"pupitre.studio/agent/internal/sys/file"
 	"pupitre.studio/agent/internal/sys/lock"
 	"pupitre.studio/agent/internal/sys/systemd"
 )
@@ -93,6 +95,38 @@ func MoveRoutes(ctx *modules.Context) error {
 		ctx.Logf("%d name(s) moved under %s", len(moved), ctx.String("domain"))
 
 		return modules.Done, nil
+	})
+}
+
+// Marker is what ModePath holds while provider holds the machine.
+func Marker(provider string) []byte {
+	return []byte(provider + "\n")
+}
+
+// HeldByAnother says the marker names another exposure: the domain and the marker are then that one's, and an uninstall of this one leaves them.
+func HeldByAnother(ctx sys.Context, provider string) bool {
+	raw, err := file.Read(ctx, ModePath)
+	if err != nil {
+		return false
+	}
+
+	held := strings.TrimSpace(string(raw))
+
+	return held != "" && held != provider
+}
+
+// DeclareMode writes the marker root's alone, like everything under /etc/pupitre, and closes one an older agent left readable.
+func DeclareMode(ctx *modules.Context, provider string) error {
+	return ctx.Step("declare-mode", func() (modules.Outcome, error) {
+		if file.SameAt(ctx, ModePath, Marker(provider), 0o600) {
+			return modules.Skipped, nil
+		}
+
+		if err := ctx.Sys().MkdirAll(path.Dir(ModePath), 0o700); err != nil {
+			return modules.Failed, err
+		}
+
+		return modules.Done, file.WriteAtomic(ctx, ModePath, Marker(provider), 0o600)
 	})
 }
 

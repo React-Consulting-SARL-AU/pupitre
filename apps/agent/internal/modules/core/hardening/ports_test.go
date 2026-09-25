@@ -107,7 +107,7 @@ func TestAnUnreadableSocketLeavesTheFirewallAlone(t *testing.T) {
 
 func TestTurningSSH443OffOnAHardenedMachineClosesItInOnePass(t *testing.T) {
 	fake := machine(t, Options{SSH443: true})
-	Harden(newContext(t, fake, Options{SSH443: true}), "dev")
+	Harden(newContext(t, fake, Options{SSH443: true}))
 
 	if strings.Join(fake.Firewall.Rules, ",") != "22/tcp,443/tcp" {
 		t.Fatalf("rules = %v", fake.Firewall.Rules)
