@@ -50,8 +50,6 @@ Il porte aussi le registre de migrations de sa propre configuration : `pupitred 
 
 Deux interfaces : le protocole JSON sur SSH pour l'app (un processus `pupitred serve` par session, limité, ou `pupitred serve --privileged` que sudo n'ouvre qu'avec le mot de passe de `dev`), et l'API de la plateforme en HTTPS sortant pour le droit d'usage, les clés et les mises à jour. La sous-commande `pupitred dev` — aussi appelable `dev`, un lien vers le binaire — donne les mêmes commandes à un humain dans un terminal SSH : elle passe par les mêmes gestionnaires, avec les mêmes refus. Le durcissement ferme root en dernier, après avoir vérifié que `dev` accepte une clé.
 
-La stack bash sous `server/` est la spécification des modules : ordre des étapes, pièges d'apt, rapport de fin, commandes de pilotage. Elle disparaît module par module.
-
 ## Plateforme
 
 `apps/web` combine TanStack Start, React 19, Vite et le plugin Cloudflare. Les routes de la console vivent dans `src/routes/` ; `src/routes/api/auth/$.ts` délègue à `@pupitre/auth/server`. `/api/v1/*` n'a pas de route TanStack : l'entrée du Worker, `src/worker.ts`, le passe à `@pupitre/api/server` avant Start, en développement comme en production, avec `/internal/*`, le handler `email` d'Email Routing, les Workflows et les Durable Objects.

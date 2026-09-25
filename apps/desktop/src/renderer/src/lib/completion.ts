@@ -712,7 +712,7 @@ function handleKey(id: string, item: Tracked, ev: KeyboardEvent): boolean {
   }
 }
 
-/** Needs OSC 133 and OSC 7 from the server's `pupitre.zsh`; a prompt is never guessed from its drawing. */
+/** Needs OSC 133 and OSC 7 from the `.zshrc` block the agent writes; a prompt is never guessed from its drawing. */
 export function attach(id: string, xterm: XTerm): () => void {
   const item: Tracked = {
     xterm,

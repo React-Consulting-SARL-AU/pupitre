@@ -101,8 +101,10 @@ by the client. Getting it wrong breaks nothing visibly — the page loads, then
 every call returns 502. Read the client's `vite.config.ts` before choosing its
 API's port.
 
-**One port per service, and it is checked.** `bootstrap.sh --check` refuses two
-projects on the same port before any installation.
+**One port per service, and it is checked.** The registry refuses a project on a
+port another project already holds, or two processes of one project on the same
+port, before anything is written; a clash with another project comes with a free
+port to use instead.
 
 ## Secrets
 

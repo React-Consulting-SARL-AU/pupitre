@@ -220,7 +220,7 @@ Les identifiants de modules d'un préréglage suivent la même forme ouverte que
 
 ## Source des étapes
 
-`server/bootstrap.sh` et `server/bin/dev` décrivent, en bash et zsh, ce que chaque module reproduit : ordre, options apt (`DPkg::Lock::Timeout`), fermeture de root en dernier, rapport de fin, commandes de pilotage. Les agents lisent ces fichiers comme une spécification, pas comme du code à appeler.
+Les modules livrés sous `apps/agent/internal/modules/` sont la référence de ce qu'un module fait : ordre des étapes, options apt (`DPkg::Lock::Timeout`), fermeture de root en dernier, rapport de fin. Un module nouveau se lit contre son voisin le plus proche ; le skill `agent-modules` dit lequel.
 
 ### Ce que le client choisit
 

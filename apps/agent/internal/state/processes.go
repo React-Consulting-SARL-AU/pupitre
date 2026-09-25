@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	// An abandoned JetBrains backend or agent holds memory for nobody; two idle hours is the line bootstrap.sh draws.
+	// An abandoned JetBrains backend or agent holds memory for nobody.
 	SessionIdle = 120 * time.Minute
 
 	KillGrace = 2 * time.Second

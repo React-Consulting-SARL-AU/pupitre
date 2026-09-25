@@ -22,8 +22,7 @@ Tout ce qu'un agent doit lire avant de toucher au code, et tout ce que le propri
 | [`contracts/config-migrations.md`](./contracts/config-migrations.md) | Comment une configuration passe d'une version à la suivante, sur le VPS et sur le laptop | desktop, agent |
 | [`contracts/backups.md`](./contracts/backups.md) | Les sauvegardes chiffrées vers le seau S3 du client : parties, manifeste, restauration, commandes `backup.*` | desktop, agent, web |
 | [`contracts/platform-mail.md`](./contracts/platform-mail.md) | La boîte de la plateforme : Email Routing, boîtes, fils, envoi, pièces jointes, temps réel | web |
-| [`decisions/`](./decisions/) | Une décision par fichier, jusqu'à la 0015 (sudo par mot de passe). Un agent qui veut « améliorer » une décision la lit d'abord | tout le monde |
-| [`SETUP.md`](./SETUP.md) | LEGACY, en anglais : l'installation manuelle de la stack bash d'origine. Les modules Go la couvrent ; elle ne sert plus qu'à relire l'intention d'une étape, et disparaît avec `server/` | agent |
+| [`decisions/`](./decisions/) | Une décision par fichier, jusqu'à la 0016 (retrait de la stack bash d'origine). Un agent qui veut « améliorer » une décision la lit d'abord | tout le monde |
 | [`tasks/`](./tasks/) | Ce qui est décidé mais attend un compte, une validation ou une échéance extérieure. Un fichier par tâche, supprimé le jour où elle est faite | tout le monde |
 
 ## Conventions d'écriture

@@ -25,7 +25,6 @@ packages/shared  contrats partagés : protocole agent, catalogue de services, pl
 packages/design  tokens CSS monochrome + preset Tailwind, partagés par site, web et desktop
 
 docs/            produit, architecture, contrats, décisions
-server/          LEGACY — la stack bash/zsh d'origine. Spécification des modules Go. Supprimée quand l'agent la couvre.
 ```
 
 ## Commands

@@ -46,7 +46,7 @@ alias ll='ls -lah --color=auto'
 alias gs='git status -sb'
 `
 
-// OSC 133 (prompt, input, command, exit code) and OSC 7 (folder), read by the app's terminal; mirrors server/bin/pupitre.zsh.
+// OSC 133 (prompt, input, command, exit code) and OSC 7 (folder), read by the app's terminal.
 const zshrcBlockTemplate = `export PROJECTS_DIR=%s
 [[ -x "$HOME/.local/bin/mise" ]] && eval "$("$HOME/.local/bin/mise" activate zsh)"
 autoload -Uz add-zsh-hook
