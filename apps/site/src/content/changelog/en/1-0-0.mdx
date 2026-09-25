@@ -1,0 +1,81 @@
+---
+title: A server is opened from your own computer, and sudo asks for a password
+description: The platform can no longer grant access to a server — a key is only placed with an approval signed by a device the server already trusts — the dev account loses passwordless sudo, Docker stops publishing through the firewall, a restore no longer destroys the database in place, and an update installs only once its signature is checked.
+locale: en
+version: 1.0.0
+channel: stable
+date: 2026-09-25
+order: 19
+---
+
+This version is a step: a 1.0 app drives a 1.0 agent only, and an agent 1.0 refuses an older app and says what to do. Update the app first, then reinstall each server's agent from its banner; the app then offers the sudo password.
+
+## Access to a server
+
+- **The platform can no longer open a server.** It carries the public keys of devices, but the agent only writes one into the managed `authorized_keys` block when it arrives with an approval signed by a key it already holds as trusted. Removing a key still needs no signature: the direction that closes access is never the one that opens it.
+- An approval is an SSH signature made by an authorised device, whose private key never leaves that computer. A new device — yours, or that of a member the server is assigned to — appears in the app of every already-authorised device: one click signs it. Alone with a single computer, nothing changes.
+- The agent never removes the last key of the block. If every device is lost, `sudo pupitred keys reset` from the host's console puts back a key supplied locally, and the onboarding takes it from there.
+- Adding a device to the account asks for the passkey or the second factor again. Repairing a server is reserved to the person it is assigned to or to an admin, and a host key that changes is refused.
+- A banned, deactivated or deleted account no longer has a key on any server.
+
+## sudo asks for a password
+
+- The `dev` account no longer holds passwordless sudo. Two exact lines remain without a password — `pupitred serve` and `pupitred binary install` — and everything else asks for the password of `dev`. `pupitred serve` is a limited session; the app opens `pupitred serve --privileged` with the password for what configures the machine, reveals a secret or changes trust.
+- The password is drawn by the app on your computer: only its hash reaches the server, and the password is kept in this computer's keychain. The server's card shows it and copies it, in full.
+- The securing sets it on a new server. An existing server is offered it by the app; until it is accepted, that server keeps the old rule and the app says so.
+- Putting an agent binary in place goes through `pupitred`, which checks its Ed25519 signature before installing it, rather than through a shell run as root.
+
+## The server
+
+- **Docker no longer publishes through the firewall.** Ports are bound on `127.0.0.1` by default, on the networks it creates and under compose; a check names what is still open and restarts Docker when nothing is running.
+- The Caddyfile is validated before it replaces the one that serves.
+- apt keys are pinned by fingerprint, and a repository whose first update fails is removed.
+- **A restore no longer destroys the database in place.** Redis writes beside then renames, PostgreSQL sets the database aside and gives it back if the restore fails, MySQL and MongoDB check disk space before deleting, and every part is read whole before anything is removed. A restore requires the fingerprint of its manifest.
+- Logs have an end: `/var/log/pupitre.log` rotates through logrotate, the in-memory journal is bounded, process logs rotate at 4 MiB.
+- The firewall and fail2ban follow the real ports of sshd; a rolled-back update puts the configuration back; a project behind a symlink is really backed up.
+- The AI agents on a server now read dev commands that exist — `status`, `logs`, `up`/`down`/`restart`, `sync`, `branch`, `attach`, `db`, `backup`, `doctor` — with no sudo, the managed key block untouchable, and dumps, imports and backups behind the password.
+
+## The app
+
+- The dashboard puts projects before services. **Open** offers every published address of a project, as a menu when there are several, and is gone while nothing serves them; the project page follows the same rule. **Start all** and **Stop all** grey out when there is nothing to do.
+- A managed server no longer reads *Not installed yet* when the app reopens on Settings: its card follows the agent's channel and the live probe.
+- A restore runs in a locked dialog — neither Escape nor the veil closes it before the end — and ends on one success, then a single warning naming each part that did not come back, with its reason.
+- Closing a tab where an agent runs asks for confirmation. A file draft is kept per server and per root. The securing can be run again, and a too-old agent reinstalled, from their banner. Documentation, support and terms are in the menu and in Settings › About.
+- **An update installs only once its signature is checked**: a *verifying* state precedes *ready* on the three systems, and the install re-reads the verified file and refuses any other bytes. On Linux without a keyring, nothing is kept in clear.
+- The installed app is far lighter: the package now carries the app alone, and `app.asar` falls from 2,061 MB to 11.3 MB.
+- The app closes what it opens, at Cmd+Q as on closing; it never rewrites a file written by a newer version; it keeps a crash log in its data folder, without secrets.
+- `.claude/remote` is left out of backups: the binaries downloaded there come back on their own, and the one that runs is not overwritten by a restore.
+
+## Words, targets, French
+
+- One word per notion: this computer and server, service, Refresh, Settings, console. No pronouns, no filler, and a deletion says it has no way back. Install steps are translated, and remedies added.
+- Targets of 28 px, an accessible name per row, the diff and the tabs from the keyboard, a type scale shared with the site.
+- French keeps the terms developers say in English: bucket, token, passphrase, endpoint, snapshot, template, gateway, logs, pull/push, checksum.
+
+## The platform and the console
+
+- Stripe loses nothing and resurrects nothing: an event stuck in processing is picked up again, a duplicate in flight gets a refusal, a failed payment re-reads the subscription at Stripe, a second paid subscription is refused, and a cancelled launch line does not restart.
+- **The launch seat stays free even for who pays**: it is added to the quantity paid for and never billed, as the terms promise.
+- Deleting your account goes through the purge, which also erases the organization's journal, and is refused while an organization would be left to nobody with a Stripe subscription or a server. Metrics older than seven days, expired sessions, verifications and device codes are swept daily.
+- `/api/auth/admin/*` is closed: no impersonation, no password or address change from the platform side.
+- Coming back after signing in stays on the console: an address of the right origin is now re-read before it is followed.
+- An `ssh_user` or a host sent by a heartbeat or an enrolment can no longer reach this computer's SSH config: host, account, fingerprint and port are validated, the API refuses before writing, and the app refuses again when it writes the config.
+- Every channel between the app's window and its main process checks its caller and validates its arguments; a malformed `serverId` could erase the credentials of every server.
+- A migration had emptied the revoked devices and the alerts by cascade; checked in production, no revocation was left to give back, and a migration can no longer drop a table other rows point to.
+- The console serves its own fonts, carries a per-request nonce CSP, refuses a write coming by cookie from a foreign origin, and closes the sockets of a member who is removed.
+
+## The site
+
+- The legal pages are published: legal notice, subscription terms, cookies, subprocessors, security and `security.txt`, third-party software, history; the five that already existed are complete.
+- The docs match the code: thirty-day trial on one machine, account required, the ports really open, what the platform knows, 38 modules, the onboarding in ten steps, and Install, Troubleshooting and Uninstall pages.
+- The free launch is shown from its announced end date, and the site serves its own fonts — nothing is loaded from Google.
+
+## Known limits
+
+- A server that has not yet accepted the sudo password keeps the old rule, without a password, until it is applied.
+- Lose every authorised device and access is put back only from the host's console, with `sudo pupitred keys reset`.
+- Docker volumes are not backed up; the app says so when the Docker runtime is installed.
+- Whoever can read the bucket reads the manifests, which are in clear: the server's name, the names of the projects, the databases and the folders, the address and branch of the repositories. Never a content, never a secret — those are sealed.
+- Whoever holds the S3 key can erase the backups: object versioning or object lock on the bucket is the answer, and the guide says so.
+- Lose the passphrase and the backups are unreadable — nobody can recover it.
+- The Windows installer is still unsigned: SmartScreen warns at first launch.
