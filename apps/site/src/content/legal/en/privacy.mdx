@@ -2,7 +2,7 @@
 title: "Privacy"
 description: "What Pupitre collects, what it never collects, where it lives, how long it stays, and how to get it back or have it deleted."
 locale: en
-updated: 2026-09-24
+updated: 2026-09-25
 order: 4
 ---
 
@@ -12,37 +12,56 @@ import SubProcessors from "../../../components/SubProcessors.astro"
 
 The data controller is Jordan Monier, a natural person residing in Morocco, who publishes Pupitre. Write to `privacy@pupitre.studio` for anything about your data; we answer within thirty days.
 
+For the data an organisation entrusts to us about its members and its machines, we also act on behalf of that organisation, as the [data processing agreement](/legal/data-processing/) says.
+
 ## What we store
 
 **Your account.** Your email address, your name if you give one, your language, and the way you sign in: a link sent by email, a GitHub or Google account — from which we receive the email address and the name they share, and nothing else —, a passkey, or a second factor. Each sign-in session keeps its IP address and the identifier of the browser or the app it came from.
 
-**Your devices.** The name of each computer you linked the app from, and the public half of the SSH key it generated. The private half stays on that computer; we never see it.
+**Your devices.** The name of each computer you linked the app from, and the public half of the SSH key it generated. The private half stays on that computer; we never see it. When one of your devices allows another device on a machine, the approval it signs: the machine, the allowed public key, the user who holds it, the date, the fingerprint of the signing key and the signature, kept as long as the machine and both devices exist.
 
 **Your organisation.** Its name, its members and their roles, its invitations, and a journal of what was done in it: who enrolled, removed, suspended or restored a machine, invited or removed a member, with the date.
 
-**Your machines.** What the [terms](/legal/terms/) list, and nothing else: the name and address you gave each machine, the public half of its SSH host key, the agent version, the processor architecture, the account that holds the SSH keys, the state of its right of use, and — refreshed every five minutes and kept as a seven-day window — its disk size and free space, its memory size and use, its load average, the version of the installed stack, the names of the installed modules and the names of the running tmux sessions, which are usually the names of your projects.
+**Your machines.** What the [terms](/legal/terms/) list, and nothing else: the name and address you gave each machine, the public half of its SSH host key, the agent version, the processor architecture, the account that holds the SSH keys, the state of its right of use, and — refreshed every five minutes and kept as a seven-day window — its disk size and free space, its memory size and use, its load average, the version of the installed stack, the names of the installed modules, the fingerprints of the SSH keys the agent trusts and of those waiting for an approval, and the names of the running tmux sessions, which are usually the names of your projects.
 
-**Your backups.** When you turn them on, a reference for each backup: its place in your own storage (endpoint, bucket, object prefix), the digest of its manifest, its size, how many databases, projects and folders it holds, the configuration revision, the agent version, the public key it is encrypted to, and the name you give a backup you start yourself, if you give one; and, with the heartbeat, the backup interval and the date and error of the last attempt. The backup itself lives in your storage, encrypted to a key only your passphrase gives; we never receive it, and nobody keeps the passphrase. A reference is kept until the machine deletes the backup or an administrator of your organisation forgets it.
+**Your backups.** When you turn them on, a reference for each backup, as the [terms](/legal/terms/) list it: its date, its place in your own storage (endpoint, region, bucket, object prefix), the digest of its manifest, its size, what it holds in numbers — never in names —, the configuration revision, the agent version, the public key it is encrypted to and its salt, and the name you give a backup you start yourself, if you give one; with the heartbeat, the backup interval and the outcome of the last attempt; and, when you restore one, on which machine. The backup itself lives in your storage, encrypted to a key only your passphrase gives; we never receive it, and nobody keeps the passphrase. The access key to your storage stays in your computer's keychain and on your machine: the platform never receives it and refuses a reference that would carry it. A reference is kept until the machine deletes the backup or an administrator of your organisation forgets it.
 
 **Your subscription.** During the free launch: the fact that your organisation holds the launch subscription, and its dates. No payment data exists, because nothing is paid.
 
 **What you write to us.** Every email sent to an address at `pupitre.studio` is stored on the platform — its text, its headers and its attachments — and read by the team from the console, where each reading of a sensitive thread is itself journaled.
 
-**Where you came from.** When you arrive through an affiliate link (`?ref=`), the link's code is kept for 90 days in the `pupitre_ref` cookie on `pupitre.studio`, so the console can note which link brought your organisation when it starts its subscription. It holds nothing but that code, it is sent to nobody else, and without that parameter it is never set. During the launch, that note only says where you came from.
+**Where you came from.** When you arrive through an affiliate link (`?ref=`), the link's code is kept for 90 days in the `pupitre_ref` cookie on `pupitre.studio`, so the console can note which link brought your organisation when it starts its subscription. It holds nothing but that code, it is sent to nobody else, and without that parameter it is never set. The platform also counts one visit for that link, once per browsing session, keeping nothing about you. During the launch, that note only says where you came from.
+
+Everything the site and the console write to your browser is described in the [cookie policy](/legal/cookies/).
 
 ## What we never store
 
 No code, no project file, no service secret, no application log, no terminal content, no environment variable, no database content, no private key. What lives on your machine stays on your machine: the platform has no technical means of fetching it, as the [terms](/legal/terms/) explain.
 
+## Why, and on what basis
+
+- **To provide the service**, that is to perform the contract the [terms](/legal/terms/) form: your account, your devices, your organisation, your machines, your backups, your subscription and the emails that make the account work.
+- **To protect the service and the organisations**, on the basis of our legitimate interest: the IP address and the device of each session, the journal of each organisation, the journaling of readings of sensitive threads.
+- **To answer you**, on the basis of our legitimate interest, or to prepare the contract you ask us for: the emails you write to us.
+- **To know which link brought you**, on the basis of our legitimate interest: the affiliate code and the visit count of a link.
+- **To measure the site's audience**, with your consent, which you can withdraw at any time.
+- **To comply with the law**, the day invoices exist: keeping them.
+
+No decision about you is made by automated processing alone, except what the contract itself provides: a machine without a valid right of use enters restricted mode.
+
 ## Audience and usage measurement
 
-We use PostHog to measure how the site and the console are used.
+We use PostHog to measure how the site is used.
 
-**On the site**, page views are counted only after you accept it in the banner. The measurement runs without a cookie and without a durable identifier: nothing is written to your browser, and a view is not tied to the next one. Declining takes nothing away from the site, and you can change your answer by clearing the site's data in your browser.
+**On the site**, page views are counted only after you accept it in the banner. The measurement runs without a cookie and without a durable identifier: the only thing written to your browser is your answer to the banner, and a view is not tied to the next one. PostHog receives, like any server, the IP address of the request; the project is set not to keep it. Declining takes nothing away from the site, and you can change your answer at any time through the "Audience measurement" link at the foot of every page.
 
 **The console and the desktop app** send nothing to a measurement tool today. If a version starts measuring which screens are opened and which actions are taken, it will be on the same terms — event names and technical context, never a content, never anything from your machines, never a durable identifier without your consent — and this page will say so with its date.
 
 We use no advertising network, no advertising cookie, and we never sell or share data with a third party for its own purposes.
+
+## Fonts
+
+The site and the console set their headings and figures in fonts served by Google Fonts. To download them, your browser talks to Google directly, which then receives your IP address and your browser's identifier, as with any page that loads one. We receive nothing from that exchange, and Google receives nothing else from Pupitre through it.
 
 ## Transactional email
 
@@ -56,11 +75,11 @@ Nothing is paid during the launch, and no payment data exists. The day billing o
 
 <SubProcessors />
 
-The platform runs on Cloudflare, a United States company, on its global network; its database and its files are stored in Cloudflare's Eastern North America region, and the team reads them from Morocco. Adding a sub-processor is announced by email to the owners of every organisation before it happens.
+The platform runs on Cloudflare, a United States company, on its global network; its database and its files are stored in Cloudflare's Eastern North America region, and the team reads them from Morocco. Adding a sub-processor is announced by email to the owners of every organisation before it happens, and the [list of sub-processors](/legal/sub-processors/) records it with its date.
 
 ## Transfers
 
-Your data is therefore processed outside the European Union: by the controller in Morocco, and by sub-processors established in the United States. For a person or an organisation in the European Union, the transfer to the controller relies on the standard contractual clauses the [data processing agreement](/legal/data-processing/) incorporates, and the transfer to each sub-processor on the clauses and the guarantees that sub-processor publishes.
+Your data is therefore processed outside the European Union: by the controller in Morocco, and by sub-processors established in the United States. When you entrust your data to us yourself from the European Union or the United Kingdom, the data protection law of those countries applies to us directly. When an organisation established in the European Union or the United Kingdom entrusts it to us, the transfer relies on the standard contractual clauses the [data processing agreement](/legal/data-processing/) incorporates. The transfer to each sub-processor relies on the clauses and the guarantees that sub-processor publishes.
 
 ## Retention
 
@@ -68,7 +87,9 @@ Your account and your organisation are kept while the account exists. Deleting t
 
 ## Your rights
 
-You can see, correct, export and have your data deleted, and object to a processing that is based on our legitimate interest. Deleting the account is done from the console and takes your devices with it; your machines keep running. For anything else, write to `privacy@pupitre.studio`. If you are in the European Union or the United Kingdom, you may also complain to the supervisory authority of your country.
+You can see, correct, export and have your data deleted, restrict its processing, object to a processing that is based on our legitimate interest, and withdraw a consent you gave at any time, without affecting what was done before. Deleting the account is done from the console and takes your devices with it; your machines keep running. For anything else, write to `privacy@pupitre.studio`; we may ask you to prove the address is yours before acting on it.
+
+You may also complain to a supervisory authority: in Morocco, the Commission nationale de contrôle de la protection des données à caractère personnel (CNDP); in the European Union or the United Kingdom, the authority of your country. If you live in California or in another US state that gives you similar rights, you have the same rights as above, we do not treat you differently for using them, and we do not sell or share your data as those laws define it.
 
 ## Age
 
@@ -76,7 +97,7 @@ The service is meant for professionals and adults. We knowingly open no account 
 
 ## Security
 
-Encryption in transit and at rest, sign-in by link, passkey or second factor, sessions bound to the device that opened them, access to production restricted to the people who need it and journaled, secrets kept out of the code, agent distributed as a signed binary, and no inbound connection to your machines. A breach that affects you is announced to you without undue delay.
+Encryption in transit and at rest, sign-in by link, passkey or second factor, sessions bound to the device that opened them, access to production restricted to the people who need it and journaled, secrets kept out of the code, agent distributed as a signed binary, and no inbound connection to your machines. A breach that affects you is announced to you without undue delay. The [security policy](/legal/security/) says how to report a vulnerability to us.
 
 ## Changes
 

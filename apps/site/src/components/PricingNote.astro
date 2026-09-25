@@ -8,6 +8,7 @@ import {
 } from "@pupitre/shared/plans"
 import { homeContent } from "../content/site/home"
 import { fill, localeFromPath, localizePath, planName } from "../lib/i18n"
+import { isLaunchOpen, launchEndDate } from "../lib/launch"
 
 const locale = localeFromPath(Astro.url.pathname)
 const { pricing } = homeContent(locale)
@@ -26,6 +27,9 @@ const lines = [
     price: formatUsd(hosted.monthlyPriceUsd),
   }),
 ]
+const launch = isLaunchOpen()
+  ? fill(pricing.launch, { date: launchEndDate(locale) })
+  : null
 ---
 
 <div class="card-soft mx-auto grid max-w-4xl gap-x-12 gap-y-8 p-8 md:grid-cols-[auto_1fr] md:p-12">
@@ -33,6 +37,7 @@ const lines = [
     {formatUsd(solo.monthlyPriceUsd)}
   </p>
   <div class="max-w-xl">
+    {launch && <p data-launch class="body-lg mb-6 text-ink">{launch}</p>}
     <p class="lead">
       {
         fill(pricing.perServer, {

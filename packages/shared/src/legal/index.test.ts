@@ -58,13 +58,13 @@ describe("l'éditeur", () => {
 })
 
 describe("les documents légaux", () => {
-  it("couvrent les cinq slugs, une fois chacun, dans l'ordre", () => {
+  it("couvrent chaque slug, une fois chacun, dans l'ordre", () => {
     const slugs = LEGAL_DOCUMENTS.map((document) => document.slug)
 
     expect(slugs).toEqual([...LEGAL_DOCUMENT_SLUGS])
-    expect(LEGAL_DOCUMENTS.map((document) => document.order)).toEqual([
-      1, 2, 3, 4, 5,
-    ])
+    expect(LEGAL_DOCUMENTS.map((document) => document.order)).toEqual(
+      LEGAL_DOCUMENT_SLUGS.map((_, index) => index + 1)
+    )
   })
 
   it("portent chacun une date valide", () => {

@@ -25,11 +25,11 @@ export const downloadFr: DownloadContent = {
     },
     windows: {
       name: "Windows",
-      note: "Windows 11, x64. Signée par Azure Trusted Signing.",
+      note: "Windows 11, x64. L’installateur n’est pas encore signé : SmartScreen peut demander une confirmation au premier lancement.",
     },
     linux: {
       name: "Linux",
-      note: "Ubuntu 22.04 ou plus récent en desktop, x64 et arm64. AppImage, sans installeur.",
+      note: "Ubuntu 22.04 ou plus récent en desktop, x64. AppImage ou .deb.",
     },
   },
   arch: {
@@ -65,8 +65,8 @@ export const downloadFr: DownloadContent = {
       lines: [
         "macOS 13 Ventura ou plus récent, Apple silicon ou Intel.",
         "Windows 11 en x64.",
-        "Ubuntu 22.04 ou plus récent en desktop, x64 ou arm64.",
-        "Aucun client SSH n’est nécessaire : l’app porte sa propre configuration et sa propre clé.",
+        "Ubuntu 22.04 ou plus récent en desktop, x64.",
+        "Le client OpenSSH du système, que l’app pilote avec sa propre configuration et sa propre clé : intégré à macOS et à Windows 11, le paquet openssh-client sur Ubuntu.",
       ],
     },
     server: {
@@ -75,7 +75,7 @@ export const downloadFr: DownloadContent = {
         "Ubuntu 22.04 ou 24.04, amd64 ou arm64.",
         "4 Go de RAM au minimum ; davantage pour un IDE JetBrains distant ou plusieurs bases.",
         "20 Go de disque libre, et un compte root ou sudo pour la première connexion.",
-        "Le port 22 joignable. Pupitre n’en ouvre aucun autre, et rien ne se connecte vers lui ensuite.",
+        "Le port 22 joignable. Ni la plateforme ni le support ne s’y connectent jamais ; le pare-feu laisse ensuite entrer SSH, et 80 et 443 seulement une fois Caddy installé.",
       ],
     },
   },

@@ -2,17 +2,17 @@
 title: "Conditions d’utilisation"
 description: "Le contrat entre vous et l’éditeur de Pupitre : ce que le service vous donne, ce qu’il ne fait jamais sur votre machine, ce qui est gratuit, et ce qui se passe quand il s’arrête."
 locale: fr
-updated: 2026-09-24
+updated: 2026-09-25
 order: 1
 ---
 
-Ces conditions s’appliquent dès que vous créez un compte sur `app.pupitre.studio` ou installez l’app Pupitre. Lisez-les avec la [licence](/fr/legal/licence/), la [politique d’usage acceptable](/fr/legal/acceptable-use/), la [politique de confidentialité](/fr/legal/privacy/) et l’[accord de traitement des données](/fr/legal/data-processing/) : ensemble, ils forment tout le contrat.
+Ces conditions s’appliquent dès que vous créez un compte sur `app.pupitre.studio` ou installez l’app Pupitre. Lisez-les avec la [licence](/fr/legal/licence/), la [politique d’usage acceptable](/fr/legal/acceptable-use/), la [politique de confidentialité](/fr/legal/privacy/), l’[accord de traitement des données](/fr/legal/data-processing/) et, à partir du jour où la facturation ouvre, les [conditions d’abonnement](/fr/legal/billing/) : ensemble, ils forment tout le contrat.
 
 ## Qui nous sommes
 
 Pupitre est édité par Jordan Monier, personne physique résidant au Maroc, qui en est aussi le directeur de la publication. Il n’y a pas encore de société derrière le service : le code, la marque, les noms de domaine et la plateforme appartiennent personnellement à Jordan Monier. Vous contractez avec lui, et avec lui seul. Écrivez-nous à `legal@pupitre.studio`.
 
-Le site et la console sont hébergés par Cloudflare, San Francisco, États-Unis.
+Le site et la console sont hébergés par Cloudflare, San Francisco, États-Unis. Les [mentions légales](/fr/legal/legal-notice/) réunissent l’identité de l’éditeur et celle de l’hébergeur.
 
 ## L’entité responsable peut changer
 
@@ -26,6 +26,8 @@ Pupitre, c’est une app desktop, un agent installé sur une machine qui vous ap
 
 Un compte est requis. Tout appartient à une organisation : une organisation personnelle naît avec votre compte, et vous pouvez en créer ou en rejoindre d’autres.
 
+Le service s’adresse aux professionnels et aux adultes. En créant un compte, vous déclarez avoir la capacité de conclure ce contrat et, si vous le faites pour une entreprise, le pouvoir de l’engager.
+
 ## Le lancement gratuit
 
 Le service est gratuit pendant son lancement. Aucun paiement n’est encaissé, aucune carte n’est demandée, aucune facture n’est émise. Pendant le lancement, l’abonnement qui donne à une machine son droit d’usage est accordé par la plateforme elle-même, sans frais, pour une machine par organisation.
@@ -38,31 +40,31 @@ Les prix affichés sur la [page des tarifs](/fr/pricing/) sont ceux qui s’appl
 
 Vous apportez la machine, le compte d’hébergement qui la facture, et les abonnements des fournisseurs de modèles que vos agents de code utilisent. Vous restez responsable de ce qui tourne sur la machine, des données qu’elle contient, des sauvegardes que vous en gardez, et des factures de votre hébergeur et de vos fournisseurs.
 
-Vos clés privées ne quittent jamais votre ordinateur. Nous n’en détenons aucune copie et n’avons aucun moyen d’en obtenir une.
+Vos clés privées SSH ne quittent jamais votre ordinateur. Nous n’en détenons aucune copie et n’avons aucun moyen d’en obtenir une. Il en va de même de la clé d’accès à votre stockage de sauvegardes, gardée dans le trousseau de votre ordinateur et sur votre machine, et de la clé qui ouvre vos sauvegardes : tirée de votre passphrase sur votre ordinateur, elle ne va que vers votre propre machine, en mémoire, le temps d’une restauration.
 
 ## Ce que Pupitre reçoit de votre machine
 
-L’agent sur votre machine n’ouvre jamais que des connexions sortantes : vers `app.pupitre.studio`, et, quand vous activez les sauvegardes, vers le stockage S3 que vous avez choisi. Il lit son état toutes les trente secondes et envoie un heartbeat toutes les cinq minutes. Voici tout ce que la plateforme reçoit, et rien d’autre :
+L’agent sur votre machine n’ouvre jamais que des connexions sortantes : vers `app.pupitre.studio`, vers les dépôts d’où viennent les logiciels que vous installez, et, quand vous activez les sauvegardes, vers le stockage S3 que vous avez choisi. Il lit son état toutes les trente secondes et envoie un heartbeat toutes les cinq minutes. Voici tout ce que la plateforme reçoit, et rien d’autre :
 
 - au rattachement : le nom et l’adresse que vous avez donnés à la machine dans l’app, la moitié publique de sa clé d’hôte SSH, la version de l’agent et l’architecture du processeur ;
-- à chaque heartbeat : la taille et l’espace libre du disque, la taille et l’occupation de la mémoire, la charge moyenne, la version de la stack installée, les noms des modules du catalogue installés, le nom du compte qui porte les clés SSH, et les noms des sessions tmux en cours — qui sont en général les noms de vos projets ; quand les sauvegardes sont activées, leur intervalle, et la date et l’erreur de la dernière tentative ;
-- pour chaque sauvegarde, quand les sauvegardes sont activées : sa place dans votre stockage (endpoint, bucket et préfixe des objets), l’empreinte de son manifeste, sa taille, combien de bases, de projets et de dossiers elle contient, la révision de la configuration, la version de l’agent, la clé publique pour laquelle elle est chiffrée, et le nom que vous lui donnez si vous la lancez vous-même — jamais le nom de ce qu’elle contient, un fichier, ni quoi que ce soit qui l’ouvre ;
-- depuis l’app, et non depuis la machine : les moitiés publiques des clés SSH de vos appareils, pour que l’agent puisse les autoriser.
+- à chaque heartbeat : la taille et l’espace libre du disque, la taille et l’occupation de la mémoire, la charge moyenne, la version de l’agent, la version de la stack installée, les noms des modules du catalogue installés, le nom du compte qui porte les clés SSH, les empreintes des clés SSH que l’agent tient pour sûres et de celles qui attendent l’approbation d’un de vos appareils, et les noms des sessions tmux en cours — qui sont en général les noms de vos projets ; quand les sauvegardes sont activées, leur intervalle, la date de la dernière tentative et de la dernière réussite, l’erreur de la dernière tentative, et le nombre de parties qu’elle n’a pas pu emporter ;
+- pour chaque sauvegarde, quand les sauvegardes sont activées : sa date, si elle est planifiée ou lancée à la main, sa place dans votre stockage (endpoint, région, bucket et préfixe des objets), l’empreinte de son manifeste, sa taille, si elle contient la configuration et le compte `dev`, combien de bases, de projets et de dossiers elle contient, la révision de la configuration, la version de l’agent, la clé publique pour laquelle elle est chiffrée et le sel qui sert à retrouver la clé depuis la passphrase, et le nom que vous lui donnez si vous la lancez vous-même — jamais le nom de ce qu’elle contient, un fichier, la clé d’accès à votre stockage, ni quoi que ce soit qui l’ouvre ;
+- depuis l’app, et non depuis la machine : les moitiés publiques des clés SSH de vos appareils et les approbations que vos appareils signent pour elles, que la plateforme transmet à l’agent, et, quand vous restaurez une sauvegarde, la machine sur laquelle vous l’avez restaurée.
 
-La plateforme ne reçoit jamais un fichier, une ligne de code, une variable d’environnement, un secret, des logs, le contenu d’un terminal ou d’une base de données, la sortie d’une commande, ni quoi que ce soit qui vit dans vos projets. Elle n’a aucun moyen technique de les demander : le protocole entre l’agent et la plateforme ne contient aucun message pour cela. Une sauvegarde va de votre machine à votre stockage, chiffrée pour une clé que seule votre passphrase donne, sans passer par la plateforme ; ni l’app, ni la machine, ni Pupitre ne gardent cette passphrase.
+La plateforme ne reçoit jamais un fichier, une ligne de code, une variable d’environnement, un secret, des logs, le contenu d’un terminal ou d’une base de données, la sortie d’une commande, ni quoi que ce soit qui vit dans vos projets. Elle n’a aucun moyen technique de les demander : le protocole entre l’agent et la plateforme ne contient aucun message pour cela. Une sauvegarde va de votre machine à votre stockage, chiffrée pour une clé que seule votre passphrase donne, sans passer par la plateforme ; ni l’app, ni la machine, ni Pupitre ne gardent cette passphrase, et une passphrase perdue rend vos sauvegardes illisibles, pour nous comme pour vous. Seul le manifeste de chaque sauvegarde reste lisible dans votre stockage : il nomme la machine, les projets, les bases et les dossiers qu’elle contient, pour que l’app montre ce qu’elle contient avant de vous demander la passphrase. Quiconque a accès à votre stockage peut le lire.
 
 ## Ce que Pupitre peut faire sur votre machine, et ce qu’il ne peut pas
 
 La plateforme a exactement trois leviers sur votre machine, tous appliqués par l’agent lui-même quand il lit son état :
 
 1. **Le droit d’usage.** La plateforme dit à l’agent si l’abonnement de votre organisation est valide. Sans réponse valide pendant sept jours, ou quand la réponse est une suspension, l’agent passe en mode restreint : il refuse les commandes de l’app, et rien d’autre. Il n’arrête aucun service, ne supprime aucune donnée et ne touche aucun fichier.
-2. **La liste des clés autorisées.** La plateforme donne à l’agent les clés publiques des appareils des membres de votre organisation attribués à cette machine. L’agent les écrit dans un bloc balisé du fichier `authorized_keys` du compte SSH qu’il gère, de façon atomique, sans toucher aucune ligne hors de ce bloc. Révoquer un appareil ou retirer un membre retire sa clé à la lecture suivante. Une machine suspendue reçoit une liste vide : les clés de vos appareils Pupitre quittent ce bloc, et rien d’autre ne change — les clés que vous avez ajoutées vous-même hors du bloc, et tout autre accès que vous gardez à la machine, restent tels quels.
+2. **La liste des clés demandées.** La plateforme transmet à l’agent les clés publiques des appareils des membres de votre organisation attribués à cette machine, avec les approbations que vos appareils ont signées pour elles. Elle ne peut pas, seule, donner accès à votre machine : l’agent n’écrit une clé dans le bloc balisé du fichier `authorized_keys` du compte SSH qu’il gère que s’il la tient déjà pour sûre — la clé que votre app a posée elle-même en SSH, ou celles que le bloc tenait quand l’agent a appris cette règle — ou si elle arrive avec une approbation signée par la clé privée d’un appareil qu’il tient déjà pour sûr. Ces clés privées restent sur vos ordinateurs ; la plateforme n’en a aucune et ne peut pas fabriquer une approbation. L’agent écrit ce bloc de façon atomique, sans toucher aucune ligne hors de lui. Révoquer un appareil ou retirer un membre retire sa clé à la lecture suivante, sans signature — mais l’agent ne retire jamais la dernière clé du bloc : une machine suspendue, ou dont la plateforme ne demande plus aucune clé, garde celles qui y sont. Les clés que vous avez ajoutées vous-même hors du bloc, et tout autre accès que vous gardez à la machine, restent tels quels.
 3. **La version à exécuter.** La plateforme nomme la version de l’agent à installer. L’agent la télécharge depuis la plateforme et vérifie sa signature Ed25519 avec la clé qu’il embarque avant de l’installer. Un binaire qui ne porte pas cette signature n’est jamais installé.
 
 Tout le reste est impossible par construction, pas par politique :
 
-- la plateforme ne peut pas ouvrir une connexion vers votre machine : rien n’y écoute pour elle, elle ne détient ni adresse qu’elle pourrait joindre, ni identifiant, ni clé qui ouvrirait une session ;
-- elle ne peut ni exécuter une commande, ni lire, écrire ou supprimer un fichier, ni démarrer ou arrêter un service, un projet ou un processus ;
+- la plateforme ne peut pas ouvrir une connexion vers votre machine : rien n’y écoute pour elle, elle ne détient ni adresse qu’elle pourrait joindre, ni identifiant, ni clé qui ouvrirait une session, et elle ne peut pas en faire poser une qu’un de vos appareils n’a pas approuvée ;
+- elle ne peut donc ni exécuter une commande, ni lire, écrire ou supprimer un fichier, ni démarrer ou arrêter un service, un projet ou un processus ;
 - il n’existe aucun accès caché, aucun accès de support, aucun accès de maintenance. Quand le support a besoin de voir quelque chose sur votre machine, il vous demande de l’envoyer ;
 - l’app sur votre ordinateur parle à votre machine directement, en SSH, avec votre propre clé. La plateforme n’est pas sur ce chemin et rien de ce qui passe entre l’app et la machine ne transite par Pupitre. Quand un projet est exposé sur un domaine, le tunnel est sur votre propre compte Cloudflare, monté depuis votre ordinateur, et la plateforme n’est pas non plus sur ce chemin.
 
@@ -74,7 +76,7 @@ De ce qui précède découle que les données sur votre machine ne sont qu’à 
 
 ## Logiciels tiers et fournisseurs de modèles
 
-L’agent installe sur votre machine des logiciels qui ne sont pas les nôtres — runtimes, bases de données, agents de code, outils. Chacun garde sa propre licence, que vous acceptez en l’installant, et l’app la nomme à côté de chaque service. Les agents de code que vous lancez utilisent vos propres abonnements et restent soumis aux conditions du fournisseur dont ils appellent le modèle.
+L’agent installe sur votre machine des logiciels qui ne sont pas les nôtres — runtimes, bases de données, agents de code, outils. Chacun garde la licence sous laquelle son éditeur le publie, que vous acceptez en l’installant ; chaque service du catalogue porte le nom du logiciel qu’il installe. Les agents de code que vous lancez utilisent vos propres abonnements et restent soumis aux conditions du fournisseur dont ils appellent le modèle.
 
 ## Quand le droit d’usage s’arrête
 
@@ -82,7 +84,7 @@ Quand l’abonnement de votre organisation s’arrête, ou quand une machine est
 
 ## Disponibilité et support
 
-Le service est fourni sans engagement de disponibilité. L’app reste utilisable sept jours sans la plateforme : une panne de notre côté ne vous coupe pas de vos machines. Nous faisons de notre mieux pour répondre au support à `support@pupitre.studio`, en français ou en anglais, sans délai de réponse promis.
+Le service est fourni sans engagement de disponibilité. L’app reste utilisable sept jours sans la plateforme : une panne de notre côté ne vous coupe pas de vos machines. Nous faisons de notre mieux pour répondre au support à `support@pupitre.studio`, en français ou en anglais, sans délai de réponse promis. L’état de la plateforme se lit sur `app.pupitre.studio/status`.
 
 ## Nous pouvons arrêter
 
@@ -90,7 +92,7 @@ Nous pouvons suspendre ou interrompre le service, en tout ou partie, à tout mom
 
 ## Fin du contrat
 
-Vous y mettez fin en supprimant votre compte depuis la console, à tout moment. Nous y mettons fin, pour votre organisation ou pour l’une de ses machines, en cas de manquement grave à ces conditions ou à la politique d’usage acceptable, ou quand la loi l’exige. Une suspension fondée sur une erreur est levée dès que l’erreur est établie.
+Vous y mettez fin en supprimant votre compte depuis la console, à tout moment ; ce qui a déjà été payé suit alors les [conditions d’abonnement](/fr/legal/billing/). Nous y mettons fin, pour votre organisation ou pour l’une de ses machines, en cas de manquement grave à ces conditions ou à la politique d’usage acceptable, ou quand la loi l’exige. Une suspension fondée sur une erreur est levée dès que l’erreur est établie.
 
 ## Responsabilité
 

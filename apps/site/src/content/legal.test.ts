@@ -3,6 +3,7 @@ import path from "node:path"
 import {
   CODE_SIGNING_ENTITY,
   LEGAL_CONTACTS,
+  LEGAL_DOCUMENT_SLUGS,
   LEGAL_DOCUMENTS,
   LEGAL_ENTITY,
 } from "@pupitre/shared/legal"
@@ -67,17 +68,54 @@ describe("les pages légales", () => {
     }
   })
 
+  it("nomment l'éditeur, le directeur de la publication et la société qui signe dans les mentions légales", () => {
+    for (const locale of LOCALES) {
+      const notice = read(locale, "legal-notice")
+
+      expect(notice).toContain(LEGAL_ENTITY.owner)
+      expect(notice).toContain(LEGAL_ENTITY.publicationDirector)
+      expect(notice).toContain(CODE_SIGNING_ENTITY.name)
+
+      for (const contact of Object.values(LEGAL_CONTACTS)) {
+        expect(notice, contact).toContain(contact)
+      }
+    }
+  })
+
   it("donnent l'adresse de contact que le contrat partagé déclare", () => {
     for (const locale of LOCALES) {
       expect(read(locale, "terms")).toContain(LEGAL_CONTACTS.legal)
       expect(read(locale, "privacy")).toContain(LEGAL_CONTACTS.privacy)
       expect(read(locale, "acceptable-use")).toContain(LEGAL_CONTACTS.support)
+      expect(read(locale, "billing")).toContain(LEGAL_CONTACTS.support)
+      expect(read(locale, "security")).toContain(LEGAL_CONTACTS.security)
+    }
+  })
+
+  it("ne renvoient qu'à des documents qui existent, dans leur propre langue", () => {
+    const slugs = new Set<string>(LEGAL_DOCUMENT_SLUGS)
+
+    for (const locale of LOCALES) {
+      const prefix = locale === "fr" ? "/fr/legal/" : "/legal/"
+
+      for (const document of LEGAL_DOCUMENTS) {
+        const links = read(locale, document.slug).matchAll(
+          /\]\((\/(?:fr\/)?legal\/)([^/)]+)\/\)/g
+        )
+
+        for (const [, base, slug] of links) {
+          expect(base, `${locale}/${document.slug}`).toBe(prefix)
+          expect(slugs.has(slug), `${locale}/${document.slug} → ${slug}`).toBe(
+            true
+          )
+        }
+      }
     }
   })
 
   it("nomment les sous-traitants par le contrat partagé, jamais à la main", () => {
     for (const locale of LOCALES) {
-      for (const slug of ["privacy", "data-processing"]) {
+      for (const slug of ["privacy", "data-processing", "sub-processors"]) {
         expect(read(locale, slug), slug).toContain("<SubProcessors />")
       }
     }

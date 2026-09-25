@@ -4,9 +4,10 @@ import {
   TRIAL_DAYS,
   yearlyPriceUsd,
 } from "@pupitre/shared/plans"
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it } from "vitest"
 import { pricingContent } from "../content/site/pricing"
 import { fill } from "../lib/i18n"
+import { LAUNCH_ENDS_AT, launchEndDate } from "../lib/launch"
 import { SIGNUP_URL } from "../lib/urls"
 import Fr from "../pages/fr/pricing.astro"
 import En from "../pages/pricing.astro"
@@ -15,6 +16,7 @@ import {
   offersDownloadAsMainAction,
   undeclaredButtons,
 } from "./actions"
+import { AFTER_LAUNCH, buildAt, buildNow, DURING_LAUNCH } from "./launch"
 import { render } from "./render"
 import { undeclaredVectors } from "./vectors"
 
@@ -39,6 +41,8 @@ function structuredData(html: string): Record<string, unknown>[] {
 }
 
 describe("pricing page", () => {
+  afterEach(buildNow)
+
   it("carries the headline and the three offers in both languages", async () => {
     for (const [page, path, locale] of PAGES) {
       const html = await render(page, { path })
@@ -102,6 +106,8 @@ describe("pricing page", () => {
   })
 
   it("turns the trial from a note into the promise of the button", async () => {
+    buildAt(AFTER_LAUNCH)
+
     for (const [page, path, locale] of PAGES) {
       const html = await render(page, { path })
       const content = pricingContent(locale)
@@ -111,6 +117,33 @@ describe("pricing page", () => {
         label: fill(content.plans.trial, { days: TRIAL_DAYS }),
         main: true,
       })
+      expect(html, locale).not.toContain("data-launch")
+    }
+  })
+
+  it("announces the free launch above the plans while it runs, and starts for free", async () => {
+    buildAt(DURING_LAUNCH)
+
+    for (const [page, path, locale] of PAGES) {
+      const html = await render(page, { path })
+      const content = pricingContent(locale)
+      const notice = fill(content.launch.notice, {
+        date: launchEndDate(locale),
+      })
+
+      expect(html, locale).toContain(notice)
+      expect(html.indexOf("data-launch"), locale).toBeLessThan(
+        html.indexOf('id="plans"')
+      )
+      expect(actions(html), locale).toContainEqual({
+        href: SIGNUP_URL,
+        label: content.launch.cta,
+        main: true,
+      })
+      expect(
+        actions(html).some((action) => action.label.includes(`${TRIAL_DAYS}`)),
+        locale
+      ).toBe(false)
     }
   })
 
@@ -157,7 +190,27 @@ describe("pricing page", () => {
     }
   })
 
+  it("offers only the free launch in the head while it runs", async () => {
+    buildAt(DURING_LAUNCH)
+
+    for (const [page, path, locale] of PAGES) {
+      const html = await render(page, { path })
+      const data = structuredData(html.slice(0, html.indexOf("<body")))
+      const offers = data[0].offers as (Offer & { priceValidUntil: string })[]
+
+      expect(offers, locale).toHaveLength(1)
+      expect(offers[0]).toMatchObject({
+        name: pricingContent(locale).launch.offer,
+        price: "0",
+        priceValidUntil: LAUNCH_ENDS_AT.toISOString().slice(0, 10),
+        availability: "https://schema.org/InStock",
+      })
+    }
+  })
+
   it("puts a Product with one Offer per available plan and interval in the head", async () => {
+    buildAt(AFTER_LAUNCH)
+
     for (const [page, path, locale] of PAGES) {
       const html = await render(page, { path })
       const head = html.slice(0, html.indexOf("<body"))

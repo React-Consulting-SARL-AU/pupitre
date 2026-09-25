@@ -1,11 +1,68 @@
+import {
+  LEGAL_ENTITY,
+  type LegalEntity,
+  PUPITRE_ORIGINS,
+} from "@pupitre/shared/legal"
 import { getPlan, PLANS, yearlyPriceUsd } from "@pupitre/shared/plans"
 import { describe, expect, it } from "vitest"
 import {
   faqPage,
   jsonLd,
+  organization,
   product,
   softwareApplication,
 } from "./structured-data"
+
+const LAUNCH_END = new Date("2026-12-31T23:59:59Z")
+
+const INCORPORATED: LegalEntity = {
+  ...LEGAL_ENTITY,
+  status: "incorporated",
+  legalName: "Pupitre Labs LLC",
+  form: "LLC",
+}
+
+describe("organization", () => {
+  it("claims no company while the publisher is a person", () => {
+    const data = organization({ name: "Pupitre", locale: "en" })
+
+    expect(LEGAL_ENTITY.status).toBe("individual")
+    expect(data).not.toHaveProperty("legalName")
+    expect(jsonLd(data)).not.toContain("LLC")
+    expect(jsonLd(data)).not.toContain(LEGAL_ENTITY.owner)
+  })
+
+  it("names the company once one exists", () => {
+    const data = organization({
+      name: "Pupitre",
+      locale: "en",
+      entity: INCORPORATED,
+    })
+
+    expect(data.legalName).toBe("Pupitre Labs LLC")
+  })
+
+  it("claims no legal name for a company whose name is not recorded", () => {
+    const data = organization({
+      name: "Pupitre",
+      locale: "en",
+      entity: { ...INCORPORATED, legalName: null },
+    })
+
+    expect(data).not.toHaveProperty("legalName")
+  })
+
+  it("points at the site from the shared origins, and at no other profile", () => {
+    const data = organization({ name: "Pupitre", locale: "fr" })
+
+    expect(data["@type"]).toBe("Organization")
+    expect(data.name).toBe("Pupitre")
+    expect(data.url).toBe(`${PUPITRE_ORIGINS.site}/fr/`)
+    expect(data.logo).toBe(`${PUPITRE_ORIGINS.site}/favicon.svg`)
+    expect(data).not.toHaveProperty("sameAs")
+    expect(jsonLd(data)).not.toContain(PUPITRE_ORIGINS.app)
+  })
+})
 
 describe("jsonLd", () => {
   it("serialises without a closing tag that could end the script", () => {
@@ -136,5 +193,46 @@ describe("product", () => {
       "Équipe, mensuel",
       "Équipe, annuel",
     ])
+  })
+
+  it("offers the launch for free until its last day, and no price nobody can pay yet", () => {
+    const data = product({
+      locale: "en",
+      name: "Pupitre",
+      description: "Free during the launch.",
+      intervals: { month: "monthly", year: "yearly" },
+      launch: { endsAt: LAUNCH_END, name: "Launch, one machine" },
+    })
+
+    expect(data.offers).toEqual([
+      {
+        "@type": "Offer",
+        name: "Launch, one machine",
+        price: "0",
+        priceCurrency: "USD",
+        priceValidUntil: "2026-12-31",
+        url: "https://app.pupitre.studio/",
+        availability: "https://schema.org/InStock",
+      },
+    ])
+  })
+})
+
+describe("softwareApplication during the launch", () => {
+  it("prices the app at zero until the launch ends", () => {
+    const data = softwareApplication({
+      locale: "fr",
+      name: "Pupitre",
+      description: "Une machine.",
+      launch: { endsAt: LAUNCH_END, name: "Lancement" },
+    })
+
+    expect(data.offers).toEqual({
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
+      priceValidUntil: "2026-12-31",
+      url: "https://pupitre.studio/fr/pricing/",
+    })
   })
 })

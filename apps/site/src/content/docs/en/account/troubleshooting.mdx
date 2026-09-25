@@ -1,0 +1,99 @@
+---
+title: Troubleshooting
+description: A server that asks for a subscription, restricted mode, fail2ban banning your own address, the sudo password of dev, and an install step that failed.
+locale: en
+section: account
+sectionOrder: 3
+order: 6
+---
+
+## “A usage right is required”
+
+The agent answers `a usage right is required: this server is in restricted mode` to every command it refuses, in the app and after `dev` in a terminal. The app says the same thing in its own words: **Choose a plan to open Pupitre** or **Subscription suspended** at launch, **No subscription** under **Settings › Account**, or a notice above the server's screens. The cause is one of these.
+
+- **The organisation holds no plan.** The app names the organisation it looked at. **Choose a plan** opens the console's billing; once the launch access, the trial or a subscription is open, **Refresh** in the app.
+- **Another organisation is active.** Your plan is on an organisation other than the one this computer works for. From the launch screen, **Open the settings**, then **Servers › Your organizations**, and **Make active** on the right one.
+- **The subscription is suspended.** **Manage the subscription** opens the console; settle it there, then **Refresh**.
+- **The console has not answered for more than seven days.** The app says so. Reconnect this computer, and the next answer clears it.
+
+On the server itself, the `dev` commands read the enrolment and the usage right from two files only root opens, and rerun themselves through `sudo` to get there. From an account whose `sudo` asks for a password, the command says so: type `sudo dev <command>`.
+
+## Restricted mode
+
+A server goes into restricted mode when the platform answers that its subscription is suspended, when the server is deleted from the console, or when the agent has not reached the platform for seven days.
+
+What still works: reading the server's state, the diagnosis, updating the agent and migrating its configuration, enrolment, and a sync with the platform. Everything else is refused — installs, configuration changes, project actions, secrets. Nothing that already runs is stopped: services and projects keep going, and SSH as `dev` works as before.
+
+It lifts on its own. The agent reads the platform every thirty seconds: once the subscription is valid again, the next read gives the server back. When your account holds a plan and the server stays restricted anyway — it lost its token, for instance — the notice in the app offers **Re-enrol this server**: a fresh enrolment token reaches the agent, and nothing else on the machine is touched.
+
+A failed payment does not restrict anything at first: seven days of grace, then suspension. The money side is on [billing](/docs/account/billing/).
+
+## fail2ban banned your own address
+
+`core.hardening` writes this jail in `/etc/fail2ban/jail.d/pupitre.local`:
+
+```ini
+[sshd]
+enabled = true
+backend = systemd
+port = 22
+maxretry = 5
+findtime = 10m
+bantime = 1h
+```
+
+The port reads `22,443` when you asked for SSH on 443 as well. There is no `ignoreip`: your address is treated like any other. Five failed SSH attempts within ten minutes — a client still trying `root` after the hardening closed it, a script retrying in a loop — ban that address for an hour.
+
+The symptom: from your network, `ssh` hangs or is refused and the app no longer reaches the server, while the server answers from anywhere else.
+
+Wait the hour, or unban yourself from another address — another network, your phone's connection:
+
+```bash
+sudo fail2ban-client status sshd
+sudo fail2ban-client set sshd unbanip 203.0.113.7
+```
+
+The first command lists the banned addresses; yours is among them. The last way in is the console your host provides — VNC, serial, or rescue mode: it is not SSH, so neither fail2ban nor the SSH settings stand in the way.
+
+To keep an address from ever being banned, do not edit `pupitre.local`: `core.hardening` writes it again the next time it is configured. Put the exception in a file of your own, then reload:
+
+```ini
+# /etc/fail2ban/jail.d/ignore.local
+[sshd]
+ignoreip = 127.0.0.1/8 ::1 203.0.113.7
+```
+
+```bash
+sudo fail2ban-client reload
+```
+
+## The sudo password of `dev`
+
+As `dev`, `sudo` asks for a password for everything but `pupitred serve` and `pupitred binary install`. That password is in **Settings › Servers**, on the server's card: **Sudo password of dev**, to show or copy, then paste when the terminal asks. The `dev` commands need none, except `dev db dump`, `dev db import` and `dev backup now`, for which sudo asks for it on the terminal.
+
+The card says **Not on this computer** when you open it from another computer than the one that hardened the server, when the keychain was emptied, or on Linux without a keychain once the app has quit. The gestures that need the privileged session — installing, securing, restoring a backup, among others — do not go through until this computer has the password. The button beside it, **Enter the sudo password of dev**, asks for it: copy it from the app of a computer that keeps it, then **Keep on this computer**. The app keeps it only once sudo on the server has accepted it. Running the securing again from a computer without the password is not possible: it is itself a privileged gesture. A computer that keeps it can replace it by running the securing again.
+
+Lost everywhere, set a new one from your host's console, signed in as root, then enter it in the app:
+
+```bash
+passwd dev
+```
+
+## An install step failed
+
+A failed step stops its module, not the install: the other modules go on. The install screen names the module and the step it stopped at, and offers **Try again** — or **Try the 3 services again** when several failed. When other modules depend on the one that failed, the screen says so. You can also try again later from **Services**. Every step is idempotent: replaying runs what is left and changes nothing that is already in place.
+
+A module marked **installed, with a warning** is installed; the warning names what to check.
+
+On the server, the journal gives the command that replays a failed step:
+
+```bash
+sudo tail -n 50 /var/log/pupitre.log
+```
+
+Under the failed step, a line reads `replay: sudo pupitred install --only=<module>` — `relance :` when the install ran in French. The agent keeps the values and secrets the app sent for the install, so that command replays with the same configuration. Two more commands help:
+
+- `pupitred report` prints the last install's report, with the `replay` of each failed step;
+- `dev doctor` runs a short diagnosis, and `dev status` shows what runs, the ports and the services.
+
+The steps themselves are described in [the onboarding, step by step](/docs/start/onboarding/).

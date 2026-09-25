@@ -30,9 +30,10 @@ export const en = {
   "footer.legal": "Legal",
   "footer.terms": "Terms",
   "footer.privacy": "Privacy",
-  "footer.licence": "Licence",
-  "footer.acceptableUse": "Acceptable use",
-  "footer.dpa": "Data processing",
+  "footer.cookies": "Cookies",
+  "footer.legalNotice": "Legal notice",
+  "footer.allLegal": "All legal documents",
+  "footer.consent": "Audience measurement",
   "footer.status": "Status",
 
   "callout.info": "Note",
@@ -74,7 +75,7 @@ export const en = {
   "legal.label": "Legal",
   "legal.title": "Legal — Pupitre",
   "legal.description":
-    "Terms, licence, acceptable use, privacy and data processing for Pupitre.",
+    "Terms, licence, privacy, cookies, subscription, security and legal notice for Pupitre.",
   "legal.headline": "The rules, written to be read.",
   "legal.lead": "Nothing here contradicts what the app does on your machine.",
   "legal.updated": "Updated",
@@ -94,7 +95,7 @@ export const en = {
     "We would like to count page views, without a cookie and without identifying you. Nothing is stored until you accept.",
   "consent.accept": "Accept",
   "consent.decline": "Decline",
-  "consent.link": "Privacy",
+  "consent.link": "Cookies",
 } as const
 
 export type Dictionary = Record<keyof typeof en, string>

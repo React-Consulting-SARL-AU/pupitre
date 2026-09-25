@@ -1,6 +1,6 @@
 ---
 import { CATALOG } from "../content/site/catalog"
-import { MODULE_LABELS } from "../content/site/docs"
+import { MODULE_LABELS, servicesOverviewLead } from "../content/site/docs"
 import Docs from "../layouts/Docs.astro"
 import { docPath, moduleSlug, SERVICES_SLUG } from "../lib/docs"
 import { docsSections } from "../lib/docs-entries"
@@ -12,7 +12,7 @@ const sections = await docsSections(locale)
 
 <Docs
   title={MODULE_LABELS.overviewTitle[locale]}
-  description={MODULE_LABELS.overviewLead[locale]}
+  description={servicesOverviewLead(locale)}
   section={MODULE_LABELS.overviewTitle[locale]}
   slug={SERVICES_SLUG}
   sections={sections}

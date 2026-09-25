@@ -15,7 +15,11 @@ const TEST_FILE_RE = /\.test\.[cm]?[jt]s$/
 const FRENCH_PREFIX = "fr/"
 
 /** Endpoints that serve every language from one route, so they have no twin. */
-const SHARED_ROUTES = new Set(["llms.txt.ts", "og/[...slug].png.ts"])
+const SHARED_ROUTES = new Set([
+  "llms.txt.ts",
+  "og/[...slug].png.ts",
+  ".well-known/security.txt.ts",
+])
 
 function walk(dir: string, out: string[] = []): string[] {
   if (!existsSync(dir)) {
@@ -99,10 +103,66 @@ export function checkBannedWords(root: string): ContentFinding[] {
   return findings
 }
 
+const BLOG_DIR = "src/content/blog"
+const BLOG_LOCALES = ["en", "fr"] as const
+const TRANSLATION_RE = /^translation:\s*["']?([^"'\n]+?)["']?\s*$/m
+const MDX_RE = /\.mdx$/
+
+function translationOf(file: string): string | null {
+  const frontmatter = readFileSync(file, "utf8").split("---")[1] ?? ""
+
+  return TRANSLATION_RE.exec(frontmatter)?.[1] ?? null
+}
+
+export function checkBlogTranslations(root: string): ContentFinding[] {
+  const findings: ContentFinding[] = []
+
+  for (const locale of BLOG_LOCALES) {
+    const other = locale === "en" ? "fr" : "en"
+    const dir = path.join(root, BLOG_DIR, locale)
+    const posts = existsSync(dir)
+      ? readdirSync(dir)
+          .filter((name) => MDX_RE.test(name))
+          .sort()
+      : []
+
+    for (const name of posts) {
+      const file = path.join(BLOG_DIR, locale, name)
+      const slug = name.replace(MDX_RE, "")
+      const translation = translationOf(path.join(root, file))
+
+      if (!translation) {
+        findings.push({ file, reason: "no `translation` in the frontmatter" })
+        continue
+      }
+
+      const twin = path.join(root, BLOG_DIR, other, `${translation}.mdx`)
+
+      if (!existsSync(twin)) {
+        findings.push({
+          file,
+          reason: `translation "${translation}" has no post in ${other}`,
+        })
+        continue
+      }
+
+      if (translationOf(twin) !== slug) {
+        findings.push({
+          file,
+          reason: `its ${other} translation "${translation}" does not point back to "${slug}"`,
+        })
+      }
+    }
+  }
+
+  return findings
+}
+
 export function checkContent(root: string): ContentFinding[] {
   return [
     ...checkRouteParity(root),
     ...checkBannedWords(root),
+    ...checkBlogTranslations(root),
     ...checkLegalPages(root),
   ]
 }

@@ -1,8 +1,8 @@
 import type { AppRelease } from "../../lib/releases"
 
 /**
- * The last list the site was built with. A build that cannot reach the platform
- * publishes this and warns; it never publishes an empty download page.
+ * The last list the site was built with, for a local build that cannot reach
+ * the platform: it warns and shows this. A production build never ships it.
  *
  * No asset carries a size or a digest: the repository cannot know them, and a
  * checksum that is not the file's is worse than no checksum at all.
@@ -36,12 +36,6 @@ export const FALLBACK_RELEASES: AppRelease[] = [
         arch: "x64",
         format: "AppImage",
         url: "https://app.pupitre.studio/api/v1/releases/app/0.1.0/linux/x64",
-      },
-      {
-        os: "linux",
-        arch: "arm64",
-        format: "AppImage",
-        url: "https://app.pupitre.studio/api/v1/releases/app/0.1.0/linux/arm64",
       },
     ],
   },

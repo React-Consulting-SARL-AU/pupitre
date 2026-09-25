@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@pupitre/design/tailwind.css";
+@import "@pupitre/design/fonts.css";
 
 @theme inline {
   --breakpoint-xs: 30rem;

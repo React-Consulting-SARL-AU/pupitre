@@ -32,7 +32,7 @@ Le binaire de l’agent est aussi lié sous le nom `dev`. Dans un terminal SSH o
 | `dev db url` | la chaîne de connexion, le shell, un dump, un import |
 | `dev doctor` | un diagnostic court de la machine |
 
-Rien à préfixer. L’agent lit son rattachement et son droit d’usage dans des fichiers que seul root ouvre : quand `dev` est tapé par un compte qui ne peut pas les ouvrir, la commande se relance elle-même sous `sudo -n` — le sudo sans mot de passe que la sécurisation laisse à l’utilisateur `dev`. Là où ce sudo manque, elle le dit, plutôt que de répondre par un refus qui nomme la mauvaise cause.
+Rien à préfixer. L’agent lit son rattachement et son droit d’usage dans des fichiers que seul root ouvre : quand `dev` est tapé par un compte qui ne peut pas les ouvrir, la commande parle à `sudo -n pupitred serve`, que sudo lance sans mot de passe. Là où ce sudo manque, elle le dit, plutôt que de répondre par un refus qui nomme la mauvaise cause. `dev db dump`, `dev db import` et `dev backup now` demandent davantage : sudo réclame alors le mot de passe sudo de `dev` dans le terminal, et sans terminal, la commande refuse et le dit.
 
 `dev` sans argument affiche cette grammaire. Ajoutez `--json` à n’importe laquelle et c’est la réponse de l’agent qui revient, pas un rendu de celle-ci — ce que lit un agent, ou un script. Taper `dev` depuis votre propre terminal plutôt que depuis celui de l’app revient au même : voir [votre propre client](/fr/docs/daily/clients/).
 

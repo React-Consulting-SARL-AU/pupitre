@@ -12,6 +12,17 @@ describe("LocaleSwitch", () => {
     expect(html).toContain(">FR</a>")
   })
 
+  it("links to the translation a page names, whatever its slug", async () => {
+    const html = await render(LocaleSwitch, {
+      path: "/blog/claude-code-on-a-vps/",
+      props: { href: "/fr/blog/claude-code-sur-un-vps/" },
+    })
+
+    expect(html).toContain(
+      '<a href="/fr/blog/claude-code-sur-un-vps/" hreflang="fr"'
+    )
+  })
+
   it("links back to English from a French page", async () => {
     const html = await render(LocaleSwitch, { path: "/fr/pricing/" })
 

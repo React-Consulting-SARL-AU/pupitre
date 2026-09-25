@@ -4,6 +4,7 @@ import {
   AFFILIATE_CODE_RE,
   AFFILIATE_COOKIE,
   AFFILIATE_MAX_FREE_MONTHS,
+  ANNOUNCED_LAUNCH_ENDS_AT,
   ANNUAL_FREE_MONTHS,
   BILLING_INTERVALS,
   BILLING_MODES,
@@ -66,6 +67,13 @@ describe("plans", () => {
     expect(LAUNCH_PRODUCT).toBe("launch")
     expect(LAUNCH_SEATS).toBe(TRIAL_SEATS)
     expect(LAUNCH_ADMIN_SEATS).toBeGreaterThan(LAUNCH_SEATS)
+  })
+
+  it("announces the launch end as an instant in UTC", () => {
+    const end = new Date(ANNOUNCED_LAUNCH_ENDS_AT)
+
+    expect(Number.isNaN(end.getTime())).toBe(false)
+    expect(end.toISOString().replace(".000", "")).toBe(ANNOUNCED_LAUNCH_ENDS_AT)
   })
 
   it("names the products Stripe never sees: the launch, and what the team grants", () => {

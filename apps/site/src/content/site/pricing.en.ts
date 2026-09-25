@@ -4,13 +4,21 @@ export const pricingEn: PricingContent = {
   meta: {
     title: "Pricing — Pupitre",
     description:
-      "{price} per server per month on Solo and Team, excluding tax. {months} months free on the yearly plan, a {days}-day trial without a card. When you stop, your server keeps running.",
+      "{price} per server per month on Solo and Team, excluding tax. {months} months free on the yearly plan, a {days}-day trial on one machine without a card. When you stop, your server keeps running.",
+    launchDescription:
+      "Free during the launch, until {date}, on one machine per organisation. Then {price} per server per month on Solo and Team, excluding tax. When you stop, your server keeps running.",
   },
   hero: {
     label: "Pricing",
     headline: "One price per server. The server stays yours.",
-    lead: "Solo and Team cost the same per server: {price} a month, excluding tax. Yearly, {months} months are free. The trial lasts {days} days and asks for no card. When you stop paying, your server keeps working without Pupitre.",
+    lead: "Solo and Team cost the same per server: {price} a month, excluding tax. Yearly, {months} months are free. The trial lasts {days} days, covers one machine and asks for no card. When you stop paying, your server keeps working without Pupitre.",
     unit: "per server, per month",
+  },
+  launch: {
+    notice:
+      "Free during the launch, until {date}, on one machine per organisation. A machine enrolled during the launch stays free for good. The prices below apply once billing opens.",
+    cta: "Start for free",
+    offer: "Free launch, one machine per organisation",
   },
   billing: {
     legend: "Billing",
@@ -112,7 +120,7 @@ export const pricingEn: PricingContent = {
   catalog: {
     label: "Catalogue",
     title: "Included in every offer",
-    lead: "The whole catalogue comes with each server, whatever the offer. Twenty-five modules, all available, by category.",
+    lead: "The whole catalogue comes with each server, whatever the offer. {count} modules, all available, by category.",
     available: "{count} available",
     link: "See the full catalogue",
   },

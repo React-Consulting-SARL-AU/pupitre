@@ -16,7 +16,7 @@ This page is the practical part: where the key is, how to declare the host once,
 Nothing special, on purpose:
 
 - an SSH endpoint on port 22 — or 443 as well, if you asked `core.hardening` for it;
-- the `dev` user, whose `authorized_keys` holds the public half of every device on your account;
+- the `dev` user, whose `authorized_keys` holds the public half of every device on your account allowed on that server;
 - your projects under the directory you chose, owned by `dev`;
 - the runtimes activated in **non-interactive** shells too, so a client that runs a command without a login shell finds the same `node`, `python` and `claude` you do;
 - `tmux`, `systemd`, the `dev` command, and the databases on `127.0.0.1`.
@@ -29,9 +29,9 @@ Pupitre generates an ed25519 key per server and keeps it in its own data folder,
 
 | System | Folder |
 | --- | --- |
-| macOS | `~/Library/Application Support/Pupitre` |
-| Windows | `%APPDATA%\Pupitre` |
-| Linux | `~/.config/Pupitre` |
+| macOS | `~/Library/Application Support/@pupitre/desktop` |
+| Windows | `%APPDATA%\@pupitre\desktop` |
+| Linux | `~/.config/@pupitre/desktop` |
 
 Inside it:
 
@@ -62,7 +62,7 @@ Point clients at that file rather than copying it somewhere else. Deleting the s
 Everything below needs your own `~/.ssh/config` to know the server: `ssh`, the editors and the coding agents read that file only, not the one the app keeps in its folder. The app does it for you. In **Settings › SSH**, tick *Let ssh, my editors and my coding agents reach my servers by name*: one line is added at the top of `~/.ssh/config`, and nothing else in it moves.
 
 ```
-Include "/Users/you/Library/Application Support/Pupitre/ssh/config"
+Include "/Users/you/Library/Application Support/@pupitre/desktop/ssh/config"
 ```
 
 Every server of the app then answers to its **SSH name** — the word chosen beside its name when you add it, `atelier` by default for a server called “Atelier”, changed from the server's entry in **Settings › Servers**, the SSH setting shows it — with the app's key, `IdentitiesOnly` and the pinned host key. A server whose SSH name is already a `Host` of your file keeps its identifier alone, `pupitre-srv-…`. Unticking the box takes the line back. Then check it:
@@ -142,7 +142,7 @@ dev db url                    the connection string, for a client on your laptop
 dev doctor                    a short diagnosis of the machine
 ```
 
-The agent reads its enrolment and its entitlement from files only root can open, so the command re-runs itself under the passwordless `sudo` the hardening leaves the `dev` user. Typing `sudo dev …` yourself changes nothing.
+The agent reads its enrolment and its entitlement from files only root can open, so the command speaks to `sudo -n pupitred serve`, which sudo runs without a password. `dev db dump`, `dev db import` and `dev backup now` go through a privileged session, for which sudo asks for the sudo password of `dev` on the terminal. Typing `sudo dev …` yourself changes nothing.
 
 `dev db` also takes `shell`, `dump` and `import`, and the engine goes without saying when the machine holds one database — `dev db url postgres` when it holds two.
 
@@ -163,7 +163,7 @@ VS Code, Cursor and Windsurf connect over Remote SSH, Zed through `zed://ssh`, J
 
 ## Revocation still works
 
-A device removed in the console loses its key on the server at the agent's next check-in — whatever was using that key. That is the reason to point your clients at the app's key rather than at a copy of it.
+A device removed in the console loses its key on the server at the agent's next check-in — whatever was using that key — unless it was the server's last key. That is the reason to point your clients at the app's key rather than at a copy of it.
 
 ## What stays in the app
 

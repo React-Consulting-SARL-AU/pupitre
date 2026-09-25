@@ -3,6 +3,7 @@ import sitemap from "@astrojs/sitemap"
 import tailwindcss from "@tailwindcss/vite"
 import { defineConfig } from "astro/config"
 import { legalGuard } from "./scripts/legal"
+import { notFoundPages } from "./scripts/not-found"
 
 export default defineConfig({
   site: "https://pupitre.studio",
@@ -19,6 +20,7 @@ export default defineConfig({
       i18n: { defaultLocale: "en", locales: { en: "en", fr: "fr" } },
       filter: (page) => !page.includes("/404"),
     }),
+    notFoundPages(),
   ],
   markdown: {
     syntaxHighlight: false,

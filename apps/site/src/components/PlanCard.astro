@@ -2,6 +2,7 @@
 import { formatUsd, type Plan, yearlyPriceUsd } from "@pupitre/shared/plans"
 import { pricingContent } from "../content/site/pricing"
 import { fill, localeFromPath, planName } from "../lib/i18n"
+import { isLaunchOpen } from "../lib/launch"
 import { SIGNUP_URL } from "../lib/urls"
 
 interface Props {
@@ -10,8 +11,9 @@ interface Props {
 
 const { plan } = Astro.props
 const locale = localeFromPath(Astro.url.pathname)
-const { plans } = pricingContent(locale)
+const { plans, launch } = pricingContent(locale)
 const copy = plans.items[plan.id]
+const cta = copy.cta && isLaunchOpen() ? launch.cta : copy.cta
 const later = plan.availability === "later"
 const perServer = plan.billedPer === "server"
 const servers =
@@ -81,10 +83,10 @@ const lines = perServer ? [servers, ...copy.includes] : copy.includes
   </ul>
 
   {
-    copy.cta && (
+    cta && (
       <div class="mt-8">
         <a data-emphasis="main" href={SIGNUP_URL} class="btn btn-primary w-full">
-          {copy.cta}
+          {cta}
         </a>
       </div>
     )

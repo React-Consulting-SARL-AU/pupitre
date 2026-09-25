@@ -99,6 +99,9 @@ export const LAUNCH_SEATS = TRIAL_SEATS
 /** The platform's own organization enrols what it needs during the launch. */
 export const LAUNCH_ADMIN_SEATS = 100
 
+/** The launch end the site announces; a site test holds it equal to the platform's `LAUNCH_ENDS_AT`. */
+export const ANNOUNCED_LAUNCH_ENDS_AT = "2026-12-31T23:59:59Z"
+
 export const AFFILIATE_CODE_LENGTH = 8
 
 export const AFFILIATE_CODE_RE = /^[a-z0-9-]{3,32}$/

@@ -1,6 +1,7 @@
-import { DEFAULT_LOCALE, LOCALES, localizePath } from "./i18n"
+import { PUPITRE_ORIGINS } from "@pupitre/shared/legal"
+import { DEFAULT_LOCALE, LOCALES, type Locale, localizePath } from "./i18n"
 
-export const SITE_URL = "https://pupitre.studio"
+export const SITE_URL = PUPITRE_ORIGINS.site
 
 export const OG_DIRECTORY = "og"
 
@@ -13,17 +14,32 @@ export function canonicalUrl(pathname: string): string {
   return new URL(pathname, SITE_URL).href
 }
 
-export function alternateLinks(pathname: string): AlternateLink[] {
+export type Translations = Partial<Record<Locale, string>>
+
+export function translatedPath(
+  pathname: string,
+  locale: Locale,
+  translations: Translations = {}
+): string {
+  return translations[locale] ?? localizePath(pathname, locale)
+}
+
+export function alternateLinks(
+  pathname: string,
+  translations: Translations = {}
+): AlternateLink[] {
   const links = LOCALES.map((locale) => ({
     hreflang: locale,
-    href: canonicalUrl(localizePath(pathname, locale)),
+    href: canonicalUrl(translatedPath(pathname, locale, translations)),
   }))
 
   return [
     ...links,
     {
       hreflang: "x-default",
-      href: canonicalUrl(localizePath(pathname, DEFAULT_LOCALE)),
+      href: canonicalUrl(
+        translatedPath(pathname, DEFAULT_LOCALE, translations)
+      ),
     },
   ]
 }

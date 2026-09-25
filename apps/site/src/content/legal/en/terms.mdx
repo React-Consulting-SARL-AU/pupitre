@@ -2,17 +2,17 @@
 title: "Terms of service"
 description: "The contract between you and the publisher of Pupitre: what the service gives you, what it never does on your machine, what is free, and what happens when it ends."
 locale: en
-updated: 2026-09-24
+updated: 2026-09-25
 order: 1
 ---
 
-These terms apply from the moment you create an account on `app.pupitre.studio` or install the Pupitre app. Read them with the [licence](/legal/licence/), the [acceptable use policy](/legal/acceptable-use/), the [privacy policy](/legal/privacy/) and the [data processing agreement](/legal/data-processing/): together they are the whole contract.
+These terms apply from the moment you create an account on `app.pupitre.studio` or install the Pupitre app. Read them with the [licence](/legal/licence/), the [acceptable use policy](/legal/acceptable-use/), the [privacy policy](/legal/privacy/), the [data processing agreement](/legal/data-processing/) and, from the day billing opens, the [subscription terms](/legal/billing/): together they are the whole contract.
 
 ## Who we are
 
 Pupitre is published by Jordan Monier, a natural person residing in Morocco, who is also the publication director. There is no company behind the service yet: the code, the brand, the domain names and the platform belong personally to Jordan Monier. You contract with him and with him alone. Write to `legal@pupitre.studio`.
 
-The site and the console are hosted by Cloudflare, San Francisco, United States.
+The site and the console are hosted by Cloudflare, San Francisco, United States. The [legal notice](/legal/legal-notice/) gathers the identity of the publisher and that of the host.
 
 ## The responsible party may change
 
@@ -26,6 +26,8 @@ Pupitre is a desktop app, an agent installed on a machine you own — a VPS, a d
 
 An account is required. Everything belongs to an organisation: a personal one is created with your account, and you may create or join others.
 
+The service is meant for professionals and adults. By creating an account, you declare that you have the capacity to enter into this contract and, if you do so for a business, the authority to bind it.
+
 ## The free launch
 
 The service is free during its launch. No payment is collected, no card is asked for, and no invoice is issued. During the launch, the subscription that gives a machine its right of use is granted by the platform itself, at no charge, for one machine per organisation.
@@ -38,31 +40,31 @@ The prices shown on the [pricing page](/pricing/) are the prices that will apply
 
 You bring the machine, the hosting account that bills it, and the subscriptions of the model providers your coding agents use. You stay responsible for what runs on the machine, for the data it holds, for the backups you keep of it, and for the bills of your host and of your providers.
 
-Your private keys never leave your computer. We hold no copy and have no way of obtaining one.
+Your private SSH keys never leave your computer. We hold no copy and have no way of obtaining one. The same goes for the access key to your backup storage, kept in your computer's keychain and on your machine, and for the key that opens your backups: derived from your passphrase on your computer, it only ever goes to your own machine, in memory, for the time of a restore.
 
 ## What Pupitre receives from your machine
 
-The agent on your machine only ever makes outbound connections: to `app.pupitre.studio`, and, when you turn backups on, to the S3 storage you chose. It reads its state every thirty seconds and sends a heartbeat every five minutes. Here is everything the platform receives, and nothing else:
+The agent on your machine only ever makes outbound connections: to `app.pupitre.studio`, to the repositories the software you install comes from, and, when you turn backups on, to the S3 storage you chose. It reads its state every thirty seconds and sends a heartbeat every five minutes. Here is everything the platform receives, and nothing else:
 
 - at enrolment: the name and address you gave the machine in the app, the public half of its SSH host key, the agent version and the processor architecture;
-- with each heartbeat: the size and the free space of the disk, the size and the use of the memory, the load average, the version of the installed stack, the names of the installed catalogue modules, the name of the account that holds the SSH keys, and the names of the running tmux sessions — which are usually the names of your projects; when backups are on, the backup interval and the date and error of the last attempt;
-- for each backup, when backups are on: its place in your storage (endpoint, bucket and object prefix), the digest of its manifest, its size, how many databases, projects and folders it holds, the configuration revision, the agent version, the public key it is encrypted to, and the name you give it if you start it yourself — never the name of anything it holds, a file, or anything that opens it;
-- from the app, not from the machine: the public halves of your devices' SSH keys, so that the agent can authorise them.
+- with each heartbeat: the size and the free space of the disk, the size and the use of the memory, the load average, the version of the agent, the version of the installed stack, the names of the installed catalogue modules, the name of the account that holds the SSH keys, the fingerprints of the SSH keys the agent trusts and of those waiting for the approval of one of your devices, and the names of the running tmux sessions — which are usually the names of your projects; when backups are on, the backup interval, the date of the last attempt and of the last success, the error of the last attempt, and the number of parts it could not carry;
+- for each backup, when backups are on: its date, whether it was scheduled or started by hand, its place in your storage (endpoint, region, bucket and object prefix), the digest of its manifest, its size, whether it holds the configuration and the `dev` account, how many databases, projects and folders it holds, the configuration revision, the agent version, the public key it is encrypted to and the salt used to find the key again from the passphrase, and the name you give it if you start it yourself — never the name of anything it holds, a file, the access key to your storage, or anything that opens it;
+- from the app, not from the machine: the public halves of your devices' SSH keys and the approvals your devices sign for them, which the platform relays to the agent, and, when you restore a backup, the machine you restored it on.
 
-The platform never receives a file, a line of code, an environment variable, a secret, a log, the content of a terminal or of a database, the output of a command, or anything that lives inside your projects. It has no technical means of asking for them: the protocol between the agent and the platform has no such message. A backup goes from your machine to your storage, encrypted to a key only your passphrase gives, without passing through the platform; neither the app, nor the machine, nor Pupitre keeps that passphrase.
+The platform never receives a file, a line of code, an environment variable, a secret, a log, the content of a terminal or of a database, the output of a command, or anything that lives inside your projects. It has no technical means of asking for them: the protocol between the agent and the platform has no such message. A backup goes from your machine to your storage, encrypted to a key only your passphrase gives, without passing through the platform; neither the app, nor the machine, nor Pupitre keeps that passphrase, and a lost passphrase makes your backups unreadable, to us as to you. Only the manifest of each backup stays readable in your storage: it names the machine, the projects, the databases and the folders the backup holds, so that the app can show what it holds before asking for the passphrase. Anyone with access to your storage can read it.
 
 ## What Pupitre can do on your machine, and what it cannot
 
 The platform has exactly three levers on your machine, all of them applied by the agent itself when it reads its state:
 
 1. **The right of use.** The platform tells the agent whether your organisation's subscription is valid. Without a valid answer for seven days, or when the answer is a suspension, the agent enters restricted mode: it refuses commands from the app and nothing else. It stops no service, deletes no data and touches no file.
-2. **The list of authorised keys.** The platform gives the agent the public keys of the devices of the members of your organisation who are assigned to that machine. The agent writes them into a tagged block of the `authorized_keys` file of the SSH account it manages, atomically, without touching any line outside that block. Revoking a device or removing a member removes its key on the next read. A suspended machine receives an empty list: the keys of your Pupitre devices leave that block, and nothing else changes — keys you added yourself outside the block, and any other access you keep to the machine, stay as they are.
+2. **The list of requested keys.** The platform relays to the agent the public keys of the devices of the members of your organisation who are assigned to that machine, with the approvals your devices signed for them. It cannot, on its own, give access to your machine: the agent writes a key into the tagged block of the `authorized_keys` file of the SSH account it manages only if it already trusts that key — the key your app laid itself over SSH, or the ones the block held when the agent learnt this rule — or if it comes with an approval signed by the private key of a device the agent already trusts. Those private keys stay on your computers; the platform holds none of them and cannot forge an approval. The agent writes that block atomically, without touching any line outside it. Revoking a device or removing a member removes its key on the next read, with no signature needed — but the agent never removes the last key of the block: a suspended machine, or one for which the platform requests no key any more, keeps the keys it holds. Keys you added yourself outside the block, and any other access you keep to the machine, stay as they are.
 3. **The version to run.** The platform names the agent version to install. The agent downloads it from the platform and verifies its Ed25519 signature against the key it carries before installing it. A binary that does not carry that signature is never installed.
 
 Everything else is impossible by construction, not by policy:
 
-- the platform cannot open a connection to your machine: nothing listens for it, it holds no address it could reach, no credential and no key that would open a session;
-- it cannot run a command, read, write or delete a file, start or stop a service, project or process;
+- the platform cannot open a connection to your machine: nothing listens for it, it holds no address it could reach, no credential and no key that would open a session, and it cannot have one laid that none of your devices approved;
+- it therefore cannot run a command, read, write or delete a file, start or stop a service, project or process;
 - there is no hidden access, no support access and no maintenance access. When support needs to see something on your machine, it asks you to send it;
 - the app on your computer talks to your machine directly, over SSH, with your own key. The platform is not on that path and nothing that passes between the app and the machine goes through Pupitre. When a project is exposed on a domain, the tunnel is on your own Cloudflare account, mounted from your computer, and the platform is not on that path either.
 
@@ -74,7 +76,7 @@ Because of the above, the data on your machine is yours alone: we do not hold it
 
 ## Third-party software and model providers
 
-The agent installs software on your machine that is not ours — runtimes, databases, coding agents, tools. Each keeps its own licence, which you accept by installing it, and the app names it next to each service. The coding agents you run use your own subscriptions and remain subject to the terms of the provider whose model they call.
+The agent installs software on your machine that is not ours — runtimes, databases, coding agents, tools. Each keeps the licence its publisher releases it under, which you accept by installing it; each service in the catalogue carries the name of the software it installs. The coding agents you run use your own subscriptions and remain subject to the terms of the provider whose model they call.
 
 ## When the right of use ends
 
@@ -82,7 +84,7 @@ When your organisation's subscription ends, or when a machine is suspended, your
 
 ## Availability and support
 
-The service is provided without an availability commitment. The app stays usable for seven days without the platform, so an outage on our side does not cut you off from your machines. We do our best to answer support at `support@pupitre.studio`, in French or in English, without a promised response time.
+The service is provided without an availability commitment. The app stays usable for seven days without the platform, so an outage on our side does not cut you off from your machines. We do our best to answer support at `support@pupitre.studio`, in French or in English, without a promised response time. The state of the platform can be read at `app.pupitre.studio/status`.
 
 ## We may stop
 
@@ -90,7 +92,7 @@ We may suspend or discontinue the service, in whole or in part, at any time. A p
 
 ## Ending the contract
 
-You end it by deleting your account from the console, at any time. We end it, for your organisation or for one of its machines, on a serious breach of these terms or of the acceptable use policy, or when the law requires it. A suspension based on a mistake is lifted as soon as the mistake is established.
+You end it by deleting your account from the console, at any time; what has already been paid then follows the [subscription terms](/legal/billing/). We end it, for your organisation or for one of its machines, on a serious breach of these terms or of the acceptable use policy, or when the law requires it. A suspension based on a mistake is lifted as soon as the mistake is established.
 
 ## Liability
 

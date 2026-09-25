@@ -767,8 +767,8 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
         fr: "Le domaine sous lequel les projets répondent. Son enregistrement A, et le wildcard à côté, doivent déjà pointer sur ce serveur : Let’s Encrypt vérifie ce chemin avant d’émettre quoi que ce soit.",
       },
       {
-        en: "The address Let’s Encrypt writes to about expiring certificates. It is never published and never leaves the server.",
-        fr: "L’adresse à laquelle Let’s Encrypt écrit au sujet des certificats qui expirent. Elle n’est jamais publiée et ne quitte pas le serveur.",
+        en: "The address Let’s Encrypt writes to about expiring certificates. It goes to Let’s Encrypt and to no one else.",
+        fr: "L’adresse à laquelle Let’s Encrypt écrit au sujet des certificats qui expirent. Elle part chez Let’s Encrypt et chez personne d’autre.",
       },
       {
         en: "The HTTP and HTTPS ports. 80 and 443 unless something else already has them.",

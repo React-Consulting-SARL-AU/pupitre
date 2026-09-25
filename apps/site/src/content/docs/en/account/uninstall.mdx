@@ -1,0 +1,109 @@
+---
+title: Uninstall
+description: Removing a server from the console, the agent from the server, the app's line from ~/.ssh/config, and the app with its data folder.
+locale: en
+section: account
+sectionOrder: 3
+order: 7
+---
+
+Four pieces, each removed on its own. To remove everything, take them in this order: the server in the console, the agent on the server, the line in `~/.ssh/config`, then the app.
+
+## Keep a way into the server
+
+The app's data folder holds the only copy of the private key it made for each server you added. Delete the folder and that key is gone for good. Before you remove the app, make sure something else opens `dev` on each server you keep — a key of your own in `/home/dev/.ssh/authorized_keys`, or your host's console — or finish with the server first.
+
+## The server in the console
+
+**Servers**, the server, then **Delete the server**; it takes an admin or the owner of the organisation. The server turns revoked:
+
+- its seat is freed at once, and its assignment drops;
+- at its next read of the platform, within thirty seconds, the agent goes into [restricted mode](/docs/account/troubleshooting/#restricted-mode); it leaves the device-key block as it is, in `dev`'s `authorized_keys` between `# >>> pupitre keys >>>` and `# <<< pupitre keys <<<`, since it never removes the last key of a server;
+- lines outside that block stay: the key the app placed for a server you added yourself, and your own keys.
+
+The line leaves the console seven days later, or at once with **Delete permanently**. The machine keeps everything installed on it.
+
+From the app, **Settings › Servers**, then the bin on the server's row: when the console grants you that server, the dialog offers **Delete everywhere**, which does both console steps at once and removes it from this computer. **Remove from this computer**, beside it, only hides it here.
+
+## This computer
+
+Uninstalling the app does not revoke the computer, and neither does **Sign out**, which only forgets the session here: its key goes on opening your organisation's servers until you revoke it. In the console, **Devices**, then **Revoke** on this computer — or from the app on another computer, under **Settings › Account**. Its key leaves your servers within a minute, except where it is the last one.
+
+## The agent on the server
+
+`pupitred` has no uninstall command. On the server, through `sudo`:
+
+```bash
+sudo systemctl disable --now pupitred
+sudo systemctl disable pupitre-resume
+sudo rm /etc/systemd/system/pupitred.service /etc/systemd/system/pupitre-resume.service
+sudo systemctl daemon-reload
+sudo rm /usr/local/bin/pupitred /usr/local/bin/dev
+sudo rm /var/log/pupitre.log
+sudo rm -r /var/lib/pupitre
+```
+
+`pupitre-resume` brings projects back after a boot, and the projects it started live in its `tmux` server: disable it without `--now`, and they keep running until the next reboot, after which nothing starts them. `pupitred` is the agent's own service — the platform reads, the keys, the scheduled backups; they stop with it. `/var/lib/pupitre` holds its state: the cached usage right, the last install report, where the backups stand, the copies taken before a configuration migration.
+
+`/etc/pupitre` holds the agent's configuration, and in `/etc/pupitre/env` the passwords and tokens of your services — database passwords, tunnel token, API keys. Copy what you still need somewhere safe before deleting the folder.
+
+```bash
+sudo cat /etc/pupitre/env
+sudo rm -r /etc/pupitre
+```
+
+## What stays on the server
+
+Everything Pupitre installed is ordinary Ubuntu, and keeps running without the agent:
+
+- the packages and their `systemd` services — PostgreSQL, Redis, Caddy, `cloudflared`, and the `pupitre-…` services some modules add, such as `pupitre-mailpit`;
+- the `dev` user, its sudo rule in `/etc/sudoers.d/90-dev` — the password the hardening gave it, or the passwordless sudo of a server hardened before that —, its shell, and your projects under `/home/dev`;
+- the databases and their data;
+- the `.localhost` names of your projects, in a `# >>> pupitre projects >>>` block of `/etc/hosts`;
+- the system settings: `/etc/sysctl.d/99-pupitre.conf`, and the automatic security updates of `/etc/apt/apt.conf.d/52pupitre`.
+
+The hardening stays too: `ufw`, the fail2ban jail in `/etc/fail2ban/jail.d/pupitre.local`, and the SSH settings in `/etc/ssh/sshd_config.d/10-pupitre.conf`:
+
+```
+PermitRootLogin no
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PubkeyAuthentication yes
+AllowUsers dev
+ClientAliveInterval 30
+ClientAliveCountMax 6
+```
+
+`Port 22` and `Port 443` follow when you asked for SSH on 443 as well. To let root back in by key, change two lines to what the “Keep root access” option writes — `PermitRootLogin prohibit-password` and `AllowUsers dev root` — then check the file and reload SSH, keeping your current session open until a new one works:
+
+```bash
+sudo sshd -t
+sudo systemctl reload ssh
+```
+
+## The line in ~/.ssh/config
+
+If you switched on **Let ssh, my editors and my coding agents reach my servers by name** under **Settings › SSH**, your `~/.ssh/config` starts with one line of the app's. Switch the option off before removing the app: the app takes the line back itself. Otherwise, delete it by hand. It points into the app's data folder:
+
+```
+Include "/Users/you/Library/Application Support/@pupitre/desktop/ssh/config"
+```
+
+On Linux, `Include /home/you/.config/@pupitre/desktop/ssh/config`; on Windows, `Include C:\Users\you\AppData\Roaming\@pupitre\desktop\ssh\config`, in quotes when the path holds a space. See [your own client](/docs/daily/clients/) for what the line does.
+
+## The app
+
+Switch off **Open Pupitre at login** under **Settings › Startup** first, then quit the app.
+
+| System | Remove the app | Data folder | Updater cache |
+| --- | --- | --- | --- |
+| macOS | drag `Pupitre.app` from Applications to the Trash | `~/Library/Application Support/@pupitre/desktop` | `~/Library/Caches/@pupitredesktop-updater` |
+| Windows | Settings › Apps › Installed apps, Pupitre, **Uninstall** | `%APPDATA%\@pupitre\desktop` | `%LOCALAPPDATA%\@pupitredesktop-updater` |
+| Linux | `sudo apt remove pupitre` for the `.deb`; delete the file for the AppImage | `~/.config/@pupitre/desktop` | `~/.cache/@pupitredesktop-updater` |
+
+Removing the app leaves its data folder in place. It holds the private keys under `keys/`, the SSH configuration and pinned host keys under `ssh/`, the session and the tokens of the accounts you connected (Cloudflare, GitHub…), encrypted with a key kept by the system's keychain, and your preferences. Delete it once you no longer need the keys — see [the top of this page](#keep-a-way-into-the-server).
+
+Two more things the app leaves:
+
+- `~/.pupitre/desktop`, a link to the data folder that the SSH configuration names keys through — a junction under `%USERPROFILE%\.pupitre` on Windows. Deleting the link touches nothing else.
+- on macOS, the keychain entry `@pupitre/desktop Safe Storage`, which holds the encryption key; delete it in Keychain Access. On macOS too, `~/Library/Caches/dev.pupitre.app` and `~/Library/Caches/dev.pupitre.app.ShipIt`.

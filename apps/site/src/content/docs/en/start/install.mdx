@@ -1,0 +1,84 @@
+---
+title: Install the app and link it to your account
+description: Downloading the app for macOS, Windows or Linux, what each system shows the first time, and linking the app to your Pupitre account.
+locale: en
+section: start
+sectionOrder: 0
+order: 0
+---
+
+The app runs on your computer and drives your server over SSH. It needs a Pupitre account before anything else; the server comes after.
+
+## Download
+
+The [download page](/download/) recognises your system and offers its build; the console hands out the same files under **Download the app**. Each file is published with its size and its SHA-256.
+
+| System | What is published |
+| --- | --- |
+| macOS | a `.dmg`, one for Apple silicon and one for Intel |
+| Windows | an `.exe` installer, x64 |
+| Linux | an `.AppImage` and a `.deb`, x64 |
+
+There is no arm64 build for Windows or Linux yet.
+
+## macOS
+
+Open the `.dmg` and drag Pupitre onto Applications. The app is signed with an Apple Developer ID and notarised by Apple, so Gatekeeper lets it through: the first launch only asks whether to open an app downloaded from the internet. Answer **Open**.
+
+## Windows
+
+Run the installer. It installs for your user alone and asks nothing.
+
+The installer is not code-signed yet. SmartScreen may therefore stop it with **Windows protected your PC**: click **More info**, check that the file is the one you downloaded from `pupitre.studio`, then **Run anyway**.
+
+## Linux
+
+The `.deb` installs like any package, and puts Pupitre in your applications menu:
+
+```bash
+sudo apt install ./pupitre_*_amd64.deb
+```
+
+The AppImage needs no install, but it needs FUSE 2 and the execute bit:
+
+```bash
+sudo apt install libfuse2t64    # Ubuntu 24.04; libfuse2 on 22.04
+chmod +x Pupitre-*.AppImage
+./Pupitre-*.AppImage
+```
+
+## The SSH client
+
+The app does not carry its own SSH: it runs your system's `ssh` and `ssh-keygen`, with its own configuration and its own keys.
+
+- **macOS** ships them.
+- **Windows 11** ships the OpenSSH client. If `ssh` does not answer in a terminal, add **OpenSSH Client** under Settings › System › Optional features.
+- **Ubuntu** ships them in `openssh-client`; `sudo apt install openssh-client` if it is missing.
+
+Without `ssh-keygen`, the app cannot generate a key and says so: install OpenSSH, or import a key you already have.
+
+One difference on Windows: its OpenSSH cannot be handed a password by another program. When a server only accepts a password at the first connection, the app gives you a line to paste into a terminal, which asks for the password itself. See [connect the app](/docs/start/connect/).
+
+## Link it to your account
+
+At first launch the app opens on **Sign in to open Pupitre**.
+
+1. **Sign in** opens your browser on `https://app.pupitre.studio/auth/device`, with the code already filled in. Sign in to the console there if you are not already: an account is created the first time, see [signing in](/docs/account/signing-in/).
+2. Check that the code in the browser is the one the app shows, and approve it.
+3. The app takes over on its own a few seconds later.
+
+The code expires after thirty minutes. If you closed the tab, **Reopen the browser**. The app never asks for your credentials: it ends up with its own session, and works seven days without reaching the console after that.
+
+## A subscription on the organisation
+
+The app enrols a server only for an organisation that holds a subscription: the free launch, the trial, or a paid one. The organisation's owner opens it from **Get started** in the console; see [billing](/docs/account/billing/).
+
+Without one, the app stays on **Choose a plan to open Pupitre** and names the organisation it looked at. **Choose a plan** opens the console's billing; once it is settled, **Refresh**.
+
+## Which organisation
+
+The app works for one organisation at a time: at first, the first one your account joined. If you belong to several, **Settings › Servers** lists them under **Your organizations**, and **Make active** switches this computer — the console keeps its own. When you add a server, the app says which organisation it will be enrolled for and offers **Enrol for another organization**.
+
+## Next
+
+[Choose a VPS](/docs/start/vps/), then [connect the app](/docs/start/connect/) to it. To remove everything later, see [uninstall](/docs/account/uninstall/).

@@ -1,3 +1,4 @@
+import { isProduction } from "../../scripts/legal"
 import { FALLBACK_RELEASES } from "../content/site/releases"
 
 export const OPERATING_SYSTEMS = ["macos", "windows", "linux"] as const
@@ -147,58 +148,63 @@ export interface FetchOptions {
   fetcher?: typeof fetch
   warn?: (message: string) => void
   endpoint?: string
+  strict?: boolean
 }
 
 export const ENDPOINT_VARIABLE = "PUBLIC_RELEASES_URL"
 
-/**
- * Read at build time, once per release: a version reaches the page through the
- * build that follows its publication, never through the visitor's browser. A
- * platform that cannot be reached is not a build error — the page ships the
- * last list the repository knows, and the build says so.
- */
-export async function loadReleases({
-  fetcher = fetch,
-  warn = (message) => process.emitWarning(message),
-  endpoint = import.meta.env.PUBLIC_RELEASES_URL,
-}: FetchOptions = {}): Promise<AppRelease[]> {
-  if (!endpoint) {
-    warn(
-      `${ENDPOINT_VARIABLE} is not set; the download page ships the last known list.`
-    )
+const FALLBACK_NOTE = "the download page ships the last known list"
 
-    return FALLBACK_RELEASES
-  }
-
+async function readReleases(
+  fetcher: typeof fetch,
+  endpoint: string
+): Promise<AppRelease[] | string> {
   try {
     const response = await fetcher(endpoint, {
       headers: { accept: "application/json" },
     })
 
     if (!response.ok) {
-      warn(
-        `Release list unavailable (${response.status} from ${endpoint}); the download page ships the last known list.`
-      )
-
-      return FALLBACK_RELEASES
+      return `Release list unavailable (${response.status} from ${endpoint})`
     }
 
     const releases = parseReleases(await response.json())
 
-    if (!releases) {
-      warn(
-        `Release list from ${endpoint} did not match the expected shape; the download page ships the last known list.`
-      )
-
-      return FALLBACK_RELEASES
-    }
-
-    return sortReleases(releases)
+    return releases
+      ? sortReleases(releases)
+      : `Release list from ${endpoint} did not match the expected shape`
   } catch (error) {
-    warn(
-      `Release list could not be read from ${endpoint} (${String(error)}); the download page ships the last known list.`
-    )
-
-    return FALLBACK_RELEASES
+    return `Release list could not be read from ${endpoint} (${String(error)})`
   }
+}
+
+/**
+ * Read at build time, once per release: a version reaches the page through the
+ * build that follows its publication, never through the visitor's browser.
+ * Locally, a platform out of reach ships the last list the repository knows and
+ * says so; a production build stops rather than publish links it has not read.
+ */
+export async function loadReleases({
+  fetcher = fetch,
+  warn = (message) => process.emitWarning(message),
+  endpoint = import.meta.env.PUBLIC_RELEASES_URL,
+  strict = isProduction(),
+}: FetchOptions = {}): Promise<AppRelease[]> {
+  const read = endpoint
+    ? await readReleases(fetcher, endpoint)
+    : `${ENDPOINT_VARIABLE} is not set`
+
+  if (typeof read !== "string") {
+    return read
+  }
+
+  if (strict) {
+    throw new Error(
+      `${read}: a production build publishes no download link it has not read from the platform.`
+    )
+  }
+
+  warn(`${read}; ${FALLBACK_NOTE}.`)
+
+  return FALLBACK_RELEASES
 }

@@ -1,0 +1,84 @@
+---
+title: Installer l’app et la lier à votre compte
+description: Télécharger l’app pour macOS, Windows ou Linux, ce que chaque système affiche la première fois, et lier l’app à votre compte Pupitre.
+locale: fr
+section: start
+sectionOrder: 0
+order: 0
+---
+
+L’app tourne sur votre ordinateur et pilote votre serveur en SSH. Elle demande un compte Pupitre avant tout le reste ; le serveur vient ensuite.
+
+## Télécharger
+
+La [page de téléchargement](/fr/download/) reconnaît votre système et propose son build ; la console donne les mêmes fichiers sous **Télécharger l’app**. Chaque fichier est publié avec sa taille et son SHA-256.
+
+| Système | Ce qui est publié |
+| --- | --- |
+| macOS | un `.dmg`, un pour Apple silicon et un pour Intel |
+| Windows | un installateur `.exe`, x64 |
+| Linux | un `.AppImage` et un `.deb`, x64 |
+
+Il n’y a pas encore de build arm64 pour Windows ni pour Linux.
+
+## macOS
+
+Ouvrez le `.dmg` et glissez Pupitre sur Applications. L’app est signée d’un Developer ID Apple et notarisée par Apple, Gatekeeper la laisse donc passer : le premier lancement demande seulement s’il faut ouvrir une app téléchargée sur internet. Répondez **Ouvrir**.
+
+## Windows
+
+Lancez l’installateur. Il installe pour votre utilisateur seul, sans rien demander.
+
+L’installateur n’est pas encore signé. SmartScreen peut donc l’arrêter avec **Windows a protégé votre ordinateur** : cliquez sur **Informations complémentaires**, vérifiez que le fichier est bien celui que vous avez téléchargé sur `pupitre.studio`, puis **Exécuter quand même**.
+
+## Linux
+
+Le `.deb` s’installe comme n’importe quel paquet, et pose Pupitre dans le menu des applications :
+
+```bash
+sudo apt install ./pupitre_*_amd64.deb
+```
+
+L’AppImage ne s’installe pas, mais demande FUSE 2 et le droit d’exécution :
+
+```bash
+sudo apt install libfuse2t64    # Ubuntu 24.04 ; libfuse2 sur 22.04
+chmod +x Pupitre-*.AppImage
+./Pupitre-*.AppImage
+```
+
+## Le client SSH
+
+L’app n’embarque pas son propre SSH : elle lance le `ssh` et le `ssh-keygen` de votre système, avec sa propre configuration et ses propres clés.
+
+- **macOS** les fournit.
+- **Windows 11** fournit le client OpenSSH. Si `ssh` ne répond pas dans un terminal, ajoutez **Client OpenSSH** dans Paramètres › Système › Fonctionnalités facultatives.
+- **Ubuntu** les fournit dans `openssh-client` ; `sudo apt install openssh-client` s’il manque.
+
+Sans `ssh-keygen`, l’app ne peut pas générer de clé et le dit : installez OpenSSH, ou importez une clé que vous avez déjà.
+
+Une différence sous Windows : son OpenSSH ne peut pas recevoir un mot de passe d’un autre programme. Quand un serveur n’accepte qu’un mot de passe à la première connexion, l’app vous donne une ligne à coller dans un terminal, qui demande le mot de passe elle-même. Voir [connecter l’app](/fr/docs/start/connect/).
+
+## La lier à votre compte
+
+Au premier lancement, l’app s’ouvre sur **Connectez-vous pour ouvrir Pupitre**.
+
+1. **Se connecter** ouvre votre navigateur sur `https://app.pupitre.studio/auth/device`, le code déjà rempli. Connectez-vous à la console si ce n’est pas déjà fait : un compte se crée la première fois, voir [se connecter](/fr/docs/account/signing-in/).
+2. Vérifiez que le code affiché dans le navigateur est celui que montre l’app, et approuvez-le.
+3. L’app prend la suite seule quelques secondes plus tard.
+
+Le code expire au bout de trente minutes. Si vous avez fermé l’onglet, **Rouvrir le navigateur**. L’app ne demande jamais vos identifiants : elle se retrouve avec sa propre session, et travaille ensuite sept jours sans joindre la console.
+
+## Un abonnement sur l’organisation
+
+L’app n’enrôle un serveur que pour une organisation qui détient un abonnement : le lancement gratuit, l’essai, ou un abonnement payant. Le propriétaire de l’organisation l’ouvre depuis **Démarrer** dans la console ; voir la [facturation](/fr/docs/account/billing/).
+
+Sans abonnement, l’app reste sur **Choisissez une offre pour ouvrir Pupitre** et nomme l’organisation qu’elle a regardée. **Choisir une offre** ouvre la facturation de la console ; une fois réglé, **Actualiser**.
+
+## Quelle organisation
+
+L’app travaille pour une organisation à la fois : au départ, la première que votre compte a rejointe. Si vous appartenez à plusieurs, **Réglages › Serveurs** les liste sous **Vos organisations**, et **Rendre active** change celle de cet ordinateur — la console garde la sienne. Quand vous ajoutez un serveur, l’app dit pour quelle organisation il sera enrôlé et propose **Rattacher à une autre organisation**.
+
+## Ensuite
+
+[Choisissez un VPS](/fr/docs/start/vps/), puis [connectez-y l’app](/fr/docs/start/connect/). Pour tout retirer plus tard, voir [désinstaller](/fr/docs/account/uninstall/).

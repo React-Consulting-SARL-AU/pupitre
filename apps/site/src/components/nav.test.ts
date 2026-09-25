@@ -70,7 +70,9 @@ describe("Footer", () => {
     expect(html).toContain('aria-label="Resources"')
     expect(html).toContain('aria-label="Legal"')
     expect(html).toContain('href="https://app.pupitre.studio/status/"')
-    expect(html).toContain('href="/legal/data-processing/"')
+    expect(html).toContain('href="/legal/legal-notice/"')
+    expect(html).toContain('href="/legal/cookies/"')
+    expect(html).toContain('href="/legal/"')
     expect(html).toContain(`© ${new Date().getFullYear()} ${copyrightHolder()}`)
   })
 
@@ -79,6 +81,12 @@ describe("Footer", () => {
 
     expect(html).toContain('href="/fr/legal/terms/"')
     expect(html).toContain('href="/fr/docs/"')
-    expect(html).toContain("Traitement des données")
+    expect(html).toContain("Mentions légales")
+  })
+
+  it("offers no way back to the audience banner when nothing is measured", async () => {
+    const html = await render(Footer, { path: "/" })
+
+    expect(html).not.toContain("data-consent-reopen")
   })
 })

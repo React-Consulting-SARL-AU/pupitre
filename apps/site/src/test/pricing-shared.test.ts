@@ -4,6 +4,7 @@ import type { Plan } from "@pupitre/shared/plans"
 import { describe, expect, it, vi } from "vitest"
 import Fr from "../pages/fr/pricing.astro"
 import En from "../pages/pricing.astro"
+import { AFTER_LAUNCH, buildAt, buildNow } from "./launch"
 import { render } from "./render"
 
 const MOCKED_PLANS = vi.hoisted<Plan[]>(() => [
@@ -77,6 +78,8 @@ function sources(dir: string, out: string[] = []): string[] {
 
 describe("pricing page follows @pupitre/shared/plans", () => {
   it("shows the mocked prices, caps and trial without any edit", async () => {
+    buildAt(AFTER_LAUNCH)
+
     for (const [page, path] of [
       [En, "/pricing/"],
       [Fr, "/fr/pricing/"],
@@ -95,6 +98,8 @@ describe("pricing page follows @pupitre/shared/plans", () => {
       expect(html).toContain('"price":"230"')
       expect(html).not.toContain('"price":"10"')
     }
+
+    buildNow()
   })
 
   it("has no shared price literal anywhere in the site sources", async () => {

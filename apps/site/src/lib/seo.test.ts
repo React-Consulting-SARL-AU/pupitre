@@ -18,6 +18,30 @@ describe("seo", () => {
     ])
   })
 
+  it("points each language at its own slug when a page names its translation", () => {
+    const translations = {
+      en: "/blog/claude-code-on-a-vps/",
+      fr: "/fr/blog/claude-code-sur-un-vps/",
+    }
+
+    expect(
+      alternateLinks("/fr/blog/claude-code-sur-un-vps/", translations)
+    ).toEqual([
+      {
+        hreflang: "en",
+        href: "https://pupitre.studio/blog/claude-code-on-a-vps/",
+      },
+      {
+        hreflang: "fr",
+        href: "https://pupitre.studio/fr/blog/claude-code-sur-un-vps/",
+      },
+      {
+        hreflang: "x-default",
+        href: "https://pupitre.studio/blog/claude-code-on-a-vps/",
+      },
+    ])
+  })
+
   it("names one Open Graph image per page", () => {
     expect(ogSlug("/")).toBe("index")
     expect(ogSlug("/fr/docs/start/vps/")).toBe("fr/docs/start/vps")

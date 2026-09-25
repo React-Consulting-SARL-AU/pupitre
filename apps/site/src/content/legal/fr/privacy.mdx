@@ -2,7 +2,7 @@
 title: "Confidentialité"
 description: "Ce que Pupitre collecte, ce qu’il ne collecte jamais, où ça vit, combien de temps ça reste, et comment le récupérer ou le faire supprimer."
 locale: fr
-updated: 2026-09-24
+updated: 2026-09-25
 order: 4
 ---
 
@@ -12,37 +12,56 @@ import SubProcessors from "../../../components/SubProcessors.astro"
 
 Le responsable du traitement est Jordan Monier, personne physique résidant au Maroc, qui édite Pupitre. Écrivez à `privacy@pupitre.studio` pour tout ce qui concerne vos données ; nous répondons sous trente jours.
 
+Pour les données qu’une organisation nous confie sur ses membres et ses machines, nous agissons aussi pour le compte de cette organisation, comme le dit l’[accord de traitement des données](/fr/legal/data-processing/).
+
 ## Ce que nous stockons
 
 **Votre compte.** Votre adresse email, votre nom si vous le donnez, votre langue, et votre manière de vous connecter : un lien envoyé par email, un compte GitHub ou Google — dont nous recevons l’adresse email et le nom qu’ils partagent, et rien d’autre —, une clé d’accès, ou un second facteur. Chaque session de connexion garde son adresse IP et l’identifiant du navigateur ou de l’app dont elle vient.
 
-**Vos appareils.** Le nom de chaque ordinateur depuis lequel vous avez lié l’app, et la moitié publique de la clé SSH qu’il a générée. La moitié privée reste sur cet ordinateur ; nous ne la voyons jamais.
+**Vos appareils.** Le nom de chaque ordinateur depuis lequel vous avez lié l’app, et la moitié publique de la clé SSH qu’il a générée. La moitié privée reste sur cet ordinateur ; nous ne la voyons jamais. Quand un de vos appareils autorise un autre appareil sur une machine, l’approbation qu’il signe : la machine, la clé publique autorisée, l’utilisateur qui la porte, la date, l’empreinte de la clé qui signe et la signature, gardées tant que la machine et les deux appareils existent.
 
 **Votre organisation.** Son nom, ses membres et leurs rôles, ses invitations, et un journal de ce qui y a été fait : qui a rattaché, retiré, suspendu ou rétabli une machine, invité ou retiré un membre, avec la date.
 
-**Vos machines.** Ce que les [conditions](/fr/legal/terms/) énumèrent, et rien d’autre : le nom et l’adresse que vous avez donnés à chaque machine, la moitié publique de sa clé d’hôte SSH, la version de l’agent, l’architecture du processeur, le compte qui porte les clés SSH, l’état de son droit d’usage, et — rafraîchis toutes les cinq minutes et gardés sur une fenêtre de sept jours — la taille et l’espace libre de son disque, la taille et l’occupation de sa mémoire, sa charge moyenne, la version de la stack installée, les noms des modules installés et les noms des sessions tmux en cours, qui sont en général les noms de vos projets.
+**Vos machines.** Ce que les [conditions](/fr/legal/terms/) énumèrent, et rien d’autre : le nom et l’adresse que vous avez donnés à chaque machine, la moitié publique de sa clé d’hôte SSH, la version de l’agent, l’architecture du processeur, le compte qui porte les clés SSH, l’état de son droit d’usage, et — rafraîchis toutes les cinq minutes et gardés sur une fenêtre de sept jours — la taille et l’espace libre de son disque, la taille et l’occupation de sa mémoire, sa charge moyenne, la version de la stack installée, les noms des modules installés, les empreintes des clés SSH que l’agent tient pour sûres et de celles qui attendent une approbation, et les noms des sessions tmux en cours, qui sont en général les noms de vos projets.
 
-**Vos sauvegardes.** Quand vous les activez, une référence par sauvegarde : sa place dans votre propre stockage (endpoint, bucket, préfixe des objets), l’empreinte de son manifeste, sa taille, combien de bases, de projets et de dossiers elle contient, la révision de la configuration, la version de l’agent, la clé publique pour laquelle elle est chiffrée, et le nom que vous donnez à une sauvegarde lancée vous-même, si vous lui en donnez un ; et, avec le heartbeat, l’intervalle des sauvegardes, et la date et l’erreur de la dernière tentative. La sauvegarde elle-même vit dans votre stockage, chiffrée pour une clé que seule votre passphrase donne ; nous ne la recevons jamais, et personne ne garde la passphrase. Une référence est gardée jusqu’à ce que la machine efface la sauvegarde ou qu’un administrateur de votre organisation l’oublie.
+**Vos sauvegardes.** Quand vous les activez, une référence par sauvegarde, telle que les [conditions](/fr/legal/terms/) l’énumèrent : sa date, sa place dans votre propre stockage (endpoint, région, bucket, préfixe des objets), l’empreinte de son manifeste, sa taille, ce qu’elle contient en nombres — jamais en noms —, la révision de la configuration, la version de l’agent, la clé publique pour laquelle elle est chiffrée et son sel, et le nom que vous donnez à une sauvegarde lancée vous-même, si vous lui en donnez un ; avec le heartbeat, l’intervalle des sauvegardes et l’issue de la dernière tentative ; et, quand vous en restaurez une, sur quelle machine. La sauvegarde elle-même vit dans votre stockage, chiffrée pour une clé que seule votre passphrase donne ; nous ne la recevons jamais, et personne ne garde la passphrase. La clé d’accès à votre stockage reste dans le trousseau de votre ordinateur et sur votre machine : la plateforme ne la reçoit jamais et refuse une référence qui la contiendrait. Une référence est gardée jusqu’à ce que la machine efface la sauvegarde ou qu’un administrateur de votre organisation l’oublie.
 
 **Votre abonnement.** Pendant le lancement gratuit : le fait que votre organisation détient l’abonnement de lancement, et ses dates. Aucune donnée de paiement n’existe, puisque rien n’est payé.
 
 **Ce que vous nous écrivez.** Chaque email envoyé à une adresse en `pupitre.studio` est stocké sur la plateforme — son texte, ses en-têtes et ses pièces jointes — et lu par l’équipe depuis la console, où chaque lecture d’un fil sensible est elle-même journalisée.
 
-**D’où vous venez.** Quand vous arrivez par un lien d’affiliation (`?ref=`), le code du lien est gardé 90 jours dans le cookie `pupitre_ref` sur `pupitre.studio`, pour que la console note quel lien a amené votre organisation quand elle démarre son abonnement. Il ne contient rien d’autre que ce code, il n’est envoyé à personne d’autre, et sans ce paramètre il n’est jamais posé. Pendant le lancement, cette note ne dit que d’où vous venez.
+**D’où vous venez.** Quand vous arrivez par un lien d’affiliation (`?ref=`), le code du lien est gardé 90 jours dans le cookie `pupitre_ref` sur `pupitre.studio`, pour que la console note quel lien a amené votre organisation quand elle démarre son abonnement. Il ne contient rien d’autre que ce code, il n’est envoyé à personne d’autre, et sans ce paramètre il n’est jamais posé. La plateforme compte aussi une visite pour ce lien, une fois par session de navigation, sans rien garder de vous. Pendant le lancement, cette note ne dit que d’où vous venez.
+
+Tout ce que le site et la console écrivent dans votre navigateur est décrit dans la [politique relative aux cookies](/fr/legal/cookies/).
 
 ## Ce que nous ne stockons jamais
 
 Aucun code, aucun fichier de projet, aucun secret de service, aucun log applicatif, aucun contenu de terminal, aucune variable d’environnement, aucun contenu de base de données, aucune clé privée. Ce qui vit sur votre machine reste sur votre machine : la plateforme n’a aucun moyen technique d’aller le chercher, comme les [conditions](/fr/legal/terms/) l’expliquent.
 
+## Pourquoi, et sur quelle base
+
+- **Pour vous fournir le service**, c’est-à-dire exécuter le contrat que forment les [conditions](/fr/legal/terms/) : votre compte, vos appareils, votre organisation, vos machines, vos sauvegardes, votre abonnement et les emails qui font fonctionner le compte.
+- **Pour protéger le service et les organisations**, au titre de notre intérêt légitime : l’adresse IP et l’appareil de chaque session, le journal de chaque organisation, la journalisation des lectures de fils sensibles.
+- **Pour vous répondre**, au titre de notre intérêt légitime, ou pour préparer le contrat que vous nous demandez : les emails que vous nous écrivez.
+- **Pour savoir quel lien vous a amené**, au titre de notre intérêt légitime : le code d’affiliation et le compte des visites d’un lien.
+- **Pour mesurer l’audience du site**, avec votre consentement, que vous retirez à tout moment.
+- **Pour respecter la loi**, le jour où des factures existeront : leur conservation.
+
+Aucune décision qui vous concerne n’est prise par un traitement automatisé seul, hormis ce que le contrat prévoit lui-même : une machine sans droit d’usage valide passe en mode restreint.
+
 ## Mesure d’audience et d’usage
 
-Nous utilisons PostHog pour mesurer comment le site et la console sont utilisés.
+Nous utilisons PostHog pour mesurer comment le site est utilisé.
 
-**Sur le site**, les pages vues ne sont comptées qu’après votre accord dans le bandeau. La mesure fonctionne sans cookie et sans identifiant durable : rien n’est écrit dans votre navigateur, et une visite n’est pas reliée à la suivante. Refuser ne retire rien au site, et vous changez votre réponse en effaçant les données du site dans votre navigateur.
+**Sur le site**, les pages vues ne sont comptées qu’après votre accord dans le bandeau. La mesure fonctionne sans cookie et sans identifiant durable : la seule chose écrite dans votre navigateur est votre réponse au bandeau, et une visite n’est pas reliée à la suivante. PostHog reçoit, comme tout serveur, l’adresse IP de la requête ; le projet est réglé pour ne pas la garder. Refuser ne retire rien au site, et vous changez votre réponse à tout moment par le lien « Mesure d’audience » en bas de chaque page.
 
 **La console et l’app desktop** n’envoient rien à un outil de mesure aujourd’hui. Si une version se met à mesurer quels écrans sont ouverts et quelles actions sont faites, ce sera aux mêmes conditions — des noms d’événements et un contexte technique, jamais un contenu, jamais rien de vos machines, jamais un identifiant durable sans votre accord — et cette page le dira avec sa date.
 
 Nous n’utilisons aucun réseau publicitaire, aucun cookie publicitaire, et nous ne vendons ni ne partageons jamais de données avec un tiers pour ses propres fins.
+
+## Polices de caractères
+
+Le site et la console affichent leurs titres et leurs chiffres dans des polices servies par Google Fonts. Pour les télécharger, votre navigateur s’adresse directement à Google, qui reçoit alors votre adresse IP et l’identifiant de votre navigateur, comme pour toute page qui en charge une. Nous ne recevons rien de cet échange, et Google n’y reçoit rien d’autre de Pupitre.
 
 ## Emails transactionnels
 
@@ -56,11 +75,11 @@ Rien n’est payé pendant le lancement, et aucune donnée de paiement n’exist
 
 <SubProcessors />
 
-La plateforme tourne chez Cloudflare, société américaine, sur son réseau mondial ; sa base de données et ses fichiers sont stockés dans la région Est de l’Amérique du Nord de Cloudflare, et l’équipe les lit depuis le Maroc. L’ajout d’un sous-traitant est annoncé par email aux propriétaires de chaque organisation avant d’avoir lieu.
+La plateforme tourne chez Cloudflare, société américaine, sur son réseau mondial ; sa base de données et ses fichiers sont stockés dans la région Est de l’Amérique du Nord de Cloudflare, et l’équipe les lit depuis le Maroc. L’ajout d’un sous-traitant est annoncé par email aux propriétaires de chaque organisation avant d’avoir lieu, et la [liste des sous-traitants](/fr/legal/sub-processors/) le dit avec sa date.
 
 ## Transferts
 
-Vos données sont donc traitées hors de l’Union européenne : par le responsable du traitement au Maroc, et par des sous-traitants établis aux États-Unis. Pour une personne ou une organisation dans l’Union européenne, le transfert vers le responsable du traitement repose sur les clauses contractuelles types que l’[accord de traitement des données](/fr/legal/data-processing/) incorpore, et le transfert vers chaque sous-traitant sur les clauses et les garanties que ce sous-traitant publie.
+Vos données sont donc traitées hors de l’Union européenne : par le responsable du traitement au Maroc, et par des sous-traitants établis aux États-Unis. Quand vous nous confiez vos données vous-même depuis l’Union européenne ou le Royaume-Uni, le droit de la protection des données de ces pays s’applique à nous directement. Quand c’est une organisation établie dans l’Union européenne ou au Royaume-Uni qui nous les confie, le transfert repose sur les clauses contractuelles types que l’[accord de traitement des données](/fr/legal/data-processing/) incorpore. Le transfert vers chaque sous-traitant repose sur les clauses et les garanties que ce sous-traitant publie.
 
 ## Conservation
 
@@ -68,7 +87,9 @@ Votre compte et votre organisation sont gardés tant que le compte existe. Suppr
 
 ## Vos droits
 
-Vous pouvez voir, corriger, exporter et faire supprimer vos données, et vous opposer à un traitement fondé sur notre intérêt légitime. La suppression du compte se fait depuis la console et emporte vos appareils ; vos machines continuent de fonctionner. Pour tout le reste, écrivez à `privacy@pupitre.studio`. Si vous êtes dans l’Union européenne ou au Royaume-Uni, vous pouvez aussi vous plaindre auprès de l’autorité de contrôle de votre pays.
+Vous pouvez voir, corriger, exporter et faire supprimer vos données, en limiter le traitement, vous opposer à un traitement fondé sur notre intérêt légitime, et retirer à tout moment un consentement donné, sans que cela remette en cause ce qui a été fait avant. La suppression du compte se fait depuis la console et emporte vos appareils ; vos machines continuent de fonctionner. Pour tout le reste, écrivez à `privacy@pupitre.studio` ; nous pouvons vous demander de prouver que l’adresse est la vôtre avant d’y donner suite.
+
+Vous pouvez aussi vous plaindre auprès d’une autorité de contrôle : au Maroc, la Commission nationale de contrôle de la protection des données à caractère personnel (CNDP) ; dans l’Union européenne ou au Royaume-Uni, l’autorité de votre pays. Si vous résidez en Californie ou dans un autre État américain qui vous donne des droits semblables, vous avez les mêmes droits que ci-dessus, nous ne vous traitons pas différemment parce que vous les exercez, et nous ne vendons ni ne partageons vos données au sens de ces lois.
 
 ## Âge
 
@@ -76,7 +97,7 @@ Le service s’adresse aux professionnels et aux adultes. Nous n’ouvrons sciem
 
 ## Sécurité
 
-Chiffrement en transit et au repos, connexion par lien, clé d’accès ou second facteur, sessions liées à l’appareil qui les a ouvertes, accès à la production limité aux personnes qui en ont besoin et journalisé, secrets tenus hors du code, agent distribué en binaire signé, et aucune connexion entrante vers vos machines. Une violation qui vous concerne vous est annoncée sans retard injustifié.
+Chiffrement en transit et au repos, connexion par lien, clé d’accès ou second facteur, sessions liées à l’appareil qui les a ouvertes, accès à la production limité aux personnes qui en ont besoin et journalisé, secrets tenus hors du code, agent distribué en binaire signé, et aucune connexion entrante vers vos machines. Une violation qui vous concerne vous est annoncée sans retard injustifié. La [politique de sécurité](/fr/legal/security/) dit comment nous signaler une faille.
 
 ## Modifications
 

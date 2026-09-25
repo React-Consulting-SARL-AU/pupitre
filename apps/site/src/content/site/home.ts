@@ -21,6 +21,7 @@ export interface FaqItem {
 export interface StepItem {
   title: string
   detail: string
+  duringLaunch?: { title: string; detail: string }
 }
 
 /**
@@ -86,6 +87,7 @@ export interface HomeContent {
     perServer: string
     annual: string
     trial: string
+    launch: string
     hosted: string
     link: string
   }

@@ -1,4 +1,6 @@
 ---
+import displayFont from "@pupitre/design/fonts/bricolage-grotesque-700-latin.woff2?url"
+import dataFont from "@pupitre/design/fonts/jetbrains-mono-latin.woff2?url"
 import { LIGHT } from "@pupitre/design/tokens"
 import Analytics from "../components/Analytics.astro"
 import Footer from "../components/Footer.astro"
@@ -12,22 +14,28 @@ import {
   localizePath,
   translator,
 } from "../lib/i18n"
-import { alternateLinks, canonicalUrl, ogUrl } from "../lib/seo"
+import {
+  alternateLinks,
+  canonicalUrl,
+  ogUrl,
+  type Translations,
+} from "../lib/seo"
 import { THEME_BOOT_SCRIPT } from "../lib/theme"
 
 interface Props {
   title: string
   description: string
   noIndex?: boolean
+  translations?: Translations
 }
 
 const OG_LOCALES: Record<Locale, string> = { en: "en_US", fr: "fr_FR" }
-const FONTS_HREF =
-  "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=JetBrains+Mono:wght@400;500&display=swap"
+const FONTS = [displayFont, dataFont]
 
-const { title, description, noIndex = false } = Astro.props
+const { title, description, noIndex = false, translations } = Astro.props
 const pathname = Astro.url.pathname
 const locale = localeFromPath(pathname)
+const translation = translations?.[alternateLocale(locale)]
 const t = translator(locale)
 const canonical = canonicalUrl(pathname)
 const image = ogUrl(pathname)
@@ -48,7 +56,7 @@ const image = ogUrl(pathname)
     {noIndex && <meta name="robots" content="noindex, follow" />}
     <link rel="canonical" href={canonical} />
     {
-      alternateLinks(pathname).map((link) => (
+      alternateLinks(pathname, translations).map((link) => (
         <link rel="alternate" hreflang={link.hreflang} href={link.href} />
       ))
     }
@@ -78,24 +86,26 @@ const image = ogUrl(pathname)
     <meta property="og:image:alt" content={title} />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content={image} />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href={FONTS_HREF}
-      media="print"
-      onload="this.media='all'"
-    />
-    <noscript><link rel="stylesheet" href={FONTS_HREF} /></noscript>
+    {
+      FONTS.map((href) => (
+        <link
+          rel="preload"
+          href={href}
+          as="font"
+          type="font/woff2"
+          crossorigin
+        />
+      ))
+    }
     <slot name="head" />
   </head>
   <body class="flex min-h-dvh flex-col bg-base text-ink">
     <a href="#main" class="skip-link">{t("a11y.skip")}</a>
-    <Nav />
+    <Nav translation={translation} />
     <main id="main" class="flex-1">
       <slot />
     </main>
-    <Footer />
+    <Footer translation={translation} />
     <Analytics />
   </body>
 </html>

@@ -1,0 +1,46 @@
+---
+title: "Security"
+description: "How to report a vulnerability in Pupitre, what you may test, what we commit to do, and what we will not hold against you."
+locale: en
+updated: 2026-09-24
+order: 9
+---
+
+Pupitre installs an agent that runs as root on its customers' machines: a vulnerability on our side can become one on theirs. If you find one, we want to hear it from you before anyone else.
+
+## Reporting a vulnerability
+
+Write to `security@pupitre.studio`, in English or in French. Say what you found, how to reproduce it, what an attacker could do with it, and the version of the app, of the agent or the address concerned. Only send the personal data or the secrets strictly needed to show it. The site's [`security.txt`](/.well-known/security.txt) file gives the same address.
+
+## What you may test
+
+- the Pupitre desktop app and its updates;
+- the `pupitred` agent, on a machine you own;
+- the console and the API at `app.pupitre.studio`, with your own account;
+- the site `pupitre.studio` and the downloads of `dl.pupitre.studio`, signatures included.
+
+Do not test a machine that is not yours, even one Pupitre manages: it belongs to a customer, not to us. Vulnerabilities in Cloudflare, Stripe, PostHog, GitHub or a piece of software from the catalogue are reported to their publishers; tell us if they affect Pupitre.
+
+## The rules
+
+- Use your own accounts, your own organisations and your own machines. If you reach someone else's data, stop, keep nothing of it and tell us.
+- No denial of service, no flooding, no social engineering of us or of our customers, no spam, no physical access.
+- Give us time to fix before you publish: we agree on a date together, no later than ninety days after your report unless we agree otherwise.
+
+## What we will not hold against you
+
+As long as you follow these rules in good faith, we will not sue you or file a complaint against you for your research, and analysing the app or the agent to look for a vulnerability is not a breach of the [licence](/legal/licence/). If a third party takes action against you for research that complied with this policy, we will say publicly that it did. This commitment only binds us: it cannot authorise, on anyone else's behalf, what touches a customer's machine or a third party's service.
+
+## What we commit to do
+
+- acknowledge your report within five working days;
+- tell you whether we reproduce the vulnerability, and keep you informed until it is fixed;
+- fix first what threatens our customers' machines, and ship the fix as a signed update;
+- warn the customers concerned when a vulnerability requires them to act;
+- thank you by name in the release notes, if you wish.
+
+Pupitre offers no financial reward for reports today.
+
+## What already protects your machines
+
+The platform can neither open a connection to a machine, nor run a command on it, nor read a file on it; no private SSH key leaves its owner's computer; every agent binary is signed and verified before it is installed; backups leave the machine encrypted to a key the platform does not have. The [terms](/legal/terms/) describe those guarantees in detail, and the [privacy policy](/legal/privacy/) says how a data breach is announced to you.

@@ -1,4 +1,9 @@
 import {
+  isIncorporated,
+  LEGAL_ENTITY,
+  type LegalEntity,
+} from "@pupitre/shared/legal"
+import {
   BILLING_INTERVALS,
   type BillingInterval,
   getPlan,
@@ -11,10 +16,16 @@ import { CONSOLE_URL } from "./urls"
 
 const SCHEMA_CONTEXT = "https://schema.org"
 
+export interface LaunchOffer {
+  endsAt: Date
+  name: string
+}
+
 export interface SoftwareApplicationInput {
   locale: Locale
   name: string
   description: string
+  launch?: LaunchOffer
 }
 
 export interface ProductInput {
@@ -22,6 +33,7 @@ export interface ProductInput {
   name: string
   description: string
   intervals: Record<BillingInterval, string>
+  launch?: LaunchOffer
 }
 
 export interface FaqEntry {
@@ -32,6 +44,7 @@ export interface FaqEntry {
 export interface OrganizationInput {
   name: string
   locale: Locale
+  entity?: LegalEntity
 }
 
 export interface ArticleInput {
@@ -55,11 +68,18 @@ export function jsonLd(data: unknown): string {
   return JSON.stringify(data).replaceAll("<", "\\u003c")
 }
 
+function lastDay(date: Date): string {
+  return date.toISOString().slice(0, 10)
+}
+
 export function softwareApplication({
   locale,
   name,
   description,
+  launch,
 }: SoftwareApplicationInput) {
+  const pricing = canonicalUrl(localizePath("/pricing/", locale))
+
   return {
     "@context": SCHEMA_CONTEXT,
     "@type": "SoftwareApplication",
@@ -69,13 +89,54 @@ export function softwareApplication({
     inLanguage: locale,
     applicationCategory: "DeveloperApplication",
     operatingSystem: "macOS, Windows, Linux",
-    offers: {
-      "@type": "Offer",
-      price: String(getPlan("solo").monthlyPriceUsd),
-      priceCurrency: "USD",
-      url: canonicalUrl(localizePath("/pricing/", locale)),
-    },
+    offers: launch
+      ? {
+          "@type": "Offer",
+          price: "0",
+          priceCurrency: "USD",
+          priceValidUntil: lastDay(launch.endsAt),
+          url: pricing,
+        }
+      : {
+          "@type": "Offer",
+          price: String(getPlan("solo").monthlyPriceUsd),
+          priceCurrency: "USD",
+          url: pricing,
+        },
   }
+}
+
+function launchOffers(launch: LaunchOffer) {
+  return [
+    {
+      "@type": "Offer",
+      name: launch.name,
+      price: "0",
+      priceCurrency: "USD",
+      priceValidUntil: lastDay(launch.endsAt),
+      url: CONSOLE_URL,
+      availability: "https://schema.org/InStock",
+    },
+  ]
+}
+
+function paidOffers(
+  locale: Locale,
+  intervals: Record<BillingInterval, string>
+) {
+  return PLANS.filter((plan) => plan.availability === "available").flatMap(
+    (plan) =>
+      BILLING_INTERVALS.map((interval) => ({
+        "@type": "Offer",
+        name: `${planName(plan, locale)}, ${intervals[interval]}`,
+        price: String(
+          interval === "month" ? plan.monthlyPriceUsd : yearlyPriceUsd(plan)
+        ),
+        priceCurrency: "USD",
+        url: CONSOLE_URL,
+        availability: "https://schema.org/InStock",
+      }))
+  )
 }
 
 export function product({
@@ -83,21 +144,9 @@ export function product({
   name,
   description,
   intervals,
+  launch,
 }: ProductInput) {
-  const offers = PLANS.filter(
-    (plan) => plan.availability === "available"
-  ).flatMap((plan) =>
-    BILLING_INTERVALS.map((interval) => ({
-      "@type": "Offer",
-      name: `${planName(plan, locale)}, ${intervals[interval]}`,
-      price: String(
-        interval === "month" ? plan.monthlyPriceUsd : yearlyPriceUsd(plan)
-      ),
-      priceCurrency: "USD",
-      url: CONSOLE_URL,
-      availability: "https://schema.org/InStock",
-    }))
-  )
+  const offers = launch ? launchOffers(launch) : paidOffers(locale, intervals)
 
   return {
     "@context": SCHEMA_CONTEXT,
@@ -122,15 +171,24 @@ export function faqPage(entries: FaqEntry[]) {
   }
 }
 
-export function organization({ name, locale }: OrganizationInput) {
+function recordedLegalName(entity: LegalEntity): string | null {
+  return isIncorporated(entity) ? entity.legalName : null
+}
+
+export function organization({
+  name,
+  locale,
+  entity = LEGAL_ENTITY,
+}: OrganizationInput) {
+  const legalName = recordedLegalName(entity)
+
   return {
     "@context": SCHEMA_CONTEXT,
     "@type": "Organization",
     name,
-    legalName: `${name} LLC`,
+    ...(legalName ? { legalName } : {}),
     url: canonicalUrl(localizePath("/", locale)),
     logo: canonicalUrl("/favicon.svg"),
-    sameAs: [CONSOLE_URL],
   }
 }
 

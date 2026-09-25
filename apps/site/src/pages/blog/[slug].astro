@@ -29,6 +29,7 @@ const t = translator("en")
   meta={[entry.data.reading, `${t("blog.by")} ${entry.data.author}`]}
   backHref={localizePath("/blog/", "en")}
   backLabel={t("blog.back")}
+  translation={entry.data.translation}
 >
   <Content />
 </Post>

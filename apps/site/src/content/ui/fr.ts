@@ -32,9 +32,10 @@ export const fr: Dictionary = {
   "footer.legal": "Légal",
   "footer.terms": "Conditions",
   "footer.privacy": "Confidentialité",
-  "footer.licence": "Licence",
-  "footer.acceptableUse": "Usage acceptable",
-  "footer.dpa": "Traitement des données",
+  "footer.cookies": "Cookies",
+  "footer.legalNotice": "Mentions légales",
+  "footer.allLegal": "Tous les documents légaux",
+  "footer.consent": "Mesure d’audience",
   "footer.status": "Statut",
 
   "callout.info": "Note",
@@ -77,7 +78,7 @@ export const fr: Dictionary = {
   "legal.label": "Légal",
   "legal.title": "Légal — Pupitre",
   "legal.description":
-    "Conditions, licence, usage acceptable, confidentialité et traitement des données de Pupitre.",
+    "Conditions, licence, confidentialité, cookies, abonnement, sécurité et mentions légales de Pupitre.",
   "legal.headline": "Les règles, écrites pour être lues.",
   "legal.lead": "Rien ici ne contredit ce que l’app fait sur votre machine.",
   "legal.updated": "Mise à jour",
@@ -97,5 +98,5 @@ export const fr: Dictionary = {
     "Nous aimerions compter les pages vues, sans cookie et sans vous identifier. Rien n’est enregistré tant que vous n’avez pas accepté.",
   "consent.accept": "Accepter",
   "consent.decline": "Refuser",
-  "consent.link": "Confidentialité",
+  "consent.link": "Cookies",
 }

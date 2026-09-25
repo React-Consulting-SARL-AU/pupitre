@@ -16,7 +16,7 @@ Cette page est la partie pratique : où est la clé, comment déclarer l’hôte
 Rien de particulier, et c’est voulu :
 
 - un accès SSH sur le port 22 — et sur le 443 aussi, si vous l’avez demandé à `core.hardening` ;
-- l’utilisateur `dev`, dont `authorized_keys` porte la moitié publique de chaque appareil de votre compte ;
+- l’utilisateur `dev`, dont `authorized_keys` porte la moitié publique de chaque appareil de votre compte autorisé sur ce serveur ;
 - vos projets sous le dossier que vous avez choisi, possédés par `dev` ;
 - les runtimes activés dans les shells **non interactifs** également, pour qu’un client qui lance une commande sans shell de connexion trouve les mêmes `node`, `python` et `claude` que vous ;
 - `tmux`, `systemd`, la commande `dev`, et les bases sur `127.0.0.1`.
@@ -29,9 +29,9 @@ Pupitre génère une clé ed25519 par serveur et la garde dans son propre dossie
 
 | Système | Dossier |
 | --- | --- |
-| macOS | `~/Library/Application Support/Pupitre` |
-| Windows | `%APPDATA%\Pupitre` |
-| Linux | `~/.config/Pupitre` |
+| macOS | `~/Library/Application Support/@pupitre/desktop` |
+| Windows | `%APPDATA%\@pupitre\desktop` |
+| Linux | `~/.config/@pupitre/desktop` |
 
 À l’intérieur :
 
@@ -62,7 +62,7 @@ Pointez vos clients sur ce fichier plutôt que d’en faire une copie ailleurs. 
 Tout ce qui suit demande que votre propre `~/.ssh/config` connaisse le serveur : `ssh`, les éditeurs et les agents de code ne lisent que ce fichier, pas celui que l’app garde dans son dossier. L’app le fait pour vous. Dans **Réglages › SSH**, cochez *Laisser ssh, mes éditeurs et mes agents de code joindre mes serveurs par leur nom* : une ligne s’ajoute en tête de `~/.ssh/config`, et rien d’autre n’y bouge.
 
 ```
-Include "/Users/vous/Library/Application Support/Pupitre/ssh/config"
+Include "/Users/vous/Library/Application Support/@pupitre/desktop/ssh/config"
 ```
 
 Chaque serveur de l’app répond dès lors à son **nom SSH** — le mot choisi à côté de son nom quand vous l’ajoutez, `atelier` par défaut pour un serveur nommé « Atelier », modifiable depuis la fiche du serveur dans **Réglages › Serveurs**, le réglage SSH le montre — avec la clé de l’app, `IdentitiesOnly` et la clé d’hôte épinglée. Un serveur dont le nom SSH est déjà celui d’un `Host` de votre fichier garde son identifiant seul, `pupitre-srv-…`. Décocher la case retire la ligne. Vérifiez :
@@ -142,7 +142,7 @@ dev db url                    la chaîne de connexion, pour un client sur votre 
 dev doctor                    un diagnostic court de la machine
 ```
 
-L’agent lit son rattachement et son droit d’usage dans des fichiers que seul root ouvre : la commande se relance donc elle-même sous le `sudo` sans mot de passe que la sécurisation laisse à l’utilisateur `dev`. Taper `sudo dev …` vous-même ne change rien.
+L’agent lit son rattachement et son droit d’usage dans des fichiers que seul root ouvre : la commande parle donc à `sudo -n pupitred serve`, que sudo lance sans mot de passe. `dev db dump`, `dev db import` et `dev backup now` passent par une session privilégiée, pour laquelle sudo demande le mot de passe sudo de `dev` dans le terminal. Taper `sudo dev …` vous-même ne change rien.
 
 `dev db` accepte aussi `shell`, `dump` et `import`, et le moteur va de soi quand la machine n’a qu’une base — `dev db url postgres` quand elle en a deux.
 
@@ -163,7 +163,7 @@ VS Code, Cursor et Windsurf se connectent en Remote SSH, Zed par `zed://ssh`, le
 
 ## La révocation fonctionne toujours
 
-Un appareil retiré dans la console perd sa clé sur le serveur au prochain rendez-vous de l’agent — quoi que cette clé servait à ouvrir. C’est la raison de pointer vos clients sur la clé de l’app plutôt que sur une copie.
+Un appareil retiré dans la console perd sa clé sur le serveur au prochain rendez-vous de l’agent — quoi que cette clé servait à ouvrir —, sauf si c’était la dernière clé du serveur. C’est la raison de pointer vos clients sur la clé de l’app plutôt que sur une copie.
 
 ## Ce qui reste dans l’app
 

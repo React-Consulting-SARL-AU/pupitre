@@ -13,11 +13,13 @@ Quatre règles tiennent le produit. Chacune est énoncée pour que vous puissiez
 
 L’app ouvre une session SSH depuis votre laptop. L’agent fait des appels HTTPS sortants pour son droit d’usage, les clés publiques et ses propres mises à jour. Ni la plateforme ni le support n’ouvrent de connexion vers votre machine.
 
-Vérifiez : `sudo ufw status` montre SSH, et rien d’autre sauf si vous avez installé `exposure.caddy`.
+Ce que le pare-feu laisse entrer est à votre usage : SSH sur 22, et aussi sur 443 si vous avez choisi SSH sur 443 à la sécurisation ; 80 et 443 pour le web une fois `exposure.caddy` installé ; et votre propre tailnet si vous installez `exposure.tailscale`.
+
+Vérifiez : `sudo ufw status` liste exactement ces règles, chacune avec le commentaire de ce qui l’a posée : `ssh`, `caddy`, `tailscale`.
 
 ## Aucune clé privée ne quitte votre laptop
 
-L’app garde ses clés ed25519 dans son dossier, en `0600` : une pour cet ordinateur, et une par serveur pour lequel vous lui avez demandé d’en générer une. Une clé que vous importez y est recopiée ; un hôte déclaré dans votre `~/.ssh/config` n’y met rien du tout. Seules les moitiés publiques sortent : vers l’`authorized_keys` du serveur, et vers la plateforme, qui les transmet aux machines de votre organisation.
+L’app garde ses clés ed25519 dans son dossier, en `0600` : une pour cet ordinateur, et une par serveur pour lequel vous lui avez demandé d’en générer une. Une clé que vous importez y est recopiée ; un hôte déclaré dans votre `~/.ssh/config` n’y met rien du tout. Seules les moitiés publiques sortent : vers l’`authorized_keys` du serveur, et vers la plateforme, qui les transmet aux machines de votre organisation. L’agent n’en pose une que s’il la tient déjà pour sûre, ou si elle arrive avec une autorisation signée par un appareil déjà autorisé sur ce serveur : la plateforme, qui n’a aucune clé privée, ne peut pas en fabriquer.
 
 Vérifiez : `cat ~/.ssh/authorized_keys` sur le serveur ne montre que des clés publiques, et le dossier de clés de l’app sur votre laptop est le seul endroit où existe une moitié privée. Où se trouve ce dossier, et comment y pointer vos propres outils, c’est sur [votre clé](/fr/docs/start/keys/).
 
@@ -29,7 +31,7 @@ Vérifiez : `ls /etc/pupitre/` et ses permissions.
 
 ## Le support ne peut pas entrer
 
-Le support voit qu’un serveur est rattaché et quelle version de l’agent il fait tourner. Il n’y a pas d’usurpation de votre machine, pas de shell distant, et aucune clé de support dans `authorized_keys`. Si un ingénieur du support a besoin de voir quelque chose sur votre serveur, c’est vous qui le collez.
+Le support voit ce que la plateforme sait d’un serveur : son nom, son adresse, son architecture et la version de l’agent, les services qu’il fait tourner, ses relevés de santé et l’état de ses sauvegardes. Il n’y a pas d’usurpation de votre machine, pas de shell distant, et aucune clé de support dans `authorized_keys`. Si un ingénieur du support a besoin de voir quelque chose sur votre serveur, c’est vous qui le collez.
 
 ## La sécurisation, dans l’ordre
 
@@ -37,6 +39,18 @@ Le support voit qu’un serveur est rattaché et quelle version de l’agent il 
 
 Si vous préférez garder une seconde porte sur votre propre machine, l’option « Garder l’accès root » du module laisse root joignable par clé SSH. Jamais par mot de passe : l’authentification par mot de passe tombe dans les deux cas, comme tout le reste de ce que fait la sécurisation.
 
+## Sudo demande un mot de passe à `dev`
+
+Tout ce qui tourne en `dev` — vos agents de code, le script `postinstall` d’un paquet, un terminal oublié — tourne sans surveillance. Pour qu’aucun d’eux ne devienne root, la sécurisation donne à `dev` un mot de passe sudo. L’app le tire sur votre ordinateur, n’envoie au serveur que son empreinte, et le garde dans le trousseau de l’ordinateur ; la plateforme ne voit ni l’un ni l’autre. Il s’affiche et se copie depuis la fiche du serveur, dans **Réglages › Serveurs**. Sous Linux sans GNOME Keyring ni KWallet, l’app le garde le temps de la session et vous demande de le noter.
+
+Deux lignes de commande, exactement, passent root sans mot de passe : `/usr/local/bin/pupitred serve` et `/usr/local/bin/pupitred binary install`. Le binaire de l’agent appartient à root, et `dev` ne peut pas le remplacer. `pupitred binary install` pose une nouvelle version de l’agent, dont la signature est vérifiée d’abord. `pupitred serve` ouvre le canal de l’app, et c’est une session limitée : elle lit, agit sur les projets, les fichiers et les processus de `dev`, démarre et arrête les services déjà configurés, et met l’agent à jour vers une version signée au-dessus de son plancher. Elle refuse tout ce qui configure la machine — installer, désinstaller, sécuriser —, révèle un secret que root garde, importe un dump, touche aux sauvegardes au-delà de leur état, change les clés de confiance ou l’enrôlement du serveur, le redémarre, ou ramène l’agent à une version plus ancienne.
+
+Pour ces gestes-là, l’app ouvre à la demande une seconde session, `pupitred serve --privileged`, avec le mot de passe sudo qu’elle garde : écrit sur la première ligne de l’entrée standard de la session SSH, jamais sur une ligne de commande. Elle la referme après une minute sans usage. Tout le reste — `sudo apt install`, `sudo systemctl`, toute autre commande de `pupitred` — demande le mot de passe, comme sur n’importe quel serveur bien tenu. Et l’agent, qui agit en root, ne suit plus un lien que `dev` a posé dans son dossier ; la sécurisation règle aussi `fs.protected_hardlinks` et `fs.protected_symlinks` à `1`, dans `/etc/sysctl.d/60-pupitre-links.conf`, pour que le noyau refuse lui-même un lien que `dev` pointerait vers un fichier de root.
+
+Un serveur sécurisé avant ce mot de passe garde l’ancienne règle, sudo sans mot de passe, tant que vous ne l’avez pas accepté : son tableau de bord le signale, et **Relancer la sécurisation** pose le mot de passe. Un ordinateur qui garde le mot de passe le remplace de la même façon ; un ordinateur qui ne l’a pas le saisit, et perdu partout, il se repose depuis la console de l’hébergeur ; voir le [dépannage](/fr/docs/account/troubleshooting/).
+
+Vérifiez : en `dev`, `sudo -l` liste `(ALL : ALL) ALL` et `(root) NOPASSWD: /usr/local/bin/pupitred serve, /usr/local/bin/pupitred binary install`, et `sudo -k; sudo true` demande le mot de passe.
+
 ## Ce dont Pupitre ne vous protège pas
 
-Ce n’est pas un produit de sauvegarde pour vos données, pas un système de détection d’intrusion, et pas un substitut à la lecture de ce que vous exécutez. Il pose `ufw` et `fail2ban`, laisse couler les mises à jour de sécurité, et se tient à l’écart.
+Les sauvegardes n’existent que si vous les activez : `core.backup` envoie des archives chiffrées dans un bucket à vous, et d’ici là rien du serveur n’est copié nulle part. Voir les [sauvegardes](/fr/docs/daily/backups/). Pupitre n’est pas un système de détection d’intrusion, et pas un substitut à la lecture de ce que vous exécutez. Il pose `ufw` et `fail2ban`, laisse couler les mises à jour de sécurité, et se tient à l’écart.

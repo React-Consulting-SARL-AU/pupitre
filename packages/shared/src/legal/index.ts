@@ -169,6 +169,13 @@ export const LEGAL_DOCUMENT_SLUGS = [
   "acceptable-use",
   "privacy",
   "data-processing",
+  "billing",
+  "cookies",
+  "sub-processors",
+  "security",
+  "third-party",
+  "legal-notice",
+  "changes",
 ] as const
 
 export const LegalDocumentSlugSchema = z.enum(LEGAL_DOCUMENT_SLUGS)
@@ -184,11 +191,18 @@ export const LegalDocumentSchema = z.object({
 export type LegalDocument = z.infer<typeof LegalDocumentSchema>
 
 export const LEGAL_DOCUMENTS: readonly LegalDocument[] = [
-  { slug: "terms", order: 1, updated: "2026-09-24" },
-  { slug: "licence", order: 2, updated: "2026-09-20" },
-  { slug: "acceptable-use", order: 3, updated: "2026-09-20" },
-  { slug: "privacy", order: 4, updated: "2026-09-24" },
-  { slug: "data-processing", order: 5, updated: "2026-09-20" },
+  { slug: "terms", order: 1, updated: "2026-09-25" },
+  { slug: "licence", order: 2, updated: "2026-09-24" },
+  { slug: "acceptable-use", order: 3, updated: "2026-09-24" },
+  { slug: "privacy", order: 4, updated: "2026-09-25" },
+  { slug: "data-processing", order: 5, updated: "2026-09-25" },
+  { slug: "billing", order: 6, updated: "2026-09-24" },
+  { slug: "cookies", order: 7, updated: "2026-09-24" },
+  { slug: "sub-processors", order: 8, updated: "2026-09-24" },
+  { slug: "security", order: 9, updated: "2026-09-24" },
+  { slug: "third-party", order: 10, updated: "2026-09-24" },
+  { slug: "legal-notice", order: 11, updated: "2026-09-24" },
+  { slug: "changes", order: 12, updated: "2026-09-25" },
 ]
 
 export const SubProcessorSchema = z.object({

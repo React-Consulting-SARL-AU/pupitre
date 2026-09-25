@@ -1,6 +1,6 @@
 import { getCollection } from "astro:content"
 import { CATALOG } from "../content/site/catalog"
-import { MODULE_LABELS } from "../content/site/docs"
+import { MODULE_LABELS, servicesOverviewLead } from "../content/site/docs"
 import {
   type DocsEntry,
   type DocsSection,
@@ -35,7 +35,7 @@ export function serviceEntries(locale: Locale): DocsEntry[] {
     sectionOrder: 0,
     order: 0,
     title: MODULE_LABELS.overviewTitle[locale],
-    description: MODULE_LABELS.overviewLead[locale],
+    description: servicesOverviewLead(locale),
   }
 
   const modules = CATALOG.flatMap((group) =>
