@@ -343,9 +343,13 @@ Cloudflare **D1**, une base en ligne : `ppt-db-enam` (`89b05eda-2e19-4643-a383-9
 
 Les `overrides` du `package.json` racine sont la seule source de vérité de l'arbre d'installation ; Bun ignore les overrides par workspace. Chaque épingle a une raison écrite ici ; on n'en ajoute pas sans `bun audit` et un `bun run build` qui passent.
 
+Une dépendance que plusieurs workspaces partagent prend sa version dans le `catalog` du `package.json` racine, et chaque workspace la déclare `catalog:` : on la monte à un seul endroit. Restent en dur ce qu'un seul workspace utilise, `vite` et `@vitejs/plugin-react` — l'app desktop reste sur Vite 7 tant qu'`electron-vite` n'accepte pas Vite 8 — et la famille Prisma, parce que les versions déclarées dans `packages/db/package.json` entrent dans l'empreinte du client généré.
+
+Node (`engines`) et Bun (`packageManager`) ne se déclarent qu'à la racine : aucun workspace ne s'installe seul.
+
 Épingles héritées de React-Box, à revérifier à la première mise à niveau : `typescript ^6` (TS 7 casse encore des outils), `ultracite 7.8.3` (la version suivante reformate tout le dépôt), `better-auth` exact (les mineures ont déjà cassé `customSession`).
 
-**`miniflare` est patché** (`patches/miniflare@4.20260708.0.patch`, appliqué par `patchedDependencies`). Le `workerd` que miniflare lance en développement tourne avec le tas V8 par défaut, environ 1,4 Go ; le Worker de la console se stabilise plutôt vers 1,8 Go au bout d'une longue session de HMR. Il meurt donc, et **rien ne le relance** : miniflare le lance une seule fois et ne surveille pas sa sortie, si bien que Vite continue de tourner en répondant à chaque requête par la même trace `fetch failed` d'undici, indéfiniment, jusqu'à ce qu'on relance `bun run dev:web`. Le tas se règle par le champ `v8Flags` de la configuration workerd, que miniflare n'expose pas : le patch le lit dans `MINIFLARE_V8_FLAGS`, et le script `dev` d'`apps/web` le pose à `--max-old-space-size=4096` — comme React-Box, d'où le patch vient. La version est celle qu'`@cloudflare/vite-plugin@1.43.3` épingle ; un jour où le plugin bouge, le patch est à rejouer.
+**Le tas du `workerd` de développement.** Le `workerd` que miniflare lance sous `bun run dev:web` tourne avec le tas V8 par défaut, environ 1,4 Go, quand le Worker de la console se stabilise plutôt vers 1,8 Go au bout d'une longue session de HMR. Miniflare 5 lit `MINIFLARE_WORKERD_V8_FLAGS` et le passe au champ `v8Flags` de la configuration workerd : le script `dev` d'`apps/web` le pose à `--max-old-space-size=4096`. Aucun patch n'est nécessaire, et miniflare 5 relance lui-même un `workerd` qui meurt.
 
 ## Dashboards externes
 

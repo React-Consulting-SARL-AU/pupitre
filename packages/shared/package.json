@@ -49,12 +49,12 @@
     "contracts:check": "bun scripts/export-contracts.ts --check"
   },
   "dependencies": {
-    "zod": "^4.4.3"
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "@types/bun": "^1.4.0",
-    "@typescript/native-preview": "^7.0.0-dev.20260707.2",
-    "typescript": "^6.0.3",
-    "ultracite": "7.8.3"
+    "@types/bun": "catalog:",
+    "@typescript/native-preview": "catalog:",
+    "typescript": "catalog:",
+    "ultracite": "catalog:"
   }
 }

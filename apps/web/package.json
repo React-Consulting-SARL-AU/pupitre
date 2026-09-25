@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "MINIFLARE_V8_FLAGS=--max-old-space-size=4096 NODE_OPTIONS=--max-old-space-size=6144 vite dev --port 3000",
+    "dev": "MINIFLARE_WORKERD_V8_FLAGS=--max-old-space-size=4096NODE_OPTIONS=--max-old-space-size=6144 vite dev --port 3000",
     "dev:tunnel": "bun ../../scripts/dev-tunnel.ts",
     "dev:stripe": "stripe listen --events checkout.session.completed,customer.subscription.created,customer.subscription.updated,customer.subscription.deleted,invoice.payment_failed --forward-to http://localhost:3000/api/v1/webhooks/stripe",
     "build": "vite build",
@@ -21,7 +21,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
-    "@base-ui-components/react": "1.0.0-rc.0",
+    "@base-ui-components/react": "catalog:",
     "@hookform/resolvers": "^5.9.1",
     "@pupitre/api": "workspace:*",
     "@pupitre/auth": "workspace:*",
@@ -32,32 +32,32 @@
     "@tanstack/react-router": "^1.170.32",
     "@tanstack/react-start": "^1.168.49",
     "clsx": "^2.1.1",
-    "lucide-react": "^1.41.0",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
+    "lucide-react": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
     "react-hook-form": "^7.87.0",
-    "react-markdown": "^10.1.0",
+    "react-markdown": "catalog:",
     "tailwind-merge": "^3.6.0",
     "uqr": "0.1.3",
-    "zod": "^4.4.3"
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.54.8",
-    "@cloudflare/workers-types": "5.20260708.1",
-    "@happy-dom/global-registrator": "^20.14.0",
-    "@playwright/test": "^1.62.1",
+    "@cloudflare/workers-types": "catalog:",
+    "@happy-dom/global-registrator": "catalog:",
+    "@playwright/test": "catalog:",
     "@standard-schema/spec": "^1.1.0",
-    "@tailwindcss/vite": "^4.3.3",
-    "@types/bun": "^1.4.0",
-    "@types/node": "^26.2.0",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.5",
-    "@typescript/native-preview": "^7.0.0-dev.20260707.2",
+    "@tailwindcss/vite": "catalog:",
+    "@types/bun": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@typescript/native-preview": "catalog:",
     "@vitejs/plugin-react": "^6.1.0",
-    "tailwindcss": "^4.3.3",
-    "typescript": "^6.0.3",
-    "ultracite": "7.8.3",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "ultracite": "catalog:",
     "vite": "^8.2.2",
-    "wrangler": "^4.131.1"
+    "wrangler": "catalog:"
   }
 }

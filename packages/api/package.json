@@ -45,19 +45,18 @@
     "@sinclair/typebox": "^0.34.50",
     "elysia": "^1.4.29",
     "postal-mime": "^3.0.0",
-    "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react": "catalog:",
+    "react-dom": "catalog:"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "5.20260708.1",
+    "@cloudflare/workers-types": "catalog:",
     "@libsql/client": "^0.15.15",
     "@prisma/adapter-libsql": "^7.9.1",
-    "@types/bun": "^1.4.0",
-    "@types/node": "^26.2.0",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.7",
-    "@typescript/native-preview": "^7.0.0-dev.20260707.2",
-    "typescript": "^6.0.3",
-    "ultracite": "7.8.3"
+    "@types/bun": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@typescript/native-preview": "catalog:",
+    "typescript": "catalog:",
+    "ultracite": "catalog:"
   }
 }
