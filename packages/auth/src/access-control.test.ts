@@ -47,10 +47,21 @@ describe("organization roles", () => {
 })
 
 describe("platform roles", () => {
-  it("reserve user management to platform_admin", () => {
-    expect(
-      platformRoles.platform_admin.authorize({ user: ["list"] }).success
-    ).toBe(true)
-    expect(platformRoles.user.authorize({ user: ["list"] }).success).toBe(false)
+  it("grant nothing in Better Auth itself, not even to platform_admin", () => {
+    for (const role of [platformRoles.platform_admin, platformRoles.user]) {
+      for (const action of [
+        "impersonate",
+        "set-password",
+        "set-email",
+        "create",
+        "delete",
+        "list",
+        "ban",
+      ] as const) {
+        expect(role.authorize({ user: [action] }).success).toBe(false)
+      }
+
+      expect(role.authorize({ session: ["revoke"] }).success).toBe(false)
+    }
   })
 })

@@ -202,8 +202,8 @@ export async function removeBackup(
 
 function visibleWhere(viewer: Viewer): Prisma.BackupWhereInput {
   return seesEveryServer(viewer)
-    ? { forgottenAt: null }
-    : { forgottenAt: null, server: { assignedUserId: viewer.userId } }
+    ? {}
+    : { server: { assignedUserId: viewer.userId } }
 }
 
 export async function listBackups(
@@ -236,7 +236,7 @@ export async function listServerBackups(
     getPrisma(),
     organizationId
   ).backup.findMany({
-    where: { serverId: server.id, forgottenAt: null },
+    where: { serverId: server.id },
     orderBy: { createdAt: "desc" },
   })
 
@@ -253,7 +253,7 @@ async function findVisibleBackup(
   })
 }
 
-/** The bucket belongs to the client: forgetting only hides the reference. */
+/** The bucket belongs to the client: forgetting deletes the reference, and leaves the backup where it lies. */
 export async function forgetBackup(
   organizationId: string,
   backupId: string,
@@ -265,9 +265,8 @@ export async function forgetBackup(
     return false
   }
 
-  await withOrganization(getPrisma(), organizationId).backup.updateMany({
+  await withOrganization(getPrisma(), organizationId).backup.deleteMany({
     where: { id: backup.id },
-    data: { forgottenAt: new Date() },
   })
 
   await recordEvent({

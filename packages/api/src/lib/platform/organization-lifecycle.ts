@@ -9,7 +9,7 @@ import {
   sendOrganizationRestoredEmail,
   sendOrganizationSuspendedEmail,
 } from "../../emails/notifications"
-import { getPrisma } from "../api/prisma"
+import { getPrisma, withOrganization } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import { cancelSubscriptionByAdmin } from "../billing/admin"
 import { applyOrganizationEntitlement } from "../billing/mirror"
@@ -436,7 +436,7 @@ export async function deleteOrganizationFromPlatform(
   assertNotPlatform(organizationId)
 
   if (organization.deletionAt) {
-    await purgeOrganization(organization, actor.userId)
+    await purgeOrganization(organization.id, actor.userId)
 
     return { deletion: "purged" }
   }
@@ -468,25 +468,25 @@ export async function deleteOrganizationFromPlatform(
   return scheduled ? { deletion: "scheduled", organization: scheduled } : null
 }
 
-export interface PurgedOrganization {
-  id: string
-  name: string
-  slug: string
-}
-
+/** The journal goes with the organization — hosts, reasons, invited addresses — and only its identifier is kept. */
 export async function purgeOrganization(
-  organization: PurgedOrganization,
+  organizationId: string,
   actorUserId: string | null
 ): Promise<void> {
   const prisma = getPrisma()
 
-  await prisma.organization.delete({ where: { id: organization.id } })
+  await withOrganization(prisma, organizationId).event.deleteMany({
+    where: {},
+  })
+  await prisma.event.deleteMany({
+    where: { targetType: "organization", targetId: organizationId },
+  })
+  await prisma.organization.delete({ where: { id: organizationId } })
   await recordEvent({
     action: "organization.purged",
     actorUserId,
     targetType: "organization",
-    targetId: organization.id,
-    payload: { name: organization.name, slug: organization.slug },
+    targetId: organizationId,
   })
 }
 

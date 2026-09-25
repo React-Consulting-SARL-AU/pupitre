@@ -1,4 +1,9 @@
-import { deletionDeadline } from "@pupitre/shared/platform"
+import { PLATFORM_PRODUCTS } from "@pupitre/shared/plans"
+import {
+  deletionDeadline,
+  PLATFORM_ORGANIZATION_ID,
+} from "@pupitre/shared/platform"
+import { inBatches } from "../api/batches"
 import { getApiAuth } from "../api/plugins/auth"
 import { getPrisma } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
@@ -6,6 +11,7 @@ import { SEATED_STATUSES } from "../billing/seats"
 import { LIVE_SUBSCRIPTION_STATUSES } from "../billing/subscription"
 import { removeDevice } from "../devices/devices"
 import { unassignServersOfMember } from "../servers/assign"
+import { purgeOrganization } from "./organization-lifecycle"
 import {
   type AdminUserDetail,
   belongsToPlatform,
@@ -174,43 +180,85 @@ export async function reactivateUserFromPlatform(
   return await readUserForPlatform(userId)
 }
 
-/** An organization nobody else owns and that still holds a seated machine or a billed subscription would be left to nobody. */
+async function holdsMachinesOrBilling(
+  organizationId: string,
+  goesWithAccount: boolean
+): Promise<boolean> {
+  const prisma = getPrisma()
+  const [servers, subscriptions] = await Promise.all([
+    prisma.server.count({
+      where: { organizationId, status: { in: SEATED_STATUSES } },
+    }),
+    prisma.subscription.count({
+      where: {
+        organizationId,
+        status: { in: LIVE_SUBSCRIPTION_STATUSES },
+        ...(goesWithAccount
+          ? { product: { notIn: [...PLATFORM_PRODUCTS] } }
+          : {}),
+      },
+    }),
+  ])
+
+  return servers > 0 || subscriptions > 0
+}
+
+/** An organization left to nobody still holding a machine or a subscription holds the account back; one it is alone in goes with it, so only Stripe, which a deleted row would not stop, holds it then. */
 export async function soleOwnerOrganizationOf(
   userId: string
 ): Promise<string | null> {
   const prisma = getPrisma()
-  const owned = await prisma.member.findMany({
-    where: { userId, role: "owner" },
-    select: { organizationId: true },
+  const memberships = await prisma.member.findMany({
+    where: { userId },
+    select: { organizationId: true, role: true },
   })
 
-  for (const { organizationId } of owned) {
-    const owners = await prisma.member.count({
-      where: { organizationId, role: "owner" },
-    })
+  for (const { organizationId, role } of memberships) {
+    const [members, otherOwners] = await Promise.all([
+      prisma.member.count({ where: { organizationId } }),
+      prisma.member.count({
+        where: { organizationId, role: "owner", NOT: { userId } },
+      }),
+    ])
+    const goesWithAccount = members === 1
+    const soleOwner = role === "owner" && otherOwners === 0
 
-    if (owners > 1) {
+    if (!(goesWithAccount || soleOwner)) {
       continue
     }
 
-    const [servers, subscriptions] = await Promise.all([
-      prisma.server.count({
-        where: { organizationId, status: { in: SEATED_STATUSES } },
-      }),
-      prisma.subscription.count({
-        where: {
-          organizationId,
-          status: { in: LIVE_SUBSCRIPTION_STATUSES },
-        },
-      }),
-    ])
+    if (organizationId === PLATFORM_ORGANIZATION_ID) {
+      return organizationId
+    }
 
-    if (servers > 0 || subscriptions > 0) {
+    if (await holdsMachinesOrBilling(organizationId, goesWithAccount)) {
       return organizationId
     }
   }
 
   return null
+}
+
+/** The organizations this account is the last member of: they have nobody left once it goes. */
+async function organizationsLeftEmptyBy(userId: string): Promise<string[]> {
+  const prisma = getPrisma()
+  const memberships = await prisma.member.findMany({
+    where: { userId, NOT: { organizationId: PLATFORM_ORGANIZATION_ID } },
+    select: { organizationId: true },
+  })
+  const empty: string[] = []
+
+  for (const { organizationId } of memberships) {
+    const others = await prisma.member.count({
+      where: { organizationId, NOT: { userId } },
+    })
+
+    if (others === 0) {
+      empty.push(organizationId)
+    }
+  }
+
+  return empty
 }
 
 async function assertNotSoleOwner(userId: string): Promise<void> {
@@ -248,7 +296,7 @@ export async function deleteUserFromPlatform(
   await assertNotSoleOwner(userId)
 
   if (user.deletionAt) {
-    await purgeUser({ id: user.id, email: user.email }, actor.userId)
+    await purgeUser(user.id, actor.userId)
 
     return { deletion: "purged" }
   }
@@ -280,35 +328,83 @@ export async function deleteUserFromPlatform(
   return scheduled ? { deletion: "scheduled", user: scheduled } : null
 }
 
-export interface PurgedUser {
-  id: string
-  email: string
+/** What the journal says about the account itself and its devices goes with it; its lines elsewhere only lose their author. */
+async function forgetUserInJournal(userId: string): Promise<void> {
+  const prisma = getPrisma()
+  const [devices, deviceEvents] = await Promise.all([
+    prisma.device.findMany({ where: { userId }, select: { id: true } }),
+    prisma.event.findMany({
+      where: { actorUserId: userId, targetType: "device" },
+      select: { targetId: true },
+    }),
+  ])
+  const deviceIds = [
+    ...new Set([
+      ...devices.map((device) => device.id),
+      ...deviceEvents.map((event) => event.targetId),
+    ]),
+  ]
+
+  await prisma.event.deleteMany({
+    where: { targetType: "user", targetId: userId },
+  })
+
+  for (const batch of inBatches(deviceIds)) {
+    await prisma.event.deleteMany({
+      where: { targetType: "device", targetId: { in: batch } },
+    })
+  }
 }
 
-/** The row leaves for good; the journal keeps who it was, since the identifier alone says nothing. */
+/** The row leaves for good, with the organizations it was the last member of; the journal keeps only its identifier. */
 export async function purgeUser(
-  user: PurgedUser,
+  userId: string,
   actorUserId: string | null
 ): Promise<void> {
   const prisma = getPrisma()
   const row = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: { id: true, email: true, name: true },
+    where: { id: userId },
+    select: { id: true },
   })
 
   if (!row) {
     return
   }
 
-  await prisma.deviceCode.deleteMany({ where: { userId: row.id } })
-  await prisma.user.delete({ where: { id: row.id } })
+  for (const organizationId of await organizationsLeftEmptyBy(userId)) {
+    await purgeOrganization(organizationId, actorUserId)
+  }
+
+  await forgetUserInJournal(userId)
+  await prisma.deviceCode.deleteMany({ where: { userId } })
+  await prisma.user.delete({ where: { id: userId } })
   await recordEvent({
     action: "user.purged",
     actorUserId,
     targetType: "user",
-    targetId: row.id,
-    payload: { email: row.email, name: row.name },
+    targetId: userId,
   })
+}
+
+/** Deleting one's own account from the console: refused while an organization would be left to nobody, immediate otherwise. */
+export async function deleteOwnAccount(userId: string): Promise<void> {
+  const held = await soleOwnerOrganizationOf(userId)
+
+  if (held) {
+    throw new SoleOwnerError(userId, held)
+  }
+
+  const prisma = getPrisma()
+  const memberships = await prisma.member.findMany({
+    where: { userId },
+    select: { organizationId: true },
+  })
+
+  for (const { organizationId } of memberships) {
+    await unassignServersOfMember(organizationId, userId)
+  }
+
+  await purgeUser(userId, null)
 }
 
 export async function revokeUserSessionsFromPlatform(

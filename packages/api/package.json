@@ -16,6 +16,7 @@
     "./mail/realtime": "./src/lib/mail/realtime.ts",
     "./mail/uploads": "./src/lib/mail/uploads.ts",
     "./platform/purge": "./src/lib/platform/purge.ts",
+    "./platform/retention": "./src/lib/platform/retention.ts",
     "./rate-limit": "./src/lib/api/rate-limit.ts",
     "./server": "./src/server.ts",
     "./servers/expire": "./src/lib/servers/expire.ts",

@@ -16,6 +16,7 @@ import {
 } from "better-auth/plugins"
 import { tanstackStartCookies } from "better-auth/tanstack-start"
 import { ac, platformAc, platformRoles, roles } from "./access-control"
+import { adminLockdown } from "./admin-lockdown"
 import {
   authEmailRenderer,
   configuredSendEmail,
@@ -30,7 +31,8 @@ import {
   readAuthEnv,
   trustedOrigins,
 } from "./env"
-import { organizationHooks } from "./hooks"
+import { freshDeviceApproval } from "./fresh-device-approval"
+import { accountHooks, organizationHooks } from "./hooks"
 import {
   ACCOUNT_DEACTIVATED_CODE,
   isAccountClosed,
@@ -152,6 +154,31 @@ export function withoutInteractiveTransactions<T extends object>(prisma: T): T {
   })
 }
 
+const ACCOUNT_DELETION_UNAVAILABLE_CODE = "ACCOUNT_DELETION_UNAVAILABLE"
+
+async function refuseOrPurgeAccount(
+  userId: string,
+  request: unknown
+): Promise<void> {
+  const hooks = accountHooks()
+
+  if (!hooks) {
+    throw new APIError("SERVICE_UNAVAILABLE", {
+      code: ACCOUNT_DELETION_UNAVAILABLE_CODE,
+      message: "Account deletion is unavailable right now.",
+    })
+  }
+
+  const refusal = await hooks.onAccountDeleting({
+    userId,
+    acceptLanguage: acceptLanguageOf(request),
+  })
+
+  if (refusal) {
+    throw new APIError("CONFLICT", refusal)
+  }
+}
+
 function activeOrganizationIdOf(session: object): string | null {
   const value = (session as { activeOrganizationId?: unknown })
     .activeOrganizationId
@@ -201,7 +228,12 @@ export function createAuth({
       },
     },
     user: {
-      deleteUser: { enabled: true },
+      deleteUser: {
+        enabled: true,
+        beforeDelete: async (user, request) => {
+          await refuseOrPurgeAccount(user.id, request)
+        },
+      },
       // The address that signs you in only moves once the address that holds
       // the account has said so: the link goes to the current one, never to
       // the new one, so a stolen session cannot walk the account away.
@@ -320,6 +352,7 @@ export function createAuth({
         verificationUri: DEVICE_VERIFICATION_PATH,
       }),
       bearer(),
+      freshDeviceApproval(),
       organization({
         ac,
         roles,
@@ -350,6 +383,7 @@ export function createAuth({
           )
         },
       }),
+      adminLockdown(),
       admin({
         ac: platformAc,
         roles: platformRoles,

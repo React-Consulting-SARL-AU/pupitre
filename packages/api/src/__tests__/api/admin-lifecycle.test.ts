@@ -225,11 +225,13 @@ describe("le cycle de vie d'un compte", () => {
       await harness.prisma.user.findUnique({ where: { id: target.user.id } })
     ).toBeNull()
 
-    const event = await harness.prisma.event.findFirstOrThrow({
-      where: { action: "user.purged", targetId: target.user.id },
+    const events = await harness.prisma.event.findMany({
+      where: { targetType: "user", targetId: target.user.id },
     })
 
-    expect(event.payload).toMatchObject({ email: target.user.email })
+    expect(
+      events.map((event) => [event.action, event.actorUserId, event.payload])
+    ).toEqual([["user.purged", admin.session.userId, null]])
   })
 
   it("refuse d'effacer le seul propriétaire d'une organisation qui porte un serveur", async () => {

@@ -439,7 +439,7 @@ describe("POST /backups/:id/forget", () => {
     await resetDb()
   })
 
-  it("cache la référence pour un admin et la journalise", async () => {
+  it("efface la référence pour un admin et la journalise", async () => {
     const { admin, other } = await organizationWithServers()
     const body = declaration()
 
@@ -455,6 +455,9 @@ describe("POST /backups/:id/forget", () => {
     const list = await apiRequest<ListBody>("/backups", { session: admin })
 
     expect(list.json.data).toEqual([])
+    expect(
+      await harness.prisma.backup.count({ where: { backupId: body.id } })
+    ).toBe(0)
 
     const event = await harness.prisma.event.findFirstOrThrow({
       where: { action: "backup.forgotten" },

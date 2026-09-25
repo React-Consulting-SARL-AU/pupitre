@@ -22,3 +22,31 @@ export function configureOrganizationHooks(hooks: OrganizationHooks): void {
 export function organizationHooks(): OrganizationHooks {
   return configured
 }
+
+export interface AccountDeletion {
+  userId: string
+  acceptLanguage: string | null
+}
+
+export interface AccountDeletionRefusal {
+  code: string
+  message: string
+  fix: string
+}
+
+export interface AccountHooks {
+  onAccountDeleting: (
+    deletion: AccountDeletion
+  ) => Promise<AccountDeletionRefusal | null>
+}
+
+let accountConfigured: AccountHooks | null = null
+
+/** Better Auth only drops the user row: the API refuses or runs the platform's own purge before it does. */
+export function configureAccountHooks(hooks: AccountHooks): void {
+  accountConfigured = hooks
+}
+
+export function accountHooks(): AccountHooks | null {
+  return accountConfigured
+}
