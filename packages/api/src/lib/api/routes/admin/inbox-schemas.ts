@@ -103,6 +103,7 @@ const mailThreadFields = {
   ),
   linked_organization: mailLinkedOrganization,
   from: mailSender,
+  sender_authenticated: t.Boolean(),
   snippet: t.Nullable(t.String()),
   has_draft: t.Boolean(),
   automated: t.Boolean(),
@@ -128,6 +129,7 @@ export const mailMessageSchema = t.Object(
     text: t.Nullable(t.String()),
     has_html: t.Boolean(),
     automated: t.Boolean(),
+    authenticated: t.Boolean(),
     delivery: t.String(),
     error: t.Nullable(t.String()),
     sent_by: t.Nullable(t.Object({ id: t.String(), name: t.String() })),
@@ -328,6 +330,7 @@ const mailFilename = t.String({
 const mailMimeType = t.String({
   minLength: 1,
   maxLength: MAIL_MIME_TYPE_MAX_LENGTH,
+  pattern: "^[\\w.+-]+/[\\w.+-]+$",
 })
 
 const mailAttachmentSize = t.Integer({

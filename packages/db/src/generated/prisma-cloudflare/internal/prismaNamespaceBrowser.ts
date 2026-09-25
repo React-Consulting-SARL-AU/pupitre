@@ -482,6 +482,10 @@ export const MailThreadScalarFieldEnum = {
   lastInboundAt: 'lastInboundAt',
   lastInboundAutomated: 'lastInboundAutomated',
   lastOutboundAt: 'lastOutboundAt',
+  senderEmail: 'senderEmail',
+  senderName: 'senderName',
+  senderAuthenticated: 'senderAuthenticated',
+  snippet: 'snippet',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -555,10 +559,12 @@ export const MailMessageScalarFieldEnum = {
   rawKey: 'rawKey',
   rawHash: 'rawHash',
   messageId: 'messageId',
+  address: 'address',
   inReplyTo: 'inReplyTo',
   references: 'references',
   sentByUserId: 'sentByUserId',
   automated: 'automated',
+  authenticated: 'authenticated',
   delivery: 'delivery',
   error: 'error',
   receivedAt: 'receivedAt',

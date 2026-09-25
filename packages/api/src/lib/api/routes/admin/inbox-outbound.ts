@@ -52,11 +52,25 @@ function attachmentRefusal(locale: Locale, error: MailAttachmentRefusedError) {
   )
 }
 
+/** The provider's own words stay on the failed row and in the Worker log, never in the answer. */
 function sendFailure(locale: Locale, error: MailSendFailedError) {
+  console.error(
+    `[api] inbox: message ${error.messageId} was refused by the sending service`,
+    error.reason
+  )
+
   return apiError(
     "internal",
-    translate(locale, "mail_send_failed", { reason: error.reason }),
+    translate(locale, "mail_send_failed"),
     translate(locale, "mail_send_failed_fix")
+  )
+}
+
+function noRecipient(locale: Locale) {
+  return apiError(
+    "conflict",
+    translate(locale, "mail_thread_has_no_recipient"),
+    translate(locale, "mail_thread_has_no_recipient_fix")
   )
 }
 
@@ -158,11 +172,7 @@ export const adminInboxOutboundRoutes = new Elysia({
         if (error instanceof MailThreadHasNoRecipientError) {
           set.status = 409
 
-          return apiError(
-            "conflict",
-            translate(locale, "mail_thread_has_no_recipient"),
-            translate(locale, "mail_thread_has_no_recipient_fix")
-          )
+          return noRecipient(locale)
         }
 
         if (error instanceof MailSendFailedError) {
@@ -220,6 +230,12 @@ export const adminInboxOutboundRoutes = new Elysia({
           set.status = 409
 
           return cannotReply(locale, error)
+        }
+
+        if (error instanceof MailThreadHasNoRecipientError) {
+          set.status = 409
+
+          return noRecipient(locale)
         }
 
         if (error instanceof MailSendFailedError) {

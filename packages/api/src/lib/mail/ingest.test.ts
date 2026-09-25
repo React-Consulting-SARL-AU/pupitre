@@ -1,5 +1,10 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "bun:test"
-import { MAIL_MAX_BYTES, MAIL_MAX_TEXT_CHARS } from "@pupitre/shared/legal"
+import {
+  MAIL_MAX_BYTES,
+  MAIL_MAX_INBOUND_ATTACHMENTS,
+  MAIL_MAX_REFERENCES,
+  MAIL_MAX_TEXT_CHARS,
+} from "@pupitre/shared/legal"
 import { PLATFORM_MAILBOX_IDS } from "@pupitre/shared/platform"
 import { bootApiTestServer, resetDb } from "../../testing"
 import {
@@ -32,12 +37,24 @@ interface EmlInput {
   text?: string
   html?: string
   extra?: string[]
+  authenticated?: boolean
+}
+
+const SENDER_DOMAIN_RE = /@([^>\s]+)/
+
+/** What the Email Routing MX prepends once DMARC passed for the `From` domain. */
+function cloudflareResults(from: string): string {
+  const domain = from.match(SENDER_DOMAIN_RE)?.[1] ?? ""
+
+  return `ARC-Authentication-Results: i=1; mx.cloudflare.net; dkim=pass header.d=${domain}; dmarc=pass header.from=${domain}; spf=pass smtp.mailfrom=${domain}`
 }
 
 function eml(input: EmlInput = {}): ArrayBuffer {
   const boundary = "alt"
+  const from = input.from ?? "Camille <camille@exemple.fr>"
   const lines = [
-    `From: ${input.from ?? "Camille <camille@exemple.fr>"}`,
+    ...(input.authenticated === false ? [] : [cloudflareResults(from)]),
+    `From: ${from}`,
     `To: ${input.to ?? "support@pupitre.studio"}`,
   ]
 
@@ -45,8 +62,11 @@ function eml(input: EmlInput = {}): ArrayBuffer {
     lines.push(`Cc: ${input.cc}`)
   }
 
+  if (input.subject !== "") {
+    lines.push(`Subject: ${input.subject ?? "Mon serveur ne repond plus"}`)
+  }
+
   lines.push(
-    `Subject: ${input.subject ?? "Mon serveur ne repond plus"}`,
     `Message-ID: <${input.messageId ?? crypto.randomUUID()}@exemple.fr>`
   )
 
@@ -55,7 +75,7 @@ function eml(input: EmlInput = {}): ArrayBuffer {
   }
 
   if (input.references) {
-    lines.push(`References: <${input.references}>`)
+    lines.push(`References: ${input.references}`)
   }
 
   lines.push(...(input.extra ?? []))
@@ -212,6 +232,85 @@ describe("ingestInboundEmail", () => {
     expect(second.threadId).toBe(first.threadId)
   })
 
+  it("range le même message écrit à deux de nos adresses dans deux fils, et reconnaît le renvoi de chacun", async () => {
+    const raw = eml({
+      messageId: "deux-boites",
+      to: "support@pupitre.studio, legal@pupitre.studio",
+    })
+    const toSupport = await ingest(raw)
+    const toLegal = await ingestInboundEmail({
+      envelopeFrom: "camille@exemple.fr",
+      envelopeTo: "legal@pupitre.studio",
+      raw,
+    })
+    const replayed = await ingestInboundEmail({
+      envelopeFrom: "camille@exemple.fr",
+      envelopeTo: "legal@pupitre.studio",
+      raw,
+    })
+    const prisma = getPrisma()
+    const threads = await prisma.mailThread.findMany({
+      orderBy: { address: "asc" },
+      include: { _count: { select: { messages: true } } },
+    })
+
+    expect(toSupport.status).toBe("stored")
+    expect(toLegal.status).toBe("stored")
+    expect(toLegal.threadId).not.toBe(toSupport.threadId)
+    expect(replayed.status).toBe("duplicate")
+    expect(replayed.messageId).toBe(toLegal.messageId)
+    expect(
+      threads.map((thread) => [thread.address, thread._count.messages])
+    ).toEqual([
+      ["legal@pupitre.studio", 1],
+      ["support@pupitre.studio", 1],
+    ])
+  })
+
+  it("ne laisse aucun fil vide quand une livraison concurrente écrit le même message", async () => {
+    const raw = eml({ messageId: "concurrent", subject: "Course" })
+    const prisma = getPrisma()
+
+    let raced = false
+
+    configureMailStorage({
+      ...mail.storage,
+      put: async (key, body, contentType) => {
+        if (!raced) {
+          raced = true
+
+          const other = await prisma.mailThread.create({
+            data: {
+              address: "support@pupitre.studio",
+              subject: "Autre chemin",
+              normalizedSubject: "autre chemin",
+            },
+          })
+
+          await prisma.mailMessage.create({
+            data: {
+              threadId: other.id,
+              direction: "inbound",
+              fromEmail: "camille@exemple.fr",
+              toEmails: [],
+              ccEmails: [],
+              messageId: "concurrent@exemple.fr",
+              address: "support@pupitre.studio",
+            },
+          })
+        }
+
+        return await mail.storage.put(key, body, contentType)
+      },
+    })
+
+    const result = await ingest(raw)
+
+    expect(result.status).toBe("duplicate")
+    expect(await prisma.mailThread.count()).toBe(1)
+    expect(await prisma.mailMessage.count()).toBe(1)
+  })
+
   it("rattache une réponse par In-Reply-To malgré un autre sujet", async () => {
     const first = await ingest(eml({ messageId: "racine" }))
     const second = await ingest(
@@ -307,6 +406,110 @@ describe("ingestInboundEmail", () => {
     })
 
     expect(thread.contactUserId).toBe(user.id)
+    expect(thread.senderAuthenticated).toBe(true)
+  })
+
+  it("ne relie pas un compte à un expéditeur que personne n'a vérifié", async () => {
+    await createUser({ email: "camille@exemple.fr" })
+
+    const result = await ingest(eml({ authenticated: false }))
+    const thread = await getPrisma().mailThread.findUniqueOrThrow({
+      where: { id: result.threadId },
+      include: { messages: true },
+    })
+
+    expect(thread.contactUserId).toBeNull()
+    expect(thread.senderEmail).toBe("camille@exemple.fr")
+    expect(thread.senderAuthenticated).toBe(false)
+    expect(thread.messages[0].authenticated).toBe(false)
+  })
+
+  it("n'ouvre pas un fil existant à un expéditeur non vérifié qui en reprend le sujet", async () => {
+    const first = await ingest(eml({ subject: "Facture de septembre" }))
+    const second = await ingest(
+      eml({ subject: "Re: Facture de septembre", authenticated: false })
+    )
+
+    expect(second.threadId).not.toBe(first.threadId)
+  })
+
+  it("rattache quand même par ses références un expéditeur non vérifié", async () => {
+    const first = await ingest(eml({ messageId: "racine-verifiee" }))
+    const second = await ingest(
+      eml({ inReplyTo: "racine-verifiee@exemple.fr", authenticated: false })
+    )
+
+    expect(second.threadId).toBe(first.threadId)
+  })
+
+  it("range un message sans objet sous un sujet vide, que la console nomme", async () => {
+    const result = await ingest(eml({ subject: "" }))
+    const thread = await getPrisma().mailThread.findUniqueOrThrow({
+      where: { id: result.threadId },
+      include: { messages: true },
+    })
+
+    expect(thread.subject).toBe("")
+    expect(thread.normalizedSubject).toBe("")
+    expect(thread.messages[0].subject).toBeNull()
+  })
+
+  it("ne range au seau que les premières pièces jointes d'un message qui en porte trop", async () => {
+    const parts = Array.from(
+      { length: MAIL_MAX_INBOUND_ATTACHMENTS + 5 },
+      (_, index) =>
+        [
+          "--mix",
+          `Content-Type: text/plain; name="partie-${index}.txt"`,
+          `Content-Disposition: attachment; filename="partie-${index}.txt"`,
+          "",
+          `partie ${index}`,
+          "",
+        ].join("\r\n")
+    )
+    const raw = new TextEncoder().encode(
+      [
+        "From: Camille <camille@exemple.fr>",
+        "To: support@pupitre.studio",
+        "Subject: Beaucoup de fichiers",
+        "Message-ID: <nombreuses@exemple.fr>",
+        "MIME-Version: 1.0",
+        'Content-Type: multipart/mixed; boundary="mix"',
+        "",
+        "--mix",
+        "Content-Type: text/plain; charset=UTF-8",
+        "",
+        "Voici tout.",
+        "",
+        ...parts,
+        "--mix--",
+        "",
+      ].join("\r\n")
+    ).buffer as ArrayBuffer
+    const result = await ingest(raw)
+    const message = await getPrisma().mailMessage.findUniqueOrThrow({
+      where: { id: result.messageId },
+      include: { attachments: true },
+    })
+
+    expect(message.attachments).toHaveLength(MAIL_MAX_INBOUND_ATTACHMENTS)
+    expect(textOf(mail.objects.get(message.rawKey ?? ""))).toContain(
+      `partie-${MAIL_MAX_INBOUND_ATTACHMENTS + 4}.txt`
+    )
+  })
+
+  it("ne garde que les références les plus récentes d'une chaîne démesurée", async () => {
+    const chain = Array.from(
+      { length: 3000 },
+      (_, index) => `<ancien-${index}@exemple.fr>`
+    ).join(" ")
+    const result = await ingest(eml({ references: chain }))
+    const message = await getPrisma().mailMessage.findUniqueOrThrow({
+      where: { id: result.messageId },
+    })
+
+    expect(message.references?.split(" ")).toHaveLength(MAIL_MAX_REFERENCES)
+    expect(message.references).toContain("<ancien-2999@exemple.fr>")
   })
 
   it("range tout le message quand le seau a cassé au premier essai", async () => {

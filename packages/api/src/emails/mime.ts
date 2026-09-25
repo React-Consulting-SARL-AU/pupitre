@@ -8,6 +8,8 @@ const ASCII_RE = /^[\t\x20-\x7e]*$/
 
 const FILENAME_NOISE_RE = /["\r\n]/g
 
+const LINE_BREAKS_RE = /[\r\n]/g
+
 function base64Bytes(bytes: Uint8Array): string {
   let binary = ""
 
@@ -104,10 +106,11 @@ function attachmentPart(
   attachment: MimeAttachment
 ): string {
   const filename = attachment.filename.replace(FILENAME_NOISE_RE, "")
+  const contentType = attachment.contentType.replace(LINE_BREAKS_RE, "")
 
   return [
     `--${boundaryName}`,
-    `Content-Type: ${attachment.contentType}; name="${filename}"`,
+    `Content-Type: ${contentType}; name="${filename}"`,
     `Content-Disposition: attachment; filename="${filename}"`,
     "Content-Transfer-Encoding: base64",
     "",

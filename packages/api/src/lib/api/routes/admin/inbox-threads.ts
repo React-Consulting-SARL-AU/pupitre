@@ -6,15 +6,16 @@ import { MAIL_HTML_CSP, MAIL_NOSNIFF } from "../../../mail/html"
 import { mailAttachmentUrl, readMailMessageHtml } from "../../../mail/objects"
 import {
   attachmentOrigin,
-  bulkUpdateMailThreads,
-  listMailThreads,
-  MAIL_PAGE_SIZE,
-  MailAssigneeNotOnTheTeamError,
-  MailOrganizationUnknownError,
   noteSensitiveThreadRead,
   readMailThread,
+} from "../../../mail/thread-detail"
+import {
+  bulkUpdateMailThreads,
+  MailAssigneeNotOnTheTeamError,
+  MailOrganizationUnknownError,
   updateMailThread,
-} from "../../../mail/threads"
+} from "../../../mail/thread-mutations"
+import { listMailThreads, MAIL_PAGE_SIZE } from "../../../mail/threads"
 import { apiError } from "../../errors"
 import { dataResponse, errorResponse } from "../../openapi-models"
 import { ROLE_RANK, requirePlatformAdmin } from "../../plugins/guards"

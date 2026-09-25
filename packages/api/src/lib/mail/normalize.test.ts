@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test"
+import { MAIL_MAX_REFERENCES } from "@pupitre/shared/legal"
 import {
   buildReferences,
   normalizeSubject,
@@ -64,6 +65,23 @@ describe("referencedMessageIds", () => {
     expect(referencedMessageIds("a@x")).toEqual(["a@x"])
   })
 
+  it("ne garde que les plus récents d'une chaîne démesurée", () => {
+    const chain = Array.from({ length: 5000 }, (_, index) => `<m${index}@x>`)
+    const ids = referencedMessageIds(chain.join(" "))
+
+    expect(ids).toHaveLength(MAIL_MAX_REFERENCES)
+    expect(ids.at(-1)).toBe("m4999@x")
+    expect(ids[0]).toBe(`m${5000 - MAIL_MAX_REFERENCES}@x`)
+  })
+
+  it("garde In-Reply-To lu après une chaîne pleine", () => {
+    const chain = Array.from({ length: 50 }, (_, index) => `<m${index}@x>`)
+
+    expect(referencedMessageIds(chain.join(" "), "<repondu@x>")).toContain(
+      "repondu@x"
+    )
+  })
+
   it("ignore les en-têtes absents", () => {
     expect(referencedMessageIds(null, undefined)).toEqual([])
   })
@@ -72,6 +90,14 @@ describe("referencedMessageIds", () => {
 describe("buildReferences", () => {
   it("ajoute l'identifiant du message répondu à la chaîne existante", () => {
     expect(buildReferences("<a@x>", "b@x")).toBe("<a@x> <b@x>")
+  })
+
+  it("borne la chaîne rendue, l'identifiant répondu en dernier", () => {
+    const chain = Array.from({ length: 40 }, (_, index) => `<m${index}@x>`)
+    const references = buildReferences(chain.join(" "), "repondu@x") ?? ""
+
+    expect(references.split(" ")).toHaveLength(MAIL_MAX_REFERENCES)
+    expect(references.endsWith("<repondu@x>")).toBe(true)
   })
 
   it("ne duplique pas un identifiant déjà présent", () => {

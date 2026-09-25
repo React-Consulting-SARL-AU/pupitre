@@ -24,11 +24,12 @@ import {
   rawKeyFor,
 } from "./storage"
 import {
-  emailList,
-  type MailMessageView,
   type MailThreadDetail,
+  readMailMessage,
   readMailThread,
-} from "./threads"
+} from "./thread-detail"
+import { discardEmptyMailThread } from "./thread-mutations"
+import { emailList, type MailMessageView } from "./thread-view"
 import { mailTransport } from "./transport"
 import {
   assertMailAttachments,
@@ -252,9 +253,11 @@ async function deliver(delivery: Delivery): Promise<string> {
       text: delivery.text,
       snippet: snippetOf(delivery.text),
       messageId: bareId,
+      address: delivery.from,
       inReplyTo: delivery.inReplyTo,
       references: delivery.references,
       sentByUserId: delivery.sentByUserId,
+      authenticated: true,
       delivery: failure ? "failed" : "sent",
       error: failure,
       rawKey,
@@ -265,6 +268,13 @@ async function deliver(delivery: Delivery): Promise<string> {
     select: { id: true },
   })
 
+  await prisma.mailThread.update({
+    where: { id: delivery.threadId },
+    data: {
+      snippet: snippetOf(delivery.text),
+      ...(failure ? {} : { lastOutboundAt: now, unread: false }),
+    },
+  })
   await deleteMailUploads(uploads.map((upload) => upload.key))
 
   if (failure) {
@@ -282,10 +292,6 @@ async function deliver(delivery: Delivery): Promise<string> {
     throw new MailSendFailedError(failure, message.id)
   }
 
-  await prisma.mailThread.update({
-    where: { id: delivery.threadId },
-    data: { lastOutboundAt: now, unread: false },
-  })
   await deleteMailDraft(delivery.threadId)
   await publishInboxEvent({
     type: "message.sent",
@@ -305,20 +311,37 @@ interface AnsweredMessage {
   references: string | null
 }
 
+const ANSWERED_SELECT = {
+  direction: true,
+  automated: true,
+  fromEmail: true,
+  toEmails: true,
+  ccEmails: true,
+  messageId: true,
+  references: true,
+} as const
+
 /**
  * A bounce or a list blast is never answered: the reply goes to the last
  * person who wrote, and failing that back to whoever we wrote to ourselves.
  */
-function messageToAnswer<T extends AnsweredMessage>(
-  messages: T[]
-): T | undefined {
-  const human = messages.filter(
-    (message) => message.direction === "inbound" && !message.automated
-  )
+async function messageToAnswer(
+  threadId: string
+): Promise<AnsweredMessage | null> {
+  const prisma = getPrisma()
+  const human = await prisma.mailMessage.findFirst({
+    where: { threadId, direction: "inbound", automated: false },
+    orderBy: { createdAt: "desc" },
+    select: ANSWERED_SELECT,
+  })
 
   return (
-    human.at(-1) ??
-    messages.filter((message) => message.direction === "outbound").at(-1)
+    human ??
+    (await prisma.mailMessage.findFirst({
+      where: { threadId, direction: "outbound" },
+      orderBy: { createdAt: "desc" },
+      select: ANSWERED_SELECT,
+    }))
   )
 }
 
@@ -346,31 +369,24 @@ function recipientsOf(answered: AnsweredMessage): {
   return { to, cc }
 }
 
+function externalAddresses(addresses: string[]): string[] {
+  return addresses
+    .map((address) => address.trim().toLowerCase())
+    .filter((address) => address !== "" && !isOurs(address))
+}
+
 function chosenRecipients(
   answered: AnsweredMessage,
   input: { to?: string[]; cc?: string[] }
 ): { to: string[]; cc: string[] } {
   const fallback = recipientsOf(answered)
-  const clean = (addresses: string[] | undefined) =>
-    addresses
-      ?.map((address) => address.trim().toLowerCase())
-      .filter((address) => address !== "" && !isOurs(address))
-  const to = clean(input.to)
-  const cc = clean(input.cc)
+  const to = input.to && externalAddresses(input.to)
+  const cc = input.cc && externalAddresses(input.cc)
 
   return {
     to: to && to.length > 0 ? to : fallback.to,
     cc: cc ?? fallback.cc,
   }
-}
-
-async function messageOf(
-  threadId: string,
-  messageId: string
-): Promise<MailMessageView | null> {
-  const thread = await readMailThread(threadId)
-
-  return thread?.messages.find((message) => message.id === messageId) ?? null
 }
 
 async function senderNameFor(userId: string): Promise<string> {
@@ -414,11 +430,7 @@ export async function replyToMailThread(
 
   assertSends(thread.mailbox)
 
-  const messages = await prisma.mailMessage.findMany({
-    where: { threadId },
-    orderBy: { createdAt: "asc" },
-  })
-  const answered = messageToAnswer(messages)
+  const answered = await messageToAnswer(threadId)
 
   if (!answered) {
     throw new MailThreadHasNoRecipientError()
@@ -456,7 +468,7 @@ export async function replyToMailThread(
     actorUserId: actor.userId,
   })
 
-  return await messageOf(threadId, messageId)
+  return await readMailMessage(messageId)
 }
 
 export interface ComposeInput {
@@ -486,8 +498,13 @@ export async function composeMailThread(
 
   assertSends(mailbox)
 
+  const recipients = externalAddresses(input.to)
+
+  if (recipients.length === 0) {
+    throw new MailThreadHasNoRecipientError()
+  }
+
   const uploads = await readMailUploads(attachments)
-  const recipients = input.to.map((address) => address.trim().toLowerCase())
   const contact = await prisma.user.findFirst({
     where: { email: { in: recipients } },
     select: { id: true },
@@ -500,23 +517,32 @@ export async function composeMailThread(
       normalizedSubject: normalizeSubject(input.subject),
       unread: false,
       contactUserId: contact?.id ?? null,
+      senderEmail: recipients[0],
+      senderAuthenticated: true,
     },
     select: { id: true },
   })
 
-  await deliver({
-    threadId: thread.id,
-    from: mailbox.address,
-    fromName: await senderNameFor(actor.userId),
-    to: recipients,
-    cc: [],
-    subject: input.subject,
-    text: withSignature(input.text, mailbox.signature),
-    inReplyTo: null,
-    references: null,
-    sentByUserId: actor.userId,
-    uploads,
-  })
+  try {
+    await deliver({
+      threadId: thread.id,
+      from: mailbox.address,
+      fromName: await senderNameFor(actor.userId),
+      to: recipients,
+      cc: [],
+      subject: input.subject,
+      text: withSignature(input.text, mailbox.signature),
+      inReplyTo: null,
+      references: null,
+      sentByUserId: actor.userId,
+      uploads,
+    })
+  } catch (error) {
+    await discardEmptyMailThread(thread.id)
+
+    throw error
+  }
+
   await recordEvent({
     action: "mail.composed",
     actorUserId: actor.userId,

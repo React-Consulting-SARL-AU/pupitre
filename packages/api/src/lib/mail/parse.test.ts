@@ -106,6 +106,6 @@ describe("safeFilename", () => {
   })
 
   it("nomme une pièce jointe anonyme", () => {
-    expect(safeFilename(null)).toBe("piece-jointe")
+    expect(safeFilename(null)).toBe("attachment")
   })
 })

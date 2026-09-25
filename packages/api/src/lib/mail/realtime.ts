@@ -5,6 +5,7 @@ export const INBOX_EVENT_TYPES = [
   "message.sent",
   "message.failed",
   "counts.changed",
+  "access.revoked",
 ] as const
 
 export type InboxEventType = (typeof INBOX_EVENT_TYPES)[number]
@@ -13,6 +14,8 @@ export interface InboxEvent {
   type: InboxEventType
   thread_id?: string
   mailbox_id?: string | null
+  /** On `access.revoked`: whose open sockets the room closes instead of broadcasting. */
+  user_id?: string
 }
 
 export type InboxEventPublisher = (event: InboxEvent) => void | Promise<void>

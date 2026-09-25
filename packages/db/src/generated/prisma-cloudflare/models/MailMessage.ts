@@ -37,10 +37,12 @@ export type MailMessageMinAggregateOutputType = {
   rawKey: string | null
   rawHash: string | null
   messageId: string | null
+  address: string | null
   inReplyTo: string | null
   references: string | null
   sentByUserId: string | null
   automated: boolean | null
+  authenticated: boolean | null
   delivery: $Enums.MailDelivery | null
   error: string | null
   receivedAt: Date | null
@@ -61,10 +63,12 @@ export type MailMessageMaxAggregateOutputType = {
   rawKey: string | null
   rawHash: string | null
   messageId: string | null
+  address: string | null
   inReplyTo: string | null
   references: string | null
   sentByUserId: string | null
   automated: boolean | null
+  authenticated: boolean | null
   delivery: $Enums.MailDelivery | null
   error: string | null
   receivedAt: Date | null
@@ -87,10 +91,12 @@ export type MailMessageCountAggregateOutputType = {
   rawKey: number
   rawHash: number
   messageId: number
+  address: number
   inReplyTo: number
   references: number
   sentByUserId: number
   automated: number
+  authenticated: number
   delivery: number
   error: number
   receivedAt: number
@@ -113,10 +119,12 @@ export type MailMessageMinAggregateInputType = {
   rawKey?: true
   rawHash?: true
   messageId?: true
+  address?: true
   inReplyTo?: true
   references?: true
   sentByUserId?: true
   automated?: true
+  authenticated?: true
   delivery?: true
   error?: true
   receivedAt?: true
@@ -137,10 +145,12 @@ export type MailMessageMaxAggregateInputType = {
   rawKey?: true
   rawHash?: true
   messageId?: true
+  address?: true
   inReplyTo?: true
   references?: true
   sentByUserId?: true
   automated?: true
+  authenticated?: true
   delivery?: true
   error?: true
   receivedAt?: true
@@ -163,10 +173,12 @@ export type MailMessageCountAggregateInputType = {
   rawKey?: true
   rawHash?: true
   messageId?: true
+  address?: true
   inReplyTo?: true
   references?: true
   sentByUserId?: true
   automated?: true
+  authenticated?: true
   delivery?: true
   error?: true
   receivedAt?: true
@@ -262,10 +274,12 @@ export type MailMessageGroupByOutputType = {
   rawKey: string | null
   rawHash: string | null
   messageId: string | null
+  address: string | null
   inReplyTo: string | null
   references: string | null
   sentByUserId: string | null
   automated: boolean
+  authenticated: boolean
   delivery: $Enums.MailDelivery
   error: string | null
   receivedAt: Date
@@ -309,10 +323,12 @@ export type MailMessageWhereInput = {
   rawKey?: Prisma.StringNullableFilter<"MailMessage"> | string | null
   rawHash?: Prisma.StringNullableFilter<"MailMessage"> | string | null
   messageId?: Prisma.StringNullableFilter<"MailMessage"> | string | null
+  address?: Prisma.StringNullableFilter<"MailMessage"> | string | null
   inReplyTo?: Prisma.StringNullableFilter<"MailMessage"> | string | null
   references?: Prisma.StringNullableFilter<"MailMessage"> | string | null
   sentByUserId?: Prisma.StringNullableFilter<"MailMessage"> | string | null
   automated?: Prisma.BoolFilter<"MailMessage"> | boolean
+  authenticated?: Prisma.BoolFilter<"MailMessage"> | boolean
   delivery?: Prisma.EnumMailDeliveryFilter<"MailMessage"> | $Enums.MailDelivery
   error?: Prisma.StringNullableFilter<"MailMessage"> | string | null
   receivedAt?: Prisma.DateTimeFilter<"MailMessage"> | Date | string
@@ -337,10 +353,12 @@ export type MailMessageOrderByWithRelationInput = {
   rawKey?: Prisma.SortOrderInput | Prisma.SortOrder
   rawHash?: Prisma.SortOrderInput | Prisma.SortOrder
   messageId?: Prisma.SortOrderInput | Prisma.SortOrder
+  address?: Prisma.SortOrderInput | Prisma.SortOrder
   inReplyTo?: Prisma.SortOrderInput | Prisma.SortOrder
   references?: Prisma.SortOrderInput | Prisma.SortOrder
   sentByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
   automated?: Prisma.SortOrder
+  authenticated?: Prisma.SortOrder
   delivery?: Prisma.SortOrder
   error?: Prisma.SortOrderInput | Prisma.SortOrder
   receivedAt?: Prisma.SortOrder
@@ -353,7 +371,7 @@ export type MailMessageOrderByWithRelationInput = {
 export type MailMessageWhereUniqueInput = Prisma.AtLeast<{
   id?: string
   rawHash?: string
-  messageId?: string
+  messageId_address?: Prisma.MailMessageMessageIdAddressCompoundUniqueInput
   AND?: Prisma.MailMessageWhereInput | Prisma.MailMessageWhereInput[]
   OR?: Prisma.MailMessageWhereInput[]
   NOT?: Prisma.MailMessageWhereInput | Prisma.MailMessageWhereInput[]
@@ -368,10 +386,13 @@ export type MailMessageWhereUniqueInput = Prisma.AtLeast<{
   snippet?: Prisma.StringNullableFilter<"MailMessage"> | string | null
   htmlKey?: Prisma.StringNullableFilter<"MailMessage"> | string | null
   rawKey?: Prisma.StringNullableFilter<"MailMessage"> | string | null
+  messageId?: Prisma.StringNullableFilter<"MailMessage"> | string | null
+  address?: Prisma.StringNullableFilter<"MailMessage"> | string | null
   inReplyTo?: Prisma.StringNullableFilter<"MailMessage"> | string | null
   references?: Prisma.StringNullableFilter<"MailMessage"> | string | null
   sentByUserId?: Prisma.StringNullableFilter<"MailMessage"> | string | null
   automated?: Prisma.BoolFilter<"MailMessage"> | boolean
+  authenticated?: Prisma.BoolFilter<"MailMessage"> | boolean
   delivery?: Prisma.EnumMailDeliveryFilter<"MailMessage"> | $Enums.MailDelivery
   error?: Prisma.StringNullableFilter<"MailMessage"> | string | null
   receivedAt?: Prisma.DateTimeFilter<"MailMessage"> | Date | string
@@ -379,7 +400,7 @@ export type MailMessageWhereUniqueInput = Prisma.AtLeast<{
   createdAt?: Prisma.DateTimeFilter<"MailMessage"> | Date | string
   thread?: Prisma.XOR<Prisma.MailThreadScalarRelationFilter, Prisma.MailThreadWhereInput>
   attachments?: Prisma.MailAttachmentListRelationFilter
-}, "id" | "rawHash" | "messageId">
+}, "id" | "rawHash" | "messageId_address">
 
 export type MailMessageOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -396,10 +417,12 @@ export type MailMessageOrderByWithAggregationInput = {
   rawKey?: Prisma.SortOrderInput | Prisma.SortOrder
   rawHash?: Prisma.SortOrderInput | Prisma.SortOrder
   messageId?: Prisma.SortOrderInput | Prisma.SortOrder
+  address?: Prisma.SortOrderInput | Prisma.SortOrder
   inReplyTo?: Prisma.SortOrderInput | Prisma.SortOrder
   references?: Prisma.SortOrderInput | Prisma.SortOrder
   sentByUserId?: Prisma.SortOrderInput | Prisma.SortOrder
   automated?: Prisma.SortOrder
+  authenticated?: Prisma.SortOrder
   delivery?: Prisma.SortOrder
   error?: Prisma.SortOrderInput | Prisma.SortOrder
   receivedAt?: Prisma.SortOrder
@@ -428,10 +451,12 @@ export type MailMessageScalarWhereWithAggregatesInput = {
   rawKey?: Prisma.StringNullableWithAggregatesFilter<"MailMessage"> | string | null
   rawHash?: Prisma.StringNullableWithAggregatesFilter<"MailMessage"> | string | null
   messageId?: Prisma.StringNullableWithAggregatesFilter<"MailMessage"> | string | null
+  address?: Prisma.StringNullableWithAggregatesFilter<"MailMessage"> | string | null
   inReplyTo?: Prisma.StringNullableWithAggregatesFilter<"MailMessage"> | string | null
   references?: Prisma.StringNullableWithAggregatesFilter<"MailMessage"> | string | null
   sentByUserId?: Prisma.StringNullableWithAggregatesFilter<"MailMessage"> | string | null
   automated?: Prisma.BoolWithAggregatesFilter<"MailMessage"> | boolean
+  authenticated?: Prisma.BoolWithAggregatesFilter<"MailMessage"> | boolean
   delivery?: Prisma.EnumMailDeliveryWithAggregatesFilter<"MailMessage"> | $Enums.MailDelivery
   error?: Prisma.StringNullableWithAggregatesFilter<"MailMessage"> | string | null
   receivedAt?: Prisma.DateTimeWithAggregatesFilter<"MailMessage"> | Date | string
@@ -453,10 +478,12 @@ export type MailMessageCreateInput = {
   rawKey?: string | null
   rawHash?: string | null
   messageId?: string | null
+  address?: string | null
   inReplyTo?: string | null
   references?: string | null
   sentByUserId?: string | null
   automated?: boolean
+  authenticated?: boolean
   delivery?: $Enums.MailDelivery
   error?: string | null
   receivedAt?: Date | string
@@ -481,10 +508,12 @@ export type MailMessageUncheckedCreateInput = {
   rawKey?: string | null
   rawHash?: string | null
   messageId?: string | null
+  address?: string | null
   inReplyTo?: string | null
   references?: string | null
   sentByUserId?: string | null
   automated?: boolean
+  authenticated?: boolean
   delivery?: $Enums.MailDelivery
   error?: string | null
   receivedAt?: Date | string
@@ -507,10 +536,12 @@ export type MailMessageUpdateInput = {
   rawKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   rawHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inReplyTo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   references?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sentByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   automated?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  authenticated?: Prisma.BoolFieldUpdateOperationsInput | boolean
   delivery?: Prisma.EnumMailDeliveryFieldUpdateOperationsInput | $Enums.MailDelivery
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -535,10 +566,12 @@ export type MailMessageUncheckedUpdateInput = {
   rawKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   rawHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inReplyTo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   references?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sentByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   automated?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  authenticated?: Prisma.BoolFieldUpdateOperationsInput | boolean
   delivery?: Prisma.EnumMailDeliveryFieldUpdateOperationsInput | $Enums.MailDelivery
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -562,10 +595,12 @@ export type MailMessageCreateManyInput = {
   rawKey?: string | null
   rawHash?: string | null
   messageId?: string | null
+  address?: string | null
   inReplyTo?: string | null
   references?: string | null
   sentByUserId?: string | null
   automated?: boolean
+  authenticated?: boolean
   delivery?: $Enums.MailDelivery
   error?: string | null
   receivedAt?: Date | string
@@ -587,10 +622,12 @@ export type MailMessageUpdateManyMutationInput = {
   rawKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   rawHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inReplyTo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   references?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sentByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   automated?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  authenticated?: Prisma.BoolFieldUpdateOperationsInput | boolean
   delivery?: Prisma.EnumMailDeliveryFieldUpdateOperationsInput | $Enums.MailDelivery
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -613,10 +650,12 @@ export type MailMessageUncheckedUpdateManyInput = {
   rawKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   rawHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inReplyTo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   references?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sentByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   automated?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  authenticated?: Prisma.BoolFieldUpdateOperationsInput | boolean
   delivery?: Prisma.EnumMailDeliveryFieldUpdateOperationsInput | $Enums.MailDelivery
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -634,6 +673,11 @@ export type MailMessageOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
 }
 
+export type MailMessageMessageIdAddressCompoundUniqueInput = {
+  messageId: string
+  address: string
+}
+
 export type MailMessageCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   threadId?: Prisma.SortOrder
@@ -649,10 +693,12 @@ export type MailMessageCountOrderByAggregateInput = {
   rawKey?: Prisma.SortOrder
   rawHash?: Prisma.SortOrder
   messageId?: Prisma.SortOrder
+  address?: Prisma.SortOrder
   inReplyTo?: Prisma.SortOrder
   references?: Prisma.SortOrder
   sentByUserId?: Prisma.SortOrder
   automated?: Prisma.SortOrder
+  authenticated?: Prisma.SortOrder
   delivery?: Prisma.SortOrder
   error?: Prisma.SortOrder
   receivedAt?: Prisma.SortOrder
@@ -673,10 +719,12 @@ export type MailMessageMaxOrderByAggregateInput = {
   rawKey?: Prisma.SortOrder
   rawHash?: Prisma.SortOrder
   messageId?: Prisma.SortOrder
+  address?: Prisma.SortOrder
   inReplyTo?: Prisma.SortOrder
   references?: Prisma.SortOrder
   sentByUserId?: Prisma.SortOrder
   automated?: Prisma.SortOrder
+  authenticated?: Prisma.SortOrder
   delivery?: Prisma.SortOrder
   error?: Prisma.SortOrder
   receivedAt?: Prisma.SortOrder
@@ -697,10 +745,12 @@ export type MailMessageMinOrderByAggregateInput = {
   rawKey?: Prisma.SortOrder
   rawHash?: Prisma.SortOrder
   messageId?: Prisma.SortOrder
+  address?: Prisma.SortOrder
   inReplyTo?: Prisma.SortOrder
   references?: Prisma.SortOrder
   sentByUserId?: Prisma.SortOrder
   automated?: Prisma.SortOrder
+  authenticated?: Prisma.SortOrder
   delivery?: Prisma.SortOrder
   error?: Prisma.SortOrder
   receivedAt?: Prisma.SortOrder
@@ -791,10 +841,12 @@ export type MailMessageCreateWithoutThreadInput = {
   rawKey?: string | null
   rawHash?: string | null
   messageId?: string | null
+  address?: string | null
   inReplyTo?: string | null
   references?: string | null
   sentByUserId?: string | null
   automated?: boolean
+  authenticated?: boolean
   delivery?: $Enums.MailDelivery
   error?: string | null
   receivedAt?: Date | string
@@ -817,10 +869,12 @@ export type MailMessageUncheckedCreateWithoutThreadInput = {
   rawKey?: string | null
   rawHash?: string | null
   messageId?: string | null
+  address?: string | null
   inReplyTo?: string | null
   references?: string | null
   sentByUserId?: string | null
   automated?: boolean
+  authenticated?: boolean
   delivery?: $Enums.MailDelivery
   error?: string | null
   receivedAt?: Date | string
@@ -872,10 +926,12 @@ export type MailMessageScalarWhereInput = {
   rawKey?: Prisma.StringNullableFilter<"MailMessage"> | string | null
   rawHash?: Prisma.StringNullableFilter<"MailMessage"> | string | null
   messageId?: Prisma.StringNullableFilter<"MailMessage"> | string | null
+  address?: Prisma.StringNullableFilter<"MailMessage"> | string | null
   inReplyTo?: Prisma.StringNullableFilter<"MailMessage"> | string | null
   references?: Prisma.StringNullableFilter<"MailMessage"> | string | null
   sentByUserId?: Prisma.StringNullableFilter<"MailMessage"> | string | null
   automated?: Prisma.BoolFilter<"MailMessage"> | boolean
+  authenticated?: Prisma.BoolFilter<"MailMessage"> | boolean
   delivery?: Prisma.EnumMailDeliveryFilter<"MailMessage"> | $Enums.MailDelivery
   error?: Prisma.StringNullableFilter<"MailMessage"> | string | null
   receivedAt?: Prisma.DateTimeFilter<"MailMessage"> | Date | string
@@ -897,10 +953,12 @@ export type MailMessageCreateWithoutAttachmentsInput = {
   rawKey?: string | null
   rawHash?: string | null
   messageId?: string | null
+  address?: string | null
   inReplyTo?: string | null
   references?: string | null
   sentByUserId?: string | null
   automated?: boolean
+  authenticated?: boolean
   delivery?: $Enums.MailDelivery
   error?: string | null
   receivedAt?: Date | string
@@ -924,10 +982,12 @@ export type MailMessageUncheckedCreateWithoutAttachmentsInput = {
   rawKey?: string | null
   rawHash?: string | null
   messageId?: string | null
+  address?: string | null
   inReplyTo?: string | null
   references?: string | null
   sentByUserId?: string | null
   automated?: boolean
+  authenticated?: boolean
   delivery?: $Enums.MailDelivery
   error?: string | null
   receivedAt?: Date | string
@@ -965,10 +1025,12 @@ export type MailMessageUpdateWithoutAttachmentsInput = {
   rawKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   rawHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inReplyTo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   references?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sentByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   automated?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  authenticated?: Prisma.BoolFieldUpdateOperationsInput | boolean
   delivery?: Prisma.EnumMailDeliveryFieldUpdateOperationsInput | $Enums.MailDelivery
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -992,10 +1054,12 @@ export type MailMessageUncheckedUpdateWithoutAttachmentsInput = {
   rawKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   rawHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inReplyTo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   references?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sentByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   automated?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  authenticated?: Prisma.BoolFieldUpdateOperationsInput | boolean
   delivery?: Prisma.EnumMailDeliveryFieldUpdateOperationsInput | $Enums.MailDelivery
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1017,10 +1081,12 @@ export type MailMessageCreateManyThreadInput = {
   rawKey?: string | null
   rawHash?: string | null
   messageId?: string | null
+  address?: string | null
   inReplyTo?: string | null
   references?: string | null
   sentByUserId?: string | null
   automated?: boolean
+  authenticated?: boolean
   delivery?: $Enums.MailDelivery
   error?: string | null
   receivedAt?: Date | string
@@ -1042,10 +1108,12 @@ export type MailMessageUpdateWithoutThreadInput = {
   rawKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   rawHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inReplyTo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   references?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sentByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   automated?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  authenticated?: Prisma.BoolFieldUpdateOperationsInput | boolean
   delivery?: Prisma.EnumMailDeliveryFieldUpdateOperationsInput | $Enums.MailDelivery
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1068,10 +1136,12 @@ export type MailMessageUncheckedUpdateWithoutThreadInput = {
   rawKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   rawHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inReplyTo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   references?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sentByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   automated?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  authenticated?: Prisma.BoolFieldUpdateOperationsInput | boolean
   delivery?: Prisma.EnumMailDeliveryFieldUpdateOperationsInput | $Enums.MailDelivery
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1094,10 +1164,12 @@ export type MailMessageUncheckedUpdateManyWithoutThreadInput = {
   rawKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   rawHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   messageId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  address?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inReplyTo?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   references?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sentByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   automated?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  authenticated?: Prisma.BoolFieldUpdateOperationsInput | boolean
   delivery?: Prisma.EnumMailDeliveryFieldUpdateOperationsInput | $Enums.MailDelivery
   error?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   receivedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -1151,10 +1223,12 @@ export type MailMessageSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   rawKey?: boolean
   rawHash?: boolean
   messageId?: boolean
+  address?: boolean
   inReplyTo?: boolean
   references?: boolean
   sentByUserId?: boolean
   automated?: boolean
+  authenticated?: boolean
   delivery?: boolean
   error?: boolean
   receivedAt?: boolean
@@ -1180,10 +1254,12 @@ export type MailMessageSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   rawKey?: boolean
   rawHash?: boolean
   messageId?: boolean
+  address?: boolean
   inReplyTo?: boolean
   references?: boolean
   sentByUserId?: boolean
   automated?: boolean
+  authenticated?: boolean
   delivery?: boolean
   error?: boolean
   receivedAt?: boolean
@@ -1207,10 +1283,12 @@ export type MailMessageSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   rawKey?: boolean
   rawHash?: boolean
   messageId?: boolean
+  address?: boolean
   inReplyTo?: boolean
   references?: boolean
   sentByUserId?: boolean
   automated?: boolean
+  authenticated?: boolean
   delivery?: boolean
   error?: boolean
   receivedAt?: boolean
@@ -1234,10 +1312,12 @@ export type MailMessageSelectScalar = {
   rawKey?: boolean
   rawHash?: boolean
   messageId?: boolean
+  address?: boolean
   inReplyTo?: boolean
   references?: boolean
   sentByUserId?: boolean
   automated?: boolean
+  authenticated?: boolean
   delivery?: boolean
   error?: boolean
   receivedAt?: boolean
@@ -1245,7 +1325,7 @@ export type MailMessageSelectScalar = {
   createdAt?: boolean
 }
 
-export type MailMessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "threadId" | "direction" | "fromEmail" | "fromName" | "toEmails" | "ccEmails" | "subject" | "text" | "snippet" | "htmlKey" | "rawKey" | "rawHash" | "messageId" | "inReplyTo" | "references" | "sentByUserId" | "automated" | "delivery" | "error" | "receivedAt" | "sentAt" | "createdAt", ExtArgs["result"]["mailMessage"]>
+export type MailMessageOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "threadId" | "direction" | "fromEmail" | "fromName" | "toEmails" | "ccEmails" | "subject" | "text" | "snippet" | "htmlKey" | "rawKey" | "rawHash" | "messageId" | "address" | "inReplyTo" | "references" | "sentByUserId" | "automated" | "authenticated" | "delivery" | "error" | "receivedAt" | "sentAt" | "createdAt", ExtArgs["result"]["mailMessage"]>
 export type MailMessageInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   thread?: boolean | Prisma.MailThreadDefaultArgs<ExtArgs>
   attachments?: boolean | Prisma.MailMessage$attachmentsArgs<ExtArgs>
@@ -1279,6 +1359,10 @@ export type $MailMessagePayload<ExtArgs extends runtime.Types.Extensions.Interna
     rawKey: string | null
     rawHash: string | null
     messageId: string | null
+    /**
+     * The envelope address it reached, or the box it left from: one mail written to two of our addresses is two rows.
+     */
+    address: string | null
     inReplyTo: string | null
     references: string | null
     sentByUserId: string | null
@@ -1286,6 +1370,10 @@ export type $MailMessagePayload<ExtArgs extends runtime.Types.Extensions.Interna
      * A bounce, a list blast or an auto-reply: it is filed, but the team never answers it.
      */
     automated: boolean
+    /**
+     * Whether its `From` passed DMARC, or an aligned DKIM or SPF check, at the receiving MX.
+     */
+    authenticated: boolean
     delivery: $Enums.MailDelivery
     error: string | null
     receivedAt: Date
@@ -1730,10 +1818,12 @@ export interface MailMessageFieldRefs {
   readonly rawKey: Prisma.FieldRef<"MailMessage", 'String'>
   readonly rawHash: Prisma.FieldRef<"MailMessage", 'String'>
   readonly messageId: Prisma.FieldRef<"MailMessage", 'String'>
+  readonly address: Prisma.FieldRef<"MailMessage", 'String'>
   readonly inReplyTo: Prisma.FieldRef<"MailMessage", 'String'>
   readonly references: Prisma.FieldRef<"MailMessage", 'String'>
   readonly sentByUserId: Prisma.FieldRef<"MailMessage", 'String'>
   readonly automated: Prisma.FieldRef<"MailMessage", 'Boolean'>
+  readonly authenticated: Prisma.FieldRef<"MailMessage", 'Boolean'>
   readonly delivery: Prisma.FieldRef<"MailMessage", 'MailDelivery'>
   readonly error: Prisma.FieldRef<"MailMessage", 'String'>
   readonly receivedAt: Prisma.FieldRef<"MailMessage", 'DateTime'>

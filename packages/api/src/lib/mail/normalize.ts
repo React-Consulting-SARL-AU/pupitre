@@ -1,3 +1,5 @@
+import { MAIL_MAX_REFERENCES } from "@pupitre/shared/legal"
+
 const SUBJECT_PREFIX_RE = /^\s*(?:re|ref|réf|fw|fwd|tr)\s*(?:\[\d+\])?\s*:\s*/i
 
 const WHITESPACE_RE = /\s+/g
@@ -51,45 +53,47 @@ export function snippetOf(text: string | null | undefined): string | null {
   return collapsed.slice(0, SNIPPET_LENGTH)
 }
 
+function idsIn(header: string): string[] {
+  const bracketed = [...header.matchAll(ANGLE_IDS_RE)].map((match) =>
+    match[1].trim()
+  )
+
+  return bracketed.length > 0 ? bracketed : header.trim().split(WHITESPACE_RE)
+}
+
 /**
- * The ids a References or In-Reply-To header names. Angle brackets are the
- * rule but not the habit: a header without them still names one id.
+ * The ids a References or In-Reply-To header names, oldest first. Angle
+ * brackets are the rule but not the habit: a header without them still names
+ * one id. Only the most recent `MAIL_MAX_REFERENCES` are kept, and an id named
+ * again moves to the end: a chain a sender padded with thousands of ids is
+ * neither looked up nor written back.
  */
 export function referencedMessageIds(
   ...headers: (string | null | undefined)[]
 ): string[] {
-  const ids: string[] = []
+  const ids = new Set<string>()
 
   for (const header of headers) {
     if (!header) {
       continue
     }
 
-    const bracketed = [...header.matchAll(ANGLE_IDS_RE)].map((match) =>
-      match[1].trim()
-    )
-    const found =
-      bracketed.length > 0 ? bracketed : header.trim().split(WHITESPACE_RE)
-
-    for (const id of found) {
-      if (id && !ids.includes(id)) {
-        ids.push(id)
+    for (const id of idsIn(header).slice(-MAIL_MAX_REFERENCES)) {
+      if (id) {
+        ids.delete(id)
+        ids.add(id)
       }
     }
   }
 
-  return ids
+  return [...ids].slice(-MAIL_MAX_REFERENCES)
 }
 
 export function buildReferences(
   previousReferences: string | null | undefined,
   previousMessageId: string | null | undefined
 ): string | null {
-  const ids = referencedMessageIds(previousReferences)
-
-  if (previousMessageId && !ids.includes(previousMessageId)) {
-    ids.push(previousMessageId)
-  }
+  const ids = referencedMessageIds(previousReferences, previousMessageId)
 
   return ids.length > 0 ? ids.map((id) => `<${id}>`).join(" ") : null
 }

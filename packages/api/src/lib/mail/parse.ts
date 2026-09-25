@@ -1,4 +1,5 @@
 import PostalMime, { type Address, type Email } from "postal-mime"
+import { isAuthenticatedSender } from "./authentication"
 import { stripAngles } from "./normalize"
 
 export interface ParsedAttachment {
@@ -20,6 +21,7 @@ export interface ParsedEmail {
   inReplyTo: string | null
   references: string | null
   automated: boolean
+  authenticated: boolean
   attachments: ParsedAttachment[]
 }
 
@@ -33,7 +35,7 @@ const PATH_SEPARATOR_RE = /[/\\]/
 
 const EDGE_UNDERSCORES_RE = /^_+|_+$/g
 
-const DEFAULT_ATTACHMENT_NAME = "piece-jointe"
+const DEFAULT_ATTACHMENT_NAME = "attachment"
 
 const DEFAULT_MIME_TYPE = "application/octet-stream"
 
@@ -134,10 +136,11 @@ export async function parseEmail(
   }
 
   const from = mailboxes(email.from ? [email.from] : undefined)[0]
+  const fromEmail = from?.address?.trim().toLowerCase() || null
 
   return {
     subject: email.subject?.trim() || null,
-    fromEmail: from?.address?.trim().toLowerCase() ?? null,
+    fromEmail,
     fromName: from?.name?.trim() || null,
     to: emailsOf(email.to),
     cc: emailsOf(email.cc),
@@ -147,6 +150,7 @@ export async function parseEmail(
     inReplyTo: email.inReplyTo ? stripAngles(email.inReplyTo) : null,
     references: email.references?.trim() || null,
     automated: isAutomated(email),
+    authenticated: isAuthenticatedSender(email.headers, fromEmail),
     attachments: attachmentsOf(email),
   }
 }

@@ -31,6 +31,14 @@ describe("MAIL_HTML_CSP", () => {
     expect(directives(MAIL_HTML_CSP).get("frame-ancestors")).toBe("'self'")
   })
 
+  it("isole le corps même ouvert hors du cadre de la console", () => {
+    const policy = directives(MAIL_HTML_CSP)
+
+    expect(policy.get("sandbox")).toBe("")
+    expect(policy.get("form-action")).toBe("'none'")
+    expect(policy.get("base-uri")).toBe("'none'")
+  })
+
   it("ne charge aucune image distante, pour qu'un pixel de suivi n'apprenne rien", () => {
     expect(directives(MAIL_HTML_CSP).get("img-src")).toBe("data:")
     expect(directives(MAIL_HTML_CSP).get("font-src")).toBe("data:")

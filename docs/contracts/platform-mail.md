@@ -18,11 +18,21 @@ Le même chemin s'ouvre en local par `POST /internal/email`, derrière le secret
 
 **Le texte est coupé à `MAIL_MAX_TEXT_CHARS`** (200 000 caractères) avant d'entrer en base : D1 refuse une valeur au-delà du mégaoctet, et ce refus-là arriverait après l'écriture des objets, donc dans la même boucle de renvoi. Le `.eml` brut dans le seau garde le corps entier — **c'est lui la source de vérité**, la colonne n'est que ce qu'on lit à l'écran. Le `snippet` est calculé sur le texte complet.
 
+**Seules les `MAIL_MAX_INBOUND_ATTACHMENTS` premières pièces jointes** (vingt) partent au seau avec leur ligne ; les suivantes ne vivent que dans le `.eml` brut. Chaque pièce est une écriture du Worker : un message de milliers de parties dépasserait ses sous-requêtes, et Cloudflare le représenterait indéfiniment. De même, **`In-Reply-To` et `References` ne comptent que leurs `MAIL_MAX_REFERENCES` identifiants les plus récents** (vingt), pour le rattachement comme pour la colonne `references` : une chaîne gonflée de milliers d'identifiants n'est ni cherchée ni recopiée dans une réponse.
+
 ## Lecture du message
 
 `postal-mime` lit le message : sujet, expéditeur, destinataires, copies, corps texte, corps HTML, `Message-ID`, `In-Reply-To`, `References`, pièces jointes avec leurs octets. Les identifiants sont rangés **sans chevrons**.
 
 **Un message illisible est quand même rangé.** La lecture rend `null`, l'enveloppe SMTP fournit l'expéditeur et le destinataire, et les octets partent dans le seau : rien ne se perd dans une boucle de renvoi sur un message qu'aucun analyseur n'acceptera jamais.
+
+**Un message sans objet est rangé sous un sujet vide** (`MailThread.subject = ""`, `MailMessage.subject = null`) : c'est la console qui dit « (sans objet) » ou « (no subject) », dans sa langue. Une pièce jointe sans nom s'appelle `attachment`.
+
+### L'expéditeur vérifié
+
+Le `From` n'est qu'une déclaration. Le MX d'Email Routing authentifie le message avant de le passer au Worker et **préfixe** ses résultats — `ARC-Authentication-Results` et `Authentication-Results` sous l'authserv-id `MAIL_TRUSTED_AUTHSERV_ID` (`mx.cloudflare.net`, `@pupitre/shared/legal`). `isAuthenticatedSender` (`lib/mail/authentication.ts`) ne lit que **l'en-tête le plus haut de chaque nom** : un résultat recopié plus bas par l'expéditeur, même sous notre authserv-id, ne compte jamais. Chaque en-tête le plus haut que notre MX a écrit doit se porter garant du domaine du `From` : `dmarc=pass` sur ce domaine, ou `dkim=pass` / `spf=pass` sur un domaine aligné (le même, ou l'un sous l'autre). Sans aucun de ces en-têtes, l'expéditeur n'est pas vérifié.
+
+Le message porte `authenticated` (`MailMessage.authenticated`, `true` pour ce que nous envoyons), le fil `senderAuthenticated` pour son expéditeur affiché. **Un expéditeur non vérifié ne relie aucun compte** (`contactUserId`) et **ne rejoint un fil que par ses références**, jamais par le sujet et le correspondant. Les messages reçus avant la migration `0017` sont non vérifiés : personne ne les a vérifiés.
 
 **Un envoi automatique est rangé sans allumer le fil.** Un `List-Unsubscribe`, un `Auto-Submitted` autre que `no`, un `Precedence: bulk | list | junk`, ou un expéditeur `mailer-daemon@` ou `postmaster@` : le fil garde son état, ni non lu ni rouvert. Le message porte `automated = true` (`MailMessage.automated`, `false` par défaut) et le rend dans sa forme ; le fil porte `lastInboundAutomated`, qui dit si le **dernier** entrant l'était — c'est cette colonne qui range le fil dans « Automatiques », parce qu'aucun filtre relationnel ne sait dire « le dernier ».
 
@@ -42,22 +52,22 @@ Il n'y a plus de liste d'adresses d'expédition figée : **les expéditeurs poss
 
 Dans cet ordre, le premier qui répond gagne :
 
-1. **Les références.** `In-Reply-To` et `References` nomment des identifiants ; si l'un d'eux est déjà en base, le message rejoint son fil, quel que soit son sujet.
-2. **Le sujet et le correspondant.** Même adresse de destination, même sujet **normalisé**, fil touché dans les **trente jours**, et un message du fil qui porte cette personne en expéditeur ou en destinataire. Un homonyme de sujet venu d'ailleurs n'entre pas. Au plus **dix** fils candidats sont examinés, les plus récemment touchés d'abord : au-delà, ce n'est plus un fil, c'est un sujet générique.
+1. **Les références.** `In-Reply-To` et `References` nomment des identifiants ; si l'un d'eux est déjà en base, le message rejoint son fil, quel que soit son sujet — celui de la même adresse de destination d'abord, quand le message référencé a été rangé sous plusieurs.
+2. **Le sujet et le correspondant**, pour un expéditeur vérifié seulement. Même adresse de destination, même sujet **normalisé**, fil touché dans les **trente jours**, et un message du fil qui porte cette personne en expéditeur ou en destinataire. Un homonyme de sujet venu d'ailleurs n'entre pas. Au plus **dix** fils candidats sont examinés, les plus récemment touchés d'abord : au-delà, ce n'est plus un fil, c'est un sujet générique.
 3. **Sinon, un fil neuf**, dont `mailboxId` est celui de la boîte qui déclare l'adresse, ou `null`.
 
 Le sujet normalisé est le sujet débarrassé de ses préfixes empilés (`Re:`, `RE :`, `Re[2]:`, `Fw:`, `Fwd:`, `TR:`, `Réf:`), espaces écrasés, en minuscules.
 
-À l'arrivée d'un message lisible non automatique, le fil passe `unread = true`, `status = open`, et `lastInboundAt` prend l'heure. `contactUserId` nomme le compte dont l'adresse est celle de l'expéditeur, quand il y en a un. Une activité `received` est écrite sur le fil, et l'événement temps réel `thread.received` part.
+À l'arrivée d'un message lisible non automatique, le fil passe `unread = true`, `status = open`, et `lastInboundAt` prend l'heure. `contactUserId` nomme le compte dont l'adresse est celle de l'expéditeur, quand il y en a un et que l'expéditeur est vérifié. Tout message entrant porte sur le fil `senderEmail`, `senderName`, `senderAuthenticated` et `snippet` ; un message sortant y porte son `snippet` : la liste ne lit que les lignes des fils. Une activité `received` est écrite sur le fil, et l'événement temps réel `thread.received` part.
 
 ## Doublons
 
 Deux verrous, dans cet ordre :
 
-1. **L'empreinte SHA-256 des octets bruts** (`rawHash`, unique). Un renvoi de Cloudflare retombe dessus.
-2. **Le `Message-ID`** (unique), **sur la même adresse de destination**. Un même message arrivé par deux chemins retombe dessus ; un `Message-ID` recopié par un tiers dans un message écrit à une autre de nos adresses n'efface pas ce message-là.
+1. **L'empreinte SHA-256 de l'adresse de destination suivie des octets bruts** (`rawHash`, unique). Un renvoi de Cloudflare retombe dessus ; le même message écrit à `support@` et à `legal@` fait deux livraisons, donc deux empreintes.
+2. **Le `Message-ID` sur la même adresse de destination** (`@@unique([messageId, address])`, `MailMessage.address` portant l'adresse de l'enveloppe, ou la boîte d'où part un message sortant). Un même message arrivé par deux chemins retombe dessus ; le même `Message-ID` écrit à deux de nos adresses fait deux lignes, dans deux fils.
 
-Les deux sont vérifiés avant l'écriture, et la contrainte unique rattrape la course : `ingestInboundEmail` rend alors `{ status: "duplicate" }` avec l'identifiant de la ligne déjà écrite, sans rien réécrire. Un doublon **republie quand même** `thread.received` : la console qui a raté la première diffusion rattrape celle-là.
+Les deux sont vérifiés avant l'écriture, et la contrainte unique rattrape la course : `ingestInboundEmail` rend alors `{ status: "duplicate" }` avec l'identifiant de la ligne déjà écrite, sans rien réécrire, et **efface le fil qu'il venait d'ouvrir** pour ce message s'il est resté vide (`discardEmptyMailThread`) — une course ne laisse aucun fil sans message. Un doublon **republie quand même** `thread.received` : la console qui a raté la première diffusion rattrape celle-là.
 
 ## Ce qui va où
 
@@ -106,7 +116,9 @@ La console peut **nommer les destinataires** : `to` et `cc` dans le corps de la 
 
 Les copies du message répondu sont reprises, moins les nôtres et moins celles déjà en `to`.
 
-**Un envoi qui casse ne disparaît pas.** Le message est enregistré `delivery: failed` avec la cause dans `error`, une activité `reply_failed` est écrite, la route répond `502`, et l'événement `message.failed` part. Le fil garde sa trace, et un nouvel essai est un nouveau message : rien ne part deux fois sans qu'on le voie.
+Un nouveau message suit la même règle : ses `to` sont filtrés de nos adresses, et sans personne après le filtre `/compose` répond `409 conflict` sans ouvrir de fil.
+
+**Un envoi qui casse ne disparaît pas.** Le message est enregistré `delivery: failed` avec la cause dans `error`, une activité `reply_failed` est écrite, la route répond `502`, et l'événement `message.failed` part. La réponse de la route ne recopie jamais les mots du service d'envoi : son message est générique, la cause reste sur la ligne et dans le journal du Worker. Le fil garde sa trace, et un nouvel essai est un nouveau message : rien ne part deux fois sans qu'on le voie.
 
 **Le brouillon du fil est effacé dès que l'envoi réussit.**
 
@@ -116,7 +128,9 @@ Une réponse et un nouveau message en portent. Les octets ne passent pas par l'A
 
 1. `POST /uploads { filename, mime_type, size }` refuse une extension de `MAIL_BLOCKED_ATTACHMENT_EXTENSIONS` (`@pupitre/shared/legal` : exécutables, scripts, installeurs) en `422 validation`, sinon rend la clé `mail/uploads/<userId>/<uuid>/<nom assaini>` et une adresse `PUT` valable `MAIL_SIGNED_URL_TTL_SECONDS` (dix minutes). La console y envoie les octets elle-même, avec le seul en-tête `content-type` — c'est ce que la règle CORS du seau autorise ([`deploy.md`](../deploy.md)).
 2. `attachments: [{ key, filename, mime_type, size }]` dans le corps de `/threads/:id/reply` ou de `/compose` : au plus `MAIL_MAX_OUTBOUND_ATTACHMENTS` (dix), `MAIL_MAX_OUTBOUND_ATTACHMENT_BYTES` (5 Mio) en tout, chaque clé sous `mail/uploads/<userId de l'appelant>/` — une clé d'un autre, ou qui remonte hors du préfixe, vaut `422`. Un nom bloqué vaut `422` ici aussi.
-3. À l'envoi, chaque dépôt est lu par le binding : absent, `422 validation` (`mail_upload_missing`) ; plus gros qu'annoncé, `422` (`mail_upload_size_mismatch`). Tout est vérifié **avant** qu'un fil ou une ligne naisse : un `compose` refusé n'ouvre aucun fil.
+3. À l'envoi, chaque dépôt est lu par le binding : absent, `422 validation` (`mail_upload_missing`) ; plus gros qu'annoncé, `422` (`mail_upload_size_mismatch`). Tout est vérifié **avant** qu'un fil ou une ligne naisse : un `compose` refusé n'ouvre aucun fil. Un `compose` dont le dépôt au seau casse efface le fil qu'il venait d'ouvrir ; un envoi refusé par le service le garde, avec son message en échec.
+
+`mime_type` suit `^[\w.+-]+/[\w.+-]+$` (`422` sinon), et le MIME construit retire encore tout retour à la ligne du type : un type ne peut pas ajouter d'en-tête.
 4. Le MIME devient `multipart/mixed` : le `multipart/alternative` texte + HTML en première partie, puis chaque pièce en base64 sous `Content-Disposition: attachment; filename="…"`. Sans pièce jointe, rien ne change.
 5. Le brut est déposé, puis chaque pièce est copiée sous `mail/<threadId>/<Message-ID>/attachments/<rang>/<nom>`, puis le message part, puis la ligne et ses `MailAttachment` sont écrites, puis les dépôts sont effacés. Un envoi qui casse garde ses pièces sous le message en échec.
 
@@ -223,7 +237,7 @@ Une réponse type est **un préremplissage de la console** : `template_id` n'est
 
 Ce qui tient, à sa place :
 
-1. **La CSP.** `default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:; frame-ancestors 'self'`. `script-src` retombe sur `default-src 'none'` : aucun script en ligne, aucun gestionnaire `on*`, aucune URL `javascript:` ne s'exécute, quelle que soit la tête de la balise. **`img-src` s'arrête à `data:`** : un pixel de suivi dans un message écrit à `security@` ne dit à son expéditeur ni l'heure de la lecture, ni l'adresse d'où elle vient. Une image en pièce jointe s'ouvre depuis le bandeau, au-dessus du corps.
+1. **La CSP.** `default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:; form-action 'none'; base-uri 'none'; frame-ancestors 'self'; sandbox`. `sandbox` isole le corps même ouvert hors du cadre de la console, `form-action` et `base-uri` ferment ce que `default-src` ne couvre pas. `script-src` retombe sur `default-src 'none'` : aucun script en ligne, aucun gestionnaire `on*`, aucune URL `javascript:` ne s'exécute, quelle que soit la tête de la balise. **`img-src` s'arrête à `data:`** : un pixel de suivi dans un message écrit à `security@` ne dit à son expéditeur ni l'heure de la lecture, ni l'adresse d'où elle vient. Une image en pièce jointe s'ouvre depuis le bandeau, au-dessus du corps.
 2. **Le cadre de la console.** Le corps est affiché dans une `iframe` au `sandbox` vide (`apps/web/src/components/admin/inbox/inbox-message-html.tsx`) : pas de script, pas de formulaire, pas de navigation, origine opaque.
 3. **`nosniff`**, pour que le type servi soit celui qu'on annonce.
 
@@ -244,6 +258,7 @@ Thread = {
   contact: { user_id, email, name } | null,
   linked_organization: { id, name, slug } | null,
   from: { email, name: string | null },
+  sender_authenticated: boolean,
   snippet: string | null,
   messages: number,
   notes: number,
@@ -263,7 +278,7 @@ ThreadDetail = Omit<Thread, "messages" | "notes"> & {
 Message = {
   id, direction,
   from: { email, name }, to: string[], cc: string[],
-  subject, text, has_html, automated, delivery, error,
+  subject, text, has_html, automated, authenticated, delivery, error,
   sent_by: { id, name } | null,
   received_at, sent_at,
   attachments: [{ id, filename, mime_type, size }],
@@ -291,7 +306,7 @@ Template = { id, name, body, mailbox_id: string | null, created_at, updated_at }
 
 `messages` et `notes` comptent dans la liste et **portent** dans le détail : la liste dit combien, le fil ouvert dit lesquels.
 
-`from` est le dernier expéditeur entrant ; sur un fil né d'un message écrit par l'équipe, c'est le destinataire de ce message, pour que la ligne ne soit pas vide.
+`from` est le dernier expéditeur entrant ; sur un fil né d'un message écrit par l'équipe, c'est le premier destinataire de ce message, pour que la ligne ne soit pas vide. `sender_authenticated` dit si ce dernier expéditeur entrant a été vérifié (voir *L'expéditeur vérifié*) — `true` sur un fil que l'équipe a ouvert et qui n'a rien reçu : la console affiche « Expéditeur non vérifié » quand il est `false`. `authenticated` dit la même chose d'un message, et vaut `true` pour ce qui part. `subject` vaut `""` pour un message reçu sans objet : la console le nomme.
 
 `action` d'une activité vaut l'un de `received`, `read`, `unread`, `replied`, `reply_failed`, `composed`, `assigned`, `unassigned`, `closed`, `reopened`, `linked`, `unlinked`, `note_added`, `note_deleted`.
 

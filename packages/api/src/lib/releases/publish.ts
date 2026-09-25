@@ -1,4 +1,4 @@
-const UNIQUE_VIOLATION = "P2002"
+import { isUniqueViolation } from "../api/prisma"
 
 export interface PublishOnce<T> {
   find: () => Promise<T | null>
@@ -10,15 +10,6 @@ export interface PublishOnce<T> {
 export interface PublishOnceResult<T> {
   row: T
   created: boolean
-}
-
-function isUniqueViolation(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    (error as { code: unknown }).code === UNIQUE_VIOLATION
-  )
 }
 
 /**

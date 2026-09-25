@@ -560,6 +560,13 @@ model MailThread {
   /// the open view hides those, and no `some`/`none` filter can say "the last one".
   lastInboundAutomated   Boolean          @default(false)
   lastOutboundAt         DateTime?
+  /// Whom the list names: the last inbound sender, or whom a thread we opened was written to.
+  senderEmail            String?
+  senderName             String?
+  /// Whether that sender passed DMARC, or an aligned DKIM or SPF check, at the receiving MX.
+  senderAuthenticated    Boolean          @default(false)
+  /// The last message's, so the list never reads the messages themselves.
+  snippet                String?
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt
 
@@ -627,34 +634,39 @@ model MailTemplate {
 }
 
 model MailMessage {
-  id           String        @id @default(cuid())
-  threadId     String
-  thread       MailThread    @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  direction    MailDirection
-  fromEmail    String
-  fromName     String?
-  toEmails     Json
-  ccEmails     Json
-  subject      String?
-  text         String?
-  snippet      String?
-  htmlKey      String?
-  rawKey       String?
-  rawHash      String?       @unique
-  messageId    String?       @unique
-  inReplyTo    String?
-  references   String?
-  sentByUserId String?
+  id            String        @id @default(cuid())
+  threadId      String
+  thread        MailThread    @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  direction     MailDirection
+  fromEmail     String
+  fromName      String?
+  toEmails      Json
+  ccEmails      Json
+  subject       String?
+  text          String?
+  snippet       String?
+  htmlKey       String?
+  rawKey        String?
+  rawHash       String?       @unique
+  messageId     String?
+  /// The envelope address it reached, or the box it left from: one mail written to two of our addresses is two rows.
+  address       String?
+  inReplyTo     String?
+  references    String?
+  sentByUserId  String?
   /// A bounce, a list blast or an auto-reply: it is filed, but the team never answers it.
-  automated    Boolean       @default(false)
-  delivery     MailDelivery  @default(received)
-  error        String?
-  receivedAt   DateTime      @default(now())
-  sentAt       DateTime?
-  createdAt    DateTime      @default(now())
+  automated     Boolean       @default(false)
+  /// Whether its `From` passed DMARC, or an aligned DKIM or SPF check, at the receiving MX.
+  authenticated Boolean       @default(false)
+  delivery      MailDelivery  @default(received)
+  error         String?
+  receivedAt    DateTime      @default(now())
+  sentAt        DateTime?
+  createdAt     DateTime      @default(now())
 
   attachments MailAttachment[]
 
+  @@unique([messageId, address])
   @@index([threadId, createdAt])
 }
 
