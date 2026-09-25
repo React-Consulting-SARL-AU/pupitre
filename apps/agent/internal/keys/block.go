@@ -42,6 +42,11 @@ func Sync(ctx sys.Context, target Target, wanted []Key) (bool, error) {
 		return false, err
 	}
 
+	// A fresh server has no dev yet: harden creates it and seeds root's keys, the next sync lays the block.
+	if err != nil && !file.Exists(ctx, filepath.Dir(target.Path)) {
+		return false, nil
+	}
+
 	updated := file.WithBlock(current, Block, Render(wanted))
 	if bytes.Equal(updated, current) {
 		return false, nil
