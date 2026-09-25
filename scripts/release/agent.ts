@@ -111,7 +111,11 @@ function smoke(version: string, publicKey: string): void {
       )
     }
 
-    const hello = exec(["sh", "-c", `echo '${HELLO}' | ${binary} serve`])
+    const hello = exec([
+      "sh",
+      "-c",
+      `echo '${helloFrom(version)}' | ${binary} serve`,
+    ])
 
     if (!hello.includes('"ok":true')) {
       throw new Error(`${binary} does not answer hello.`)
@@ -119,11 +123,14 @@ function smoke(version: string, publicKey: string): void {
   }
 }
 
-const HELLO = JSON.stringify({
-  id: 1,
-  cmd: "hello",
-  params: { app_version: "0.0.0", protocol: PROTOCOL_VERSION },
-})
+// The app of the same release: an agent refuses an app below its compatibility floor.
+export function helloFrom(version: string): string {
+  return JSON.stringify({
+    id: 1,
+    cmd: "hello",
+    params: { app_version: version, protocol: PROTOCOL_VERSION },
+  })
+}
 
 async function alreadyBuilt(version: string, vault: Bucket): Promise<boolean> {
   if (!vault.client) {
