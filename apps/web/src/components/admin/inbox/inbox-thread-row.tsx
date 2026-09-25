@@ -18,7 +18,7 @@ export interface InboxThreadRowProps {
   search: InboxSearch
   selected: boolean
   onSelectedChange: (selected: boolean) => void
-  /** The row the keyboard sits on, whether or not it is the open thread. */
+  // Keyboard focus, independent of the open thread.
   focused: boolean
   open: boolean
 }

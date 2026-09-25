@@ -9,12 +9,11 @@ import {
   INTERNAL_SECRET_HEADER,
 } from "@/workflows/internal-trigger"
 
-/** Where the console opens its socket, and where the API pushes what it just wrote. */
 export const INBOX_EVENTS_PATH = "/api/v1/admin/inbox/events"
 
 export const INBOX_PUBLISH_PATH = "/publish"
 
-/** One instance for the whole platform: the inbox is a single room. */
+// One instance for the whole platform: the inbox is a single room.
 export const INBOX_REALTIME_NAME = "platform"
 
 const WEBSOCKET_UPGRADE = "websocket"
@@ -45,7 +44,7 @@ function refuseNonSocket(): Response {
   return refuse(400, "validation", "This address only accepts a WebSocket.")
 }
 
-/** Hibernation keeps no state in the object: an idle room costs nothing, and each socket is tagged with its reader. */
+// Hibernation keeps no state in the object, so each socket is tagged with its reader.
 export function acceptInboxSocket(
   state: DurableObjectState,
   userId: string
@@ -148,7 +147,7 @@ function inboxStub(env: CloudflareEnv) {
   )
 }
 
-/** The same refusals, in the same order, as the routes the socket mirrors: an account the platform no longer honours first. */
+// Same refusals, in the same order, as the admin route guards.
 export function inboxSocketRefusal(auth: AuthContext): Response | null {
   if (auth.accountRefusal) {
     return refuse(
@@ -169,7 +168,6 @@ export function inboxSocketRefusal(auth: AuthContext): Response | null {
   return null
 }
 
-/** The socket opens only for the platform team, from the console: the room has no reader of its own. */
 export async function handleInboxEventsRequest(
   request: Request,
   env: CloudflareEnv
@@ -200,7 +198,7 @@ export async function handleInboxEventsRequest(
   return await inboxStub(env).fetch(forwarded)
 }
 
-/** What each write calls once the Worker is up: the API knows the room only through this. */
+// The API knows the room only through this publisher.
 export function configureInboxPublisher(env: CloudflareEnv): void {
   configureInboxRealtime(async (event) => {
     await inboxStub(env).fetch(`${INTERNAL_ORIGIN}${INBOX_PUBLISH_PATH}`, {

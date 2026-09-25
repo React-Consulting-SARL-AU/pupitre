@@ -4,7 +4,7 @@ import { accountLook } from "@/lib/domain/admin"
 import type { StatusLook } from "@/lib/domain/server-status"
 import type { DictionaryKey } from "@/lib/i18n/en"
 
-/** The sidebar sits outside the platform layout: it asks for the dialog, the layout owns it. */
+// The sidebar sits outside the platform layout that owns the dialog, so it asks by event.
 export const PLATFORM_SEARCH_EVENT = "pupitre:platform-search"
 
 export function askForPlatformSearch(): void {
@@ -19,19 +19,17 @@ export interface SearchHit {
   groupLabel: DictionaryKey
   primary: string
   secondary: string
-  /** The state badge the group carries, when the thing has a state at all. */
   look: StatusLook | null
   to: LinkProps
 }
 
 const SEPARATOR = " · "
 
-/** A part the row has not got leaves no separator dangling in front of the next one. */
 function joined(parts: (string | null)[]): string {
   return parts.filter((part) => part !== null && part !== "").join(SEPARATOR)
 }
 
-/** One flat list, in the order the arrows walk it, whatever group each hit came from. */
+// One flat list, in the order the arrow keys walk it.
 export function searchHits(results: AdminSearchResults): SearchHit[] {
   return [
     ...results.users.map((user) => ({

@@ -11,16 +11,13 @@ import type { Translate } from "@/lib/i18n/i18n"
 
 export const INBOX_PAGE_SIZE = 25
 
-/** The socket carries the news; this only catches up a socket that died without saying so. */
+// Only catches up a socket that died silently; the socket carries the news.
 export const INBOX_POLL_INTERVAL_MS = 60_000
 
-/** How long the composer waits after the last keystroke before keeping the draft. */
 export const DRAFT_SAVE_DELAY_MS = 800
 
-/** Past this many messages, the older ones of a thread fold into one line. */
 export const THREAD_FOLD_THRESHOLD = 5
 
-/** What the list shows to a reader who asked for no status: the work still to do. */
 export const INBOX_STATUS = "open"
 
 export const MAILBOX_EVERY = ""
@@ -66,7 +63,6 @@ function moment(value: string): number {
   return new Date(value).getTime()
 }
 
-/** The last thing that happened to a conversation, named for what it was. */
 export function lastActivity({
   last_inbound_at,
   last_outbound_at,
@@ -91,7 +87,6 @@ export interface MessageParticipants {
   cc: string[]
 }
 
-/** Who an email went to, and who was kept in copy; empty when it went nowhere named. */
 export function participantsLine(
   { to, cc }: MessageParticipants,
   t: Translate
@@ -128,7 +123,7 @@ export interface AttachmentBudget {
   blocked: string[]
 }
 
-/** A selection is taken whole or refused whole: the total, the count and every blocked name. */
+// A selection is taken or refused as a whole.
 export function attachmentBudget(files: readonly File[]): AttachmentBudget {
   const total = files.reduce((sum, file) => sum + file.size, 0)
 
@@ -149,7 +144,6 @@ export function canPreview(mimeType: string): boolean {
 
 const INITIAL_RE = /[^\p{L}\p{N}]+/u
 
-/** Two letters standing in for a face nobody uploaded. */
 export function initialsOf({ email, name }: Correspondent): string {
   const source = name?.trim() ? name : email.split("@")[0]
   const words = source.split(INITIAL_RE).filter((word) => word !== "")
@@ -165,12 +159,11 @@ export function initialsOf({ email, name }: Correspondent): string {
 }
 
 export interface InboxShortcut {
-  /** The key as the keyboard prints it, which is not the same word in every language. */
+  // Translated: key names differ between keyboard languages.
   keys: DictionaryKey
   label: DictionaryKey
 }
 
-/** One registrar in the layout holds these; each button names its own in `title`. */
 export const INBOX_SHORTCUTS = {
   next: { keys: "inbox.keysNext", label: "inbox.shortcutNext" },
   previous: { keys: "inbox.keysPrevious", label: "inbox.shortcutPrevious" },
@@ -183,7 +176,6 @@ export const INBOX_SHORTCUTS = {
   help: { keys: "inbox.keysHelp", label: "inbox.shortcutHelp" },
 } as const satisfies Record<string, InboxShortcut>
 
-/** What a button hovers: what it does, and the key that does it too. */
 export function shortcutTitle(t: Translate, shortcut: InboxShortcut): string {
   return t("inbox.shortcutTitle", {
     action: t(shortcut.label),
@@ -193,7 +185,6 @@ export function shortcutTitle(t: Translate, shortcut: InboxShortcut): string {
 
 const TYPING_TAGS = new Set(["INPUT", "TEXTAREA", "SELECT"])
 
-/** A shortcut never fires while someone is writing. */
 export function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) {
     return false

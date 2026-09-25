@@ -6,7 +6,6 @@ export type DangerZoneTone = "warning" | "danger"
 
 export interface DangerZoneProps {
   title: string
-  /** What the action does to the thing, and what it costs; never a warning that warns.  */
   description: string
   action: ReactNode
   tone?: DangerZoneTone

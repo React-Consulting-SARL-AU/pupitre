@@ -5,7 +5,7 @@ import { purgeUser, soleOwnerOrganizationOf } from "./user-lifecycle"
 
 export const PURGE_BATCH_SIZE = 25
 
-/** Organizations go first, so an account the same pass erases is no longer the last owner of anything. */
+// Organizations first, so an account erased in the same pass no longer owns anything.
 export async function purgeDeletedOrganizations(
   now: Date = new Date()
 ): Promise<string[]> {
@@ -25,7 +25,6 @@ export async function purgeDeletedOrganizations(
 
 export interface UserPurgeBatch {
   purged: string[]
-  /** Where the next batch starts, or null once every due account has been seen. */
   next: string | null
 }
 
@@ -35,7 +34,7 @@ const SKIP_STATE_ACTIONS = [
   "user.reactivated",
 ]
 
-/** One line per held state: a skip is written again only once the deletion or the organization holding it has changed. */
+// A skip is written again only once the deletion or the holding organization changed.
 async function recordSkipOnce(
   userId: string,
   organizationId: string
@@ -65,7 +64,7 @@ async function recordSkipOnce(
   })
 }
 
-/** Walks the due accounts by identifier, so one held back never stands in front of the others. */
+// Walks by identifier, so an account held back never blocks the others.
 export async function purgeDeletedUsers(
   after: string | null = null,
   now: Date = new Date()

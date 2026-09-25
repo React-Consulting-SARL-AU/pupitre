@@ -14,7 +14,6 @@ export function isUnauthenticated(error: unknown): boolean {
   return error instanceof ApiError && error.status === UNAUTHENTICATED_STATUS
 }
 
-/** The API always says what went wrong and how to fix it; a network cut says nothing. */
 export function apiFailure(error: unknown): ApiFailure | null {
   if (!(error instanceof ApiError && isApiErrorBody(error.body))) {
     return null

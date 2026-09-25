@@ -8,10 +8,8 @@ import { AdminServerOverview } from "@/components/admin/admin-server-overview"
 import { AdminServerUsage } from "@/components/admin/admin-server-usage"
 import { PageTabs } from "@/components/ui/page-tabs"
 import { SkeletonCards } from "@/components/ui/skeleton"
-import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
 import { adminServerQueryOptions } from "@/lib/api/admin-queries"
-import { canActOnPlatform } from "@/lib/domain/admin"
 
 export const ADMIN_SERVER_TABS = [
   "overview",
@@ -42,7 +40,6 @@ export function AdminServerDetail({
   onTabChange,
 }: AdminServerDetailProps) {
   const t = useTranslations()
-  const { platformRole } = useDashboardContext()
   const server = useQuery(adminServerQueryOptions(id))
 
   if (server.isPending) {
@@ -62,7 +59,7 @@ export function AdminServerDetail({
   }
 
   const detail = server.data
-  const acts = canActOnPlatform(platformRole)
+  const allowed = new Set(detail.allowed_actions)
 
   return (
     <PageTabs
@@ -74,7 +71,12 @@ export function AdminServerDetail({
         {
           value: "overview",
           label: t("admin.servers.tab.overview"),
-          panel: <AdminServerOverview canAct={acts} server={detail} />,
+          panel: (
+            <AdminServerOverview
+              canAct={allowed.has("set_channel")}
+              server={detail}
+            />
+          ),
         },
         {
           value: "usage",
@@ -84,7 +86,12 @@ export function AdminServerDetail({
         {
           value: "alerts",
           label: t("admin.servers.tab.alerts"),
-          panel: <AdminServerAlerts canAct={acts} server={detail} />,
+          panel: (
+            <AdminServerAlerts
+              canAct={allowed.has("clear_alerts")}
+              server={detail}
+            />
+          ),
         },
         {
           value: "devices",
@@ -96,7 +103,7 @@ export function AdminServerDetail({
           label: t("admin.servers.tab.log"),
           panel: <AdminEventsCard events={detail.events} />,
         },
-        ...(acts
+        ...(allowed.has("delete")
           ? [
               {
                 value: "danger",

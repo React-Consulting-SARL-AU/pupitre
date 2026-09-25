@@ -4,10 +4,7 @@ import type { ReleaseChannel } from "@pupitre/shared/releases"
 import { useQuery } from "@tanstack/react-query"
 import { Ban, HardDrive, RotateCcw, Rss, X } from "lucide-react"
 import { useState } from "react"
-import {
-  type AdminServerRowServer,
-  adminServerColumns,
-} from "@/components/admin/admin-server-columns"
+import { adminServerColumns } from "@/components/admin/admin-server-columns"
 import { AsyncDataTable } from "@/components/ui/async-data-table"
 import { Button } from "@/components/ui/button"
 import { ConfirmFormDialog } from "@/components/ui/confirm-form-dialog"
@@ -15,7 +12,6 @@ import { Label } from "@/components/ui/label"
 import type { RowAction } from "@/components/ui/row-actions-menu"
 import { Select } from "@/components/ui/select"
 import { useConfirmMutation } from "@/hooks/use-confirm-mutation"
-import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
 import { useOptimisticMutation } from "@/hooks/use-optimistic-mutation"
 import {
@@ -30,12 +26,7 @@ import {
   type AdminSortDirection,
   queryKeys,
 } from "@/lib/api/queries"
-import {
-  canActOnPlatform,
-  canRestore,
-  canSuspend,
-  channelKey,
-} from "@/lib/domain/admin"
+import { channelKey } from "@/lib/domain/admin"
 import {
   FILTER_ALL,
   flagValue,
@@ -73,10 +64,7 @@ export type AdminServerListProps = ListSearchHandle<AdminServerListSearch>
 
 export function AdminServerList({ search, setSearch }: AdminServerListProps) {
   const t = useTranslations()
-  const { platformRole } = useDashboardContext()
-  const [suspending, setSuspending] = useState<AdminServerRowServer | null>(
-    null
-  )
+  const [suspending, setSuspending] = useState<AdminServer | null>(null)
   const offset = search.offset ?? 0
   const query = search.q ?? ""
   const status = search.status ?? FILTER_ALL
@@ -109,7 +97,7 @@ export function AdminServerList({ search, setSearch }: AdminServerListProps) {
       setSuspending(null)
     },
   })
-  const restore = useOptimisticMutation<AdminServerRowServer, AdminServer>({
+  const restore = useOptimisticMutation<AdminServer, AdminServer>({
     mutationFn: (server) => restoreServer(server.id),
     invalidate: touched,
     toast: {
@@ -136,20 +124,16 @@ export function AdminServerList({ search, setSearch }: AdminServerListProps) {
       }),
     },
   })
-  const acts = canActOnPlatform(platformRole)
   const organizationName =
     page.data?.data.find((server) => server.organization.id === organizationId)
       ?.organization.name ?? organizationId
 
-  function rowActions(server: AdminServerRowServer): RowAction[] {
-    if (!acts) {
-      return []
-    }
-
+  function rowActions(server: AdminServer): RowAction[] {
+    const allowed = new Set(server.allowed_actions)
     const next: ReleaseChannel = server.channel === "beta" ? "stable" : "beta"
 
     return [
-      ...(canSuspend(server.status)
+      ...(allowed.has("suspend")
         ? [
             {
               label: t("admin.servers.suspend"),
@@ -161,7 +145,7 @@ export function AdminServerList({ search, setSearch }: AdminServerListProps) {
             },
           ]
         : []),
-      ...(canRestore(server.suspended_reason)
+      ...(allowed.has("restore")
         ? [
             {
               label: t("admin.servers.restore"),
@@ -172,9 +156,8 @@ export function AdminServerList({ search, setSearch }: AdminServerListProps) {
             },
           ]
         : []),
-      ...(server.status === "revoked"
-        ? []
-        : [
+      ...(allowed.has("set_channel")
+        ? [
             {
               label: t(
                 next === "beta"
@@ -190,7 +173,8 @@ export function AdminServerList({ search, setSearch }: AdminServerListProps) {
                 })
               },
             },
-          ]),
+          ]
+        : []),
     ]
   }
 

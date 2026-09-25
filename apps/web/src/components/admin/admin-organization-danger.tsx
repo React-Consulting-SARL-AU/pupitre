@@ -36,7 +36,6 @@ import { formatDateTime } from "@/lib/utils/format"
 export interface AdminOrganizationDangerProps {
   detail: AdminOrganizationDetail
   acts: boolean
-  /** Why every control here is dead for this reader, written on each control. */
   refusedTitle: string | undefined
 }
 

@@ -38,7 +38,7 @@ export interface SuspendExpiredGraceReport {
   purgedUploads: string[]
 }
 
-/** Every launch seat is kept before anything is cancelled: the cancellation takes whatever launch row is still running. */
+// Seats are kept before cancelling: the cancellation takes any launch row still running.
 async function reconcileLaunchInSteps(
   step: WorkflowStep
 ): Promise<LaunchReconciliation> {
@@ -61,12 +61,7 @@ async function reconcileLaunchInSteps(
   return { aligned, kept: seats.flatMap((batch) => batch.kept), canceled }
 }
 
-/**
- * The launch and the grants close first, so a server they just graced is
- * suspended in the same pass. Each organization hears of its suspension in a
- * step of its own, once the servers are down; the mail uploads nobody sent go
- * last.
- */
+// Launch and grants close first, so a server they just graced is suspended in the same pass.
 export async function runSuspendExpiredGrace(
   step: WorkflowStep
 ): Promise<SuspendExpiredGraceReport> {

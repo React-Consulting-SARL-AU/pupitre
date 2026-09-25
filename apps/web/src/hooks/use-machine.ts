@@ -52,11 +52,7 @@ async function statedArchitecture(): Promise<MachineHints> {
   }
 }
 
-/**
- * The machine the page runs on: the system from the user agent, the
- * processor asked from the browser once the page is on screen — the server
- * renders it undecided, and so does a browser that will not say.
- */
+// The architecture is only asked once mounted: the server, like a silent browser, leaves it undecided.
 export function useMachine(): Machine {
   const [arch, setArch] = useState<DetectedArch | null>(null)
 

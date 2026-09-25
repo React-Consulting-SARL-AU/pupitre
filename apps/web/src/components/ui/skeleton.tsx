@@ -35,7 +35,6 @@ function SkeletonRow() {
 }
 
 export interface SkeletonWaitProps {
-  /** What is being read, for the screen reader. Defaults to the generic wait. */
   label?: string
 }
 
@@ -63,7 +62,6 @@ export function SkeletonRows({
   )
 }
 
-/** The rows of `SkeletonRows` without their frame, for a wait inside an existing card. */
 export function SkeletonLines({ rows = 3, label }: SkeletonListProps) {
   const t = useTranslations()
 

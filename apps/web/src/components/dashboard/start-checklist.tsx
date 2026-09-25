@@ -11,7 +11,6 @@ import type {
 import type { StatusLook } from "@/lib/domain/server-status"
 
 export interface StartChecklistProps {
-  /** On the download page, what is already done has no reason to take room. */
   compact?: boolean
 }
 

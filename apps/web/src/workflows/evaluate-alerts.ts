@@ -11,7 +11,7 @@ export const EVALUATE_ALERTS_STEP = "evaluate-alerts"
 
 export const NOTIFY_ALERTS_STEP = "notify-alerts"
 
-/** The alerts open and close first; their emails leave in steps of their own, so a failed send never replays an evaluation. */
+// Emails leave in steps of their own, so a failed send never replays an evaluation.
 export async function runEvaluateAlerts(
   step: WorkflowStep
 ): Promise<AlertRun[]> {

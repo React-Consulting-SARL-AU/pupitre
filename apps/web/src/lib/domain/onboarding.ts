@@ -46,7 +46,7 @@ const COPY: Record<OnboardingStepId, StepCopy> = {
   server: { title: "onboarding.server.title", lead: "onboarding.server.lead" },
 }
 
-/** A server that has been online once: enrolling never was, revoked no longer counts. */
+// Enrolling was never online; revoked no longer counts.
 const EVER_ONLINE = new Set(["active", "grace", "suspended"])
 
 export function onboardingComplete(
@@ -55,7 +55,7 @@ export function onboardingComplete(
   return servers?.some((server) => EVER_ONLINE.has(server.status)) ?? false
 }
 
-/** `null` where the answer has not landed: the step is neither done nor current. */
+// `null` until the answer lands: the step is then neither done nor current.
 type Known = boolean | null
 
 function doneFlags({
@@ -124,10 +124,9 @@ export interface LaunchNotice {
 
 export interface EntitlementNoticeInput {
   entitlement: string
-  /** `unknown` while nothing has been read, `none` for an organisation Stripe ignores. */
+  // `unknown` while nothing has been read, `none` for an organisation Stripe ignores.
   subscription: string
   canManageBilling: boolean
-  /** The running launch subscription, when the platform granted one; the pill names it rather than a trial. */
   launch?: LaunchNotice | null
 }
 

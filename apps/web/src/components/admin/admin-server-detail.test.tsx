@@ -21,6 +21,7 @@ import {
 } from "@/components/admin/admin-server-detail"
 import {
   createConsoleUser,
+  usePlatformReaderClient,
   useSessionApiClient,
   useSeveredApiClient,
 } from "@/testing/harness"
@@ -86,8 +87,7 @@ describe("AdminServerDetail", () => {
     sessionToken = console.token
     organizationId = console.organization.id
 
-    // A restore hands the machine back to what the subscription allows: without
-    // one it would fall straight back to suspended, for non-payment this time.
+    // Without a subscription, a restored server falls back to suspended for billing.
     await subscribeOrganization({ organizationId, status: "active" })
   })
 
@@ -414,6 +414,8 @@ describe("AdminServerDetail", () => {
 
   it("leaves a reader of the platform without the danger tab nor the channel", async () => {
     const server = await suspendedServer(organizationId, "admin")
+
+    await usePlatformReaderClient()
 
     const { container, unmount } = await render(
       page(server.id, { platformRole: "member" })

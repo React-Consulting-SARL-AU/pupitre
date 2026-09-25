@@ -35,9 +35,7 @@ export interface AdminGrantDialogOrganization {
 
 export interface AdminGrantDialogProps {
   organization: AdminGrantDialogOrganization
-  /** A live subscription takes the place a granted one would: the control says so beside itself. */
   blocked: boolean
-  /** What the page that opened the dialog reads again once the row exists. */
   onGranted?: () => Promise<void> | void
 }
 
@@ -47,7 +45,6 @@ const EMPTY: GrantSubscriptionInput = {
   note: "",
 }
 
-/** The platform organisation holds its right of use for good: nothing to grant it. */
 export function AdminGrantDialog({
   organization,
   blocked,

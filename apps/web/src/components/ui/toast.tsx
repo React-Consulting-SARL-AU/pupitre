@@ -18,12 +18,7 @@ export interface ToastProviderProps {
   children: ReactNode
 }
 
-/**
- * The console's one place for what an action says once it is over.
- *
- * A success leaves on its own; a failure waits to be read, because it carries
- * a remedy and, most of the time, the gesture that tries again.
- */
+// A failure stays until read: it carries a remedy and often a retry.
 export function ToastProvider({ children }: ToastProviderProps) {
   const manager = useMemo(() => Toast.createToastManager(), [])
   const toasts = useMemo<Toasts>(

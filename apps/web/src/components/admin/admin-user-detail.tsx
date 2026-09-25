@@ -11,7 +11,6 @@ import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
 import { adminUserQueryOptions } from "@/lib/api/admin-queries"
 import { queryKeys } from "@/lib/api/queries"
-import { canActOnPlatform } from "@/lib/domain/admin"
 
 export const ADMIN_USER_TABS = [
   "overview",
@@ -36,7 +35,7 @@ export function AdminUserDetail({
 }: AdminUserDetailProps) {
   const t = useTranslations()
   const queryClient = useQueryClient()
-  const { platformRole } = useDashboardContext()
+  const { platformCanAct: acts } = useDashboardContext()
   const user = useQuery(adminUserQueryOptions(id))
   const refresh = async () => {
     await Promise.all([
@@ -62,7 +61,6 @@ export function AdminUserDetail({
   }
 
   const detail = user.data
-  const acts = canActOnPlatform(platformRole)
   const refusedTitle = acts ? undefined : t("admin.users.roleRequired")
 
   return (

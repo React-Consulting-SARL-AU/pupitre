@@ -13,7 +13,21 @@ interface ErrorBody {
   error: { code: string; message: string; fix?: string }
 }
 
+interface ActionsRow {
+  allowed_actions: string[]
+}
+
+interface ActionsBody {
+  data: ActionsRow | ActionsRow[]
+}
+
 let harness: ApiTestServer
+
+function allowedOf(body: ActionsBody): string[] {
+  const rows = Array.isArray(body.data) ? body.data : [body.data]
+
+  return rows.flatMap((row) => row.allowed_actions)
+}
 
 async function platformMember() {
   const { user } = await createUser({ email: "lecture@pupitre.studio" })
@@ -173,6 +187,40 @@ describe("les pages de la plateforme", () => {
         where: { id: server.id },
       })
     ).toMatchObject({ status: "active" })
+  })
+
+  it("disent les gestes permis de chaque ligne, et aucun à un membre", async () => {
+    const { server, subscription } = await aServerAndALink()
+    const reader = await platformMember()
+    const admin = await platformAdmin()
+    const paths = [
+      "/admin/servers",
+      `/admin/servers/${server.id}`,
+      "/admin/subscriptions",
+      `/admin/subscriptions/${subscription.id}`,
+    ]
+
+    for (const path of paths) {
+      const read = await apiRequest<ActionsBody>(path, { session: reader })
+      const acted = await apiRequest<ActionsBody>(path, { session: admin })
+
+      expect([path, allowedOf(read.json)]).toEqual([path, []])
+      expect([path, allowedOf(acted.json).length > 0]).toEqual([path, true])
+    }
+
+    const detail = await apiRequest<ActionsBody>(
+      `/admin/servers/${server.id}`,
+      {
+        session: admin,
+      }
+    )
+
+    expect(allowedOf(detail.json)).toEqual([
+      "set_channel",
+      "clear_alerts",
+      "suspend",
+      "delete",
+    ])
   })
 
   it("laissent agir un membre promu administrateur de l'organisation Pupitre", async () => {

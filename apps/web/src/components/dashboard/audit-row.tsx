@@ -9,7 +9,6 @@ export interface AuditRowProps {
   event: AuditRowEvent
 }
 
-/** One line of a platform page's journal. */
 export function AuditRow({ event }: AuditRowProps) {
   const t = useTranslations()
   const action = actionKey(event.action)

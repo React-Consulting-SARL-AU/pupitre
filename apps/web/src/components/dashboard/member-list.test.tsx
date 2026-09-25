@@ -43,6 +43,7 @@ function list(
           role,
           entitlement: "valid",
           platformRole: null,
+          platformCanAct: false,
         }}
       >
         <ToastProvider>

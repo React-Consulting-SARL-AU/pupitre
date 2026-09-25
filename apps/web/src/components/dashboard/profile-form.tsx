@@ -14,7 +14,6 @@ import { type ProfileInput, profileSchema } from "@/lib/schemas/profile"
 
 const SETTINGS_PATH = "/dashboard/settings"
 
-/** What the save actually did, so the confirmation names the right thing. */
 interface Saved {
   addressAsked: boolean
 }

@@ -24,7 +24,6 @@ export interface AdminSubscriptionActionsProps {
   subscription: AdminSubscriptionDetail
 }
 
-/** A Stripe period already paid runs to its end; a platform product stops at once. */
 function cancelConsequence(
   subscription: AdminSubscriptionDetail,
   t: Translate

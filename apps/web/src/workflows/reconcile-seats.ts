@@ -7,7 +7,7 @@ import { walkInSteps } from "./steps"
 
 export const RECONCILE_SEATS_STEP = "reconcile-seats"
 
-/** Only the subscriptions whose seats differ from their servers: the rest would only weigh on the run's output. */
+// Reports only drifted subscriptions: the rest would only weigh on the run's output.
 export async function runReconcileSeats(
   step: WorkflowStep
 ): Promise<SeatReconciliation[]> {

@@ -24,7 +24,6 @@ import {
 export interface AdminOrganizationSettingsProps {
   detail: AdminOrganizationDetail
   acts: boolean
-  /** Why the form is dead for this reader, written on the button. */
   refusedTitle: string | undefined
 }
 

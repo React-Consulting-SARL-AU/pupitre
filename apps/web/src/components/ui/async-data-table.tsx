@@ -29,9 +29,8 @@ export interface DataColumn<Row> {
   width?: string
   align?: ColumnAlign
   sortable?: boolean
-  /** The column leaves the table under this width: a phone reads the first two. */
   hideBelow?: ColumnBreakpoint
-  /** The cell holds its own link or button, which has to stay above the row's link. */
+  // The cell holds its own control, which must stay above the row's covering link.
   interactive?: boolean
 }
 
@@ -39,7 +38,6 @@ export interface DataTableSearch {
   id: string
   value: string
   placeholder: string
-  /** What the field narrows the list by, when it is not a plain search. */
   label?: string
   onChange: (value: string) => void
 }
@@ -51,12 +49,10 @@ export interface DataTableSort {
 }
 
 export interface DataTableSelection {
-  /** What a bulk action does with the rows ticked on this page. */
   bulkActions: (ids: string[]) => ReactNode
 }
 
 export interface AsyncDataTableProps<Row> {
-  /** What the table lists, written above it and read by the screen reader. */
   title: string
   columns: DataColumn<Row>[]
   data: Row[]
@@ -67,7 +63,7 @@ export interface AsyncDataTableProps<Row> {
   refetch: () => void
   rowKey: (row: Row) => string
   rowLink?: (row: Row) => LinkProps
-  /** What the row link is called: the first cell shows more than the thing's name. */
+  // Accessible name of the row link: the first cell shows more than the name.
   rowLabel?: (row: Row) => string
   rowActions?: (row: Row) => RowAction[]
   search?: DataTableSearch
@@ -79,7 +75,6 @@ export interface AsyncDataTableProps<Row> {
   emptyTitle: string
   emptyIcon?: LucideIcon
   selectable?: DataTableSelection
-  /** What the failure says instead of the generic refusal. */
   errorTitle?: string
   errorFix?: string
 }
@@ -365,7 +360,6 @@ export function AsyncDataTable<Row>({
                             "px-4 py-3 align-middle text-[13px] text-ink-2",
                             column.align === "end" && "text-right tabular-nums",
                             column.hideBelow && HIDDEN_BELOW[column.hideBelow],
-                            // The row's link covers the row: only a cell holding its own control rises above it.
                             column.interactive && "relative"
                           )}
                           key={column.key}

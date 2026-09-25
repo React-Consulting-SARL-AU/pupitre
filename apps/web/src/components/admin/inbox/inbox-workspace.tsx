@@ -26,7 +26,6 @@ import {
   patchThread,
   type ThreadPageQuery,
 } from "@/lib/api/inbox-queries"
-import { canActOnPlatform } from "@/lib/domain/admin"
 import {
   INBOX_PAGE_SIZE,
   INBOX_STATUS,
@@ -70,7 +69,7 @@ export function InboxWorkspace({ search, setSearch }: InboxWorkspaceProps) {
   const toasts = useToast()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { platformRole } = useDashboardContext()
+  const { platformCanAct: canAct } = useDashboardContext()
   const { title, parents } = pageTitle(INBOX_LAYOUT_ROUTE_ID)
   const openThreadId = useParams({ strict: false }).threadId ?? null
   const pathname = useRouterState({
@@ -87,7 +86,6 @@ export function InboxWorkspace({ search, setSearch }: InboxWorkspaceProps) {
   const mailboxes = useQuery(inboxMailboxesQueryOptions())
   const counts = useQuery(inboxCountsQueryOptions())
   const threads = page.data?.data ?? []
-  const canAct = canActOnPlatform(platformRole)
 
   const refresh = useCallback(async () => {
     await Promise.all([

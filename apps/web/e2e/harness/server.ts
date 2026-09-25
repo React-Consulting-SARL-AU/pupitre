@@ -15,8 +15,7 @@ import { LEGAL_CONTACTS } from "@pupitre/shared/legal"
 import { serve } from "bun"
 import { HARNESS_PORT, HARNESS_PREFIX, VITE_PORT } from "./ports"
 
-// One origin for the browser: the API and Better Auth answer here from SQLite,
-// everything else is the Vite dev server. The Worker never reaches a database.
+// One origin: the API and Better Auth answer here from SQLite, the rest is proxied to Vite.
 const VITE_ORIGIN = `http://127.0.0.1:${VITE_PORT}`
 const API_PREFIXES = ["/api/v1", "/api/auth"]
 const MAGIC_LINK_RE = /https?:\/\/\S+/
@@ -26,8 +25,7 @@ const TRIAL_DAYS_MS = 14 * 86_400_000
 
 const SUPPORT_ADDRESS = LEGAL_CONTACTS.support
 
-// The console never opens a subscription: Checkout is faked and Stripe's
-// webhook is played back, exactly as in production.
+// Checkout is faked and Stripe's webhook played back, as in production.
 // biome-ignore lint/correctness/useHookAtTopLevel: the test harness reads as a hook by name only
 const billing = useFakeBilling()
 
@@ -116,7 +114,7 @@ async function seedServer(body: SeedServerBody): Promise<Response> {
   return json({ id: server.id, name: server.name })
 }
 
-/** `EvaluateAlerts` runs on a cron the suite never waits for: the alert is laid by hand. */
+// `EvaluateAlerts` runs on a cron the suite never waits for.
 async function seedAlert(body: SeedAlertBody): Promise<Response> {
   const { prisma } = await bootApiTestServer()
   const server = await prisma.server.findFirstOrThrow({
@@ -131,7 +129,7 @@ async function seedAlert(body: SeedAlertBody): Promise<Response> {
   return json({ ok: true })
 }
 
-/** A second seat in someone else's organization, which no console route hands out without an invitation. */
+// No console route adds a member without an invitation.
 async function seedMember(body: SeedMemberBody): Promise<Response> {
   const { prisma } = await bootApiTestServer()
   const organizationId = await organizationOf(body.organization_email)
@@ -151,7 +149,6 @@ async function seedMember(body: SeedMemberBody): Promise<Response> {
   return json({ id: member.id })
 }
 
-/** Stripe alone opens a subscription: the harness plays its webhook, nothing else. */
 async function openTrial(body: TrialBody): Promise<Response> {
   const organizationId = await organizationOf(body.email)
 
@@ -183,7 +180,6 @@ async function openTrial(body: TrialBody): Promise<Response> {
   return json({ handled: received.json.handled })
 }
 
-/** What the seed writes for the owner: a seat in Pupitre's own organization, which is what opens the platform pages. */
 async function promotePlatformMember(
   body: PlatformMemberBody
 ): Promise<Response> {
@@ -199,7 +195,7 @@ async function promotePlatformMember(
   return json({ id: user.id })
 }
 
-/** Where an organisation came from, written straight: the checkout it rides on is another suite's subject. */
+// Written straight: the checkout it rides on is another suite's subject.
 async function seedReferral(body: ReferralBody): Promise<Response> {
   const { prisma } = await bootApiTestServer()
   const link = await prisma.affiliateLink.findUnique({
@@ -217,7 +213,6 @@ async function seedReferral(body: ReferralBody): Promise<Response> {
   return json({ id: referral.organizationId })
 }
 
-/** An email reaching a support address, handed over the way the Worker hands it over. */
 async function receiveEmail(body: InboundEmailBody): Promise<Response> {
   const raw = [
     `From: ${body.from}`,
@@ -239,7 +234,6 @@ async function receiveEmail(body: InboundEmailBody): Promise<Response> {
   return json({ id: threadId, address: SUPPORT_ADDRESS })
 }
 
-/** The launch has no Stripe at all; every reset puts the payment provider back. */
 function chooseBillingMode(body: BillingModeBody): Response {
   if (body.mode === "launch") {
     // biome-ignore lint/correctness/useHookAtTopLevel: the test harness reads as a hook by name only

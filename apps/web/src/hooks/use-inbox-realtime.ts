@@ -7,7 +7,7 @@ export const INBOX_EVENTS_PATH = `${API_PREFIX}/admin/inbox/events`
 
 const FIRST_RETRY_MS = 1000
 
-/** Past this the socket stops trying harder; the list's poll carries the news. */
+// The list's poll still carries the news past this backoff.
 const MAX_RETRY_MS = 30_000
 
 export interface InboxRealtimeEvent {
@@ -23,11 +23,7 @@ interface InboxRefresh {
   thread?: boolean
 }
 
-/**
- * What a frame is worth refetching, and nothing more. Refetching the open
- * thread on every type turned the journalled read of a sensitive box into a
- * loop: the read published a frame, the frame refetched, the refetch read.
- */
+// Refetching the open thread on every frame looped: a journalled read publishes a frame.
 const REFRESH_BY_EVENT: Record<string, InboxRefresh> = {
   "thread.received": { list: true, counts: true, thread: true },
   "thread.updated": { list: true, thread: true },
@@ -46,15 +42,10 @@ export function inboxSocketUrl(origin: string): string {
 type SocketFactory = (url: string) => WebSocket
 
 export interface InboxRealtimeOptions {
-  /** A fake socket in a test; the browser's own otherwise. */
   socketFactory?: SocketFactory
   origin?: string
 }
 
-/**
- * One socket for the whole inbox, opened by its layout. A frame only says
- * what changed; the queries it names are the ones refetched.
- */
 export function useInboxRealtime({
   socketFactory,
   origin,

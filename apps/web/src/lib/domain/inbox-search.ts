@@ -33,11 +33,7 @@ const INBOX_FILTERS = {
 
 export type InboxSearch = ListSearch<typeof INBOX_FILTERS>
 
-/**
- * The address carries what the reader chose and nothing else: a filter left on
- * its default leaves the address, so a link sent to someone else never freezes
- * today's defaults. The defaults are applied where a value is read.
- */
+// Defaults stay out of the address, so a shared link never freezes today's defaults.
 export const parseInboxSearch = listSearch({
   sortKeys: INBOX_SORTS,
   defaultSort: INBOX_SORT,

@@ -19,7 +19,7 @@ export interface DeviceCodeLookup {
   expires_at?: string
 }
 
-/** A code, never a sentence: the screen that shows it knows the reader's language, this module does not. */
+// A code, never a sentence: only the screen knows the reader's language.
 export class DeviceCodeError extends Error {
   readonly code: string
   readonly status: number
@@ -32,7 +32,7 @@ export class DeviceCodeError extends Error {
   }
 }
 
-/** Better Auth's code, lowercased, when the browser's sign-in is too old to confirm a device. */
+// Better Auth's code, lowercased, for a sign-in too old to confirm a device.
 export const SESSION_NOT_FRESH = "session_not_fresh"
 
 export const DEVICE_PAGE_PATH = "/auth/device"

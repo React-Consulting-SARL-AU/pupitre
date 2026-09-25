@@ -17,7 +17,6 @@ import {
 } from "@/lib/api/admin-queries"
 import { queryKeys } from "@/lib/api/queries"
 import {
-  canActOnPlatform,
   isPlatformOrganization,
   organizationGestures,
   organizationLook,
@@ -49,7 +48,7 @@ export function AdminOrganizationList({
   setSearch,
 }: AdminOrganizationListProps) {
   const t = useTranslations()
-  const { platformRole } = useDashboardContext()
+  const { platformCanAct: acts } = useDashboardContext()
   const [aimed, setAimed] = useState<Aimed | null>(null)
   const offset = search.offset ?? 0
   const query = search.q ?? ""
@@ -62,7 +61,6 @@ export function AdminOrganizationList({
       ...(state === ALL_STATES ? {} : { state }),
     })
   )
-  const acts = canActOnPlatform(platformRole)
   const touched = [
     queryKeys.admin.allOrganizations,
     queryKeys.admin.allServers,

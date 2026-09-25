@@ -14,7 +14,7 @@ function checkoutOf(value: unknown): StartSearch["checkout"] {
 }
 
 export const Route = createFileRoute("/dashboard/start")({
-  /** Once a server has been online, the four steps are behind the client for good. */
+  // Once a server has been online, onboarding is over for good.
   beforeLoad: async ({ context }) => {
     const me = context.queryClient.getQueryData<Me>(queryKeys.me)
 

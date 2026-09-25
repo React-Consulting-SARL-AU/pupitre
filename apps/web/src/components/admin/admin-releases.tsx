@@ -10,7 +10,6 @@ import {
   promoteRelease,
 } from "@/lib/api/admin-queries"
 import { queryKeys } from "@/lib/api/queries"
-import { canActOnPlatform } from "@/lib/domain/admin"
 import type { ListSearchHandle } from "@/lib/domain/list-search"
 
 export interface AdminReleasesSearch {
@@ -22,10 +21,9 @@ export type AdminReleasesProps = ListSearchHandle<AdminReleasesSearch>
 
 export function AdminReleases({ search, setSearch }: AdminReleasesProps) {
   const t = useTranslations()
-  const { platformRole } = useDashboardContext()
+  const { platformCanAct: canPromote } = useDashboardContext()
   const agent = useQuery(adminReleasesQueryOptions())
   const app = useQuery(adminAppReleasesQueryOptions())
-  const canPromote = canActOnPlatform(platformRole)
 
   const promoteAgent = useOptimisticMutation<string>({
     mutationFn: promoteRelease,

@@ -8,7 +8,7 @@ export interface AdminSubscriptionStatusProps {
   className?: string
 }
 
-/** A status Stripe invents after this was written still reads, in Stripe's own words. */
+// A status Stripe adds later still shows, in Stripe's own words.
 export function AdminSubscriptionStatus({
   status,
   product,

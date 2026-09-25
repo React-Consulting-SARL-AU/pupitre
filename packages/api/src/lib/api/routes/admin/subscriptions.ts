@@ -20,6 +20,7 @@ import {
 } from "../../../billing/admin"
 import { SeatsBelowUsageError } from "../../../billing/seats"
 import { translate } from "../../../i18n"
+import { actsOnPlatform } from "../../../platform/actor"
 import {
   listSubscriptionsForPlatform,
   readSubscriptionForPlatform,
@@ -77,20 +78,23 @@ const readRoutes = new Elysia({ name: "admin-subscriptions-read" })
   .use(requirePlatformAdmin)
   .get(
     "/subscriptions",
-    async ({ query }) =>
+    async ({ query, platformRole }) =>
       serializeData(
-        await listSubscriptionsForPlatform({
-          status: query.status,
-          product: query.product,
-          organization_id: query.organization_id,
-          live: query.live,
-          drifted: query.drifted,
-          q: query.q,
-          sort: query.sort,
-          direction: query.direction,
-          limit: query.limit ?? ADMIN_PAGE_SIZE,
-          offset: query.offset ?? 0,
-        })
+        await listSubscriptionsForPlatform(
+          {
+            status: query.status,
+            product: query.product,
+            organization_id: query.organization_id,
+            live: query.live,
+            drifted: query.drifted,
+            q: query.q,
+            sort: query.sort,
+            direction: query.direction,
+            limit: query.limit ?? ADMIN_PAGE_SIZE,
+            offset: query.offset ?? 0,
+          },
+          actsOnPlatform(platformRole)
+        )
       ),
     {
       query: adminSubscriptionsQuery,
@@ -107,8 +111,11 @@ const readRoutes = new Elysia({ name: "admin-subscriptions-read" })
   )
   .get(
     "/subscriptions/:id",
-    async ({ params, request, set }) => {
-      const subscription = await readSubscriptionForPlatform(params.id)
+    async ({ params, platformRole, request, set }) => {
+      const subscription = await readSubscriptionForPlatform(
+        params.id,
+        actsOnPlatform(platformRole)
+      )
 
       if (!subscription) {
         set.status = 404

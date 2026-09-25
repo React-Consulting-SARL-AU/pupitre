@@ -18,7 +18,7 @@ const mounted: (() => void)[] = []
 
 const A_DAY_MS = 86_400_000
 
-/** What a `datetime-local` field holds: the local wall clock, without its zone. */
+// A `datetime-local` field holds the local wall clock, without its zone.
 function localMoment(offsetMs: number): string {
   const moment = new Date(Date.now() + offsetMs)
 

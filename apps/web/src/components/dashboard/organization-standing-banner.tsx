@@ -17,7 +17,7 @@ const STANDING_KEYS: Record<
   deleting: "organization.standing.deleting",
 }
 
-/** Nothing inside a closed organization opens it again: the way out is another organization. */
+// Nothing inside a closed organization reopens it: the way out is another organization.
 const LOCKED_OUT: OrganizationState[] = ["closed", "deleting"]
 
 export function OrganizationStandingBanner() {

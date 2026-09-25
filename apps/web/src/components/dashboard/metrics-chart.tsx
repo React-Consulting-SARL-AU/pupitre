@@ -5,7 +5,6 @@ export interface MetricsChartProps {
   label: string
   values: number[]
   latest: number | null
-  /** What the percentage is a percentage of, when the agent measured it. */
   detail?: string | null
 }
 

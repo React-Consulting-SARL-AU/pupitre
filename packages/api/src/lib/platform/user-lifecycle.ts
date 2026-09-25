@@ -62,7 +62,7 @@ const STANDING_SELECT = {
   deletionAt: true,
 } as const
 
-/** Every device goes, so the account's keys leave the servers, and every assignment with them. */
+// Removing every device is what takes the account's keys off the servers.
 async function releaseFromMachines(
   actor: PlatformUserActor,
   userId: string,
@@ -205,7 +205,7 @@ async function holdsMachinesOrBilling(
   return servers > 0 || subscriptions > 0
 }
 
-/** An organization left to nobody still holding a machine or a subscription holds the account back; one it is alone in goes with it, so only Stripe, which a deleted row would not stop, holds it then. */
+// A sole-member organization goes with the account, so only a Stripe billing (a deleted row would not stop it) holds it back.
 export async function soleOwnerOrganizationOf(
   userId: string
 ): Promise<string | null> {
@@ -241,7 +241,6 @@ export async function soleOwnerOrganizationOf(
   return null
 }
 
-/** The organizations this account is the last member of: they have nobody left once it goes. */
 async function organizationsLeftEmptyBy(userId: string): Promise<string[]> {
   const prisma = getPrisma()
   const memberships = await prisma.member.findMany({
@@ -330,7 +329,7 @@ export async function deleteUserFromPlatform(
   return scheduled ? { deletion: "scheduled", user: scheduled } : null
 }
 
-/** What the journal says about the account itself and its devices goes with it; its lines elsewhere only lose their author. */
+// Lines about the account and its devices go; its lines elsewhere only lose their author.
 async function forgetUserInJournal(userId: string): Promise<void> {
   const prisma = getPrisma()
   const [devices, deviceEvents] = await Promise.all([
@@ -358,7 +357,6 @@ async function forgetUserInJournal(userId: string): Promise<void> {
   }
 }
 
-/** The row leaves for good, with the organizations it was the last member of; the journal keeps only its identifier. */
 export async function purgeUser(
   userId: string,
   actorUserId: string | null
@@ -388,7 +386,6 @@ export async function purgeUser(
   })
 }
 
-/** Deleting one's own account from the console: refused while an organization would be left to nobody, immediate otherwise. */
 export async function deleteOwnAccount(userId: string): Promise<void> {
   const held = await soleOwnerOrganizationOf(userId)
 

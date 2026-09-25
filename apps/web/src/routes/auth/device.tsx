@@ -6,7 +6,7 @@ import { requireSession } from "@/lib/auth/session-gate"
 import { documentTitle } from "@/lib/domain/page-titles"
 
 export const Route = createFileRoute("/auth/device")({
-  /** The app opens this page in whatever browser it finds: the session is read there, and sign-in comes back here. */
+  // The session lives in whatever browser the app opened, so it is read client-side.
   ssr: false,
   beforeLoad: requireSession,
   component: DevicePage,

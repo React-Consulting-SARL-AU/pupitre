@@ -21,7 +21,6 @@ import { formatDateTime } from "@/lib/utils/format"
 export interface InboxNotesPanelProps {
   threadId: string
   notes: InboxNote[]
-  /** Writing a note takes the `admin` role on the platform; a member reads them. */
   canAct: boolean
 }
 

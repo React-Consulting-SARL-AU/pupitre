@@ -89,7 +89,7 @@ async function sweep(step: WorkflowStep, name: SweepName): Promise<number> {
   }
 }
 
-/** Organizations first: an account the same pass erases is then the last owner of nothing. */
+// Organizations first, so an account erased in the same pass no longer owns anything.
 export async function runPurgeDeletions(
   step: WorkflowStep
 ): Promise<PurgeDeletionsReport> {

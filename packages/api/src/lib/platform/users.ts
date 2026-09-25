@@ -72,7 +72,13 @@ async function organizationFacts(
     prisma.subscription.findMany({
       where: { organizationId: { in: organizationIds } },
       orderBy: { updatedAt: "desc" },
-      select: { id: true, organizationId: true, status: true },
+      select: {
+        id: true,
+        organizationId: true,
+        status: true,
+        product: true,
+        currentPeriodEnd: true,
+      },
     }),
     prisma.server.groupBy({
       by: ["organizationId"],
@@ -83,7 +89,7 @@ async function organizationFacts(
       _count: { _all: true },
     }),
   ])
-  const byOrganization = new Map<string, { id: string; status: string }[]>()
+  const byOrganization = new Map<string, (typeof subscriptions)[number][]>()
 
   for (const subscription of subscriptions) {
     const rows = byOrganization.get(subscription.organizationId) ?? []
@@ -108,7 +114,7 @@ async function organizationFacts(
   }
 }
 
-/** The state the column shows, read back as a query: the same priority, so a page and its total agree. */
+// Same priority as the state column, so a page and its total agree.
 function stateWhere(
   state: AccountState,
   now: Date
@@ -247,7 +253,6 @@ export interface AdminUserDetail extends AdminUserView {
   assigned_servers: AdminUserServer[]
   platform_role: OrgRole | null
   banned_reason: string | null
-  /** The reason behind the state the account holds now, so the console never picks one itself. */
   reason: string | null
   sessions: number
   last_seen_at: Date | null
@@ -357,11 +362,7 @@ export async function belongsToPlatform(userId: string): Promise<boolean> {
   return member !== null
 }
 
-/**
- * The ban bites now: the sessions already open and the device codes still
- * waiting are dropped with it, so neither the console nor the desktop app
- * keeps a credential the ban has just refused.
- */
+// Open sessions and pending device codes drop with the ban, so no credential outlives it.
 export async function banUserFromPlatform(
   actor: PlatformUserActor,
   userId: string,
@@ -403,7 +404,6 @@ export async function banUserFromPlatform(
   return await readUserForPlatform(userId)
 }
 
-/** Every credential already open: the console's sessions and the device codes still waiting. */
 export async function revokeSessions(userId: string): Promise<void> {
   const prisma = getPrisma()
 

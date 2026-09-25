@@ -9,7 +9,6 @@ export interface PaginationProps {
   nextLabel: string
 }
 
-/** Two steps, shown only once the list outgrows a page. */
 export function Pagination({
   offset,
   pageSize,

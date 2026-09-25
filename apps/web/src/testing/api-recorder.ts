@@ -8,10 +8,6 @@ export interface ApiRecorder {
   restore: () => void
 }
 
-/**
- * The console's API client, answering from memory and writing down what it was
- * asked, so a test can say which routes a click reaches — and which it does not.
- */
 export function recordApiCalls(): ApiRecorder {
   const calls: string[] = []
 

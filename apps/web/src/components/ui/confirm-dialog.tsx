@@ -8,13 +8,11 @@ export interface ConfirmDialogProps {
   triggerLabel: string
   triggerIcon?: LucideIcon
   triggerVariant?: ButtonVariant
-  /** A row has no room for a sentence: the icon carries the action, the word names it. */
   triggerIconOnly?: boolean
   title: string
   description: string
   confirmLabel: string
   onConfirm: () => void
-  /** The screen already shows the outcome: the trigger breathes until the server agrees. */
   busy?: boolean
   busyLabel?: string
 }

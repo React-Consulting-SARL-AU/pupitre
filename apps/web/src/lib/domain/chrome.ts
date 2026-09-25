@@ -11,7 +11,6 @@ export function consoleSection(pathname: string): string {
 
 const APPLE_RE = /mac os x|macintosh|iphone|ipad|ipod/i
 
-/** The key a shortcut is held with, as each system's own keyboard prints it. */
 export const SHORTCUT_MODIFIERS = { apple: "⌘", other: "Ctrl" } as const
 
 export function shortcutModifier(userAgent: string): string {

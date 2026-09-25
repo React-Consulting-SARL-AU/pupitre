@@ -8,18 +8,16 @@ export interface ToastAction {
 export interface ToastFailure {
   title: string
   fix?: string | null
-  /** `null` offers nothing; `undefined` lets the caller's default stand. */
+  // `null` offers nothing; `undefined` lets the caller's default stand.
   action?: ToastAction | null
 }
 
 export interface Toasts {
-  /** One sentence, in the past tense, naming the thing that just happened. */
   done: (title: string, description?: string) => void
-  /** What failed, the remedy, and the gesture that tries again. */
   failed: (failure: ToastFailure) => void
 }
 
-/** Outside the console shell nobody listens: a toast falls silently. */
+// Outside the console shell nobody listens: a toast falls silently.
 export const SILENT_TOASTS: Toasts = {
   done: () => undefined,
   failed: () => undefined,

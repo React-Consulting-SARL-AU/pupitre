@@ -29,7 +29,7 @@ const MAILBOXES_URL_RE = /\/dashboard\/admin\/inbox\/mailboxes$/
 
 const SELECTION_RE = /conversations? sélectionnée/
 
-/** The platform pages open on the platform organisation alone: the switcher takes the session there. */
+// Platform pages only open on the platform organisation.
 async function openPlatformOrganization(page: Page): Promise<void> {
   await page.getByTitle("Organisations").first().click()
   await page.getByRole("menuitem", { name: "Pupitre" }).click()

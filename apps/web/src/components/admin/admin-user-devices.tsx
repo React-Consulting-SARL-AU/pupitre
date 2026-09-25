@@ -11,7 +11,6 @@ import { formatRelative } from "@/lib/utils/format"
 export interface AdminUserDevicesProps {
   detail: AdminUserDetail
   acts: boolean
-  /** Why the revocation is dead for this reader, on the control itself. */
   refusedTitle: string | undefined
 }
 

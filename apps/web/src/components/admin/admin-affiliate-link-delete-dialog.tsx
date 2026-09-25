@@ -15,7 +15,7 @@ export interface AdminAffiliateLinkDeleteTarget {
 
 export interface AdminAffiliateLinkDeleteDialogProps {
   link: AdminAffiliateLinkDeleteTarget
-  /** Held outside when a row menu opens it; left out, the dialog carries its own button. */
+  // Controlled by a row menu; when absent, the dialog renders its own trigger.
   open?: boolean
   onOpenChange?: (open: boolean) => void
   onDeleted?: () => void

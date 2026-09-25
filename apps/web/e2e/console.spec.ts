@@ -36,7 +36,6 @@ interface DeviceCodes {
   user_code: string
 }
 
-/** The app registers the public half of its key; the console counts it as linked. */
 function openSshEd25519Key(): string {
   const type = new TextEncoder().encode("ssh-ed25519")
   const key = crypto.getRandomValues(new Uint8Array(32))

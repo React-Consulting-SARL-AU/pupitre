@@ -6,7 +6,6 @@ export interface AdminFigureProps {
   figure: OverviewFigure
 }
 
-/** One counter of the overview: what it counts, how many, and its breakdown underneath. */
 export function AdminFigure({ figure }: AdminFigureProps) {
   const t = useTranslations()
 

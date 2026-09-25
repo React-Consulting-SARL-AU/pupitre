@@ -4,7 +4,7 @@ import {
   workflowsScheduledAt,
 } from "./registry"
 
-/** Every workflow of the fire starts, whichever of them fails to. */
+// One workflow failing to start never stops the others.
 export async function runScheduledWorkflows(
   cron: string,
   scheduledTime: number,

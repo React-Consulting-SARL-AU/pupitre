@@ -32,9 +32,7 @@ export interface SubscriptionCardProps {
   organizationId: string
   subscription: SubscriptionCardSubscription
   seatsInUse: number
-  /** The platform's own launch subscription: nothing to pay, no portal, no seats to change. */
   launch: boolean
-  /** A trial holds one machine: the seat form waits for the first payment. */
   seatsLocked: boolean
 }
 

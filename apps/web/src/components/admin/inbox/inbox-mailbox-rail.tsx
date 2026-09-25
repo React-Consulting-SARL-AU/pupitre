@@ -15,7 +15,7 @@ export interface InboxMailboxRailProps {
   mailboxes: InboxMailbox[]
   counts: InboxCounts | undefined
   onValueChange: (value: string) => void
-  /** The settings page sits under the same layout, which asks for the filters. */
+  // The settings page shares this layout, which needs the filters.
   search: InboxSearch
 }
 

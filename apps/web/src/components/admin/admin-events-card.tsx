@@ -6,7 +6,6 @@ export interface AdminEventsCardProps {
   events: readonly AuditRowEvent[]
 }
 
-/** The tail of a platform page: the last things that happened to what the page shows. */
 export function AdminEventsCard({ events }: AdminEventsCardProps) {
   const t = useTranslations()
 

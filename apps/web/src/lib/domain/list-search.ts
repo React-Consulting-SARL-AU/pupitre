@@ -4,10 +4,8 @@ import { z } from "zod"
 
 export type SortDirection = "asc" | "desc"
 
-/** What a filter select holds while it narrows nothing; the address carries no key at all. */
 export const FILTER_ALL = ""
 
-/** A sort the page does not declare is a sort it does not run. */
 export function listSort<Sort extends string>(
   value: string | undefined,
   sorts: readonly Sort[],
@@ -16,7 +14,6 @@ export function listSort<Sort extends string>(
   return sorts.find((sort) => sort === value) ?? fallback
 }
 
-/** The three values a select holds for a flag the address carries as a word. */
 export function flagValue(flag: boolean | undefined): string {
   if (flag === undefined) {
     return FILTER_ALL
@@ -57,7 +54,6 @@ export type ListSearch<Filters extends ListFilters = Record<never, never>> = {
 } & { [Key in keyof Filters]?: FilterValue<Filters[Key]> }
 
 export interface ListSearchOptions<Filters extends ListFilters> {
-  /** The columns a header may sort on; anything else in the address is dropped. */
   sortKeys?: readonly string[]
   defaultSort?: string
   defaultDirection?: SortDirection
@@ -98,7 +94,7 @@ function kept<T>(schema: z.ZodType<T>, value: unknown): T | undefined {
   return parsed.success ? parsed.data : undefined
 }
 
-/** A value equal to the default leaves the URL, so a shared link never freezes today's defaults. */
+// Defaults leave the URL, so a shared link never freezes today's defaults.
 export function listSearch<Filters extends ListFilters>({
   sortKeys = [],
   defaultSort,
@@ -153,7 +149,7 @@ export interface SearchRoute<Search> {
 
 const PAGE_KEY = /(^|_)offset$/
 
-/** Anything but a page turn lands the reader back on the first page. */
+// Anything but a page turn goes back to the first page.
 export function nextListSearch<Search extends { offset?: number }>(
   search: Search,
   patch: Partial<Search>
@@ -177,7 +173,7 @@ export function useListSearch<Search extends { offset?: number }>(
       navigate({
         to: ".",
         replace: true,
-        // The hook serves every list: the route's own `validateSearch` types and cleans the search.
+        // Shared by every list: each route's `validateSearch` types and cleans the search.
         search: ((previous: Search) =>
           nextListSearch(previous, patch)) as never,
       })

@@ -93,13 +93,9 @@ const DANGER_TAB_URL_RE = /tab=danger$/
 
 const FORBIDDEN = 403
 
-/** Where the owner looks at what the run saw; the suite writes beside its own artifacts otherwise. */
 const SHOTS = process.env.PUPITRE_E2E_SHOTS ?? "../../.playwright/shots"
 
-/**
- * A tab clicked right after a navigation can be lost while the page settles:
- * the step waits for the tab to be the selected one before acting on its panel.
- */
+// A tab clicked right after a navigation can be lost while the page settles.
 async function openTab(scope: Page | Locator, name: string): Promise<void> {
   const tab = scope.getByRole("tab", { name })
 
@@ -107,7 +103,7 @@ async function openTab(scope: Page | Locator, name: string): Promise<void> {
   await expect(tab).toHaveAttribute("aria-selected", "true")
 }
 
-/** The platform pages open on the platform organisation alone: the switcher takes the session there. */
+// Platform pages only open on the platform organisation.
 async function openPlatformOrganization(page: Page): Promise<void> {
   await page.getByTitle("Organisations").first().click()
   await page.getByRole("menuitem", { name: "Pupitre" }).click()
@@ -501,7 +497,7 @@ test.describe("plateforme", () => {
 
       await expect(page).toHaveURL(ADMIN_ORGANIZATIONS_URL_RE)
 
-      // The owner's organisation runs its trial: the grant stays shut there, and says why.
+      // The owner's organisation runs a trial, so the grant stays shut there.
       await main
         .getByRole("link", { name: OWNER_ORGANIZATION, exact: true })
         .click()
@@ -540,7 +536,7 @@ test.describe("plateforme", () => {
         toasts.getByText(`${ADMIN_ORGANIZATION} a son abonnement.`)
       ).toBeVisible()
 
-      // The journal of the page names the grant too: the seats tell the row from the line.
+      // The journal names the grant too: the seats tell the row from the journal line.
       const row = main.getByRole("listitem").filter({ hasText: "2 sièges" })
 
       await expect(row).toContainText("Offert")
@@ -641,8 +637,7 @@ test.describe("plateforme", () => {
       await expect(page).toHaveURL(ADMIN_USERS_URL_RE)
       await expect(main.getByText(OWNER_EMAIL)).toBeVisible()
 
-      // A magic-link account carries no name, so its row link reads empty:
-      // the address it points at is what opens the account.
+      // A magic-link account has no name, so its row link is found by its address.
       const account = await main
         .getByRole("row")
         .filter({ hasText: OWNER_EMAIL })
@@ -783,7 +778,7 @@ test.describe("plateforme", () => {
       name: SOCLE_SERVER,
       status: "active",
     })
-    // Two seats held against the trial's single one: that is what the drift list raises.
+    // Two seated servers against the trial's single seat: what the drift list raises.
     await seedServer(request, {
       email: SOCLE_EMAIL,
       name: SOCLE_SECOND_SERVER,

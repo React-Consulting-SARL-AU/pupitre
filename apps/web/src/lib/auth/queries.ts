@@ -27,11 +27,7 @@ export function passkeysQueryOptions() {
   })
 }
 
-/**
- * The second factor lives in the Better Auth session, not in `/api/v1/me`:
- * the platform contract does not carry it, and the console has no reason to
- * widen the contract for a flag the auth client already hands over.
- */
+// Read from the Better Auth session: the `/me` contract does not carry the second factor.
 export function twoFactorEnabledQueryOptions() {
   return queryOptions({
     queryKey: authQueryKeys.session,

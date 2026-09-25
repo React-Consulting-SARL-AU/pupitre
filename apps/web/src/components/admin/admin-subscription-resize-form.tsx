@@ -27,7 +27,6 @@ export interface AdminSubscriptionResizeFormProps {
   endsAt: string | Date | null
 }
 
-/** The seats and the end of a granted subscription; nothing else on it is the team's to move. */
 export function AdminSubscriptionResizeForm({
   subscriptionId,
   organization,

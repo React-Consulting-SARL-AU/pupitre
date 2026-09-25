@@ -3,8 +3,7 @@ import { HARNESS_ORIGIN, HARNESS_PORT, HARNESS_PREFIX } from "./ports"
 
 const EXTERNAL_URL_RE = /^https?:\/\/(?!localhost|127\.0\.0\.1)/
 const HMR_SOCKET_RE = new RegExp(`^ws://localhost:${HARNESS_PORT}/`)
-// The link is written as soon as the API answers, so this budget only has to
-// outlast a contended runner — never a broken sign-in, which fails on its own.
+// Only has to outlast a contended runner: a broken sign-in fails on its own.
 const MAGIC_LINK_TIMEOUT_MS = 60_000
 const START_URL_RE = /\/dashboard\/start$/
 
@@ -13,24 +12,20 @@ export function harnessUrl(path: string): string {
 }
 
 export async function stayLocal(page: Page): Promise<void> {
-  // Nothing leaves the machine. A subresource is refused outright; a document
-  // is answered with an empty page instead, because aborting a navigation
-  // leaves the tab on chrome-error and that error interrupts the next goto —
-  // which is what the checkout of the fake billing sends the page into.
+  // An aborted navigation leaves chrome-error, which breaks the next goto: documents get an empty page.
   await page.route(EXTERNAL_URL_RE, (route) =>
     route.request().isNavigationRequest()
       ? route.fulfill({ body: "", contentType: "text/html", status: 200 })
       : route.abort()
   )
 
-  // The harness proxies HTTP only: left unanswered, the Vite HMR socket makes
-  // the client reload the page in the middle of a step.
+  // The harness proxies HTTP only: an unanswered HMR socket reloads the page mid-step.
   await page.routeWebSocket(HMR_SOCKET_RE, () => {
     // no upstream, no reload
   })
 }
 
-/** The authentication screens are server-rendered: a click before hydration hits dead markup. */
+// Auth screens are server-rendered: a click before hydration hits dead markup.
 export async function openHydrated(page: Page, path: string): Promise<void> {
   await page.goto(path)
   await page.waitForLoadState("networkidle")
@@ -47,7 +42,6 @@ export async function magicLinkFor(
   return ((await sent.json()) as { url: string | null }).url
 }
 
-/** The magic link both creates the account and opens the console on its first step. */
 export async function signIn(
   page: Page,
   request: APIRequestContext,
@@ -80,7 +74,6 @@ export async function openTrial(
   expect(((await opened.json()) as { handled: boolean }).handled).toBe(true)
 }
 
-/** A seat in Pupitre's own organization: the role there is what opens or closes the platform gestures. */
 export async function promotePlatformMember(
   request: APIRequestContext,
   email: string,
@@ -102,7 +95,6 @@ export async function receiveEmail(
   expect(received.ok()).toBe(true)
 }
 
-/** Launch or Stripe: the offer the start page shows comes from the platform, not from the browser. */
 export async function chooseBillingMode(
   request: APIRequestContext,
   mode: "stripe" | "launch",
@@ -115,7 +107,6 @@ export async function chooseBillingMode(
   expect(chosen.ok()).toBe(true)
 }
 
-/** An organisation that came through a link, so the page holds one that no longer deletes. */
 export async function seedReferral(
   request: APIRequestContext,
   data: { email: string; code: string }
@@ -143,7 +134,7 @@ export async function seedServer(
   expect(seeded.ok()).toBe(true)
 }
 
-/** A second seat in someone else's organization; the console only hands one out by invitation. */
+// The console only adds a member by invitation.
 export async function seedMember(
   request: APIRequestContext,
   data: {

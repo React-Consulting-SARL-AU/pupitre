@@ -15,10 +15,8 @@ export type DialogPlacement = "center" | "top" | "start"
 export interface DialogPopupProps
   extends Omit<ComponentProps<typeof BaseDialog.Popup>, "title"> {
   title: string
-  /** Named for the screen reader only: the dialog's own content says what it is. */
   titleHidden?: boolean
   description?: string
-  /** Set beside the title, such as a download or a close button. */
   actions?: ReactNode
   size?: DialogSize
   placement?: DialogPlacement

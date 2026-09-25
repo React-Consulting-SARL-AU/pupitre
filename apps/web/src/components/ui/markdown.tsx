@@ -24,11 +24,7 @@ function heading(level: "h1" | "h2" | "h3") {
   }
 }
 
-/**
- * Release notes and the like, written in Markdown by us and rendered without
- * raw HTML: react-markdown ignores any tag the text carries, so nothing in a
- * note reaches the page as markup.
- */
+// react-markdown drops raw HTML, so nothing in a note reaches the page as markup.
 export function Markdown({ source }: MarkdownProps) {
   return (
     <div className="flex flex-col gap-2">

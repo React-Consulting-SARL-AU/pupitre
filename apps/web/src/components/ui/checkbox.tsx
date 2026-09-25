@@ -8,13 +8,11 @@ export interface CheckboxProps {
   indeterminate?: boolean
   onCheckedChange: (checked: boolean) => void
   label: string
-  /** The hover bubble, when it says more than the label — a keyboard shortcut, say. */
   title?: string
   className?: string
   disabled?: boolean
 }
 
-/** A square the size of a row: the label is carried by `aria-label`, never printed. */
 export function Checkbox({
   id,
   checked,

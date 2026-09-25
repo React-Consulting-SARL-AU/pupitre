@@ -2,10 +2,7 @@ import { describe, expect, it } from "bun:test"
 import {
   accountGestures,
   accountLook,
-  canActOnPlatform,
   canGrantSubscription,
-  canRestore,
-  canSuspend,
   dateInputValue,
   endOfDayIso,
   organizationGestures,
@@ -32,18 +29,6 @@ describe("platformOpen", () => {
   })
 })
 
-describe("canActOnPlatform", () => {
-  it("lets the two roles the owner grants on the platform organisation act", () => {
-    expect(canActOnPlatform("owner")).toBe(true)
-    expect(canActOnPlatform("admin")).toBe(true)
-  })
-
-  it("leaves a plain member, and anyone outside, reading only", () => {
-    expect(canActOnPlatform("member")).toBe(false)
-    expect(canActOnPlatform(null)).toBe(false)
-  })
-})
-
 describe("suspendedReasonKey", () => {
   it("names the two reasons a server can be suspended for", () => {
     expect(suspendedReasonKey("billing")).toBe(
@@ -57,14 +42,6 @@ describe("suspendedReasonKey", () => {
   it("says nothing for a server that is not suspended", () => {
     expect(suspendedReasonKey(null)).toBeNull()
     expect(suspendedReasonKey("weird")).toBeNull()
-  })
-})
-
-describe("canRestore", () => {
-  it("only lifts the suspension the team laid", () => {
-    expect(canRestore("admin")).toBe(true)
-    expect(canRestore("billing")).toBe(false)
-    expect(canRestore(null)).toBe(false)
   })
 })
 
@@ -198,16 +175,6 @@ describe("releaseVersions", () => {
 
   it("has nothing to show before the first publication", () => {
     expect(releaseVersions([])).toEqual([])
-  })
-})
-
-describe("canSuspend", () => {
-  it("only offers the suspension on a running server", () => {
-    expect(canSuspend("active")).toBe(true)
-
-    for (const status of ["enrolling", "grace", "suspended", "revoked"]) {
-      expect(canSuspend(status), status).toBe(false)
-    }
   })
 })
 

@@ -9,12 +9,7 @@ import {
   configureRateLimitStorage,
 } from "@pupitre/auth/rate-limit-storage"
 
-/**
- * The budget every isolate shares: one Durable Object, sharded eight ways so a
- * flood on one key never queues the whole platform behind it. Which shard a
- * key lands in follows the key alone, so the same address always meets the
- * same counter.
- */
+// Sharded so a flood on one key never queues the whole platform behind it.
 const SHARDS = 8
 
 const SWEEP_AFTER_MS = 60_000
@@ -23,7 +18,7 @@ const ORIGIN = "https://rate-limit.internal"
 
 interface Stored {
   count: number
-  /** When the window opened (fixed) or the last request landed (rolling). */
+  // Window start (fixed) or last request (rolling).
   at: number
   expiresAt: number
 }
@@ -36,7 +31,7 @@ export interface FixedHit {
 
 export interface RollingRule {
   key: string
-  /** Better Auth counts in seconds. */
+  // Better Auth counts in seconds.
   window: number
   max: number
   now: number
@@ -50,7 +45,6 @@ function read(stored: Stored | undefined, now: number): Stored | null {
   return stored
 }
 
-/** One hit against a fixed window: past its length, the count starts over. */
 export function nextFixed(
   stored: Stored | undefined,
   windowMs: number,
@@ -66,11 +60,7 @@ export function nextFixed(
   }
 }
 
-/**
- * Better Auth's rolling rule, decided and incremented in one step: the count
- * resets once a whole window has passed since the last request, and a count at
- * the maximum refuses until that window frees up.
- */
+// Better Auth's rolling rule, decided and incremented in one atomic step.
 export function nextRolling(
   stored: Stored | undefined,
   windowSeconds: number,
@@ -102,7 +92,7 @@ function refuse(status: number, message: string): Response {
   return Response.json({ error: { message } }, { status })
 }
 
-/** Keeps the next sweep close, without pushing one already on its way. */
+// Never pushes back a sweep already scheduled sooner.
 async function scheduleSweep(state: DurableObjectState): Promise<void> {
   const alarm = await state.storage.getAlarm()
 
@@ -121,11 +111,7 @@ export async function sweepExpired(state: DurableObjectState): Promise<void> {
   }
 }
 
-/**
- * The object's whole surface: two counting families — the API's fixed windows
- * and Better Auth's rolling rules — plus the raw read/write the library's
- * storage interface still names.
- */
+// `/value` is the raw read/write Better Auth's storage interface still requires.
 export async function handleRateLimitRequest(
   state: DurableObjectState,
   request: Request
@@ -206,8 +192,7 @@ export async function handleRateLimitRequest(
 }
 
 export function shardOf(key: string): number {
-  // A multiplicative hash, kept under a signed 32-bit ceiling so the product
-  // never leaves the integers JavaScript holds exactly.
+  // Kept under 2^31 so the product stays within exact JavaScript integers.
   let hash = 0
 
   for (const char of key) {
@@ -246,11 +231,7 @@ async function post<T>(
   return (await response.json()) as T
 }
 
-/**
- * What the Worker hands the API: every limiter counts against the object, and
- * if the object is unreachable the isolate's own memory still holds a floor,
- * so a budget never silently disappears.
- */
+// Falls back to isolate memory so a budget never silently disappears.
 export function createDurableRateLimitStore(
   namespace: RateLimitNamespace
 ): RateLimitStore {
@@ -273,10 +254,6 @@ export function createDurableRateLimitStore(
   }
 }
 
-/**
- * What the Worker hands Better Auth: the same object behind the library's
- * storage interface, its `consume` doing the atomic decide-and-increment.
- */
 export function createDurableAuthRateLimitStorage(
   namespace: RateLimitNamespace
 ): AuthRateLimitStorage {
@@ -303,8 +280,7 @@ export function createDurableAuthRateLimitStorage(
           body: JSON.stringify({ key, value }),
         })
       } catch {
-        // A count that fails to persist narrows to the atomic consume, which
-        // this store always carries.
+        // The atomic consume still counts when this write fails.
       }
     },
     consume: async (key, rule) => {
@@ -324,7 +300,6 @@ export function createDurableAuthRateLimitStorage(
   }
 }
 
-/** What the Worker's fetch calls once per request, before anything routes. */
 export function configureRateLimits(env: CloudflareEnv): void {
   configureRateLimitStore(createDurableRateLimitStore(env.RATE_LIMIT))
   configureRateLimitStorage(createDurableAuthRateLimitStorage(env.RATE_LIMIT))

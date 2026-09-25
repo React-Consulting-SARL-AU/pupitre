@@ -11,7 +11,6 @@ export interface FactsProps {
   className?: string
 }
 
-/** What a thing is, read as a grid of named values. */
 export function Facts({ facts, className }: FactsProps) {
   return (
     <dl className={cn("grid gap-gutter px-4 py-3 sm:grid-cols-3", className)}>

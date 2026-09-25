@@ -17,20 +17,15 @@ const ONE_SUFFIX_RE = /\.one$/
 const BLOCK_COMMENT_RE = /\/\*[\s\S]*?\*\//g
 const LINE_COMMENT_RE = /(^|[^:"'`\\])\/\/[^\n]*/gm
 
-/** Quoted, backtick-quoted, and the bare text a JSX element wraps. */
 const QUOTED_RE = /"((?:[^"\\\n]|\\.)*)"|'((?:[^'\\\n]|\\.)*)'/g
 const TEMPLATE_RE = /`((?:[^`\\]|\\.)*)`/g
 const TEMPLATE_HOLE_RE = /\$\{[^{}]*\}/g
 const JSX_TEXT_RE = />([^<>{}]+)</g
 
-/**
- * The loud tells: an accented letter, the quotation marks the console uses,
- * or an elided article — `l'`, `d'`, `qu'`.
- */
 const FRENCH_MARK_RE =
   /[éèêëàâäçùûüôöîïœæ]|[«»]|\b(?:[cdjlmnst]|qu|jusqu|lorsqu|puisqu)['’]/i
 
-/** A sentence can be French with no accent at all, so count its grammar too. */
+// A sentence can be French with no accent at all, so count its grammar too.
 const FRENCH_WORD_RE =
   /\b(?:le|la|les|un|une|des|du|au|aux|est|sont|dans|pour|avec|sans|plus|vous|votre|vos|cette|cet|aucun|aucune|qui|que|pas|par|sur|son|ses|leur|leurs|nous|notre|encore|toujours|trop|donc|mais)\b/gi
 
@@ -48,10 +43,7 @@ function looksFrench(literal: string): boolean {
   return words.size >= FRENCH_WORDS_AT_LEAST
 }
 
-/**
- * The one file that legitimately carries French with no reader: the internal
- * workflow trigger, whose bodies answer a machine, never a person.
- */
+// Machine-facing bodies: French there is never read by a person.
 const NOT_INTERFACE = new Set([
   "src/workflows/internal-trigger.ts",
   "src/realtime/inbox-realtime.ts",
@@ -131,11 +123,7 @@ function withoutComments(text: string): string {
     .replace(LINE_COMMENT_RE, (_match, before: string) => before)
 }
 
-/**
- * Everything a reader could end up seeing: quoted strings, the fixed parts of
- * a template literal, and the text a JSX element wraps. The gap between the
- * first two is how a hard-coded sentence once reached the revoke dialog.
- */
+// Template literals count too: a hard-coded sentence once reached the revoke dialog through one.
 function readableText(source: string): string[] {
   const text = withoutComments(source)
   const found: string[] = []

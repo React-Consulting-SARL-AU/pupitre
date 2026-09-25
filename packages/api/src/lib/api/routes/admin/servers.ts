@@ -2,6 +2,8 @@ import { resolveLocale } from "@pupitre/shared/i18n"
 import { ADMIN_PAGE_SIZE } from "@pupitre/shared/platform"
 import { Elysia, t } from "elysia"
 import { translate } from "../../../i18n"
+import { actsOnPlatform } from "../../../platform/actor"
+import { withServerActions } from "../../../platform/server-actions"
 import {
   clearServerAlertsByAdmin,
   deleteServerByAdmin,
@@ -22,7 +24,7 @@ import {
   adminServerChannelBody,
   adminServerDetailSchema,
   adminServerListSchema,
-  adminServerSchema,
+  adminServerRowSchema,
   adminServersQuery,
 } from "./server-schemas"
 
@@ -32,19 +34,24 @@ const readRoutes = new Elysia({ name: "admin-servers-read" })
   .use(requirePlatformAdmin)
   .get(
     "/servers",
-    async ({ query }) =>
-      serializeData(
-        await listServersForPlatform({
-          status: query.status,
-          organization_id: query.organization_id,
-          q: query.q,
-          stale: query.stale,
-          sort: query.sort,
-          direction: query.direction,
-          limit: query.limit ?? ADMIN_PAGE_SIZE,
-          offset: query.offset ?? 0,
-        })
-      ),
+    async ({ query, platformRole }) => {
+      const page = await listServersForPlatform({
+        status: query.status,
+        organization_id: query.organization_id,
+        q: query.q,
+        stale: query.stale,
+        sort: query.sort,
+        direction: query.direction,
+        limit: query.limit ?? ADMIN_PAGE_SIZE,
+        offset: query.offset ?? 0,
+      })
+      const acts = actsOnPlatform(platformRole)
+
+      return serializeData({
+        ...page,
+        data: page.data.map((server) => withServerActions(server, acts)),
+      })
+    },
     {
       query: adminServersQuery,
       detail: { summary: "Tous les serveurs de la plateforme, filtrables" },
@@ -58,7 +65,7 @@ const readRoutes = new Elysia({ name: "admin-servers-read" })
   )
   .get(
     "/servers/:id",
-    async ({ params, request, set }) => {
+    async ({ params, platformRole, request, set }) => {
       const server = await readServerForPlatform(params.id)
 
       if (!server) {
@@ -70,7 +77,11 @@ const readRoutes = new Elysia({ name: "admin-servers-read" })
         )
       }
 
-      return { data: serializeData(server) }
+      return {
+        data: serializeData(
+          withServerActions(server, actsOnPlatform(platformRole))
+        ),
+      }
     },
     {
       params: serverParams,
@@ -104,7 +115,7 @@ const writeRoutes = new Elysia({ name: "admin-servers-write" })
           return apiError("not_found", translate(locale, "server_not_found"))
         }
 
-        return { data: serializeData(updated) }
+        return { data: serializeData(withServerActions(updated, true)) }
       } catch (error) {
         if (!(error instanceof ServerRevokedError)) {
           throw error
@@ -181,7 +192,7 @@ const writeRoutes = new Elysia({ name: "admin-servers-write" })
           return apiError("not_found", translate(locale, "server_not_found"))
         }
 
-        return { data: serializeData(suspended) }
+        return { data: serializeData(withServerActions(suspended, true)) }
       } catch (error) {
         if (!(error instanceof ServerRevokedError)) {
           throw error
@@ -201,7 +212,7 @@ const writeRoutes = new Elysia({ name: "admin-servers-write" })
       body: adminReasonBody,
       detail: { summary: "Suspendre un serveur, avec la raison" },
       response: {
-        200: dataResponse(adminServerSchema),
+        200: dataResponse(adminServerRowSchema),
         401: errorResponse,
         403: errorResponse,
         404: errorResponse,
@@ -227,7 +238,7 @@ const writeRoutes = new Elysia({ name: "admin-servers-write" })
           return apiError("not_found", translate(locale, "server_not_found"))
         }
 
-        return { data: serializeData(restored) }
+        return { data: serializeData(withServerActions(restored, true)) }
       } catch (error) {
         if (!(error instanceof ServerNotAdminSuspendedError)) {
           throw error
@@ -278,7 +289,7 @@ const writeRoutes = new Elysia({ name: "admin-servers-write" })
         return
       }
 
-      return { data: serializeData(deleted.server) }
+      return { data: serializeData(withServerActions(deleted.server, true)) }
     },
     {
       params: serverParams,

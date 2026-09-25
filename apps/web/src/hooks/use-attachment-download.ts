@@ -9,7 +9,6 @@ export interface AttachmentDownload {
   download: () => Promise<void>
 }
 
-/** A signed URL asked for on the click, opened as a download; a refusal shows on the button for a moment. */
 export function useAttachmentDownload(
   attachmentId: string
 ): AttachmentDownload {

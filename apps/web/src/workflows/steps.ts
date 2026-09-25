@@ -1,11 +1,11 @@
 import type { WorkflowStep } from "cloudflare:workers"
 
-/** Each batch is its own step, so a retry replays one batch and never the ones already done. */
+// One step per batch, so a retry never replays the batches already done.
 export function batchStep(name: string, index: number): string {
   return `${name}-${index + 1}`
 }
 
-/** Batch after batch until one comes back short: every batch leaves the filter it was drawn from. */
+// For batches that leave the filter they were drawn from; stops on a short batch.
 export async function drainInSteps<T extends Rpc.Serializable<T>>(
   step: WorkflowStep,
   name: string,
@@ -29,7 +29,7 @@ export interface CursorBatch {
   next: string | null
 }
 
-/** Batch after batch from a cursor, for rows a batch may leave where they are. */
+// Cursor-based, for rows a batch may leave in place.
 export async function walkInSteps<B extends CursorBatch & Rpc.Serializable<B>>(
   step: WorkflowStep,
   name: string,
@@ -51,7 +51,7 @@ export async function walkInSteps<B extends CursorBatch & Rpc.Serializable<B>>(
   }
 }
 
-/** A list cut in slices, one step each: a slice that fails is the only one tried again. */
+// One step per slice: only a failed slice is tried again.
 export async function sliceInSteps<T, R extends Rpc.Serializable<R>>(
   step: WorkflowStep,
   name: string,

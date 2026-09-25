@@ -52,7 +52,7 @@ function attachmentRefusal(locale: Locale, error: MailAttachmentRefusedError) {
   )
 }
 
-/** The provider's own words stay on the failed row and in the Worker log, never in the answer. */
+// The provider's own words stay in the log, never in the answer.
 function sendFailure(locale: Locale, error: MailSendFailedError) {
   console.error(
     `[api] inbox: message ${error.messageId} was refused by the sending service`,

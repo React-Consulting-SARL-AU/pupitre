@@ -5,12 +5,10 @@ import { AttachmentUploadError } from "@/lib/api/inbox-queries"
 
 export interface InboxSendFailureProps {
   error: unknown
-  /** What the form says when the refusal names neither a file nor a reason. */
   title: string
   fix: string
 }
 
-/** A send fails on an upload, on the API, or on nothing named: each says what it can. */
 export function InboxSendFailure({ error, title, fix }: InboxSendFailureProps) {
   const t = useTranslations()
 

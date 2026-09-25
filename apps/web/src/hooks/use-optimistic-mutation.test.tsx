@@ -89,12 +89,6 @@ function stack(): string {
   return document.querySelector("[data-testid=toasts]")?.textContent ?? ""
 }
 
-/**
- * What these tests prove: the screen moves on click, it rolls back exactly
- * to its prior state if the call fails, the action that follows success
- * only fires once the server agrees — not before — and both outcomes are
- * said out loud, the failure with the gesture that tries again.
- */
 describe("une mutation optimistic", () => {
   it("retire la ligne avant que le serveur réponde", async () => {
     const queryClient = client()

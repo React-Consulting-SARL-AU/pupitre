@@ -34,6 +34,7 @@ function toggle(
             role: "owner" as const,
             entitlement: "valid",
             platformRole: null,
+            platformCanAct: false,
           }}
         >
           <LocaleToggle />

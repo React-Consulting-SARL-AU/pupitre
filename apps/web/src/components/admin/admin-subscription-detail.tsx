@@ -6,10 +6,8 @@ import { AdminSubscriptionOverview } from "@/components/admin/admin-subscription
 import { AdminSubscriptionStripeEvents } from "@/components/admin/admin-subscription-stripe-events"
 import { PageTabs } from "@/components/ui/page-tabs"
 import { SkeletonCards } from "@/components/ui/skeleton"
-import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
 import { adminSubscriptionQueryOptions } from "@/lib/api/admin-queries"
-import { canActOnPlatform } from "@/lib/domain/admin"
 
 export const ADMIN_SUBSCRIPTION_TABS = [
   "overview",
@@ -41,7 +39,6 @@ export function AdminSubscriptionDetail({
   onTabChange,
 }: AdminSubscriptionDetailProps) {
   const t = useTranslations()
-  const { platformRole } = useDashboardContext()
   const subscription = useQuery(adminSubscriptionQueryOptions(id))
 
   if (subscription.isPending) {
@@ -61,7 +58,7 @@ export function AdminSubscriptionDetail({
   }
 
   const detail = subscription.data
-  const acts = canActOnPlatform(platformRole)
+  const acts = detail.allowed_actions.length > 0
 
   return (
     <PageTabs

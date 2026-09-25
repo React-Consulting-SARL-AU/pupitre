@@ -9,11 +9,7 @@ export interface FoldableCardProps {
   className?: string
 }
 
-/**
- * A card the reader can fold shut. It carries a pane that sits beside the
- * page on a wide screen and under it on a narrow one, where three unfoldable
- * panels would push the page they comment on out of reach.
- */
+// Foldable so that, stacked on a narrow screen, the panes never push the page out of reach.
 export function FoldableCard({
   title,
   children,

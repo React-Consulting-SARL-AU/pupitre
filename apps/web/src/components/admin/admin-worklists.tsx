@@ -15,7 +15,6 @@ export interface AdminWorklistsProps {
   worklists: AdminOverviewData["worklists"]
 }
 
-/** What waits for the team, five lines at a time, each one a way into the thing itself. */
 export function AdminWorklists({ worklists }: AdminWorklistsProps) {
   const t = useTranslations()
   const empty = t("admin.worklists.empty")

@@ -58,10 +58,9 @@ export interface AdminOrganizationSubscriptionRow {
   quantity: number
   status: string
   current_period_end: Date | null
-  /** Still billed to the end of the period, and stopped there: not the same as stopped. */
   cancel_at_period_end: boolean
   note: string | null
-  /** True for a product Stripe never sees: the launch, or what the team granted. */
+  // Launch or granted: a product Stripe never sees.
   platform: boolean
   created_at: Date
   updated_at: Date
@@ -74,7 +73,6 @@ export interface AdminOrganizationSeats {
 
 export interface AdminOrganizationDetail
   extends Omit<AdminOrganizationView, "members" | "servers"> {
-  /** The reason behind the state the organization holds now, so the console never picks one itself. */
   reason: string | null
   members: AdminOrganizationMember[]
   servers: AdminServerView[]
@@ -104,7 +102,7 @@ type OrganizationRow = Prisma.OrganizationGetPayload<{
   include: typeof ORGANIZATION_INCLUDE
 }>
 
-/** The organizations a sign-up creates carry `personal: true` in their Better Auth metadata. */
+// Sign-up organizations carry `personal: true` in their Better Auth metadata.
 function isPersonal(metadata: string | null): boolean {
   if (!metadata) {
     return false
@@ -211,7 +209,7 @@ function toView(
   }
 }
 
-/** The state the column shows, read back as a query: the same priority, so a page and its total agree. */
+// Same priority as the state column, so a page and its total agree.
 const STATE_WHERE: Record<OrganizationState, Prisma.OrganizationWhereInput> = {
   deleting: { deletionAt: { not: null } },
   closed: { deletionAt: null, closedAt: { not: null } },

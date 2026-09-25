@@ -18,7 +18,7 @@ import { consoleSection } from "@/lib/domain/chrome"
 import { START_ROUTE, startRedirectFor } from "@/lib/domain/entitlement-gate"
 
 export const Route = createFileRoute("/dashboard")({
-  /** The console reads the session in the browser, so the gate does too. */
+  // The console reads the session in the browser, so the gate does too.
   ssr: false,
   beforeLoad: async ({ context, location }) => {
     const me = await readSessionOrSignIn({ context, location })
@@ -82,6 +82,7 @@ function DashboardLayout() {
         role: me.data.role as OrgRole | null,
         entitlement: me.data.entitlement,
         platformRole: me.data.platform_role as OrgRole | null,
+        platformCanAct: me.data.platform_can_act,
       }}
     >
       <div className="animate-enter" key={consoleSection(pathname)}>

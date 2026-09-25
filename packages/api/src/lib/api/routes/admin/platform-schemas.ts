@@ -214,7 +214,6 @@ export const adminUserDetailSchema = t.Object(
   { $id: "AdminUserDetail" }
 )
 
-/** A sanction that ends by itself: `until` in the future, or nothing for an open one. */
 export const adminBanBody = t.Object({
   reason: t.String({ minLength: 1, maxLength: 500 }),
   until: t.Optional(t.Nullable(dateTime)),

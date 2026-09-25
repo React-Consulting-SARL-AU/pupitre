@@ -125,7 +125,7 @@ function assertNotPlatform(organizationId: string): void {
   }
 }
 
-/** Only a machine in use goes down, so a reopening never hands back more than it took: an enrolment stays an enrolment. */
+// Only machines in use go down, so a reopening never turns an enrolment into an active server.
 async function suspendOrganizationServers(
   actor: PlatformOrganizationActor,
   organizationId: string,
@@ -171,7 +171,7 @@ async function suspendOrganizationServers(
   return servers.length
 }
 
-/** What comes back comes back to what the subscription now allows: a lapsed one leaves the machine in tolerance. */
+// Servers come back to what the subscription now allows: a lapsed one leaves them in grace.
 async function releaseOrganizationServers(
   organizationId: string,
   now: Date
@@ -281,7 +281,7 @@ export async function restoreOrganizationFromPlatform(
   return await readOrganizationForPlatform(organizationId)
 }
 
-/** The money stops before the machines: the cancellation reads the servers it is about to take down. */
+// Runs before the servers go down: the cancellation reads the servers it is about to take down.
 async function stopLiveSubscription(
   actor: PlatformOrganizationActor,
   organizationId: string,
@@ -468,7 +468,7 @@ export async function deleteOrganizationFromPlatform(
   return scheduled ? { deletion: "scheduled", organization: scheduled } : null
 }
 
-/** The journal goes with the organization — hosts, reasons, invited addresses — and only its identifier is kept. */
+// The journal holds personal data (hosts, reasons, addresses): it goes too, only the identifier stays.
 export async function purgeOrganization(
   organizationId: string,
   actorUserId: string | null

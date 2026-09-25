@@ -47,7 +47,6 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant
   size?: ButtonSize
   icon?: LucideIcon
-  /** While it works the spinner sits in place of the icon, and the button takes no second click. */
   loading?: boolean
 }
 

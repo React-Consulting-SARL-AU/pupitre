@@ -15,7 +15,6 @@ declare global {
   var IS_REACT_ACT_ENVIRONMENT: boolean | undefined
 }
 
-/** A `Link` reads the router, so anything carrying one needs its context. */
 export function withRouter(element: ReactElement): ReactElement {
   return (
     <RouterContextProvider router={getRouter()}>
@@ -35,9 +34,11 @@ export interface DashboardHarness {
   role?: OrgRole
   entitlement?: string
   platformRole?: OrgRole | null
+  platformCanAct?: boolean
 }
 
-/** Anything under the console reads the session, its organisation and its rights. */
+const ACTING_PLATFORM_ROLES: (OrgRole | null)[] = ["owner", "admin"]
+
 export function withDashboard(
   element: ReactElement,
   {
@@ -45,6 +46,7 @@ export function withDashboard(
     role = "owner",
     entitlement = "suspended",
     platformRole = null,
+    platformCanAct = ACTING_PLATFORM_ROLES.includes(platformRole),
   }: DashboardHarness = {}
 ): ReactElement {
   return withRouter(
@@ -65,6 +67,7 @@ export function withDashboard(
           role: organization ? role : null,
           entitlement,
           platformRole,
+          platformCanAct,
         }}
       >
         {element}
@@ -131,7 +134,7 @@ export async function waitUntil(
   throw new Error("condition not met before the deadline")
 }
 
-/** An input or a textarea: React listens on the prototype's setter, so the value goes through it. */
+// React listens on the prototype's value setter, so the value must go through it.
 export async function fill(input: Element, value: string): Promise<void> {
   const setter = Object.getOwnPropertyDescriptor(
     Object.getPrototypeOf(input),
@@ -173,7 +176,7 @@ function options(): Element[] {
   return [...document.querySelectorAll("[role=option]")]
 }
 
-/** A `Select` is a button and a popup: an item is reached the way a keyboard reaches it. */
+// A `Select` item is reached the way a keyboard reaches it.
 export async function pick(control: Element, label: string): Promise<void> {
   await act(async () => {
     ;(control as HTMLElement).focus()
@@ -216,7 +219,6 @@ export async function waitUntilStored(
   throw new Error("condition not met before the deadline")
 }
 
-/** A button is named by its text, or by its `aria-label` when it only carries an icon. */
 export function trigger(container: HTMLElement, label: string): HTMLElement {
   const buttons = [...document.querySelectorAll("button")]
 

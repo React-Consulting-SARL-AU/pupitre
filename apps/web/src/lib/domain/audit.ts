@@ -162,7 +162,6 @@ const TARGET_KEYS: Record<string, DictionaryKey> = {
   mail_template: "audit.target.mail_template",
 }
 
-/** A key when the action is one we name, and the raw action when it is not. */
 export function actionKey(action: string): DictionaryKey | null {
   return ACTION_KEYS[action as AuditAction] ?? null
 }

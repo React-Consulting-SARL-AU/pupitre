@@ -21,7 +21,6 @@ import { initialOf } from "@/lib/domain/organization"
 import { roleKey } from "@/lib/domain/roles"
 
 export interface OrganizationSwitcherProps {
-  /** Another control that opens the same menu, for a caller outside the sidebar. */
   trigger?: ReactElement<Record<string, unknown>>
 }
 

@@ -47,7 +47,6 @@ type CronEvent = Readonly<WorkflowEvent<unknown>>
 
 const INTERNAL_EMAIL_PATH = "/internal/email"
 
-/** Everything below reads the database of the request: a client on the D1 binding, for the span of one run. */
 function withDatabase<T>(env: CloudflareEnv, run: () => T | Promise<T>) {
   return withPrismaClient(createD1PrismaClient(env.DB), run)
 }
@@ -89,7 +88,7 @@ export class PurgeDeletions extends WorkflowEntrypoint<CloudflareEnv> {
   }
 }
 
-// A durable object binding resolves against a class exported by the worker entry too.
+// Durable Object bindings also resolve against classes exported by the worker entry.
 export class InboxRealtime extends DurableObject<CloudflareEnv> {
   override fetch(request: Request) {
     return handleInboxRealtimeRequest(this.ctx, this.env, request)
@@ -104,7 +103,6 @@ export class InboxRealtime extends DurableObject<CloudflareEnv> {
   }
 }
 
-// Same as the room above: the counter's shell stays beside the entry.
 export class RateLimit extends DurableObject<CloudflareEnv> {
   override fetch(request: Request) {
     return handleRateLimitRequest(this.ctx, request)
@@ -115,7 +113,7 @@ export class RateLimit extends DurableObject<CloudflareEnv> {
   }
 }
 
-/** Email Routing's path behind the internal secret, so curl can inject a mail where no domain points. */
+// Lets curl inject a mail where no domain points, behind the internal secret.
 async function handleInternalEmail(
   request: Request,
   env: CloudflareEnv
@@ -170,7 +168,7 @@ async function handleInternalEmail(
 
 interface Routed {
   response: Response
-  /** Set on a document the console renders, rather than an answer of the API's. */
+  // Only set on a document the console renders, never on an API answer.
   nonce: string | null
 }
 

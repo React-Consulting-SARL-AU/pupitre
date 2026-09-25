@@ -8,7 +8,6 @@ import { formatDateTime } from "@/lib/utils/format"
 
 export interface AdminReleaseColumnsHandlers {
   canPromote: boolean
-  /** What the promotion makes this version the target of, named in the confirmation. */
   target: string
   promoting: string | undefined
   onPromote: (version: string) => void

@@ -9,13 +9,12 @@ export interface PageHeaderProps {
   parents?: Crumb[]
   description?: string
   actions?: ReactNode
-  /** A skeleton stands in for a page: the focus waits for the page itself. */
+  // Focus waits for the real page, not its skeleton.
   pending?: boolean
-  /** A page that is a single moment, such as the first steps, stands centred under its mark. */
   mark?: ReactNode
 }
 
-/** Each page mounts its own header, so the page it replaces is remembered outside it. */
+// Module-level: each page mounts its own header, so the previous path must live outside it.
 let lastPathname: string | null = null
 
 export function PageHeader({
@@ -32,7 +31,7 @@ export function PageHeader({
   })
   const settled = useRouterState({ select: (state) => state.status === "idle" })
   const heading = useRef<HTMLHeadingElement>(null)
-  // The page being left reads the new pathname too: only the header mounted on it is where the reader arrived.
+  // The page being left also sees the new pathname: only the header mounted on it takes focus.
   const mountedOn = useRef(pathname)
 
   useEffect(() => {

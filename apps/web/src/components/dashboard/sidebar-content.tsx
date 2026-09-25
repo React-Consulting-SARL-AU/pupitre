@@ -113,7 +113,6 @@ const PLATFORM_LINKS: SidebarEntry[] = [
   { to: `${ADMIN_ROUTE}/team`, label: "nav.adminTeam", icon: Users },
 ]
 
-/** The console's navigation, declared once: the column holds it, the panel borrows it. */
 export function SidebarContent() {
   const t = useTranslations()
   const { entitlement, platformRole, activeOrganization } =

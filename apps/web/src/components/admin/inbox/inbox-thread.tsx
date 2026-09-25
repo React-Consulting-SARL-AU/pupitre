@@ -19,7 +19,6 @@ import {
   inboxThreadQueryOptions,
   patchThread,
 } from "@/lib/api/inbox-queries"
-import { canActOnPlatform } from "@/lib/domain/admin"
 import {
   INBOX_SHORTCUTS,
   shortcutTitle,
@@ -38,7 +37,7 @@ export interface InboxThreadProps {
 export function InboxThread({ threadId, search }: InboxThreadProps) {
   const t = useTranslations()
   const toasts = useToast()
-  const { platformRole } = useDashboardContext()
+  const { platformCanAct: canAct } = useDashboardContext()
   const queryClient = useQueryClient()
   const { parents } = pageTitle(INBOX_THREAD_ROUTE_ID)
   const thread = useQuery(inboxThreadQueryOptions(threadId))
@@ -110,7 +109,6 @@ export function InboxThread({ threadId, search }: InboxThreadProps) {
   }
 
   const detail = thread.data
-  const canAct = canActOnPlatform(platformRole)
   const mailbox = detail.mailbox
   const canReply = Boolean(canAct && mailbox?.can_reply && mailbox.enabled)
   const lastInbound = [...detail.messages]

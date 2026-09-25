@@ -32,13 +32,11 @@ export function localeCookie(locale: Locale, secure: boolean): string {
   return attributes.join("; ")
 }
 
-/** The one place that writes the cookie, so the rule lives here and not in a hook. */
 export function writeLocaleCookie(locale: Locale): void {
   // biome-ignore lint/suspicious/noDocumentCookie: the console keeps one small preference cookie, and it must survive a reload
   document.cookie = localeCookie(locale, location.protocol === "https:")
 }
 
-/** What the browser asks for, when nothing was chosen yet. */
 export function localeFromHeader(header: string | null): Locale {
   if (!header) {
     return DEFAULT_LOCALE

@@ -11,7 +11,6 @@ import { StatusDot } from "@/components/ui/status-dot"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
 import { affiliateLinkQueryOptions } from "@/lib/api/admin-queries"
-import { canActOnPlatform } from "@/lib/domain/admin"
 import {
   type AffiliateLinkTab,
   affiliateLinkTab,
@@ -30,7 +29,7 @@ export function AdminAffiliateLinkDetail({
   onTabChange,
 }: AdminAffiliateLinkDetailProps) {
   const t = useTranslations()
-  const { platformRole } = useDashboardContext()
+  const { platformCanAct: acts } = useDashboardContext()
   const link = useQuery(affiliateLinkQueryOptions(id))
 
   if (link.isPending) {
@@ -53,7 +52,6 @@ export function AdminAffiliateLinkDetail({
   const state = detail.disabled
     ? t("admin.links.disabled")
     : t("admin.links.enabled")
-  const acts = canActOnPlatform(platformRole)
   const current = affiliateLinkTabFor(tab, acts)
 
   return (

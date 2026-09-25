@@ -9,12 +9,7 @@ export const WORKFLOW_BINDINGS = {
 
 export type WorkflowName = keyof typeof WORKFLOW_BINDINGS
 
-/**
- * One cron starts several workflows: the database wakes once for the hour's
- * work and once for the day's, and sleeps the rest of the time. An
- * unreachable server is one without a heartbeat for thirty minutes, and an
- * alert an hour later is the same alert.
- */
+// Grouped so the database wakes once an hour and once a day, and sleeps otherwise.
 export const WORKFLOW_CRONS = {
   "0 * * * *": ["expire-enrollments", "evaluate-alerts"],
   "20 3 * * *": [
@@ -33,7 +28,7 @@ export function workflowsScheduledAt(cron: string): readonly WorkflowName[] {
   return WORKFLOW_CRONS[cron as keyof typeof WORKFLOW_CRONS] ?? []
 }
 
-/** The instance a cron fire starts: a second delivery of the same fire names the same instance, which Cloudflare refuses. */
+// Deterministic, so Cloudflare refuses a second delivery of the same fire.
 export function scheduledInstanceId(
   name: WorkflowName,
   scheduledTime: number

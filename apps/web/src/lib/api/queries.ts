@@ -7,11 +7,7 @@ import { api } from "@/lib/api/client"
 import { readAffiliateCode } from "@/lib/domain/affiliate"
 import type { BillingIntervalName, CheckoutReturn } from "@/lib/domain/billing"
 
-/**
- * How often the console re-reads its servers. The heartbeat the numbers come
- * from lands every five minutes; fifteen seconds keeps the page live without
- * interrogating the database for what has not changed.
- */
+// Heartbeats land every five minutes; fifteen seconds keeps the page live without hammering the database.
 export const SERVERS_POLL_INTERVAL_MS = 15_000
 
 export const STATUS_POLL_INTERVAL_MS = 30_000
@@ -65,7 +61,6 @@ export interface AdminPageQuery {
   limit: number
   offset: number
   q?: string
-  /** The computed state a list narrows to; accounts and organisations each have their own. */
   state?: string
 }
 
@@ -101,7 +96,6 @@ export interface AdminEventPageQuery {
   target_type?: string
 }
 
-/** The query roots whose answers belong to one organisation and to no other. */
 export const ORGANIZATION_SCOPED_ROOTS = [
   "servers",
   "backups",
@@ -274,12 +268,7 @@ export function isLiveSubscription(subscription: Subscription): boolean {
   return isLiveSubscriptionStatus(subscription.status)
 }
 
-/**
- * Stripe alone opens a subscription, and tells us by webhook: coming back from
- * Checkout, the console has nothing to create and everything to wait for. The
- * mirror it finds first may be the old, cancelled one — the wait ends on a
- * live status, or on a subscription other than the one it started with.
- */
+// Only the webhook creates the mirror, and the first one read may be the old cancelled row.
 export async function pollSubscription(
   organizationId: string,
   {
@@ -316,7 +305,6 @@ export interface CheckoutInput {
   return_to?: CheckoutReturn
 }
 
-/** The code the browser carries from an affiliate link rides every checkout, whichever page opened it. */
 export function startCheckout(
   organizationId: string,
   input: CheckoutInput
@@ -385,7 +373,7 @@ async function latestAppRelease(channel: "stable" | "beta") {
   }
 }
 
-/** The stable version; before the first one exists, the beta, which says its channel. */
+// Falls back on the beta until a first stable version exists.
 export function latestAppReleaseQueryOptions() {
   return queryOptions({
     queryKey: queryKeys.latestAppRelease,

@@ -2,7 +2,7 @@ import { D1_BATCH_SIZE } from "../api/batches"
 import { getPrisma } from "../api/prisma"
 import { METRICS_WINDOW_MS } from "../servers/metrics"
 
-/** How many batches one pass deletes: the workflow runs passes until one comes back short. */
+// The workflow runs passes until one comes back short.
 const SWEEP_PASS_BATCHES = 50
 
 export const SWEEP_PASS_LIMIT = D1_BATCH_SIZE * SWEEP_PASS_BATCHES
@@ -31,7 +31,7 @@ async function drain(
   return removed
 }
 
-/** A server that stopped beating never prunes its own window: the samples still age out here. */
+// A server that stopped beating never prunes its own samples.
 export function sweepServerMetrics(now: Date = new Date()): Promise<number> {
   const prisma = getPrisma()
   const cutoff = new Date(now.getTime() - METRICS_WINDOW_MS)

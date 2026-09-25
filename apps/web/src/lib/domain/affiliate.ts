@@ -11,7 +11,7 @@ const SECONDS_PER_DAY = 86_400
 
 const AFFILIATE_DOMAIN = new URL(PUPITRE_ORIGINS.site).hostname
 
-/** The address a link is distributed as, composed the way the platform composes it. */
+// Must match the address the platform composes.
 export function affiliateUrlFor(code: string): string {
   return `${PUPITRE_ORIGINS.site}/?ref=${encodeURIComponent(code)}`
 }
@@ -37,7 +37,7 @@ export function affiliateLinkTab(value: unknown): AffiliateLinkTab {
 
 const READER_TABS: AffiliateLinkTab[] = ["overview", "organizations"]
 
-/** A reader of the platform has neither settings nor danger: an address naming one opens the overview. */
+// A reader has no settings nor danger tab: an address naming one opens the overview.
 export function affiliateLinkTabFor(
   tab: AffiliateLinkTab,
   canAct: boolean
@@ -63,7 +63,6 @@ const CONVERSION_LABELS: [keyof AffiliateConversion, DictionaryKey][] = [
   ["seats", "admin.links.conversion.seats"],
 ]
 
-/** What the link brought, in the order the reader follows it: arrived, then what became of them. */
 export function affiliateConversionFigures(
   conversion: AffiliateConversion
 ): OverviewFigure[] {
@@ -87,7 +86,7 @@ export interface AffiliateLinkFilter {
   disabled: boolean | undefined
 }
 
-/** The list route takes no query: the narrowing happens on the rows the page already holds. */
+// The list route takes no query: the page filters the rows it already holds.
 export function filterAffiliateLinks<Link extends AffiliateLinkMatch>(
   links: Link[],
   { query, disabled }: AffiliateLinkFilter
@@ -109,7 +108,6 @@ export function filterAffiliateLinks<Link extends AffiliateLinkMatch>(
   })
 }
 
-/** The code the marketing site, or the sign-in page, left in the browser; nothing when it is unreadable. */
 export function affiliateCodeFrom(cookie: string): string | null {
   for (const part of cookie.split(";")) {
     const separator = part.indexOf("=")
@@ -129,7 +127,6 @@ export function affiliateCodeFrom(cookie: string): string | null {
   return null
 }
 
-/** The domain the console and the site share the cookie under, or nothing when the host is neither. */
 export function affiliateCookieDomain(hostname: string): string | null {
   const shared =
     hostname === AFFILIATE_DOMAIN || hostname.endsWith(`.${AFFILIATE_DOMAIN}`)
@@ -137,7 +134,7 @@ export function affiliateCookieDomain(hostname: string): string | null {
   return shared ? `.${AFFILIATE_DOMAIN}` : null
 }
 
-/** The same cookie the site sets, so the console and the site read each other's. */
+// Must match the cookie the site sets, so each reads the other's.
 export function affiliateCookieFor(
   code: string,
   hostname: string,
@@ -162,7 +159,7 @@ export function affiliateCookieFor(
   return attributes.join("; ")
 }
 
-/** First touch wins: a later link does not take the credit from the one that brought the visitor. */
+// First touch wins: a later link never takes the credit.
 export function affiliateCookieToWrite(
   cookie: string,
   code: string,
@@ -180,7 +177,6 @@ export function readAffiliateCode(): string | null {
     : affiliateCodeFrom(document.cookie)
 }
 
-/** The one place the console writes the cookie, so the rule lives here and not in a route. */
 export function writeAffiliateCookie(code: string): void {
   const cookie = affiliateCookieToWrite(
     document.cookie,

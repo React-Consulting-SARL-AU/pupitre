@@ -23,7 +23,7 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   use: {
     baseURL: HARNESS_ORIGIN,
-    /** The console follows the browser's language; the scenarios read French. */
+    // The console follows the browser's language; the scenarios read French.
     locale: "fr-FR",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
@@ -36,8 +36,7 @@ export default defineConfig({
       testIgnore: MOBILE_SPEC_RE,
     },
     {
-      // A phone-sized Chromium rather than an iPhone preset: the preset would
-      // pull in WebKit, and what is under test is the width, not the engine.
+      // An iPhone preset would pull in WebKit; only the width is under test.
       name: "mobile",
       use: { ...devices["Desktop Chrome"], viewport: PHONE_VIEWPORT },
       testMatch: MOBILE_SPEC_RE,

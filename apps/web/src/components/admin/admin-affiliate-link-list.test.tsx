@@ -80,7 +80,7 @@ function field(id: string): Element {
   return found
 }
 
-/** The row moves before the platform answers: the store is read once the call has landed, or the wait is over. */
+// The row updates optimistically, so the store is polled until the call lands.
 async function storedDisabled(code: string, expected: boolean) {
   const { prisma } = await bootApiTestServer()
   const deadline = Date.now() + SETTLE_MS

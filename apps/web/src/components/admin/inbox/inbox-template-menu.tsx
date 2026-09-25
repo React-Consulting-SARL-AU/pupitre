@@ -16,7 +16,7 @@ export interface InboxTemplateMenuProps {
   disabled?: boolean
 }
 
-/** The console fills the field; the server never hears about a canned reply. */
+// Client-side only: the server never learns a canned reply was used.
 export function InboxTemplateMenu({
   mailboxId,
   onPick,

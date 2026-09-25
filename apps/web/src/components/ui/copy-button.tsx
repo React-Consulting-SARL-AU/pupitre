@@ -6,7 +6,6 @@ export interface CopyButtonProps {
   value: string
   label: string
   copiedLabel: string
-  /** What the button says when the browser kept the clipboard to itself. */
   failedLabel: string
 }
 
@@ -20,7 +19,6 @@ const ICONS: Record<CopyState, typeof Copy> = {
   failed: X,
 }
 
-/** An icon button that puts a value in the clipboard and says so on itself for a moment. */
 export function CopyButton({
   value,
   label,

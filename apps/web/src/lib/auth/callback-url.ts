@@ -55,11 +55,7 @@ function sameOriginPath(value: string, origin: string): string | null {
   return new URL(path, origin).origin === origin ? path : null
 }
 
-/**
- * The destination a sign-in is heading to travels through the URL, so
- * anything pointing off this origin is dropped: an open redirect behind a
- * sign-in is a phishing tool.
- */
+// Off-origin destinations are dropped: an open redirect behind a sign-in is a phishing tool.
 export function safeCallbackUrl(value: unknown, origin: string): string {
   if (typeof value !== "string" || value === "") {
     return DEFAULT_CALLBACK_URL

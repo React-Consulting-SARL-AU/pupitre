@@ -27,6 +27,7 @@ import {
 import {
   createConsoleUser,
   grantLaunch,
+  usePlatformReaderClient,
   useSessionApiClient,
   useSeveredApiClient,
 } from "@/testing/harness"
@@ -59,7 +60,6 @@ function page(
   return withDashboard(<Detail id={id} start={tab} />, { platformRole })
 }
 
-/** What the grant route writes, laid straight into the table. */
 async function grantedSubscription(organizationId: string, quantity: number) {
   const { prisma } = await bootApiTestServer()
 
@@ -451,6 +451,8 @@ describe("AdminSubscriptionDetail", () => {
       roles: ["owner"],
     })
     const granted = await grantedSubscription(organization.id, 2)
+
+    await usePlatformReaderClient()
 
     const { container, unmount } = await render(
       page(granted.id, { platformRole: "member" })

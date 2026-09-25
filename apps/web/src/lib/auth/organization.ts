@@ -1,6 +1,5 @@
 import { authClient } from "@/lib/auth/client"
 
-/** The screen that catches this writes its own sentence, in the reader's language. */
 function raise(error: { message?: string } | null | undefined): never {
   throw new Error(error?.message ?? "organization_request_failed")
 }

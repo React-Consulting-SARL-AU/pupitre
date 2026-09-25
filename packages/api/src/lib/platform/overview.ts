@@ -250,7 +250,7 @@ async function readUnreachableServers(): Promise<
   }
 }
 
-/** The same count as `reconcileSeats`, read only: seated servers over the seats the organisation pays. */
+// Must count like `reconcileSeats`, read only.
 async function readSeatDrift(): Promise<Worklist<SeatDriftItem>> {
   const usage = await readSeatUsage()
   const drifted = usage
@@ -281,7 +281,6 @@ function scheduledItems(
   )
 }
 
-/** Accounts and organisations share one list: what the team has to cancel before the rows go. */
 async function readScheduledDeletions(): Promise<
   Worklist<ScheduledDeletionItem>
 > {

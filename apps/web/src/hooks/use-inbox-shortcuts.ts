@@ -14,7 +14,7 @@ export interface InboxShortcutHandlers {
 
 const REPLY_FIELD_ID = "inbox-reply"
 
-/** The one registrar of the inbox: the layout mounts it, nothing else listens. */
+// Mount once, in the inbox layout: nothing else listens for these keys.
 export function useInboxShortcuts(handlers: InboxShortcutHandlers): void {
   const current = useRef(handlers)
 

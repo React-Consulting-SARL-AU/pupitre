@@ -258,7 +258,7 @@ export type AttachmentDisposition = NonNullable<
   >["query"]
 >["disposition"]
 
-/** Signed for a few minutes: asked for when the viewer opens, never at render. */
+// Signed for a few minutes: ask when the viewer opens, never at render.
 export async function attachmentUrl(
   id: string,
   disposition: AttachmentDisposition
@@ -303,7 +303,7 @@ export class AttachmentUploadError extends Error {
 
 const FALLBACK_MIME_TYPE = "application/octet-stream"
 
-/** The file goes straight to the bucket: the Worker only signs the slot. */
+// The file goes straight to the bucket: the Worker only signs the slot.
 export async function uploadAttachment(
   file: File
 ): Promise<OutboundAttachment> {
@@ -323,7 +323,7 @@ export async function uploadAttachment(
   return { key: slot.key, ...meta }
 }
 
-/** One after the other, naming each as it leaves; the first refusal stops the rest. */
+// Sequential: the first refusal stops the rest.
 export async function uploadAttachments(
   files: readonly File[],
   onStart: (file: File) => void
@@ -338,7 +338,6 @@ export async function uploadAttachments(
   return uploaded
 }
 
-/** The thread is refetched right after: the answer only has to be a success. */
 export function replyToThread(id: string, body: ReplyBody): Promise<void> {
   return api()
     .api.v1.admin.inbox.threads({ id })

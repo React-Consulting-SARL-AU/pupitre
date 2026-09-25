@@ -7,7 +7,6 @@ import { apiFailure } from "@/lib/api/errors"
 export interface AdminFailureProps {
   fetching: boolean
   onRetry: () => void
-  /** What the API refused with, whose own words replace the generic ones. */
   error?: unknown
 }
 

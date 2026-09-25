@@ -8,7 +8,6 @@ import { type ReleaseBuild, releaseVersions } from "@/lib/domain/admin"
 
 export interface AdminReleaseListProps {
   title: string
-  /** What the promotion makes this version the target of: the agents, or the download page. */
   target: string
   builds: UseQueryResult<ReleaseBuild[]>
   canPromote: boolean
@@ -18,7 +17,6 @@ export interface AdminReleaseListProps {
   onOffsetChange: (offset: number) => void
 }
 
-/** The agent's versions and the app's read the same way: one line per version, the artefacts counted. */
 export function AdminReleaseList({
   title,
   target,

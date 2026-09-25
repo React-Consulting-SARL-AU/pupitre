@@ -13,7 +13,6 @@ import {
   suspendServer,
 } from "@/lib/api/admin-queries"
 import { queryKeys } from "@/lib/api/queries"
-import { canRestore, canSuspend } from "@/lib/domain/admin"
 import { purgeable, type ServerDeletion } from "@/lib/domain/server-deletion"
 import type { Translate } from "@/lib/i18n/i18n"
 import type { ConfirmFormValues } from "@/lib/schemas/confirm-form"
@@ -32,7 +31,6 @@ interface DeletionCopy {
   deletion: ServerDeletion
 }
 
-/** Revoking and purging are the same control, one step apart: the copy says which one it is. */
 function deletionCopy(server: AdminServerDetail, t: Translate): DeletionCopy {
   if (purgeable(server.status)) {
     return {
@@ -71,6 +69,7 @@ export function AdminServerDanger({ server }: AdminServerDangerProps) {
     queryKeys.admin.allServers,
   ]
   const deletion = deletionCopy(server, t)
+  const allowed = new Set(server.allowed_actions)
   const suspend = useConfirmMutation<ConfirmFormValues>({
     mutationFn: (values) => suspendServer(server.id, values.reason),
     invalidate: touched,
@@ -113,7 +112,7 @@ export function AdminServerDanger({ server }: AdminServerDangerProps) {
 
   return (
     <div className="flex flex-col gap-gutter">
-      {canSuspend(server.status) ? (
+      {allowed.has("suspend") ? (
         <DangerZone
           action={
             <ConfirmFormDialog
@@ -150,7 +149,7 @@ export function AdminServerDanger({ server }: AdminServerDangerProps) {
         />
       ) : null}
 
-      {canRestore(server.suspended_reason) ? (
+      {allowed.has("restore") ? (
         <DangerZone
           action={
             <Button

@@ -3,8 +3,7 @@ import { cn } from "@/lib/utils/cn"
 
 const BORDER_MODULES = 2
 
-// One path for the whole matrix: a few hundred rects would be a few hundred
-// nodes for a picture that never changes.
+// One path for the whole matrix instead of hundreds of rect nodes.
 function modulesPath(matrix: boolean[][]): string {
   const segments: string[] = []
 

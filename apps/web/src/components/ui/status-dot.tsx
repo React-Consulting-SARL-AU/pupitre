@@ -11,7 +11,7 @@ const TONES: Record<StatusTone, string> = {
 export interface StatusDotProps {
   shape: StatusShape
   tone: StatusTone
-  /** Left out when a visible label beside the dot already says the state. */
+  // Omit when a visible label beside the dot already says the state.
   label?: string
   className?: string
 }

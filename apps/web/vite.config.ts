@@ -2,6 +2,7 @@ import http from "node:http"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { cloudflare } from "@cloudflare/vite-plugin"
+import { PUPITRE_ORIGINS } from "@pupitre/shared/legal"
 import tailwindcss from "@tailwindcss/vite"
 import { tanstackStart } from "@tanstack/react-start/plugin/vite"
 import react from "@vitejs/plugin-react"
@@ -9,8 +10,10 @@ import { createLogger, defineConfig, type Plugin } from "vite"
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url))
 
-/** The host `scripts/dev-tunnel.ts` publishes this console under: Vite answers 403 to any host it was not told about. */
-const TUNNEL_HOST = process.env.PUPITRE_TUNNEL_HOSTNAME ?? "dev.pupitre.studio"
+// Vite answers 403 to any host it was not told about, the dev tunnel included.
+const TUNNEL_HOST =
+  process.env.PUPITRE_TUNNEL_HOSTNAME ??
+  new URL(PUPITRE_ORIGINS.devTunnel).hostname
 
 const MAX_CAUSE_DEPTH = 5
 
@@ -20,7 +23,7 @@ function describe(error: Error): string {
   return code ? `${code} — ${error.message}` : error.message
 }
 
-/** Undici says `fetch failed` and nothing else: which socket refused, reset or ran out of descriptors lives in the `cause` chain, and Vite prints only the head of it. A dev server that cannot name its own failure costs an afternoon. */
+// Undici only says `fetch failed`; the real socket error lives in the `cause` chain Vite does not print.
 function causes(error: unknown): string[] {
   const found: string[] = []
   let current = error instanceof Error ? error.cause : undefined
@@ -65,7 +68,7 @@ const LOOPBACK_MIRRORS: Record<string, string> = {
   "::1": "127.0.0.1",
 }
 
-/** macOS resolves `localhost` to `::1` first, so the desktop app calling `http://localhost:3000` can land on `127.0.0.1` where nothing listens: a second listener on the other loopback serves the same handlers. */
+// macOS may resolve `localhost` to either loopback: a mirror listener serves the other one.
 function dualLoopback(): Plugin {
   return {
     name: "pupitre:dual-loopback",

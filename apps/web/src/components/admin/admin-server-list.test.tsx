@@ -13,7 +13,11 @@ import {
   AdminServerList,
   type AdminServerListSearch,
 } from "@/components/admin/admin-server-list"
-import { createConsoleUser, useSessionApiClient } from "@/testing/harness"
+import {
+  createConsoleUser,
+  usePlatformReaderClient,
+  useSessionApiClient,
+} from "@/testing/harness"
 import { ListSearchHarness } from "@/testing/list-search"
 import {
   fill,
@@ -42,7 +46,7 @@ function list(
   )
 }
 
-/** The row moves before the platform answers: the store is read once the call has landed, or the wait is over. */
+// The row updates optimistically, so the store is polled until the call lands.
 async function storedServer(id: string, expected = "suspended") {
   const { prisma } = await bootApiTestServer()
   const deadline = Date.now() + SETTLE_MS
@@ -283,6 +287,7 @@ describe("AdminServerList", () => {
 
   it("leaves a reader of the platform the rows without any gesture", async () => {
     await createServer({ organizationId, name: "vps-one" })
+    await usePlatformReaderClient()
 
     const { container, unmount } = await render(list("member"))
 

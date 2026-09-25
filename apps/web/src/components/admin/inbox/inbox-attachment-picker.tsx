@@ -16,7 +16,6 @@ export interface InboxAttachmentPickerProps {
   files: File[]
   onFilesChange: (files: File[]) => void
   disabled?: boolean
-  /** The file leaving right now: its row breathes instead of offering to go. */
   sending?: string | null
 }
 

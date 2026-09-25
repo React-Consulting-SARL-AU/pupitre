@@ -35,7 +35,7 @@ export interface CheckoutFormProps {
   organizationId: string
   defaultQuantity: number
   defaultInterval?: BillingIntervalName
-  /** An organization that never subscribed gets the trial: one machine, and the count is not its to choose. */
+  // A first checkout is the trial: one machine, no quantity to choose.
   firstCheckout?: boolean
 }
 

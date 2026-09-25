@@ -36,7 +36,6 @@ export interface TrialOfferProps {
   organizationId: string
 }
 
-/** The platform says which offer runs: during the launch the free access, otherwise Stripe's trial. */
 export function TrialOffer({ organizationId }: TrialOfferProps) {
   const t = useTranslations()
   const status = useQuery(statusQueryOptions())
