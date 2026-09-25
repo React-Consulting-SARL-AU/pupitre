@@ -3,15 +3,19 @@ package mysql
 import (
 	"io"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/db/room"
 	"pupitre.studio/agent/internal/sys"
 )
 
 // A dump streams to a bucket as fast as the uplink takes it: its length is the upload's, not the database's.
 const streamTimeout = 24 * time.Hour
+
+const dataDir = "/var/lib/mysql"
 
 var systemDatabases = []string{"mysql", "sys", "information_schema", "performance_schema"}
 
@@ -43,14 +47,36 @@ func DumpTo(ctx *modules.Context, name string, w io.Writer) error {
 }
 
 // RestoreFrom drops the database; the dump creates it again with its own character set and fills it.
-func RestoreFrom(ctx *modules.Context, name string, r io.Reader) error {
+// A dump names its database inside its own SQL, views and triggers included, so it cannot be loaded aside and swapped in: the disk is weighed before the drop instead, the dump's size against what is free once the database is gone.
+func RestoreFrom(ctx *modules.Context, name string, size int64, r io.Reader) error {
+	held, err := weight(ctx, name)
+	if err != nil {
+		return err
+	}
+
+	if err := room.Check(ctx, name, dataDir, size, held); err != nil {
+		return err
+	}
+
 	if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"mysql", "--protocol=socket", "-e", "DROP DATABASE IF EXISTS `" + name + "`"}}); err != nil {
 		return err
 	}
 
-	_, err := sys.Exec(ctx, sys.Command{Argv: sys.Idle("mysql", "--protocol=socket", "--default-character-set=utf8mb4"), Input: r, Output: io.Discard, Timeout: streamTimeout})
+	_, err = sys.Exec(ctx, sys.Command{Argv: sys.Idle("mysql", "--protocol=socket", "--default-character-set=utf8mb4"), Input: r, Output: io.Discard, Timeout: streamTimeout})
 
 	return err
+}
+
+// weight is what the database holds on the disk, tables and indexes: what its drop gives back.
+func weight(ctx *modules.Context, name string) (int64, error) {
+	lines, err := ask(ctx, "SELECT COALESCE(SUM(data_length + index_length), 0) FROM information_schema.tables WHERE table_schema = '"+quote(name)+"'")
+	if err != nil || len(lines) == 0 {
+		return 0, err
+	}
+
+	bytes, _ := strconv.ParseInt(strings.TrimSpace(lines[0]), 10, 64)
+
+	return bytes, nil
 }
 
 // The accounts the server makes for itself; with the module's two, they are never carried.

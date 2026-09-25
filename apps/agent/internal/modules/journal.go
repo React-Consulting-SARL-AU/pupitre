@@ -4,9 +4,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 )
+
+// memoryLines bounds what a journal keeps in memory: a daemon or a serve session holds one for its whole life, and the file keeps everything anyway.
+const memoryLines = 4096
 
 type journal struct {
 	file    *os.File
@@ -32,6 +36,10 @@ func openJournal(path string, now func() time.Time) *journal {
 }
 
 func (j *journal) hide(secret string) {
+	if slices.Contains(j.secrets, secret) {
+		return
+	}
+
 	j.secrets = append(j.secrets, secret)
 }
 
@@ -46,6 +54,10 @@ func (j *journal) redact(text string) string {
 func (j *journal) logf(module, format string, args ...any) {
 	text := j.redact(fmt.Sprintf(format, args...))
 	line := fmt.Sprintf("%s [%s] %s", j.now().UTC().Format(time.RFC3339), module, text)
+
+	if len(j.memory) >= memoryLines {
+		j.memory = append(j.memory[:0], j.memory[len(j.memory)-memoryLines/2:]...)
+	}
 
 	j.memory = append(j.memory, line)
 

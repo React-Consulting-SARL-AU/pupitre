@@ -69,7 +69,11 @@ type Options struct {
 	Detect  DetectOptions
 	Self    func() int
 	Sleep   func(time.Duration)
+	// GitTimeout bounds a git read — a status, a log, a diff — on a disk that stalls or a repository that has grown too large; zero is DefaultGitTimeout.
+	GitTimeout time.Duration
 }
+
+const DefaultGitTimeout = 30 * time.Second
 
 // The reader of the machine's state: the project registry, the tmux session and the installed modules, and nothing that writes on its own.
 type Reader struct {
@@ -81,6 +85,9 @@ func New(options Options) *Reader {
 	options.Follow = options.Follow.resolved()
 	if options.Now == nil {
 		options.Now = time.Now
+	}
+	if options.GitTimeout == 0 {
+		options.GitTimeout = DefaultGitTimeout
 	}
 	if options.Tmux.Now == nil {
 		options.Tmux.Now = options.Now

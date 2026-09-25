@@ -354,9 +354,14 @@ func (f *FakeSys) find(args []string) (sys.Output, error) {
 	}
 	sort.Strings(paths)
 
+	ending := "\n"
+	if slices.Contains(args, "-print0") {
+		ending = "\x00"
+	}
+
 	var out strings.Builder
 	for _, path := range paths {
-		fmt.Fprintln(&out, path)
+		out.WriteString(path + ending)
 	}
 
 	return sys.Output{Stdout: out.String()}, nil

@@ -57,6 +57,7 @@ func (s *Service) restoreSetup(ctx *modules.Context, location contract.BackupLoc
 	if err != nil {
 		return contract.BackupRestoreSetupResult{}, err
 	}
+	defer clear(private)
 
 	files, err := s.setupOf(backup, private)
 	if err != nil {
@@ -69,6 +70,7 @@ func (s *Service) restoreSetup(ctx *modules.Context, location contract.BackupLoc
 	}
 
 	previous := projectNames(s.options.Reader)
+	earlier := marker
 
 	// A second restore before the install keeps what the machine held before the first.
 	if !restoring {
@@ -84,8 +86,15 @@ func (s *Service) restoreSetup(ctx *modules.Context, location contract.BackupLoc
 	marker.Location = contract.BackupLocation{Endpoint: location.Endpoint, Region: location.Region, Bucket: location.Bucket, Key: backup.key, PathStyle: location.PathStyle, SHA256: location.SHA256}
 	marker.Revert = marker.Revert || revert
 
+	// The marker lands before the backup's files: a restore cut short in between is still one, and the next never takes its files for the machine's own.
+	marker.Installed = ""
+	if err := writeJSON(ctx, s.paths.Marker, marker); err != nil {
+		return contract.BackupRestoreSetupResult{}, err
+	}
+
 	if err := s.putSetup(ctx, files, runner); err != nil {
 		s.putBack(ctx, marker)
+		s.forgetAttempt(ctx, earlier, restoring)
 
 		return contract.BackupRestoreSetupResult{}, err
 	}
@@ -133,11 +142,16 @@ func (s *Service) setupOf(backup opened, private []byte) (map[string][]byte, err
 		return nil, corrupt(i18n.T("backup.corrupt.setup"))
 	}
 
-	reader, err := s.part(backup, backup.manifest.Parts[index], private)
+	staged, err := s.part(backup, backup.manifest.Parts[index], private)
 	if err != nil {
 		return nil, err
 	}
-	defer reader.Close()
+	defer staged.Close()
+
+	reader, err := staged.open()
+	if err != nil {
+		return nil, err
+	}
 
 	files, err := archive.ReadFiles(reader, setupLimit)
 	if err != nil {
@@ -264,7 +278,22 @@ func (s *Service) installDigest(ctx sys.Context) string {
 	return sha256Hex(content)
 }
 
+// forgetAttempt leaves the marker as a setup that failed found it: the one of an earlier restore, or none.
+func (s *Service) forgetAttempt(ctx sys.Context, earlier Marker, restoring bool) {
+	var err error
+	if restoring {
+		err = writeJSON(ctx, s.paths.Marker, earlier)
+	} else {
+		err = s.clearMarker(ctx)
+	}
+
+	if err != nil {
+		ctx.Logf("restore marker not put back: %s", err)
+	}
+}
+
 // Abort puts back the configuration of before the restore, unless an install has run on the restored one since.
+// A marker without a digest is a setup cut short before it finished: whatever it laid down goes.
 func (s *Service) Abort() error {
 	return s.options.Engine.Command(module.ID, nil, func(ctx *modules.Context) error {
 		marker, restoring := s.marker(ctx)
@@ -272,7 +301,7 @@ func (s *Service) Abort() error {
 			return nil
 		}
 
-		if s.installDigest(ctx) == marker.Installed {
+		if marker.Installed == "" || s.installDigest(ctx) == marker.Installed {
 			s.putBack(ctx, marker)
 		}
 

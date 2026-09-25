@@ -43,6 +43,16 @@ func serve(t *testing.T, b *bench, granted contract.Entitlement, requests ...str
 	return session(t, b, entitlement.Fixed(granted), requests...)
 }
 
+// recorded is the entitlement the daemon wrote down for the machine, as a release build resolves it: a development build answers its own whatever is written.
+func (b *bench) recorded() contract.Entitlement {
+	cache, err := entitlement.ReadCache(b.fake, entitlement.DefaultCachePath)
+	if err != nil {
+		return contract.EntitlementRestricted
+	}
+
+	return cache.Resolve(b.now, entitlement.DefaultTolerance)
+}
+
 // The same session, with the entitlement the machine itself resolves: that is what tells an unenrolled binary apart.
 func serveResolved(t *testing.T, b *bench, requests ...string) []response {
 	t.Helper()
@@ -367,8 +377,13 @@ func TestEnrollTradesTheTokenTakenFromTheSecretLine(t *testing.T) {
 	}
 	json.Unmarshal(answer.Result, &result)
 
-	if !result.Enrolled || result.Entitlement != string(contract.EntitlementValid) || result.SyncedAt == "" {
-		t.Fatalf("result = %+v", result)
+	resolved := entitlement.New(entitlement.Options{Sys: b.fake, Now: func() time.Time { return b.now }}).Current()
+	if !result.Enrolled || result.Entitlement != string(resolved) || result.SyncedAt == "" {
+		t.Fatalf("result = %+v, the machine now resolves %s", result, resolved)
+	}
+
+	if recorded := b.recorded(); recorded != contract.EntitlementValid {
+		t.Fatalf("the first state read must be written down valid, got %s", recorded)
 	}
 
 	if len(b.platform.traded) != 1 || b.platform.traded[0].Token != enrollmentToken {
@@ -469,15 +484,17 @@ func TestARestrictedServerEnrolsAgainWithoutTheConsole(t *testing.T) {
 }
 
 // The one command a binary without a server token opens beyond hello, ping and diag.
+// The state is the one a release build resolves without a token, named here: a development build resolves its own entitlement whatever the disk holds.
 func TestOnlyEnrollOpensOnABinaryWithoutAServerToken(t *testing.T) {
 	b := newBench(t, false)
+	unenrolled := func() entitlement.State { return entitlement.State{Entitlement: contract.EntitlementRestricted} }
 
-	refused := serveResolved(t, b, `{"id":2,"cmd":"keys.sync","params":{}}`)[0]
+	refused := session(t, b, unenrolled, `{"id":2,"cmd":"keys.sync","params":{}}`)[0]
 	if refused.OK || refused.Error.Code != contract.ErrorEntitlementRequired {
 		t.Fatalf("keys.sync = %+v", refused)
 	}
 
-	if answer := serveResolved(t, b, enrollRequests(b)...)[0]; !answer.OK {
+	if answer := session(t, b, unenrolled, enrollRequests(b)...)[0]; !answer.OK {
 		t.Fatalf("enroll refused on an unenrolled binary: %v", answer.Error)
 	}
 }

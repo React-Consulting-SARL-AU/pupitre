@@ -112,6 +112,17 @@ func (c Client) Delete(ctx context.Context, key string) error {
 	return err
 }
 
+// Size is the length of an object, a KindNoKey refusal when there is none.
+func (c Client) Size(ctx context.Context, key string) (int64, error) {
+	response, err := c.open(ctx, call{op: "HeadObject", method: http.MethodHead, key: key})
+	if err != nil {
+		return 0, err
+	}
+	defer response.Body.Close()
+
+	return response.ContentLength, nil
+}
+
 // Get streams an object; the caller closes what it reads.
 func (c Client) Get(ctx context.Context, key string) (io.ReadCloser, error) {
 	response, err := c.open(ctx, call{op: "GetObject", method: http.MethodGet, key: key})

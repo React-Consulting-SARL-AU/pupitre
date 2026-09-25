@@ -1,6 +1,7 @@
 package redis
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -48,12 +49,24 @@ func TestARestoreOnAnAppendOnlyServerLoadsTheSnapshotThenPersistsItLive(t *testi
 	snapshotting(fake)
 	fake.Units[unit] = modtest.UnitActive
 
+	fake.Dirs["/data/redis"] = true
+	fake.Files["/data/redis/snapshot.rdb"] = []byte("REDIS-OLD")
+	fake.Files["/data/redis/appendonly.aof"] = []byte("SET key old")
+
 	if err := RestoreSnapshot(newContext(t, fake, modtest.Values{"persistence": true}), strings.NewReader("REDIS0011")); err != nil {
 		t.Fatal(err)
 	}
 
-	if string(fake.FedTo("dd of=/data/redis/snapshot.rdb")) != "REDIS0011" {
-		t.Fatal("the snapshot must land where the server reads it")
+	if string(fake.Files["/data/redis/snapshot.rdb"]) != "REDIS0011" || fake.Owners["/data/redis/snapshot.rdb"] != "redis:redis" {
+		t.Fatal("the snapshot must land where the server reads it, the server's own")
+	}
+
+	if _, kept := fake.Files["/data/redis/appendonly.aof"]; kept {
+		t.Fatal("the append-only file of before would load in place of the snapshot")
+	}
+
+	if _, left := fake.Files["/data/redis/snapshot.rdb"+incomingSuffix]; left {
+		t.Fatal("the snapshot is renamed into place, not copied")
 	}
 
 	var live string
@@ -69,5 +82,43 @@ func TestARestoreOnAnAppendOnlyServerLoadsTheSnapshotThenPersistsItLive(t *testi
 
 	if fake.Restarts[unit] != 1 {
 		t.Fatalf("restarts = %d", fake.Restarts[unit])
+	}
+}
+
+type brokenStream struct{ sent bool }
+
+func (b *brokenStream) Read(p []byte) (int, error) {
+	if b.sent {
+		return 0, errors.New("the part stopped halfway")
+	}
+
+	b.sent = true
+
+	return copy(p, "REDIS00"), nil
+}
+
+func TestARestoreThatBreaksLeavesTheDataOfBeforeAndTheServerRunning(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	snapshotting(fake)
+	fake.Units[unit] = modtest.UnitActive
+	fake.Dirs["/data/redis"] = true
+	fake.Files["/data/redis/snapshot.rdb"] = []byte("REDIS-OLD")
+	fake.Files["/data/redis/appendonly.aof"] = []byte("SET key old")
+
+	err := RestoreSnapshot(newContext(t, fake, modtest.Values{"persistence": true}), &brokenStream{})
+	if err == nil || !strings.Contains(err.Error(), "halfway") {
+		t.Fatalf("err = %v", err)
+	}
+
+	if string(fake.Files["/data/redis/snapshot.rdb"]) != "REDIS-OLD" || string(fake.Files["/data/redis/appendonly.aof"]) != "SET key old" {
+		t.Fatal("a broken restore must leave the server's own files as they were")
+	}
+
+	if _, left := fake.Files["/data/redis/snapshot.rdb"+incomingSuffix]; left {
+		t.Fatal("the half-written snapshot is taken away")
+	}
+
+	if fake.Restarts[unit] != 1 || fake.Units[unit] != modtest.UnitActive {
+		t.Fatalf("the server stopped for the restore is started again: restarts %d, state %v", fake.Restarts[unit], fake.Units[unit])
 	}
 }

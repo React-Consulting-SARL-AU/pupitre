@@ -1,7 +1,9 @@
 package state
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"regexp"
 	"sort"
 	"strconv"
@@ -69,13 +71,48 @@ func gitEnv(owner string) []string {
 
 // Read-only, and unlogged: a patch of four hundred kilobytes has nothing to do in /var/log/pupitre.log.
 func (r *Reader) git(dir string, argv ...string) (string, error) {
-	out, err := r.ctx().Sys().Run(r.gitCommand(dir, argv))
+	out, err := r.ctx().Sys().Run(r.readCommand(dir, argv))
 
 	return strings.TrimRight(out.Stdout, "\n"), err
 }
 
-func (r *Reader) gitRaw(dir string, argv ...string) (sys.Output, error) {
-	return r.ctx().Sys().Run(r.gitCommand(dir, argv))
+// A read answers the channel it holds within the reader's own bound, not the half hour a clone or a pull may take.
+func (r *Reader) readCommand(dir string, argv []string) sys.Command {
+	command := r.gitCommand(dir, argv)
+	command.Timeout = r.options.GitTimeout
+
+	return command
+}
+
+// gitCapped streams git's output into at most limit bytes: git is stopped at the cap rather than read to its end, and says whether it was reached.
+func (r *Reader) gitCapped(dir string, limit int, argv ...string) (string, bool) {
+	capped := &cappedWriter{limit: limit}
+	command := r.readCommand(dir, argv)
+	command.Output = capped
+
+	_, _ = r.ctx().Sys().Run(command)
+
+	return capped.buffer.String(), capped.cut
+}
+
+var errCapped = errors.New("output past its cap")
+
+type cappedWriter struct {
+	buffer bytes.Buffer
+	limit  int
+	cut    bool
+}
+
+func (c *cappedWriter) Write(p []byte) (int, error) {
+	room := c.limit - c.buffer.Len()
+	if len(p) <= room {
+		return c.buffer.Write(p)
+	}
+
+	c.buffer.Write(p[:room])
+	c.cut = true
+
+	return room, errCapped
 }
 
 func (r *Reader) gitWrite(dir string, argv ...string) (sys.Output, error) {
@@ -442,8 +479,7 @@ func (r *Reader) Diff(name, path string) (contract.ProjectDiff, error) {
 		argv = []string{"diff", "--no-color", "--no-index", "--", "/dev/null", "./" + path}
 	}
 
-	out, _ := r.gitRaw(top, argv...)
-	patch := out.Stdout
+	patch, cut := r.gitCapped(top, patchLimit, argv...)
 
 	if binaryPatch(patch) {
 		diff.Binary = true
@@ -451,14 +487,10 @@ func (r *Reader) Diff(name, path string) (contract.ProjectDiff, error) {
 		return diff, nil
 	}
 
-	if len(patch) > patchLimit {
-		diff.Patch = patch[:patchLimit]
-		diff.Problem = i18n.T("state.diff.truncated")
-
-		return diff, nil
-	}
-
 	diff.Patch = patch
+	if cut {
+		diff.Problem = i18n.T("state.diff.truncated")
+	}
 
 	return diff, nil
 }

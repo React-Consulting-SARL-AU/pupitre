@@ -15,8 +15,8 @@ var filesCatalog = map[string]Message{
 		EN: "absolute path refused: %s",
 	},
 	"files.path.absolute.fix": {
-		FR: "Donnez un chemin relatif au dossier de travail, par exemple projects/flymate/api.",
-		EN: "Give a path relative to the work folder, for example projects/flymate/api.",
+		FR: "Donnez un chemin relatif au dossier de travail, par exemple projects/flyleaf/api.",
+		EN: "Give a path relative to the work folder, for example projects/flyleaf/api.",
 	},
 	"files.path.outside": {
 		FR: "chemin hors du dossier de travail : %s",
@@ -69,6 +69,10 @@ var filesCatalog = map[string]Message{
 	"files.unreadable": {
 		FR: "fichier illisible : %s",
 		EN: "the file cannot be read: %s",
+	},
+	"files.special": {
+		FR: "%s est un tube, une socket ou un périphérique, pas un fichier : il ne se lit pas",
+		EN: "%s is a pipe, a socket or a device, not a file: it cannot be read",
 	},
 	"files.write.tooLarge": {
 		FR: "écriture trop lourde : %d octets pour un maximum de %d",

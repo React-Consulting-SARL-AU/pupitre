@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -14,6 +15,7 @@ import (
 	"pupitre.studio/agent/internal/platform"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/selfupdate"
+	"pupitre.studio/agent/internal/sys"
 )
 
 const (
@@ -202,6 +204,31 @@ func TestUpgradeInstallsASignedBinaryAndRestartsTheUnit(t *testing.T) {
 
 	if b.fake.Restarts[unit] != 1 {
 		t.Fatalf("restarts of %s: %d", unit, b.fake.Restarts[unit])
+	}
+}
+
+func TestAnUpgradeToTheNextProtocolGenerationIsKept(t *testing.T) {
+	b := newBench(t)
+	next := contract.ProtocolVersion + 1
+	b.fake.Replies[binaryPath+" version --json"] = `{"version":"` + nextAgent + `","protocol":` + strconv.Itoa(next) + "}\n"
+	b.fake.Observe = func(cmd sys.Command) {
+		if strings.Join(cmd.Argv, " ") != binaryPath+" serve" {
+			return
+		}
+
+		b.fake.Replies[binaryPath+" serve"] = hello(false, "", string(contract.ErrorProtocolMismatch))
+		if strings.Contains(string(cmd.Stdin), `"protocol":`+strconv.Itoa(next)) {
+			b.fake.Replies[binaryPath+" serve"] = hello(true, nextAgent, "")
+		}
+	}
+
+	result, err := b.upgrade(t, nextAgent)
+	if err != nil {
+		t.Fatalf("a binary of the next generation answers hello in its own protocol: %v", err)
+	}
+
+	if result.Version != nextAgent || string(b.fake.Files[binaryPath]) != string(newBinary) {
+		t.Fatalf("result = %+v, binary %q", result, b.fake.Files[binaryPath])
 	}
 }
 

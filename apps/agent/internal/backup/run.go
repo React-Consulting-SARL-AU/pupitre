@@ -92,21 +92,26 @@ func (s *Service) run(ctx *modules.Context, trigger string, overrides Overrides)
 		return contract.BackupRunResult{}, unconfigured()
 	}
 
+	started := s.now()
+
 	serverID := s.ServerID()
 	if serverID == "" {
-		return contract.BackupRunResult{}, unnamed()
+		return contract.BackupRunResult{}, s.unstarted(ctx, started, unnamed())
 	}
 
 	recipient, err := seal.DecodeKey(settings.Recipient)
 	if err != nil {
-		return contract.BackupRunResult{}, unconfigured()
+		return contract.BackupRunResult{}, s.unstarted(ctx, started, unconfigured())
 	}
 
 	ctx.Replaying(replayRun)
-	started := s.now()
+
+	s.running.Add(1)
+	defer s.running.Add(-1)
 
 	record := s.record(ctx)
 	record.RunningSince = stamp(started)
+	record.RunningPID = os.Getpid()
 	if err := s.keep(ctx, record); err != nil {
 		return contract.BackupRunResult{}, err
 	}
@@ -129,6 +134,7 @@ func (s *Service) run(ctx *modules.Context, trigger string, overrides Overrides)
 	made, err := j.make(trigger, overrides, started)
 
 	record.RunningSince = ""
+	record.RunningPID = 0
 	record.LastRunAt = stamp(started)
 
 	if err != nil {
@@ -150,6 +156,19 @@ func (s *Service) run(ctx *modules.Context, trigger string, overrides Overrides)
 	}
 
 	return made.result, nil
+}
+
+// unstarted notes an attempt that failed before it began: the schedule waits an interval after it, not the daemon's next turn.
+func (s *Service) unstarted(ctx *modules.Context, started time.Time, err error) error {
+	record := s.record(ctx)
+	record.LastRunAt = stamp(started)
+	record.LastError = describe(err)
+
+	if kept := s.keep(ctx, record); kept != nil {
+		ctx.Logf("%s not written: %s", s.paths.State, kept)
+	}
+
+	return err
 }
 
 // made is what a backup leaves beside its result: the declaration still owed, and what pruning did.

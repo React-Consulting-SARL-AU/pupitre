@@ -19,7 +19,7 @@ type engine struct {
 	format  string
 	list    func(*modules.Context) ([]string, error)
 	dump    func(*modules.Context, string, io.Writer) error
-	restore func(*modules.Context, string, io.Reader) error
+	restore func(ctx *modules.Context, name string, size int64, r io.Reader) error
 	whole   *whole
 }
 

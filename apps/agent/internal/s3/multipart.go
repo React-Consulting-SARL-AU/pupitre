@@ -60,7 +60,7 @@ func (c Client) Upload(ctx context.Context, key string, r io.Reader) (Uploaded, 
 		return Uploaded{}, err
 	}
 
-	if err := upload.complete(ctx); err != nil {
+	if err := upload.complete(ctx, total); err != nil {
 		upload.abort()
 
 		return Uploaded{}, err
@@ -126,7 +126,7 @@ func (m *multipart) part(ctx context.Context, number int, body []byte) error {
 	return nil
 }
 
-func (m *multipart) complete(ctx context.Context) error {
+func (m *multipart) complete(ctx context.Context, total int64) error {
 	body, err := xml.Marshal(struct {
 		XMLName xml.Name        `xml:"CompleteMultipartUpload"`
 		Parts   []completedPart `xml:"Part"`
@@ -137,6 +137,9 @@ func (m *multipart) complete(ctx context.Context) error {
 
 	header := http.Header{"Content-Type": {"application/xml"}}
 	answer, err := m.client.exchange(ctx, call{op: "CompleteMultipartUpload", method: http.MethodPost, key: m.key, query: url.Values{"uploadId": {m.id}}, header: header, body: body, payload: hashHex(body)})
+	if m.landed(ctx, err, total) {
+		return nil
+	}
 	if err != nil {
 		return err
 	}
@@ -146,6 +149,18 @@ func (m *multipart) complete(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// landed tells a completion whose answer was lost on the way from one that failed: its retry finds the upload gone, and the object whole under its key.
+func (m *multipart) landed(ctx context.Context, err error, total int64) bool {
+	var failure *Error
+	if !errors.As(err, &failure) || failure.Code != "NoSuchUpload" {
+		return false
+	}
+
+	size, headErr := m.client.Size(ctx, m.key)
+
+	return headErr == nil && size == total
 }
 
 func (m *multipart) abort() {
@@ -183,7 +198,7 @@ func (c Client) Copy(ctx context.Context, source, destination string, size int64
 		return err
 	}
 
-	if err := upload.complete(ctx); err != nil {
+	if err := upload.complete(ctx, size); err != nil {
 		upload.abort()
 
 		return err

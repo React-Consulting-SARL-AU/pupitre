@@ -116,8 +116,12 @@ func (r *Runner) Expected() int {
 // writing anything. Every session asks it, including one opened while an
 // install runs, so it has to cost a single read of a small file.
 func (r *Runner) State() contract.ConfigRevision {
-	ledger, _ := readLedger(r.options.Sys, r.paths.Ledger)
+	ledger, err := readLedger(r.options.Sys, r.paths.Ledger)
 	expected := r.Expected()
+
+	if err != nil {
+		return contract.ConfigRevision{Revision: 0, Expected: expected, State: contract.ConfigFailed}
+	}
 
 	state := stateOf(ledger.Revision, expected)
 	if state == contract.ConfigPending && r.refused.Load() {
@@ -145,7 +149,11 @@ func stateOf(revision, expected int) contract.ConfigState {
 // that loses both. What refuses is every other command, for as long as the
 // configuration is not the shape this binary reads.
 func (r *Runner) Run() (Result, error) {
-	ledger, _ := readLedger(r.options.Sys, r.paths.Ledger)
+	ledger, err := readLedger(r.options.Sys, r.paths.Ledger)
+	if err != nil {
+		return Result{}, err
+	}
+
 	expected := r.Expected()
 
 	if ledger.Revision >= expected {
@@ -292,7 +300,11 @@ func (r *Runner) Restore(name string) (Result, error) {
 	}
 
 	r.refused.Store(false)
-	ledger, _ := readLedger(r.options.Sys, r.paths.Ledger)
+
+	ledger, err := readLedger(r.options.Sys, r.paths.Ledger)
+	if err != nil {
+		return Result{}, err
+	}
 
 	return r.settled(ledger.Revision, r.Expected(), ids(r.after(ledger.Revision))), nil
 }
@@ -355,7 +367,7 @@ func itoa(value int) string {
 	return strconv.Itoa(value)
 }
 
-// Ledger is what the machine remembers, for a reader rather than a decision.
+// Ledger is what the machine remembers, for a reader rather than a decision: one that does not read shows as empty, and State says why.
 func (r *Runner) Ledger() Ledger {
 	ledger, _ := readLedger(r.options.Sys, r.paths.Ledger)
 

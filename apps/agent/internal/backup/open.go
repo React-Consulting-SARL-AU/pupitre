@@ -140,8 +140,15 @@ func (o opened) identity(secrets contract.BackupSecrets) ([]byte, error) {
 	return private, nil
 }
 
+// fetched is one part on the server's disk, checked against the manifest and still sealed: it opens as many times as a restore needs to read it.
+type fetched struct {
+	file    *os.File
+	key     string
+	private []byte
+}
+
 // A part is checked against the manifest before it is opened: one sealed by someone who knows the public key never reaches a database.
-func (s *Service) part(backup opened, part contract.BackupPart, private []byte) (io.ReadCloser, error) {
+func (s *Service) part(backup opened, part contract.BackupPart, private []byte) (*fetched, error) {
 	if err := os.MkdirAll(s.paths.Staging, 0o700); err != nil {
 		return nil, err
 	}
@@ -151,38 +158,55 @@ func (s *Service) part(backup opened, part contract.BackupPart, private []byte) 
 		return nil, err
 	}
 
-	discard := func() {
-		held.Close()
-		os.Remove(held.Name())
-	}
+	staged := &fetched{file: held, key: part.Key, private: private}
 
 	if err := s.download(backup, part, held); err != nil {
-		discard()
+		staged.Close()
 
 		return nil, err
 	}
 
-	if _, err := held.Seek(0, io.SeekStart); err != nil {
-		discard()
+	return staged, nil
+}
 
+// open reads the part from its start, unsealed and unzipped.
+func (f *fetched) open() (io.Reader, error) {
+	if _, err := f.file.Seek(0, io.SeekStart); err != nil {
 		return nil, err
 	}
 
-	sealed, err := seal.NewReader(held, private)
+	sealed, err := seal.NewReader(f.file, f.private)
 	if err != nil {
-		discard()
-
-		return nil, corrupt(i18n.T("backup.corrupt.part", part.Key, err.Error()))
+		return nil, corrupt(i18n.T("backup.corrupt.part", f.key, err.Error()))
 	}
 
 	unzipped, err := gzip.NewReader(sealed)
 	if err != nil {
-		discard()
-
-		return nil, corrupt(i18n.T("backup.corrupt.part", part.Key, err.Error()))
+		return nil, corrupt(i18n.T("backup.corrupt.part", f.key, err.Error()))
 	}
 
-	return closing{Reader: unzipped, close: discard}, nil
+	return unzipped, nil
+}
+
+// measure reads the part through once, for the size it has opened, and proves on the way that every block and the gzip trailer are whole.
+func (f *fetched) measure() (int64, error) {
+	reader, err := f.open()
+	if err != nil {
+		return 0, err
+	}
+
+	size, err := io.Copy(io.Discard, reader)
+	if err != nil {
+		return 0, corrupt(i18n.T("backup.corrupt.part", f.key, err.Error()))
+	}
+
+	return size, nil
+}
+
+func (f *fetched) Close() error {
+	f.file.Close()
+
+	return os.Remove(f.file.Name())
 }
 
 func (s *Service) download(backup opened, part contract.BackupPart, into io.Writer) error {
@@ -198,12 +222,14 @@ func (s *Service) download(backup opened, part contract.BackupPart, into io.Writ
 	}
 	defer body.Close()
 
+	// An object longer than the manifest says is not the part: past its length, not one more byte lands on the disk.
 	digest := sha256.New()
-	if _, err := io.Copy(io.MultiWriter(into, digest), body); err != nil {
+	copied, err := io.Copy(io.MultiWriter(into, digest), io.LimitReader(body, part.Bytes+1))
+	if err != nil {
 		return module.StorageRefused(err)
 	}
 
-	if hex.EncodeToString(digest.Sum(nil)) != part.SHA256 {
+	if copied != part.Bytes || hex.EncodeToString(digest.Sum(nil)) != part.SHA256 {
 		return corrupt(i18n.T("backup.corrupt.digest", part.Key))
 	}
 
@@ -218,17 +244,6 @@ const (
 
 func partDeadline(bytes int64) time.Duration {
 	return partFloor + time.Duration(bytes/slowestBytesPerSecond)*time.Second
-}
-
-type closing struct {
-	io.Reader
-	close func()
-}
-
-func (c closing) Close() error {
-	c.close()
-
-	return nil
 }
 
 func corrupt(message string) error {

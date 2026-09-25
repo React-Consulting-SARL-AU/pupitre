@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"pupitre.studio/agent/internal/sys"
+	"pupitre.studio/agent/internal/sys/apt"
 )
 
 type UnitState string
@@ -81,6 +82,10 @@ type FakeSys struct {
 	Updates    int
 	// Fed is what each command read on a streamed input, by its command line.
 	Fed map[string][]byte
+	// Fetched is the URL each file curl wrote came from, by path.
+	Fetched map[string]string
+	// Signers are the keys a URL serves in place of the ones apt pins for it, which is how a test serves a forged key.
+	Signers map[string][]string
 }
 
 // A row of ps, in the units ps prints: RSS in kilobytes, Etimes in seconds.
@@ -133,6 +138,8 @@ func NewFakeSys() *FakeSys {
 		Times:        map[string]time.Time{},
 		Now:          Epoch,
 		Fed:          map[string][]byte{},
+		Fetched:      map[string]string{},
+		Signers:      map[string][]string{},
 	}
 }
 
@@ -320,7 +327,7 @@ func (f *FakeSys) run(cmd sys.Command) (sys.Output, error) {
 	case "gpg":
 		return f.gpg(cmd.Argv[1:])
 	case "tar":
-		return f.tar(cmd.Argv[1:])
+		return f.tar(cmd)
 	case "gunzip":
 		return f.gunzip(cmd.Argv[1:])
 	case "gzip":
@@ -484,6 +491,8 @@ func (f *FakeSys) curl(args []string) (sys.Output, error) {
 			continue
 		}
 
+		f.Fetched[args[i+1]] = args[len(args)-1]
+
 		return sys.Output{}, f.WriteFile(args[i+1], []byte(f.downloaded()), 0o755)
 	}
 
@@ -543,7 +552,10 @@ func (f *FakeSys) fallocate(args []string) (sys.Output, error) {
 }
 
 // An extraction leaves a folder behind, and the entries seeded in Archives; without them a step that unpacks an archive could never be skipped on a replay.
-func (f *FakeSys) tar(args []string) (sys.Output, error) {
+// An archive read as "-" is the file the command's standard input was opened on, and what a user extracts is that user's.
+func (f *FakeSys) tar(cmd sys.Command) (sys.Output, error) {
+	args := cmd.Argv[1:]
+
 	var archive, dest string
 	for index, arg := range args {
 		switch {
@@ -552,6 +564,10 @@ func (f *FakeSys) tar(args []string) (sys.Output, error) {
 		case arg == "-f" || arg == "--file" || (strings.HasPrefix(arg, "-") && !strings.HasPrefix(arg, "--") && strings.HasSuffix(arg, "f")):
 			archive = next(args, index)
 		}
+	}
+
+	if archive == "-" {
+		archive = cmd.StdinPath
 	}
 
 	if _, err := f.ReadFile(archive); err != nil {
@@ -569,6 +585,14 @@ func (f *FakeSys) tar(args []string) (sys.Output, error) {
 	for _, entry := range f.Archives[archive] {
 		if err := f.WriteFile(dest+"/"+entry, []byte("extrait de "+archive), 0o755); err != nil {
 			return f.fail("tar", err.Error())
+		}
+
+		if cmd.User == "" || cmd.User == "root" {
+			continue
+		}
+
+		for made := dest + "/" + entry; made != dest && strings.HasPrefix(made, dest+"/"); made = path.Dir(made) {
+			f.Owners[made] = cmd.User + ":" + cmd.User
 		}
 	}
 
@@ -789,6 +813,10 @@ func (f *FakeSys) readlink(args []string) (sys.Output, error) {
 
 // --dearmor turns an armoured key into a keyring file, which is what makes the repository step skippable once it is there.
 func (f *FakeSys) gpg(args []string) (sys.Output, error) {
+	if slices.Contains(args, "--show-keys") {
+		return f.showKeys(args[len(args)-1])
+	}
+
 	var out, in string
 	for index, arg := range args {
 		switch {
@@ -811,6 +839,36 @@ func (f *FakeSys) gpg(args []string) (sys.Output, error) {
 	}
 
 	return sys.Output{}, f.WriteFile(out, content, 0o644)
+}
+
+// UnknownSigner is the key a URL apt pins nothing for serves.
+const UnknownSigner = "0000000000000000000000000000000000000000"
+
+// The key a repository serves is the one apt pins for its URL, unless a test named another in Signers; each comes with a subkey, whose fingerprint is not the key's.
+func (f *FakeSys) showKeys(path string) (sys.Output, error) {
+	if _, err := f.ReadFile(path); err != nil {
+		return f.fail("gpg", "gpg: can't open '"+path+"'")
+	}
+
+	url := f.Fetched[path]
+	signers, served := f.Signers[url]
+	if !served {
+		signers = apt.Pins[url]
+	}
+	if len(signers) == 0 {
+		signers = []string{UnknownSigner}
+	}
+
+	var out strings.Builder
+	for _, fingerprint := range signers {
+		fmt.Fprintf(&out, "pub:-:4096:1:%s:1487788586:::-:::scESA::::::23::0:\n", fingerprint[24:])
+		fmt.Fprintf(&out, "fpr:::::::::%s:\n", fingerprint)
+		out.WriteString("uid:-::::1487792064::0::Vendor Packaging <packaging@example.org>::::::::::0:\n")
+		out.WriteString("sub:-:4096:1:7EA0A9C3F273FCD8:1487788586::::::s::::::23:\n")
+		fmt.Fprintf(&out, "fpr:::::::::%s7EA0A9C3F273FCD8:\n", strings.Repeat("A", 24))
+	}
+
+	return sys.Output{Stdout: out.String()}, nil
 }
 
 // Joined is what tailscale status answers once up has run: a node on a tailnet, under the login that minted its key.
@@ -1485,6 +1543,11 @@ func (f *FakeSys) ReadFileIn(root, rel string) ([]byte, error) {
 		return nil, err
 	}
 
+	// A mode with a type bit, fs.ModeNamedPipe for one, stands for what is not a regular file.
+	if f.Modes[target]&fs.ModeType != 0 {
+		return nil, &fs.PathError{Op: "read", Path: rel, Err: sys.ErrNotRegular}
+	}
+
 	return f.ReadFile(target)
 }
 
@@ -1722,6 +1785,10 @@ func (f *FakeSys) node(name, path string) sys.Node {
 
 	if _, isFile := f.Files[path]; !isFile && f.known(path) {
 		node.Kind = sys.NodeDir
+	}
+
+	if node.Kind == sys.NodeFile && f.Modes[path]&fs.ModeType != 0 {
+		node.Kind = sys.NodeSpecial
 	}
 
 	return node

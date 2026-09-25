@@ -2,7 +2,6 @@ package system
 
 import (
 	"errors"
-	"strconv"
 	"strings"
 
 	"pupitre.studio/agent/internal/i18n"
@@ -10,6 +9,7 @@ import (
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/apt"
 	"pupitre.studio/agent/internal/sys/file"
+	"pupitre.studio/agent/internal/sys/host"
 	"pupitre.studio/agent/internal/sys/systemd"
 )
 
@@ -100,20 +100,8 @@ func swapPresent(ctx *modules.Context) bool {
 }
 
 func swapSize(ctx *modules.Context) string {
-	raw, err := file.Read(ctx, "/proc/meminfo")
-	if err != nil {
-		return smallSwap
-	}
-
-	for _, line := range strings.Split(string(raw), "\n") {
-		fields := strings.Fields(line)
-		if len(fields) < 2 || fields[0] != "MemTotal:" {
-			continue
-		}
-
-		if kb, err := strconv.Atoi(fields[1]); err == nil && kb >= memoryThresholdKB {
-			return largeSwap
-		}
+	if kb, known := host.MemTotalKB(ctx); known && kb >= memoryThresholdKB {
+		return largeSwap
 	}
 
 	return smallSwap
@@ -141,6 +129,11 @@ func enableMemoryGuard(ctx *modules.Context) error {
 
 func configureUnattendedUpgrades(ctx *modules.Context) error {
 	return writeIfChanged(ctx, "configure-unattended-upgrades", aptPeriodicPath, []byte(aptPeriodic), 0o644)
+}
+
+// A step of Configure, which every upgrade replays: a server installed before the drop-in gets it on its next upgrade.
+func rotateAgentLog(ctx *modules.Context) error {
+	return writeIfChanged(ctx, "rotate-agent-log", logRotationPath, []byte(agentLogRotation), 0o644)
 }
 
 func enableUnattendedUpgrades(ctx *modules.Context) error {

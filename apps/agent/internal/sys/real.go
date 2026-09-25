@@ -316,6 +316,7 @@ func max0(value int64) int64 {
 	return value
 }
 
+// The open never waits on a pipe, and what is not a regular file is refused before a byte is read.
 func (Real) ReadFileIn(root, rel string) ([]byte, error) {
 	scoped, err := os.OpenRoot(root)
 	if err != nil {
@@ -323,7 +324,22 @@ func (Real) ReadFileIn(root, rel string) ([]byte, error) {
 	}
 	defer scoped.Close()
 
-	return scoped.ReadFile(rel)
+	handle, err := scoped.OpenFile(rel, os.O_RDONLY|syscall.O_NONBLOCK, 0)
+	if err != nil {
+		return nil, err
+	}
+	defer handle.Close()
+
+	info, err := handle.Stat()
+	if err != nil {
+		return nil, err
+	}
+
+	if !info.Mode().IsRegular() {
+		return nil, &fs.PathError{Op: "read", Path: rel, Err: ErrNotRegular}
+	}
+
+	return io.ReadAll(handle)
 }
 
 func (Real) ListIn(root, rel string) ([]Node, error) {
@@ -582,6 +598,8 @@ func nodeOf(name string, info fs.FileInfo) Node {
 		node.Kind = NodeLink
 	case info.IsDir():
 		node.Kind = NodeDir
+	case !info.Mode().IsRegular():
+		node.Kind = NodeSpecial
 	}
 
 	return node

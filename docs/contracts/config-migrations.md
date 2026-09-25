@@ -9,7 +9,7 @@ Une mise à jour ne réinstalle rien. Le binaire de l'agent est remplacé, l'app
 | Côté | Fichiers | Registre | Sauvegardes |
 | --- | --- | --- | --- |
 | Agent, sur le VPS | `/etc/pupitre/install.json`, `/etc/pupitre/env`, `/etc/pupitre/projects.local.json`, et tout autre fichier de `/etc/pupitre` qu'une migration nomme | `/etc/pupitre/migrations.json` | `/var/lib/pupitre/config-backups/<horodatage>-r<révision>/`, les cinq derniers lots |
-| App, sur le laptop | `servers.json`, `account.json`, `transfers.json` dans le dossier de données | le champ `version` du fichier lui-même | `<fichier>.r<révision>`, à côté |
+| App, sur le laptop | `servers.json`, `account.json`, `transfers.json`, `forwards.json`, `preferences.json`, `connections/<fournisseur>.json` dans le dossier de données | le champ `version` du fichier lui-même | `<fichier>.r<révision>`, à côté ; `<fichier>.corrupt` pour un fichier qui ne se lit pas |
 
 Ce que le registre **ne** possède pas :
 
@@ -97,6 +97,8 @@ Avant la première migration en attente, l'agent copie tous les fichiers déclar
 
 Le registre est réécrit **après chaque migration**, pas après le lot : une machine qui perd le courant au milieu revient d'accord avec elle-même et ne rejoue que ce qu'elle doit. Un refus, lui, remet tout le lot — les fichiers et le registre, qui sont dans la même sauvegarde — parce qu'un demi-lot est une forme qu'aucun binaire n'a jamais été écrit pour lire.
 
+Un registre absent vaut la révision zéro : une machine configurée avant qu'il existe doit toutes les migrations, et elles sont idempotentes. Un registre présent qui ne se lit pas est refusé en `migration_required`, l'état passe à `failed`, et rien n'est rejoué : il peut venir d'un agent plus récent, dont un rejeu depuis zéro prendrait les formes pour les plus anciennes. Le `fix` dit de le remettre par `--restore`, ou de le supprimer pour tout rejouer. De même, un fichier que la sauvegarde du lot n'a pas pu lire — autre chose qu'une absence — arrête le lot avant la première migration : noté absent, une remise en l'état le supprimerait.
+
 ## Revenir en arrière
 
 Une machine qui doit refaire tourner un agent plus ancien que celui qui l'a configurée est en `ahead` : l'agent refuse de toucher à une configuration qu'il ne lit pas, plutôt que de la deviner. Deux sorties, toutes deux explicites :
@@ -129,7 +131,7 @@ func All() []Migration {
 }
 ```
 
-Côté app — `apps/desktop/src/main/servers-migrations.ts`, `account-migrations.ts` ou `transfers-migrations.ts` :
+Côté app — `apps/desktop/src/main/servers-migrations.ts`, `account-migrations.ts`, `transfers-migrations.ts`, `forwards-migrations.ts`, `preferences-migrations.ts` ou `connections-migrations.ts`, lus et écrits par `versionedFile()` de `store-migrations.ts` (écriture à côté puis renommée, fichier d'une version plus récente jamais réécrit) :
 
 ```ts
 export const SERVERS_MIGRATIONS: readonly StoreMigration[] = [
@@ -142,6 +144,14 @@ Un test par migration : la forme d'avant en entrée, la forme d'après en sortie
 ## Ce qui reste vrai quand rien ne change
 
 Une machine neuve se voit **estampillée à la révision courante sans que rien ne tourne** — il n'y a pas de forme d'hier à porter, et le registre le dit à qui le lira plus tard.
+
+## Le registre des connexions de l'app
+
+`connections-migrations.ts`, pour `connections/<fournisseur>.json`.
+
+| N° | Slug | Ce qui change |
+| --- | --- | --- |
+| 1 | `account-id-name` | Cloudflare nommait son compte `accountId` et `accountName` avant qu'il y ait une seconde connexion ; toute connexion le nomme `id` et `name`. Les deux clés sont renommées quand elles sont là, sans écraser un `id` ou un `name` déjà présent ; une fiche sans compte n'est pas touchée. Le code ne lit plus que `id` et `name`. |
 
 ## Le registre de l'agent
 

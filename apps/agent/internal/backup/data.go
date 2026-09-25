@@ -57,6 +57,7 @@ func (s *Service) restoreData(ctx *modules.Context, location contract.BackupLoca
 	if err != nil {
 		return contract.BackupRestoreDataResult{}, err
 	}
+	defer clear(private)
 
 	chosen, err := choose(backup.manifest.Parts, keys)
 	if err != nil {
@@ -170,17 +171,24 @@ func (r *restoring) bring(part contract.BackupPart) {
 }
 
 func (r *restoring) restore(part contract.BackupPart) error {
-	reader, err := r.service.part(r.backup, part, r.private)
+	staged, err := r.service.part(r.backup, part, r.private)
 	if err != nil {
 		return err
 	}
-	defer reader.Close()
+	defer staged.Close()
+
+	if part.Kind == contract.BackupPartDatabase {
+		return r.database(part, staged)
+	}
+
+	reader, err := staged.open()
+	if err != nil {
+		return err
+	}
 
 	switch part.Kind {
 	case contract.BackupPartHome:
 		return archive.Extract(reader, r.service.paths.Home, r.owner)
-	case contract.BackupPartDatabase:
-		return r.database(part, reader)
 	case contract.BackupPartPath:
 		return r.path(part, reader)
 	}
@@ -189,7 +197,8 @@ func (r *restoring) restore(part contract.BackupPart) error {
 }
 
 // A database is dropped and made again by its own engine; one whose module is not installed yet has nowhere to go.
-func (r *restoring) database(part contract.BackupPart, reader io.Reader) error {
+// Its dump is read through once before the engine sees it: the engine weighs that size against the disk before it drops anything.
+func (r *restoring) database(part contract.BackupPart, staged *fetched) error {
 	chosen, known := engineNamed(part.Engine)
 	if !known || (part.Name != contract.BackupWholeServer && !carriable(part.Name)) {
 		return corrupt(i18n.T("backup.corrupt.part", part.Key, part.Engine+"/"+part.Name))
@@ -202,10 +211,25 @@ func (r *restoring) database(part contract.BackupPart, reader io.Reader) error {
 	}
 
 	if part.Name == contract.BackupWholeServer && chosen.whole != nil {
+		reader, err := staged.open()
+		if err != nil {
+			return err
+		}
+
 		return chosen.whole.restore(sibling, reader)
 	}
 
-	return chosen.restore(sibling, part.Name, reader)
+	size, err := staged.measure()
+	if err != nil {
+		return err
+	}
+
+	reader, err := staged.open()
+	if err != nil {
+		return err
+	}
+
+	return chosen.restore(sibling, part.Name, size, reader)
 }
 
 // An extra path is replaced whole: laid out beside the home first, then swapped in.

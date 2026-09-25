@@ -555,7 +555,7 @@ func TestARevokedServerTokenSuspendsTheEntitlementAndKeepsTheKeys(t *testing.T) 
 		t.Fatalf("the keys must stay:\n%s", b.authorized())
 	}
 
-	if got := agent.Entitlement(); got != contract.EntitlementRestricted {
+	if got := b.recorded(); got != contract.EntitlementRestricted {
 		t.Fatalf("the entitlement must be suspended on the spot, got %s", got)
 	}
 
@@ -582,7 +582,7 @@ func TestANetworkFailureLeavesTheKeysAndTheEntitlementInPlace(t *testing.T) {
 		t.Fatalf("the keys were dropped on a silence:\n%s", b.authorized())
 	}
 
-	if got := agent.Entitlement(); got != contract.EntitlementValid {
+	if got := b.recorded(); got != contract.EntitlementValid {
 		t.Fatalf("the last answer of the platform still holds, got %s", got)
 	}
 }
@@ -600,7 +600,7 @@ func TestARefusalWithoutTheTokenCodeIsNotARevocation(t *testing.T) {
 		t.Fatal("a refusal should surface")
 	}
 
-	if got := agent.Entitlement(); got != contract.EntitlementValid {
+	if got := b.recorded(); got != contract.EntitlementValid {
 		t.Fatalf("the entitlement moved on a refusal that names no token, got %s", got)
 	}
 }
@@ -619,7 +619,7 @@ func TestARefusalOnATokenThatWasJustRotatedIsNotARevocation(t *testing.T) {
 		t.Fatal("a refusal should surface")
 	}
 
-	if got := agent.Entitlement(); got != contract.EntitlementValid {
+	if got := b.recorded(); got != contract.EntitlementValid {
 		t.Fatalf("the entitlement must not move during a rotation, got %s", got)
 	}
 }

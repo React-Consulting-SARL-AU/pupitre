@@ -2,6 +2,8 @@ package migrate
 
 import (
 	"encoding/json"
+	"errors"
+	"io/fs"
 
 	"pupitre.studio/agent/internal/sys"
 )
@@ -26,21 +28,26 @@ type Applied struct {
 	Ms           int64  `json:"ms"`
 }
 
-// An unreadable ledger reads as revision zero, and revision zero runs every
-// migration. That is the safe direction: migrations are idempotent, so running
-// one twice changes nothing, while skipping one leaves a shape nobody reads.
-func readLedger(machine sys.Sys, path string) (Ledger, bool) {
+// A missing ledger reads as revision zero, and revision zero runs every
+// migration: a machine configured before the ledger existed owes them all, and
+// they are idempotent. A ledger that is there and does not read is refused: it
+// may belong to a newer agent, whose shapes a replay from zero would take for
+// the oldest ones.
+func readLedger(machine sys.Sys, path string) (Ledger, error) {
 	raw, err := machine.ReadFile(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		return Ledger{}, nil
+	}
 	if err != nil {
-		return Ledger{}, false
+		return Ledger{}, unreadableLedger(path, err)
 	}
 
 	var ledger Ledger
 	if err := json.Unmarshal(raw, &ledger); err != nil {
-		return Ledger{}, false
+		return Ledger{}, unreadableLedger(path, err)
 	}
 
-	return ledger, true
+	return ledger, nil
 }
 
 func writeLedger(ctx *Context, path string, ledger Ledger) error {

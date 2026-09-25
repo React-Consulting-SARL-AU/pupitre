@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -202,7 +203,7 @@ func Write(w io.Writer, source Source) error {
 
 	err := source.walk(func(rel, full string, info fs.FileInfo, target string) error {
 		if info.Mode().IsRegular() {
-			return writeFile(archive, rel, full)
+			return writeFile(archive, rel, full, info)
 		}
 
 		header, err := tar.FileInfoHeader(info, target)
@@ -222,9 +223,10 @@ func Write(w io.Writer, source Source) error {
 	return archive.Close()
 }
 
-func writeFile(archive *tar.Writer, rel, full string) error {
-	file, err := os.Open(full)
-	if errors.Is(err, fs.ErrNotExist) {
+// The file is opened as the walk saw it or not at all: one swapped since for a link, a pipe or another file is left out, as the walk would have left it.
+func writeFile(archive *tar.Writer, rel, full string, walked fs.FileInfo) error {
+	file, err := os.OpenFile(full, os.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0)
+	if errors.Is(err, fs.ErrNotExist) || errors.Is(err, syscall.ELOOP) {
 		return nil
 	}
 	if err != nil {
@@ -235,6 +237,10 @@ func writeFile(archive *tar.Writer, rel, full string) error {
 	info, err := file.Stat()
 	if err != nil {
 		return err
+	}
+
+	if !info.Mode().IsRegular() || !os.SameFile(info, walked) {
+		return nil
 	}
 
 	header, err := tar.FileInfoHeader(info, "")

@@ -344,12 +344,34 @@ type helloAnswer struct {
 	Error *protocol.Error `json:"error"`
 }
 
+// Identity is what `pupitred version --json` prints: the version, and the protocol generation the binary speaks.
+type Identity struct {
+	Version  string `json:"version"`
+	Protocol int    `json:"protocol"`
+}
+
+// spoken is the protocol the new binary says it speaks; one too old to say is asked in this binary's own.
+func (u *Upgrader) spoken(ctx sys.Context) int {
+	out, err := sys.Exec(ctx, sys.Command{Argv: []string{u.binaryPath(), "version", "--json"}, Timeout: healthTimeout})
+	if err != nil {
+		return contract.ProtocolVersion
+	}
+
+	var identity Identity
+	if err := json.Unmarshal([]byte(firstLine(out.Stdout)), &identity); err != nil || identity.Protocol <= 0 {
+		return contract.ProtocolVersion
+	}
+
+	return identity.Protocol
+}
+
 // The new binary is asked the one question the app asks first, on its own protocol channel: an agent that cannot answer hello has not been installed, it has been lost.
+// It is asked in the protocol it speaks: an upgrade to a new generation is an upgrade, which the app then follows, not a binary to roll back.
 func (u *Upgrader) hello(ctx sys.Context) (string, error) {
 	request, err := json.Marshal(map[string]any{
 		"id":     1,
 		"cmd":    "hello",
-		"params": map[string]any{"app_version": u.options.Version, "protocol": contract.ProtocolVersion},
+		"params": map[string]any{"app_version": u.options.Version, "protocol": u.spoken(ctx)},
 	})
 	if err != nil {
 		return "", err

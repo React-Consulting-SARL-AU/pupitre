@@ -2,6 +2,8 @@ package migrate
 
 import (
 	"encoding/json"
+	"errors"
+	"io/fs"
 	"path"
 	"sort"
 	"time"
@@ -73,8 +75,13 @@ func (r *Runner) snapshot(ctx *Context, from, to int, names []string) (string, e
 
 	dir := path.Join(r.paths.Backups, backup.Name)
 
+	// Only a file that is not there is kept as absent: a restore removes what the backup says was absent, and a file that failed to read was there.
 	for _, name := range names {
 		raw, err := r.options.Sys.ReadFile(r.pathOf(name))
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return "", err
+		}
+
 		present := err == nil
 
 		if present {

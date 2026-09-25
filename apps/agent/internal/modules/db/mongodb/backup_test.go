@@ -43,7 +43,7 @@ func TestADumpAndARestoreReadThePasswordFromTheToolsFileAlone(t *testing.T) {
 		t.Fatalf("out %q, %v", out.String(), err)
 	}
 
-	if err := RestoreFrom(ctx, "app", strings.NewReader("archive bytes")); err != nil {
+	if err := RestoreFrom(ctx, "app", 13, strings.NewReader("archive bytes")); err != nil {
 		t.Fatal(err)
 	}
 
@@ -58,6 +58,23 @@ func TestADumpAndARestoreReadThePasswordFromTheToolsFileAlone(t *testing.T) {
 	for _, line := range fake.Commands() {
 		if strings.Contains(line, appPassword) {
 			t.Fatalf("password on a command line: %s", line)
+		}
+	}
+}
+
+func TestADatabaseTheDiskCannotHoldAgainIsNeverDropped(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Answer("mongosh", "pupitre-bytes 1073741824\npupitre-script-done\n")
+	fake.Answer("df -P -B1 /var/lib/mongodb", "Filesystem 1-blocks Used Available Capacity Mounted on\n/dev/sda1 42949672960 0 1073741824 97% /\n")
+
+	err := RestoreFrom(newContext(t, fake), "app", 3<<30, strings.NewReader("archive bytes"))
+	if err == nil || !strings.Contains(err.Error(), "/var/lib/mongodb") {
+		t.Fatalf("err = %v", err)
+	}
+
+	for _, call := range fake.Calls {
+		if strings.Contains(string(call.Stdin), "dropDatabase") || strings.Contains(strings.Join(call.Argv, " "), "mongorestore") {
+			t.Fatalf("a restore that cannot fit leaves the database as it is: %v", fake.Commands())
 		}
 	}
 }

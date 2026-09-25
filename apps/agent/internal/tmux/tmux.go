@@ -32,6 +32,10 @@ const (
 	// A journal is read from its end, never whole: a server that logs for a day would otherwise be read entire at every snapshot.
 	tailBytes = 256 * 1024
 
+	// A journal past this size is rotated into one older copy: a process's journals never hold much more than twice it.
+	journalBytes  = 4 << 20
+	rotatedSuffix = ".1"
+
 	// The pane the window was opened on runs the process; a pane the user split off it does not.
 )
 
@@ -323,8 +327,10 @@ func Start(ctx sys.Context, options Options, job Job) error {
 	}
 
 	// The journal starts over with the run: the previous shutdown's "exited with code 130" would read as a failure, and a journal never emptied would be read whole at every snapshot.
-	if _, err := file.Remove(ctx, options.LogPath(job.Window)); err != nil {
-		return err
+	for _, journal := range []string{options.LogPath(job.Window), options.LogPath(job.Window) + rotatedSuffix} {
+		if _, err := file.Remove(ctx, journal); err != nil {
+			return err
+		}
 	}
 
 	if err := mark(ctx, options, job.Window, upMarker+options.Now().UTC().Format(time.RFC3339)+" ==="); err != nil {
@@ -336,10 +342,24 @@ func Start(ctx sys.Context, options Options, job Job) error {
 		"new-window", "-d", "-t", sessionTarget(options), "-n", job.Window, "-c", job.Dir,
 		"-e", commandKey+"="+job.Cmd, "exec "+user.Shell+` -lc "$`+commandKey+`"`,
 		";", "set-option", "-w", "-t", target, "remain-on-exit", "on",
-		";", "pipe-pane", "-o", "-t", target, "cat >> "+options.LogPath(job.Window),
+		";", "pipe-pane", "-o", "-t", target, sink(options.LogPath(job.Window)),
 	))
 
 	return err
+}
+
+// sink is what the pane's output is piped into: the journal, rotated once past journalBytes into one older copy, so a process that talks for days fills no disk.
+// GNU split cuts the stream into chunks without losing a byte, and hands each to a shell that rotates the journal before appending it.
+func sink(journal string) string {
+	limit := strconv.Itoa(journalBytes)
+	rotate := `if [ -e "$L" ] && [ "$(wc -c < "$L")" -ge ` + limit + ` ]; then mv "$L" "$L` + rotatedSuffix + `"; fi; cat >> "$L"`
+
+	return "export SHELL=/bin/sh L=" + quoted(journal) + "; exec split -b " + limit + " -a 9 -d --filter=" + quoted(rotate) + ` - "$L.chunk"`
+}
+
+// quoted is s as one word of a POSIX shell, whatever it holds.
+func quoted(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
 }
 
 // Stop interrupts what runs and closes the window; a corpse has nothing to interrupt and is only closed.

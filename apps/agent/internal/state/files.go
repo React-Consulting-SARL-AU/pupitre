@@ -487,5 +487,9 @@ func refuse(relative string, err error) error {
 		return bad(i18n.T("files.unreadable", relative), "")
 	}
 
+	if errors.Is(err, sys.ErrNotRegular) {
+		return bad(i18n.T("files.special", relative), "")
+	}
+
 	return bad(i18n.T("files.path.outside", relative), i18n.T("files.path.outside.fix"))
 }

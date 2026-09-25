@@ -33,7 +33,7 @@ func newContext(t *testing.T, fake *modtest.FakeSys) *modules.Context {
 func newFakeSys() *modtest.FakeSys {
 	fake := modtest.NewFakeSys()
 	fake.Files["/proc/meminfo"] = []byte("MemTotal:       4015000 kB\n")
-	fake.Files[osReleasePath] = []byte("ID=ubuntu\nVERSION_CODENAME=noble\n")
+	fake.Files["/etc/os-release"] = []byte("ID=ubuntu\nVERSION_CODENAME=noble\n")
 	fake.Answer("FROM pg_roles", "2\n")
 	fake.Answer("FROM pg_extension", "3\n")
 	fake.Answer("FROM pg_database", "1\n")
@@ -259,7 +259,7 @@ func TestDumpsLeftBeforeTheInstallAreImportedAndNamedInTheReport(t *testing.T) {
 	fake := newFakeSys()
 	fake.Dirs[dumps.Dir] = true
 	fake.Answer("FROM pg_database", "\n")
-	fake.Replies["find"] = dumps.Dir + "/fulldump_shop_20260101.sql\n" + dumps.Dir + "/intranet.dump\n"
+	fake.Replies["find"] = dumps.Dir + "/fulldump_shop_20260101.sql\x00" + dumps.Dir + "/intranet.dump\x00"
 	ctx := newContext(t, fake)
 
 	install(t, ctx)
@@ -433,7 +433,7 @@ func TestTheChosenVersionPortAndRolesReachTheCluster(t *testing.T) {
 	fake := newFakeSys()
 	fake.Answer("FROM pg_roles", "0\n")
 	ctx := newContextWith(t, fake, modtest.Values{
-		"version": "16", "port": 5433, "app_role": "flymate", "remote_role": "laptop",
+		"version": "16", "port": 5433, "app_role": "flyleaf", "remote_role": "laptop",
 	})
 
 	install(t, ctx)

@@ -138,7 +138,7 @@ func (r *Reader) Diag() contract.Diag {
 
 	report.WriteString("\n" + i18n.T("state.diag.sessions") + "\n")
 	for _, session := range r.Sessions() {
-		fmt.Fprintf(&report, "  %-8d %-7s %5d %s %s\n", session.PID, session.Kind, session.RAMMB, i18n.T("state.diag.megabytes"), session.Command)
+		fmt.Fprintf(&report, "  %-8d %-7s %5d %s %s\n", session.PID, session.Kind, session.RAMMB, i18n.T("state.diag.megabytes"), redactCommand(session.Command))
 	}
 
 	report.WriteString("\n" + i18n.T("state.diag.doctor") + "\n")

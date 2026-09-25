@@ -2,6 +2,7 @@ package sys
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -9,6 +10,9 @@ import (
 	"syscall"
 	"time"
 )
+
+// ErrNotRegular refuses a read of a pipe, a socket or a device: a pipe opened for reading holds the session until someone writes into it.
+var ErrNotRegular = errors.New("not a regular file")
 
 // DefaultTimeout caps a command nobody bounded: an apt run or a download that
 // never answers turns into a failed step with a reason, not a wait without end.
@@ -72,6 +76,8 @@ const (
 	NodeFile = "file"
 	NodeDir  = "dir"
 	NodeLink = "link"
+	// NodeSpecial is a pipe, a socket or a device: listed, never read.
+	NodeSpecial = "special"
 )
 
 // What the file system says of one entry under a root, and the kind a listing shows it as.

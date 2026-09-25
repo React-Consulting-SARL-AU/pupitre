@@ -3,11 +3,26 @@ package system
 import (
 	"fmt"
 	"strings"
+
+	"pupitre.studio/agent/internal/modules"
 )
 
 const sysctl = `fs.inotify.max_user_watches=524288
 fs.inotify.max_user_instances=1024
 vm.swappiness=10
+`
+
+// The agent holds its journal open for its whole life, in append mode: copytruncate empties the file under it, where a rename would leave it writing into the rotated copy.
+var agentLogRotation = modules.DefaultLogPath + ` {
+	daily
+	maxsize 20M
+	rotate 5
+	compress
+	delaycompress
+	missingok
+	notifempty
+	copytruncate
+}
 `
 
 const aptPeriodic = `APT::Periodic::Update-Package-Lists "1";

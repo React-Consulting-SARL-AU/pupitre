@@ -4,7 +4,7 @@
 
 ## Stack imposée
 
-Go 1.26 (la version de `go.mod`), bibliothèque standard d'abord. Binaire statique (`CGO_ENABLED=0`), `-trimpath -ldflags="-s -w"`, garble en release. Cibles `linux/amd64` et `linux/arm64`. `gofmt`, `go vet`, `staticcheck`. Pas de framework, pas d'ORM, pas de shell-out là où un appel système suffit.
+Go 1.26 (la version de `go.mod`), bibliothèque standard d'abord. Binaire statique (`CGO_ENABLED=0`), `-trimpath -ldflags="-s -w"`, garble en release. Cibles `linux/amd64` et `linux/arm64`. `gofmt`, `go vet`, `staticcheck`, `govulncheck`. Pas de framework, pas d'ORM, pas de shell-out là où un appel système suffit.
 
 **Banned** : tout script déposé sur le disque du client, `os/exec` avec une chaîne construite depuis une entrée du protocole, journalisation d'un secret.
 
@@ -59,7 +59,7 @@ Un module = un dossier avec `manifest.go`, `module.go`, `module_test.go`. Les é
 
 ## Tests
 
-`go test ./...` pour l'unitaire. Les tests d'intégration sont derrière le tag de build `staging` et visent un VPS réinstallable, jamais une machine du propriétaire :
+`go test ./...` pour l'unitaire, et `go test -tags dev ./...` pour ce que le build de développement change (`bun run test` passe les deux). Les tests d'intégration sont derrière le tag de build `staging` et visent un VPS réinstallable, jamais une machine du propriétaire :
 
 ```bash
 PUPITRE_STAGING_HOST=root@<adresse> go test -tags staging ./test/staging/...
@@ -72,8 +72,10 @@ Sans la variable, ils se sautent au lieu d'échouer. Le banc parle à `pupitred 
 ```bash
 bun run build            # go build multi-arch
 bun run build:dev        # même chose avec -tags dev : droit d'usage intégré, ni jeton ni plateforme
-bun run test
-bun run lint             # gofmt, go vet, staticcheck
+bun run test             # go test, puis go test -tags dev
+bun run lint             # gofmt, go vet et staticcheck avec et sans -tags dev, govulncheck
+bun run lint:fix         # gofmt -w
+bun run check:types      # go build ./..., avec et sans -tags dev
 bun run tools:install    # staticcheck et govulncheck, épinglés ; le bin de Go doit être dans le PATH
 bun run release          # garble + signature, appelé par scripts/release sur le runner de release.yml
 ```

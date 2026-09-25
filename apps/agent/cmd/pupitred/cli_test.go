@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -108,6 +109,11 @@ func TestUsageAndVersion(t *testing.T) {
 	code, stdout, _ := runCLI(t, "version")
 	if code != 0 || stdout != "pupitred "+version+"\n" {
 		t.Fatalf("code = %d, stdout = %q", code, stdout)
+	}
+
+	code, stdout, _ = runCLI(t, "version", "--json")
+	if code != 0 || stdout != `{"version":"`+version+`","protocol":`+strconv.Itoa(contract.ProtocolVersion)+"}\n" {
+		t.Fatalf("the agent upgrading to this binary reads its protocol here: code = %d, stdout = %q", code, stdout)
 	}
 }
 

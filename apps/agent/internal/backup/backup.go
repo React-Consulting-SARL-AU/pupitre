@@ -95,6 +95,8 @@ type Service struct {
 	paths   Paths
 	// A scheduled backup runs apart from the daemon's loop, one at a time.
 	turning atomic.Bool
+	// running counts the backups this process has under way: what Status says first, before the record another process may have left.
+	running atomic.Int32
 }
 
 func New(options Options) *Service {

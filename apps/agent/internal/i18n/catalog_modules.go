@@ -383,8 +383,8 @@ var moduleCatalog = map[string]Message{
 		EN: "Domain",
 	},
 	"module.exposure.caddy.domain.help": {
-		FR: "Le domaine sous lequel les sous-domaines des projets répondent, par exemple flymate.dev. Son enregistrement DNS doit déjà pointer sur ce serveur.",
-		EN: "The domain under which the projects' subdomains answer, for example flymate.dev. Its DNS record must already point at this server.",
+		FR: "Le domaine sous lequel les sous-domaines des projets répondent, par exemple flyleaf.dev. Son enregistrement DNS doit déjà pointer sur ce serveur.",
+		EN: "The domain under which the projects' subdomains answer, for example flyleaf.dev. Its DNS record must already point at this server.",
 	},
 	"module.exposure.caddy.domain.hint": {
 		FR: "Chez votre registrar, créez un enregistrement A qui pointe ce domaine et le wildcard *.domaine sur l'adresse IP de ce serveur. Let's Encrypt vérifie ce chemin avant d'émettre le certificat : sans lui, l'installation démarre mais aucun projet n'obtient de certificat.",
@@ -451,8 +451,8 @@ var moduleCatalog = map[string]Message{
 		EN: "Tailscale SSH",
 	},
 	"module.exposure.tailscale.ssh.help": {
-		FR: "Ouvre SSH aux membres du tailnet par leur identité Tailscale, selon la politique d'accès du tailnet. La clé de l'app continue d'ouvrir dev.",
-		EN: "Opens SSH to tailnet members by their Tailscale identity, as the tailnet's access policy says. The app's key still opens dev.",
+		FR: "Ouvre SSH aux membres du tailnet par leur identité Tailscale. Tailscale répond avant sshd : ni AllowUsers, ni la fermeture de root, ni fail2ban ne s'appliquent, seule la politique d'accès du tailnet décide qui entre et sous quel compte, root compris. Désactivé par défaut ; la clé de l'app continue d'ouvrir dev.",
+		EN: "Opens SSH to tailnet members by their Tailscale identity. Tailscale answers before sshd: neither AllowUsers, nor root being closed, nor fail2ban applies, only the tailnet's access policy decides who gets in and as which account, root included. Off by default; the app's key still opens dev.",
 	},
 	"modules.tailscale.not_running": {
 		FR: "tailscale up a répondu mais le nœud n'est pas en marche : tailscale status --json le dira",
@@ -802,6 +802,14 @@ var moduleCatalog = map[string]Message{
 		FR: "%s tourne sur cette machine : retirez db.mysql, puis réinstallez-le sur %s ; les données de /var/lib/mysql restent en place",
 		EN: "%s runs on this machine: remove db.mysql, then install it again on %s; the data under /var/lib/mysql stays in place",
 	},
+	"field.mongodb.version.unpublished": {
+		FR: "MongoDB ne publie pas la %s pour Ubuntu %s : choisissez %s",
+		EN: "MongoDB does not publish %s for Ubuntu %s: choose %s",
+	},
+	"field.mongodb.version.unsupported": {
+		FR: "MongoDB ne publie aucune des versions proposées pour Ubuntu %s",
+		EN: "MongoDB publishes none of the offered versions for Ubuntu %s",
+	},
 	"field.mongodb.version.held": {
 		FR: "le serveur tourne sur MongoDB %s : montez-le sur %s à la main (db.adminCommand({ setFeatureCompatibilityVersion: \"%[1]s\", confirm: true }), puis les paquets de %[2]s) avant de changer la version ici",
 		EN: "the server runs on MongoDB %s: move it to %s by hand (db.adminCommand({ setFeatureCompatibilityVersion: \"%[1]s\", confirm: true }), then the %[2]s packages) before changing the version here",
@@ -817,6 +825,10 @@ var moduleCatalog = map[string]Message{
 	"modules.caddy.invalid": {
 		FR: "caddy refuse %s, le serveur garde la configuration précédente : %s",
 		EN: "caddy refuses %s, the server keeps the previous configuration: %s",
+	},
+	"modules.caddy.invalid.fix": {
+		FR: "le Caddyfile vient du domaine du service Caddy et des sous-domaines des projets : corrigez la valeur que caddy cite, puis synchronisez de nouveau",
+		EN: "the Caddyfile comes from the Caddy service's domain and the projects' subdomains: correct the value caddy quotes, then sync again",
 	},
 	"modules.mise.list_failed": {
 		FR: "mise ne peut pas dire ce qui est installé : %s",
@@ -845,6 +857,18 @@ var moduleCatalog = map[string]Message{
 	"field.docker.data_root.busy": {
 		FR: "des conteneurs tournent : arrêtez-les (docker stop $(docker ps -q)), déplacez /var/lib/docker vers %s, puis changez la racine ici",
 		EN: "containers are running: stop them (docker stop $(docker ps -q)), move /var/lib/docker to %s, then change the root here",
+	},
+	"warn.docker.published.containers": {
+		FR: "ces conteneurs publient encore sur toutes les adresses, sans qu'ufw les filtre : %s",
+		EN: "these containers still publish on every address, which ufw does not filter: %s",
+	},
+	"warn.docker.published.networks": {
+		FR: "ces réseaux publient encore sur toutes les adresses un port demandé sans adresse : %s",
+		EN: "these networks still publish a port asked without an address on every address: %s",
+	},
+	"warn.docker.published.fix": {
+		FR: "pour les fermer : arrêtez les conteneurs (docker stop $(docker ps -q)), relancez le démon (sudo systemctl restart docker), puis recréez chaque projet compose dans son dossier (docker compose down && docker compose up -d) et chaque réseau créé à la main (docker network rm <réseau> && docker network create <réseau>)",
+		EN: "to close them: stop the containers (docker stop $(docker ps -q)), restart the daemon (sudo systemctl restart docker), then recreate each compose project in its folder (docker compose down && docker compose up -d) and each network made by hand (docker network rm <network> && docker network create <network>)",
 	},
 	"warn.docker.group.reopen": {
 		FR: "%s vient de rejoindre le groupe %s : les terminaux et la session tmux déjà ouverts ne le voient pas, rouvrez-les avant d'appeler docker sans sudo",
@@ -885,6 +909,26 @@ var moduleCatalog = map[string]Message{
 	"modules.download.checksum_unpublished": {
 		FR: "aucun checksum publié pour %s dans %s",
 		EN: "no published checksum for %s in %s",
+	},
+	"apt.key.unpinned": {
+		FR: "aucune empreinte épinglée pour la clé de dépôt %s : l'agent ne lui fait pas confiance",
+		EN: "no pinned fingerprint for the repository key at %s: the agent does not trust it",
+	},
+	"apt.key.refused": {
+		FR: "clé de dépôt refusée (%s) : %s",
+		EN: "repository key refused (%s): %s",
+	},
+	"apt.repository.dropped": {
+		FR: "apt ne lit pas ce dépôt : %s est retiré avec sa clé, et les autres installations gardent un apt utilisable",
+		EN: "apt cannot read this repository: %s is taken back out with its key, so the other installs keep a working apt",
+	},
+	"apt.key.empty": {
+		FR: "le fichier ne contient aucune clé",
+		EN: "the file holds no key",
+	},
+	"apt.key.unexpected": {
+		FR: "la clé %s n'est pas celle que l'éditeur publie",
+		EN: "key %s is not one the vendor publishes",
 	},
 	"modules.system.packages_refused": {
 		FR: "paquets introuvables ou refusés : %s",

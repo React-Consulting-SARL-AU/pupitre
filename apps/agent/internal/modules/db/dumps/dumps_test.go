@@ -23,7 +23,7 @@ func withDumps(t *testing.T, paths ...string) (*modtest.FakeSys, *modules.Contex
 
 	fake := modtest.NewFakeSys()
 	fake.Dirs[Dir] = true
-	fake.Replies["find"] = strings.Join(paths, "\n") + "\n"
+	fake.Replies["find"] = strings.Join(paths, "\x00") + "\x00"
 
 	return fake, newContext(t, fake)
 }
@@ -268,6 +268,38 @@ func TestADumpWhoseNameIsNotUsableIsLeftAlone(t *testing.T) {
 
 	if !strings.Contains(strings.Join(ctx.Output(), "\n"), "was skipped") {
 		t.Fatalf("the client must be told:\n%s", strings.Join(ctx.Output(), "\n"))
+	}
+}
+
+func TestANameAToolWouldReadAsAnOptionIsLeftAlone(t *testing.T) {
+	var seen []string
+	_, ctx := withDumps(t, Dir+"/--init-command=x.sql", Dir+"/-p.sql", Dir+"/intranet.sql")
+
+	imported, err := Import(ctx, Options{Patterns: []string{"*.sql"}, Load: loaded(&seen)})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Join(imported, ",") != "intranet" || len(seen) != 1 {
+		t.Fatalf("imported = %v, loaded %v", imported, seen)
+	}
+
+	if SafeName("-p") || SafeName("--databases") || !SafeName("_shop-2") {
+		t.Fatal("a leading dash is an option to mysql, pg_dump and mongodump")
+	}
+}
+
+func TestAFileNameHoldingANewlineIsOneFile(t *testing.T) {
+	var seen []string
+	_, ctx := withDumps(t, Dir+"/shop\nother.sql", Dir+"/intranet.sql")
+
+	imported, err := Import(ctx, Options{Patterns: []string{"*.sql"}, Load: loaded(&seen)})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Join(imported, ",") != "intranet" {
+		t.Fatalf("a name split on its newline would load a file that is not there: %v", seen)
 	}
 }
 

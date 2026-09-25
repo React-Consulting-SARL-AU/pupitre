@@ -6,7 +6,7 @@ Le canal est une session SSH ouverte par l'app avec la clé du client, qui lance
 
 ```jsonc
 // requête
-{ "id": 12, "cmd": "project.up", "params": { "name": "flymate-api" } }
+{ "id": 12, "cmd": "project.up", "params": { "name": "flyleaf-api" } }
 
 // événement, zéro ou plusieurs, pour une commande longue
 { "id": 12, "event": "log", "line": "vite v7 ready in 412 ms" }
@@ -44,6 +44,8 @@ Deux remèdes existent. `invalid_fields` accompagne `invalid_config` et porte le
 ## Commandes
 
 Tout ce qui suit est dans le contrat et répond sur `pupitred serve --privileged` ; `pupitred serve` n'en répond qu'une partie, voir [deux sessions](#deux-sessions--sans-mot-de-passe-et-privilégiée). Neuf commandes ne sont appelées par aucun écran de l'app aujourd'hui : `status`, `doctor`, `diag`, `project.debug`, `sessions.list`, `secrets.sync`, `keys.list`, `keys.sync` et `tunnel.restart`. `status` et `doctor` s'obtiennent aussi sur la machine par `pupitred dev status` et `pupitred dev doctor` ; les autres n'ont que le protocole.
+
+Chaque réponse est tenue à `<Commande>Result` de `schema.json` (`contract.ResultDefinition`) : `cmd/pupitred/contract_test.go` appelle chaque commande que le serveur de production sert et échoue sur une commande sans cas, sauf les exclusions qu'il nomme avec la raison et l'endroit où leur résultat est vérifié ; les transcriptions de `modtest` valident chaque réponse `ok` et chaque événement contre leur définition et échouent sur une commande ou un événement qui n'en a pas.
 
 ### Session
 
@@ -159,7 +161,7 @@ Le `url` d'un processus est celle de la route de son port principal quand elle p
 Quels processus sont débogables et sur quel port se lit dans `/etc/pupitre/env`, jamais dans le binaire, une entrée par fenêtre :
 
 ```
-PUPITRE_DEBUG_PORTS="intranet/server:5005 flymate/worker:5006"
+PUPITRE_DEBUG_PORTS="intranet/server:5005 flyleaf/worker:5006"
 ```
 
 Les guillemets sont ceux de systemd, qui lit ce fichier comme `EnvironmentFile` : sans eux, une valeur à espaces ne serait plus une seule variable. Un processus absent de la liste est refusé en `bad_request`, avec la ligne à écrire dans le `fix` ; un processus `service`, qui appartient à systemd et non à une fenêtre tmux, l'est aussi.
@@ -279,7 +281,7 @@ Le format, le chiffrement et le déroulé sont dans [backups.md](./backups.md). 
 | `keys.sync` | — : force une lecture de `/api/v1/agent/state`, et rend la même liste avec `pending[]`, les empreintes des clés que la plateforme demande et qu'aucune approbation valide ne couvre encore |
 | `keys.trust` | `{ public_key }` : une clé nue, `type base64`, Ed25519 ou ECDSA NIST, sans option ni commentaire. Elle devient signataire et entre tout de suite dans le bloc. C'est le geste de l'app, sur sa propre session SSH, juste après l'enrôlement : la racine de confiance est posée par SSH, jamais par la plateforme. Rend la liste de `keys.list`. Voir [les clés approuvées](#une-clé-nentre-que-sur-une-approbation) |
 | `platform.sync` | — : la même lecture, suivie du heartbeat. `{ synced_at, heartbeat_at? }`. L'app la demande à la fin d'une installation et d'un durcissement, pour que la console montre les modules au lieu d'un serveur vide pendant cinq minutes. Elle lit et rapporte, ne touche à rien de la machine, et reste donc ouverte en mode restreint : un serveur dont la plateforme n'a pas confirmé le droit d'usage est exactement celui qui doit redemander. Un `heartbeat_at` absent dit que l'état a été lu et que le battement n'est pas passé ; le daemon le refera |
-| `agent.upgrade` | `{ version?, signature?, allow_downgrade? }` : télécharge, vérifie, remplace, redémarre. `busy` pendant une autre mise à jour, une installation, une sauvegarde ou une restauration. Un nouveau binaire qui ne répond pas à `hello` est remplacé par l'ancien, et la configuration qu'il a migrée est remise à la révision d'avant ([migrations de configuration](./config-migrations.md#lordre-dune-mise-à-jour)) |
+| `agent.upgrade` | `{ version?, signature?, allow_downgrade? }` : télécharge, vérifie, remplace, redémarre. `busy` pendant une autre mise à jour, une installation, une sauvegarde ou une restauration. Un nouveau binaire qui ne répond pas à `hello` — posé dans le protocole qu'il dit parler par `pupitred version --json`, si bien qu'une mise à jour vers une génération suivante n'est pas prise pour une panne — est remplacé par l'ancien, et la configuration qu'il a migrée est remise à la révision d'avant ([migrations de configuration](./config-migrations.md#lordre-dune-mise-à-jour)) |
 | `agent.migrate` | — : porte la configuration de la machine à la forme que ce binaire lit, et rend `{ revision, expected, state, applied[], pending[], backup?, failure?, restored }`. Elle répond toujours, même quand une migration a refusé : ce sont les autres commandes qui refusent alors. Voir [migrations de configuration](./config-migrations.md) |
 | `reboot` | — |
 | `doctor` | — : diagnostic court |
@@ -462,7 +464,7 @@ Le principe est celui du flux secret d'entrée, dans l'autre sens : à l'entrée
 
 Les sept commandes `fs.*` ouvrent l'arbre de travail du client : lister un dossier, décrire une entrée, lire un fichier, en écrire un, créer un dossier, déplacer une entrée, en supprimer une.
 
-**Une seule racine, et rien au-dessus.** Tout chemin est relatif au dossier de travail du serveur — le foyer du compte des projets — et cette racine ne figure pas dans le contrat, exactement comme la racine des projets n'y figure pas : c'est un détail du serveur, et l'app n'a donc rien à concaténer. La chaîne vide nomme la racine elle-même, et c'est le seul chemin que `fs.list` accepte vide. Un chemin absolu, un `..`, un lien symbolique dont la cible sort de la racine renvoient `bad_request` avec le remède qui dit comment nommer un chemin. L'agent ne juge pas ces chemins à la main : il ouvre la racine une fois et n'agit qu'à travers elle, si bien qu'un lien planté dans l'arbre ne peut pas devenir une lecture de `/etc/shadow`. Un lien qui reste dedans, lui, est une entrée comme une autre : `kind` dit `link`, et sa taille et sa date sont celles de ce qu'il désigne.
+**Une seule racine, et rien au-dessus.** Tout chemin est relatif au dossier de travail du serveur — le foyer du compte des projets — et cette racine ne figure pas dans le contrat, exactement comme la racine des projets n'y figure pas : c'est un détail du serveur, et l'app n'a donc rien à concaténer. La chaîne vide nomme la racine elle-même, et c'est le seul chemin que `fs.list` accepte vide. Un chemin absolu, un `..`, un lien symbolique dont la cible sort de la racine renvoient `bad_request` avec le remède qui dit comment nommer un chemin. L'agent ne juge pas ces chemins à la main : il ouvre la racine une fois et n'agit qu'à travers elle, si bien qu'un lien planté dans l'arbre ne peut pas devenir une lecture de `/etc/shadow`. Un lien qui reste dedans, lui, est une entrée comme une autre : `kind` dit `link`, et sa taille et sa date sont celles de ce qu'il désigne. Un tube nommé, une socket ou un périphérique est `special` : listé et décrit, jamais lu ni haché — une lecture y attendrait sans fin —, et l'app n'offre dessus que le renommage et la suppression. Une app d'avant ce genre le lit comme un fichier et la lecture est refusée en `bad_request`.
 
 **Tout appartient au compte des projets.** `pupitred serve` tourne en root et redescend commande par commande ; un fichier ou un dossier créé par ces commandes appartient donc à ce compte, jamais à root, et un fichier réécrit garde le propriétaire et le mode qu'il avait. Un arbre où root aurait semé des fichiers serait un arbre que le client ne peut plus modifier depuis son propre terminal.
 

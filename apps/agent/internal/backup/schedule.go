@@ -2,13 +2,13 @@ package backup
 
 import (
 	"errors"
+	"syscall"
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
 	module "pupitre.studio/agent/internal/modules/core/backup"
 	"pupitre.studio/agent/internal/protocol"
-	"pupitre.studio/agent/internal/sys/lock"
 )
 
 const (
@@ -44,7 +44,7 @@ func (s *Service) Status() (contract.BackupStatusResult, error) {
 			Configured:    settings.Configured(),
 			IntervalHours: settings.IntervalHours,
 			Keep:          settings.Keep,
-			Running:       record.RunningSince != "" && s.lockHeld(),
+			Running:       s.running.Load() > 0 || (record.RunningSince != "" && alive(record.RunningPID)),
 			Last:          lastRun(record),
 		}
 
@@ -88,19 +88,15 @@ func lastWarnings(record Record) int {
 	return len(record.Last.Warnings)
 }
 
-func (s *Service) lockHeld() bool {
-	release, acquired, err := lock.Acquire(s.options.Engine.LockPath)
-	if err != nil {
+// alive says whether the process a backup started in still runs, without touching the run lock: an install asking for it in that instant would be told busy.
+func alive(pid int) bool {
+	if pid <= 0 {
 		return false
 	}
 
-	if !acquired {
-		return true
-	}
+	err := syscall.Kill(pid, 0)
 
-	release()
-
-	return false
+	return err == nil || errors.Is(err, syscall.EPERM)
 }
 
 // Beat is the heartbeat's word on backups, nothing when the module is not there.

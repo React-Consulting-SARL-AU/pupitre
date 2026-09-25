@@ -233,7 +233,7 @@ func TestAccountsAreCreatedForTheAppAndForTheLaptop(t *testing.T) {
 func TestDumpsLeftBeforeTheInstallAreImportedAndNamedInTheReport(t *testing.T) {
 	fake := newFakeSys()
 	fake.Dirs[dumps.Dir] = true
-	fake.Replies["find"] = dumps.Dir + "/fulldump_shop_20260101.sql\n"
+	fake.Replies["find"] = dumps.Dir + "/fulldump_shop_20260101.sql\x00"
 	ctx := newContext(t, fake, values)
 
 	install(t, ctx)
@@ -395,7 +395,7 @@ var _ modules.Module = Module{}
 func TestTheChosenPortAndAccountsReachTheEngine(t *testing.T) {
 	fake := newFakeSys()
 	ctx := newContext(t, fake, modtest.Values{
-		"engine": mysqlEngine, "port": 3307, "app_user": "flymate", "remote_user": "laptop",
+		"engine": mysqlEngine, "port": 3307, "app_user": "flyleaf", "remote_user": "laptop",
 	})
 
 	install(t, ctx)
@@ -412,7 +412,7 @@ func TestTheChosenPortAndAccountsReachTheEngine(t *testing.T) {
 		}
 	}
 
-	for _, want := range []string{"'flymate'@'127.0.0.1'", "'laptop'@'127.0.0.1'"} {
+	for _, want := range []string{"'flyleaf'@'127.0.0.1'", "'laptop'@'127.0.0.1'"} {
 		if !strings.Contains(sql, want) {
 			t.Errorf("the chosen accounts must be the ones created, %q missing:\n%s", want, sql)
 		}

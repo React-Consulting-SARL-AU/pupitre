@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -56,6 +57,10 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 
 	switch args[0] {
 	case "version":
+		if len(args) > 1 && args[1] == "--json" {
+			return printIdentity(stdout)
+		}
+
 		fmt.Fprintln(stdout, "pupitred "+version)
 		return 0
 	case migrate.Command:
@@ -114,7 +119,19 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 }
 
 func usage(stderr io.Writer) {
-	fmt.Fprintln(stderr, "usage: pupitred <serve [--privileged]|daemon|enroll|install [--only=id,id] [--skip=id,id]|migrate [--status] [--restore=NAME]|probe [--script] [--projects=DIR]|report|resume|dev|shot|gallery|backup open [--salt=B64|--private-key] FILE|keys reset --key KEY|FILE.pub|binary install [--privileged] [--allow-downgrade] < HEADER+FILE|version>")
+	fmt.Fprintln(stderr, "usage: pupitred <serve [--privileged]|daemon|enroll|install [--only=id,id] [--skip=id,id]|migrate [--status] [--restore=NAME]|probe [--script] [--projects=DIR]|report|resume|dev|shot|gallery|backup open [--salt=B64|--private-key] FILE|keys reset --key KEY|FILE.pub|binary install [--privileged] [--allow-downgrade] < HEADER+FILE|version [--json]>")
+}
+
+// The agent that upgrades to this binary asks it which protocol to greet it in.
+func printIdentity(stdout io.Writer) int {
+	encoded, err := json.Marshal(selfupdate.Identity{Version: version, Protocol: contract.ProtocolVersion})
+	if err != nil {
+		return 1
+	}
+
+	fmt.Fprintln(stdout, string(encoded))
+
+	return 0
 }
 
 // sudo runs `pupitred serve` exactly without a password (decision 0015): that line is the limited session, and any other is refused.

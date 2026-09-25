@@ -34,6 +34,14 @@ var migrateCatalog = map[string]Message{
 		FR: "Relancez la migration quand l'installation en cours est terminée.",
 		EN: "Run the migration again once the install under way has finished.",
 	},
+	"migrate.ledger.unreadable": {
+		FR: "le registre des migrations %s est illisible (%s) : sans lui, l'agent ne sait pas quelle forme a la configuration, et n'y touche pas",
+		EN: "the migration ledger %s cannot be read (%s): without it the agent cannot tell what shape the configuration has, and leaves it alone",
+	},
+	"migrate.ledger.unreadable.fix": {
+		FR: "Remettez-le d'une sauvegarde de configuration : `sudo pupitred migrate --status` les liste, `sudo pupitred migrate --restore=<sauvegarde>` en remet une. Sans sauvegarde, supprimez %s pour que toutes les migrations soient rejouées depuis le début.",
+		EN: "Put it back from a configuration backup: `sudo pupitred migrate --status` lists them, `sudo pupitred migrate --restore=<backup>` puts one back. Without one, remove %s so that every migration is replayed from the start.",
+	},
 	"migrate.backup.unknown": {
 		FR: "sauvegarde de configuration inconnue : %s",
 		EN: "unknown configuration backup: %s",

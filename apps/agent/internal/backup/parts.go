@@ -179,7 +179,7 @@ func (j *job) engine(held holding) {
 
 // A database name reaches an argv and a statement as it is: one that could be read as an option, or break out of a quote, is left out and said.
 func carriable(name string) bool {
-	return dumps.SafeName(name) && !strings.HasPrefix(name, "-")
+	return dumps.SafeName(name)
 }
 
 // installed is a database module's own context, when the module says it is on the machine.

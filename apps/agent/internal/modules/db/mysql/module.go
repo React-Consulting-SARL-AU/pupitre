@@ -16,6 +16,7 @@ import (
 	"pupitre.studio/agent/internal/sys/apt"
 	"pupitre.studio/agent/internal/sys/env"
 	"pupitre.studio/agent/internal/sys/file"
+	"pupitre.studio/agent/internal/sys/host"
 	"pupitre.studio/agent/internal/sys/systemd"
 )
 
@@ -42,7 +43,6 @@ const (
 	loopback        = "127.0.0.1"
 	defaultDatabase = "mysql"
 
-	meminfoPath   = "/proc/meminfo"
 	poolDivisor   = 4
 	minPoolMB     = 128
 	maxPoolMB     = 8192
@@ -472,20 +472,8 @@ func bufferPool(ctx *modules.Context) string {
 }
 
 func totalKB(ctx *modules.Context) int {
-	raw, err := file.Read(ctx, meminfoPath)
-	if err != nil {
-		return fallbackRAMKB
-	}
-
-	for _, line := range strings.Split(string(raw), "\n") {
-		fields := strings.Fields(line)
-		if len(fields) < 2 || fields[0] != "MemTotal:" {
-			continue
-		}
-
-		if kb, err := strconv.Atoi(fields[1]); err == nil {
-			return kb
-		}
+	if kb, known := host.MemTotalKB(ctx); known {
+		return kb
 	}
 
 	return fallbackRAMKB

@@ -95,6 +95,7 @@ func TestInstallOnABareMachine(t *testing.T) {
 		sudoersPath:        sudo.Open,
 		sysctlPath:         sysctl,
 		aptPeriodicPath:    aptPeriodic,
+		logRotationPath:    agentLogRotation,
 		timezonePath:       "Europe/Paris\n",
 		tmuxPath:           tmuxConf,
 		authorizedKeysPath: rootKey + "\n",
@@ -380,7 +381,7 @@ func TestUninstallRemovesOnlyWhatTheModuleWrote(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, path := range []string{sudoersPath, sysctlPath, aptPeriodicPath} {
+	for _, path := range []string{sudoersPath, sysctlPath, aptPeriodicPath, logRotationPath} {
 		if _, present := fake.Files[path]; present {
 			t.Errorf("%s still present", path)
 		}
@@ -646,5 +647,20 @@ func TestUpgradeTakesEveryPackageInOneAptCall(t *testing.T) {
 
 	if statuses(again)["upgrade-packages"] != contract.StepSkip {
 		t.Fatalf("replay = %v", statuses(again))
+	}
+}
+
+func TestAGitNameWithAControlCharacterIsRefusedBeforeItReachesGitconfig(t *testing.T) {
+	none := func(string, string) []string { return nil }
+
+	for _, name := range []string{"Jordan\n[core]\n\tsshCommand = evil", "Jordan\rMonier", "Jordan\x00", "Jordan\x7f"} {
+		problems := contract.ValidateModule(manifest(), map[string]any{"git_name": name, "git_email": "jordan@example.org"}, none)
+		if len(problems) != 1 || problems[0].Field != "git_name" || problems[0].Code != contract.ProblemPattern {
+			t.Errorf("git_name %q: problems = %+v", name, problems)
+		}
+	}
+
+	if problems := contract.ValidateModule(manifest(), map[string]any{"git_name": "Jordan Monier-Éloi", "git_email": "jordan@example.org"}, none); len(problems) != 0 {
+		t.Fatalf("an ordinary name must pass: %+v", problems)
 	}
 }

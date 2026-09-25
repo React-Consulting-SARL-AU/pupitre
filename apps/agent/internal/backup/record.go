@@ -12,12 +12,14 @@ import (
 
 // Record is /var/lib/pupitre/backup.json: where the backups of this server stand, and what the platform has not been told yet.
 type Record struct {
-	RunningSince string                       `json:"running_since,omitempty"`
-	LastRunAt    string                       `json:"last_run_at,omitempty"`
-	LastOKAt     string                       `json:"last_ok_at,omitempty"`
-	LastError    string                       `json:"last_error,omitempty"`
-	Last         *Last                        `json:"last,omitempty"`
-	Pending      []contract.BackupDeclaration `json:"pending_declarations"`
+	RunningSince string `json:"running_since,omitempty"`
+	// RunningPID is the process the backup runs in: one that is gone left RunningSince behind as it crashed.
+	RunningPID int                          `json:"running_pid,omitempty"`
+	LastRunAt  string                       `json:"last_run_at,omitempty"`
+	LastOKAt   string                       `json:"last_ok_at,omitempty"`
+	LastError  string                       `json:"last_error,omitempty"`
+	Last       *Last                        `json:"last,omitempty"`
+	Pending    []contract.BackupDeclaration `json:"pending_declarations"`
 	// Forgotten are the backups pruned from the bucket whose reference the platform still holds.
 	Forgotten []string `json:"pending_forgets,omitempty"`
 }
@@ -74,7 +76,7 @@ type Marker struct {
 	Location  contract.BackupLocation `json:"location"`
 	Revert    bool                    `json:"revert"`
 	StartedAt string                  `json:"started_at"`
-	// Installed is the digest of install.json as the restore left it: another one says an install has happened since.
+	// Installed is the digest of install.json as the restore left it: another one says an install has happened since, none that the setup never finished.
 	Installed string `json:"installed"`
 	// Before names the configuration files the machine held before the restore, kept under the staging folder.
 	Before []string `json:"before"`

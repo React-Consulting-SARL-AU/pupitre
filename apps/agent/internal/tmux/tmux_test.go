@@ -42,7 +42,7 @@ func TestStartOpensAWindowAndItsLog(t *testing.T) {
 	}
 
 	commands := strings.Join(fake.Commands(), "\n")
-	if !strings.Contains(commands, "pipe-pane -o -t =pupitre:=web/web cat >> "+logPath) {
+	if !strings.Contains(commands, "pipe-pane -o -t =pupitre:=web/web export SHELL=/bin/sh L='"+logPath+"'; exec split -b 4194304 ") {
 		t.Fatalf("the output must be piped into the process's log, under a folder of its project's name:\n%s", commands)
 	}
 	if !strings.Contains(commands, "bun run dev --port 3000") {
@@ -251,7 +251,7 @@ func TestStartRunsTheCommandAsTheWindowAndKeepsItsCorpse(t *testing.T) {
 		"-e PUPITRE_CMD=bun run dev --port 3000",
 		`exec /usr/bin/zsh -lc "$PUPITRE_CMD"`,
 		"; set-option -w -t =pupitre:=web/web remain-on-exit on",
-		"; pipe-pane -o -t =pupitre:=web/web cat >> " + logPath,
+		"; pipe-pane -o -t =pupitre:=web/web export SHELL=/bin/sh L='" + logPath + "';",
 	} {
 		if !strings.Contains(line, want) {
 			t.Errorf("the window must run the command itself, keep its pane once it exits and pipe its output, all in one call — missing %q:\n%s", want, line)

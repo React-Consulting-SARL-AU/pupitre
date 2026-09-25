@@ -390,6 +390,14 @@ var backupCatalog = map[string]Message{
 		FR: "mongosh n'a pas fini son script : %s",
 		EN: "mongosh did not finish its script: %s",
 	},
+	"backup.restore.room": {
+		FR: "la base %s n'a pas été touchée : la restaurer demande environ %s Go libres sur %s, il en reste %s Go. Libérez de la place ou agrandissez le disque, puis restaurez cette partie à nouveau",
+		EN: "the database %s was left alone: restoring it needs about %s GB free on %s, and %s GB are left. Free some space or grow the disk, then restore this part again",
+	},
+	"backup.postgres.aside": {
+		FR: "la base %s n'a pas été touchée : %s, qu'une restauration interrompue a laissée de côté, tient peut-être ses données. Renommez-la en %s si elle les tient, sinon supprimez-la, puis restaurez cette partie à nouveau",
+		EN: "the database %s was left alone: %s, set aside by an interrupted restore, may hold its data. Rename it to %s if it does, drop it otherwise, then restore this part again",
+	},
 
 	"devcli.backup.help": {
 		FR: "une sauvegarde maintenant, ou où elles en sont",

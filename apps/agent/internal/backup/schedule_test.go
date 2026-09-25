@@ -2,6 +2,8 @@ package backup_test
 
 import (
 	"os"
+	"os/exec"
+	"strconv"
 	"syscall"
 	"testing"
 	"time"
@@ -105,6 +107,60 @@ func TestATurnWaitsWhileAnInstallHoldsTheLock(t *testing.T) {
 	status, _ := b.service.Status()
 	if status.Last != nil {
 		t.Fatal("a backup that waited for the lock is not an attempt")
+	}
+}
+
+func deadPID(t *testing.T) int {
+	t.Helper()
+
+	gone := exec.Command("true")
+	if err := gone.Run(); err != nil {
+		t.Fatal(err)
+	}
+
+	return gone.Process.Pid
+}
+
+func TestABackupLeftRunningByAProcessThatDiedIsNotUnderWay(t *testing.T) {
+	b := newBench(t, s3test.New(t, bucketName)).configured()
+
+	held, err := os.OpenFile(b.engine.LockPath, os.O_CREATE|os.O_RDWR, 0o600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer held.Close()
+
+	if err := syscall.Flock(int(held.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
+		t.Fatal(err)
+	}
+
+	b.fake.Files["/var/lib/pupitre/backup.json"] = []byte(`{"running_since":"2026-09-24T02:00:00Z","running_pid":` + strconv.Itoa(deadPID(t)) + `,"pending_declarations":[]}`)
+
+	status, err := b.service.Status()
+	if err != nil || status.Running {
+		t.Fatalf("an install holding the lock is not a backup, and a dead process runs nothing: %+v, %v", status, err)
+	}
+
+	b.fake.Files["/var/lib/pupitre/backup.json"] = []byte(`{"running_since":"2026-09-24T02:00:00Z","running_pid":` + strconv.Itoa(os.Getpid()) + `,"pending_declarations":[]}`)
+
+	if status, _ := b.service.Status(); !status.Running {
+		t.Fatal("a backup whose process runs is under way")
+	}
+}
+
+func TestABackupThatCannotStartWaitsAnIntervalBeforeTheNextTry(t *testing.T) {
+	b := newBench(t, s3test.New(t, bucketName)).configured()
+	delete(b.fake.Files, serverIDPath)
+
+	b.service.Tend()
+
+	status, err := b.service.Status()
+	if err != nil || status.Last == nil || status.Last.OK || status.Last.Error == "" {
+		t.Fatalf("an attempt that could not start is one: %+v, %v", status, err)
+	}
+
+	if status.NextRunAt != "2026-09-25T03:00:00Z" {
+		t.Fatalf("the next try is an interval away, not the daemon's next turn: %s", status.NextRunAt)
 	}
 }
 

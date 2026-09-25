@@ -3,6 +3,7 @@ package mysql
 import (
 	"io"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -106,11 +107,48 @@ func TestADumpCarriesWhatMakesTheDatabaseAgain(t *testing.T) {
 		t.Fatalf("out %q, line %s", out.String(), line)
 	}
 
-	if err := RestoreFrom(ctx, "intranet", strings.NewReader("CREATE DATABASE intranet;")); err != nil {
+	if err := RestoreFrom(ctx, "intranet", 25, strings.NewReader("CREATE DATABASE intranet;")); err != nil {
 		t.Fatal(err)
 	}
 
-	if !strings.Contains(fake.Commands()[1], "DROP DATABASE IF EXISTS `intranet`") || string(fake.FedTo("--default-character-set=utf8mb4")) == "" {
+	if !strings.Contains(strings.Join(fake.Commands(), "\n"), "DROP DATABASE IF EXISTS `intranet`") || string(fake.FedTo("--default-character-set=utf8mb4")) == "" {
+		t.Fatalf("commands = %v", fake.Commands())
+	}
+}
+
+const gib = int64(1) << 30
+
+func dfAnswer(available int64) string {
+	return "Filesystem 1-blocks Used Available Capacity Mounted on\n/dev/sda1 42949672960 0 " + strconv.FormatInt(available, 10) + " 90% /\n"
+}
+
+func TestADatabaseTheDiskCannotHoldAgainIsNeverDropped(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Answer("information_schema.tables WHERE table_schema = 'intranet'", strconv.FormatInt(gib, 10)+"\n")
+	fake.Answer("df -P -B1 /var/lib/mysql", dfAnswer(gib))
+	ctx := modtest.NewContext(t, fake, modtest.Options{Manifest: manifest()})
+
+	err := RestoreFrom(ctx, "intranet", 3*gib, strings.NewReader("CREATE DATABASE intranet;"))
+	if err == nil || !strings.Contains(err.Error(), "/var/lib/mysql") {
+		t.Fatalf("err = %v", err)
+	}
+
+	if commands := strings.Join(fake.Commands(), "\n"); strings.Contains(commands, "DROP DATABASE") || fake.FedTo("--default-character-set") != nil {
+		t.Fatalf("a restore that cannot fit leaves the database as it is:\n%s", commands)
+	}
+}
+
+func TestWhatTheDropGivesBackCountsTowardsTheRoom(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Answer("information_schema.tables WHERE table_schema = 'intranet'", strconv.FormatInt(3*gib, 10)+"\n")
+	fake.Answer("df -P -B1 /var/lib/mysql", dfAnswer(gib))
+	ctx := modtest.NewContext(t, fake, modtest.Options{Manifest: manifest()})
+
+	if err := RestoreFrom(ctx, "intranet", 3*gib, strings.NewReader("CREATE DATABASE intranet;")); err != nil {
+		t.Fatal(err)
+	}
+
+	if !strings.Contains(strings.Join(fake.Commands(), "\n"), "DROP DATABASE IF EXISTS `intranet`") {
 		t.Fatalf("commands = %v", fake.Commands())
 	}
 }

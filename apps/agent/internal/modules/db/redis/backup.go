@@ -23,6 +23,7 @@ const (
 
 	defaultDir      = "/var/lib/redis"
 	defaultFilename = "dump.rdb"
+	incomingSuffix  = ".restoring"
 	owner           = "redis"
 )
 
@@ -73,23 +74,16 @@ func Snapshot(ctx *modules.Context, w io.Writer) error {
 // A server persisting through its append-only file would start empty on an RDB alone: it starts once without it, then turns it back on live, which rewrites it from the snapshot.
 func RestoreSnapshot(ctx *modules.Context, r io.Reader) error {
 	dir, filename := where(ctx)
-	persistent := ctx.Bool("persistence")
 
 	if err := systemd.Stop(ctx, unit); err != nil {
 		return err
 	}
 
-	for _, stale := range []string{"appendonlydir", "appendonly.aof"} {
-		if err := ctx.Sys().RemoveIn(dir, stale, true); err != nil {
-			return err
-		}
+	if err := swapIn(ctx, dir, filename, r); err != nil {
+		return errors.Join(err, systemd.Restart(ctx, unit))
 	}
 
-	if _, err := sys.Exec(ctx, sys.Command{User: owner, Argv: sys.Idle("dd", "of="+path.Join(dir, filename), "bs=1M", "status=none"), Input: r, Timeout: streamTimeout}); err != nil {
-		return err
-	}
-
-	if !persistent {
+	if !ctx.Bool("persistence") {
 		return systemd.Restart(ctx, unit)
 	}
 
@@ -107,6 +101,51 @@ func RestoreSnapshot(ctx *modules.Context, r io.Reader) error {
 	}
 
 	return started
+}
+
+// swapIn lays the snapshot beside the live one and renames it over it only once whole: until then the server's own files, append-only ones included, are untouched.
+func swapIn(ctx *modules.Context, dir, filename string, r io.Reader) error {
+	incoming := filename + incomingSuffix
+
+	if err := receive(ctx, dir, incoming, r); err != nil {
+		_ = ctx.Sys().RemoveIn(dir, incoming, false)
+
+		return err
+	}
+
+	if err := ctx.Sys().RenameIn(dir, incoming, filename); err != nil {
+		_ = ctx.Sys().RemoveIn(dir, incoming, false)
+
+		return err
+	}
+
+	for _, stale := range []string{"appendonlydir", "appendonly.aof"} {
+		if err := ctx.Sys().RemoveIn(dir, stale, true); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func receive(ctx *modules.Context, dir, name string, r io.Reader) error {
+	ctx.Logf("snapshot streamed into %s", path.Join(dir, name))
+
+	out, err := ctx.Sys().CreateIn(dir, name, owner)
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(out, r)
+	if synced, durable := out.(interface{ Sync() error }); durable && err == nil {
+		err = synced.Sync()
+	}
+
+	if closed := out.Close(); err == nil {
+		err = closed
+	}
+
+	return err
 }
 
 func persistLive(ctx *modules.Context) error {

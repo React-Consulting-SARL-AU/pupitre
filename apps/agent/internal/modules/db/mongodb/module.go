@@ -6,6 +6,7 @@ import (
 	"io"
 	"math"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -18,6 +19,7 @@ import (
 	"pupitre.studio/agent/internal/sys/apt"
 	"pupitre.studio/agent/internal/sys/env"
 	"pupitre.studio/agent/internal/sys/file"
+	"pupitre.studio/agent/internal/sys/host"
 	"pupitre.studio/agent/internal/sys/systemd"
 )
 
@@ -44,9 +46,6 @@ const (
 	listDir    = "/etc/apt/sources.list.d"
 	listPrefix = "mongodb-org-"
 
-	osReleasePath   = "/etc/os-release"
-	defaultCodename = "noble"
-
 	defaultAppUser  = "app"
 	authDatabase    = "admin"
 	loopback        = "127.0.0.1"
@@ -56,7 +55,6 @@ const (
 
 	userReady = "pupitre-user-ready"
 
-	meminfoPath   = "/proc/meminfo"
 	cacheDivisor  = 4
 	minCacheMB    = 256
 	maxCacheMB    = 8192
@@ -84,6 +82,25 @@ var (
 	userPattern    = regexp.MustCompile(`^[a-z][a-z0-9_]{0,63}$`)
 )
 
+// published names, for each major the form offers, the Ubuntu releases repo.mongodb.org serves it for: a list naming any other answers 404 and breaks apt.
+var published = map[string][]string{
+	"8.0": {"jammy", "noble"},
+	"7.0": {"jammy"},
+}
+
+// parts are what the mongodb-org metapackage pulls from MongoDB's repository; removing the metapackage alone leaves the server installed.
+var parts = []string{
+	pkg,
+	"mongodb-org-database",
+	"mongodb-org-server",
+	"mongodb-org-mongos",
+	"mongodb-org-tools",
+	"mongodb-org-database-tools-extra",
+	"mongodb-org-shell",
+	"mongodb-mongosh",
+	"mongodb-database-tools",
+}
+
 type Module struct{}
 
 func init() {
@@ -97,7 +114,48 @@ func (Module) Manifest() contract.Manifest {
 // A port another program already holds, and a major the server does not run
 // on, are what this configuration cannot know from the manifest alone.
 func (Module) Preflight(ctx *modules.Context) []contract.FieldProblem {
-	return modules.Problems(modules.PortTaken(ctx, "port"), majorChanged(ctx))
+	return modules.Problems(modules.PortTaken(ctx, "port"), unpublished(ctx), majorChanged(ctx))
+}
+
+func unpublished(ctx *modules.Context) *contract.FieldProblem {
+	major, release := version(ctx), host.Codename(ctx)
+	if slices.Contains(published[major], release) {
+		return nil
+	}
+
+	return &contract.FieldProblem{
+		Module:   ID,
+		Field:    "version",
+		Code:     contract.ProblemOptions,
+		Expected: strings.Join(servedOn(release), ", "),
+		Message:  unpublishedMessage(major, release),
+	}
+}
+
+func unpublishedMessage(major, release string) string {
+	served := servedOn(release)
+	if len(served) == 0 {
+		return i18n.T("field.mongodb.version.unsupported", release)
+	}
+
+	return i18n.T("field.mongodb.version.unpublished", major, release, strings.Join(served, ", "))
+}
+
+func servedOn(release string) []string {
+	var served []string
+	for _, field := range manifest().Fields {
+		if field.Key != "version" {
+			continue
+		}
+
+		for _, major := range field.Options {
+			if slices.Contains(published[major], release) {
+				served = append(served, major)
+			}
+		}
+	}
+
+	return served
 }
 
 // A new major refuses the files of the old one until featureCompatibilityVersion
@@ -133,7 +191,11 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 // MongoDB is not in the Ubuntu archive: the module adds the project's own repository, key first.
 func (Module) Install(ctx *modules.Context) error {
 	if err := ctx.Step("add-repository", func() (modules.Outcome, error) {
-		list := repository(version(ctx), codename(ctx))
+		if problem := unpublished(ctx); problem != nil {
+			return modules.Failed, errors.New(problem.Message)
+		}
+
+		list := repository(version(ctx), host.Codename(ctx))
 		if file.Exists(ctx, keyringPath(ctx)) && file.Same(ctx, listPath(ctx), list) {
 			return modules.Skipped, nil
 		}
@@ -154,7 +216,7 @@ func (Module) Install(ctx *modules.Context) error {
 			return modules.Failed, err
 		}
 
-		return modules.Done, apt.Refresh(ctx)
+		return modules.Done, apt.RefreshAdded(ctx, listPath(ctx), keyringPath(ctx))
 	}); err != nil {
 		return err
 	}
@@ -345,18 +407,19 @@ func (Module) Uninstall(ctx *modules.Context) error {
 	}
 
 	if err := ctx.Step("remove-package", func() (modules.Outcome, error) {
-		if !apt.Installed(ctx, pkg) {
+		installed := installedParts(ctx)
+		if len(installed) == 0 {
 			return modules.Skipped, nil
 		}
 
-		return modules.Done, apt.Remove(ctx, pkg)
+		return modules.Done, apt.Remove(ctx, installed...)
 	}); err != nil {
 		return err
 	}
 
 	if err := ctx.Step("remove-config", func() (modules.Outcome, error) {
 		removed := false
-		for _, path := range []string{confPath, markerPath} {
+		for _, path := range append([]string{confPath, markerPath}, repositoryFiles(ctx)...) {
 			gone, err := file.Remove(ctx, path)
 			if err != nil {
 				return modules.Failed, err
@@ -386,6 +449,36 @@ func (Module) Uninstall(ctx *modules.Context) error {
 
 		return modules.Done, nil
 	})
+}
+
+func installedParts(ctx *modules.Context) []string {
+	var installed []string
+	for _, part := range parts {
+		if apt.Installed(ctx, part) {
+			installed = append(installed, part)
+		}
+	}
+
+	return installed
+}
+
+// Every major's list and key, not only the chosen one's: a list left behind is read at every later apt-get update.
+func repositoryFiles(ctx *modules.Context) []string {
+	var paths []string
+
+	if entries, err := ctx.Sys().ReadDir(listDir); err == nil {
+		for _, entry := range entries {
+			if !entry.Dir && strings.HasPrefix(entry.Name, listPrefix) && strings.HasSuffix(entry.Name, ".list") {
+				paths = append(paths, listDir+"/"+entry.Name)
+			}
+		}
+	}
+
+	for major := range published {
+		paths = append(paths, keyringPathOf(major))
+	}
+
+	return paths
 }
 
 func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
@@ -551,38 +644,11 @@ func cacheSizeGB(ctx *modules.Context) string {
 }
 
 func totalKB(ctx *modules.Context) int {
-	raw, err := file.Read(ctx, meminfoPath)
-	if err != nil {
-		return fallbackRAMKB
-	}
-
-	for _, line := range strings.Split(string(raw), "\n") {
-		fields := strings.Fields(line)
-		if len(fields) < 2 || fields[0] != "MemTotal:" {
-			continue
-		}
-
-		if kb, err := strconv.Atoi(fields[1]); err == nil {
-			return kb
-		}
+	if kb, known := host.MemTotalKB(ctx); known {
+		return kb
 	}
 
 	return fallbackRAMKB
-}
-
-func codename(ctx *modules.Context) string {
-	raw, err := file.Read(ctx, osReleasePath)
-	if err != nil {
-		return defaultCodename
-	}
-
-	for _, line := range strings.Split(string(raw), "\n") {
-		if value, ok := strings.CutPrefix(line, "VERSION_CODENAME="); ok {
-			return strings.Trim(value, `"`)
-		}
-	}
-
-	return defaultCodename
 }
 
 // The first user is created through the localhost exception; afterwards only

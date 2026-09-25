@@ -22,6 +22,7 @@ const (
 	sudoersPath        = sudo.Path
 	sysctlPath         = "/etc/sysctl.d/99-pupitre.conf"
 	aptPeriodicPath    = "/etc/apt/apt.conf.d/52pupitre"
+	logRotationPath    = "/etc/logrotate.d/pupitre"
 	timezonePath       = "/etc/timezone"
 	swapPath           = "/swapfile"
 	fstabPath          = "/etc/fstab"
@@ -84,7 +85,7 @@ func (Module) Install(ctx *modules.Context) error {
 }
 
 func (Module) Configure(ctx *modules.Context) error {
-	return sequence(ctx, setTimezone, createUser, grantSudo, prepareHome, seedAuthorizedKeys, createProjectsDir, setGitIdentity, writeZshrc, writeBashrc, writeTmuxConf, linkDev, installAgentUnit, installResumeUnit)
+	return sequence(ctx, setTimezone, createUser, grantSudo, prepareHome, seedAuthorizedKeys, createProjectsDir, setGitIdentity, writeZshrc, writeBashrc, writeTmuxConf, linkDev, installAgentUnit, installResumeUnit, rotateAgentLog)
 }
 
 func (m Module) Upgrade(ctx *modules.Context) error {
@@ -145,6 +146,10 @@ func (Module) Uninstall(ctx *modules.Context) error {
 	}
 
 	if err := removeFile(ctx, "remove-unattended-upgrades-config", aptPeriodicPath); err != nil {
+		return err
+	}
+
+	if err := removeFile(ctx, "remove-log-rotation", logRotationPath); err != nil {
 		return err
 	}
 

@@ -16,6 +16,7 @@ import (
 	"pupitre.studio/agent/internal/sys/apt"
 	"pupitre.studio/agent/internal/sys/env"
 	"pupitre.studio/agent/internal/sys/file"
+	"pupitre.studio/agent/internal/sys/host"
 	"pupitre.studio/agent/internal/sys/systemd"
 )
 
@@ -31,9 +32,6 @@ const (
 	keyURL      = "https://www.postgresql.org/media/keys/ACCC4CF8.asc"
 	listPath    = "/etc/apt/sources.list.d/pgdg.list"
 
-	osReleasePath   = "/etc/os-release"
-	defaultCodename = "noble"
-
 	defaultAppRole    = "app"
 	defaultRemoteRole = "dev"
 
@@ -47,7 +45,6 @@ const (
 
 	countExtensions = "SELECT count(*) FROM pg_extension WHERE extname IN ('pg_trgm', 'uuid-ossp', 'citext')"
 
-	meminfoPath   = "/proc/meminfo"
 	bufferDivisor = 4
 	minBufferMB   = 128
 	maxBufferMB   = 8192
@@ -116,7 +113,7 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 // The version the client asked for is rarely the one Ubuntu ships: the module adds the project's own repository, key first.
 func (Module) Install(ctx *modules.Context) error {
 	if err := ctx.Step("add-repository", func() (modules.Outcome, error) {
-		list := repository(codename(ctx))
+		list := repository(host.Codename(ctx))
 		if file.Exists(ctx, keyringPath) && file.Same(ctx, listPath, list) {
 			return modules.Skipped, nil
 		}
@@ -133,7 +130,7 @@ func (Module) Install(ctx *modules.Context) error {
 			return modules.Failed, err
 		}
 
-		return modules.Done, apt.Refresh(ctx)
+		return modules.Done, apt.RefreshAdded(ctx, listPath, keyringPath)
 	}); err != nil {
 		return err
 	}
@@ -566,21 +563,6 @@ func repository(release string) []byte {
 	return []byte("deb [signed-by=" + keyringPath + "] https://apt.postgresql.org/pub/repos/apt " + release + "-pgdg main\n")
 }
 
-func codename(ctx *modules.Context) string {
-	raw, err := file.Read(ctx, osReleasePath)
-	if err != nil {
-		return defaultCodename
-	}
-
-	for _, line := range strings.Split(string(raw), "\n") {
-		if value, ok := strings.CutPrefix(line, "VERSION_CODENAME="); ok {
-			return strings.Trim(value, `"`)
-		}
-	}
-
-	return defaultCodename
-}
-
 func renderConfig(port int, buffers string) []byte {
 	return []byte(fmt.Sprintf(configTemplate, port, buffers))
 }
@@ -622,20 +604,8 @@ func sharedBuffers(ctx *modules.Context) string {
 }
 
 func totalKB(ctx *modules.Context) int {
-	raw, err := file.Read(ctx, meminfoPath)
-	if err != nil {
-		return fallbackRAMKB
-	}
-
-	for _, line := range strings.Split(string(raw), "\n") {
-		fields := strings.Fields(line)
-		if len(fields) < 2 || fields[0] != "MemTotal:" {
-			continue
-		}
-
-		if kb, err := strconv.Atoi(fields[1]); err == nil {
-			return kb
-		}
+	if kb, known := host.MemTotalKB(ctx); known {
+		return kb
 	}
 
 	return fallbackRAMKB

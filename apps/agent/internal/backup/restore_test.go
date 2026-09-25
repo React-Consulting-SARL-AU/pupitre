@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"pupitre.studio/agent/internal/backup"
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules/modtest"
 	"pupitre.studio/agent/internal/protocol"
@@ -117,14 +118,14 @@ func TestAFreshServerComesBackAsTheBackupLeftIt(t *testing.T) {
 		}
 	}
 
-	if string(fresh.fake.FedTo("pg_restore --create")) != pgDump || string(fresh.fake.FedTo("psql --no-psqlrc --quiet")) != pgRoles || string(fresh.fake.FedTo("dd of=/var/lib/redis/dump.rdb")) != redisSnapshot {
+	if string(fresh.fake.FedTo("pg_restore --create")) != pgDump || string(fresh.fake.FedTo("psql --no-psqlrc --quiet")) != pgRoles || string(fresh.fake.Files["/var/lib/redis/dump.rdb"]) != redisSnapshot {
 		t.Fatal("each engine must read its own dump")
 	}
 
 	commands := strings.Join(fresh.fake.Commands(), "\n")
 	roles, database := strings.Index(commands, "psql --no-psqlrc --quiet"), strings.Index(commands, "pg_restore")
-	if roles < 0 || database < roles || !strings.Contains(commands, "dropdb --if-exists --force shop") {
-		t.Fatalf("roles come first, a database is dropped before its import:\n%s", commands)
+	if roles < 0 || database < roles || strings.Contains(commands, "dropdb") {
+		t.Fatalf("roles come first, and a fresh server has no database of before to set aside:\n%s", commands)
 	}
 
 	if !strings.Contains(commands, "bun install") {
@@ -192,6 +193,83 @@ func TestAnAbortPutsBackWhatTheMachineHeld(t *testing.T) {
 
 	if !bytes.Equal(reverted.fake.Files[installPath], before) {
 		t.Fatalf("the configuration of before must be back: %s", reverted.fake.Files[installPath])
+	}
+}
+
+func TestTheRestoreMarkerLandsBeforeTheBackupsFiles(t *testing.T) {
+	bucket, source, _ := backedUp(t)
+
+	fresh := newBench(t, bucket)
+	if _, err := fresh.service.RestoreSetup(nil, source.location(), fresh.secrets(), false); err != nil {
+		t.Fatal(err)
+	}
+
+	marked, laid := slices.Index(fresh.fake.Mutations, "write /var/lib/pupitre/restore.json"), slices.Index(fresh.fake.Mutations, "write "+installPath)
+	if marked < 0 || laid < 0 || marked > laid {
+		t.Fatalf("a restore cut short after its files must still read as one:\n%s", strings.Join(fresh.fake.Mutations, "\n"))
+	}
+}
+
+func TestAnAbortAfterASetupCutShortPutsTheMachineBack(t *testing.T) {
+	bucket, source, _ := backedUp(t)
+
+	reverted := newBench(t, bucket).configured()
+	reverted.install(map[string]any{"modules": []string{"core.system"}, "config": map[string]any{"core.system": map[string]any{"timezone": "Europe/Paris"}}})
+	before := append([]byte(nil), reverted.fake.Files[installPath]...)
+
+	if _, err := reverted.service.RestoreSetup(nil, source.location(), reverted.secrets(), true); err != nil {
+		t.Fatal(err)
+	}
+
+	var marker backup.Marker
+	if err := json.Unmarshal(reverted.fake.Files["/var/lib/pupitre/restore.json"], &marker); err != nil {
+		t.Fatal(err)
+	}
+
+	marker.Installed = ""
+	cut, _ := json.Marshal(marker)
+	reverted.fake.Files["/var/lib/pupitre/restore.json"] = cut
+	reverted.fake.Files[installPath] = []byte(`{"modules":["core.system"],"half":"laid"}`)
+
+	if err := reverted.service.Abort(); err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(reverted.fake.Files[installPath], before) {
+		t.Fatalf("a setup that never finished is undone whatever it left: %s", reverted.fake.Files[installPath])
+	}
+}
+
+func TestADatabaseDumpIsReadWholeBeforeItsEngineSeesIt(t *testing.T) {
+	bucket, source, made := backedUp(t)
+	location := source.location()
+
+	fresh := newBench(t, bucket)
+	if _, err := fresh.service.RestoreSetup(nil, location, fresh.secrets(), false); err != nil {
+		t.Fatal(err)
+	}
+
+	fresh.fake.Packages["postgresql-17"] = "17.2"
+	fresh.fake.Answer("df -P -B1 /var/lib/postgresql", "Filesystem 1-blocks Used Available Capacity Mounted on\n/dev/sda1 1073741824 1073741824 0 100% /\n")
+
+	var key string
+	for _, part := range made.Parts {
+		if part.Engine == "postgres" && part.Name == "shop" {
+			key = part.Key
+		}
+	}
+
+	data, err := fresh.service.RestoreData(nil, location, fresh.secrets(), []string{key}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !slices.Equal(data.Failed, []string{key}) || len(data.Warnings) == 0 || !strings.Contains(data.Warnings[0], "/var/lib/postgresql") {
+		t.Fatalf("a full disk refuses the part and says where: %+v", data)
+	}
+
+	if fresh.fake.FedTo("pg_restore") != nil {
+		t.Fatal("a restore the disk cannot hold never reaches the engine")
 	}
 }
 

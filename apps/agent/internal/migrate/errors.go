@@ -11,6 +11,11 @@ func unknownBackup(name string) error {
 		WithFix(i18n.T("migrate.backup.unknown.fix"))
 }
 
+func unreadableLedger(path string, cause error) error {
+	return protocol.NewError(contract.ErrorMigrationRequired, i18n.T("migrate.ledger.unreadable", path, cause.Error())).
+		WithFix(i18n.T("migrate.ledger.unreadable.fix", path))
+}
+
 func busy() error {
 	return protocol.NewError(contract.ErrorBusy, i18n.T("migrate.busy")).
 		WithFix(i18n.T("migrate.busy.fix"))

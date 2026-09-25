@@ -4,11 +4,12 @@ package dumps
 import (
 	"io"
 	"path"
-	"pupitre.studio/agent/internal/i18n"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/runtime/shell"
 	"pupitre.studio/agent/internal/sys"
@@ -43,7 +44,8 @@ var namedDump = regexp.MustCompile(`^(?:fulldump|dump)_([A-Za-z0-9_]+)_[0-9]+\.`
 var unsafeInStep = regexp.MustCompile(`[^a-z0-9]+`)
 
 // The name reaches an SQL identifier and a shell-free argv; anything else is left alone rather than quoted into a surprise.
-var safeName = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
+// It never starts with a dash, which mysql, pg_dump and mongodump would read as an option.
+var safeName = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9_-]{0,63}$`)
 
 // SafeName says whether a database name can reach an identifier, a path under ~/dumps and an argv as it is.
 func SafeName(name string) bool {
@@ -192,21 +194,21 @@ func discover(ctx *modules.Context, patterns []string) []File {
 		return nil
 	}
 
+	// A file name may hold a newline, never a NUL: find -print0 is the only listing that cannot be split in the wrong place.
 	var found []File
-	for _, line := range strings.Split(out.Stdout, "\n") {
-		trimmed := strings.TrimSpace(line)
-		if trimmed == "" {
+	for _, listed := range strings.Split(out.Stdout, "\x00") {
+		if listed == "" {
 			continue
 		}
 
-		name := database(path.Base(trimmed))
+		name := database(path.Base(listed))
 		if !safeName.MatchString(name) {
-			ctx.Warn(i18n.T("warn.dumps.name.refused", path.Base(trimmed)))
+			ctx.Warn(i18n.T("warn.dumps.name.refused", strconv.Quote(path.Base(listed))))
 
 			continue
 		}
 
-		found = append(found, File{Path: trimmed, Database: name, Gzip: strings.HasSuffix(trimmed, ".gz")})
+		found = append(found, File{Path: listed, Database: name, Gzip: strings.HasSuffix(listed, ".gz")})
 	}
 
 	sort.SliceStable(found, func(i, j int) bool { return found[i].Path < found[j].Path })
@@ -223,7 +225,7 @@ func find(patterns []string) []string {
 		argv = append(argv, "-name", pattern)
 	}
 
-	return append(argv, ")")
+	return append(argv, ")", "-print0")
 }
 
 func marker(dumpPath string) string {

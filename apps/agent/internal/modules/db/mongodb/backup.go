@@ -10,6 +10,7 @@ import (
 
 	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/db/room"
 	"pupitre.studio/agent/internal/sys"
 )
 
@@ -17,8 +18,10 @@ import (
 const streamTimeout = 24 * time.Hour
 
 const (
-	listedPrefix = "pupitre-db "
-	scriptDone   = "pupitre-script-done"
+	listedPrefix  = "pupitre-db "
+	weighedPrefix = "pupitre-bytes "
+	scriptDone    = "pupitre-script-done"
+	dataDir       = "/var/lib/mongodb"
 )
 
 var systemDatabases = []string{"admin", "config", "local"}
@@ -51,7 +54,17 @@ func DumpTo(ctx *modules.Context, name string, w io.Writer) error {
 }
 
 // RestoreFrom drops the database, then restores the archive into it and nothing else.
-func RestoreFrom(ctx *modules.Context, name string, r io.Reader) error {
+// MongoDB renames no database, and a collection moved across two is copied whole: the disk is weighed before the drop instead, the archive's size against what is free once the database is gone.
+func RestoreFrom(ctx *modules.Context, name string, size int64, r io.Reader) error {
+	held, err := weight(ctx, name)
+	if err != nil {
+		return err
+	}
+
+	if err := room.Check(ctx, name, dataDir, size, held); err != nil {
+		return err
+	}
+
 	if _, err := script(ctx, `admin.getSiblingDB(`+strconv.Quote(name)+`).dropDatabase();`); err != nil {
 		return err
 	}
@@ -62,6 +75,24 @@ func RestoreFrom(ctx *modules.Context, name string, r io.Reader) error {
 
 		return err
 	})
+}
+
+// weight is what the database holds on the disk, collections and indexes: what its drop gives back.
+func weight(ctx *modules.Context, name string) (int64, error) {
+	out, err := script(ctx, `const held = admin.getSiblingDB(`+strconv.Quote(name)+`).stats(); print("`+weighedPrefix+`" + Math.trunc(Number(held.storageSize) + Number(held.indexSize)));`)
+	if err != nil {
+		return 0, err
+	}
+
+	for _, line := range strings.Split(out, "\n") {
+		if value, weighed := strings.CutPrefix(strings.TrimSpace(line), weighedPrefix); weighed {
+			bytes, _ := strconv.ParseInt(value, 10, 64)
+
+			return bytes, nil
+		}
+	}
+
+	return 0, nil
 }
 
 // mongosh exits 0 on an uncaught error: the script ends on a word of its own, and one that never says it has failed.

@@ -53,6 +53,7 @@ type Fake struct {
 	next     int
 	calls    map[string]int
 	refusals map[string][]refusal
+	lost     map[string]int
 }
 
 func New(t *testing.T, bucket string) *Fake {
@@ -66,6 +67,7 @@ func New(t *testing.T, bucket string) *Fake {
 		uploads:  map[string]*upload{},
 		calls:    map[string]int{},
 		refusals: map[string][]refusal{},
+		lost:     map[string]int{},
 	}
 	fake.server = httptest.NewTLSServer(http.HandlerFunc(fake.serve))
 	t.Cleanup(fake.server.Close)
@@ -111,6 +113,14 @@ func (f *Fake) Refuse(op string, status int, code string) {
 	defer f.mu.Unlock()
 
 	f.refusals[op] = append(f.refusals[op], refusal{status: status, code: code})
+}
+
+// Lose carries out the next call of op, then answers it as a server that stumbled: what a client sees when the answer dies on the way back.
+func (f *Fake) Lose(op string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	f.lost[op]++
 }
 
 // Calls counts the requests of one operation.
@@ -210,6 +220,14 @@ func (f *Fake) serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if f.lost[op] > 0 {
+		f.lost[op]--
+		f.answer(httptest.NewRecorder(), r, op, key, body)
+		fail(w, http.StatusInternalServerError, "InternalError")
+
+		return
+	}
+
 	f.answer(w, r, op, key, body)
 }
 
@@ -218,6 +236,15 @@ func (f *Fake) answer(w http.ResponseWriter, r *http.Request, op, key string, bo
 
 	switch op {
 	case "HeadBucket":
+		w.WriteHeader(http.StatusOK)
+	case "HeadObject":
+		content, found := f.objects[key]
+		if !found {
+			fail(w, http.StatusNotFound, "NoSuchKey")
+
+			return
+		}
+		w.Header().Set("Content-Length", strconv.Itoa(len(content)))
 		w.WriteHeader(http.StatusOK)
 	case "DeleteObject":
 		delete(f.objects, key)
@@ -448,6 +475,8 @@ func operation(r *http.Request, key string) string {
 	switch {
 	case r.Method == http.MethodHead && key == "":
 		return "HeadBucket"
+	case r.Method == http.MethodHead:
+		return "HeadObject"
 	case r.Method == http.MethodGet && query.Has("uploads"):
 		return "ListMultipartUploads"
 	case r.Method == http.MethodGet && key == "":
