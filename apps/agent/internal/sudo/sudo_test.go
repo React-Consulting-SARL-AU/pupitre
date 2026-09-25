@@ -35,7 +35,6 @@ func TestTheStateIsReadOffTheRuleOnDisk(t *testing.T) {
 	}
 }
 
-// sudo applies the last rule that matches: pupitred's own has to come after the one that asks for the password.
 func TestTheRestrictedRuleLetsPupitredThroughLast(t *testing.T) {
 	lines := strings.Split(strings.TrimSpace(Restricted), "\n")
 
@@ -44,8 +43,6 @@ func TestTheRestrictedRuleLetsPupitredThroughLast(t *testing.T) {
 	}
 }
 
-// A command listed with arguments matches those arguments exactly, and a wildcard would match a space too: the rule names
-// the two lines the app runs without the password, with no wildcard, so --privileged and every other subcommand fall to it.
 func TestTheRestrictedRuleNamesExactCommandLines(t *testing.T) {
 	_, commands, _ := strings.Cut(strings.Split(strings.TrimSpace(Restricted), "\n")[1], "NOPASSWD: ")
 

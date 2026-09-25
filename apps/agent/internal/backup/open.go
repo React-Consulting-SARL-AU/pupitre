@@ -22,14 +22,12 @@ import (
 	"pupitre.studio/agent/internal/s3"
 )
 
-// opened is a backup as its bucket holds it: the manifest, checked against the digest the platform recorded, and the client that reads its parts.
 type opened struct {
 	client   s3.Client
 	key      string
 	manifest contract.BackupManifest
 }
 
-// Inspect reads and checks the manifest of a backup, writing nothing anywhere.
 func (s *Service) Inspect(location contract.BackupLocation, secrets contract.BackupSecrets) (contract.BackupManifest, error) {
 	var manifest contract.BackupManifest
 
@@ -93,11 +91,12 @@ func (s *Service) open(ctx *modules.Context, location contract.BackupLocation, s
 	return opened{client: client, key: key, manifest: manifest}, nil
 }
 
-// readManifest refuses a format this binary does not read before anything else, then a manifest the contract does not describe.
+// The format is checked before the schema, so a newer format reads as unsupported rather than corrupt.
 func readManifest(raw []byte) (contract.BackupManifest, error) {
 	var head struct {
 		Format int `json:"format"`
 	}
+
 	if err := json.Unmarshal(raw, &head); err != nil {
 		return contract.BackupManifest{}, corrupt(i18n.T("backup.corrupt.manifest", err.Error()))
 	}
@@ -111,11 +110,13 @@ func readManifest(raw []byte) (contract.BackupManifest, error) {
 	if err == nil {
 		err = contract.Validate("BackupManifest", value)
 	}
+
 	if err != nil {
 		return contract.BackupManifest{}, corrupt(i18n.T("backup.corrupt.manifest", err.Error()))
 	}
 
 	var manifest contract.BackupManifest
+
 	if err := json.Unmarshal(raw, &manifest); err != nil {
 		return contract.BackupManifest{}, corrupt(i18n.T("backup.corrupt.manifest", err.Error()))
 	}
@@ -123,7 +124,7 @@ func readManifest(raw []byte) (contract.BackupManifest, error) {
 	return manifest, nil
 }
 
-// identity reads the private key of the secret line and checks it opens this backup before any part is fetched.
+// Checks the key opens this backup before any part is fetched.
 func (o opened) identity(secrets contract.BackupSecrets) ([]byte, error) {
 	private, err := seal.DecodeKey(secrets.PrivateKey)
 	if err != nil {
@@ -140,14 +141,14 @@ func (o opened) identity(secrets contract.BackupSecrets) ([]byte, error) {
 	return private, nil
 }
 
-// fetched is one part on the server's disk, checked against the manifest and still sealed: it opens as many times as a restore needs to read it.
+// Still sealed on disk, so it opens as many times as a restore needs to read it.
 type fetched struct {
 	file    *os.File
 	key     string
 	private []byte
 }
 
-// A part is checked against the manifest before it is opened: one sealed by someone who knows the public key never reaches a database.
+// Checked against the manifest before it opens: a part sealed by anyone holding the public key never reaches a database.
 func (s *Service) part(backup opened, part contract.BackupPart, private []byte) (*fetched, error) {
 	if err := os.MkdirAll(s.paths.Staging, 0o700); err != nil {
 		return nil, err
@@ -169,7 +170,6 @@ func (s *Service) part(backup opened, part contract.BackupPart, private []byte) 
 	return staged, nil
 }
 
-// open reads the part from its start, unsealed and unzipped.
 func (f *fetched) open() (io.Reader, error) {
 	if _, err := f.file.Seek(0, io.SeekStart); err != nil {
 		return nil, err
@@ -188,7 +188,7 @@ func (f *fetched) open() (io.Reader, error) {
 	return unzipped, nil
 }
 
-// measure reads the part through once, for the size it has opened, and proves on the way that every block and the gzip trailer are whole.
+// Reading through also proves every sealed block and the gzip trailer whole.
 func (f *fetched) measure() (int64, error) {
 	reader, err := f.open()
 	if err != nil {
@@ -217,12 +217,13 @@ func (s *Service) download(backup opened, part contract.BackupPart, into io.Writ
 	if s3.KindOf(err) == s3.KindNoKey {
 		return corrupt(i18n.T("backup.corrupt.absent", part.Key))
 	}
+
 	if err != nil {
 		return module.StorageRefused(err)
 	}
 	defer body.Close()
 
-	// An object longer than the manifest says is not the part: past its length, not one more byte lands on the disk.
+	// An object longer than the manifest says is not the part: past its length, not one more byte lands on disk.
 	digest := sha256.New()
 	copied, err := io.Copy(io.MultiWriter(into, digest), io.LimitReader(body, part.Bytes+1))
 	if err != nil {
@@ -238,7 +239,7 @@ func (s *Service) download(backup opened, part contract.BackupPart, into io.Writ
 
 const (
 	partFloor = 10 * time.Minute
-	// A link slower than this has stalled: the restore lets go of the run lock rather than hold it for ever.
+	// Slower means stalled: the restore lets go of the run lock rather than hold it forever.
 	slowestBytesPerSecond = 256 << 10
 )
 

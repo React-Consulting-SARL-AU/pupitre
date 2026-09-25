@@ -6,7 +6,6 @@ import (
 	"strings"
 )
 
-// Generation is a protocol generation, as packages/shared/src/compat writes it and schema.json carries it here.
 type Generation struct {
 	Protocol int    `json:"protocol"`
 	App      string `json:"app"`
@@ -20,14 +19,14 @@ const (
 	SideAgent Side = "agent"
 )
 
-// Verdict is unknown for a dev build, which has no semver version and so cannot be placed in the sheet.
 type Verdict string
 
 const (
 	VerdictOK          Verdict = "ok"
 	VerdictAgentTooOld Verdict = "agent_too_old"
 	VerdictAppTooOld   Verdict = "app_too_old"
-	VerdictUnknown     Verdict = "unknown"
+	// A dev build has no semver version, so it cannot be placed in the sheet.
+	VerdictUnknown Verdict = "unknown"
 )
 
 var coreRe = regexp.MustCompile(`^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+].*)?$`)
@@ -66,7 +65,6 @@ func GenerationOf(side Side, version string) (Generation, bool) {
 	return spec.Compatibility[index], true
 }
 
-// AppFloor returns the oldest app version this agent version accepts to serve.
 func AppFloor(agentVersion string) string {
 	generation, ok := GenerationOf(SideAgent, agentVersion)
 	if !ok {
@@ -76,7 +74,6 @@ func AppFloor(agentVersion string) string {
 	return generation.App
 }
 
-// AgentFloor returns the oldest agent version this app version knows how to drive.
 func AgentFloor(appVersion string) string {
 	generation, ok := GenerationOf(SideApp, appVersion)
 	if !ok {

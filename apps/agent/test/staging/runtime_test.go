@@ -38,6 +38,7 @@ func TestRuntimesAnswerInANonInteractiveShell(t *testing.T) {
 	}
 
 	out := ssh(t, dev, "node -v && bun -v && java -version && uv --version")
+
 	for _, want := range []string{"v22.", "openjdk version \"21", "uv "} {
 		if !strings.Contains(out, want) {
 			t.Errorf("the runtimes must answer over ssh, %q missing:\n%s", want, out)
@@ -53,12 +54,12 @@ func TestRuntimesAnswerInANonInteractiveShell(t *testing.T) {
 	}
 }
 
-// Go, PHP and Ruby come from the same mise as the others: what proves them is the same non-interactive shell.
 func TestTheOtherRuntimesAnswerToo(t *testing.T) {
 	host := stagingHost(t)
 	dev := "dev@" + address(host)
 
 	out := ssh(t, dev, "go version && php -v && ruby -v && composer --version")
+
 	for _, want := range []string{"go1.25", "PHP 8.4", "ruby 3.4", "Composer"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("%q missing from a non-interactive shell:\n%s", want, out)
@@ -74,7 +75,6 @@ func TestTheOtherRuntimesAnswerToo(t *testing.T) {
 	}
 }
 
-// Docker without the group is Docker behind sudo, and the agents that run as dev never get there.
 func TestDockerAnswersAsDevWithoutSudo(t *testing.T) {
 	host := stagingHost(t)
 	dev := "dev@" + address(host)
@@ -97,6 +97,7 @@ func TestJavaHomeAndGradleDaemonAreSized(t *testing.T) {
 	}
 
 	properties := ssh(t, dev, "cat", "/home/dev/.gradle/gradle.properties")
+
 	for _, want := range []string{"# >>> pupitre runtime.java >>>", "org.gradle.daemon=true", "org.gradle.jvmargs=-Xmx"} {
 		if !strings.Contains(properties, want) {
 			t.Errorf("gradle.properties lacks %q:\n%s", want, properties)
@@ -109,6 +110,7 @@ func TestRuntimeBlocksStayApartAndReplayChangesNothing(t *testing.T) {
 	dev := "dev@" + address(host)
 
 	env := ssh(t, dev, "cat", "/home/dev/.zshenv")
+
 	for _, id := range []string{"runtime.node", "runtime.java", "runtime.python"} {
 		if strings.Count(env, "# >>> pupitre "+id+" >>>") != 1 {
 			t.Errorf("%s must own exactly one block in .zshenv:\n%s", id, env)
@@ -142,7 +144,6 @@ func TestRustAnswersForDev(t *testing.T) {
 	}
 }
 
-// Two majors of Node side by side: the newest answers everywhere, and a project that pins the other gets it in its own folder alone — its mise.local.toml outside git's sight.
 func TestARuntimeHoldsSeveralMajorsAndAProjectPinsOne(t *testing.T) {
 	host := stagingHost(t)
 	dev := "dev@" + address(host)
@@ -187,6 +188,7 @@ func TestARuntimeHoldsSeveralMajorsAndAProjectPinsOne(t *testing.T) {
 	}
 
 	agent(t, host, request{Cmd: "project.update", Params: map[string]any{"name": project, "patch": map[string]any{"runtimes": map[string]any{}}}})
+
 	if out := ssh(t, dev, "cd /home/dev/projects/"+project+" && node -v"); !strings.Contains(out, "v24.") {
 		t.Fatalf("a project that names no version runs on the default: %q", out)
 	}

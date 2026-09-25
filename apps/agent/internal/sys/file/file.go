@@ -14,7 +14,6 @@ func Read(ctx sys.Context, path string) ([]byte, error) {
 	return ctx.Sys().ReadFile(path)
 }
 
-// Tail is the last max bytes of the file: read as a range where the machine can, cut from the whole of it otherwise.
 func Tail(ctx sys.Context, path string, max int64) ([]byte, error) {
 	if ranged, can := ctx.Sys().(sys.Ranged); can {
 		return ranged.ReadTail(path, max)
@@ -32,7 +31,7 @@ func Tail(ctx sys.Context, path string, max int64) ([]byte, error) {
 	return raw, nil
 }
 
-// From is what the file holds past offset, the whole of it when it shrank under the reader.
+// A file shorter than offset shrank under the reader and is returned whole.
 func From(ctx sys.Context, path string, offset int64) ([]byte, error) {
 	if ranged, can := ctx.Sys().(sys.Ranged); can {
 		return ranged.ReadFrom(path, offset)
@@ -66,7 +65,7 @@ func Same(ctx sys.Context, path string, content []byte) bool {
 	return err == nil && bytes.Equal(current, content)
 }
 
-// SameAt is Same with the mode too: a file an older agent left readable is not yet the file this one writes.
+// A file an older agent left too readable is not yet the file this one writes.
 func SameAt(ctx sys.Context, path string, content []byte, mode fs.FileMode) bool {
 	if !Same(ctx, path, content) {
 		return false
@@ -105,6 +104,7 @@ func EnsureLine(ctx sys.Context, path, line string) (bool, error) {
 	if updated != "" && !strings.HasSuffix(updated, "\n") {
 		updated += "\n"
 	}
+
 	updated += line + "\n"
 
 	ctx.Logf("append to %s", path)
@@ -122,11 +122,10 @@ func Owner(ctx sys.Context, path string) (string, error) {
 	return ctx.Sys().Owner(path)
 }
 
-// MkdirOwned creates the folder and hands the owner every folder it had to
-// create on the way: a folder made by root inside a user's home locks that
-// user out of everything under it.
+// Every folder made on the way goes to owner: a root-made folder in a user's home locks them out of all under it.
 func MkdirOwned(ctx sys.Context, path, owner, group string, mode fs.FileMode) error {
 	var created []string
+
 	for dir := path; dir != "/" && dir != "." && !Exists(ctx, dir); dir = filepath.Dir(dir) {
 		created = append(created, dir)
 	}
@@ -150,9 +149,7 @@ func MkdirOwned(ctx sys.Context, path, owner, group string, mode fs.FileMode) er
 	return nil
 }
 
-// EnsureOwned creates the folder for its owner, or gives it back to them,
-// everything inside included, when a previous run left it to root. It says
-// whether it changed anything, so the step around it can be skipped on a replay.
+// Also gives back, contents included, a folder an earlier run left to root.
 func EnsureOwned(ctx sys.Context, path, owner, group string, mode fs.FileMode) (bool, error) {
 	if !Exists(ctx, path) {
 		return true, MkdirOwned(ctx, path, owner, group, mode)
@@ -239,7 +236,6 @@ func ReadBlock(ctx sys.Context, path, name string) ([]byte, bool) {
 	return BlockOf(current, name)
 }
 
-// BlockOf is what lies between the markers of a block, when the file carries them.
 func BlockOf(current []byte, name string) ([]byte, bool) {
 	start, end := blockStart(name)+"\n", blockEnd(name)+"\n"
 	from := strings.Index(string(current), start)
@@ -251,7 +247,6 @@ func BlockOf(current []byte, name string) ([]byte, bool) {
 	return current[from+len(start) : to], true
 }
 
-// WithBlock is the file with its block replaced, or appended when it had none; every line outside the markers stays as it was.
 func WithBlock(current []byte, name string, content []byte) []byte {
 	return []byte(withBlock(string(current), blockStart(name), blockEnd(name), string(content)))
 }
@@ -280,6 +275,7 @@ func RemoveBlock(ctx sys.Context, path, name string) (bool, error) {
 	}
 
 	ctx.Logf("remove block %s from %s", name, path)
+
 	updated := string(current[:from]) + string(current[to+len(end):])
 
 	return true, ctx.Sys().WriteFile(path, []byte(updated), sys.KeepMode)
@@ -297,6 +293,7 @@ func withBlock(current, start, end, content string) string {
 	if !strings.HasSuffix(content, "\n") {
 		content += "\n"
 	}
+
 	block := start + "\n" + content + end + "\n"
 
 	from := strings.Index(current, start+"\n")

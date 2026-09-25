@@ -46,7 +46,7 @@ func (Module) Install(ctx *modules.Context) error {
 	return cli.Install(ctx)
 }
 
-// Nothing to sign in, and no account to report: copilot login uses the device code on a remote terminal, and the CLI has no command that says who holds the session without spending a request.
+// No Login: copilot cannot say who holds the session without spending a request.
 func (Module) Configure(ctx *modules.Context) error {
 	return agents.Deploy(ctx, target)
 }
@@ -59,7 +59,7 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// The conversations, the credentials and the skills the client added himself stay: only the CLI and the context this module wrote go.
+// Conversations, credentials and the client's own skills stay; only the CLI and our context go.
 func (Module) Uninstall(ctx *modules.Context) error {
 	if err := cli.Remove(ctx); err != nil {
 		return err

@@ -1,6 +1,5 @@
 package i18n
 
-// The registry of installed modules, and what it refuses.
 var registryCatalog = map[string]Message{
 	"registry.name.invalid": {
 		FR: "nom de projet invalide : %s",

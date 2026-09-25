@@ -17,7 +17,6 @@ func TestTheTwoLanguagesHaveTheSameKeysAndNoneIsEmpty(t *testing.T) {
 	}
 }
 
-// TestNoFrenchAccentSurvivesInEnglish: an English phrase carrying a French accent is a forgotten translation.
 func TestNoFrenchAccentSurvivesInEnglish(t *testing.T) {
 	for key, message := range catalog {
 		if strings.ContainsAny(message.EN, "éèêëàâçùûîïôœÉÈÊÀÇÙÔ") {
@@ -41,7 +40,6 @@ func TestTheSessionLanguageDecides(t *testing.T) {
 	}
 }
 
-// TestAnUnknownLanguageChangesNothing: a locale the product does not serve leaves the session in the one it had.
 func TestAnUnknownLanguageChangesNothing(t *testing.T) {
 	defer Use(string(Default))
 
@@ -74,7 +72,6 @@ func TestArgumentsAreFilledIn(t *testing.T) {
 	}
 }
 
-// TestAnEnglishSessionCarriesNoFrenchAccent: a session opened in English returns no French accent, catalogue included.
 func TestAnEnglishSessionCarriesNoFrenchAccent(t *testing.T) {
 	defer Use(string(Default))
 
@@ -87,7 +84,6 @@ func TestAnEnglishSessionCarriesNoFrenchAccent(t *testing.T) {
 	}
 }
 
-// A shell states its language the way every Unix tool reads it, and ssh forwards LANG and LC_* on its own.
 func TestTheLocaleComesFromTheReadersShell(t *testing.T) {
 	defer Use(string(Default))
 

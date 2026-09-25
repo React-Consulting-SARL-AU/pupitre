@@ -12,20 +12,18 @@ import (
 )
 
 type Passing struct {
-	ID        string
-	Requires  []string
-	Conflicts []string
-	Package   string
-	Unit      string
-	EnvKey    string
-	Port      int
-	Mandatory bool
-	// Connection names the account the manifest declares, as a real tunnel or tool module does.
+	ID         string
+	Requires   []string
+	Conflicts  []string
+	Package    string
+	Unit       string
+	EnvKey     string
+	Port       int
+	Mandatory  bool
 	Connection string
-	// Asks adds fields to the manifest: a required one without a default is what a real core module asks.
+	// A required field without a default is what a real core module asks.
 	Asks []contract.Field
-	// Versioned makes the package depend on the chosen version, as a database
-	// module's does: a Check run on the manifest default then misses the install.
+	// The package follows the chosen version, like a database's: a Check on the manifest default misses the install.
 	Versioned bool
 }
 
@@ -39,12 +37,15 @@ func (m Passing) Manifest() contract.Manifest {
 	fields := []contract.Field{
 		{Key: "port", Kind: contract.FieldNumber, Label: "Port", Required: false, Default: 8080},
 	}
+
 	if m.EnvKey != "" {
 		fields = append(fields, contract.Field{Key: "password", Kind: contract.FieldSecret, Label: "Mot de passe", Required: true, Generate: true})
 	}
+
 	if m.Versioned {
 		fields = append(fields, contract.Field{Key: VersionField, Kind: contract.FieldSelect, Label: "Version", Default: DefaultVersion, Options: []string{DefaultVersion, OtherVersion}})
 	}
+
 	fields = append(fields, m.Asks...)
 
 	return contract.Manifest{
@@ -57,7 +58,7 @@ func (m Passing) Manifest() contract.Manifest {
 		Resources: contract.Resources{RAMMB: 16, DiskMB: 8},
 		Arch:      []string{"amd64", "arm64"},
 		Fields:    fields,
-		// A demo module runs exactly when it carries a unit, which is what a real one that holds a process does.
+		// Like a real module holding a process, a demo runs exactly when it carries a unit.
 		Runs:       m.Unit != "",
 		Connection: m.Connection,
 		Mandatory:  m.Mandatory,
@@ -82,7 +83,6 @@ func (m Passing) pkg(ctx *modules.Context) string {
 	return name
 }
 
-// PackageAt names the package a versioned module puts on the machine for one version.
 func (m Passing) PackageAt(version string) string {
 	name := m.Package
 	if name == "" {
@@ -257,6 +257,7 @@ func (m Passing) Status(ctx *modules.Context) (modules.Status, error) {
 	status.Port = m.Port
 	status.Unit = m.Unit
 	status.State = contract.ServiceUnknown
+
 	if m.Unit != "" {
 		status.State = systemd.State(ctx, m.Unit)
 	}

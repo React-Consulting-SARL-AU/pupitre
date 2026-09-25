@@ -1,4 +1,3 @@
-// Package cloudflared holds the daemon the Cloudflare exposure drives: its unit, its credentials, and the ingress it reads.
 package cloudflared
 
 import (
@@ -34,15 +33,7 @@ const (
 	keyURL = "https://pkg.cloudflare.com/cloudflare-main.gpg"
 )
 
-// How long systemd waits for the tunnel to carry something, in seconds.
-//
-// cloudflared answers a notify unit only once a connection is registered, and a
-// tunnel Cloudflare was told about seconds earlier is refused by the edge until
-// it has been propagated — a minute, sometimes more. The old forty-five seconds
-// killed the daemon in the middle of that wait, at the very moment its retries
-// were backing off, and left the install judging a tunnel that was about to
-// work. This is shorter than the three minutes the agent gives systemctl, so
-// the unit's own verdict is what ends the wait rather than a clock that beat it.
+// Covers the edge's minute-plus propagation of a new tunnel, yet stays under the agent's 3-minute systemctl wait.
 const startSeconds = 150
 
 var UnitFile = []byte(`[Unit]
@@ -87,22 +78,16 @@ func Recorded(ctx *modules.Context) Credentials {
 	return found
 }
 
-// What cloudflared answers when the credentials name a tunnel the account no longer holds.
 const unknownTunnel = "Tunnel not found"
 
-// What it says the moment the tunnel carries a connection.
 const registered = "Registered tunnel connection"
 
-// A retry cycle of cloudflared runs to about a dozen lines; three of them hold
-// the answer whatever the connection was doing when the verification asked.
+// A retry cycle is about a dozen lines; several cycles hold the answer whatever the connection was doing.
 const verifiedLines = 60
 
-// What the daemon last said, for a wait that ended on nothing else.
 const keptSaidLines = 2
 
-// StartFailure turns a unit that would not come up into a sentence naming the
-// cause. systemctl only says the job failed; the daemon's own journal says why,
-// and the one cause the client can act on is a tunnel that no longer exists.
+// systemctl only says the job failed; the daemon's own journal says why.
 func StartFailure(ctx *modules.Context, err error) error {
 	said := systemd.Diagnose(ctx, Unit)
 
@@ -117,14 +102,7 @@ func StartFailure(ctx *modules.Context, err error) error {
 	return errors.New(i18n.T("modules.cloudflared.start_failed", err.Error(), said))
 }
 
-// Registered refuses the one verdict the machine gives for certain: a tunnel
-// whose credentials name something the account no longer holds. cloudflared
-// says that on its first attempts and repeats it at every retry.
-//
-// A unit systemd calls active has already answered the question: this one
-// notifies its start only once a connection is registered, so an active unit is
-// a tunnel the edge took, whatever it said of it while it was being propagated.
-// Only a daemon that never got there is judged on its words.
+// A notify unit goes active only once a connection registered, so only an inactive one is judged on its journal.
 func Registered(ctx *modules.Context) error {
 	if systemd.Active(ctx, Unit) {
 		return nil
@@ -137,10 +115,7 @@ func Registered(ctx *modules.Context) error {
 		return nil
 	}
 
-	// A tunnel that carried a connection after the refusal is a tunnel that
-	// exists: the first attempts on a freshly made one can reach an edge that
-	// has not been told about it yet. Only a refusal nothing answered is a
-	// verdict, and the journal is in the order the daemon spoke.
+	// A new tunnel's first attempts can reach an edge not yet told about it; a later registration outweighs them.
 	if strings.LastIndex(said, registered) > refused {
 		return nil
 	}
@@ -148,14 +123,7 @@ func Registered(ctx *modules.Context) error {
 	return errors.New(i18n.T("cloudflared.tunnel.unknown"))
 }
 
-// Serving says whether the tunnel carries anything yet, and what the daemon
-// last said if it does not.
-//
-// cloudflared answers systemd that it started before it has registered, so a
-// unit that came up proves nothing on its own; a tunnel that opened a
-// connection says so in its journal. Neither is a verdict on the install: a
-// machine on a slow link reaches the same place ten seconds later, and failing
-// the step for that would refuse an installation that worked.
+// Only a warning, never a verdict: a slow link gets there seconds later, and failing would refuse an install that worked.
 func Serving(ctx *modules.Context) (bool, string) {
 	said := systemd.Recent(ctx, Unit, verifiedLines)
 
@@ -216,7 +184,7 @@ func WriteCredentials(ctx *modules.Context, content Credentials) error {
 	return file.WriteAtomic(ctx, CredentialsPath, content.Encode(), 0o600)
 }
 
-// Host rewriting neutralises the allowedHosts check of a dev server without touching a single vite.config.ts.
+// Rewriting Host defeats a dev server's allowedHosts check without touching its vite.config.ts.
 func Ingress(tunnelID, domain string, projects []registry.Project) []byte {
 	var out strings.Builder
 

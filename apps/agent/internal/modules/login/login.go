@@ -1,9 +1,3 @@
-// Package login asks the CLI a module installed whether it is signed in, and under which account.
-//
-// Every CLI has a command for it — `gh auth status`, `claude auth status`,
-// `wrangler whoami` — and that command is the only judge: the agent never
-// reads a credential file to guess. The answer names an account when the CLI
-// does, and says how to sign in when it holds nothing.
 package login
 
 import (
@@ -16,13 +10,10 @@ import (
 	"pupitre.studio/agent/internal/sys/user"
 )
 
-// Timeout bounds a check that reaches the provider: service.status answers within it, signed in or not.
+// The check reaches the provider; service.status must answer within it, signed in or not.
 const Timeout = 20 * time.Second
 
-// Ask runs the CLI's own check as the dev user, with the variables the CLI
-// reads beyond that user's own. What the CLI answers is the account's own
-// business, and a status is read every time the dashboard opens: the journal
-// gets the command and the size of the answer, not the answer.
+// The CLI's own check (gh auth status…) is the only judge: never read a credential file to guess.
 func Ask(ctx sys.Context, env []string, argv ...string) (sys.Output, error) {
 	return modules.Quiet(ctx, sys.Command{
 		User:    shell.User,

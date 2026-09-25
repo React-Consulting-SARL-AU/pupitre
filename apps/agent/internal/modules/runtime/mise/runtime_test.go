@@ -39,6 +39,7 @@ func newContext(t *testing.T, fake *modtest.FakeSys, runtime Runtime, versions .
 
 func statuses(ctx *modules.Context) map[string]contract.StepStatus {
 	result := map[string]contract.StepStatus{}
+
 	for _, event := range ctx.Events() {
 		result[event.Step] = event.Status
 	}
@@ -85,6 +86,7 @@ func TestInstallPutsEveryMajorAndMakesTheNewestTheDefault(t *testing.T) {
 	}
 
 	commands := strings.Join(fake.Commands(), "\n")
+
 	for _, want := range []string{"(dev) mise install -y node@24", "(dev) mise install -y node@22", "(dev) mise use -g -y node@24"} {
 		if !strings.Contains(commands, want) {
 			t.Errorf("command %q not run:\n%s", want, commands)
@@ -96,6 +98,7 @@ func TestInstallPutsEveryMajorAndMakesTheNewestTheDefault(t *testing.T) {
 	}
 
 	steps := statuses(ctx)
+
 	for step, want := range map[string]contract.StepStatus{"install-node-24": contract.StepOK, "install-node-22": contract.StepOK, "use-node": contract.StepOK, "prune-node": contract.StepSkip} {
 		if steps[step] != want {
 			t.Errorf("%s = %s, want %s", step, steps[step], want)
@@ -137,7 +140,6 @@ func TestReplayChangesNothing(t *testing.T) {
 	}
 }
 
-// A major no longer asked for goes; the default follows the newest of what stays.
 func TestAMajorUncheckedIsRemovedAndTheDefaultMoves(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Files[Path] = []byte("mise\n")
@@ -177,13 +179,13 @@ func TestSilentMiseFailsTheInstallStep(t *testing.T) {
 	}
 }
 
-// An upgrade takes each major to its latest patch and drops the patch it replaces; nothing new reads as skipped.
 func TestUpgradeFollowsEachMajor(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Files[Path] = []byte("mise\n")
 	if _, err := sample.Install(newContext(t, fake, sample, "24", "22")); err != nil {
 		t.Fatal(err)
 	}
+
 	fake.Upgrades["mise:node@22"] = "22.14.0"
 
 	ctx := newContext(t, fake, sample, "24", "22")
@@ -215,6 +217,7 @@ func TestUninstallDropsEveryVersionAndKeepsMise(t *testing.T) {
 	if _, err := sample.Install(newContext(t, fake, sample, "24", "22")); err != nil {
 		t.Fatal(err)
 	}
+
 	fake.Tools["java"] = "temurin-21"
 
 	ctx := newContext(t, fake, sample, "24", "22")
@@ -232,7 +235,6 @@ func TestUninstallDropsEveryVersionAndKeepsMise(t *testing.T) {
 	}
 }
 
-// Java asks mise for temurin-21, and what mise lists is temurin-21.0.4+7: the major is read back through the distribution.
 func TestADistributionPrefixIsCarriedAndReadBack(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Files[Path] = []byte("mise\n")
@@ -256,7 +258,6 @@ func TestADistributionPrefixIsCarriedAndReadBack(t *testing.T) {
 	}
 }
 
-// A CLI shimmed by mise runs under the default node: the newest of the major mise use -g named, not the newest on the machine.
 func TestDefaultFollowsTheGlobalRequest(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Files[Path] = []byte("mise\n")
@@ -287,6 +288,7 @@ func TestDefaultFollowsTheGlobalRequest(t *testing.T) {
 
 func TestEveryRuntimeIsNamedOnceAndFoundByTool(t *testing.T) {
 	seen := map[string]bool{}
+
 	for _, runtime := range Runtimes() {
 		if seen[runtime.Tool] {
 			t.Errorf("%s listed twice", runtime.Tool)
@@ -316,6 +318,7 @@ func TestEveryRuntimeIsNamedOnceAndFoundByTool(t *testing.T) {
 
 func newerThan(a, b string) bool {
 	left, right := strings.Split(a, "."), strings.Split(b, ".")
+
 	for i := 0; i < len(left) && i < len(right); i++ {
 		l, _ := strconv.Atoi(left[i])
 		r, _ := strconv.Atoi(right[i])
@@ -343,6 +346,7 @@ func pinned(fake *modtest.FakeSys, project, tool, major string) {
 
 func warnings(ctx *modules.Context) string {
 	var lines []string
+
 	for _, line := range ctx.Output() {
 		if strings.Contains(line, "] ! ") {
 			lines = append(lines, line)
@@ -352,13 +356,13 @@ func warnings(ctx *modules.Context) string {
 	return strings.Join(lines, "\n")
 }
 
-// A version a project pins in its mise.local.toml is that project's: unchecking the major in the form keeps it, and says so.
 func TestPruneKeepsAMajorAProjectPins(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Files[Path] = []byte("mise\n")
 	if _, err := sample.Install(newContext(t, fake, sample, "24", "22")); err != nil {
 		t.Fatal(err)
 	}
+
 	pinned(fake, "shop", "node", "22")
 
 	ctx := newContext(t, fake, sample, "24")
@@ -375,7 +379,6 @@ func TestPruneKeepsAMajorAProjectPins(t *testing.T) {
 	}
 }
 
-// A version the client installed by hand is not one the module ever put there: it is left where it is, and named.
 func TestPruneKeepsAVersionInstalledByHand(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Files[Path] = []byte("mise\n")
@@ -395,13 +398,13 @@ func TestPruneKeepsAVersionInstalledByHand(t *testing.T) {
 	}
 }
 
-// The replaced patch goes with the venvs, gem homes and global packages built on it: the projects pinned on that major are told.
 func TestUpgradeWarnsAboutTheReplacedPatchAndTheProjectsOnIt(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Files[Path] = []byte("mise\n")
 	if _, err := sample.Install(newContext(t, fake, sample, "24", "22")); err != nil {
 		t.Fatal(err)
 	}
+
 	pinned(fake, "shop", "node", "22")
 	fake.Upgrades["mise:node@22"] = "22.14.0"
 
@@ -416,7 +419,6 @@ func TestUpgradeWarnsAboutTheReplacedPatchAndTheProjectsOnIt(t *testing.T) {
 	}
 }
 
-// A configuration whose majors were all rotated out of the options still asks for something: the default, and a word about it.
 func TestInstallWithNoOfferedMajorFallsBackOnTheDefault(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Files[Path] = []byte("mise\n")
@@ -431,13 +433,13 @@ func TestInstallWithNoOfferedMajorFallsBackOnTheDefault(t *testing.T) {
 	}
 }
 
-// mise refusing to list is not a machine with nothing on it: the step says so rather than reinstall or prune on an empty answer.
 func TestAFailedListingIsAnErrorNotAnEmptyMachine(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Files[Path] = []byte("mise\n")
 	if _, err := sample.Install(newContext(t, fake, sample, "24")); err != nil {
 		t.Fatal(err)
 	}
+
 	fake.FailProgram("mise", "mise ERROR failed to read config")
 	mutations := len(fake.Mutations)
 

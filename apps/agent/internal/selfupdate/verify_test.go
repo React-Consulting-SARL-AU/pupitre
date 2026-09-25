@@ -9,7 +9,6 @@ import (
 	"pupitre.studio/agent/internal/selfupdate"
 )
 
-// The message the release pipeline has to sign, pinned here so the two sides cannot drift apart in silence.
 func TestSignedMessageHasTheFormThePipelineSigns(t *testing.T) {
 	message := string(selfupdate.SignedMessage("1.4.2", "amd64", strings.Repeat("ab", 32)))
 
@@ -61,7 +60,6 @@ func TestParsePublicKeyRefusesAnythingButAnEd25519Key(t *testing.T) {
 	}
 }
 
-// Nothing is signed for a build that carries no key, so a release built without one refuses every upgrade rather than trusting it.
 func TestEmbeddedPublicKeyIsAbsentUntilTheReleaseBuildSetsIt(t *testing.T) {
 	if _, err := selfupdate.EmbeddedPublicKey(); err == nil {
 		t.Fatal("a key is embedded in the test build")

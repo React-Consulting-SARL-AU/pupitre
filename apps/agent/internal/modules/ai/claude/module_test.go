@@ -22,7 +22,6 @@ func releases(fake *modtest.FakeSys, version string) {
 	fake.Answer("/"+version+"/manifest.json", `{"platforms":{"linux-x64":{"checksum":"`+checksum+`","size":1},"linux-arm64":{"checksum":"`+checksum+`","size":1}}}`)
 }
 
-// The manifest announces the digest of what the fake serves; a module that verifies its download finds the two agree.
 var checksum = modtest.Digest(modtest.Downloaded)
 
 func newContext(t *testing.T, fake *modtest.FakeSys) *modules.Context {
@@ -39,6 +38,7 @@ func install(t *testing.T, fake *modtest.FakeSys) *modules.Context {
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -63,6 +63,7 @@ func TestFirstInstallLaysDownTheCliTheContextAndTheSkills(t *testing.T) {
 	}
 
 	commands := strings.Join(fake.Commands(), "\n")
+
 	for _, want := range []string{
 		"(dev) " + strings.Join(sys.CurlText("https://downloads.claude.ai/claude-code-releases/latest"), " "),
 		"(dev) " + strings.Join(sys.CurlText("https://downloads.claude.ai/claude-code-releases/2.1.263/manifest.json"), " "),
@@ -271,7 +272,7 @@ func asStepError(err error, target **modules.StepError) bool {
 
 var _ modules.Module = Module{}
 
-// claude auth status prints its JSON whether or not anyone is signed in, and exits 1 when nobody is.
+// claude auth status prints JSON either way and exits 1 when nobody is signed in.
 func TestLoginReadsWhatClaudeAuthStatusSays(t *testing.T) {
 	cases := map[string]struct {
 		answer  string
@@ -301,6 +302,7 @@ func TestLoginReadsWhatClaudeAuthStatusSays(t *testing.T) {
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			fake := modtest.NewFakeSys()
+
 			if tc.refused {
 				fake.Refuse("claude auth status", tc.answer)
 			} else {

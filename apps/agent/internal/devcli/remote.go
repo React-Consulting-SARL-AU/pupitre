@@ -14,12 +14,10 @@ import (
 	"pupitre.studio/agent/internal/protocol"
 )
 
-// Caller is what a verb asks: the server in this process, or the one sudo runs as root.
 type Caller interface {
 	Call(cmd string, params any, emit func(event string, fields map[string]any)) (any, error)
 }
 
-// Pipe is one `pupitred serve` under sudo: its standard input, its standard output, and the wait for its end.
 type Pipe struct {
 	In   io.WriteCloser
 	Out  io.Reader
@@ -28,8 +26,7 @@ type Pipe struct {
 
 type Launch func(argv []string) (Pipe, error)
 
-// Remote speaks the protocol to `pupitred serve` under sudo, as the app does. The limited session is the line sudo runs for dev
-// without a password; a command the contract keeps for --privileged opens the other one, whose password sudo asks on the terminal.
+// A command the contract keeps for --privileged opens a second session, whose password sudo asks on the terminal.
 type Remote struct {
 	Sudo    string
 	Version string
@@ -57,7 +54,6 @@ func (r *Remote) Call(cmd string, params any, emit func(event string, fields map
 	return session.call(cmd, params, emit)
 }
 
-// Close ends every session: pupitred serve reads the end of its input and leaves.
 func (r *Remote) Close() {
 	for _, session := range r.sessions {
 		session.pipe.In.Close()
@@ -102,6 +98,7 @@ func (r *Remote) session(privileged bool) (*remoteSession, error) {
 	if r.sessions == nil {
 		r.sessions = map[bool]*remoteSession{}
 	}
+
 	r.sessions[privileged] = opened
 
 	return opened, nil
@@ -132,7 +129,6 @@ func (s *remoteSession) call(cmd string, params any, emit func(event string, fie
 	}
 }
 
-// One line of the session: an event handed to the verb, the answer to the request in flight, or nothing it awaits.
 func (s *remoteSession) take(line []byte, emit func(event string, fields map[string]any)) (any, bool, error) {
 	var fields map[string]any
 	if json.Unmarshal(bytes.TrimSpace(line), &fields) != nil {
@@ -158,6 +154,7 @@ func (s *remoteSession) take(line []byte, emit func(event string, fields map[str
 		Result json.RawMessage `json:"result"`
 		Error  *protocol.Error `json:"error"`
 	}
+
 	if err := json.Unmarshal(line, &response); err != nil {
 		return nil, true, lost(err)
 	}
@@ -187,7 +184,7 @@ func lost(err error) error {
 	return protocol.NewError(contract.ErrorInternal, i18n.T("devcli.elevate.lost", err.Error()))
 }
 
-// The session sudo runs: its prompt, if any, goes to the terminal, and what pupitred says on its own error stream reaches the reader.
+// Stderr stays the terminal's, so sudo's password prompt and pupitred's own errors reach the reader.
 func LaunchSudo(argv []string) (Pipe, error) {
 	command := exec.Command(argv[0], argv[1:]...)
 	command.Stderr = os.Stderr

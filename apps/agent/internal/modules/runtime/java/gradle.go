@@ -25,7 +25,7 @@ func gradleProperties(heap int) []byte {
 	return []byte(fmt.Sprintf(gradleTemplate, heap, metaspaceMB))
 }
 
-// A daemon sized above the machine gets killed by the memory guard mid-build, which reads as a compiler error.
+// A daemon above the machine's RAM gets killed by the memory guard mid-build, which reads as a compiler error.
 func heapMB(ctx *modules.Context) int {
 	heap := totalKB(ctx) / 1024 / heapDivisor
 

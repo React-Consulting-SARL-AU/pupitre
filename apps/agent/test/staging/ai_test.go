@@ -49,6 +49,7 @@ func TestTheSevenAgentsAnswerForDev(t *testing.T) {
 	}
 
 	skills := ssh(t, dev, "ls ~/.agents/skills")
+
 	for _, skill := range []string{"branch", "capture", "pr", "server-dev", "ship"} {
 		if !strings.Contains(skills, skill) {
 			t.Errorf("the skill %s is missing:\n%s", skill, skills)
@@ -66,7 +67,6 @@ func TestTheSevenAgentsAnswerForDev(t *testing.T) {
 	}
 }
 
-// Neither CLI holds an account on a fresh machine, and each says so through its own check rather than by guessing.
 func TestCursorAndOpencodeReportSignedOut(t *testing.T) {
 	host := stagingHost(t)
 
@@ -124,6 +124,7 @@ func TestOpeningAnAgentGivesTheTmuxCommand(t *testing.T) {
 	host := stagingHost(t)
 
 	installAgents(t, host)
+
 	agent(t, host, request{Cmd: "project.add", Params: map[string]any{
 		"name": "fixture", "dir": "fixture",
 		"processes": []map[string]any{{
@@ -165,6 +166,7 @@ func TestAJetbrainsBackendIsReportedAsAnIde(t *testing.T) {
 	}](t, listed.Result)
 
 	found := false
+
 	for _, session := range sessions.Sessions {
 		if strings.Contains(session.Command, "remote-dev-server") {
 			found = true
@@ -179,7 +181,6 @@ func TestAJetbrainsBackendIsReportedAsAnIde(t *testing.T) {
 	}
 }
 
-// The provider keys travel on the secret line: neither the report nor the journal may carry one back.
 func TestProviderKeysStayOutOfTheReportAndTheJournal(t *testing.T) {
 	host := stagingHost(t)
 

@@ -16,7 +16,7 @@ import (
 	"pupitre.studio/agent/internal/tmux"
 )
 
-// A file of root's that a link planted by dev points at: root reading through the link would hand its content to dev.
+// Root's file that a link planted by dev points at: reading through the link would hand it to dev.
 const stolenManifest = `{"name":"stolen","scripts":{"dev":"vite --port 4999"}}`
 
 func plant(t *testing.T, target, link string) {
@@ -129,7 +129,6 @@ func TestDetectInAFolderNeverFollowsAWorkspaceGlobOutOfTheProjectsRoot(t *testin
 	}
 }
 
-// A repository carries links like any other file: the clone's package.json may point anywhere on the machine.
 func TestDetectOfAClonedRepositoryNeverFollowsALinkItCarries(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git is not installed")

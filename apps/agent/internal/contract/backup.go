@@ -1,7 +1,5 @@
 package contract
 
-// BackupConstants is the format of a backup as packages/shared fixes it: the
-// container, the key derivation, the identifiers and what an archive leaves out.
 type BackupConstants struct {
 	Format           int                `json:"format"`
 	Container        BackupContainer    `json:"container"`
@@ -60,7 +58,7 @@ const (
 	BackupDumpMongoArchive = "mongo_archive"
 	BackupDumpRDB          = "rdb"
 
-	// BackupWholeServer names a database part that belongs to the whole engine: the Postgres roles, the Redis snapshot.
+	// A database part of the whole engine: the Postgres roles, the Redis snapshot.
 	BackupWholeServer = "*"
 
 	BackupManifestKey = "manifest.json"
@@ -73,7 +71,6 @@ type BackupGitState struct {
 	Ahead  int    `json:"ahead"`
 }
 
-// BackupPart is one object of a backup; the fields a kind does not carry stay empty and are left out.
 type BackupPart struct {
 	Kind        string          `json:"kind"`
 	Key         string          `json:"key"`
@@ -116,17 +113,16 @@ type BackupManifest struct {
 	Running   []string     `json:"running"`
 	Parts     []BackupPart `json:"parts"`
 	Warnings  []string     `json:"warnings"`
-	// Excluded is absent from a backup made before the settings could leave anything out.
+	// Nil in a backup made before the settings could leave anything out.
 	Excluded *BackupExcluded `json:"excluded,omitempty"`
 }
 
-// BackupExcluded names what the settings left out, as they name it: a project's name, `engine:name` or `redis:*` for a database.
+// Items as the settings name them: a project's name, or `engine:name` and `redis:*` for a database.
 type BackupExcluded struct {
 	Projects  []string `json:"projects"`
 	Databases []string `json:"databases"`
 }
 
-// DatabaseItem is how the settings name a database; `*` names the Redis snapshot.
 func DatabaseItem(engine, name string) string {
 	return engine + ":" + name
 }
@@ -189,7 +185,7 @@ type BackupBeat struct {
 	LastWarnings  int    `json:"last_warnings,omitempty"`
 }
 
-// BackupSecrets is the secret line of a command that reads a bucket; PrivateKey travels only for a restore.
+// PrivateKey travels only for a restore.
 type BackupSecrets struct {
 	AccessKeyID     string `json:"access_key_id"`
 	SecretAccessKey string `json:"secret_access_key"`
@@ -245,7 +241,7 @@ type BackupRestoreDataResult struct {
 	Warnings []string `json:"warnings"`
 }
 
-// CountsOf is the summary the platform keeps: how many of each, never a name.
+// The platform keeps counts only, never a name.
 func CountsOf(parts []BackupPart) BackupCounts {
 	counts := BackupCounts{}
 

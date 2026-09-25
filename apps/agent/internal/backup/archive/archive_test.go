@@ -107,6 +107,7 @@ func TestTheFingerprintMovesWithTheTreeAndOnlyWithIt(t *testing.T) {
 	if err := os.Chtimes(filepath.Join(root, "src/main.go"), later, later); err != nil {
 		t.Fatal(err)
 	}
+
 	if touched, _ := Fingerprint(source, "project:full"); touched == first {
 		t.Fatal("a touched file must move the fingerprint")
 	}
@@ -122,9 +123,11 @@ func hostile(t *testing.T, header *tar.Header, content string) []byte {
 	if err := writer.WriteHeader(header); err != nil {
 		t.Fatal(err)
 	}
+
 	if _, err := writer.Write([]byte(content)); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := writer.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -151,7 +154,7 @@ func TestAnEntryThatClimbsOutIsRefused(t *testing.T) {
 	}
 }
 
-// Each link looks inside on its own: sub/up names the root, and escape names sub/up/../.., which reads as the root again. Followed on the disk, escape leads above it.
+// sub/up names the root and escape names sub/up/../..: each looks inside alone, yet escape leads above the root on disk.
 func TestAChainOfLinksThatLeadsOutIsRemovedAndRefused(t *testing.T) {
 	var archived bytes.Buffer
 	writer := tar.NewWriter(&archived)
@@ -165,6 +168,7 @@ func TestAChainOfLinksThatLeadsOutIsRemovedAndRefused(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+
 	if err := writer.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -250,7 +254,7 @@ func TestSmallFilesRoundTripInMemory(t *testing.T) {
 	}
 }
 
-// A running binary refuses to be written into (ETXTBSY): the restored file takes its place, and whoever holds the old one keeps it.
+// A running binary refuses writes (ETXTBSY): the restored file takes its place, and the holder keeps the old one.
 func TestAFileInUseIsReplacedNotWrittenInto(t *testing.T) {
 	target := t.TempDir()
 	write(t, target, "bin/tool", "old binary")

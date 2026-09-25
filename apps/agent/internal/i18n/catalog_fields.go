@@ -1,6 +1,5 @@
 package i18n
 
-// What a configuration gets wrong, field by field. One phrase per problem code, and one per format.
 var fieldCatalog = map[string]Message{
 	"field.problem.required": {
 		FR: "ce champ est obligatoire",

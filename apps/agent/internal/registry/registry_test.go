@@ -49,7 +49,6 @@ func route(label string, port int, hostname string) registry.Route {
 	return registry.Route{Label: label, Port: port, Hostname: hostname}
 }
 
-// One project of one process, as most declarations are.
 func single(name, dir string, port int, cmd string, routes ...registry.Route) registry.Project {
 	if routes == nil {
 		routes = []registry.Route{}
@@ -70,10 +69,10 @@ func process(project registry.Project, id string) registry.Process {
 	return registry.Process{}
 }
 
-// One line of /proc/net/tcp with a socket listening on that port, as the kernel writes it.
 func listening(ports ...int) []byte {
 	var table strings.Builder
 	table.WriteString("  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode\n")
+
 	for at, port := range ports {
 		fmt.Fprintf(&table, "   %d: 0100007F:%04X 00000000:0000 0A 00000000:00000000 00:00000000 00000000     0        0 %d 1 0000 100 0 0 10 0\n", at, port, 12345+at)
 	}
@@ -114,7 +113,6 @@ func TestLoadReadsTheRepositoryRegistry(t *testing.T) {
 	}
 }
 
-// Rows that share the first segment of their folder shared one repository: they become one project, named after the folder, one process per row.
 func TestRowsOfOneRepositoryBecomeOneProject(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Files[registry.DefaultConf] = []byte(strings.Join([]string{
@@ -154,7 +152,6 @@ func TestRowsOfOneRepositoryBecomeOneProject(t *testing.T) {
 	}
 }
 
-// The seventh column of the repository's file is a subdomain by its own specification: it is completed with the domain the machine publishes under, at each reading.
 func TestTheRepositoryRegistryTakesTheDomainOfTheMachine(t *testing.T) {
 	_, file := loaded(t)
 
@@ -194,6 +191,7 @@ func TestOrderFollowsFirstAppearance(t *testing.T) {
 	_, file := loaded(t)
 
 	var names []string
+
 	for _, project := range file.Projects {
 		names = append(names, project.Name)
 	}
@@ -270,6 +268,7 @@ func TestInstallColumnWinsOverTheDerivedCommand(t *testing.T) {
 	if !ok {
 		t.Fatal("api missing")
 	}
+
 	python := process(api, "api")
 	python.Install = "python3 -m venv .venv"
 	if got := python.InstallCommand(); got != "python3 -m venv .venv" {
@@ -384,7 +383,6 @@ func TestAddTakesSeveralProcessesAndRefusesWhatTheyShare(t *testing.T) {
 	}
 }
 
-// The ports of every route count: a project on 3200 whose api route wants 3010 collides with the admin route of web.
 func TestAddRefusesAPortHeldByARouteOfAnotherProject(t *testing.T) {
 	fake, file := loaded(t)
 
@@ -446,6 +444,7 @@ func TestResolveRoutesComposesTheHostnameOnceFromTheDomain(t *testing.T) {
 	}
 
 	want := []registry.Route{route("web", 3000, "shop."+domain), route("api", 3001, "api-shop."+domain), route("docs", 3002, ""), route("admin", 3003, "admin.shop."+domain)}
+
 	for at := range want {
 		if routes[at] != want[at] {
 			t.Fatalf("route %d = %+v, want %+v", at, routes[at], want[at])
@@ -555,6 +554,7 @@ func TestResolveRoutesTakesASubdomainOfSeveralLevels(t *testing.T) {
 
 func TestResolveRoutesRefusesASubdomainDNSWouldNotCarry(t *testing.T) {
 	port := 3600
+
 	for _, sub := range []string{"-shop", "shop-", ".shop", "shop.", "api..shop", "Shop", "api_shop", strings.Repeat("a", registry.SubdomainMax+1)} {
 		port++
 
@@ -606,7 +606,6 @@ func TestUpdateReplacesTheProcessesAndKeepsTheRest(t *testing.T) {
 	}
 }
 
-// A domain that changes takes every name with it: the client picks another zone, and no project may go on answering under the old one.
 func TestRehostMovesEveryNameUnderTheOldDomain(t *testing.T) {
 	fake, file := loaded(t)
 
@@ -738,7 +737,6 @@ func TestFreePortSkipsTheRegistryAndTheListeningPorts(t *testing.T) {
 	}
 }
 
-// A port held by a process outside Pupitre is not free: the remedy of a refusal reads the machine's sockets, not only the registry.
 func TestARefusedPortProposesOneNothingListensOn(t *testing.T) {
 	fake, file := loaded(t)
 	fake.Files["/proc/net/tcp"] = listening(3001, 3002)
@@ -831,7 +829,6 @@ func TestUnderRefusesWhatLeavesTheRoot(t *testing.T) {
 	}
 }
 
-// TestLoadDropsARowThatAimsOutsideTheProjectsRoot: a hand-edited row in the registry file is not a project if its directory or name aims outside the root.
 func TestLoadDropsARowThatAimsOutsideTheProjectsRoot(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Files[registry.DefaultConf] = []byte(strings.Join([]string{
@@ -866,7 +863,6 @@ func protocolError(t *testing.T, err error) *protocol.Error {
 	return failure
 }
 
-// A local file that does not parse is a problem every write says, never an empty registry a write would make permanent.
 func TestAnUnreadableLocalFileIsAProblemAndIsNeverRewritten(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Files[registry.DefaultConf] = fixture(t, "projects.conf")
@@ -907,7 +903,6 @@ func TestAnUnreadableLocalFileIsAProblemAndIsNeverRewritten(t *testing.T) {
 	}
 }
 
-// A row the agent cannot validate is not a row it may lose: it travels through every write as it was, and the journal says so.
 func TestARowThatFailsValidationSurvivesAWriteVerbatim(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Files[env.Path] = []byte(env.DomainKey + "=" + domain + "\n")
@@ -937,6 +932,7 @@ func TestARowThatFailsValidationSurvivesAWriteVerbatim(t *testing.T) {
 	}
 
 	local := string(fake.Files[registry.DefaultLocal])
+
 	for _, kept := range []string{`"Bad Name"`, `"../../etc"`, `"not a list"`, `"shop"`, `"web"`} {
 		if !strings.Contains(local, kept) {
 			t.Fatalf("%s must survive the write:\n%s", kept, local)
@@ -949,7 +945,6 @@ func TestARowThatFailsValidationSurvivesAWriteVerbatim(t *testing.T) {
 	}
 }
 
-// Removable says whether a row may go before anything is stopped for it.
 func TestRemovableRefusesARowOfTheRepositoryBeforeAnyWrite(t *testing.T) {
 	_, file := loaded(t)
 

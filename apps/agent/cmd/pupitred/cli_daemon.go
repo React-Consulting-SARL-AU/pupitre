@@ -24,7 +24,7 @@ func runDaemon(agent *daemon.Daemon, stderr io.Writer) int {
 	return 0
 }
 
-// The enrolment token arrives on the standard input, never on the command line: an argument would show up in ps for anyone on the machine.
+// The enrolment token comes on stdin: an argument would show up in ps for anyone on the machine.
 func runEnroll(agent *daemon.Daemon, stdin io.Reader, stderr io.Writer) int {
 	token, err := bufio.NewReader(stdin).ReadString('\n')
 	if err != nil && token == "" {

@@ -18,7 +18,6 @@ import (
 	"pupitre.studio/agent/internal/protocol"
 )
 
-// A status read while another process installs is still a status: the app must never be told the tunnel is absent because the lock was busy.
 func TestStatusAnswersWhileTheInstallLockIsHeld(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Packages["cloudflared"] = "2026.9.1"
@@ -47,6 +46,7 @@ func TestStatusAnswersWhileTheInstallLockIsHeld(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer held.Close()
+
 	if err := syscall.Flock(int(held.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +67,6 @@ func TestStatusAnswersWhileTheInstallLockIsHeld(t *testing.T) {
 	}
 }
 
-// A module that could not be read is not a machine with nothing on it: answering absent is what once had the app delete a live tunnel.
 func TestAStatusThatCannotBeReadIsAnErrorNotAnAbsence(t *testing.T) {
 	registry := modules.NewRegistry()
 	registry.Register(cloudflare.Module{})
@@ -99,7 +98,6 @@ func TestAStatusThatCannotBeReadIsAnErrorNotAnAbsence(t *testing.T) {
 	}
 }
 
-// A restore already holds the run: it syncs the exposure that is there through its own contexts, and a machine without one has nothing to sync.
 func TestAResyncReachesTheExposureThatIsThere(t *testing.T) {
 	kept := providers
 	defer func() { providers = kept }()

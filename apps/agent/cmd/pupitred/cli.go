@@ -19,9 +19,7 @@ import (
 	"pupitre.studio/agent/internal/sys/lock"
 )
 
-// Typed in a login shell rather than negotiated by `hello`: the locale comes
-// from the reader's own shell, and the verbs reach a server running as root
-// when the account they run under cannot read what the answer depends on.
+// The verbs reach a root server when this account cannot read what the answer depends on.
 func runDev(engine *modules.Engine, args []string, stdout, stderr io.Writer) int {
 	local := func() devcli.Caller { return newServer(engine, false) }
 
@@ -37,13 +35,13 @@ func runDev(engine *modules.Engine, args []string, stdout, stderr io.Writer) int
 	return devcli.Run(devcli.Options{Server: caller, Tmux: stateOptions().Tmux}, args, stdout, stderr)
 }
 
-// The replay every fix prints reads the configuration once it is the shape this binary reads, as serve does.
 func runInstall(engine *modules.Engine, config contract.ConfigRevision, args []string, stderr io.Writer) int {
 	if !config.Current() {
 		return devcli.PrintFailure(stderr, protocol.MigrationRequired(config))
 	}
 
 	var only, skip []string
+
 	for _, arg := range args {
 		switch {
 		case strings.HasPrefix(arg, "--only="):
@@ -63,15 +61,14 @@ func runInstall(engine *modules.Engine, config contract.ConfigRevision, args []s
 		return 1
 	}
 
-	// Naming a module is answering for it: a replay asked for by name configures
-	// a module the app had left for later, on the values the machine remembers,
-	// and that answer is written down like the app's would be.
+	// Naming a deferred module answers for it, so that answer is persisted as the app's would be.
 	if len(only) > 0 {
 		answered := without(request.Defer, without(request.Defer, only))
 		request.Modules = only
 		request.Defer = without(request.Defer, only)
 		request.Persist = len(answered) > 0
 	}
+
 	request.Modules = without(request.Modules, skip)
 
 	if len(request.Modules) == 0 {
@@ -90,7 +87,7 @@ func runInstall(engine *modules.Engine, config contract.ConfigRevision, args []s
 	return printSummary(stderr, result)
 }
 
-// --script hands probe.sh to the app, which sends it to a bare machine before any binary exists there.
+// --script hands probe.sh to the app, which runs it on a bare machine before any binary exists there.
 func runProbe(options probe.Options, args []string, stdout, stderr io.Writer) int {
 	for _, arg := range args {
 		switch {
@@ -120,8 +117,7 @@ func runProbe(options probe.Options, args []string, stdout, stderr io.Writer) in
 	return 0
 }
 
-// A report without an end while nobody holds the install lock is the trace of
-// a run that died: it is answered as interrupted, so a reader stops waiting.
+// An unfinished report while nobody holds the install lock is a run that died: answering interrupted stops the wait.
 func runReport(engine *modules.Engine, stdout, stderr io.Writer) int {
 	report, err := engine.Report()
 	if err != nil {
@@ -134,6 +130,7 @@ func runReport(engine *modules.Engine, stdout, stderr io.Writer) int {
 
 	encoder := json.NewEncoder(stdout)
 	encoder.SetIndent("", "  ")
+
 	if err := encoder.Encode(report); err != nil {
 		fmt.Fprintln(stderr, err)
 		return 1
@@ -142,7 +139,6 @@ func runReport(engine *modules.Engine, stdout, stderr io.Writer) int {
 	return 0
 }
 
-// The lock is probed and released on the spot: held means a run is under way, free means the one the report describes is gone.
 func nobodyInstalls(lockPath string) bool {
 	release, free, err := lock.Acquire(lockPath)
 	if err != nil || !free {
@@ -198,9 +194,11 @@ func printSummary(stderr io.Writer, result contract.InstallResult) int {
 	}
 
 	fmt.Fprintln(stderr, i18n.T("cli.summary.failed", len(result.Failed)))
+
 	for _, failure := range result.Failed {
 		fmt.Fprintf(stderr, "  ✗ %s\n", failure)
 	}
+
 	fmt.Fprintln(stderr, i18n.T("cli.summary.report", result.ReportPath))
 
 	return 1
@@ -208,6 +206,7 @@ func printSummary(stderr io.Writer, result contract.InstallResult) int {
 
 func splitIDs(list string) []string {
 	var ids []string
+
 	for _, id := range strings.Split(list, ",") {
 		if trimmed := strings.TrimSpace(id); trimmed != "" {
 			ids = append(ids, trimmed)
@@ -219,11 +218,13 @@ func splitIDs(list string) []string {
 
 func without(ids, excluded []string) []string {
 	skipped := map[string]bool{}
+
 	for _, id := range excluded {
 		skipped[id] = true
 	}
 
 	var kept []string
+
 	for _, id := range ids {
 		if !skipped[id] {
 			kept = append(kept, id)

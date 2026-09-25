@@ -18,7 +18,6 @@ const (
 	fixtureRecipient  = "A10gydBSR5g4m/L8q8Msuz7sSJNSPyytp4QgelrXxEw="
 )
 
-// sealedPart writes a part as a backup does: gzip, then sealed for the fixtures' recipient.
 func sealedPart(t *testing.T, plain string) string {
 	t.Helper()
 
@@ -28,6 +27,7 @@ func sealedPart(t *testing.T, plain string) string {
 	}
 
 	var sealed bytes.Buffer
+
 	writer, err := seal.NewWriter(&sealed, recipient, seal.Options{})
 	if err != nil {
 		t.Fatal(err)
@@ -37,9 +37,11 @@ func sealedPart(t *testing.T, plain string) string {
 	if _, err := zipped.Write([]byte(plain)); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := zipped.Close(); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := writer.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -54,6 +56,7 @@ func sealedPart(t *testing.T, plain string) string {
 
 func open(args []string, secret string) (int, string, string) {
 	var stdout, stderr bytes.Buffer
+
 	code := run(append([]string{"backup", "open"}, args...), strings.NewReader(secret+"\n"), &stdout, &stderr)
 
 	return code, stdout.String(), stderr.String()

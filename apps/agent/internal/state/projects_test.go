@@ -10,7 +10,6 @@ import (
 	"pupitre.studio/agent/internal/state"
 )
 
-// A project the repository declares is refused before anything of it is stopped: the refusal is the whole answer.
 func TestRemoveRefusesAVersionedProjectBeforeStoppingIt(t *testing.T) {
 	fake, reader := fixture(t)
 
@@ -28,7 +27,6 @@ func TestRemoveRefusesAVersionedProjectBeforeStoppingIt(t *testing.T) {
 	}
 }
 
-// The row is written once everything the request can be judged on has been; what fails after it is said, not failed on, so a retry never answers "already declared".
 func TestAddSaysWhatFailedAfterTheRowWasWritten(t *testing.T) {
 	fake, reader := published(t)
 	fake.Files["/home/dev/.local/bin/mise"] = []byte("mise")
@@ -59,7 +57,6 @@ func TestAddSaysWhatFailedAfterTheRowWasWritten(t *testing.T) {
 	}
 }
 
-// A process folder that is a file is found out before the row is written.
 func TestAddRefusesAProcessFolderThatIsAFileBeforeWriting(t *testing.T) {
 	fake, reader := published(t)
 	fake.Files["/home/dev/projects/shop"] = []byte("not a folder")
@@ -74,7 +71,6 @@ func TestAddRefusesAProcessFolderThatIsAFileBeforeWriting(t *testing.T) {
 	}
 }
 
-// The old process is stopped before the new one starts, and a start that refuses leaves the process stopped and says so.
 func TestUpdateLeavesTheProcessStoppedWhenTheNewCommandRefusesToStart(t *testing.T) {
 	fake, reader := published(t)
 	fake.Serves("shop/shop", 3100)
@@ -103,7 +99,6 @@ func TestUpdateLeavesTheProcessStoppedWhenTheNewCommandRefusesToStart(t *testing
 	}
 }
 
-// A process that leaves the list, or changes, is closed even when its command already died: the corpse and its record go too.
 func TestUpdateClosesADeadPaneOfAProcessThatLeaves(t *testing.T) {
 	fake, reader := published(t)
 	fake.Serves("shop/shop", 3100)
@@ -134,7 +129,6 @@ func TestUpdateClosesADeadPaneOfAProcessThatLeaves(t *testing.T) {
 	}
 }
 
-// A registry that does not read is said on every command that needs it, and the file is never rewritten.
 func TestAnUnreadableRegistryIsSaidAndNeverRewritten(t *testing.T) {
 	fake, reader := fixture(t)
 	fake.Files[registry.DefaultLocal] = []byte("{ broken\n")

@@ -11,19 +11,14 @@ import (
 	"pupitre.studio/agent/internal/sys/file"
 )
 
-// GitHubRelease is a tool published as one archive per platform on a GitHub
-// release. The digest comes from the checksum document the vendor publishes
-// beside the archives, or from the one GitHub computes for every asset when
-// the vendor publishes none; either way the archive is refused unless it
-// matches.
+// The digest comes from the vendor's checksum document or, when there is none, from the one GitHub computes per asset.
 type GitHubRelease struct {
 	Repo string
-	// The file inside the archive and the name it is installed under.
+	// The file inside the archive, and the name it is installed under.
 	Program string
-	// The checksum document on the release; empty when the vendor publishes none.
+	// Empty when the vendor publishes no checksum document.
 	Checksums string
-	// The archive for this machine, named from the version the release carries.
-	Asset func(version string) string
+	Asset     func(version string) string
 }
 
 func (r GitHubRelease) Latest(ctx *modules.Context) (string, error) {
@@ -42,7 +37,7 @@ func (r GitHubRelease) assetURL(version, name string) string {
 	return "https://github.com/" + r.Repo + "/releases/download/v" + version + "/" + name
 }
 
-// Binary fetches one asset of version that is the program itself, checks it, and puts it at destination as root.
+// For an asset that is the program itself rather than an archive.
 func (r GitHubRelease) Binary(ctx *modules.Context, version, destination string) error {
 	name := r.Asset(version)
 
@@ -60,7 +55,6 @@ func (r GitHubRelease) Binary(ctx *modules.Context, version, destination string)
 	return Install(ctx, staged, destination, 0o755, "root")
 }
 
-// Digest is what GitHub, or the vendor's checksum document, says of one asset of version.
 func (r GitHubRelease) Digest(ctx *modules.Context, version, name string) (string, error) {
 	return r.digest(ctx, version, name)
 }
@@ -104,7 +98,6 @@ func (r GitHubRelease) digest(ctx *modules.Context, version, name string) (strin
 	return "", errors.New(i18n.T("modules.download.checksum_unpublished", name, "v"+version))
 }
 
-// Install fetches the archive of version, checks it, and puts the program at destination as root.
 func (r GitHubRelease) Install(ctx *modules.Context, version, destination string) error {
 	name := r.Asset(version)
 
@@ -138,7 +131,6 @@ func (r GitHubRelease) Install(ctx *modules.Context, version, destination string
 	return Install(ctx, binary, destination, 0o755, "root")
 }
 
-// InstallStep puts the latest release at destination unless a version is already recorded for id.
 func (r GitHubRelease) InstallStep(ctx *modules.Context, id, destination string) error {
 	return ctx.Step("install-"+r.Program, func() (modules.Outcome, error) {
 		if Recorded(ctx, id) != "" && file.Exists(ctx, destination) {

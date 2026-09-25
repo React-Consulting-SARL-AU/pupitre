@@ -12,13 +12,12 @@ import (
 )
 
 const (
-	// The installer links both names; this one is unambiguous in a process list, where `agent` names anything.
+	// Unambiguous in a process list, where the other linked name, `agent`, could be anything.
 	Program = "cursor-agent"
 
 	configDir = agents.Home + "/.cursor"
 )
 
-// Cursor keeps its user rules in the account, not in a file: the machine reaches it through the skills alone.
 var target = agents.Target{ConfigDir: configDir, Skills: true}
 
 type Module struct{}
@@ -48,7 +47,7 @@ func (Module) Install(ctx *modules.Context) error {
 	return installCLI(ctx)
 }
 
-// Nothing to sign in — cursor-agent login prints its own URL when no browser can open — but ~/.local/bin reaches the path only through a runtime module, so this one says so itself for a machine that has none.
+// ~/.local/bin reaches PATH only through a runtime module, so this one adds it for a machine without any.
 func (Module) Configure(ctx *modules.Context) error {
 	if err := shell.EnsureBlock(ctx, "write-shell-env", ID, []byte(shell.PathLines(shell.LocalBin))); err != nil {
 		return err
@@ -65,7 +64,7 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// The conversations, the credentials and the skills the client added himself stay under ~/.cursor: only the CLI goes.
+// Conversations, credentials and the client's own skills stay under ~/.cursor; only the CLI goes.
 func (Module) Uninstall(ctx *modules.Context) error {
 	if err := removeCLI(ctx); err != nil {
 		return err
@@ -99,7 +98,6 @@ type authStatus struct {
 	} `json:"userInfo"`
 }
 
-// cursor-agent status asks Cursor who holds the tokens under ~/.cursor, and answers JSON whether anyone does.
 func (Module) Login(ctx *modules.Context) (contract.Login, bool) {
 	out, _ := login.Ask(ctx, nil, Program, "status", "--format", "json")
 

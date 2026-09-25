@@ -41,14 +41,13 @@ func newFakeSys() *modtest.FakeSys {
 	return fake
 }
 
-// The fake never opens a port on its own: the wait for mongod is switched off, and the one test that exercises it turns it back on.
+// The fake never opens a port, so the mongod wait stays off except in the test that exercises it.
 func TestMain(m *testing.M) {
 	startWait = 0
 
 	os.Exit(m.Run())
 }
 
-// mongosh reads its script on a REPL: an uncaught error prints and exits 0, so only the script's own last word says the user is there.
 func TestAUserScriptThatDoesNotReportReadyIsARefusal(t *testing.T) {
 	fake := newFakeSys()
 	fake.Answers["mongosh"] = "test> Uncaught MongoServerError[Unauthorized]: not authorized on admin to execute command\n"
@@ -65,7 +64,6 @@ func TestAUserScriptThatDoesNotReportReadyIsARefusal(t *testing.T) {
 	}
 }
 
-// mongod takes its time to listen after a start: a shell refused on the door is asked again, and the user is created once it opens.
 func TestTheUserIsCreatedOnceTheEngineListens(t *testing.T) {
 	fake := newFakeSys()
 	startWait, startPoll = time.Second, 10*time.Millisecond
@@ -76,6 +74,7 @@ func TestTheUserIsCreatedOnceTheEngineListens(t *testing.T) {
 	install(t, ctx)
 
 	shells := 0
+
 	for _, cmd := range fake.Calls {
 		if cmd.Argv[0] == "mongosh" {
 			shells++
@@ -116,6 +115,7 @@ func install(t *testing.T, ctx *modules.Context) {
 
 func statuses(ctx *modules.Context) map[string]contract.StepStatus {
 	steps := map[string]contract.StepStatus{}
+
 	for _, event := range ctx.Events() {
 		steps[event.Step] = event.Status
 	}
@@ -151,6 +151,7 @@ func TestMongodbListensOnTheLoopbackWithAuthorizationOn(t *testing.T) {
 	install(t, ctx)
 
 	written := string(fake.Files[confPath])
+
 	for _, want := range []string{"bindIp: 127.0.0.1", "port: 27017", "authorization: enabled"} {
 		if !strings.Contains(written, want) {
 			t.Errorf("%s missing from %s:\n%s", want, confPath, written)
@@ -178,6 +179,7 @@ func TestMongodb8ComesFromItsOwnRepository(t *testing.T) {
 	}
 
 	var fetched string
+
 	for _, call := range fake.Commands() {
 		if strings.HasPrefix(call, "curl") {
 			fetched = call
@@ -200,6 +202,7 @@ func TestApplicationUserIsCreatedOnTheStandardInput(t *testing.T) {
 	install(t, ctx)
 
 	var script string
+
 	for _, call := range fake.Calls {
 		if len(call.Stdin) > 0 {
 			script = string(call.Stdin)
@@ -263,6 +266,7 @@ func TestMongodumpArchivesAreImportedAndNamedInTheReport(t *testing.T) {
 	}
 
 	var restore, fed string
+
 	for _, call := range fake.Calls {
 		if call.Argv[0] == "mongorestore" {
 			restore = strings.Join(call.Argv, " ")
@@ -426,7 +430,6 @@ func newContextWith(t *testing.T, fake *modtest.FakeSys, values modtest.Values) 
 	})
 }
 
-// Left at zero the cache follows the machine; a figure given follows the client, whose database may be the whole point of the server.
 func TestTheCacheFollowsTheMachineUntilTheClientSizesIt(t *testing.T) {
 	fake := newFakeSys()
 	install(t, newContext(t, fake))
@@ -450,7 +453,6 @@ func TestTheCacheFollowsTheMachineUntilTheClientSizesIt(t *testing.T) {
 	}
 }
 
-// The version, the port and the user name are the client's call; the repository, the configuration and the url follow.
 func TestTheChosenVersionPortAndUserReachTheServer(t *testing.T) {
 	fake := newFakeSys()
 	fake.Files["/etc/os-release"] = []byte("ID=ubuntu\nVERSION_CODENAME=jammy\n")
@@ -468,11 +470,13 @@ func TestTheChosenVersionPortAndUserReachTheServer(t *testing.T) {
 	}
 
 	script := ""
+
 	for _, call := range fake.Calls {
 		if len(call.Stdin) > 0 {
 			script = string(call.Stdin)
 		}
 	}
+
 	if !strings.Contains(script, `"flyleaf"`) {
 		t.Fatalf("the chosen user must be the one created:\n%s", script)
 	}
@@ -483,7 +487,6 @@ func TestTheChosenVersionPortAndUserReachTheServer(t *testing.T) {
 	}
 }
 
-// A user name reaches the mongosh script as an identifier: what does not look like one is refused before it gets there.
 func TestAUserNameThatIsNotAnIdentifierFallsBackOnTheDefault(t *testing.T) {
 	ctx := newContextWith(t, newFakeSys(), modtest.Values{"app_user": `app"); db.dropDatabase(); //`})
 
@@ -494,6 +497,7 @@ func TestAUserNameThatIsNotAnIdentifierFallsBackOnTheDefault(t *testing.T) {
 
 func sentScript(fake *modtest.FakeSys) string {
 	var script string
+
 	for _, call := range fake.Calls {
 		if len(call.Stdin) > 0 {
 			script = string(call.Stdin)
@@ -503,7 +507,6 @@ func sentScript(fake *modtest.FakeSys) string {
 	return script
 }
 
-// Once authorization is on, only the previous password opens the user: a rotation that signs in with the new one fails for ever, and the env must not say otherwise.
 func TestRotationSignsInWithThePreviousPasswordAndStoresLast(t *testing.T) {
 	fake := installedSys(t)
 	fake.Files[env.Path] = []byte(appPasswordKey + "=former-password\n")
@@ -533,7 +536,6 @@ func TestRotationSignsInWithThePreviousPasswordAndStoresLast(t *testing.T) {
 	}
 }
 
-// A new major beside the running one is a server that will not start on the old files until featureCompatibilityVersion was raised: the form is told so before anything moves.
 func TestPreflightRefusesAVersionChangeWhileInstalled(t *testing.T) {
 	fake := installedSys(t)
 	fake.Files["/etc/os-release"] = []byte("ID=ubuntu\nVERSION_CODENAME=jammy\n")
@@ -549,7 +551,6 @@ func TestPreflightRefusesAVersionChangeWhileInstalled(t *testing.T) {
 	}
 }
 
-// MongoDB publishes 7.0 for jammy and not for noble: the form is told before anything is written, and so is an install that got past it.
 func TestAMajorMongoDBDoesNotPublishForThisReleaseIsRefused(t *testing.T) {
 	fake := newFakeSys()
 	chosen := modtest.Values{"version": "7.0"}
@@ -590,7 +591,6 @@ func TestEveryOfferedMajorIsPublishedForSomeRelease(t *testing.T) {
 	}
 }
 
-// The repository of a major MongoDB does not serve here would fail every later apt-get update on the machine, Caddy's included.
 func TestARepositoryAptCannotReadIsTakenBackOut(t *testing.T) {
 	fake := newFakeSys()
 	fake.FailLine("update -qq", "E: The repository 'https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0 Release' does not have a Release file.")
@@ -607,12 +607,13 @@ func TestARepositoryAptCannotReadIsTakenBackOut(t *testing.T) {
 	}
 }
 
-// Uninstalling takes back what the repository brought and the repository itself, so no list of a module gone is read at the next apt-get update.
 func TestUninstallTakesBackThePackagesAndTheRepository(t *testing.T) {
 	fake := installedSys(t)
+
 	for _, part := range []string{"mongodb-org-server", "mongodb-org-mongos", "mongodb-org-database", "mongodb-org-tools", "mongodb-mongosh", "mongodb-database-tools"} {
 		fake.Packages[part] = "8.0.4"
 	}
+
 	fake.Packages["mongodb-clients"] = "1:3.6"
 	delete(fake.Answers, "mongosh")
 	ctx := newContext(t, fake)
@@ -649,6 +650,7 @@ func TestInstallingOneVersionDropsTheListOfAnother(t *testing.T) {
 	if _, kept := fake.Files["/etc/apt/sources.list.d/mongodb-org-7.0.list"]; kept {
 		t.Fatal("the list of the previous version would take the next upgrade across a major")
 	}
+
 	if _, present := fake.Files[defaultList]; !present {
 		t.Fatal("the list of the chosen version must be there")
 	}

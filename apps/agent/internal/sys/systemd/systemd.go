@@ -16,21 +16,17 @@ const (
 	diagnosedLines  = 12
 	diagnoseTimeout = 30 * time.Second
 
-	// Longer than the 90 s systemd itself allows a start, so the unit's own
-	// verdict is what fails the step, not a clock that beat it to it.
+	// Longer than systemd's own 90 s start limit, so the unit's verdict fails the step, not our clock.
 	startTimeout = 3 * time.Minute
 )
 
-// A unit whose start systemd waits on — Type=notify — holds this command for
-// as long as its own TimeoutStartSec. Past that, the wait is the agent's
-// problem to end, with a reason, rather than the reader's to sit through.
 func Enable(ctx sys.Context, unit string) error {
 	_, err := sys.Exec(ctx, started("enable", "--now", unit))
 
 	return err
 }
 
-// EnableLater wires a unit for the next boot without running it now: what a oneshot of the boot does has already happened, or has nothing to do yet.
+// Only for the next boot: a boot oneshot's work has already happened or has nothing to do yet.
 func EnableLater(ctx sys.Context, unit string) error {
 	_, err := sys.Exec(ctx, started("enable", unit))
 
@@ -67,18 +63,12 @@ func Reload(ctx sys.Context, unit string) error {
 	return err
 }
 
-// Diagnose is what the unit itself said, for a start that did not go through:
-// systemctl only ever answers that the job failed, and the reason is in the
-// unit's own journal.
+// systemctl only says the job failed; the reason is in the unit's own journal.
 func Diagnose(ctx sys.Context, unit string) string {
 	return Recent(ctx, unit, diagnosedLines)
 }
 
-// Recent is the unit's own last words, as many as asked for, from its current
-// run alone: a daemon restarted on new credentials would otherwise be judged
-// on what it said of the old ones. A daemon that retries drowns the one line
-// that says why in the ones that say it again, so what reads a verdict asks
-// for a window wide enough to hold a whole cycle.
+// Current run only, so a daemon restarted on new credentials is not judged on what it said of the old ones.
 func Recent(ctx sys.Context, unit string, lines int) string {
 	scope := []string{"-u", unit}
 	if id := invocation(ctx, unit); id != "" {
@@ -94,6 +84,7 @@ func Recent(ctx sys.Context, unit string, lines int) string {
 	}
 
 	var kept []string
+
 	for _, line := range strings.Split(strings.TrimSpace(out.Stdout), "\n") {
 		if trimmed := strings.TrimSpace(line); trimmed != "" {
 			kept = append(kept, trimmed)
@@ -103,7 +94,7 @@ func Recent(ctx sys.Context, unit string, lines int) string {
 	return strings.Join(kept, " / ")
 }
 
-// Journal is the unit's last lines, every run included, as the reader of a service page asks for them.
+// Every run included, unlike Recent.
 func Journal(ctx sys.Context, unit string, lines int) ([]string, error) {
 	out, err := ctx.Sys().Run(sys.Command{Argv: journalctl(unit, lines), Timeout: diagnoseTimeout})
 	if err != nil {
@@ -113,7 +104,6 @@ func Journal(ctx sys.Context, unit string, lines int) ([]string, error) {
 	return split(out.Stdout), nil
 }
 
-// Follow hands the tail over, then every line the unit writes until limit has passed or the channel reading it is gone: the stream ends on its own, never with an error for having ended.
 func Follow(ctx sys.Context, channel context.Context, unit string, lines int, limit time.Duration, emit func(string)) error {
 	return ctx.Sys().Stream(sys.Command{Argv: append(journalctl(unit, lines), "-f"), Timeout: limit, Context: channel}, emit)
 }
@@ -124,6 +114,7 @@ func journalctl(unit string, lines int) []string {
 
 func split(text string) []string {
 	lines := []string{}
+
 	for _, line := range strings.Split(strings.TrimRight(text, "\n"), "\n") {
 		if line != "" {
 			lines = append(lines, line)
@@ -133,7 +124,6 @@ func split(text string) []string {
 	return lines
 }
 
-// invocation is the identifier systemd gave the unit's current run, empty for a unit that never ran.
 func invocation(ctx sys.Context, unit string) string {
 	out, err := ctx.Sys().Run(systemctl("show", "-p", "InvocationID", "--value", unit))
 	if err != nil {
@@ -174,6 +164,7 @@ func WriteUnit(ctx sys.Context, name string, content []byte) error {
 	path := unitDir + "/" + name + ".service"
 
 	ctx.Logf("write %s", path)
+
 	if err := ctx.Sys().WriteFile(path, content, 0o644); err != nil {
 		return err
 	}

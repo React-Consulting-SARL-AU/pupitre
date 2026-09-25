@@ -41,19 +41,19 @@ const (
 	defaultLogSize = "10m"
 	logFiles       = "3"
 
-	// Docker's NAT rules are read before ufw's: a port published on every address is open to the world whatever the firewall denies.
+	// Docker's NAT rules run before ufw's: a port published on every address is open whatever the firewall denies.
 	publishedAddress = "127.0.0.1"
 )
 
-// live-restore keeps the containers running across a daemon restart: a rewritten configuration or an upgrade costs no project its database.
-// "ip" binds the default bridge alone; default-network-opts binds the networks docker network create and compose make after it.
 type daemon struct {
-	DataRoot           string                       `json:"data-root,omitempty"`
+	DataRoot string `json:"data-root,omitempty"`
+	// "ip" binds only the default bridge; this binds the networks created later by docker network create and compose.
 	DefaultNetworkOpts map[string]map[string]string `json:"default-network-opts"`
 	IP                 string                       `json:"ip"`
-	LiveRestore        bool                         `json:"live-restore"`
-	LogDriver          string                       `json:"log-driver"`
-	LogOpts            map[string]string            `json:"log-opts"`
+	// Keeps containers running across a daemon restart, so a config rewrite or an upgrade costs no project its database.
+	LiveRestore bool              `json:"live-restore"`
+	LogDriver   string            `json:"log-driver"`
+	LogOpts     map[string]string `json:"log-opts"`
 }
 
 type Module struct{}
@@ -66,12 +66,11 @@ func (Module) Manifest() contract.Manifest {
 	return manifest()
 }
 
-// A data root moved under running containers is a daemon restarted on an empty
-// root: their volumes vanish from its view, and what wrote to them writes on.
 func (Module) Preflight(ctx *modules.Context) []contract.FieldProblem {
 	return modules.Problems(dataRootMoved(ctx))
 }
 
+// Moving the data root under running containers restarts dockerd on an empty root: their volumes vanish from its view.
 func dataRootMoved(ctx *modules.Context) *contract.FieldProblem {
 	held := strings.TrimSpace(fmt.Sprint(ctx.Held("data_root")))
 	wanted := strings.TrimSpace(ctx.String("data_root"))
@@ -106,7 +105,6 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 	return modules.Status{Installed: true, Version: version, Configured: file.Exists(ctx, configPath)}, nil
 }
 
-// Docker Engine is not in the Ubuntu archive: the module adds Docker's own repository, key first.
 func (Module) Install(ctx *modules.Context) error {
 	if err := ctx.Step("add-repository", func() (modules.Outcome, error) {
 		list := repository(host.Codename(ctx))
@@ -169,7 +167,7 @@ func (Module) Configure(ctx *modules.Context) error {
 		return err
 	}
 
-	// Without the group, every docker command needs sudo, and the agents that run as dev would stop at the first one.
+	// Without the group every docker command needs sudo, and the agents running as dev would stop at the first one.
 	if err := ctx.Step("join-docker-group", func() (modules.Outcome, error) {
 		groups, err := user.Groups(ctx, shell.User)
 		if err != nil {
@@ -184,7 +182,7 @@ func (Module) Configure(ctx *modules.Context) error {
 			return modules.Failed, err
 		}
 
-		// A group joined reaches the shells opened after it; the tmux server and its windows keep the list they started with.
+		// A new group only reaches shells opened after it; the running tmux server keeps its old list.
 		ctx.Warn(i18n.T("warn.docker.group.reopen", shell.User, group))
 
 		return modules.Done, nil
@@ -209,9 +207,7 @@ func (Module) Configure(ctx *modules.Context) error {
 	return checkPublishedPorts(ctx)
 }
 
-// dockerd rebuilds its default bridge only when it restarts with no container
-// running; with nothing running the restart costs nothing, and otherwise the
-// reader is told which ports stay open and how to close them.
+// dockerd rebuilds its default bridge only on a restart with no container running; otherwise the open ports are reported.
 func checkPublishedPorts(ctx *modules.Context) error {
 	return ctx.Step("check-published-ports", func() (modules.Outcome, error) {
 		networks := openNetworks(ctx)
@@ -264,7 +260,7 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// Images, volumes and containers are the client's: uninstalling takes back the engine and leaves /var/lib/docker where it is.
+// Images, volumes and containers are the client's: /var/lib/docker stays.
 func (Module) Uninstall(ctx *modules.Context) error {
 	if err := ctx.Step("stop-service", func() (modules.Outcome, error) {
 		if !systemd.Active(ctx, Unit) {
@@ -278,6 +274,7 @@ func (Module) Uninstall(ctx *modules.Context) error {
 
 	if err := ctx.Step("remove-engine", func() (modules.Outcome, error) {
 		installed := []string{}
+
 		for _, pkg := range packages(true) {
 			if apt.Installed(ctx, pkg) {
 				installed = append(installed, pkg)

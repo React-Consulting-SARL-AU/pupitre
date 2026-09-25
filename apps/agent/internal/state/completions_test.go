@@ -31,6 +31,7 @@ func TestCompletionsCarryTheGrammarTheProjectsAndTheRoot(t *testing.T) {
 	}
 
 	verbs := map[string]bool{}
+
 	for _, sub := range completions.Sub {
 		verbs[sub.Name] = true
 	}

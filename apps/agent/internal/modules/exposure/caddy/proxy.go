@@ -25,7 +25,6 @@ func Status(ctx *modules.Context) (Report, error) {
 	return report, nil
 }
 
-// The Caddyfile is regenerated from the project registry, which is the only place a subdomain is ever declared.
 func Sync(ctx *modules.Context) (Report, error) {
 	if !ours(ctx) {
 		return Report{}, modules.NotInstalled(ID, manifest().Name)

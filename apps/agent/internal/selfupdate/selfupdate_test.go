@@ -33,7 +33,6 @@ var (
 	newBinary = []byte("\x7fELF nouvel agent")
 )
 
-// A fake platform that answers the three calls an upgrade makes: the state of the server, the metadata of a version, and the binary itself.
 type bench struct {
 	fake           *modtest.FakeSys
 	options        selfupdate.Options
@@ -150,7 +149,6 @@ func (b *bench) signatureFor(version string) string {
 	return sign(b.private, version, arch, selfupdate.Fingerprint(newBinary))
 }
 
-// The default gesture: a version and nothing else, the platform says the rest.
 func (b *bench) upgrade(t *testing.T, version string) (selfupdate.Result, error) {
 	t.Helper()
 
@@ -264,7 +262,6 @@ func TestUpgradeRefusesABinaryThatDoesNotMatchItsFingerprint(t *testing.T) {
 	assertUntouched(t, b, before)
 }
 
-// The same publisher, the same binary, another version: a signature that travels with the wrong version is worth nothing.
 func TestUpgradeRefusesASignatureIssuedForAnotherVersion(t *testing.T) {
 	b := newBench(t)
 	b.signedVersion = nextAgent
@@ -435,7 +432,6 @@ func TestUpgradeWithoutAVersionTakesTheTargetOfThePlatform(t *testing.T) {
 	}
 }
 
-// The whole point: the app hands over a version, nothing else, and the platform's own answer carries the fingerprint and the signature.
 func TestUpgradeTakesTheFingerprintFromThePlatformWithoutASignatureParameter(t *testing.T) {
 	b := newBench(t)
 
@@ -467,7 +463,6 @@ func TestUpgradeRefusesABinaryWhoseFingerprintIsNotTheAnnouncedOne(t *testing.T)
 	assertUntouched(t, b, before)
 }
 
-// A signature stays valid forever, so nothing but the floor stops an old and faulty version from coming back.
 func TestUpgradeRefusesAVersionOlderThanTheRunningOne(t *testing.T) {
 	b := newBench(t)
 
@@ -485,7 +480,6 @@ func TestUpgradeRefusesAVersionOlderThanTheRunningOne(t *testing.T) {
 	assertUntouched(t, b, before)
 }
 
-// "dev" sorts above every number, and an agent built that way must still take the version the platform publishes.
 func TestADevBuildIsNoFloor(t *testing.T) {
 	b := newBench(t)
 	b.options.Version = "dev"
@@ -529,7 +523,6 @@ func TestUpgradeRefusesAVersionBelowTheFloorThePlatformRemembers(t *testing.T) {
 	assertUntouched(t, b, before)
 }
 
-// The owner asked for it in so many words; the signature is still checked.
 func TestUpgradeInstallsAnOlderVersionWhenTheOwnerAllowsIt(t *testing.T) {
 	b := newBench(t)
 
@@ -557,7 +550,6 @@ func TestUpgradeRefusesADowngradeEvenWhenThePlatformIsSilent(t *testing.T) {
 	assertUntouched(t, b, before)
 }
 
-// A platform out of reach must not leave the agent stuck on a broken version: the signature of the parameters is the way back.
 func TestUpgradeFallsBackOnTheSignatureOfTheParametersWhenTheMetadataIsUnreachable(t *testing.T) {
 	b := newBench(t)
 	b.metadataStatus = http.StatusInternalServerError
@@ -605,7 +597,6 @@ func snapshot(fake *modtest.FakeSys) map[string]string {
 	return files
 }
 
-// A refused binary leaves nothing behind: not the file it would have become, not a temporary one, not a restart.
 func assertUntouched(t *testing.T, b *bench, before map[string]string) {
 	t.Helper()
 

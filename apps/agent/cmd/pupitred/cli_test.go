@@ -27,11 +27,13 @@ func setupCLI(t *testing.T) (*modtest.FakeSys, string) {
 	t.Helper()
 
 	fake := modtest.NewFakeSys()
+
 	previous := newSys
 	newSys = func() sys.Sys { return fake }
 	t.Cleanup(func() { newSys = previous })
 
 	dir := t.TempDir()
+
 	t.Setenv("PUPITRE_REPORT_PATH", filepath.Join(dir, "report.json"))
 	t.Setenv("PUPITRE_LOG_PATH", filepath.Join(dir, "pupitre.log"))
 	t.Setenv("PUPITRE_INSTALL_PATH", filepath.Join(dir, "install.json"))
@@ -40,19 +42,19 @@ func setupCLI(t *testing.T) (*modtest.FakeSys, string) {
 	t.Setenv("PUPITRE_UPGRADE_LOCK_PATH", filepath.Join(dir, "upgrade.lock"))
 	t.Setenv("PUPITRE_KEYS_LOCK_PATH", filepath.Join(dir, "keys.lock"))
 
-	// `dev` follows the shell that types it, and the locale lives at the package
-	// level: without this, a French laptop renders every phrase below in French.
+	// The locale is package-level and follows the shell: without this, a French laptop renders every phrase in French.
 	t.Setenv("PUPITRE_LOCALE", "en")
+
 	enrol(t, fake)
 
 	return fake, dir
 }
 
-// A server as it stands just after its enrolment: a server token, and a platform read that is still fresh.
 func enrol(t *testing.T, fake *modtest.FakeSys) {
 	t.Helper()
 
 	now := time.Now()
+
 	cache, err := json.Marshal(entitlement.Cache{State: "valid", ValidUntil: now.Add(24 * time.Hour), CheckedAt: now})
 	if err != nil {
 		t.Fatal(err)
@@ -62,7 +64,6 @@ func enrol(t *testing.T, fake *modtest.FakeSys) {
 	fake.Files[entitlement.DefaultCachePath] = cache
 }
 
-// The same binary, on a server it was never enrolled on.
 func unenrol(fake *modtest.FakeSys) {
 	delete(fake.Files, platform.DefaultTokenPath)
 	delete(fake.Files, entitlement.DefaultCachePath)

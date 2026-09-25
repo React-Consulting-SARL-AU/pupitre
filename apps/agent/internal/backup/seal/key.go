@@ -1,4 +1,4 @@
-// Package seal is the backup container of packages/shared/src/backup/crypto.ts, both held to contract/backup.fixtures.json.
+// Mirrors packages/shared/src/backup/crypto.ts; both are held to contract/backup.fixtures.json.
 package seal
 
 import (
@@ -21,7 +21,6 @@ var (
 	ErrDecomposed = errors.New("the passphrase holds a combining mark this tool cannot compose")
 )
 
-// Identity is what a passphrase derives: the private scalar that opens, and the recipient that seals.
 type Identity struct {
 	PrivateKey []byte
 	Recipient  string
@@ -60,7 +59,6 @@ func RecipientOf(private []byte) (string, error) {
 	return base64.StdEncoding.EncodeToString(key.PublicKey().Bytes()), nil
 }
 
-// DecodeKey reads a 32-byte key in standard base64: a private key from the secret line, a recipient from a manifest.
 func DecodeKey(encoded string) ([]byte, error) {
 	raw, err := base64.StdEncoding.DecodeString(strings.TrimSpace(encoded))
 	if err != nil || len(raw) != keyBytes {
@@ -70,7 +68,7 @@ func DecodeKey(encoded string) ([]byte, error) {
 	return raw, nil
 }
 
-// The standard library has no NFC: the Latin accents are composed here, and any other combining mark, of any script, is refused rather than derived into a key that may never match.
+// No NFC in the standard library: Latin accents are composed here, other marks refused rather than yield a wrong key.
 func Normalize(passphrase string) (string, error) {
 	runes := []rune(strings.TrimSpace(passphrase))
 	composed := make([]rune, 0, len(runes))

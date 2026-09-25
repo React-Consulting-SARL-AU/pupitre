@@ -17,7 +17,7 @@ const (
 
 	tool = "npm:vercel"
 
-	// The variable the CLI reads on its own: no vercel login is needed once it is in the shell.
+	// The CLI reads it on its own, so no vercel login is needed once it is in the shell.
 	tokenKey = "VERCEL_TOKEN"
 )
 
@@ -66,7 +66,6 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// The Vercel account belongs to the client: uninstalling gives back the machine and its variable, never a deployment.
 func (Module) Uninstall(ctx *modules.Context) error {
 	if err := cli.Remove(ctx); err != nil {
 		return err
@@ -91,7 +90,6 @@ func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
 	return status, nil
 }
 
-// vercel whoami prints the username the token opens, and nothing else on its standard output.
 func (Module) Login(ctx *modules.Context) (contract.Login, bool) {
 	held, _, _ := env.Get(ctx, tokenKey)
 	if held == "" {

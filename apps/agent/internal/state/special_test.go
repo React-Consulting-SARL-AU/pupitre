@@ -23,7 +23,6 @@ func TestAPipeInTheWorkFolderIsRefusedNotRead(t *testing.T) {
 	}
 }
 
-// A pipe listed as a file is one the app offers to open, and an open would wait on it forever.
 func TestAPipeIsListedAndStatedAsSpecial(t *testing.T) {
 	fake, reader := filesFixture(t)
 	fake.Files["/home/dev/notes/fifo"] = nil

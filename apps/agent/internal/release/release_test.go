@@ -173,7 +173,6 @@ func TestParsePrivateKeyRefusesAnythingElse(t *testing.T) {
 	}
 }
 
-// The public key the release build injects has to be the one the agent parses back out of its own binary.
 func TestTheGeneratedPairFeedsTheLinkerFlagTheAgentReads(t *testing.T) {
 	public, private, err := release.GenerateKeyPair()
 	if err != nil {

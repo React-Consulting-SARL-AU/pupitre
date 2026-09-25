@@ -1,4 +1,3 @@
-// Command release signs the binaries of a version of pupitred and declares them to the platform.
 package main
 
 import (
@@ -47,7 +46,7 @@ func usage(stderr io.Writer) {
 	fmt.Fprintln(stderr, "usage: release <keygen|public-key|sign --version=X [--channel=beta] [--out=FILE] [--release=FILE] BINARY...>")
 }
 
-// The pair is written to standard output and nowhere else: the private half belongs in a secret store, never in a file this repository could pick up.
+// Standard output only: the private half belongs in a secret store, never in a file the repository could pick up.
 func runKeygen(stdout, stderr io.Writer) int {
 	public, private, err := release.GenerateKeyPair()
 	if err != nil {
@@ -158,7 +157,7 @@ func writeManifest(path string, publications []release.Publication) error {
 	return os.WriteFile(path, append(encoded, '\n'), 0o644)
 }
 
-// The private key is read from the environment only: a flag would leave it in the process list and in the workflow logs.
+// Environment only: a flag would leave the private key in the process list and in the workflow logs.
 func privateKey(env environment) (ed25519.PrivateKey, error) {
 	encoded := env(privateKeyVariable)
 	if encoded == "" {

@@ -17,6 +17,7 @@ func agentReader(t *testing.T, fake *modtest.FakeSys, installed ...string) *stat
 	t.Helper()
 
 	registry := modules.NewRegistry()
+
 	for _, id := range []string{"ai.claude", "ai.codex", "ai.cursor", "ai.gemini", "ai.copilot", "ai.opencode", "ai.hermes"} {
 		registry.Register(modtest.Passing{ID: id})
 	}
@@ -64,7 +65,6 @@ func TestEachAgentOpensInTheProjectFolder(t *testing.T) {
 	}
 }
 
-// A project is its repository: an agent opens at the root of it, whichever subfolder its processes run from.
 func TestTheFolderFollowsTheRegistry(t *testing.T) {
 	opened, err := agentReader(t, agentMachine(t), "ai.claude").OpenAgent("claude", "api")
 	if err != nil {

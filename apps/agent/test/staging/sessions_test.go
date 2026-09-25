@@ -13,7 +13,7 @@ import (
 
 const fakeAgents = "/home/dev/.local/bin"
 
-// Three long-lived processes under the names the machine gives its agents — sleep under each name, since a session is told by its argv — so sessions.list has the three kinds to tell apart.
+// sleep runs under each agent's name because sessions.list tells a session's kind by its argv.
 const sessionFixtureScript = `set -e
 mkdir -p ` + fakeAgents + ` /home/dev/.cache/JetBrains/RemoteDev/bin
 ln -sf /usr/bin/sleep ` + fakeAgents + `/claude
@@ -32,6 +32,7 @@ func writeSessionFixture(t *testing.T, host string) {
 	write(t, host, "/home/dev/sessions.sh", sessionFixtureScript)
 	ssh(t, host, "chown", "dev:dev", "/home/dev/sessions.sh")
 	ssh(t, host, "su", "-", "dev", "-c", "'sh /home/dev/sessions.sh'")
+
 	t.Cleanup(func() {
 		sshCommand(host, "pkill", "-u", "dev", "-f", "3600").Run()
 		sshCommand(host, "rm", "-f", "/home/dev/sessions.sh", fakeAgents+"/claude", fakeAgents+"/codex").Run()
@@ -48,9 +49,11 @@ func sessionsOf(t *testing.T, host string) []contract.Session {
 
 func TestSessionsListTellsTheKindsApart(t *testing.T) {
 	host := stagingHost(t)
+
 	writeSessionFixture(t, host)
 
 	kinds := map[string]bool{}
+
 	for _, session := range sessionsOf(t, host) {
 		if session.PID <= 1 || session.Command == "" {
 			t.Fatalf("unexpected session: %+v", session)
@@ -94,6 +97,7 @@ func TestProcessKillRefusesAPidThatIsNotTheProjectsUser(t *testing.T) {
 
 func TestProcessKillStopsAProcessOfDevAndProcessesListShowsIt(t *testing.T) {
 	host := stagingHost(t)
+
 	writeSessionFixture(t, host)
 
 	sessions := sessionsOf(t, host)
@@ -102,6 +106,7 @@ func TestProcessKillStopsAProcessOfDevAndProcessesListShowsIt(t *testing.T) {
 	}
 
 	target := sessions[0].PID
+
 	agent(t, host, request{Cmd: "process.kill", Params: map[string]any{"pid": target, "force": true}})
 
 	for _, session := range sessionsOf(t, host) {
@@ -120,6 +125,7 @@ func TestProcessKillStopsAProcessOfDevAndProcessesListShowsIt(t *testing.T) {
 
 func TestSessionsCleanLeavesTheYoungOnesAlone(t *testing.T) {
 	host := stagingHost(t)
+
 	writeSessionFixture(t, host)
 
 	before := len(sessionsOf(t, host))
@@ -138,6 +144,7 @@ func TestSessionsCleanLeavesTheYoungOnesAlone(t *testing.T) {
 
 func TestShotsAreListedUnderTheGalleryAddress(t *testing.T) {
 	host := stagingHost(t)
+
 	ssh(t, host, "su", "-", "dev", "-c", "'mkdir -p /home/dev/shots/2026-09-04 && head -c 2048 /dev/urandom > /home/dev/shots/2026-09-04/fixture.png'")
 	t.Cleanup(func() { sshCommand(host, "rm", "-rf", "/home/dev/shots/2026-09-04").Run() })
 

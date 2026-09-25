@@ -21,7 +21,6 @@ const (
 	jordan      = "Xq3v9LmN2pR7tY5wZ8aB1cD4"
 )
 
-// device holds a private key the way a laptop does, and signs approvals the way the app does with `ssh-keygen -Y sign`.
 type device struct {
 	private ed25519.PrivateKey
 	line    string
@@ -110,7 +109,6 @@ func asked(d device, approvals ...contract.KeyApproval) contract.AgentStateKey {
 	return contract.AgentStateKey{PublicKey: d.line, UserID: jordan, DeviceID: "device", Approvals: approvals}
 }
 
-// trusting lays devices the way an onboarding does: trusted, and in the block.
 func (b *bench) trusting(t *testing.T, devices ...device) {
 	t.Helper()
 

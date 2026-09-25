@@ -45,6 +45,7 @@ func TestADumpStreamsAsPostgresBehindEverythingElse(t *testing.T) {
 
 func scripts(fake *modtest.FakeSys) string {
 	var fed []string
+
 	for _, call := range fake.Calls {
 		fed = append(fed, string(call.Stdin))
 	}

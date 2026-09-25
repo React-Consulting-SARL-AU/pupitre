@@ -15,7 +15,7 @@ const (
 	gitOrigin  = "/home/dev/fixtures/" + gitProject + ".git"
 )
 
-// A bare origin and its clone, laid down over ssh: one commit that only the remote has, one that only the clone has, one tracked file changed and one untracked.
+// One commit only the origin has, one only the clone has, one tracked file changed and one untracked.
 const gitFixtureScript = `set -e
 rm -rf ` + gitDir + ` ` + gitOrigin + ` /home/dev/fixtures/seed
 mkdir -p /home/dev/fixtures
@@ -43,6 +43,7 @@ func writeGitFixture(t *testing.T, host string) {
 	write(t, host, "/home/dev/fixtures.sh", gitFixtureScript)
 	ssh(t, host, "chown", "dev:dev", "/home/dev/fixtures.sh")
 	ssh(t, host, "su", "-", "dev", "-c", "'sh /home/dev/fixtures.sh'")
+
 	t.Cleanup(func() {
 		sshCommand(host, "rm", "-rf", gitDir, gitOrigin, "/home/dev/fixtures", "/home/dev/fixtures.sh").Run()
 	})
@@ -52,6 +53,7 @@ func registerGitProject(t *testing.T, host string) {
 	t.Helper()
 
 	cleanup(t, host, gitProject)
+
 	agent(t, host, request{Cmd: "project.add", Params: map[string]any{
 		"name": gitProject, "dir": gitProject, "repo": gitOrigin,
 		"processes": []map[string]any{{
@@ -74,6 +76,7 @@ func gitStatusOf(t *testing.T, host string) contract.ProjectGitStatus {
 
 func TestGitStatusTellsBehindAheadAndDirtyApart(t *testing.T) {
 	host := stagingHost(t)
+
 	writeGitFixture(t, host)
 	registerGitProject(t, host)
 
@@ -102,6 +105,7 @@ func TestGitStatusTellsBehindAheadAndDirtyApart(t *testing.T) {
 
 func TestGitStatusReportsAnUnreachableRemote(t *testing.T) {
 	host := stagingHost(t)
+
 	writeGitFixture(t, host)
 	registerGitProject(t, host)
 
@@ -123,6 +127,7 @@ func TestGitStatusReportsAnUnreachableRemote(t *testing.T) {
 
 func TestDiffIsGitsOwnPatchByteForByte(t *testing.T) {
 	host := stagingHost(t)
+
 	writeGitFixture(t, host)
 	registerGitProject(t, host)
 
@@ -139,6 +144,7 @@ func TestDiffIsGitsOwnPatchByteForByte(t *testing.T) {
 
 func TestWorkingTreeListsEveryStageAndSyncCatchesUp(t *testing.T) {
 	host := stagingHost(t)
+
 	writeGitFixture(t, host)
 	registerGitProject(t, host)
 
@@ -146,6 +152,7 @@ func TestWorkingTreeListsEveryStageAndSyncCatchesUp(t *testing.T) {
 		request{Cmd: "project.working_tree", Params: map[string]any{"name": gitProject}})[0].Result)
 
 	stages := map[string]contract.FileChange{}
+
 	for _, change := range tree.Files {
 		stages[change.Path] = change
 	}
@@ -167,6 +174,7 @@ func TestWorkingTreeListsEveryStageAndSyncCatchesUp(t *testing.T) {
 
 func TestCheckoutRefusesToCarryUncommittedWorkAway(t *testing.T) {
 	host := stagingHost(t)
+
 	writeGitFixture(t, host)
 	registerGitProject(t, host)
 

@@ -42,7 +42,6 @@ func serve(t *testing.T, b *bench, granted contract.Entitlement, requests ...str
 	return answers
 }
 
-// An agent left behind is exactly the one that must be able to repair itself, so the restricted mode lets agent.upgrade through — with nothing but a version, and a platform that no longer says how this server is doing.
 func TestAgentUpgradeAnswersInRestrictedMode(t *testing.T) {
 	b := newBench(t)
 	b.stateStatus = http.StatusUnauthorized

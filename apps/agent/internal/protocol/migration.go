@@ -5,8 +5,6 @@ import (
 	"pupitre.studio/agent/internal/i18n"
 )
 
-// The commands a server answers while its configuration is not the shape this
-// binary reads, as the contract lists them.
 var migrationCommands = contract.Enum("MigrationCommands")
 
 func allowedWhileMigrating(cmd string) bool {
@@ -19,9 +17,7 @@ func allowedWhileMigrating(cmd string) bool {
 	return false
 }
 
-// A configuration the binary cannot read is not a configuration to guess at: a
-// module handed values it misunderstands writes them back misunderstood. What
-// stays open is the view of the machine, the diagnostic, and the ways out.
+// Never guess at an unreadable configuration: a module handed misread values writes them back misread.
 func MigrationRequired(config contract.ConfigRevision) *Error {
 	switch config.State {
 	case contract.ConfigFailed:

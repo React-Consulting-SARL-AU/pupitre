@@ -17,7 +17,7 @@ import (
 	"pupitre.studio/agent/internal/contract"
 )
 
-// The namespace and the first line of the signed message live here rather than in schema.json: every string the contract exports ends up in the binary.
+// Kept out of schema.json: every string the contract exports ends up in the binary.
 const (
 	ApprovalNamespace = "pupitre-key-approval"
 	ApprovalHeader    = "pupitre-key-approval-v1"
@@ -51,7 +51,6 @@ var curves = map[string]curve{
 	"nistp521": {elliptic.P521(), crypto.SHA512},
 }
 
-// Envelope is an SSHSIG read for its shape: the key that claims to have signed, and what it claims to have signed under.
 type Envelope struct {
 	PublicKey []byte
 	Namespace string
@@ -61,7 +60,6 @@ type Envelope struct {
 	signature     []byte
 }
 
-// VerifySignature reads an armored SSHSIG and checks it signs message under namespace with the key it carries.
 func VerifySignature(armored, namespace string, message []byte) (Envelope, error) {
 	envelope, err := ParseSignature(armored)
 	if err != nil {
@@ -164,7 +162,7 @@ func messageDigest(hash string, message []byte) ([]byte, error) {
 	return nil, ErrSignatureHash
 }
 
-// What the key actually signs: the message's digest wrapped with the namespace, so a signature made for anything else never counts here.
+// Wrapped with the namespace, so a signature made for anything else never counts here.
 func signedData(namespace, hash string, digest []byte) []byte {
 	data := []byte(sshsigMagic)
 	data = appendString(data, []byte(namespace))
@@ -185,7 +183,7 @@ type publicKey struct {
 	verify  func(data, signature []byte) bool
 }
 
-// Ed25519 and ECDSA on the NIST curves, the types an approval admits; every field is exactly what its type holds, and nothing trails.
+// Only the types an approval admits; every field is exact and nothing may trail.
 func parsePublicKey(blob []byte) (publicKey, error) {
 	body := &wire{rest: blob}
 	keyType := string(body.bytes())
@@ -235,7 +233,7 @@ func verifyECDSA(key *ecdsa.PublicKey, digest crypto.Hash, data, signature []byt
 	return ecdsa.Verify(key, hasher.Sum(nil), r, s)
 }
 
-// A positive mpint in its shortest form, as OpenSSH writes one; anything else is nil.
+// Only the shortest positive form OpenSSH writes; anything else is nil.
 func mpint(raw []byte) *big.Int {
 	if len(raw) == 0 || raw[0]&0x80 != 0 {
 		return nil
@@ -248,7 +246,7 @@ func mpint(raw []byte) *big.Int {
 	return new(big.Int).SetBytes(raw)
 }
 
-// wire reads the length-prefixed strings of the SSH format; one short read breaks it for good.
+// One short read breaks it for good.
 type wire struct {
 	rest   []byte
 	broken bool

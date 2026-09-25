@@ -1,8 +1,5 @@
 package contract
 
-// KeyApprovalRulesConstants is what packages/shared fixes for an approval: the
-// hashes, the age window, the key types and the patterns the agent holds a key
-// and a server to.
 type KeyApprovalRulesConstants struct {
 	Hashes             []string `json:"hashes"`
 	MaxAgeSeconds      int      `json:"max_age_seconds"`
@@ -15,7 +12,7 @@ type KeyApprovalRulesConstants struct {
 
 var KeyApprovalRules = constOf[KeyApprovalRulesConstants]("KeyApprovalRules")
 
-// KeyApproval is an SSHSIG made by a device the server already trusts, admitting one key on one server.
+// An SSHSIG by a device the server already trusts, admitting one key on one server.
 type KeyApproval struct {
 	ServerID  string `json:"server_id"`
 	PublicKey string `json:"public_key"`
@@ -25,7 +22,6 @@ type KeyApproval struct {
 	Signature string `json:"signature"`
 }
 
-// AgentStateKey is one key the platform wants on this server, with every approval it holds for it.
 type AgentStateKey struct {
 	PublicKey string        `json:"public_key"`
 	UserID    string        `json:"user_id"`
@@ -33,7 +29,7 @@ type AgentStateKey struct {
 	Approvals []KeyApproval `json:"approvals"`
 }
 
-// KeysBeat is what the heartbeat says of the keys: fingerprints only.
+// The heartbeat carries fingerprints only.
 type KeysBeat struct {
 	Signers []string `json:"signers"`
 	Pending []string `json:"pending"`

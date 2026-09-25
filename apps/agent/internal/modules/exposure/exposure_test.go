@@ -27,7 +27,6 @@ func registry(t *testing.T) *modules.Registry {
 	return registry
 }
 
-// project.url comes from the state, and the tunnel is what decides between a subdomain and a local address: the two answer in the same transcript.
 func TestTranscripts(t *testing.T) {
 	modtest.RunTranscripts(t, "testdata/*.jsonl", modtest.TranscriptOptions{
 		Registry: registry(t),
@@ -75,7 +74,6 @@ func TestTheManifestsMatchTheCatalog(t *testing.T) {
 	}
 }
 
-// One exposure at a time: the engine refuses the second one, and each manifest names the other. Ticking neither is the third state, which no module carries.
 func TestTheTwoExposuresConflict(t *testing.T) {
 	all := []string{cloudflare.ID, caddy.ID}
 

@@ -9,7 +9,6 @@ import (
 	"pupitre.studio/agent/internal/sys/file"
 )
 
-// ParsePublic reads one public key the way a .pub file holds it: `type base64`, a comment allowed and dropped, no option, one line.
 func ParsePublic(line string) (Key, error) {
 	trimmed := strings.TrimSpace(line)
 	if strings.ContainsAny(trimmed, "\r\n") {
@@ -24,7 +23,7 @@ func ParsePublic(line string) (Key, error) {
 	return ParseApproved(fields[0] + " " + fields[1])
 }
 
-// Reset is the way back when every device is lost: from the hosting console, the block and the trust come to hold exactly one key.
+// The way back when every device is lost, run from the hosting console: block and trust keep exactly one key.
 func Reset(ctx sys.Context, target Target, signersPath string, key Key, now time.Time) error {
 	if target.Owner != "" {
 		if err := file.MkdirOwned(ctx, filepath.Dir(target.Path), target.Owner, target.Owner, signersDir); err != nil {

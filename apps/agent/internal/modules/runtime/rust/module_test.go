@@ -39,6 +39,7 @@ func TestInstallPutsRustAndCargoBinariesOnPath(t *testing.T) {
 	}
 
 	env := string(fake.Files[shell.EnvPath])
+
 	for _, want := range []string{
 		`export PATH="$HOME/.cargo/bin:$PATH"`,
 		`export PATH="$HOME/.local/share/mise/shims:$PATH"`,

@@ -14,7 +14,7 @@ import (
 
 const updateURL = "https://update.code.visualstudio.com"
 
-// The server folder is named after the commit of the build, which is exactly what Remote SSH looks for before deciding to download one.
+// The server folder is named after the build's commit, which Remote SSH looks for before downloading its own.
 type release struct {
 	Commit  string `json:"commit"`
 	Version string `json:"version"`
@@ -23,7 +23,6 @@ type release struct {
 	sha256 string
 }
 
-// The update service answers one build at a time — the server, the CLI — with the archive to fetch and its SHA-256.
 func latest(ctx *modules.Context, build string) (release, error) {
 	out, err := download.Text(ctx, updateURL+"/api/update/"+build+"/stable/latest")
 	if err != nil {
@@ -47,7 +46,7 @@ func resolve(ctx *modules.Context) (release, error) {
 	return latest(ctx, "server-linux-"+arch())
 }
 
-// The build already on the machine is the one a replay keeps: a newer one is what upgrade fetches, never what a changed setting costs.
+// A replay keeps the build on the machine; only upgrade fetches a newer one.
 func pinned(ctx *modules.Context) (release, error) {
 	if kept := recorded(ctx); kept.Commit != "" && file.Exists(ctx, kept.serverCLI()) {
 		return kept, nil
@@ -88,7 +87,7 @@ func (r release) serverCLI() string {
 	return r.serverDir() + "/bin/code-server"
 }
 
-// Remote SSH of the last releases looks under cli/servers, older ones under bin: one extraction, both layouts.
+// Recent Remote SSH looks under cli/servers, older ones under bin: one extraction serves both.
 func (r release) serverLink() string {
 	return cliServers + "/Stable-" + r.Commit + "/server"
 }
@@ -103,6 +102,7 @@ func arch() string {
 
 func extensions(ctx *modules.Context) []string {
 	var wanted []string
+
 	for _, entry := range ctx.StringList("extensions") {
 		if trimmed := strings.TrimSpace(entry); trimmed != "" {
 			wanted = append(wanted, trimmed)

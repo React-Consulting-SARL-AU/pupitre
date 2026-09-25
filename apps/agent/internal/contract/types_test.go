@@ -169,10 +169,12 @@ func TestPresetsComeFromTheSchema(t *testing.T) {
 	}
 
 	seen := map[string]bool{}
+
 	for _, preset := range Presets {
 		if err := ValidateValue("Preset", preset); err != nil {
 			t.Errorf("preset %s: %v", preset.ID, err)
 		}
+
 		seen[preset.ID] = true
 	}
 

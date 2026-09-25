@@ -7,17 +7,7 @@ import (
 	"pupitre.studio/agent/internal/modules"
 )
 
-/*
-What this file proves: the catalogue says which of its modules hold something to
-watch. A database, a tunnel, an editor server and a coding agent keep a process,
-or spawn one at any moment; a language, a CLI and a hardening pass leave nothing
-behind them, and the dashboard has no row to give them.
-
-The list is written out rather than derived: a unit is not the rule — the
-hardening pass runs a jail and still has nothing to show — so a new module has
-to answer the question rather than inherit an answer.
-*/
-
+// Written out, not derived from systemd units: hardening runs a jail yet shows nothing, so a new module must decide.
 var running = []string{
 	"ai.browser",
 	"ai.claude",

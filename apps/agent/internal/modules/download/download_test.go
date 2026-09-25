@@ -280,7 +280,6 @@ func TestGitHubReleaseUpgradesOnlyWhenANewerVersionIsOut(t *testing.T) {
 	}
 }
 
-// An install script or a release index is a body of kilobytes: the journal says how much came back, never what.
 func TestTextKeepsTheBodyOutOfTheJournal(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Answer("releases.example.org/index.json", `{"tag_name":"v1.0","body":"secret-looking release notes"}`)

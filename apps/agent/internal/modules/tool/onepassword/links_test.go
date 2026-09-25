@@ -9,7 +9,6 @@ import (
 
 const serverToken = "PUPITRE_SERVER_TOKEN=ne-doit-jamais-sortir\n"
 
-// A repository is anybody's code: a link it carries to the server's token must not have root copy that token into .env.local.
 func TestEnvNeverReadsALinkThatLeavesTheProject(t *testing.T) {
 	fake := machine()
 	fake.Files["/etc/pupitre/server.token"] = []byte(serverToken)
@@ -46,7 +45,6 @@ func TestEnvNeverReadsAnEnvFileThatIsALinkOutOfTheProject(t *testing.T) {
 	}
 }
 
-// A monorepo may point a workspace's example at the one of its root: a link that stays in the project is followed.
 func TestEnvFollowsALinkThatStaysInTheProject(t *testing.T) {
 	fake := machine()
 	delete(fake.Packages, pkg)

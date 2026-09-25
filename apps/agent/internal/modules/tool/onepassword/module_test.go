@@ -58,7 +58,6 @@ func configuredMachine() *modtest.FakeSys {
 	return fake
 }
 
-// `op whoami` in a terminal runs as dev and reads OP_SERVICE_ACCOUNT_TOKEN from its own shell, never from root's file.
 func TestTheTokenReachesTheDevShellAndLeavesWithTheModule(t *testing.T) {
 	fake := machine()
 	ctx := newContext(t, fake, modtest.Secrets{"service_account_token": token})
@@ -66,6 +65,7 @@ func TestTheTokenReachesTheDevShellAndLeavesWithTheModule(t *testing.T) {
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -94,6 +94,7 @@ func TestInstallAndConfigureAreIdempotent(t *testing.T) {
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -115,8 +116,6 @@ func TestInstallAndConfigureAreIdempotent(t *testing.T) {
 	}
 }
 
-// The engine refuses a configuration before the first step, so the module never
-// sees a missing secret. What this module owes is the declaration it is refused on.
 func TestTheSecretIsRequiredByTheContract(t *testing.T) {
 	held := func(string, string) []string { return nil }
 
@@ -212,17 +211,18 @@ func TestEnvInjectsTheTemplateAndReturnsKeysOnly(t *testing.T) {
 	}
 
 	var sent string
+
 	for _, call := range fake.Calls {
 		if len(call.Argv) > 1 && call.Argv[0] == program {
 			sent = string(call.Stdin)
 		}
 	}
+
 	if !strings.Contains(sent, "op://Dev/flyleaf/url") {
 		t.Fatalf("the placeholders of the template must be substituted before op sees it: %q", sent)
 	}
 }
 
-// An existing file is the project's own: regenerating it is asked for, never guessed.
 func TestEnvKeepsAnExistingFileUnlessForced(t *testing.T) {
 	fake := machine()
 	fake.Files[target] = []byte("DATABASE_URL=deja-la\n")
@@ -263,7 +263,6 @@ func TestEnvFallsBackOnTheVersionedExampleWithoutASecretManager(t *testing.T) {
 	}
 }
 
-// A repository that versions nothing is a project without an environment, not a refusal.
 func TestEnvAnswersNoTemplateWhenTheRepositoryVersionsNothing(t *testing.T) {
 	fake := machine()
 	delete(fake.Files, home+"/"+templateName)
@@ -294,7 +293,6 @@ func TestEnvAnswersNoTemplateWhenTheRepositoryVersionsNothing(t *testing.T) {
 	}
 }
 
-// A 1Password template with no op on the machine and no example beside it is a real refusal: the project has an environment nobody can produce.
 func TestEnvRefusesATemplateItCannotInject(t *testing.T) {
 	fake := machine()
 	delete(fake.Packages, pkg)
@@ -346,7 +344,6 @@ func TestEnvRefusesAnUnknownProject(t *testing.T) {
 	}
 }
 
-// Without a process the root of the repository is the home of the environment file.
 func TestEnvWithoutAProcessWritesAtTheRoot(t *testing.T) {
 	fake := machine()
 	fake.Files[root+"/"+exampleName] = []byte(example)
@@ -364,7 +361,6 @@ func TestEnvWithoutAProcessWritesAtTheRoot(t *testing.T) {
 
 var _ modules.Module = Module{}
 
-// op whoami is asked with the service account token the machine holds; a service account has no email, so its account stands for it.
 func TestLoginAsksOpWhoamiWithTheTokenTheMachineHolds(t *testing.T) {
 	bare := machine()
 	if got, asked := (Module{}).Login(newContext(t, bare, modtest.Secrets{})); !asked || got.State != contract.LoginSignedOut || got.Fix == "" {

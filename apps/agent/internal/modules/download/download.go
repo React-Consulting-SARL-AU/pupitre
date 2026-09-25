@@ -1,6 +1,3 @@
-// Package download stages what a module fetches from a vendor: as root, under a
-// folder nobody else can enter, checked against the digest the vendor published
-// when it publishes one, and removed once it has been installed.
 package download
 
 import (
@@ -18,14 +15,12 @@ import (
 
 const Dir = "/var/lib/pupitre/downloads"
 
-// Text fetches a small body — a version, a release index, an install script — trimmed, and keeps it out of the journal.
 func Text(ctx *modules.Context, url string) (string, error) {
 	out, err := modules.Quiet(ctx, sys.Command{Argv: sys.CurlText(url)})
 
 	return strings.TrimSpace(out.Stdout), err
 }
 
-// Fetch downloads url into the staging folder under name, and hands back the path with the function that removes it.
 func Fetch(ctx *modules.Context, name, url string) (string, func(), error) {
 	if err := ctx.Sys().MkdirAll(Dir, 0o700); err != nil {
 		return "", nil, err
@@ -43,7 +38,6 @@ func Fetch(ctx *modules.Context, name, url string) (string, func(), error) {
 	return staged, remove, nil
 }
 
-// Verified is Fetch followed by a SHA-256 check: a file whose digest is not the published one is removed and refused.
 func Verified(ctx *modules.Context, name, url, expected string) (string, func(), error) {
 	staged, remove, err := Fetch(ctx, name, url)
 	if err != nil {
@@ -80,7 +74,7 @@ func Checksum(ctx *modules.Context, staged string) (string, error) {
 	return strings.ToLower(fields[0]), nil
 }
 
-// Published reads the digest a checksum document gives for name — "<digest>  ./name" as sha256sum writes it — or the first one when name is empty.
+// Lines as sha256sum writes them ("<digest>  ./name"); an empty name takes the first digest.
 func Published(document, name string) (string, bool) {
 	for _, line := range strings.Split(document, "\n") {
 		fields := strings.Fields(line)
@@ -96,7 +90,7 @@ func Published(document, name string) (string, bool) {
 	return "", false
 }
 
-// Install copies a staged file to where it belongs, with its mode and owner: the staging folder is root's alone, so nothing leaves it by being moved.
+// Copied rather than moved, since the staging folder is root's alone.
 func Install(ctx *modules.Context, staged, destination string, mode fs.FileMode, owner string) error {
 	content, err := file.Read(ctx, staged)
 	if err != nil {
@@ -114,8 +108,7 @@ func Install(ctx *modules.Context, staged, destination string, mode fs.FileMode,
 	return file.Chown(ctx, destination, owner, owner)
 }
 
-// Extract unpacks a staged tarball into dir, dropping strip leading folders.
-// A user's folder is unpacked by that user from the archive on standard input: a link they planted there never carries a root write.
+// A user's folder is unpacked by that user from stdin, so a link they planted never carries a root write.
 func Extract(ctx *modules.Context, staged, dir string, strip int, owner string) error {
 	command := sys.Command{Argv: []string{"tar", "-x", "-z", "-f", staged, "-C", dir}}
 
@@ -138,7 +131,7 @@ func Extract(ctx *modules.Context, staged, dir string, strip int, owner string) 
 
 const versionsDir = "/var/lib/pupitre/versions"
 
-// Record keeps the version a module installed under its id, for a binary that is slow to say its own — a snapshot asks every few seconds.
+// For a binary slow to report its own version, since a snapshot asks every few seconds.
 func Record(ctx *modules.Context, id, version string) error {
 	if err := ctx.Sys().MkdirAll(versionsDir, 0o700); err != nil {
 		return err
@@ -160,7 +153,7 @@ func Forget(ctx *modules.Context, id string) (bool, error) {
 	return file.Remove(ctx, versionsDir+"/"+id)
 }
 
-// LatestVersion reads the version a vendor's "latest" link points at: GitHub answers with a redirect whose path names the tag.
+// GitHub answers a "latest" link with a redirect whose path names the tag.
 func LatestVersion(ctx *modules.Context, latestURL string) (string, error) {
 	out, err := sys.Exec(ctx, sys.Command{Argv: sys.CurlRedirect(latestURL)})
 	if err != nil {

@@ -1,6 +1,5 @@
 package i18n
 
-// What the binary says on a terminal: pupitred install, shot and gallery, outside any protocol session.
 var cliCatalog = map[string]Message{
 	"cli.argument.unknown": {
 		FR: "argument inconnu : %s",

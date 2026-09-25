@@ -10,7 +10,6 @@ import (
 	"pupitre.studio/agent/internal/protocol"
 )
 
-// The agent kinds of the protocol, each with the module that installs it and the program it leaves on PATH.
 var agentPrograms = map[string]struct {
 	Module  string
 	Program string
@@ -29,7 +28,7 @@ type AgentSession struct {
 	Session string
 }
 
-// One tmux session per agent and per project: -A attaches to the one already open instead of starting a second conversation beside it.
+// -A reattaches the open session instead of starting a second conversation beside it.
 func (r *Reader) OpenAgent(kind, name string) (AgentSession, error) {
 	agent, known := agentPrograms[kind]
 	if !known {
@@ -75,9 +74,11 @@ func (r *Reader) requireAgent(id string) error {
 
 func agentKinds() []string {
 	kinds := make([]string, 0, len(agentPrograms))
+
 	for kind := range agentPrograms {
 		kinds = append(kinds, kind)
 	}
+
 	sort.Strings(kinds)
 
 	return kinds

@@ -16,7 +16,7 @@ var (
 
 const separator = string(filepath.Separator)
 
-// openDir resolves a folder one component at a time, following a link only when root owns it and its folder, so no other account can plant or swap it.
+// One component at a time, following only links root owns in a folder root holds, so none can be planted or swapped.
 func openDir(path string) (*os.Root, error) {
 	current, err := os.OpenRoot(separator)
 	if err != nil {
@@ -84,7 +84,7 @@ func trustedTarget(dir *os.Root, name string, link fs.FileInfo, hops *int) (stri
 	return dir.Readlink(name)
 }
 
-// enter opens a folder seen by Lstat and checks it is the one opened: a link swapped in between is refused, never followed.
+// Checks the opened folder is the one Lstat saw: a link swapped in between is refused, never followed.
 func enter(current *os.Root, name string, seen fs.FileInfo) (*os.Root, error) {
 	if !seen.IsDir() {
 		return nil, syscall.ENOTDIR
@@ -105,7 +105,7 @@ func enter(current *os.Root, name string, seen fs.FileInfo) (*os.Root, error) {
 	return next, nil
 }
 
-// A link is root's when root owns it and the folder it sits in, which no other account can write, or only in its own entries.
+// Root owns the link and its folder, which others cannot write, or only in their own entries (sticky).
 func heldByRoot(dir *os.Root, link fs.FileInfo) bool {
 	if uidOf(link) != 0 {
 		return false
@@ -136,6 +136,7 @@ func components(path string) []string {
 	}
 
 	var parts []string
+
 	for _, part := range strings.Split(filepath.Clean(path), separator) {
 		if part != "" {
 			parts = append(parts, part)
@@ -154,7 +155,6 @@ func unwrapped(err error) error {
 	return err
 }
 
-// openParent opens the folder a path names its entry in, through trusted links only, and says the entry's name there.
 func openParent(path string) (*os.Root, string, error) {
 	name := filepath.Base(path)
 	if name == separator || name == "." || name == ".." {
@@ -169,7 +169,7 @@ func openParent(path string) (*os.Root, string, error) {
 	return dir, name, nil
 }
 
-// openEntry opens the regular file at name, never a link there nor a pipe swapped in, which would block the open.
+// Never a link at name, nor a pipe swapped in, which would block the open.
 func openEntry(dir *os.Root, name string, flag int) (*os.File, fs.FileInfo, error) {
 	seen, err := dir.Lstat(name)
 	if err != nil {
@@ -206,7 +206,6 @@ func regular(name string, info fs.FileInfo) error {
 	return nil
 }
 
-// openRegular opens a file for reading, trusting only root's links on the way and none at its name.
 func openRegular(path string) (*os.File, error) {
 	dir, name, err := openParent(path)
 	if err != nil {

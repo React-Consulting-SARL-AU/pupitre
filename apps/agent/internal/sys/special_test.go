@@ -16,6 +16,7 @@ func TestRealReadFileInRefusesAPipeWithoutWaitingOnIt(t *testing.T) {
 	}
 
 	read := make(chan error, 1)
+
 	go func() {
 		_, err := Real{}.ReadFileIn(root, "pipe")
 		read <- err

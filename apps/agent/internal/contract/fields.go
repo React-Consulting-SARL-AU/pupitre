@@ -11,7 +11,6 @@ import (
 	"pupitre.studio/agent/internal/i18n"
 )
 
-// The problem codes, in the order the shared contract declares them.
 const (
 	ProblemRequired   = "required"
 	ProblemType       = "type"
@@ -25,7 +24,7 @@ const (
 	ProblemConnection = "connection"
 )
 
-// FieldProblem is what a configuration gets wrong. Field is empty when the problem is the module's own — a connection nobody has given.
+// Field is empty when the problem is the module's own, such as a connection nobody has given.
 type FieldProblem struct {
 	Module   string `json:"module"`
 	Field    string `json:"field"`
@@ -55,6 +54,7 @@ func loadFormats() map[string]*regexp.Regexp {
 	}
 
 	compiled := make(map[string]*regexp.Regexp, len(exported.Const))
+
 	for name, pattern := range exported.Const {
 		expression, err := regexp.Compile(pattern)
 		if err != nil {
@@ -188,7 +188,6 @@ func stringOf(value any) string {
 	return fmt.Sprint(value)
 }
 
-// The whole numbers a number field accepts, and nothing else: a boolean is not a port, and neither is 5432.5.
 func integerOf(value any) (int, bool) {
 	switch typed := value.(type) {
 	case bool:
@@ -219,7 +218,7 @@ func integerOf(value any) (int, bool) {
 	return 0, false
 }
 
-// A zero bound is an absent bound, exactly as the manifest serialises it: what the app reads and what the agent checks are the same two numbers.
+// A zero bound is absent, as the manifest serialises it, so the app and the agent read the same bounds.
 func bounds(min, max int) string {
 	if min != 0 && max != 0 {
 		return strconv.Itoa(min) + "–" + strconv.Itoa(max)
@@ -261,6 +260,7 @@ func optionProblem(module string, field Field, value any) *FieldProblem {
 	}
 
 	candidate := stringOf(value)
+
 	for _, option := range field.Options {
 		if option == candidate {
 			return nil
@@ -297,6 +297,7 @@ func listProblem(module string, field Field, value any, held SecretsHeld) *Field
 
 	if field.Items == ItemsSecret {
 		items = nonBlank(held(module, field.Key))
+
 		if wrong := secretProblem(module, field, held(module, field.Key)); wrong != nil {
 			return wrong
 		}
@@ -304,6 +305,7 @@ func listProblem(module string, field Field, value any, held SecretsHeld) *Field
 		for _, item := range declared {
 			items = append(items, stringOf(item))
 		}
+
 		items = nonBlank(items)
 	}
 
@@ -324,7 +326,6 @@ func listProblem(module string, field Field, value any, held SecretsHeld) *Field
 	return nil
 }
 
-// A versions field holds a list of the options, one at the least; a bare value is not a list.
 func versionsProblem(module string, field Field, value any) *FieldProblem {
 	var items []string
 
@@ -354,7 +355,7 @@ func versionsProblem(module string, field Field, value any) *FieldProblem {
 	return nil
 }
 
-// SecretPattern is what every secret matches: a line break or a nul would end the configuration line it is written into and start another.
+// A line break or a nul would end the configuration line a secret is written into and start another.
 const SecretPattern = `^[^\r\n\x00]*$`
 
 func secretProblem(module string, field Field, values []string) *FieldProblem {
@@ -369,6 +370,7 @@ func secretProblem(module string, field Field, values []string) *FieldProblem {
 
 func nonBlank(items []string) []string {
 	kept := make([]string, 0, len(items))
+
 	for _, item := range items {
 		if text := strings.TrimSpace(item); text != "" {
 			kept = append(kept, text)
@@ -378,10 +380,10 @@ func nonBlank(items []string) []string {
 	return kept
 }
 
-// SecretsHeld is what is held for a secret field: one value, or the ranks of a secret list.
+// One value for a secret field, or every rank of a secret list.
 type SecretsHeld func(module, key string) []string
 
-// ValidateField weighs one field against one value, by the rules the app applies to the same pair.
+// Mirrors packages/shared/src/catalog/validate.ts; fields.fixtures.json holds both sides to the same verdicts.
 func ValidateField(module string, field Field, value any, held SecretsHeld) *FieldProblem {
 	switch field.Kind {
 	case FieldVersion:
@@ -426,7 +428,6 @@ func ValidateField(module string, field Field, value any, held SecretsHeld) *Fie
 	return textProblem(module, field, strings.TrimSpace(stringOf(value)))
 }
 
-// Resolved is the value a module will actually read: what was sent, and the manifest's own default when nothing was.
 func Resolved(field Field, values map[string]any) any {
 	if value, sent := values[field.Key]; sent && value != nil {
 		return value
@@ -435,13 +436,14 @@ func Resolved(field Field, values map[string]any) any {
 	return field.Default
 }
 
-// NormalizeValues is what a module reads: each text the way it was judged, trimmed, and lower-cased for a domain, a hostname or an email. The values sent are left as they were.
+// A module must read each text as it was judged; the caller's map is left untouched.
 func NormalizeValues(manifest Manifest, values map[string]any) map[string]any {
 	if values == nil {
 		return nil
 	}
 
 	normalized := make(map[string]any, len(values))
+
 	for key, value := range values {
 		normalized[key] = value
 	}
@@ -455,12 +457,14 @@ func NormalizeValues(manifest Manifest, values map[string]any) map[string]any {
 		case []any:
 			if field.Kind == FieldList && field.Items != ItemsSecret {
 				items := make([]any, len(value))
+
 				for index, item := range value {
 					items[index] = item
 					if text, ok := item.(string); ok {
 						items[index] = Normalize(field.Format, text)
 					}
 				}
+
 				normalized[field.Key] = items
 			}
 		}
@@ -469,7 +473,6 @@ func NormalizeValues(manifest Manifest, values map[string]any) map[string]any {
 	return normalized
 }
 
-// ValidateModule weighs a whole module, every field against the value it will be configured with.
 func ValidateModule(manifest Manifest, values map[string]any, held SecretsHeld) []FieldProblem {
 	problems := []FieldProblem{}
 

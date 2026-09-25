@@ -33,7 +33,7 @@ import (
 	"pupitre.studio/agent/internal/sys/env"
 )
 
-// The identity of the fixtures: what the laptop derives from "correct horse battery staple".
+// The keys and salt the laptop derives from "correct horse battery staple".
 const (
 	privateKey = "3/kJOuP+i9Ij0TrB+P4qgR/v3lb1+P8Tc5eNFVeKsEk="
 	recipient  = "A10gydBSR5g4m/L8q8Msuz7sSJNSPyytp4QgelrXxEw="
@@ -54,7 +54,6 @@ const (
 	runningWindows = `{"windows":["intranet/app"]}`
 )
 
-// platform records what the server tells it.
 type platformFake struct {
 	mu        sync.Mutex
 	declared  []contract.BackupDeclaration
@@ -114,6 +113,7 @@ func newBench(t *testing.T, bucket *s3test.Fake) *bench {
 	t.Helper()
 
 	root := t.TempDir()
+
 	b := &bench{
 		t:        t,
 		fake:     modtest.NewFakeSys(),
@@ -158,6 +158,7 @@ func newBench(t *testing.T, bucket *s3test.Fake) *bench {
 	}
 
 	reach := bucket.Client(true)
+
 	b.service = backup.New(backup.Options{
 		Engine:  b.engine,
 		Reader:  b.reader,
@@ -188,11 +189,11 @@ func newBench(t *testing.T, bucket *s3test.Fake) *bench {
 	return b
 }
 
-// configured is a server whose backups point at the bench's bucket, with a Postgres, a Redis, a project and a folder of notes to carry.
 func (b *bench) configured() *bench {
 	b.t.Helper()
 
 	endpoint := b.bucket.Client(true).Endpoint
+
 	b.install(map[string]any{
 		"modules": []string{"core.system", module.ID, postgres.ID, redis.ID},
 		"config": map[string]any{
@@ -238,7 +239,6 @@ func registryOf(name, repo string) []byte {
 	return []byte(`{"projects":[{"name":"` + name + `","dir":"` + name + `","repo":"` + repo + `","boot":false,"runtimes":{},"processes":[{"id":"app","dir":".","pkgmgr":"bun","host":"127.0.0.1","port":3000,"routes":[],"cmd":"bun run dev"}]}]}`)
 }
 
-// databases answers what the engines would: a database named shop, its dump, the roles, a Redis snapshot that completes.
 func (b *bench) databases() {
 	b.fake.Answer("FROM pg_database", "shop\n")
 	b.fake.Answer("pg_dump --format=custom --dbname=shop", pgDump)
@@ -252,11 +252,11 @@ func (b *bench) databases() {
 	b.fake.Answer("cat /var/lib/redis/dump.rdb", redisSnapshot)
 }
 
-// tree lays the dev account's files: an SSH key, a project with its history, what a build brings back, an ignored .env, and a folder of notes.
 func (b *bench) tree() {
 	b.t.Helper()
 
 	project := filepath.Join(b.projects, projectName)
+
 	for rel, content := range map[string]string{
 		".ssh/id_ed25519":                       "private key of dev",
 		".ssh/authorized_keys":                  "the platform's own block",
@@ -306,7 +306,6 @@ func (b *bench) secrets() contract.BackupSecrets {
 	return contract.BackupSecrets{AccessKeyID: s3test.AccessKey, SecretAccessKey: secretKey, PrivateKey: privateKey}
 }
 
-// location is where the platform says the last declared backup lies.
 func (b *bench) location() contract.BackupLocation {
 	b.t.Helper()
 
@@ -318,7 +317,6 @@ func (b *bench) location() contract.BackupLocation {
 	return declared[len(declared)-1].Location
 }
 
-// opened decrypts a part the bucket holds, as the laptop would.
 func opened(t *testing.T, bucket *s3test.Fake, key string) []byte {
 	t.Helper()
 

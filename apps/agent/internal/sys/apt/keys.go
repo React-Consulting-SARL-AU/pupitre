@@ -9,10 +9,7 @@ import (
 	"pupitre.studio/agent/internal/sys"
 )
 
-// Pins names, for every repository key the agent fetches, the primary keys the
-// vendor signs with. TLS only proves who served the file; a key that is not
-// one of these is refused before apt ever trusts it, and a URL with no entry
-// here is refused outright.
+// TLS only proves who served a key: one outside its vendor's pinned primaries, or from an unpinned URL, is refused.
 var Pins = map[string][]string{
 	"https://download.docker.com/linux/ubuntu/gpg":                  {"9DC858229FC7DD38854AE2D88D81803C0EBFCD88"},
 	"https://dl.cloudsmith.io/public/caddy/stable/gpg.key":          {"65760C51EDEA2017CEA2CA15155B6D79CA56EA34"},
@@ -29,7 +26,6 @@ var Pins = map[string][]string{
 
 const tailscaleKey = "2596A99EAAB33821893C0A79458CA832957F5868"
 
-// DownloadKey fetches a repository key over TLS 1.2 or better, and keeps it only if every key it holds is one the vendor is pinned to.
 func DownloadKey(ctx sys.Context, url, path string) error {
 	pinned, known := Pins[url]
 	if !known {
@@ -69,7 +65,7 @@ func verifyKey(ctx sys.Context, path string, pinned []string) error {
 	return nil
 }
 
-// PrimaryFingerprints reads gpg --with-colons: an fpr record belongs to the pub or sub record just above it, and only a pub is a key of its own.
+// In gpg --with-colons, an fpr record belongs to the pub or sub just above it; only a pub's is a primary key.
 func PrimaryFingerprints(listing string) []string {
 	var fingerprints []string
 	record := ""
@@ -83,6 +79,7 @@ func PrimaryFingerprints(listing string) []string {
 			if record == "pub" && len(fields) > 9 && fields[9] != "" {
 				fingerprints = append(fingerprints, strings.ToUpper(fields[9]))
 			}
+
 			record = ""
 		}
 	}
@@ -90,9 +87,7 @@ func PrimaryFingerprints(listing string) []string {
 	return fingerprints
 }
 
-// DearmorKey turns an armoured key into the keyring apt reads. The armoured copy
-// sits beside the keyring, root's alone, never under a shared /tmp where a fixed
-// name is anyone's to plant.
+// The armoured copy sits beside the keyring, never under a shared /tmp where a fixed name is anyone's to plant.
 func DearmorKey(ctx sys.Context, url, keyring string) error {
 	armoured := keyring + ".asc"
 

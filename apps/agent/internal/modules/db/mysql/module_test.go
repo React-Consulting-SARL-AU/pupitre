@@ -62,6 +62,7 @@ func install(t *testing.T, ctx *modules.Context) {
 
 func statuses(ctx *modules.Context) map[string]contract.StepStatus {
 	steps := map[string]contract.StepStatus{}
+
 	for _, event := range ctx.Events() {
 		steps[event.Step] = event.Status
 	}
@@ -90,7 +91,6 @@ func TestInstallAndConfigureAreIdempotent(t *testing.T) {
 	}
 }
 
-// ss -ltn on the staging must show 127.0.0.1:3306 alone; this is the configuration that makes it so.
 func TestConfigurationBindsToLoopbackOnly(t *testing.T) {
 	fake := newFakeSys()
 	ctx := newContext(t, fake, values)
@@ -98,6 +98,7 @@ func TestConfigurationBindsToLoopbackOnly(t *testing.T) {
 	install(t, ctx)
 
 	written := string(fake.Files[confPath])
+
 	for _, want := range []string{"bind-address                   = 127.0.0.1", "skip_name_resolve              = ON", "mysqlx                         = 0"} {
 		if !strings.Contains(written, want) {
 			t.Errorf("%s missing from %s:\n%s", want, confPath, written)
@@ -208,6 +209,7 @@ func TestAccountsAreCreatedForTheAppAndForTheLaptop(t *testing.T) {
 	install(t, ctx)
 
 	var sql string
+
 	for _, call := range fake.Calls {
 		if len(call.Stdin) > 0 {
 			sql = string(call.Stdin)
@@ -243,6 +245,7 @@ func TestDumpsLeftBeforeTheInstallAreImportedAndNamedInTheReport(t *testing.T) {
 	}
 
 	var loaded string
+
 	for _, call := range fake.Calls {
 		if call.StdinPath != "" {
 			loaded = strings.Join(call.Argv, " ") + " < " + call.StdinPath
@@ -296,6 +299,7 @@ func TestShellAndDumpStayOnTheSocketAccount(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if command != "sudo mysql shop" {
 		t.Fatalf("shell = %q", command)
 	}
@@ -310,6 +314,7 @@ func TestShellAndDumpStayOnTheSocketAccount(t *testing.T) {
 	}
 
 	var dumped string
+
 	for _, call := range fake.Calls {
 		if call.Argv[0] == "mysqldump" {
 			dumped = strings.Join(call.Argv, " ")
@@ -391,7 +396,6 @@ func TestStatusNamesTheKeysNotTheSecrets(t *testing.T) {
 
 var _ modules.Module = Module{}
 
-// The port and the two account names are the client's call; the configuration and the accounts follow.
 func TestTheChosenPortAndAccountsReachTheEngine(t *testing.T) {
 	fake := newFakeSys()
 	ctx := newContext(t, fake, modtest.Values{
@@ -406,6 +410,7 @@ func TestTheChosenPortAndAccountsReachTheEngine(t *testing.T) {
 	}
 
 	sql := ""
+
 	for _, call := range fake.Calls {
 		if len(call.Stdin) > 0 {
 			sql = string(call.Stdin)
@@ -424,7 +429,6 @@ func TestTheChosenPortAndAccountsReachTheEngine(t *testing.T) {
 	}
 }
 
-// An account name reaches SQL as an identifier: what does not look like one is refused before it gets there.
 func TestAnAccountNameThatIsNotAnIdentifierFallsBackOnTheDefault(t *testing.T) {
 	ctx := newContext(t, newFakeSys(), modtest.Values{"app_user": "root'; DROP DATABASE mysql; --"})
 
@@ -435,6 +439,7 @@ func TestAnAccountNameThatIsNotAnIdentifierFallsBackOnTheDefault(t *testing.T) {
 
 func sentSQL(fake *modtest.FakeSys) string {
 	var sql string
+
 	for _, call := range fake.Calls {
 		if len(call.Stdin) > 0 {
 			sql = string(call.Stdin)
@@ -444,7 +449,6 @@ func sentSQL(fake *modtest.FakeSys) string {
 	return sql
 }
 
-// MariaDB knows IDENTIFIED BY and IDENTIFIED VIA plugin USING; the IDENTIFIED WITH plugin BY of MySQL is a syntax error there.
 func TestMariadbAccountsUseItsOwnGrammar(t *testing.T) {
 	fake := newFakeSys()
 	fake.Packages[mariadbPackage] = "1:10.11.8-0ubuntu0.24.04.1"
@@ -490,7 +494,6 @@ func TestPreflightRefusesAnEngineSwitchOnAnInstalledMachine(t *testing.T) {
 	}
 }
 
-// A password written to /etc/pupitre/env before the accounts hold it is a password the replay believes applied.
 func TestPasswordsAreStoredOnlyOnceTheAccountsHoldThem(t *testing.T) {
 	fake := installedSys(t)
 	fake.Files[env.Path] = []byte(appPasswordKey + "=former-app\n" + remotePasswordKey + "=former-remote\n")
@@ -512,6 +515,7 @@ func TestPasswordsAreStoredOnlyOnceTheAccountsHoldThem(t *testing.T) {
 	if statuses(again)["create-accounts"] != contract.StepOK || statuses(again)["store-passwords"] != contract.StepOK {
 		t.Fatalf("the replay must alter the accounts then store: %v", statuses(again))
 	}
+
 	if !strings.Contains(sentSQL(fake), "BY '"+appPassword+"'") || fake.EnvValue(appPasswordKey) != appPassword {
 		t.Fatalf("accounts or env missed the new password: env %s", fake.Files[env.Path])
 	}

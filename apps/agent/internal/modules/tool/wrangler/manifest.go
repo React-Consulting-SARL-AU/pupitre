@@ -7,7 +7,6 @@ import (
 
 const ID = "tool.wrangler"
 
-// Both fields come from the client's Wrangler connection: the token that opens the account, and the account it deploys to when the token opens several.
 func manifest() contract.Manifest {
 	return contract.Manifest{
 		ID:        ID,

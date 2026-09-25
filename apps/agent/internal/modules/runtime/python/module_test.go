@@ -32,6 +32,7 @@ func run(t *testing.T, ctx *modules.Context) {
 
 func statuses(ctx *modules.Context) map[string]contract.StepStatus {
 	result := map[string]contract.StepStatus{}
+
 	for _, event := range ctx.Events() {
 		result[event.Step] = event.Status
 	}
@@ -46,6 +47,7 @@ func TestInstallUvThenPython(t *testing.T) {
 	run(t, ctx)
 
 	commands := strings.Join(fake.Commands(), "\n")
+
 	for _, want := range []string{
 		"(dev) mise use -g -y uv@latest",
 		"(dev) mise use -g -y python@3.12",
@@ -56,6 +58,7 @@ func TestInstallUvThenPython(t *testing.T) {
 	}
 
 	env := string(fake.Files[shell.EnvPath])
+
 	for _, want := range []string{
 		"# >>> pupitre runtime.python >>>",
 		`export PATH="$HOME/.local/share/mise/shims:$PATH"`,

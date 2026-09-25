@@ -31,6 +31,7 @@ func keySigners() migrate.Migration {
 
 func withBlock(machine *modtest.FakeSys, lines ...string) {
 	content := outsideKey + "\n# >>> pupitre keys >>>\n"
+
 	for _, line := range lines {
 		content += line + "\n"
 	}
@@ -61,6 +62,7 @@ func TestKeySignersSeedsTheKeysOfTheBlockThatCanSign(t *testing.T) {
 		Signers []map[string]string `json:"signers"`
 		Removed []any               `json:"removed"`
 	}
+
 	if err := json.Unmarshal(machine.Files[signersPath], &stored); err != nil {
 		t.Fatalf("%v: %s", err, machine.Files[signersPath])
 	}
@@ -83,6 +85,7 @@ func TestKeySignersSeedsTheKeysOfTheBlockThatCanSign(t *testing.T) {
 	}
 
 	before := string(machine.Files[signersPath])
+
 	if _, err := runner(machine, migration).Run(); err != nil || string(machine.Files[signersPath]) != before {
 		t.Fatalf("a second pass changed the store: %v", err)
 	}

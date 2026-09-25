@@ -1,6 +1,5 @@
 package i18n
 
-// What the contract validator says when a request does not match the schema.
 var validateCatalog = map[string]Message{
 	// French puts a space before a colon, English does not.
 	"validate.path.reason": {

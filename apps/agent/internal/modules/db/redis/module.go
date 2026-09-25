@@ -20,7 +20,7 @@ import (
 const (
 	DefaultPort = 6379
 
-	// What Redis evicts once the cap is reached; without a cap it evicts nothing, whatever the policy says.
+	// Without a maxmemory cap Redis evicts nothing, whatever the policy says.
 	DefaultPolicy = "allkeys-lru"
 	noEviction    = "noeviction"
 
@@ -44,7 +44,6 @@ func (Module) Manifest() contract.Manifest {
 	return manifest()
 }
 
-// A port another program already holds is the one thing this configuration cannot know from the manifest alone.
 func (Module) Preflight(ctx *modules.Context) []contract.FieldProblem {
 	return modules.Problems(modules.PortTaken(ctx, "port"))
 }
@@ -101,7 +100,6 @@ func (m Module) Configure(ctx *modules.Context) error {
 	return verify(ctx)
 }
 
-// What the server is running on right now: the port of the drop-in it started with, and the password the machine held for it.
 type live struct {
 	port     int
 	password string
@@ -134,9 +132,7 @@ func portOf(config []byte) int {
 	return 0
 }
 
-// Everything the drop-in says but the port takes effect on the running server through CONFIG SET, so a new
-// password or a new memory cap costs no restart — and a cache without persistence keeps what it holds.
-// The commands go in on the standard input, the old password through REDISCLI_AUTH: neither reaches an argv ps shows.
+// CONFIG SET spares a restart that would empty a cache without persistence; stdin and REDISCLI_AUTH keep secrets out of ps.
 func applyLive(ctx *modules.Context, running live, wanted bool) (bool, error) {
 	applied := false
 
@@ -149,6 +145,7 @@ func applyLive(ctx *modules.Context, running live, wanted bool) (bool, error) {
 			Env:   []string{"REDISCLI_AUTH=" + running.password},
 			Stdin: []byte(renderLive(ctx.Secret("password"), ctx.Bool("persistence"), ctx.Int("maxmemory_mb"), policy(ctx))),
 		}
+
 		out, err := user.RunWith(ctx, "root", input, "redis-cli", "-p", strconv.Itoa(running.port), "--no-auth-warning")
 		if err != nil || strings.Contains(out, "ERR") {
 			ctx.Logf("%s did not take the new settings live, restarting it instead", unit)
@@ -235,10 +232,11 @@ func restart(ctx *modules.Context, changed bool) error {
 	})
 }
 
-// The password reaches redis-cli through REDISCLI_AUTH, never through an argv ps shows; the point is to prove the server really refuses anyone without it.
+// REDISCLI_AUTH keeps the password out of an argv ps shows.
 func verify(ctx *modules.Context) error {
 	return ctx.Step("verify-auth", func() (modules.Outcome, error) {
 		input := user.Input{Env: []string{"REDISCLI_AUTH=" + ctx.Secret("password")}}
+
 		out, err := user.RunWith(ctx, "root", input, "redis-cli", "-p", strconv.Itoa(port(ctx)), "--no-auth-warning", "ping")
 		if err != nil || strings.TrimSpace(out) != "PONG" {
 			return modules.Failed, errors.New(i18n.T("module.db.redis.auth.refused", unit))
@@ -368,7 +366,7 @@ func renderLive(password string, persistence bool, maxmemoryMB int, policy strin
 	return strings.Join(lines, "\n") + "\n"
 }
 
-// redis.conf and redis-cli read the same double-quoted string, backslash and quote escaped.
+// A bare value stops at a space or a #; redis.conf and redis-cli both read this escaped, double-quoted form.
 func quote(value string) string {
 	return `"` + strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(value) + `"`
 }

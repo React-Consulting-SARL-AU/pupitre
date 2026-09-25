@@ -97,7 +97,6 @@ func TestUpgradeReportsWhetherTheVersionChanged(t *testing.T) {
 	}
 }
 
-// A list apt cannot read fails every later update on the machine, whoever runs it: the repository that just broke it goes back out, key included.
 func TestARepositoryAptCannotReadIsTakenBackOut(t *testing.T) {
 	const (
 		source  = "/etc/apt/sources.list.d/mongodb-org-7.0.list"

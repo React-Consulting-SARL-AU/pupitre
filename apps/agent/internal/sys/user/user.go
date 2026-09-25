@@ -10,7 +10,7 @@ import (
 const (
 	basePath = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
-	// Shell is the login shell the agent gives its user; tmux and every command run as that user open it, whatever root runs.
+	// tmux and every command run as the user open this shell, whatever root runs.
 	Shell = "/usr/bin/zsh"
 )
 
@@ -22,7 +22,7 @@ func Home(name string) string {
 	return "/home/" + name
 }
 
-// What a command needs beyond its argv: a directory, a standard input the journal never sees, and the variables the caller adds to the user's own.
+// Stdin, unlike argv, never reaches the journal.
 type Input struct {
 	Dir   string
 	Stdin []byte
@@ -37,9 +37,7 @@ func RunIn(ctx sys.Context, name, dir string, argv ...string) (string, error) {
 	return RunWith(ctx, name, Input{Dir: dir}, argv...)
 }
 
-// StreamIn runs the command as the user, from dir, and hands each line it
-// prints over as it comes. The command ends with gone — the channel that asked
-// for it — rather than outliving the reader who hung up.
+// Ends with gone, the channel that asked, rather than outliving a reader who hung up.
 func StreamIn(gone context.Context, ctx sys.Context, name, dir string, emit func(string), argv ...string) error {
 	home := Home(name)
 	if name == "" {
@@ -81,7 +79,7 @@ func RunWith(ctx sys.Context, name string, input Input, argv ...string) (string,
 	return out.Stdout, err
 }
 
-// Environment is what a process of that user must see, whoever started it: a child of the root daemon inherits root's HOME and SHELL otherwise.
+// A child of the root daemon would otherwise inherit root's HOME and SHELL.
 func Environment(name string) []string {
 	home := Home(name)
 	if name == "" {

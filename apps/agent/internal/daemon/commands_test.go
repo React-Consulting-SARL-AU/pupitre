@@ -43,7 +43,7 @@ func serve(t *testing.T, b *bench, granted contract.Entitlement, requests ...str
 	return session(t, b, entitlement.Fixed(granted), requests...)
 }
 
-// recorded is the entitlement the daemon wrote down for the machine, as a release build resolves it: a development build answers its own whatever is written.
+// Resolved as a release build would: a dev build answers its own entitlement whatever the cache holds.
 func (b *bench) recorded() contract.Entitlement {
 	cache, err := entitlement.ReadCache(b.fake, entitlement.DefaultCachePath)
 	if err != nil {
@@ -53,7 +53,6 @@ func (b *bench) recorded() contract.Entitlement {
 	return cache.Resolve(b.now, entitlement.DefaultTolerance)
 }
 
-// The same session, with the entitlement the machine itself resolves: that is what tells an unenrolled binary apart.
 func serveResolved(t *testing.T, b *bench, requests ...string) []response {
 	t.Helper()
 
@@ -78,7 +77,6 @@ func session(t *testing.T, b *bench, granted func() entitlement.State, requests 
 	return answers[1:]
 }
 
-// Everything the agent writes back, envelopes and events alike, as raw lines.
 func serveLines(t *testing.T, b *bench, requests ...string) []string {
 	t.Helper()
 
@@ -182,7 +180,6 @@ func TestKeysSyncThenKeysListAnswerTheContract(t *testing.T) {
 	}
 }
 
-// A key in the block that nobody laid over SSH nor approved is listed, and said not to be a signer.
 func TestKeysListSaysWhichKeysSign(t *testing.T) {
 	b := newBench(t, true)
 	b.trusting(t, laptopDevice)
@@ -211,7 +208,6 @@ func TestKeysListSaysWhichKeysSign(t *testing.T) {
 	}
 }
 
-// The root of trust is laid over the app's own SSH session: the key signs from now on, and opens the server at once.
 func TestKeysTrustLaysTheDeviceKey(t *testing.T) {
 	b := newBench(t, true)
 	b.trusting(t, laptopDevice)
@@ -242,7 +238,6 @@ func TestKeysTrustLaysTheDeviceKey(t *testing.T) {
 	}
 }
 
-// Laying a key again over SSH outranks the removal the platform asked for earlier.
 func TestKeysTrustClearsAnEarlierRemoval(t *testing.T) {
 	b := newBench(t, true)
 	b.trusting(t, laptopDevice, desktopDevice)
@@ -302,7 +297,6 @@ func TestKeysTrustNeedsARootServe(t *testing.T) {
 	}
 }
 
-// Nothing has been read yet: the block is empty, and keys.list says so rather than failing.
 func TestKeysListAnswersAnEmptyBlock(t *testing.T) {
 	b := newBench(t, true)
 
@@ -314,8 +308,12 @@ func TestKeysSyncSaysWhenThePlatformRefusesTheToken(t *testing.T) {
 	b.platform.suspend(401)
 
 	answer := serve(t, b, contract.EntitlementValid, `{"id":2,"cmd":"keys.sync","params":{}}`)[0]
-	if answer.OK || answer.Error.Code != contract.ErrorEntitlementRequired || answer.Error.Fix == "" {
+	if answer.OK || answer.Error.Code != contract.ErrorEntitlementRequired {
 		t.Fatalf("answer = %+v", answer)
+	}
+
+	if !strings.Contains(answer.Error.Fix, b.server.URL) {
+		t.Fatalf("the fix must send the client to the platform that refused, %s: %q", b.server.URL, answer.Error.Fix)
 	}
 }
 
@@ -328,7 +326,6 @@ func TestKeysSyncSaysWhenTheServerIsNotEnrolled(t *testing.T) {
 	}
 }
 
-// In restricted mode, keys.* is among what the contract closes.
 func TestTheKeysCommandsCloseInRestrictedMode(t *testing.T) {
 	b := newBench(t, true)
 
@@ -351,7 +348,6 @@ func enrollRequests(b *bench) []string {
 	}
 }
 
-// The app hands the token on the secret line, the agent trades it, and nothing of it stays anywhere it could be read.
 func TestEnrollTradesTheTokenTakenFromTheSecretLine(t *testing.T) {
 	b := newBench(t, false)
 	b.platform.want()
@@ -404,7 +400,6 @@ func TestEnrollTradesTheTokenTakenFromTheSecretLine(t *testing.T) {
 	}
 }
 
-// Criterion of the task: neither the journal nor a line the agent writes back carries the enrolment token.
 func TestEnrollNeverWritesTheTokenDownAnywhere(t *testing.T) {
 	b := newBench(t, false)
 
@@ -425,7 +420,6 @@ func TestEnrollNeverWritesTheTokenDownAnywhere(t *testing.T) {
 	}
 }
 
-// A platform that echoes the token back in its refusal: the message the app displays says [secret], and so does the journal.
 func TestARefusalThatCarriesTheTokenIsRedacted(t *testing.T) {
 	b := newBench(t, false)
 	b.platform.echoRefusals()
@@ -452,7 +446,6 @@ func TestARefusalThatCarriesTheTokenIsRedacted(t *testing.T) {
 	}
 }
 
-// A server whose token was lost or revoked answers restricted, and enrolling again is the gesture that repairs it: the console is not the only way back.
 func TestARestrictedServerEnrolsAgainWithoutTheConsole(t *testing.T) {
 	b := newBench(t, true)
 	b.platform.allow(laptop)
@@ -483,8 +476,7 @@ func TestARestrictedServerEnrolsAgainWithoutTheConsole(t *testing.T) {
 	}
 }
 
-// The one command a binary without a server token opens beyond hello, ping and diag.
-// The state is the one a release build resolves without a token, named here: a development build resolves its own entitlement whatever the disk holds.
+// The release build's unenrolled state is named explicitly: a dev build resolves its own whatever the disk holds.
 func TestOnlyEnrollOpensOnABinaryWithoutAServerToken(t *testing.T) {
 	b := newBench(t, false)
 	unenrolled := func() entitlement.State { return entitlement.State{Entitlement: contract.EntitlementRestricted} }
@@ -518,8 +510,6 @@ func TestEnrollRefusesASecretLineThatIsNotOne(t *testing.T) {
 	}
 }
 
-// The console shows the modules at the end of an installation rather than at
-// the daemon's next turn, five minutes later.
 func TestPlatformSyncReadsTheStateAndBeatsAtOnce(t *testing.T) {
 	b := newBench(t, true)
 	b.platform.allow(laptop)
@@ -546,8 +536,6 @@ func TestPlatformSyncReadsTheStateAndBeatsAtOnce(t *testing.T) {
 	}
 }
 
-// A server whose usage right the platform has not confirmed is exactly the one
-// that needs to ask again: the contract leaves this command open for it.
 func TestPlatformSyncStaysOpenInRestrictedMode(t *testing.T) {
 	b := newBench(t, true)
 	b.platform.allow(laptop)

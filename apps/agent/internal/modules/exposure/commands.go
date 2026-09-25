@@ -32,13 +32,13 @@ func RegisterCommands(server *protocol.Server, runner *modules.Engine) {
 	server.Register("tunnel.restart", acting(runner, func(p provider) reporter { return p.restart }))
 }
 
-// A machine nothing exposes says so, rather than borrowing the answer of a module it does not run.
 func status(engine *modules.Engine) protocol.Handler {
 	return func(_ *protocol.Context, _ json.RawMessage) (any, error) {
 		chosen, ok, err := installed(engine)
 		if err != nil {
 			return nil, err
 		}
+
 		if !ok {
 			return routes.Report{State: routes.StateAbsent, Routes: []routes.Route{}}, nil
 		}
@@ -47,13 +47,13 @@ func status(engine *modules.Engine) protocol.Handler {
 	}
 }
 
-// Syncing or restarting an exposure that is not there is not a state, it is a mistake: the catalogue is where one is added.
 func acting(engine *modules.Engine, pick func(provider) reporter) protocol.Handler {
 	return func(ctx *protocol.Context, _ json.RawMessage) (any, error) {
 		chosen, ok, err := installed(engine)
 		if err != nil {
 			return nil, err
 		}
+
 		if !ok {
 			return nil, protocol.NewError(contract.ErrorServiceNotFound, i18n.T("exposure.none")).
 				WithFix(i18n.T("exposure.none.fix"))
@@ -79,7 +79,7 @@ func report(engine *modules.Engine, ctx *protocol.Context, chosen provider, run 
 	return answer, nil
 }
 
-// A status only reads, so it neither waits for the run lock nor asks for the right of use: an install under way is not a reason to answer absent.
+// Read-only, so it skips the run lock and the entitlement: an install under way must not read as absent.
 func inspect(engine *modules.Engine, chosen provider, run reporter) (any, error) {
 	var answer routes.Report
 
@@ -96,7 +96,7 @@ func inspect(engine *modules.Engine, chosen provider, run reporter) (any, error)
 	return answer, nil
 }
 
-// Resync is tunnel.sync for a caller that already holds the run lock, and answers whether an exposure was there to sync.
+// Resync is tunnel.sync for a caller that already holds the run lock.
 func Resync(sibling func(id string) (*modules.Context, bool)) (bool, error) {
 	for _, candidate := range providers {
 		ctx, known := sibling(candidate.id)
@@ -119,10 +119,7 @@ func Resync(sibling func(id string) (*modules.Context, bool)) (bool, error) {
 	return false, nil
 }
 
-// The app asks the server what its exposure is doing, never a vendor by name:
-// the module that is actually there answers, and nobody answers for it. A
-// module that could not be read is an error, not an absence: absent is what
-// once had a live tunnel deleted by name.
+// An unreadable module is an error, never an absence: answering absent once had a live tunnel deleted by name.
 func installed(engine *modules.Engine) (provider, bool, error) {
 	for _, candidate := range providers {
 		present := false

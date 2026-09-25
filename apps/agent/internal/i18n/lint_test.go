@@ -12,7 +12,6 @@ import (
 	"unicode"
 )
 
-// The places through which a phrase reaches the app or the terminal. Anything passing through here comes from the catalogue, or nowhere.
 var sinks = map[string]bool{
 	"NewError":   true,
 	"WithFix":    true,
@@ -21,7 +20,6 @@ var sinks = map[string]bool{
 	"line":       true,
 }
 
-// An error built inside a module step is what the report shows for that step.
 var stepErrors = map[string]bool{
 	"Errorf": true,
 	"New":    true,
@@ -87,7 +85,7 @@ func check(t *testing.T, path string) error {
 	return nil
 }
 
-// A step's closure is where a failure gets its words: an error built there lands in the report as it is.
+// An error built in a step's closure lands in the report as it is.
 func blameStepErrors(t *testing.T, path string, step *ast.CallExpr) {
 	t.Helper()
 
@@ -107,7 +105,7 @@ func blameStepErrors(t *testing.T, path string, step *ast.CallExpr) {
 	}
 }
 
-// blame: a phrase is recognized by a space between words — "db.postgres" is an identifier, "%-24s %s" a layout, "Mot de passe" interface text. It looks through concatenations and formatting to the literal underneath.
+// A phrase has a space between words once verbs are stripped: "db.postgres" is an identifier, "%-24s %s" a layout.
 func blame(t *testing.T, path string, node ast.Node) {
 	t.Helper()
 

@@ -23,23 +23,21 @@ const (
 	upMarker   = "=== pupitre up "
 	downMarker = "=== pupitre down "
 
-	// The command travels to its pane in the environment, never through a shell's quoting: what the app declared is what runs.
+	// Passed through the environment, never a shell's quoting, so what the app declared is what runs.
 	commandKey = "PUPITRE_CMD"
 
-	// A pane that lost its command by a signal has no status; tmux leaves the column blank and this stands for it.
+	// tmux leaves the status blank for a pane whose command died by a signal.
 	signalled = -1
 
-	// A journal is read from its end, never whole: a server that logs for a day would otherwise be read entire at every snapshot.
+	// Read from the end: a day-long journal would otherwise be read whole at every snapshot.
 	tailBytes = 256 * 1024
 
-	// A journal past this size is rotated into one older copy: a process's journals never hold much more than twice it.
+	// Rotated into one older copy past this size, so a process's journals stay under about twice it.
 	journalBytes  = 4 << 20
 	rotatedSuffix = ".1"
-
-	// The pane the window was opened on runs the process; a pane the user split off it does not.
 )
 
-// Only terminal conditions: a healthy Grails spews ERROR lines for minutes, and reading those as a failure would show "failed" on a live project.
+// Terminal conditions only: a healthy Grails logs ERROR lines for minutes, which must not read as failed.
 var fatal = regexp.MustCompile(`(?i)EADDRINUSE|address already in use|BUILD FAILED|FAILURE: Build failed|Web server failed to start|command not found|Cannot find module|exited with code`)
 
 type Options struct {
@@ -54,12 +52,15 @@ func (o Options) Resolved() Options {
 	if o.Session == "" {
 		o.Session = DefaultSession
 	}
+
 	if o.User == "" {
 		o.User = DefaultUser
 	}
+
 	if o.LogDir == "" {
 		o.LogDir = user.Home(o.User) + "/.pupitre/logs"
 	}
+
 	if o.Now == nil {
 		o.Now = time.Now
 	}
@@ -67,15 +68,12 @@ func (o Options) Resolved() Options {
 	return o
 }
 
-// LogPath is the journal of one window: a window named <project>/<process> writes under a folder of its project's name.
+// A <project>/<process> window writes under a folder named after its project.
 func (o Options) LogPath(window string) string {
 	return o.Resolved().LogDir + "/" + window + ".log"
 }
 
-// A Pane is one window of the session as tmux reports it: the pid its command runs under, or the status that command left when it is dead.
-// A window's own pane, the first tmux prints for it, under the id every gesture
-// addresses: a name may be carried by two windows when a stop failed, and tmux
-// then refuses the name as ambiguous. Twins are the other windows of the name.
+// Gestures address the ID: after a failed stop, Twins share the name, which tmux then refuses as ambiguous.
 type Pane struct {
 	ID     string
 	PID    int
@@ -84,7 +82,7 @@ type Pane struct {
 	Twins  []string
 }
 
-// One read of the machine for every window: tmux, ss and ps once each, not once per process.
+// One read of the machine for every window: tmux, the port table and ps once each, not once per process.
 type Collection struct {
 	Windows   map[string]Pane
 	Listening map[int]bool
@@ -114,14 +112,12 @@ func Collect(ctx sys.Context, options Options) Collection {
 	return collected
 }
 
-// Running says the window holds a live command: a dead pane is a window, and runs nothing.
 func (c Collection) Running(window string) bool {
 	pane, open := c.Windows[window]
 
 	return open && !pane.Dead
 }
 
-// Exited hands back the status a dead command left, and whether the window is a corpse at all.
 func (c Collection) Exited(window string) (int, bool) {
 	pane, open := c.Windows[window]
 	if !open || !pane.Dead {
@@ -147,7 +143,7 @@ func (c Collection) Seconds(window string) int {
 	return c.Uptime[c.PID(window)]
 }
 
-// The panes read the other way round: a process knows the pid it descends from, never the window's name.
+// Keyed by pid: a process knows the pid it descends from, never the window's name.
 func (c Collection) Panes() map[int]string {
 	panes := make(map[int]string, len(c.Windows))
 	for name, pane := range c.Windows {
@@ -159,7 +155,6 @@ func (c Collection) Panes() map[int]string {
 	return panes
 }
 
-// Windows lists the live panes of the session, by name.
 func Windows(ctx sys.Context, options Options) map[string]int {
 	return Collection{Windows: windows(ctx, options.Resolved())}.livePIDs()
 }
@@ -175,8 +170,7 @@ func (c Collection) livePIDs() map[string]int {
 	return live
 }
 
-// Read with the fate of each pane: a command that exited leaves its pane behind, since the window keeps it, and its status says how it ended.
-// tmux prints a window's panes in order, so the first line of a window id is its own pane and a split the user opened comes after.
+// A window's own pane prints first and a user's split after, so dedupe by id, never by pane index (tmux.conf may start at 1).
 func windows(ctx sys.Context, options Options) map[string]Pane {
 	open := map[string]Pane{}
 
@@ -186,11 +180,13 @@ func windows(ctx sys.Context, options Options) map[string]Pane {
 	}
 
 	seen := map[string]bool{}
+
 	for _, line := range strings.Split(out.Stdout, "\n") {
 		fields := strings.Fields(line)
 		if len(fields) < 4 || seen[fields[0]] {
 			continue
 		}
+
 		seen[fields[0]] = true
 
 		pid, err := strconv.Atoi(fields[2])
@@ -201,6 +197,7 @@ func windows(ctx sys.Context, options Options) map[string]Pane {
 		if first, twice := open[fields[1]]; twice {
 			first.Twins = append(first.Twins, fields[0])
 			open[fields[1]] = first
+
 			continue
 		}
 
@@ -221,7 +218,7 @@ func (p Pane) windows() []string {
 	return append([]string{p.ID}, p.Twins...)
 }
 
-// The kernel's own table, the one the registry and the detection read: ss would also see the sockets of other namespaces, a Docker port among them.
+// The kernel's own table: ss would also see other namespaces' sockets, a Docker port among them.
 func listening(ctx sys.Context) map[int]bool {
 	return net.Listening(ctx)
 }
@@ -250,9 +247,7 @@ func uptimes(ctx sys.Context, pids []string) map[int]int {
 	return seconds
 }
 
-// Activity is when something last moved in each pane of the user's tmux, by
-// the pid its shell runs under, whatever session the pane belongs to: what an
-// agent's idleness is measured on, since age says nothing of it.
+// Every session's panes, by pid: an agent's idleness is measured on activity, since age says nothing of it.
 func Activity(ctx sys.Context, options Options) map[int]time.Time {
 	options = options.Resolved()
 	moved := map[int]time.Time{}
@@ -278,7 +273,6 @@ func Activity(ctx sys.Context, options Options) map[int]time.Time {
 	return moved
 }
 
-// Alive says whether the session exists at all: gone with a boot, kept through a restart of the daemon.
 func Alive(ctx sys.Context, options Options) bool {
 	options = options.Resolved()
 
@@ -299,20 +293,13 @@ func EnsureSession(ctx sys.Context, options Options, dir string) error {
 	return err
 }
 
-// A Job is one window to open: the process's window name, the folder it runs from, and its command.
 type Job struct {
 	Window string
 	Dir    string
 	Cmd    string
 }
 
-// Start opens the window on the command itself, as the user's login shell runs it.
-//
-// The command is the pane, not a line typed into a shell: when it exits the
-// pane dies and tmux keeps its corpse with the status, which is how the state
-// tells a server still coming up from one that died on the spot. The option
-// and the pipe travel in the same call as the window, so no exit and no output
-// can slip in before them.
+// The command is the pane, so its exit leaves a corpse with a status; option and pipe ride the same call, so nothing slips in first.
 func Start(ctx sys.Context, options Options, job Job) error {
 	options = options.Resolved()
 
@@ -326,7 +313,7 @@ func Start(ctx sys.Context, options Options, job Job) error {
 		}
 	}
 
-	// The journal starts over with the run: the previous shutdown's "exited with code 130" would read as a failure, and a journal never emptied would be read whole at every snapshot.
+	// A fresh journal per run: the last shutdown's "exited with code 130" would otherwise read as a failure.
 	for _, journal := range []string{options.LogPath(job.Window), options.LogPath(job.Window) + rotatedSuffix} {
 		if _, err := file.Remove(ctx, journal); err != nil {
 			return err
@@ -338,6 +325,7 @@ func Start(ctx sys.Context, options Options, job Job) error {
 	}
 
 	target := Target(options, job.Window)
+
 	_, err := sys.Exec(ctx, options.tmux(
 		"new-window", "-d", "-t", sessionTarget(options), "-n", job.Window, "-c", job.Dir,
 		"-e", commandKey+"="+job.Cmd, "exec "+user.Shell+` -lc "$`+commandKey+`"`,
@@ -348,8 +336,7 @@ func Start(ctx sys.Context, options Options, job Job) error {
 	return err
 }
 
-// sink is what the pane's output is piped into: the journal, rotated once past journalBytes into one older copy, so a process that talks for days fills no disk.
-// GNU split cuts the stream into chunks without losing a byte, and hands each to a shell that rotates the journal before appending it.
+// GNU split hands each chunk to a shell that rotates the journal first, so a process talking for days fills no disk.
 func sink(journal string) string {
 	limit := strconv.Itoa(journalBytes)
 	rotate := `if [ -e "$L" ] && [ "$(wc -c < "$L")" -ge ` + limit + ` ]; then mv "$L" "$L` + rotatedSuffix + `"; fi; cat >> "$L"`
@@ -357,12 +344,10 @@ func sink(journal string) string {
 	return "export SHELL=/bin/sh L=" + quoted(journal) + "; exec split -b " + limit + " -a 9 -d --filter=" + quoted(rotate) + ` - "$L.chunk"`
 }
 
-// quoted is s as one word of a POSIX shell, whatever it holds.
 func quoted(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
 }
 
-// Stop interrupts what runs and closes the window; a corpse has nothing to interrupt and is only closed.
 func Stop(ctx sys.Context, options Options, window string) error {
 	options = options.Resolved()
 
@@ -402,6 +387,7 @@ func close(ctx sys.Context, options Options, pane Pane) error {
 
 func Logs(ctx sys.Context, options Options, window string, lines int) ([]string, error) {
 	options = options.Resolved()
+
 	if lines <= 0 {
 		lines = DefaultLines
 	}
@@ -415,7 +401,7 @@ func Logs(ctx sys.Context, options Options, window string, lines int) ([]string,
 	return tail(string(raw), lines), nil
 }
 
-// What in a log says the startup has failed, read only from the last start marker on.
+// Only the journal since the last start marker counts.
 func Failed(ctx sys.Context, options Options, window string) bool {
 	raw, err := file.Tail(ctx, options.Resolved().LogPath(window), tailBytes)
 	if err != nil {
@@ -430,11 +416,10 @@ func Failed(ctx sys.Context, options Options, window string) bool {
 	return fatal.MatchString(text)
 }
 
-// State reads one process off the machine: its window, and whether its main port answers.
 func State(ctx sys.Context, options Options, window, pkgmgr string, port int, collected Collection) contract.ProcessState {
 	up := collected.PortUp(port)
 
-	// A service row is systemd's business: down says its port does not answer, where stopped would say we stopped it.
+	// A service row is systemd's: down means its port is silent, whereas stopped would say we stopped it.
 	if pkgmgr == "service" {
 		if up {
 			return contract.ProcessService
@@ -443,7 +428,7 @@ func State(ctx sys.Context, options Options, window, pkgmgr string, port int, co
 		return contract.ProcessDown
 	}
 
-	// The command is gone and the pane says how: a status of zero is a stop, anything else — or a signal — a failure.
+	// Zero is a stop; any other status, or a signal, is a failure.
 	if status, exited := collected.Exited(window); exited {
 		if status == 0 {
 			return contract.ProcessStopped
@@ -453,7 +438,7 @@ func State(ctx sys.Context, options Options, window, pkgmgr string, port int, co
 	}
 
 	if !collected.Running(window) {
-		// The port answers with no window of ours: someone started it another way, and project.down has no grip on it.
+		// Started some other way: project.down has no grip on it.
 		if up {
 			return contract.ProcessExternal
 		}
@@ -502,9 +487,7 @@ func tail(text string, lines int) []string {
 	return all
 }
 
-// The window of a process, as tmux addresses it: exact on both sides, since a
-// name that merely begins the same way — a window the user opened by hand —
-// would otherwise answer for it.
+// Exact on both sides, or a window the user opened under a longer name with the same prefix would answer.
 func Target(options Options, window string) string {
 	return sessionTarget(options) + ":=" + window
 }
@@ -513,18 +496,15 @@ func sessionTarget(options Options) string {
 	return "=" + options.Resolved().Session
 }
 
-// The session belongs to the user whose projects run in it: tmux as root would open a server nobody's shell can attach to,
-// and a server started with root's environment hands HOME=/root to every window and every shell attached later.
+// As the projects' user: a root tmux server is one their shell cannot attach to, and hands HOME=/root to every window.
 func (o Options) tmux(args ...string) sys.Command {
 	return sys.Command{User: o.User, Argv: append([]string{"tmux"}, args...), Env: user.Environment(o.User)}
 }
 
-// Running says whether the window holds a live command: absent or dead, it runs nothing.
 func Running(ctx sys.Context, options Options, window string) bool {
 	return Collection{Windows: windows(ctx, options.Resolved())}.Running(window)
 }
 
-// Open says whether the window exists at all, its command alive or dead: what a stop has to close.
 func Open(ctx sys.Context, options Options, window string) bool {
 	_, open := windows(ctx, options.Resolved())[window]
 

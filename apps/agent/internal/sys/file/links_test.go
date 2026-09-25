@@ -19,7 +19,6 @@ func (onDisk) Once(_ string, fn func() error) error { return fn() }
 
 const planted = "# >>> pupitre system >>>\nroot:$6$secret\n# <<< pupitre system <<<\n"
 
-// A dotfile of dev's that is a link to a file only root reads must never be read, rewritten or handed to dev by a block edit.
 func TestABlockNeverReadsNorWritesThroughALinkLeavingItsFolder(t *testing.T) {
 	if os.Geteuid() == 0 {
 		t.Skip("a link planted by root is one root may follow")

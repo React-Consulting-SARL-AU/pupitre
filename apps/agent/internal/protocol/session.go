@@ -20,9 +20,7 @@ type helloResult struct {
 	ServerID     string               `json:"server_id,omitempty"`
 	Entitlement  contract.Entitlement `json:"entitlement"`
 	Capabilities []string             `json:"capabilities"`
-	// An agent from before the ledger answers without this field, and the app
-	// takes that server for one whose configuration is current — which it is,
-	// since nothing had changed shape yet.
+	// Absent from pre-ledger agents, which the app rightly reads as a current configuration.
 	Config *contract.ConfigRevision `json:"config,omitempty"`
 }
 
@@ -40,12 +38,10 @@ func (s *Server) hello(ctx *Context, raw json.RawMessage) (any, error) {
 		return nil, s.mismatch(params.AppVersion, params.Protocol)
 	}
 
-	// The locale holds for the whole session: everything the server answers afterward is written in it.
 	if params.Locale != "" {
 		i18n.Use(params.Locale)
 	}
 
-	// A direct Call carries no session: nothing to greet, the answer is the same.
 	if ctx.session != nil {
 		ctx.session.greeted = true
 	}
@@ -78,7 +74,7 @@ func (s *Server) config() *contract.ConfigRevision {
 	return &config
 }
 
-// mismatch: the compatibility sheet says which side is behind; without it — a dev build on both sides — only the protocol number is left, which does not say what to update.
+// Without a compatibility sheet entry (dev builds) only the protocol number is left, which cannot say which side is behind.
 func (s *Server) mismatch(appVersion string, spoken int) error {
 	agentVersion := s.options.AgentVersion
 

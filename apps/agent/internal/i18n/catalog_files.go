@@ -1,6 +1,5 @@
 package i18n
 
-// The files of the client's own tree: what a path may name, and what a read or a write refuses.
 var filesCatalog = map[string]Message{
 	"files.path.unreadable": {
 		FR: "chemin illisible",

@@ -19,7 +19,7 @@ import (
 	"time"
 )
 
-// A killed child leaves no orphan holding the pipes open: the whole process group goes with it.
+// The whole process group is killed, so no orphan holds the pipes open past this grace.
 const killGrace = 2 * time.Second
 
 const maxLinkHops = 8
@@ -36,6 +36,7 @@ func (Real) Run(cmd Command) (Output, error) {
 	var stdout, stderr bytes.Buffer
 	child.process.Stdout = &stdout
 	child.process.Stderr = &stderr
+
 	if cmd.Output != nil {
 		child.process.Stdout = cmd.Output
 	}
@@ -60,9 +61,6 @@ func (Real) Run(cmd Command) (Output, error) {
 	return out, nil
 }
 
-// Stream hands each line of standard output over as it is written. The timeout
-// is the length of the stream, not a failure: a follow is bounded by design,
-// and ends without an error when its time is up.
 func (Real) Stream(cmd Command, emit func(line string)) error {
 	child, err := prepare(cmd)
 	if err != nil {
@@ -84,11 +82,12 @@ func (Real) Stream(cmd Command, emit func(line string)) error {
 
 	scanner := bufio.NewScanner(pipe)
 	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024)
+
 	for scanner.Scan() {
 		emit(scanner.Text())
 	}
 
-	// A line the scanner cannot hold leaves the child writing into a pipe nobody drains: it is taken down rather than waited on.
+	// An oversized line leaves the child writing to an undrained pipe: kill it rather than wait on it.
 	if scanErr := scanner.Err(); scanErr != nil {
 		_ = child.process.Cancel()
 		_ = child.process.Wait()
@@ -145,6 +144,7 @@ func prepare(cmd Command) (child, error) {
 	process := exec.CommandContext(ctx, program(cmd), cmd.Argv[1:]...)
 	process.Env = append(os.Environ(), cmd.Env...)
 	process.Dir = cmd.Dir
+
 	if len(cmd.Stdin) > 0 {
 		process.Stdin = bytes.NewReader(cmd.Stdin)
 	}
@@ -179,15 +179,14 @@ func prepare(cmd Command) (child, error) {
 
 			return child{}, err
 		}
+
 		process.SysProcAttr.Credential = credential
 	}
 
 	return child{process: process, timeout: timeout, ctx: ctx, release: release}, nil
 }
 
-// Go looks a bare program up in this process's PATH, and the PATH the command
-// carries for its user is only handed to the child: a tool in ~dev/.local/bin
-// has to be found on the latter, or it is not found at all.
+// Resolved on the command's own PATH, which Go only hands to the child, so tools in ~dev/.local/bin are found.
 func program(cmd Command) string {
 	name := cmd.Argv[0]
 	if strings.Contains(name, string(os.PathSeparator)) {
@@ -250,11 +249,13 @@ func credentialOf(name string) (*syscall.Credential, error) {
 	}
 
 	groups := make([]uint32, 0, len(groupIDs))
+
 	for _, id := range groupIDs {
 		parsed, err := strconv.ParseUint(id, 10, 32)
 		if err != nil {
 			return nil, err
 		}
+
 		groups = append(groups, uint32(parsed))
 	}
 
@@ -316,7 +317,7 @@ func max0(value int64) int64 {
 	return value
 }
 
-// The open never waits on a pipe, and what is not a regular file is refused before a byte is read.
+// O_NONBLOCK so the open never waits on a pipe; a non-regular file is refused before a byte is read.
 func (Real) ReadFileIn(root, rel string) ([]byte, error) {
 	scoped, err := os.OpenRoot(root)
 	if err != nil {
@@ -355,6 +356,7 @@ func (Real) ListIn(root, rel string) ([]Node, error) {
 	}
 
 	nodes := make([]Node, 0, len(read))
+
 	for _, entry := range read {
 		info, err := scoped.Lstat(filepath.Join(inside(rel), entry.Name()))
 		if err != nil {
@@ -386,7 +388,7 @@ func (Real) StatIn(root, rel string) (Node, error) {
 		return node, nil
 	}
 
-	// A link is described by what it points at, and os.Root is what refuses one pointing out of the root.
+	// Described by its target; os.Root is what refuses a target outside the root.
 	target, err := scoped.Stat(name)
 	if err != nil {
 		return Node{}, err
@@ -435,7 +437,7 @@ func (Real) WriteFileIn(root, rel, owner string, data []byte) error {
 	return replace(dir, name, data, mode, uid, gid)
 }
 
-// replace publishes data under name by a rename from a file written beside it: a link at the name is replaced, never written through.
+// Renamed over name from a file written beside it: a link at the name is replaced, never written through.
 func replace(dir *os.Root, name string, data []byte, mode fs.FileMode, uid, gid int) error {
 	tmp, tmpName, err := neighbour(dir, name)
 	if err != nil {
@@ -482,9 +484,7 @@ func replace(dir *os.Root, name string, data []byte, mode fs.FileMode, uid, gid 
 	return nil
 }
 
-// A link is written through to what it names, as long as every hop stays under
-// the root: os.Root refuses an absolute target and one that climbs out, and a
-// chain that never ends is refused rather than followed.
+// Written through while every hop stays under root; an absolute or climbing target and an endless chain are refused.
 func resolveLinks(scoped *os.Root, rel string) (string, error) {
 	for range maxLinkHops {
 		info, err := scoped.Lstat(rel)
@@ -536,6 +536,7 @@ func (Real) MkdirIn(root, rel, owner string) error {
 	defer scoped.Close()
 
 	var created []string
+
 	for dir := inside(rel); dir != "."; dir = filepath.Dir(dir) {
 		if _, err := scoped.Lstat(dir); err == nil {
 			break
@@ -621,6 +622,7 @@ func (Real) ReadDir(path string) ([]Entry, error) {
 	}
 
 	entries := make([]Entry, 0, len(read))
+
 	for _, entry := range read {
 		entries = append(entries, Entry{Name: entry.Name(), Dir: entry.IsDir()})
 	}
@@ -628,9 +630,7 @@ func (Real) ReadDir(path string) ([]Entry, error) {
 	return entries, nil
 }
 
-// A file that already exists keeps its owner: replacing the inode is how the
-// write stays atomic, and it must not hand a user's file to root. The mode is
-// the one asked for, so a file left too open by an earlier run gets tightened.
+// The new inode keeps the existing owner, and the asked mode tightens a file an earlier run left too open.
 func (Real) WriteFile(path string, data []byte, mode fs.FileMode) error {
 	dir, name, err := openParent(path)
 	if err != nil {
@@ -701,6 +701,7 @@ func (Real) AppendFile(path string, data []byte, owner string) error {
 	default:
 		return err
 	}
+
 	defer handle.Close()
 
 	_, err = handle.Write(data)
@@ -776,7 +777,6 @@ func (Real) Chown(path, owner, group string) error {
 	return dir.Lchown(name, uid, gid)
 }
 
-// An empty group means the owner's own.
 func idsOf(owner, group string) (int, int, error) {
 	account, err := user.Lookup(owner)
 	if err != nil {
@@ -835,6 +835,7 @@ func (Real) MkdirAll(path string, mode fs.FileMode) error {
 
 	existing := len(parts)
 	var dir *os.Root
+
 	for ; existing >= 0; existing-- {
 		opened, err := openDir(separator + filepath.Join(parts[:existing]...))
 		if err == nil {

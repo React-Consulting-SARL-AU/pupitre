@@ -29,7 +29,7 @@ func (r recorder) Run(cmd sys.Command) (sys.Output, error) {
 	return r.asMe.Run(cmd)
 }
 
-// What create-vite lays down, and nothing more: no lockfile, a dev script that names no port.
+// What create-vite lays down: no lockfile, and a dev script that names no port.
 const vitePackage = `{
   "name": "flyleaf",
   "private": true,
@@ -44,7 +44,6 @@ const viteConfig = `import { defineConfig } from "vite"
 export default defineConfig({ plugins: [] })
 `
 
-// The one process most repositories propose.
 func only(t *testing.T, detected contract.ProjectDetect) contract.DetectedProcess {
 	t.Helper()
 
@@ -80,14 +79,13 @@ func TestDetectReadsAFolderWithoutInstallingAnything(t *testing.T) {
 		t.Fatalf("detection violates the contract: %v", err)
 	}
 
-	// 3000 is the port of the declared project of the fixture, so the free one below it is what the hint has to name.
+	// 3000 belongs to the fixture's declared project, so the hint must name the next free port.
 	process := only(t, detected)
 	if process.ID != "flyleaf" || process.Dir != "." || process.PkgMgr != "bun" || process.Install != "bun install" || process.Cmd != "bun run dev --port 3001" || process.PortHint != 3001 {
 		t.Fatalf("unexpected detection: %+v", process)
 	}
 }
 
-// A repository of several applications proposes one process per folder that asks for one: the servers of the Gradle build at its root, and each folder of the first level with a manifest of its own. An Android build is a Gradle build nobody runs on a server.
 func TestDetectProposesOneProcessPerFolderThatAsksForOne(t *testing.T) {
 	reader := detectFixture(t, map[string]string{
 		"gradlew":                            "#!/bin/sh\n",
@@ -127,7 +125,6 @@ func TestDetectProposesOneProcessPerFolderThatAsksForOne(t *testing.T) {
 	}
 }
 
-// A Grails or Spring Boot server names its port in its own configuration, and its client proxies to that port: the detection keeps it when it is free.
 func TestDetectKeepsThePortAServerDeclaresInItsConfiguration(t *testing.T) {
 	reader := detectFixture(t, map[string]string{
 		"gradlew":                                "#!/bin/sh\n",
@@ -284,7 +281,6 @@ func TestDetectTakesThePortTheRepositoryAsksFor(t *testing.T) {
 	}
 }
 
-// The name a script freezes in --host is the host to declare: the machine will answer to it once the project is added.
 func TestDetectReadsTheLocalhostNameTheScriptBindsTo(t *testing.T) {
 	for _, want := range []struct {
 		name   string
@@ -311,7 +307,6 @@ func TestDetectReadsTheLocalhostNameTheScriptBindsTo(t *testing.T) {
 	}
 }
 
-// A script that only runs another script says nothing itself: what it asks for is read at the end of the chain.
 func TestDetectFollowsAScriptThatRunsAnotherOne(t *testing.T) {
 	files := map[string]string{"package.json": `{"scripts":{
 		"dev": "bun run dev:web",
@@ -354,7 +349,6 @@ func TestDetectRefusesWhatItCannotRead(t *testing.T) {
 	}
 }
 
-// A repository is cloned in surface and read, and the machine keeps nothing of it.
 func TestDetectClonesARepositoryAndLeavesNothingBehind(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git is not installed")
@@ -388,7 +382,7 @@ func TestDetectClonesARepositoryAndLeavesNothingBehind(t *testing.T) {
 		Sleep:        func(time.Duration) {},
 	})
 
-	// file:// keeps the depth honoured: git ignores --depth on a plain local path.
+	// file:// keeps --depth honoured: git ignores it on a plain local path.
 	detected, err := reader.Detect("file://"+origin, "", "")
 	if err != nil {
 		t.Fatalf("detect: %v", err)
@@ -415,7 +409,6 @@ func TestDetectClonesARepositoryAndLeavesNothingBehind(t *testing.T) {
 	}
 }
 
-// A detection reads a handful of manifests: the clone brings the trees and the small blobs in one pack, and only the files it reads are ever written — a repository heavy with assets costs the same as an empty one.
 func TestDetectFetchesTheManifestsAndNotTheRest(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git is not installed")
@@ -478,7 +471,6 @@ func TestDetectFetchesTheManifestsAndNotTheRest(t *testing.T) {
 	}
 }
 
-// The shallow clone follows the branch the screen asked for, so what is read is what will be started.
 func TestDetectReadsTheBranchItIsGiven(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git is not installed")

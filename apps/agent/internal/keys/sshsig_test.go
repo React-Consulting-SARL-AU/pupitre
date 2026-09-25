@@ -31,7 +31,6 @@ func TestTheRealSignaturesVerify(t *testing.T) {
 	}
 }
 
-// The namespace and the header are not in schema.json: the fixtures are what proves them.
 func TestTheNamespaceAndTheHeaderAreTheContractOnes(t *testing.T) {
 	loaded := fixtures(t)
 
@@ -181,7 +180,6 @@ func TestRSADSAAndSecurityKeysAreRefused(t *testing.T) {
 	}
 }
 
-// Every curve the contract admits, signed by the ssh-keygen of the machine running the test when it has one.
 func TestSignaturesFromTheLocalSSHKeygenVerify(t *testing.T) {
 	if _, err := exec.LookPath("ssh-keygen"); err != nil {
 		t.Skip("ssh-keygen is not installed")

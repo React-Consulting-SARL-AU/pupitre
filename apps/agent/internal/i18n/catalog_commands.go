@@ -1,6 +1,5 @@
 package i18n
 
-// The agent service, the project registry, sessions, and terminal commands.
 var commandCatalog = map[string]Message{
 	"exposure.none": {
 		FR: "aucune exposition n'est installée sur ce serveur",
@@ -84,8 +83,8 @@ var commandCatalog = map[string]Message{
 		EN: "the platform refuses this server's token: %s",
 	},
 	"daemon.token.refused.fix": {
-		FR: "Ouvrez https://app.pupitre.studio pour rétablir l'abonnement de ce serveur.",
-		EN: "Open https://app.pupitre.studio to restore this server's usage right.",
+		FR: "Ouvrez %s pour rétablir l'abonnement de ce serveur.",
+		EN: "Open %s to restore this server's usage right.",
 	},
 	"daemon.keys.failed": {
 		FR: "clés non synchronisées : %s",

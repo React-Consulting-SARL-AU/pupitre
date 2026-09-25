@@ -1,4 +1,3 @@
-// Package ai puts the agent and browser modules in the registry; importing it is all that is needed.
 package ai
 
 import (

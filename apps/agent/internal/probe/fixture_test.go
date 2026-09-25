@@ -9,8 +9,7 @@ import (
 	"pupitre.studio/agent/internal/modules/modtest"
 )
 
-// A simulated machine, played twice: against FakeSys for the Go probe, and against a fake root
-// plus a fake PATH for probe.sh. Whatever the two probes disagree on is a divergence.
+// One machine played twice, on FakeSys for the Go probe and on a fake root and PATH for probe.sh.
 type fixture struct {
 	Files   map[string]string
 	Dirs    []string
@@ -31,6 +30,7 @@ const (
 
 func (f fixture) failingLines(root string) []string {
 	lines := make([]string, 0, len(f.FailingLines))
+
 	for _, line := range f.FailingLines {
 		lines = append(lines, strings.ReplaceAll(line, agentPlaceholder, root+agentPath))
 	}
@@ -85,6 +85,7 @@ func projectsDir(root string) string {
 
 func (f fixture) replies(root string) map[string]string {
 	expanded := make(map[string]string, len(f.Replies)+1)
+
 	for key, reply := range f.Replies {
 		expanded[strings.ReplaceAll(key, projectsPlaceholder, projectsDir(root))] = reply
 	}
@@ -100,18 +101,23 @@ func (f fixture) options(t *testing.T, root string) Options {
 	t.Helper()
 
 	fake := modtest.NewFakeSys()
+
 	for path, content := range f.Files {
 		fake.Files[root+path] = []byte(content)
 	}
+
 	for _, dir := range f.Dirs {
 		fake.Dirs[root+dir] = true
 	}
+
 	for key, reply := range f.replies(root) {
 		fake.Replies[key] = reply
 	}
+
 	for _, program := range append(append([]string{}, f.Absent...), f.Failing...) {
 		fake.FailProgram(program, program+" : indisponible")
 	}
+
 	for _, line := range f.failingLines(root) {
 		fake.LineFailures[line] = line + " : refusé"
 	}
@@ -124,32 +130,38 @@ func (f fixture) options(t *testing.T, root string) Options {
 	return Options{Sys: fake, Root: root, ProjectsDir: projectsDir(root), Version: f.Current}
 }
 
-// Lays the same machine on disk: files under a fake root, programs as scripts on a fake PATH.
 func (f fixture) onDisk(t *testing.T, root string) []string {
 	t.Helper()
 
 	replies := filepath.Join(root, ".replies")
 	bin := filepath.Join(root, ".bin")
+
 	mkdir(t, replies, bin, projectsDir(root))
 
 	for path, content := range f.Files {
 		write(t, filepath.Join(root, path), content, 0o644)
 	}
+
 	for _, dir := range f.Dirs {
 		mkdir(t, filepath.Join(root, dir))
 	}
+
 	for key, reply := range f.replies(root) {
 		write(t, filepath.Join(replies, sanitize(key)+".out"), reply, 0o644)
 	}
+
 	for _, program := range f.Absent {
 		write(t, filepath.Join(replies, program+".absent"), "", 0o644)
 	}
+
 	for _, program := range f.Failing {
 		write(t, filepath.Join(replies, program+".fail"), "", 0o644)
 	}
+
 	for _, line := range f.failingLines(root) {
 		write(t, filepath.Join(replies, sanitize(line)+".fail"), "", 0o644)
 	}
+
 	for _, program := range fakePrograms {
 		write(t, filepath.Join(bin, program), fakeProgram, 0o755)
 	}
@@ -166,6 +178,7 @@ func (f fixture) onDisk(t *testing.T, root string) []string {
 
 func sanitize(key string) string {
 	out := []byte(key)
+
 	for i, char := range out {
 		alphanumeric := (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || (char >= '0' && char <= '9')
 		if !alphanumeric {
@@ -190,6 +203,7 @@ func write(t *testing.T, path, content string, mode os.FileMode) {
 	t.Helper()
 
 	mkdir(t, filepath.Dir(path))
+
 	if err := os.WriteFile(path, []byte(content), mode); err != nil {
 		t.Fatal(err)
 	}

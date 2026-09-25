@@ -8,8 +8,6 @@ import (
 
 const ID = "ai.hermes"
 
-// One entry is "<vendor>:<key>": the vendor names the environment variable, the rest is the secret.
-
 func manifest() contract.Manifest {
 	return contract.Manifest{
 		ID:        ID,

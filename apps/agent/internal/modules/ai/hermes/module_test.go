@@ -37,6 +37,7 @@ func install(t *testing.T, fake *modtest.FakeSys, values modtest.Values) *module
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -60,6 +61,7 @@ func TestFirstInstallWritesTheProvidersAndLeavesTheServiceOut(t *testing.T) {
 	}
 
 	written := string(fake.Files[envPath])
+
 	for _, want := range []string{"HERMES_ANTHROPIC_API_KEY=" + anthropicKey, "HERMES_OPENAI_API_KEY=" + openaiKey} {
 		if !strings.Contains(written, want) {
 			t.Errorf("%s must carry %s:\n%s", envPath, want, written)
@@ -94,7 +96,6 @@ func TestAlwaysOnEnablesTheService(t *testing.T) {
 	}
 }
 
-// The unit reads the providers at start: a key rotated on disk is only in force once the service has restarted.
 func TestARotatedProviderKeyRestartsTheService(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	install(t, fake, modtest.Values{"always_on": true})
@@ -105,6 +106,7 @@ func TestARotatedProviderKeyRestartsTheService(t *testing.T) {
 		Values:   modtest.Values{"always_on": true},
 		Secrets:  modtest.Secrets{"providers.0": "openai:sk-rotated", "providers.1": "anthropic:" + anthropicKey},
 	})
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -146,6 +148,7 @@ func TestProviderKeysNeverLeak(t *testing.T) {
 
 	for _, event := range ctx.Events() {
 		rendered := event.Module + event.Step + event.Replay
+
 		for _, key := range []string{openaiKey, anthropicKey} {
 			if strings.Contains(rendered, key) {
 				t.Fatalf("a provider key reached an event: %+v", event)
@@ -169,9 +172,9 @@ func TestProviderKeysNeverLeak(t *testing.T) {
 	}
 }
 
-// The shape of an entry is the manifest's to state and the form's to hold; the module no longer reads its own field twice.
 func TestTheManifestHoldsEachProviderToItsShape(t *testing.T) {
 	var providers contract.Field
+
 	for _, field := range manifest().Fields {
 		if field.Key == "providers" {
 			providers = field
@@ -225,7 +228,6 @@ func TestFailedInstallCarriesItsReplayCommand(t *testing.T) {
 
 var _ modules.Module = Module{}
 
-// A provider taken out of the form leaves nothing behind: neither its key in /etc/pupitre/env and the credentials file, nor its name in the status.
 func TestAWithdrawnProviderIsForgottenEverywhere(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	install(t, fake, modtest.Values{"always_on": false})
@@ -235,6 +237,7 @@ func TestAWithdrawnProviderIsForgottenEverywhere(t *testing.T) {
 		Values:   modtest.Values{"always_on": false},
 		Secrets:  modtest.Secrets{"providers.0": "anthropic:" + anthropicKey},
 	})
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -251,6 +254,7 @@ func TestAWithdrawnProviderIsForgottenEverywhere(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if _, named := status.Credentials[envPrefix+"OPENAI_API_KEY"]; named {
 		t.Fatalf("the status still names the withdrawn provider: %v", status.Credentials)
 	}

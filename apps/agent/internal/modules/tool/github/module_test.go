@@ -42,6 +42,7 @@ func TestInstallAndConfigureAreIdempotent(t *testing.T) {
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +58,6 @@ func TestInstallAndConfigureAreIdempotent(t *testing.T) {
 	}
 }
 
-// gh keeps the token it signed in with: a new one is only in force once gh has been told.
 func TestARotatedTokenSignsGhInAgain(t *testing.T) {
 	fake := configuredMachine()
 	ctx := newContext(t, fake, modtest.Secrets{"token": "n3w-token"})
@@ -67,6 +67,7 @@ func TestARotatedTokenSignsGhInAgain(t *testing.T) {
 	}
 
 	signedIn := false
+
 	for _, call := range fake.Calls {
 		if strings.Join(call.Argv, " ") == "gh auth login --with-token" {
 			signedIn = string(call.Stdin) == "n3w-token\n"
@@ -78,7 +79,6 @@ func TestARotatedTokenSignsGhInAgain(t *testing.T) {
 	}
 }
 
-// HTTPS through the token is what makes a clone work with no key on the account at all.
 func TestConfigureAuthenticatesAndRegistersTheServerKey(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Packages[pkg] = "2.62.0"
@@ -92,6 +92,7 @@ func TestConfigureAuthenticatesAndRegistersTheServerKey(t *testing.T) {
 	}
 
 	commands := strings.Join(fake.Commands(), "\n")
+
 	for _, wanted := range []string{"gh auth login --with-token", "gh auth setup-git", "gh ssh-key add"} {
 		if !strings.Contains(commands, wanted) {
 			t.Fatalf("%q must run on a machine that has none of it:\n%s", wanted, commands)
@@ -124,8 +125,6 @@ func TestSecretNeverLeaks(t *testing.T) {
 	}
 }
 
-// The engine refuses a configuration before the first step, so the module never
-// sees a missing secret. What this module owes is the declaration it is refused on.
 func TestTheSecretIsRequiredByTheContract(t *testing.T) {
 	held := func(string, string) []string { return nil }
 
@@ -216,7 +215,6 @@ func TestUninstallLeavesTheServerKeyAlone(t *testing.T) {
 	}
 }
 
-// A gh that cannot sign out still leaves no token behind: the file that holds it goes, and the client is told.
 func TestUninstallRemovesTheHostsFileWhenGhCannotSignOut(t *testing.T) {
 	fake := configuredMachine()
 	fake.Files[hostsPath] = []byte("github.com:\n    oauth_token: " + token + "\n")
@@ -238,7 +236,6 @@ func TestUninstallRemovesTheHostsFileWhenGhCannotSignOut(t *testing.T) {
 
 var _ modules.Module = Module{}
 
-// The answer is gh's own, read signed in or not: a refused token is not an unreachable GitHub.
 func TestLoginReadsWhatGhAuthStatusSays(t *testing.T) {
 	cases := map[string]struct {
 		answer  string
@@ -269,6 +266,7 @@ func TestLoginReadsWhatGhAuthStatusSays(t *testing.T) {
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			fake := configuredMachine()
+
 			if tc.refused {
 				fake.Refuse("gh auth status", tc.answer)
 			} else {

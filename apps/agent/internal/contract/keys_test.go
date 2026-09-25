@@ -47,6 +47,7 @@ func TestTheKeyApprovalRulesComeFromTheSchema(t *testing.T) {
 	}
 
 	server := regexp.MustCompile(rules.ServerIDPattern)
+
 	for id, want := range map[string]bool{
 		"cm0k2x9q80000a1b2c3d4e5f6":            true,
 		"0f8fad5b-d9cb-469f-a165-70867728950e": true,
@@ -78,6 +79,7 @@ func TestTheKeyShapesValidateAgainstTheSchema(t *testing.T) {
 
 	extra := approval
 	extra.ServerID = "srv_42"
+
 	if ValidateValue("KeyApproval", extra) == nil {
 		t.Fatal("a server id outside the pattern validates")
 	}

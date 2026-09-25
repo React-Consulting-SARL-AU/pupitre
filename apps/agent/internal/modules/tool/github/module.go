@@ -25,9 +25,8 @@ const (
 	keyringPath = keyringDir + "/githubcli.gpg"
 	sourcePath  = "/etc/apt/sources.list.d/github-cli.list"
 
-	sshDir  = shell.Home + "/.ssh"
-	keyPath = sshDir + "/id_ed25519"
-	// Where gh keeps the token it was signed in with.
+	sshDir    = shell.Home + "/.ssh"
+	keyPath   = sshDir + "/id_ed25519"
 	hostsPath = shell.Home + "/.config/gh/hosts.yml"
 
 	helper     = "!gh auth git-credential"
@@ -84,7 +83,7 @@ func (Module) Install(ctx *modules.Context) error {
 	})
 }
 
-// The key GitHub publishes is already a keyring: it is downloaded where apt expects it, and nothing is dearmoured.
+// GitHub's key is already a keyring, so it is not dearmoured.
 func addRepository(ctx *modules.Context) error {
 	if !file.Exists(ctx, keyringPath) {
 		if err := ctx.Sys().MkdirAll(keyringDir, 0o755); err != nil {
@@ -140,6 +139,7 @@ func storeToken(ctx *modules.Context) (bool, error) {
 		}
 
 		rotated = stored
+
 		if !stored {
 			return modules.Skipped, nil
 		}
@@ -150,8 +150,7 @@ func storeToken(ctx *modules.Context) (bool, error) {
 	return rotated, err
 }
 
-// The token travels on the standard input: gh reads it there, and neither the journal nor a process listing ever sees it.
-// A signed-in gh holds the token it was given, so a rotated one signs in again.
+// The token goes on stdin, never on an argv; gh keeps the token it signed in with, so a rotated one signs in again.
 func authenticate(ctx *modules.Context, rotated bool) error {
 	return ctx.Step("authenticate-gh", func() (modules.Outcome, error) {
 		if !rotated && accountLogin(ctx) != "" {
@@ -167,7 +166,6 @@ func authenticate(ctx *modules.Context, rotated bool) error {
 	})
 }
 
-// The credential helper is what turns a HTTPS clone into a clone that needs no key at all.
 func setupGitCredentials(ctx *modules.Context) error {
 	return ctx.Step("setup-git-credentials", func() (modules.Outcome, error) {
 		out, err := user.Run(ctx, shell.User, "git", "config", "--global", "--get", helperKey)
@@ -243,8 +241,7 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// The SSH key of the machine and the key registered on the account outlive the module: they are the client's, and other hosts use them.
-// The token does not: gh holds a copy in ~/.config/gh/hosts.yml, and git a helper that would hand it out.
+// The SSH keys are the client's and outlive the module; the token's copies in hosts.yml and the git helper do not.
 func (Module) Uninstall(ctx *modules.Context) error {
 	if err := ctx.Step("sign-out-gh", func() (modules.Outcome, error) {
 		if !apt.Installed(ctx, pkg) || !file.Exists(ctx, hostsPath) {
@@ -328,7 +325,7 @@ type authStatus struct {
 	} `json:"hosts"`
 }
 
-// gh auth status asks GitHub whose token it holds; --active keeps the account the clones use, and the JSON is printed signed in or not.
+// --active keeps the account the clones use; the JSON is printed whether signed in or not.
 func (Module) Login(ctx *modules.Context) (contract.Login, bool) {
 	out, _ := login.Ask(ctx, nil, "gh", "auth", "status", "--active", "--json", "hosts")
 
@@ -352,7 +349,7 @@ func (Module) Login(ctx *modules.Context) (contract.Login, bool) {
 	return login.Unknown(i18n.T("login.unanswered", "gh", "gh auth status"))
 }
 
-// gh api answers on the standard output and only when the token opens the account, which is the question here.
+// gh api answers only when the token actually opens the account.
 func accountLogin(ctx *modules.Context) string {
 	out, err := user.Run(ctx, shell.User, "gh", "api", "user", "--jq", ".login")
 	if err != nil {

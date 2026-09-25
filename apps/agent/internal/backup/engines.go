@@ -12,7 +12,6 @@ import (
 	"pupitre.studio/agent/internal/modules/db/redis"
 )
 
-// engine is how one database module is backed up and restored: one part per database, and what belongs to the whole server.
 type engine struct {
 	name    string
 	module  string
@@ -23,7 +22,7 @@ type engine struct {
 	whole   *whole
 }
 
-// whole is the part of an engine that belongs to no database: it comes before them, in a backup as in a restore.
+// Belongs to no database, so it comes before them, in a backup as in a restore.
 type whole struct {
 	format  string
 	dump    func(*modules.Context, io.Writer) error
@@ -51,7 +50,6 @@ var engines = []engine{
 	},
 }
 
-// holding is one engine this server installed through Pupitre, and the databases its listing found.
 type holding struct {
 	engine  engine
 	sibling *modules.Context
@@ -59,7 +57,7 @@ type holding struct {
 	err     error
 }
 
-// items are the engine's databases as the settings name them, the Redis snapshot included; what cannot be carried is not one.
+// Includes the Redis snapshot; a name that cannot be carried is not an item.
 func (h holding) items() []contract.BackupContentDatabase {
 	var items []contract.BackupContentDatabase
 
@@ -76,11 +74,11 @@ func (h holding) items() []contract.BackupContentDatabase {
 	return items
 }
 
-// holdings reads what each installed engine holds: the one list a backup and backup.contents both go by.
 func (s *Service) holdings(ctx *modules.Context) []holding {
 	remembered, _ := modules.Remembered(ctx.Sys(), s.options.Engine.InstallPath)
 
 	var found []holding
+
 	for _, candidate := range engines {
 		if !slices.Contains(remembered.Modules, candidate.module) {
 			continue
@@ -92,6 +90,7 @@ func (s *Service) holdings(ctx *modules.Context) []holding {
 		}
 
 		held := holding{engine: candidate, sibling: sibling}
+
 		if candidate.list != nil {
 			held.names, held.err = candidate.list(sibling)
 		}

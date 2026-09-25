@@ -1,15 +1,3 @@
-// Package migrate brings the configuration on the machine to the shape the
-// binary reading it expects.
-//
-// A binary and its configuration travel apart: `agent.upgrade` replaces one,
-// the other stays where it is. When a release changes the shape of a file under
-// /etc/pupitre — a field renamed, a module split in two, a value that stopped
-// meaning what it meant — the new binary would read the old shape and get it
-// wrong. This is where that gap is closed, once, in order, and only forwards.
-//
-// The revision is a plain counter, not a version. Shapes do not change once per
-// release, and a pre-release or a development build has no place in an ordering
-// that has to be exact.
 package migrate
 
 import (
@@ -25,17 +13,9 @@ import (
 	"pupitre.studio/agent/internal/sys/lock"
 )
 
-// Command is the sub-command a human runs on the machine: the same ledger the
-// app reaches over the protocol, with the backups a rollback needs.
 const Command = "migrate"
 
-// A Migration is one change of shape.
-//
-// Its identifier is what the machine remembers, so it is never reused and never
-// reordered. `Touches` names the files it may write, which is what gets kept
-// before the batch runs and put back if it fails. `Since` is the agent version
-// that first shipped it, for a reader looking at a ledger years later; nothing
-// is decided on it.
+// ID is never reused nor reordered; Touches is what gets backed up and restored; Since is informational only.
 type Migration struct {
 	ID      int
 	Slug    string
@@ -72,11 +52,9 @@ type Options struct {
 	Now          func() time.Time
 	AgentVersion string
 	Paths        Paths
-	// Migrations defaults to the ledger this binary carries. Tests pass their
-	// own; nothing else does.
-	Migrations []Migration
-	Keep       int
-	Logf       func(string, ...any)
+	Migrations   []Migration
+	Keep         int
+	Logf         func(string, ...any)
 }
 
 type Runner struct {
@@ -84,10 +62,7 @@ type Runner struct {
 	paths      Paths
 	migrations []Migration
 
-	// A refusal puts the files back, which leaves the ledger saying the machine
-	// is merely behind. It is behind because a migration refused, and a reader
-	// who is told to try again learns nothing. The process that ran it
-	// remembers, until a run goes through.
+	// A refusal restores the files, so the ledger alone would read as merely pending until a run goes through.
 	refused atomic.Bool
 }
 
@@ -103,7 +78,6 @@ func New(options Options) *Runner {
 	return &Runner{options: options, paths: options.Paths.Resolved(), migrations: ordered}
 }
 
-// Expected is the revision this binary reads: the last migration it carries.
 func (r *Runner) Expected() int {
 	if len(r.migrations) == 0 {
 		return 0
@@ -112,9 +86,7 @@ func (r *Runner) Expected() int {
 	return r.migrations[len(r.migrations)-1].ID
 }
 
-// State reads where the machine stands without taking the lock and without
-// writing anything. Every session asks it, including one opened while an
-// install runs, so it has to cost a single read of a small file.
+// No lock and no write: every session asks it, including one opened while an install runs.
 func (r *Runner) State() contract.ConfigRevision {
 	ledger, err := readLedger(r.options.Sys, r.paths.Ledger)
 	expected := r.Expected()
@@ -142,12 +114,7 @@ func stateOf(revision, expected int) contract.ConfigState {
 	}
 }
 
-// Run brings the machine to the revision this binary expects.
-//
-// It answers rather than fails: a migration that refused is a state to show,
-// with the batch that was kept and the one that broke, not an error envelope
-// that loses both. What refuses is every other command, for as long as the
-// configuration is not the shape this binary reads.
+// A refusing migration is reported as a Result state, not an error, so the backup and the failure are not lost.
 func (r *Runner) Run() (Result, error) {
 	ledger, err := readLedger(r.options.Sys, r.paths.Ledger)
 	if err != nil {
@@ -164,9 +131,7 @@ func (r *Runner) Run() (Result, error) {
 
 	pending := r.after(ledger.Revision)
 
-	// A machine that has never been configured is born at the current revision:
-	// there is no shape to carry over, and stamping it says as much to whoever
-	// reads the ledger later.
+	// An unconfigured machine has no old shape to carry over, so it is stamped at the current revision.
 	if !r.configured() {
 		ctx := r.context()
 		ledger.Revision = expected
@@ -186,9 +151,7 @@ func (r *Runner) Run() (Result, error) {
 		return Result{}, err
 	}
 
-	// An install is running: it migrated before it started, so the machine is
-	// not stuck — this reader is early. Saying so beats waiting on a lock the
-	// session holding it may hold for minutes.
+	// A running install migrated before it started; report pending rather than wait minutes on its lock.
 	if !held {
 		return r.settled(ledger.Revision, expected, ids(pending)), nil
 	}
@@ -229,9 +192,7 @@ func (r *Runner) apply(ledger Ledger, pending []Migration, expected int) (Result
 			Slug:         migration.Slug,
 		})
 
-		// The ledger is written after every migration, not after the batch: a
-		// machine that loses power mid-batch comes back agreeing with itself,
-		// and replays only what it owes.
+		// Written per migration so a power loss mid-batch replays only what is still owed.
 		if err := writeLedger(ctx, r.paths.Ledger, ledger); err != nil {
 			return Result{}, err
 		}
@@ -247,8 +208,7 @@ func (r *Runner) apply(ledger Ledger, pending []Migration, expected int) (Result
 	return result, nil
 }
 
-// A migration that panics refuses like one that errs: the alternative is a
-// serve that crashes at every reconnection, the lock held and nothing said.
+// A panic refuses like an error; otherwise serve would crash at every reconnection with the lock held.
 func apply(migration Migration, ctx *Context) (err error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
@@ -259,8 +219,7 @@ func apply(migration Migration, ctx *Context) (err error) {
 	return migration.Apply(ctx)
 }
 
-// The whole batch goes back, ledger included: half a batch is a shape no binary
-// was ever written to read.
+// The whole batch goes back, ledger included: half a batch is a shape no binary was written to read.
 func (r *Runner) rollback(ctx *Context, backup string, migration Migration, cause error, from, expected int) (Result, error) {
 	restored := r.restore(ctx, backup) == nil
 	r.refused.Store(true)
@@ -279,10 +238,7 @@ func (r *Runner) rollback(ctx *Context, backup string, migration Migration, caus
 	return result, nil
 }
 
-// Restore puts a batch's files back and leaves the ledger at the revision they
-// belong to, so the next start replays what that batch had done. It is the way
-// back for a machine that has to run an older agent again, and it is a
-// deliberate gesture: what was configured since is lost with it.
+// The ledger goes back with the files so the next start replays the batch; whatever was configured since is lost.
 func (r *Runner) Restore(name string) (Result, error) {
 	release, held, err := lock.Acquire(r.paths.Lock)
 	if err != nil {
@@ -295,6 +251,7 @@ func (r *Runner) Restore(name string) (Result, error) {
 	defer release()
 
 	ctx := r.context()
+
 	if err := r.restore(ctx, name); err != nil {
 		return Result{}, err
 	}
@@ -325,6 +282,7 @@ func (r *Runner) settled(revision, expected int, pending []int) Result {
 
 func (r *Runner) after(revision int) []Migration {
 	var pending []Migration
+
 	for _, migration := range r.migrations {
 		if migration.ID > revision {
 			pending = append(pending, migration)
@@ -334,8 +292,6 @@ func (r *Runner) after(revision int) []Migration {
 	return pending
 }
 
-// A machine holds a configuration once an install has been asked for on it.
-// Before that there is nothing of yesterday's shape to carry over.
 func (r *Runner) configured() bool {
 	exists, err := r.options.Sys.Exists(r.paths.Install)
 
@@ -356,6 +312,7 @@ func (r *Runner) now() time.Time {
 
 func ids(migrations []Migration) []int {
 	numbers := make([]int, 0, len(migrations))
+
 	for _, migration := range migrations {
 		numbers = append(numbers, migration.ID)
 	}
@@ -367,14 +324,13 @@ func itoa(value int) string {
 	return strconv.Itoa(value)
 }
 
-// Ledger is what the machine remembers, for a reader rather than a decision: one that does not read shows as empty, and State says why.
+// For display only: an unreadable ledger shows as empty, and State says why.
 func (r *Runner) Ledger() Ledger {
 	ledger, _ := readLedger(r.options.Sys, r.paths.Ledger)
 
 	return ledger
 }
 
-// Pending names the migrations the machine still owes this binary.
 func (r *Runner) Pending() []Migration {
 	return r.after(r.Ledger().Revision)
 }

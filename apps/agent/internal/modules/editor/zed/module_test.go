@@ -34,6 +34,7 @@ func install(t *testing.T, fake *modtest.FakeSys, values modtest.Values) *module
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +104,6 @@ func TestReplayMutatesNothing(t *testing.T) {
 	}
 }
 
-// A release published since the install is not what a replay costs: the server it has stays, upgrade is what moves it.
 func TestAReplayKeepsTheInstalledVersionAndUpgradeMovesIt(t *testing.T) {
 	fake := machine()
 	install(t, fake, modtest.Values{"version": "latest"})
@@ -134,7 +134,6 @@ func TestAReplayKeepsTheInstalledVersionAndUpgradeMovesIt(t *testing.T) {
 	}
 }
 
-// GitHub computes a digest for every asset of a release: a server that does not match it never reaches ~/.zed_server.
 func TestAServerWhoseDigestDiffersIsRefused(t *testing.T) {
 	fake := machine()
 	fake.Answer("api.github.com/repos/zed-industries/zed/releases/tags/", `{"assets":[{"name":"zed-remote-server-linux-`+platform()+`.gz","digest":"sha256:`+strings.Repeat("0", 64)+`"}]}`)

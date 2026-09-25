@@ -1,6 +1,5 @@
 package i18n
 
-// Backups: the module, the bucket's refusals, the restore, and what the terminal prints of them.
 var backupCatalog = map[string]Message{
 	"module.core.backup.name": {
 		FR: "Sauvegardes",

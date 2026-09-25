@@ -166,7 +166,6 @@ func TestPanelsAreDetectedByTheirDirectory(t *testing.T) {
 	}
 }
 
-// A machine that answers nothing must still produce a readable verdict rather than an empty result.
 func TestUnreadableMachineStillAnswers(t *testing.T) {
 	result := probeFixture(t, fixture{Absent: fakePrograms, Current: "0.2.0"})
 
@@ -195,7 +194,7 @@ func managedFixture() fixture {
 	return f
 }
 
-// Decision 0015: sudo asks dev for a password, and lets through `pupitred serve` and `pupitred binary install` alone — not `version`.
+// Decision 0015: sudo wants dev's password for everything but `pupitred serve` and `pupitred binary install`.
 func securedFixture() fixture {
 	f := managedFixture()
 	f.FailingLines = []string{"sudo -n true", "sudo -n " + agentPlaceholder + " version"}

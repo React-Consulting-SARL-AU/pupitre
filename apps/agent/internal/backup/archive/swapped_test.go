@@ -10,7 +10,6 @@ import (
 	"time"
 )
 
-// swapped lays a regular file, takes the walk's view of it, then lets replace swap something else in at its name.
 func swapped(t *testing.T, replace func(full string)) (string, os.FileInfo) {
 	t.Helper()
 

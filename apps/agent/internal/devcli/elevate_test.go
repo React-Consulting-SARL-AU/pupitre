@@ -17,7 +17,6 @@ import (
 
 const sudoPath = "/usr/bin/sudo"
 
-// The machine as `dev` sees it once hardening has closed root: the state is there, and opening it is refused.
 type sealedSys struct {
 	*modtest.FakeSys
 	sealed map[string]bool
@@ -51,6 +50,7 @@ func newElevator(t *testing.T, sealed ...string) *elevator {
 	fake.Files[entitlement.DefaultCachePath] = []byte("{}\n")
 
 	refused := map[string]bool{}
+
 	for _, path := range sealed {
 		refused[path] = true
 	}
@@ -95,7 +95,7 @@ func TestElevationLeavesAloneWhatItCannotHelp(t *testing.T) {
 		t.Fatalf("root went through sudo: %v · %#v", err, caller)
 	}
 
-	// A token nobody wrote is a machine nobody enrolled: root would read no more than this account does.
+	// An absent token is an unenrolled machine: root would read no more than this account does.
 	unenrolled := newElevator(t)
 	unenrolled.fake.Remove(platform.DefaultTokenPath)
 

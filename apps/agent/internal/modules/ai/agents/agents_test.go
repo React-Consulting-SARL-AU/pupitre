@@ -48,7 +48,7 @@ func TestTheFiveSkillsAndTheSubagentAreLaidDown(t *testing.T) {
 		t.Errorf("the skills belong to %s, got %q", User, fake.Owners[SkillsDir+"/ship/SKILL.md"])
 	}
 
-	// A folder root made on the way — ~/.agents, ~/.demo, ~/.demo/skills — locks dev out of everything under it.
+	// A root-owned folder made on the way locks dev out of everything under it.
 	for _, dir := range []string{Home + "/.agents", SkillsDir, demo.ConfigDir, demo.ConfigDir + "/skills", demo.ConfigDir + "/agents"} {
 		if fake.Owners[dir] != User+":"+User {
 			t.Errorf("%s belongs to %q, want %s", dir, fake.Owners[dir], User)
@@ -65,6 +65,7 @@ func TestTheContextNamesWhatTheAgentNeedsToKnow(t *testing.T) {
 	}
 
 	written := string(fake.Files[demo.ConfigDir+"/DEMO.md"])
+
 	for _, want := range []string{ProjectsDir, SkillsDir, GalleryDir, "`dev`", "serveur Linux"} {
 		if !strings.Contains(written, want) {
 			t.Errorf("the context lacks %q:\n%s", want, written)
@@ -133,9 +134,9 @@ func TestASecondDeployChangesNothing(t *testing.T) {
 	}
 }
 
-// A skill the client edited on the machine goes back to the version this agent carries: the folder is ours, his own skills live beside it.
 func TestAnEditedSkillIsPutBack(t *testing.T) {
 	fake := modtest.NewFakeSys()
+
 	if err := Deploy(newContext(t, fake), demo); err != nil {
 		t.Fatal(err)
 	}

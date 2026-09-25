@@ -18,11 +18,12 @@ import (
 	"pupitre.studio/agent/internal/sys/env"
 )
 
-// Register already refuses a handler the contract does not know; this is the other direction, a command of the contract nobody answers.
+// Register already refuses a handler the contract does not know; this checks the other direction.
 func TestTheServerAnswersEveryCommandOfTheContract(t *testing.T) {
 	setupCLI(t)
 
 	served := map[string]bool{}
+
 	for _, cmd := range newServer(newEngine(), false).Capabilities() {
 		served[contract.ParamsDefinition(cmd)] = true
 	}
@@ -47,7 +48,6 @@ type checkedElsewhere struct {
 
 const bucketUnreachable = "the production server reaches a bucket over HTTPS with the system's roots alone, so no test bucket answers it here"
 
-// What this harness cannot make the production server answer, and the test that holds the result to its definition instead.
 var answersCheckedElsewhere = map[string]checkedElsewhere{
 	"agent.upgrade":        {why: "a release is verified against the key embedded in the binary, which no test can sign for", where: "internal/selfupdate/commands_test.go TestAgentUpgradeAnswersInRestrictedMode"},
 	"backup.run":           {why: bucketUnreachable, where: "internal/backup/commands_test.go TestABackupFromTheProtocolStreamsItsSteps"},
@@ -151,19 +151,21 @@ func answerCases(platformURL string) []answerCase {
 	}
 }
 
-// A command added to the server without a case here fails this test, and so does an exclusion left behind by a command that is gone.
 func TestEveryServedCommandHasItsAnswerChecked(t *testing.T) {
 	setupCLI(t)
 
 	checked := map[string]bool{}
+
 	for _, tc := range answerCases("http://platform.test") {
 		if checked[tc.cmd] {
 			t.Errorf("%s has two cases", tc.cmd)
 		}
+
 		checked[tc.cmd] = true
 	}
 
 	served := map[string]bool{}
+
 	for _, cmd := range newServer(newEngine(), false).Capabilities() {
 		served[cmd] = true
 		_, excluded := answersCheckedElsewhere[cmd]
@@ -193,7 +195,6 @@ func TestEveryServedCommandHasItsAnswerChecked(t *testing.T) {
 	}
 }
 
-// Every answer the production server gives on a seeded machine has to be what the contract promises for its command.
 func TestEveryAnswerMatchesItsResultDefinition(t *testing.T) {
 	fake, dir := setupCLI(t)
 	t.Setenv("PUPITRE_LOCK_PATH", filepath.Join(dir, "install.lock"))
@@ -211,6 +212,7 @@ func TestEveryAnswerMatchesItsResultDefinition(t *testing.T) {
 		}
 	}))
 	defer console.Close()
+
 	t.Setenv("PUPITRE_PLATFORM_URL", console.URL)
 
 	lines := serveOn(t,
@@ -218,6 +220,7 @@ func TestEveryAnswerMatchesItsResultDefinition(t *testing.T) {
 		`{"id":2,"cmd":"install","params":{"modules":["tool.demo","db.mysql","exposure.cloudflare"],"config":{"core.system":{"git_name":"Jordan","git_email":"jordan@example.org"},"tool.demo":{"port":9000},"db.mysql":{"engine":"mysql","port":3306,"app_user":"app","remote_user":"remote"},"exposure.cloudflare":{"domain":"pupitre.sh","account_tag":"0123456789abcdef0123456789abcdef","tunnel_id":"01234567-89ab-cdef-0123-456789abcdef"}},"secrets_stdin":true}}`,
 		`{"tool.demo":{"password":"s3cret-de-test"},"db.mysql":{"app_password":"app-s3cret","remote_password":"remote-s3cret"},"exposure.cloudflare":{"tunnel_secret":"tunnel-s3cret"}}`,
 	)
+
 	installed := decodeResponse(t, lines[len(lines)-1])
 	if installed["ok"] != true || len(installed["result"].(map[string]any)["failed"].([]any)) != 0 {
 		t.Fatalf("install: %s", lines[len(lines)-1])
@@ -242,7 +245,6 @@ func TestEveryAnswerMatchesItsResultDefinition(t *testing.T) {
 	}
 }
 
-// web is a repository with a debug port, and the dev account holds a note, a capture, an agent, a session and a folder to detect.
 func seedMachine(fake *modtest.FakeSys) {
 	fake.Files[registry.DefaultConf] = []byte("web|web|https://github.com/me/web|bun|127.0.0.1|3000|web|bun run dev --port 3000\n")
 	fake.Dirs["/home/dev/projects/web"] = true
@@ -275,7 +277,7 @@ func seedMachine(fake *modtest.FakeSys) {
 	fake.Files["/etc/shadow"] = []byte("root:*:20000:0:99999:7:::\ndev:!:20000:0:99999:7:::\n")
 }
 
-// A command that takes a secret line is served a session of its own, the way the app sends it.
+// A command that takes a secret line gets a session of its own, the way the app sends it.
 func answer(t *testing.T, server *protocol.Server, tc answerCase) any {
 	t.Helper()
 

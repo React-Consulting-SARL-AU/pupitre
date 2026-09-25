@@ -17,7 +17,7 @@ import (
 
 const (
 	shadowPath = "/etc/shadow"
-	// sudo reads no file of sudoers.d whose name holds a dot: the candidate is checked there without ever being read as a rule.
+	// sudo skips sudoers.d names holding a dot, so the candidate is checked there without being read as a rule.
 	sudoCandidatePath = "/etc/sudoers.d/.90-dev.pupitre"
 )
 
@@ -27,7 +27,7 @@ type SudoResult struct {
 	Sudo contract.SudoState `json:"sudo"`
 }
 
-// The password goes first and the rule second: a rule asking for a password dev does not hold would lock the client out of sudo.
+// Password before rule: a rule asking for a password dev does not hold would lock the client out of sudo.
 func SetSudoPassword(ctx *modules.Context, name, hash string) (SudoResult, error) {
 	ctx.Hide(hash)
 
@@ -55,6 +55,7 @@ func sudoPasswordHash(line json.RawMessage) (string, *protocol.Error) {
 	if err == nil {
 		err = contract.Validate("HardenSudoSecrets", value)
 	}
+
 	if err != nil {
 		return "", protocol.NewError(contract.ErrorBadRequest, i18n.T("harden.sudo.hash.invalid", err.Error())).
 			WithFix(i18n.T("harden.sudo.hash.invalid.fix"))
@@ -63,6 +64,7 @@ func sudoPasswordHash(line json.RawMessage) (string, *protocol.Error) {
 	var secrets struct {
 		PasswordHash string `json:"password_hash"`
 	}
+
 	if err := json.Unmarshal(line, &secrets); err != nil {
 		return "", protocol.NewError(contract.ErrorInternal, i18n.T("secrets.unreadable", err.Error()))
 	}
@@ -81,6 +83,7 @@ func refuseSSHPasswords(ctx *modules.Context, name string) error {
 		}
 
 		effective := effectiveConfig(out.Stdout)
+
 		for _, key := range sshPasswordKeys {
 			values, set := effective[key]
 			if (set || key == "passwordauthentication") && strings.Join(values, " ") != "no" {
@@ -107,7 +110,7 @@ func refuseSSHPasswords(ctx *modules.Context, name string) error {
 	return nil
 }
 
-// The one command dev runs as root without a password must be one dev cannot replace: the binary and every folder above it belong to root, and nobody else writes them.
+// dev runs this binary as root without a password, so root must own it and every folder above, unwritable by others.
 func checkAgentBinary(ctx *modules.Context) error {
 	var unsafe string
 
@@ -155,7 +158,7 @@ func unsafeBinary(ctx *modules.Context, binary string) string {
 	return ""
 }
 
-// The entry as its folder lists it: a link is a link, never what it points at.
+// Listed from its folder so a link reads as a link, never as its target.
 func entryOf(ctx *modules.Context, path string) (sys.Node, bool) {
 	nodes, err := ctx.Sys().ListIn(filepath.Dir(path), ".")
 	if err != nil {

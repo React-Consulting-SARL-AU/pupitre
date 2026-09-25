@@ -40,7 +40,7 @@ WantedBy=multi-user.target
 `
 )
 
-// Mailpit publishes one archive per platform and no checksum document: GitHub's own digest of the asset is what the download is held to.
+// Mailpit ships no checksum file: the download is held to GitHub's own digest of the asset.
 var release = download.GitHubRelease{
 	Repo:    "axllent/mailpit",
 	Program: Program,
@@ -67,7 +67,6 @@ func (Module) Manifest() contract.Manifest {
 	return manifest()
 }
 
-// A port another program already holds is the one thing this configuration cannot know from the manifest alone.
 func (Module) Preflight(ctx *modules.Context) []contract.FieldProblem {
 	return modules.Problems(modules.PortTaken(ctx, "smtp_port"), modules.PortTaken(ctx, "http_port"))
 }
@@ -125,6 +124,7 @@ func (Module) Configure(ctx *modules.Context) error {
 
 func (m Module) Upgrade(ctx *modules.Context) error {
 	before := download.Recorded(ctx, ID)
+
 	if err := release.UpgradeStep(ctx, ID, BinPath); err != nil {
 		return err
 	}
@@ -142,7 +142,7 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// The messages it caught stay under the client's home: only the binary and the unit go.
+// Caught messages stay under the client's home; only the binary and the unit go.
 func (Module) Uninstall(ctx *modules.Context) error {
 	if err := ctx.Step("stop-service", func() (modules.Outcome, error) {
 		if !systemd.Active(ctx, Unit) {

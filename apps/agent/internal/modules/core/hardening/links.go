@@ -17,7 +17,7 @@ const (
 
 var linkKnobs = []string{"/proc/sys/fs/protected_hardlinks", "/proc/sys/fs/protected_symlinks"}
 
-// Root acting on dev's files counts on these: a link dev plants to a file of root's is then refused by the kernel itself.
+// Root acts on dev's files, so the kernel must refuse a link dev plants to a file of root's.
 func protectLinks(ctx *modules.Context) error {
 	return ctx.Once("protect-links", func() error {
 		return ctx.Step("protect-links", func() (modules.Outcome, error) {

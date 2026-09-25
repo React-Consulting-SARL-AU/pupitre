@@ -1,4 +1,4 @@
-// Package release signs the binaries the release chain publishes, and nothing of it is linked into pupitred.
+// Package release is for the release chain only: nothing of it may be linked into pupitred.
 package release
 
 import (
@@ -20,7 +20,7 @@ const (
 	SignatureChars = 88
 )
 
-// The signer keeps its own copy of the signed message rather than calling the agent's: a witness test compares the two, so neither half can drift alone without turning red.
+// A deliberate copy of the agent's: a witness test compares them so neither half can drift alone.
 const messageName = "pupitred"
 
 var Architectures = []string{"amd64", "arm64"}
@@ -29,7 +29,7 @@ var Channels = []string{"stable", "beta"}
 
 var semver = regexp.MustCompile(`^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$`)
 
-// Manifest is what the app reads alongside the binaries it embeds: the version it carries, and the per-architecture signature it will attach to an update for a server out of the platform's reach.
+// The app attaches these signatures to an update for a server out of the platform's reach.
 type Manifest struct {
 	Version    string            `json:"version"`
 	Notes      []string          `json:"notes"`
@@ -117,7 +117,7 @@ func Sign(private ed25519.PrivateKey, version, arch, channel string, binary []by
 	}, nil
 }
 
-// The architecture comes from the file the build produced, so a binary can never be signed for a machine it was not compiled for.
+// Read from the built file so a binary is never signed for an architecture it was not compiled for.
 func ArchOf(binaryPath string) (string, error) {
 	name := path.Base(strings.ReplaceAll(binaryPath, "\\", "/"))
 

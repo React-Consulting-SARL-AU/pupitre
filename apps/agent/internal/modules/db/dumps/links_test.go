@@ -16,7 +16,6 @@ func dumping(content string) func(io.Writer) error {
 	}
 }
 
-// Root streams the dump into a file it makes for dev: never a tool writing to a path, which would follow a link dev planted there.
 func TestWriteStreamsTheDumpIntoAFileOfDevs(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Files["/etc/cron.d/backup"] = []byte("root job")

@@ -57,7 +57,6 @@ func (Module) Manifest() contract.Manifest {
 	return manifest()
 }
 
-// The machine's own answers: a directory that is a file holds no project, and a zone this kernel never heard of leaves the clock wrong.
 func (Module) Preflight(ctx *modules.Context) []contract.FieldProblem {
 	return modules.Problems(
 		modules.TimezoneUnknown(ctx, "timezone"),
@@ -65,9 +64,7 @@ func (Module) Preflight(ctx *modules.Context) []contract.FieldProblem {
 	)
 }
 
-// The dev user is what the first install leaves and nothing takes away; a
-// package added to the list since is what the next upgrade brings, and must not
-// read as a machine never installed — or that upgrade would never reach it.
+// Installed means dev exists, so a package added to the list since still reaches the machine on its next upgrade.
 func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 	if !user.Exists(ctx, User) {
 		return modules.Status{}, nil
@@ -81,11 +78,17 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 }
 
 func (Module) Install(ctx *modules.Context) error {
-	return sequence(ctx, repairDpkg, installPackages, createSwap, enableMemoryGuard, configureUnattendedUpgrades, enableUnattendedUpgrades, raiseSystemLimits)
+	return sequence(ctx,
+		repairDpkg, installPackages, createSwap, enableMemoryGuard,
+		configureUnattendedUpgrades, enableUnattendedUpgrades, raiseSystemLimits,
+	)
 }
 
 func (Module) Configure(ctx *modules.Context) error {
-	return sequence(ctx, setTimezone, createUser, grantSudo, prepareHome, seedAuthorizedKeys, createProjectsDir, setGitIdentity, writeZshrc, writeBashrc, writeTmuxConf, linkDev, installAgentUnit, installResumeUnit, rotateAgentLog)
+	return sequence(ctx,
+		setTimezone, createUser, grantSudo, prepareHome, seedAuthorizedKeys, createProjectsDir, setGitIdentity,
+		writeZshrc, writeBashrc, writeTmuxConf, linkDev, installAgentUnit, installResumeUnit, rotateAgentLog,
+	)
 }
 
 func (m Module) Upgrade(ctx *modules.Context) error {
@@ -123,6 +126,7 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 
 func versions(ctx *modules.Context) ([]string, error) {
 	held := make([]string, 0, len(Packages))
+
 	for _, pkg := range Packages {
 		version, err := apt.Version(ctx, pkg)
 		if err != nil {
@@ -135,7 +139,7 @@ func versions(ctx *modules.Context) ([]string, error) {
 	return held, nil
 }
 
-// The dev user, the packages, the swap and the memory guard stay: they hold the client's work and keep the machine healthy.
+// dev, the packages, the swap and the memory guard stay: they hold the client's work and keep the machine healthy.
 func (Module) Uninstall(ctx *modules.Context) error {
 	if err := removeFile(ctx, "revoke-sudo", sudoersPath); err != nil {
 		return err

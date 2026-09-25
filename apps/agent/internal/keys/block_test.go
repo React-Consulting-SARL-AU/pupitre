@@ -49,7 +49,6 @@ func TestFingerprintIsTheOpenSSHOne(t *testing.T) {
 	}
 }
 
-// A key added in the console opens the server; the client's own lines keep their place above and below.
 func TestSyncWritesTheBlockAndLeavesTheRestAlone(t *testing.T) {
 	fake, ctx := machine(t, own+"\n")
 
@@ -80,14 +79,12 @@ func TestSyncRewritesNothingWhenTheKeysAreUnchanged(t *testing.T) {
 	keys.Sync(ctx, keys.Target{Path: path, Owner: "dev"}, parse(t, laptop, desktop))
 	before := len(fake.Mutations)
 
-	// The platform answers in another order, and the same set must not touch the file again.
 	changed, err := keys.Sync(ctx, keys.Target{Path: path, Owner: "dev"}, parse(t, desktop, laptop, desktop))
 	if err != nil || changed || len(fake.Mutations) != before {
 		t.Fatalf("changed = %v, err = %v, mutations %d → %d", changed, err, before, len(fake.Mutations))
 	}
 }
 
-// A key withdrawn in the console stops opening the server, and only the block loses it.
 func TestSyncWithdrawsAKeyWithoutTouchingTheClientsOwn(t *testing.T) {
 	fake, ctx := machine(t, own+"\n")
 
@@ -144,7 +141,6 @@ func TestListedAnswersNothingWithoutABlock(t *testing.T) {
 	}
 }
 
-// dev owns authorized_keys and the daemon reads it as root: a link planted there must neither be read nor be copied into the file.
 func TestSyncRefusesALinkPlantedInPlaceOfTheFile(t *testing.T) {
 	fake, ctx := machine(t, "")
 	fake.Files["/etc/shadow"] = []byte("root:$6$hash\n")

@@ -43,6 +43,7 @@ func TestDearmorKeyLeavesOnlyTheKeyringBehind(t *testing.T) {
 	}
 
 	commands := strings.Join(fake.Commands(), "\n")
+
 	for _, want := range []string{
 		"-o " + keyring + ".asc " + keyURL,
 		"gpg --batch --with-colons --show-keys " + keyring + ".asc",
@@ -63,6 +64,7 @@ func TestDownloadKeyPinsTheTransportAndBoundsTheWait(t *testing.T) {
 	}
 
 	got := fake.Commands()[0]
+
 	for _, want := range []string{"curl -fsSL --proto =https --tlsv1.2 ", "--connect-timeout ", "--max-time ", "-o /etc/apt/keyrings/example.asc " + keyURL} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("curl argv = %q, want %q in it", got, want)
@@ -133,7 +135,7 @@ func TestEveryPinIsAFullFingerprint(t *testing.T) {
 	}
 }
 
-// Cloudflare's key file now holds only its 2025 key, while its InRelease is still signed by both: the rotation must pass, whichever key the file carries.
+// Cloudflare's file now holds only its 2025 key while InRelease is signed by both, so either key must pass.
 func TestCloudflaresRotatedKeyIsAccepted(t *testing.T) {
 	const url = "https://pkg.cloudflare.com/cloudflare-main.gpg"
 

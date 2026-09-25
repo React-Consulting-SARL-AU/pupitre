@@ -11,7 +11,7 @@ import (
 	"pupitre.studio/agent/internal/sys"
 )
 
-// A machine of two files. The shared fake lives under internal/modules, which reads this package: borrowing it here would be a cycle.
+// Its own fake: the shared one lives under internal/modules, which imports this package, so borrowing it would cycle.
 type machine struct {
 	files map[string][]byte
 }
@@ -73,7 +73,6 @@ func TestListeningReadsBothTables(t *testing.T) {
 		t.Errorf("22 is listening on IPv6, ports = %v", ports)
 	}
 
-	// An established connection is not a socket anyone is waiting on.
 	if ports[8080] {
 		t.Errorf("8080 is connected, not listening: %v", ports)
 	}

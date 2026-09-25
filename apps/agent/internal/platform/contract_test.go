@@ -33,7 +33,6 @@ func fullEnrollment() platform.Enrollment {
 	return platform.Enrollment{Token: "jeton-d-enrolement", HostPublicKey: "ssh-ed25519 AAAA root@vps", AgentVersion: "1.2.3", Arch: "amd64"}
 }
 
-// What the agent sends is held to the contract the platform validates it against, key by key.
 func TestEveryCallSendsWhatTheContractDeclares(t *testing.T) {
 	sent := map[string][]byte{}
 

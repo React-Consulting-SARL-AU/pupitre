@@ -10,9 +10,10 @@ import (
 )
 
 func RegisterCommands(server *protocol.Server, engine *modules.Engine) {
-	// The contract holds user to dev, the one account the fragment's AllowUsers names.
+	// No user param: the contract pins it to dev, the one account AllowUsers names.
 	server.Register("harden", func(ctx *protocol.Context, _ json.RawMessage) (any, error) {
 		var result Result
+
 		err := engine.Command(ID, modules.Emitter(ctx), func(mctx *modules.Context) error {
 			result = Harden(mctx)
 			return nil
@@ -28,6 +29,7 @@ func RegisterCommands(server *protocol.Server, engine *modules.Engine) {
 		var params struct {
 			User string `json:"user"`
 		}
+
 		if err := json.Unmarshal(raw, &params); err != nil {
 			return nil, protocol.NewError(contract.ErrorBadRequest, i18n.T("command.params.unreadable", err.Error()))
 		}
@@ -38,6 +40,7 @@ func RegisterCommands(server *protocol.Server, engine *modules.Engine) {
 		}
 
 		var result SudoResult
+
 		err := engine.Command(ID, modules.Emitter(ctx), func(mctx *modules.Context) error {
 			var err error
 			result, err = SetSudoPassword(mctx, params.User, hash)

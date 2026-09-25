@@ -15,7 +15,6 @@ func (onDisk) Sys() sys.Sys                         { return sys.Real{} }
 func (onDisk) Logf(string, ...any)                  {}
 func (onDisk) Once(_ string, fn func() error) error { return fn() }
 
-// The journals live in dev's home, where dev can plant a link at a project's folder or at a journal: root's marker must not follow either.
 func TestMarkNeverFollowsALinkPlantedInTheJournals(t *testing.T) {
 	if os.Geteuid() == 0 {
 		t.Skip("a link planted by root is one root may follow")

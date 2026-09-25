@@ -16,7 +16,7 @@ import (
 	"pupitre.studio/agent/internal/s3"
 )
 
-// The identity of the backup fixtures: what "correct horse battery staple" derives with this salt.
+// The keys that the passphrase "correct horse battery staple" derives with this salt.
 const (
 	stagingRecipient = "A10gydBSR5g4m/L8q8Msuz7sSJNSPyytp4QgelrXxEw="
 	stagingSalt      = "lneDgZnxLTb17pcdSfaKvA=="
@@ -24,7 +24,6 @@ const (
 	stagingNotes     = "pupitre-staging-notes"
 )
 
-// bucket is the client's bucket for this run: a real one, R2 or AWS, named by the environment and skipped without it.
 type bucket struct {
 	endpoint, region, name, accessKey, secretKey string
 }
@@ -62,7 +61,7 @@ func (b bucket) secrets(private bool) string {
 	return string(encoded)
 }
 
-// location carries the manifest's digest as the platform records it: a restore refuses a location without one.
+// A restore refuses a location without the manifest's digest, which the platform would have recorded.
 func (b bucket) location(t *testing.T, key string) contract.BackupLocation {
 	t.Helper()
 
@@ -79,12 +78,13 @@ func (b bucket) location(t *testing.T, key string) contract.BackupLocation {
 	if _, err := io.Copy(hasher, body); err != nil {
 		t.Fatalf("manifest of %s: %v", key, err)
 	}
+
 	location.SHA256 = hex.EncodeToString(hasher.Sum(nil))
 
 	return location
 }
 
-// A server the platform has not named yet has no prefix to back up under: the test names it when it must.
+// A backup's prefix comes from server.id, which a server the platform has not enrolled yet lacks.
 func namedServer(t *testing.T, host string) {
 	t.Helper()
 
@@ -94,6 +94,7 @@ func namedServer(t *testing.T, host string) {
 
 	command := sshCommand(host, "sudo", "-n", "tee", "/etc/pupitre/server.id")
 	command.Stdin = strings.NewReader("staging-server\n")
+
 	if out, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("server.id: %v\n%s", err, out)
 	}
@@ -102,6 +103,7 @@ func namedServer(t *testing.T, host string) {
 func TestABackupLeavesTheServerSealedAndComesBack(t *testing.T) {
 	host := stagingHost(t)
 	store := stagingBucket(t)
+
 	namedServer(t, host)
 
 	ssh(t, host, "sudo", "-n", "-u", "dev", "mkdir", "-p", "/home/dev/"+stagingNotes)
@@ -133,6 +135,7 @@ func TestABackupLeavesTheServerSealedAndComesBack(t *testing.T) {
 	}
 
 	pathKey := ""
+
 	for _, part := range made.Parts {
 		if part.Kind == contract.BackupPartPath {
 			pathKey = part.Key

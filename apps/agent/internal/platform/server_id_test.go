@@ -28,7 +28,6 @@ func TestAServerIDOutsideTheContractIsNeverWritten(t *testing.T) {
 	}
 }
 
-// Approvals are checked against the stored id: a platform that renames the server would redirect every one of them.
 func TestTheStoredServerIDIsNeverReplacedByTheState(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	platform.SaveServerID(fake, "", firstServer)

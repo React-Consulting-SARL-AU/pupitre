@@ -42,7 +42,7 @@ type container struct {
 	} `json:"NetworkSettings"`
 }
 
-// openNetworks are read from dockerd, not daemon.json: a network keeps the options it was created with, and an option left unset is 0.0.0.0, which also means [::].
+// Read from dockerd, not daemon.json: a network keeps its creation options, and an unset binding means 0.0.0.0 and [::].
 func openNetworks(ctx *modules.Context) []network {
 	var listed []network
 	if !inspect(ctx, []string{"docker", "network", "ls", "--quiet", "--filter", "driver=bridge"}, []string{"docker", "network", "inspect"}, &listed) {
@@ -50,6 +50,7 @@ func openNetworks(ctx *modules.Context) []network {
 	}
 
 	var open []network
+
 	for _, candidate := range listed {
 		if !loopback(candidate.Options[hostBindingOption]) {
 			open = append(open, candidate)
@@ -59,7 +60,7 @@ func openNetworks(ctx *modules.Context) []network {
 	return open
 }
 
-// openContainers name the running containers whose port, asked without an address, is bound off the loopback; one published on 0.0.0.0 by name was meant to be.
+// Only ports published without an address count: one published on 0.0.0.0 explicitly was meant to be open.
 func openContainers(ctx *modules.Context) []string {
 	var running []container
 	if !inspect(ctx, []string{"docker", "ps", "--quiet"}, []string{"docker", "inspect"}, &running) {
@@ -67,6 +68,7 @@ func openContainers(ctx *modules.Context) []string {
 	}
 
 	var open []string
+
 	for _, candidate := range running {
 		if addresses := defaultBound(candidate); len(addresses) > 0 {
 			open = append(open, strings.TrimPrefix(candidate.Name, "/")+" ("+strings.Join(addresses, ", ")+")")
@@ -95,7 +97,6 @@ func defaultBound(candidate container) []string {
 	return addresses
 }
 
-// inspect lists ids with one command and describes them with another; a daemon that does not answer has nothing to report.
 func inspect(ctx *modules.Context, list, describe []string, into any) bool {
 	out, err := ctx.Sys().Run(sys.Command{Argv: list})
 	if err != nil {
@@ -130,6 +131,7 @@ func publishedWarning(networks []network, containers []string) string {
 
 	if len(networks) > 0 {
 		names := make([]string, 0, len(networks))
+
 		for _, open := range networks {
 			names = append(names, open.Name)
 		}

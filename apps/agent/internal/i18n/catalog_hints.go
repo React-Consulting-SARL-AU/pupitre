@@ -1,6 +1,5 @@
 package i18n
 
-// The long form of a field's help, shown behind a bubble: where a value is found, and what it costs to get it wrong.
 var hintCatalog = map[string]Message{
 	"module.core.system.timezone.hint": {
 		FR: "Le fuseau du serveur, au format IANA : Europe/Paris, America/New_York, Africa/Casablanca. Il décide de l'heure des logs, des tâches planifiées et des horodatages des projets. « timedatectl list-timezones » donne la liste complète sur une machine Ubuntu.",

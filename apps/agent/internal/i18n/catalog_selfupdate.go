@@ -1,6 +1,5 @@
 package i18n
 
-// The agent's self-update: what a refusal says, and the fix that comes with it.
 var selfupdateCatalog = map[string]Message{
 	"selfupdate.signature.bad": {
 		FR: "le binaire de la version %s ne correspond pas à sa signature : rien n'a été installé",
@@ -55,8 +54,8 @@ var selfupdateCatalog = map[string]Message{
 		EN: "the platform refuses this server's token: %s",
 	},
 	"selfupdate.token.refused.fix": {
-		FR: "Ouvrez https://app.pupitre.studio pour rétablir l'abonnement de ce serveur.",
-		EN: "Open https://app.pupitre.studio to restore this server's usage right.",
+		FR: "Ouvrez %s pour rétablir l'abonnement de ce serveur.",
+		EN: "Open %s to restore this server's usage right.",
 	},
 	"selfupdate.download.failed": {
 		FR: "téléchargement impossible : %s",

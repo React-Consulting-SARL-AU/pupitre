@@ -18,6 +18,7 @@ func enumOf(t *testing.T, definition string, path ...string) []string {
 		if err := json.Unmarshal(node[key], &next); err != nil {
 			t.Fatalf("decode %s/%s: %v", definition, key, err)
 		}
+
 		node = next
 	}
 
@@ -44,15 +45,18 @@ func assertSameSet(t *testing.T, label string, got, want []string) {
 	t.Helper()
 
 	wanted := map[string]bool{}
+
 	for _, value := range want {
 		wanted[value] = true
 	}
 
 	seen := map[string]bool{}
+
 	for _, value := range got {
 		if !wanted[value] {
 			t.Errorf("%s: Go declares %q, schema.json does not", label, value)
 		}
+
 		seen[value] = true
 	}
 
@@ -65,6 +69,7 @@ func assertSameSet(t *testing.T, label string, got, want []string) {
 
 func TestErrorCodesMatchSchema(t *testing.T) {
 	codes := make([]string, 0, len(ErrorCodes))
+
 	for _, code := range ErrorCodes {
 		codes = append(codes, string(code))
 	}
@@ -74,6 +79,7 @@ func TestErrorCodesMatchSchema(t *testing.T) {
 
 func TestEntitlementsMatchSchema(t *testing.T) {
 	values := make([]string, 0, len(Entitlements))
+
 	for _, entitlement := range Entitlements {
 		values = append(values, string(entitlement))
 	}

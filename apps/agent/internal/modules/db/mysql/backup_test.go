@@ -47,6 +47,7 @@ func TestTheHandMadeAccountsAreCarriedWithTheirDigestsAndTheirGrants(t *testing.
 	}
 
 	listing := fake.Commands()[0]
+
 	for _, kept := range []string{"'root'", "'mysql.sys'", "'debian-sys-maint'", "'app'", "'dev'"} {
 		if !strings.Contains(listing, kept) {
 			t.Fatalf("%s is the server's or the module's, never carried: %s", kept, listing)

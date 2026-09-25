@@ -13,10 +13,9 @@ const (
 	DefaultTolerance = 7 * 24 * time.Hour
 )
 
-// enroll is admitted because it is the gesture that repairs a restricted server, and a token the platform signs for an authenticated account opens nothing that account could not already obtain.
+// enroll stays open: it repairs a restricted server and grants nothing the account could not already get.
 var RestrictedCommands = contract.Enum("RestrictedCommands")
 
-// A binary copied onto a server that was never enrolled has no state to show and no server to upgrade: it says who it is, answers a ping, hands out a diagnostic, and takes the enrolment that gives it a server.
 var UnenrolledCommands = contract.Enum("UnenrolledCommands")
 
 type State struct {
@@ -40,7 +39,6 @@ func (s State) Allows(cmd string) bool {
 	return true
 }
 
-// A fixed entitlement, for the callers that already hold one rather than resolving it from the disk.
 func Fixed(granted contract.Entitlement) func() State {
 	return func() State { return State{Entitlement: granted, Enrolled: true} }
 }
@@ -75,7 +73,7 @@ type Options struct {
 	Tolerance time.Duration
 }
 
-// The entitlement as the machine alone can tell it: the token on its disk and the last answer of the platform, never the network.
+// Resolved from disk alone, the token and the platform's last answer, never the network.
 type Resolver struct {
 	options Options
 }
@@ -126,7 +124,6 @@ func (r *Resolver) Remember(state platform.State) error {
 	})
 }
 
-// Suspend writes down what a revocation means: no usage right, as of now.
 func (r *Resolver) Suspend() error {
 	return WriteCache(r.options.Sys, r.options.CachePath, Cache{
 		State:     platformSuspended,

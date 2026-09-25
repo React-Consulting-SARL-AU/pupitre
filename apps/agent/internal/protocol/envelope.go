@@ -28,9 +28,7 @@ type Context struct {
 	channel context.Context
 }
 
-// Channel is done once the session that carried the command is cut: its
-// standard input closed, or a write refused. A command that must outlive the
-// channel simply never asks.
+// A command that must outlive the session simply never consults it.
 func (c *Context) Channel() context.Context {
 	if c.channel == nil {
 		return context.Background()

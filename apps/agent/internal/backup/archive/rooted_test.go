@@ -20,7 +20,7 @@ func openRoot(t *testing.T, dir string) *os.Root {
 	return scoped
 }
 
-// A restore runs as root in dev's home: every step of a swap is taken under the home, so a folder dev turned into a link out of it is refused.
+// Root restores in dev's home: a folder on the way that dev turned into an outward link must be refused.
 func TestSwapStaysUnderItsRootWhenAFolderOnTheWayIsALink(t *testing.T) {
 	home := t.TempDir()
 	outside := t.TempDir()
@@ -55,7 +55,7 @@ func TestSwapStaysUnderItsRootWhenAFolderOnTheWayIsALink(t *testing.T) {
 	}
 }
 
-// The staging folder is dev's: swapped for a link out of the home after it was made, it must not take the extraction with it.
+// The staging folder is dev's: swapped for an outward link after creation, it must not carry the extraction out.
 func TestExtractInRefusesAStagingFolderSwappedForALink(t *testing.T) {
 	home := t.TempDir()
 	outside := t.TempDir()

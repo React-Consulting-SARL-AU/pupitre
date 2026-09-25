@@ -1,6 +1,5 @@
 package i18n
 
-// The configuration migrations: what a refusal says, what the ledger prints.
 var migrateCatalog = map[string]Message{
 	"migrate.required.pending": {
 		FR: "la configuration de ce serveur est en révision %d, cet agent en attend %d",

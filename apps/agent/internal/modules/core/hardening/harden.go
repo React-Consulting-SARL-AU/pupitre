@@ -29,12 +29,11 @@ func rootStays(reason string) Result {
 	return Result{NextUser: "root", Reason: reason}
 }
 
-// Root kept is a choice, not a failure: the fragment went in, and it left root a way back by key.
 func hardened(keepRoot bool, name string) Result {
 	return Result{RootClosed: !keepRoot, RootKept: keepRoot, NextUser: name}
 }
 
-// Root closes last, and only once a key opens dev; any failure after the fragment is written puts the previous configuration back.
+// Root closes last, only once a key opens dev; any failure after the fragment is written restores the previous one.
 func Harden(ctx *modules.Context) Result {
 	name := User
 	keepRoot := options(ctx).KeepRoot
@@ -47,6 +46,7 @@ func Harden(ctx *modules.Context) Result {
 	if err != nil {
 		return rootStays(err.Error())
 	}
+
 	if reason != "" {
 		return rootStays(reason)
 	}
@@ -55,6 +55,7 @@ func Harden(ctx *modules.Context) Result {
 	if err != nil {
 		return rootStays(err.Error())
 	}
+
 	if !changed {
 		return hardened(keepRoot, name)
 	}
@@ -83,8 +84,7 @@ func Harden(ctx *modules.Context) Result {
 		return rootStays(i18n.T("harden.sshd.reload.failed", message(err)))
 	}
 
-	// sshd -t only proves the files parse: an image whose sshd_config carries no
-	// Include reads none of them, and root would be called closed while open.
+	// sshd -t only proves the files parse: an sshd_config without Include would leave root open.
 	if err := confirmSSHD(ctx, keepRoot, name); err != nil {
 		revertFragment(ctx, previous)
 
@@ -98,7 +98,7 @@ func Harden(ctx *modules.Context) Result {
 	return hardened(keepRoot, name)
 }
 
-// The previous fragment is back on disk, but sshd still runs on the refused one until it reloads again; that second reload is best effort, and its outcome is what the reader is told.
+// sshd runs the refused fragment until a second reload: best effort, and its outcome is what the reader is told.
 func restoreSSHD(ctx *modules.Context) error {
 	var again error
 
@@ -121,6 +121,7 @@ func confirmSSHD(ctx *modules.Context, keepRoot bool, name string) error {
 		}
 
 		effective := effectiveConfig(out.Stdout)
+
 		rootLogin := "no"
 		if keepRoot {
 			rootLogin = "prohibit-password"
@@ -151,6 +152,7 @@ func rootLoginOf(values []string) string {
 // sshd -T prints one keyword per line, lowercased, a list keyword once per value.
 func effectiveConfig(dump string) map[string][]string {
 	effective := map[string][]string{}
+
 	for _, line := range strings.Split(dump, "\n") {
 		key, value, found := strings.Cut(strings.TrimSpace(line), " ")
 		if found {
@@ -182,6 +184,7 @@ func checkAuthorizedKeys(ctx *modules.Context, name string) (string, error) {
 		}
 
 		parsed := keys.Parse(raw)
+
 		for _, line := range parsed.Malformed {
 			ctx.Logf("%s: line %d unreadable, ignored", path, line)
 		}
@@ -204,9 +207,7 @@ func checkAuthorizedKeys(ctx *modules.Context, name string) (string, error) {
 	return reason, err
 }
 
-// StrictModes, on by default, makes sshd ignore an authorized_keys whose
-// directory or file another user owns or anyone else can write: the key would
-// parse here and open nothing once root is closed.
+// StrictModes makes sshd ignore keys another user owns or can write: they would parse here and open nothing.
 func untrustedByStrictModes(ctx *modules.Context, name string) string {
 	home := user.Home(name)
 
@@ -267,7 +268,7 @@ func revertFragment(ctx *modules.Context, previous []byte) {
 	})
 }
 
-// Ubuntu 22.10+ activates sshd through ssh.socket, whose ports come from a generator run at daemon-reload; the socket and the service restart together, existing sessions survive (KillMode=process).
+// From Ubuntu 22.10 ssh.socket's ports come from a generator run at daemon-reload; KillMode=process keeps sessions.
 func reloadSSHD(ctx *modules.Context) error {
 	if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"systemctl", "daemon-reload"}}); err != nil {
 		return err

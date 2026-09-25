@@ -10,21 +10,20 @@ import (
 	"pupitre.studio/agent/internal/sys/file"
 )
 
-// Record is /var/lib/pupitre/backup.json: where the backups of this server stand, and what the platform has not been told yet.
 type Record struct {
 	RunningSince string `json:"running_since,omitempty"`
-	// RunningPID is the process the backup runs in: one that is gone left RunningSince behind as it crashed.
+	// A dead PID means the process crashed and left RunningSince behind.
 	RunningPID int                          `json:"running_pid,omitempty"`
 	LastRunAt  string                       `json:"last_run_at,omitempty"`
 	LastOKAt   string                       `json:"last_ok_at,omitempty"`
 	LastError  string                       `json:"last_error,omitempty"`
 	Last       *Last                        `json:"last,omitempty"`
 	Pending    []contract.BackupDeclaration `json:"pending_declarations"`
-	// Forgotten are the backups pruned from the bucket whose reference the platform still holds.
+	// Pruned from the bucket, but the platform still holds their reference.
 	Forgotten []string `json:"pending_forgets,omitempty"`
 }
 
-// Last is the last backup that went through: what the next one copies inside the bucket when a part has not changed.
+// What the next backup copies inside the bucket when a part has not changed.
 type Last struct {
 	ID        string                `json:"id"`
 	Key       string                `json:"key"`
@@ -36,7 +35,7 @@ type Last struct {
 	Warnings  []string              `json:"warnings,omitempty"`
 }
 
-// A record that does not read is an empty one: it only ever says what happened, never what may be done.
+// An unreadable record is an empty one: it only ever says what happened, never what may be done.
 func (s *Service) record(ctx sys.Context) Record {
 	raw, err := ctx.Sys().ReadFile(s.paths.State)
 	if err != nil {
@@ -44,6 +43,7 @@ func (s *Service) record(ctx sys.Context) Record {
 	}
 
 	var record Record
+
 	if err := json.Unmarshal(raw, &record); err != nil {
 		ctx.Logf("%s unreadable, taken as empty: %v", s.paths.State, err)
 
@@ -70,15 +70,14 @@ func (r Record) lastRun() time.Time {
 	return at
 }
 
-// Marker is /var/lib/pupitre/restore.json: a restore under way, since which backup, and how to take it back.
 type Marker struct {
 	ID        string                  `json:"id"`
 	Location  contract.BackupLocation `json:"location"`
 	Revert    bool                    `json:"revert"`
 	StartedAt string                  `json:"started_at"`
-	// Installed is the digest of install.json as the restore left it: another one says an install has happened since, none that the setup never finished.
+	// install.json's digest as the restore left it: another means an install ran since, empty that setup never finished.
 	Installed string `json:"installed"`
-	// Before names the configuration files the machine held before the restore, kept under the staging folder.
+	// Config files held before the restore, copied under the staging folder.
 	Before []string `json:"before"`
 }
 
@@ -89,6 +88,7 @@ func (s *Service) marker(ctx sys.Context) (Marker, bool) {
 	}
 
 	var marker Marker
+
 	if err := json.Unmarshal(raw, &marker); err != nil {
 		return Marker{}, false
 	}

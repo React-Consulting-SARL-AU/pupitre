@@ -12,7 +12,6 @@ import (
 	"pupitre.studio/agent/internal/state"
 )
 
-// The Turborepo of testdata, laid down under the projects root of the fake machine as if it had been cloned there.
 func monorepoFixture(t *testing.T) (*modtest.FakeSys, *state.Reader) {
 	t.Helper()
 
@@ -47,7 +46,6 @@ func monorepoFixture(t *testing.T) (*modtest.FakeSys, *state.Reader) {
 	return fake, reader
 }
 
-// One command at the root, one route per workspace that names a port: the label is the workspace's name without its scope, the port the one it asks for when the server has it free.
 func TestDetectReadsATurborepoAsOneProjectWithSeveralPorts(t *testing.T) {
 	_, reader := monorepoFixture(t)
 
@@ -66,12 +64,12 @@ func TestDetectReadsATurborepoAsOneProjectWithSeveralPorts(t *testing.T) {
 		t.Fatalf("unexpected detection: %+v", detected)
 	}
 
-	// One host per project: the first workspace that freezes a .localhost name gives it, and here only web does.
+	// One host per project: the first workspace freezing a .localhost name gives it, and only web does.
 	if detected.HostHint != "atlas.localhost" {
 		t.Fatalf("host hint = %q, want atlas.localhost", detected.HostHint)
 	}
 
-	// The folders come in name order; web asks for 3000, which the declared project of the fixture holds, so the next free port is proposed instead.
+	// Folders come in name order; web's 3000 is held by the fixture's declared project, so 3003 is proposed.
 	want := []contract.DetectedRoute{{Label: "api", Port: 3001}, {Label: "docs", Port: 3002}, {Label: "web", Port: 3003}}
 	if len(detected.Routes) != len(want) {
 		t.Fatalf("routes = %+v, want %+v", detected.Routes, want)
@@ -87,7 +85,6 @@ func TestDetectReadsATurborepoAsOneProjectWithSeveralPorts(t *testing.T) {
 	}
 }
 
-// A workspace without a start script, or whose script names no port, is a library: it gets no route.
 func TestDetectSkipsTheWorkspacesThatDoNotListen(t *testing.T) {
 	_, reader := monorepoFixture(t)
 
@@ -104,7 +101,6 @@ func TestDetectSkipsTheWorkspacesThatDoNotListen(t *testing.T) {
 	}
 }
 
-// Two ports asked for twice are given once: the second workspace on 3001 takes the next free port.
 func TestDetectGivesEachWorkspaceItsOwnPort(t *testing.T) {
 	fake, reader := monorepoFixture(t)
 	fake.Files["/home/dev/projects/candidate/apps/api/package.json"] = []byte(`{"name":"@atlas/api","scripts":{"start":"node server.js -p 3002"}}`)
@@ -116,6 +112,7 @@ func TestDetectGivesEachWorkspaceItsOwnPort(t *testing.T) {
 	detected := only(t, whole)
 
 	ports := map[int]string{}
+
 	for _, route := range detected.Routes {
 		if holder, taken := ports[route.Port]; taken {
 			t.Fatalf("%s and %s share port %d: %+v", holder, route.Label, route.Port, detected.Routes)
@@ -141,7 +138,6 @@ func TestDetectReadsTheWorkspacesOfPnpm(t *testing.T) {
 	}
 }
 
-// Without turbo.json the root is an ordinary project, whatever its workspaces say: one command, one port.
 func TestDetectDoesNotReadWorkspacesWithoutTurbo(t *testing.T) {
 	fake, reader := monorepoFixture(t)
 	delete(fake.Files, "/home/dev/projects/candidate/turbo.json")

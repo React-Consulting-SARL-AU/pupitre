@@ -11,7 +11,6 @@ import (
 	"pupitre.studio/agent/internal/tmux"
 )
 
-// The machine, the services and the projects in one round trip: two calls a second over SSH would cost twice one, for the same information.
 func (r *Reader) Snapshot() contract.Snapshot {
 	table := r.processes()
 	collected := r.collect()
@@ -48,7 +47,7 @@ func (r *Reader) ServiceStatus(id string) (contract.ServiceStatus, error) {
 	service := status.Service(module.Manifest())
 	service.Configured = !slices.Contains(r.deferred(), id)
 
-	// The CLI's own sign-in check is worth a round trip here, for one module the reader opened — never in a snapshot.
+	// The CLI sign-in check costs a round trip: worth it for one module, never in a snapshot.
 	if account, signs := module.(modules.Account); signs {
 		if login, asked := account.Login(r.moduleContext(module)); asked {
 			service.Login = &login
@@ -80,11 +79,7 @@ func (r *Reader) moduleContext(module modules.Module) *modules.Context {
 	})
 }
 
-// Credentials name the keys of /etc/pupitre/env, never their values, and even those belong to service.status alone.
-//
-// Configured is not a module's own verdict: a module can only say what sits on
-// the disk, and drift from an upgrade would read as questions nobody answered.
-// It says whether the requests so far left the module for later.
+// Configured comes from the deferred list, not the module: upgrade drift would read as questions nobody answered.
 func (r *Reader) services(withCredentials bool) []contract.ServiceStatus {
 	services := []contract.ServiceStatus{}
 	if r.options.Registry == nil {
@@ -126,6 +121,7 @@ func (r *Reader) list(collected tmux.Collection, table processTable) []contract.
 	branches := map[string]string{}
 
 	projects := make([]contract.Project, 0, len(file.Projects))
+
 	for _, declared := range file.Projects {
 		project := declared.Contract(r.options.Paths.Resolved().Projects)
 
@@ -140,7 +136,8 @@ func (r *Reader) list(collected tmux.Collection, table processTable) []contract.
 
 		project.State = aggregate(project.Processes)
 		project.URL = url(declared)
-		// The registry's branch stands until there is a working tree to read: a project cloned on release/2.0 says so before its first clone.
+
+		// The registry's branch stands until there is a working tree to read HEAD from.
 		if head := r.branch(branches, declared); head != "" {
 			project.Branch = head
 		}
@@ -151,10 +148,10 @@ func (r *Reader) list(collected tmux.Collection, table processTable) []contract.
 	return projects
 }
 
-// A project's state is read off its processes, the worst first: one failed process is a failed project, one starting is a starting one, all online is online, some online is partial. Services do not count as ours, but a project of nothing else is a service.
 func aggregate(processes []contract.ProjectProcess) contract.ProjectState {
 	counted := map[contract.ProcessState]int{}
 	ours := 0
+
 	for _, process := range processes {
 		counted[process.State]++
 		if process.State != contract.ProcessService && process.State != contract.ProcessDown {
@@ -174,6 +171,7 @@ func aggregate(processes []contract.ProjectProcess) contract.ProjectState {
 	}
 
 	up := counted[contract.ProcessOnline] + counted[contract.ProcessExternal]
+
 	switch {
 	case up == ours && counted[contract.ProcessExternal] == ours:
 		return contract.ProjectExternal
@@ -186,7 +184,7 @@ func aggregate(processes []contract.ProjectProcess) contract.ProjectState {
 	return contract.ProjectStopped
 }
 
-// Read from .git/HEAD rather than by launching git: git takes ten milliseconds just to start, and several projects share one repository.
+// Reads .git/HEAD instead of spawning git, which takes ten milliseconds just to start.
 func (r *Reader) branch(cache map[string]string, project registry.Project) string {
 	projects := r.options.Paths.Resolved().Projects
 

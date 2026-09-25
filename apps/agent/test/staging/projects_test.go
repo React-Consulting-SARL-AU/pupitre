@@ -28,7 +28,7 @@ const vitePackageJSON = `{
 
 const viteIndexHTML = `<!doctype html><title>fixture</title><h1>fixture</h1>`
 
-// A repository of fixture, laid down over ssh: the agent clones nothing here, and the folder leaves with the next reinstall.
+// Left in place on purpose: the folder goes with the next VPS reinstall.
 func writeViteFixture(t *testing.T, host string) {
 	t.Helper()
 
@@ -43,6 +43,7 @@ func write(t *testing.T, host, path, content string) {
 
 	cmd := sshCommand(host, "sh", "-c", "'cat > "+path+"'")
 	cmd.Stdin = strings.NewReader(content)
+
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("writing %s on %s: %v\n%s", path, host, err, out)
 	}
@@ -94,6 +95,7 @@ func cleanup(t *testing.T, host, name string) {
 
 func TestAViteProjectGoesFromAddedToOnlineAndBack(t *testing.T) {
 	host := stagingHost(t)
+
 	writeViteFixture(t, host)
 	cleanup(t, host, viteProject)
 
@@ -102,7 +104,7 @@ func TestAViteProjectGoesFromAddedToOnlineAndBack(t *testing.T) {
 	if declared.State != contract.ProjectStopped || len(declared.Processes) != 1 || declared.Processes[0].Install != "bun install" {
 		t.Fatalf("unexpected registration: %+v", declared)
 	}
-	// The fixture declares no repository: an unversioned project carries its folder like any other.
+
 	if declared.Path != "/home/dev/projects/"+viteProject {
 		t.Fatalf("unexpected path: %+v", declared)
 	}
@@ -129,7 +131,6 @@ func TestAViteProjectGoesFromAddedToOnlineAndBack(t *testing.T) {
 		t.Fatalf("project.logs must return the dev server's own output:\n%s", strings.Join(logs.Lines, "\n"))
 	}
 
-	// What is up is written down for the boot that follows, and forgotten by the stop.
 	if record := ssh(t, host, "cat", "/var/lib/pupitre/projects.running.json"); !strings.Contains(record, `"`+viteProject+`/web"`) {
 		t.Fatalf("a started window must be recorded for the next boot:\n%s", record)
 	}
@@ -140,14 +141,15 @@ func TestAViteProjectGoesFromAddedToOnlineAndBack(t *testing.T) {
 	if listening := ssh(t, host, "ss", "-ltn"); strings.Contains(listening, fmt.Sprintf(":%d", vitePort)) {
 		t.Fatalf("the port must be free once the project is down:\n%s", listening)
 	}
+
 	if record := ssh(t, host, "cat", "/var/lib/pupitre/projects.running.json"); strings.Contains(record, viteProject+"/web") {
 		t.Fatalf("a stopped window must leave the record:\n%s", record)
 	}
 }
 
-// The boot's own unit is on the machine and wired: what the record names comes back without anyone opening the app.
 func TestTheResumeUnitIsInstalledAndReplaysTheRecord(t *testing.T) {
 	host := stagingHost(t)
+
 	writeViteFixture(t, host)
 	cleanup(t, host, viteProject)
 
@@ -160,7 +162,7 @@ func TestTheResumeUnitIsInstalledAndReplaysTheRecord(t *testing.T) {
 	agent(t, host, request{Cmd: "project.up", Params: map[string]any{"name": viteProject}})
 	waitFor(t, host, viteProject, contract.ProjectOnline, 30*time.Second)
 
-	// A killed tmux server is what a boot leaves behind: the record still names the window, and the unit brings it back.
+	// Killing the tmux server stands in for a reboot: the record still names the window for the unit to bring back.
 	ssh(t, host, "sudo", "-n", "-u", "dev", "tmux", "kill-server")
 	waitFor(t, host, viteProject, contract.ProjectStopped, 15*time.Second)
 
@@ -177,9 +179,10 @@ const (
 	detectCache  = "/home/dev/.cache/pupitre/detect"
 )
 
-// A remote the server itself carries: staging never reaches the Internet, and a bare repository over ssh is a remote like any other.
+// The origin is a bare repository on the server itself because staging never reaches the Internet.
 func TestDetectReadsARepositoryWithoutInstallingIt(t *testing.T) {
 	host := stagingHost(t)
+
 	writeViteFixture(t, host)
 
 	ssh(t, host, "rm", "-rf", detectOrigin, detectSeed)
@@ -256,8 +259,9 @@ func TestSnapshotAnswersUnderThreeHundredMillisecondsWithTenProjects(t *testing.
 		t.Fatalf("got %d projects, want at least the ten of the fixture", len(snapshot.Projects))
 	}
 
-	// The first call warms the page cache of /proc and the tmux server; the dashboard reads every three seconds, never once.
+	// The call above warmed /proc and the tmux server, as the dashboard's 3-second polling always has.
 	slowest := time.Duration(0)
+
 	for range 5 {
 		elapsed := timed(t, "snapshot", func() { snapshotOf(t, host) })
 		if elapsed > slowest {
@@ -272,6 +276,7 @@ func TestSnapshotAnswersUnderThreeHundredMillisecondsWithTenProjects(t *testing.
 
 func TestTwoProjectsOnTheSamePortAreRefusedWithAFix(t *testing.T) {
 	host := stagingHost(t)
+
 	cleanup(t, host, "fixture-first")
 	cleanup(t, host, "fixture-twin")
 
@@ -286,6 +291,7 @@ func TestTwoProjectsOnTheSamePortAreRefusedWithAFix(t *testing.T) {
 	if failure.Code != contract.ErrorBadRequest {
 		t.Fatalf("got %s", failure.Code)
 	}
+
 	if !strings.Contains(failure.Message, "fixture-first") || failure.Fix == "" {
 		t.Fatalf("the refusal must name the holder and carry a fix: %+v", failure)
 	}
@@ -299,6 +305,7 @@ func TestTwoProjectsOnTheSamePortAreRefusedWithAFix(t *testing.T) {
 
 func TestTheRegistryOfTheRepositoryIsNeverRewritten(t *testing.T) {
 	host := stagingHost(t)
+
 	cleanup(t, host, "fixture-local")
 
 	before := ssh(t, host, "cat", "/etc/pupitre/projects.conf")
@@ -317,6 +324,7 @@ func TestTheRegistryOfTheRepositoryIsNeverRewritten(t *testing.T) {
 	if !strings.Contains(string(removed.Result), "fixture-local") {
 		t.Fatalf("project.remove must report the folder it leaves behind: %s", removed.Result)
 	}
-	// ssh fails the test on a non-zero exit: the folder must still be there for project.remove to have kept its word.
+
+	// ssh fails the test on a non-zero exit: project.remove must have kept the folder.
 	ssh(t, host, "ls", "-d", "/home/dev/projects/fixture-local")
 }

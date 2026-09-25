@@ -18,10 +18,8 @@ import (
 	"pupitre.studio/agent/internal/s3"
 )
 
-// A probe of the bucket answers within this, or the endpoint is not one to back up to.
 const probeTimeout = 30 * time.Second
 
-// Settings is what the module holds for whoever backs up: the bucket, whom to seal for, what to carry and when.
 type Settings struct {
 	Endpoint        string
 	Region          string
@@ -39,7 +37,7 @@ type Settings struct {
 	Home            bool
 	Projects        string
 	ExtraPaths      []string
-	// What the settings leave out, by name: everything else goes, what appears later included.
+	// Exclusions by name, so a project or database created later is backed up by default.
 	ExcludeProjects  []string
 	ExcludeDatabases []string
 }
@@ -48,12 +46,11 @@ func (s Settings) LeavesOutProject(name string) bool {
 	return slices.Contains(s.ExcludeProjects, name)
 }
 
-// LeavesOutDatabase takes a database as the settings name it: `engine:name`, `redis:*` for the snapshot.
+// item is `engine:name`, or `redis:*` for the Redis snapshot.
 func (s Settings) LeavesOutDatabase(item string) bool {
 	return slices.Contains(s.ExcludeDatabases, item)
 }
 
-// Read takes the module's values as install.json holds them, every number brought back within its bounds.
 func Read(ctx *modules.Context) Settings {
 	settings := Settings{
 		Endpoint:         strings.TrimSpace(ctx.String("endpoint")),
@@ -79,6 +76,7 @@ func Read(ctx *modules.Context) Settings {
 	if settings.Region == "" {
 		settings.Region = DefaultRegion
 	}
+
 	if settings.Prefix == "" {
 		settings.Prefix = DefaultPrefix
 	}
@@ -86,7 +84,6 @@ func Read(ctx *modules.Context) Settings {
 	return settings
 }
 
-// The form asks two questions; a backup reads one mode.
 func projectsMode(carried, envOnly bool) string {
 	switch {
 	case !carried:
@@ -106,7 +103,6 @@ func within(value, least, most, fallback int) int {
 	return value
 }
 
-// Configured says whether there is a bucket to write to and a key to seal for.
 func (s Settings) Configured() bool {
 	return Addressable(s.Endpoint, s.Bucket, s.Region) && s.AccessKeyID != "" && s.SecretAccessKey != "" && s.Recipient != "" && s.Salt != ""
 }
@@ -117,7 +113,7 @@ var (
 	regionPattern   = regexp.MustCompile(contract.Backup.RegionPattern)
 )
 
-// Addressable says whether a bucket is one to send backups to: over HTTPS only, whatever a hand-edited install.json says.
+// Rechecked here so a hand-edited install.json cannot aim backups at a non-HTTPS endpoint.
 func Addressable(endpoint, bucket, region string) bool {
 	return endpointPattern.MatchString(endpoint) && bucketPattern.MatchString(bucket) && regionPattern.MatchString(region)
 }
@@ -133,12 +129,10 @@ func (s Settings) Client() s3.Client {
 	}
 }
 
-// ServerPrefix is where this server's backups lie in the bucket, a slash at the end.
 func (s Settings) ServerPrefix(serverID string) string {
 	return s.Prefix + "/" + serverID + "/"
 }
 
-// Probe proves the bucket takes this server's backups: it answers, and an object written under the server's prefix can be deleted again.
 func Probe(ctx context.Context, client s3.Client, prefix string) error {
 	bounded, cancel := context.WithTimeout(ctx, probeTimeout)
 	defer cancel()
@@ -160,7 +154,6 @@ func Probe(ctx context.Context, client s3.Client, prefix string) error {
 	return client.Delete(bounded, key)
 }
 
-// probePrefix is the server's own prefix once the platform has named it, the module's prefix before that.
 func probePrefix(ctx *modules.Context, settings Settings) string {
 	if id := platform.LoadServerID(ctx.Sys(), ""); id != "" {
 		return settings.ServerPrefix(id)
@@ -169,10 +162,10 @@ func probePrefix(ctx *modules.Context, settings Settings) string {
 	return settings.Prefix + "/"
 }
 
-// Refusal names what a bucket's refusal means and what to do about it, in the reader's language.
 func Refusal(err error) (string, string) {
 	var failure *s3.Error
 	detail := err.Error()
+
 	if errors.As(err, &failure) && failure.Message != "" {
 		detail = failure.Code + " : " + failure.Message
 	}
@@ -205,7 +198,6 @@ func regionOf(failure *s3.Error) string {
 	return failure.Region
 }
 
-// StorageRefused is a bucket's refusal as the protocol answers it.
 func StorageRefused(err error) error {
 	message, fix := Refusal(err)
 

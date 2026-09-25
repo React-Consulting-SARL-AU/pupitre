@@ -61,7 +61,6 @@ func codeOf(err error) contract.ErrorCode {
 	return ""
 }
 
-// Driving a unit is an act on the machine: it waits behind an install like tunnel.restart does, while reading the journal never does.
 func TestDrivingAServiceWaitsBehindTheRunLockAndReadingDoesNot(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Units["demo"] = modtest.UnitFailed
@@ -110,7 +109,6 @@ func TestAStartSystemdRefusesSaysSoAndPointsAtTheLogs(t *testing.T) {
 	}
 }
 
-// An action answers the state it left the unit in, and nothing a store must not hold: the credentials stay with service.status.
 func TestAnActionAnswersTheRealStateWithoutTheCredentials(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Units["demo"] = modtest.UnitFailed
@@ -137,7 +135,6 @@ func TestAnActionAnswersTheRealStateWithoutTheCredentials(t *testing.T) {
 	}
 }
 
-// The default tail is the one a project's journal answers with, and a follow asks journalctl itself to keep the line open.
 func TestTheJournalIsReadWithTheDefaultTailAndFollowedByJournalctl(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Units["demo"] = modtest.UnitActive
@@ -155,6 +152,7 @@ func TestTheJournalIsReadWithTheDefaultTailAndFollowedByJournalctl(t *testing.T)
 	}
 
 	var journal []string
+
 	for _, command := range fake.Commands() {
 		if strings.HasPrefix(command, "journalctl") {
 			journal = append(journal, command)

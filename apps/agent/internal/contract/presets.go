@@ -6,21 +6,21 @@ var Presets = constOf[[]Preset]("Presets")
 
 var MandatoryModules = constOf[[]string]("MandatoryModules")
 
-// The value a definition pins with const: the schema is the one copy, the Go side only reads it.
 func constOf[T any](name string) T {
 	var exported struct {
 		Const T `json:"const"`
 	}
+
 	unmarshalDefinition(name, &exported)
 
 	return exported.Const
 }
 
-// The values a string definition admits with enum, in the schema's order.
 func Enum(name string) []string {
 	var exported struct {
 		Enum []string `json:"enum"`
 	}
+
 	unmarshalDefinition(name, &exported)
 
 	if len(exported.Enum) == 0 {

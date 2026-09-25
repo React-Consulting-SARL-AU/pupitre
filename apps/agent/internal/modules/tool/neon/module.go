@@ -21,14 +21,15 @@ import (
 
 const (
 	BinaryPath = "/usr/local/bin/neon"
-	// The help the CLI prints names itself neonctl; both names must answer.
+	// The CLI's own help calls it neonctl, so both names must answer.
 	LinkPath = "/usr/local/bin/neonctl"
 
-	keyKey    = "NEON_API_KEY"
+	keyKey = "NEON_API_KEY"
+	// Earlier versions also stored NEON_ connection strings; uninstall sweeps every key under this prefix.
 	keyPrefix = "NEON_"
 )
 
-// Neon publishes no checksum document, but GitHub computes a digest for every asset of a release: the binary is refused unless it matches.
+// Neon publishes no checksum, so the binary is checked against GitHub's digest of the release asset.
 var release = download.GitHubRelease{Repo: "neondatabase/neonctl", Program: "neonctl", Asset: func(string) string { return "neonctl-linux-" + nodeArch() }}
 
 type Module struct{}
@@ -54,9 +55,7 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 	return modules.Status{Installed: true, Configured: stored, Version: version(ctx)}, nil
 }
 
-// The CLI is a bundled Node program that takes half a second to say its
-// version, and a snapshot asks every few seconds: the answer is kept for as
-// long as the binary on disk is the same one, size and date.
+// --version costs half a second and snapshots ask every few seconds, so it is cached per binary size and date.
 var known struct {
 	sync.Mutex
 	stamp   string
@@ -129,7 +128,7 @@ func linkTarget(ctx *modules.Context) string {
 	return strings.TrimSpace(out.Stdout)
 }
 
-// Neon publishes one binary per architecture, under the name Node gives it rather than the one Go uses.
+// Assets use Node's architecture names, not Go's.
 func nodeArch() string {
 	if runtime.GOARCH == "arm64" {
 		return "arm64"
@@ -138,7 +137,7 @@ func nodeArch() string {
 	return "x64"
 }
 
-// neonctl has no token login: it takes the key through NEON_API_KEY, so the dev shell must carry it, not only /etc/pupitre/env.
+// neonctl has no token login and reads NEON_API_KEY, so the dev shell must carry it too.
 func (Module) Configure(ctx *modules.Context) error {
 	if err := ctx.Step("store-key", func() (modules.Outcome, error) {
 		changed, err := env.Set(ctx, keyKey, ctx.Secret("api_key"))
@@ -192,7 +191,6 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// The Neon account belongs to the client: uninstalling gives back the machine and its secrets, never a project or a branch.
 func (Module) Uninstall(ctx *modules.Context) error {
 	if err := ctx.Step("remove-neonctl", func() (modules.Outcome, error) {
 		removed, err := file.Remove(ctx, BinaryPath)
@@ -269,7 +267,7 @@ func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
 	return status, nil
 }
 
-// neonctl me is asked with the key the machine holds, and only then: without one the CLI opens a sign-in in a browser nobody is watching, and waits.
+// Without a key neonctl opens a browser sign-in nobody watches and waits, so it is only asked with one.
 func (Module) Login(ctx *modules.Context) (contract.Login, bool) {
 	key, _, _ := env.Get(ctx, keyKey)
 	if key == "" {

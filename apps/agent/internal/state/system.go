@@ -13,7 +13,6 @@ import (
 	"pupitre.studio/agent/internal/sys/user"
 )
 
-// What the machine is expected to answer with, and how it says its version: java writes it on the error output, everyone else on the standard one.
 var tools = [][]string{
 	{"node", "-v"},
 	{"bun", "-v"},
@@ -46,6 +45,7 @@ func (r *Reader) toolChecks() []contract.DoctorCheck {
 	owner := r.options.Tmux.Resolved().User
 
 	checks := make([]contract.DoctorCheck, 0, len(tools))
+
 	for _, argv := range tools {
 		out, err := user.Run(r.ctx(), owner, argv...)
 		checks = append(checks, contract.DoctorCheck{
@@ -63,6 +63,7 @@ func (r *Reader) serviceChecks() []contract.DoctorCheck {
 	services := r.services(false)
 
 	checks := make([]contract.DoctorCheck, 0, len(services))
+
 	for _, service := range services {
 		running := service.State == contract.ServiceRunning
 		checks = append(checks, contract.DoctorCheck{
@@ -92,6 +93,7 @@ func (r *Reader) projectChecks() []contract.DoctorCheck {
 	projects := r.options.Paths.Resolved().Projects
 
 	checks := []contract.DoctorCheck{}
+
 	for _, project := range r.registry().Projects {
 		if project.IsService() {
 			continue
@@ -110,12 +112,12 @@ func (r *Reader) projectChecks() []contract.DoctorCheck {
 	return checks
 }
 
-// One plain-text page: what a support request should carry, with no secret and nothing to interpret.
 func (r *Reader) Diag() contract.Diag {
 	now := r.options.Now().UTC()
 	machine := Machine(r.ctx(), r.options.AgentVersion)
 
 	var report strings.Builder
+
 	fmt.Fprintf(&report, "pupitred %s · %s · %s %s · %s\n", machine.AgentVersion, machine.Hostname, machine.OS, machine.Version, machine.Arch)
 	report.WriteString(i18n.T("state.diag.entitlement", r.entitlement()) + "\n")
 	report.WriteString(i18n.T("state.diag.machine",

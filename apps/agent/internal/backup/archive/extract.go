@@ -19,7 +19,6 @@ import (
 // A chain of links longer than the kernel's own limit is a loop.
 const maxLinkHops = 40
 
-// Owner is the account a restored tree goes to; -1 leaves the ids alone.
 type Owner struct {
 	UID int
 	GID int
@@ -63,7 +62,7 @@ func Extract(r io.Reader, root string, owner Owner) error {
 	return extract(r, scoped, root, owner)
 }
 
-// ExtractIn lays the archive out in rel, reached through base: a link swapped in for rel can only lead somewhere else under base.
+// rel is reached through base, so a link swapped in for rel can only lead somewhere else under base.
 func ExtractIn(r io.Reader, base *os.Root, rel string, owner Owner) error {
 	scoped, err := base.OpenRoot(rel)
 	if err != nil {
@@ -84,6 +83,7 @@ func extract(r io.Reader, scoped *os.Root, root string, owner Owner) error {
 		if errors.Is(err, io.EOF) {
 			break
 		}
+
 		if err != nil {
 			return err
 		}
@@ -123,7 +123,7 @@ func extract(r io.Reader, scoped *os.Root, root string, owner Owner) error {
 		return err
 	}
 
-	// A folder takes its mode and date once its content is in: a read-only folder would refuse its own files, and every file written bumps the date.
+	// Folder modes and dates go last: a read-only folder would refuse its own files, and each file written bumps the date.
 	for i := len(folders) - 1; i >= 0; i-- {
 		if err := scoped.Chmod(folders[i].name, folders[i].mode); err != nil {
 			return err
@@ -137,7 +137,7 @@ func extract(r io.Reader, scoped *os.Root, root string, owner Owner) error {
 	return nil
 }
 
-// Inside only reads a link on its own: a chain of links that each look inside can still lead out. Every restored link is followed to its end on the disk, and one that ends outside is removed.
+// Inside reads each link alone, yet a chain of inside-looking links can lead out: each is followed to its end on disk.
 func keepInside(scoped *os.Root, root string, links []string) error {
 	realRoot, err := resolve(root)
 	if err != nil {
@@ -145,6 +145,7 @@ func keepInside(scoped *os.Root, root string, links []string) error {
 	}
 
 	var escaping []string
+
 	for _, name := range links {
 		end, err := resolve(filepath.Join(root, filepath.FromSlash(name)))
 		if err != nil || !within(realRoot, end) {
@@ -165,7 +166,7 @@ func keepInside(scoped *os.Root, root string, links []string) error {
 	return nil
 }
 
-// resolve follows every link of an absolute path, one component at a time as the kernel does; what does not exist yet is taken as written.
+// One component at a time, as the kernel does; what does not exist yet is taken as written.
 func resolve(full string) (string, error) {
 	current := string(filepath.Separator)
 	pending := strings.Split(filepath.Clean(full), string(filepath.Separator))
@@ -216,7 +217,7 @@ func within(root, candidate string) bool {
 	return candidate == root || strings.HasPrefix(candidate, root+string(filepath.Separator))
 }
 
-// A file is written beside its place then renamed over it: a binary that runs refuses to be written into, and a rename leaves the running one its old inode.
+// Written beside its place then renamed over it: a running binary refuses writes, and a rename leaves it its old inode.
 func writeEntry(scoped *os.Root, name string, mode fs.FileMode, modTime time.Time, content io.Reader, owner Owner) error {
 	if err := ensureDir(scoped, path.Dir(name), owner); err != nil {
 		return err
@@ -285,12 +286,13 @@ func linkEntry(scoped *os.Root, name, target string, owner Owner) error {
 	return chown(scoped, name, owner)
 }
 
-// What stands where an entry goes and is not a file of its own goes first: a link is never written through, a folder never overwritten by a file.
+// A link is never written through, and a folder never overwritten by a file.
 func clearWay(scoped *os.Root, name string) error {
 	info, err := scoped.Lstat(name)
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil
 	}
+
 	if err != nil {
 		return err
 	}
@@ -302,9 +304,9 @@ func clearWay(scoped *os.Root, name string) error {
 	return scoped.RemoveAll(name)
 }
 
-// ensureDir makes a folder and whatever it needed on the way, each given to owner; a folder already there is left as it is.
 func ensureDir(scoped *os.Root, name string, owner Owner) error {
 	var missing []string
+
 	for dir := name; dir != "." && dir != "/"; dir = path.Dir(dir) {
 		info, err := scoped.Lstat(dir)
 		if err == nil {
@@ -343,7 +345,6 @@ func chown(scoped *os.Root, name string, owner Owner) error {
 	return scoped.Lchown(name, owner.UID, owner.GID)
 }
 
-// MakeDirs makes dir, a folder named under base, and every folder it needed on the way, each given to owner.
 func MakeDirs(base *os.Root, dir string, owner Owner) error {
 	name, ok := Clean(filepath.ToSlash(dir))
 	if !ok {
@@ -353,7 +354,7 @@ func MakeDirs(base *os.Root, dir string, owner Owner) error {
 	return ensureDir(base, name, owner)
 }
 
-// Staging is a fresh folder in parent under base, on the file system of whatever it will replace there, where an archive is laid out first; it is named under base.
+// Made beside what it will replace, so the later swap stays on one file system.
 func Staging(base *os.Root, parent, label string, owner Owner) (string, error) {
 	suffix := make([]byte, 4)
 	if _, err := rand.Read(suffix); err != nil {
@@ -376,8 +377,7 @@ func Staging(base *os.Root, parent, label string, owner Owner) (string, error) {
 	return staged, nil
 }
 
-// Swap puts staged in target's place, both named under base: every step is taken through base, so a link on the way can only lead somewhere else under it.
-// A folder moved to another parent takes a new date on some file systems: Swap gives it back the archive's, or the next backup would send it again.
+// Steps go through base so links stay under it; the archive's date is restored, else a moved folder is resent next backup.
 func Swap(base *os.Root, staged, target string) error {
 	info, err := base.Lstat(staged)
 	if err != nil {
@@ -388,6 +388,7 @@ func Swap(base *os.Root, staged, target string) error {
 
 	if _, err := base.Lstat(target); err == nil {
 		aside = target + ".pupitre-replaced"
+
 		if err := base.RemoveAll(aside); err != nil {
 			return err
 		}

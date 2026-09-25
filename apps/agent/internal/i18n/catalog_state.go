@@ -1,6 +1,5 @@
 package i18n
 
-// The machine's state: projects, repositories, processes, secrets, captures.
 var stateCatalog = map[string]Message{
 	"state.agent.unknown": {
 		FR: "agent inconnu : %s",
@@ -362,7 +361,7 @@ var stateCatalog = map[string]Message{
 		FR: "droit d'usage : %s",
 		EN: "usage right: %s",
 	},
-	// One line, one key: the labels, the order and the units travel together — "Mo" is "MB" and "démarrée depuis" leads where "up for" follows.
+	// One key for the whole line: labels, units and word order differ between the two languages.
 	"state.diag.machine": {
 		FR: "charge %.2f %.2f %.2f · mémoire %d/%d Mo · disque %.0f/%.0f Go · démarrée depuis %s",
 		EN: "load %.2f %.2f %.2f · memory %d/%d MB · disk %.0f/%.0f GB · up for %s",

@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-// plantable skips under root, whose own links are the ones the agent trusts: the test plants them as another account would.
+// Skipped under root: root's own links are the trusted ones, so the test must plant them as another account.
 func plantable(t *testing.T) *user.User {
 	t.Helper()
 
@@ -109,7 +109,6 @@ func TestRealAppendFileRefusesALinkOrAFolderAtThePath(t *testing.T) {
 	}
 }
 
-// A dump, a journal or a template read as root on behalf of dev is read where dev left it, never where a link leads.
 func TestRealReadsOfAUsersFileRefuseALinkAtThePath(t *testing.T) {
 	plantable(t)
 	dir := t.TempDir()
@@ -157,6 +156,7 @@ func TestRealCreateInStreamsANewFileForItsOwnerInsideTheRoot(t *testing.T) {
 	if err := os.Mkdir(filepath.Join(home, "dumps"), 0o755); err != nil {
 		t.Fatal(err)
 	}
+
 	seed(t, filepath.Join(home, "dumps", "shop.sql"), "an older dump")
 
 	out, err := (Real{}).CreateIn(home, "dumps/shop.sql", me.Username)
@@ -190,12 +190,14 @@ func TestRealCreateInNeverWritesThroughALink(t *testing.T) {
 	if err := os.Mkdir(filepath.Join(home, "dumps"), 0o755); err != nil {
 		t.Fatal(err)
 	}
+
 	plant(t, secret, filepath.Join(home, "dumps", "shop.sql"))
 
 	out, err := (Real{}).CreateIn(home, "dumps/shop.sql", me.Username)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	io.WriteString(out, "dump")
 	out.Close()
 

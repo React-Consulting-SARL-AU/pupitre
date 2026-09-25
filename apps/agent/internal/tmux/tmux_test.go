@@ -357,7 +357,6 @@ func TestStopClearsADeadWindowWithoutASignal(t *testing.T) {
 	}
 }
 
-// A journal is bounded by its start: what the previous run wrote is gone with it, and the file stays the user's.
 func TestStartTruncatesTheLogOfThePreviousRun(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Files[logPath] = []byte(strings.Repeat("a line of the previous run\n", 1000))
@@ -377,9 +376,6 @@ func TestStartTruncatesTheLogOfThePreviousRun(t *testing.T) {
 	}
 }
 
-// A pane the user split off the window is not the process: only the first
-// pane of each window is read, and it is told apart in the answer, never by a
-// pane index the machine's tmux.conf may start at 1.
 func TestCollectReadsTheFirstPaneOfEachWindow(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Serves("web/web", 3000)
@@ -402,9 +398,6 @@ func TestCollectReadsTheFirstPaneOfEachWindow(t *testing.T) {
 	}
 }
 
-// Two windows under one name are what a start that could not close the last
-// one leaves behind; tmux refuses the name as ambiguous, so the window is
-// addressed by its id, and a stop closes every one of them.
 func TestStopClosesEveryWindowOfTheName(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Serves("web/web", 3000)
@@ -433,7 +426,6 @@ func TestStopClosesEveryWindowOfTheName(t *testing.T) {
 	}
 }
 
-// Every target is exact: a session or a window whose name merely begins the same way is never the one addressed.
 func TestEveryTargetIsExact(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Serves("web/web", 3000)
@@ -461,7 +453,6 @@ func TestEveryTargetIsExact(t *testing.T) {
 	}
 }
 
-// What listens is read off the kernel's own table, the one the registry and the detection read: never ss, which sees the sockets of other namespaces too.
 func TestListeningIsReadFromTheKernelTable(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Serves("web/web", 3000)

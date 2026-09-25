@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	// A JetBrains backend or an agent left behind holds its memory for nobody; two hours idle is the line bootstrap.sh draws.
+	// An abandoned JetBrains backend or agent holds memory for nobody; two idle hours is the line bootstrap.sh draws.
 	SessionIdle = 120 * time.Minute
 
 	KillGrace = 2 * time.Second
@@ -26,7 +26,6 @@ const (
 	maxAncestors = 40
 )
 
-// The programs that outlive whatever launched them: an agent, and a remote IDE backend.
 var remoteIDE = regexp.MustCompile(`RemoteDev|remote-dev-server`)
 
 type process struct {
@@ -47,7 +46,6 @@ type processTable struct {
 	owner map[int]int
 }
 
-// One read of the machine: the project totals, the sessions and the process list all come out of the same ps.
 func (r *Reader) processes() processTable {
 	table := processTable{owner: map[int]int{}}
 
@@ -92,7 +90,6 @@ func (t processTable) get(pid int) (process, bool) {
 	return process{}, false
 }
 
-// The window a process belongs to is the one whose tmux pane it descends from, however deep the ancestry goes.
 func (t processTable) window(pid int, panes map[int]string) string {
 	for step := 0; step < maxAncestors; step++ {
 		if name, owned := panes[pid]; owned {
@@ -127,7 +124,6 @@ func (t processTable) ancestor(pid, of int) bool {
 	return false
 }
 
-// The pane a process runs in, by the pid of its shell, when one of the panes measured is among its ancestors.
 func (t processTable) pane(pid int, activity map[int]time.Time) (time.Time, bool) {
 	for step := 0; step < maxAncestors; step++ {
 		if at, measured := activity[pid]; measured {
@@ -145,7 +141,6 @@ func (t processTable) pane(pid int, activity map[int]time.Time) (time.Time, bool
 	return time.Time{}, false
 }
 
-// The project a process belongs to, read off the window it descends from: a window is named <project>/<process>, a session started by hand in the scratch window belongs to no project.
 func (t processTable) project(pid int, panes map[int]string) string {
 	project, _, ours := registry.SplitWindow(t.window(pid, panes))
 	if !ours {
@@ -155,9 +150,10 @@ func (t processTable) project(pid int, panes map[int]string) string {
 	return project
 }
 
-// Memory per window, ancestry included: a dev server is a shell, a package manager and the runtime that does the work.
+// Descendants count: a dev server is a shell, a package manager and the runtime doing the work.
 func (t processTable) ram(panes map[int]string) map[string]int {
 	totals := map[string]int{}
+
 	for _, row := range t.rows {
 		if name := t.window(row.PID, panes); name != "" {
 			totals[name] += row.RAMMB
@@ -220,10 +216,7 @@ func sessionKind(row process) (string, bool) {
 	return "", false
 }
 
-// A session is cleaned on what it has been doing, not on how long it has
-// lived: an agent someone typed into a minute ago has been running for
-// hours too. What runs in a pane is measured on that pane; what runs outside
-// any has only its age to be judged on.
+// Judged on pane activity, not age: an agent typed into a minute ago may have lived for hours; paneless ones by age.
 func (r *Reader) CleanSessions() int {
 	table := r.processes()
 	panes := r.panes()
@@ -261,6 +254,7 @@ func (r *Reader) Processes() []contract.Process {
 	}
 
 	processes := make([]contract.Process, 0, len(rows))
+
 	for _, row := range rows {
 		processes = append(processes, contract.Process{
 			PID:     row.PID,
@@ -274,7 +268,7 @@ func (r *Reader) Processes() []contract.Process {
 	return processes
 }
 
-// What carries the session: killing one of these cuts the channel the order arrived through, and project.down is the way to stop a project.
+// Killing one of these would cut the channel the order arrived through.
 var carriers = map[string]bool{
 	"tmux": true, "tmux-server": true, "sshd": true, "systemd": true,
 	"init": true, "zsh": true, "bash": true, "sh": true, "login": true, "pupitred": true,
@@ -319,7 +313,7 @@ func (r *Reader) Kill(pid int, force bool) error {
 	return nil
 }
 
-// The owner seen in the table goes with every signal: a pid recycled since by another account is not the process that was chosen.
+// The owner seen in the table goes along, so a pid since recycled by another account is never signalled.
 func (r *Reader) signal(pid int, owner string, sig syscall.Signal) error {
 	r.ctx().Logf("kill -%d %d", sig, pid)
 
@@ -328,6 +322,7 @@ func (r *Reader) signal(pid int, owner string, sig syscall.Signal) error {
 
 func (r *Reader) panes() map[int]string {
 	panes := map[int]string{}
+
 	for name, pid := range tmux.Windows(r.ctx(), r.options.Tmux) {
 		panes[pid] = name
 	}

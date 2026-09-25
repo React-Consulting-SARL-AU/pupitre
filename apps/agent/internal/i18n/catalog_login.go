@@ -1,6 +1,5 @@
 package i18n
 
-// What a CLI's own sign-in check leaves the reader to do.
 var loginCatalog = map[string]Message{
 	"login.claude.fix": {
 		FR: "Ouvrez un terminal sur ce serveur et lancez claude auth login : l'URL affichée ouvre la connexion dans votre navigateur.",

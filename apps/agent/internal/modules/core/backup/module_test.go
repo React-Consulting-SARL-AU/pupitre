@@ -21,12 +21,12 @@ func values(endpoint string) modtest.Values {
 	}
 }
 
-// aimed sends the module's probes to the fake bucket, over its own HTTPS, and answers the endpoint to configure.
 func aimed(t *testing.T, bucket *s3test.Fake) string {
 	t.Helper()
 
 	fake := bucket.Client(true)
 	kept := reach
+
 	reach = func(client s3.Client) s3.Client {
 		client.HTTP = fake.HTTP
 

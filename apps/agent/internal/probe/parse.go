@@ -32,6 +32,7 @@ func parseOSRelease(raw []byte) (id, version string) {
 
 func unquote(value string) string {
 	value = strings.TrimSpace(value)
+
 	for _, quote := range []string{`"`, `'`} {
 		if len(value) >= 2 && strings.HasPrefix(value, quote) && strings.HasSuffix(value, quote) {
 			return value[1 : len(value)-1]
@@ -183,8 +184,8 @@ func portOf(address string) (int, bool) {
 // The same port shows up once per address family; the process name is kept wherever it was readable.
 func mergePorts(ports []Port) []Port {
 	processes := map[int]string{}
-
 	var numbers []int
+
 	for _, port := range ports {
 		if _, seen := processes[port.Port]; !seen {
 			numbers = append(numbers, port.Port)
@@ -196,9 +197,11 @@ func mergePorts(ports []Port) []Port {
 			processes[port.Port] = port.Process
 		}
 	}
+
 	sort.Ints(numbers)
 
 	merged := make([]Port, 0, len(numbers))
+
 	for _, number := range numbers {
 		merged = append(merged, Port{Port: number, Process: processes[number]})
 	}

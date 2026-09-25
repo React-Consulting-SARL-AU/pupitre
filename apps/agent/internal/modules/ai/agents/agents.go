@@ -1,4 +1,3 @@
-// Package agents lays down what the three coding agents read: the machine context, the Pupitre skills and the subagents.
 package agents
 
 import (
@@ -27,7 +26,7 @@ const (
 //go:embed content
 var content embed.FS
 
-// A target without a ContextFile has no global instructions of its own — Cursor keeps its user rules in the account — and reads as configured once its skills are down.
+// A target without a ContextFile (Cursor keeps its rules in the account) counts as configured once its skills are down.
 type Target struct {
 	ConfigDir   string
 	ContextFile string
@@ -103,7 +102,7 @@ func writeContext(ctx *modules.Context, target Target) error {
 	})
 }
 
-// Both folders hold real files rather than links: a skill copied twice is idempotent to compare, where a symlink is not readable as content.
+// Real copies in both folders rather than a symlink, so each one compares by content.
 func writeSkills(ctx *modules.Context, target Target) error {
 	if !target.Skills {
 		return nil
@@ -185,11 +184,13 @@ func names(dir string) []string {
 	}
 
 	found := make([]string, 0, len(entries))
+
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			found = append(found, entry.Name())
 		}
 	}
+
 	sort.Strings(found)
 
 	return found

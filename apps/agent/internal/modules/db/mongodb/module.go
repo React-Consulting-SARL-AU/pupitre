@@ -82,13 +82,13 @@ var (
 	userPattern    = regexp.MustCompile(`^[a-z][a-z0-9_]{0,63}$`)
 )
 
-// published names, for each major the form offers, the Ubuntu releases repo.mongodb.org serves it for: a list naming any other answers 404 and breaks apt.
+// A list naming a release repo.mongodb.org does not serve answers 404 and breaks apt.
 var published = map[string][]string{
 	"8.0": {"jammy", "noble"},
 	"7.0": {"jammy"},
 }
 
-// parts are what the mongodb-org metapackage pulls from MongoDB's repository; removing the metapackage alone leaves the server installed.
+// Removing the mongodb-org metapackage alone leaves the server installed.
 var parts = []string{
 	pkg,
 	"mongodb-org-database",
@@ -111,8 +111,6 @@ func (Module) Manifest() contract.Manifest {
 	return manifest()
 }
 
-// A port another program already holds, and a major the server does not run
-// on, are what this configuration cannot know from the manifest alone.
 func (Module) Preflight(ctx *modules.Context) []contract.FieldProblem {
 	return modules.Problems(modules.PortTaken(ctx, "port"), unpublished(ctx), majorChanged(ctx))
 }
@@ -143,6 +141,7 @@ func unpublishedMessage(major, release string) string {
 
 func servedOn(release string) []string {
 	var served []string
+
 	for _, field := range manifest().Fields {
 		if field.Key != "version" {
 			continue
@@ -158,9 +157,7 @@ func servedOn(release string) []string {
 	return served
 }
 
-// A new major refuses the files of the old one until featureCompatibilityVersion
-// was raised on the running server: that step is the client's, by hand, before
-// the form says the new version.
+// A new major refuses the old one's files until the client raises featureCompatibilityVersion by hand.
 func majorChanged(ctx *modules.Context) *contract.FieldProblem {
 	held := strings.TrimSpace(fmt.Sprint(ctx.Held("version")))
 	if ctx.Held("version") == nil || held == version(ctx) || !apt.Installed(ctx, pkg) {
@@ -188,7 +185,6 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 	return modules.Status{Installed: true, Version: version, Configured: file.Exists(ctx, confPath)}, nil
 }
 
-// MongoDB is not in the Ubuntu archive: the module adds the project's own repository, key first.
 func (Module) Install(ctx *modules.Context) error {
 	if err := ctx.Step("add-repository", func() (modules.Outcome, error) {
 		if problem := unpublished(ctx); problem != nil {
@@ -261,8 +257,7 @@ func (Module) Configure(ctx *modules.Context) error {
 		return err
 	}
 
-	// The user holds the new password before the env does: a replay after a
-	// crash in between still signs in with the previous one and changes it again.
+	// The user takes the new password before the env does, so a replay after a crash still signs in with the old one.
 	previous, _, err := env.Get(ctx, appPasswordKey)
 	if err != nil {
 		return err
@@ -328,7 +323,7 @@ func storePassword(ctx *modules.Context) error {
 	})
 }
 
-// The script goes in on the standard input of mongosh: an argv would show the password in ps.
+// The script goes on mongosh's stdin: an argv would show the password in ps.
 func createAppUser(ctx *modules.Context, previous string) error {
 	return ctx.Step("create-app-user", func() (modules.Outcome, error) {
 		if previous == ctx.Secret("app_password") && file.Same(ctx, markerPath, marker(ctx)) {
@@ -337,6 +332,7 @@ func createAppUser(ctx *modules.Context, previous string) error {
 
 		script := renderUser(appUser(ctx), previous, ctx.Secret("app_password"))
 		argv := []string{"mongosh", "--quiet", "--host", loopback, "--port", strconv.Itoa(port(ctx))}
+
 		out, err := untilConnected(func() (sys.Output, error) {
 			return sys.Exec(ctx, sys.Command{Argv: argv, Stdin: []byte(script)})
 		})
@@ -419,6 +415,7 @@ func (Module) Uninstall(ctx *modules.Context) error {
 
 	if err := ctx.Step("remove-config", func() (modules.Outcome, error) {
 		removed := false
+
 		for _, path := range append([]string{confPath, markerPath}, repositoryFiles(ctx)...) {
 			gone, err := file.Remove(ctx, path)
 			if err != nil {
@@ -453,6 +450,7 @@ func (Module) Uninstall(ctx *modules.Context) error {
 
 func installedParts(ctx *modules.Context) []string {
 	var installed []string
+
 	for _, part := range parts {
 		if apt.Installed(ctx, part) {
 			installed = append(installed, part)
@@ -462,7 +460,7 @@ func installedParts(ctx *modules.Context) []string {
 	return installed
 }
 
-// Every major's list and key, not only the chosen one's: a list left behind is read at every later apt-get update.
+// Every major's list and key: a list left behind is read at every later apt-get update.
 func repositoryFiles(ctx *modules.Context) []string {
 	var paths []string
 
@@ -503,7 +501,7 @@ func URL(ctx *modules.Context, name string) (string, error) {
 	return fmt.Sprintf("mongodb://%s@%s:%d/%s?authSource=%s", appUser(ctx), loopback, port(ctx), database(name), authDatabase), nil
 }
 
-// mongosh asks for the password itself: an url without one is an url that can be shown.
+// mongosh prompts for the password itself, so a URL without one can be shown.
 func Shell(ctx *modules.Context, name string) (string, error) {
 	url, err := URL(ctx, name)
 	if err != nil {
@@ -544,7 +542,7 @@ func requireInstalled(ctx *modules.Context) error {
 	return nil
 }
 
-// The password reaches mongodump and mongorestore through the --config file they accept for it, never through an argv ps shows; the file is root's alone and lives for one command.
+// A root-only --config file living for one command keeps the password out of an argv ps shows.
 func withCredentials(ctx *modules.Context, run func(credentials []string) error) error {
 	if err := ctx.Sys().MkdirAll(toolsConfigDir, 0o700); err != nil {
 		return err
@@ -607,7 +605,7 @@ func port(ctx *modules.Context) int {
 	return DefaultPort
 }
 
-// A user name reaches the mongosh script as an identifier, so it is held to what Mongo accepts and nothing else.
+// The name reaches the mongosh script as an identifier, hence the strict pattern.
 func appUser(ctx *modules.Context) string {
 	chosen := strings.TrimSpace(ctx.String("app_user"))
 	if chosen == "" || !userPattern.MatchString(chosen) {
@@ -617,7 +615,7 @@ func appUser(ctx *modules.Context) string {
 	return chosen
 }
 
-// The marker carries the user it created: renaming the applicative user is what makes the step run again.
+// Renaming the app user changes the marker, which makes the step run again.
 func marker(ctx *modules.Context) []byte {
 	return []byte(appUser(ctx) + "\n")
 }
@@ -626,7 +624,7 @@ func renderConfig(port int, cacheGB string) []byte {
 	return []byte(fmt.Sprintf(configTemplate, cacheGB, port))
 }
 
-// WiredTiger left alone takes half of what the machine has: on a server that also runs projects, that is the memory guard waiting to happen.
+// Left alone WiredTiger takes half the RAM, starving the projects that share the server.
 func cacheSizeGB(ctx *modules.Context) string {
 	mb := ctx.Int("cache_mb")
 	if mb <= 0 {
@@ -651,16 +649,11 @@ func totalKB(ctx *modules.Context) int {
 	return fallbackRAMKB
 }
 
-// The first user is created through the localhost exception; afterwards only
-// the password the user holds opens the server, so a rotation signs in with the
-// previous one, and a replay whose previous one already went through falls back
-// on the new one.
-// The script runs on mongosh's REPL, where an uncaught error prints and the
-// shell still exits 0: it ends on a word of its own that the step reads back.
-// Before the first user exists, the localhost exception lets createUser through
-// and refuses usersInfo, so a refused getUser reads as no user yet.
+// mongosh's REPL exits 0 on an uncaught error, so the script ends on a word the step reads back.
 func renderUser(appUser, previous, password string) string {
 	signIn := `try { admin.auth("` + appUser + `", password); } catch (error) {}`
+
+	// A rotation signs in with the previous password; a replay whose rotation already went through falls back on the new.
 	if previous != "" && previous != password {
 		signIn = `try { admin.auth("` + appUser + `", ` + strconv.Quote(previous) + `); } catch (error) { ` + signIn + ` }`
 	}
@@ -670,6 +663,7 @@ func renderUser(appUser, previous, password string) string {
 		`const password = ` + strconv.Quote(password) + `;`,
 		signIn,
 		`let existing = null;`,
+		// The localhost exception refuses usersInfo until the first user exists: a refused getUser means no user yet.
 		`try { existing = admin.getUser("` + appUser + `"); } catch (error) { existing = null; }`,
 		`if (existing) {`,
 		`  admin.changeUserPassword("` + appUser + `", password);`,
@@ -681,9 +675,10 @@ func renderUser(appUser, previous, password string) string {
 	}, "\n")
 }
 
-// mongod opens its port a few seconds after systemd reports it started: a shell refused on the door is asked again, up to the wait.
+// mongod opens its port seconds after systemd says it started: a refused connection is retried up to startWait.
 func untilConnected(run func() (sys.Output, error)) (sys.Output, error) {
 	deadline := time.Now().Add(startWait)
+
 	for {
 		out, err := run()
 		if err == nil || !strings.Contains(err.Error(), "ECONNREFUSED") || !time.Now().Before(deadline) {

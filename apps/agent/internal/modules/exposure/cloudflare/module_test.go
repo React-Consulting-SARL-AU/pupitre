@@ -53,6 +53,7 @@ func equipped(t *testing.T) *modtest.FakeSys {
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +61,6 @@ func equipped(t *testing.T) *modtest.FakeSys {
 	return fake
 }
 
-// A project of several ports gets one ingress rule per name on the web, each to its own port.
 func TestTheIngressCarriesEveryRouteOfAProject(t *testing.T) {
 	fake := bareMachine()
 	fake.Files[registry.DefaultLocal] = []byte(`{"projects":[{"name":"shop","dir":"shop","processes":[{"id":"shop","pkgmgr":"bun","host":"127.0.0.1","port":3100,"routes":[{"label":"web","port":3100,"hostname":"shop.` + domain + `"},{"label":"api","port":3101,"hostname":"api-shop.` + domain + `"},{"label":"docs","port":3102}],"cmd":"bunx turbo run dev"}]}]}`)
@@ -69,11 +69,13 @@ func TestTheIngressCarriesEveryRouteOfAProject(t *testing.T) {
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
 
 	ingress := string(fake.Files[cloudflared.ConfigPath])
+
 	for _, want := range []string{"hostname: shop." + domain, "service: http://127.0.0.1:3100", "hostname: api-shop." + domain, "service: http://127.0.0.1:3101", "httpHostHeader: 127.0.0.1:3101"} {
 		if !strings.Contains(ingress, want) {
 			t.Errorf("ingress lacks %q:\n%s", want, ingress)
@@ -90,7 +92,6 @@ func TestTheIngressCarriesEveryRouteOfAProject(t *testing.T) {
 	}
 }
 
-// The client picks another zone: every name a project answered to follows, on the machine and in the ingress, before the app moves the records.
 func TestAnotherDomainMovesEveryNameTheProjectsAnswerTo(t *testing.T) {
 	fake := bareMachine()
 	fake.Files[env.Path] = []byte(env.DomainKey + "=old.example\n")
@@ -100,16 +101,19 @@ func TestAnotherDomainMovesEveryNameTheProjectsAnswerTo(t *testing.T) {
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
 
 	local := string(fake.Files[registry.DefaultLocal])
+
 	for _, want := range []string{`"hostname": "shop.` + domain + `"`, `"hostname": "api-shop.` + domain + `"`} {
 		if !strings.Contains(local, want) {
 			t.Errorf("registry lacks %s:\n%s", want, local)
 		}
 	}
+
 	if strings.Contains(local, "old.example") {
 		t.Fatalf("a name under the old domain stayed:\n%s", local)
 	}
@@ -118,16 +122,19 @@ func TestAnotherDomainMovesEveryNameTheProjectsAnswerTo(t *testing.T) {
 	if !strings.Contains(ingress, "hostname: shop."+domain) || strings.Contains(ingress, "old.example") {
 		t.Fatalf("the ingress must carry the new names only:\n%s", ingress)
 	}
+
 	if fake.EnvValue(env.DomainKey) != domain {
 		t.Fatalf("%s = %q", env.DomainKey, fake.EnvValue(env.DomainKey))
 	}
 
 	moved := false
+
 	for _, event := range ctx.Events() {
 		if event.Step == "move-routes" {
 			moved = event.Status == contract.StepOK
 		}
 	}
+
 	if !moved {
 		t.Fatal("the move is a step of its own, so the report says it happened")
 	}
@@ -158,7 +165,6 @@ func TestTheTunnelOfThePlatformIsRunNotCreated(t *testing.T) {
 	}
 }
 
-// Everything the account can do is done by the platform: the server holds a secret that runs one tunnel, and nothing else.
 func TestNoStepCallsTheCloudflareApi(t *testing.T) {
 	fake := equipped(t)
 
@@ -177,13 +183,12 @@ func TestInstallAndConfigureAreIdempotent(t *testing.T) {
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
 
-	// verify-tunnel reads what the daemon says of itself: it changes nothing,
-	// and it runs on every pass because a tunnel Cloudflare dropped since the
-	// last one is exactly what a replay is there to find.
+	// verify-tunnel runs on every pass: a tunnel Cloudflare dropped since is exactly what a replay must find.
 	for _, event := range ctx.Events() {
 		if event.Step != "verify-tunnel" && event.Status != contract.StepSkip {
 			t.Errorf("step %s: want skip, got %s", event.Step, event.Status)
@@ -195,7 +200,6 @@ func TestInstallAndConfigureAreIdempotent(t *testing.T) {
 	}
 }
 
-// A new project takes its route without touching anything else: the app declares the subdomain, sync writes the ingress.
 func TestSyncFollowsTheRegistry(t *testing.T) {
 	fake := equipped(t)
 	fake.Files[registry.DefaultConf] = []byte(projects + "docs|flyleaf/apps/docs|-|bun|docs.localhost|3002|renard-calme-1122|bun run docs\n")
@@ -214,7 +218,6 @@ func TestSyncFollowsTheRegistry(t *testing.T) {
 	}
 }
 
-// The tunnel, its DNS and the label belong to the platform: the machine gives itself back, and the account keeps everything.
 func TestUninstallGivesBackTheMachineOnly(t *testing.T) {
 	fake := equipped(t)
 
@@ -222,7 +225,7 @@ func TestUninstallGivesBackTheMachineOnly(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, path := range []string{cloudflared.ConfigPath, cloudflared.CredentialsPath, cloudflared.UnitPath, modePath} {
+	for _, path := range []string{cloudflared.ConfigPath, cloudflared.CredentialsPath, cloudflared.UnitPath, cloudflared.SourcePath, cloudflared.KeyringPath, modePath} {
 		if _, left := fake.Files[path]; left {
 			t.Errorf("%s survived the uninstall", path)
 		}
@@ -239,7 +242,6 @@ func TestUninstallGivesBackTheMachineOnly(t *testing.T) {
 	}
 }
 
-// A tunnel that never took the machine, left behind by a failed install, goes without the domain Caddy now serves: project.add resolves its subdomains against it.
 func TestUninstallKeepsTheDomainOfTheExposureThatHoldsTheMachine(t *testing.T) {
 	fake := equipped(t)
 	fake.Files[modePath] = routes.Marker("caddy")
@@ -258,7 +260,6 @@ func TestUninstallKeepsTheDomainOfTheExposureThatHoldsTheMachine(t *testing.T) {
 	}
 }
 
-// The daemon alone proves nothing: a machine held by exposure.cloudflare must not answer for this module.
 func TestAMachineOfTheOtherExposureIsNotOurs(t *testing.T) {
 	fake := bareMachine()
 	fake.Packages[cloudflared.Pkg] = "2026.6.1"
@@ -269,9 +270,6 @@ func TestAMachineOfTheOtherExposureIsNotOurs(t *testing.T) {
 	}
 }
 
-// The engine refuses a configuration before the first step, so the module never
-// sees a missing credential. What this module owes is the declaration it is
-// refused on: three values the app derives, and one domain the client chooses.
 func TestTheManifestSeparatesWhatIsDerivedFromWhatIsChosen(t *testing.T) {
 	if manifest().Connection != contract.ConnectionCloudflare {
 		t.Fatalf("connection = %q, want %q", manifest().Connection, contract.ConnectionCloudflare)
@@ -321,6 +319,7 @@ func TestTheSecretNeverLeaves(t *testing.T) {
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -334,7 +333,6 @@ func TestTheSecretNeverLeaves(t *testing.T) {
 
 var _ modules.Module = Module{}
 
-// systemctl only ever says the job failed; what the client can act on is in the daemon's own journal.
 func TestAStartThatNeverComesUpNamesWhatTheDaemonSaid(t *testing.T) {
 	fake := equipped(t)
 	fake.Files[registry.DefaultConf] = []byte(projects + "shop|flyleaf/apps/shop|-|bun|shop.localhost|3002|-|bun run shop\n")
@@ -357,8 +355,6 @@ func TestAStartThatNeverComesUpNamesWhatTheDaemonSaid(t *testing.T) {
 	}
 }
 
-// cloudflared answers systemd that it started long before it knows whether the
-// tunnel is still there, so the step asks the machine rather than the command.
 func TestATunnelCloudflareDroppedIsRefused(t *testing.T) {
 	fake := equipped(t)
 	fake.Units[Unit] = modtest.UnitInactive
@@ -370,9 +366,6 @@ func TestATunnelCloudflareDroppedIsRefused(t *testing.T) {
 	}
 }
 
-// The first attempts of a freshly made tunnel can reach an edge that has not
-// been told about it yet. Refusing on that line alone failed an install whose
-// tunnel was carrying connections by the time anyone read the report.
 func TestATunnelThatRegisteredAfterTheRefusalIsAccepted(t *testing.T) {
 	fake := equipped(t)
 	fake.Units[Unit] = modtest.UnitInactive
@@ -384,8 +377,6 @@ INF Registered tunnel connection connIndex=0 location=mrs04 protocol=quic`)
 	}
 }
 
-// The order is the daemon's own: a tunnel deleted while it ran registered first
-// and was refused after, and that is the machine saying the tunnel is gone.
 func TestATunnelRefusedAfterItRegisteredIsStillRefused(t *testing.T) {
 	fake := equipped(t)
 	fake.Units[Unit] = modtest.UnitInactive
@@ -398,18 +389,12 @@ ERR Register tunnel error from server side error="Unauthorized: Tunnel not found
 	}
 }
 
-// The edge refuses a tunnel it has not been told about yet, and cloudflared
-// backs off between its attempts: a daemon killed at forty-five seconds was
-// killed in the middle of a wait that ends well.
 func TestTheUnitLetsTheTunnelReachAnEdgeThatDoesNotKnowItYet(t *testing.T) {
 	if !strings.Contains(string(cloudflared.UnitFile), "TimeoutStartSec=150") {
 		t.Fatalf("unit = %s", cloudflared.UnitFile)
 	}
 }
 
-// The daemon notifies its start only once a connection is registered, so an
-// active unit has already answered: the refusals it said while the tunnel was
-// being propagated are not a verdict on it.
 func TestATunnelTheEdgeTookIsAcceptedWhateverItSaidFirst(t *testing.T) {
 	fake := equipped(t)
 	fake.Units[Unit] = modtest.UnitActive
@@ -421,8 +406,6 @@ ERR Register tunnel error from server side error="Unauthorized: Tunnel not found
 	}
 }
 
-// A secret rewritten on a tunnel the daemon already runs reaches it only at the
-// next start: skipping that restart leaves the machine on credentials nobody holds.
 func TestCredentialsRewrittenOnARunningDaemonRestartIt(t *testing.T) {
 	fake := equipped(t)
 	fake.Files[cloudflared.CredentialsPath] = []byte("{}\n")
@@ -447,8 +430,6 @@ func restarted(ctx *modules.Context) bool {
 	return false
 }
 
-// A tunnel that has not connected yet is not a failed install: the machine may
-// be a second away from it, and the step says so rather than refusing.
 func TestATunnelThatHasNotConnectedYetOnlyWarns(t *testing.T) {
 	fake := equipped(t)
 	fake.Units[Unit] = modtest.UnitInactive
@@ -465,7 +446,6 @@ func TestATunnelThatHasNotConnectedYetOnlyWarns(t *testing.T) {
 	}
 }
 
-// The daemon says it carries a connection long before systemd is asked about it.
 func TestATunnelThatOpenedAConnectionIsServing(t *testing.T) {
 	fake := equipped(t)
 	fake.Units[Unit] = modtest.UnitInactive
@@ -477,7 +457,6 @@ func TestATunnelThatOpenedAConnectionIsServing(t *testing.T) {
 	}
 }
 
-// A tunnel that serves is a unit systemd calls active, and nothing else is asked of it.
 func TestATunnelThatServesIsAccepted(t *testing.T) {
 	fake := equipped(t)
 
@@ -486,7 +465,6 @@ func TestATunnelThatServesIsAccepted(t *testing.T) {
 	}
 }
 
-// Both values are written into cloudflared's YAML as they are: a line break in either would write a key of its own.
 func TestTheTunnelAndTheAccountAreRefusedUnlessTheyAreWhatCloudflareIssues(t *testing.T) {
 	held := func(string, string) []string { return []string{secret} }
 

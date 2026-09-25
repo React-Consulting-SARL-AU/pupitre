@@ -11,7 +11,6 @@ import (
 	"pupitre.studio/agent/internal/s3/s3test"
 )
 
-// behindALink moves a folder to where and leaves a link to it in its place.
 func behindALink(t *testing.T, folder, where string) {
 	t.Helper()
 

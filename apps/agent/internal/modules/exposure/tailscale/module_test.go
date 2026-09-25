@@ -35,6 +35,7 @@ func TestFirstInstallAddsTheRepositoryJoinsAndOpensTheFirewall(t *testing.T) {
 		content string
 		mode    fs.FileMode
 	}
+
 	fake.Observe = func(cmd sys.Command) {
 		if len(cmd.Argv) > 1 && cmd.Argv[0] == Program && cmd.Argv[1] == "up" {
 			keyFile.content, keyFile.mode = string(fake.Files[authKeyPath]), fake.Modes[authKeyPath]
@@ -58,6 +59,7 @@ func TestFirstInstallAddsTheRepositoryJoinsAndOpensTheFirewall(t *testing.T) {
 	}
 
 	joinedWith := ""
+
 	for _, line := range fake.Commands() {
 		if strings.Contains(line, "tailscale up") {
 			joinedWith = line
@@ -104,7 +106,6 @@ func TestFirstInstallAddsTheRepositoryJoinsAndOpensTheFirewall(t *testing.T) {
 	}
 }
 
-// A name or an SSH switch changed after the join reaches the node through set: up would ask for a key the client already spent.
 func TestChangedSettingsAreSetOnTheJoinedNode(t *testing.T) {
 	fake := machine()
 	fake.Packages[pkg] = "1.90.0"
@@ -146,6 +147,7 @@ func TestReplayMutatesNothingOnceJoined(t *testing.T) {
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -197,6 +199,7 @@ func TestUninstallLeavesTheTailnetAndTakesEverythingBack(t *testing.T) {
 	}
 
 	left := false
+
 	for _, line := range fake.Commands() {
 		left = left || strings.Contains(line, "tailscale logout")
 	}
@@ -212,7 +215,6 @@ func TestUninstallLeavesTheTailnetAndTakesEverythingBack(t *testing.T) {
 	}
 }
 
-// tailscale status says whether the node is on a tailnet and under whose login; it never reaches the coordination server for that.
 func TestLoginReadsWhatTailscaleStatusSays(t *testing.T) {
 	cases := map[string]struct {
 		answer string
@@ -246,7 +248,7 @@ func TestLoginReadsWhatTailscaleStatusSays(t *testing.T) {
 	}
 }
 
-// Tailscale SSH answers before sshd, so neither AllowUsers nor PermitRootLogin nor fail2ban weighs it: it stays off unless asked for.
+// Tailscale SSH answers before sshd, bypassing AllowUsers, PermitRootLogin and fail2ban.
 func TestTailscaleSSHStaysOffUnlessAskedFor(t *testing.T) {
 	if field := manifest().Fields[2]; field.Key != "ssh" || field.Default != false {
 		t.Fatalf("ssh field = %+v", field)
@@ -258,6 +260,7 @@ func TestTailscaleSSHStaysOffUnlessAskedFor(t *testing.T) {
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}

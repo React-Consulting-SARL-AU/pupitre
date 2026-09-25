@@ -62,6 +62,7 @@ func TestSessionsTellTheKindsApartAndIgnoreEverythingElse(t *testing.T) {
 	}
 
 	kinds := map[int]string{}
+
 	for _, session := range sessions {
 		kinds[session.PID] = session.Kind
 	}
@@ -189,7 +190,6 @@ func TestKillTermsThenKillsWhenForced(t *testing.T) {
 	}
 }
 
-// The grace before the KILL is long enough for the pid to be handed to a process of root: that one must be spared.
 func TestKillSparesAPidRecycledDuringTheGrace(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	machine(fake)
@@ -215,7 +215,6 @@ func TestKillSparesAPidRecycledDuringTheGrace(t *testing.T) {
 	}
 }
 
-// Idleness is what says a session is forgotten, never its age: an agent typed into a minute ago has been running three hours too.
 func TestSessionsCleanMeasuresIdlenessNotAge(t *testing.T) {
 	fake, reader := sessionFixture(t)
 	fake.Spawn(modtest.Proc{PID: 4100, PPID: 1, RSS: 4 * 1024, Etimes: 4 * 3600, Args: "/bin/zsh"})

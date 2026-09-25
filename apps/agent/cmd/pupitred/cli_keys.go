@@ -19,9 +19,7 @@ const keysCommand = "keys"
 
 var effectiveUID = os.Geteuid
 
-// The way back from the hosting console when every device is lost: one key,
-// typed or named by its .pub file, becomes the whole block and the whole trust.
-// The app's onboarding then takes that device back with keys.trust.
+// The way back from the hosting console when every device is lost: one key becomes the whole block and the only signer.
 func runKeys(engine *modules.Engine, args []string, stdout, stderr io.Writer) int {
 	offered, ok := resetArguments(args)
 	if !ok {
@@ -85,7 +83,6 @@ func resetArguments(args []string) (string, bool) {
 	return offered, strings.TrimSpace(offered) != ""
 }
 
-// A value that starts like a key is one; anything else names the .pub file that holds it.
 func offeredKey(engine *modules.Engine, offered string) (string, error) {
 	for _, keyType := range contract.KeyApprovalRules.KeyTypes {
 		if strings.HasPrefix(strings.TrimSpace(offered), keyType+" ") {
@@ -115,6 +112,7 @@ func reset(engine *modules.Engine, key keys.Key) error {
 	})
 
 	target := keys.Target{Path: keysPath(), Owner: daemon.DefaultKeysOwner}
+
 	if err := keys.Reset(journal, target, signersPath(), key, time.Now()); err != nil {
 		return err
 	}

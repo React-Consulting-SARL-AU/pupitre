@@ -31,17 +31,15 @@ var (
 	serverID    = regexp.MustCompile(contract.KeyApprovalRules.ServerIDPattern)
 )
 
-// ValidServerID says whether an identifier is one the platform draws: nothing else becomes a file name, a bucket prefix or a signed field.
+// Only a platform-drawn id may become a file name, a bucket prefix or a signed field.
 func ValidServerID(id string) bool {
 	return serverID.MatchString(id)
 }
 
-// Bare is the key as an approval names it: its type and its body, without options or comment.
 func (k Key) Bare() string {
 	return k.Type + " " + k.Blob
 }
 
-// ParseApproved reads a key the way an approval and the trust store hold one: `type base64`, an admitted type, and a body that is exactly that key.
 func ParseApproved(line string) (Key, error) {
 	if !approvedKey.MatchString(line) {
 		return Key{}, ErrKeyRefused
@@ -62,7 +60,7 @@ func ParseApproved(line string) (Key, error) {
 	return Key{Type: keyType, Blob: body}, nil
 }
 
-// ApprovalMessage is the exact bytes a device signs: five lines, each ended by a line feed.
+// The exact bytes a device signs: five lines, each ended by a line feed.
 func ApprovalMessage(approval contract.KeyApproval) []byte {
 	return []byte(strings.Join([]string{
 		ApprovalHeader,
@@ -74,7 +72,6 @@ func ApprovalMessage(approval contract.KeyApproval) []byte {
 	}, "\n"))
 }
 
-// Verifier holds what an approval is checked against: this server's own identifier, the keys it trusts to sign, and when each key was last removed.
 type Verifier struct {
 	ServerID string
 	Trusted  []Key
@@ -82,7 +79,6 @@ type Verifier struct {
 	Now      time.Time
 }
 
-// Admits says whether approval lets key in for userID on this server; the first rule that fails is the answer.
 func (v Verifier) Admits(key Key, userID string, approval contract.KeyApproval) error {
 	if contract.ValidateValue("KeyApproval", approval) != nil {
 		return ErrApprovalShape

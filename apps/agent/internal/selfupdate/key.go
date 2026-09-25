@@ -6,7 +6,7 @@ import (
 	"errors"
 )
 
-// Filled at link time by the release build: -ldflags "-X pupitre.studio/agent/internal/selfupdate.releasePublicKey=<base64>".
+// Set at link time by the release build: -ldflags "-X pupitre.studio/agent/internal/selfupdate.releasePublicKey=<base64>".
 var releasePublicKey = ""
 
 var errNoPublicKey = errors.New("no signing key is embedded in this agent")

@@ -1,4 +1,3 @@
-// Package dumps imports the dumps the client leaves in ~/dumps/, once each, whatever the engine.
 package dumps
 
 import (
@@ -43,16 +42,14 @@ var namedDump = regexp.MustCompile(`^(?:fulldump|dump)_([A-Za-z0-9_]+)_[0-9]+\.`
 
 var unsafeInStep = regexp.MustCompile(`[^a-z0-9]+`)
 
-// The name reaches an SQL identifier and a shell-free argv; anything else is left alone rather than quoted into a surprise.
-// It never starts with a dash, which mysql, pg_dump and mongodump would read as an option.
+// Never a leading dash, which mysql, pg_dump and mongodump would read as an option.
 var safeName = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9_-]{0,63}$`)
 
-// SafeName says whether a database name can reach an identifier, a path under ~/dumps and an argv as it is.
 func SafeName(name string) bool {
 	return safeName.MatchString(name)
 }
 
-// Write streams a dump into a file root makes for dev in ~/dumps: a dump tool told a path would follow a link dev planted there.
+// Root streams into a file it creates for dev: a dump tool given a path would follow a link dev planted in ~/dumps.
 func Write(ctx *modules.Context, name, suffix string, dump func(out io.Writer) error) (string, int64, error) {
 	if err := ctx.Sys().MkdirIn(home, dumpsFolder, Owner); err != nil {
 		return "", 0, err
@@ -84,7 +81,7 @@ func Write(ctx *modules.Context, name, suffix string, dump func(out io.Writer) e
 	return home + "/" + rel, written.SizeBytes, nil
 }
 
-// One step per dump, named after its database: the report says what was imported without naming a single secret.
+// Steps are named after the database, not the file, so the report never names a secret.
 func Import(ctx *modules.Context, options Options) ([]string, error) {
 	pending := waiting(ctx, options)
 	if len(pending) == 0 {
@@ -98,6 +95,7 @@ func Import(ctx *modules.Context, options Options) ([]string, error) {
 	}
 
 	var imported []string
+
 	for _, dump := range pending {
 		if load(ctx, dump, options) {
 			imported = append(imported, dump.Database)
@@ -127,11 +125,7 @@ func load(ctx *modules.Context, dump File, options Options) (done bool) {
 	return err == nil && done
 }
 
-// gunzip -c … | mysql would need a shell; decompressing beside the archive
-// keeps every command to an argv. gzip reads the archive on a standard input
-// root opens, which refuses a link dev planted, and writes to a file root
-// makes under a name of its own: a plain x.sql the client left beside x.sql.gz
-// is neither overwritten nor taken away with the copy.
+// Decompressing to a private copy keeps every command an argv, refuses planted links, and spares the client's own x.sql.
 func prepare(ctx *modules.Context, dump File, native bool) (File, func(), error) {
 	if !dump.Gzip || native {
 		return dump, func() {}, nil
@@ -167,6 +161,7 @@ func mark(ctx *modules.Context, dump File) error {
 
 func waiting(ctx *modules.Context, options Options) []File {
 	var pending []File
+
 	for _, dump := range discover(ctx, options.Patterns) {
 		if options.Only != "" && dump.Database != options.Only {
 			continue
@@ -194,8 +189,9 @@ func discover(ctx *modules.Context, patterns []string) []File {
 		return nil
 	}
 
-	// A file name may hold a newline, never a NUL: find -print0 is the only listing that cannot be split in the wrong place.
 	var found []File
+
+	// A file name may hold a newline, never a NUL: only a -print0 listing cannot be split in the wrong place.
 	for _, listed := range strings.Split(out.Stdout, "\x00") {
 		if listed == "" {
 			continue
@@ -218,6 +214,7 @@ func discover(ctx *modules.Context, patterns []string) []File {
 
 func find(patterns []string) []string {
 	argv := []string{"find", Dir, "-maxdepth", "1", "-type", "f", "("}
+
 	for i, pattern := range patterns {
 		if i > 0 {
 			argv = append(argv, "-o")

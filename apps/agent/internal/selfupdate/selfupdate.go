@@ -39,9 +39,9 @@ type Options struct {
 	LogPath    string
 	Platform   platform.Client
 	PublicKey  ed25519.PublicKey
-	// Migrator is this binary's ledger: what a rollback puts back when the new binary migrated before failing.
+	// What a rollback puts back when the new binary migrated before failing.
 	Migrator Migrator
-	// UpgradeLock keeps a second upgrade out; InstallLock is the one installs, backups and restores hold, which a restart would cut short. Empty is no lock, which is the tests' case.
+	// InstallLock is held by installs, backups and restores, which a restart would cut short; empty takes no lock.
 	UpgradeLock string
 	InstallLock string
 }
@@ -63,7 +63,6 @@ type Request struct {
 	AllowDowngrade bool
 }
 
-// What the agent verifies against, once the platform has said it: the expected fingerprint and the signature that binds it to a version and an architecture.
 type published struct {
 	Fingerprint string
 	Signature   []byte
@@ -141,7 +140,7 @@ func (u *Upgrader) Upgrade(request Request) (Result, error) {
 	return u.install(ctx, version, binary)
 }
 
-// The platform's own word beats what the caller hands over; the parameter is the way back for an agent whose platform is out of reach.
+// The platform's word beats the caller's; the parameter is the way back when the platform is out of reach.
 func (u *Upgrader) published(ctx sys.Context, client platform.Client, version, offered string) (published, error) {
 	info, err := client.ReleaseMetadata(context.Background(), version)
 	if err == nil {
@@ -167,7 +166,7 @@ func (u *Upgrader) published(ctx sys.Context, client platform.Client, version, o
 	return published{Signature: signature}, nil
 }
 
-// A signature never expires, so nothing but this refusal stops an old and faulty version from being installed again.
+// A signature never expires, so only this floor stops an old faulty version from coming back.
 func (u *Upgrader) holdTheFloor(ctx sys.Context, request Request, version string, state platform.State, stateErr error) error {
 	floor := u.floor(state, stateErr)
 
@@ -184,7 +183,7 @@ func (u *Upgrader) holdTheFloor(ctx sys.Context, request Request, version string
 	return refusedDowngrade(version, floor)
 }
 
-// The running version is known without asking anyone, which is what makes it the floor that holds when the platform is out of reach; what the platform remembers can only raise it. A build that is not a version — dev — is no floor at all.
+// The running version holds offline; the platform can only raise it, and a dev build is no floor.
 func (u *Upgrader) floor(state platform.State, stateErr error) string {
 	floor := ""
 	if _, semver := parseVersion(u.options.Version); semver {
@@ -202,7 +201,7 @@ func (u *Upgrader) floor(state platform.State, stateErr error) string {
 	return floor
 }
 
-// Nothing has touched the disk before this point: a binary that failed verification is never written anywhere.
+// Nothing touched the disk before this point: an unverified binary is never written.
 func (u *Upgrader) install(ctx sys.Context, version string, binary []byte) (Result, error) {
 	previous, err := ctx.Sys().ReadFile(u.binaryPath())
 	if err != nil {
@@ -216,7 +215,7 @@ func (u *Upgrader) install(ctx sys.Context, version string, binary []byte) (Resu
 		return Result{PreviousVersion: u.options.Version, Version: version, Restarting: false}, nil
 	}
 
-	// A restart kills whatever the daemon runs, a scheduled backup included; the lock goes once the new unit is up, so the new binary can migrate.
+	// A restart kills whatever the daemon runs; released once the new unit is up so the new binary can migrate.
 	release, err := hold(u.options.InstallLock, installBusy)
 	if err != nil {
 		return Result{}, err
@@ -248,7 +247,7 @@ func (u *Upgrader) install(ctx sys.Context, version string, binary []byte) (Resu
 	return Result{PreviousVersion: u.options.Version, Version: running, Restarting: restarting}, nil
 }
 
-// The previous binary never left memory, so putting it back needs nothing from the disk that the failed upgrade could have spoiled.
+// The previous binary never left memory, so nothing the failed upgrade spoiled on disk is needed.
 func (u *Upgrader) rollback(ctx sys.Context, previous []byte, before configBefore, cause error) (Result, error) {
 	if err := ctx.Sys().WriteFile(u.binaryPath(), previous, binaryMode); err != nil {
 		return Result{}, protocol.NewError(contract.ErrorInternal,
@@ -256,7 +255,7 @@ func (u *Upgrader) rollback(ctx sys.Context, previous []byte, before configBefor
 			WithFix(i18n.T("selfupdate.rollback.failed.fix"))
 	}
 
-	// Before the restart: the previous binary refuses a configuration ahead of its own revision.
+	// Before the restart: the previous binary refuses a configuration ahead of its revision.
 	unrestored := u.restoreConfig(ctx, before)
 
 	if _, err := u.restart(ctx); err != nil {
@@ -286,7 +285,7 @@ func (u *Upgrader) configBefore() configBefore {
 	return before
 }
 
-// The batch to put back is the one the new binary took: new since the upgrade began, and taken from the revision this binary reads.
+// Only the batch the new binary took since the upgrade began, from the revision this binary reads.
 func (u *Upgrader) restoreConfig(ctx sys.Context, before configBefore) error {
 	if u.options.Migrator == nil || u.options.Migrator.Ledger().Revision == before.revision {
 		return nil
@@ -344,13 +343,12 @@ type helloAnswer struct {
 	Error *protocol.Error `json:"error"`
 }
 
-// Identity is what `pupitred version --json` prints: the version, and the protocol generation the binary speaks.
 type Identity struct {
 	Version  string `json:"version"`
 	Protocol int    `json:"protocol"`
 }
 
-// spoken is the protocol the new binary says it speaks; one too old to say is asked in this binary's own.
+// A binary too old to say is asked in this binary's protocol.
 func (u *Upgrader) spoken(ctx sys.Context) int {
 	out, err := sys.Exec(ctx, sys.Command{Argv: []string{u.binaryPath(), "version", "--json"}, Timeout: healthTimeout})
 	if err != nil {
@@ -365,8 +363,7 @@ func (u *Upgrader) spoken(ctx sys.Context) int {
 	return identity.Protocol
 }
 
-// The new binary is asked the one question the app asks first, on its own protocol channel: an agent that cannot answer hello has not been installed, it has been lost.
-// It is asked in the protocol it speaks: an upgrade to a new generation is an upgrade, which the app then follows, not a binary to roll back.
+// Asked in its own protocol: a new generation is an upgrade for the app to follow, not a binary to roll back.
 func (u *Upgrader) hello(ctx sys.Context) (string, error) {
 	request, err := json.Marshal(map[string]any{
 		"id":     1,

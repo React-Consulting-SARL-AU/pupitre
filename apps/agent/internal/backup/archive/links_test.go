@@ -28,11 +28,13 @@ func entries(t *testing.T, archived []byte) []string {
 
 	var names []string
 	reader := tar.NewReader(bytes.NewReader(archived))
+
 	for {
 		header, err := reader.Next()
 		if errors.Is(err, io.EOF) {
 			return names
 		}
+
 		if err != nil {
 			t.Fatal(err)
 		}

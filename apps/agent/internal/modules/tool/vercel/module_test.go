@@ -27,6 +27,7 @@ func run(t *testing.T, fake *modtest.FakeSys) *modules.Context {
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -114,7 +115,6 @@ func TestFailedInstallCarriesItsReplayCommand(t *testing.T) {
 	}
 }
 
-// vercel whoami is asked with the token the machine holds, and prints the username the token opens.
 func TestLoginReadsWhatVercelWhoamiSays(t *testing.T) {
 	fake := modtest.NewFakeSys()
 
@@ -133,9 +133,11 @@ func TestLoginReadsWhatVercelWhoamiSays(t *testing.T) {
 
 	last := fake.Calls[len(fake.Calls)-1]
 	found := false
+
 	for _, variable := range last.Env {
 		found = found || variable == tokenKey+"="+held
 	}
+
 	if !found || strings.Contains(strings.Join(last.Argv, " "), held) {
 		t.Fatalf("the token travels in the environment, never in argv: %+v", last)
 	}

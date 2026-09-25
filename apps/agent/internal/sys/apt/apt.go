@@ -24,6 +24,7 @@ func Installed(ctx sys.Context, pkg string) bool {
 
 func Missing(ctx sys.Context, pkgs ...string) []string {
 	var missing []string
+
 	for _, pkg := range pkgs {
 		if !Installed(ctx, pkg) {
 			missing = append(missing, pkg)
@@ -48,14 +49,14 @@ func Update(ctx sys.Context) error {
 	})
 }
 
-// A module that has just added a repository reads the lists again, even when another module already updated them.
+// Unlike Update, runs every time: a module that just added a repository must read the lists again.
 func Refresh(ctx sys.Context) error {
 	_, err := sys.Exec(ctx, command("update", "-qq"))
 
 	return err
 }
 
-// RefreshAdded reads the lists after a repository was added, and takes that repository back out if apt cannot read it: a list left broken fails every later update on the machine, whichever module runs it.
+// A list apt cannot read fails every later update on the machine, so the added repository is taken back out.
 func RefreshAdded(ctx sys.Context, source string, keyrings ...string) error {
 	err := Refresh(ctx)
 	if err == nil {

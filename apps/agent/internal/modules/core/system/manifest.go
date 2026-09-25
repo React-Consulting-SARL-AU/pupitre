@@ -7,7 +7,7 @@ import (
 
 const ID = "core.system"
 
-// The name is written into .gitconfig as a quoted value: a control character would end it and start a line of its own.
+// Written quoted into .gitconfig, where a control character would end the value and start a new line.
 const GitNamePattern = `^[^\x00-\x1f\x7f]+$`
 
 func manifest() contract.Manifest {

@@ -6,19 +6,18 @@ import (
 	"pupitre.studio/agent/internal/platform"
 )
 
-// A binary the app pushed over SSH, which is how a server reached as dev gets a new agent without a shell as root.
 type Staged struct {
 	Version        string
 	Signature      string
 	Binary         []byte
 	AllowDowngrade bool
-	// Privileged says sudo asked for the password: `pupitred binary install` with nothing else is the line it runs without one.
+	// Sudo asked for the password; the bare `pupitred binary install` line runs without one.
 	Privileged bool
 }
 
 var errPushed = errors.New("a pushed binary is not asked of the platform")
 
-// Place holds a pushed binary to what an upgrade holds a downloaded one: the embedded key signs this version, this architecture and these bytes, and the running version is the floor.
+// Held to the same bar as a download: embedded-key signature over version, arch and bytes, running version as floor.
 func (u *Upgrader) Place(staged Staged) (Result, error) {
 	ctx := u.context()
 	fingerprint := Fingerprint(staged.Binary)

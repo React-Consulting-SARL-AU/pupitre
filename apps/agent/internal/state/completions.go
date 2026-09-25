@@ -12,10 +12,9 @@ import (
 	"pupitre.studio/agent/internal/sys/file"
 )
 
-// Past that, a list stops helping: the app shows ten candidates at a time.
+// The app shows ten candidates at a time; past this a list stops helping.
 const pathLimit = 200
 
-// What a terminal needs to complete a line: the grammar of the driving commands, the projects as declared, and one folder of the projects root.
 func (r *Reader) Completions(wanted string) (contract.Completions, error) {
 	root := r.options.Paths.Resolved().Projects
 
@@ -38,6 +37,7 @@ func (r *Reader) names() []string {
 	declared := r.registry()
 
 	names := make([]string, 0, len(declared.Projects))
+
 	for _, project := range declared.Projects {
 		names = append(names, project.Name)
 	}
@@ -45,7 +45,7 @@ func (r *Reader) names() []string {
 	return names
 }
 
-// A folder that is not there yet answers with an empty list: a completion never turns a keystroke into an error.
+// A missing folder answers an empty list: a completion never turns a keystroke into an error.
 func (r *Reader) entries(root, folder string) []string {
 	dir := root
 	if folder != "" {
@@ -60,6 +60,7 @@ func (r *Reader) entries(root, folder string) []string {
 	sort.Slice(listed, func(a, b int) bool { return listed[a].Name < listed[b].Name })
 
 	names := make([]string, 0, min(len(listed), pathLimit))
+
 	for _, entry := range listed[:min(len(listed), pathLimit)] {
 		names = append(names, name(entry))
 	}
@@ -75,7 +76,7 @@ func name(entry sys.Entry) string {
 	return entry.Name
 }
 
-// The projects root is the only folder the app may list: the rest of the machine is not its business, and a completion is not a file browser.
+// Only the projects root may be listed: a completion is not a file browser.
 func under(wanted string) (string, error) {
 	if strings.ContainsAny(wanted, "\x00\n\r") {
 		return "", bad(i18n.T("state.path.unreadable"), i18n.T("state.path.unreadable.fix"))

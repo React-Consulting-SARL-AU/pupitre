@@ -15,7 +15,7 @@ import (
 	"pupitre.studio/agent/internal/protocol"
 )
 
-// Each launch runs a real protocol server over pipes, limited unless sudo was asked for --privileged, as main does.
+// Each launch runs a real protocol server over pipes, limited unless --privileged, as main does.
 type sudoBench struct {
 	launched [][]string
 	ran      []string
@@ -36,11 +36,13 @@ func (b *sudoBench) launch(argv []string) (devcli.Pipe, error) {
 
 		return map[string]any{"lines": []string{}}, nil
 	})
+
 	server.Register("db.import", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
 		b.ran = append(b.ran, "db.import")
 
 		return map[string]any{"imported": []string{"shop"}}, nil
 	})
+
 	server.Register("project.up", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
 		return nil, protocol.NewError(contract.ErrorProjectNotFound, "no such project").WithFix("Declare it first.")
 	})
@@ -49,6 +51,7 @@ func (b *sudoBench) launch(argv []string) (devcli.Pipe, error) {
 	fromServer, answers := io.Pipe()
 
 	done := make(chan error, 1)
+
 	go func() {
 		err := server.Serve(requests, answers)
 		answers.Close()
@@ -68,6 +71,7 @@ func TestALimitedVerbRidesTheSessionSudoOpensWithoutAPassword(t *testing.T) {
 	defer remote.Close()
 
 	var lines []string
+
 	result, err := remote.Call("project.logs", map[string]any{"name": "web", "process": "web"}, func(event string, fields map[string]any) {
 		if event == "log" {
 			lines = append(lines, fields["line"].(string))
@@ -125,7 +129,7 @@ func TestTheAgentsRefusalReachesTheVerbAsItStands(t *testing.T) {
 	}
 }
 
-// sudo without a terminal cannot ask for the password: the session never says hello, and the verb says what it needs.
+// sudo without a terminal cannot ask for the password, so the session never answers hello.
 func TestAPrivilegedVerbWithoutThePasswordSaysWhatItNeeds(t *testing.T) {
 	i18n.Use("en")
 

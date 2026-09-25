@@ -43,7 +43,7 @@ type FakeSys struct {
 	Answers  map[string]string
 	Refusals map[string]string
 	Failures map[string]string
-	// LineFailures fails the command lines holding a fragment, where Failures fails every call of a program.
+	// Keyed by a command-line fragment, where Failures is keyed by program.
 	LineFailures map[string]string
 	Once         map[string]string
 	Users        map[string]string
@@ -52,20 +52,18 @@ type FakeSys struct {
 	Versions     map[string][]string
 	Sessions     map[string]bool
 	Windows      map[string]int
-	// Twins are the extra windows a name was opened under, by pid: tmux keeps every one and refuses the name as ambiguous.
-	Twins map[string][]int
-	// Provides maps a virtual package name to the package apt installs for it.
+	// Extra windows opened under one name, by pid: tmux keeps each and refuses the name as ambiguous.
+	Twins    map[string][]int
 	Provides map[string]string
-	// Split marks a window the user split a second pane off, which list-panes prints after the first.
+	// A second pane the user split off, which list-panes prints after the window's own.
 	Split map[string]bool
-	// Activity is when a window last moved, for the panes a test wants idle; the others move at the fake's clock.
-	Activity map[string]time.Time
-	Dead     map[string]int
-	Binds    map[string]int
-	Listen   map[int]bool
-	Uptimes  map[int]int
-	Firewall Firewall
-	// Observe sees every command as it runs, with the machine as it stands at that moment.
+	// Windows not listed here move at the fake's clock.
+	Activity   map[string]time.Time
+	Dead       map[string]int
+	Binds      map[string]int
+	Listen     map[int]bool
+	Uptimes    map[int]int
+	Firewall   Firewall
 	Observe    func(cmd sys.Command)
 	Tailnet    bool
 	Prefs      TailscalePrefs
@@ -80,15 +78,15 @@ type FakeSys struct {
 	Calls      []sys.Command
 	Mutations  []string
 	Updates    int
-	// Fed is what each command read on a streamed input, by its command line.
+	// Streamed input each command read, keyed by its command line.
 	Fed map[string][]byte
-	// Fetched is the URL each file curl wrote came from, by path.
+	// Source URL of each file curl wrote, keyed by path.
 	Fetched map[string]string
-	// Signers are the keys a URL serves in place of the ones apt pins for it, which is how a test serves a forged key.
+	// Keys a URL serves instead of the ones apt pins for it: how a test serves a forged key.
 	Signers map[string][]string
 }
 
-// A row of ps, in the units ps prints: RSS in kilobytes, Etimes in seconds.
+// Units as ps prints them: RSS in kilobytes, Etimes in seconds.
 type Proc struct {
 	PID    int
 	PPID   int
@@ -147,6 +145,7 @@ func (f *FakeSys) Spawn(proc Proc) {
 	if proc.User == "" {
 		proc.User = "dev"
 	}
+
 	if proc.Comm == "" {
 		proc.Comm = base(field(proc.Args, 0))
 	}
@@ -164,12 +163,12 @@ func (f *FakeSys) FailPackage(pkg, stderr string) {
 	f.Failures["apt:"+pkg] = stderr
 }
 
-// One program, several questions: an answer keyed by a fragment of the command line wins over the reply keyed by the program.
+// An answer keyed by a command-line fragment wins over the reply keyed by the program.
 func (f *FakeSys) Answer(fragment, stdout string) {
 	f.Answers[fragment] = stdout
 }
 
-// Refuse answers a command line and exits 1 all the same, as a sign-in check does when nobody is signed in.
+// Prints the output and still exits 1, as a sign-in check does when nobody is signed in.
 func (f *FakeSys) Refuse(fragment, stdout string) {
 	f.Refusals[fragment] = stdout
 }
@@ -182,7 +181,7 @@ func (f *FakeSys) FailLine(fragment, stderr string) {
 	f.LineFailures[fragment] = stderr
 }
 
-// FailOnce refuses the next call of a program and answers the ones after: a reload that fails, then succeeds on the previous configuration.
+// Only the next call fails, like a reload that fails then succeeds on the previous configuration.
 func (f *FakeSys) FailOnce(program, stderr string) {
 	f.Once[program] = stderr
 }
@@ -206,7 +205,6 @@ func (f *FakeSys) Commands() []string {
 	return lines
 }
 
-// A streamed input is drained and kept under the command line, a streamed output receives what the command answers.
 func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 	if cmd.Input != nil {
 		fed, _ := io.ReadAll(cmd.Input)
@@ -225,7 +223,6 @@ func (f *FakeSys) Run(cmd sys.Command) (sys.Output, error) {
 	return out, err
 }
 
-// FedTo is what the command whose line holds fragment read on a streamed input.
 func (f *FakeSys) FedTo(fragment string) []byte {
 	for line, fed := range f.Fed {
 		if strings.Contains(line, fragment) {
@@ -238,6 +235,7 @@ func (f *FakeSys) FedTo(fragment string) []byte {
 
 func (f *FakeSys) run(cmd sys.Command) (sys.Output, error) {
 	f.Calls = append(f.Calls, cmd)
+
 	if f.Observe != nil {
 		f.Observe(cmd)
 	}
@@ -265,18 +263,19 @@ func (f *FakeSys) run(cmd sys.Command) (sys.Output, error) {
 		}
 	}
 
-	// A reply keyed by the whole argv wins: some programs answer differently per argument, like df on two paths.
+	// A whole-argv reply wins: some programs answer per argument, like df on two paths.
 	if reply, keyed := f.Replies[line]; keyed {
 		return sys.Output{Stdout: reply}, nil
 	}
 
-	// The longest matching fragment wins: two answers may both match one command line, and a map iterates in no order.
+	// The longest fragment wins: several may match one line, and map iteration order is random.
 	best := ""
 	for fragment := range f.Answers {
 		if strings.Contains(line, fragment) && len(fragment) > len(best) {
 			best = fragment
 		}
 	}
+
 	if best != "" {
 		return sys.Output{Stdout: f.Answers[best]}, nil
 	}
@@ -287,12 +286,11 @@ func (f *FakeSys) run(cmd sys.Command) (sys.Output, error) {
 		}
 	}
 
-	// The Claude Code binary, run from where it was downloaded, installs itself under ~/.local like the real one.
+	// The downloaded Claude Code binary installs itself under ~/.local like the real one.
 	if strings.HasPrefix(base(program), "claude-") && len(cmd.Argv) > 1 && cmd.Argv[1] == "install" {
 		return f.claudeInstall(cmd.User)
 	}
 
-	// A program is recognised by its name, whether the caller gave a path or relied on PATH.
 	switch base(program) {
 	case "dpkg-query":
 		return f.dpkgQuery(cmd.Argv[1:])
@@ -357,7 +355,7 @@ func (f *FakeSys) run(cmd sys.Command) (sys.Output, error) {
 	return sys.Output{Stdout: f.Replies[program]}, nil
 }
 
-// A dump program leaves its archive where it was told to, as the real one does, or prints it when told no path.
+// Like the real one, a dump program writes its archive to the path it was given, or prints it when given none.
 func (f *FakeSys) dump(args []string) (sys.Output, error) {
 	for _, arg := range args {
 		for _, flag := range []string{"--file=", "--result-file=", "--archive="} {
@@ -373,17 +371,14 @@ func (f *FakeSys) dump(args []string) (sys.Output, error) {
 	return sys.Output{Stdout: "dump"}, nil
 }
 
-// sshd -T prints the effective configuration, keywords lowercased, a list
-// keyword once per value, the first setting of a keyword winning — but Port
-// and ListenAddress, which add up across every file, as sshd does. The
-// fragments of sshd_config.d are read unless a sshd_config without an Include
-// line sits on the machine, as on an image that predates them.
+// Like sshd -T: the first setting wins except Port and ListenAddress, which add up; no Include skips sshd_config.d.
 func (f *FakeSys) sshd(args []string) (sys.Output, error) {
 	if !slices.Contains(args, "-T") {
 		return sys.Output{}, nil
 	}
 
 	var sources []string
+
 	main, present := f.Files["/etc/ssh/sshd_config"]
 	if !present || strings.Contains(string(main), "Include") {
 		for path := range f.Files {
@@ -391,29 +386,35 @@ func (f *FakeSys) sshd(args []string) (sys.Output, error) {
 				sources = append(sources, path)
 			}
 		}
+
 		sort.Strings(sources)
 	}
+
 	if present {
 		sources = append(sources, "/etc/ssh/sshd_config")
 	}
 
 	effective := map[string][]string{}
+
 	for _, source := range sources {
 		for _, line := range strings.Split(string(f.Files[source]), "\n") {
 			key, value, found := strings.Cut(strings.TrimSpace(line), " ")
 			if key = strings.ToLower(key); !found || key == "include" {
 				continue
 			}
+
 			if key == "port" || key == "listenaddress" {
 				effective[key] = append(effective[key], strings.Fields(value)...)
 
 				continue
 			}
+
 			if _, set := effective[key]; !set {
 				effective[key] = strings.Fields(value)
 			}
 		}
 	}
+
 	for key, value := range map[string]string{"permitrootlogin": "prohibit-password", "passwordauthentication": "yes", "port": "22"} {
 		if _, set := effective[key]; !set {
 			effective[key] = []string{value}
@@ -430,7 +431,7 @@ func (f *FakeSys) sshd(args []string) (sys.Output, error) {
 	return sys.Output{Stdout: out.String()}, nil
 }
 
-// OpenSSH prints prohibit-password under its older name, as sshd -T does on a real machine.
+// A real sshd -T prints prohibit-password under its older name.
 func sshdRenders(key, value string) string {
 	if key == "permitrootlogin" && value == "prohibit-password" {
 		return "without-password"
@@ -439,7 +440,6 @@ func sshdRenders(key, value string) string {
 	return value
 }
 
-// Stream plays the command's whole answer line by line, then ends: the fake journal has nothing more to say.
 func (f *FakeSys) Stream(cmd sys.Command, emit func(string)) error {
 	out, err := f.Run(cmd)
 	if err != nil {
@@ -471,20 +471,18 @@ func (f *FakeSys) claudeInstall(owner string) (sys.Output, error) {
 	return sys.Output{Stdout: "Claude Code installed\n"}, nil
 }
 
-// Downloaded is what curl writes when no test chose a body; a digest of it is what the fake's vendors publish.
+// What curl writes when no test chose a body; the fake's vendors publish its digest.
 const Downloaded = "downloaded\n"
 
-// MiseVersion is the release the fake's mise index announces.
 const MiseVersion = "2026.9.4"
 
-// Digest is the SHA-256 of a body as sha256sum prints it, for a test that publishes a checksum itself.
 func Digest(body string) string {
 	sum := sha256.Sum256([]byte(body))
 
 	return hex.EncodeToString(sum[:])
 }
 
-// A download to -o leaves a file behind; without it a step that fetches a binary could never be skipped on a replay.
+// A download to -o leaves a file behind, or a fetch step could never be skipped on a replay.
 func (f *FakeSys) curl(args []string) (sys.Output, error) {
 	for i := 0; i < len(args)-1; i++ {
 		if args[i] != "-o" && args[i] != "--output" {
@@ -511,7 +509,7 @@ func (f *FakeSys) downloaded() string {
 	return Downloaded
 }
 
-// The fake's vendors publish honest checksums: a .sha256 sidecar, or mise's version and SHASUMS256.txt, name the digest of what curl serves, so a module that verifies a download finds the figures agree. An Answer keyed on the same URL wins, which is how a test publishes a wrong one.
+// Checksums are honest by default; an Answer keyed on the same URL wins, which is how a test publishes a wrong one.
 func (f *FakeSys) published(url string) (string, bool) {
 	name := path.Base(url)
 
@@ -530,7 +528,7 @@ func (f *FakeSys) published(url string) (string, bool) {
 	return "", false
 }
 
-// sha256sum reads the file it is given; a mismatch is staged by publishing a wrong digest, never by lying about the file.
+// A mismatch is staged by publishing a wrong digest, never by lying about the file.
 func (f *FakeSys) sha256sum(args []string) (sys.Output, error) {
 	target := args[len(args)-1]
 
@@ -542,7 +540,7 @@ func (f *FakeSys) sha256sum(args []string) (sys.Output, error) {
 	return sys.Output{Stdout: Digest(string(content)) + "  " + target + "\n"}, nil
 }
 
-// fallocate leaves the file behind even when a later step fails, as the real one does on a file system that refuses it.
+// The file stays even when a later step fails, as with the real one on a file system that refuses it.
 func (f *FakeSys) fallocate(args []string) (sys.Output, error) {
 	if len(args) == 0 {
 		return f.fail("fallocate", "fallocate: no filename specified")
@@ -551,12 +549,12 @@ func (f *FakeSys) fallocate(args []string) (sys.Output, error) {
 	return sys.Output{}, f.WriteFile(args[len(args)-1], nil, 0o644)
 }
 
-// An extraction leaves a folder behind, and the entries seeded in Archives; without them a step that unpacks an archive could never be skipped on a replay.
-// An archive read as "-" is the file the command's standard input was opened on, and what a user extracts is that user's.
+// Leaves the folder and Archives entries behind, or an unpack step could never be skipped on a replay.
 func (f *FakeSys) tar(cmd sys.Command) (sys.Output, error) {
 	args := cmd.Argv[1:]
 
 	var archive, dest string
+
 	for index, arg := range args {
 		switch {
 		case arg == "-C" || arg == "--directory":
@@ -656,7 +654,7 @@ func (f *FakeSys) rm(args []string) (sys.Output, error) {
 	return sys.Output{}, nil
 }
 
-// The VS Code server CLI keeps the extensions it was given, so a second install of the same list has nothing left to do.
+// Keeps the extensions it was given, so a second install of the same list has nothing left to do.
 func (f *FakeSys) codeServer(args []string) (sys.Output, error) {
 	for index, arg := range args {
 		switch arg {
@@ -665,6 +663,7 @@ func (f *FakeSys) codeServer(args []string) (sys.Output, error) {
 			for name := range f.Extensions {
 				names = append(names, name)
 			}
+
 			sort.Strings(names)
 
 			return sys.Output{Stdout: strings.Join(names, "\n") + "\n"}, nil
@@ -690,9 +689,10 @@ func next(args []string, index int) string {
 	return ""
 }
 
-// A symlink is a file holding the path it points at, which is what readlink reads back and what makes the linking step skippable on a replay.
+// A symlink holds its target, which readlink reads back and which lets a replay skip the linking step.
 func (f *FakeSys) ln(args []string) (sys.Output, error) {
 	var words []string
+
 	for _, arg := range args {
 		if !strings.HasPrefix(arg, "-") {
 			words = append(words, arg)
@@ -703,7 +703,6 @@ func (f *FakeSys) ln(args []string) (sys.Output, error) {
 		return f.fail("ln", "ln: missing file operand")
 	}
 
-	// A hard link is the same content under a second name.
 	if !symbolic(args) {
 		content, err := f.ReadFile(words[0])
 		if err != nil {
@@ -732,10 +731,11 @@ func symbolic(args []string) bool {
 	return slices.Contains(args, "--symbolic")
 }
 
-// gzip --decompress leaves the plain file beside the archive and takes the archive away unless told to keep it; told --stdout, it prints what its standard input holds.
+// Like gzip -d: the archive goes unless --keep, and --stdout prints what standard input holds.
 func (f *FakeSys) gzip(cmd sys.Command) (sys.Output, error) {
 	args := cmd.Argv[1:]
 	path := args[len(args)-1]
+
 	if !slices.Contains(args, "--decompress") && !slices.Contains(args, "-d") {
 		return f.fail("gzip", "gzip: compression is not played by the fake")
 	}
@@ -765,7 +765,7 @@ func (f *FakeSys) gzip(cmd sys.Command) (sys.Output, error) {
 	return sys.Output{}, f.Remove(path)
 }
 
-// A standard input root opens is refused when a link stands at its name or on its way, as the real one refuses a link another account planted.
+// Refused when a link stands on the path, as root refuses a link another account planted.
 func (f *FakeSys) stdin(cmd sys.Command) ([]byte, error) {
 	for at := cmd.StdinPath; at != "/" && at != "."; at = filepath.Dir(at) {
 		if _, linked := f.Links[at]; linked {
@@ -776,7 +776,7 @@ func (f *FakeSys) stdin(cmd sys.Command) ([]byte, error) {
 	return f.ReadFile(cmd.StdinPath)
 }
 
-// sysctl -p sets the running kernel to what the file says, which the fake keeps under /proc/sys.
+// The fake keeps the running kernel's settings under /proc/sys.
 func (f *FakeSys) sysctl(args []string) (sys.Output, error) {
 	if !slices.Contains(args, "-p") {
 		return sys.Output{}, nil
@@ -811,13 +811,14 @@ func (f *FakeSys) readlink(args []string) (sys.Output, error) {
 	return sys.Output{Stdout: target + "\n"}, nil
 }
 
-// --dearmor turns an armoured key into a keyring file, which is what makes the repository step skippable once it is there.
+// The keyring file --dearmor writes is what makes the repository step skippable once there.
 func (f *FakeSys) gpg(args []string) (sys.Output, error) {
 	if slices.Contains(args, "--show-keys") {
 		return f.showKeys(args[len(args)-1])
 	}
 
 	var out, in string
+
 	for index, arg := range args {
 		switch {
 		case arg == "-o" || arg == "--output":
@@ -841,25 +842,28 @@ func (f *FakeSys) gpg(args []string) (sys.Output, error) {
 	return sys.Output{}, f.WriteFile(out, content, 0o644)
 }
 
-// UnknownSigner is the key a URL apt pins nothing for serves.
+// Served by a URL apt pins no key for.
 const UnknownSigner = "0000000000000000000000000000000000000000"
 
-// The key a repository serves is the one apt pins for its URL, unless a test named another in Signers; each comes with a subkey, whose fingerprint is not the key's.
+// Each key comes with a subkey whose fingerprint is not the key's.
 func (f *FakeSys) showKeys(path string) (sys.Output, error) {
 	if _, err := f.ReadFile(path); err != nil {
 		return f.fail("gpg", "gpg: can't open '"+path+"'")
 	}
 
 	url := f.Fetched[path]
+
 	signers, served := f.Signers[url]
 	if !served {
 		signers = apt.Pins[url]
 	}
+
 	if len(signers) == 0 {
 		signers = []string{UnknownSigner}
 	}
 
 	var out strings.Builder
+
 	for _, fingerprint := range signers {
 		fmt.Fprintf(&out, "pub:-:4096:1:%s:1487788586:::-:::scESA::::::23::0:\n", fingerprint[24:])
 		fmt.Fprintf(&out, "fpr:::::::::%s:\n", fingerprint)
@@ -871,11 +875,10 @@ func (f *FakeSys) showKeys(path string) (sys.Output, error) {
 	return sys.Output{Stdout: out.String()}, nil
 }
 
-// Joined is what tailscale status answers once up has run: a node on a tailnet, under the login that minted its key.
+// What tailscale status answers once up has run.
 const Joined = `{"BackendState":"Running","Self":{"HostName":"pupitre-srv","DNSName":"pupitre-srv.tail1234.ts.net.","UserID":1},"User":{"1":{"LoginName":"jordan@example.org"}}}`
 
-// tailscale up joins, logout leaves, and status says which; a test that wants another answer keys one with Answer, which wins.
-// up and set both keep the hostname and SSH flags they were given, which is what debug prefs answers.
+// An Answer wins over this; up and set keep the hostname and SSH flags that debug prefs reads back.
 func (f *FakeSys) tailscale(args []string) (sys.Output, error) {
 	switch next(args, -1) {
 	case "up":
@@ -903,7 +906,6 @@ func (f *FakeSys) tailscale(args []string) (sys.Output, error) {
 	return sys.Output{}, nil
 }
 
-// TailscalePrefs is what the node was last told to be, as tailscale up or set said it.
 type TailscalePrefs struct {
 	Hostname string
 	SSH      bool
@@ -922,7 +924,7 @@ func (f *FakeSys) keepPrefs(args []string) {
 	}
 }
 
-// The headless browser writes the image it was asked for, so a capture is a file the gallery can then list.
+// Writes the requested image, so a capture is a file the gallery can then list.
 func (f *FakeSys) chrome(args []string) (sys.Output, error) {
 	for _, arg := range args {
 		if target, ok := strings.CutPrefix(arg, "--screenshot="); ok {
@@ -941,17 +943,18 @@ func (f *FakeSys) chrome(args []string) (sys.Output, error) {
 const (
 	miseInstalls = "/home/dev/.local/share/mise/installs/"
 
-	// The global configuration mise use -g writes, which the real one reads back to know the default of every tool.
+	// The real mise reads this back to know every tool's default.
 	MiseGlobalConfig = "/home/dev/.config/mise/config.toml"
 )
 
-// Tools is what mise use chose, the default of each tool; Versions is everything installed beside it. The list mise prints is the union.
+// Tools holds each tool's default, Versions everything installed beside it; mise ls prints the union.
 func (f *FakeSys) mise(cmd sys.Command, args []string) (sys.Output, error) {
 	if len(args) > 0 && (args[0] == "x" || args[0] == "exec") {
 		return f.miseExec(cmd, args[1:])
 	}
 
 	var words []string
+
 	for _, arg := range args {
 		if !strings.HasPrefix(arg, "-") {
 			words = append(words, arg)
@@ -1017,7 +1020,7 @@ func (f *FakeSys) mise(cmd sys.Command, args []string) (sys.Output, error) {
 	return sys.Output{}, nil
 }
 
-// The program after -- runs as the same user, under whichever version was named: what it does is its own business, and its failures are its own.
+// The program after -- runs as the same user; its output and failures are its own.
 func (f *FakeSys) miseExec(cmd sys.Command, args []string) (sys.Output, error) {
 	at := slices.Index(args, "--")
 	if at < 0 || at == len(args)-1 {
@@ -1030,7 +1033,7 @@ func (f *FakeSys) miseExec(cmd sys.Command, args []string) (sys.Output, error) {
 	return f.Run(inner)
 }
 
-// A release the test announced under Upgrades, "mise:node@22" say, is what a fuzzy request resolves to for as long as the test says so; otherwise the request itself is kept.
+// A fuzzy request resolves to the release a test announced under Upgrades ("mise:node@22"), else stays as asked.
 func (f *FakeSys) resolved(tool, version string) string {
 	if next, ok := f.Upgrades["mise:"+tool+"@"+version]; ok {
 		return next
@@ -1049,7 +1052,7 @@ func (f *FakeSys) addVersion(tool, version string) {
 	f.Versions[tool] = append(f.Versions[tool], version)
 }
 
-// A bare tool drops every version of it; a version drops that one alone. The default only goes with the last version, as a request in the real configuration outlives the release it resolved to.
+// The default goes only with the last version, as a request in the real configuration outlives its release.
 func (f *FakeSys) dropVersion(tool, version string) {
 	if version == "latest" {
 		delete(f.Tools, tool)
@@ -1072,6 +1075,7 @@ func (f *FakeSys) dropVersion(tool, version string) {
 	}
 
 	delete(f.Versions, tool)
+
 	if f.Tools[tool] == version {
 		delete(f.Tools, tool)
 	}
@@ -1082,10 +1086,13 @@ func (f *FakeSys) writeMiseGlobal() {
 	for name := range f.Tools {
 		names = append(names, name)
 	}
+
 	sort.Strings(names)
 
 	var out strings.Builder
+
 	out.WriteString("[tools]\n")
+
 	for _, name := range names {
 		fmt.Fprintf(&out, "%q = %q\n", name, f.Tools[name])
 	}
@@ -1099,6 +1106,7 @@ func (f *FakeSys) toolList() string {
 	for name, version := range f.Tools {
 		held[name] = append(held[name], version)
 	}
+
 	for name, versions := range f.Versions {
 		for _, version := range versions {
 			if !slices.Contains(held[name], version) {
@@ -1111,12 +1119,15 @@ func (f *FakeSys) toolList() string {
 	for name := range held {
 		names = append(names, name)
 	}
+
 	sort.Strings(names)
 
 	var out strings.Builder
+
 	for _, name := range names {
 		versions := held[name]
 		sort.Strings(versions)
+
 		for _, version := range versions {
 			fmt.Fprintf(&out, "%s  %s  ~/.config/mise/config.toml\n", name, version)
 		}
@@ -1125,8 +1136,7 @@ func (f *FakeSys) toolList() string {
 	return out.String()
 }
 
-// mise resolves node@22 to a patch release; the fake keeps the request, which a pinned major still matches.
-// The separator is the last "@" that opens a version rather than a scoped npm package, as in npm:@openai/codex@latest.
+// The last "@" splits only when it opens a version, not a scoped npm package as in npm:@openai/codex@latest.
 func parseTool(spec string) (tool, version string) {
 	at := strings.LastIndex(spec, "@")
 	if at <= 0 || spec[at-1] == '/' || spec[at-1] == ':' || at == len(spec)-1 {
@@ -1171,21 +1181,23 @@ func (f *FakeSys) aptGet(args []string) (sys.Output, error) {
 					delete(f.Upgrades, pkg)
 					f.mutate("apt-get upgrade " + pkg)
 				}
+
 				continue
 			}
 
-			// A name another package provides lands that package, as apt does: Ubuntu's chromium is a snap stub named chromium-browser.
+			// A virtual name lands its provider, as apt does: Ubuntu's chromium is a snap stub named chromium-browser.
 			if provider, virtual := f.Provides[pkg]; virtual {
 				pkg = provider
 			}
 
-			// An installed package is taken to its candidate, as apt-get install does.
+			// apt-get install takes an installed package to its candidate.
 			if _, present := f.Packages[pkg]; !present {
 				f.Packages[pkg] = "1.0"
 			} else if next, ok := f.Upgrades[pkg]; ok {
 				f.Packages[pkg] = next
 				delete(f.Upgrades, pkg)
 			}
+
 			f.mutate("apt-get install " + pkg)
 		}
 	case "remove":
@@ -1222,6 +1234,7 @@ func parseApt(args []string) (action string, packages []string, onlyUpgrade bool
 
 func (f *FakeSys) systemctl(args []string) (sys.Output, error) {
 	var action, unit string
+
 	for _, arg := range args {
 		switch {
 		case strings.HasPrefix(arg, "-"):
@@ -1256,6 +1269,7 @@ func (f *FakeSys) systemctl(args []string) (sys.Output, error) {
 		if f.Units[unit] != UnitAbsent {
 			f.Units[unit] = UnitInactive
 		}
+
 		f.mutate("systemctl " + action + " " + unit)
 	case "restart", "reload":
 		if f.Units[unit] == UnitAbsent {
@@ -1292,7 +1306,7 @@ func (f *FakeSys) id(args []string) (sys.Output, error) {
 	return sys.Output{Stdout: strings.Join(append([]string{name}, f.Groups[name]...), " ") + "\n"}, nil
 }
 
-// usermod -aG <group> <user>: the only form the modules use, and the one that makes joining a group replayable.
+// Only usermod -aG <group> <user>: the form the modules use, and the one that makes joining a group replayable.
 func (f *FakeSys) usermod(args []string) (sys.Output, error) {
 	name := args[len(args)-1]
 	if _, ok := f.Users[name]; !ok {
@@ -1322,11 +1336,13 @@ func (f *FakeSys) useradd(args []string) (sys.Output, error) {
 		return f.fail("useradd", "useradd: user '"+name+"' already exists")
 	}
 
-	// A home already there is left to whoever owned it, as useradd warns it does.
 	f.Users[name] = "/home/" + name
+
+	// An existing home keeps its owner, as useradd warns.
 	if !f.known("/home/" + name) {
 		f.Owners["/home/"+name] = name + ":" + name
 	}
+
 	f.Dirs["/home/"+name] = true
 	f.mutate("useradd " + name)
 
@@ -1338,12 +1354,12 @@ type Firewall struct {
 	Incoming string
 	Outgoing string
 	Rules    []string
-	// The comment each rule was given, as ufw show added prints it back.
 	Comments map[string]string
 }
 
 func (f *FakeSys) ufw(args []string) (sys.Output, error) {
 	var words []string
+
 	for _, arg := range args {
 		if !strings.HasPrefix(arg, "-") {
 			words = append(words, arg)
@@ -1365,19 +1381,24 @@ func (f *FakeSys) ufw(args []string) (sys.Output, error) {
 		} else {
 			f.Firewall.Outgoing = words[1]
 		}
+
 		f.mutate("ufw default " + words[1] + " " + words[2])
 	case "allow":
 		rule := ruleOf(words[1:])
 		if f.Firewall.has(rule) {
 			return sys.Output{Stdout: "Skipping adding existing rule\n"}, nil
 		}
+
 		f.Firewall.Rules = append(f.Firewall.Rules, rule)
+
 		if comment := commentOf(words); comment != "" {
 			if f.Firewall.Comments == nil {
 				f.Firewall.Comments = map[string]string{}
 			}
+
 			f.Firewall.Comments[rule] = comment
 		}
+
 		f.mutate("ufw allow " + rule)
 	case "delete":
 		rule := ruleOf(words[2:])
@@ -1406,7 +1427,7 @@ func commentOf(words []string) string {
 	return ""
 }
 
-// A port rule is printed as given; an interface rule — allow in on tailscale0 — as ufw prints it, "Anywhere on tailscale0".
+// An interface rule (allow in on tailscale0) prints as ufw does: "Anywhere on tailscale0".
 func ruleOf(words []string) string {
 	if len(words) >= 3 && words[0] == "in" && words[1] == "on" {
 		return "Anywhere on " + words[2]
@@ -1421,10 +1442,13 @@ func (w Firewall) status() string {
 	}
 
 	var out strings.Builder
+
 	fmt.Fprintf(&out, "Status: active\nLogging: on (low)\nDefault: %s (incoming), %s (outgoing), disabled (routed)\nNew profiles: skip\n\nTo                         Action      From\n--                         ------      ----\n", w.Incoming, w.Outgoing)
+
 	for _, rule := range w.Rules {
 		fmt.Fprintf(&out, "%-26s ALLOW IN    Anywhere\n", rule)
 	}
+
 	for _, rule := range w.Rules {
 		fmt.Fprintf(&out, "%-26s ALLOW IN    Anywhere (v6)\n", rule+" (v6)")
 	}
@@ -1432,18 +1456,22 @@ func (w Firewall) status() string {
 	return out.String()
 }
 
-// The rules as they were given, listed whether the firewall is up or not, as ufw show added prints them.
+// Listed whether the firewall is up or not, as ufw show added does.
 func (w Firewall) added() string {
 	var out strings.Builder
+
 	out.WriteString("Added user rules (see 'ufw status' for running firewall):\n")
+
 	for _, rule := range w.Rules {
 		given := rule
 		if strings.HasPrefix(rule, "Anywhere on ") {
 			given = "in on " + strings.TrimPrefix(rule, "Anywhere on ")
 		}
+
 		if comment := w.Comments[rule]; comment != "" {
 			given += " comment '" + comment + "'"
 		}
+
 		fmt.Fprintf(&out, "ufw allow %s\n", given)
 	}
 
@@ -1467,6 +1495,7 @@ func (w *Firewall) remove(rule string) {
 			kept = append(kept, existing)
 		}
 	}
+
 	w.Rules = kept
 }
 
@@ -1475,6 +1504,7 @@ func (f *FakeSys) ReadFile(path string) ([]byte, error) {
 	if !ok && path == netTable {
 		return f.netTable(), nil
 	}
+
 	if !ok {
 		return nil, &fs.PathError{Op: "open", Path: path, Err: fs.ErrNotExist}
 	}
@@ -1482,7 +1512,6 @@ func (f *FakeSys) ReadFile(path string) ([]byte, error) {
 	return append([]byte(nil), content...), nil
 }
 
-// ReadTail is the last max bytes of the file, the whole of it when it is shorter.
 func (f *FakeSys) ReadTail(path string, max int64) ([]byte, error) {
 	content, err := f.ReadFile(path)
 	if err != nil {
@@ -1496,7 +1525,7 @@ func (f *FakeSys) ReadTail(path string, max int64) ([]byte, error) {
 	return content, nil
 }
 
-// ReadFrom is what lies past offset; a file shorter than that was truncated, and is read from its start.
+// A file shorter than offset was truncated, so it is read from its start.
 func (f *FakeSys) ReadFrom(path string, offset int64) ([]byte, error) {
 	content, err := f.ReadFile(path)
 	if err != nil {
@@ -1512,7 +1541,6 @@ func (f *FakeSys) ReadFrom(path string, offset int64) ([]byte, error) {
 
 const netTable = "/proc/net/tcp"
 
-// The ports the fake listens on, as the kernel's own table prints them: a hexadecimal port on the loopback, in the listening state.
 func (f *FakeSys) netTable() []byte {
 	ports := make([]int, 0, len(f.Listen))
 	for port, listening := range f.Listen {
@@ -1520,10 +1548,13 @@ func (f *FakeSys) netTable() []byte {
 			ports = append(ports, port)
 		}
 	}
+
 	sort.Ints(ports)
 
 	var out strings.Builder
+
 	out.WriteString("  sl  local_address rem_address   st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode\n")
+
 	for at, port := range ports {
 		fmt.Fprintf(&out, "%4d: 0100007F:%04X 00000000:0000 0A 00000000:00000000 00:00000000 00000000     0        0 %d 1 0000 100 0 0 10 0\n", at, port, 10000+at)
 	}
@@ -1531,7 +1562,7 @@ func (f *FakeSys) netTable() []byte {
 	return []byte(out.String())
 }
 
-// A link planted with ln is followed only when it stays under the root, as os.Root does.
+// A link planted with ln is followed only while it stays under the root, as os.Root does.
 func (f *FakeSys) ReadFileIn(root, rel string) ([]byte, error) {
 	path, err := f.inside(root, rel)
 	if err != nil {
@@ -1543,7 +1574,7 @@ func (f *FakeSys) ReadFileIn(root, rel string) ([]byte, error) {
 		return nil, err
 	}
 
-	// A mode with a type bit, fs.ModeNamedPipe for one, stands for what is not a regular file.
+	// A mode with a type bit (fs.ModeNamedPipe…) stands for a non-regular file.
 	if f.Modes[target]&fs.ModeType != 0 {
 		return nil, &fs.PathError{Op: "read", Path: rel, Err: sys.ErrNotRegular}
 	}
@@ -1601,7 +1632,7 @@ func (f *FakeSys) StatIn(root, rel string) (sys.Node, error) {
 	return node, nil
 }
 
-// A link is written through to what it names, as long as that stays under the root: the target keeps its mode and owner, the link stays a link.
+// Written through a link that stays under the root: the target keeps its mode and owner, the link stays a link.
 func (f *FakeSys) WriteFileIn(root, rel, owner string, data []byte) error {
 	path, err := f.inside(root, rel)
 	if err != nil {
@@ -1697,7 +1728,7 @@ func (f *FakeSys) RemoveIn(root, rel string, recursive bool) error {
 	return nil
 }
 
-// A new file is laid where the name was, a link there included, and holds what was streamed once it is closed.
+// Replaces whatever stood at the name, a link included; the content lands on Close.
 func (f *FakeSys) CreateIn(root, rel, owner string) (io.WriteCloser, error) {
 	path, err := f.inside(root, rel)
 	if err != nil {
@@ -1730,15 +1761,17 @@ func (c *created) Close() error {
 	c.fake.Files[c.path] = c.content
 	c.fake.Modes[c.path] = 0o600
 	c.fake.Times[c.path] = c.fake.Now
+
 	if c.owner != "" {
 		c.fake.Owners[c.path] = c.owner + ":" + c.owner
 	}
+
 	c.fake.mutate("write " + c.path)
 
 	return nil
 }
 
-// The path a root-scoped call reaches, or the refusal os.Root would give: nothing is named from outside the root it belongs to.
+// Refuses as os.Root would: nothing is named from outside the root it belongs to.
 func (f *FakeSys) inside(root, rel string) (string, error) {
 	base := filepath.Clean(root)
 	path := filepath.Join(base, rel)
@@ -1814,9 +1847,10 @@ func (f *FakeSys) when(path string) time.Time {
 	return f.Now
 }
 
-// An entry and everything under it, deepest first, so a folder goes after what it held.
+// Deepest first, so a folder goes after what it held.
 func (f *FakeSys) tree(path string) []string {
 	var found []string
+
 	for _, known := range append(f.paths(), f.links()...) {
 		if known == path || strings.HasPrefix(known, path+"/") {
 			found = append(found, known)
@@ -1841,18 +1875,23 @@ func (f *FakeSys) rekey(from, to string) {
 	if content, isFile := f.Files[from]; isFile {
 		f.Files[to] = content
 	}
+
 	if f.Dirs[from] {
 		f.Dirs[to] = true
 	}
+
 	if target, linked := f.Links[from]; linked {
 		f.Links[to] = target
 	}
+
 	if mode, set := f.Modes[from]; set {
 		f.Modes[to] = mode
 	}
+
 	if at, dated := f.Times[from]; dated {
 		f.Times[to] = at
 	}
+
 	if owner, owned := f.Owners[from]; owned {
 		f.Owners[to] = owner
 	}
@@ -1875,6 +1914,7 @@ func (f *FakeSys) AppendFile(path string, data []byte, owner string) error {
 	if _, exists := f.Files[path]; !exists {
 		f.Modes[path] = 0o644
 		f.Times[path] = f.Now
+
 		if owner != "" {
 			f.Owners[path] = owner + ":" + owner
 		}
@@ -1900,7 +1940,7 @@ func (f *FakeSys) Stat(path string) (int64, time.Time, error) {
 	return int64(len(content)), when, nil
 }
 
-// The fake holds a flat map of paths, so a folder's entries are the names that begin with it and go no deeper.
+// The fake is a flat map of paths: a folder's entries are the names under its prefix, one level deep.
 func (f *FakeSys) ReadDir(path string) ([]sys.Entry, error) {
 	prefix := strings.TrimSuffix(path, "/") + "/"
 	if known, _ := f.Exists(path); !known && !f.hasChild(prefix) {
@@ -1931,6 +1971,7 @@ func (f *FakeSys) paths() []string {
 	for path := range f.Files {
 		paths = append(paths, path)
 	}
+
 	for path := range f.Dirs {
 		paths = append(paths, path)
 	}
@@ -1948,7 +1989,7 @@ func (f *FakeSys) hasChild(prefix string) bool {
 	return false
 }
 
-// The mode asked for is the one the file gets, as on the real system; KeepMode leaves an existing file at its own and gives a new one the default.
+// KeepMode leaves an existing file at its own mode and gives a new one the default.
 func (f *FakeSys) WriteFile(path string, data []byte, mode fs.FileMode) error {
 	if mode == sys.KeepMode {
 		mode = sys.DefaultMode
@@ -1959,9 +2000,11 @@ func (f *FakeSys) WriteFile(path string, data []byte, mode fs.FileMode) error {
 
 	f.Files[path] = append([]byte(nil), data...)
 	f.Modes[path] = mode
+
 	if _, dated := f.Times[path]; !dated {
 		f.Times[path] = f.Now
 	}
+
 	f.mutate("write " + path)
 
 	return nil
@@ -2023,7 +2066,7 @@ func (f *FakeSys) MkdirAll(path string, mode fs.FileMode) error {
 	return nil
 }
 
-// A path nobody chowned belongs to root, as everything the agent writes does.
+// Unchowned paths belong to root, as everything the agent writes does.
 func (f *FakeSys) Owner(path string) (string, error) {
 	if !f.known(path) {
 		return "", &fs.PathError{Op: "lstat", Path: path, Err: fs.ErrNotExist}
@@ -2037,7 +2080,7 @@ func (f *FakeSys) Owner(path string) (string, error) {
 	return owner, nil
 }
 
-// A process that ignores SIGTERM is the whole point of force: it must still be there when the grace period is over.
+// A Stubborn process ignores SIGTERM, which is what force exists for.
 func (f *FakeSys) Signal(pid int, owner string, sig syscall.Signal) error {
 	proc, running := f.Procs[pid]
 	if !running {

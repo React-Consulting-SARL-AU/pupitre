@@ -8,14 +8,7 @@ const (
 	ResumeUnitPath = "/etc/systemd/system/pupitre-resume.service"
 )
 
-// The projects that were up when the machine went down come back with it.
-//
-// This runs apart from the daemon on purpose: the daemon lives in a private
-// /tmp, and a tmux server it started would put its socket where no ssh session
-// of the client can find it. A oneshot has no sandbox to keep, runs once per
-// boot, and leaves the session where the agent and the reader's own shell look
-// for it. The unit stays active once done: the tmux server it opened lives in
-// its cgroup, and a oneshot that ended would take it along.
+// Apart from the daemon, whose private /tmp would hide the tmux socket; RemainAfterExit keeps tmux alive in its cgroup.
 const ResumeUnitFile = `[Unit]
 Description=Pupitre projects, back after a boot
 After=network.target pupitred.service
@@ -29,8 +22,7 @@ ExecStart=/usr/local/bin/pupitred resume
 WantedBy=multi-user.target
 `
 
-// The outgoing half of the agent runs on its own, apart from the ssh sessions: a client who never opens the app still has his keys and his entitlement up to date.
-// It writes /etc/pupitre for the server id the platform names and the credentials file a scheduled mongodump reads.
+// /etc/pupitre stays writable for the server id and the credentials file a scheduled mongodump reads.
 const UnitFile = `[Unit]
 Description=Pupitre agent
 After=network-online.target

@@ -21,10 +21,7 @@ const (
 	defaultMemoryLimit = "512M"
 )
 
-// mise builds PHP from source: without these headers the build stops halfway, with a compiler error nobody should have to read.
-// gd, intl and zlib are always configured, and gd links the system libraries when libpng is present — so libgd-dev, libicu-dev
-// and zlib1g-dev are not optional; libpq-dev lets pdo_pgsql build when a database module is on the same machine. A prebuilt
-// binary spares an amd64 host the compile, but an arm64 one always builds, which is where their absence surfaces.
+// mise compiles PHP (always on arm64) with gd, intl and zlib, so their headers are required; libpq-dev lets pdo_pgsql build.
 var buildDependencies = []string{
 	"build-essential", "autoconf", "bison", "re2c", "pkg-config",
 	"libxml2-dev", "libsqlite3-dev", "libcurl4-openssl-dev", "libonig-dev",
@@ -86,10 +83,7 @@ func (Module) Install(ctx *modules.Context) error {
 		})
 	}
 
-	// mise dropped composer from its registry, and the php runtime already lays
-	// a signature-verified composer beside php with a shim of its own: that is
-	// the composer this server runs, so the step confirms it answers rather than
-	// trading a second one the registry can no longer name.
+	// mise dropped composer from its registry; the php runtime already ships a verified composer shim, so this only checks it.
 	return ctx.Step("install-composer", func() (modules.Outcome, error) {
 		if _, err := user.Run(ctx, shell.User, "composer", "--version"); err != nil {
 			return modules.Failed, errors.New(i18n.T("modules.php.composer_missing"))
@@ -130,7 +124,7 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// The build dependencies stay: they are ordinary Ubuntu packages other things on the machine may already lean on.
+// The build dependencies stay: other things on the machine may lean on them.
 func (Module) Uninstall(ctx *modules.Context) error {
 	if err := shell.RemoveBlock(ctx, "remove-shell-env", ID); err != nil {
 		return err
@@ -168,8 +162,7 @@ func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
 	return status, nil
 }
 
-// PHP reads a shorthand by its last letter alone: 512MB is 512 bytes to it. A
-// value the form let through with a B is written the way PHP reads it, and said.
+// PHP reads a shorthand by its last letter alone: 512MB is 512 bytes to it, so a trailing B is dropped with a warning.
 func memoryLimit(ctx *modules.Context) string {
 	chosen := strings.TrimSpace(ctx.String("memory_limit"))
 	if chosen == "" {

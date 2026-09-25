@@ -35,6 +35,7 @@ func run(t *testing.T, ctx *modules.Context) {
 
 func statuses(ctx *modules.Context) map[string]contract.StepStatus {
 	result := map[string]contract.StepStatus{}
+
 	for _, event := range ctx.Events() {
 		result[event.Step] = event.Status
 	}
@@ -74,15 +75,16 @@ func TestInstallAddsTheRepositoryThenTheEngine(t *testing.T) {
 	}
 }
 
-// Without the group every docker command would need sudo, and the agents that run as dev would stop at the first one.
 func TestDevJoinsTheDockerGroupOnce(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	run(t, newContext(t, fake, values))
 
 	found := false
+
 	for _, joined := range fake.Groups[shell.User] {
 		found = found || joined == group
 	}
+
 	if !found {
 		t.Fatalf("dev groups = %v", fake.Groups[shell.User])
 	}
@@ -179,8 +181,6 @@ func TestJoiningTheDockerGroupWarnsThatTerminalsMustBeReopened(t *testing.T) {
 	}
 }
 
-// Docker's own iptables rules come before ufw's: a port published on every address would be open whatever the firewall says.
-// "ip" only reaches the default bridge; the networks docker network create and compose make read default-network-opts.
 func TestPublishedPortsBindToLoopbackOnEveryBridge(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	run(t, newContext(t, fake, values))
@@ -189,6 +189,7 @@ func TestPublishedPortsBindToLoopbackOnEveryBridge(t *testing.T) {
 		IP                 string                       `json:"ip"`
 		DefaultNetworkOpts map[string]map[string]string `json:"default-network-opts"`
 	}
+
 	if err := json.Unmarshal(fake.Files[configPath], &config); err != nil {
 		t.Fatal(err)
 	}
@@ -238,7 +239,6 @@ const beforeLoopback = `{
 }
 `
 
-// With containers running, dockerd keeps the bridge it had and every network keeps the options it was created with: the upgrade says which ports stay open, and how to close them.
 func TestUpgradeNamesWhatStaysPublishedEverywhereAndHowToCloseIt(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	run(t, newContext(t, fake, values))
@@ -260,6 +260,7 @@ func TestUpgradeNamesWhatStaysPublishedEverywhereAndHowToCloseIt(t *testing.T) {
 	}
 
 	output := strings.Join(ctx.Output(), "\n")
+
 	for _, want := range []string{"web (0.0.0.0:8086, [::]:8086)", "bridge, shop_default", "docker stop", "systemctl restart docker", "docker compose down", "docker compose up -d", "docker network rm"} {
 		if !strings.Contains(output, want) {
 			t.Errorf("the warning must say %q:\n%s", want, output)
@@ -273,7 +274,6 @@ func TestUpgradeNamesWhatStaysPublishedEverywhereAndHowToCloseIt(t *testing.T) {
 	}
 }
 
-// Nothing runs, so nothing is cut: the daemon is restarted onto the loopback bridge instead of being told about.
 func TestAnIdleDaemonStillBoundEverywhereIsRestartedOntoTheLoopback(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	run(t, newContext(t, fake, values))
@@ -283,6 +283,7 @@ func TestAnIdleDaemonStillBoundEverywhereIsRestartedOntoTheLoopback(t *testing.T
 			fake.Answer("docker network inspect", networksOnLoopback)
 		}
 	}
+
 	restarts := fake.Restarts[Unit]
 
 	ctx := newContext(t, fake, values)

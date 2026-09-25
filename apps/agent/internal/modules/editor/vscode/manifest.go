@@ -12,7 +12,7 @@ func manifest() contract.Manifest {
 		ID:       ID,
 		Category: "editor",
 		Name:     "VS Code Remote SSH",
-		// Cursor and Windsurf are VS Code forks: they lay their own server the same way, and this module prepares the machine for all three.
+		// Cursor and Windsurf lay their server the same way, so this module prepares the machine for all three.
 		Summary:   i18n.T("module.editor.vscode.summary"),
 		Requires:  []string{"core.system"},
 		Conflicts: []string{},

@@ -10,11 +10,7 @@ import (
 	"pupitre.studio/agent/internal/migrate"
 )
 
-// The ledger from a terminal on the machine.
-//
-// It is the way back when the app is not the one holding the channel: a status
-// to read, a batch to run again, and the backup to put back when a server has
-// to run an older agent than the one that configured it.
+// The way back when the app does not hold the channel, including a restore for an older agent than the one that configured it.
 func runMigrate(migrator *migrate.Runner, args []string, stdout, stderr io.Writer) int {
 	status, restore := false, ""
 
@@ -87,31 +83,39 @@ func printRestore(migrator *migrate.Runner, name string, stdout, stderr io.Write
 
 func printStatus(migrator *migrate.Runner, stdout io.Writer) int {
 	state := migrator.State()
+
 	fmt.Fprintln(stdout, i18n.T("migrate.status.revision", state.Revision, state.Expected, string(state.State)))
 
 	ledger := migrator.Ledger()
+
 	fmt.Fprintln(stdout, i18n.T("migrate.status.applied"))
+
 	if len(ledger.Applied) == 0 {
 		fmt.Fprintln(stdout, "  "+i18n.T("migrate.status.none"))
 	}
+
 	for _, applied := range ledger.Applied {
 		fmt.Fprintf(stdout, "  %d %s  %s\n", applied.ID, applied.Slug, applied.At)
 	}
 
 	fmt.Fprintln(stdout, i18n.T("migrate.status.pending"))
+
 	pending := migrator.Pending()
 	if len(pending) == 0 {
 		fmt.Fprintln(stdout, "  "+i18n.T("migrate.status.none"))
 	}
+
 	for _, migration := range pending {
 		fmt.Fprintf(stdout, "  %d %s\n", migration.ID, migration.Slug)
 	}
 
 	fmt.Fprintln(stdout, i18n.T("migrate.status.backups"))
+
 	backups := migrator.Backups()
 	if len(backups) == 0 {
 		fmt.Fprintln(stdout, "  "+i18n.T("migrate.status.none"))
 	}
+
 	for _, backup := range backups {
 		fmt.Fprintf(stdout, "  %s  r%d → r%d\n", backup.Name, backup.From, backup.To)
 	}
@@ -119,8 +123,6 @@ func printStatus(migrator *migrate.Runner, stdout io.Writer) int {
 	return failing(state)
 }
 
-// A status says what it found in its exit code, so a script on the machine
-// reads it without parsing a sentence.
 func failing(state contract.ConfigRevision) int {
 	if state.Current() {
 		return 0

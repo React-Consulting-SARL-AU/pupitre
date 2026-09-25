@@ -70,6 +70,7 @@ func TestARestoreOnAnAppendOnlyServerLoadsTheSnapshotThenPersistsItLive(t *testi
 	}
 
 	var live string
+
 	for _, call := range fake.Calls {
 		if strings.Contains(string(call.Stdin), "CONFIG SET appendonly yes") {
 			live = string(call.Stdin)

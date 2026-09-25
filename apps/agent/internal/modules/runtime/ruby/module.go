@@ -9,7 +9,7 @@ import (
 	"pupitre.studio/agent/internal/sys/apt"
 )
 
-// ruby-build compiles the interpreter: these are the headers it looks for, and their names are the same on 22.04 and 24.04.
+// The headers ruby-build looks for; the package names are the same on 22.04 and 24.04.
 var buildDependencies = []string{
 	"build-essential", "autoconf", "patch", "pkg-config",
 	"libssl-dev", "libyaml-dev", "libreadline-dev", "zlib1g-dev",
@@ -70,7 +70,7 @@ func (Module) Install(ctx *modules.Context) error {
 	return installBundler(ctx, added)
 }
 
-// Bundler ships with each interpreter, so it is only refreshed under the ones that have just landed: a major added, or a patch that replaced its predecessor.
+// Bundler ships per interpreter, so it is refreshed only under a major just added or a patch that replaced its predecessor.
 func installBundler(ctx *modules.Context, majors []string) error {
 	return ctx.Step("install-bundler", func() (modules.Outcome, error) {
 		if !ctx.Bool("bundler") || len(majors) == 0 {
@@ -104,7 +104,7 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// The gems the client installed live under the interpreter mise removes; nothing else of theirs is touched.
+// The client's gems go with the interpreter mise removes; nothing else of theirs is touched.
 func (Module) Uninstall(ctx *modules.Context) error {
 	if err := shell.RemoveBlock(ctx, "remove-shell-env", ID); err != nil {
 		return err

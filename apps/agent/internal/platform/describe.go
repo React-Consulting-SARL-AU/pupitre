@@ -19,11 +19,7 @@ var (
 	ErrTooManyRedirects = errors.New("too many redirects")
 )
 
-// Describe says what a failed exchange with the platform means, in the
-// session's locale and without the path: the reader wants to know whether the
-// name resolves, the platform stands, or the answer was refused, not which
-// endpoint was hit. An error that did not come from this package is rendered
-// as it is.
+// Leaves the path out: the reader needs to know what failed, not which endpoint was hit.
 func Describe(err error) string {
 	var failure *Error
 	if !errors.As(err, &failure) {
@@ -45,13 +41,11 @@ func Describe(err error) string {
 	return i18n.T("platform.answered", failure.Status)
 }
 
-// Down reports an answer from the platform's edge without the platform behind
-// it: a 5xx, the shape a deploy in progress or a broken route takes.
+// A 5xx: the edge answering without the platform behind it, as during a deploy.
 func (e *Error) Down() bool {
 	return e.Cause == nil && e.Status >= http.StatusInternalServerError
 }
 
-// Down reports whether an error is a platform answering from its edge alone.
 func Down(err error) bool {
 	var failure *Error
 

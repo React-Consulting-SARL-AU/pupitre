@@ -7,7 +7,7 @@ import (
 
 const ID = "exposure.tailscale"
 
-// The auth key is typed rather than held by the app: it is minted for one machine, in the tailnet's own console, and opens no API from the laptop.
+// The auth key is typed, not managed: it is minted per machine in the tailnet console and opens no API from the laptop.
 func manifest() contract.Manifest {
 	return contract.Manifest{
 		ID:        ID,

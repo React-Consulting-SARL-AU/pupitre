@@ -18,7 +18,6 @@ const (
 	lockedShadow = "root:*:20000:0:99999:7:::\ndev:!:20000:0:99999:7:::\n"
 )
 
-// A server secured by harden, its agent where the sudoers rule names it, and dev without a password yet.
 func securedMachine(t *testing.T) *modtest.FakeSys {
 	t.Helper()
 
@@ -43,6 +42,7 @@ func setPassword(t *testing.T, fake *modtest.FakeSys, hash string) (SudoResult, 
 	result, err := SetSudoPassword(ctx, "dev", hash)
 
 	var steps []string
+
 	for _, event := range ctx.Events() {
 		steps = append(steps, event.Step+"="+string(event.Status))
 	}
@@ -98,6 +98,7 @@ func TestSudoPasswordReplayedChangesNothing(t *testing.T) {
 	if _, _, err := setPassword(t, fake, passwordHash); err != nil {
 		t.Fatal(err)
 	}
+
 	fake.Files[shadowPath] = []byte("root:*:20000:0:99999:7:::\ndev:" + passwordHash + ":20000:0:99999:7:::\n")
 
 	mutations := len(fake.Mutations)
@@ -115,7 +116,6 @@ func TestSudoPasswordReplayedChangesNothing(t *testing.T) {
 	}
 }
 
-// Setting another password on a server already under the rule is how a lost one is replaced.
 func TestSudoPasswordCanBeReplaced(t *testing.T) {
 	fake := securedMachine(t)
 	fake.Files[sudo.Path] = []byte(sudo.Restricted)

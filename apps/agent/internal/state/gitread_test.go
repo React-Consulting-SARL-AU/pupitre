@@ -25,7 +25,6 @@ func (r recording) Run(cmd sys.Command) (sys.Output, error) {
 	return r.asMe.Run(cmd)
 }
 
-// boundedReader reads the fixture's repositories within gitTimeout, and keeps every command it ran.
 func boundedReader(t *testing.T, repo fixtureRepo, gitTimeout time.Duration) (*state.Reader, *[]sys.Command) {
 	t.Helper()
 
@@ -71,6 +70,7 @@ func TestEveryGitReadHasItsOwnShortBound(t *testing.T) {
 	}
 
 	read := 0
+
 	for _, command := range *commands {
 		if len(command.Argv) < 4 || command.Argv[0] != "git" || command.Argv[3] == "fetch" {
 			continue

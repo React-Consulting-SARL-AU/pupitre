@@ -34,7 +34,7 @@ const (
 
 	hostnamePath = "/etc/hostname"
 	defaultName  = "pupitre"
-	// What code tunnel --name accepts: letters, digits and hyphens, this many at most.
+	// code tunnel --name takes letters, digits and hyphens, this many at most.
 	tunnelNameLength = 20
 
 	cliID = ID + ".cli"
@@ -273,11 +273,13 @@ func absent(ctx *modules.Context, installed release, wanted []string) []string {
 	}
 
 	present := map[string]bool{}
+
 	for _, line := range strings.Split(out, "\n") {
 		present[strings.ToLower(strings.TrimSpace(line))] = true
 	}
 
 	var missing []string
+
 	for _, extension := range wanted {
 		if !present[strings.ToLower(extension)] {
 			missing = append(missing, extension)
@@ -287,7 +289,7 @@ func absent(ctx *modules.Context, installed release, wanted []string) []string {
 	return missing
 }
 
-// Without the tunnel VS Code reaches the machine through the SSH session the app already holds; the service only exists for the client who asked for it.
+// Without the tunnel VS Code goes through the app's SSH session, so the service exists only when asked for.
 func tunnel(ctx *modules.Context, wanted bool) error {
 	if !wanted {
 		return ctx.Step("disable-tunnel", func() (modules.Outcome, error) {
@@ -342,7 +344,7 @@ func tunnel(ctx *modules.Context, wanted bool) error {
 }
 
 func (m Module) Upgrade(ctx *modules.Context) error {
-	// The archive is unpacked over the command in place: a machine that loses its network keeps the CLI it already had.
+	// Unpacked over the command in place: a machine that loses its network keeps the CLI it had.
 	if err := ctx.Step("upgrade-cli", func() (modules.Outcome, error) {
 		if !file.Exists(ctx, cliPath) {
 			return modules.Skipped, nil
@@ -379,7 +381,6 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return configure(ctx, found)
 }
 
-// A server Remote SSH no longer opens is a folder of a few hundred megabytes for nothing.
 func removeServer(ctx *modules.Context, step string, installed release, keep string) error {
 	return ctx.Step(step, func() (modules.Outcome, error) {
 		if installed.Commit == "" || installed.Commit == keep || !file.Exists(ctx, installed.serverDir()) {
@@ -394,7 +395,7 @@ func removeServer(ctx *modules.Context, step string, installed release, keep str
 	})
 }
 
-// The extensions and everything the client opened stay; the server, the CLI and the tunnel go.
+// Extensions and the client's files stay; only the server, the CLI and the tunnel go.
 func (Module) Uninstall(ctx *modules.Context) error {
 	if err := tunnel(ctx, false); err != nil {
 		return err
@@ -475,10 +476,9 @@ func machineName(ctx *modules.Context) string {
 	return strings.TrimSpace(string(raw))
 }
 
-// code tunnel --name takes letters, digits and hyphens, twenty at most: the
-// hostname is what the machine knows of itself, cut to that shape.
 func tunnelName(hostname string) string {
 	name := notInTunnelName.ReplaceAllString(strings.ToLower(hostname), "-")
+
 	if len(name) > tunnelNameLength {
 		name = name[:tunnelNameLength]
 	}
@@ -490,7 +490,7 @@ func tunnelName(hostname string) string {
 	return name
 }
 
-// The tunnel is the only thing here that signs in: code tunnel user show names the provider that opened it, never the account, and exits 1 when nobody did.
+// code tunnel user show names the provider, never the account, and exits 1 when nobody signed in.
 func (Module) Login(ctx *modules.Context) (contract.Login, bool) {
 	if !file.Exists(ctx, unitPath) {
 		return contract.Login{}, false

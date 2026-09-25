@@ -10,7 +10,6 @@ import (
 	"pupitre.studio/agent/internal/contract"
 )
 
-// The module poses wrangler by mise and hands both variables to the dev shell; service.status then says whose account the token opens.
 func TestWranglerPosesTheCliAndNamesTheAccount(t *testing.T) {
 	host := stagingHost(t)
 	dev := "dev@" + address(host)
@@ -57,7 +56,6 @@ func TestWranglerPosesTheCliAndNamesTheAccount(t *testing.T) {
 	}
 }
 
-// Each CLI lands on the path of dev with its variable, whether a real secret is at hand or a placeholder: only the account check needs the real one.
 func TestTheConnectedClisLandWithTheirVariables(t *testing.T) {
 	host := stagingHost(t)
 	dev := "dev@" + address(host)

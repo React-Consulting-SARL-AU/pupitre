@@ -8,7 +8,6 @@ import (
 
 const helloLine = `{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`
 
-// sudo runs `pupitred serve` exactly without a password: that line is the limited session, and --privileged is only reached through the password.
 func TestServeIsLimitedUnlessPrivilegedIsAsked(t *testing.T) {
 	cases := map[string]struct {
 		args    []string

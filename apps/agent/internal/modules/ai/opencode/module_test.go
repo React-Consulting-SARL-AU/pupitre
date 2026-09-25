@@ -17,9 +17,9 @@ const (
 	newer   = "1.19.0"
 )
 
-// The release document GitHub answers, with the digest of what the fake's curl serves beside every Linux asset.
 func releaseDocument(version, digest string) string {
 	assets := ""
+
 	for _, name := range []string{"opencode-linux-x64.tar.gz", "opencode-linux-x64-baseline.tar.gz", "opencode-linux-arm64.tar.gz", "opencode-darwin-arm64.zip"} {
 		assets += `{"name":"` + name + `","digest":"sha256:` + digest + `","browser_download_url":"https://github.com/anomalyco/opencode/releases/download/v` + version + `/` + name + `"},`
 	}
@@ -54,6 +54,7 @@ func install(t *testing.T, fake *modtest.FakeSys) *modules.Context {
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -220,7 +221,6 @@ func TestFailedInstallCarriesItsReplayCommand(t *testing.T) {
 	}
 }
 
-// opencode auth list draws a box around one line per credential and a tally; the providers are the account, and none is signed out.
 func TestLoginReadsWhatOpencodeAuthListSays(t *testing.T) {
 	cases := map[string]struct {
 		answer string

@@ -1,6 +1,5 @@
 package i18n
 
-// The catalogue manifests: what the configuration screen shows for each module.
 var moduleCatalog = map[string]Message{
 	"module.ai.browser.summary": {
 		FR: "Chrome headless et les bibliothèques dont Playwright a besoin, la commande shot qui range ses captures dans ~/shots, et la galerie qui les sert en local.",

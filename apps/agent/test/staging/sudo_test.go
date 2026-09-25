@@ -20,7 +20,7 @@ var sudoRequest = request{Cmd: "harden.sudo", Params: map[string]any{"user": "de
 
 var trustRequest = request{Cmd: "keys.trust", Params: map[string]any{"public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIIpnKVP1oHEgOAeBppA7YR+8vwKg5ylIyTLxWKT7IaS"}}
 
-// The other staging tests drive the machine with sudo -n: the rule of before comes back once this one is done, through the password it set.
+// The other staging tests need sudo -n, so the open rule is put back with the password this test set.
 func restoreOpenSudo(t *testing.T, dev string) {
 	t.Helper()
 
@@ -32,14 +32,12 @@ func restoreOpenSudo(t *testing.T, dev string) {
 	}
 }
 
-// What anything running as dev reaches without the password: an AI agent, a postinstall, a terminal.
 func limitedSession(t *testing.T, dev string, requests ...request) []response {
 	t.Helper()
 
 	return converseOn(t, sshCommand(dev, "sudo", "-n", "pupitred", "serve"), "", requests...)
 }
 
-// The session the app opens with the password it keeps: sudo reads it on the first line, then pupitred the protocol.
 func privilegedSession(t *testing.T, dev string, requests ...request) []response {
 	t.Helper()
 
@@ -73,6 +71,7 @@ func TestSudoAsksDevForAPasswordButPupitred(t *testing.T) {
 
 	readRule := sshCommand(dev, "sudo", "-S", "-k", "-p", "''", "cat", sudo.Path)
 	readRule.Stdin = strings.NewReader(stagingSudoPassword + "\n")
+
 	if rule, err := readRule.Output(); err != nil || string(rule) != sudo.Restricted {
 		t.Fatalf("sudoers = %q (%v)", rule, err)
 	}
@@ -93,6 +92,7 @@ func TestSudoAsksDevForAPasswordButPupitred(t *testing.T) {
 
 	withPassword := sshCommand(dev, "sudo", "-S", "-k", "-p", "''", "true")
 	withPassword.Stdin = strings.NewReader(stagingSudoPassword + "\n")
+
 	if out, err := withPassword.CombinedOutput(); err != nil {
 		t.Fatalf("the password set by harden.sudo does not open sudo: %v\n%s", err, out)
 	}
@@ -135,8 +135,7 @@ func TestSudoAsksDevForAPasswordButPupitred(t *testing.T) {
 	}
 }
 
-// The binary the app pushes to a server it reaches as dev goes through pupitred: the exact line sudo runs without a password
-// takes only a binary the release key signs, and a build without that key places one only on the privileged line.
+// The passwordless sudo line accepts only release-signed binaries; a build without the release key needs --privileged.
 func TestPupitredPlacesAPushedBinaryAsDev(t *testing.T) {
 	host := stagingHost(t)
 	dev := "dev@" + address(host)
@@ -146,6 +145,7 @@ func TestPupitredPlacesAPushedBinaryAsDev(t *testing.T) {
 	}
 
 	version := strings.TrimPrefix(strings.TrimSpace(ssh(t, dev, "pupitred", "version")), "pupitred ")
+
 	push := func(flags string) (string, error) {
 		line := `'{ printf "%s\n" "{\"version\":\"` + version + `\"}"; cat /usr/local/bin/pupitred; } | sudo -n /usr/local/bin/pupitred binary install` + flags + `'`
 		out, err := sshCommand(dev, "sh", "-c", line).CombinedOutput()

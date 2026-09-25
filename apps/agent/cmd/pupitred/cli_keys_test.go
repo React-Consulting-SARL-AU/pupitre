@@ -60,6 +60,7 @@ func TestKeysResetLeavesTheOneKeyItIsGiven(t *testing.T) {
 		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`,
 		`{"id":2,"cmd":"keys.list","params":{}}`,
 	)
+
 	if !strings.Contains(lines[len(lines)-1], `"signer":true`) || !strings.Contains(lines[len(lines)-1], recovered.Fingerprint()) {
 		t.Fatalf("keys.list = %s", lines[len(lines)-1])
 	}

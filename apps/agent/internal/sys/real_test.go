@@ -54,7 +54,6 @@ func TestRealRunPassesEnvDirAndStdin(t *testing.T) {
 	}
 }
 
-// mise lives in ~dev/.local/bin, a folder this process's own PATH has never heard of.
 func TestRealRunFindsTheProgramOnTheCommandsOwnPath(t *testing.T) {
 	bin := t.TempDir()
 	script := filepath.Join(bin, "pupitre-probe")
@@ -83,7 +82,6 @@ func TestRealRunFindsTheProgramOnTheCommandsOwnPath(t *testing.T) {
 	}
 }
 
-// A dump weighs more than the machine's memory: it reaches the client through the file, never through a buffer.
 func TestRealRunStreamsStdinFromAFile(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "dump.sql")
 	if err := os.WriteFile(path, []byte("-- des lignes de dump\n"), 0o600); err != nil {
@@ -199,6 +197,7 @@ func TestRealReadDirNamesFoldersAndLeavesSymlinksAlone(t *testing.T) {
 	}
 
 	got := map[string]bool{}
+
 	for _, entry := range entries {
 		got[entry.Name] = entry.Dir
 	}
@@ -219,6 +218,7 @@ func TestRealOwnerReadsTheLinkNotItsTarget(t *testing.T) {
 	if err := os.WriteFile(target, []byte("x"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := os.Symlink(target, link); err != nil {
 		t.Fatal(err)
 	}
@@ -251,7 +251,6 @@ func TestRealRunGivesUpOnACommandThatNeverAnswers(t *testing.T) {
 	}
 }
 
-// A grandchild that outlives the shell holds the pipes open; the timeout has to take the whole group with it.
 func TestRealRunTakesTheGrandchildrenWithTheTimedOutCommand(t *testing.T) {
 	started := time.Now()
 
@@ -271,8 +270,6 @@ func TestRealRunSurvivesAnEmptyPath(t *testing.T) {
 	}
 }
 
-// The mode asked for is the mode written, on a file that was there too: a file
-// left world-readable by an earlier run can be tightened, and the owner stays.
 func TestRealWriteFileAppliesTheModeAndKeepsTheOwnerOfAnExistingFile(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "authorized_keys")
 	if err := os.WriteFile(path, []byte("old\n"), 0o644); err != nil {
@@ -323,9 +320,11 @@ func TestRealReadFileInRefusesALinkThatLeavesTheRoot(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "authorized_keys"), []byte("ssh-ed25519 AAAA\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := os.Symlink(secret, filepath.Join(root, "planted")); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := os.Symlink("authorized_keys", filepath.Join(root, "inside")); err != nil {
 		t.Fatal(err)
 	}
@@ -419,6 +418,7 @@ func TestRealSignalReachesTheProcessAndSaysWhenItIsGone(t *testing.T) {
 	if err := process.Start(); err != nil {
 		t.Fatal(err)
 	}
+
 	pid := process.Process.Pid
 
 	if err := (Real{}).Signal(pid, "", 0); err != nil {
@@ -446,12 +446,15 @@ func TestRealListInAndStatInDescribeWhatIsOnTheDisk(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(root, "notes"), 0o755); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := os.WriteFile(filepath.Join(root, "notes", "readme.md"), []byte("# flyleaf\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := os.Symlink("readme.md", filepath.Join(root, "notes", "inside")); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := os.Symlink(filepath.Join(outside, "shadow"), filepath.Join(root, "notes", "planted")); err != nil {
 		t.Fatal(err)
 	}
@@ -462,6 +465,7 @@ func TestRealListInAndStatInDescribeWhatIsOnTheDisk(t *testing.T) {
 	}
 
 	kinds := map[string]string{}
+
 	for _, node := range nodes {
 		kinds[node.Name] = node.Kind
 	}
@@ -499,6 +503,7 @@ func TestRealWriteFileInReplacesAtomicallyAndKeepsTheMode(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(root, "notes"), 0o755); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := os.WriteFile(filepath.Join(root, "notes", "readme.md"), []byte("# flyleaf\n"), 0o640); err != nil {
 		t.Fatal(err)
 	}
@@ -605,7 +610,6 @@ func TestRealStreamReportsTheExitOfACommandThatFailed(t *testing.T) {
 	}
 }
 
-// KeepMode is how a caller asks for the mode the file already has: a new file then gets the default.
 func TestRealWriteFileKeepsTheModeWhenAskedTo(t *testing.T) {
 	dir := t.TempDir()
 	kept := filepath.Join(dir, "kept")
@@ -633,18 +637,20 @@ func TestRealWriteFileKeepsTheModeWhenAskedTo(t *testing.T) {
 	}
 }
 
-// A link inside the root is written through: the file it names takes the bytes and keeps its mode, and the link stays a link.
 func TestRealWriteFileInWritesThroughALinkThatStaysInside(t *testing.T) {
 	root := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(root, "etc"), 0o755); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := os.WriteFile(filepath.Join(root, "etc", "config.toml"), []byte("a = 1\n"), 0o640); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := os.Symlink("etc/config.toml", filepath.Join(root, "config.toml")); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := os.Symlink("config.toml", filepath.Join(root, "alias.toml")); err != nil {
 		t.Fatal(err)
 	}
@@ -681,9 +687,11 @@ func TestRealWriteFileInRefusesALinkThatLeavesTheRoot(t *testing.T) {
 	if err := os.Symlink(secret, filepath.Join(root, "absolute")); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := os.Symlink("../"+filepath.Base(outside)+"/shadow", filepath.Join(root, "relative")); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := os.Symlink("loop", filepath.Join(root, "loop")); err != nil {
 		t.Fatal(err)
 	}
@@ -699,7 +707,6 @@ func TestRealWriteFileInRefusesALinkThatLeavesTheRoot(t *testing.T) {
 	}
 }
 
-// A context that ends is the stream's end, not a failure: the child goes with it, whatever it was doing.
 func TestRealStreamEndsWithItsContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -722,7 +729,6 @@ func TestRealStreamEndsWithItsContext(t *testing.T) {
 	}
 }
 
-// A line the scanner cannot hold ends the stream with its reason and takes the child down, rather than hanging in Wait.
 func TestRealStreamKillsTheChildOnALineTooLong(t *testing.T) {
 	started := time.Now()
 
@@ -740,7 +746,6 @@ func TestRealStreamKillsTheChildOnALineTooLong(t *testing.T) {
 	}
 }
 
-// A journal is read by ranges: the tail bounded by a size, and what follows an offset.
 func TestRealReadsAJournalByRanges(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "web.log")
 	if err := os.WriteFile(path, []byte("one\ntwo\nthree\n"), 0o644); err != nil {
@@ -762,7 +767,6 @@ func TestRealReadsAJournalByRanges(t *testing.T) {
 		t.Fatalf("ReadFrom = %q, %v", rest, err)
 	}
 
-	// A file shorter than the offset was truncated under the reader: it is read again from the start.
 	if err := os.WriteFile(path, []byte("new\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}

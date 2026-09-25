@@ -12,10 +12,10 @@ import (
 	"pupitre.studio/agent/internal/sys/lock"
 )
 
-// The daemon and a serve session both rewrite the signers and the block; the one waiting is gone in milliseconds.
+// The daemon and a serve session both rewrite the signers and the block; the holder is done in milliseconds.
 const keysWait = 5 * time.Second
 
-// A heartbeat names at most this many fingerprints of each kind, as the contract bounds them.
+// The contract's bound on fingerprints of each kind in a heartbeat.
 const beatFingerprints = 100
 
 var ErrNotRoot = errors.New("the trust store is root's: pupitred serve does not run as root")
@@ -32,11 +32,7 @@ type candidate struct {
 	entry contract.AgentStateKey
 }
 
-// settle brings the block and the trust store in line with what the platform asks for.
-//
-// The platform cannot open this server: a key enters only when it is trusted
-// already or an approval signed by a trusted key admits it. It can close it:
-// a trusted key it no longer asks for leaves, unsigned, unless it is the last.
+// The platform can close but never open: a key enters only if trusted or approved by a trusted key.
 func (d *Daemon) settle(wanted *[]contract.AgentStateKey) (settled, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -49,6 +45,7 @@ func (d *Daemon) settle(wanted *[]contract.AgentStateKey) (settled, error) {
 
 		return settled{kept: d.Keys()}, nil
 	}
+
 	d.silentPlatform = false
 
 	release, err := d.lockKeys()
@@ -67,6 +64,7 @@ func (d *Daemon) settle(wanted *[]contract.AgentStateKey) (settled, error) {
 	admitted, accepted := d.admit(candidates, &trust, now)
 	pending := pendingOf(candidates, admitted)
 	moved := !slices.Equal(pending, d.pending)
+
 	d.pending, d.pendingKnown = pending, true
 
 	if len(admitted) == 0 {
@@ -77,6 +75,7 @@ func (d *Daemon) settle(wanted *[]contract.AgentStateKey) (settled, error) {
 
 		return settled{kept: d.Keys(), pending: pending, moved: moved}, nil
 	}
+
 	d.lastKeyHeld = false
 
 	dropped := d.dropUnlisted(&trust, candidates, now)
@@ -100,7 +99,7 @@ func (d *Daemon) settle(wanted *[]contract.AgentStateKey) (settled, error) {
 	return settled{kept: kept, pending: pending, changed: changed, moved: moved}, nil
 }
 
-// What the platform asks for, each key read as an approval names it; an option, a comment or another type drops the entry.
+// An option, a comment or a key type an approval cannot name drops the entry.
 func (d *Daemon) candidates(wanted []contract.AgentStateKey) []candidate {
 	read := make([]candidate, 0, len(wanted))
 
@@ -118,9 +117,10 @@ func (d *Daemon) candidates(wanted []contract.AgentStateKey) []candidate {
 	return read
 }
 
-// Trusted keys the platform still asks for come first; then every approval they sign, and again with what that admitted, until nothing moves.
+// Repeats until nothing moves: a key an approval just admitted may approve another in the same read.
 func (d *Daemon) admit(candidates []candidate, trust *keys.Trust, now time.Time) (map[string]keys.Key, bool) {
 	admitted := map[string]keys.Key{}
+
 	for _, c := range candidates {
 		if trust.Trusts(c.key.Fingerprint()) {
 			admitted[c.key.Fingerprint()] = c.key
@@ -160,7 +160,7 @@ func (d *Daemon) approved(verifier keys.Verifier, c candidate) bool {
 	return false
 }
 
-// A trusted key the platform no longer asks for leaves, and its removal is remembered against older approvals.
+// The removal is remembered so an older approval cannot bring the key back.
 func (d *Daemon) dropUnlisted(trust *keys.Trust, candidates []candidate, now time.Time) bool {
 	listed := map[string]bool{}
 	for _, c := range candidates {
@@ -168,6 +168,7 @@ func (d *Daemon) dropUnlisted(trust *keys.Trust, candidates []candidate, now tim
 	}
 
 	dropped := false
+
 	for _, fingerprint := range trust.Fingerprints() {
 		if !listed[fingerprint] && trust.Drop(fingerprint, now) {
 			d.journal.Logf("key %s no longer trusted: the platform no longer asks for it", fingerprint)
@@ -178,7 +179,7 @@ func (d *Daemon) dropUnlisted(trust *keys.Trust, candidates []candidate, now tim
 	return dropped
 }
 
-// A key already in the block keeps the comment it had there; options are never carried over.
+// Options are never carried over from the block, only comments.
 func (d *Daemon) withComments(admitted map[string]keys.Key) []keys.Key {
 	comments := map[string]string{}
 	for _, listed := range d.Keys() {
@@ -219,7 +220,7 @@ func values(admitted map[string]keys.Key) []keys.Key {
 	return listed
 }
 
-// Trust lays a key over the app's own SSH session: the root of trust. It needs root, and whoever reaches a root serve already holds the dev account.
+// The root of trust, laid over the app's SSH session: whoever reaches a root serve already holds the dev account.
 func (d *Daemon) Trust(publicKey string) error {
 	key, err := keys.ParseApproved(publicKey)
 	if err != nil {
@@ -246,6 +247,7 @@ func (d *Daemon) Trust(publicKey string) error {
 
 	now := d.options.Now()
 	forgiven := trust.Forgive(key.Fingerprint())
+
 	if added := trust.Add(key, keys.ViaOnboarding, now); added || forgiven {
 		if err := trust.Save(d.journal, d.options.SignersPath, now); err != nil {
 			return err
@@ -266,7 +268,6 @@ func (d *Daemon) Trust(publicKey string) error {
 	return err
 }
 
-// The heartbeat speaks of the keys only once a read of the state has said which ones wait.
 func (d *Daemon) keysBeat() *contract.KeysBeat {
 	d.mu.Lock()
 	pending, known := d.pending, d.pendingKnown

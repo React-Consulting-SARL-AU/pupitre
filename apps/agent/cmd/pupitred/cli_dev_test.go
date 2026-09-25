@@ -114,7 +114,6 @@ func decodeReport(t *testing.T, stdout string) contract.Report {
 	return report
 }
 
-// The app left a module for later; naming it on the machine is what answers for it.
 func TestInstallOnlyAnswersForAModuleLeftForLater(t *testing.T) {
 	fake, dir := setupCLI(t)
 	writeInstallJSON(t, dir, modules.Request{

@@ -81,6 +81,7 @@ func TestListingTheRootIsTheEmptyPath(t *testing.T) {
 
 func TestListingStopsAtTheCapAndSaysSo(t *testing.T) {
 	fake, reader := filesFixture(t)
+
 	for index := range state.FileListLimit + 10 {
 		fake.Files["/home/dev/many/file-"+strconv.Itoa(index)] = []byte("x")
 	}
@@ -139,6 +140,7 @@ func TestAReadComesBackInChunksThatGlueBackTogether(t *testing.T) {
 	}
 
 	var glued []byte
+
 	for _, chunk := range chunks {
 		decoded, err := base64.StdEncoding.DecodeString(chunk)
 		if err != nil {

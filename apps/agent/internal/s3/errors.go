@@ -9,7 +9,6 @@ import (
 	"net/http"
 )
 
-// Kind is what a refusal means for the client, whatever the provider called it.
 type Kind int
 
 const (
@@ -73,7 +72,6 @@ func (e *Error) Kind() Kind {
 	return KindOther
 }
 
-// KindOf reads what an error means, KindOther for anything that did not come from a bucket.
 func KindOf(err error) Kind {
 	var failure *Error
 	if errors.As(err, &failure) {
@@ -100,6 +98,7 @@ func refusal(request call, response *http.Response) *Error {
 	if len(bytes.TrimSpace(raw)) > 0 && xml.Unmarshal(raw, &parsed) == nil {
 		failure.Code = parsed.Code
 		failure.Message = parsed.Message
+
 		if parsed.Region != "" {
 			failure.Region = parsed.Region
 		}
@@ -129,9 +128,10 @@ func codeOf(request call, status int) string {
 	return http.StatusText(status)
 }
 
-// Some answers carry their error under a 200: a completion or a copy that failed once the headers had left.
+// A completion or a copy can fail after the 200 headers have left, so the error rides in the body.
 func embeddedError(op string, body []byte) *Error {
 	var parsed document
+
 	if xml.Unmarshal(body, &parsed) != nil || parsed.XMLName.Local != "Error" {
 		return nil
 	}
@@ -139,7 +139,6 @@ func embeddedError(op string, body []byte) *Error {
 	return &Error{Op: op, Status: http.StatusOK, Code: parsed.Code, Message: parsed.Message}
 }
 
-// What deserves another try: the network, a bucket asking to slow down, a server that stumbled.
 func transient(err error) bool {
 	var failure *Error
 	if !errors.As(err, &failure) {

@@ -17,7 +17,7 @@ const (
 
 	tool = "npm:wrangler"
 
-	// The two variables wrangler reads on its own: no sign-in of its own is needed once they are in the shell.
+	// wrangler reads both on its own and has no token login, so the dev shell must carry them too.
 	tokenKey   = "CLOUDFLARE_API_TOKEN"
 	accountKey = "CLOUDFLARE_ACCOUNT_ID"
 )
@@ -51,7 +51,6 @@ func (Module) Install(ctx *modules.Context) error {
 	return cli.Install(ctx)
 }
 
-// wrangler has no token login: it takes the token through CLOUDFLARE_API_TOKEN, so the dev shell must carry it, not only /etc/pupitre/env.
 func (Module) Configure(ctx *modules.Context) error {
 	if err := token.Store(ctx, "store-token", tokenKey, ctx.Secret("api_token")); err != nil {
 		return err
@@ -76,7 +75,6 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// The Cloudflare account belongs to the client: uninstalling gives back the machine and its variables, never a Worker.
 func (Module) Uninstall(ctx *modules.Context) error {
 	if err := cli.Remove(ctx); err != nil {
 		return err
@@ -110,7 +108,7 @@ type whoami struct {
 	} `json:"accounts"`
 }
 
-// wrangler whoami is asked with the token the machine holds; a token scoped to an account carries no email, and the account it opens stands for it.
+// An account-scoped token carries no email, so the account it opens stands for it.
 func (Module) Login(ctx *modules.Context) (contract.Login, bool) {
 	token, _, _ := env.Get(ctx, tokenKey)
 	if token == "" {

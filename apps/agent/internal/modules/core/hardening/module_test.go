@@ -24,6 +24,7 @@ func run(t *testing.T, ctx *modules.Context) {
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -31,6 +32,7 @@ func run(t *testing.T, ctx *modules.Context) {
 
 func statuses(ctx *modules.Context) map[string]contract.StepStatus {
 	result := map[string]contract.StepStatus{}
+
 	for _, event := range ctx.Events() {
 		result[event.Step] = event.Status
 	}
@@ -183,7 +185,6 @@ func TestUninstallRevertsWhatTheModuleDid(t *testing.T) {
 	}
 }
 
-// Reopening root goes through the same gate as closing it: a configuration sshd refuses is never reloaded.
 func TestUninstallValidatesSshdBeforeReloading(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Units["ssh"] = modtest.UnitActive
@@ -205,7 +206,6 @@ func TestUninstallValidatesSshdBeforeReloading(t *testing.T) {
 	}
 }
 
-// A reload that fails leaves sshd on what it read before: the fragment goes back so the disk says what runs.
 func TestUninstallPutsTheFragmentBackWhenTheReloadFails(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Units["ssh"] = modtest.UnitActive
@@ -288,6 +288,7 @@ func TestConfigureOnAHardenedMachineAppliesTheChangedFragment(t *testing.T) {
 			t.Errorf("replay: %s = %s, want skip", step, status)
 		}
 	}
+
 	if len(fake.Mutations) != mutations {
 		t.Fatalf("replay touched the machine: %v", fake.Mutations[mutations:])
 	}
@@ -338,6 +339,7 @@ func TestConfigureNeverClosesRootItself(t *testing.T) {
 	}
 
 	var message string
+
 	for _, event := range ctx.Events() {
 		if event.Step == "keep-sshd-fragment" {
 			message = event.Message

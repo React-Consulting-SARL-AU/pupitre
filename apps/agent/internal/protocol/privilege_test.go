@@ -76,7 +76,6 @@ func TestAPrivilegedSessionAnswersEverything(t *testing.T) {
 	}
 }
 
-// The secrets line is read before the refusal: left on the input, root would read it as the next request.
 func TestARefusedCommandStillConsumesItsSecretLine(t *testing.T) {
 	i18n.Use("en")
 

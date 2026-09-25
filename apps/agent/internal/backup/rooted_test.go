@@ -10,7 +10,7 @@ import (
 	"pupitre.studio/agent/internal/s3/s3test"
 )
 
-// A restore runs as root in dev's home: a folder dev turned into a link out of the home after the backup must not carry root's renames and removals outside.
+// Root restores into dev's home: a link dev planted since the backup must not carry root's writes outside it.
 func TestARestoreNeverWorksOutsideTheHomeThroughALinkPlantedSince(t *testing.T) {
 	bucket := s3test.New(t, bucketName)
 	b := newBench(t, bucket).configured()

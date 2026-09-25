@@ -1,4 +1,3 @@
-// Package host reads what the machine says of itself: its release and its memory.
 package host
 
 import (
@@ -12,11 +11,9 @@ const (
 	osReleasePath = "/etc/os-release"
 	memInfoPath   = "/proc/meminfo"
 
-	// DefaultCodename is the release a vendor repository is named after when os-release cannot say.
 	DefaultCodename = "noble"
 )
 
-// Codename is the release a vendor repository line names: jammy, noble.
 func Codename(ctx sys.Context) string {
 	raw, err := ctx.Sys().ReadFile(osReleasePath)
 	if err != nil {
@@ -34,7 +31,6 @@ func Codename(ctx sys.Context) string {
 	return DefaultCodename
 }
 
-// MemTotalKB is the memory the kernel reports, in kilobytes; false when /proc/meminfo does not say.
 func MemTotalKB(ctx sys.Context) (int, bool) {
 	raw, err := ctx.Sys().ReadFile(memInfoPath)
 	if err != nil {

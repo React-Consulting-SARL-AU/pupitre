@@ -14,7 +14,7 @@ import (
 	"pupitre.studio/agent/internal/state"
 )
 
-// Installed as symlinks named shot and dev, the agent answers to those names: the driving commands are the binary itself, never a script laid on the client's disk.
+// Symlinks named shot and dev make the binary itself the driving commands, never a script laid on the client's disk.
 func arguments(argv []string) []string {
 	if len(argv) == 0 {
 		return nil
@@ -61,6 +61,7 @@ func parseShot(args []string) (shots.Request, bool, error) {
 	request := shots.Request{}
 
 	var positional []string
+
 	for index := 0; index < len(args); index++ {
 		argument := args[index]
 
@@ -74,6 +75,7 @@ func parseShot(args []string) (shots.Request, bool, error) {
 			if index >= len(args) {
 				return request, false, errors.New(i18n.T("shot.size.expected"))
 			}
+
 			request.Size = strings.ReplaceAll(args[index], "x", ",")
 		case argument == "-w" || argument == "--wait":
 			index++
@@ -81,6 +83,7 @@ func parseShot(args []string) (shots.Request, bool, error) {
 			if err != nil {
 				return request, false, errors.New(i18n.T("shot.wait.expected"))
 			}
+
 			request.Wait = milliseconds
 		case strings.HasPrefix(argument, "-"):
 			return request, false, errors.New(i18n.T("cli.option.unknown", argument))
@@ -123,6 +126,7 @@ func runGallery(args []string, stderr io.Writer) int {
 
 				return 2
 			}
+
 			port = parsed
 		default:
 			fmt.Fprintln(stderr, i18n.T("cli.argument.unknown", argument))

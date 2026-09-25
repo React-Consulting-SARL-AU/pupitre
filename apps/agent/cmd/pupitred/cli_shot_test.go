@@ -68,6 +68,7 @@ func TestShotPrintsTheUrlLastAndThePathAside(t *testing.T) {
 	}
 
 	stdout.Reset()
+
 	if code := runShot(reader, []string{"--list"}, &stdout, &stderr); code != 0 {
 		t.Fatalf("code %d", code)
 	}

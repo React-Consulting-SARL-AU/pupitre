@@ -36,7 +36,6 @@ func runner(fake *modtest.FakeSys, migrations ...migrate.Migration) *migrate.Run
 	})
 }
 
-// migrating puts a configuration at revision 1 on the bench, gives the running agent its ledger, and has the new binary migrate to revision 2 the moment its unit starts, as the daemon does.
 func (b *bench) migrating(t *testing.T) *migrate.Runner {
 	t.Helper()
 

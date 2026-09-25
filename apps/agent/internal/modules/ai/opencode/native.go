@@ -15,11 +15,7 @@ import (
 	"pupitre.studio/agent/internal/sys/file"
 )
 
-// OpenCode ships one static binary per platform on its GitHub release, and
-// GitHub publishes the SHA-256 of every asset beside it: the release document
-// names the version and the digest at once, and the download is refused unless
-// the two agree. An x64 machine without AVX2 gets the baseline build, as the
-// vendor's installer chooses.
+// GitHub's release document names the version and each asset's SHA-256; a CPU without AVX2 gets the baseline build.
 const (
 	releaseURL = "https://api.github.com/repos/anomalyco/opencode/releases/latest"
 	cpuInfo    = "/proc/cpuinfo"
@@ -89,6 +85,7 @@ func latest(ctx *modules.Context) (build, error) {
 	}
 
 	name := assetName(ctx)
+
 	for _, asset := range parsed.Assets {
 		if asset.Name != name {
 			continue

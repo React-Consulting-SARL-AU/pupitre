@@ -11,7 +11,6 @@ import (
 	"pupitre.studio/agent/internal/state"
 )
 
-// gh's own check reaches GitHub: service.status pays for it once, for the module the reader opened; the snapshot read every few seconds never does.
 func TestServiceStatusAsksTheCliWhoIsSignedInAndTheSnapshotDoesNot(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Packages["gh"] = "2.80.0"
@@ -26,6 +25,7 @@ func TestServiceStatusAsksTheCliWhoIsSignedInAndTheSnapshotDoesNot(t *testing.T)
 	reader := state.New(state.Options{Sys: fake, Registry: registry})
 
 	snapshot := reader.Snapshot()
+
 	for _, service := range snapshot.Services {
 		if service.Login != nil {
 			t.Fatalf("%s carries a login in the snapshot", service.ID)

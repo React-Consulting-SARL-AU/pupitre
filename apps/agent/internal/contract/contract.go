@@ -52,6 +52,7 @@ func definitionName(cmd string) string {
 	parts := strings.FieldsFunc(cmd, func(r rune) bool { return r == '.' || r == '_' })
 
 	var name strings.Builder
+
 	for _, part := range parts {
 		name.WriteString(strings.ToUpper(part[:1]))
 		name.WriteString(part[1:])

@@ -24,8 +24,7 @@ type pushedHeader struct {
 	Signature string `json:"signature,omitempty"`
 }
 
-// The agent pushed by the app to a server it reaches as dev. sudo runs `pupitred binary install` exactly without a password, so
-// what the signature covers rides the first line of standard input, and every flag is a line only the password opens.
+// sudo runs exactly `pupitred binary install` without a password: the signed header rides stdin, any flag needs the password.
 func runBinary(upgrader *selfupdate.Upgrader, binaryPath string, args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	staged, ok := stagedFrom(args, stderr)
 	if !ok {
@@ -84,6 +83,7 @@ func stagedFrom(args []string, stderr io.Writer) (selfupdate.Staged, bool) {
 
 			return selfupdate.Staged{}, false
 		}
+
 		seen[arg] = true
 
 		switch arg {

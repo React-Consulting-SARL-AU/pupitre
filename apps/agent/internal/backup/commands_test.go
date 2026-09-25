@@ -35,6 +35,7 @@ func session(t *testing.T, b *bench, requests ...string) []line {
 	}
 
 	var lines []line
+
 	for _, raw := range strings.Split(strings.TrimSpace(out.String()), "\n") {
 		var parsed line
 		if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
@@ -102,6 +103,7 @@ func TestABackupFromTheProtocolStreamsItsSteps(t *testing.T) {
 	lines := session(t, b, `{"id":2,"cmd":"backup.run","params":{"projects":"none"}}`)
 
 	var steps []string
+
 	for _, candidate := range lines {
 		if candidate.Event == "step" && candidate.ID == 2 {
 			steps = append(steps, candidate.Step)

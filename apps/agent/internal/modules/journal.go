@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-// memoryLines bounds what a journal keeps in memory: a daemon or a serve session holds one for its whole life, and the file keeps everything anyway.
+// A daemon or serve session holds one journal for its whole life; the file keeps everything anyway.
 const memoryLines = 4096
 
 type journal struct {

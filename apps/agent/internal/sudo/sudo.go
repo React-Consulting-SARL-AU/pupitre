@@ -11,12 +11,10 @@ const (
 	Binary = "/usr/local/bin/pupitred"
 )
 
-// Open is what every server held before decision 0015, and keeps until its client accepts a password.
+// The pre-0015 rule, kept until the client accepts a password.
 const Open = User + " ALL=(ALL) NOPASSWD:ALL\n"
 
-// sudo applies the last rule that matches, so pupitred's comes after the one asking for the password. A command listed with
-// arguments matches exactly those, and a wildcard would match spaces too: only these two lines run without the password, and
-// `serve --privileged`, `binary install --privileged` and every other subcommand fall to the first rule.
+// sudo applies the last match and argument lists match exactly (no wildcard): only these two lines skip the password.
 const Restricted = User + " ALL=(ALL:ALL) ALL\n" +
 	User + " ALL=(root) NOPASSWD: " + Binary + " serve, " + Binary + " binary install\n"
 

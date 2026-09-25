@@ -1,4 +1,3 @@
-// Package room weighs a database restore against the disk before anything is dropped to make way for it.
 package room
 
 import (
@@ -11,10 +10,9 @@ import (
 	"pupitre.studio/agent/internal/sys"
 )
 
-// Reserve stays free past the restore: a disk filled to the last byte stops the engine's own journal, and every other service with it.
+// A disk filled to the last byte stops the engine's own journal, and every other service with it.
 const Reserve = 512 << 20
 
-// Free is what the file system holding dir has left for root to write.
 func Free(ctx sys.Context, dir string) (int64, error) {
 	out, err := ctx.Sys().Run(sys.Command{Argv: []string{"df", "-P", "-B1", dir}})
 	if err != nil {
@@ -34,8 +32,7 @@ func Free(ctx sys.Context, dir string) (int64, error) {
 	return strconv.ParseInt(fields[3], 10, 64)
 }
 
-// Check refuses a restore of need bytes into dir when the disk, given back freed by the drop that precedes it, cannot hold them and the reserve.
-// A disk df cannot read is no reason to refuse: the restore goes on, as it did before anyone weighed it.
+// freed is what the drop preceding the restore gives back; a disk df cannot read never refuses the restore.
 func Check(ctx sys.Context, what, dir string, need, freed int64) error {
 	free, err := Free(ctx, dir)
 	if err != nil {

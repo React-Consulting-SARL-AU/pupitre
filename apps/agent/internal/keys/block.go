@@ -35,7 +35,7 @@ type Target struct {
 	Owner string
 }
 
-// The block is the whole of what the platform owns in authorized_keys; every line outside it belongs to the client and is never touched.
+// Lines outside the marked block belong to the client and are never touched.
 func Sync(ctx sys.Context, target Target, wanted []Key) (bool, error) {
 	current, err := read(ctx, target.Path)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
@@ -72,12 +72,12 @@ func Listed(ctx sys.Context, path string) []Key {
 	return Parse(raw).Keys
 }
 
-// The file belongs to the user it opens for, and root reads it: a link they planted must not lead the read out of their .ssh folder.
+// Root reads a file the user owns: a link they planted must not lead the read out of their .ssh folder.
 func read(ctx sys.Context, path string) ([]byte, error) {
 	return ctx.Sys().ReadFileIn(filepath.Dir(path), filepath.Base(path))
 }
 
-// Sorted and deduplicated, so a platform that answers in another order does not rewrite the file every thirty seconds.
+// Sorted and deduplicated so a reordered answer does not rewrite the file every thirty seconds.
 func Render(wanted []Key) []byte {
 	lines := make([]string, 0, len(wanted))
 	seen := map[string]bool{}

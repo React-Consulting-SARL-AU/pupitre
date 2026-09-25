@@ -14,10 +14,9 @@ import (
 )
 
 const (
-	// DefaultPath is the authorized_keys whose marked block the agent manages: the dev account's.
 	DefaultPath        = "/home/dev/.ssh/authorized_keys"
 	DefaultSignersPath = "/etc/pupitre/signers.json"
-	// DefaultLockPath serialises the daemon and a serve session that both rewrite the signers and the block.
+	// Serialises the daemon and a serve session, which both rewrite the signers and the block.
 	DefaultLockPath = "/var/lib/pupitre/keys.lock"
 
 	ViaOnboarding = "onboarding"
@@ -35,19 +34,19 @@ type Signer struct {
 	Since     string `json:"since"`
 }
 
-// Removal remembers when a key left, so an approval issued before that cannot bring it back.
+// An approval issued before the removal cannot bring the key back.
 type Removal struct {
 	Fingerprint string `json:"fingerprint"`
 	At          string `json:"at"`
 }
 
-// Trust is the set of keys this server takes an approval from. A key enters it only laid over SSH or admitted by a valid approval.
+// A key enters only laid over SSH or admitted by a valid approval.
 type Trust struct {
 	Signers []Signer  `json:"signers"`
 	Removed []Removal `json:"removed"`
 }
 
-// LoadTrust reads the store; an absent file is an empty set, an unreadable one is an error and never an empty set.
+// An absent file is an empty set; an unreadable one is an error, never an empty set.
 func LoadTrust(machine sys.Sys, path string) (Trust, error) {
 	raw, err := machine.ReadFile(path)
 	if errors.Is(err, fs.ErrNotExist) {
@@ -74,7 +73,7 @@ func LoadTrust(machine sys.Sys, path string) (Trust, error) {
 	return trust, nil
 }
 
-// Save writes the store for root alone, atomically, forgetting the removals no approval could still predate.
+// Forgets the removals no still-valid approval could predate.
 func (t Trust) Save(ctx sys.Context, path string, now time.Time) error {
 	horizon := now.Add(-time.Duration(contract.KeyApprovalRules.MaxAgeSeconds) * time.Second)
 
@@ -123,7 +122,6 @@ func (t Trust) Trusts(fingerprint string) bool {
 	return false
 }
 
-// Fingerprints are the trusted keys as the heartbeat names them, sorted.
 func (t Trust) Fingerprints() []string {
 	fingerprints := []string{}
 	for _, key := range t.Keys() {
@@ -135,7 +133,7 @@ func (t Trust) Fingerprints() []string {
 	return fingerprints
 }
 
-// Add trusts key and says whether it was not trusted already; a key already there keeps how and when it came.
+// A key already trusted keeps how and when it came.
 func (t *Trust) Add(key Key, via string, now time.Time) bool {
 	if t.Trusts(key.Fingerprint()) {
 		return false
@@ -146,7 +144,6 @@ func (t *Trust) Add(key Key, via string, now time.Time) bool {
 	return true
 }
 
-// Drop stops trusting a key and remembers when, which is what refuses an older approval of it later.
 func (t *Trust) Drop(fingerprint string, now time.Time) bool {
 	kept := make([]Signer, 0, len(t.Signers))
 	dropped := false
@@ -173,7 +170,7 @@ func (t *Trust) Drop(fingerprint string, now time.Time) bool {
 	return true
 }
 
-// Forgive clears the removal of a key laid again over SSH: that gesture outranks any approval.
+// Laying a key again over SSH outranks any approval.
 func (t *Trust) Forgive(fingerprint string) bool {
 	kept := make([]Removal, 0, len(t.Removed))
 

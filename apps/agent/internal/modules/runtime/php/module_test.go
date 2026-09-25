@@ -31,6 +31,7 @@ func run(t *testing.T, ctx *modules.Context) {
 
 func statuses(ctx *modules.Context) map[string]contract.StepStatus {
 	result := map[string]contract.StepStatus{}
+
 	for _, event := range ctx.Events() {
 		result[event.Step] = event.Status
 	}
@@ -45,6 +46,7 @@ func TestInstallBringsTheHeadersThenPhpAndComposer(t *testing.T) {
 	run(t, ctx)
 
 	commands := strings.Join(fake.Commands(), "\n")
+
 	for _, want := range []string{"libgd-dev", "libonig-dev", "(dev) mise use -g -y php@8.4", "(dev) composer --version"} {
 		if !strings.Contains(commands, want) {
 			t.Errorf("command %q not run:\n%s", want, commands)
@@ -124,7 +126,6 @@ func TestFailedStepReportsItsReplayCommand(t *testing.T) {
 
 var _ modules.Module = Module{}
 
-// PHP reads 512MB as 512 bytes: the form's size format lets the B through, so the ini is written the way PHP reads it.
 func TestAMemoryLimitWithABSuffixIsWrittenTheWayPhpReadsIt(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	ctx := newContext(t, fake, modtest.Values{"php_versions": []string{"8.4"}, "composer": false, "memory_limit": "512MB"})
@@ -147,7 +148,6 @@ func TestAMemoryLimitWithABSuffixIsWrittenTheWayPhpReadsIt(t *testing.T) {
 	}
 }
 
-// A ~/.config/php root made under dev's home locks dev out of its own ini folder.
 func TestTheIniFolderBelongsToDevAllTheWayDown(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Dirs[shell.Home+"/.config"] = true
@@ -161,6 +161,7 @@ func TestTheIniFolderBelongsToDevAllTheWayDown(t *testing.T) {
 			t.Errorf("%s belongs to %q, want dev", dir, fake.Owners[dir])
 		}
 	}
+
 	if fake.Owners[shell.Home+"/.config"] != "dev:dev" {
 		t.Fatal("what was dev's stays dev's")
 	}

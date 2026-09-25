@@ -40,6 +40,7 @@ func run(t *testing.T, ctx *modules.Context) {
 
 func statuses(ctx *modules.Context) map[string]contract.StepStatus {
 	result := map[string]contract.StepStatus{}
+
 	for _, event := range ctx.Events() {
 		result[event.Step] = event.Status
 	}
@@ -54,6 +55,7 @@ func TestConfigureBindsLocallyAndRequiresThePassword(t *testing.T) {
 	run(t, ctx)
 
 	config := string(fake.Files[dropIn])
+
 	for _, want := range []string{"bind 127.0.0.1 ::1", "port 6379", `requirepass "` + password + `"`, "appendonly yes"} {
 		if !strings.Contains(config, want) {
 			t.Errorf("configuration lacks %q:\n%s", want, config)
@@ -81,6 +83,7 @@ func TestChosenPortPersistenceAndMemoryReachTheConfiguration(t *testing.T) {
 	run(t, ctx)
 
 	config := string(fake.Files[dropIn])
+
 	for _, want := range []string{"port 6380", "appendonly no", "maxmemory 512mb", "maxmemory-policy allkeys-lru"} {
 		if !strings.Contains(config, want) {
 			t.Errorf("configuration lacks %q:\n%s", want, config)
@@ -92,7 +95,6 @@ func TestChosenPortPersistenceAndMemoryReachTheConfiguration(t *testing.T) {
 	}
 }
 
-// The policy only decides what goes when the cap is reached; a Redis without a cap evicts nothing at all.
 func TestTheChosenPolicyOnlyAppliesUnderACap(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	ctx := newContext(t, fake, modtest.Values{"port": DefaultPort, "persistence": true, "maxmemory_mb": 256, "maxmemory_policy": "volatile-ttl"})
@@ -134,6 +136,7 @@ func TestReplayOnAnInstalledMachineChangesNothing(t *testing.T) {
 	run(t, newContext(t, fake, values))
 
 	restarts := fake.Restarts[unit]
+
 	ctx := newContext(t, fake, values)
 	run(t, ctx)
 
@@ -169,7 +172,6 @@ func configSets(fake *modtest.FakeSys) (stdin string, auth []string) {
 	return "", nil
 }
 
-// A cache without persistence holds what a restart would lose: a new password or a new cap reaches the running server through CONFIG SET.
 func TestANewPasswordIsSetOnTheRunningServerWithoutARestart(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	run(t, newContext(t, fake, modtest.Values{"port": DefaultPort, "persistence": false, "maxmemory_mb": 256}))
@@ -182,6 +184,7 @@ func TestANewPasswordIsSetOnTheRunningServerWithoutARestart(t *testing.T) {
 	}
 
 	stdin, auth := configSets(fake)
+
 	for _, want := range []string{`CONFIG SET requirepass "n3w-secret"`, "CONFIG SET maxmemory 512mb", "CONFIG SET maxmemory-policy allkeys-lru", `CONFIG SET save ""`} {
 		if !strings.Contains(stdin, want) {
 			t.Errorf("redis-cli must be told %q on its standard input:\n%s", want, stdin)
@@ -203,7 +206,6 @@ func TestANewPasswordIsSetOnTheRunningServerWithoutARestart(t *testing.T) {
 	}
 }
 
-// The port is the one thing CONFIG SET cannot move: a new port restarts the server, as before.
 func TestANewPortStillRestartsTheServer(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	run(t, newContext(t, fake, values))
@@ -216,7 +218,6 @@ func TestANewPortStillRestartsTheServer(t *testing.T) {
 	}
 }
 
-// A server that refuses the live settings is restarted instead: the drop-in on disk is what it reads then.
 func TestARefusedLiveApplyFallsBackOnTheRestart(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	run(t, newContext(t, fake, values))
@@ -258,6 +259,7 @@ func TestVerifyAuthKeepsThePasswordOutOfTheArgv(t *testing.T) {
 	}
 
 	var ping *sys.Command
+
 	for i := range fake.Calls {
 		if fake.Calls[i].Argv[0] == "redis-cli" {
 			ping = &fake.Calls[i]
@@ -277,7 +279,6 @@ func TestVerifyAuthKeepsThePasswordOutOfTheArgv(t *testing.T) {
 	}
 }
 
-// redis.conf reads a bare value up to the first space and a # as a comment: a password typed with either would leave the server refusing to start, or open on a shorter one.
 func TestThePasswordIsQuotedInTheDropInAndOnTheLiveServer(t *testing.T) {
 	typed := `pass "with" space #hash \slash`
 	fake := modtest.NewFakeSys()
@@ -286,6 +287,7 @@ func TestThePasswordIsQuotedInTheDropInAndOnTheLiveServer(t *testing.T) {
 	reconfigure(t, fake, values, typed)
 
 	want := `requirepass "pass \"with\" space #hash \\slash"`
+
 	if !strings.Contains(string(fake.Files[dropIn]), want+"\n") {
 		t.Fatalf("drop-in:\n%s\nwant %s", fake.Files[dropIn], want)
 	}

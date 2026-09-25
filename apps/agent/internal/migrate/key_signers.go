@@ -10,13 +10,10 @@ import (
 	"pupitre.studio/agent/internal/sys/file"
 )
 
-// The key types a device could hold when approvals arrived; the list is frozen with this migration.
+// Frozen with this migration: the key types a device could hold when approvals arrived.
 var grandfatheredTypes = []string{"ssh-ed25519", "ecdsa-sha2-nistp256", "ecdsa-sha2-nistp384", "ecdsa-sha2-nistp521"}
 
-// Before approvals, every key of the managed block opened the server. Those
-// that could sign one become its first signers, so updating the agent locks
-// nobody out. An RSA key, or one held back by options, opens the server as it
-// did until the platform stops asking for it, and signs nothing.
+// Existing keys able to sign become the first signers so the update locks nobody out; RSA keys still open, never sign.
 func keySigners(ctx *Context) error {
 	if ctx.Exists(TargetSigners) {
 		return nil

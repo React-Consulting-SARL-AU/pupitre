@@ -49,6 +49,7 @@ func run(t *testing.T, ctx *modules.Context) {
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -56,6 +57,7 @@ func run(t *testing.T, ctx *modules.Context) {
 
 func statuses(ctx *modules.Context) map[string]contract.StepStatus {
 	result := map[string]contract.StepStatus{}
+
 	for _, event := range ctx.Events() {
 		result[event.Step] = event.Status
 	}
@@ -63,7 +65,6 @@ func statuses(ctx *modules.Context) map[string]contract.StepStatus {
 	return result
 }
 
-// Only the project that declares a subdomain gets a site block; the other stays on its port, behind the app's SSH session.
 func TestCaddyfileRoutesOnlyTheProjectsThatDeclareASubdomain(t *testing.T) {
 	fake := machine()
 	ctx := newContext(t, fake, values())
@@ -71,6 +72,7 @@ func TestCaddyfileRoutesOnlyTheProjectsThatDeclareASubdomain(t *testing.T) {
 	run(t, ctx)
 
 	config := string(fake.Files[configPath])
+
 	for _, want := range []string{"email " + email, "http_port 80", "app." + domain + " {", "reverse_proxy web.localhost:3000", "header_up Host web.localhost:3000"} {
 		if !strings.Contains(config, want) {
 			t.Errorf("Caddyfile lacks %q:\n%s", want, config)
@@ -87,7 +89,6 @@ func TestCaddyfileRoutesOnlyTheProjectsThatDeclareASubdomain(t *testing.T) {
 	}
 }
 
-// A project of several ports gets one site block per name on the web, each proxied to its own port.
 func TestCaddyfileCarriesEveryRouteOfAProject(t *testing.T) {
 	fake := machine()
 	fake.Files[registry.DefaultLocal] = []byte(`{"projects":[{"name":"shop","dir":"shop","processes":[{"id":"shop","pkgmgr":"bun","host":"127.0.0.1","port":3100,"routes":[{"label":"web","port":3100,"hostname":"shop.` + domain + `"},{"label":"api","port":3101,"hostname":"api-shop.` + domain + `"},{"label":"docs","port":3102}],"cmd":"bunx turbo run dev"}]}]}`)
@@ -96,6 +97,7 @@ func TestCaddyfileCarriesEveryRouteOfAProject(t *testing.T) {
 	run(t, ctx)
 
 	config := string(fake.Files[configPath])
+
 	for _, want := range []string{"shop." + domain + " {", "reverse_proxy 127.0.0.1:3100", "api-shop." + domain + " {", "reverse_proxy 127.0.0.1:3101", "header_up Host 127.0.0.1:3101"} {
 		if !strings.Contains(config, want) {
 			t.Errorf("Caddyfile lacks %q:\n%s", want, config)
@@ -112,7 +114,6 @@ func TestCaddyfileCarriesEveryRouteOfAProject(t *testing.T) {
 	}
 }
 
-// core.hardening owns the bare 22 and 443 of SSH; Caddy writes <port>/tcp so the two never fight over the same rule.
 func TestFirewallOpensTheWebPortsUnderTheirOwnRules(t *testing.T) {
 	fake := machine()
 	run(t, newContext(t, fake, values()))
@@ -144,7 +145,6 @@ func TestChosenPortsReachTheCaddyfileAndTheFirewall(t *testing.T) {
 	}
 }
 
-// A port the client moves away from is closed on the same pass: the firewall opens what the Caddyfile serves, nothing older.
 func TestMovedPortsCloseTheOldRulesAndKeepTheClientsOwn(t *testing.T) {
 	fake := machine()
 	run(t, newContext(t, fake, values()))
@@ -163,7 +163,6 @@ func TestMovedPortsCloseTheOldRulesAndKeepTheClientsOwn(t *testing.T) {
 	}
 }
 
-// The hardening may run after this module: the rules are read as they were given, not from a firewall that is not up yet.
 func TestRulesAreReadBeforeTheFirewallIsUp(t *testing.T) {
 	fake := machine()
 	fake.Firewall.Active = false
@@ -178,8 +177,6 @@ func TestRulesAreReadBeforeTheFirewallIsUp(t *testing.T) {
 	}
 }
 
-// The engine refuses a configuration before the first step, so the module never
-// sees an empty domain. What this module owes is the declaration it is refused on.
 func TestTheManifestHoldsTheDomainAndTheAddressToTheirShape(t *testing.T) {
 	shapes := map[string]string{
 		"domain":     contract.FormatDomain,
@@ -240,7 +237,6 @@ func TestReplayOnAConfiguredMachineChangesNothing(t *testing.T) {
 	}
 }
 
-// A project added after the install reaches the proxy through a reload, which keeps the certificates and the open connections.
 func TestSyncPicksUpANewProject(t *testing.T) {
 	fake := machine()
 	run(t, newContext(t, fake, values()))
@@ -291,7 +287,6 @@ func TestUninstallGivesBackTheModeAndThePorts(t *testing.T) {
 	}
 }
 
-// A caddy that never took the machine goes without the domain and the marker of the tunnel that holds it.
 func TestUninstallKeepsTheDomainOfTheExposureThatHoldsTheMachine(t *testing.T) {
 	fake := machine()
 	run(t, newContext(t, fake, values()))
@@ -312,7 +307,6 @@ func TestUninstallKeepsTheDomainOfTheExposureThatHoldsTheMachine(t *testing.T) {
 
 var _ modules.Module = Module{}
 
-// The package can be there for the client's own reasons; only the marker makes it this module's, exactly as the tunnel reads its own.
 func TestACaddyWithoutTheMarkerIsNotOurs(t *testing.T) {
 	fake := machine()
 	fake.Packages[pkg] = "2.10.0"
@@ -354,7 +348,6 @@ func TestEveryFirewallCallIsBounded(t *testing.T) {
 	}
 }
 
-// systemctl reload only says the job failed; caddy validate says why, and that is what the step must carry.
 func TestACaddyfileCaddyRefusesIsNotReloadedAndTheReasonIsInTheStep(t *testing.T) {
 	fake := machine()
 	run(t, newContext(t, fake, values()))
@@ -384,7 +377,6 @@ func TestACaddyfileCaddyRefusesIsNotReloadedAndTheReasonIsInTheStep(t *testing.T
 	}
 }
 
-// A Caddyfile written before it was weighed would take Caddy down at its next restart, and a replay would find it identical and let it be.
 func TestARefusedCaddyfileNeverReplacesTheOneCaddyRuns(t *testing.T) {
 	fake := machine()
 	run(t, newContext(t, fake, values()))

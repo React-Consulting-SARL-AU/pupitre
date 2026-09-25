@@ -22,11 +22,10 @@ const (
 	ProjectsEnv  = contract.BackupProjectsEnv
 	ProjectsNone = contract.BackupProjectsNone
 
-	// A prefix is one or more path segments, never a slash at either end.
 	prefixPattern    = `^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$`
 	recipientPattern = `^[A-Za-z0-9+/]{43}=$`
 	saltPattern      = `^[A-Za-z0-9+/]{22}==$`
-	// A number field with no lower bound would take a negative; the pattern is what keeps it at zero or above.
+	// A number field without Min accepts a negative; this pattern is what keeps it at zero or above.
 	naturalPattern = `^[0-9]+$`
 )
 

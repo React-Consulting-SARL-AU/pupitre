@@ -15,7 +15,7 @@ const (
 	product = "1.136.1"
 )
 
-// The update service names the archive and its SHA-256; the fake serves a body whose digest is exactly that.
+// The fake serves modtest.Downloaded, so the update answer must name that body's digest.
 var update = `{"url":"https://vscode.download.prss.microsoft.com/stable/code.tar.gz","name":"1.136.1","version":"` + commit + `","productVersion":"` + product + `","sha256hash":"` + modtest.Digest(modtest.Downloaded) + `"}`
 
 var serverDir = binRoot + "/" + commit
@@ -44,6 +44,7 @@ func install(t *testing.T, fake *modtest.FakeSys, values modtest.Values) *module
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -161,7 +162,6 @@ func TestReplayMutatesNothing(t *testing.T) {
 	}
 }
 
-// A build published since the install is not what a changed setting costs: the replay keeps the server it has, upgrade is what moves it.
 func TestAReplayKeepsTheInstalledBuildAndUpgradeMovesIt(t *testing.T) {
 	fake := machine()
 	install(t, fake, modtest.Values{"tunnel": false})
@@ -189,16 +189,15 @@ func TestAReplayKeepsTheInstalledBuildAndUpgradeMovesIt(t *testing.T) {
 		t.Fatalf("upgrade must lay the newer server and record it: %q", fake.Files[pointerPath])
 	}
 
-	// The previous server is a folder Remote SSH no longer opens: it goes with the upgrade, link included.
 	if len(fake.Files[serverDir+"/bin/code-server"]) != 0 || fake.Dirs[serverDir] {
 		t.Fatalf("the previous server stayed: %v", fake.Dirs)
 	}
+
 	if _, linked := fake.Links[cliServers+"/Stable-"+commit+"/server"]; linked {
 		t.Fatal("the previous server link stayed")
 	}
 }
 
-// The update service names the CLI build: one already on the machine is not fetched again.
 func TestUpgradeFetchesTheCLIOnlyWhenItsBuildMoved(t *testing.T) {
 	fake := machine()
 	install(t, fake, modtest.Values{"tunnel": false})
@@ -225,7 +224,6 @@ func TestUpgradeFetchesTheCLIOnlyWhenItsBuildMoved(t *testing.T) {
 	}
 }
 
-// code tunnel takes a name of letters, digits and hyphens, twenty at most: a hosting provider's hostname is neither.
 func TestTheTunnelNameIsDerivedFromTheHostname(t *testing.T) {
 	for hostname, want := range map[string]string{
 		"v2202409123456789012.powersrv.de": "v2202409123456789012",
@@ -293,7 +291,6 @@ func skipped(ctx *modules.Context, step string) bool {
 
 var _ modules.Module = Module{}
 
-// Only the tunnel signs in: a machine without the unit has nothing to say, and one with it says what code tunnel user show says.
 func TestLoginSpeaksForTheTunnelAlone(t *testing.T) {
 	bare := machine()
 	if _, asked := (Module{}).Login(newContext(t, bare, modtest.Values{})); asked {
@@ -325,6 +322,7 @@ func TestLoginSpeaksForTheTunnelAlone(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			fake := machine()
 			fake.Files[unitPath] = []byte("[Unit]\n")
+
 			if tc.refused {
 				fake.Refuse("tunnel user show", tc.answer)
 			} else {
@@ -337,7 +335,6 @@ func TestLoginSpeaksForTheTunnelAlone(t *testing.T) {
 				t.Fatalf("login = %+v (%v), want %+v", got, asked, tc.want)
 			}
 
-			// The dashboard asks at every opening: what the CLI says of the account stays out of the journal.
 			if journal := strings.Join(ctx.Output(), "\n"); tc.answer != "" && strings.Contains(journal, strings.TrimSpace(tc.answer)) {
 				t.Fatalf("the CLI's answer reached the journal:\n%s", journal)
 			}

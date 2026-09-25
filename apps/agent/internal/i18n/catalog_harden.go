@@ -1,6 +1,5 @@
 package i18n
 
-// Hardening: why root stayed open, and what to do to close it.
 var hardenCatalog = map[string]Message{
 	"harden.sshd.invalid": {
 		FR: "configuration sshd invalide, fragment retiré, root reste ouvert : %s",

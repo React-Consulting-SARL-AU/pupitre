@@ -28,11 +28,11 @@ const (
 	configPath = configDir + "/openclaw.json"
 	unitPath   = "/etc/systemd/system/" + Unit + ".service"
 
-	// The gateway refuses to start unconfigured; this is the least it accepts, and openclaw onboard extends it. A file the client already holds is never touched.
+	// The least the gateway starts on; openclaw onboard extends it, and an existing file is never touched.
 	seedConfig = `{"gateway":{"mode":"local","port":18789,"bind":"loopback"}}
 `
 
-	// The gateway reads the vendors' own variable names; root's file keeps them apart from the other agents' under this prefix.
+	// The gateway reads unprefixed vendor names; the prefix only keeps them apart in /etc/pupitre/env.
 	envPrefix = "OPENCLAW_"
 
 	unitContent = `[Unit]
@@ -54,13 +54,13 @@ WantedBy=multi-user.target
 `
 )
 
-// OpenClaw runs on Node 24.16 or 26.1 and later, and refuses an older one at start; the check is made here, before mise spends a minute installing it.
+// OpenClaw refuses an older Node at start; checking first saves mise a minute installing it for nothing.
 var nodeFloors = map[int]int{24: 16, 26: 1}
 
 var (
 	cli = mise.CLI{Tool: tool, Program: Program}
 
-	// OpenClaw writes its own AGENTS.md in the workspace it bootstraps: the machine reaches it through the skills, which it reads from both folders.
+	// OpenClaw writes its own AGENTS.md in its workspace, so it only gets the skills.
 	target = agents.Target{ConfigDir: configDir, Skills: true}
 )
 
@@ -166,7 +166,6 @@ func seed(ctx *modules.Context) error {
 	})
 }
 
-// The gateway is what the channels talk to; without "always on" it is a command a session starts.
 func service(ctx *modules.Context, alwaysOn, providersChanged bool) error {
 	if !alwaysOn {
 		return ctx.Step("disable-service", func() (modules.Outcome, error) {
@@ -227,7 +226,7 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// The workspace, the sessions and the channels the client configured stay under ~/.openclaw: only the CLI, the providers and the unit go.
+// The client's workspace, sessions and channels stay under ~/.openclaw.
 func (Module) Uninstall(ctx *modules.Context) error {
 	if err := service(ctx, false, false); err != nil {
 		return err
@@ -267,6 +266,7 @@ func forgetProviders(ctx *modules.Context) error {
 		}
 
 		forgotten := false
+
 		for _, key := range keys {
 			if !strings.HasPrefix(key, envPrefix) {
 				continue

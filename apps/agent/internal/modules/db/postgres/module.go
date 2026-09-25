@@ -74,15 +74,11 @@ func (Module) Manifest() contract.Manifest {
 	return manifest()
 }
 
-// A port another program already holds, and a major the cluster does not run
-// on, are what this configuration cannot know from the manifest alone.
 func (Module) Preflight(ctx *modules.Context) []contract.FieldProblem {
 	return modules.Problems(modules.PortTaken(ctx, "port"), majorChanged(ctx))
 }
 
-// A second major installed beside the first is a second cluster on the same
-// port, with the data left on the old one: moving them is pg_upgradecluster's
-// job, by hand, before the form says the new version.
+// A second major is a second cluster on the same port; moving the data is pg_upgradecluster's job, done by hand.
 func majorChanged(ctx *modules.Context) *contract.FieldProblem {
 	held := strings.TrimSpace(fmt.Sprint(ctx.Held("version")))
 	if ctx.Held("version") == nil || held == version(ctx) || !apt.Installed(ctx, "postgresql-"+held) {
@@ -110,7 +106,7 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 	return modules.Status{Installed: true, Version: release, Configured: file.Exists(ctx, confPath(ctx))}, nil
 }
 
-// The version the client asked for is rarely the one Ubuntu ships: the module adds the project's own repository, key first.
+// The chosen major is rarely the one Ubuntu ships, hence PGDG's own repository.
 func (Module) Install(ctx *modules.Context) error {
 	if err := ctx.Step("add-repository", func() (modules.Outcome, error) {
 		list := repository(host.Codename(ctx))
@@ -159,8 +155,7 @@ func (Module) Configure(ctx *modules.Context) error {
 		return err
 	}
 
-	// The roles hold the new passwords before the env does: a replay after a
-	// crash in between finds them rotated and alters the roles again.
+	// The roles take the new passwords before the env does, so a replay after a crash alters them again.
 	if err := createRoles(ctx, passwordsChanged(ctx)); err != nil {
 		return err
 	}
@@ -255,6 +250,7 @@ func passwordsChanged(ctx *modules.Context) bool {
 func storePasswords(ctx *modules.Context) error {
 	return ctx.Step("store-passwords", func() (modules.Outcome, error) {
 		stored := false
+
 		for key, secret := range passwordKeys {
 			changed, err := env.Set(ctx, key, ctx.Secret(secret))
 			if err != nil {
@@ -272,7 +268,7 @@ func storePasswords(ctx *modules.Context) error {
 	})
 }
 
-// The passwords travel on the standard input of psql: an argv would show them in ps.
+// The passwords go on psql's stdin: an argv would show them in ps.
 func createRoles(ctx *modules.Context, rotated bool) error {
 	return ctx.Step("create-roles", func() (modules.Outcome, error) {
 		if !rotated && rolesExist(ctx) {
@@ -306,7 +302,7 @@ func installExtensions(ctx *modules.Context) error {
 	})
 }
 
-// ~dev is closed to the postgres account, so the dump goes in on a standard input root opened, exactly as mysql reads its own.
+// ~dev is closed to the postgres account, so root opens the dump on its stdin.
 func importDumps(ctx *modules.Context, options dumps.Options) ([]string, error) {
 	options.Patterns = []string{"*.sql", "*.sql.gz", "*.dump"}
 	options.Load = func(dump dumps.File) error {
@@ -395,6 +391,7 @@ func (Module) Uninstall(ctx *modules.Context) error {
 
 	return ctx.Step("forget-passwords", func() (modules.Outcome, error) {
 		forgotten := false
+
 		for _, key := range []string{appPasswordKey, remotePasswordKey} {
 			removed, err := env.Unset(ctx, key)
 			if err != nil {
@@ -445,7 +442,7 @@ func Shell(ctx *modules.Context, name string) (string, error) {
 	return "sudo -u postgres psql " + database(name), nil
 }
 
-// pg_dump writes as root into ~/dumps, so it connects on the loopback as the application role rather than on the socket as postgres.
+// pg_dump runs as root, so it connects on the loopback as the app role rather than on the socket as postgres.
 func Dump(ctx *modules.Context, name string) (string, int64, error) {
 	if err := requireInstalled(ctx); err != nil {
 		return "", 0, err
@@ -541,7 +538,7 @@ func remoteRole(ctx *modules.Context) string {
 	return roleOr(ctx, "remote_role", defaultRemoteRole)
 }
 
-// A role name reaches SQL as an identifier, so it is held to what PostgreSQL accepts and nothing else.
+// A role name reaches SQL as an identifier, hence the strict pattern.
 func roleOr(ctx *modules.Context, key, fallback string) string {
 	chosen := strings.TrimSpace(ctx.String(key))
 	if chosen == "" || !rolePattern.MatchString(chosen) {
@@ -585,7 +582,7 @@ func quote(value string) string {
 	return strings.ReplaceAll(value, "'", "''")
 }
 
-// Buffers sized above the machine get the cluster killed by the memory guard, which reads as a database that will not start.
+// Buffers above the machine's RAM get the cluster killed by the memory guard, which reads as a database that won't start.
 func sharedBuffers(ctx *modules.Context) string {
 	if chosen := strings.TrimSpace(ctx.String("shared_buffers")); chosen != "" {
 		return chosen

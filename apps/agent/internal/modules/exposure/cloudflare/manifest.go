@@ -7,13 +7,12 @@ import (
 
 const ID = "exposure.cloudflare"
 
-// Both are written into cloudflared's YAML as they are: an account is 32 hex digits, a tunnel a UUID, and nothing else may pass.
+// Written into cloudflared's YAML verbatim, so nothing but hex digits and a UUID may pass.
 const (
 	AccountTagPattern = "^[0-9a-fA-F]{32}$"
 	TunnelIDPattern   = "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
 )
 
-// Three of the four are derived by the app from the client's Cloudflare account, which never comes down here; the domain is the client's own choice, one per server.
 func manifest() contract.Manifest {
 	return contract.Manifest{
 		ID:        ID,

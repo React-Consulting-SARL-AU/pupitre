@@ -1,4 +1,3 @@
-// Package runtime puts the runtime modules in the registry; importing it is all that is needed.
 package runtime
 
 import (

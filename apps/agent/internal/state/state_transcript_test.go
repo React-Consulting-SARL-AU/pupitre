@@ -15,9 +15,7 @@ import (
 	"pupitre.studio/agent/internal/state"
 )
 
-// The real agent modules, so agent.open answers on the machine the transcript
-// describes and refuses on the one it does not; and two demo modules, one with
-// a unit and one without, so a service can be driven and a bare module refused.
+// Real agent modules, plus demo modules with and without a unit, so driving and refusing a service both show.
 func agentRegistry() *modules.Registry {
 	registry := modules.NewRegistry()
 	registry.Register(claude.Module{})

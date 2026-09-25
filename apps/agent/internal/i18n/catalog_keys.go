@@ -1,6 +1,5 @@
 package i18n
 
-// The keys a device lays or approves, the recovery from the hosting console, and what else the agent refuses to take from the platform on its word.
 var keysCatalog = map[string]Message{
 	"keys.trust.refused": {
 		FR: "clé refusée : seule une clé ed25519 ou ecdsa nue, « type base64 », sans option ni commentaire, peut ouvrir ce serveur",

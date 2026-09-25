@@ -6,7 +6,6 @@ import (
 	"pupitre.studio/agent/internal/contract"
 )
 
-// The manifest's digest is what the platform recorded when the backup was declared: without it, nothing ties what the bucket serves to what was made.
 func TestNothingIsOpenedWithoutTheManifestDigest(t *testing.T) {
 	bucket, source, _ := backedUp(t)
 	fresh := newBench(t, bucket)

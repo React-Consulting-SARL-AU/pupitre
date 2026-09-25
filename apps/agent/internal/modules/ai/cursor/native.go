@@ -15,11 +15,7 @@ import (
 	"pupitre.studio/agent/internal/sys/user"
 )
 
-// Cursor ships its CLI as one tarball per platform, and the installer script
-// alone knows the current version: it is written into the script at release
-// time. Reading the script is how a version is learned; nothing in it runs.
-// No checksum is published beside the tarball, so the transport is the only
-// guarantee: the download stays root's, and dev alone unpacks it, as dev.
+// The version is read off the installer script, never run; with no checksum published, TLS alone vouches for the tarball.
 const (
 	installerURL = "https://cursor.com/install"
 	downloadsURL = "https://downloads.cursor.com/lab"
@@ -56,7 +52,7 @@ func archiveURL(version string) string {
 	return downloadsURL + "/" + version + "/linux/" + platform() + "/" + archiveName
 }
 
-// The link under ~/.local/bin points into the versions folder, whose name is the version: reading it costs nothing where starting the CLI costs a second.
+// Reading the version off the link costs nothing where starting the CLI costs a second.
 func installedVersion(ctx *modules.Context) string {
 	out, err := user.Run(ctx, shell.User, "readlink", LegacyPath)
 	if err != nil {
@@ -139,7 +135,7 @@ func installCLI(ctx *modules.Context) error {
 	})
 }
 
-// The new version lands beside the old one and takes the links; the old one then goes, so a machine never keeps two copies of a 180 MB tool.
+// The previous version goes once the new one holds the links: never two copies of a 180 MB tool.
 func upgradeCLI(ctx *modules.Context) error {
 	return ctx.Step("upgrade-cli", func() (modules.Outcome, error) {
 		installed := installedVersion(ctx)

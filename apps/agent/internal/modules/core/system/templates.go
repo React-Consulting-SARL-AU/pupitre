@@ -12,7 +12,7 @@ fs.inotify.max_user_instances=1024
 vm.swappiness=10
 `
 
-// The agent holds its journal open for its whole life, in append mode: copytruncate empties the file under it, where a rename would leave it writing into the rotated copy.
+// copytruncate: the agent keeps its journal open in append mode, and a rename would leave it writing the rotated copy.
 var agentLogRotation = modules.DefaultLogPath + ` {
 	daily
 	maxsize 20M
@@ -63,8 +63,7 @@ add-zsh-hook precmd _pupitre_precmd
 add-zsh-hook preexec _pupitre_preexec
 `
 
-// The same markers for a bash terminal, in bash's own words: PROMPT_COMMAND for the prompt, a DEBUG trap for the command that leaves.
-// The whole block is guarded rather than returning early: .bashrc goes on being read after it.
+// The same markers in bash, guarded rather than returned from because .bashrc goes on being read after it.
 const bashrcBlockTemplate = `export PROJECTS_DIR=%s
 [ -x "$HOME/.local/bin/mise" ] && eval "$("$HOME/.local/bin/mise" activate bash)"
 if [[ $- == *i* && -z ${_PUPITRE_INTEGRATION:-} ]]; then

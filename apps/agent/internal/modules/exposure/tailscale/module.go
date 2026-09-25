@@ -32,7 +32,7 @@ const (
 	authKeyDir  = "/etc/pupitre"
 	authKeyPath = authKeyDir + "/tailscale-auth-key"
 
-	// Joining reaches the coordination server; a key that is refused answers within seconds, a network that is down within this.
+	// A refused key answers within seconds; only an unreachable coordination server runs this long.
 	joinTimeout = 2 * time.Minute
 )
 
@@ -59,11 +59,12 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 	return modules.Status{Installed: true, Version: version, Configured: status(ctx).running()}, nil
 }
 
-// Tailscale is not in the Ubuntu archive: the module adds Tailscale's own repository, key first.
+// Tailscale is not in the Ubuntu archive, hence its own repository.
 func (Module) Install(ctx *modules.Context) error {
 	if err := ctx.Step("add-repository", func() (modules.Outcome, error) {
 		release := host.Codename(ctx)
 		list := repository(release)
+
 		if file.Exists(ctx, keyringPath) && file.Same(ctx, sourcePath, list) {
 			return modules.Skipped, nil
 		}
@@ -146,7 +147,7 @@ func (Module) Configure(ctx *modules.Context) error {
 	})
 }
 
-// The key reaches tailscale through a root-only file it reads itself, never on an argv ps shows.
+// The key goes through a root-only file, never on an argv ps would show.
 func upArgs(ctx *modules.Context) []string {
 	args := []string{Program, "up", "--auth-key=file:" + authKeyPath, "--reset"}
 
@@ -161,10 +162,11 @@ func upArgs(ctx *modules.Context) []string {
 	return args
 }
 
-// A node already joined keeps what up gave it: a name or an SSH switch changed since is set on the running node, with no second sign-in.
+// A joined node keeps what up gave it, so later changes are set on the running node without a second sign-in.
 func applySettings(ctx *modules.Context) error {
 	return ctx.Step("apply-settings", func() (modules.Outcome, error) {
 		wanted := prefs{Hostname: wantedHostname(ctx), RunSSH: ctx.Bool("ssh")}
+
 		if current, known := currentPrefs(ctx); known && current == wanted {
 			return modules.Skipped, nil
 		}
@@ -187,7 +189,7 @@ type prefs struct {
 	RunSSH   bool   `json:"RunSSH"`
 }
 
-// tailscale debug prefs is the node's own record of what it was told; a CLI that cannot say leaves the settings to be set again.
+// A CLI that cannot answer reads as unknown, so the settings are set again.
 func currentPrefs(ctx *modules.Context) (prefs, bool) {
 	out, err := ctx.Sys().Run(sys.Command{Argv: []string{Program, "debug", "prefs"}})
 	if err != nil {
@@ -221,7 +223,7 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// The node leaves the tailnet before the package goes: a machine that is no longer reachable must not stay listed in the client's admin console.
+// Leave the tailnet before removing the package, or the dead node stays listed in the client's admin console.
 func (Module) Uninstall(ctx *modules.Context) error {
 	if err := ctx.Step("leave-tailnet", func() (modules.Outcome, error) {
 		if !apt.Installed(ctx, pkg) || !status(ctx).running() {
@@ -313,7 +315,6 @@ func (b backend) running() bool {
 	return b.BackendState == "Running"
 }
 
-// The login that owns the node, as the coordination server names it; the node's own name when the status carries no user.
 func (b backend) account() string {
 	for _, user := range b.User {
 		if user.LoginName != "" {
@@ -336,7 +337,7 @@ func status(ctx *modules.Context) backend {
 	return parsed
 }
 
-// tailscale status says whether the node is on a tailnet, and under whose login; it never reaches the coordination server for that.
+// tailscale status answers locally, without reaching the coordination server.
 func (Module) Login(ctx *modules.Context) (contract.Login, bool) {
 	out, err := login.Ask(ctx, nil, Program, "status", "--json")
 
@@ -352,7 +353,7 @@ func (Module) Login(ctx *modules.Context) (contract.Login, bool) {
 	return login.SignedIn(parsed.account())
 }
 
-// Read back whether the firewall is up yet or not: the hardening may come after this module.
+// Read whether ufw is up or not: the hardening may come after this module.
 func allowedOnDevice(ctx *modules.Context) bool {
 	for _, rule := range ufw.Added(ctx) {
 		if strings.HasPrefix(rule, "ufw allow in on "+device) {

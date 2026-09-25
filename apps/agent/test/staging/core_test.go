@@ -52,7 +52,6 @@ func TestInstallCoreOpensDevWithSudo(t *testing.T) {
 
 const reloadSSHD = "systemctl daemon-reload && if systemctl is-active --quiet ssh.socket; then systemctl restart ssh.socket ssh.service; else systemctl reload ssh; fi"
 
-// A port sshd listens on besides 22 stays reachable once ufw denies the rest, and fail2ban watches it.
 func TestHardeningAllowsEveryPortSSHDListensOn(t *testing.T) {
 	host := stagingHost(t)
 	dropIn := "/etc/ssh/sshd_config.d/20-staging-port.conf"
@@ -112,7 +111,7 @@ var coreInstallKeepingRoot = request{Cmd: "install", Params: map[string]any{
 	},
 }}
 
-// Runs before the test that closes root for good, and puts the default configuration back so that one still has root to close.
+// Must run before TestHardenClosesRootAndReplaysWithoutWriting, and restores the default config so root is still there to close.
 func TestHardenKeepsRootWhenTheConfigurationAsksForIt(t *testing.T) {
 	host := stagingHost(t)
 	dev := "dev@" + address(host)

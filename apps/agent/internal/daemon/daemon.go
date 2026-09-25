@@ -41,7 +41,7 @@ type Options struct {
 	KeysPath     string
 	KeysOwner    string
 	SignersPath  string
-	// KeysLock is shared with every other process that rewrites the signers or the block; empty takes no lock.
+	// Shared with every process that rewrites the signers or the block; empty takes no lock.
 	KeysLock          string
 	Euid              func() int
 	HostKeyPath       string
@@ -50,13 +50,12 @@ type Options struct {
 	HeartbeatInterval time.Duration
 }
 
-// Backups is what the daemon asks of the backups on its own; a turn never holds the loop.
+// Turn must return without holding the daemon loop.
 type Backups interface {
 	Turn()
 	Beat() *contract.BackupBeat
 }
 
-// The outgoing half of the agent: it pulls what the platform knows and pushes what the machine is, and never listens.
 type Daemon struct {
 	options    Options
 	journal    sys.Context
@@ -130,16 +129,11 @@ func New(options Options) *Daemon {
 	}
 }
 
-// One read of /agent/state: it renews the cached entitlement and brings the marked block of authorized_keys in line with what the platform asks for and the approvals allow.
 func (d *Daemon) Sync(ctx context.Context) (Sync, error) {
 	return d.SyncAt(ctx, "")
 }
 
-// The same read, against the platform the caller names: an enrolment reads the state of the platform it just traded with.
-//
-// A key that starts or stops waiting for an approval is told to the platform
-// at once, so the devices that can approve it see it without waiting for the
-// next heartbeat.
+// A key that starts or stops awaiting approval beats at once, so approving devices see it before the next heartbeat.
 func (d *Daemon) SyncAt(ctx context.Context, platformURL string) (Sync, error) {
 	synced, moved, err := d.read(ctx, platformURL)
 	if err != nil || !moved {
@@ -189,7 +183,7 @@ func (d *Daemon) read(ctx context.Context, platformURL string) (Sync, bool, erro
 	}, keysNow.moved, nil
 }
 
-// Only a state read with the token still on the disk names this server: one read with a token an enrolment just replaced names the server it left.
+// A read made with a token an enrolment just replaced names the server it left, so only the on-disk token counts.
 func (d *Daemon) keepServerID(token, id string) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -218,20 +212,13 @@ func (d *Daemon) keepServerID(token, id string) {
 	}
 }
 
-// A platform that no longer knows the token has revoked or purged this server:
-// the entitlement falls on the spot. The keys stay: withdrawing them would
-// remove the last one, and closing the server is a gesture of its owner.
-// Anything else — a silence, a refusal that names no token — is left to the
-// tolerance.
+// Keys survive a revocation: withdrawing them could remove the owner's last way in.
 func revoked(err error) bool {
 	var failure *platform.Error
 
 	return errors.As(err, &failure) && failure.Revoked()
 }
 
-// A token traded for a fresh one while the read was in flight is refused for
-// the token that just left the disk, not for this server: only a refusal of
-// the token still on the disk counts.
 func (d *Daemon) stillHolds(token string) bool {
 	current, err := platform.LoadToken(d.options.Sys, d.options.TokenPath)
 
@@ -246,7 +233,6 @@ func (d *Daemon) revoke() {
 	}
 }
 
-// Entitlement is what the machine resolves for itself right now.
 func (d *Daemon) Entitlement() contract.Entitlement {
 	return d.options.Entitlement.Current()
 }
@@ -260,7 +246,7 @@ func (d *Daemon) Beat(ctx context.Context) error {
 	return client.Beat(ctx, d.sample())
 }
 
-// The platform learns how full the machine is and what kind of sessions run on it, never a project name nor a path.
+// Never carries a project name or a path: the platform only learns load and session kinds.
 func (d *Daemon) sample() platform.Heartbeat {
 	beat := platform.Heartbeat{
 		StackVersion: d.options.AgentVersion,
@@ -281,6 +267,7 @@ func (d *Daemon) sample() platform.Heartbeat {
 	}
 
 	snapshot := d.options.Reader.Snapshot()
+
 	beat.Disk = percent(snapshot.Machine.DiskTotalGB-snapshot.Machine.DiskFreeGB, snapshot.Machine.DiskTotalGB)
 	beat.RAM = percent(float64(snapshot.Machine.RAMUsedMB), float64(snapshot.Machine.RAMTotalMB))
 	beat.DiskTotalGB = snapshot.Machine.DiskTotalGB
@@ -302,7 +289,7 @@ func (d *Daemon) sample() platform.Heartbeat {
 	return beat
 }
 
-// The enrolment token buys a server token and nothing else; it is read from the standard input and never lands on the disk.
+// The enrolment token comes from stdin and never touches the disk.
 func (d *Daemon) Enroll(ctx context.Context, token, platformURL string) error {
 	token = strings.TrimSpace(token)
 	if token == "" {
@@ -335,12 +322,7 @@ func (d *Daemon) Enroll(ctx context.Context, token, platformURL string) error {
 	return nil
 }
 
-// The platform is written down before the token: the heartbeat and the
-// entitlement run without the app, and a token without its platform would
-// have a development console traded with once and then looked for at the
-// hosted address for ever. The server id goes with the old token, so the
-// first state read with the new one names the server anew: an enrolment is
-// the one gesture, made on the machine, that may change it.
+// The URL is saved with the token so later reads never fall back to the hosted default; the old server id goes with the old token.
 func (d *Daemon) adopt(platformURL, serverToken string) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -360,9 +342,7 @@ func (d *Daemon) adopt(platformURL, serverToken string) error {
 	return platform.ForgetServerID(d.options.Sys, d.options.ServerIDPath)
 }
 
-// A platform that echoes the enrolment token back would otherwise put it in
-// the refusal the app displays and logs. The cause is kept as it is: it is
-// the network's word, never the platform's, and it is what names a timeout.
+// A platform echoing the enrolment token must not leak it into the refusal; a network cause stays verbatim.
 func masked(journal *modules.Context, err error) error {
 	var failure *platform.Error
 	if !errors.As(err, &failure) {
@@ -375,7 +355,6 @@ func masked(journal *modules.Context, err error) error {
 	return &copied
 }
 
-// A journal that knows the token, so a platform that echoes it back writes [secret] rather than the token itself.
 func (d *Daemon) enrolment(token string) *modules.Context {
 	return modules.NewContext(modules.ContextOptions{
 		Sys:      d.options.Sys,
@@ -386,7 +365,6 @@ func (d *Daemon) enrolment(token string) *modules.Context {
 	})
 }
 
-// The app pins this key the moment it enrols: what it sees on its own ssh connection has to be what the server declared.
 func (d *Daemon) hostPublicKey() (string, error) {
 	raw, err := d.options.Sys.ReadFile(d.options.HostKeyPath)
 	if err != nil {
@@ -422,9 +400,6 @@ func (d *Daemon) client(platformURL string) (platform.Client, error) {
 	return client, nil
 }
 
-// The address the caller names wins; a caller that names none — the heartbeat,
-// a sync of its own accord — falls back to the one the enrolment wrote down,
-// then to whatever this build was told at launch.
 func (d *Daemon) platform(platformURL string) platform.Client {
 	if platformURL == "" {
 		return platform.Located(d.options.Sys, d.options.Platform, d.options.BaseURLPath)

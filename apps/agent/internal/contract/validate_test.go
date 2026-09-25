@@ -35,6 +35,7 @@ func assertValidation(t *testing.T, err error, wantErr string) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
+
 		return
 	}
 

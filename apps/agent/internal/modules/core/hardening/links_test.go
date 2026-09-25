@@ -122,7 +122,7 @@ func TestProtectLinksAppliesAgainWhenTheKernelLostAValue(t *testing.T) {
 	}
 }
 
-// A container's /proc/sys is read-only: the drop-in is what counts, and it applies at the next boot.
+// A container's /proc/sys is read-only; the drop-in still applies at the next boot.
 func TestProtectLinksWarnsWithoutFailingWhenTheKernelIsReadOnly(t *testing.T) {
 	fake := kernelHolding("0", "0")
 	fake.FailProgram("sysctl", `sysctl: setting key "fs.protected_hardlinks": Read-only file system`)
@@ -156,7 +156,6 @@ func TestProtectLinksFailsWhenTheKernelRefusesForAnotherReason(t *testing.T) {
 	}
 }
 
-// Every hardened server gets the protection, root closed or not.
 func TestHardenProtectsLinksEvenWhenRootStaysOpen(t *testing.T) {
 	fake := kernelHolding("0", "0")
 	ctx := newContext(t, fake, Options{})
@@ -182,6 +181,7 @@ func TestConfigureProtectsLinksOnce(t *testing.T) {
 	}
 
 	seen := 0
+
 	for _, event := range ctx.Events() {
 		if event.Step == "protect-links" {
 			seen++

@@ -122,6 +122,7 @@ func TestSealingMatchesEveryVectorByteForByte(t *testing.T) {
 			}
 
 			plaintext := decoded(t, vector.Plaintext)
+
 			for _, piece := range [][]byte{plaintext[:len(plaintext)/3], plaintext[len(plaintext)/3:]} {
 				if _, err := writer.Write(piece); err != nil {
 					t.Fatal(err)

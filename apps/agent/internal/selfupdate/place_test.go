@@ -96,7 +96,6 @@ func TestPlaceHoldsTheFloorOfTheRunningVersion(t *testing.T) {
 	assertUntouched(t, b, before)
 }
 
-// A build from the repository carries no release key: it is the development agent, and takes the binary the development app pushes — on the path the password opens.
 func TestPlaceWithoutAReleaseKeyTakesTheBinaryAsIsWhenPrivileged(t *testing.T) {
 	b := newBench(t)
 	b.options.PublicKey = nil
@@ -110,7 +109,6 @@ func TestPlaceWithoutAReleaseKeyTakesTheBinaryAsIsWhenPrivileged(t *testing.T) {
 	}
 }
 
-// Without a key nothing checks the bytes: on the line sudo lets dev run without a password, that would be any program as root.
 func TestPlaceWithoutAReleaseKeyRefusesTheLineSudoOpensWithoutAPassword(t *testing.T) {
 	b := newBench(t)
 	b.options.PublicKey = nil

@@ -19,8 +19,6 @@ func (m listeningDemo) Preflight(ctx *modules.Context) []contract.FieldProblem {
 // /proc/net/tcp with one socket in TCP_LISTEN on 3306 (0x0CEA).
 const listeningOn3306 = "  sl  local_address rem_address   st\n   0: 00000000:0CEA 00000000:0000 0A\n"
 
-// The installed module is what listens on its own port: changing its password
-// must not read as a port another program holds.
 func TestCheckKeepsThePortTheInstalledModuleHolds(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Files["/proc/net/tcp"] = []byte(listeningOn3306)
@@ -64,7 +62,6 @@ func TestCheckKeepsThePortTheInstalledModuleHolds(t *testing.T) {
 	}
 }
 
-// A port some other program holds is still refused, installed module or not.
 func TestCheckStillRefusesAPortAnotherProgramHolds(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Files["/proc/net/tcp"] = []byte(listeningOn3306)

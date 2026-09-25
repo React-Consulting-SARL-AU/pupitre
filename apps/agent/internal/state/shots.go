@@ -48,6 +48,7 @@ func (r *Reader) Shots() []contract.Shot {
 	dir := r.options.Shots.Dir
 
 	shots := []contract.Shot{}
+
 	for _, found := range r.gallery() {
 		shots = append(shots, contract.Shot{
 			Name:      base(found.path),
@@ -60,7 +61,6 @@ func (r *Reader) Shots() []contract.Shot {
 	return shots
 }
 
-// The gallery is served by the "shots" row of the registry: it carries the port and the subdomain, and nothing here has to guess them.
 func (r *Reader) ShotsURL() string {
 	if project, declared := r.registry().Get(ShotsProject); declared {
 		return url(project)
@@ -90,7 +90,6 @@ func (r *Reader) CleanShots() int {
 	return removed
 }
 
-// One capture goes, and only one the listing names: the same door as reading it.
 func (r *Reader) RemoveShot(relative string) error {
 	listed, found := r.shot(relative)
 	if !found {
@@ -105,7 +104,6 @@ func (r *Reader) RemoveShot(relative string) error {
 	return nil
 }
 
-// Newest first, the order shot --list prints and the order a gallery is read in.
 func (r *Reader) gallery() []shot {
 	found := r.walk(r.options.Shots.Dir)
 
@@ -114,7 +112,7 @@ func (r *Reader) gallery() []shot {
 	return found
 }
 
-// A symlink is neither a folder to descend nor a file to describe: the gallery never reaches out of its own tree.
+// A symlink is neither descended nor described: the gallery never reaches out of its own tree.
 func (r *Reader) walk(dir string) []shot {
 	entries, err := file.List(r.ctx(), dir)
 	if err != nil {
@@ -122,6 +120,7 @@ func (r *Reader) walk(dir string) []shot {
 	}
 
 	var found []shot
+
 	for _, entry := range entries {
 		path := dir + "/" + entry.Name
 		if entry.Dir {
@@ -153,7 +152,7 @@ type ShotFile struct {
 	Bytes     []byte
 }
 
-// A capture travels by the protocol channel, so nothing has to be exposed to reach it: the SSH session that already carries the commands carries the image too.
+// A capture rides the SSH channel that carries the commands, so nothing has to be exposed to reach it.
 func (r *Reader) ReadShot(relative string) (ShotFile, error) {
 	listed, found := r.shot(relative)
 	if !found {
@@ -189,7 +188,7 @@ func (r *Reader) ReadShot(relative string) (ShotFile, error) {
 	}, nil
 }
 
-// Cut on a multiple of three so base64 pads only the last chunk: each line decodes alone, and their concatenation decodes too.
+// ShotChunkBytes is a multiple of three, so base64 pads only the last chunk and the concatenation decodes too.
 func ChunkShot(content []byte) []string {
 	chunks := make([]string, 0, len(content)/ShotChunkBytes+1)
 

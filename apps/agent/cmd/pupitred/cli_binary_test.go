@@ -36,8 +36,7 @@ func pushedWith(header string, binary []byte) *bytes.Reader {
 	return bytes.NewReader(append([]byte(header+"\n"), binary...))
 }
 
-// Exit 2 is kept for what the command line itself gets wrong: the app reads it as an agent too old to know the command.
-// sudo lets dev run `pupitred binary install` exactly, so nothing on the command line may loosen a check.
+// Exit 2 means a wrong command line, which the app reads as an agent too old to know the command.
 func TestBinaryInstallSaysWhatItNeedsBeforeReadingAnything(t *testing.T) {
 	for _, args := range [][]string{
 		{"binary"},
@@ -56,7 +55,7 @@ func TestBinaryInstallSaysWhatItNeedsBeforeReadingAnything(t *testing.T) {
 	}
 }
 
-// A test binary carries no release key, like a build of the repository: it places a binary only on the path the password opens.
+// A test binary carries no release key, like a build of the repository.
 func TestAnUnsignedBinaryIsPlacedOnlyOnThePrivilegedPath(t *testing.T) {
 	for _, args := range [][]string{{"binary", "install"}, {"binary", "install", "--privileged"}} {
 		fake, _ := setupCLI(t)
@@ -108,7 +107,6 @@ func TestBinaryInstallReadsWhatTheSignatureCoversOnItsFirstLine(t *testing.T) {
 	}
 }
 
-// The password never travels, not even its hash in params: a line on the secret stream, refused whole when it is not a crypt hash.
 func TestHardenSudoTakesItsHashOnTheSecretLine(t *testing.T) {
 	fake, dir := setupCLI(t)
 

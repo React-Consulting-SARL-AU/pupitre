@@ -36,9 +36,7 @@ type transcript struct {
 	commands    map[int64]string
 }
 
-// A transcript is a .jsonl of "> request", "$ secret line on the same standard input", "< expected output" and "@directive" lines that seed the fake machine.
-//
-// UPDATE_GOLDEN=1 records a diverging run into the file instead of failing on it.
+// Lines: "> request", "$ secret line", "< expected output", "@directive"; UPDATE_GOLDEN=1 records a diverging run.
 func RunTranscripts(t *testing.T, glob string, options TranscriptOptions) {
 	t.Helper()
 
@@ -124,7 +122,7 @@ func (f *transcript) directive(t *testing.T, path, line string) {
 		program, reply, _ := strings.Cut(rest, " ")
 		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Replies[program] = unescape(reply) + "\n" })
 	case "answer":
-		// " :: " when the fragment itself holds spaces, which is how one tells two git subcommands apart.
+		// " :: " separates a fragment holding spaces, which is how two git subcommands are told apart.
 		fragment, answer := cutAnswer(rest)
 		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.Answer(fragment, unescape(answer)+"\n") })
 	case "archive":
@@ -169,6 +167,7 @@ func runTranscript(t *testing.T, f transcript, options TranscriptOptions) {
 
 	fixed := func() time.Time { return Epoch }
 	fake := NewFakeSys()
+
 	for _, prepare := range f.prepare {
 		prepare(fake)
 	}
@@ -188,6 +187,7 @@ func runTranscript(t *testing.T, f transcript, options TranscriptOptions) {
 	granted := entitlement.State{Entitlement: f.entitlement, Enrolled: !f.unenrolled}
 	server := protocol.NewServer(protocol.Options{AgentVersion: "0.0.0-test", Entitlement: func() entitlement.State { return granted }, Now: fixed})
 	modules.RegisterCommands(server, engine)
+
 	if options.Register != nil {
 		options.Register(server, engine)
 	}
@@ -220,6 +220,7 @@ func runTranscript(t *testing.T, f transcript, options TranscriptOptions) {
 	}
 
 	assertNoSecret(t, "protocol output", out.Bytes())
+
 	for _, path := range []string{engine.ReportPath, engine.LogPath} {
 		if raw, err := os.ReadFile(path); err == nil {
 			assertNoSecret(t, path, raw)
@@ -231,7 +232,7 @@ func runTranscript(t *testing.T, f transcript, options TranscriptOptions) {
 	}
 }
 
-// A line the run only spells differently is kept as the file holds it: a regeneration records what changed, not the whole file.
+// A line equal as JSON keeps the file's spelling, so a regeneration records only what changed.
 func recording(t *testing.T, got, want []string) (lines []string, diverged bool) {
 	t.Helper()
 
@@ -243,6 +244,7 @@ func recording(t *testing.T, got, want []string) (lines []string, diverged bool)
 
 		if i < len(want) && reflect.DeepEqual(decodeJSON(t, line), decodeJSON(t, want[i])) {
 			lines[i] = want[i]
+
 			continue
 		}
 
@@ -274,7 +276,7 @@ func assertContractLine(t *testing.T, line string, commands map[int64]string) {
 	}
 }
 
-// A definition missing from the contract is a violation too: a command or an event nobody typed is never let through.
+// A command or event the contract does not define is a violation too.
 func contractViolation(line string, commands map[int64]string) error {
 	value, err := contract.Decode([]byte(line))
 	if err != nil {
@@ -368,6 +370,7 @@ func cutAnswer(rest string) (fragment, answer string) {
 func parseProc(fields []string, rest string) Proc {
 	cpu, _ := strconv.ParseFloat(fields[3], 64)
 	args := rest
+
 	for i := 0; i < 6; i++ {
 		_, args, _ = strings.Cut(strings.TrimLeft(args, " "), " ")
 	}
@@ -378,7 +381,7 @@ func parseProc(fields []string, rest string) Proc {
 	}
 }
 
-// A transcript is one line per directive, so a multi-line file or command output arrives escaped.
+// One line per directive, so multi-line content arrives escaped.
 func unescape(value string) string {
 	return strings.NewReplacer(`\n`, "\n", `\t`, "\t").Replace(value)
 }

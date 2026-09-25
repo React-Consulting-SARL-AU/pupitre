@@ -28,7 +28,6 @@ func turbo() registry.Project {
 	return registry.Project{Name: "shop", Dir: "shop"}
 }
 
-// The one process of the turbo project, on the routes the screen declared.
 func running(cmd string, routes ...registry.RouteRequest) []state.ProcessRequest {
 	if routes == nil {
 		routes = []registry.RouteRequest{}
@@ -74,7 +73,6 @@ func TestAddResolvesEachNameOnTheWebOnceFromTheDomain(t *testing.T) {
 	}
 }
 
-// The name stored when the project was declared is the one that answers: a domain that moved since does not rewrite it.
 func TestTheAddressComesFromTheStoredHostnameNotFromTheDomainOfTheDay(t *testing.T) {
 	fake, reader := published(t)
 
@@ -203,7 +201,6 @@ func TestUpdateRestartsTheProcessOnlyWhenItsCommandChangedAndItWasRunning(t *tes
 	}
 }
 
-// A second process joins a running project without touching the first; one that leaves the list is stopped.
 func TestUpdateStartsNothingForANewProcessAndStopsAProcessThatLeaves(t *testing.T) {
 	fake, reader := published(t)
 	fake.Serves("shop/shop", 3100)

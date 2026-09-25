@@ -31,8 +31,6 @@ type Result struct {
 	Template bool     `json:"template"`
 }
 
-// The template is versioned by the repository, the values live in the vault: the file produced is the only place the two ever meet.
-// Env writes the environment file of a project's root, or of one of its processes when it is named: the process's folder is looked at first, the root next.
 func Env(ctx *modules.Context, name, id string, force bool) (Result, error) {
 	project, known := registry.Load(ctx, registry.Paths{}).Get(name)
 	if !known {
@@ -41,6 +39,7 @@ func Env(ctx *modules.Context, name, id string, force bool) (Result, error) {
 
 	root := project.Path(registry.Paths{}.Resolved().Projects)
 	dir := root
+
 	if id != "" {
 		process, declared := project.Process(id)
 		if !declared {
@@ -75,7 +74,7 @@ func Env(ctx *modules.Context, name, id string, force bool) (Result, error) {
 	return Result{Path: target, Keys: []string{}}, nil
 }
 
-// Root reads the repository's files inside its root only: a link the repository carries is followed as long as it stays there, never out to a file of the machine.
+// Reads stay inside the repository root: a link it carries is followed only while it stays there, never out to the machine.
 type repository struct {
 	root string
 }
@@ -94,7 +93,7 @@ func (r repository) read(ctx *modules.Context, path string) ([]byte, error) {
 	return ctx.Sys().ReadFileIn(r.root, r.rel(path))
 }
 
-// A monorepo keeps one environment file at its root and its workspaces point back at it; the project folder is looked at first, the root next.
+// A monorepo keeps one environment file at its root that its workspaces point back at.
 func (r repository) envHome(ctx *modules.Context, dir string) string {
 	if r.hasTemplate(ctx, dir) || !r.hasTemplate(ctx, r.root) {
 		return dir
@@ -107,7 +106,7 @@ func (r repository) hasTemplate(ctx *modules.Context, dir string) bool {
 	return r.has(ctx, dir+"/"+templateName) || r.has(ctx, dir+"/"+exampleName)
 }
 
-// op inject reads the template on its standard input and answers the filled file on its own: neither one is ever journalled.
+// The template goes in on stdin and the filled file comes back on stdout, so neither is ever journalled.
 func inject(ctx *modules.Context, name, home string, repo repository, target string) (Result, error) {
 	raw, err := repo.read(ctx, home+"/"+templateName)
 	if err != nil {
@@ -137,7 +136,7 @@ func inject(ctx *modules.Context, name, home string, repo repository, target str
 	return write(ctx, target, []byte(out.Stdout))
 }
 
-// The template carries {{OP_VAULT}} and {{OP_ITEM}} placeholders, and op inject refuses those braces; the repository's op.config.json says what they stand for.
+// op inject refuses the {{OP_VAULT}} and {{OP_ITEM}} placeholders; op.config.json says what they stand for.
 func substitute(ctx *modules.Context, template []byte, repo repository) []byte {
 	var config struct {
 		Vault string `json:"vault"`
@@ -153,7 +152,7 @@ func substitute(ctx *modules.Context, template []byte, repo repository) []byte {
 	return []byte(replaced)
 }
 
-// A machine without a secret manager still deserves a startable project: the versioned example is copied, and the values are to be filled in by hand.
+// Without op the versioned example is copied so the project still starts; values are filled in by hand.
 func copyExample(ctx *modules.Context, name, home string, repo repository, target string) (Result, error) {
 	raw, err := repo.read(ctx, home+"/"+exampleName)
 	if err != nil {
@@ -190,7 +189,7 @@ func read(ctx *modules.Context, repo repository, target string, template bool) (
 	return Result{Path: target, Written: false, Keys: keys(raw), Template: template}, nil
 }
 
-// The names of the variables, in the order the file gives them, and never a single value.
+// Names only, in file order: a value never leaves the file.
 func keys(content []byte) []string {
 	seen := map[string]bool{}
 	names := []string{}

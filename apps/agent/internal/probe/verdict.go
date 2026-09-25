@@ -1,8 +1,9 @@
 package probe
 
 import (
-	"pupitre.studio/agent/internal/i18n"
 	"strings"
+
+	"pupitre.studio/agent/internal/i18n"
 )
 
 const (
@@ -34,7 +35,7 @@ type Verdict struct {
 	Fixes    []string `json:"fixes"`
 }
 
-// What the two probes read; probe.sh computes the same verdict from the same facts.
+// probe.sh reads the same facts and computes the same verdict: the two must change together.
 type Machine struct {
 	OS           string
 	Version      string
@@ -125,12 +126,14 @@ func occupants(machine Machine) (reasons, fixes []string) {
 	}
 
 	web := false
+
 	for _, port := range machine.Ports {
 		if port.Port != 80 && port.Port != 443 {
 			continue
 		}
 
 		web = true
+
 		if port.Process == "" {
 			reasons = append(reasons, i18n.T("probe.port.taken", port.Port))
 			continue

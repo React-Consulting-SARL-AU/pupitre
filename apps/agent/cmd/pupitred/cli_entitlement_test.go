@@ -12,11 +12,11 @@ import (
 	"pupitre.studio/agent/internal/registry"
 )
 
-// The clock the test moves by hand: a platform last read that many days ago, and nothing else changed on the machine.
 func lastRead(t *testing.T, fake *modtest.FakeSys, daysAgo int) {
 	t.Helper()
 
 	read := time.Now().Add(-time.Duration(daysAgo) * 24 * time.Hour)
+
 	cache, err := json.Marshal(entitlement.Cache{State: "valid", ValidUntil: read.Add(24 * time.Hour), CheckedAt: read})
 	if err != nil {
 		t.Fatal(err)
@@ -57,7 +57,6 @@ func helloEntitlement(t *testing.T, line string) string {
 	return response["result"].(map[string]any)["entitlement"].(string)
 }
 
-// Six days without the platform and everything answers, projects included.
 func TestSixDaysWithoutThePlatformChangeNothing(t *testing.T) {
 	fake, _ := setupCLI(t)
 	declareProject(fake)
@@ -82,7 +81,6 @@ func TestSixDaysWithoutThePlatformChangeNothing(t *testing.T) {
 	}
 }
 
-// On the eighth day the agent restricts itself, and what runs on the machine goes on running.
 func TestOnTheEighthDayTheAgentRestrictsItselfWithoutStoppingAnything(t *testing.T) {
 	fake, _ := setupCLI(t)
 	declareProject(fake)

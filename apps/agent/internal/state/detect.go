@@ -33,12 +33,10 @@ var (
 	hostFlag   = regexp.MustCompile(`--host[= ]((?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+localhost)(?:\s|$)`)
 	viteServer = regexp.MustCompile(`port\s*:\s*(\d{2,5})`)
 
-	// server.port as YAML nests it, or as a properties file writes it.
 	yamlServerPort       = regexp.MustCompile(`(?m)^server:\s*\n(?:[ \t]+.*\n)*?[ \t]+port:\s*['"]?(\d{2,5})`)
 	propertiesServerPort = regexp.MustCompile(`(?m)^\s*server\.port\s*[=:]\s*(\d{2,5})`)
 )
 
-// Where a Spring Boot or a Grails server names its port, under its own folder.
 var serverConfigs = []string{
 	"grails-app/conf/application.yml",
 	"src/main/resources/application.yml",
@@ -50,14 +48,14 @@ var startScripts = []string{"dev", "start", "serve"}
 const (
 	maxScriptHops = 5
 
-	// A manifest weighs a few kilobytes; a lockfile, an asset or a bundle weighs more and says nothing a detection reads.
+	// Manifests weigh a few KB; bigger blobs (lockfiles, assets, bundles) say nothing a detection reads.
 	manifestBlobLimit = 65536
 
 	// A workspace member sits at most two folders down: apps/web/package.json.
 	manifestDepth = 3
 )
 
-// The files a detection reads or looks for, wherever they sit within the depth: the rest of the repository is never written.
+// Only these are checked out from a detection clone; the rest of the repository is never written.
 var manifestNames = map[string]bool{
 	"package.json":        true,
 	"turbo.json":          true,
@@ -80,15 +78,14 @@ var manifestNames = map[string]bool{
 	"settings.gradle.kts": true,
 }
 
-// What makes a Gradle build a server one runs: a Spring Boot or a Grails plugin in its build file. An Android app has neither.
+// Spring Boot or Grails makes a Gradle build a server one runs; an Android app has neither.
 var bootable = regexp.MustCompile(`org\.springframework\.boot|spring-boot|org\.grails|grails-`)
 
-// The subprojects a settings file includes: include 'client', 'server' — or include(":app").
+// Matches include 'client', 'server' as well as include(":app").
 var gradleIncludes = regexp.MustCompile(`(?m)^\s*include\s*\(?\s*((?:['"][^'"]+['"]\s*,?\s*)+)\)?`)
 
 var quoted = regexp.MustCompile(`['"]([^'"]+)['"]`)
 
-// The folders of a repository nobody runs anything from.
 var skippedFolders = map[string]bool{"node_modules": true, "build": true, "dist": true, "target": true, "vendor": true}
 
 const rootID = "app"
@@ -118,7 +115,7 @@ func randomName() string {
 	return hex.EncodeToString(buffer)
 }
 
-// What a repository asks for, before anything of it is installed: a folder already on the server, or a shallow clone that leaves nothing behind.
+// Reads a folder already on the server, or a shallow clone that leaves nothing behind.
 func (r *Reader) Detect(repo, dir, branch string) (contract.ProjectDetect, error) {
 	switch {
 	case repo != "" && dir != "":
@@ -148,7 +145,7 @@ func (r *Reader) detectDir(dir string) (contract.ProjectDetect, error) {
 	return r.read(files), nil
 }
 
-// The clone lands in the cache of the projects user, never in the projects root: a half-clone must not be able to pass for a project.
+// The clone lands in the projects user's cache, never the projects root: a half-clone must not pass for a project.
 func (r *Reader) detectRepo(repo, branch string) (contract.ProjectDetect, error) {
 	if strings.HasPrefix(repo, "-") {
 		return contract.ProjectDetect{}, bad(i18n.T("state.repo.invalid", repo), i18n.T("state.repo.invalid.fix"))
@@ -178,29 +175,28 @@ func (r *Reader) detectRepo(repo, branch string) (contract.ProjectDetect, error)
 	return r.read(r.sourcesIn(cache.Cache, name)), nil
 }
 
-// A repository is read inside the folder it was found under, never through a link that leaves it: dev writes the repository, root reads it.
+// Reads stay inside root, never through a link leaving it: dev writes the repository, root reads it.
 func (r *Reader) sourcesIn(root, dir string) sources {
 	return sources{ctx: r.ctx(), root: root, dir: dir}
 }
 
-// The name a path registry.Under kept under root goes by for the reads scoped to root.
 func below(root, full string) string {
 	return strings.TrimPrefix(strings.TrimPrefix(full, path.Clean(root)), "/")
 }
 
-// The trees and the small blobs come in one pack, the working tree stays empty: a detection reads a handful of manifests, and a repository heavy with assets or history must cost no more than an empty one. A server that knows no filter says so and sends everything, which reads the same.
+// Trees and small blobs in one pack, no working tree: an asset-heavy repository costs no more than an empty one.
 func (r *Reader) clone(repo, branch, target string) (sys.Output, error) {
 	argv := []string{"git", "clone", "--depth", "1", "--no-tags", "--quiet", "--filter=blob:limit=" + strconv.Itoa(manifestBlobLimit), "--no-checkout"}
 	if branch != "" {
 		argv = append(argv, "--branch", branch)
 	}
+
 	argv = append(argv, "--", repo, target)
 
-	// git creates the leading folders of the target itself, so the only directory these commands need to start in is the one every machine has.
+	// git creates the target's leading folders itself, so the commands only need a directory every machine has.
 	return r.gitDetect(anywhere, argv)
 }
 
-// Only the files a detection reads are written, at the depth a workspace member sits: what the listing of the trees names, nothing fetched for the rest.
 func (r *Reader) materialize(target string) (sys.Output, error) {
 	listed, err := r.gitDetect(target, []string{"git", "ls-tree", "-r", "--name-only", "HEAD"})
 	if err != nil {
@@ -232,7 +228,7 @@ func manifestsAmong(paths []string) []string {
 	return wanted
 }
 
-// A server's configuration sits deeper than a manifest, under the build itself or one of its subprojects.
+// A server's configuration sits deeper than manifestDepth, under the build or one of its subprojects.
 func isServerConfig(path string) bool {
 	for _, config := range serverConfigs {
 		if path == config || strings.HasSuffix(path, "/"+config) {
@@ -243,7 +239,7 @@ func isServerConfig(path string) bool {
 	return false
 }
 
-// The clone's own budget holds for what follows it: a checkout may still fetch a manifest the pack left out.
+// The clone's timeout also covers the checkout, which may still fetch a manifest the pack left out.
 func (r *Reader) gitDetect(dir string, argv []string) (sys.Output, error) {
 	owner := r.options.Tmux.Resolved().User
 
@@ -264,7 +260,7 @@ func (r *Reader) discard(target string) {
 	}
 }
 
-// A clone left by an agent that died mid-detection, and only that: an hour is far longer than any clone in flight.
+// Only clones left by an agent that died mid-detection: an hour far exceeds any clone in flight.
 func (r *Reader) sweep(cache string) {
 	owner := r.options.Tmux.Resolved().User
 
@@ -272,7 +268,7 @@ func (r *Reader) sweep(cache string) {
 		"find", cache, "-mindepth", "1", "-maxdepth", "1", "-mmin", staleMinutes, "-exec", "rm", "-rf", "{}", "+")
 }
 
-// One process per folder that asks for one: the root, then each folder of the first level that carries its own manifest. A monorepo run from its root is the root alone, its workspaces being its routes; a repository that asks for nothing is one process without a command.
+// A monorepo run from its root is the root alone, its workspaces being its routes.
 func (r *Reader) read(files sources) contract.ProjectDetect {
 	taken := map[int]bool{}
 	ids := map[string]bool{}
@@ -299,9 +295,9 @@ func (r *Reader) read(files sources) contract.ProjectDetect {
 	return contract.ProjectDetect{Processes: processes}
 }
 
-// The folders of the first level that carry their own manifest: a package.json, a pyproject.toml, or a Gradle wrapper of their own.
 func (s sources) members() []string {
 	var members []string
+
 	for _, name := range s.folders(".") {
 		if skippedFolders[name] {
 			continue
@@ -315,7 +311,6 @@ func (s sources) members() []string {
 	return members
 }
 
-// What one folder proposes: the servers of a Gradle build with a wrapper, or the one process of anything else that declares something to run.
 func (r *Reader) folder(files sources, dir, fallback string, taken map[int]bool, ids map[string]bool) []contract.DetectedProcess {
 	manifest := files.packageJSON()
 	pkgmgr := detectPkgMgr(files, manifest)
@@ -348,7 +343,6 @@ func (r *Reader) single(files sources, manifest packageJSON, pkgmgr, dir, fallba
 	}
 }
 
-// A Gradle build runs from where its wrapper is; the build itself and each subproject its settings include are a process when their build file names Spring Boot or Grails.
 func (r *Reader) gradle(files sources, dir, fallback string, taken map[int]bool, ids map[string]bool) []contract.DetectedProcess {
 	var processes []contract.DetectedProcess
 
@@ -395,7 +389,7 @@ func (s sources) bootable(subproject string) bool {
 	return bootable.MatchString(s.read(build))
 }
 
-// The port a server declares for itself, which its client is written against: 0 when its configuration names none.
+// The port the server declares matters: its client is written against it.
 func (s sources) serverPort(subproject string) int {
 	prefix := ""
 	if subproject != "" {
@@ -428,6 +422,7 @@ func (s sources) subprojects() []string {
 	}
 
 	var names []string
+
 	for _, statement := range gradleIncludes.FindAllStringSubmatch(s.read(settings), -1) {
 		for _, match := range quoted.FindAllStringSubmatch(statement[1], -1) {
 			names = append(names, strings.TrimPrefix(match[1], ":"))
@@ -437,7 +432,6 @@ func (s sources) subprojects() []string {
 	return names
 }
 
-// The id of a process, off the manifest's own name when it has one: one DNS label, like the folder's otherwise.
 func idOf(manifest packageJSON, fallback string) string {
 	if manifest.Name != "" {
 		return manifest.Name
@@ -446,7 +440,6 @@ func idOf(manifest packageJSON, fallback string) string {
 	return fallback
 }
 
-// The .localhost name a script binds to, which a laptop resolves on its own and a server does not: declared as the host, the agent makes the machine answer to it.
 func declaredHost(script string) string {
 	if match := hostFlag.FindStringSubmatch(script); match != nil {
 		return match[1]
@@ -459,7 +452,6 @@ func installCommandOf(pkgmgr string) string {
 	return registry.InstallCommandOf(pkgmgr)
 }
 
-// The port the repository asks for, if nothing declared and nothing listening holds it; the next free one otherwise.
 func (r *Reader) freePort(wanted int, taken map[int]bool) int {
 	declared := r.registry()
 	busy := net.Listening(r.ctx())
@@ -475,7 +467,6 @@ func (r *Reader) freePort(wanted int, taken map[int]bool) int {
 	return declared.FreePort(wanted, busy)
 }
 
-// One folder of a repository, named from the root every read stays inside.
 type sources struct {
 	ctx  sys.Context
 	root string
@@ -505,7 +496,7 @@ func (s sources) read(name string) string {
 	return string(raw)
 }
 
-// The folders a folder holds, hidden ones left out; a link is never one of them.
+// Hidden folders are left out, and a link never counts as a folder.
 func (s sources) folders(name string) []string {
 	nodes, err := s.ctx.Sys().ListIn(s.root, s.at(name))
 	if err != nil {
@@ -513,6 +504,7 @@ func (s sources) folders(name string) []string {
 	}
 
 	var folders []string
+
 	for _, node := range nodes {
 		if node.Kind == sys.NodeDir && !strings.HasPrefix(node.Name, ".") {
 			folders = append(folders, node.Name)
@@ -550,7 +542,7 @@ func (p packageJSON) startScript() string {
 	return ""
 }
 
-// The line at the end of a chain of scripts that only run one another: "dev" → "dev:web" → "dev:app" says its port and its host on the last one alone.
+// Follows scripts that only run one another: "dev" → "dev:web" → "dev:app" names its port on the last one alone.
 func (p packageJSON) resolved(script string) string {
 	line := p.Scripts[script]
 
@@ -580,7 +572,7 @@ func (s sources) packageJSON() packageJSON {
 	return manifest
 }
 
-// The repository's own evidence, in the order it is worth: what it declares, then what it locks, then the manager Pupitre installs by default.
+// Evidence by worth: what the repository declares, then what it locks, then the manager Pupitre installs by default.
 func detectPkgMgr(s sources, manifest packageJSON) string {
 	if manifest.Present {
 		if declared := node(strings.Split(manifest.Manager, "@")[0]); declared != "" {
@@ -636,7 +628,7 @@ func declaredPort(s sources, script string) int {
 	return 0
 }
 
-// The script the repository declares, on the port the server has free — the two travel together, and a project with neither gets no command at all. A Gradle subproject names its task.
+// Script and port travel together: without either there is no command at all.
 func startCommand(pkgmgr, script, subproject string, port int) string {
 	if port == 0 {
 		return ""

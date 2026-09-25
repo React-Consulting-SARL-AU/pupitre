@@ -31,8 +31,7 @@ const (
 	MediaTypeText = "text/plain"
 )
 
-// The one folder the file commands see, and the account they act for: what the
-// reader creates belongs to the projects user, never to the root pupitred runs as.
+// What the reader creates belongs to the projects user, never to root, which pupitred runs as.
 func (r *Reader) work() (root, owner string) {
 	return user.Home(r.options.Tmux.User), r.options.Tmux.User
 }
@@ -64,6 +63,7 @@ func (r *Reader) ListFiles(wanted string) (contract.FileList, error) {
 	kept := min(len(listed), FileListLimit)
 
 	entries := make([]contract.FileEntry, 0, kept)
+
 	for _, node := range listed[:kept] {
 		entries = append(entries, contract.FileEntry{
 			Name:       node.Name,
@@ -121,7 +121,6 @@ func (r *Reader) StatFile(wanted string, hash bool) (contract.FileStat, error) {
 	return stat, nil
 }
 
-// What a read carries, before it is cut into events: the bytes, and what says they arrived whole.
 type FileContent struct {
 	Path      string
 	MediaType string
@@ -145,7 +144,7 @@ func (r *Reader) ReadFile(wanted string) (FileContent, error) {
 		return FileContent{}, bad(i18n.T("files.notFile", relative), i18n.T("files.notFile.fix"))
 	}
 
-	// The cap is weighed on what the file system says, before a byte is read: what would monopolise the channel never reaches memory.
+	// Weighed on the stat before reading, so what would monopolise the channel never reaches memory.
 	if limit := readLimit(relative); node.SizeBytes > limit {
 		return FileContent{}, tooLarge(node.SizeBytes, limit)
 	}
@@ -203,9 +202,7 @@ func (r *Reader) WriteFile(wanted, encoded, digest string) (contract.FileWritten
 	}, nil
 }
 
-// A write says which version it started from. The file has to still be that
-// one: an agent writing in the same file between the read and the write is
-// exactly what a blind overwrite would lose.
+// The file must still be the version the write started from, or an agent's edit in between would be lost.
 func (r *Reader) writable(relative, digest string) error {
 	node, found, err := r.lookup(relative)
 	if err != nil {
@@ -272,7 +269,6 @@ func (r *Reader) MakeFolder(wanted string) (contract.FilePath, error) {
 	return contract.FilePath{Path: relative}, nil
 }
 
-// The answer is where the entry now is: the place it left is what the caller already held.
 func (r *Reader) MoveFile(wanted, wantedTo string) (contract.FilePath, error) {
 	from, err := workPath(wanted)
 	if err != nil {
@@ -334,7 +330,6 @@ func (r *Reader) RemoveFile(wanted string, recursive bool) (contract.FileRemoved
 	return contract.FileRemoved{Path: relative, Removed: held + 1}, nil
 }
 
-// Everything under a folder, so a refusal says how much would go and a deletion how much went.
 func (r *Reader) held(relative string) int {
 	root, _ := r.work()
 
@@ -344,6 +339,7 @@ func (r *Reader) held(relative string) int {
 	}
 
 	held := len(listed)
+
 	for _, node := range listed {
 		if node.Kind == sys.NodeDir {
 			held += r.held(path.Join(relative, node.Name))
@@ -353,7 +349,7 @@ func (r *Reader) held(relative string) int {
 	return held
 }
 
-// Cut on a multiple of three so base64 pads only the last chunk: each line decodes alone, and their concatenation decodes too.
+// FileChunkBytes is a multiple of three, so base64 pads only the last chunk and the concatenation decodes too.
 func ChunkFile(content []byte) []string {
 	chunks := make([]string, 0, len(content)/FileChunkBytes+1)
 
@@ -404,7 +400,6 @@ func (r *Reader) contents(relative string) ([]byte, error) {
 	return content, nil
 }
 
-// What a read would carry, without reading more than a text ever weighs.
 func (r *Reader) sniff(relative string, node sys.Node) string {
 	if image := shots.MediaType(relative); image != "" {
 		return image
@@ -422,8 +417,6 @@ func (r *Reader) sniff(relative string, node sys.Node) string {
 	return mediaTypeOf(relative, content)
 }
 
-// The extension names the type first; the bytes name it when the extension says
-// nothing, so a file with no extension that is valid UTF-8 is text.
 func mediaTypeOf(relative string, content []byte) string {
 	if image := shots.MediaType(relative); image != "" {
 		return image
@@ -458,7 +451,6 @@ func tooLarge(size, limit int64) error {
 	return bad(i18n.T("files.tooLarge", size, limit), i18n.T("files.tooLarge.fix"))
 }
 
-// The work folder is the only one the app may name: a path is relative to it, and nothing steps out of it.
 func workPath(wanted string) (string, error) {
 	if strings.ContainsAny(wanted, "\x00\n\r") {
 		return "", bad(i18n.T("files.path.unreadable"), i18n.T("files.path.unreadable.fix"))
@@ -477,7 +469,7 @@ func workPath(wanted string) (string, error) {
 	return strings.TrimPrefix(path.Clean("/"+wanted), "/"), nil
 }
 
-// A file system that refuses is the request being wrong: an entry that is not there, or one the root does not contain.
+// A refusal is the request being wrong; any unrecognised one means the root does not contain the path.
 func refuse(relative string, err error) error {
 	if errors.Is(err, fs.ErrNotExist) {
 		return bad(i18n.T("files.missing", relative), i18n.T("files.missing.fix"))

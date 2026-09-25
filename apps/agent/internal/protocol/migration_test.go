@@ -86,8 +86,6 @@ func TestHelloCarriesTheRevisionTheMachineIsAt(t *testing.T) {
 	}
 }
 
-// An agent with no ledger to consult answers as it always did, and its commands
-// are gated by the entitlement alone.
 func TestAServerWithoutALedgerSaysNothingOfIt(t *testing.T) {
 	server := NewServer(Options{AgentVersion: testAgentVersion, Entitlement: entitlement.Fixed(contract.EntitlementDev), Now: fixedNow})
 

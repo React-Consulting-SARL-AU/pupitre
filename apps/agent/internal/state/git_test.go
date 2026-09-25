@@ -19,16 +19,14 @@ import (
 	"pupitre.studio/agent/internal/tmux"
 )
 
-// A git that answers the same on every machine: no system or global configuration to read,
-// an identity of its own, and one language. Without it a developer's ~/.gitconfig decides
-// what a reading says, and a runner that has none reads something else.
+// Isolates git from any system or global config, so a developer's ~/.gitconfig never changes a reading.
 var gitEnv = []string{
 	"GIT_AUTHOR_NAME=Pupitre", "GIT_AUTHOR_EMAIL=test@pupitre.studio",
 	"GIT_COMMITTER_NAME=Pupitre", "GIT_COMMITTER_EMAIL=test@pupitre.studio",
 	"GIT_CONFIG_NOSYSTEM=1", "GIT_CONFIG_GLOBAL=/dev/null", "LC_ALL=C",
 }
 
-// The real machine, minus the user switch: the tests run as whoever runs go test, and git is the point of the fixture.
+// The real machine minus the user switch: the tests run as whoever runs go test.
 type asMe struct {
 	sys.Real
 	t *testing.T
@@ -47,7 +45,6 @@ func (a asMe) Run(cmd sys.Command) (sys.Output, error) {
 	return out, err
 }
 
-// Handing a folder to another user is root's move, like the user switch: here everything already belongs to whoever runs go test.
 func (asMe) Chown(string, string, string) error {
 	return nil
 }
@@ -86,7 +83,7 @@ func write(t *testing.T, path, content string) {
 	}
 }
 
-// A remote with one commit ahead, a local commit that is not pushed, a tracked file changed and an untracked one: the four readings git_status has to tell apart.
+// Remote one commit ahead, one unpushed commit, one tracked change and one untracked file.
 func gitFixture(t *testing.T) fixtureRepo {
 	t.Helper()
 
@@ -261,6 +258,7 @@ func TestWorkingTreeListsEveryStageWithItsCounts(t *testing.T) {
 	}
 
 	stages := map[string]contract.FileChange{}
+
 	for _, change := range tree.Files {
 		stages[change.Path] = change
 	}
@@ -335,7 +333,6 @@ func TestCheckoutRefusesToCarryUncommittedWorkAway(t *testing.T) {
 	}
 }
 
-// A branch that exists neither here nor on origin is not created out of HEAD: the request is refused, and the repository stays where it was.
 func TestCheckoutCreatesABranchKnownNowhereFromHead(t *testing.T) {
 	repo := gitFixture(t)
 	run(t, repo.work, "git", "checkout", "--quiet", "--", "src/app.ts")
@@ -353,7 +350,6 @@ func TestCheckoutCreatesABranchKnownNowhereFromHead(t *testing.T) {
 	}
 }
 
-// A branch on the seed clone, pushed to origin: what a colleague published.
 func (repo fixtureRepo) publish(t *testing.T, branch string) {
 	t.Helper()
 
@@ -406,7 +402,6 @@ func TestSyncClonesWhatIsMissingAndPullsWhatIsThere(t *testing.T) {
 	}
 }
 
-// A folder kept from an earlier project may hold another repository: a project declared on one address must never pull the folder's own in silence.
 func TestPullRefusesAFolderThatHoldsAnotherRepository(t *testing.T) {
 	repo := gitFixture(t)
 	other := filepath.Join(filepath.Dir(repo.origin), "other.git")
@@ -429,7 +424,6 @@ func TestPullRefusesAFolderThatHoldsAnotherRepository(t *testing.T) {
 	}
 }
 
-// The same repository written another way is the same repository: a scheme, a trailing slash or a .git suffix change nothing.
 func TestPullAcceptsTheSameRepositoryWrittenOtherwise(t *testing.T) {
 	repo := gitFixture(t)
 
@@ -461,7 +455,6 @@ func TestSameRepositoryFoldsSchemeHostCaseAndSuffix(t *testing.T) {
 	}
 }
 
-// The app fetches and installs as two phases, so the clone must be askable on its own.
 func TestPullClonesWithoutInstalling(t *testing.T) {
 	repo := gitFixture(t)
 
@@ -483,7 +476,6 @@ func TestPullClonesWithoutInstalling(t *testing.T) {
 	}
 }
 
-// A row that names a branch clones that branch: the working tree opens on it, not on the repository's default.
 func TestSyncClonesTheBranchTheRegistryNames(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git is not installed")
@@ -634,7 +626,7 @@ func TestTheRootSurvivesAProjectsRootReachedByASymlink(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// git answers with the physical path, which the symlink makes different from the declared one: the root stays the name the project is known by.
+	// The symlink makes git's physical path differ; the root keeps the name the project is known by.
 	if !status.Repo || status.Root != filepath.Join(projects, "web") {
 		t.Fatalf("got root %q, want %q", status.Root, filepath.Join(projects, "web"))
 	}

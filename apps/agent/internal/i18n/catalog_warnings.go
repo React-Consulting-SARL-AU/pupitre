@@ -1,6 +1,5 @@
 package i18n
 
-// A step's warnings: what was not done, and what the machine keeps anyway.
 var warningCatalog = map[string]Message{
 	"warn.engine.state.unreadable": {
 		FR: "état illisible, mise à jour ignorée : %s",

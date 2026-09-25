@@ -93,7 +93,6 @@ func (Module) Configure(ctx *modules.Context) error {
 	return service(ctx, ctx.Bool("always_on"), rewritten)
 }
 
-// Without "always on" Hermes is a command a session starts; the unit is what keeps it running between two of them.
 func service(ctx *modules.Context, alwaysOn, providersChanged bool) error {
 	if !alwaysOn {
 		return ctx.Step("disable-service", func() (modules.Outcome, error) {
@@ -193,6 +192,7 @@ func forgetProviders(ctx *modules.Context) error {
 		}
 
 		forgotten := false
+
 		for _, key := range keys {
 			if len(key) <= len(envPrefix) || key[:len(envPrefix)] != envPrefix {
 				continue
@@ -235,7 +235,7 @@ func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
 	return status, nil
 }
 
-// The keys of /etc/pupitre/env, one per provider; a value never travels in a status.
+// Names only: a secret value never travels in a status.
 func credentials(ctx *modules.Context) map[string]string {
 	keys, err := env.Keys(ctx)
 	if err != nil {
@@ -243,6 +243,7 @@ func credentials(ctx *modules.Context) map[string]string {
 	}
 
 	named := map[string]string{}
+
 	for _, key := range keys {
 		if len(key) > len(envPrefix) && key[:len(envPrefix)] == envPrefix {
 			named[key] = key

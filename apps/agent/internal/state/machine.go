@@ -20,7 +20,7 @@ const (
 	uptimePath    = "/proc/uptime"
 )
 
-// Everything from /proc rather than free, nproc and uptime: those three alone cost more than collecting eleven projects.
+// Read from /proc: spawning free, nproc and uptime alone costs more than collecting eleven projects.
 func Machine(ctx sys.Context, version string) contract.Machine {
 	id, release := osRelease(ctx)
 	memory := meminfo(ctx)
@@ -88,7 +88,7 @@ func cores(ctx sys.Context) int {
 	return runtime.NumCPU()
 }
 
-// The binary only exists for amd64 and arm64; anything else the machine says about itself would break the contract.
+// The binary exists only for amd64 and arm64; any other name uname gives would break the contract.
 func arch(ctx sys.Context) string {
 	out, _ := ctx.Sys().Run(sys.Command{Argv: []string{"uname", "-m"}})
 

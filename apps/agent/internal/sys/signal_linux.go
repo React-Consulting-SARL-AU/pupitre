@@ -46,6 +46,7 @@ func realUID(pid int) (int, error) {
 	defer status.Close()
 
 	scanner := bufio.NewScanner(status)
+
 	for scanner.Scan() {
 		ids, found := strings.CutPrefix(scanner.Text(), "Uid:")
 		if !found {

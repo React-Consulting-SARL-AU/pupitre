@@ -1,6 +1,5 @@
 package i18n
 
-// Decision 0015: the password sudo asks of dev, and the agent the app pushes through pupitred rather than a shell as root.
 var sudoCatalog = map[string]Message{
 	"protocol.privilege.required": {
 		FR: "%s n'est pas ouvert à une session sans le mot de passe sudo de dev",

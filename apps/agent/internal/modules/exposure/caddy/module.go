@@ -24,10 +24,9 @@ import (
 const (
 	Unit = "caddy"
 
-	// The comment every firewall rule of this module carries: what tells its ports apart from the client's own.
+	// Tags this module's firewall rules apart from the client's own.
 	comment = "caddy"
 
-	// Provider is the one name this module answers to: the marker on disk, and the name its report carries.
 	Provider = "caddy"
 
 	DefaultHTTPPort  = 80
@@ -61,7 +60,6 @@ func (Module) Manifest() contract.Manifest {
 	return manifest()
 }
 
-// Both doors are on the public side of this machine: one already held means no certificate and no project served.
 func (Module) Preflight(ctx *modules.Context) []contract.FieldProblem {
 	return modules.Problems(
 		modules.PortTaken(ctx, "http_port"),
@@ -69,7 +67,7 @@ func (Module) Preflight(ctx *modules.Context) []contract.FieldProblem {
 	)
 }
 
-// The package alone is not this module: the marker says which exposure holds the machine, and a caddy the client put there for something else is not ours to report or to sync.
+// A caddy the client installed for something else is not ours: the exposure marker decides.
 func ours(ctx *modules.Context) bool {
 	return apt.Installed(ctx, pkg) && file.Same(ctx, modePath, mode)
 }
@@ -87,7 +85,7 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 	return modules.Status{Installed: true, Version: version, Configured: file.Exists(ctx, configPath)}, nil
 }
 
-// Ubuntu's own caddy trails the project by a long way: the module adds Caddy's repository, key first.
+// Ubuntu's own caddy trails upstream by a long way, hence Caddy's repository.
 func (Module) Install(ctx *modules.Context) error {
 	if err := ctx.Step("add-repository", func() (modules.Outcome, error) {
 		if file.Exists(ctx, keyringPath) && file.Same(ctx, sourcePath, []byte(sourceLine)) {
@@ -124,7 +122,7 @@ func (Module) Install(ctx *modules.Context) error {
 	})
 }
 
-// The mode and the domain are declared before the Caddyfile is written: the registry resolves the routes of the repository's rows against the domain.
+// Mode and domain come before the Caddyfile: the registry resolves the routes against the stored domain.
 func (Module) Configure(ctx *modules.Context) error {
 	if err := routes.MoveRoutes(ctx); err != nil {
 		return err
@@ -146,7 +144,7 @@ func (Module) Configure(ctx *modules.Context) error {
 	return reload(ctx, changed)
 }
 
-// The Caddyfile Caddy runs is only ever replaced by one caddy validate accepted, and one found identical is weighed again: an upgrade of Caddy may refuse what the previous version took.
+// An identical Caddyfile is still validated: an upgraded Caddy may refuse what the previous version took.
 func writeCaddyfile(ctx *modules.Context) (bool, error) {
 	content := render(ctx)
 	changed := false
@@ -191,14 +189,14 @@ func writeCaddyfile(ctx *modules.Context) (bool, error) {
 	return changed, err
 }
 
-// The rules are written as <port>/tcp and carry the module's name: core.hardening owns the bare 22 and 443 of SSH, and never touches these.
-// A port the client moved away from is closed on the same pass, so the firewall only ever opens what the Caddyfile serves.
+// Rules are <port>/tcp with the module's comment, kept apart from core.hardening's bare 22 and 443.
 func syncFirewall(ctx *modules.Context) error {
 	return ctx.Step("sync-firewall", func() (modules.Outcome, error) {
 		wanted := wantedRules(ctx)
 		opened := owned(ctx)
 
 		var stale []string
+
 		for _, rule := range sortedRules(opened) {
 			if !slices.Contains(wanted, rule) {
 				stale = append(stale, rule)
@@ -206,6 +204,7 @@ func syncFirewall(ctx *modules.Context) error {
 		}
 
 		var missing []string
+
 		for _, rule := range wanted {
 			if !opened[rule] {
 				missing = append(missing, rule)
@@ -248,6 +247,7 @@ func declareMode(ctx *modules.Context) error {
 			env.DomainKey: ctx.String("domain"),
 			portsKey:      strconv.Itoa(httpPort(ctx)) + "," + strconv.Itoa(httpsPort(ctx)),
 		}
+
 		for key, value := range values {
 			changed, err := env.Set(ctx, key, value)
 			if err != nil {
@@ -265,7 +265,7 @@ func declareMode(ctx *modules.Context) error {
 	})
 }
 
-// A reload keeps the certificates and the open connections; only a Caddyfile that changed is worth one.
+// A reload keeps certificates and open connections; only a changed Caddyfile is worth one.
 func reload(ctx *modules.Context, changed bool) error {
 	return ctx.Step("enable-service", func() (modules.Outcome, error) {
 		if systemd.Active(ctx, Unit) && !changed {
@@ -284,7 +284,7 @@ func reload(ctx *modules.Context, changed bool) error {
 	})
 }
 
-// systemctl reload only says the job failed, the reason staying in Caddy's journal; caddy validate puts it in the step.
+// systemctl reload leaves the reason in Caddy's journal; caddy validate brings it into the step.
 func validate(ctx *modules.Context, path string) error {
 	out, err := sys.Exec(ctx, sys.Command{Argv: []string{"caddy", "validate", "--config", path, "--adapter", "caddyfile"}})
 	if err != nil {
@@ -313,7 +313,7 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// The certificates Caddy obtained live under /var/lib/caddy and belong to the client's domain, not to this module.
+// Certificates under /var/lib/caddy belong to the client's domain and are left in place.
 func (Module) Uninstall(ctx *modules.Context) error {
 	heldByAnother := routes.HeldByAnother(ctx, Provider)
 
@@ -446,7 +446,7 @@ func portOr(ctx *modules.Context, key string, fallback int) int {
 	return fallback
 }
 
-// The configured value first, then the one the configuration left in /etc/pupitre/env: a command runs long after the install.
+// Falls back to /etc/pupitre/env: a command runs long after the install, without its configuration.
 func domainOf(ctx *modules.Context) string {
 	if domain := ctx.String("domain"); domain != "" {
 		return domain
@@ -457,9 +457,10 @@ func domainOf(ctx *modules.Context) string {
 	return domain
 }
 
-// Read back by their comment, whether the firewall is up yet or not: the hardening may come after this module.
+// Read by comment whether ufw is up or not: the hardening may come after this module.
 func owned(ctx *modules.Context) map[string]bool {
 	rules := map[string]bool{}
+
 	for _, rule := range ufw.Commented(ctx, comment) {
 		rules[rule] = true
 	}

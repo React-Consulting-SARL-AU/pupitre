@@ -31,7 +31,6 @@ const (
 
 var noon = time.Date(2026, time.September, 4, 12, 0, 0, 0, time.UTC)
 
-// A platform that answers /agent/state, /agent/exchange and /agent/heartbeat, and nothing that ever leaves this test.
 type fakePlatform struct {
 	mu sync.Mutex
 
@@ -116,7 +115,6 @@ func (p *fakePlatform) serve() *httptest.Server {
 	}))
 }
 
-// want is what a platform that knows approvals asks for.
 func (p *fakePlatform) want(entries ...contract.AgentStateKey) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -127,7 +125,7 @@ func (p *fakePlatform) want(entries ...contract.AgentStateKey) {
 	p.keys = &entries
 }
 
-// allow is what a platform older than approvals answers: bare lines the agent no longer reads.
+// A platform older than approvals: bare lines the agent no longer reads.
 func (p *fakePlatform) allow(lines ...string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -148,7 +146,6 @@ func (p *fakePlatform) refuseWith(status int, code string) {
 	p.refuseCode = code
 }
 
-// A platform that hands the token it just received back in its refusal: the worst case the redaction exists for.
 func (p *fakePlatform) echoRefusals() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -223,7 +220,6 @@ func (b *bench) sync(t *testing.T, agent *daemon.Daemon) daemon.Sync {
 	return synced
 }
 
-// A device the platform relays with an approval signed by a device this server trusts opens it on the next read.
 func TestAKeyApprovedByATrustedDeviceOpensTheServer(t *testing.T) {
 	b := newBench(t, true)
 	b.trusting(t, laptopDevice)
@@ -248,7 +244,6 @@ func TestAKeyApprovedByATrustedDeviceOpensTheServer(t *testing.T) {
 	}
 }
 
-// The platform alone cannot open the server: a key it asks for without an approval waits, and the platform hears so at once.
 func TestAKeyWithoutApprovalWaitsAndThePlatformHearsItAtOnce(t *testing.T) {
 	b := newBench(t, true)
 	b.trusting(t, laptopDevice)
@@ -307,7 +302,6 @@ func TestTheSamePendingSetDoesNotBeatAgain(t *testing.T) {
 	}
 }
 
-// A key an approval just admitted may approve another in the same read.
 func TestAChainOfApprovalsOpensInOneRead(t *testing.T) {
 	b := newBench(t, true)
 	b.trusting(t, laptopDevice)
@@ -364,7 +358,6 @@ func TestAnApprovalThatDoesNotHoldLeavesTheKeyPending(t *testing.T) {
 	}
 }
 
-// Approvals are checked against the id this server already holds: a platform that names it otherwise redirects nothing.
 func TestApprovalsAreCheckedAgainstTheStoredServerID(t *testing.T) {
 	b := newBench(t, true)
 	b.trusting(t, laptopDevice)
@@ -382,7 +375,6 @@ func TestApprovalsAreCheckedAgainstTheStoredServerID(t *testing.T) {
 	}
 }
 
-// Closing is the one thing the platform can do unsigned: a trusted key it stops asking for leaves the block and the trust.
 func TestAKeyThePlatformStopsAskingForLeavesTheServer(t *testing.T) {
 	b := newBench(t, true)
 	b.trusting(t, laptopDevice, desktopDevice)
@@ -415,7 +407,6 @@ func TestAKeyThePlatformStopsAskingForLeavesTheServer(t *testing.T) {
 	}
 }
 
-// The agent never removes the last key: a platform that asks for nothing it trusts changes nothing.
 func TestTheLastKeyIsNeverRemoved(t *testing.T) {
 	b := newBench(t, true)
 	b.trusting(t, laptopDevice)
@@ -436,7 +427,6 @@ func TestTheLastKeyIsNeverRemoved(t *testing.T) {
 	}
 }
 
-// A platform older than approvals still sends bare lines: they are not read, and nothing moves.
 func TestAPlatformThatNamesNoKeysMovesNothing(t *testing.T) {
 	b := newBench(t, true)
 	b.trusting(t, laptopDevice)
@@ -483,7 +473,6 @@ func TestAKeyWithOptionsOrOfAnotherTypeIsIgnored(t *testing.T) {
 	}
 }
 
-// A comment the block already held for a key stays with it; an option never does.
 func TestAKeptKeyKeepsItsCommentAndLosesItsOptions(t *testing.T) {
 	b := newBench(t, true)
 	b.trusting(t, laptopDevice, desktopDevice)
@@ -537,7 +526,6 @@ func TestSyncRefusesWithoutAServerToken(t *testing.T) {
 	}
 }
 
-// A server the platform no longer knows — revoked, purged — loses its entitlement at once, and keeps its keys: taking them would take the last one.
 func TestARevokedServerTokenSuspendsTheEntitlementAndKeepsTheKeys(t *testing.T) {
 	b := newBench(t, true)
 	b.trusting(t, laptopDevice)
@@ -564,7 +552,6 @@ func TestARevokedServerTokenSuspendsTheEntitlementAndKeepsTheKeys(t *testing.T) 
 	}
 }
 
-// A platform out of reach is a silence, not a revocation: the keys stay, and the tolerance is what closes the agent.
 func TestANetworkFailureLeavesTheKeysAndTheEntitlementInPlace(t *testing.T) {
 	b := newBench(t, true)
 	b.trusting(t, laptopDevice)
@@ -587,7 +574,6 @@ func TestANetworkFailureLeavesTheKeysAndTheEntitlementInPlace(t *testing.T) {
 	}
 }
 
-// A 401 that does not name the token — a proxy, a platform mid-deploy — is a silence too.
 func TestARefusalWithoutTheTokenCodeIsNotARevocation(t *testing.T) {
 	b := newBench(t, true)
 	b.platform.want()
@@ -605,7 +591,6 @@ func TestARefusalWithoutTheTokenCodeIsNotARevocation(t *testing.T) {
 	}
 }
 
-// A token traded for a fresh one while the read was in flight is not a revocation: the refusal was for the token that just left the disk.
 func TestARefusalOnATokenThatWasJustRotatedIsNotARevocation(t *testing.T) {
 	b := newBench(t, true)
 	b.platform.want()
@@ -667,7 +652,6 @@ func TestEnrollTradesTheTokenAndWritesTheServerToken(t *testing.T) {
 	}
 }
 
-// An enrolment is the one gesture that renames the server: the id of before goes, and the first read names the new one.
 func TestEnrollLetsTheNextReadNameTheServerAnew(t *testing.T) {
 	b := newBench(t, true)
 	platform.SaveServerID(b.fake, "", otherServer)
@@ -689,9 +673,6 @@ func TestEnrollLetsTheNextReadNameTheServerAnew(t *testing.T) {
 	}
 }
 
-// The heartbeat and the entitlement run without the app: the only thing that
-// can tell them which platform to answer is what the enrolment wrote down, so
-// it lands before the token does.
 func TestEnrollWritesThePlatformItTradedWithBeforeTheToken(t *testing.T) {
 	b := newBench(t, false)
 	console := b.server.URL
@@ -752,7 +733,6 @@ func TestEnrollRefusesAnEmptyTokenAndAnUnreadableHostKey(t *testing.T) {
 	}
 }
 
-// The loop reads the state and beats on its own; a platform out of reach never stops it.
 func TestRunPollsUntilItIsStopped(t *testing.T) {
 	b := newBench(t, true)
 	b.trusting(t, laptopDevice)

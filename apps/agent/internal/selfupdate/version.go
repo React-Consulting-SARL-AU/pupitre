@@ -10,7 +10,7 @@ type parsedVersion struct {
 	prerelease []string
 }
 
-// Semver, the same ordering as the platform's: build metadata is ignored, a prerelease sorts below the release it precedes, and two versions that are not semver fall back on a plain string order.
+// Must order exactly like the platform: build metadata ignored, prerelease below its release, non-semver by string.
 func CompareVersions(left, right string) int {
 	parsedLeft, leftOK := parseVersion(left)
 	parsedRight, rightOK := parseVersion(right)

@@ -19,11 +19,10 @@ const (
 
 	BinPath = "/usr/local/bin/" + Program
 
-	// The variable the CLI reads on its own: no stripe login is needed once it is in the shell.
+	// The CLI reads it on its own, so no stripe login is needed once it is in the shell.
 	keyKey = "STRIPE_API_KEY"
 )
 
-// Stripe publishes its CLI as a Go binary per platform, with one checksum document per system.
 var release = download.GitHubRelease{
 	Repo:      "stripe/stripe-cli",
 	Program:   Program,
@@ -84,7 +83,6 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// The Stripe account belongs to the client: uninstalling gives back the machine and its variable, never a webhook or a customer.
 func (Module) Uninstall(ctx *modules.Context) error {
 	if err := release.RemoveStep(ctx, ID, BinPath); err != nil {
 		return err
@@ -118,7 +116,6 @@ type account struct {
 	} `json:"settings"`
 }
 
-// stripe get /v1/account is asked with the key the machine holds; the account answers with the name its dashboard shows, or its identifier.
 func (Module) Login(ctx *modules.Context) (contract.Login, bool) {
 	held, _, _ := env.Get(ctx, keyKey)
 	if held == "" {

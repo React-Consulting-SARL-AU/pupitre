@@ -118,6 +118,7 @@ func TestInstallAddsThePinnedRepositoryThenThePackage(t *testing.T) {
 	if err := Install(newContext(t, fake)); err != nil {
 		t.Fatal(err)
 	}
+
 	for _, command := range fake.Commands() {
 		if strings.HasPrefix(command, "curl ") {
 			fetched++

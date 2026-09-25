@@ -29,7 +29,6 @@ func (l listedKeys) signer(fingerprint string) bool {
 	return false
 }
 
-// The files the test rewrites go back as they were, whatever it finds on the way.
 func keptAsItWas(t *testing.T, host, path string) {
 	t.Helper()
 
@@ -40,6 +39,7 @@ func keptAsItWas(t *testing.T, host, path string) {
 		if before == "" {
 			command = sshCommand(host, "sudo", "-n", "rm", "-f", path)
 		}
+
 		command.Stdin = strings.NewReader(before)
 
 		if out, err := command.CombinedOutput(); err != nil {
@@ -48,7 +48,7 @@ func keptAsItWas(t *testing.T, host, path string) {
 	})
 }
 
-// The reset lays the key that already opens the block, so the harness keeps its way in whatever account it uses.
+// Resets to the key already in the block, so the harness keeps its own way in whatever account it uses.
 func TestKeysResetThenTrustFromTheMachine(t *testing.T) {
 	host := stagingHost(t)
 
@@ -56,12 +56,15 @@ func TestKeysResetThenTrustFromTheMachine(t *testing.T) {
 	keptAsItWas(t, host, keys.DefaultSignersPath)
 
 	block := ssh(t, host, "sudo", "-n", "sed", "-n", "'/# >>> pupitre keys >>>/,/# <<< pupitre keys <<</p'", keys.DefaultPath)
+
 	var inBlock []string
+
 	for _, line := range strings.Split(block, "\n") {
 		if key, err := keys.ParsePublic(line); err == nil {
 			inBlock = append(inBlock, key.Bare())
 		}
 	}
+
 	if len(inBlock) != 1 {
 		t.Skipf("the managed block holds %d admitted key(s); the reset is only tried on one", len(inBlock))
 	}
@@ -82,6 +85,7 @@ func TestKeysResetThenTrustFromTheMachine(t *testing.T) {
 	if out, err := exec.Command("ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-C", "", "-f", private).CombinedOutput(); err != nil {
 		t.Fatalf("ssh-keygen: %v\n%s", err, out)
 	}
+
 	public, _ := os.ReadFile(private + ".pub")
 	device, err := keys.ParsePublic(string(public))
 	if err != nil {

@@ -9,16 +9,14 @@ import (
 
 const redacted = "[secret]"
 
-// A word naming a secret: what follows it, as the next word or after its =, is the secret itself.
 var secretWord = regexp.MustCompile(`(?i)(pass(word|wd)?|secret|token|api[-_]?key|access[-_]?key|private[-_]?key|(^|[-_])key$|auth|credentials?)`)
 
-// Userinfo of an address: postgres://app:S3cret@localhost/shop.
 var userinfo = regexp.MustCompile(`(://[^/:@\s]*:)[^@\s]+@`)
 
-// The programs whose -p carries the password glued to it: mysql -pS3cret.
+// These take the password glued to -p: mysql -pS3cret.
 var gluedPassword = []string{"mysql", "mysqldump", "mysqladmin", "mariadb", "mariadb-dump", "mariadb-admin"}
 
-// redactCommand keeps what a command line says of the program and drops the values its arguments carry for a secret, so a diagnostic that travels to support carries none.
+// Diagnostics travel to support, so the values of secret-looking arguments are dropped.
 func redactCommand(line string) string {
 	words := strings.Fields(line)
 	if len(words) == 0 {

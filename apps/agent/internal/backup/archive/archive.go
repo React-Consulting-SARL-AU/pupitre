@@ -1,4 +1,3 @@
-// Package archive turns a tree of the dev account into a tar and back, never writing outside the folder it restores into.
 package archive
 
 import (
@@ -18,8 +17,7 @@ import (
 	"time"
 )
 
-// Source is what one archive holds: entries under Root, each a relative path, and what Skip leaves out wherever it lies.
-// With an Area, a Root or an entry that is itself a link is followed, as long as it ends inside the Area; without one, no link is.
+// With an Area, a Root or entry that is a link is followed as long as it ends inside the Area; without one, no link is.
 type Source struct {
 	Root    string
 	Entries []string
@@ -27,7 +25,6 @@ type Source struct {
 	Area    string
 }
 
-// OutsideError is a folder to carry that is a link ending outside the area it may lead to.
 type OutsideError struct {
 	Path   string
 	Target string
@@ -37,7 +34,6 @@ func (e *OutsideError) Error() string {
 	return e.Path + " leads to " + e.Target + ", outside the folders a backup reads"
 }
 
-// Resolve follows every link of full and says where it ends, refused when that is outside area.
 func Resolve(full, area string) (string, error) {
 	resolved, err := filepath.EvalSymlinks(full)
 	if err != nil {
@@ -56,17 +52,14 @@ func Resolve(full, area string) (string, error) {
 	return resolved, nil
 }
 
-// Whole is the entry that names the root itself.
 const Whole = "."
 
-// ExcludingDirs leaves out every folder with one of these names, at any depth.
 func ExcludingDirs(names []string) func(string, bool) bool {
 	return func(rel string, dir bool) bool {
 		return dir && slices.Contains(names, path.Base(rel))
 	}
 }
 
-// ExcludingPaths leaves out these exact paths.
 func ExcludingPaths(paths []string) func(string, bool) bool {
 	return func(rel string, _ bool) bool {
 		return slices.Contains(paths, rel)
@@ -75,12 +68,13 @@ func ExcludingPaths(paths []string) func(string, bool) bool {
 
 type visit func(rel, full string, info fs.FileInfo, target string) error
 
-// walk goes over what the source holds in lexical order, the same walk for the archive and for its fingerprint.
+// The same walk, in lexical order, feeds the archive and its fingerprint.
 func (s Source) walk(each visit) error {
 	root, err := s.root()
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil
 	}
+
 	if err != nil {
 		return err
 	}
@@ -102,7 +96,7 @@ func (s Source) root() (string, error) {
 	return Resolve(s.Root, s.Area)
 }
 
-// An entry that is itself a link is walked where it leads, and named in the archive as the entry: a restore puts it back under that name.
+// A link entry is walked where it leads but named as the entry, so a restore puts it back under that name.
 func (s Source) walkEntry(root, entry string, each visit) error {
 	start := filepath.Join(root, filepath.FromSlash(entry))
 
@@ -112,6 +106,7 @@ func (s Source) walkEntry(root, entry string, each visit) error {
 	}
 
 	base, prefix := root, ""
+
 	if err == nil && info.Mode()&fs.ModeSymlink != 0 && s.Area != "" {
 		resolved, err := Resolve(start, s.Area)
 		if err != nil {
@@ -134,6 +129,7 @@ func (s Source) walkEntry(root, entry string, each visit) error {
 		if err != nil {
 			return err
 		}
+
 		rel = named(prefix, filepath.ToSlash(rel))
 
 		if rel != Whole && s.Skip != nil && s.Skip(rel, entry.IsDir()) {
@@ -148,6 +144,7 @@ func (s Source) walkEntry(root, entry string, each visit) error {
 		if errors.Is(err, fs.ErrNotExist) {
 			return nil
 		}
+
 		if err != nil {
 			return err
 		}
@@ -167,7 +164,7 @@ func named(prefix, rel string) string {
 	return prefix + "/" + rel
 }
 
-// A link is kept only when what it names stays under the root; sockets, pipes and devices never are.
+// A link is kept only when it points under the root; sockets, pipes and devices never are.
 func (s Source) visit(rel, full string, info fs.FileInfo, each visit) error {
 	switch {
 	case info.Mode()&fs.ModeSymlink != 0:
@@ -184,9 +181,9 @@ func (s Source) visit(rel, full string, info fs.FileInfo, each visit) error {
 	return nil
 }
 
-// Inside says whether a link at rel, under root, points somewhere under root.
 func Inside(root, rel, target string) bool {
 	resolved := target
+
 	if !filepath.IsAbs(target) {
 		resolved = filepath.Join(root, filepath.Dir(filepath.FromSlash(rel)), target)
 	}
@@ -197,7 +194,7 @@ func Inside(root, rel, target string) bool {
 	return resolved == cleanRoot || strings.HasPrefix(resolved, cleanRoot+string(filepath.Separator))
 }
 
-// Write archives the source into w. A file that grows or shrinks while it is read is cut or padded to the size its header announced.
+// A file that grows or shrinks while read is cut or padded to the size its header announced.
 func Write(w io.Writer, source Source) error {
 	archive := tar.NewWriter(w)
 
@@ -223,12 +220,13 @@ func Write(w io.Writer, source Source) error {
 	return archive.Close()
 }
 
-// The file is opened as the walk saw it or not at all: one swapped since for a link, a pipe or another file is left out, as the walk would have left it.
+// Opened as the walk saw it or not at all: a file swapped since for a link, a pipe or another file is left out.
 func writeFile(archive *tar.Writer, rel, full string, walked fs.FileInfo) error {
 	file, err := os.OpenFile(full, os.O_RDONLY|syscall.O_NOFOLLOW|syscall.O_NONBLOCK, 0)
 	if errors.Is(err, fs.ErrNotExist) || errors.Is(err, syscall.ELOOP) {
 		return nil
 	}
+
 	if err != nil {
 		return err
 	}
@@ -271,7 +269,7 @@ func (zeros) Read(out []byte) (int, error) {
 	return len(out), nil
 }
 
-// Owners are the restore's to decide: whoever the archive names on this machine, everything goes back to the dev account.
+// Owners are the restore's to decide: everything goes back to the dev account.
 func anonymous(header *tar.Header) {
 	header.Uid, header.Gid = 0, 0
 	header.Uname, header.Gname = "", ""
@@ -285,7 +283,7 @@ func entryName(rel string, dir bool) string {
 	return rel
 }
 
-// Fingerprint digests what the archive would hold without reading a byte of it: every path, kind, size, mode, date and link.
+// Digests every path, kind, size, mode, date and link without reading a byte of content.
 func Fingerprint(source Source, flavor string) (string, error) {
 	digest := sha256.New()
 	fmt.Fprintf(digest, "%s\n", flavor)
@@ -307,7 +305,6 @@ func Fingerprint(source Source, flavor string) (string, error) {
 	return hex.EncodeToString(digest.Sum(nil)), nil
 }
 
-// File is one entry of an archive made in memory: the configuration files of setup.
 type File struct {
 	Name    string
 	Content []byte
@@ -332,7 +329,6 @@ func WriteFiles(w io.Writer, files []File) error {
 	return archive.Close()
 }
 
-// ReadFiles reads the regular files of a small archive into memory, refusing a name that would climb out.
 func ReadFiles(r io.Reader, limit int64) (map[string][]byte, error) {
 	archive := tar.NewReader(r)
 	files := map[string][]byte{}
@@ -342,6 +338,7 @@ func ReadFiles(r io.Reader, limit int64) (map[string][]byte, error) {
 		if errors.Is(err, io.EOF) {
 			return files, nil
 		}
+
 		if err != nil {
 			return nil, err
 		}
@@ -368,7 +365,6 @@ func ReadFiles(r io.Reader, limit int64) (map[string][]byte, error) {
 	}
 }
 
-// UnsafeError is an entry that names a path outside the folder it is restored into.
 type UnsafeError struct {
 	Name string
 }
@@ -377,7 +373,6 @@ func (e *UnsafeError) Error() string {
 	return "unsafe entry in the archive: " + e.Name
 }
 
-// Clean reads an entry name as a path under the root, or refuses it: absolute, climbing, or empty.
 func Clean(name string) (string, bool) {
 	if name == "" || strings.HasPrefix(name, "/") {
 		return "", false

@@ -36,6 +36,7 @@ func install(t *testing.T, fake *modtest.FakeSys, values modtest.Values) *module
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -184,7 +185,6 @@ func TestAnUnreachableReleaseIndexCarriesItsReplayCommand(t *testing.T) {
 
 var _ modules.Module = Module{}
 
-// A download cut short must not leave a folder the next install takes for a backend.
 func TestAFailedDownloadLeavesNoDistribution(t *testing.T) {
 	fake := machine("8388608")
 	fake.FailProgram("tar", "tar: Unexpected EOF in archive")
@@ -208,7 +208,6 @@ func TestAFailedDownloadLeavesNoDistribution(t *testing.T) {
 	}
 }
 
-// A folder without build.txt — what an earlier failed download left — is not a backend, and the install puts a real one there.
 func TestAnEmptyDistributionIsNotABackend(t *testing.T) {
 	fake := machine("8388608")
 	fake.Dirs[CacheDir+"/idea-latest"] = true
@@ -224,7 +223,6 @@ func TestAnEmptyDistributionIsNotABackend(t *testing.T) {
 	}
 }
 
-// The running backend goes only once its replacement is on the disk.
 func TestUpgradeDownloadsBeforeRemovingTheRunningBackend(t *testing.T) {
 	fake := machine("8388608")
 	install(t, fake, modtest.Values{"ide": "idea", "version": "latest"})
@@ -240,6 +238,7 @@ func TestUpgradeDownloadsBeforeRemovingTheRunningBackend(t *testing.T) {
 		if mutation == "remove "+CacheDir+"/idea-latest" && removedAt < 0 {
 			removedAt = at
 		}
+
 		if strings.HasPrefix(mutation, "write "+CacheDir+"/idea-latest.partial/") && downloadedAt < 0 {
 			downloadedAt = at
 		}
@@ -254,7 +253,6 @@ func TestUpgradeDownloadsBeforeRemovingTheRunningBackend(t *testing.T) {
 	}
 }
 
-// Every distribution this module ever laid goes with it, not only the one the form names today.
 func TestUninstallRemovesEveryDistributionTheModuleLaid(t *testing.T) {
 	fake := machine("8388608")
 	install(t, fake, modtest.Values{"ide": "idea", "version": "latest"})

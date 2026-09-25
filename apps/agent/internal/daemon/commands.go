@@ -62,7 +62,7 @@ func RegisterCommands(server *protocol.Server, options Options) {
 
 		result := enrollResult{Enrolled: true, Entitlement: contract.EntitlementRestricted}
 
-		// The exchange is what enrols; a first state that does not come back is retried by the daemon rather than undoing it.
+		// The exchange alone enrols: a failed first read is retried by the daemon, never undone.
 		if synced, err := agent.SyncAt(context.Background(), params.PlatformURL); err == nil {
 			result.Entitlement = synced.Entitlement
 			result.SyncedAt = synced.SyncedAt.UTC().Format(time.RFC3339)
@@ -94,9 +94,6 @@ func RegisterCommands(server *protocol.Server, options Options) {
 		return agent.listed(), nil
 	})
 
-	// An installation that has just changed the machine says so now rather than
-	// at the daemon's next turn: the console shows the modules instead of an
-	// empty server for the following five minutes.
 	server.Register("platform.sync", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
 		synced, _, err := agent.read(context.Background(), "")
 		if err != nil {
@@ -105,8 +102,7 @@ func RegisterCommands(server *protocol.Server, options Options) {
 
 		result := platformSyncResult{SyncedAt: synced.SyncedAt.UTC().Format(time.RFC3339)}
 
-		// The heartbeat is what carries the module list. Its failure is not the
-		// command's: the state was read, and the daemon beats again on its own.
+		// A failed beat is not the command's failure: the state was read and the daemon beats again.
 		if err := agent.Beat(context.Background()); err == nil {
 			result.HeartbeatAt = agent.options.Now().UTC().Format(time.RFC3339)
 		}
@@ -150,7 +146,7 @@ func trustFailed(cause error) *protocol.Error {
 		WithFix(i18n.T("keys.trust.failed.fix"))
 }
 
-// The token comes off the secret line and is never read back out of params: it is a secret the way an install password is.
+// Read from the secret line only, never from params: it is a secret like an install password.
 func enrollmentToken(line json.RawMessage) (string, *protocol.Error) {
 	value, err := contract.Decode(line)
 	if err == nil {
@@ -194,7 +190,7 @@ func syncFailed(cause error) *protocol.Error {
 	var failure *platform.Error
 	if errors.As(cause, &failure) && failure.Unauthorized() {
 		return protocol.NewError(contract.ErrorEntitlementRequired, i18n.T("daemon.token.refused", platform.Describe(cause))).
-			WithFix(i18n.T("daemon.token.refused.fix"))
+			WithFix(i18n.T("daemon.token.refused.fix", failure.Console()))
 	}
 
 	failed := protocol.NewError(contract.ErrorInternal, i18n.T("daemon.keys.failed", platform.Describe(cause)))

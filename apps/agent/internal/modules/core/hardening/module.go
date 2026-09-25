@@ -53,7 +53,6 @@ findtime = 10m
 bantime = 1h
 `
 
-// What the owner chose for SSH: the alternate port, and whether root keeps a way in.
 type Options struct {
 	SSH443   bool
 	KeepRoot bool
@@ -154,12 +153,7 @@ func (Module) Configure(ctx *modules.Context) error {
 	return applyFragment(ctx)
 }
 
-// A machine already hardened runs on the live fragment: a form applied after
-// harden reaches sshd through the same gate — write, validate, reload, confirm,
-// or put the previous fragment back. Before harden, sshd is left alone, and
-// root is never closed here: a live fragment that lets root in keeps letting
-// it in until the harden command, the only one that checks a key opens dev
-// before closing the door.
+// Only on a hardened machine, and never closes root: only harden checks dev's key works before shutting it.
 func applyFragment(ctx *modules.Context) error {
 	if !file.Exists(ctx, FragmentPath) || file.Same(ctx, FragmentPath, Fragment(options(ctx))) {
 		return nil
@@ -198,6 +192,7 @@ func rootOpenIn(ctx *modules.Context) bool {
 func (m Module) Upgrade(ctx *modules.Context) error {
 	if err := ctx.Step("upgrade-packages", func() (modules.Outcome, error) {
 		outcome := modules.Skipped
+
 		for _, pkg := range Packages {
 			upgraded, err := apt.Upgrade(ctx, pkg)
 			if err != nil {
@@ -322,6 +317,7 @@ func Fragment(o Options) []byte {
 
 func jail(ports []int) []byte {
 	listed := make([]string, 0, len(ports))
+
 	for _, port := range ports {
 		listed = append(listed, strconv.Itoa(port))
 	}
@@ -333,7 +329,7 @@ func rule(port int) string {
 	return strconv.Itoa(port) + "/tcp"
 }
 
-// Every port is allowed before the default turns to deny, and the firewall comes up last: at no moment does it stand between the owner and sshd.
+// Ports are allowed before the default turns to deny and ufw comes up last, so sshd is never cut off.
 func configureFirewall(ctx *modules.Context) ([]int, error) {
 	var wanted []int
 
@@ -344,22 +340,27 @@ func configureFirewall(ctx *modules.Context) ([]int, error) {
 		}
 
 		wanted = ports
+
 		status := firewallStatus(ctx)
 		if status.matches(wanted) {
 			return modules.Skipped, nil
 		}
 
 		var commands [][]string
+
 		for _, port := range wanted {
 			commands = append(commands, []string{"allow", rule(port), "comment", comment})
 		}
+
 		commands = append(commands,
 			[]string{"--force", "default", "deny", "incoming"},
 			[]string{"--force", "default", "allow", "outgoing"},
 		)
+
 		if status.stale(wanted) {
 			commands = append(commands, []string{"delete", "allow", rule(altPort)})
 		}
+
 		if !status.active {
 			commands = append(commands, []string{"--force", "enable"})
 		}
@@ -408,6 +409,7 @@ func listenedPorts(ctx *modules.Context) (map[int]bool, error) {
 
 	effective := effectiveConfig(out.Stdout)
 	ports := map[int]bool{}
+
 	for _, value := range append(effective["port"], effective["listenaddress"]...) {
 		if port, ok := portOf(value); ok {
 			ports[port] = true
@@ -462,8 +464,7 @@ type firewall struct {
 	incoming string
 	outgoing string
 	rules    []string
-	// The rules the hardening added itself, read back by their comment: 443 is
-	// also Caddy's, and Caddy's rule is Caddy's to close.
+	// Our own rules, read back by their comment: 443 is also Caddy's, and Caddy's rule is Caddy's to close.
 	owned []string
 }
 
@@ -474,6 +475,7 @@ func firewallStatus(ctx *modules.Context) firewall {
 	}
 
 	var status firewall
+
 	for _, line := range strings.Split(out.Stdout, "\n") {
 		fields := strings.Fields(line)
 		switch {

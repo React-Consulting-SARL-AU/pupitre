@@ -21,7 +21,6 @@ import (
 
 const otherPrivateKey = "/sWQHRA2t2CN8zBMbx/nzyyryS0TWLuQPJaLdUAW88w="
 
-// backedUp is a server that made one backup, and the bucket that holds it.
 func backedUp(t *testing.T) (*s3test.Fake, *bench, contract.BackupRunResult) {
 	t.Helper()
 
@@ -33,6 +32,7 @@ func backedUp(t *testing.T) (*s3test.Fake, *bench, contract.BackupRunResult) {
 
 func keys(parts []contract.BackupPart) []string {
 	var listed []string
+
 	for _, part := range parts {
 		listed = append(listed, part.Key)
 	}
@@ -165,6 +165,7 @@ func TestAnAbortPutsBackWhatTheMachineHeld(t *testing.T) {
 	location := source.location()
 
 	fresh := newBench(t, bucket)
+
 	if _, err := fresh.service.RestoreSetup(nil, location, fresh.secrets(), false); err != nil {
 		t.Fatal(err)
 	}
@@ -200,6 +201,7 @@ func TestTheRestoreMarkerLandsBeforeTheBackupsFiles(t *testing.T) {
 	bucket, source, _ := backedUp(t)
 
 	fresh := newBench(t, bucket)
+
 	if _, err := fresh.service.RestoreSetup(nil, source.location(), fresh.secrets(), false); err != nil {
 		t.Fatal(err)
 	}
@@ -245,6 +247,7 @@ func TestADatabaseDumpIsReadWholeBeforeItsEngineSeesIt(t *testing.T) {
 	location := source.location()
 
 	fresh := newBench(t, bucket)
+
 	if _, err := fresh.service.RestoreSetup(nil, location, fresh.secrets(), false); err != nil {
 		t.Fatal(err)
 	}
@@ -253,6 +256,7 @@ func TestADatabaseDumpIsReadWholeBeforeItsEngineSeesIt(t *testing.T) {
 	fresh.fake.Answer("df -P -B1 /var/lib/postgresql", "Filesystem 1-blocks Used Available Capacity Mounted on\n/dev/sda1 1073741824 1073741824 0 100% /\n")
 
 	var key string
+
 	for _, part := range made.Parts {
 		if part.Engine == "postgres" && part.Name == "shop" {
 			key = part.Key
@@ -280,18 +284,21 @@ func TestWhatDoesNotMatchTheRecordIsRefusedBeforeAnythingIsWritten(t *testing.T)
 
 	tampered := location
 	tampered.SHA256 = strings.Repeat("0", 64)
+
 	if _, err := fresh.service.RestoreSetup(nil, tampered, fresh.secrets(), false); refusalCode(err) != contract.ErrorBackupCorrupt {
 		t.Fatalf("a manifest that is not the recorded one: %v", err)
 	}
 
 	gone := location
 	gone.Key = strings.TrimSuffix(location.Key, made.ID) + "20200101T000000Z-000000"
+
 	if _, err := fresh.service.Inspect(gone, fresh.secrets()); refusalCode(err) != contract.ErrorBackupMissing {
 		t.Fatalf("a backup with no manifest: %v", err)
 	}
 
 	wrong := fresh.secrets()
 	wrong.PrivateKey = otherPrivateKey
+
 	if _, err := fresh.service.RestoreSetup(nil, location, wrong, false); refusalCode(err) != contract.ErrorBadRequest {
 		t.Fatalf("a key that does not open the backup: %v", err)
 	}
@@ -306,6 +313,7 @@ func TestAConfigurationFromANewerAgentIsRefused(t *testing.T) {
 	location := source.location()
 
 	raw, _ := bucket.Object(made.Key + "/" + contract.BackupManifestKey)
+
 	var manifest contract.BackupManifest
 	if err := json.Unmarshal(raw, &manifest); err != nil {
 		t.Fatal(err)
@@ -318,6 +326,7 @@ func TestAConfigurationFromANewerAgentIsRefused(t *testing.T) {
 	location.SHA256 = hex.EncodeToString(digest[:])
 
 	fresh := newBench(t, bucket)
+
 	if _, err := fresh.service.RestoreSetup(nil, location, fresh.secrets(), false); refusalCode(err) != contract.ErrorBackupUnsupported {
 		t.Fatalf("got %v, want backup_unsupported", err)
 	}
@@ -333,6 +342,7 @@ func TestAnAlteredPartFailsAloneAndTheOthersComeBack(t *testing.T) {
 	bucket.PutObject(made.Key+"/path-notes.pupitre", altered, source.now)
 
 	fresh := newBench(t, bucket)
+
 	if _, err := fresh.service.RestoreSetup(nil, location, fresh.secrets(), false); err != nil {
 		t.Fatal(err)
 	}

@@ -60,7 +60,6 @@ func blobOf(t *testing.T, line string) []byte {
 	return blob
 }
 
-// envelope is an SSHSIG taken apart, to be put back together with one field changed.
 type envelope struct {
 	publicKey, namespace, reserved, hash, signature []byte
 	trailing                                        []byte
@@ -118,7 +117,6 @@ func wireString(data, value []byte) []byte {
 	return append(data, value...)
 }
 
-// wireFields splits a string of SSH wire strings, as a signature blob is.
 func wireFields(raw []byte) [][]byte {
 	var fields [][]byte
 

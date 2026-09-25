@@ -8,7 +8,6 @@ import (
 	"pupitre.studio/agent/internal/protocol"
 )
 
-// Delete removes a backup of this server from the bucket, object by object, then its reference on the platform.
 func (s *Service) Delete(id string) (contract.BackupDeleteResult, error) {
 	var result contract.BackupDeleteResult
 
@@ -48,6 +47,7 @@ func (s *Service) delete(ctx *modules.Context, id string) (contract.BackupDelete
 
 	record := s.record(ctx)
 	record.Pending = withoutDeclarations(record.Pending, []string{id})
+
 	if record.Last != nil && record.Last.ID == id {
 		record.Last = nil
 	}

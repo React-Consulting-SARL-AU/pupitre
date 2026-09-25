@@ -27,7 +27,6 @@ func newContext(t *testing.T, fake *modtest.FakeSys) *modules.Context {
 	return modtest.NewContext(t, fake, modtest.Options{Manifest: manifest()})
 }
 
-// A machine whose installer script names version, and whose tarball unpacks into the files Cursor ships.
 func machine(published string) *modtest.FakeSys {
 	fake := modtest.NewFakeSys()
 	fake.Users["dev"] = "/home/dev"
@@ -48,6 +47,7 @@ func install(t *testing.T, fake *modtest.FakeSys) *modules.Context {
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -61,13 +61,14 @@ func install(t *testing.T, fake *modtest.FakeSys) *modules.Context {
 	return ctx
 }
 
-// Nothing vouches for the tarball but TLS, and it lands in dev's own folder: dev unpacks it, so root never writes through a link planted there.
+// The tarball lands in dev's folder, so root unpacking it could write through a link planted there.
 func TestTheUncheckedTarballIsUnpackedByDevNotRoot(t *testing.T) {
 	fake := machine(version)
 
 	install(t, fake)
 
 	unpacked := false
+
 	for _, command := range fake.Commands() {
 		if strings.Contains(command, "tar -x") {
 			unpacked = true
@@ -219,7 +220,6 @@ func TestAnInstallerWithoutVersionIsRefused(t *testing.T) {
 	}
 }
 
-// cursor-agent status answers JSON: whether anyone holds the tokens, and who when Cursor says.
 func TestLoginReadsWhatCursorAgentStatusSays(t *testing.T) {
 	cases := map[string]struct {
 		answer string

@@ -1,4 +1,3 @@
-// Package db puts the database modules in the registry and adds the commands that drive them.
 package db
 
 import (

@@ -1,4 +1,3 @@
-// Package backup is the module that points a server at the client's bucket; it puts nothing on the machine but its values in install.json.
 package backup
 
 import (
@@ -21,7 +20,7 @@ func (Module) Manifest() contract.Manifest {
 	return manifest()
 }
 
-// The bucket is what only the machine can reach, and only with the secret the server already holds: a first install is proven by its own step instead.
+// Probes only a bucket already configured; a first install proves its bucket in the verify-bucket step.
 func (Module) Preflight(ctx *modules.Context) []contract.FieldProblem {
 	settings := Read(ctx)
 	if !settings.Configured() {
@@ -37,7 +36,7 @@ func (Module) Preflight(ctx *modules.Context) []contract.FieldProblem {
 	return []contract.FieldProblem{}
 }
 
-// reach aims a client at its bucket as it is; the tests aim it at their own.
+// A seam the tests replace to aim the client at their own bucket.
 var reach = func(client s3.Client) s3.Client { return client }
 
 func (Module) Check(ctx *modules.Context) (modules.Status, error) {
@@ -74,7 +73,7 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// The backups are the client's, in the client's bucket: uninstalling stops the schedule, which reads install.json, and leaves every object where it is.
+// Every object stays in the client's bucket; the schedule reads install.json and stops by itself.
 func (Module) Uninstall(*modules.Context) error {
 	return nil
 }

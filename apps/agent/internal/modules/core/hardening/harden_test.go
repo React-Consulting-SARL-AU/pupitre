@@ -38,6 +38,7 @@ func events(fake *modtest.FakeSys, t *testing.T, o Options) (Result, []string) {
 	result := Harden(ctx)
 
 	var steps []string
+
 	for _, event := range ctx.Events() {
 		steps = append(steps, event.Step+"="+string(event.Status))
 	}
@@ -113,6 +114,7 @@ func TestHardenClosesRootThenReplaysWithoutWriting(t *testing.T) {
 	}
 
 	commands := strings.Join(fake.Commands(), "\n")
+
 	for _, want := range []string{"sshd -t", "systemctl daemon-reload", "systemctl reload ssh"} {
 		if !strings.Contains(commands, want) {
 			t.Errorf("command %q not run:\n%s", want, commands)
@@ -158,7 +160,9 @@ func TestInvalidSSHDConfigIsRevertedAndRootStays(t *testing.T) {
 
 	result, steps := events(fake, t, Options{})
 
-	if result.RootClosed || result.NextUser != "root" || !strings.Contains(result.Reason, "the sshd configuration is invalid, the fragment was removed") || !strings.Contains(result.Reason, "Bad configuration option") {
+	if result.RootClosed || result.NextUser != "root" ||
+		!strings.Contains(result.Reason, "the sshd configuration is invalid, the fragment was removed") ||
+		!strings.Contains(result.Reason, "Bad configuration option") {
 		t.Fatalf("result = %+v", result)
 	}
 
@@ -211,7 +215,6 @@ func TestReloadFailureIsRevertedAndRootStays(t *testing.T) {
 	}
 }
 
-// The fragment going back on disk is not enough: sshd must be reloaded on it, or it keeps running on the configuration that was just refused.
 func TestReloadFailureReloadsSshdOnThePreviousFragment(t *testing.T) {
 	fake := hardenedMachine(t)
 	fake.FailOnce("systemctl", "Job for ssh.service failed because the control process exited with error code.")
@@ -246,6 +249,7 @@ func TestKeepRootAppliesTheFragmentAndLeavesRootAWayIn(t *testing.T) {
 	}
 
 	fragment := string(fake.Files[FragmentPath])
+
 	for _, want := range []string{"PermitRootLogin prohibit-password\n", "AllowUsers dev root\n", "PasswordAuthentication no\n"} {
 		if !strings.Contains(fragment, want) {
 			t.Errorf("fragment = %q, misses %q", fragment, want)
@@ -286,7 +290,6 @@ func TestHardenConfirmsTheEffectiveConfigurationAfterReload(t *testing.T) {
 	}
 }
 
-// An image whose sshd_config carries no Include passes sshd -t and ignores the fragment: root would be said closed while still open.
 func TestHardenRevertsWhenSshdIgnoresTheFragment(t *testing.T) {
 	fake := hardenedMachine(t)
 	fake.Files["/etc/ssh/sshd_config"] = []byte("PermitRootLogin yes\n")

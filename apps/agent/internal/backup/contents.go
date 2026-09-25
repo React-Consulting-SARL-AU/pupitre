@@ -6,7 +6,7 @@ import (
 	module "pupitre.studio/agent/internal/modules/core/backup"
 )
 
-// Contents is what this server holds that a backup can carry, each with whether the settings carry it now; an engine that does not answer is named rather than failing the list.
+// An engine that does not answer is named as unreadable rather than failing the list.
 func (s *Service) Contents() (contract.BackupContentsResult, error) {
 	result := contract.BackupContentsResult{Projects: []contract.BackupContentProject{}, Databases: []contract.BackupContentDatabase{}, Unreadable: []string{}}
 

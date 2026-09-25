@@ -13,12 +13,13 @@ import (
 	"pupitre.studio/agent/internal/sys/file"
 )
 
-// A pin names a runtime the catalogue holds and a version this machine really carries: anything else is refused before the row is written, with the service to open.
 func (r *Reader) checkRuntimes(runtimes map[string]string) error {
 	tools := make([]string, 0, len(runtimes))
+
 	for tool := range runtimes {
 		tools = append(tools, tool)
 	}
+
 	sort.Strings(tools)
 
 	for _, tool := range tools {
@@ -38,7 +39,6 @@ func (r *Reader) checkRuntimes(runtimes map[string]string) error {
 	return nil
 }
 
-// PinRuntimes lays a declared project's pins where mise reads them, as project.add does once the folder is there.
 func (r *Reader) PinRuntimes(name string) error {
 	project, err := r.project(name)
 	if err != nil {
@@ -48,7 +48,7 @@ func (r *Reader) PinRuntimes(name string) error {
 	return r.pinRuntimes(project)
 }
 
-// The pins land where mise reads them, once the folder is there: a repository not yet cloned gets them with its clone.
+// A repository not yet cloned gets its pins with the clone.
 func (r *Reader) pinRuntimes(project registry.Project) error {
 	root := project.Path(r.options.Paths.Resolved().Projects)
 	if !file.Exists(r.ctx(), root) {
@@ -72,6 +72,7 @@ func runtimeTools() []string {
 	runtimes := mise.Runtimes()
 
 	tools := make([]string, 0, len(runtimes))
+
 	for _, runtime := range runtimes {
 		tools = append(tools, runtime.Tool)
 	}

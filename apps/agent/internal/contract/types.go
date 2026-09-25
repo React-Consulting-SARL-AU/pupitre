@@ -12,9 +12,9 @@ type Manifest struct {
 	Resources Resources `json:"resources"`
 	Arch      []string  `json:"arch"`
 	Fields    []Field   `json:"fields"`
-	// Connection names the third-party account the app must hold for this module; only such a module may carry a managed field.
+	// Only a module with a Connection may carry a managed field.
 	Connection string `json:"connection,omitempty"`
-	// Runs says whether the module holds a process on the machine, or spawns one at any moment; a language or a CLI leaves nothing to watch.
+	// False for a language or a CLI: nothing on the machine to watch.
 	Runs      bool   `json:"runs"`
 	Mandatory bool   `json:"mandatory"`
 	Since     string `json:"since"`
@@ -44,11 +44,8 @@ const (
 var Connections = []string{ConnectionCloudflare, ConnectionWrangler, ConnectionGitHub, ConnectionOnePassword, ConnectionNeon, ConnectionVercel, ConnectionSupabase, ConnectionStripe, ConnectionBackup}
 
 const (
-	// PatternVersionOrLatest holds an editor's free version field: `latest`, or a version the client reads off their own client.
 	PatternVersionOrLatest = `^(latest|[0-9]+\.[0-9]+(\.[0-9]+)?)$`
-
-	// PatternExtensionID holds a marketplace identifier, publisher and name.
-	PatternExtensionID = `^[A-Za-z0-9][A-Za-z0-9._-]*\.[A-Za-z0-9][A-Za-z0-9._-]*$`
+	PatternExtensionID     = `^[A-Za-z0-9][A-Za-z0-9._-]*\.[A-Za-z0-9][A-Za-z0-9._-]*$`
 )
 
 const (
@@ -77,7 +74,6 @@ const (
 	ItemsSecret = "secret"
 )
 
-// Hint is the long form of Help, shown behind a bubble: where a value is found, and the page that issues it.
 type Hint struct {
 	Text string `json:"text"`
 	URL  string `json:"url,omitempty"`
@@ -104,31 +100,39 @@ type Field struct {
 	Managed   bool
 }
 
-// The schema is a oneOf with additionalProperties:false per kind, so each kind serialises only its own keys.
+// The schema's oneOf sets additionalProperties:false per kind, so each kind serialises only its own keys.
 func (f Field) MarshalJSON() ([]byte, error) {
 	object := map[string]any{"key": f.Key, "kind": f.Kind, "label": f.Label}
+
 	if f.Help != "" {
 		object["help"] = f.Help
 	}
+
 	if f.HintText != "" {
 		hint := map[string]any{"text": f.HintText}
 		if f.HintURL != "" {
 			hint["url"] = f.HintURL
 		}
+
 		object["hint"] = hint
 	}
+
 	if f.Format != "" {
 		object["format"] = f.Format
 	}
+
 	if f.Pattern != "" {
 		object["pattern"] = f.Pattern
 	}
+
 	if f.MinLength > 0 {
 		object["min_length"] = f.MinLength
 	}
+
 	if f.MaxLength > 0 {
 		object["max_length"] = f.MaxLength
 	}
+
 	if f.Managed {
 		object["managed"] = true
 	}
@@ -145,23 +149,29 @@ func (f Field) MarshalJSON() ([]byte, error) {
 	case FieldList:
 		object["required"] = f.Required
 		object["items"] = f.Items
+
 		if f.Min > 0 {
 			object["min"] = f.Min
 		}
+
 		if f.Max > 0 {
 			object["max"] = f.Max
 		}
 	default:
 		object["required"] = f.Required
+
 		if f.Default != nil {
 			object["default"] = f.Default
 		}
+
 		if f.Options != nil {
 			object["options"] = f.Options
 		}
+
 		if f.Min != 0 {
 			object["min"] = f.Min
 		}
+
 		if f.Max != 0 {
 			object["max"] = f.Max
 		}
@@ -229,6 +239,7 @@ func (m Manifest) MarshalJSON() ([]byte, error) {
 	normalized.Requires = emptyIfNil(m.Requires)
 	normalized.Conflicts = emptyIfNil(m.Conflicts)
 	normalized.Arch = emptyIfNil(m.Arch)
+
 	if normalized.Fields == nil {
 		normalized.Fields = []Field{}
 	}
@@ -255,6 +266,7 @@ func (c Catalog) MarshalJSON() ([]byte, error) {
 	if normalized.Modules == nil {
 		normalized.Modules = []Manifest{}
 	}
+
 	if normalized.Presets == nil {
 		normalized.Presets = []Preset{}
 	}
@@ -280,7 +292,7 @@ type StepEvent struct {
 	Message string     `json:"message,omitempty"`
 }
 
-// ModuleConfig is what the agent kept from the last request for a module: plain values, and the names of the secrets it holds — never their value.
+// Secrets holds names only, never a value.
 type ModuleConfig struct {
 	ID      string         `json:"id"`
 	Values  map[string]any `json:"values"`
@@ -294,12 +306,12 @@ func (c ModuleConfig) MarshalJSON() ([]byte, error) {
 	if normalized.Values == nil {
 		normalized.Values = map[string]any{}
 	}
+
 	normalized.Secrets = emptyIfNil(c.Secrets)
 
 	return json.Marshal(normalized)
 }
 
-// InstallCheck is the same request as install, weighed and not run: what the fields get wrong, and what only the machine knows.
 type InstallCheck struct {
 	Problems []FieldProblem `json:"problems"`
 	Warnings []string       `json:"warnings"`
@@ -312,6 +324,7 @@ func (c InstallCheck) MarshalJSON() ([]byte, error) {
 	if normalized.Problems == nil {
 		normalized.Problems = []FieldProblem{}
 	}
+
 	if normalized.Warnings == nil {
 		normalized.Warnings = []string{}
 	}
@@ -368,9 +381,11 @@ func (r Report) MarshalJSON() ([]byte, error) {
 	normalized := plain(r)
 	normalized.Failed = emptyIfNil(r.Failed)
 	normalized.Warned = emptyIfNil(r.Warned)
+
 	if normalized.Modules == nil {
 		normalized.Modules = []ModuleReport{}
 	}
+
 	for i := range normalized.Modules {
 		if normalized.Modules[i].Steps == nil {
 			normalized.Modules[i].Steps = []ReportStep{}
@@ -397,7 +412,7 @@ const (
 	LoginUnknown   LoginState = "unknown"
 )
 
-// Login is what the CLI a module installs says of its own account: asked of the CLI, on service.status alone.
+// Asked of the module's own CLI, on service.status alone.
 type Login struct {
 	State   LoginState `json:"state"`
 	Account string     `json:"account,omitempty"`
@@ -408,17 +423,16 @@ type ServiceStatus struct {
 	ID    string       `json:"id"`
 	Name  string       `json:"name"`
 	State ServiceState `json:"state"`
-	// Configured says whether the module has been through its own settings: a
-	// module the client asked to answer later sits installed and unconfigured.
+	// False for a module the client chose to configure later: installed, not yet through its own settings.
 	Configured bool `json:"configured"`
-	// Runs and Connection carry the manifest's own answers, so that a screen showing what the machine is doing never has to read the catalogue.
+	// Runs and Connection copy the manifest so a status screen never has to read the catalogue.
 	Runs       bool     `json:"runs"`
 	Connection string   `json:"connection,omitempty"`
 	Version    string   `json:"version,omitempty"`
 	Versions   []string `json:"versions,omitempty"`
 	Port       int      `json:"port,omitempty"`
 	Unit       string   `json:"unit,omitempty"`
-	// Path is the absolute folder the module laid when the reader's side has to be pointed at it: the backend JetBrains Gateway opens.
+	// Set only when the client's side must be pointed at the module's folder, such as the backend JetBrains Gateway opens.
 	Path        string            `json:"path,omitempty"`
 	Credentials map[string]string `json:"credentials,omitempty"`
 	Login       *Login            `json:"login,omitempty"`
@@ -472,7 +486,7 @@ var ProcessStates = []ProcessState{
 	ProcessService,
 }
 
-// A project's state is read off its processes; partial is the one state a process never has by itself.
+// Derived from the processes; partial is the one state no single process has.
 type ProjectState string
 
 const (
@@ -499,14 +513,12 @@ var ProjectStates = []ProjectState{
 
 var PackageManagers = []string{"bun", "pnpm", "npm", "gradle", "uv", "service", "none"}
 
-// A Route is one port a process listens on, and the whole name it answers to on the web when it has one.
 type Route struct {
 	Label    string `json:"label"`
 	Port     int    `json:"port"`
 	Hostname string `json:"hostname,omitempty"`
 }
 
-// A ProjectProcess is what runs in a project: one command, from one folder of it, on one main port.
 type ProjectProcess struct {
 	ID      string       `json:"id"`
 	Dir     string       `json:"dir"`
@@ -542,7 +554,7 @@ type DetectedRoute struct {
 	Port  int    `json:"port"`
 }
 
-// What one folder of a repository asks for: the root, or a folder of the first level that carries its own manifest.
+// One per folder: the root, or a first-level folder carrying its own manifest.
 type DetectedProcess struct {
 	ID       string          `json:"id"`
 	Dir      string          `json:"dir"`
@@ -646,7 +658,7 @@ const (
 	FileKindSpecial = "special"
 )
 
-// The permission bits as an octal string, `0644`: a number would read as decimal on both sides of the channel.
+// Mode is an octal string, `0644`: a number would read as decimal on both sides of the channel.
 type FileEntry struct {
 	Name       string `json:"name"`
 	Kind       string `json:"kind"`
@@ -732,7 +744,7 @@ const (
 	RemedyInvalidFields = "invalid_fields"
 )
 
-// The machine-readable half of a fix: what to do next as a value, so the app never reads a number out of a sentence.
+// The fix as a value, so the app never parses a number out of a sentence.
 type Remedy struct {
 	Code     string         `json:"code"`
 	PortFree int            `json:"port_free,omitempty"`
@@ -743,7 +755,6 @@ func PortTaken(free int) *Remedy {
 	return &Remedy{Code: RemedyPortTaken, PortFree: free}
 }
 
-// InvalidFields carries what the configuration got wrong, field by field, so the screen marks them instead of printing a sentence.
 func InvalidFields(problems []FieldProblem) *Remedy {
 	return &Remedy{Code: RemedyInvalidFields, Problems: problems}
 }
@@ -821,10 +832,7 @@ type Diag struct {
 	Report      string `json:"report"`
 }
 
-// ConfigState says where the configuration on a machine stands against the
-// binary reading it. `pending` is a machine whose migrations have not run yet,
-// `failed` one whose configuration was put back as it was because a migration
-// refused, `ahead` one configured by a newer agent than the one now running.
+// failed: a migration refused and the configuration was put back; ahead: written by a newer agent than this one.
 type ConfigState string
 
 const (

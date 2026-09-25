@@ -1,4 +1,3 @@
-// Package tool puts the tool modules in the registry and adds the secret commands that drive them.
 package tool
 
 import (

@@ -24,6 +24,7 @@ func install(t *testing.T, fake *modtest.FakeSys) *modules.Context {
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -84,7 +85,6 @@ func TestReplayMutatesNothing(t *testing.T) {
 	}
 }
 
-// A machine without a headless browser still files the captures it is handed: the module warns instead of failing.
 func TestAMissingBrowserOnlyWarns(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.FailPackage(chromePackage, "E: Unable to locate package google-chrome-stable")
@@ -96,6 +96,7 @@ func TestAMissingBrowserOnlyWarns(t *testing.T) {
 	}
 
 	warned := false
+
 	for _, line := range ctx.Output() {
 		warned = warned || strings.Contains(line, "shot <file> works")
 	}
@@ -105,6 +106,7 @@ func TestAMissingBrowserOnlyWarns(t *testing.T) {
 	}
 
 	var status contract.StepStatus
+
 	for _, event := range ctx.Events() {
 		if event.Step == "install-browser" {
 			status = event.Status
@@ -151,7 +153,7 @@ func TestFailedGalleryStepCarriesItsReplayCommand(t *testing.T) {
 
 var _ modules.Module = Module{}
 
-// The Google repository is only reachable on amd64, where the test binary may not run: the step is exercised on its own.
+// The Google repository is amd64-only and the test binary may not be, so the step is exercised on its own.
 func TestGoogleRepositoryIsWrittenOnce(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	ctx := newContext(t, fake)
@@ -180,7 +182,6 @@ func TestGoogleRepositoryIsWrittenOnce(t *testing.T) {
 	}
 }
 
-// 24.04 renamed four of the libraries with the t64 suffix and 22.04 never heard of it: a list mixing the two reinstalls on one and warns on the other at every replay.
 func TestPlaywrightLibrariesFollowTheUbuntuRelease(t *testing.T) {
 	for release, want := range map[string][]string{
 		"22.04": {"libatk1.0-0", "libatk-bridge2.0-0", "libcups2", "libasound2"},
@@ -197,10 +198,12 @@ func TestPlaywrightLibrariesFollowTheUbuntuRelease(t *testing.T) {
 					t.Errorf("%s: %s not installed, packages %v", release, pkg, fake.Packages)
 				}
 			}
+
 			other := "libasound2t64"
 			if release == "24.04" {
 				other = "libasound2"
 			}
+
 			if fake.Packages[other] != "" {
 				t.Errorf("%s: %s is the other release's name", release, other)
 			}
@@ -208,9 +211,6 @@ func TestPlaywrightLibrariesFollowTheUbuntuRelease(t *testing.T) {
 	}
 }
 
-// Ubuntu answers `apt-get install chromium` with chromium-browser, a stub that
-// only says to install the snap: no browser landed, and the machine must say
-// so once, never as a change on every replay.
 func TestUbuntusSnapStubIsNoBrowser(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.FailPackage(chromePackage, "E: Unable to locate package google-chrome-stable")
@@ -229,6 +229,7 @@ func TestUbuntusSnapStubIsNoBrowser(t *testing.T) {
 
 	for _, ctx := range []*modules.Context{first, again} {
 		status, warned := contract.StepStatus(""), false
+
 		for _, event := range ctx.Events() {
 			if event.Step == "install-browser" {
 				status = event.Status

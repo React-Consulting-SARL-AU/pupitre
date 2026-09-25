@@ -54,9 +54,11 @@ func TestImportNamesOneStepPerDump(t *testing.T) {
 	}
 
 	var steps []string
+
 	for _, event := range ctx.Events() {
 		steps = append(steps, event.Step+":"+string(event.Status))
 	}
+
 	if strings.Join(steps, " ") != "import-shop:ok import-intranet:ok" {
 		t.Fatalf("the report must name each imported database, got %v", steps)
 	}
@@ -147,9 +149,11 @@ func TestAFailedImportIsReportedAndLetsTheNextOneThrough(t *testing.T) {
 	}
 
 	var steps []string
+
 	for _, event := range ctx.Events() {
 		steps = append(steps, event.Step+":"+string(event.Status))
 	}
+
 	if strings.Join(steps, " ") != "import-intranet:ok import-shop:fail" {
 		t.Fatalf("the report must carry the failed import: %v", steps)
 	}
@@ -160,7 +164,6 @@ func TestAFailedImportIsReportedAndLetsTheNextOneThrough(t *testing.T) {
 	}
 }
 
-// A plain x.sql beside x.sql.gz is the client's: the archive is decompressed under a name of its own, and only that copy goes.
 func TestGzippedDumpIsDecompressedUnderItsOwnNameThenRemoved(t *testing.T) {
 	var seen []string
 	var decompressed string

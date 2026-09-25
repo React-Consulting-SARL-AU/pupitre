@@ -21,17 +21,15 @@ const (
 	DefaultBaseURL   = "https://app.pupitre.studio/api/v1"
 	DefaultTokenPath = "/etc/pupitre/server.token"
 
-	// Where the platform this server answers to is kept. The enrolment names
-	// it, and everything the server does alone afterwards — the heartbeat, the
-	// entitlement it renews, the keys it reads — has no one to ask otherwise.
+	// Written at enrolment: heartbeat, entitlement and keys later run with no one else to ask.
 	DefaultBaseURLPath = "/etc/pupitre/platform.url"
 
-	// DefaultServerIDPath keeps what /agent/state names this server: the prefix of its backups in the client's bucket.
+	// Also the prefix of this server's backups in the client's bucket.
 	DefaultServerIDPath = "/etc/pupitre/server.id"
 
 	DefaultMaxBytes = 128 << 20
 	DefaultTimeout  = 5 * time.Minute
-	// Two exchanges fit under the timeout the app grants a command: the agent must answer before the app gives up.
+	// Two exchanges must fit under the app's command timeout, so the agent answers before the app gives up.
 	DefaultControlTimeout = 20 * time.Second
 	maxRedirects          = 5
 	maxDetailBytes        = 8 << 10
@@ -61,6 +59,21 @@ type Error struct {
 	Code    string
 	Message string
 	Cause   error
+	base    string
+}
+
+func (e *Error) Console() string {
+	return Console(e.base)
+}
+
+// Falls back to the shared default so a refusal always names a console the client can open.
+func Console(baseURL string) string {
+	parsed, err := url.Parse(baseURL)
+	if baseURL == "" || err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		parsed, _ = url.Parse(DefaultBaseURL)
+	}
+
+	return parsed.Scheme + "://" + parsed.Host
 }
 
 func (e *Error) Error() string {
@@ -87,25 +100,21 @@ func (e *Error) Unauthorized() bool {
 	return e.Status == http.StatusUnauthorized || e.Status == http.StatusForbidden
 }
 
-// CodeInvalidServerToken is what the platform answers for a token it does not know: a revoked or purged server.
 const CodeInvalidServerToken = "invalid_server_token"
 
-// Revoked is the one refusal that says the server itself is gone from the platform, not merely refused today.
 func (e *Error) Revoked() bool {
 	return e.Status == http.StatusUnauthorized && e.Code == CodeInvalidServerToken
 }
 
-// What the platform knows of this server: the entitlement, the keys it asks for, the version it should run.
 type State struct {
 	Entitlement string    `json:"entitlement"`
 	ValidUntil  time.Time `json:"valid_until"`
-	// Keys is nil when the platform predates approvals: nothing it says then moves the keys.
+	// Nil when the platform predates approvals: the keys are then left alone.
 	Keys           *[]contract.AgentStateKey `json:"keys"`
 	TargetVersion  string                    `json:"target_version"`
 	MinimumVersion string                    `json:"minimum_version"`
 	Hostname       string                    `json:"hostname"`
-	// ServerID names this server on the platform, and its prefix in the backup bucket.
-	ServerID string `json:"server_id"`
+	ServerID       string                    `json:"server_id"`
 }
 
 type Enrollment struct {
@@ -123,26 +132,20 @@ type Heartbeat struct {
 	StackVersion string   `json:"stack_version"`
 	Modules      []string `json:"modules"`
 	AgentVersion string   `json:"agent_version,omitempty"`
-	// The account whose authorized_keys carry the platform's block: the one an app must open the machine with.
-	SSHUser string `json:"ssh_user,omitempty"`
+	SSHUser      string   `json:"ssh_user,omitempty"`
 
-	// What the machine measured, beside the percentages computed from it: a
-	// console can say "1.8 GB of 556 GB" only if it is told both numbers. Left
-	// out when the sonde read nothing, so the platform keeps null rather than
-	// recording a machine with no disk at all.
+	// Omitted when unmeasured, so the platform keeps null rather than recording a machine with no disk.
 	DiskTotalGB float64 `json:"disk_total_gb,omitempty"`
 	DiskFreeGB  float64 `json:"disk_free_gb,omitempty"`
 	RAMTotalMB  float64 `json:"ram_total_mb,omitempty"`
 	RAMUsedMB   float64 `json:"ram_used_mb,omitempty"`
 
-	// Backup is sent only by a server whose backup module is installed: silence leaves what the platform knew.
+	// Omitted without the backup module, so the platform keeps what it knew.
 	Backup *contract.BackupBeat `json:"backup,omitempty"`
 
-	// Keys is sent once a read of the state has said which keys wait for an approval.
 	Keys *contract.KeysBeat `json:"keys,omitempty"`
 }
 
-// What the publication chain deposited for a version: the platform's own word on what the binary must hash to, and the signature that binds it.
 type ReleaseInfo struct {
 	Version   string `json:"version"`
 	Arch      string `json:"arch"`
@@ -151,7 +154,6 @@ type ReleaseInfo struct {
 	Channel   string `json:"channel"`
 }
 
-// The binary of a version, for the architecture the platform knows this server by.
 func (c Client) Release(ctx context.Context, version string) ([]byte, error) {
 	return c.do(ctx, http.MethodGet, "/agent/release/"+url.PathEscape(version), nil, true, DefaultTimeout)
 }
@@ -190,7 +192,6 @@ func (c Client) State(ctx context.Context) (State, error) {
 	return state, nil
 }
 
-// The only call made without a server token: it is the one that hands one out.
 func (c Client) Exchange(ctx context.Context, enrollment Enrollment) (string, error) {
 	body, err := json.Marshal(enrollment)
 	if err != nil {
@@ -230,7 +231,7 @@ func (c Client) Beat(ctx context.Context, beat Heartbeat) error {
 	return err
 }
 
-// DeclareBackup tells the platform a backup exists and where; declaring the same one twice is not an error.
+// Declaring the same backup twice is not an error.
 func (c Client) DeclareBackup(ctx context.Context, declaration contract.BackupDeclaration) error {
 	body, err := json.Marshal(declaration)
 	if err != nil {
@@ -242,7 +243,6 @@ func (c Client) DeclareBackup(ctx context.Context, declaration contract.BackupDe
 	return err
 }
 
-// ForgetBackup withdraws the reference of a backup whose objects left the bucket; one the platform never knew is already gone.
 func (c Client) ForgetBackup(ctx context.Context, id string) error {
 	path := "/agent/backups/" + url.PathEscape(id)
 
@@ -296,7 +296,7 @@ func (c Client) do(ctx context.Context, method, path string, body []byte, authen
 	defer response.Body.Close()
 
 	if response.StatusCode < 200 || response.StatusCode > 299 {
-		return nil, refusal(path, response)
+		return nil, refusal(base, path, response)
 	}
 
 	limit := c.maxBytes()
@@ -312,9 +312,9 @@ func (c Client) do(ctx context.Context, method, path string, body []byte, authen
 	return answer, nil
 }
 
-// A refusal comes as { error: { code, message, fix? } }; keeping the code is what tells a revoked token apart from a network that flinched.
-func refusal(path string, response *http.Response) *Error {
-	failure := &Error{Path: path, Status: response.StatusCode}
+// Keeping the code is what tells a revoked token apart from a network that flinched.
+func refusal(base, path string, response *http.Response) *Error {
+	failure := &Error{Path: path, Status: response.StatusCode, base: base}
 
 	raw, err := io.ReadAll(io.LimitReader(response.Body, maxDetailBytes))
 	if err != nil {
@@ -354,7 +354,7 @@ func (c Client) client(timeout time.Duration) *http.Client {
 	return client
 }
 
-// The server token stops at the platform: what the redirect points at is a storage URL already signed for this download.
+// The token stops at the platform: the redirect target is a storage URL already signed for this download.
 func dropToken(request *http.Request, via []*http.Request) error {
 	if len(via) >= maxRedirects {
 		return ErrTooManyRedirects
@@ -381,7 +381,7 @@ func (c Client) maxBytes() int64 {
 	return DefaultMaxBytes
 }
 
-// Outgoing HTTPS and nothing else: a plaintext address is only tolerated on the loopback, where the tests put their fake platform.
+// Plaintext is tolerated on the loopback only, where the tests run their fake platform.
 func (c Client) base() (string, error) {
 	raw := strings.TrimSuffix(c.BaseURL, "/")
 	if raw == "" {

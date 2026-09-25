@@ -28,7 +28,7 @@ type request struct {
 	lines  int
 }
 
-// The driving commands as a human types them. Every verb goes through the protocol handler the app calls, so a terminal and the app never see two different machines.
+// Every verb goes through the protocol handler the app calls, so a terminal and the app never see two different machines.
 func Run(options Options, args []string, stdout, stderr io.Writer) int {
 	asked, err := parse(args)
 	if err != nil {
@@ -72,6 +72,7 @@ func parse(args []string) (request, error) {
 			if err != nil {
 				return asked, errors.New(i18n.T("devcli.lines.expected"))
 			}
+
 			asked.lines = count
 		case strings.HasPrefix(argument, "-"):
 			return asked, errors.New(i18n.T("cli.option.unknown", argument))
@@ -175,11 +176,14 @@ func runSync(options Options, asked request, out *printer) int {
 	}
 
 	return render(out, result, func(value contract.ProjectSync) {
-		out.line(fmt.Sprintf("%s · %s · %s · %s", name, done(value.Pulled, i18n.T("devcli.sync.pulled"), i18n.T("devcli.sync.uptodate")), done(value.Installed, i18n.T("devcli.sync.installed"), i18n.T("devcli.sync.unchanged")), value.State))
+		pulled := done(value.Pulled, i18n.T("devcli.sync.pulled"), i18n.T("devcli.sync.uptodate"))
+		installed := done(value.Installed, i18n.T("devcli.sync.installed"), i18n.T("devcli.sync.unchanged"))
+
+		out.line(fmt.Sprintf("%s · %s · %s · %s", name, pulled, installed, value.State))
 	})
 }
 
-// The command, not the attachment: pupitred answers on a channel that has no terminal, and a human pastes the line his own terminal will run.
+// Prints the command rather than attaching: pupitred answers on a channel that has no terminal.
 func runAttach(options Options, asked request, out *printer) int {
 	name, err := target(asked)
 	if err != nil {
@@ -240,6 +244,7 @@ func branchesOf(options Options, name string, out *printer) int {
 		}
 
 		out.line(fmt.Sprintf("%s · %s%s", name, value.Current, when(value.Dirty, " · "+i18n.T("devcli.branch.dirty"))))
+
 		for _, branch := range value.Local {
 			out.line("  " + current(branch == value.Current) + " " + branch)
 		}
@@ -303,7 +308,6 @@ func runDB(options Options, asked request, out *printer) int {
 	})
 }
 
-// One database on the machine and the engine goes without saying; two, and the human says which.
 func engineOf(options Options, asked request) (string, error) {
 	if len(asked.words) > 1 {
 		return asked.words[1], nil
@@ -320,6 +324,7 @@ func engineOf(options Options, asked request) (string, error) {
 	}
 
 	var engines []string
+
 	for _, service := range status.Services {
 		if engine, found := strings.CutPrefix(service.ID, "db."); found {
 			engines = append(engines, engine)
@@ -334,7 +339,6 @@ func engineOf(options Options, asked request) (string, error) {
 	return engines[0], nil
 }
 
-// A backup from the terminal goes through the handler the app calls: the same lock, the same steps, the same bucket.
 func runBackup(options Options, asked request, out *printer) int {
 	switch at(asked.words, 0) {
 	case "now":
@@ -409,7 +413,6 @@ func as[T any](result any) (T, error) {
 	return value, json.Unmarshal(raw, &value)
 }
 
-// The process a human means: the one named, or the first of the project when none is — a project of one process never has to be spelt out.
 func processOf(options Options, name, process string) (string, error) {
 	if process != "" {
 		return process, nil

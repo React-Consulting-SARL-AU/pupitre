@@ -1,7 +1,5 @@
 package i18n
 
-// The phrase catalogue. One key, two languages, neither empty: the
-// completeness test checks it, and the linter forbids a phrase living elsewhere.
 var catalog = map[string]Message{
 	"protocol.secrets.fix": {
 		FR: `Écris les secrets en JSON sur une seule ligne de l'entrée standard, juste après la requête : {"<clé>":"<valeur>"}.`,
@@ -28,8 +26,8 @@ var catalog = map[string]Message{
 		EN: "a usage right is required: this server is in restricted mode",
 	},
 	"protocol.entitlement.required.fix": {
-		FR: "Ouvrez https://app.pupitre.studio pour renouveler l'abonnement de ce serveur.",
-		EN: "Open https://app.pupitre.studio to renew this server's usage right.",
+		FR: "Ouvrez %s pour renouveler l'abonnement de ce serveur.",
+		EN: "Open %s to renew this server's usage right.",
 	},
 	"protocol.internal": {
 		FR: "erreur interne : %s",

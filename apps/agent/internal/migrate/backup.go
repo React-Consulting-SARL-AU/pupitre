@@ -12,9 +12,7 @@ import (
 const (
 	manifestFile = "backup.json"
 
-	// The ledger is backed up with the files it describes: putting both back
-	// together is what makes a failed batch leave a machine that agrees with
-	// itself, rather than files from before and a revision from after.
+	// Backed up with its files so a failed batch never leaves old files under a newer revision.
 	ledgerName = "ledger"
 )
 
@@ -27,8 +25,7 @@ type Backup struct {
 	Files        []BackedUp `json:"files"`
 }
 
-// Present says whether the file was on the machine when the backup was taken.
-// A file a migration created is restored by being removed again.
+// A file absent at backup time is restored by removing it.
 type BackedUp struct {
 	Name    string `json:"name"`
 	Present bool   `json:"present"`
@@ -38,8 +35,6 @@ func backupName(at time.Time, from int) string {
 	return at.UTC().Format("20060102T150405Z") + "-r" + itoa(from)
 }
 
-// The names a backup holds: every target the pending migrations declare, once,
-// plus the ledger. A migration that touches nothing still gets its ledger kept.
 func (r *Runner) backedUp(pending []Migration) []string {
 	seen := map[string]bool{ledgerName: true}
 	names := []string{ledgerName}
@@ -75,7 +70,7 @@ func (r *Runner) snapshot(ctx *Context, from, to int, names []string) (string, e
 
 	dir := path.Join(r.paths.Backups, backup.Name)
 
-	// Only a file that is not there is kept as absent: a restore removes what the backup says was absent, and a file that failed to read was there.
+	// Only ErrNotExist marks a file absent: a restore removes absent files, and one that failed to read was there.
 	for _, name := range names {
 		raw, err := r.options.Sys.ReadFile(r.pathOf(name))
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {
@@ -105,11 +100,7 @@ func (r *Runner) snapshot(ctx *Context, from, to int, names []string) (string, e
 	return backup.Name, nil
 }
 
-// Restore puts a batch's files back where they were, the ledger included.
-//
-// It resolves each file by the name the backup gave it, not by the path it had:
-// the paths are the ones this binary reads today, which is where the files have
-// to land for it to read them.
+// Files resolve by backup name, not original path, so they land where this binary reads them today.
 func (r *Runner) restore(ctx *Context, name string) error {
 	backup, err := r.Backup(name)
 	if err != nil {
@@ -149,6 +140,7 @@ func (r *Runner) Backup(name string) (Backup, error) {
 	}
 
 	var backup Backup
+
 	if err := json.Unmarshal(raw, &backup); err != nil {
 		return Backup{}, unknownBackup(name)
 	}
@@ -158,8 +150,7 @@ func (r *Runner) Backup(name string) (Backup, error) {
 	return backup, nil
 }
 
-// Backups lists what the machine still holds, newest first: the names sort by
-// the moment they were taken, because that is how they are written.
+// Names start with the UTC timestamp, so a reverse string sort is newest first.
 func (r *Runner) Backups() []Backup {
 	entries, err := r.options.Sys.ReadDir(r.paths.Backups)
 	if err != nil {
@@ -167,6 +158,7 @@ func (r *Runner) Backups() []Backup {
 	}
 
 	names := make([]string, 0, len(entries))
+
 	for _, entry := range entries {
 		if entry.Dir {
 			names = append(names, entry.Name)
@@ -176,6 +168,7 @@ func (r *Runner) Backups() []Backup {
 	sort.Sort(sort.Reverse(sort.StringSlice(names)))
 
 	backups := make([]Backup, 0, len(names))
+
 	for _, name := range names {
 		if backup, err := r.Backup(name); err == nil {
 			backups = append(backups, backup)
@@ -185,8 +178,6 @@ func (r *Runner) Backups() []Backup {
 	return backups
 }
 
-// A machine keeps the last few batches and forgets the rest: a backup nobody
-// restored in five releases is not the one a rollback will reach for.
 func (r *Runner) prune() {
 	entries, err := r.options.Sys.ReadDir(r.paths.Backups)
 	if err != nil {
@@ -194,6 +185,7 @@ func (r *Runner) prune() {
 	}
 
 	names := make([]string, 0, len(entries))
+
 	for _, entry := range entries {
 		if entry.Dir {
 			names = append(names, entry.Name)
