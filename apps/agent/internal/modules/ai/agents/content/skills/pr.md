@@ -9,6 +9,8 @@ Open a pull request for the current branch.
 
 ## Usage
 
+What the request may carry; `pr` is this skill, not a shell command.
+
     pr                        title and description derived from the commits
     pr <title>                this title
     pr --base <branch>        target a base other than the default branch
@@ -16,7 +18,7 @@ Open a pull request for the current branch.
 
 ## Prerequisites, to check before anything else
 
-    gh auth status            gh is authenticated by the stack's token (GITHUB_TOKEN)
+    gh auth status            gh is logged in when the owner installed the GitHub tool
     git status -sb            the current branch is not main
 
 If you are on `main`, go through the `branch` skill first. If the tree carries

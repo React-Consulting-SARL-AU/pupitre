@@ -9,6 +9,8 @@ Commit the working tree and push it, on the branch you are already on.
 
 ## Usage
 
+What the request may carry; `ship` is this skill, not a shell command.
+
     ship                      commit everything modified, then push
     ship <message>            this subject (or these instructions) for the message
     ship <path> [path…]       only these files
