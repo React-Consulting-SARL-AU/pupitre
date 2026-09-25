@@ -51,13 +51,13 @@ export function ServiceCredentialRow({
       data-credential={label}
     >
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[13px] text-ink">
+        <span className="block truncate text-control text-ink">
           {label === CONNECTION_LABEL
             ? t("services.credentials.connectionLabel")
             : label}
         </span>
         <code
-          className="mt-0.5 block break-all font-data text-[12px] text-ink-3"
+          className="mt-0.5 block break-all font-data text-ink-3 text-small"
           data-revealed={shown === null ? "false" : "true"}
         >
           {shown ?? MASK}

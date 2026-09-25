@@ -31,7 +31,7 @@ export function BackupsExtraChoice({
 
   return (
     <Panel className="flex flex-col gap-4" inset="lg">
-      <p className="text-[13px] text-ink-2">{t("backups.extra.question")}</p>
+      <p className="text-control text-ink-2">{t("backups.extra.question")}</p>
 
       <div className="flex flex-col gap-2">
         {extra.map((moduleId) => (

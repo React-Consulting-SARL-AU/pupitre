@@ -142,7 +142,7 @@ export function CommandPalette({
               aria-controls={listId}
               aria-expanded="true"
               autoComplete="off"
-              className="min-w-0 flex-1 bg-transparent text-[14px] text-ink outline-none placeholder:text-ink-4"
+              className="min-w-0 flex-1 bg-transparent text-body text-ink outline-none placeholder:text-ink-4"
               onChange={(event) => {
                 setTerm(event.target.value);
                 setIndex(0);
@@ -165,7 +165,7 @@ export function CommandPalette({
             role="listbox"
           >
             {shown.length === 0 ? (
-              <p className="px-3 py-3 text-[13px] text-ink-3">
+              <p className="px-3 py-3 text-control text-ink-3">
                 {t("palette.empty", { term })}
               </p>
             ) : null}
@@ -177,7 +177,7 @@ export function CommandPalette({
               return (
                 <button
                   aria-selected={active}
-                  className={`flex w-full items-center gap-2.5 rounded-sm px-2.5 py-2 text-left text-[13px] transition-fast ${
+                  className={`flex w-full items-center gap-2.5 rounded-sm px-2.5 py-2 text-left text-control transition-fast ${
                     active ? "bg-raised text-ink" : "text-ink-2"
                   }`}
                   data-palette-entry={`${entry.kind}:${entry.id}`}
@@ -197,7 +197,7 @@ export function CommandPalette({
                   />
                   <span className="min-w-0 flex-1 truncate">{entry.label}</span>
                   {entry.hint ? (
-                    <span className="shrink-0 truncate font-data text-[11px] text-ink-3">
+                    <span className="shrink-0 truncate font-data text-caption text-ink-3">
                       {entry.hint}
                     </span>
                   ) : null}

@@ -55,7 +55,7 @@ export function ConfigIndex({
         return (
           <button
             aria-current={open ? "true" : undefined}
-            className={`clickable flex shrink-0 items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-[12px] transition-fast hover:bg-raised hover:text-ink ${
+            className={`clickable flex shrink-0 items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-small transition-fast hover:bg-raised hover:text-ink ${
               open ? "bg-raised font-medium text-ink" : "text-ink-3"
             }`}
             data-index={group.module.id}

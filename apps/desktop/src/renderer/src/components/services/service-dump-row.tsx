@@ -39,8 +39,8 @@ export function ServiceDumpRow({
       data-dump={dump.name}
     >
       <div className="min-w-0 flex-1">
-        <p className="truncate font-data text-[12px] text-ink">{dump.name}</p>
-        <p className="font-data text-[11px] text-ink-3 tabular-nums">
+        <p className="truncate font-data text-ink text-small">{dump.name}</p>
+        <p className="font-data text-caption text-ink-3 tabular-nums">
           {facts.join(" · ")}
           {" · "}
           {t("services.dumps.feeds", { database })}

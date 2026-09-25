@@ -120,13 +120,16 @@ export function ProjectBranchCreate({
         </Button>
       </div>
 
-      <span className="font-data text-[11px] text-ink-3" id={`${inputId}-help`}>
+      <span
+        className="font-data text-caption text-ink-3"
+        id={`${inputId}-help`}
+      >
         {t("project.branches.newFrom", { branch: branches.current })}
       </span>
 
       {refused ? (
         <span
-          className="text-[12px] text-danger leading-relaxed"
+          className="text-danger text-small leading-relaxed"
           id={`${inputId}-problem`}
         >
           {problemText}

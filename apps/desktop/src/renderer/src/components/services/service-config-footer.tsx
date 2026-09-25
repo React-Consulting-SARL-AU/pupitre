@@ -30,7 +30,7 @@ export function ServiceConfigFooter({
   return (
     <div className="flex flex-wrap items-center gap-3 border-line border-t px-6 py-4">
       {refused > 0 && stray.length === 0 ? (
-        <span className="text-[12px] text-danger" data-config-refused="">
+        <span className="text-danger text-small" data-config-refused="">
           {t.plural("services.config.refused", refused)}
         </span>
       ) : null}
@@ -38,7 +38,7 @@ export function ServiceConfigFooter({
       {stray.length > 0 ? (
         <ul className="flex min-w-0 flex-1 flex-col gap-1" data-config-stray="">
           {stray.map((line) => (
-            <li className="text-[12px] text-danger" key={line}>
+            <li className="text-danger text-small" key={line}>
               {line}
             </li>
           ))}

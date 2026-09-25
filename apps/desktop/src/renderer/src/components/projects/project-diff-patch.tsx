@@ -22,7 +22,7 @@ export function ProjectDiffPatch({
   if (state.status === "reading") {
     return (
       <div className="flex justify-center p-6">
-        <WaitingLine className="text-[13px]">
+        <WaitingLine className="text-control">
           {t("project.diff.reading")}
         </WaitingLine>
       </div>
@@ -39,7 +39,7 @@ export function ProjectDiffPatch({
 
   if (state.diff.binary) {
     return (
-      <p className="p-6 text-center text-[13px] text-ink-3">
+      <p className="p-6 text-center text-control text-ink-3">
         {t("project.diff.binaryFile")}
       </p>
     );

@@ -142,7 +142,7 @@ export function SettingsAboutUpdate({
           {t("settings.about.check")}
         </Button>
         {checked ? (
-          <span className="font-data text-[12px] text-ink-3">{checked}</span>
+          <span className="font-data text-ink-3 text-small">{checked}</span>
         ) : null}
       </div>
     </div>

@@ -88,7 +88,7 @@ export function JournalPane({
     <div
       aria-label={label}
       aria-live="off"
-      className={`cursor-text select-text overflow-auto bg-sunken px-4 py-3 font-data text-[12px] text-ink-2 leading-[1.7] ${className}`}
+      className={`cursor-text select-text overflow-auto bg-sunken px-4 py-3 font-data text-ink-2 text-small leading-[1.7] ${className}`}
       onPointerDown={onPointerDown}
       onScroll={onScroll}
       ref={box}
@@ -161,7 +161,7 @@ function JournalRule({
       data-journal-mark={kind}
     >
       <span aria-hidden="true" className="h-px flex-1 bg-line-strong" />
-      <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-[11px]">
+      <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-caption">
         <Icon aria-hidden="true" size={11} strokeWidth={1.5} />
         {t(`ui.journal.${kind}`, { time: clock(at) })}
       </span>

@@ -13,7 +13,7 @@ export const services = {
       "The settings of this service cannot be shown: the server's catalogue did not answer.",
     "services.config.heldBack":
       "The settings of this service cannot be shown while the server is held back.",
-    "services.config.reread": "Read the catalogue again",
+    "services.config.reread": "Refresh the catalogue",
     "services.config.title": "Configuration",
     "services.config.unconfigured":
       "This service was installed without being configured. Answer its questions and apply.",
@@ -50,22 +50,21 @@ export const services = {
       "Restart {name}? Whoever is connected to it is cut off for a moment.",
     "services.control.restartConfirm": "Restart now",
     "services.control.failedHint":
-      "{name} stopped on an error. Start it again; if it falls again, the journal below says why.",
+      "{name} stopped on an error. Start it again; if it falls again, the logs below say why.",
 
-    "services.journal.title": "Journal",
-    "services.journal.label": "Journal of {name}",
-    "services.journal.follow": "Follow",
-    "services.journal.copyAll": "Copy",
+    "services.journal.title": "Logs",
+    "services.journal.label": "Logs of {name}",
+    "services.journal.follow": "Follow new lines",
+    "services.journal.copyAll": "Copy the logs",
     "services.journal.lines.one": "{count} line",
     "services.journal.lines.other": "{count} lines",
-    "services.journal.copyAllHint": "Copy the journal of {name}",
     "services.journal.waiting": "Waiting for the first lines of {name}",
     "services.journal.cut":
       "Only the last {count} lines are kept: older ones have been dropped.",
 
     "services.dumps.title": "Dumps on the server",
     "services.dumps.read": "List the dumps",
-    "services.dumps.reread": "List again",
+    "services.dumps.reread": "Refresh",
     "services.dumps.none": "No dump in the server folder yet.",
     "services.dumps.feeds": "feeds {database}",
     "services.dumps.restore": "Restore",
@@ -80,17 +79,17 @@ export const services = {
     "services.forward.title": "Tunnel to this port",
     "services.forward.open": "Open a tunnel to {port}",
     "services.forward.empty": "No tunnel open.",
-    "services.forward.help": "The server's port {port}, on this machine.",
+    "services.forward.help": "The server's port {port}, on this computer.",
     "services.forward.moved":
-      "The server's port {port}, on this machine. Its usual local port, {from}, was taken by something else.",
+      "The server's port {port}, on this computer. Its usual local port, {from}, was taken by something else.",
     "services.forward.address": "Local address",
     "services.forward.close": "Close this tunnel",
 
-    "services.panel.reload": "Reread",
+    "services.panel.reload": "Refresh",
     "services.panel.back": "All services",
     "services.panel.waitingTitle": "Reading the service",
 
-    "services.removal.button": "Remove this module",
+    "services.removal.button": "Remove this service",
     "services.removal.losses.intro": "Removing {name} from this server loses:",
     "services.removal.losses.note":
       "Nothing is backed up along the way: export what matters first.",
@@ -108,36 +107,36 @@ export const services = {
     "services.screen.emptyTitle": "No service",
 
     "services.add.quit": "Exit adding",
-    "services.add.replay": "Replay this module",
+    "services.add.replay": "Reinstall this service",
     "services.add.submit": "Add",
 
     "services.tunnel.title": "Tunnel",
     "services.tunnel.absent":
-      "No exposure module on this server: projects stay reachable through the app's SSH session.",
+      "No exposure service on this server: projects stay reachable through the app's SSH session.",
     "services.tunnel.sync": "Sync the routes",
     "services.tunnel.noRoutes": "No route: no project has a subdomain yet.",
     "services.routes.title": "Routes",
 
     "services.removal.category.ai":
-      "The agent and its configuration on this machine.",
+      "The agent and its configuration on the server.",
     "services.removal.category.database":
       "The databases of this engine, their accounts and their passwords.",
     "services.removal.category.editor":
       "The preinstalled remote backend: the next connection will download it again.",
     "services.removal.category.exposure":
-      "The tunnel and the routes of the projects exposed by this module.",
+      "The tunnel and the routes of the projects exposed by this service.",
     "services.removal.category.runtime":
       "The versions laid down by this runtime; the projects that use them will no longer start.",
     "services.removal.category.tool":
       "The tool and the account registered for it.",
     "services.removal.base":
-      "{name} and what this module laid down on the machine.",
+      "{name} and what this service laid down on the server.",
     "services.removal.secrets":
       "The secrets sent at installation: the app no longer has them and cannot give them back.",
     "services.removal.dependents":
       "{names} depend on it and will stop working.",
     "services.removal.mandatory":
-      "This server's catalogue declares this module mandatory.",
+      "This server's catalogue declares this service mandatory.",
   },
   fr: {
     "services.credential.reveal": "Montrer",
@@ -153,7 +152,7 @@ export const services = {
       "Les réglages de ce service ne peuvent pas être montrés : le catalogue du serveur n'a pas répondu.",
     "services.config.heldBack":
       "Les réglages de ce service ne peuvent pas être montrés tant que le serveur est retenu.",
-    "services.config.reread": "Relire le catalogue",
+    "services.config.reread": "Actualiser le catalogue",
     "services.config.title": "Configuration",
     "services.config.unconfigured":
       "Ce service a été installé sans être configuré. Répondez à ses questions et appliquez.",
@@ -194,18 +193,17 @@ export const services = {
 
     "services.journal.title": "Logs",
     "services.journal.label": "Logs de {name}",
-    "services.journal.follow": "Suivre",
-    "services.journal.copyAll": "Copier",
+    "services.journal.follow": "Suivre les nouvelles lignes",
+    "services.journal.copyAll": "Copier les logs",
     "services.journal.lines.one": "{count} ligne",
     "services.journal.lines.other": "{count} lignes",
-    "services.journal.copyAllHint": "Copier les logs de {name}",
     "services.journal.waiting": "En attente des premières lignes de {name}",
     "services.journal.cut":
       "Seules les {count} dernières lignes sont gardées : les plus anciennes ont été retirées.",
 
     "services.dumps.title": "Dumps sur le serveur",
     "services.dumps.read": "Lister les dumps",
-    "services.dumps.reread": "Relister",
+    "services.dumps.reread": "Actualiser",
     "services.dumps.none":
       "Aucun dump dans le dossier du serveur pour l'instant.",
     "services.dumps.feeds": "nourrit {database}",
@@ -221,17 +219,17 @@ export const services = {
     "services.forward.title": "Tunnel vers ce port",
     "services.forward.open": "Ouvrir un tunnel vers {port}",
     "services.forward.empty": "Aucun tunnel ouvert.",
-    "services.forward.help": "Le port {port} du serveur, sur cette machine.",
+    "services.forward.help": "Le port {port} du serveur, sur cet ordinateur.",
     "services.forward.moved":
-      "Le port {port} du serveur, sur cette machine. Son port local habituel, {from}, était pris par autre chose.",
+      "Le port {port} du serveur, sur cet ordinateur. Son port local habituel, {from}, était pris par autre chose.",
     "services.forward.address": "Adresse locale",
     "services.forward.close": "Fermer ce tunnel",
 
-    "services.panel.reload": "Relire",
+    "services.panel.reload": "Actualiser",
     "services.panel.back": "Tous les services",
     "services.panel.waitingTitle": "Lecture du service",
 
-    "services.removal.button": "Retirer ce module",
+    "services.removal.button": "Retirer ce service",
     "services.removal.losses.intro":
       "Retirer {name} de ce serveur fait perdre :",
     "services.removal.losses.note":
@@ -249,36 +247,36 @@ export const services = {
     "services.screen.emptyTitle": "Aucun service",
 
     "services.add.quit": "Quitter l'ajout",
-    "services.add.replay": "Relancer ce module",
+    "services.add.replay": "Réinstaller ce service",
     "services.add.submit": "Ajouter",
 
     "services.tunnel.title": "Tunnel",
     "services.tunnel.absent":
-      "Aucun module d'exposition sur ce serveur : les projets restent joignables par la session SSH de l'app.",
+      "Aucun service d'exposition sur ce serveur : les projets restent joignables par la session SSH de l'app.",
     "services.tunnel.sync": "Synchroniser les routes",
     "services.tunnel.noRoutes":
       "Aucune route : aucun projet n'a encore de sous-domaine.",
     "services.routes.title": "Routes",
 
     "services.removal.category.ai":
-      "L'agent et sa configuration sur cette machine.",
+      "L'agent et sa configuration sur le serveur.",
     "services.removal.category.database":
       "Les bases de données de ce moteur, leurs comptes et leurs mots de passe.",
     "services.removal.category.editor":
       "Le backend distant préinstallé : la prochaine connexion le retéléchargera.",
     "services.removal.category.exposure":
-      "Le tunnel et les routes des projets exposés par ce module.",
+      "Le tunnel et les routes des projets exposés par ce service.",
     "services.removal.category.runtime":
       "Les versions posées par ce runtime ; les projets qui s'en servent ne démarreront plus.",
     "services.removal.category.tool":
       "L'outil et le compte enregistré pour lui.",
     "services.removal.base":
-      "{name} et ce que ce module a posé sur la machine.",
+      "{name} et ce que ce service a posé sur le serveur.",
     "services.removal.secrets":
       "Les secrets envoyés à l'installation : l'app ne les a plus et ne pourra pas les rendre.",
     "services.removal.dependents":
       "{names} en dépendent et cesseront de fonctionner.",
     "services.removal.mandatory":
-      "Le catalogue de ce serveur déclare ce module obligatoire.",
+      "Le catalogue de ce serveur déclare ce service obligatoire.",
   },
 } as const;

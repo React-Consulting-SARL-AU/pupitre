@@ -106,7 +106,7 @@ describe("la fin du parcours", () => {
 
     expect(html).toContain('data-actions="done"');
 
-    expect(text(html)).toContain("Connecté en dev");
+    expect(text(html)).toContain("Connecté en tant que dev");
     expect(text(html)).toContain("L'accès root est fermé");
   });
 

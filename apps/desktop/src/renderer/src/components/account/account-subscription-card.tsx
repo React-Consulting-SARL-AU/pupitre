@@ -143,7 +143,7 @@ export function AccountSubscriptionCard({
               </p>
             )}
             {ending ? (
-              <p className="mt-1 text-[12px] text-ink-3 leading-relaxed">
+              <p className="mt-1 text-ink-3 text-small leading-relaxed">
                 {t("account.subscription.trialEndingFix")}
               </p>
             ) : null}

@@ -207,7 +207,7 @@ test.describe("la galerie", () => {
       const question = page.getByRole("alertdialog");
 
       await expect(
-        question.getByText("paiement.png est supprimée")
+        question.getByText("paiement.png sera supprimée")
       ).toBeVisible();
       await question.getByRole("button", { name: "Supprimer" }).click();
 

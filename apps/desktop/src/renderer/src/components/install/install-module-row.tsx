@@ -1,5 +1,6 @@
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { humanMs } from "../../lib/duration";
+import { stepLabel } from "../../lib/step-label";
 import type { ModuleProgress } from "../../stores/install";
 import { Details } from "../ui/details";
 import { LiveDuration } from "../ui/live-duration";
@@ -44,7 +45,7 @@ export function InstallModuleRow({
   const current = module.steps.find((step) => step.status === "start");
   const crossed = module.steps.filter((step) => step.status !== "start");
   const replay = module.steps.find((step) => step.replay)?.replay;
-  const duration = "shrink-0 font-data text-[12px] text-ink-3 tabular-nums";
+  const duration = "shrink-0 font-data text-small text-ink-3 tabular-nums";
 
   return (
     <li
@@ -68,7 +69,7 @@ export function InstallModuleRow({
           <span className="min-w-0 flex-1 truncate font-medium text-ink">
             {name}
           </span>
-          <span className="shrink-0 text-[12px] text-ink-3">{said}</span>
+          <span className="shrink-0 text-ink-3 text-small">{said}</span>
           {module.status === "running" ? (
             <LiveDuration className={duration} />
           ) : null}
@@ -79,13 +80,13 @@ export function InstallModuleRow({
 
         {current ? (
           <p
-            className="mt-1 flex items-center gap-2 text-[12px] text-ink-3"
+            className="mt-1 flex items-center gap-2 text-ink-3 text-small"
             data-current-step={current.step}
           >
             <span>{t("install.stepAt", { index: crossed.length + 1 })}</span>
-            <code className="min-w-0 flex-1 truncate font-data text-ink-2">
-              {current.step}
-            </code>
+            <span className="min-w-0 flex-1 truncate text-ink-2">
+              {stepLabel(t, current.step)}
+            </span>
             <LiveDuration className={duration} />
           </p>
         ) : null}
@@ -99,6 +100,7 @@ export function InstallModuleRow({
                 <InstallStepRow
                   key={`${step.step}-${step.status}`}
                   step={step}
+                  withId
                 />
               ))}
             </ul>

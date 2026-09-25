@@ -54,7 +54,6 @@ export function ServiceJournal({
 
           <CopyButton
             disabled={journal.rows.length === 0}
-            hint={t("services.journal.copyAllHint", { name })}
             onCopy={() =>
               navigator.clipboard.writeText(
                 journal.rows.map((row) => row.text).join("\n")
@@ -67,7 +66,7 @@ export function ServiceJournal({
       }
       aside={
         journal.rows.length > 0 ? (
-          <span className="font-data text-[11px] text-ink-3 tabular-nums">
+          <span className="font-data text-caption text-ink-3 tabular-nums">
             {t.plural("services.journal.lines", journal.rows.length)}
           </span>
         ) : null
@@ -88,7 +87,7 @@ export function ServiceJournal({
       >
         {journal.cut ? (
           <p
-            className="mb-2 border-line border-b pb-2 text-[11px] text-ink-3"
+            className="mb-2 border-line border-b pb-2 text-caption text-ink-3"
             data-logs-cut="true"
           >
             {t("services.journal.cut", { count: MAX_LINES })}

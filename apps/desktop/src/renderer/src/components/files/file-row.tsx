@@ -5,7 +5,7 @@ import { entryActions, type FileAction } from "@renderer/lib/file-actions";
 import { since, weight } from "@renderer/lib/format";
 import type { AgentError } from "@shared/agent";
 import type { RemoteEditor } from "@shared/editors";
-import { File, Folder, Link2 } from "lucide-react";
+import { File, FileCog, Folder, Link2 } from "lucide-react";
 import { type MouseEvent, useState } from "react";
 import { FileEntryMenu, type MenuPoint } from "./file-entry-menu";
 import { FileRemoveConfirm } from "./file-remove-confirm";
@@ -18,6 +18,7 @@ const ICON = {
   dir: Folder,
   file: File,
   link: Link2,
+  special: FileCog,
 } as const;
 
 /**
@@ -106,13 +107,13 @@ export function FileRow({
                 size={13}
                 strokeWidth={1.5}
               />
-              <span className="min-w-0 flex-1 truncate font-data text-[12px] text-ink">
+              <span className="min-w-0 flex-1 truncate font-data text-ink text-small">
                 {entry.name}
               </span>
-              <span className="min-w-16 shrink-0 whitespace-nowrap text-right font-data text-[11px] text-ink-3 tabular-nums">
+              <span className="min-w-16 shrink-0 whitespace-nowrap text-right font-data text-caption text-ink-3 tabular-nums">
                 {folder ? "" : weight(entry.size_bytes)}
               </span>
-              <span className="min-w-20 shrink-0 whitespace-nowrap text-right font-data text-[11px] text-ink-3 tabular-nums">
+              <span className="min-w-20 shrink-0 whitespace-nowrap text-right font-data text-caption text-ink-3 tabular-nums">
                 {Number.isNaN(modified) ? entry.modified_at : since(modified)}
               </span>
             </button>

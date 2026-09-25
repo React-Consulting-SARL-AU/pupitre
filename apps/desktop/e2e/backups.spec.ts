@@ -149,7 +149,7 @@ test.describe("sauvegardes", () => {
     await next.click();
     await setup
       .locator('[data-setup="content"]')
-      .getByRole("checkbox", { name: "PostgreSQL · flymate" })
+      .getByRole("checkbox", { name: "PostgreSQL · flyleaf" })
       .click();
     await setup
       .getByRole("button", { name: "Activer les sauvegardes" })
@@ -161,7 +161,7 @@ test.describe("sauvegardes", () => {
 
     expect(sent?.config["core.backup"]?.interval_hours).toBe(168);
     expect(sent?.config["core.backup"]?.exclude_databases).toEqual([
-      "postgres:flymate",
+      "postgres:flyleaf",
     ]);
     await expect(page.getByText(BACKUP_DONE)).toBeVisible();
     await expect(setup).toHaveCount(0);
@@ -179,7 +179,7 @@ test.describe("sauvegardes", () => {
 
     await test.step("le tableau de bord montre ce qui tourne, la dernière et la prochaine", async () => {
       await expect(
-        page.getByRole("tab", { name: "Tableau de bord" })
+        page.getByRole("tab", { name: "Vue d'ensemble" })
       ).toHaveAttribute("aria-selected", "true");
       await expect(
         page.getByText("Une sauvegarde de ce serveur est en cours.")
@@ -220,7 +220,7 @@ test.describe("sauvegardes", () => {
       await assertAccessible(page, "backups/content");
 
       await content
-        .getByRole("checkbox", { name: "PostgreSQL · flymate" })
+        .getByRole("checkbox", { name: "PostgreSQL · flyleaf" })
         .click();
       await content.getByRole("button", { name: "Appliquer" }).click();
 
@@ -234,7 +234,7 @@ test.describe("sauvegardes", () => {
       expect(sent?.config["core.backup"]?.exclude_databases).toEqual([
         "redis:*",
         "mysql:archives",
-        "postgres:flymate",
+        "postgres:flyleaf",
       ]);
       expect(sent?.config["core.backup"]?.projects).toBe(true);
     });

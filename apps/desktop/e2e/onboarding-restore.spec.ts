@@ -38,7 +38,7 @@ test.describe("onboarding depuis une sauvegarde", () => {
     await page.getByRole("tab", { name: "Serveurs" }).click();
     await page.getByRole("button", { name: "Installer Pupitre" }).click();
 
-    await expect(page.getByText("Prête à être installée")).toBeVisible();
+    await expect(page.getByText("Prêt à être installé")).toBeVisible();
     await page.getByRole("button", { name: INSTALL }).first().click();
     await expect(page.getByText("Agent en place")).toBeVisible();
     await page.getByRole("button", { name: "Choisir les services" }).click();
@@ -115,7 +115,7 @@ test.describe("onboarding depuis une sauvegarde", () => {
         page.locator('[data-step="data"] [data-current]')
       ).toHaveCount(1);
       await expect(
-        page.getByRole("checkbox", { name: "Base PostgreSQL · flymate" })
+        page.getByRole("checkbox", { name: "Base PostgreSQL · flyleaf" })
       ).toBeChecked();
       await assertAccessible(page, "onboarding/data");
     });

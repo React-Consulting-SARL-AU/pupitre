@@ -37,7 +37,7 @@ export function ProjectAddRepoPicked({
 
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="flex min-w-0 items-center gap-1.5">
-          <span className="truncate font-data text-[12px] text-ink">
+          <span className="truncate font-data text-ink text-small">
             {repo.fullName}
           </span>
           {repo.private ? (
@@ -50,7 +50,7 @@ export function ProjectAddRepoPicked({
           ) : null}
         </span>
 
-        <span className="flex items-center gap-3 text-[11px] text-ink-3">
+        <span className="flex items-center gap-3 text-caption text-ink-3">
           {repo.defaultBranch ? (
             <span className="inline-flex items-center gap-1 font-data">
               <GitBranch aria-hidden="true" size={11} strokeWidth={1.5} />

@@ -11,6 +11,7 @@ import {
   LARGE_MACHINE,
   SMALL_MACHINE,
 } from "../../__tests__/catalog-fixtures";
+import { mount } from "../../__tests__/dom";
 import {
   blocked,
   fromPreset,
@@ -20,6 +21,7 @@ import {
 } from "../../lib/catalog-selection";
 import { CatalogChoice } from "../catalog/catalog-choice";
 import { CatalogPresetChoice } from "../catalog/catalog-preset-choice";
+import { CatalogPresets } from "../catalog/catalog-presets";
 
 /**
  * The catalogue as it is drawn, from a catalogue and a probe and nothing else.
@@ -339,5 +341,52 @@ describe("chercher un service dans le catalogue", () => {
 
     expect(text(html)).toContain("Aucun service ne répond à « kubernetes ».");
     expect(html).not.toContain("data-category=");
+  });
+});
+
+describe("un préréglage sur une sélection déjà faite", () => {
+  const FULL = CATALOG.presets.find((p) => p.id === "full");
+  const chosen = FULL
+    ? fromPreset(CATALOG.modules, FULL, [], LARGE_MACHINE)
+    : [];
+
+  it("demande avant de retirer ce qui était coché, en le nommant", async () => {
+    const picked: string[] = [];
+    const view = await mount(
+      <CatalogPresets
+        modules={CATALOG.modules}
+        onPick={(id) => picked.push(id)}
+        presets={CATALOG.presets}
+        probe={LARGE_MACHINE}
+        selected={chosen}
+      />
+    );
+
+    await view.click(view.container.querySelector('[data-preset="web-js"]'));
+
+    expect(picked).toEqual([]);
+    expect(view.text()).toContain("Appliquer « Web JavaScript » ?");
+    expect(view.text()).toContain("PostgreSQL");
+
+    view.unmount();
+  });
+
+  it("applique sans rien demander quand rien ne serait retiré", async () => {
+    const picked: string[] = [];
+    const view = await mount(
+      <CatalogPresets
+        modules={CATALOG.modules}
+        onPick={(id) => picked.push(id)}
+        presets={CATALOG.presets}
+        probe={LARGE_MACHINE}
+        selected={[]}
+      />
+    );
+
+    await view.click(view.container.querySelector('[data-preset="web-js"]'));
+
+    expect(picked).toEqual(["web-js"]);
+
+    view.unmount();
   });
 });

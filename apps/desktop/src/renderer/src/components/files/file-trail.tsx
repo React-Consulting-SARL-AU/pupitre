@@ -25,7 +25,7 @@ export function FileTrail({
   return (
     <nav
       aria-label={label}
-      className="flex min-w-0 flex-wrap items-center gap-0.5 text-[12px]"
+      className="flex min-w-0 flex-wrap items-center gap-0.5 text-small"
     >
       <button
         aria-current={last < 0 ? "location" : undefined}

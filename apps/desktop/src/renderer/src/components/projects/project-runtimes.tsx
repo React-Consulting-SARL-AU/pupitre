@@ -48,7 +48,7 @@ export function ProjectRuntimes({
       title={t("project.config.runtimes.title")}
     >
       <Panel className="flex flex-col gap-5" inset="lg">
-        <p className="text-[12px] text-ink-3 leading-relaxed">
+        <p className="text-ink-3 text-small leading-relaxed">
           {t("project.config.runtimes.help")}
         </p>
 

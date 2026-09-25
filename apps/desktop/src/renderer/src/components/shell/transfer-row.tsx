@@ -112,7 +112,7 @@ export function TransferRow({
           size={12}
           strokeWidth={1.5}
         />
-        <span className="min-w-0 flex-1 truncate font-data text-[12px] text-ink">
+        <span className="min-w-0 flex-1 truncate font-data text-ink text-small">
           {transfer.name}
         </span>
 
@@ -172,18 +172,18 @@ export function TransferRow({
         </div>
       )}
 
-      <p className="font-data text-[11px] text-ink-3 tabular-nums leading-relaxed">
+      <p className="font-data text-caption text-ink-3 tabular-nums leading-relaxed">
         {figures.join(" · ")}
       </p>
 
       {transfer.tool === "scp" && !over ? (
-        <p className="text-[11px] text-ink-3 leading-relaxed">
+        <p className="text-caption text-ink-3 leading-relaxed">
           {t("transfers.row.scp")}
         </p>
       ) : null}
 
       {said ? (
-        <p className="text-[11px] text-ink-2 leading-relaxed" role="status">
+        <p className="text-caption text-ink-2 leading-relaxed" role="status">
           {said.message}
           {said.fix ? (
             <span className="block text-ink-3">{said.fix}</span>

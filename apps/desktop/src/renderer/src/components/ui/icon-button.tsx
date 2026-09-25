@@ -57,7 +57,7 @@ export function IconButton({
         aria-haspopup={asks ? "dialog" : undefined}
         aria-label={label}
         aria-pressed={pressed}
-        className={`clickable inline-flex shrink-0 items-center justify-center rounded-sm p-1.5 transition-soft ${waiting ? "cursor-progress" : ""} ${disabled && !waiting ? "opacity-40" : ""} ${pressed ? PRESSED : VARIANT[variant]} ${className}`}
+        className={`clickable inline-flex min-h-7 min-w-7 shrink-0 items-center justify-center rounded-sm p-1.5 transition-soft ${waiting ? "cursor-progress" : ""} ${disabled && !waiting ? "opacity-40" : ""} ${pressed ? PRESSED : VARIANT[variant]} ${className}`}
         disabled={disabled || waiting}
         onClick={click}
         type="button"

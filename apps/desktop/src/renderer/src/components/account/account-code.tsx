@@ -56,7 +56,7 @@ export function AccountCode({
       </div>
 
       {help ? (
-        <p className="mt-2 text-[12px] text-ink-3 leading-relaxed">{help}</p>
+        <p className="mt-2 text-ink-3 text-small leading-relaxed">{help}</p>
       ) : null}
     </div>
   );

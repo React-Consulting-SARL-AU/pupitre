@@ -37,7 +37,7 @@ export function Tooltip({
 
       <Base.Portal>
         <Base.Positioner className="z-50" side="bottom" sideOffset={6}>
-          <Base.Popup className="elevation-overlay max-w-xs rounded-sm border border-line bg-surface px-2 py-1 text-[11.5px] text-ink-2 leading-snug transition-[opacity] duration-100 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0">
+          <Base.Popup className="elevation-overlay max-w-xs rounded-sm border border-line bg-surface px-2 py-1 text-ink-2 text-small leading-snug transition-pop data-[ending-style]:opacity-0 data-[starting-style]:opacity-0">
             {label}
           </Base.Popup>
         </Base.Positioner>

@@ -99,7 +99,7 @@ export function ProjectOverview({
 
         <Section
           aside={
-            <span className="truncate font-data text-[12px] text-ink-3">
+            <span className="truncate font-data text-ink-3 text-small">
               {project.dir}
               {project.repo ? ` · ${project.repo}` : ""}
             </span>

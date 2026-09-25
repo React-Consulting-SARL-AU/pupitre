@@ -20,7 +20,7 @@ export function DashboardStatRemedy({
       className="mt-3 flex flex-col gap-2 border-line border-t pt-3"
       data-remedy={name}
     >
-      <p className="text-[12px] text-ink-2 leading-relaxed">{text}</p>
+      <p className="text-ink-2 text-small leading-relaxed">{text}</p>
       <div className="flex flex-wrap items-center gap-2">{actions}</div>
     </div>
   );

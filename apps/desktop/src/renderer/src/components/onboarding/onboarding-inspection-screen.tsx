@@ -49,10 +49,7 @@ export function OnboardingInspectionScreen({
       column
       eyebrow={serverName ?? t("onboarding.thisServer")}
       footer={
-        <ActionBar
-          name="inspection"
-          note={failed ? null : t("onboarding.inspection.waitingTitle")}
-        >
+        <ActionBar name="inspection">
           <Button
             icon={Server}
             onClick={actions.onPickAnother}

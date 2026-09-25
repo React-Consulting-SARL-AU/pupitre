@@ -241,7 +241,7 @@ export async function reachConfig(
   await page.getByRole("tab", { name: "Serveurs" }).click();
   await page.getByRole("button", { name: "Installer Pupitre" }).click();
 
-  await expect(page.getByText("Prête à être installée")).toBeVisible();
+  await expect(page.getByText("Prêt à être installé")).toBeVisible();
   await page.getByRole("button", { name: INSTALL }).first().click();
 
   await expect(page.getByText("Agent en place")).toBeVisible();

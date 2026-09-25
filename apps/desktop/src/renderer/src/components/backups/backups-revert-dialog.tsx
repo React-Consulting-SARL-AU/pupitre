@@ -69,7 +69,7 @@ export function BackupsRevertDialog({
       })}
       width="wide"
     >
-      <p className="text-[13px] text-ink-2 leading-relaxed">
+      <p className="text-control text-ink-2 leading-relaxed">
         {t("backups.revert.consequence")}
       </p>
 

@@ -39,7 +39,7 @@ export function ProjectDiff({
   if (tree.status === "idle" || tree.status === "reading") {
     return (
       <div className="grid h-full place-items-center">
-        <WaitingLine className="text-[13px]">
+        <WaitingLine className="text-control">
           {t("project.diff.readingTree")}
         </WaitingLine>
       </div>
@@ -55,13 +55,7 @@ export function ProjectDiff({
   }
 
   if (!tree.tree.repo) {
-    return (
-      <EmptyState
-        detail={t("project.diff.nothingToCompare")}
-        icon={FileDiff}
-        title={t("project.diff.notRepo")}
-      />
-    );
+    return <EmptyState icon={FileDiff} title={t("project.diff.notRepo")} />;
   }
 
   const files = tree.tree.files;
@@ -78,19 +72,19 @@ export function ProjectDiff({
   return (
     <div className="flex h-full flex-col">
       <div className="flex shrink-0 flex-wrap items-center gap-3 border-line border-b px-4 py-2">
-        <span className="font-data text-[12px] text-ink-3">
+        <span className="font-data text-ink-3 text-small">
           {tree.tree.branch || t("project.diff.detachedHead")}
           {tree.tree.upstream ? (
             <span className="text-ink-3"> → {tree.tree.upstream}</span>
           ) : null}
         </span>
-        <span className="font-data text-[12px] text-ink-3">
+        <span className="font-data text-ink-3 text-small">
           {files.length === 0
             ? t("project.clean")
             : t.plural("project.file", files.length)}
         </span>
         <ProjectDiffCount added={total.added} removed={total.removed} />
-        <span className="ml-auto font-data text-[11px] text-ink-3">
+        <span className="ml-auto font-data text-caption text-ink-3">
           {t("project.diff.readOnly")}
         </span>
         <IconButton
@@ -114,7 +108,7 @@ export function ProjectDiff({
           <div className="flex min-h-0 min-w-0 flex-col">
             {change ? (
               <p className="flex shrink-0 items-center gap-2 border-line border-b px-4 py-1.5">
-                <span className="min-w-0 flex-1 truncate font-data text-[12px] text-ink-2">
+                <span className="min-w-0 flex-1 truncate font-data text-ink-2 text-small">
                   {change.path}
                 </span>
                 {change.binary ? null : (

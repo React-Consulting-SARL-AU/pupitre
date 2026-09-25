@@ -372,7 +372,7 @@ describe("le menu d'une entrée", () => {
 
     expect(alert?.textContent).toContain("Supprimer src");
     expect(alert?.textContent).toContain(
-      "Le dossier src est supprimé du serveur."
+      "Le dossier src sera supprimé du serveur, sans retour possible."
     );
 
     await asked.key(document.activeElement, "Escape");

@@ -33,7 +33,7 @@ export function ServiceConfigOutcome({
   return (
     <>
       {running ? (
-        <WaitingLine className="text-[12px]">
+        <WaitingLine className="text-small">
           <span>{t("services.config.applying", { name })}</span>
           <LiveDuration className="font-data tabular-nums" />
         </WaitingLine>

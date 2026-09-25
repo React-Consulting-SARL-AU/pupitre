@@ -35,7 +35,7 @@ export function ServerAddKeyFileField({
           {t("servers.add.pickFile")}
         </Button>
         <span
-          className="min-w-0 truncate font-data text-[12px] text-ink-3"
+          className="min-w-0 truncate font-data text-ink-3 text-small"
           id={`${NAME}-file`}
         >
           {file || t("servers.add.noFile")}
@@ -44,7 +44,7 @@ export function ServerAddKeyFileField({
 
       {problem ? (
         <span
-          className="text-[12px] text-danger leading-relaxed"
+          className="text-danger text-small leading-relaxed"
           id={`${NAME}-problem`}
         >
           {problem}

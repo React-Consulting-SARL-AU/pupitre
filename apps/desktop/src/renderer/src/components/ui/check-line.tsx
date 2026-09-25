@@ -29,7 +29,7 @@ export function CheckLine({
   onChange: (next: boolean) => void;
 }) {
   const text =
-    size === "sm" ? "gap-1.5 text-[11px] text-ink-3" : "gap-3 text-ink-2";
+    size === "sm" ? "gap-1.5 text-caption text-ink-3" : "gap-3 text-ink-2";
 
   return (
     // biome-ignore lint/a11y/noLabelWithoutControl: the control is inside CheckBox, and wrapping it is what makes the word clickable
@@ -46,7 +46,7 @@ export function CheckLine({
       <span className="flex min-w-0 flex-col gap-0.5">
         <span>{label}</span>
         {detail ? (
-          <span className="text-[12px] text-ink-3 leading-relaxed">
+          <span className="text-ink-3 text-small leading-relaxed">
             {detail}
           </span>
         ) : null}

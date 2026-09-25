@@ -38,7 +38,7 @@ export function Details({
 
   return (
     <Collapsible.Root
-      className={`group/details text-[12px] text-ink-3 leading-relaxed ${className}`}
+      className={`group/details text-ink-3 text-small leading-relaxed ${className}`}
       data-details={name}
       defaultOpen={onOpenChange ? undefined : open}
       {...held}

@@ -46,9 +46,7 @@ export function ServiceRoutes({
       {problem ? <ErrorNotice error={problem} /> : null}
 
       {tunnel.routes.length === 0 ? (
-        <p className="text-[12px] text-ink-3">
-          {t("services.tunnel.noRoutes")}
-        </p>
+        <p className="text-ink-3 text-small">{t("services.tunnel.noRoutes")}</p>
       ) : (
         <Panel as="ul" list>
           {tunnel.routes.map((route) => (
@@ -57,14 +55,14 @@ export function ServiceRoutes({
               data-route={route.hostname}
               key={route.hostname}
             >
-              <code className="min-w-0 flex-1 truncate font-data text-[12px] text-ink">
+              <code className="min-w-0 flex-1 truncate font-data text-ink text-small">
                 {route.hostname}
               </code>
-              <code className="font-data text-[12px] text-ink-3">
+              <code className="font-data text-ink-3 text-small">
                 {route.service}
               </code>
               {route.project ? (
-                <span className="text-[12px] text-ink-3">{route.project}</span>
+                <span className="text-ink-3 text-small">{route.project}</span>
               ) : null}
             </li>
           ))}

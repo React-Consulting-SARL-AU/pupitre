@@ -94,7 +94,7 @@ export function FilePreview({
     >
       <header className="flex items-center gap-3">
         <span className="flex min-w-0 flex-1 items-center gap-2">
-          <span className="truncate font-data text-[13px] text-ink">
+          <span className="truncate font-data text-control text-ink">
             {name}
           </span>
           {edited ? (
@@ -161,7 +161,7 @@ export function FilePreview({
 
       {preview.status === "reading" ? (
         <div className="flex flex-col gap-3">
-          <WaitingLine className="font-data text-[12px]">
+          <WaitingLine className="font-data text-small">
             {t("files.preview.reading")}
           </WaitingLine>
           <Skeleton className="h-40 w-full" />

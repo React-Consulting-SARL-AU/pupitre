@@ -43,7 +43,7 @@ describe("la barre latérale", () => {
         onTerminal={NOOP}
         onView={NOOP}
         projects={SNAPSHOT.projects}
-        selection="flymate-api"
+        selection="flyleaf-api"
         server={SERVER}
         servers={[SERVER]}
         states={{}}
@@ -121,7 +121,7 @@ describe("la barre latérale", () => {
       />
     );
 
-    expect(html).toContain("flymate-api");
+    expect(html).toContain("flyleaf-api");
     expect(html).toContain("412 Mo");
     expect(html).toContain('data-shape="filled"');
     expect(html).toContain('data-shape="empty"');
@@ -159,9 +159,9 @@ describe("l'app sans la moindre machine", () => {
     );
 
     expect(html).toContain("Prenez une machine en main");
-    expect(html).toContain("Il inspecte la machine");
-    expect(html).toContain("Il installe ce que vous choisissez");
-    expect(html).toContain("Il referme la porte derrière lui");
+    expect(html).toContain("Pupitre inspecte la machine");
+    expect(html).toContain("Pupitre installe ce que vous choisissez");
+    expect(html).toContain("Pupitre ferme l&#x27;accès root");
     expect(html).toContain("Ajouter un serveur");
   });
 
@@ -179,7 +179,7 @@ describe("processus et sessions", () => {
   it("rend ce qui pèse et ce qui survit, depuis le snapshot", () => {
     const html = renderToStaticMarkup(
       <ActivityPanel
-        attached={["claude:flymate-api"]}
+        attached={["claude:flyleaf-api"]}
         lingering={[]}
         onCleanSessions={NOOP}
         onReattach={NOOP}
@@ -203,7 +203,7 @@ describe("processus et sessions", () => {
   it("distingue la session qu'un onglet de l'app tient encore", () => {
     const attached = renderToStaticMarkup(
       <ActivityPanel
-        attached={["claude:flymate-api"]}
+        attached={["claude:flyleaf-api"]}
         lingering={[]}
         onCleanSessions={NOOP}
         onReattach={NOOP}
@@ -451,7 +451,7 @@ describe("ce qui se dit au-dessus des écrans", () => {
 
     expect(html).toContain("Atelier ne répond plus.");
     expect(html).toContain("Vérifie que la machine répond.");
-    expect(html).toContain("Relire");
+    expect(html).toContain("Actualiser");
   });
 
   it("ne dit rien quand le lien tient et que le relevé est frais", () => {

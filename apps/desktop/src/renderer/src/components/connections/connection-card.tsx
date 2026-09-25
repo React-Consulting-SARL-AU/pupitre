@@ -102,7 +102,7 @@ export function ConnectionCard({
     >
       {status}
 
-      {compact ? null : (
+      {compact || !connection.intro ? null : (
         <p className="text-ink-3 leading-relaxed">{t(connection.intro)}</p>
       )}
 

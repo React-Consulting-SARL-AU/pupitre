@@ -5,12 +5,21 @@ import { Check, Layers } from "lucide-react";
 import { useState } from "react";
 import {
   bringsNothing,
+  droppedBy,
   type Installed,
   type PresetOffer,
   presetOffers,
+  withChoice,
 } from "../../lib/catalog-selection";
+import { ConfirmDialog } from "../ui/confirm-button";
 import { Section } from "../ui/section";
 import { CatalogPresetChoice } from "./catalog-preset-choice";
+
+interface Replacing {
+  preset: Preset;
+  chosen?: string;
+  lost: readonly Manifest[];
+}
 
 /**
  * The shortcuts, ahead of the twenty-odd modules.
@@ -45,6 +54,7 @@ export function CatalogPresets({
   const t = useTranslations();
 
   const [asking, setAsking] = useState<PresetOffer | null>(null);
+  const [replacing, setReplacing] = useState<Replacing | null>(null);
 
   const offers = presetOffers(modules, presets, selected, installed, probe);
 
@@ -59,7 +69,25 @@ export function CatalogPresets({
       return;
     }
 
-    onPick?.(offer.preset.id);
+    apply(offer.preset);
+  }
+
+  function apply(preset: Preset, chosen?: string): void {
+    const lost = droppedBy(
+      modules,
+      withChoice(preset, chosen),
+      selected,
+      installed,
+      probe
+    );
+
+    if (lost.length > 0) {
+      setReplacing({ chosen, lost, preset });
+
+      return;
+    }
+
+    onPick?.(preset.id, chosen);
   }
 
   /** What the preset adds to the core here, in the catalogue's own words. */
@@ -106,7 +134,7 @@ export function CatalogPresets({
                 )}
                 {offer.preset.name}
               </span>
-              <span className="text-[12px] text-ink-3 leading-relaxed">
+              <span className="text-ink-3 text-small leading-relaxed">
                 {brings(offer)}
               </span>
             </button>
@@ -119,12 +147,44 @@ export function CatalogPresets({
           choices={asking.choices}
           onCancel={() => setAsking(null)}
           onChoose={(chosen) => {
-            onPick?.(asking.preset.id, chosen);
             setAsking(null);
+            apply(asking.preset, chosen);
           }}
           preset={asking.preset}
         />
       ) : null}
+
+      <ConfirmDialog
+        confirmLabel={t("catalog.presets.apply")}
+        confirmVariant="inverse"
+        onCancel={() => setReplacing(null)}
+        onConfirm={() => {
+          if (replacing) {
+            onPick?.(replacing.preset.id, replacing.chosen);
+          }
+
+          setReplacing(null);
+        }}
+        open={replacing !== null}
+        question={
+          replacing
+            ? t.plural(
+                "catalog.presets.replaceQuestion",
+                replacing.lost.length,
+                {
+                  names: replacing.lost.map((module) => module.name).join(", "),
+                }
+              )
+            : ""
+        }
+        title={
+          replacing
+            ? t("catalog.presets.replaceTitle", {
+                preset: replacing.preset.name,
+              })
+            : ""
+        }
+      />
     </Section>
   );
 }

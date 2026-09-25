@@ -15,7 +15,7 @@ Le code existant est la référence : avant d'écrire, ouvre l'écran le plus pr
 | --- | --- |
 | `packages/shared/src/agent-protocol/` · `docs/contracts/agent-protocol.md` | les commandes, leurs paramètres, leurs résultats, leurs événements — rien n'est redéclaré ailleurs |
 | `apps/desktop/src/shared/` | ce qui traverse IPC et n'est pas du protocole : l'enveloppe `AgentResponse`, les erreurs du canal, les formes propres à l'app |
-| `src/main/agent-client.ts` | le client SSH d'un serveur : quatre canaux, `request(serverId, cmd, params, { onEvent, onSecret })` |
+| `src/main/agent-client.ts` | le client SSH d'un serveur : cinq canaux — contrôle, travail, battement, suivi, et privilégié à la demande —, `request(serverId, cmd, params, { onEvent, onSecret })` |
 | `src/main/agent-bridge.ts` | `BRIDGE_COMMANDS`, les seules commandes que le renderer peut nommer sur `agent:call` ; `checkedCall` valide le serveur, la commande et ses paramètres |
 | `src/main/<feature>.ts` | `register<Feature>()` : les `ipcMain.handle` d'une feature, enregistrés depuis `src/main/index.ts` |
 | `src/main/<feature>-run.ts` | le déroulé pur d'une opération, testable sans Electron, avec ses dépendances en paramètre |
@@ -64,8 +64,8 @@ composant ──► store ──► agentCall(serverId, cmd, params) ──► p
 - **Une page du shell commence par `Screen`** : `eyebrow` est le contexte (le nom du serveur sur ses pages, « Projet » ou « Service » sur une fiche, « Application » dans les réglages), `title` est la chose ou la page, `actions` porte les gestes sur la chose entière, `tabs` une `TabBar`, `fill` quand le corps tient sa propre hauteur. Une étape d'un parcours est un `Screen` en `column` avec `step` et `footer` ; dans l'onboarding elle ajoute `plain`. Aucune page ne pose son propre `max-w-*`, son `h1` ni son bandeau.
 - **Chaque section est `Section`** : `title`, `aside` pour ce qui la qualifie, `actions` pour ses gestes sur la même ligne. **Chaque cadre est `Panel`** : `list` pour des lignes, `inset` pour l'air, `panelClass()` sur un `form`. **Chaque fait est `Fact`** dans une `FactList` : libellé, valeur en `font-data`, `detail` en dessous. Une page n'écrit pas deux fois la même donnée.
 - **Chaque geste répond là où il a été fait.** `Button`, `IconButton` et `ConfirmButton` passent en `loading` d'eux-mêmes dès que le gestionnaire rend une promesse (`usePending`) : un gestionnaire asynchrone retourne toujours sa promesse. Un formulaire finit sur son bouton au pied, actif quand quelque chose a changé ; un refus se lit sous le champ, avec `aria-invalid` et `aria-describedby`.
-- **Une confirmation est `ConfirmButton`** quand elle tient sur la ligne du geste, `Dialog` quand elle porte une conséquence à lire ou plusieurs issues. Jamais un bloc rouge dessiné dans la carte.
-- **Chaque bouton à icône porte une infobulle** (`ui/tooltip.tsx`) ; le `title` natif ne s'affiche pas dans Electron sur macOS.
+- **Une confirmation est `ConfirmButton`** quand elle tient sur la ligne du geste, `ConfirmDialog` — la même question, sans le bouton — quand autre chose que ce bouton l'ouvre (un raccourci, la fermeture d'un onglet), `Dialog` quand elle porte une conséquence à lire ou plusieurs issues. Jamais un bloc rouge dessiné dans la carte.
+- **Un bouton qui n'a qu'une icône porte une infobulle** (`IconButton` la pose, sur `ui/tooltip.tsx`) ; un bouton icône + libellé n'en porte aucune. Le `title` natif ne s'affiche pas dans Electron sur macOS.
 - **Tokens seulement** : `bg-base`, `bg-surface`, `bg-sunken`, `bg-raised`, `text-ink` à `text-ink-4`, `border-line`, `border-line-strong`, `bg-inverse text-inverse-ink` pour le bouton principal, `text-ok`, `text-warn`, `text-danger` pour l'état seulement, `font-data` pour toute donnée, `rounded-sm` pour les contrôles, `rounded-md` pour les panneaux. `grep -rE "#[0-9a-f]{6}|hsl\(|rgb\(" src/renderer --include=*.tsx` reste vide.
 - **L'état se lit à la forme d'abord** : point plein pour en ligne, cercle vide pour arrêté, point barré pour en échec, point qui respire pour en cours. La couleur confirme.
 - **Chaque attente dit ce qui se passe** (`WaitingNotice`, `SkeletonRows`) : le module, l'étape, la durée. Jamais un spinner seul. **Chaque erreur dit le remède** (`ErrorNotice` avec `onRetry`).
@@ -233,6 +233,6 @@ Le harnais lance l'app (`launchPupitre()`), remplace `agent:call` par `answer("a
 2. Le renderer n'envoie que des identifiants ; `BRIDGE_COMMANDS` ou le handler dédié les valide.
 3. Le store garde l'enveloppe ; `fix` arrive à l'écran tel quel ; aucune phrase hors de `i18n/strings`.
 4. `Screen` · `Section` · `Panel` · `Fact` ; aucune couleur en dur ; aucune primitive réinventée hors `components/ui/` ; un composant par fichier ; points-virgules.
-5. Chaque geste asynchrone retourne sa promesse ; chaque attente dit ce qui se passe ; chaque erreur dit le remède ; chaque bouton à icône a son infobulle.
+5. Chaque geste asynchrone retourne sa promesse ; chaque attente dit ce qui se passe ; chaque erreur dit le remède ; chaque bouton sans libellé a son infobulle.
 6. Tests : store sur `stubPupitre`, main sur ses dépendances ou une transcription, écran par Playwright avec `assertAccessible(page, "<écran>")`. Ce qui flotte (dialogue, liste d'un `Select`) se lit par `mount` et `optionsOf` de `__tests__/dom.tsx`, jamais par `renderToStaticMarkup`. Assertions dans `it()`, pas de `.only`.
 7. `bun --cwd=apps/desktop run lint`, `check:types`, `test` verts ; `test:e2e` vert. Puis l'app réelle : `bun run dev:desktop` et l'écran ouvert, pas seulement les tests.

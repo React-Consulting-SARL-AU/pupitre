@@ -12,7 +12,7 @@ import type {
   Terminal as TerminalInfo,
   TerminalKind,
 } from "@shared/terminals";
-import { Eraser, Search } from "lucide-react";
+import { Eraser, Search, X } from "lucide-react";
 import type { KeyboardEvent } from "react";
 import { TerminalNewButton } from "./terminal-new-button";
 import { TerminalPane } from "./terminal-pane";
@@ -144,7 +144,7 @@ export function TerminalTabs({
       <div className="flex shrink-0 items-center gap-1 border-line border-b bg-surface px-2 py-1.5">
         <div
           aria-label={t("terminals.tabs")}
-          className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto"
+          className="flex min-w-0 items-center gap-1 overflow-x-auto"
           onKeyDown={onListKey}
           role="tablist"
         >
@@ -160,12 +160,19 @@ export function TerminalTabs({
               state={states[session.id]}
             />
           ))}
-
-          <TerminalNewButton chord={chord} kinds={kinds} onNew={onNew} />
         </div>
 
+        <TerminalNewButton chord={chord} kinds={kinds} onNew={onNew} />
+
         {active ? (
-          <div className="flex shrink-0 items-center gap-0.5 border-line border-l pl-1.5">
+          <div className="ml-auto flex shrink-0 items-center gap-0.5 border-line border-l pl-1.5">
+            <IconButton
+              icon={X}
+              label={t("terminals.closeTabHint", { chord })}
+              onClick={() => onClose(active)}
+              size={12}
+              variant="discreet"
+            />
             <IconButton
               className={search === active ? "bg-raised text-ink" : ""}
               icon={Search}

@@ -2,7 +2,7 @@ import type { CompletionsResult } from "@pupitre/shared/agent-protocol/state";
 import type { Candidate } from "@shared/completion";
 import type { IMarker, Terminal as XTerm } from "@xterm/xterm";
 import { useSyncExternalStore } from "react";
-import { readHistory, writeHistory } from "./memory";
+import { dropStoredHistory } from "./memory";
 import { noteStatus } from "./terminal-status";
 
 export const TERMINAL_FONT = '"JetBrains Mono", ui-monospace, Menlo, monospace';
@@ -357,6 +357,9 @@ let history: string[] = [];
 let projects: string[] = [];
 let processes: Record<string, readonly string[]> = {};
 
+/** Held for the run only: a typed line can carry a token, and the disk never sees it. */
+const histories = new Map<string, string[]>();
+
 const HISTORY_KEPT = 200;
 
 function loadCatalog(): void {
@@ -364,11 +367,27 @@ function loadCatalog(): void {
     return;
   }
 
-  catalogRequest = window.pupitre.completions(serverId).then((answer) => {
-    if (answer.ok) {
-      catalog = answer.result;
+  const asked = serverId;
+  const request = window.pupitre.completions(asked).then(
+    (answer) => {
+      if (serverId !== asked) {
+        return;
+      }
+
+      if (answer.ok) {
+        catalog = answer.result;
+      } else if (catalogRequest === request) {
+        catalogRequest = null;
+      }
+    },
+    () => {
+      if (catalogRequest === request) {
+        catalogRequest = null;
+      }
     }
-  });
+  );
+
+  catalogRequest = request;
 }
 
 /** OSC 133 says where a command starts and ends: the app needs no history file. */
@@ -383,7 +402,7 @@ function rememberCommand(line: string): void {
     0,
     HISTORY_KEPT
   );
-  writeHistory(serverId, history);
+  histories.set(serverId, history);
 }
 
 /** The projects the server announced, and the processes of each: the app is what holds them. */
@@ -404,7 +423,8 @@ export function noteServer(id: string | null): void {
   if (id !== serverId) {
     serverId = id;
     forgetSources();
-    history = id ? readHistory(id) : [];
+    dropStoredHistory();
+    history = id ? (histories.get(id) ?? []) : [];
   }
 }
 

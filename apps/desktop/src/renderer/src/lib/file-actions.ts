@@ -9,6 +9,7 @@ import type { RemoteEditor } from "@shared/editors";
  * opens a folder or a file, and only an editor the server installed is
  * offered. A file or a folder comes to this computer on its own transfer.
  * Deleting comes last, behind a separator, as every destructive gesture does.
+ * A pipe, a socket or a device is only renamed or deleted: a read would wait on it forever.
  */
 
 export type FileActionId =
@@ -31,6 +32,10 @@ export function entryActions(
   entry: Pick<FileEntry, "kind">,
   editors: readonly RemoteEditor[]
 ): FileAction[] {
+  if (entry.kind === "special") {
+    return [{ id: "rename" }, { id: "remove" }];
+  }
+
   return [
     { id: "open" },
     ...editors.map((editor): FileAction => ({ editor, id: "editor" })),

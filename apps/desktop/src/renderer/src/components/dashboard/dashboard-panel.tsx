@@ -48,6 +48,7 @@ interface Props {
   onCleanSessions: () => unknown;
   onReboot: () => void;
   onOpenService?: (moduleId: string) => void;
+  onAddService?: () => void;
   onOpenTerminal?: () => void;
   /** Root access stayed open, or dev still becomes root without a password: the securing is offered again. */
   securing?: SecuringNeed | null;
@@ -67,6 +68,7 @@ export function DashboardPanel({
   onCleanSessions,
   onReboot,
   onOpenService,
+  onAddService,
   onOpenTerminal,
   securing = null,
   onSecure,
@@ -74,6 +76,8 @@ export function DashboardPanel({
   const t = useTranslations();
 
   const projectsHeading = useRef<HTMLHeadingElement | null>(null);
+
+  const machineName = serverName ?? snapshot.machine.hostname;
 
   const projects = snapshot.projects;
   const up = projects.filter((project) => isRunning(project.state));
@@ -121,18 +125,21 @@ export function DashboardPanel({
           >
             {t("dashboard.panel.stopAll")}
           </ConfirmButton>
+          <span aria-hidden="true" className="mx-1 h-5 w-px bg-line" />
           <ConfirmButton
             confirmLabel={t("dashboard.panel.reboot")}
             icon={Power}
             onConfirm={onReboot}
-            question={t("dashboard.panel.rebootQuestion")}
+            question={t("dashboard.panel.rebootQuestion", {
+              name: machineName,
+            })}
           >
             {t("dashboard.panel.rebootServer")}
           </ConfirmButton>
         </>
       }
       description={projects.length > 0 ? description : undefined}
-      eyebrow={serverName ?? snapshot.machine.hostname}
+      eyebrow={machineName}
       title={t("dashboard.panel.title")}
     >
       {securing && onSecure ? (
@@ -141,9 +148,12 @@ export function DashboardPanel({
 
       <Section
         aside={
-          <span className="font-data text-[12px] text-ink-3">
+          <span className="font-data text-ink-3 text-small">
             {snapshot.machine.os} {snapshot.machine.version} ·{" "}
-            {snapshot.machine.arch} · pupitred {snapshot.machine.agent_version}
+            {snapshot.machine.arch} ·{" "}
+            {t("dashboard.agentVersion", {
+              version: snapshot.machine.agent_version,
+            })}
           </span>
         }
         name="machine"
@@ -166,6 +176,7 @@ export function DashboardPanel({
       <Section name="services" title={t("dashboard.panel.services")}>
         <DashboardServices
           accounts={accounts}
+          onAdd={onAddService}
           onOpen={onOpenService}
           services={snapshot.services}
         />

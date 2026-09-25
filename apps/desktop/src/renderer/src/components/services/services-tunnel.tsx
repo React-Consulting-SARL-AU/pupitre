@@ -17,7 +17,7 @@ export function ServicesTunnel() {
       name="tunnel"
       title={t("services.tunnel.title")}
     >
-      <p className="text-[12px] text-ink-3">{t("services.tunnel.absent")}</p>
+      <p className="text-ink-3 text-small">{t("services.tunnel.absent")}</p>
     </Section>
   );
 }

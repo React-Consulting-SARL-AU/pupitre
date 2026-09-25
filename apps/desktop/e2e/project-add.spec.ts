@@ -155,12 +155,12 @@ test.describe("nouveau projet", () => {
 
     await test.step("le tableau de bord offre le geste", async () => {
       await page
-        .getByRole("button", { name: "Nouveau projet" })
+        .getByRole("button", { name: "Ajouter un projet" })
         .first()
         .click();
 
       await expect(
-        page.getByRole("heading", { name: "Nouveau projet" })
+        page.getByRole("heading", { name: "Ajouter un projet" })
       ).toBeVisible();
       await expect(
         page.getByRole("radio", { name: GITHUB_CARD })

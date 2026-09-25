@@ -47,7 +47,7 @@ export function BackupConnectionHeld({
       </FactList>
 
       {unsealed ? (
-        <p className="text-[12px] text-warn">{t("connections.unsealed")}</p>
+        <p className="text-small text-warn">{t("connections.unsealed")}</p>
       ) : null}
 
       <div className="flex flex-wrap items-center gap-2">

@@ -2,7 +2,7 @@ export const backups = {
   en: {
     "backups.title": "Backups",
     "backups.tabs": "Backup panes",
-    "backups.tab.overview": "Dashboard",
+    "backups.tab.overview": "Overview",
     "backups.tab.frequency": "Frequency",
     "backups.tab.content": "Content",
     "backups.tab.destination": "Destination",
@@ -42,7 +42,7 @@ export const backups = {
     "backups.run.running": "Backing the server up to the bucket",
     "backups.run.done": "Backup done: {weight} in the bucket.",
     "backups.run.undeclared":
-      "The platform did not answer: the server lists this backup at its next turn.",
+      "The console did not answer: the server lists this backup at its next turn.",
     "backups.run.dismiss": "Close",
 
     "backups.list.title": "Backups of this server",
@@ -59,11 +59,13 @@ export const backups = {
     "backups.counts.setupOnly": "configuration only",
 
     "backups.remove.label": "Delete",
+    "backups.remove.named": "Delete the backup {backup}",
     "backups.remove.confirm": "Delete the backup",
     "backups.remove.question":
       "The backup {backup} is erased from the bucket. Nobody can go back to it afterwards.",
 
     "backups.revert.open": "Go back to this backup",
+    "backups.revert.named": "Go back to this backup: the backup {backup}",
     "backups.revert.title": "Go back to the backup {backup}",
     "backups.revert.consequence":
       "The server's projects stop, and its configuration and data are replaced by the backup's. Projects the backup does not know leave the list; their folders stay.",
@@ -173,14 +175,14 @@ export const backups = {
       "Send this computer's key to the server again",
     "backups.destination.noKey":
       "This computer does not hold this bucket's key: give it to change the destination or to restore from here.",
-    "backups.reset.title": "Start over",
+    "backups.reset.title": "Reset",
     "backups.reset.consequence":
       "Backups stop on this server and its backup settings are erased; the backups already made stay in the bucket and in the list. The setup starts again from the first step.",
     "backups.reset.forget": "Also forget this computer's bucket and key",
     "backups.reset.forgetDetail":
       "The other servers keep backing up with what they hold; this computer asks for the bucket again to set up or restore.",
     "backups.reset.open": "Reset backups",
-    "backups.reset.question": "Take backups off this server?",
+    "backups.reset.question": "Reset the backups of this server?",
     "backups.reset.confirm": "Reset",
     "backups.destination.drift":
       "This server backs up with another bucket or key than this computer's connection.",
@@ -280,13 +282,13 @@ export const backups = {
       "This run of the app no longer holds the backup's key.",
     "refusal.backup.passphrase.needed.fix":
       "Type the backup passphrase again to bring the data back.",
-    "refusal.backup.unknown": "The platform does not list the backup {id}.",
+    "refusal.backup.unknown": "The console does not list the backup {id}.",
     "refusal.backup.unknown.fix":
-      "Reload the list of backups: it may have been deleted in the meantime.",
+      "Refresh the list of backups: the backup may have been deleted in the meantime.",
     "refusal.backup.unenrolled":
-      "This server is not enrolled with the platform: it has no backups listed.",
+      "This server is not enrolled with the console: it has no backups listed.",
     "refusal.backup.unenrolled.fix":
-      "Open the server once so its agent answers, then reload the page.",
+      "Open the server once so its agent answers, then refresh the page.",
     "refusal.backup.parts.none": "No part of the backup was chosen.",
     "refusal.backup.parts.none.fix": "Tick at least one part to bring back.",
     "refusal.backup.install.failed":
@@ -327,7 +329,7 @@ export const backups = {
   fr: {
     "backups.title": "Sauvegardes",
     "backups.tabs": "Volets des sauvegardes",
-    "backups.tab.overview": "Tableau de bord",
+    "backups.tab.overview": "Vue d'ensemble",
     "backups.tab.frequency": "Fréquence",
     "backups.tab.content": "Contenu",
     "backups.tab.destination": "Destination",
@@ -368,7 +370,7 @@ export const backups = {
     "backups.run.running": "Sauvegarde du serveur vers le bucket",
     "backups.run.done": "Sauvegarde terminée : {weight} dans le bucket.",
     "backups.run.undeclared":
-      "La plateforme n'a pas répondu : le serveur déclarera cette sauvegarde au tour suivant.",
+      "La console n'a pas répondu : le serveur déclarera cette sauvegarde au tour suivant.",
     "backups.run.dismiss": "Fermer",
 
     "backups.list.title": "Sauvegardes de ce serveur",
@@ -385,11 +387,14 @@ export const backups = {
     "backups.counts.setupOnly": "configuration seule",
 
     "backups.remove.label": "Supprimer",
+    "backups.remove.named": "Supprimer la sauvegarde {backup}",
     "backups.remove.confirm": "Supprimer la sauvegarde",
     "backups.remove.question":
       "La sauvegarde {backup} est effacée du bucket. Personne ne pourra plus y revenir.",
 
     "backups.revert.open": "Revenir à cette sauvegarde",
+    "backups.revert.named":
+      "Revenir à cette sauvegarde : la sauvegarde {backup}",
     "backups.revert.title": "Revenir à la sauvegarde {backup}",
     "backups.revert.consequence":
       "Les projets du serveur s'arrêtent, sa configuration et ses données sont remplacées par celles de la sauvegarde. Les projets que la sauvegarde ne connaît pas quittent la liste ; leurs dossiers restent.",
@@ -499,7 +504,7 @@ export const backups = {
       "Renvoyer la clé de cet ordinateur au serveur",
     "backups.destination.noKey":
       "Cet ordinateur n'a pas la clé de ce bucket : donnez-la pour changer la destination ou restaurer d'ici.",
-    "backups.reset.title": "Recommencer",
+    "backups.reset.title": "Réinitialiser",
     "backups.reset.consequence":
       "Les sauvegardes s'arrêtent sur ce serveur et ses réglages de sauvegarde sont effacés ; les sauvegardes déjà faites restent dans le bucket et dans la liste. La mise en place reprend à la première étape.",
     "backups.reset.forget":
@@ -507,7 +512,7 @@ export const backups = {
     "backups.reset.forgetDetail":
       "Les autres serveurs continuent de sauvegarder avec ce qu'ils détiennent ; cet ordinateur redemande le bucket pour mettre en place ou restaurer.",
     "backups.reset.open": "Réinitialiser les sauvegardes",
-    "backups.reset.question": "Retirer les sauvegardes de ce serveur ?",
+    "backups.reset.question": "Réinitialiser les sauvegardes de ce serveur ?",
     "backups.reset.confirm": "Réinitialiser",
     "backups.destination.drift":
       "Ce serveur sauvegarde avec un autre bucket ou une autre clé que la connexion de cet ordinateur.",
@@ -608,13 +613,13 @@ export const backups = {
       "Ce lancement de l'app ne tient plus la clé de la sauvegarde.",
     "refusal.backup.passphrase.needed.fix":
       "Tapez à nouveau la passphrase des sauvegardes pour ramener les données.",
-    "refusal.backup.unknown": "La plateforme ne liste pas la sauvegarde {id}.",
+    "refusal.backup.unknown": "La console ne liste pas la sauvegarde {id}.",
     "refusal.backup.unknown.fix":
-      "Rechargez la liste des sauvegardes : elle a peut-être été supprimée entre-temps.",
+      "Actualisez la liste des sauvegardes : la sauvegarde a peut-être été supprimée entre-temps.",
     "refusal.backup.unenrolled":
-      "Ce serveur n'est pas rattaché à la plateforme : aucune sauvegarde ne lui est listée.",
+      "Ce serveur n'est pas rattaché à la console : aucune sauvegarde ne lui est listée.",
     "refusal.backup.unenrolled.fix":
-      "Ouvrez le serveur une fois pour que son agent réponde, puis rechargez la page.",
+      "Ouvrez le serveur une fois pour que son agent réponde, puis actualisez la page.",
     "refusal.backup.parts.none": "Aucune partie de la sauvegarde n'est cochée.",
     "refusal.backup.parts.none.fix": "Cochez au moins une partie à ramener.",
     "refusal.backup.install.failed":

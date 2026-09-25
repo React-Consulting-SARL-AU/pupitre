@@ -14,7 +14,8 @@ export interface ConnectionDescriptor {
   /** The module whose brand this account wears, for the logo the row shows. */
   logo: string;
   title: DictionaryKey;
-  intro: DictionaryKey;
+  /** What the account is for, when the title and the token's own lines leave it unsaid. */
+  intro?: DictionaryKey;
   label: DictionaryKey;
   help: DictionaryKey;
   hint: DictionaryKey;
@@ -68,7 +69,6 @@ export const CONNECTIONS: readonly ConnectionDescriptor[] = [
     url: "https://developer.1password.com/docs/service-accounts/get-started",
   },
   {
-    intro: "connections.neon.intro",
     kind: "neon",
     logo: "tool.neon",
     named: true,
@@ -79,7 +79,6 @@ export const CONNECTIONS: readonly ConnectionDescriptor[] = [
     url: "https://console.neon.tech/app/settings/api-keys",
   },
   {
-    intro: "connections.vercel.intro",
     kind: "vercel",
     logo: "tool.vercel",
     named: true,
@@ -90,7 +89,6 @@ export const CONNECTIONS: readonly ConnectionDescriptor[] = [
     url: "https://vercel.com/account/settings/tokens",
   },
   {
-    intro: "connections.supabase.intro",
     kind: "supabase",
     logo: "tool.supabase",
     named: true,
@@ -101,7 +99,6 @@ export const CONNECTIONS: readonly ConnectionDescriptor[] = [
     url: "https://supabase.com/dashboard/account/tokens",
   },
   {
-    intro: "connections.stripe.intro",
     kind: "stripe",
     logo: "tool.stripe",
     named: true,

@@ -88,12 +88,12 @@ export function ShotViewer({ serverId }: { serverId: string }) {
           ref={popup}
         >
           <header className="flex shrink-0 items-center gap-3">
-            <span className="min-w-0 flex-1 truncate font-data text-[13px] text-ink">
+            <span className="min-w-0 flex-1 truncate font-data text-control text-ink">
               {view.shot.name}
             </span>
 
             {view.status === "shown" ? (
-              <span className="shrink-0 font-data text-[12px] text-ink-3 tabular-nums">
+              <span className="shrink-0 font-data text-ink-3 text-small tabular-nums">
                 {view.size
                   ? `${view.mediaType} · ${view.size.width} × ${view.size.height}`
                   : view.mediaType}
@@ -101,7 +101,7 @@ export function ShotViewer({ serverId }: { serverId: string }) {
             ) : null}
 
             {at === -1 ? null : (
-              <span className="shrink-0 font-data text-[12px] text-ink-3 tabular-nums">
+              <span className="shrink-0 font-data text-ink-3 text-small tabular-nums">
                 {t("shots.position", { index: at + 1, total: shots.length })}
               </span>
             )}
@@ -131,7 +131,7 @@ export function ShotViewer({ serverId }: { serverId: string }) {
 
           {saved ? (
             <p
-              className="mt-2 truncate font-data text-[12px] text-ink-3"
+              className="mt-2 truncate font-data text-ink-3 text-small"
               data-shot-saved={saved}
               role="status"
             >

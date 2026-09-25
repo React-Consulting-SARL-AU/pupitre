@@ -60,7 +60,7 @@ test.describe("onboarding", () => {
         .click();
 
       await expect(page.locator('[data-group="db.postgres"]')).toBeVisible();
-      await expect(page.getByText("Généré pour cette machine")).toBeVisible();
+      await expect(page.getByText("Généré pour ce serveur")).toBeVisible();
     });
 
     await test.step("la configuration mène à l'installation", async () => {
@@ -113,7 +113,7 @@ test.describe("onboarding", () => {
 
     await test.step("le serveur est prêt, sans projet imposé", async () => {
       await expect(page.getByRole("banner").getByText("Prêt")).toBeVisible();
-      await expect(page.getByText("Connecté en dev")).toBeVisible();
+      await expect(page.getByText("Connecté en tant que dev")).toBeVisible();
       await expect(page.getByText("L'accès root est fermé")).toBeVisible();
       await assertAccessible(page, "onboarding/done");
     });

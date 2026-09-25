@@ -44,7 +44,7 @@ export function FileRenameField({
           aria-invalid={problem ? true : undefined}
           aria-label={t("files.rename.label", { name })}
           autoFocus
-          className={`${controlClass("data", Boolean(problem))} py-1 text-[12px]`}
+          className={`${controlClass("data", Boolean(problem))} py-1 text-small`}
           onChange={(event) => {
             setWanted(event.target.value);
             setRefusal(null);
@@ -77,10 +77,7 @@ export function FileRenameField({
       </div>
 
       {problem ? (
-        <span
-          className="text-[12px] text-danger leading-relaxed"
-          id={problemId}
-        >
+        <span className="text-danger text-small leading-relaxed" id={problemId}>
           {problem}
         </span>
       ) : null}

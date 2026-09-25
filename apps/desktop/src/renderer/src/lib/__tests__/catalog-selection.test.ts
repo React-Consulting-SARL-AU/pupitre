@@ -15,6 +15,7 @@ import {
   byCategory,
   carriesSecret,
   deselect,
+  droppedBy,
   fieldsOf,
   fromPreset,
   mandatory,
@@ -26,6 +27,7 @@ import {
   select,
   splitFields,
   totals,
+  withChoice,
 } from "../catalog-selection";
 
 const MODULES = CATALOG.modules;
@@ -106,6 +108,27 @@ describe("préréglages", () => {
 describe("un préréglage contre la machine qui le reçoit", () => {
   const FULL = CATALOG.presets.find((p) => p.id === "full") as Preset;
   const WEB = CATALOG.presets.find((p) => p.id === "web-js") as Preset;
+
+  it("porte le module exclusif choisi, et aucun autre", () => {
+    expect(withChoice(FULL, "exposure.caddy").modules).toContain(
+      "exposure.caddy"
+    );
+    expect(withChoice(FULL, "exposure.caddy").modules).not.toContain(
+      "exposure.cloudflare"
+    );
+    expect(withChoice(FULL, "tool.legacy")).toBe(FULL);
+  });
+
+  it("nomme ce qu'appliquer un préréglage retirerait de la sélection", () => {
+    const chosen = fromPreset(MODULES, FULL, [], LARGE_MACHINE);
+
+    expect(
+      droppedBy(MODULES, WEB, chosen, [], LARGE_MACHINE).map(
+        (module) => module.id
+      )
+    ).toContain("db.postgres");
+    expect(droppedBy(MODULES, FULL, chosen, [], LARGE_MACHINE)).toEqual([]);
+  });
 
   it("laisse de côté ce que l'architecture ne porte pas", () => {
     const wide: Preset = { ...FULL, modules: [...FULL.modules, "tool.legacy"] };

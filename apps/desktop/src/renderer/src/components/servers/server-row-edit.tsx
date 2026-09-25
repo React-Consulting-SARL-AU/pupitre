@@ -199,7 +199,7 @@ export function ServerRowEdit({
       ) : null}
 
       {said && wrong === null ? (
-        <p className="text-[12px] text-danger leading-relaxed" role="alert">
+        <p className="text-danger text-small leading-relaxed" role="alert">
           {said.message}
           {said.fix ? (
             <span className="block text-ink-3">{said.fix}</span>
@@ -208,7 +208,7 @@ export function ServerRowEdit({
       ) : null}
 
       {addressEditable ? (
-        <p className="text-[12px] text-ink-3 leading-relaxed">
+        <p className="text-ink-3 text-small leading-relaxed">
           {t("servers.edit.note")}
         </p>
       ) : null}

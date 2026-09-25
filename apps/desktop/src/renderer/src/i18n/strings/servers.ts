@@ -217,7 +217,7 @@ export const servers = {
       "Aucune clé de cet ordinateur n'ouvre {user}@{host}. Son mot de passe permet à l'app d'en poser une, une fois.",
     "servers.key.password.label": "Mot de passe du compte distant",
     "servers.key.password.help":
-      "Utilisé pour cette seule connexion, gardé nulle part, jamais écrit dans un fichier ni dans des logs.",
+      "Il sert à cette seule connexion, n'est gardé nulle part et n'est jamais écrit dans un fichier ni dans des logs.",
     "servers.key.password.refused":
       "Le serveur a refusé ce mot de passe. C'est celui du compte ci-dessus, celui que votre hébergeur vous a donné.",
     "servers.key.password.submit": "Installer la clé",

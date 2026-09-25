@@ -33,7 +33,7 @@ export function ConnectionAccountChoice({
         {t("connections.accounts.label")}
       </legend>
 
-      <p className="text-[12px] text-ink-3 leading-relaxed">
+      <p className="text-ink-3 text-small leading-relaxed">
         {t("connections.accounts.help")}
       </p>
 
@@ -47,7 +47,7 @@ export function ConnectionAccountChoice({
           <RadioLine
             data-account-option={account.id}
             detail={
-              <span className="block truncate font-data text-[11px] text-ink-4">
+              <span className="block truncate font-data text-caption text-ink-4">
                 {account.id}
               </span>
             }

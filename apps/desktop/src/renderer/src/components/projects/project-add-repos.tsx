@@ -189,7 +189,7 @@ export function ProjectAddRepos({
       {open ? (
         <div className="overflow-hidden rounded-md border border-line bg-sunken">
           {shown.length === 0 ? (
-            <p className="px-3 py-3 text-[12px] text-ink-3 leading-relaxed">
+            <p className="px-3 py-3 text-ink-3 text-small leading-relaxed">
               {t("projectAdd.github.empty")} ·{" "}
               {t("projectAdd.github.emptyDetail")}
             </p>

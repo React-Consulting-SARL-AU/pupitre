@@ -73,7 +73,7 @@ export function CatalogScreen({
       <Screen {...frame}>
         <StepFailure
           error={catalog.error}
-          onRetry={() => load(serverId)}
+          onRetry={() => load(serverId, installed)}
           retryLabel={t("catalog.screen.reload")}
         />
       </Screen>
@@ -92,10 +92,7 @@ export function CatalogScreen({
     <Screen
       {...frame}
       footer={
-        <ActionBar
-          name="catalog"
-          note={t.plural("catalog.screen.chosen", selected.length)}
-        >
+        <ActionBar name="catalog">
           <Button icon={ArrowRight} onClick={onConfigure} variant="inverse">
             {t.plural("catalog.screen.configure", selected.length)}
           </Button>

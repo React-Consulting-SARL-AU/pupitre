@@ -8,7 +8,7 @@ const LIST = {
 };
 
 const TAB =
-  "clickable flex shrink-0 items-center gap-2 whitespace-nowrap text-[13px] text-ink-3 transition-soft hover:text-ink data-[active]:font-medium data-[active]:text-ink";
+  "clickable flex shrink-0 items-center gap-2 whitespace-nowrap text-control text-ink-3 transition-soft hover:text-ink data-[active]:font-medium data-[active]:text-ink";
 
 const SHAPE = {
   horizontal:

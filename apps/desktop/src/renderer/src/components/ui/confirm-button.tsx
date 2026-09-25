@@ -26,6 +26,7 @@ export function ConfirmButton({
   confirmVariant = "destructive",
   size = "md",
   disabled = false,
+  ariaLabel,
   className = "",
 }: {
   children: string;
@@ -39,6 +40,8 @@ export function ConfirmButton({
   confirmVariant?: "destructive" | "inverse";
   size?: "sm" | "md";
   disabled?: boolean;
+  /** The visible label and the item it acts on, for a button repeated on every row. */
+  ariaLabel?: string;
   className?: string;
 }) {
   const [asking, setAsking] = useState(false);
@@ -58,6 +61,7 @@ export function ConfirmButton({
   return (
     <>
       <Button
+        ariaLabel={ariaLabel}
         className={className}
         disabled={disabled}
         icon={icon}
@@ -127,7 +131,7 @@ export function ConfirmDialog({
             {title}
           </AlertDialog.Title>
 
-          <AlertDialog.Description className="text-[13px] text-ink-2 leading-relaxed">
+          <AlertDialog.Description className="text-control text-ink-2 leading-relaxed">
             {question}
           </AlertDialog.Description>
 

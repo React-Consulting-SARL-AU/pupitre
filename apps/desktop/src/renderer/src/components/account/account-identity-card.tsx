@@ -72,7 +72,7 @@ export function AccountIdentityCard({
         </FactList>
 
         {account.sealed ? null : (
-          <p className="border-line border-t pt-3 text-[12px] text-warn leading-relaxed">
+          <p className="border-line border-t pt-3 text-small text-warn leading-relaxed">
             {t("account.identity.unsealed")}
           </p>
         )}

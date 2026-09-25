@@ -114,7 +114,7 @@ export function ServiceDatabase({
         </div>
 
         {pendingImports.length > 0 ? (
-          <WaitingLine className="text-[12px]">
+          <WaitingLine className="text-small">
             {t("transfers.dump.importing")}
             {" · "}
             <span className="font-data">
@@ -127,14 +127,14 @@ export function ServiceDatabase({
           <Panel data-outcome={outcome.kind} inset="sm">
             <Label>{t(TITLES[outcome.kind])}</Label>
             {outcome.lines.length === 0 ? (
-              <p className="mt-1 text-[12px] text-ink-3">
+              <p className="mt-1 text-ink-3 text-small">
                 {t("services.database.empty")}
               </p>
             ) : (
               <ul className="mt-1 flex flex-col gap-1">
                 {outcome.lines.map((line) => (
                   <li
-                    className="break-all font-data text-[12px] text-ink-2"
+                    className="break-all font-data text-ink-2 text-small"
                     key={line}
                   >
                     {line}
@@ -184,7 +184,7 @@ export function ServiceDatabase({
         ) : null}
 
         {dumps.status === "ready" && dumps.dumps.length === 0 ? (
-          <p className="text-[12px] text-ink-3">{t("services.dumps.none")}</p>
+          <p className="text-ink-3 text-small">{t("services.dumps.none")}</p>
         ) : null}
 
         {dumps.status === "ready" && dumps.dumps.length > 0 ? (

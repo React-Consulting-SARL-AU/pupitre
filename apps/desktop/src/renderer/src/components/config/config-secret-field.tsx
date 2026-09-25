@@ -58,7 +58,7 @@ export function ConfigSecretField({
     return (
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-data text-[12px] text-ink-3">
+          <span className="font-data text-ink-3 text-small">
             {t("config.secret.generated")}
           </span>
 
@@ -79,13 +79,13 @@ export function ConfigSecretField({
         </div>
 
         {shown ? (
-          <code className="block break-all rounded-sm border border-line-strong bg-sunken px-2.5 py-2 font-data text-[12px] text-ink">
+          <code className="block break-all rounded-sm border border-line-strong bg-sunken px-2.5 py-2 font-data text-ink text-small">
             {shown}
           </code>
         ) : null}
 
         {revealed && !shown ? (
-          <span className="text-[12px] text-ink-3">
+          <span className="text-ink-3 text-small">
             {t("config.secret.shown")}
           </span>
         ) : null}

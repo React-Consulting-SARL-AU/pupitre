@@ -39,7 +39,7 @@ export function CatalogResources({
   return (
     <section className="flex flex-col gap-3">
       <p
-        className="font-data text-[12px] text-ink-3 tabular-nums"
+        className="font-data text-ink-3 text-small tabular-nums"
         data-resources="true"
       >
         {line}

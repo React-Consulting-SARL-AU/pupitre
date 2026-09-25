@@ -53,12 +53,12 @@ export function CatalogModuleCard({
         <span className="flex min-w-0 flex-col gap-1">
           <span className="font-medium text-ink">{module.name}</span>
 
-          <span className="text-[12px] text-ink-3 leading-relaxed">
+          <span className="text-ink-3 text-small leading-relaxed">
             {module.summary}
           </span>
 
           {reason ? (
-            <span className="text-[12px] text-warn leading-relaxed">
+            <span className="text-small text-warn leading-relaxed">
               {reason}
             </span>
           ) : null}

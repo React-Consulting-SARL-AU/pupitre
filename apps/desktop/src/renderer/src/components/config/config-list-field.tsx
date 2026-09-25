@@ -103,7 +103,7 @@ export function ConfigListField({
           </Button>
         ) : null}
 
-        <span className="font-data text-[11px] text-ink-3 tabular-nums">
+        <span className="font-data text-caption text-ink-3 tabular-nums">
           {least > 0
             ? t("config.list.between", { min: least, max: field.max ?? "n" })
             : t("config.list.upTo", { max: field.max ?? "n" })}

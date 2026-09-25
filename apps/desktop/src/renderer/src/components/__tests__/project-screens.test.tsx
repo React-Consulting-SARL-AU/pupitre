@@ -80,7 +80,7 @@ describe("l'en-tête d'un projet", () => {
 
     expect(html).toContain("Redémarrer");
     expect(html).toContain("Arrêter");
-    expect(html).toContain("Synchroniser");
+    expect(html).toContain("Pull et réinstaller");
     expect(html).toContain("Retirer du registre");
   });
 
@@ -262,15 +262,15 @@ describe("la vue d'ensemble d'un projet", () => {
       />
     );
 
-    expect(html).toContain("flymate.example.org");
-    expect(html).toContain("api-flymate.example.org");
+    expect(html).toContain("flyleaf.example.org");
+    expect(html).toContain("api-flyleaf.example.org");
     expect(html).toContain('data-addresses="2"');
     expect(html).toContain("Publier un autre port");
     expect(html).toContain('id="project-branch"');
     expect(html).toContain("bun run dev --port 3000");
     expect(html).toContain("412 Mo");
     expect(html).toContain('data-processes="1"');
-    expect(html).toContain('data-process="flymate-api"');
+    expect(html).toContain('data-process="flyleaf-api"');
     expect(html).toContain("3 commits à récupérer");
   });
 
@@ -295,7 +295,7 @@ describe("la vue d'ensemble d'un projet", () => {
     );
 
     expect(html).toContain("dérivée de bun");
-    expect(html).toContain("interrogation du dépôt distant");
+    expect(html).toContain("Interrogation du dépôt distant");
   });
 });
 
@@ -342,7 +342,7 @@ describe("le diff d'un projet", () => {
     expect(html).toContain("modifiés");
     expect(html).toContain("nouveaux");
     expect(html).toContain("tva.ts");
-    expect(html).toContain("lecture seule");
+    expect(html).toContain("Lecture seule");
   });
 
   it("marque les lignes du patch par leur signe autant que par leur fond", () => {

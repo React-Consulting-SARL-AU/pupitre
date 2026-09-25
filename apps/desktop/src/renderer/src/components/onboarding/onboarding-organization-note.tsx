@@ -63,7 +63,7 @@ export function OnboardingOrganizationNote({
             </p>
           )}
           {organization && identity.role ? (
-            <p className="mt-1 text-[12px] text-ink-3">
+            <p className="mt-1 text-ink-3 text-small">
               {t("onboarding.organization.role", {
                 role: roleLabel(t, identity.role),
               })}

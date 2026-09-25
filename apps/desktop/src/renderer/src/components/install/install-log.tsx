@@ -19,7 +19,7 @@ export function InstallLog({ lines }: { lines: readonly string[] }) {
       label={t.plural("install.journal.lines", lines.length)}
       name="journal"
     >
-      <pre className="-mx-4 mt-1 max-h-72 overflow-auto border-line border-t bg-sunken px-4 py-3 font-data text-[12px] text-ink-3 leading-relaxed">
+      <pre className="-mx-4 mt-1 max-h-72 overflow-auto border-line border-t bg-sunken px-4 py-3 font-data text-ink-3 text-small leading-relaxed">
         {lines.join("\n")}
       </pre>
     </Details>

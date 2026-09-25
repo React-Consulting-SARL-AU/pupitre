@@ -43,11 +43,11 @@ export function TileButton({
     >
       {mark}
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="truncate font-medium text-[14px] text-ink">
+        <span className="truncate font-medium text-body text-ink">
           {children}
         </span>
         {detail ? (
-          <span className="truncate font-data text-[12px] text-ink-3">
+          <span className="truncate font-data text-ink-3 text-small">
             {detail}
           </span>
         ) : null}

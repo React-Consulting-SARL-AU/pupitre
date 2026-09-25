@@ -391,8 +391,8 @@ describe("les routes du module d'exposition", () => {
     installed: true,
     routes: [
       {
-        hostname: "flymate.example.org",
-        project: "flymate-api",
+        hostname: "flyleaf.example.org",
+        project: "flyleaf-api",
         service: "http://127.0.0.1:3000",
       },
     ],
@@ -409,7 +409,7 @@ describe("les routes du module d'exposition", () => {
       />
     );
 
-    expect(html).toContain('data-route="flymate.example.org"');
+    expect(html).toContain('data-route="flyleaf.example.org"');
     expect(text(html)).toContain("http://127.0.0.1:3000");
     expect(text(html)).toContain("Synchroniser les routes");
     expect(text(html)).not.toContain("Redémarrer");
@@ -619,7 +619,7 @@ describe("les réglages d'un service dont le catalogue manque", () => {
 
     expect(html).toContain('data-config="unknown"');
     expect(text(html)).toContain("catalogue du serveur n'a pas répondu");
-    expect(text(html)).toContain("Relire le catalogue");
+    expect(text(html)).toContain("Actualiser le catalogue");
   });
 
   // The domain of an installed tunnel is picked among the account's zones and
@@ -627,8 +627,8 @@ describe("les réglages d'un service dont le catalogue manque", () => {
   // account to ask, the field alone remains.
   it("propose les zones du compte pour le domaine d'un tunnel installé", () => {
     const config = {
-      answered: { domain: "flymate.dev" },
-      baseline: { domain: "flymate.dev" },
+      answered: { domain: "flyleaf.dev" },
+      baseline: { domain: "flyleaf.dev" },
       held: [],
       moduleId: EXPOSURE_CLOUDFLARE.id,
       status: "ready" as const,
@@ -639,10 +639,10 @@ describe("les réglages d'un service dont le catalogue manque", () => {
         {...props}
         config={config}
         manifest={EXPOSURE_CLOUDFLARE}
-        values={{ domain: "flymate.dev" }}
+        values={{ domain: "flyleaf.dev" }}
         zones={[
-          { id: "z-1", name: "flymate.dev" },
-          { id: "z-2", name: "flymate.studio" },
+          { id: "z-1", name: "flyleaf.dev" },
+          { id: "z-2", name: "flyleaf.studio" },
         ]}
       />
     );
@@ -650,7 +650,7 @@ describe("les réglages d'un service dont le catalogue manque", () => {
     expect(picked).toContain('id="exposure.cloudflare.zone"');
     expect(picked).toContain('role="combobox"');
     expect(picked).toMatch(
-      /id="exposure.cloudflare.zone"[^>]*>[^<]*<span[^>]*>flymate\.dev</
+      /id="exposure.cloudflare.zone"[^>]*>[^<]*<span[^>]*>flyleaf\.dev</
     );
     expect(picked).toContain('data-field="exposure.cloudflare.domain"');
 
@@ -659,7 +659,7 @@ describe("les réglages d'un service dont le catalogue manque", () => {
         {...props}
         config={config}
         manifest={EXPOSURE_CLOUDFLARE}
-        values={{ domain: "flymate.dev" }}
+        values={{ domain: "flyleaf.dev" }}
       />
     );
 
@@ -739,8 +739,8 @@ describe("les réglages d'un service dont le catalogue manque", () => {
   /** Nothing differs from what the server holds: the gesture has nothing to do, and says so by waiting. */
   it("n'offre d'appliquer qu'une fois quelque chose changé, et alors aussi d'y renoncer", () => {
     const config = {
-      answered: { domain: "flymate.dev" },
-      baseline: { domain: "flymate.dev" },
+      answered: { domain: "flyleaf.dev" },
+      baseline: { domain: "flyleaf.dev" },
       held: [],
       moduleId: EXPOSURE_CLOUDFLARE.id,
       status: "ready" as const,
@@ -753,7 +753,7 @@ describe("les réglages d'un service dont le catalogue manque", () => {
         dirty={false}
         manifest={EXPOSURE_CLOUDFLARE}
         onDiscard={() => undefined}
-        values={{ domain: "flymate.dev" }}
+        values={{ domain: "flyleaf.dev" }}
       />
     );
 
@@ -768,7 +768,7 @@ describe("les réglages d'un service dont le catalogue manque", () => {
         dirty
         manifest={EXPOSURE_CLOUDFLARE}
         onDiscard={() => undefined}
-        values={{ domain: "flymate.studio" }}
+        values={{ domain: "flyleaf.studio" }}
       />
     );
 
@@ -783,8 +783,8 @@ describe("les réglages d'un service dont le catalogue manque", () => {
       <ServiceConfig
         {...props}
         config={{
-          answered: { domain: "flymate.dev" },
-          baseline: { domain: "flymate.dev" },
+          answered: { domain: "flyleaf.dev" },
+          baseline: { domain: "flyleaf.dev" },
           held: [],
           moduleId: EXPOSURE_CLOUDFLARE.id,
           status: "ready",
@@ -820,7 +820,7 @@ describe("les réglages d'un service dont le catalogue manque", () => {
     );
 
     expect(text(html)).toContain("tant que le serveur est retenu");
-    expect(text(html)).not.toContain("Relire le catalogue");
+    expect(text(html)).not.toContain("Actualiser le catalogue");
   });
 });
 
@@ -835,7 +835,7 @@ describe("un écran que l'app n'a pas su dessiner", () => {
 
     expect(html).toContain('data-screen-failure="true"');
     expect(text(html)).toContain("Rien n'a changé sur le serveur");
-    expect(text(html)).toContain("Le dessiner à nouveau");
+    expect(text(html)).toContain("Réafficher l'écran");
     expect(html.slice(html.indexOf('hidden=""'))).toContain(
       "Cannot read properties"
     );

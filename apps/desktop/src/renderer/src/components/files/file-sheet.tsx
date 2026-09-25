@@ -24,7 +24,7 @@ export function FileSheet({ stat }: { stat: FsStatResult }) {
   ];
 
   return (
-    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-[12px]">
+    <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-small">
       {rows.map(([label, value]) => (
         <div className="contents" key={label}>
           <dt className="text-ink-3">{label}</dt>

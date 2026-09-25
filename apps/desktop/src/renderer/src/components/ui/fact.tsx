@@ -41,7 +41,7 @@ export function Fact({
   prose?: boolean;
   className?: string;
 } & Record<`data-${string}`, string | number | undefined>) {
-  const value = prose ? "text-ink-2" : "font-data text-[12px] text-ink-2";
+  const value = prose ? "text-ink-2" : "font-data text-small text-ink-2";
 
   return (
     <div className={`min-w-0 ${className}`} {...rest}>
@@ -50,7 +50,7 @@ export function Fact({
       </dt>
       <dd className={`mt-1 break-words ${value}`}>{children}</dd>
       {detail ? (
-        <dd className="mt-0.5 break-words font-data text-[12px] text-ink-3">
+        <dd className="mt-0.5 break-words font-data text-ink-3 text-small">
           {detail}
         </dd>
       ) : null}

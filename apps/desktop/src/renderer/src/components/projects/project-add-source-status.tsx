@@ -22,7 +22,7 @@ export function ProjectAddSourceStatus({
 
   if (detection.status === "reading") {
     return (
-      <WaitingLine className="text-[12px] leading-relaxed">
+      <WaitingLine className="text-small leading-relaxed">
         <span>{reading(t, detection, kind)}</span>
         <LiveDuration className="font-data tabular-nums" />
       </WaitingLine>
@@ -35,7 +35,7 @@ export function ProjectAddSourceStatus({
 
     if (processes.length > 1 || !first) {
       return (
-        <p className="text-[12px] text-ink-3 leading-relaxed">
+        <p className="text-ink-3 text-small leading-relaxed">
           {t("projectAdd.form.sourceReadProcesses", {
             processes: processes.map((process) => process.id).join(", "),
           })}
@@ -46,7 +46,7 @@ export function ProjectAddSourceStatus({
     const { pkgmgr, port_hint: port } = first;
 
     return (
-      <p className="text-[12px] text-ink-3 leading-relaxed">
+      <p className="text-ink-3 text-small leading-relaxed">
         {port
           ? t("projectAdd.form.sourceRead", { pkgmgr, port })
           : t("projectAdd.form.sourceReadNoPort", { pkgmgr })}

@@ -39,12 +39,12 @@ export function FleetOrganizations({
               <span className="min-w-0 flex-1 truncate text-ink-2">
                 {organization.name}
               </span>
-              <span className="text-[12px] text-ink-3">
+              <span className="text-ink-3 text-small">
                 {roleLabel(t, organization.role)}
               </span>
 
               {active ? (
-                <span className="text-[12px] text-ink-3">
+                <span className="text-ink-3 text-small">
                   {t("fleet.organizations.active")}
                 </span>
               ) : (

@@ -44,7 +44,7 @@ export function ProjectPorts({
     <fieldset className="flex min-w-0 flex-col gap-3" data-ports={rows.length}>
       <legend className="flex flex-col gap-1">
         <Label>{t("projectAdd.ports.title")}</Label>
-        <span className="text-[12px] text-ink-3 leading-relaxed">
+        <span className="text-ink-3 text-small leading-relaxed">
           {exposed
             ? t("projectAdd.ports.help.published")
             : t("projectAdd.ports.help.local")}
@@ -87,7 +87,7 @@ export function ProjectPorts({
       </div>
 
       {exposure?.provider === "caddy" && published ? (
-        <p className="text-[12px] text-ink-3 leading-relaxed">
+        <p className="text-ink-3 text-small leading-relaxed">
           {t("projectAdd.ports.caddyDns", { host: exposure.host })}
         </p>
       ) : null}

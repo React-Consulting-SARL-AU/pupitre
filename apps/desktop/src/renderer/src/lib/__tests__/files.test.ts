@@ -153,6 +153,12 @@ describe("le menu d'une entrée", () => {
     ]);
   });
 
+  it("n'offre ni ouverture ni copie d'un tube, d'une socket ou d'un périphérique, qu'une lecture attendrait sans fin", () => {
+    expect(
+      entryActions(entry("fifo", "special"), [zed]).map((a) => a.id)
+    ).toEqual(["rename", "remove"]);
+  });
+
   it("dit d'un téléchargement s'il porte sur un dossier, ce qui change la boîte", () => {
     expect(
       entryActions(entry("src", "dir"), []).find((a) => a.id === "download")

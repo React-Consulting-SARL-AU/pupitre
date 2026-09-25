@@ -37,7 +37,7 @@ export function ProjectGitState({
 
   if (state.status === "idle" || state.status === "reading") {
     return (
-      <WaitingLine className="font-data text-[12px]">
+      <WaitingLine className="font-data text-small">
         {t("project.git.querying")}
       </WaitingLine>
     );
@@ -53,7 +53,7 @@ export function ProjectGitState({
 
   if (!state.git.repo) {
     return (
-      <p className="font-data text-[12px] text-ink-3">
+      <p className="font-data text-ink-3 text-small">
         {t("project.git.notRepo")}
       </p>
     );
@@ -64,7 +64,7 @@ export function ProjectGitState({
       <div className="flex flex-wrap items-center gap-2">
         <div className="min-w-0 flex-1">
           <ProjectGitSummary git={state.git} />
-          <p className="mt-1 truncate font-data text-[11px] text-ink-3">
+          <p className="mt-1 truncate font-data text-caption text-ink-3">
             {state.git.subject
               ? `${t("project.git.lastCommit", { subject: state.git.subject })} · `
               : ""}
@@ -74,7 +74,6 @@ export function ProjectGitState({
 
         {state.git.behind > 0 && onPull ? (
           <Button
-            hint={t("project.header.syncHint")}
             icon={Download}
             loading={pulling}
             onClick={onPull}

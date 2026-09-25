@@ -59,32 +59,24 @@ export const connections = {
       "A service account token, not your main password. Create it in Developer › Service Accounts, and grant it only the vault that holds your projects' secrets.",
 
     "connections.neon.title": "Neon account",
-    "connections.neon.intro":
-      "The Neon CLI on the server, and the key it takes through NEON_API_KEY.",
     "connections.neon.tokenLabel": "API key",
     "connections.neon.tokenHelp": "Kept in this computer's keychain.",
     "connections.neon.tokenHint":
-      "A personal or organisation API key, created in the Neon account settings.",
+      "A personal or organization API key, created in the Neon account settings.",
 
     "connections.vercel.title": "Vercel account",
-    "connections.vercel.intro":
-      "The Vercel CLI on the server, and the token it takes through VERCEL_TOKEN.",
     "connections.vercel.tokenLabel": "Token",
     "connections.vercel.tokenHelp": "Kept in this computer's keychain.",
     "connections.vercel.tokenHint":
       "An account token, created in Account settings › Tokens. Scope it to the team the projects live in.",
 
     "connections.supabase.title": "Supabase account",
-    "connections.supabase.intro":
-      "The Supabase CLI on the server, and the token it takes through SUPABASE_ACCESS_TOKEN.",
     "connections.supabase.tokenLabel": "Access token",
     "connections.supabase.tokenHelp": "Kept in this computer's keychain.",
     "connections.supabase.tokenHint":
-      "A personal access token, created in Account › Access Tokens. It opens every organisation you belong to.",
+      "A personal access token, created in Account › Access Tokens. It opens every organization you belong to.",
 
     "connections.stripe.title": "Stripe account",
-    "connections.stripe.intro":
-      "The Stripe CLI on the server, and the key it takes through STRIPE_API_KEY.",
     "connections.stripe.tokenLabel": "API key",
     "connections.stripe.tokenHelp": "Kept in this computer's keychain.",
     "connections.stripe.tokenHint":
@@ -168,16 +160,12 @@ export const connections = {
       "Un token de compte de service, pas votre mot de passe principal. Créez-le dans Développeur › Comptes de service, et n'autorisez que le coffre qui porte les secrets de vos projets.",
 
     "connections.neon.title": "Compte Neon",
-    "connections.neon.intro":
-      "Le CLI Neon sur le serveur, et la clé qu'il prend par NEON_API_KEY.",
     "connections.neon.tokenLabel": "Clé d'API",
     "connections.neon.tokenHelp": "Gardée dans le trousseau de cet ordinateur.",
     "connections.neon.tokenHint":
       "Une clé d'API personnelle ou d'organisation, créée dans les réglages du compte Neon.",
 
     "connections.vercel.title": "Compte Vercel",
-    "connections.vercel.intro":
-      "Le CLI Vercel sur le serveur, et le token qu'il prend par VERCEL_TOKEN.",
     "connections.vercel.tokenLabel": "Token",
     "connections.vercel.tokenHelp":
       "Gardé dans le trousseau de cet ordinateur.",
@@ -185,8 +173,6 @@ export const connections = {
       "Un token de compte, créé dans Account settings › Tokens. Limitez-le à l'équipe où vivent les projets.",
 
     "connections.supabase.title": "Compte Supabase",
-    "connections.supabase.intro":
-      "Le CLI Supabase sur le serveur, et le token qu'il prend par SUPABASE_ACCESS_TOKEN.",
     "connections.supabase.tokenLabel": "Token d'accès",
     "connections.supabase.tokenHelp":
       "Gardé dans le trousseau de cet ordinateur.",
@@ -194,8 +180,6 @@ export const connections = {
       "Un token d'accès personnel, créé dans Account › Access Tokens. Il ouvre toutes les organisations dont vous êtes membre.",
 
     "connections.stripe.title": "Compte Stripe",
-    "connections.stripe.intro":
-      "Le CLI Stripe sur le serveur, et la clé qu'il prend par STRIPE_API_KEY.",
     "connections.stripe.tokenLabel": "Clé d'API",
     "connections.stripe.tokenHelp":
       "Gardée dans le trousseau de cet ordinateur.",

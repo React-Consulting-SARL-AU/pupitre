@@ -95,7 +95,7 @@ export function AccountSignInCard({
                 size={9}
               />
             </span>
-            <p className="text-[12px] text-ink-2 leading-relaxed">
+            <p className="text-ink-2 text-small leading-relaxed">
               {t(`account.signIn.step.${step}`, { url: consoleUrl })}
             </p>
           </li>

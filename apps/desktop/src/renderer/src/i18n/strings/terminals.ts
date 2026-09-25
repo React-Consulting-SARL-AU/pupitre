@@ -23,7 +23,7 @@ export const terminals = {
       "Hermes is attaching to its session on the server",
     "terminals.openingShell": "Opening a shell on the server",
     "terminals.opening": "Opening the session",
-    "terminals.renameHint": "Double-click to rename",
+    "terminals.renameHint": "Double-click or press F2 to rename",
     "terminals.renameLabel": "New name for {title}",
     "terminals.close": "Close {title}",
     "terminals.closeTabHint": "Close the tab and stop the session ({chord}W)",
@@ -85,7 +85,7 @@ export const terminals = {
     "terminals.openingHermes": "Hermes s'attache à sa session sur le serveur",
     "terminals.openingShell": "Ouverture d'un shell sur le serveur",
     "terminals.opening": "Ouverture de la session",
-    "terminals.renameHint": "Double-cliquez pour renommer",
+    "terminals.renameHint": "Double-cliquez ou appuyez sur F2 pour renommer",
     "terminals.renameLabel": "Nouveau nom pour {title}",
     "terminals.close": "Fermer {title}",
     "terminals.closeTabHint":

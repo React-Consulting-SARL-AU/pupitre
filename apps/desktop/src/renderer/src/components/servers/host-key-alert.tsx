@@ -2,6 +2,7 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { ShieldAlert } from "lucide-react";
 import type { HostKeyState } from "../../stores/servers";
 import { Button } from "../ui/button";
+import { Panel } from "../ui/panel";
 import { HostKeyFingerprint } from "./host-key-fingerprint";
 
 /**
@@ -28,7 +29,7 @@ export function HostKeyAlert({
   const t = useTranslations();
 
   return (
-    <div className="elevation-raised fade-in rounded-md border border-danger/40 bg-danger/10 p-5">
+    <Panel className="fade-in">
       <div className="flex items-start gap-3">
         <ShieldAlert
           className="mt-0.5 shrink-0 text-danger"
@@ -37,7 +38,7 @@ export function HostKeyAlert({
         />
 
         <div className="min-w-0 flex-1">
-          <h3 className="font-medium text-danger">
+          <h3 className="font-medium text-ink">
             {t("servers.hostKey.title", { name: serverName })}
           </h3>
           <p className="mt-1.5 text-ink-2 leading-relaxed">
@@ -69,6 +70,6 @@ export function HostKeyAlert({
           </div>
         </div>
       </div>
-    </div>
+    </Panel>
   );
 }

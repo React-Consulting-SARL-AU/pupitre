@@ -84,7 +84,7 @@ export function BackupsRevertProgress({
 
       {revert.status === "failed" ? (
         <>
-          <p className="text-[12px] text-ink-3">
+          <p className="text-ink-3 text-small">
             {t("backups.revert.stoppedAt", { phase: label(revert.phase) })}
           </p>
           <ErrorNotice error={revert.error} />

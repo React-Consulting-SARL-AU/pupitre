@@ -46,7 +46,7 @@ export function AccountDeviceList({
             />
 
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] text-ink">
+              <p className="truncate text-control text-ink">
                 {device.name}
                 {self ? (
                   <CountPill className="ml-2">
@@ -54,13 +54,13 @@ export function AccountDeviceList({
                   </CountPill>
                 ) : null}
               </p>
-              <p className="truncate font-data text-[11px] text-ink-3">
+              <p className="truncate font-data text-caption text-ink-3">
                 {device.fingerprint}
               </p>
             </div>
 
             {self ? (
-              <span className="text-[12px] text-ink-3">
+              <span className="text-ink-3 text-small">
                 {t("account.devices.self")}
               </span>
             ) : (

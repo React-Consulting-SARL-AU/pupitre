@@ -13,7 +13,7 @@ export function CountPill({
 }) {
   return (
     <span
-      className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full border border-line px-1.5 py-0.5 font-data text-[11px] text-ink-3 tabular-nums leading-none ${className}`}
+      className={`inline-flex shrink-0 items-center whitespace-nowrap rounded-full border border-line px-1.5 py-0.5 font-data text-caption text-ink-3 tabular-nums leading-none ${className}`}
     >
       {children}
     </span>

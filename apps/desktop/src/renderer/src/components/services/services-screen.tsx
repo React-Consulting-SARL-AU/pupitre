@@ -36,6 +36,7 @@ export function ServicesScreen({
   service,
   onOpenService,
   onCloseService,
+  startAdding = false,
 }: {
   serverId: string;
   serverName?: string;
@@ -45,10 +46,12 @@ export function ServicesScreen({
   service: string | null;
   onOpenService: (moduleId: string) => void;
   onCloseService: () => void;
+  /** Arrive on the catalogue rather than on the list. */
+  startAdding?: boolean;
 }) {
   const t = useTranslations();
 
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState(startAdding);
 
   const catalog = useCatalog((state) => state.catalog);
   const modules = useCatalog((state) => state.modules);

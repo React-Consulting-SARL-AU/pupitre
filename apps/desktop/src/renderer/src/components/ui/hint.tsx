@@ -31,7 +31,7 @@ export function Hint({ hint, label }: { hint: FieldHint; label: string }) {
 
       <Popover.Portal>
         <Popover.Positioner align="start" side="top" sideOffset={6}>
-          <Popover.Popup className="elevation-raised z-50 max-w-xs rounded-md border border-line bg-surface p-3.5 text-[12px] text-ink-2 leading-relaxed outline-none">
+          <Popover.Popup className="elevation-raised z-50 max-w-xs rounded-md border border-line bg-surface p-3.5 text-ink-2 text-small leading-relaxed outline-none">
             <p className="break-words">{hint.text}</p>
 
             {hint.url ? (

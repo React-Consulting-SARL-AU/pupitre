@@ -39,7 +39,7 @@ export function ProjectBranches({
 
   if (state.status === "idle" || state.status === "reading") {
     return (
-      <WaitingLine className="font-data text-[12px]">
+      <WaitingLine className="font-data text-small">
         {t("project.branches.reading")}
       </WaitingLine>
     );
@@ -58,10 +58,10 @@ export function ProjectBranches({
       <div className="flex items-start gap-2 text-ink-3">
         <GitBranchPlus className="mt-px shrink-0" size={13} strokeWidth={1.5} />
         <div className="min-w-0">
-          <p className="text-[13px] text-ink-2">
+          <p className="text-control text-ink-2">
             {t("project.branches.noRepoTitle")}
           </p>
-          <p className="mt-0.5 truncate font-data text-[12px]">
+          <p className="mt-0.5 truncate font-data text-small">
             {t("project.branches.notVersioned", { folder })}
           </p>
         </div>
@@ -164,7 +164,7 @@ export function ProjectBranches({
       ) : null}
 
       {branches.dirty ? null : (
-        <p className="truncate font-data text-[12px] text-ink-3">
+        <p className="truncate font-data text-ink-3 text-small">
           {branches.root} ·{" "}
           {t.plural("project.branches.localCount", branches.local.length)}
           {remoteOnly.length > 0

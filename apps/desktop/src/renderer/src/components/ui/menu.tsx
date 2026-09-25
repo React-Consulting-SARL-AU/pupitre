@@ -49,7 +49,7 @@ export function Menu<Id extends string>({
           <Base.Popup className="elevation-raised min-w-36 rounded-md border border-line bg-surface p-1 outline-none">
             {entries.map(({ id, label: name, icon: EntryIcon }) => (
               <Base.Item
-                className="flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-[12.5px] text-ink-2 outline-none data-[highlighted]:bg-raised data-[highlighted]:text-ink"
+                className="flex cursor-default items-center gap-2 rounded-sm px-2 py-1.5 text-control text-ink-2 outline-none data-[highlighted]:bg-raised data-[highlighted]:text-ink"
                 key={id}
                 onClick={() => onPick(id)}
               >

@@ -18,7 +18,7 @@ export const files = {
     "files.sort.date": "Date",
     "files.hidden.label": "Show hidden files",
     "files.hidden.short": "Hidden",
-    "files.refresh": "Read the folder again",
+    "files.refresh": "Refresh the folder",
     "files.row.enter": "Open the folder {name}",
     "files.row.show": "Show {name}",
     "files.new.label": "Name",
@@ -39,9 +39,10 @@ export const files = {
     "files.rename.label": "New name for {name}",
     "files.rename.confirm": "Rename",
     "files.remove.title": "Delete {name}",
-    "files.remove.question": "{name} is deleted from the server.",
+    "files.remove.question":
+      "{name} will be deleted from the server, with no way back.",
     "files.remove.folderQuestion":
-      "The folder {name} is deleted from the server.",
+      "The folder {name} will be deleted from the server, with no way back.",
     "files.remove.confirm": "Delete",
     "files.remove.confirmAll": "Delete the folder and what it holds",
     "files.remove.confirmHeld.one": "Delete the folder and its {count} entry",
@@ -85,7 +86,7 @@ export const files = {
     "files.save": "Save",
     "files.save.title": "Save (⌘S / Ctrl+S)",
     "files.save.done": "Saved {when}",
-    "files.stale.reread": "Read again — drops your changes",
+    "files.stale.reread": "Refresh — drops your changes",
     "files.leave.title": "Leave {name}",
     "files.leave.question":
       "{name} has unsaved changes: leaving the file drops them.",
@@ -101,7 +102,7 @@ export const files = {
     "files.brokenMessage":
       "The file did not arrive whole: what came through does not match the fingerprint the server gave.",
     "files.brokenFix":
-      "Read it again; if it fails again, the file is damaged on the server.",
+      "Open the file again; if it fails again, the file is damaged on the server.",
     "files.outsideRoot":
       "This folder is outside the working tree the server opens.",
     "files.outsideRoot.fix":
@@ -126,7 +127,7 @@ export const files = {
     "files.sort.date": "Date",
     "files.hidden.label": "Montrer les fichiers cachés",
     "files.hidden.short": "Cachés",
-    "files.refresh": "Relire le dossier",
+    "files.refresh": "Actualiser le dossier",
     "files.row.enter": "Ouvrir le dossier {name}",
     "files.row.show": "Afficher {name}",
     "files.new.label": "Nom",
@@ -148,8 +149,10 @@ export const files = {
     "files.rename.label": "Nouveau nom pour {name}",
     "files.rename.confirm": "Renommer",
     "files.remove.title": "Supprimer {name}",
-    "files.remove.question": "{name} est supprimé du serveur.",
-    "files.remove.folderQuestion": "Le dossier {name} est supprimé du serveur.",
+    "files.remove.question":
+      "{name} sera supprimé du serveur, sans retour possible.",
+    "files.remove.folderQuestion":
+      "Le dossier {name} sera supprimé du serveur, sans retour possible.",
     "files.remove.confirm": "Supprimer",
     "files.remove.confirmAll": "Supprimer le dossier et ce qu'il contient",
     "files.remove.confirmHeld.one":
@@ -194,7 +197,7 @@ export const files = {
     "files.save": "Enregistrer",
     "files.save.title": "Enregistrer (⌘S / Ctrl+S)",
     "files.save.done": "Enregistré {when}",
-    "files.stale.reread": "Relire — perd vos modifications",
+    "files.stale.reread": "Actualiser — perd vos modifications",
     "files.leave.title": "Quitter {name}",
     "files.leave.question":
       "{name} a des modifications non enregistrées : quitter le fichier les perd.",
@@ -210,7 +213,7 @@ export const files = {
     "files.brokenMessage":
       "Le fichier n'est pas arrivé entier : ce qui a été reçu ne correspond pas à l'empreinte que le serveur a donnée.",
     "files.brokenFix":
-      "Relisez-le ; s'il échoue encore, le fichier est abîmé sur le serveur.",
+      "Rouvrez le fichier ; s'il échoue encore, le fichier est abîmé sur le serveur.",
     "files.outsideRoot":
       "Ce dossier est hors de l'arbre de travail que le serveur ouvre.",
     "files.outsideRoot.fix":

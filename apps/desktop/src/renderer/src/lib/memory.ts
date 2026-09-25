@@ -95,37 +95,13 @@ export function writeNavigation(patch: Navigation): void {
   }
 }
 
+/** Where earlier versions kept every typed command, tokens included. */
 const HISTORY_KEY = "pupitre.history.v1";
 
-/** The lines run in the app's own terminals, one list per server. */
-function readAllHistory(): Record<string, string[]> {
+export function dropStoredHistory(): void {
   try {
-    const raw = window.localStorage.getItem(HISTORY_KEY);
-    const read = raw ? (JSON.parse(raw) as Record<string, string[]>) : {};
-
-    return typeof read === "object" && read !== null ? read : {};
+    window.localStorage.removeItem(HISTORY_KEY);
   } catch {
-    return {};
-  }
-}
-
-export function readHistory(serverId: string): string[] {
-  const kept = readAllHistory()[serverId];
-
-  return Array.isArray(kept)
-    ? kept.filter((entry) => typeof entry === "string")
-    : [];
-}
-
-export function writeHistory(
-  serverId: string,
-  entries: readonly string[]
-): void {
-  try {
-    const all = { ...readAllHistory(), [serverId]: [...entries] };
-
-    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(all));
-  } catch {
-    // Same as the navigation: a convenience, never a reason to fail.
+    // Storage unavailable: there is nothing in it to drop.
   }
 }

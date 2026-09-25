@@ -34,7 +34,7 @@ export function HelpCodexSection({
 
       <Panel inset="lg">
         <h3 className="font-medium text-ink">{t("help.codex.app")}</h3>
-        <p className="mt-1 text-[12px] text-ink-3 leading-relaxed">
+        <p className="mt-1 text-ink-3 text-small leading-relaxed">
           {t("help.codex.app.detail", { ssh: target.server.ssh })}
         </p>
       </Panel>

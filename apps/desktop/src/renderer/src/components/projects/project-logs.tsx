@@ -67,12 +67,12 @@ export function ProjectLogs({
   return (
     <div className="flex h-full flex-col">
       <div className="flex flex-wrap items-center gap-3 border-line border-b px-4 py-2">
-        <span className="font-data text-[12px] text-ink-3">{label}</span>
+        <span className="font-data text-ink-3 text-small">{label}</span>
 
         {processes.length > 1 ? (
           <Select
             aria-label={t("project.logs.process")}
-            className="w-auto py-0.5 text-[12px]"
+            className="w-auto py-0.5 text-small"
             kind="data"
             onChange={setChosen}
             options={processes.map((id) => ({ label: id, value: id }))}
@@ -85,7 +85,7 @@ export function ProjectLogs({
           <input
             aria-label={t("project.logs.search")}
             autoComplete="off"
-            className="w-44 bg-transparent font-data text-[12px] text-ink outline-none placeholder:text-ink-4"
+            className="w-44 bg-transparent font-data text-ink text-small outline-none placeholder:text-ink-4"
             onChange={(event) => setTerm(event.target.value)}
             placeholder={t("project.logs.search")}
             spellCheck={false}
@@ -93,7 +93,7 @@ export function ProjectLogs({
             value={term}
           />
           {searching ? (
-            <span className="shrink-0 font-data text-[11px] text-ink-3 tabular-nums">
+            <span className="shrink-0 font-data text-caption text-ink-3 tabular-nums">
               {t.plural("project.logs.matches", shown.length)}
             </span>
           ) : null}
@@ -137,7 +137,7 @@ export function ProjectLogs({
       >
         {journal.cut ? (
           <p
-            className="mb-2 border-line border-b pb-2 text-[11px] text-ink-3"
+            className="mb-2 border-line border-b pb-2 text-caption text-ink-3"
             data-logs-cut="true"
           >
             {t("project.logs.cut", { count: MAX_LINES })}

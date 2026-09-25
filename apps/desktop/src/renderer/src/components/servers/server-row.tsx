@@ -114,7 +114,7 @@ export function ServerRow({
             aria-busy={activating}
             aria-current={active}
             aria-label={t("servers.row.activate", { name: server.name })}
-            className="clickable shrink-0 rounded-sm p-0.5 text-ink disabled:opacity-40"
+            className="clickable inline-flex size-7 shrink-0 items-center justify-center rounded-sm text-ink transition-soft hover:bg-raised disabled:opacity-40"
             disabled={activating}
             onClick={activate}
             type="button"

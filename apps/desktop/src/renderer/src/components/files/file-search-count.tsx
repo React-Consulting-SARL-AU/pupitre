@@ -37,7 +37,7 @@ export function FileSearchCount({
 
   return (
     <span
-      className={`shrink-0 whitespace-nowrap font-data text-[11px] ${tone}`}
+      className={`shrink-0 whitespace-nowrap font-data text-caption ${tone}`}
       data-search-count={matches.total}
       role="status"
     >

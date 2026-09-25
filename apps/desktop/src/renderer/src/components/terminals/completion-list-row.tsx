@@ -34,17 +34,17 @@ export function CompletionListRow({
         type="button"
       >
         <span
-          className={`w-3 shrink-0 text-center font-data text-[11px] ${
+          className={`w-3 shrink-0 text-center font-data text-caption ${
             active ? "text-ink" : "text-ink-3"
           }`}
         >
           {MARK[candidate.kind]}
         </span>
-        <span className="min-w-0 flex-1 truncate font-data text-[12px]">
+        <span className="min-w-0 flex-1 truncate font-data text-small">
           {candidate.text}
         </span>
         {candidate.help ? (
-          <span className="shrink-0 truncate text-[11px] text-ink-3">
+          <span className="shrink-0 truncate text-caption text-ink-3">
             {candidate.help}
           </span>
         ) : null}

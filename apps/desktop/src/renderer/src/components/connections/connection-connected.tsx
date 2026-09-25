@@ -75,7 +75,7 @@ export function ConnectionConnected({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           {status ?? (
-            <p className="text-[13px] text-ink">
+            <p className="text-control text-ink">
               {state.account
                 ? t("connections.connected", { account: state.account.name })
                 : t("connections.held")}
@@ -83,7 +83,7 @@ export function ConnectionConnected({
           )}
 
           {state.sealed ? null : (
-            <p className="mt-1 text-[12px] text-warn">
+            <p className="mt-1 text-small text-warn">
               {t("connections.unsealed")}
             </p>
           )}

@@ -97,7 +97,7 @@ export function BackupsStatus({
               <ul className="mt-2 flex flex-col gap-1">
                 {state.backup.last.warnings.map((warning) => (
                   <li
-                    className="break-words font-data text-[12px] text-ink-2"
+                    className="break-words font-data text-ink-2 text-small"
                     key={warning}
                   >
                     {warning}

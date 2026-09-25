@@ -21,7 +21,7 @@ export function InstallStepWait() {
 
   return (
     <p
-      className="mt-1 text-[12px] text-ink-3 leading-relaxed"
+      className="mt-1 text-ink-3 text-small leading-relaxed"
       data-patience="true"
     >
       {t("install.stepLong")}

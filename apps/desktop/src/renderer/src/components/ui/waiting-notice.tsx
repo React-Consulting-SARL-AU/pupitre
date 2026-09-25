@@ -68,7 +68,7 @@ export function WaitingNotice({
         </div>
 
         {elapsed >= COUNTED_FROM_MS ? (
-          <span className="shrink-0 font-data text-[12px] text-ink-3 tabular-nums">
+          <span className="shrink-0 font-data text-ink-3 text-small tabular-nums">
             {humanMs(elapsed)}
           </span>
         ) : null}
@@ -86,7 +86,7 @@ export function WaitingNotice({
             >
               <StatusDot shape={SHAPE[phase.state]} size={9} />
               <span
-                className={`min-w-0 flex-1 truncate text-[12px] transition-soft ${TONE[phase.state]} ${phase.state === "running" ? "font-medium" : ""}`}
+                className={`min-w-0 flex-1 truncate text-small transition-soft ${TONE[phase.state]} ${phase.state === "running" ? "font-medium" : ""}`}
               >
                 {phase.label}
               </span>

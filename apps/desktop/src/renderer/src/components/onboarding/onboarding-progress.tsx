@@ -83,7 +83,7 @@ export function OnboardingProgress({
                 <ol className="mt-1 flex flex-col gap-0.5">
                   {SERVER_STAGES.map((one) => (
                     <li
-                      className={`text-[12px] ${
+                      className={`text-small ${
                         one === stage ? "text-ink-2" : "text-ink-4"
                       }`}
                       data-current={one === stage ? "true" : undefined}

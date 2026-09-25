@@ -7,9 +7,14 @@ import { type FieldGroup, splitFields } from "../../lib/catalog-selection";
 import { Button } from "../ui/button";
 import { Callout } from "../ui/callout";
 import { Details } from "../ui/details";
+import { RequiredLegend } from "../ui/field";
 import { Panel } from "../ui/panel";
 import { ServiceLogo } from "../ui/service-logo";
-import { ConfigFieldControl, type FieldHandlers } from "./config-field-control";
+import {
+  ConfigFieldControl,
+  type FieldHandlers,
+  isRequired,
+} from "./config-field-control";
 
 /**
  * One service's questions, under its own name and logo.
@@ -69,6 +74,7 @@ export function ConfigModuleGroup({
   const { asked, kept } = splitFields(group.fields);
   const keptRefused = kept.some((field) => problemOf(field.key));
   const asksSecret = asked.some((field) => field.kind === "secret");
+  const asksRequired = group.fields.some(isRequired);
 
   function control(field: FieldGroup["fields"][number]) {
     return (
@@ -109,10 +115,10 @@ export function ConfigModuleGroup({
           >
             {group.module.name}
           </h2>
-          <p className="text-[12px] text-ink-3">{group.module.summary}</p>
+          <p className="text-ink-3 text-small">{group.module.summary}</p>
         </div>
         {position && position.total > 1 ? (
-          <span className="shrink-0 font-data text-[12px] text-ink-3 tabular-nums">
+          <span className="shrink-0 font-data text-ink-3 text-small tabular-nums">
             {t("config.module.position", position)}
           </span>
         ) : null}
@@ -133,11 +139,11 @@ export function ConfigModuleGroup({
       {deferred ? null : before}
 
       {!deferred && group.fields.length === 0 ? (
-        <p className="text-[12px] text-ink-3">{t("config.module.nothing")}</p>
+        <p className="text-ink-3 text-small">{t("config.module.nothing")}</p>
       ) : null}
 
       {!deferred && group.fields.length > 0 && asked.length === 0 ? (
-        <p className="text-[12px] text-ink-3" data-defaults="true">
+        <p className="text-ink-3 text-small" data-defaults="true">
           {t("config.module.defaults")}
         </p>
       ) : null}
@@ -148,8 +154,12 @@ export function ConfigModuleGroup({
         </div>
       ) : null}
 
+      {!deferred && asksRequired ? (
+        <RequiredLegend>{t("common.field.required")}</RequiredLegend>
+      ) : null}
+
       {!deferred && asksSecret ? (
-        <p className="text-[12px] text-ink-3 leading-relaxed">
+        <p className="text-ink-3 text-small leading-relaxed">
           {t("config.secretsNotice")}
         </p>
       ) : null}

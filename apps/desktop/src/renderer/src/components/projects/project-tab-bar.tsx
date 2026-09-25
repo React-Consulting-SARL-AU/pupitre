@@ -64,7 +64,7 @@ export function ProjectTabBar({
             <Icon size={13} strokeWidth={1.5} />
             {t(TAB_LABEL[tab])}
             {count > 0 ? (
-              <span className="rounded-full bg-sunken px-1.5 font-data text-[11px] text-ink-3 tabular-nums">
+              <span className="rounded-full bg-sunken px-1.5 font-data text-caption text-ink-3 tabular-nums">
                 {count}
               </span>
             ) : null}

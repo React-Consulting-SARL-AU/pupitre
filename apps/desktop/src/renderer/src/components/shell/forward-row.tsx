@@ -33,7 +33,7 @@ export function ForwardRow({
     >
       <div className="flex items-center gap-2">
         <StatusDot shape="filled" size={9} tone="ok" />
-        <span className="min-w-0 flex-1 truncate text-[12px] text-ink">
+        <span className="min-w-0 flex-1 truncate text-ink text-small">
           {named}
         </span>
         <IconButton
@@ -45,7 +45,7 @@ export function ForwardRow({
         />
       </div>
 
-      <p className="pl-4 font-data text-[11px] text-ink-3 tabular-nums">
+      <p className="pl-4 font-data text-caption text-ink-3 tabular-nums">
         {t("forwards.route", {
           local: forward.localPort,
           remote: forward.remotePort,
@@ -53,7 +53,7 @@ export function ForwardRow({
       </p>
 
       {forward.movedFrom === undefined ? null : (
-        <p className="pl-4 text-[11px] text-ink-3 leading-relaxed">
+        <p className="pl-4 text-caption text-ink-3 leading-relaxed">
           {t("forwards.moved", { from: forward.movedFrom })}
         </p>
       )}

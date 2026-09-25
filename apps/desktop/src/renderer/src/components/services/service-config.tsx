@@ -151,7 +151,7 @@ export function ServiceConfig({
           }}
         >
           {accountOnly ? (
-            <p className="px-6 py-5 text-[13px] text-ink-2 leading-relaxed">
+            <p className="px-6 py-5 text-control text-ink-2 leading-relaxed">
               {t("services.config.accountNote")}
             </p>
           ) : (

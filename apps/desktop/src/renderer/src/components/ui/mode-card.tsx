@@ -63,7 +63,7 @@ export function ModeCard({
         {title}
       </span>
       {note ? <Label>{note}</Label> : null}
-      <span className="text-[12px] text-ink-3 leading-relaxed">{detail}</span>
+      <span className="text-ink-3 text-small leading-relaxed">{detail}</span>
     </Radio.Root>
   );
 }

@@ -34,7 +34,7 @@ export function ProjectDiffPatchRows({
   // A problem is said once, above the patch, by whoever holds the header.
   if (rows.length === 0) {
     return problem ? null : (
-      <p className="p-6 text-center text-[13px] text-ink-3">
+      <p className="p-6 text-center text-control text-ink-3">
         {t("project.diff.noTextChange")}
       </p>
     );
@@ -53,10 +53,10 @@ export function ProjectDiffPatchRows({
             return (
               // biome-ignore lint/suspicious/noArrayIndexKey: a patch is a sequence, its position IS its identity
               <tr className={look.background} data-kind={row.kind} key={index}>
-                <td className="w-10 select-none border-line border-r px-1.5 text-right align-top text-[11px] text-ink-3 tabular-nums">
+                <td className="w-10 select-none border-line border-r px-1.5 text-right align-top text-caption text-ink-3 tabular-nums">
                   {row.before ?? ""}
                 </td>
-                <td className="w-10 select-none border-line border-r px-1.5 text-right align-top text-[11px] text-ink-3 tabular-nums">
+                <td className="w-10 select-none border-line border-r px-1.5 text-right align-top text-caption text-ink-3 tabular-nums">
                   {row.after ?? ""}
                 </td>
                 <td

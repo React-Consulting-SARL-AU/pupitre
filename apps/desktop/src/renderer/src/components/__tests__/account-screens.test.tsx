@@ -495,7 +495,7 @@ describe("l'abonnement sous le compte", () => {
 
     expect(text(html)).toContain("Essai en cours");
     expect(text(html)).toContain("5 jours restants");
-    expect(text(html)).toContain("1 sièges sur 2 occupés");
+    expect(text(html)).toContain("1 sur 2 serveurs utilisés");
     expect(text(html)).toContain("Gérer l'abonnement");
     expect(html).toContain('data-trial-tone="ok"');
     expect(html).toContain('data-shape="breathing"');

@@ -91,20 +91,20 @@ export function ProjectAddresses({
               data-published={url ? "true" : "false"}
               key={`${route.label}-${route.port}`}
             >
-              <span className="w-20 shrink-0 truncate font-data text-[11px] text-ink-4 uppercase">
+              <span className="w-20 shrink-0 truncate font-data text-caption text-ink-4 uppercase">
                 {route.label}
               </span>
 
               {url ? (
                 <button
-                  className="min-w-0 flex-1 truncate text-left font-data text-[13px] text-ink hover:underline"
+                  className="min-w-0 flex-1 truncate text-left font-data text-control text-ink hover:underline"
                   onClick={() => window.pupitre.openUrl(url)}
                   type="button"
                 >
                   {shown}
                 </button>
               ) : (
-                <span className="min-w-0 flex-1 truncate font-data text-[13px] text-ink-3">
+                <span className="min-w-0 flex-1 truncate font-data text-control text-ink-3">
                   {shown}
                 </span>
               )}

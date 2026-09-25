@@ -1,193 +1,39 @@
-# Pupitre — the app
+# Pupitre — l'app desktop
 
-A desktop app that drives a remote development server over SSH: project state,
-start and stop, live logs, terminals, AI agents.
+L'app Electron qui installe et pilote un serveur par SSH, en parlant à `pupitred`, l'agent qu'elle y pose. Ce qu'elle fait de l'intérieur est dans [`docs/desktop.md`](../../docs/desktop.md), ses règles dans [`CLAUDE.md`](./CLAUDE.md), le protocole dans [`docs/contracts/agent-protocol.md`](../../docs/contracts/agent-protocol.md).
+
+## Lancer
 
 ```bash
-bun install          # from the monorepo root
-bun run dev:desktop  # from the root, or `bun run dev` from this directory
-bun run dev:desktop:prod  # the same app, on the hosted platform: real account, real servers
+bun install               # depuis la racine du monorepo
+bun run dev:desktop       # l'app, pointée sur la console locale
+bun run dev:desktop:prod  # la même app, pointée sur app.pupitre.studio : le vrai compte, les vrais serveurs
 ```
 
-## Requirements
+Les deux construisent d'abord l'agent (`apps/agent/dist`), que l'app pousse sur un serveur nu. Un compte est requis : l'app demande une connexion au premier lancement.
 
-Bun 1.3 and an `ssh` host you can already reach. No account, no service to sign
-up for, no server-side prerequisite.
-
-`node-pty` is a native module: `postinstall` runs `electron-rebuild` on it. If
-that step is skipped, the app starts and no terminal ever opens.
-
-The root `package.json` lists `electron` and `node-pty` in `trustedDependencies`
-— without it Bun does not run their install scripts and the Electron binary is
-never downloaded.
-
-It happens anyway: an install that resolves nothing new does not replay the
-script, `node_modules/electron/path.txt` stays empty, and everything that starts
-the app fails on a binary that is not there. Put it back with:
+`node-pty` est un module natif : `postinstall` le recompile par `electron-rebuild`. Sans cette étape, l'app démarre et aucun terminal ne s'ouvre. `electron` et `node-pty` sont dans les `trustedDependencies` du `package.json` racine, sans quoi Bun ne lance pas leurs scripts d'installation. Une installation qui ne résout rien de neuf ne les rejoue pas : si `node_modules/electron/path.txt` est vide, le binaire manque, et il se remet par
 
 ```bash
 cd apps/desktop && node node_modules/electron/install.js
 ```
 
-## Building
+## Construire
 
 ```bash
-bun run build          # type-check + bundle, no packaging
-bun run build:mac      # .dmg for arm64 and x64
-bun run build:linux    # AppImage + .deb
-bun run build:win      # NSIS installer
-bun run release        # the above for this OS, signed, then published
+bun run build        # typecheck et bundle, sans empaquetage
+bun run build:mac    # .dmg arm64 et x64
+bun run build:linux  # AppImage et .deb
+bun run build:win    # installateur NSIS
 ```
 
-Each platform has to be built on itself: electron-builder can package for
-several architectures of the same OS, but the native module has to be compiled by
-the target platform. `.github/workflows/release.yml` therefore runs one job per
-OS on a tag; the runbook is in [`docs/monorepo.md`](../../docs/monorepo.md).
+Chaque système se construit sur lui-même : `node-pty` ne se compile pas pour un autre. Une release construit les trois sur ses runners (`.github/workflows/release.yml`, voir [`docs/monorepo.md`](../../docs/monorepo.md#ce-que-fait-chaque-release)). Le processus principal est compilé en bytecode V8, ce qui demande le binaire Electron au moment du build. Sans identité de signature à portée, electron-builder le dit et produit un artefact non signé, ce que veut un build sur le poste.
 
-The main process is compiled to V8 bytecode, which needs the Electron binary at
-build time — the one the section above puts back. The preload is not: Electron
-loads it in the renderer, whose V8 refuses cache data produced by the Node
-isolate that compiled it, and the window then opens without its bridge.
-
-Signing is driven entirely by the environment. With no certificate in reach,
-electron-builder says so and produces an unsigned artefact, which is what a
-build on your own machine wants.
-
-## Tests
+## Tester
 
 ```bash
-bun run test      # main and stores, against the fake agent's transcripts
-bun run test:e2e  # builds, then drives the real window with Playwright
+bun run test      # main et stores, contre les transcriptions de l'agent factice
+bun run test:e2e  # construit, puis pilote la vraie fenêtre par Playwright, sans jamais la montrer
 ```
 
-`e2e/` runs the app that `out/` holds, in a throwaway user folder, with the
-fixtures of the screen tests answering where the SSH channel would be. Nothing
-reaches a network: the only address in the harness is in TEST-NET-1.
-
-`themes.spec.ts` forces the light theme then the dark one and captures the
-dashboard in each. The references live in `e2e/references/`, one per platform,
-and are committed; the run artifacts are not. Rewrite them deliberately, and
-read the diff before you do:
-
-```bash
-bun run test:e2e -- --update-snapshots
-```
-
-Two runs on the same machine differ by zero pixels, so the tolerance —
-`threshold: 0.05`, `maxDiffPixelRatio: 0.0003` — exists for glyph rasterisation
-after an Electron upgrade, not for a change of rendering. It was measured
-against real regressions injected into the page: flattened corners cost 863
-pixels, service marks losing their brand colour 415, borders turning
-transparent 14 794. A per-pixel threshold of 0.15, Playwright's default, hides
-the first two outright: two greys of a monochrome palette sit closer than that.
-
-CI runs the suite on Linux without holding the pull request on it — the
-references committed here are macOS ones.
-
-## The principle
-
-The app is a **client of the server's admin command** — `dev` here, another name
-elsewhere, the server profile says which — and never a second brain.
-
-All the logic — which projects exist, on which port, how to start them, where
-their logs are — lives in the server's registry and script. The app calls those
-commands over SSH and shows their result.
-
-That is what avoids two sources of truth drifting apart: adding a project stays
-one line in `projects.conf`, and the interface shows it without being
-recompiled. And the day the app does not start, `ssh my-server dev status` still
-works.
-
-The contract is `dev snapshot`, which returns the machine, its services and its
-projects in a single call. See [`src/shared/contract.ts`](src/shared/contract.ts).
-
-## What the app does not assume
-
-It has to be able to drive someone else's machine, which has neither the same
-repository host, nor the same tunnel, nor the same database — or none of the
-three. So none of that is written into the code:
-
-| What varies | Where it comes from |
-|---|---|
-| The services that run | `services` in the snapshot, shown as is; a server that announces none shows none |
-| Secrets | The server says which keys exist, and says itself what has to be restarted afterwards; with no secret management, the page disappears |
-| The project registry, sessions, processes, logs | Observed on connection: what does not exist gets no tab |
-| The agents (`claude`, `codex`) | Looked for on the server; absent, their tabs do not appear |
-| The command name, the log path, the remote editor, the install script | The server profile, in Settings → **Advanced** |
-| Package managers | `package_managers` in the snapshot, otherwise a starting list, and the field stays free |
-| How a project installs its dependencies | The registry's install column, or what the server derives from the package manager — the app shows the command either way rather than the tool's name |
-
-The profile defaults describe the `dev` stack: an existing configuration is
-completed with them on first read — the same behaviour as before, but now
-changeable without a rebuild.
-
-## Navigation
-
-The app remembers where you were. Each project reopens on the tab you left it on
-— coming back to a project you were driving from its Claude tab and landing on
-the overview means finding the session again by hand, every time — and a relaunch
-lands on the view and the project you had open.
-
-That lives in `localStorage`, through `src/renderer/src/lib/memory.ts`, and holds
-navigation only: no data, no secret. If it is lost the app opens on the
-dashboard, and nothing else is.
-
-A remembered tab the project no longer offers — an agent uninstalled, a folder
-that is no longer a repository — falls back to the overview rather than showing a
-panel with no button to leave it by.
-
-## The connection
-
-No secret is configured here. The app reads the system's `~/.ssh/config` — the
-block of the host chosen in the settings — and merely checks it:
-
-| Check | Command |
-|---|---|
-| The host is declared | `ssh -G my-server` |
-| The agent answers | `ssh-add -l` |
-| The server accepts the key | `ssh -o BatchMode=yes my-server true` |
-| The connection is reused | `ssh -O check my-server` |
-
-Each check carries its own remedy. If no configuration is found, the wizard runs
-the install script — the one the server profile names, if it names one — rather
-than writing into `~/.ssh/config` itself: two configurations drifting apart would
-be the next breakdown. With no script, it shows the block to paste.
-
-## A single ssh process
-
-Starting `ssh` costs nearly 200 ms on macOS — the local client, not the network,
-and multiplexing does not change that. So the app opens **one remote shell once**
-and writes its commands into it, each bounded by an end marker. Calls are
-serialised: two concurrent reads on the same buffer would steal each other's
-answers.
-
-## Terminal autocompletion
-
-In a Terminal tab, what you type completes: the server command's grammar and its
-projects, the remote shell's history, the paths of the current folder. `⇥`
-completes, `↑` `↓` choose, `→` accepts the grey suggestion coming from history,
-`⎋` closes.
-
-None of it is guessed from the screen. The server's shell announces where input
-starts (OSC 133, emitted by `server/bin/pupitre.zsh`), and the app reads the line
-between that marker and the cursor — keystrokes, deletions and history recalls
-included. The grammar comes from `dev completions`: a list copied here would go
-stale at the first subcommand added over there. A server that does not return it
-simply lacks that source, and history and paths remain.
-
-The Claude, Codex and Dashboard tabs have none: those programs handle their own
-input.
-
-## Security
-
-The renderer has no access to the system: `contextIsolation` on,
-`nodeIntegration` off, and an explicit API surface in the preload.
-
-No free-form string coming from the interface reaches a shell. The renderer names
-a project and an action; the main process validates the name against the list the
-server has just given it before turning it into a command.
-
-## Stack
-
-Electron 42, `electron-vite`, React 19, Vite, Tailwind 4, TypeScript, Zustand,
-Biome.
+Les captures du tableau de bord (`e2e/references/*-darwin.png`) ne se comparent que sur macOS et se régénèrent exprès, diff relu : `bunx playwright test e2e/themes.spec.ts --update-snapshots`. La tolérance (`threshold: 0.05`, `maxDiffPixelRatio: 0.0003`) absorbe le rendu des glyphes après une mise à niveau d'Electron, pas un changement d'écran. La CI ne lance pas la suite e2e : elle se passe sur la machine du propriétaire avant une pull request.

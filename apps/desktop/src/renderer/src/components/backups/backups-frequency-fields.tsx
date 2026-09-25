@@ -172,7 +172,7 @@ export function BackupsFrequencyFields({
           />
         </Field>
       ) : (
-        <p className="text-[12px] text-ink-3 leading-relaxed sm:col-span-2">
+        <p className="text-ink-3 text-small leading-relaxed sm:col-span-2">
           {t("backups.frequency.manual")}
         </p>
       )}

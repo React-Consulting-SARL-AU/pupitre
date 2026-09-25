@@ -43,7 +43,6 @@ export function ServerTerminalsScreen({
               {t("app.terminals.empty.action")}
             </Button>
           }
-          detail={t("app.terminals.empty.detail")}
           icon={SquareTerminal}
           title={t("app.terminals.empty.title")}
         />

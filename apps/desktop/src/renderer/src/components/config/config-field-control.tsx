@@ -36,7 +36,7 @@ interface ControlProps {
 }
 
 /** A version always has one, a runtime one at the least, a checkbox never; the rest say so themselves. */
-function isRequired(field: Field): boolean {
+export function isRequired(field: Field): boolean {
   if (field.kind === "version" || field.kind === "versions") {
     return true;
   }

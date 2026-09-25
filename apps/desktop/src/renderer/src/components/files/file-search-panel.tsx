@@ -34,7 +34,7 @@ import { fieldControlClass } from "../ui/field";
 import { IconButton } from "../ui/icon-button";
 import { FileSearchCount } from "./file-search-count";
 
-const INPUT = `${fieldControlClass} py-1 text-[12px]`;
+const INPUT = `${fieldControlClass} py-1 text-small`;
 
 type QueryPatch = Partial<
   Pick<

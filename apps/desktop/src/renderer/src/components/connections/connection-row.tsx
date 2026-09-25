@@ -45,10 +45,10 @@ export function ConnectionRow({
         <ServiceLogo moduleId={connection.logo} name={t(connection.title)} />
 
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[13px] text-ink">
+          <span className="block truncate text-control text-ink">
             {t(connection.title)}
           </span>
-          <span className="mt-0.5 flex items-center gap-1.5 text-[12px] text-ink-3">
+          <span className="mt-0.5 flex items-center gap-1.5 text-ink-3 text-small">
             <StatusDot
               label={t(
                 connected ? "connections.state.on" : "connections.state.off"

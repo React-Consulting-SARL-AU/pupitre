@@ -13,6 +13,7 @@ import { format } from "./strings/format";
 import { forwards } from "./strings/forwards";
 import { help } from "./strings/help";
 import { install } from "./strings/install";
+import { installSteps } from "./strings/install-steps";
 import { keyApprovals } from "./strings/key-approvals";
 import { onboarding } from "./strings/onboarding";
 import { project } from "./strings/project";
@@ -51,6 +52,7 @@ export const en = {
   ...fleet.en,
   ...help.en,
   ...install.en,
+  ...installSteps.en,
   ...keyApprovals.en,
   ...onboarding.en,
   ...project.en,

@@ -36,19 +36,12 @@ export function OnboardingAgentScreen({
 
   const sent = delivery.status === "sent";
 
-  // The card above already says the agent is in place, and the failure its
-  // own words: the bar only has to say what the wait is on.
-  const note =
-    sent || delivery.status === "failed"
-      ? null
-      : t("onboarding.agent.sendingTitle");
-
   return (
     <Screen
       column
       eyebrow={serverName ?? t("onboarding.thisServer")}
       footer={
-        <ActionBar name="agent" note={note}>
+        <ActionBar name="agent">
           <Button
             disabled={!sent}
             icon={ArrowRight}

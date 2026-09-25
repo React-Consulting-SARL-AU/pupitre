@@ -29,13 +29,13 @@ const LOOK: Record<CalloutTone, { icon: ButtonIcon; glyph: string }> = {
 function CalloutFix({ fix }: { fix: string }) {
   if (looksLikeCommand(fix)) {
     return (
-      <code className="mt-2 inline-block max-w-full break-all rounded-sm bg-sunken px-2 py-1 font-data text-[12px] text-ink-2">
+      <code className="mt-2 inline-block max-w-full break-all rounded-sm bg-sunken px-2 py-1 font-data text-ink-2 text-small">
         {fix}
       </code>
     );
   }
 
-  return <p className="mt-1 text-[12px] text-ink-2 leading-relaxed">{fix}</p>;
+  return <p className="mt-1 text-ink-2 text-small leading-relaxed">{fix}</p>;
 }
 
 const FRAMED =
@@ -81,7 +81,7 @@ export function Callout({
       />
 
       <div className="min-w-0 flex-1">
-        <p className="break-words font-medium text-[13px] text-ink leading-relaxed">
+        <p className="break-words font-medium text-control text-ink leading-relaxed">
           {children}
         </p>
         {fix ? <CalloutFix fix={fix} /> : null}

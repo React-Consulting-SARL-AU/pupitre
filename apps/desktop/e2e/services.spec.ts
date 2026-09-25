@@ -189,7 +189,9 @@ test.describe("services", () => {
       ).toBeVisible();
       // The copy button fades in from its disabled shade once the journal answers; measured mid-fade it reads grey.
       await expect(
-        page.locator('[data-tooltip="Copier les logs de PostgreSQL"]')
+        page
+          .locator('[data-service-journal="db.postgres"]')
+          .getByRole("button", { name: "Copier les logs" })
       ).toBeEnabled();
       await assertAccessible(page, "services/panel");
     });

@@ -55,7 +55,7 @@ export function CatalogSearch({
         <>
           <span
             aria-live="polite"
-            className="whitespace-nowrap text-[12px] text-ink-3"
+            className="whitespace-nowrap text-ink-3 text-small"
             data-search-found={found}
           >
             {t.plural("catalog.search.found", found)}

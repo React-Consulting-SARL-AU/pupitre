@@ -1,11 +1,10 @@
 import type { FieldHint } from "@pupitre/shared/catalog";
-import { useTranslations } from "@renderer/i18n/use-translations";
 import type { ReactNode } from "react";
 import { Hint } from "./hint";
 import { Label } from "./label";
 
 const SHARED =
-  "w-full rounded-md border bg-sunken px-3.5 py-2 text-[13px] text-ink outline-none transition-soft placeholder:text-ink-4 disabled:text-ink-4";
+  "w-full rounded-md border bg-sunken px-3.5 py-2 text-control text-ink outline-none transition-soft placeholder:text-ink-4 disabled:text-ink-4";
 
 // The two borders are the same property: only one of them may be on the control, or the stylesheet's order decides.
 const soundClass = "border-line-strong focus:border-ink";
@@ -36,7 +35,9 @@ export function controlClass(kind: FieldText, wrong: boolean): string {
  * The caption, the short help and the refusal are read without a gesture,
  * because they decide what to type. The bubble carries the rest. The three are
  * wired to the control by `aria-describedby`, so a reader who never sees the
- * layout hears them in the same order.
+ * layout hears them in the same order. A required field is marked by an
+ * asterisk the form explains once (`RequiredLegend`); the control itself says
+ * it through `aria-required`.
  */
 export function Field({
   label,
@@ -57,8 +58,6 @@ export function Field({
   name?: string;
   children: ReactNode;
 }) {
-  const t = useTranslations();
-
   const helpId = help && name ? `${name}-help` : undefined;
   const problemId = problem && name ? `${name}-problem` : undefined;
 
@@ -71,11 +70,7 @@ export function Field({
         <label className="flex min-w-0 items-center gap-1.5" htmlFor={name}>
           <Label>{label}</Label>
           {required ? (
-            <span
-              aria-hidden="true"
-              className="text-[11px] text-ink-4"
-              title={t("common.field.required")}
-            >
+            <span aria-hidden="true" className="text-caption text-ink-3">
               *
             </span>
           ) : null}
@@ -87,20 +82,27 @@ export function Field({
       {children}
 
       {help ? (
-        <span className="text-[12px] text-ink-3 leading-relaxed" id={helpId}>
+        <span className="text-ink-3 text-small leading-relaxed" id={helpId}>
           {help}
         </span>
       ) : null}
 
       {problem ? (
-        <span
-          className="text-[12px] text-danger leading-relaxed"
-          id={problemId}
-        >
+        <span className="text-danger text-small leading-relaxed" id={problemId}>
           {problem}
         </span>
       ) : null}
     </div>
+  );
+}
+
+/** What the asterisk of a required field means, said once under the form that carries one. */
+export function RequiredLegend({ children }: { children: string }) {
+  return (
+    <p aria-hidden="true" className="text-ink-3 text-small">
+      <span className="mr-1.5">*</span>
+      {children}
+    </p>
   );
 }
 

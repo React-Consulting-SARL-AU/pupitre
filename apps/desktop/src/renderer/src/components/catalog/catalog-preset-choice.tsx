@@ -4,6 +4,7 @@ import { CircleSlash } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
+import { Panel } from "../ui/panel";
 import { RadioGroup, RadioLine } from "../ui/radio";
 import { ServiceLogo } from "../ui/service-logo";
 
@@ -41,10 +42,7 @@ export function CatalogPresetChoice({
   const [chosen, setChosen] = useState(choices[0]?.id ?? NONE);
 
   return (
-    <div
-      className="elevation-raised flex flex-col gap-4 rounded-md border border-line bg-surface p-5"
-      data-preset-choice={preset.id}
-    >
+    <Panel className="flex flex-col gap-4" data-preset-choice={preset.id}>
       <Label>{t("catalog.presets.chooseOne", { preset: preset.name })}</Label>
 
       <RadioGroup
@@ -90,6 +88,6 @@ export function CatalogPresetChoice({
           {t("common.cancel")}
         </Button>
       </div>
-    </div>
+    </Panel>
   );
 }

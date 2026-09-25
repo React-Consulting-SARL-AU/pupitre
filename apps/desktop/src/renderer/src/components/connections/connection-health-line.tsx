@@ -17,7 +17,7 @@ export function ConnectionHealthLine({ health }: { health: ConnectionHealth }) {
 
   if (health.status === "checking") {
     return (
-      <p className="flex items-center gap-2 font-data text-[12px] text-ink-3">
+      <p className="flex items-center gap-2 font-data text-ink-3 text-small">
         <StatusDot shape="breathing" size={10} />
         {t("connections.health.checking")}
       </p>
@@ -26,7 +26,7 @@ export function ConnectionHealthLine({ health }: { health: ConnectionHealth }) {
 
   if (health.status === "unaskable") {
     return (
-      <p className="text-[12px] text-ink-3 leading-relaxed">
+      <p className="text-ink-3 text-small leading-relaxed">
         {t("connections.health.unaskable")}
       </p>
     );
@@ -42,7 +42,7 @@ export function ConnectionHealthLine({ health }: { health: ConnectionHealth }) {
 
   return (
     <p
-      className="flex items-center gap-2 font-data text-[12px] text-ink-3"
+      className="flex items-center gap-2 font-data text-ink-3 text-small"
       data-health="answered"
     >
       <StatusDot shape="filled" size={10} tone="ok" />

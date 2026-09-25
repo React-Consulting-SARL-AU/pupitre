@@ -25,7 +25,7 @@ export function BackupsSetupFooter({
       {stray.length > 0 ? (
         <ul className="flex min-w-0 flex-1 flex-col gap-1" data-config-stray="">
           {stray.map((line) => (
-            <li className="text-[12px] text-danger" key={line}>
+            <li className="text-danger text-small" key={line}>
               {line}
             </li>
           ))}

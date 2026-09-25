@@ -47,7 +47,7 @@ export function SettingsSsh() {
           />
 
           <code
-            className="mt-4 block rounded-sm bg-sunken px-3 py-2 font-data text-[12px] text-ink-2"
+            className="mt-4 block rounded-sm bg-sunken px-3 py-2 font-data text-ink-2 text-small"
             data-ssh-include
           >
             {state.line}

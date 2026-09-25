@@ -49,7 +49,7 @@ export function BackupPassphraseFields({
 
   return (
     <div className="flex flex-col gap-6" data-backup-passphrase="">
-      <p className="text-[12px] text-warn leading-relaxed">
+      <p className="text-small text-warn leading-relaxed">
         {t("backups.passphrase.lost")}
       </p>
 
@@ -103,7 +103,7 @@ export function BackupPassphraseFields({
             onChange={(next) => onChange({ ...phrase, noted: next })}
           />
           {attempted && !noted ? (
-            <span className="text-[12px] text-danger">
+            <span className="text-danger text-small">
               {t("backups.passphrase.notedMissing")}
             </span>
           ) : null}

@@ -65,7 +65,7 @@ export function FileTextPane({
 
       <footer className="flex items-center justify-between gap-3">
         <span
-          className="flex items-center gap-2 font-data text-[11px] text-ink-3"
+          className="flex items-center gap-2 font-data text-caption text-ink-3"
           role="status"
         >
           {write.status === "written" ? (

@@ -40,7 +40,7 @@ export function BackupConnectionAdvanced({
       onOpenChange={setOpened}
       open={opened || refused}
     >
-      <div className="flex flex-col gap-6 pt-3 text-[13px]">
+      <div className="flex flex-col gap-6 pt-3 text-control">
         <div className="grid gap-6 sm:grid-cols-2">
           {other ? (
             <BackupConnectionTextField

@@ -44,7 +44,7 @@ export function CopyField({
 
       <div className="mt-1.5 flex items-start gap-2 rounded-md border border-line-strong bg-sunken px-3 py-2">
         <code
-          className={`min-w-0 flex-1 break-all font-data text-[12px] text-ink-2 leading-relaxed ${lines ? "whitespace-pre-line" : ""}`}
+          className={`min-w-0 flex-1 break-all font-data text-ink-2 text-small leading-relaxed ${lines ? "whitespace-pre-line" : ""}`}
         >
           {value}
         </code>
@@ -56,7 +56,7 @@ export function CopyField({
         />
       </div>
 
-      {help ? <p className="mt-1.5 text-[12px] text-ink-3">{help}</p> : null}
+      {help ? <p className="mt-1.5 text-ink-3 text-small">{help}</p> : null}
     </div>
   );
 }

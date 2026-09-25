@@ -32,7 +32,7 @@ export function BackupsRestoreResult({
           <ul className="mt-2 flex flex-col gap-1">
             {missed.map((line) => (
               <li
-                className="break-words font-data text-[12px] text-ink-2"
+                className="break-words font-data text-ink-2 text-small"
                 key={line}
               >
                 {line}

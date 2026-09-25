@@ -38,10 +38,10 @@ export function ServiceRow({
         <ServiceLogo moduleId={service.id} name={service.name} size={20} />
 
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-medium text-[13px] text-ink">
+          <span className="block truncate font-medium text-control text-ink">
             {service.name}
           </span>
-          <span className="block truncate font-data text-[11px] text-ink-3">
+          <span className="block truncate font-data text-caption text-ink-3">
             {facts.join(" · ")}
           </span>
         </span>

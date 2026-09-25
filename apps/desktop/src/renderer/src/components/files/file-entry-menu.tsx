@@ -34,7 +34,7 @@ const ICON: Record<FileAction["id"], ButtonIcon> = {
 };
 
 const ITEM =
-  "flex cursor-default select-none items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-[13px] text-ink outline-none data-[highlighted]:bg-raised";
+  "flex cursor-default select-none items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-control text-ink outline-none data-[highlighted]:bg-raised";
 
 function pointAnchor(point: MenuPoint) {
   return {

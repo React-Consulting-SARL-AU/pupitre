@@ -22,13 +22,13 @@ export function ServicePanelFacts({
   return (
     <>
       {facts.length > 0 ? (
-        <p className="font-data text-[12px]" data-service-facts="">
+        <p className="font-data text-small" data-service-facts="">
           {facts.join(" · ")}
         </p>
       ) : null}
 
       {refusal ? (
-        <p className="text-[12px]" data-removal-refused="">
+        <p className="text-small" data-removal-refused="">
           {refusal}
         </p>
       ) : null}

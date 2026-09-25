@@ -40,7 +40,7 @@ export function OnboardingServerChoice({
     >
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium text-ink">{server.name}</p>
-        <p className="mt-0.5 break-all font-data text-[12px] text-ink-3">
+        <p className="mt-0.5 break-all font-data text-ink-3 text-small">
           {address} · {t(originLabel(server))}
         </p>
       </div>

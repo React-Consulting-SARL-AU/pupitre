@@ -56,13 +56,8 @@ export function ProjectActions({
             {t("project.header.stop")}
           </Button>
         ) : null}
-        <Button
-          hint={t("project.header.syncHint")}
-          icon={RefreshCw}
-          loading={syncing}
-          onClick={onSync}
-        >
-          {t("project.header.sync")}
+        <Button icon={RefreshCw} loading={syncing} onClick={onSync}>
+          {t("project.git.pull")}
         </Button>
         <ConfirmButton
           confirmLabel={t("project.overview.remove")}

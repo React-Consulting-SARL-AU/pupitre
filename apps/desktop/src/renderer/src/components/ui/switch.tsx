@@ -64,7 +64,7 @@ export function SwitchLine({
       <span className="flex min-w-0 flex-col gap-0.5">
         <span className="text-ink">{label}</span>
         {detail ? (
-          <span className="text-[12px] text-ink-3 leading-relaxed">
+          <span className="text-ink-3 text-small leading-relaxed">
             {detail}
           </span>
         ) : null}

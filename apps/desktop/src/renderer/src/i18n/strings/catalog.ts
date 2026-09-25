@@ -26,6 +26,11 @@ export const catalog = {
     "catalog.presets.noneDetail":
       "Take the rest of the preset and leave this choice out; you can make it later.",
     "catalog.presets.apply": "Apply the preset",
+    "catalog.presets.replaceTitle": "Apply « {preset} »?",
+    "catalog.presets.replaceQuestion.one":
+      "{names} leaves the selection, and the values typed for this service are lost.",
+    "catalog.presets.replaceQuestion.other":
+      "{names} leave the selection, and the values typed for these services are lost.",
     "catalog.search.label": "Search the catalogue",
     "catalog.search.placeholder": "Search a service",
     "catalog.search.clear": "Clear the search",
@@ -38,13 +43,11 @@ export const catalog = {
       "Memory {ram} of {ramHas} · Disk {disk} of {diskHas} free",
     "catalog.resources.unmeasured":
       "Memory {ram} · Disk {disk} — machine not measured yet",
-    "catalog.screen.chosen.one": "1 service chosen",
-    "catalog.screen.chosen.other": "{count} services chosen",
     "catalog.screen.configure.one": "Continue with 1 service",
     "catalog.screen.configure.other": "Continue with {count} services",
     "catalog.screen.defaultServer": "This server",
     "catalog.screen.title": "Services",
-    "catalog.screen.reload": "Reload",
+    "catalog.screen.reload": "Refresh",
     "catalog.screen.waitingTitle": "Reading what this server can receive",
     "catalog.warning.disk":
       "The chosen services ask for {asked} GB of disk; {has} remain on this machine.",
@@ -76,6 +79,11 @@ export const catalog = {
     "catalog.presets.noneDetail":
       "Prendre le reste du préréglage et laisser ce choix de côté ; il se fera plus tard.",
     "catalog.presets.apply": "Appliquer le préréglage",
+    "catalog.presets.replaceTitle": "Appliquer « {preset} » ?",
+    "catalog.presets.replaceQuestion.one":
+      "{names} quitte la sélection, et les valeurs saisies pour ce service sont perdues.",
+    "catalog.presets.replaceQuestion.other":
+      "{names} quittent la sélection, et les valeurs saisies pour ces services sont perdues.",
     "catalog.search.label": "Chercher dans le catalogue",
     "catalog.search.placeholder": "Chercher un service",
     "catalog.search.clear": "Effacer la recherche",
@@ -88,13 +96,11 @@ export const catalog = {
       "Mémoire {ram} sur {ramHas} · Disque {disk} sur {diskHas} libres",
     "catalog.resources.unmeasured":
       "Mémoire {ram} · Disque {disk} — machine pas encore mesurée",
-    "catalog.screen.chosen.one": "1 service choisi",
-    "catalog.screen.chosen.other": "{count} services choisis",
     "catalog.screen.configure.one": "Continuer avec 1 service",
     "catalog.screen.configure.other": "Continuer avec {count} services",
     "catalog.screen.defaultServer": "Ce serveur",
     "catalog.screen.title": "Services",
-    "catalog.screen.reload": "Relancer",
+    "catalog.screen.reload": "Actualiser",
     "catalog.screen.waitingTitle": "On lit ce que ce serveur peut recevoir",
     "catalog.warning.disk":
       "Les services choisis demandent {asked} Go de disque ; il en reste {has} sur cette machine.",

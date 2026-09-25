@@ -96,11 +96,11 @@ export function ShotTile({
           ) : null}
 
           {thumbnail?.status === "failed" ? (
-            <span
-              className="grid h-full w-full place-items-center px-3 text-center text-[12px] text-ink-3"
-              title={agentText(t, thumbnail.error).message}
-            >
-              <ImageOff size={16} strokeWidth={1.5} />
+            <span className="flex h-full w-full flex-col items-center justify-center gap-1.5 px-3 text-center text-caption text-ink-3 leading-snug">
+              <ImageOff aria-hidden="true" size={16} strokeWidth={1.5} />
+              <span className="line-clamp-3">
+                {agentText(t, thumbnail.error).message}
+              </span>
             </span>
           ) : null}
 
@@ -112,10 +112,10 @@ export function ShotTile({
 
       <figcaption className="flex items-center gap-2 px-3 py-2">
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-data text-[12px] text-ink">
+          <span className="block truncate font-data text-ink text-small">
             {shot.name}
           </span>
-          <span className="block truncate font-data text-[11px] text-ink-3 tabular-nums">
+          <span className="block truncate font-data text-caption text-ink-3 tabular-nums">
             {weight(shot.size_bytes)} ·{" "}
             {Number.isNaN(taken) ? shot.created_at : since(taken)}
           </span>

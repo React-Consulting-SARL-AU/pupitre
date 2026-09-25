@@ -47,11 +47,11 @@ export function ConfigConnectionBlock({ module }: { module: Manifest }) {
 
   return (
     <div
-      className="flex flex-col gap-3 rounded-md border border-line bg-sunken p-4"
+      className="flex flex-col gap-3 rounded-md bg-sunken p-4"
       data-connection-block={module.connection}
     >
       {connected ? null : (
-        <p className="text-[12px] text-ink-2 leading-relaxed">
+        <p className="text-ink-2 text-small leading-relaxed">
           {t("connections.required")}
         </p>
       )}
@@ -72,7 +72,7 @@ export function ConfigConnectionBlock({ module }: { module: Manifest }) {
       ) : null}
 
       {picksZone && zones.length === 0 ? (
-        <p className="text-[12px] text-warn">{t("connections.zone.none")}</p>
+        <p className="text-small text-warn">{t("connections.zone.none")}</p>
       ) : null}
     </div>
   );

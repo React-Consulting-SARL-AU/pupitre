@@ -1,5 +1,5 @@
 import type { AgentError } from "@shared/agent";
-import type { TerminalKind } from "@shared/terminals";
+import type { TerminalKind, TerminalSize } from "@shared/terminals";
 import { create } from "zustand";
 
 export type SessionState =
@@ -54,11 +54,6 @@ interface TerminalsStore {
   closeSearch: () => void;
   forget: (id: string) => void;
   reset: () => void;
-}
-
-export interface TerminalSize {
-  cols: number;
-  rows: number;
 }
 
 const CLASSIC: TerminalSize = { cols: 80, rows: 24 };

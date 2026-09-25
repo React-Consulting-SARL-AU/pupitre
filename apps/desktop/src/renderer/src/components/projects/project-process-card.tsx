@@ -142,7 +142,7 @@ export function ProjectProcessCard({
           />
           <span className="flex min-w-0 flex-1 flex-col gap-1">
             <span className="flex min-w-0 items-center gap-2">
-              <span className="shrink-0 whitespace-nowrap font-data font-semibold text-[13px] text-ink">
+              <span className="shrink-0 whitespace-nowrap font-data font-semibold text-control text-ink">
                 {draft.id || t("projectAdd.processes.unnamed")}
               </span>
               {index === 0 ? (
@@ -150,12 +150,12 @@ export function ProjectProcessCard({
                   {t("projectAdd.processes.main")}
                 </span>
               ) : null}
-              <span className="ml-auto min-w-0 truncate font-data text-[12px] text-ink-3 tabular-nums">
+              <span className="ml-auto min-w-0 truncate font-data text-ink-3 text-small tabular-nums">
                 {portsSummary(draft)}
               </span>
             </span>
             {summary ? (
-              <span className="truncate font-data text-[12px] text-ink-3">
+              <span className="truncate font-data text-ink-3 text-small">
                 {summary}
               </span>
             ) : null}

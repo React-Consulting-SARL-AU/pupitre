@@ -17,7 +17,7 @@ export const POPUP_CLASS =
   "elevation-overlay z-50 rounded-md border border-line bg-surface p-1 outline-none transition-pop data-[ending-style]:opacity-0 data-[starting-style]:opacity-0";
 
 export const POPUP_ITEM_CLASS =
-  "flex cursor-default select-none items-center gap-2 rounded-sm px-2.5 py-1.5 text-[13px] text-ink-2 outline-none data-[highlighted]:bg-raised data-[highlighted]:text-ink";
+  "flex cursor-default select-none items-center gap-2 rounded-sm px-2.5 py-1.5 text-control text-ink-2 outline-none data-[highlighted]:bg-raised data-[highlighted]:text-ink";
 
 export const POPUP_GROUP_LABEL_CLASS = "label px-2.5 pt-2 pb-1 text-ink-3";
 
@@ -30,7 +30,7 @@ function SelectItems<T extends string>({
 }) {
   return options.map((option) => (
     <Base.Item
-      className={`${POPUP_ITEM_CLASS} ${kind === "data" ? "font-data text-[12px]" : ""}`}
+      className={`${POPUP_ITEM_CLASS} ${kind === "data" ? "font-data text-small" : ""}`}
       key={option.value}
       value={option.value}
     >

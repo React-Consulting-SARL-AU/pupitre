@@ -49,7 +49,7 @@ export function OnboardingRail({
 
       <div className="mt-auto pt-8">
         <Label>{t("onboarding.flow.progress")}</Label>
-        <p className="mt-1 font-data text-[12px] text-ink-3 tabular-nums">
+        <p className="mt-1 font-data text-ink-3 text-small tabular-nums">
           {t("onboarding.flow.stepCount", {
             index: here + 1,
             total: steps.length,

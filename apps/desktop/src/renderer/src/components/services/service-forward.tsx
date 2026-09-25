@@ -44,7 +44,7 @@ export function ServiceForward({
       title={t("services.forward.title")}
     >
       {open.length === 0 ? (
-        <p className="text-[12px] text-ink-3">
+        <p className="text-ink-3 text-small">
           {t("services.forward.empty", { port })}
         </p>
       ) : (

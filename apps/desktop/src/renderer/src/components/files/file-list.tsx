@@ -260,7 +260,7 @@ export function FileList({
       >
         {dropping ? (
           <p
-            className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-surface/90 p-6 text-center text-[13px] text-ink"
+            className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-surface/90 p-6 text-center text-control text-ink"
             role="status"
           >
             {t("transfers.drop", {
@@ -271,7 +271,7 @@ export function FileList({
 
         {listing.status === "idle" || listing.status === "reading" ? (
           <div className="flex flex-col gap-3 p-3">
-            <WaitingLine className="font-data text-[12px]">
+            <WaitingLine className="font-data text-small">
               {t("files.list.reading")}
             </WaitingLine>
             <SkeletonRows framed={false} rows={4} />
@@ -332,7 +332,7 @@ export function FileList({
       </section>
 
       {listing.status === "read" ? (
-        <p className="font-data text-[11px] text-ink-3 tabular-nums">
+        <p className="font-data text-caption text-ink-3 tabular-nums">
           {listing.truncated
             ? t("files.list.truncated", { limit: FILE_LIST_LIMIT })
             : t.plural("files.list.count", entries.length)}

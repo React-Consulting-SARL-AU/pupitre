@@ -16,7 +16,7 @@ export const keyApprovals = {
     "refusal.keyApproval.unknown":
       "This request is no longer in the list the console sent.",
     "refusal.keyApproval.unknown.fix":
-      "Open the account settings again to read the requests anew.",
+      "Open the account settings again to refresh the requests.",
     "refusal.keyApproval.notSigner":
       "{server} does not trust the key of this computer to allow other devices.",
     "refusal.keyApproval.notSigner.fix":
@@ -55,7 +55,7 @@ export const keyApprovals = {
     "refusal.keyApproval.unknown":
       "Cette demande n'est plus dans la liste envoyée par la console.",
     "refusal.keyApproval.unknown.fix":
-      "Rouvrez les réglages du compte pour relire les demandes.",
+      "Rouvrez les réglages du compte pour actualiser les demandes.",
     "refusal.keyApproval.notSigner":
       "{server} ne tient pas la clé de cet ordinateur pour autoriser d'autres appareils.",
     "refusal.keyApproval.notSigner.fix":

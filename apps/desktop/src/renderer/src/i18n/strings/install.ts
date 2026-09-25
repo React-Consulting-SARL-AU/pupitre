@@ -4,7 +4,7 @@ export const install = {
     "install.replayAll": "Try the {count} services again",
     "install.failed": "{name} could not be installed.",
     "install.failedAt":
-      "It stopped at the step {step}. Try again now, or later from Services; the other services are not affected.",
+      "The installation stopped at the step « {step} ». Try again now, or later from Services; the other services are not affected.",
     "install.warned": "{name}: installed, with a warning.",
     "install.continue": "Continue",
     "install.allDone": "Everything is installed.",
@@ -17,10 +17,10 @@ export const install = {
     "install.progress.other": "{count} services of {total}",
     "install.stepAt": "Step {index}",
     "install.stepLong":
-      "This is taking longer than usual. If nothing moves after a while, reread the report once the link is back.",
+      "This is taking longer than usual. If nothing moves after a while, refresh the report once the link is back.",
     "install.title": "Installation",
     "install.thisServer": "This server",
-    "install.rereadReport": "Reread the report",
+    "install.rereadReport": "Refresh the report",
     "install.secretsDropped":
       "The secrets typed left with the refusal: go back to the configuration and type them again.",
     "install.retry": "Try again",
@@ -40,8 +40,8 @@ export const install = {
     "install.stepStatus.skip": "skipped",
     "install.stepStatus.fail": "failed",
     "install.stepStatus.warned": "with a warning",
-    "install.journal.lines.one": "Journal — 1 line",
-    "install.journal.lines.other": "Journal — {count} lines",
+    "install.journal.lines.one": "Logs — 1 line",
+    "install.journal.lines.other": "Logs — {count} lines",
     "install.journal.sending": "sending to the server",
     "install.journal.installed": "installed",
   },
@@ -50,7 +50,7 @@ export const install = {
     "install.replayAll": "Réessayer les {count} services",
     "install.failed": "{name} n'a pas pu être installé.",
     "install.failedAt":
-      "Arrêt à l'étape {step}. Réessayez maintenant, ou plus tard depuis Services ; les autres services ne sont pas concernés.",
+      "L'installation s'est arrêtée à l'étape « {step} ». Réessayez maintenant, ou plus tard depuis Services ; les autres services ne sont pas concernés.",
     "install.warned": "{name} : installé, avec un avertissement.",
     "install.continue": "Continuer",
     "install.allDone": "Tout est installé.",
@@ -63,10 +63,10 @@ export const install = {
     "install.progress.other": "{count} services sur {total}",
     "install.stepAt": "Étape {index}",
     "install.stepLong":
-      "C'est plus long que d'habitude. Si rien ne bouge au bout d'un moment, relisez le rapport une fois la liaison rétablie.",
+      "C'est plus long que d'habitude. Si rien ne bouge au bout d'un moment, actualisez le rapport une fois la liaison rétablie.",
     "install.title": "Installation",
     "install.thisServer": "Ce serveur",
-    "install.rereadReport": "Relire le rapport",
+    "install.rereadReport": "Actualiser le rapport",
     "install.secretsDropped":
       "Les secrets tapés sont partis avec le refus : revenez à la configuration et retapez-les.",
     "install.retry": "Réessayer",

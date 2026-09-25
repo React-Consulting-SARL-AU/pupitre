@@ -34,7 +34,7 @@ export function Segmented<T extends string>({
     >
       {options.map((option) => (
         <Toggle
-          className="clickable rounded-full px-2.5 py-0.5 text-[11px] text-ink-3 transition-fast hover:text-ink data-[pressed]:bg-inverse data-[pressed]:text-inverse-ink"
+          className="clickable rounded-full px-2.5 py-0.5 text-caption text-ink-3 transition-fast hover:text-ink data-[pressed]:bg-inverse data-[pressed]:text-inverse-ink"
           key={option.value}
           value={option.value}
         >

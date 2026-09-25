@@ -36,7 +36,7 @@ export function ActionBar({
         className={`${column ? STEP_COLUMN : "px-8"} flex flex-wrap items-center justify-between gap-3`}
       >
         <div
-          className={`min-w-0 flex-1 text-[12px] ${tone === "danger" ? "text-danger" : "text-ink-3"}`}
+          className={`min-w-0 flex-1 text-small ${tone === "danger" ? "text-danger" : "text-ink-3"}`}
         >
           {note}
         </div>

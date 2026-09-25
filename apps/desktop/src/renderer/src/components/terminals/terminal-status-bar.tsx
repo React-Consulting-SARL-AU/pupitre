@@ -57,7 +57,7 @@ export function TerminalStatusBar({
 
   return (
     <div
-      className="flex shrink-0 items-center gap-3 border-line border-t bg-surface px-3 py-1 font-data text-[11px] text-ink-3"
+      className="flex shrink-0 items-center gap-3 border-line border-t bg-surface px-3 py-1 font-data text-caption text-ink-3"
       data-status-bar={id}
     >
       <span className="flex min-w-0 items-center gap-1.5">

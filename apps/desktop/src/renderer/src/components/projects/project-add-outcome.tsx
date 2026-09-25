@@ -59,7 +59,7 @@ export function ProjectAddOutcome({
           <p className="font-medium text-ink">
             <code className="font-data">{name}</code> {t(look.label)}
           </p>
-          <p className="mt-1 font-data text-[12px] text-ink-3">
+          <p className="mt-1 font-data text-ink-3 text-small">
             {url ?? t("projectAdd.outcome.unknownAddress")}
           </p>
         </div>

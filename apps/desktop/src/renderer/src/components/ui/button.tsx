@@ -33,8 +33,8 @@ const VARIANT: Record<ButtonVariant, string> = {
 };
 
 const SIZE = {
-  sm: "gap-1.5 px-3 py-1 text-[12px]",
-  md: "gap-2 px-3.5 py-1.5 text-[13px]",
+  sm: "gap-1.5 px-3 py-1 text-small",
+  md: "gap-2 px-3.5 py-1.5 text-control",
 };
 
 const SHARED =
@@ -62,6 +62,7 @@ export function Button({
   disabled = false,
   submit = false,
   hint,
+  ariaLabel,
   className = "",
 }: {
   children: ReactNode;
@@ -76,6 +77,8 @@ export function Button({
   submit?: boolean;
   /** What the label leaves unsaid, in a bubble on hover. */
   hint?: string;
+  /** The visible label and the item it acts on, for a button repeated on every row. */
+  ariaLabel?: string;
   className?: string;
 }) {
   const [click, pending] = usePending(onClick);
@@ -92,6 +95,7 @@ export function Button({
   const button = (
     <button
       aria-busy={waiting}
+      aria-label={ariaLabel}
       className={`${SHARED} ${VARIANT[variant]} ${SIZE[size]} ${stateClass(waiting, disabled)} ${className}`}
       disabled={disabled || waiting}
       onClick={click}

@@ -45,19 +45,19 @@ export function ProjectAddRepoRow({
             strokeWidth={1.5}
           />
         ) : null}
-        <span className="truncate font-data text-[12px] text-ink">
+        <span className="truncate font-data text-ink text-small">
           {repo.fullName}
         </span>
       </span>
 
       {repo.defaultBranch ? (
-        <span className="hidden shrink-0 items-center gap-1 font-data text-[11px] text-ink-3 sm:flex">
+        <span className="hidden shrink-0 items-center gap-1 font-data text-caption text-ink-3 sm:flex">
           <GitBranch size={11} strokeWidth={1.5} />
           {repo.defaultBranch}
         </span>
       ) : null}
 
-      <span className="shrink-0 text-[11px] text-ink-3 tabular-nums">
+      <span className="shrink-0 text-caption text-ink-3 tabular-nums">
         {pushedSince(repo.pushedAt)}
       </span>
     </button>

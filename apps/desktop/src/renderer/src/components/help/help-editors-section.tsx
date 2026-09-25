@@ -30,7 +30,7 @@ export function HelpEditorsSection({ target }: { target: HelpTarget }) {
           </Fact>
         </FactList>
 
-        <p className="mt-4 text-[12px] text-ink-3 leading-relaxed">
+        <p className="mt-4 text-ink-3 text-small leading-relaxed">
           {t("help.editors.buttons")}
         </p>
       </Panel>

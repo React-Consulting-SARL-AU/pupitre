@@ -30,7 +30,7 @@ export function BackupsReset({
   return (
     <Section name="backup-reset" title={t("backups.reset.title")}>
       <Panel className="flex flex-col gap-5" inset="lg">
-        <p className="text-[13px] text-ink-2 leading-relaxed">
+        <p className="text-control text-ink-2 leading-relaxed">
           {t("backups.reset.consequence")}
         </p>
 

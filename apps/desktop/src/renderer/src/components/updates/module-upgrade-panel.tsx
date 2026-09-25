@@ -56,7 +56,7 @@ export function ModuleUpgradePanel({
       }
       aside={
         modules.length > 0 ? (
-          <span className="font-data text-[12px] text-ink-3">
+          <span className="font-data text-ink-3 text-small">
             {t.plural("updates.modules.count", modules.length)}
           </span>
         ) : null

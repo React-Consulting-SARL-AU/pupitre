@@ -38,11 +38,11 @@ export function ProjectProcessRow({
       data-state={process.state}
     >
       <div className="flex flex-wrap items-center gap-3">
-        <span className="font-data font-semibold text-[13px] text-ink">
+        <span className="font-data font-semibold text-control text-ink">
           {process.id}
         </span>
         <StatePill look={PROCESS_LOOK[process.state]} name={process.state} />
-        <span className="font-data text-[12px] text-ink-3 tabular-nums">
+        <span className="font-data text-ink-3 text-small tabular-nums">
           {process.host}:{process.port}
           {process.dir === "." ? "" : ` · ${process.dir}`}
         </span>
@@ -78,7 +78,7 @@ export function ProjectProcessRow({
         </Fact>
       </FactList>
 
-      <p className="font-data text-[12px] text-ink-3 tabular-nums">
+      <p className="font-data text-ink-3 text-small tabular-nums">
         {uptime(process.uptime_s)}
         {process.pid ? ` · pid ${process.pid}` : ""}
         {process.ram_mb ? (

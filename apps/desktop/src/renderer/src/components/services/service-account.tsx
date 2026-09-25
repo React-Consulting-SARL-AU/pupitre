@@ -57,7 +57,7 @@ export function ServiceAccount({
 
       {account ? (
         <span
-          className="min-w-0 break-all font-data text-[13px] text-ink"
+          className="min-w-0 break-all font-data text-control text-ink"
           data-login-account=""
         >
           {account}

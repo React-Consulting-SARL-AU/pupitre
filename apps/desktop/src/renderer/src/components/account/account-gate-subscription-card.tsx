@@ -47,7 +47,7 @@ export function AccountGateSubscriptionCard({
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-line border-t pt-4">
-        <p className="min-w-0 truncate font-data text-[12px] text-ink-3">
+        <p className="min-w-0 truncate font-data text-ink-3 text-small">
           {t("account.gate.signedInAs", { email: identity.email })}
         </p>
         <ConfirmButton

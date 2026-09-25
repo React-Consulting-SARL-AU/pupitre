@@ -106,7 +106,7 @@ export function ProjectAddFolders({
                         size={12}
                         strokeWidth={1.5}
                       />
-                      <span className="truncate font-data text-[12px] text-ink">
+                      <span className="truncate font-data text-ink text-small">
                         {folder}
                       </span>
                     </button>

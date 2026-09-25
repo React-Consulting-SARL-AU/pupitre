@@ -66,7 +66,7 @@ export function TerminalSearchBar({
       <input
         aria-label={t("terminals.search.placeholder")}
         autoComplete="off"
-        className="w-52 bg-transparent px-2 py-1 font-data text-[12px] text-ink outline-none placeholder:text-ink-4"
+        className="w-52 bg-transparent px-2 py-1 font-data text-ink text-small outline-none placeholder:text-ink-4"
         onChange={(event) => change(event.target.value)}
         onKeyDown={(event) => {
           if (event.key === "Enter") {
@@ -86,7 +86,7 @@ export function TerminalSearchBar({
       />
 
       {count ? (
-        <span className="shrink-0 px-1.5 font-data text-[11px] text-ink-3 tabular-nums">
+        <span className="shrink-0 px-1.5 font-data text-caption text-ink-3 tabular-nums">
           {count}
         </span>
       ) : null}

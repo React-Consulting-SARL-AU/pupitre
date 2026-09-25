@@ -29,6 +29,13 @@
   --font-data: var(--font-data);
   --font-display: var(--font-display);
 
+  --text-caption: var(--font-caption-size);
+  --text-small: var(--font-small-size);
+  --text-control: var(--font-control-size);
+  --text-body: var(--font-ui-size);
+  --text-heading: var(--font-heading-size);
+  --text-title: var(--font-title-size);
+
   --radius-xs: var(--radius-xs);
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
@@ -114,6 +121,13 @@
     width var(--motion-soft),
     height var(--motion-soft),
     max-height var(--motion-soft);
+}
+
+@utility text-label {
+  font-size: var(--font-label-size);
+  color: var(--ink-3);
+  text-transform: var(--font-label-text-transform);
+  letter-spacing: var(--font-label-letter-spacing);
 }
 
 @utility animate-enter {

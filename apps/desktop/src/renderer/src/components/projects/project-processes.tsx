@@ -57,7 +57,7 @@ export function ProjectProcesses({
       }
       aside={
         processes.length > 1 ? (
-          <span className="font-data text-[12px] text-ink-3 tabular-nums">
+          <span className="font-data text-ink-3 text-small tabular-nums">
             {processes.length}
           </span>
         ) : undefined

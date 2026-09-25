@@ -30,6 +30,8 @@ export const refusals = {
       "The server did not answer within {seconds} s ({cmd}).",
     "refusal.platform.silent": "The console did not answer: {reason}.",
     "refusal.platform.refused": "The console refused the request ({status}).",
+    "refusal.platform.unreadable":
+      "The console answered {path} in a shape this app does not read.",
     "refusal.release.unpublished":
       "The console has no downloadable agent for {version}.",
     "refusal.release.storage":
@@ -67,6 +69,8 @@ export const refusals = {
       "Check your connection. Pupitre stays usable for seven days offline.",
     "refusal.platform.refused.fix":
       "Sign in again from the settings, then try again.",
+    "refusal.platform.unreadable.fix":
+      "Update Pupitre from the settings, then try again.",
     "refusal.account.signedOut": "No account is signed in on this computer.",
     "refusal.account.signedOut.fix":
       "Sign in from the account screen, then try again.",
@@ -176,7 +180,7 @@ export const refusals = {
     "refusal.release.signature.fix":
       "Do not install this binary: report it, then try again from the console.",
     "refusal.fleet.unknown.fix":
-      "Reload your organization's servers from the settings.",
+      "Refresh your organization's servers from the settings.",
     "refusal.fleet.withdrawn": "This server is no longer granted to you.",
     "refusal.fleet.withdrawn.fix":
       "Ask an administrator of your organization to grant it to you again.",
@@ -196,6 +200,10 @@ export const refusals = {
     "refusal.database.command.fix":
       "Open a terminal on the server and run the shell of the database yourself.",
     "refusal.params.invalid": "Invalid parameters for {cmd}.",
+    "refusal.agent.shape":
+      "The server answered {cmd} in a form this app does not read.",
+    "refusal.agent.shape.fix":
+      "Bring the app and the server's agent to the same version.",
     "refusal.bridge.credential": "{cmd} cannot be called from here.",
     "refusal.bridge.secret": "{cmd} cannot be called from here.",
     "refusal.agent.project": "An agent opens on a project.",
@@ -271,7 +279,7 @@ export const refusals = {
     "refusal.modules.none.fix": "Pick at least one service.",
     "refusal.modules.unreadable": "The list of services cannot be read.",
     "refusal.modules.unreadable.fix":
-      "Reload the list of services, then make your selection again.",
+      "Refresh the list of services, then make your selection again.",
     "refusal.selection.unreadable": "The list of services cannot be read.",
     "refusal.selection.unreadable.fix":
       "Go back to the services and make your selection again.",
@@ -301,6 +309,16 @@ export const refusals = {
       "Sign out instead: the servers close for this computer, and the terminals with them.",
     "refusal.device.unknown": "No device was named.",
     "refusal.device.unknown.fix": "Pick a device in the list.",
+    "refusal.probe.timeout.fix":
+      "Check that the server is on and answers over SSH, then run the inspection again.",
+    "refusal.probe.failed.fix":
+      "Check that the server answers over SSH with this account, then run the inspection again.",
+    "refusal.probe.failed.detail.fix":
+      "Check that the server answers over SSH with this account, then run the inspection again.",
+    "refusal.binary.arch.fix":
+      "Update Pupitre on this computer; if the architecture is still refused, choose a server with an amd64 or arm64 processor.",
+    "refusal.enrollment.none.fix":
+      "Try again; if it repeats, sign out and back in from the settings, then try again.",
     "refusal.probe.unreadable":
       "The server sent back no readable inspection report.",
     "refusal.probe.unreadable.fix":
@@ -343,7 +361,7 @@ export const refusals = {
     "refusal.project.unreadable": "The project's description is incomplete.",
     "refusal.project.unreadable.fix": "Go back over the form.",
     "refusal.project.unknown.fix":
-      "Reload the list of projects, then start again.",
+      "Refresh the list of projects, then start again.",
     "refusal.project.action.unknown.fix": "Pick start, stop or restart.",
     "refusal.project.process.unknown.fix":
       "Pick a process from the list the server gave.",
@@ -356,7 +374,7 @@ export const refusals = {
       "The value is empty or spans several lines.",
     "refusal.secret.value.invalid.fix": "Give a value on a single line.",
     "refusal.secrets.stale.fix":
-      "Reload the list of secrets, then start again.",
+      "Refresh the list of secrets, then start again.",
     "refusal.channel.unopened": "The connection to the server is not open.",
     "refusal.channel.unopened.fix":
       "Run the command again: the app reopens the connection on its own.",
@@ -426,6 +444,8 @@ export const refusals = {
       "Le serveur n'a pas répondu en {seconds} s ({cmd}).",
     "refusal.platform.silent": "La console n'a pas répondu : {reason}.",
     "refusal.platform.refused": "La console a refusé la demande ({status}).",
+    "refusal.platform.unreadable":
+      "La console a répondu à {path} sous une forme que cette app ne lit pas.",
     "refusal.release.unpublished":
       "La console n'a pas d'agent téléchargeable pour {version}.",
     "refusal.release.storage":
@@ -449,7 +469,7 @@ export const refusals = {
     "refusal.account.unsubscribed.fix":
       "Choisissez une offre dans la console : {console}",
     "refusal.account.stale.fix":
-      "Reconnectez cet appareil, ou vérifiez l'état du compte : {console}",
+      "Reconnectez cet ordinateur, ou vérifiez l'état du compte : {console}",
     "refusal.account.required.fix":
       "Connectez-vous depuis les réglages, ou ouvrez la console : {console}",
     "refusal.agent.dropped": "La connexion au serveur s'est interrompue.",
@@ -466,8 +486,10 @@ export const refusals = {
       "Vérifiez votre connexion. Pupitre reste utilisable sept jours sans connexion.",
     "refusal.platform.refused.fix":
       "Reconnectez-vous depuis les réglages, puis réessayez.",
+    "refusal.platform.unreadable.fix":
+      "Mettez Pupitre à jour depuis les réglages, puis réessayez.",
     "refusal.account.signedOut":
-      "Aucun compte n'est connecté sur cet appareil.",
+      "Aucun compte n'est connecté sur cet ordinateur.",
     "refusal.account.signedOut.fix":
       "Connectez-vous depuis l'écran de compte, puis réessayez.",
     "refusal.account.stale":
@@ -579,7 +601,7 @@ export const refusals = {
     "refusal.release.signature.fix":
       "N'installez pas ce binaire : signalez-le, puis réessayez depuis la console.",
     "refusal.fleet.unknown.fix":
-      "Rechargez les serveurs de votre organisation depuis les réglages.",
+      "Actualisez les serveurs de votre organisation depuis les réglages.",
     "refusal.fleet.withdrawn": "Ce serveur ne vous est plus attribué.",
     "refusal.fleet.withdrawn.fix":
       "Demandez à un administrateur de votre organisation de vous l'attribuer à nouveau.",
@@ -600,6 +622,10 @@ export const refusals = {
     "refusal.database.command.fix":
       "Ouvrez un terminal sur le serveur et lancez vous-même le shell de la base.",
     "refusal.params.invalid": "Paramètres invalides pour {cmd}.",
+    "refusal.agent.shape":
+      "Le serveur a répondu à {cmd} sous une forme que l'app ne lit pas.",
+    "refusal.agent.shape.fix":
+      "Mettez l'app et l'agent du serveur à la même version.",
     "refusal.bridge.credential": "{cmd} ne peut pas être appelé d'ici.",
     "refusal.bridge.secret": "{cmd} ne peut pas être appelé d'ici.",
     "refusal.agent.project": "Un agent s'ouvre sur un projet.",
@@ -676,7 +702,7 @@ export const refusals = {
     "refusal.modules.none.fix": "Choisissez au moins un service.",
     "refusal.modules.unreadable": "La liste des services est illisible.",
     "refusal.modules.unreadable.fix":
-      "Rechargez la liste des services, puis refaites votre sélection.",
+      "Actualisez la liste des services, puis refaites votre sélection.",
     "refusal.selection.unreadable": "La liste des services est illisible.",
     "refusal.selection.unreadable.fix":
       "Revenez aux services et refaites votre sélection.",
@@ -696,11 +722,11 @@ export const refusals = {
     "refusal.signIn.expired.fix":
       "Relancez la connexion pour obtenir un nouveau code.",
     "refusal.device.none":
-      "Cet appareil n'est connecté à aucun compte Pupitre.",
+      "Cet ordinateur n'est connecté à aucun compte Pupitre.",
     "refusal.device.none.fix":
       "Connectez-vous depuis les réglages, puis relancez la réparation.",
     "refusal.device.none.console":
-      "Cet appareil n'est connecté à aucun compte Pupitre.",
+      "Cet ordinateur n'est connecté à aucun compte Pupitre.",
     "refusal.device.none.console.fix":
       "Connectez-vous depuis les réglages, ou ouvrez la console : {console}",
     "refusal.device.self": "Cet ordinateur ne peut pas se révoquer lui-même.",
@@ -708,6 +734,16 @@ export const refusals = {
       "Déconnectez-vous plutôt : les serveurs se ferment pour cet ordinateur, et les terminaux avec eux.",
     "refusal.device.unknown": "Aucun appareil n'a été nommé.",
     "refusal.device.unknown.fix": "Choisissez un appareil dans la liste.",
+    "refusal.probe.timeout.fix":
+      "Vérifiez que le serveur est allumé et répond en SSH, puis relancez l'inspection.",
+    "refusal.probe.failed.fix":
+      "Vérifiez que le serveur répond en SSH avec ce compte, puis relancez l'inspection.",
+    "refusal.probe.failed.detail.fix":
+      "Vérifiez que le serveur répond en SSH avec ce compte, puis relancez l'inspection.",
+    "refusal.binary.arch.fix":
+      "Mettez Pupitre à jour sur cet ordinateur ; si l'architecture est toujours refusée, choisissez un serveur à processeur amd64 ou arm64.",
+    "refusal.enrollment.none.fix":
+      "Réessayez ; si cela recommence, déconnectez-vous puis reconnectez-vous depuis les réglages, et réessayez.",
     "refusal.probe.unreadable":
       "Le serveur n'a pas renvoyé de rapport d'inspection lisible.",
     "refusal.probe.unreadable.fix":
@@ -750,7 +786,7 @@ export const refusals = {
     "refusal.project.unreadable": "La description du projet est incomplète.",
     "refusal.project.unreadable.fix": "Reprenez le formulaire.",
     "refusal.project.unknown.fix":
-      "Rechargez la liste des projets, puis reprenez.",
+      "Actualisez la liste des projets, puis reprenez.",
     "refusal.project.action.unknown.fix":
       "Choisissez démarrer, arrêter ou redémarrer.",
     "refusal.project.process.unknown.fix":
@@ -766,7 +802,7 @@ export const refusals = {
     "refusal.secret.value.invalid.fix":
       "Donnez une valeur sur une seule ligne.",
     "refusal.secrets.stale.fix":
-      "Rechargez la liste des secrets, puis reprenez.",
+      "Actualisez la liste des secrets, puis reprenez.",
     "refusal.channel.unopened": "La connexion au serveur n'est pas ouverte.",
     "refusal.channel.unopened.fix":
       "Relancez la commande : l'app rouvre la connexion toute seule.",

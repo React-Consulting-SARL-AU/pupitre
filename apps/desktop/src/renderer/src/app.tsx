@@ -78,6 +78,7 @@ export function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [addingService, setAddingService] = useState(false);
 
   const onboarding = useOnboarding((s) => s.step);
   const openOnboarding = useOnboarding((s) => s.open);
@@ -194,6 +195,12 @@ export function App() {
   }, [boot]);
 
   useEffect(() => window.pupitre.onTerminalStates(noteStates), [noteStates]);
+
+  useEffect(() => {
+    if (view !== "services") {
+      setAddingService(false);
+    }
+  }, [view]);
 
   useEffect(() => useChannel.getState().listen(), []);
 
@@ -509,6 +516,10 @@ export function App() {
                   busy={busy}
                   onAct={(action, name) => act(action, serverId, name)}
                   onAddProject={() => goTo("project-add")}
+                  onAddService={() => {
+                    setAddingService(true);
+                    goTo("services");
+                  }}
                   onCleanSessions={() => cleanSessions(serverId)}
                   onOpenProject={select}
                   onOpenService={openService}
@@ -568,6 +579,7 @@ export function App() {
                   serverName={server?.name}
                   service={service}
                   services={snapshot.services}
+                  startAdding={addingService}
                 />
               </div>
             ) : null}

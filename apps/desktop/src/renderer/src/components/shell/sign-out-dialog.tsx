@@ -43,7 +43,7 @@ export function SignOutDialog({
       open={open}
       title={t("shell.signOut.title")}
     >
-      <p className="text-[13px] text-ink-2 leading-relaxed">
+      <p className="text-control text-ink-2 leading-relaxed">
         {t("account.identity.disconnectQuestion")}
       </p>
     </Dialog>

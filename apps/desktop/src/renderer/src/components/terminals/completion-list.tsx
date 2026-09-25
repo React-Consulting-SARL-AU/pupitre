@@ -73,7 +73,7 @@ export function CompletionList({ id, frame }: Props) {
               />
             ))}
           </ul>
-          <div className="flex gap-3 border-line border-t px-3 py-1 font-data text-[11px] text-ink-3">
+          <div className="flex gap-3 border-line border-t px-3 py-1 font-data text-caption text-ink-3">
             <span>{t("terminals.completeHint")}</span>
             <span>{t("terminals.chooseHint")}</span>
             <span>{t("terminals.closeHint")}</span>

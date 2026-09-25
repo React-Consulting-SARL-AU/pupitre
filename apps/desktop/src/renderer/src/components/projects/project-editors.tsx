@@ -40,7 +40,7 @@ export function ProjectEditors({
       aria-label={t("project.editors.group")}
       className="flex items-center gap-1"
     >
-      <span className="mr-1 text-[12px] text-ink-3">
+      <span className="mr-1 text-ink-3 text-small">
         {t("project.editors.label")}
       </span>
       {editors.map((editor) => (

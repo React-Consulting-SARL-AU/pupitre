@@ -31,10 +31,10 @@ export function AccountKeyApprovalRow({
         <KeyRound className="shrink-0 text-ink-3" size={14} strokeWidth={1.5} />
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] text-ink">
+          <p className="truncate text-control text-ink">
             {t("keyApprovals.request", { device, person, server })}
           </p>
-          <p className="flex min-w-0 gap-2 font-data text-[11px] text-ink-3">
+          <p className="flex min-w-0 gap-2 font-data text-caption text-ink-3">
             <span className="truncate">{approval.user.email}</span>
             <span className="truncate">{approval.device.fingerprint}</span>
           </p>

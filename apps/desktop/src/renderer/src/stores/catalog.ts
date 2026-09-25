@@ -22,6 +22,7 @@ import {
   resourceWarnings,
   restored,
   toggle as toggleIn,
+  withChoice,
 } from "../lib/catalog-selection";
 import { useConnections } from "./connections";
 import { probeOf } from "./inspection";
@@ -381,17 +382,10 @@ export const useCatalog = create<CatalogStore>((set, get) => {
         return;
       }
 
-      // A preset that names exclusive modules carries none of them: the one the
-      // reader picked joins its list, and the others stay out.
-      const asked =
-        chosen && preset.choose_one?.includes(chosen)
-          ? { ...preset, modules: [...preset.modules, chosen] }
-          : preset;
-
       reselect(
         fromPreset(
           get().modules(),
-          asked,
+          withChoice(preset, chosen),
           get().installed,
           probeOf(serverOf(get().catalog))
         )

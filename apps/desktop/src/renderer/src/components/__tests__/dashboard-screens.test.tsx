@@ -57,7 +57,7 @@ describe("le tableau de bord", () => {
 
     expect(html).toContain("atelier");
     expect(html).toContain("PostgreSQL");
-    expect(html).toContain("flymate-api");
+    expect(html).toContain("flyleaf-api");
     expect(html).toContain("atlas-web");
     expect(html).toContain("billing");
     expect(html).toContain("idea-backend");
@@ -113,7 +113,7 @@ describe("le tableau de bord", () => {
     expect(open).not.toContain("L'accès root de ce serveur est resté ouvert.");
   });
 
-  /** atlas-web answers on the machine alone, flymate-api under a name on the web: only the second opens from here. */
+  /** atlas-web answers on the machine alone, flyleaf-api under a name on the web: only the second opens from here. */
   it("n'offre d'ouvrir que les projets qui ont un nom sur le web", () => {
     const html = panel();
 
@@ -168,7 +168,18 @@ describe("le tableau de bord", () => {
       />
     );
 
-    expect(html).toContain("Rien en marche");
+    expect(html).toContain("Aucun service ne tourne en continu sur ce serveur");
+  });
+
+  it("propose d'ajouter un service quand aucun ne tourne", () => {
+    const idle = SNAPSHOT.services.filter((service) => !service.runs);
+
+    expect(
+      renderToStaticMarkup(<DashboardServices onAdd={NOOP} services={idle} />)
+    ).toContain("Ajouter un service");
+    expect(
+      renderToStaticMarkup(<DashboardServices services={idle} />)
+    ).not.toContain("Ajouter un service");
   });
 
   it("n'invente rien pour un serveur sans service ni projet", () => {
@@ -186,7 +197,7 @@ describe("le tableau de bord", () => {
       />
     );
 
-    expect(html).toContain("Rien en marche");
+    expect(html).toContain("Aucun service ne tourne en continu sur ce serveur");
     expect(html).toContain("aucun projet");
     expect(html).toContain("Aucune session en arrière-plan");
   });

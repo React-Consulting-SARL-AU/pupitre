@@ -102,11 +102,10 @@ export const projectAdd = {
     "projectAdd.github.filterPlaceholder.other": "Search {count} repositories",
     "projectAdd.github.change": "Change repository",
     "projectAdd.github.listLabel": "Repositories of the account",
-    "projectAdd.github.refresh": "Read again",
+    "projectAdd.github.refresh": "Refresh",
     "projectAdd.github.private": "Private repository",
     "projectAdd.github.empty": "No repository under that name",
-    "projectAdd.github.emptyDetail":
-      "Try fewer letters, or read the list again.",
+    "projectAdd.github.emptyDetail": "Try fewer letters, or refresh the list.",
     "projectAdd.github.absent": "No GitHub account is connected.",
     "projectAdd.github.absentFix": "Connect one in Settings, Connections.",
     "projectAdd.github.connect": "Open the settings",
@@ -134,7 +133,7 @@ export const projectAdd = {
     "projectAdd.form.subdomain.taken":
       "Another port, on this server, already answers to this name.",
 
-    "projectAdd.panel.title": "New project",
+    "projectAdd.panel.title": "Add a project",
     "projectAdd.panel.cancel": "Cancel",
     "projectAdd.phase.warning": "With one reservation: {warning}",
     "projectAdd.panel.edit": "Edit the form",
@@ -271,11 +270,11 @@ export const projectAdd = {
       "Chercher parmi {count} dépôts",
     "projectAdd.github.change": "Changer de dépôt",
     "projectAdd.github.listLabel": "Dépôts du compte",
-    "projectAdd.github.refresh": "Relire",
+    "projectAdd.github.refresh": "Actualiser",
     "projectAdd.github.private": "Dépôt privé",
     "projectAdd.github.empty": "Aucun dépôt sous ce nom",
     "projectAdd.github.emptyDetail":
-      "Essayez moins de lettres, ou relisez la liste.",
+      "Essayez moins de lettres, ou actualisez la liste.",
     "projectAdd.github.absent": "Aucun compte GitHub n'est connecté.",
     "projectAdd.github.absentFix": "Connectez-en un dans Réglages, Connexions.",
     "projectAdd.github.connect": "Ouvrir les réglages",
@@ -303,7 +302,7 @@ export const projectAdd = {
     "projectAdd.form.subdomain.taken":
       "Un autre port, sur ce serveur, répond déjà à ce nom.",
 
-    "projectAdd.panel.title": "Nouveau projet",
+    "projectAdd.panel.title": "Ajouter un projet",
     "projectAdd.panel.cancel": "Annuler",
     "projectAdd.phase.warning": "Avec une réserve : {warning}",
     "projectAdd.panel.edit": "Modifier le formulaire",

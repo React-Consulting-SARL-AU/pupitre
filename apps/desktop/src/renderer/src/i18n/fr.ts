@@ -14,6 +14,7 @@ import { format } from "./strings/format";
 import { forwards } from "./strings/forwards";
 import { help } from "./strings/help";
 import { install } from "./strings/install";
+import { installSteps } from "./strings/install-steps";
 import { keyApprovals } from "./strings/key-approvals";
 import { onboarding } from "./strings/onboarding";
 import { project } from "./strings/project";
@@ -52,6 +53,7 @@ export const fr: Dictionary = {
   ...fleet.fr,
   ...help.fr,
   ...install.fr,
+  ...installSteps.fr,
   ...keyApprovals.fr,
   ...onboarding.fr,
   ...project.fr,

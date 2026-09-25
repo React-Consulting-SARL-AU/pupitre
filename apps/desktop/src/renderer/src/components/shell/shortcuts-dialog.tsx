@@ -71,7 +71,7 @@ export function ShortcutsDialog({
             <dl className="flex flex-col gap-2">
               {group.shortcuts.map((line) => (
                 <div
-                  className="flex items-center justify-between gap-4 text-[13px]"
+                  className="flex items-center justify-between gap-4 text-control"
                   key={line.name}
                 >
                   <dt className="text-ink-2">

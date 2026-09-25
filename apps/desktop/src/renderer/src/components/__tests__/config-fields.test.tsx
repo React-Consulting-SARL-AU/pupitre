@@ -267,7 +267,7 @@ describe("un secret généré", () => {
     expect(field(html, "db.postgres.app_password")).toContain(
       'data-generated="true"'
     );
-    expect(text(html)).toContain("Généré pour cette machine");
+    expect(text(html)).toContain("Généré pour ce serveur");
     expect(text(html)).toContain("Montrer une fois");
   });
 
@@ -276,7 +276,7 @@ describe("un secret généré", () => {
       'data-revealed="true"'
     );
     expect(text(html)).toContain(
-      "Déjà montré une fois ; il ne sera plus affiché."
+      "Déjà montré une fois ; le secret ne sera plus affiché."
     );
   });
 

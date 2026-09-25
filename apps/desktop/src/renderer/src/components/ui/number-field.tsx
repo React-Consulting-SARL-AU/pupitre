@@ -63,7 +63,7 @@ export function NumberField({
           <Minus size={12} strokeWidth={1.5} />
         </Base.Decrement>
         <Base.Input
-          className="min-w-0 flex-1 border-line-strong border-x bg-transparent px-3 py-2 text-center font-data text-[13px] text-ink tabular-nums outline-none"
+          className="min-w-0 flex-1 border-line-strong border-x bg-transparent px-3 py-2 text-center font-data text-control text-ink tabular-nums outline-none"
           {...aria}
         />
         <Base.Increment aria-label={incrementLabel} className={STEPPER}>

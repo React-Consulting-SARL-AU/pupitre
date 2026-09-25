@@ -1,7 +1,5 @@
-import { Logo } from "@renderer/components/logo";
 import { Button } from "@renderer/components/ui/button";
-import { Label } from "@renderer/components/ui/label";
-import { WindowBand } from "@renderer/components/ui/window-band";
+import { GateScreen } from "@renderer/components/ui/gate-screen";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { riseAt } from "@renderer/lib/motion";
 import { useAccount } from "@renderer/stores/account";
@@ -65,85 +63,80 @@ export function AccountGateScreen({
     <div className="grid h-full grid-cols-1 lg:grid-cols-[minmax(0,26rem)_1fr]">
       <AccountGateAside platform={platform} />
 
-      <main className="relative grid min-w-0 place-items-center overflow-y-auto px-8 py-12">
-        <WindowBand className="absolute inset-x-0 top-0" />
+      <main className="min-w-0">
+        <GateScreen
+          actions={
+            <>
+              <Button
+                icon={SettingsIcon}
+                onClick={onSettings}
+                variant="discreet"
+              >
+                {t("account.gate.settings")}
+              </Button>
 
-        <div className="clickable w-full max-w-md">
-          <div
-            className="rise flex items-center gap-2.5 lg:hidden"
-            style={riseAt(0)}
-          >
-            <Logo size={26} />
-            <Label>{t("account.gate.eyebrow")}</Label>
-          </div>
-
-          <h1
-            className="rise mt-3 text-balance font-bold font-display text-3xl text-ink leading-tight tracking-tight lg:mt-0"
-            style={riseAt(1)}
-          >
-            {missingPlan
-              ? t(`account.gate.${missingPlan.reason}.title`)
-              : t("account.gate.title")}
-          </h1>
-
-          <p className="rise mt-3 text-ink-3 leading-relaxed" style={riseAt(2)}>
-            {missingPlan
+              {skippable ? (
+                <Button
+                  className="ml-auto"
+                  onClick={bypass}
+                  size="sm"
+                  variant="discreet"
+                >
+                  {t("account.gate.developmentSkip")}
+                </Button>
+              ) : null}
+            </>
+          }
+          actionsAt={5}
+          beside
+          eyebrow={t("account.gate.eyebrow")}
+          lead={
+            missingPlan
               ? t(`account.gate.${missingPlan.reason}.body`, {
                   org: organization,
                 })
-              : t("account.gate.body")}
-          </p>
+              : t("account.gate.body")
+          }
+          narrow
+          title={
+            missingPlan
+              ? t(`account.gate.${missingPlan.reason}.title`)
+              : t("account.gate.title")
+          }
+        >
+          {missingPlan ? (
+            <div className="rise" style={riseAt(3)}>
+              <AccountGateSubscriptionCard
+                consoleUrl={account.consoleUrl}
+                identity={missingPlan.identity}
+                onDisconnect={disconnect}
+                onOpenConsole={openConsole}
+                onRefresh={refresh}
+                reason={missingPlan.reason}
+              />
+            </div>
+          ) : (
+            <div className="rise" style={riseAt(3)}>
+              <AccountSignInCard
+                consoleUrl={account.consoleUrl}
+                onCancel={cancelSignIn}
+                onConnect={connect}
+                onOpenUrl={openConsole}
+                signIn={signIn}
+              />
+            </div>
+          )}
 
-          <div className="mt-8 flex flex-col gap-4">
-            {missingPlan ? (
-              <div className="rise" style={riseAt(3)}>
-                <AccountGateSubscriptionCard
-                  consoleUrl={account.consoleUrl}
-                  identity={missingPlan.identity}
-                  onDisconnect={disconnect}
-                  onOpenConsole={openConsole}
-                  onRefresh={refresh}
-                  reason={missingPlan.reason}
-                />
-              </div>
-            ) : (
-              <div className="rise" style={riseAt(3)}>
-                <AccountSignInCard
-                  consoleUrl={account.consoleUrl}
-                  onCancel={cancelSignIn}
-                  onConnect={connect}
-                  onOpenUrl={openConsole}
-                  signIn={signIn}
-                />
-              </div>
-            )}
-
-            {fault && !missingPlan ? (
-              <div className="rise" style={riseAt(4)}>
-                <AccountUsageNotice
-                  checkedAt={account.checkedAt}
-                  onOpenConsole={openConsole}
-                  usage={account.usage}
-                />
-              </div>
-            ) : null}
-          </div>
-
-          <div
-            className="rise mt-8 flex flex-wrap items-center justify-between gap-3 border-line border-t pt-5"
-            style={riseAt(5)}
-          >
-            <Button icon={SettingsIcon} onClick={onSettings} variant="discreet">
-              {t("account.gate.settings")}
-            </Button>
-
-            {skippable ? (
-              <Button onClick={bypass} size="sm" variant="discreet">
-                {t("account.gate.developmentSkip")}
-              </Button>
-            ) : null}
-          </div>
-        </div>
+          {fault && !missingPlan ? (
+            <div className="rise" style={riseAt(4)}>
+              <AccountUsageNotice
+                checkedAt={account.checkedAt}
+                onOpenConsole={openConsole}
+                usage={account.usage}
+              />
+            </div>
+          ) : null}
+        </GateScreen>
       </main>
     </div>
   );

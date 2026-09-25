@@ -196,7 +196,7 @@ describe("le formulaire d'un nouveau projet", () => {
   it("ouvre sur la source seule, et finit sur sa lecture", () => {
     const rendered = panel({ status: "idle" }, { step: "source" });
 
-    expect(text(rendered)).toContain("Nouveau projet");
+    expect(text(rendered)).toContain("Ajouter un projet");
     expect(rendered).toContain('data-step="source"');
     expect(text(rendered)).toContain("Adresse git");
     expect(rendered).toContain('id="project.source"');

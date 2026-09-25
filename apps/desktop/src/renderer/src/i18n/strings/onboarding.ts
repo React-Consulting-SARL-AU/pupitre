@@ -11,9 +11,9 @@ export const onboarding = {
     "onboarding.agent.sendingDetail": "A minute at most.",
 
     "onboarding.agent.phase.reading": "Looking at the machine",
-    "onboarding.agent.phase.enrolling": "Declaring it to your account",
+    "onboarding.agent.phase.enrolling": "Declaring the server to your account",
     "onboarding.agent.phase.sending": "Copying the agent",
-    "onboarding.agent.phase.starting": "Starting it",
+    "onboarding.agent.phase.starting": "Starting the agent",
 
     "onboarding.done.title": "Ready",
     "onboarding.done.connectedAs": "Connected as",
@@ -58,16 +58,16 @@ export const onboarding = {
     "onboarding.harden.rootKeptTitle":
       "The server is secured, and root access stays open.",
     "onboarding.harden.rootKeptDetail":
-      "You chose to keep it: it opens with a key, never with a password.",
+      "You chose to keep root access: it opens with a key, never with a password.",
     "onboarding.harden.connectedPrefix":
-      "The app now connects to it with the account",
+      "The app now connects to the server with the account",
     "onboarding.harden.connectedSuffix": ".",
     "onboarding.harden.noReason":
       "Root access was not closed, and no reason was given.",
     "onboarding.harden.rootOpenPrefix":
       "Root access stays open and nothing changed on the machine: the account",
     "onboarding.harden.rootOpenSuffix": "is the one the app keeps using.",
-    "onboarding.harden.continueOpen": "Continue without closing it",
+    "onboarding.harden.continueOpen": "Continue with root access open",
     "onboarding.harden.failedOpen":
       "The machine is installed and root is still open: the app keeps using that account, and everything else works. You can retry above, or go on now and leave it open.",
 
@@ -105,7 +105,7 @@ export const onboarding = {
     "onboarding.stage.pick": "Choose",
     "onboarding.stage.add": "Add",
     "onboarding.stage.key": "Key",
-    "onboarding.failure.journal": "See the journal",
+    "onboarding.failure.journal": "See the logs",
     "onboarding.channel.lost": "Connection to {name} lost.",
     "onboarding.channel.retrying": "Trying again…",
     "onboarding.channel.back": "Connection to {name} is back.",
@@ -154,10 +154,10 @@ export const onboarding = {
       "{name} had a password or a key the app did not keep. Enter it again, or let the app generate one, before running it again.",
     "onboarding.server.pick.title": "The machine to install",
     "onboarding.server.add.title": "The machine to install",
-    "onboarding.server.key.title": "The key that opens it",
+    "onboarding.server.key.title": "The server's SSH key",
     "onboarding.server.knownHeading": "Your servers",
 
-    "onboarding.config.replaySubmit": "Replay this module",
+    "onboarding.config.replaySubmit": "Reinstall this service",
     "onboarding.config.resumeSubmit": "Resume the install",
 
     "onboarding.resume.readingTitle": "Checking where the server stands",
@@ -178,12 +178,12 @@ export const onboarding = {
     "onboarding.agent.sendingDetail": "Une minute au plus.",
 
     "onboarding.agent.phase.reading": "On regarde la machine",
-    "onboarding.agent.phase.enrolling": "On la déclare à votre compte",
+    "onboarding.agent.phase.enrolling": "On déclare le serveur à votre compte",
     "onboarding.agent.phase.sending": "On copie l'agent",
-    "onboarding.agent.phase.starting": "On le démarre",
+    "onboarding.agent.phase.starting": "On démarre l'agent",
 
     "onboarding.done.title": "Prêt",
-    "onboarding.done.connectedAs": "Connecté en",
+    "onboarding.done.connectedAs": "Connecté en tant que",
     "onboarding.done.rootClosed":
       "L'accès root est fermé : plus personne n'entre sur cette machine avec ce compte.",
     "onboarding.done.rootKept":
@@ -225,9 +225,9 @@ export const onboarding = {
     "onboarding.harden.rootKeptTitle":
       "Le serveur est sécurisé, et l'accès root reste ouvert.",
     "onboarding.harden.rootKeptDetail":
-      "Vous avez choisi de le garder : il s'ouvre avec une clé, jamais avec un mot de passe.",
+      "Vous avez choisi de garder l'accès root : il s'ouvre avec une clé, jamais avec un mot de passe.",
     "onboarding.harden.connectedPrefix":
-      "L'app s'y connecte maintenant avec le compte",
+      "L'app se connecte maintenant au serveur avec le compte",
     "onboarding.harden.connectedSuffix": ".",
     "onboarding.harden.noReason":
       "L'accès root n'a pas été fermé, sans raison donnée.",
@@ -235,7 +235,7 @@ export const onboarding = {
       "L'accès root reste ouvert et rien n'a changé sur la machine : le compte",
     "onboarding.harden.rootOpenSuffix":
       "est celui que l'app continue d'utiliser.",
-    "onboarding.harden.continueOpen": "Continuer sans le fermer",
+    "onboarding.harden.continueOpen": "Continuer avec l'accès root ouvert",
     "onboarding.harden.failedOpen":
       "La machine est installée et root est encore ouvert : l'app continue d'utiliser ce compte, et tout le reste fonctionne. Vous pouvez réessayer au-dessus, ou continuer maintenant en le laissant ouvert.",
 
@@ -254,7 +254,7 @@ export const onboarding = {
     "onboarding.summary.memory": "Mémoire",
     "onboarding.summary.diskFree": "Disque libre",
 
-    "onboarding.verdict.bare.title": "Prête à être installée",
+    "onboarding.verdict.bare.title": "Prêt à être installé",
     "onboarding.verdict.bare.lead": "Rien n'est installé sur ce serveur.",
     "onboarding.verdict.managed.title": "Déjà géré par Pupitre",
     "onboarding.verdict.managed.lead": "L'agent répond sur ce serveur.",
@@ -322,10 +322,10 @@ export const onboarding = {
       "{name} avait un mot de passe ou une clé que l'app n'a pas gardés. Saisissez-le à nouveau, ou laissez l'app en générer un, avant de relancer.",
     "onboarding.server.pick.title": "La machine à installer",
     "onboarding.server.add.title": "La machine à installer",
-    "onboarding.server.key.title": "La clé qui l'ouvre",
+    "onboarding.server.key.title": "La clé SSH du serveur",
     "onboarding.server.knownHeading": "Vos serveurs",
 
-    "onboarding.config.replaySubmit": "Relancer ce module",
+    "onboarding.config.replaySubmit": "Réinstaller ce service",
     "onboarding.config.resumeSubmit": "Reprendre l'installation",
 
     "onboarding.resume.readingTitle": "On regarde où en est le serveur",

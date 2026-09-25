@@ -145,7 +145,7 @@ export function ProjectPortRow({
 
       {problem && field ? (
         <p
-          className="text-[12px] text-danger leading-relaxed"
+          className="text-danger text-small leading-relaxed"
           id={`${id}.${field}-problem`}
         >
           {t(PROBLEM_TEXT[problem])}
@@ -153,7 +153,7 @@ export function ProjectPortRow({
       ) : null}
 
       {warned ? (
-        <p className="text-[12px] text-ink-3 leading-relaxed">
+        <p className="text-ink-3 text-small leading-relaxed">
           {t("projectAdd.form.subdomainDeep")}
         </p>
       ) : null}

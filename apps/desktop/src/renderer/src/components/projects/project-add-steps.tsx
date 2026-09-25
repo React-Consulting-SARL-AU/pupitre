@@ -43,13 +43,13 @@ export function ProjectAddSteps({ phases }: { phases: readonly Phase[] }) {
                 {t(PHASE_TITLES[phase.id])}
               </p>
               {phase.detail ? (
-                <p className="mt-0.5 font-data text-[12px] text-ink-3 leading-relaxed">
+                <p className="mt-0.5 font-data text-ink-3 text-small leading-relaxed">
                   {phase.detail}
                 </p>
               ) : null}
               {phase.warnings?.map((warning) => (
                 <p
-                  className="mt-1 text-[12px] text-warn leading-relaxed"
+                  className="mt-1 text-small text-warn leading-relaxed"
                   data-warning=""
                   key={warning}
                 >
@@ -60,7 +60,7 @@ export function ProjectAddSteps({ phases }: { phases: readonly Phase[] }) {
 
             <span className="flex shrink-0 translate-y-0.5 items-baseline gap-2 text-ink-3">
               {phase.status === "running" ? (
-                <LiveDuration className="font-data text-[12px] tabular-nums" />
+                <LiveDuration className="font-data text-small tabular-nums" />
               ) : null}
               <span className="label">{t(look.label)}</span>
             </span>

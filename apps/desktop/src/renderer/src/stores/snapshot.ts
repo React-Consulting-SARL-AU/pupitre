@@ -1,6 +1,7 @@
 import type { ProcessesListResult } from "@pupitre/shared/agent-protocol/processes";
 import type { SnapshotResult } from "@pupitre/shared/agent-protocol/state";
 import type { AgentError } from "@shared/agent";
+import type { ProjectAction } from "@shared/projects";
 import { create } from "zustand";
 import { agentCall as call, agentPoll as poll } from "../lib/agent-call";
 
@@ -33,7 +34,7 @@ export type SnapshotState =
     }
   | { status: "unreachable"; serverId: string; error: AgentError };
 
-export type ProjectAction = "project.up" | "project.down" | "project.restart";
+export type { ProjectAction } from "@shared/projects";
 
 /** How long a rebooting machine is waited on before its silence is a failure. */
 export const REBOOT_PATIENCE_MS = 5 * 60_000;

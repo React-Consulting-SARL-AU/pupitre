@@ -86,7 +86,7 @@ export function BackupsContentDatabases({
         ))}
 
         {problem ? (
-          <span className="text-[12px] text-danger">{problem}</span>
+          <span className="text-danger text-small">{problem}</span>
         ) : null}
       </div>
 

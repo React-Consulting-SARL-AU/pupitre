@@ -4,9 +4,10 @@ export const activity = {
     "activity.weighs": "What weighs",
     "activity.sessions.title": "Background sessions",
     "activity.processes.empty": "No notable process",
-    "activity.process.question": "Sends SIGTERM to {command} (pid {pid}).",
+    "activity.process.question":
+      "Stop {command} (process {pid})? The process is asked to close cleanly; what it has not saved is lost.",
     "activity.process.forceQuestion":
-      "{command} (pid {pid}) ignored the stop: SIGKILL ends it at once, and nothing it held is saved.",
+      "{command} (process {pid}) ignored the stop: forcing ends it at once, and nothing it held is saved.",
     "activity.force": "Force stop",
     "activity.session.reattach": "Reattach",
     "activity.session.reattachHint": "Reattach {project}",
@@ -17,9 +18,11 @@ export const activity = {
     "activity.session.one": "{count} session",
     "activity.session.other": "{count} sessions",
     "activity.session.tab": "tab open",
-    "activity.session.question": "Kills session {pid}, {command}.",
+    "activity.session.question":
+      "Stop the session {command} ({pid})? What runs in it ends, with no way back.",
     "activity.stop": "Stop",
-    "activity.clean.question": "Sessions idle for a long time are killed.",
+    "activity.clean.question":
+      "Sessions idle for a long time are stopped along with what runs in them, with no way back.",
     "activity.clean.action": "Stop the ones that linger",
   },
   fr: {
@@ -27,9 +30,10 @@ export const activity = {
     "activity.weighs": "Ce qui pèse",
     "activity.sessions.title": "Sessions en arrière-plan",
     "activity.processes.empty": "Aucun processus notable",
-    "activity.process.question": "Envoie SIGTERM à {command} (pid {pid}).",
+    "activity.process.question":
+      "Arrêter {command} (processus {pid}) ? Le processus est prié de se fermer proprement ; ce qu'il n'a pas enregistré est perdu.",
     "activity.process.forceQuestion":
-      "{command} (pid {pid}) a ignoré l'arrêt : SIGKILL le termine sur-le-champ, et rien de ce qu'il tenait n'est sauvé.",
+      "{command} (processus {pid}) a ignoré l'arrêt : forcer le termine sur-le-champ, et rien de ce qu'il tenait n'est sauvé.",
     "activity.force": "Forcer l'arrêt",
     "activity.session.reattach": "Rattacher",
     "activity.session.reattachHint": "Rattacher {project}",
@@ -40,10 +44,11 @@ export const activity = {
     "activity.session.one": "{count} session",
     "activity.session.other": "{count} sessions",
     "activity.session.tab": "onglet ouvert",
-    "activity.session.question": "Tue la session {pid}, {command}.",
+    "activity.session.question":
+      "Arrêter la session {command} ({pid}) ? Ce qui y tourne s'arrête, sans retour possible.",
     "activity.stop": "Arrêter",
     "activity.clean.question":
-      "Les sessions inactives depuis longtemps sont tuées.",
+      "Les sessions inactives depuis longtemps sont arrêtées avec ce qui y tourne, sans retour possible.",
     "activity.clean.action": "Arrêter celles qui traînent",
   },
 } as const;

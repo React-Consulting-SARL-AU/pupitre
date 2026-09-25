@@ -153,7 +153,7 @@ export function AppSidebar({
         title={t("shell.sidebar.projects")}
       >
         {projects.length === 0 ? (
-          <p className="px-3 py-2 text-[12px] text-ink-3 leading-relaxed">
+          <p className="px-3 py-2 text-ink-3 text-small leading-relaxed">
             {t("shell.sidebar.noProjects")}
           </p>
         ) : null}
@@ -182,7 +182,7 @@ export function AppSidebar({
             onClick={() => onProject(project.name)}
             suffix={
               memoryOf(project) ? (
-                <span className="shrink-0 font-data text-[11px] text-ink-3 tabular-nums">
+                <span className="shrink-0 font-data text-caption text-ink-3 tabular-nums">
                   {memory(memoryOf(project))}
                 </span>
               ) : null

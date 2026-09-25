@@ -58,13 +58,9 @@ export function SettingsAppearance() {
             />
           </Field>
 
-          <Field
-            help={t("settings.language.help")}
-            label={t("settings.language.label")}
-            name="settings.language"
-          >
+          <Field label={t("settings.language.label")} name="settings.language">
             <Select
-              {...fieldAria({ help: true, name: "settings.language" })}
+              {...fieldAria({ name: "settings.language" })}
               onChange={setLocalePreference}
               options={LOCALE_PREFERENCES.map((option) => ({
                 label: localeLabel[option],

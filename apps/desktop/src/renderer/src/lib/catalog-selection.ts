@@ -200,6 +200,31 @@ export function fromPreset(
   return ordered(modules, chosen);
 }
 
+/** A preset that names exclusive modules carries the one the reader picked, and none of the others. */
+export function withChoice(preset: Preset, chosen?: string): Preset {
+  return chosen && preset.choose_one?.includes(chosen)
+    ? { ...preset, modules: [...preset.modules, chosen] }
+    : preset;
+}
+
+/** What applying a preset takes out of the selection, and with it what was typed for those modules. */
+export function droppedBy(
+  modules: readonly Manifest[],
+  preset: Preset,
+  selected: Selection,
+  installed: Installed = [],
+  probe: ProbeResult | null = null
+): Manifest[] {
+  const kept = new Set(fromPreset(modules, preset, installed, probe));
+  const known = index(modules);
+
+  return selected.flatMap((id) => {
+    const manifest = known.get(id);
+
+    return manifest && !kept.has(id) ? [manifest] : [];
+  });
+}
+
 /**
  * Why a module cannot be chosen right now, in the words the reader needs: it is
  * already there, it collides with one the server already runs or with one just

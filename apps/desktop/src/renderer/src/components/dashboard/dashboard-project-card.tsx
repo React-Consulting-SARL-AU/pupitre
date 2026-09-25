@@ -67,7 +67,7 @@ export function DashboardProjectCard({
           <p className="truncate font-semibold text-ink hover:underline">
             {project.name}
           </p>
-          <p className="mt-0.5 truncate font-data text-[11px] text-ink-3">
+          <p className="mt-0.5 truncate font-data text-caption text-ink-3">
             {several
               ? project.processes
                   .map((process) => `${process.id}:${process.port}`)
@@ -79,7 +79,7 @@ export function DashboardProjectCard({
 
         <div className="flex shrink-0 flex-col items-end gap-1">
           <StatePill look={PROJECT_LOOK[project.state]} name={project.state} />
-          <span className="font-data text-[11px] text-ink-3 tabular-nums">
+          <span className="font-data text-caption text-ink-3 tabular-nums">
             {uptime(age || undefined)}
             {ram ? ` · ${memory(ram)}` : ""}
           </span>
@@ -90,7 +90,7 @@ export function DashboardProjectCard({
         <ul className="mt-3 flex flex-wrap gap-1.5" data-processes>
           {project.processes.map((process) => (
             <li
-              className="flex items-center gap-1.5 rounded-full border border-line px-2 py-0.5 font-data text-[11px] text-ink-3"
+              className="flex items-center gap-1.5 rounded-full border border-line px-2 py-0.5 font-data text-caption text-ink-3"
               data-process={process.id}
               key={process.id}
             >

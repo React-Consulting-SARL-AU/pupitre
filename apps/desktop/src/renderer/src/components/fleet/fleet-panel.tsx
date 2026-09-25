@@ -1,5 +1,6 @@
 import { Button } from "@renderer/components/ui/button";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
+import { Section } from "@renderer/components/ui/section";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { accountOf, useAccount } from "@renderer/stores/account";
 import {
@@ -71,44 +72,54 @@ export function FleetPanel({
     servers.length === 0 &&
     dismissed === 0 &&
     unreachable === 0 &&
-    !silentWhenEmpty;
+    !silentWhenEmpty &&
+    identity.role !== "owner";
 
-  if (
-    !(several || failed || nothingGranted || dismissed > 0 || unreachable > 0)
-  ) {
+  const notes = failed || nothingGranted || dismissed > 0 || unreachable > 0;
+
+  if (!(several || notes)) {
     return null;
   }
 
   return (
-    <section className="flex flex-col gap-4">
+    <>
       <FleetOrganizations identity={identity} />
 
-      {state.status === "failed" ? (
-        <ErrorNotice error={state.error} onRetry={read} />
-      ) : null}
+      {notes ? (
+        <Section name="grants" title={t("fleet.grants.title")}>
+          {state.status === "failed" ? (
+            <ErrorNotice error={state.error} onRetry={read} />
+          ) : null}
 
-      {nothingGranted ? (
-        <p className="text-[12px] text-ink-3 leading-relaxed">
-          {t("fleet.empty.detail")}
-        </p>
-      ) : null}
+          {nothingGranted ? (
+            <p className="text-ink-3 text-small leading-relaxed">
+              {t("fleet.empty.detail")}
+            </p>
+          ) : null}
 
-      {dismissed > 0 ? (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[12px] text-ink-3 leading-relaxed">
-            {t.plural("fleet.dismissed", dismissed)}
-          </p>
-          <Button icon={Undo2} onClick={restore} size="sm" variant="discreet">
-            {t("fleet.restore")}
-          </Button>
-        </div>
-      ) : null}
+          {dismissed > 0 ? (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-ink-3 text-small leading-relaxed">
+                {t.plural("fleet.dismissed", dismissed)}
+              </p>
+              <Button
+                icon={Undo2}
+                onClick={restore}
+                size="sm"
+                variant="discreet"
+              >
+                {t("fleet.restore")}
+              </Button>
+            </div>
+          ) : null}
 
-      {unreachable > 0 ? (
-        <p className="text-[12px] text-ink-3 leading-relaxed">
-          {t.plural("fleet.noAddress", unreachable)}
-        </p>
+          {unreachable > 0 ? (
+            <p className="text-ink-3 text-small leading-relaxed">
+              {t.plural("fleet.noAddress", unreachable)}
+            </p>
+          ) : null}
+        </Section>
       ) : null}
-    </section>
+    </>
   );
 }

@@ -68,7 +68,7 @@ export function ProjectPortWeb({
           />
         </>
       ) : (
-        <span className="text-[12px] text-ink-3">
+        <span className="text-ink-3 text-small">
           {t("projectAdd.ports.local")}
         </span>
       )}

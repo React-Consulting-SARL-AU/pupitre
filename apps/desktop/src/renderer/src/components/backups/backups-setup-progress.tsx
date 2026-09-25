@@ -42,12 +42,12 @@ export function BackupsSetupProgress({
           <>
             <span
               aria-hidden="true"
-              className={`flex size-6 shrink-0 items-center justify-center rounded-full border font-data text-[11px] tabular-nums transition-soft ${mark}`}
+              className={`flex size-6 shrink-0 items-center justify-center rounded-full border font-data text-caption tabular-nums transition-soft ${mark}`}
             >
               {done ? <Check size={12} strokeWidth={2} /> : index + 1}
             </span>
             <span
-              className={`text-[13px] transition-soft ${now ? "font-medium text-ink" : "text-ink-3"}`}
+              className={`text-control transition-soft ${now ? "font-medium text-ink" : "text-ink-3"}`}
             >
               {label}
             </span>

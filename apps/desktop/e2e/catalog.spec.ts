@@ -159,7 +159,7 @@ test.describe("catalogue", () => {
     await page.getByRole("button", { name: "Réglages" }).click();
     await page.getByRole("tab", { name: "Serveurs" }).click();
     await page.getByRole("button", { name: "Installer Pupitre" }).click();
-    await expect(page.getByText("Prête à être installée")).toBeVisible();
+    await expect(page.getByText("Prêt à être installé")).toBeVisible();
     await page.getByRole("button", { name: INSTALL }).first().click();
     await expect(page.getByText("Agent en place")).toBeVisible();
     await page.getByRole("button", { name: "Choisir les services" }).click();
@@ -285,7 +285,7 @@ test.describe("catalogue sur une machine arm64", () => {
     await page.getByRole("button", { name: "Réglages" }).click();
     await page.getByRole("tab", { name: "Serveurs" }).click();
     await page.getByRole("button", { name: "Installer Pupitre" }).click();
-    await expect(page.getByText("Prête à être installée")).toBeVisible();
+    await expect(page.getByText("Prêt à être installé")).toBeVisible();
     await page.getByRole("button", { name: INSTALL }).first().click();
     await expect(page.getByText("Agent en place")).toBeVisible();
     await page.getByRole("button", { name: "Choisir les services" }).click();
@@ -361,7 +361,9 @@ test.describe("le catalogue sur un serveur déjà installé", () => {
       await expect(
         page.locator('[data-module="runtime.node"]')
       ).toHaveAttribute("data-selected", "true");
-      await expect(page.getByText("3 services choisis")).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Continuer avec 3 services" })
+      ).toBeVisible();
     });
 
     await test.step("la recherche est là aussi", async () => {
