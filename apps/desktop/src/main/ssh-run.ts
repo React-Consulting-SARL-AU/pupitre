@@ -5,15 +5,6 @@ import {
 } from "node:child_process";
 import { trace } from "./trace";
 
-/**
- * One `ssh`, run to its end: what it printed, how it ended.
- *
- * Every short `ssh` of the app — a knock, a key put on the machine, the probe,
- * the agent's binary pushed — goes through here. What it prints is held to its
- * last stretch: a machine that answers with a flood never fills the main
- * process, and the lines that say how it ended are the last ones anyway.
- */
-
 export type ShellSpawn = (
   command: string,
   args: string[],
@@ -28,16 +19,16 @@ export type SshRun =
   | { status: "failed"; message: string };
 
 export interface SshRunOptions {
-  /** Written to the standard input, then closed: a script, a secret line, a binary. */
   stdin?: string | Buffer;
   env?: NodeJS.ProcessEnv;
   spawn?: ShellSpawn;
   timeoutMs: number;
-  /** What the trace calls this run; it never writes the input. */
+  /** The trace names the run by this and never records the input. */
   scope: string;
   limit?: number;
 }
 
+/** A flood never fills the main process, and the lines that say how ssh ended come last anyway. */
 function tail(held: string, chunk: string, limit: number): string {
   const joined = held + chunk;
 

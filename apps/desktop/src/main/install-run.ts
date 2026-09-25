@@ -20,21 +20,6 @@ import type { ManagedValues } from "./tunnel-run";
 
 export type { InstallUpdate } from "@shared/install";
 
-/**
- * One installation, from the binary to the report.
- *
- * The order is the whole of it: probe the machine, put `pupitred` on it if it
- * has none or has fallen behind — then drop the channels, since the session
- * answering us still runs the binary the rename replaced, and bring the
- * machine's configuration to the shape the new one reads — hand that agent the
- * enrolment token the platform just granted, ask it which modules it stands
- * behind, read the secrets from the vault, then speak `install` once. The
- * secrets are written by the channel on the line that follows the request —
- * they never enter `params`, never cross the bridge — and the vault is emptied
- * once the agent has accepted the install: a refusal has consumed nothing, and
- * the next Apply carries them again.
- */
-
 export interface InstallDeps {
   client: Pick<AgentClient, "request" | "close">;
   probe: (serverId: string) => Promise<AgentResponse<ProbeResult>>;
@@ -42,65 +27,34 @@ export interface InstallDeps {
     serverId: string,
     arch: string
   ) => Promise<AgentResponse<AgentDelivery>>;
-  /**
-   * The module names this server's agent stands behind.
-   *
-   * Asked after the binary is in place, never before: a bare machine has no
-   * catalogue to answer with, and refusing the install for that would refuse it
-   * on exactly the machines this whole path exists for.
-   */
+  /** Asked only once the binary is in place: a bare machine has no catalogue to answer with. */
   declared: (serverId: string) => Promise<AgentResponse<readonly string[]>>;
-  /** Reads the vault, and leaves it as it is. */
   secrets: (serverId: string) => InstallSecrets;
-  /** Empties the vault, once the agent holds what was in it. */
   forgetSecrets: (serverId: string) => void;
-  /**
-   * The enrolment the platform granted for that server, taken once.
-   *
-   * Keyed by the id the platform gave, not the app's own: the token belongs to
-   * the seat that was just bought, and it is burnt by the first exchange.
-   */
+  /** Keyed by the platform's server id: the token belongs to the seat just bought and burns on first use. */
   enrollment: (platformServerId: string) => EnrollmentGrant | null;
-  /**
-   * The values a module declares `managed`: they come from the platform, never
-   * from the form, and the app only carries them.
-   */
   managed: (
     serverId: string,
     modules: readonly string[]
   ) => Promise<AgentResponse<ManagedValues>>;
-  /** The identity the agent already answers with, when it has one. */
   identity?: (serverId: string) => string | null;
-  /** This computer's device public key, laid as a signer once enrolled; null without an account. */
   deviceKey?: () => string | null;
 }
 
 export interface CheckDeps extends Pick<InstallDeps, "client" | "declared"> {
-  /**
-   * The managed values the keychain holds, without a secret and without a
-   * tunnel: a form is weighed with what the install will add to it, or every
-   * field the app fills reads as missing.
-   */
+  /** Without the managed values, every field the app fills itself would read as missing. */
   weighed: (
     serverId: string,
     modules: readonly string[]
   ) => Promise<ModuleConfig>;
 }
 
-/** What the agent needs to buy its server token, and nothing else. */
 export interface EnrollmentGrant {
   token: string;
   platformUrl: string;
 }
 
-/**
- * The enrolment token, handed to the agent on the line that follows the request.
- *
- * It is a secret like an install password: `params` names the platform and says
- * a secret line follows, and the token itself travels on that line — never in
- * an argument of a command line, where `ps` would show it to anyone with an
- * account on the machine.
- */
+/** The token rides the secret line, never an argument where `ps` would show it to other accounts. */
 export function sendEnrolment(
   serverId: string,
   granted: EnrollmentGrant,
@@ -114,17 +68,7 @@ export function sendEnrolment(
   );
 }
 
-/**
- * How a cut enrolment is picked back up: the same token is sent again on a
- * fresh channel, a few times, a short wait apart.
- *
- * A dropped channel is the one failure worth retrying here — the token was not
- * refused, the line was, and most cuts fall before the exchange, where the
- * token is still unspent and the retry trades it cleanly. A cut that fell after
- * the exchange leaves a token already spent: the retry is refused as used, and
- * the machine — enrolled all the same — is mended by a fresh add, which asks the
- * platform for a new token of its own.
- */
+/** Only a dropped channel is retried: most cuts fall before the exchange, while the token is still unspent. */
 export interface EnrolRetry {
   attempts: number;
   delayMs: number;
@@ -139,14 +83,6 @@ const ENROL_RETRY: EnrolRetry = {
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
 };
 
-/**
- * The seat this machine was granted, handed to the agent that will hold it.
- *
- * A channel that drops no longer strands the seat: the enrolment is sent again
- * on a fresh channel, so a blip on the line is retried rather than abandoned.
- * Only a drop is retried; a refused token is reported as it comes. Nothing
- * granted, nothing to enrol: a development build has no seat to claim.
- */
 export async function enrolAgent(
   serverId: string,
   enrollment: EnrollmentSummary | null | undefined,
@@ -215,10 +151,7 @@ async function exchangeToken(
   ) {
     await retry.sleep(retry.delayMs);
 
-    // A cut that fell after the exchange leaves the machine enrolled with no
-    // answer to show for it. The probe opens a channel whose hello now names
-    // the server — `ping` answers in every state an agent can be in — so a
-    // retry that would replay a spent token becomes the success it was.
+    // A cut after the exchange left the machine enrolled: a fresh hello names it, so no spent token is replayed.
     const probed = await deps.client.request(serverId, "ping", {});
 
     if (probed.ok && deps.identity?.(serverId)) {
@@ -231,11 +164,6 @@ async function exchangeToken(
   return answer;
 }
 
-/**
- * A server keeps the agent it has, unless it has none or the probe says it has
- * fallen behind: pushing eighteen megabytes onto a machine that already runs
- * the right binary buys nothing.
- */
 function needsAgent(probe: ProbeResult): boolean {
   return probe.agent_version === null || probe.verdict.up_to_date === false;
 }
@@ -250,20 +178,11 @@ function only(config: ModuleConfig, modules: readonly string[]): ModuleConfig {
   return kept;
 }
 
-/**
- * `defer` is left out when it names nobody.
- *
- * An agent older than the field refuses a request that carries it — its
- * parameters are a closed shape, and rightly so. Sending nothing when there is
- * nothing to say keeps every ordinary install working against the agent already
- * on the machine; asking to defer against such an agent still gets refused, and
- * that refusal is the truth.
- */
+/** An agent older than `defer` refuses any request carrying it: its parameters are a closed shape. */
 function deferring(defer: readonly string[]): { defer?: string[] } {
   return defer.length > 0 ? { defer: [...defer] } : {};
 }
 
-/** What the platform provided wins: the form never had these keys to fill in. */
 function merged<T extends ModuleConfig | InstallSecrets>(
   asked: T,
   given: T
@@ -294,22 +213,12 @@ function secretsOf(
   return kept;
 }
 
-/**
- * The agent validates the whole configuration before its first step, and
- * writes its report only then: a step seen, on the channel or replayed from the
- * report, says the request was taken — secrets included — even when the answer
- * that followed was a cut or a timeout.
- */
+/** The agent validates everything before its first step, so a step seen means the secrets were taken. */
 function isStep(update: InstallUpdate): boolean {
   return update.kind === "event" && update.event.event === "step";
 }
 
-/**
- * The binary the app just pushed is not the one the open sessions run: they
- * hold the file the rename replaced. A machine that already ran the agent has a
- * configuration to bring to the new binary's shape before anything else is
- * asked of it; a bare one has nothing to migrate yet.
- */
+/** Open sessions still run the binary the rename replaced, so they are closed before migrating. */
 async function reopened(
   serverId: string,
   probe: ProbeResult,
@@ -332,7 +241,6 @@ export async function runInstall(
   config: ModuleConfig,
   update: (change: InstallUpdate) => void,
   deps: InstallDeps,
-  /** Modules to put on the machine without configuring: their questions wait. */
   defer: readonly string[] = []
 ): Promise<AgentResponse<InstallResult>> {
   if (modules.length === 0) {
@@ -352,6 +260,7 @@ export async function runInstall(
 
   if (needsAgent(probe.result)) {
     const arch = probe.result.arch;
+
     update({ arch, kind: "sending" });
 
     const delivery = await deps.deliver(serverId, arch);
@@ -398,8 +307,7 @@ export async function runInstall(
     };
   }
 
-  // A module nobody is configuring wants nothing filled in for it, an account
-  // token least of all: the whole point is that it goes on without one.
+  // A deferred module gets no managed values, an account token least of all: it goes on without one.
   const asked = modules.filter((id) => !defer.includes(id));
   const managed = await deps.managed(serverId, asked);
 
@@ -444,15 +352,7 @@ export async function runInstall(
   return answer;
 }
 
-/**
- * The same request, weighed rather than run.
- *
- * Nothing leaves and nothing is created: no binary, no enrolment, no tunnel,
- * and above all no secret — a screen that opened an account's tunnel to weigh a
- * form would bill the reader for looking at it. What comes back is what the
- * machine alone knows, and an agent too old to answer refuses, which the screen
- * reads as nothing to add.
- */
+/** Creates nothing, no tunnel above all: weighing a form must not bill the reader for looking at it. */
 export async function runCheck(
   serverId: string,
   modules: readonly string[],
@@ -499,12 +399,7 @@ export async function runCheck(
     : answer;
 }
 
-/**
- * The agent weighs a connection with the secret it already holds, while the
- * install will bring the one this computer keeps — proven when it was kept.
- * Its verdict on a new key with the old secret would block the very Apply that
- * replaces that secret.
- */
+/** The agent tests with the secret it holds; its verdict would block the Apply that replaces that secret. */
 function judgedWithAnOldSecret(
   problem: InstallCheckResult["problems"][number],
   managed: ModuleConfig

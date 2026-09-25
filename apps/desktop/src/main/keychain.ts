@@ -12,14 +12,7 @@ type Storage = Pick<
   | "isEncryptionAvailable"
 >;
 
-/**
- * The one door to the system keychain, for the platform's token and the
- * connections' alike.
- *
- * macOS and Windows always have a keychain when encryption answers. Linux
- * answers too without GNOME Keyring or KWallet, over `basic_text`; that counts
- * as no keychain, and a secret then lives until the app quits.
- */
+/** Linux encrypts without a keyring over `basic_text`: that counts as none, and secrets last until quit. */
 export function keychainSealer(
   storage: Storage,
   platform: NodeJS.Platform

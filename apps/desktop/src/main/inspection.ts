@@ -2,21 +2,16 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ProbeResult } from "@pupitre/shared/agent-protocol/install";
 import type { AgentResponse } from "@shared/agent";
-import { app, ipcMain } from "electron";
+import { app } from "electron";
 import { agentClient } from "./agent";
+import { handle } from "./ipc";
+import { isString, shape } from "./ipc-guard";
 import { runShellProbe } from "./probe-shell";
 import { refusalOf } from "./refusal";
 import { byId, paths } from "./servers";
 import { sshArgs } from "./ssh-config";
 
-/**
- * The inspection, whichever machine answers.
- *
- * A server that already runs the agent answers the protocol's `probe`; a bare
- * one runs the same script the agent carries, sent on standard input. The two
- * produce the same report, so the screen above never has to know which of them
- * spoke.
- */
+// A server with the agent answers `probe`; a bare one runs the same script over SSH: both give the same report.
 
 const PROBE_SCRIPT = "probe.sh";
 
@@ -49,7 +44,7 @@ export async function inspect(
 }
 
 export function registerInspection(): void {
-  ipcMain.handle("inspection:probe", (_event, serverId: unknown) =>
+  handle("inspection:probe", shape(isString), (_event, serverId) =>
     inspect(serverId)
   );
 }

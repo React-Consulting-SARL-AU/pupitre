@@ -19,14 +19,6 @@ import {
 } from "../projects-run";
 import { type FakeAgent, fakeAgent } from "./fixtures/fake-agent";
 
-/**
- * The chain of a first project, replayed against the fake agent.
- *
- * Three transcripts because there are three channels: the reads travel on the
- * control one, the long commands on the work one, the followed journal on the
- * follow one. The order the app speaks in is what these files pin down.
- */
-
 const SERVER = "srv-1";
 
 const VITE: ProjectAddParams = {
@@ -69,7 +61,6 @@ const SHOP: ProjectAddParams = {
   repo: "https://github.com/ada/shop.git",
 };
 
-/** One process of a fresh project, on one port, the way the form declares most of them. */
 function single(name: string, port: number): ProjectAddParams {
   return {
     boot: false,
@@ -176,6 +167,7 @@ describe("un projet à plusieurs ports", () => {
     );
 
     await listProjects(SERVER, calls);
+
     const added = await addProject(SERVER, SHOP, calls);
 
     expect(added.ok).toBe(true);
@@ -366,12 +358,6 @@ describe("ce que le renderer nomme", () => {
     expect(agent?.started()).toBe(0);
   });
 
-  /**
-   * The sidebar and the project screen read `snapshot`, never `project.list`:
-   * a project the app opens on after a launch has been named by the agent all
-   * the same, and removing it must not send the reader to reload a list no
-   * screen there reloads.
-   */
   it("tient pour déclaré un projet qu'un snapshot a nommé", () => {
     expect(declaresProject(SERVER, "react-box")).toBe(false);
 
@@ -416,11 +402,6 @@ describe("ce que le renderer nomme", () => {
     expect(declaresProject(SERVER, "ghost")).toBe(false);
   });
 
-  /**
-   * The folder an editor opens is a path the renderer carries: it opens only
-   * when the agent named it — a project's folder, or one under the root the
-   * file browser walks — and never one that climbs out of them.
-   */
   it("n'ouvre dans un éditeur qu'un dossier que l'agent a nommé", () => {
     noteProjects(SERVER, "snapshot", {
       ok: true,

@@ -6,15 +6,6 @@ import { type ReenrollDeps, runReenroll } from "../reenroll-run";
 import { usageError } from "../usage-guard";
 import { type FakeAgent, fakeAgent } from "./fixtures/fake-agent";
 
-/**
- * Repairing a restricted server from the app.
- *
- * A revoked token leaves a machine that reads and refuses to act. The repair is
- * the seventh command restricted mode admits: a fresh enrolment token, asked of
- * the platform and handed to the agent on the secret line. Nothing running on
- * the server is touched — the exchange repairs a right, it restarts nothing.
- */
-
 const SERVER = "staging";
 
 const PLATFORM = "https://app.pupitre.test/api/v1";
@@ -75,11 +66,7 @@ function agent(
   });
 }
 
-/**
- * The token is taken once and burnt, exactly as `takeEnrollmentToken` does: a
- * second reader gets nothing, so a replay cannot resend an exchange the
- * platform has already closed.
- */
+/** Burnt on first take, like `takeEnrollmentToken`: a replay cannot resend an exchange already closed. */
 function vault(): { grant: ReenrollDeps["grant"]; taken: string[] } {
   const taken: string[] = [];
 
@@ -170,12 +157,7 @@ describe("un serveur restreint au jeton révoqué", () => {
     client.closeAll();
   });
 
-  /**
-   * The promise: nothing that runs stops. The repair sends no install and asks
-   * for no restart — one `snapshot` to read the machine, one `enroll` to repair
-   * the right, on the privileged session since it rewrites where the server
-   * reports.
-   */
+  // `enroll` rides the privileged session since it rewrites where the server reports.
   it("ne demande au serveur que de quoi lire la machine et refaire l'échange", async () => {
     const client = agent(RESTRICTED);
 
@@ -235,14 +217,11 @@ describe("le jeton d'enrôlement", () => {
     const requests = written.filter((line) => line.includes('"cmd"'));
     const enrol = requests.find((line) => line.includes('"enroll"')) ?? "";
 
-    // The bytes themselves, before any verdict on the exchange: a request
-    // carrying the token would already be written by the time the transcript refuses it.
+    // A request carrying the token would already be written by the time the transcript refuses it.
     for (const line of requests) {
       expect(line).not.toContain(TOKEN);
     }
 
-    // The token crossed the channel only once, on the line following the
-    // request, and in that form alone.
     expect(written.filter((line) => line.includes(TOKEN))).toEqual([
       JSON.stringify({ enrollment_token: TOKEN }),
     ]);
@@ -250,7 +229,6 @@ describe("le jeton d'enrôlement", () => {
     expect(fake?.trace().join("\n")).not.toContain(TOKEN);
     expect(JSON.stringify(repaired)).not.toContain(TOKEN);
 
-    // The request names the platform and announces the secret line, nothing more.
     expect(enrol).toContain(PLATFORM);
     expect(enrol).toContain('"secrets_stdin":true');
     expect(repaired.ok).toBe(true);
@@ -307,11 +285,6 @@ describe("un compte sans droit d'usage", () => {
     expect(fake?.written()).toEqual([]);
   });
 
-  /**
-   * The action and the guard say the same thing rather than contradicting each
-   * other: `enroll` acts, so the usage guard holds it too, and the app never
-   * offers a gesture the platform would refuse.
-   */
   it("s'accorde avec le garde des canaux, qui tient enroll comme toute commande mutante", async () => {
     const client = agent(RESTRICTED, ABSENT);
 

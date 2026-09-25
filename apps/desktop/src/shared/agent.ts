@@ -3,17 +3,7 @@ import type {
   Remedy,
 } from "@pupitre/shared/agent-protocol/errors";
 
-/**
- * What crosses IPC, on both sides of the bridge.
- *
- * The commands, their parameters and their results come from
- * `@pupitre/shared/agent-protocol` and are never redeclared here. What lives
- * here is the envelope itself, plus the failures that belong to the channel
- * rather than to the agent: a command that never answered, a link that dropped,
- * one the caller gave up on, and the subscription this app refuses to act
- * without — the agent has `entitlement_required` for its own side of that
- * rule, never this one.
- */
+/** Failures of the channel rather than of the agent, which has its own `entitlement_required`. */
 export type AgentErrorCode =
   | ProtocolErrorCode
   | "timeout"
@@ -21,13 +11,7 @@ export type AgentErrorCode =
   | "cancelled"
   | "server_suspended";
 
-/**
- * What the app has to render itself, rather than show as is.
- *
- * A refusal from the main process names an entry of the renderer's dictionary
- * and the values to put in it; what comes from the agent carries none, and is
- * shown word for word, in the language the server answered in.
- */
+/** Only the main process's refusals carry one; the agent's are shown word for word, in its language. */
 export interface ErrorPhrase {
   id: string;
   values?: Record<string, string | number>;

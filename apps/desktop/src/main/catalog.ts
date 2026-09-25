@@ -1,7 +1,6 @@
 import type { CatalogResult } from "@pupitre/shared/agent-protocol/install";
 import type { AgentResponse } from "@shared/agent";
 import type { SecretMarks } from "@shared/secrets";
-import { ipcMain } from "electron";
 import { account } from "./account";
 import { agentClient } from "./agent";
 import { catalogCache } from "./catalog-cache";
@@ -12,21 +11,11 @@ import {
   revealSecret,
   setSecret,
 } from "./install-secrets";
+import { handle } from "./ipc";
+import { anything, isString, shape } from "./ipc-guard";
 import { refusalOf } from "./refusal";
 import { byId } from "./servers";
 import { usageRefusal } from "./usage-guard";
-
-/**
- * The catalogue screens, seen from the main process.
- *
- * Two things cross: the catalogue the agent declares, untouched, and the marks
- * of the secrets it will need. A secret value only ever travels one way — in —
- * except for the single reveal the screen is allowed to ask for.
- *
- * Filing a secret prepares an installation, so it goes through the usage
- * guard. Revealing one and forgetting them do not: they read and clear this
- * process's own memory, and forgetting has to work whatever the account says.
- */
 
 function unknownServer(): AgentResponse<never> {
   return {
@@ -51,37 +40,17 @@ export function catalogOf(
   return server ? declared.catalogOf(server) : Promise.resolve(unknownServer());
 }
 
-/**
- * The manifests this server's agent stands behind, as it last declared them.
- *
- * Whoever needs to know what a module asks for reads it here rather than
- * holding a list of its own: the catalogue belongs to the agent, and an app
- * that kept a second copy would refuse what a newer agent accepts.
- */
+// Read from the agent rather than a list of the app's own, which would refuse what a newer agent accepts.
 export const declaredManifests = declared.declaredManifests;
 
-/**
- * The module names this server's agent stands behind, for whoever has to check
- * that what the interface asked for exists.
- */
 export const declaredModules = declared.declaredModules;
 
-/**
- * A field the manifest declared as a secret, and nothing else.
- *
- * The renderer names a module and a key; both are checked against the catalogue
- * the agent has just given, so a name invented in the interface never becomes a
- * slot in the vault.
- */
+// Checked against the agent's catalogue so that a name invented in the interface never becomes a vault slot.
 async function secretField(
   serverId: string,
-  moduleId: unknown,
-  key: unknown
+  moduleId: string,
+  key: string
 ): Promise<{ moduleId: string; key: string } | null> {
-  if (typeof moduleId !== "string" || typeof key !== "string") {
-    return null;
-  }
-
   const manifests = await declared.declaredManifests(serverId);
 
   if (!manifests.ok) {
@@ -104,18 +73,19 @@ async function secretField(
 }
 
 export function registerCatalog(): void {
-  ipcMain.handle("catalog:list", (_event, serverId: unknown) =>
+  handle("catalog:list", shape(anything), (_event, serverId) =>
     catalogOf(serverId)
   );
 
-  ipcMain.handle(
+  handle(
     "catalog:secret-set",
+    shape(anything, isString, isString, isString),
     async (
       _event,
-      serverId: unknown,
-      moduleId: unknown,
-      key: unknown,
-      value: unknown
+      serverId,
+      moduleId,
+      key,
+      value
     ): Promise<AgentResponse<SecretMarks>> => {
       const server = known(serverId);
 
@@ -129,10 +99,6 @@ export function registerCatalog(): void {
         return refused;
       }
 
-      if (typeof value !== "string") {
-        return { ok: true, result: marks(server) };
-      }
-
       const field = await secretField(server, moduleId, key);
 
       return {
@@ -144,13 +110,14 @@ export function registerCatalog(): void {
     }
   );
 
-  ipcMain.handle(
+  handle(
     "catalog:secret-generate",
+    shape(anything, isString, isString),
     async (
       _event,
-      serverId: unknown,
-      moduleId: unknown,
-      key: unknown
+      serverId,
+      moduleId,
+      key
     ): Promise<AgentResponse<SecretMarks>> => {
       const server = known(serverId);
 
@@ -175,19 +142,19 @@ export function registerCatalog(): void {
     }
   );
 
-  ipcMain.handle(
+  // Revealing and forgetting only touch this process's memory: no usage guard, forgetting must always work.
+  handle(
     "catalog:secret-reveal",
+    shape(isString, isString, isString),
     (
       _event,
-      serverId: unknown,
-      moduleId: unknown,
-      key: unknown
+      serverId,
+      moduleId,
+      key
     ): { value: string | null; marks: SecretMarks } => {
       const server = known(serverId);
 
-      if (
-        !(server && typeof moduleId === "string" && typeof key === "string")
-      ) {
+      if (!server) {
         return { value: null, marks: {} };
       }
 
@@ -198,7 +165,7 @@ export function registerCatalog(): void {
     }
   );
 
-  ipcMain.handle("catalog:secret-forget", (_event, serverId: unknown) => {
+  handle("catalog:secret-forget", shape(isString), (_event, serverId) => {
     const server = known(serverId);
 
     if (server) {

@@ -1,10 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { designatedKeyFile, designateKeyFile } from "../key-files";
 
-/**
- * What this file proves: a key path reaches `ssh -i` only when the file picker
- * handed it out. The renderer names nothing of its own.
- */
 describe("les fichiers de clé désignés", () => {
   it("ne tient pour désigné que ce que le sélecteur a rendu", () => {
     expect(designatedKeyFile("/home/j/.ssh/vps")).toBe(false);

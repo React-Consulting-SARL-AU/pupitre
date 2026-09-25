@@ -1,6 +1,6 @@
 import type { CommandName } from "@pupitre/shared/agent-protocol";
 import type { Event } from "@pupitre/shared/agent-protocol/envelope";
-import { app, ipcMain } from "electron";
+import { app } from "electron";
 import { account } from "./account";
 import { checkedCall, isRefusal } from "./agent-bridge";
 import {
@@ -13,8 +13,9 @@ import {
 } from "./agent-client";
 import { appVersion } from "./app-version";
 import { broadcast } from "./broadcast";
+import { handle, listen } from "./ipc";
+import { anything, isBoolean, isString, optional, shape } from "./ipc-guard";
 import { noteProjects } from "./projects-run";
-import { refuseWith } from "./refusal";
 import { relayTo } from "./relay";
 import { paths, read } from "./servers";
 import { declaresService, noteServices } from "./services-run";
@@ -22,13 +23,9 @@ import { sshArgs } from "./ssh-config";
 import { sudoPasswordFor } from "./sudo-held";
 import { usageError } from "./usage-guard";
 
-/**
- * The client bound to this machine's servers.
- *
- * `agent-client.ts` knows nothing of Electron so it can be replayed against the
- * fake agent; the SSH target it needs is resolved here, where the configuration
- * lives, and so is the account whose usage right stands in front of it.
- */
+type Language = "fr" | "en";
+
+/** Resolved here rather than in `agent-client.ts`, which knows nothing of Electron so it replays against the fake agent. */
 function target(serverId: string, purpose: ChannelPurpose): SshTarget | null {
   const server = read().servers.find((s) => s.id === serverId);
 
@@ -49,22 +46,19 @@ function target(serverId: string, purpose: ChannelPurpose): SshTarget | null {
     : { args, preamble: sudoPasswordFor(serverId) ?? "", serveCommand };
 }
 
-/**
- * Every channel of the app goes through this client, so the usage right is
- * asked once, here, rather than on each of them.
- *
- * It is not the right the agent answers with: the account may be valid and the
- * server suspended, or the other way round, and each refuses in its own words.
- */
 let language = "en";
 
-/** What the renderer chose: the agent gets it on the next `hello`. */
+/** The agent gets it on the next `hello`. */
 export function rememberLanguage(locale: string): void {
   language = locale;
 }
 
 export function currentLanguage(): string {
   return language;
+}
+
+function isLanguage(value: unknown): value is Language {
+  return value === "fr" || value === "en";
 }
 
 /** Results that end up in a pty's command line or a local path: weighed in every build. */
@@ -82,6 +76,7 @@ export const agentClient = createAgentClient({
   appVersion: appVersion(),
   enforcedResults: ARGV_RESULTS,
   locale: () => language,
+  // The account's usage right, asked once for every channel; the server's own right is the agent's to refuse.
   gate: () => usageError(() => account.guard()),
   spawn: sshSpawn(target),
   sudoHeld: (serverId) => sudoPasswordFor(serverId) !== null,
@@ -94,12 +89,11 @@ const bridge = {
     read().servers.some((server) => server.id === serverId),
 };
 
-/** `changed` hears the language the renderer settles on, once per change. */
 export function registerLanguage(changed: (locale: string) => void): void {
   let said: string | null = null;
 
-  ipcMain.on("locale:set", (_event, locale: unknown) => {
-    if ((locale === "fr" || locale === "en") && locale !== said) {
+  listen("locale:set", shape(isLanguage), (_event, locale) => {
+    if (locale !== said) {
       said = locale;
       rememberLanguage(locale);
       changed(locale);
@@ -107,33 +101,18 @@ export function registerLanguage(changed: (locale: string) => void): void {
   });
 }
 
-/**
- * The platform, told now rather than at the daemon's next turn.
- *
- * It reads and reports; it changes nothing on the machine, which is why it
- * passes the usage guard even on a server whose right the platform stopped
- * confirming — asking again is exactly what such a server has to do.
- */
+/** Read-only, so it passes the usage guard: asking again is exactly what a server the platform stopped confirming must do. */
 export function registerPlatformSync(): void {
-  ipcMain.handle("platform:sync", (_event, serverId: unknown) => {
-    if (typeof serverId !== "string") {
-      return refuseWith("bad_request", "refusal.server.unknown");
-    }
-
-    return agentClient.request(serverId, "platform.sync");
-  });
+  handle("platform:sync", shape(isString), (_event, serverId) =>
+    agentClient.request(serverId, "platform.sync")
+  );
 }
 
 export function registerAgentChannels(): void {
-  ipcMain.handle(
+  handle(
     "agent:call",
-    (
-      _event,
-      serverId: unknown,
-      cmd: unknown,
-      params: unknown,
-      polled: unknown
-    ) => {
+    shape(isString, isString, anything, optional(isBoolean)),
+    (_event, serverId, cmd, params, polled) => {
       const call = checkedCall(serverId, cmd, params, bridge);
 
       if (isRefusal(call)) {
@@ -153,20 +132,11 @@ export function registerAgentChannels(): void {
     }
   );
 
-  /**
-   * The answer of an invoke can overtake the events sent just before it — they
-   * travel on another pipe — so the last thing on the event channel says the
-   * stream is over, and the renderer waits for it before trusting the answer.
-   */
-  ipcMain.handle(
+  // An invoke's answer can overtake the events sent just before it, so `end` on the event channel closes the stream.
+  handle(
     "agent:stream",
-    async (
-      event,
-      token: unknown,
-      serverId: unknown,
-      cmd: unknown,
-      params: unknown
-    ) => {
+    shape(isString, isString, isString, anything),
+    async (event, token, serverId, cmd, params) => {
       const call = checkedCall(serverId, cmd, params, bridge);
 
       if (isRefusal(call)) {
@@ -193,13 +163,11 @@ export function registerAgentChannels(): void {
     }
   );
 
-  ipcMain.handle("agent:session", (_event, serverId: unknown) =>
-    typeof serverId === "string" ? agentClient.session(serverId) : null
+  handle("agent:session", shape(isString), (_event, serverId) =>
+    agentClient.session(serverId)
   );
 
-  ipcMain.handle("agent:close", (_event, serverId: unknown) => {
-    if (typeof serverId === "string") {
-      agentClient.close(serverId);
-    }
+  handle("agent:close", shape(isString), (_event, serverId) => {
+    agentClient.close(serverId);
   });
 }

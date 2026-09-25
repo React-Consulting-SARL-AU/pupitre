@@ -12,36 +12,15 @@ import {
 import type { AgentClient } from "./agent-client";
 import { refusalOf, refuseWith } from "./refusal";
 
-/**
- * A service as the screen reads it, and its credentials as nobody reads them.
- *
- * `service.status` names the credentials of a module: a label, and the key of
- * `/etc/pupitre/env` that holds it. The value is asked for one at a time, on
- * `service.secret`, at the moment the reader clicks — it arrives on its own
- * event, is handed to the caller, and is kept nowhere. `db.url` is the one that
- * answers with a value rather than a key, and that value stops here too.
- */
-
 export interface ServicesDeps {
   client: Pick<AgentClient, "request">;
-  /** Whether this identifier still names a server of the app's configuration. */
   knows: (serverId: string) => boolean;
-  /** Whether the agent of that server has listed this service, as it last answered. */
   declares: (serverId: string, moduleId: string) => boolean;
 }
 
-/**
- * The services each agent named, as it last listed them, with the folder each
- * laid when it named one.
- *
- * The renderer never gets to invent a service: what it can drive, read the
- * journal of or ask a credential of is what a `snapshot` or a `status` came
- * back with — the same rule the projects follow. Nor a folder: the one an
- * editor is pointed at is the one the agent said.
- */
+/** The renderer never invents a service or a folder: only what the last `snapshot`/`status` listed. */
 const listed = new Map<string, Map<string, string | null>>();
 
-/** The commands whose answer lists every service of the machine, as the agent names them. */
 const LISTINGS: ReadonlySet<string> = new Set(["snapshot", "status"]);
 
 export function noteServices(
@@ -82,7 +61,6 @@ export function declaresService(serverId: string, moduleId: string): boolean {
   return listed.get(serverId)?.has(moduleId) ?? false;
 }
 
-/** The folder the agent said a module laid, or nothing when it named none. */
 export function servicePath(serverId: string, moduleId: string): string | null {
   return listed.get(serverId)?.get(moduleId) ?? null;
 }
@@ -95,21 +73,22 @@ export function forgetServices(serverId?: string): void {
   }
 }
 
-/** The same quarter of an hour a followed project journal is allowed. */
+/** Matches the timeout a followed project journal is allowed. */
 const FOLLOW_MS = 1_800_000;
 
 const DEFAULT_LINES = 120;
 
-/** What the app holds for a credential: the key that names it, or the value. */
 type Held = { key: string } | { value: string };
 
 const vaults = new Map<string, Map<string, Map<string, Held>>>();
 
 function held(serverId: string, moduleId: string): Map<string, Held> {
   const server = vaults.get(serverId) ?? new Map<string, Map<string, Held>>();
+
   vaults.set(serverId, server);
 
   const module = server.get(moduleId) ?? new Map<string, Held>();
+
   server.set(moduleId, module);
 
   return module;
@@ -164,8 +143,7 @@ function detailOf(
   vault: Map<string, Held>
 ): ServiceDetail {
   return {
-    // An agent older than the field says nothing of it, and a module it never
-    // put off is a module it configured.
+    // An agent older than the field omits it, and a module it never deferred is configured.
     configured: status.configured !== false,
     credentials: [...vault.keys()],
     id: status.id,
@@ -178,12 +156,6 @@ function detailOf(
   };
 }
 
-/**
- * The state of one module, asked of the agent that installed it.
- *
- * The credentials it answers with name keys of the server's environment; what
- * comes back from here carries their labels alone.
- */
 export async function readService(
   serverId: unknown,
   moduleId: unknown,
@@ -205,8 +177,7 @@ export async function readService(
 
   const vault = held(call.serverId, call.moduleId);
 
-  // Labels are the agent's, in the session's language: keeping the ones it no
-  // longer names would list the same credential twice after a language change.
+  // Labels are localized by the agent: stale ones would list a credential twice after a language change.
   for (const [label, entry] of vault) {
     if ("key" in entry) {
       vault.delete(label);
@@ -220,13 +191,7 @@ export async function readService(
   return { ok: true, result: detailOf(answer.result, vault) };
 }
 
-/**
- * The connection string of a database, filed with its other credentials.
- *
- * The engine is read from the module's own identifier rather than taken from
- * the interface: the renderer names a service, and what that service is stays
- * the catalogue's business.
- */
+/** The engine comes from the module identifier, never from the renderer. */
 export async function readDatabaseUrl(
   serverId: unknown,
   moduleId: unknown,
@@ -261,13 +226,7 @@ export async function readDatabaseUrl(
   return { ok: true, result: { label: CONNECTION_LABEL } };
 }
 
-/**
- * The value of one key, asked of the agent that holds it.
- *
- * It comes back on the protocol's `secret` event rather than in the result, so
- * nothing that a request-and-answer recorder captures ever carries it. It is
- * handed to the caller and to nobody else: a second reveal asks again.
- */
+/** The value rides the `secret` event, not the result, so no request/answer recorder ever captures it. */
 async function revealed(
   serverId: string,
   moduleId: string,
@@ -292,7 +251,6 @@ async function revealed(
   return answer.ok ? seen.value : null;
 }
 
-/** One credential, on demand. The caller shows it and lets it go. */
 export function credentialValue(
   serverId: unknown,
   moduleId: unknown,
@@ -334,14 +292,7 @@ export function forgetCredentials(serverId?: string, moduleId?: string): void {
   vaults.delete(serverId);
 }
 
-/**
- * The unit's journal, read once or followed line by line.
- *
- * The renderer names a module; the unit that journal belongs to is the agent's
- * to resolve, and the lines come back on `log` events exactly as a project's
- * do. A follow holds the follow channel, and the signal is how the reader
- * lets go of it before the agent's own quarter of an hour.
- */
+/** A follow holds the follow channel: the signal releases it before the timeout. */
 export async function serviceLogs(
   serverId: unknown,
   moduleId: unknown,

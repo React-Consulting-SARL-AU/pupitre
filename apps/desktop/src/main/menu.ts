@@ -2,17 +2,6 @@ import type { HelpLink } from "@shared/help";
 import type { MenuItemConstructorOptions } from "electron";
 import { dialogTextIn } from "./dialogs";
 
-/**
- * The application menu, reduced to what the window needs.
- *
- * The edit roles are what make copy and paste work in the fields and the
- * terminals; the developer tools only exist in a build that is not packaged,
- * because a packaged renderer has nothing a customer should inspect. The
- * labels written here follow the system's language, as the roles around them
- * do. What an item does is handed in: the menu names a gesture, the main
- * process performs it or relays it to the window, which confirms where a
- * confirmation is due.
- */
 export interface MenuActions {
   preferences: () => void;
   newTerminal: () => void;
@@ -163,6 +152,7 @@ export function menuTemplate(
   return [
     ...(platform === "darwin" ? [appMenu] : []),
     file,
+    // Without the edit roles, copy and paste stop working in fields and terminals.
     { role: "editMenu" },
     { label: text("viewMenu"), submenu: view },
     { role: "windowMenu" },

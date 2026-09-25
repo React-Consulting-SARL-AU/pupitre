@@ -11,7 +11,7 @@ import {
 
 const ED25519_PUBLIC_KEY_BYTES = 32;
 
-/** A release key of this test's own: the raw public half, as the app embeds it. */
+/** The public half is exported raw, the form the app embeds. */
 function releaseKey(): {
   publicKey: string;
   signOf: (message: Buffer) => string;

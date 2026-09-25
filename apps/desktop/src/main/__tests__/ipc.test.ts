@@ -10,12 +10,6 @@ import {
 import { isServerKnock } from "../knock";
 import { isServerDraft } from "../server-add-run";
 
-/**
- * What this file proves: a channel answers the app's own page, in its top
- * frame, with arguments of the shape it takes — and rejects anything else
- * before the handler runs.
- */
-
 const PAGE = {
   devUrl: undefined,
   indexFile: "/Applications/Pupitre/index.html",

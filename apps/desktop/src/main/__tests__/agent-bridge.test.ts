@@ -55,11 +55,6 @@ describe("ce que le renderer peut demander à l'agent", () => {
     }
   });
 
-  /**
-   * A service the agent never listed is not one the renderer may drive: the
-   * id is held to the last `snapshot` or `status`, exactly as a project name
-   * is held to the last list.
-   */
   it("refuse un service que l'agent n'a pas listé", () => {
     for (const cmd of [
       "service.start",

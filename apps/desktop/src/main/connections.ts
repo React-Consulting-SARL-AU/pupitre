@@ -12,7 +12,7 @@ import type {
   ConnectionsState,
 } from "@shared/connections";
 import { CONNECTION_KINDS, NO_CONNECTIONS } from "@shared/connections";
-import { app, ipcMain, safeStorage } from "electron";
+import { app, safeStorage } from "electron";
 import {
   accountsOfToken,
   checkToken,
@@ -25,6 +25,8 @@ import { backupManaged, backupViewOf, type HeldBackup } from "./backups-run";
 import { declaredManifests } from "./catalog";
 import { type CloudflareApi, cloudflareApi } from "./cloudflare-api";
 import { createConnectionVault } from "./connection-vault";
+import { handle } from "./ipc";
+import { anything, isString, optional, shape } from "./ipc-guard";
 import { keychainSealer } from "./keychain";
 import { refuseWith } from "./refusal";
 import {
@@ -40,21 +42,6 @@ import {
   type ServerExposure,
   type TunnelDeps,
 } from "./tunnel-run";
-
-/**
- * The third-party accounts the app holds for the client, once for every server.
- *
- * A connection is not a module: it is what a module needs before it can be
- * installed, and the manifest says so. The token lives in the system keychain
- * and never comes back across the bridge; what the window learns is that an
- * account is connected and under what name.
- *
- * Nothing changes on the wire for having moved a token here. It still reaches
- * the machine on the install's own secret line, written by this process, and
- * still lands in `/etc/pupitre/env` under root alone. What changed is where the
- * app took it from: a keychain the client filled once, instead of a field they
- * would have retyped for every server.
- */
 
 const vault = createConnectionVault({
   dir: app.getPath("userData"),
@@ -77,27 +64,12 @@ function api(): CloudflareApi | null {
   return token && connection ? cloudflareApi(token, connection) : null;
 }
 
-/**
- * What the server says it publishes, read back rather than remembered.
- *
- * `module.config` carries the plain values the agent kept; the tunnel secret is
- * not among them, and never needs to be — a tunnel is created once and run
- * afterwards.
- */
 async function exposureOf(serverId: string): Promise<ServerExposure | null> {
   const answer = await agentClient.request(serverId, "module.config", {
     id: CLOUDFLARE_EXPOSURE,
   });
 
-  /**
-   * A server that has never run the module answers this command all the same,
-   * with empty values: the agent keeps a configuration per module of its
-   * catalogue, installed or not. So a refusal here never means "no tunnel", it
-   * means the machine could not be asked — and the caller must not read silence
-   * as absence. It used to: a channel that was down made the install create a
-   * second tunnel, which deletes the one of that name the server is running,
-   * and cloudflared then answered "Tunnel not found" until someone noticed.
-   */
+  // A refusal is never "no tunnel": read as absence, a second tunnel of that name deleted the live one.
   if (!answer.ok) {
     throw new ExposureUnreadable(answer.error.message);
   }
@@ -115,7 +87,6 @@ const deps: TunnelDeps = {
   exposureOf,
 };
 
-/** The bucket this computer hands its servers, and the secret key beside it. */
 export function heldBackup(): HeldBackup | null {
   const view = backupViewOf(vault.settings("backup"));
   const secret = vault.token("backup");
@@ -138,13 +109,7 @@ function heldAccount(kind: ConnectionKind): HeldConnection | null {
   return token ? { account: vault.account(kind), token } : null;
 }
 
-/**
- * The managed values of an install, from the connections.
- *
- * `lenient` is a machine a backup was just restored on: its modules' managed
- * values are already there, and a connection this computer lacks is left out
- * rather than refusing an install that needs nothing from it.
- */
+/** `lenient`: a machine just restored already holds its managed values, so a missing connection is left out. */
 export async function managedValues(
   serverId: string,
   modules: readonly string[],
@@ -203,11 +168,7 @@ export async function managedValues(
   };
 }
 
-/**
- * The managed values a form is weighed with: the accounts' and the bucket's,
- * read from the keychain. No secret leaves, no tunnel is opened, and a
- * connection this computer lacks adds nothing — the install says so.
- */
+/** No secret leaves and no tunnel is opened: a missing connection adds nothing, the install refuses later. */
 export async function weighedValues(
   serverId: string,
   modules: readonly string[]
@@ -244,13 +205,7 @@ export function releaseHostname(
   return forgetRecord(serverId, hostname, deps);
 }
 
-/**
- * The token of a connection, for the main-process clients that call a provider.
- *
- * It is exported to this process alone: everything that reads it — the tunnel,
- * the GitHub client — lives beside it, and nothing of it is ever returned
- * across the bridge.
- */
+/** Main process only: no channel ever returns the token across the bridge. */
 export function connectionToken(kind: ConnectionKind): string | null {
   return vault.token(kind);
 }
@@ -277,13 +232,7 @@ export function connectionsState(): ConnectionsState {
   return state;
 }
 
-/**
- * The token, weighed the moment it is given.
- *
- * What comes back is the account it opens, which is also the identifier the
- * client would otherwise have had to copy out of a dashboard. A provider the
- * laptop cannot ask answers null, and the connection is held unnamed.
- */
+/** A provider the laptop cannot ask answers null accounts, and the connection is held unnamed. */
 async function connect(
   kind: ConnectionKind,
   token: string,
@@ -318,10 +267,6 @@ async function connect(
   };
 }
 
-/**
- * The token, weighed again: what the provider says today replaces the name
- * the vault remembered, so the row reads as the account stands.
- */
 async function verify(
   kind: ConnectionKind
 ): Promise<AgentResponse<ConnectionCheck>> {
@@ -368,17 +313,18 @@ function known(kind: unknown): kind is ConnectionKind {
   return (CONNECTION_KINDS as readonly string[]).includes(String(kind));
 }
 
-/** A connection given as one token: the bucket is given through its own form, `backup:connect`. */
+/** The bucket is not given as one token: it connects through its own form, `backup:connect`. */
 function tokenKind(kind: unknown): kind is ConnectionKind {
   return known(kind) && kind !== "backup";
 }
 
 export function registerConnections(): void {
-  ipcMain.handle("connections:state", () => connectionsState());
+  handle("connections:state", shape(), () => connectionsState());
 
-  ipcMain.handle(
+  handle(
     "connections:connect",
-    (_event, kind: unknown, token: unknown, accountId: unknown) => {
+    shape(anything, anything, optional(isString)),
+    (_event, kind, token, accountId) => {
       if (!tokenKind(kind)) {
         return refuseWith("bad_request", "refusal.connection.kind", {
           kind: String(kind),
@@ -391,15 +337,11 @@ export function registerConnections(): void {
         });
       }
 
-      return connect(
-        kind,
-        token.trim(),
-        typeof accountId === "string" && accountId ? accountId : null
-      );
+      return connect(kind, token.trim(), accountId || null);
     }
   );
 
-  ipcMain.handle("connections:forget", (_event, kind: unknown) => {
+  handle("connections:forget", shape(anything), (_event, kind) => {
     if (!known(kind)) {
       return refuseWith("bad_request", "refusal.connection.kind", {
         kind: String(kind),
@@ -411,7 +353,7 @@ export function registerConnections(): void {
     return connectionsState();
   });
 
-  ipcMain.handle("connections:verify", (_event, kind: unknown) => {
+  handle("connections:verify", shape(anything), (_event, kind) => {
     if (!tokenKind(kind)) {
       return refuseWith("bad_request", "refusal.connection.kind", {
         kind: String(kind),
@@ -421,11 +363,12 @@ export function registerConnections(): void {
     return verify(kind);
   });
 
-  ipcMain.handle("connections:zones", () => zones());
+  handle("connections:zones", shape(), () => zones());
 
-  ipcMain.handle(
+  handle(
     "tunnel:release",
-    (_event, serverId: unknown, hostnames: unknown) => {
+    shape(anything, anything),
+    (_event, serverId, hostnames) => {
       if (typeof serverId !== "string") {
         return refuseWith("bad_request", "refusal.server.unknown");
       }
@@ -445,9 +388,10 @@ export function registerConnections(): void {
     }
   );
 
-  ipcMain.handle(
+  handle(
     "tunnel:records",
-    (_event, serverId: unknown, routes: unknown) => {
+    shape(anything, anything),
+    (_event, serverId, routes) => {
       if (typeof serverId !== "string") {
         return refuseWith("bad_request", "refusal.server.unknown");
       }

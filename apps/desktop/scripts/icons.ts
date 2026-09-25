@@ -4,37 +4,22 @@ import { dirname, join } from "node:path";
 import { markSvg, ON_LIGHT } from "@pupitre/design/brand";
 import { Resvg } from "@resvg/resvg-js";
 
-/**
- * Renders the app icon from the one definition of the mark, in
- * `@pupitre/design/brand`. Nothing here is drawn by hand: `bun run icons`
- * rebuilds `build/icon.png` and `build/icon.icns` from it, and both are
- * committed because electron-builder reads them before anything is installed.
- *
- * Rendering goes through resvg, not ImageMagick: ImageMagick's internal SVG
- * renderer ignores strokes and produced a black square.
- */
+// resvg, not ImageMagick: ImageMagick's SVG renderer ignores strokes and produced a black square.
 const ROOT = dirname(import.meta.dir);
 const BUILD = join(ROOT, "build");
 
-// The sizes macOS expects in an .iconset. 64 is there as the @2x of 32, never as
-// a size of its own: `icon_64x64.png` is not a valid name.
+// 64 only exists as the @2x of 32: `icon_64x64.png` is not a valid iconset name.
 const SIZES = [16, 32, 64, 128, 256, 512, 1024];
 const SINGLE = new Set([16, 32, 128, 256, 512]);
 const RETINA = new Set([32, 64, 256, 512, 1024]);
 const COMPACT_UNDER = 24;
 
-/**
- * macOS draws every app icon on the same grid: an 824-wide shape centred on a
- * 1024 canvas, with Apple's corner radius rather than ours. A full-bleed icon
- * would sit visibly larger than its neighbours in the Dock.
- */
+/** Apple's grid: an 824-wide shape on a 1024 canvas, or the icon looks larger than its Dock neighbours. */
 const MACOS = { inset: 100, radius: 185 };
 
 const macos = (compact: boolean): string =>
   markSvg({ colors: ON_LIGHT, compact, ...MACOS });
 
-// Linux and Windows draw the icon edge to edge, so this one keeps its own
-// corners and fills the canvas.
 const square = (compact: boolean): string =>
   markSvg({ colors: ON_LIGHT, compact });
 
@@ -52,6 +37,7 @@ for (const size of SIZES) {
   if (SINGLE.has(size)) {
     await writeFile(join(iconset, `icon_${size}x${size}.png`), png);
   }
+
   if (RETINA.has(size)) {
     await writeFile(join(iconset, `icon_${size / 2}x${size / 2}@2x.png`), png);
   }

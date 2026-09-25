@@ -1,9 +1,10 @@
 import { editorById, remoteEditorUrl } from "@shared/editors";
-import { ipcMain } from "electron";
 import { agentClient } from "./agent";
 import { releaseHostname } from "./connections";
 import { openOutside } from "./foreground";
 import { githubRepos } from "./github";
+import { handle, listen } from "./ipc";
+import { anything, isBoolean, isString, optional, shape } from "./ipc-guard";
 import {
   actOnProject,
   addProject,
@@ -23,13 +24,6 @@ import { relayTo } from "./relay";
 import { byId, sshNameOf } from "./servers";
 import { servicePath } from "./services-run";
 
-/**
- * The project commands, wired to this machine's servers.
- *
- * `projects-run.ts` knows nothing of Electron so it can be replayed against the
- * fake agent; what belongs here is the channel and the configuration it reads.
- */
-
 const PLAIN: readonly PlainProjectCommand[] = [
   "project.install",
   "project.pull",
@@ -41,10 +35,13 @@ const PLAIN: readonly PlainProjectCommand[] = [
   "project.remove",
 ];
 
+function isPlainCommand(cmd: unknown): cmd is PlainProjectCommand {
+  return PLAIN.includes(cmd as PlainProjectCommand);
+}
+
 export function registerProjects({
   root,
 }: {
-  /** The folder the agent's completions count from: what the file browser walks. */
   root: (serverId: string) => Promise<string | null>;
 }): void {
   const deps: ProjectDeps = {
@@ -53,29 +50,30 @@ export function registerProjects({
     release: (serverId, hostname) => releaseHostname(serverId, hostname),
   };
 
-  ipcMain.handle("project:list", (_event, serverId: unknown) =>
+  handle("project:list", shape(anything), (_event, serverId) =>
     listProjects(serverId, deps)
   );
 
-  ipcMain.handle("github:repos", (_event, refresh: unknown) =>
-    githubRepos(refresh === true)
+  handle("github:repos", shape(optional(isBoolean)), (_event, refresh) =>
+    githubRepos(refresh ?? false)
   );
 
-  ipcMain.handle("project:add", (_event, serverId: unknown, params: unknown) =>
+  handle("project:add", shape(anything, anything), (_event, serverId, params) =>
     addProject(serverId, params, deps)
   );
 
-  ipcMain.handle(
+  handle(
     "project:update",
-    (_event, serverId: unknown, params: unknown) =>
-      updateProject(serverId, params, deps)
+    shape(anything, anything),
+    (_event, serverId, params) => updateProject(serverId, params, deps)
   );
 
-  ipcMain.handle(
+  handle(
     "project:on",
-    (_event, cmd: unknown, serverId: unknown, name: unknown) =>
-      PLAIN.includes(cmd as PlainProjectCommand)
-        ? onProject(cmd as PlainProjectCommand, serverId, name, deps)
+    shape(anything, anything, anything),
+    (_event, cmd, serverId, name) =>
+      isPlainCommand(cmd)
+        ? onProject(cmd, serverId, name, deps)
         : Promise.resolve({
             error: refusalOf(
               "unknown_command",
@@ -86,53 +84,40 @@ export function registerProjects({
           })
   );
 
-  ipcMain.handle(
+  handle(
     "project:act",
-    (
-      _event,
-      action: unknown,
-      serverId: unknown,
-      name: unknown,
-      process: unknown
-    ) => actOnProject(action, serverId, name, process, deps)
+    shape(anything, anything, anything, anything),
+    (_event, action, serverId, name, process) =>
+      actOnProject(action, serverId, name, process, deps)
   );
 
-  ipcMain.handle(
+  handle(
     "project:checkout",
-    (_event, serverId: unknown, name: unknown, branch: unknown) =>
+    shape(anything, anything, anything),
+    (_event, serverId, name, branch) =>
       checkoutProject(serverId, name, branch, deps)
   );
 
-  ipcMain.handle(
+  handle(
     "project:env",
-    (
-      _event,
-      serverId: unknown,
-      name: unknown,
-      force: unknown,
-      process: unknown
-    ) => projectEnv(serverId, name, force === true, process, deps)
+    shape(anything, anything, isBoolean, anything),
+    (_event, serverId, name, force, process) =>
+      projectEnv(serverId, name, force, process, deps)
   );
 
-  ipcMain.handle(
+  handle(
     "project:diff",
-    (_event, serverId: unknown, name: unknown, path: unknown) =>
-      diffProject(serverId, name, path, deps)
+    shape(anything, anything, anything),
+    (_event, serverId, name, path) => diffProject(serverId, name, path, deps)
   );
 
-  /**
-   * The folder opens in an editor of this computer, never of the server.
-   *
-   * The absolute path is one the agent gave — a project's repository, or a
-   * folder under the root its completions name; the name the editor resolves
-   * comes from the app's own server list. Neither is a string the renderer
-   * chose.
-   */
-  ipcMain.handle(
+  // The folder opens on this computer: the path is one the agent gave, the host one the app's server list names.
+  handle(
     "project:editor",
-    async (_event, serverId: unknown, editorId: unknown, path: unknown) => {
-      const server = typeof serverId === "string" ? byId(serverId) : null;
-      const editor = typeof editorId === "string" ? editorById(editorId) : null;
+    shape(isString, isString, anything),
+    async (_event, serverId, editorId, path) => {
+      const server = byId(serverId);
+      const editor = editorById(editorId);
       const name = server ? sshNameOf(server.id) : null;
 
       if (!(server && editor && name)) {
@@ -161,29 +146,15 @@ export function registerProjects({
     }
   );
 
-  /**
-   * A followed journal is held by its token for as long as it runs: the
-   * renderer that opened it is the one that may end it, and it names it the
-   * way it named its events.
-   */
   const followers = new Map<string, AbortController>();
 
-  ipcMain.handle(
+  handle(
     "project:logs",
-    async (
-      event,
-      token: unknown,
-      serverId: unknown,
-      name: unknown,
-      process: unknown,
-      lines: unknown,
-      follow: unknown
-    ) => {
+    shape(isString, anything, anything, anything, anything, isBoolean),
+    async (event, token, serverId, name, process, lines, follow) => {
       const control = new AbortController();
 
-      if (typeof token === "string") {
-        followers.set(token, control);
-      }
+      followers.set(token, control);
 
       try {
         return await projectLogs(
@@ -191,22 +162,18 @@ export function registerProjects({
           name,
           process,
           lines,
-          follow === true,
+          follow,
           relayTo<string>(event.sender, token, "project:log-line", "line"),
           deps,
           control.signal
         );
       } finally {
-        if (typeof token === "string") {
-          followers.delete(token);
-        }
+        followers.delete(token);
       }
     }
   );
 
-  ipcMain.on("project:logs-cancel", (_event, token: unknown) => {
-    if (typeof token === "string") {
-      followers.get(token)?.abort();
-    }
+  listen("project:logs-cancel", shape(isString), (_event, token) => {
+    followers.get(token)?.abort();
   });
 }

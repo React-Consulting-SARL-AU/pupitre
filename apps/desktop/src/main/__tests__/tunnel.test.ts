@@ -39,12 +39,10 @@ function harness({
   records = new Map<string, DnsRecord>(),
 }: {
   connected?: boolean;
-  /** What the server itself says it runs, which is the only record of it. */
   exposure?: ServerExposure | null;
   /** The server could not be asked at all: not the same as answering nothing. */
   unreadable?: boolean;
   orphan?: string | null;
-  /** The tunnels the account has lost since the server was told about them. */
   gone?: string[];
   zones?: CloudflareZone[];
   records?: Map<string, DnsRecord>;
@@ -161,13 +159,7 @@ describe("les valeurs que l'app calcule", () => {
     expect(values.ok).toBe(false);
   });
 
-  /**
-   * The tunnel's name is this server's own, so making one deletes what that
-   * name already points at. A server that could not be asked used to look
-   * exactly like a server without a tunnel: the install then made a second one,
-   * cut the tunnel the machine was running that instant, and cloudflared
-   * answered "Tunnel not found" until someone went to look.
-   */
+  // Read as "no tunnel", an unreachable server once had its live tunnel deleted by name and remade.
   it("ne touche à rien quand le serveur n'a pas pu être interrogé", async () => {
     const { deps, calls } = harness({ unreadable: true });
 
@@ -200,10 +192,6 @@ describe("les valeurs que l'app calcule", () => {
     expect(calls).toContain("createTunnel pupitre-srv-1");
   });
 
-  /**
-   * The domain is the client's own answer, in the module's form: nothing here
-   * knows it, and nothing here sends it.
-   */
   it("ne décide pas du domaine", async () => {
     const { deps } = harness();
 
@@ -214,11 +202,6 @@ describe("les valeurs que l'app calcule", () => {
     ).not.toHaveProperty("domain");
   });
 
-  /**
-   * The server is the only place a tunnel identifier lives. A laptop that was
-   * reinstalled, or a colleague opening the same machine, reads it back rather
-   * than making a second tunnel and repointing every record onto it.
-   */
   it("garde le tunnel que le serveur dit déjà faire tourner", async () => {
     const { deps, calls } = harness({
       exposure: { domain: "flyleaf.dev", tunnelId: "t-kept" },
@@ -242,7 +225,6 @@ describe("les valeurs que l'app calcule", () => {
     expect(calls).not.toContain("createTunnel pupitre-srv-1");
   });
 
-  /** cloudflared answers "Tunnel not found" for ever on a tunnel the account has dropped. */
   it("refait le tunnel que le serveur nomme quand Cloudflare ne l'a plus", async () => {
     const { deps, calls } = harness({
       exposure: { domain: "flyleaf.dev", tunnelId: "t-gone" },
@@ -263,7 +245,6 @@ describe("les valeurs que l'app calcule", () => {
     });
   });
 
-  /** A tunnel of the same name whose secret left with the old machine is unusable. */
   it("supprime un tunnel homonyme laissé derrière", async () => {
     const { deps, calls } = harness({ orphan: "t-orphan" });
 
@@ -272,7 +253,7 @@ describe("les valeurs que l'app calcule", () => {
     expect(calls).toContain("deleteTunnel t-orphan");
   });
 
-  /** Cloudflare refuses a name its own listing did not return: the tunnel is looked for again, removed, and the name taken. */
+  // Cloudflare can refuse a name its own listing did not return yet.
   it("reprend un nom que Cloudflare refuse encore après la recherche", async () => {
     let refusals = 1;
     let looked = 0;
@@ -425,8 +406,6 @@ describe("les enregistrements DNS", () => {
     });
   });
 
-  // The zone may carry the platform's own names — app., dl., dev. — or anything
-  // the client wrote by hand: a record Pupitre did not write is never repointed.
   it("refusent un nom déjà tenu par un enregistrement que Pupitre n'a pas écrit", async () => {
     const records = new Map<string, DnsRecord>([
       [
@@ -496,8 +475,6 @@ describe("les enregistrements DNS", () => {
     expect([...records.keys()]).toEqual(["app.flyleaf.dev"]);
   });
 
-  // The domain changed: the names of before are dropped wherever their zone is,
-  // and only the records the app wrote — the platform's own names stay.
   it("retirent les noms d'avant un changement de domaine, ceux de Pupitre seulement", async () => {
     const records = new Map<string, DnsRecord>([
       [
@@ -564,7 +541,6 @@ describe("le tunnel d'un serveur qu'on relâche", () => {
     expect(calls).toContain("deleteTunnel t-1");
   });
 
-  /** A machine already gone answers nothing; its name is the app's own and finds the tunnel again. */
   it("est retrouvé par son nom quand le serveur ne répond plus", async () => {
     const { deps, calls } = harness({ orphan: "t-orphan" });
 
@@ -573,11 +549,6 @@ describe("le tunnel d'un serveur qu'on relâche", () => {
     expect(calls).toContain("deleteTunnel t-orphan");
   });
 
-  /**
-   * Releasing a machine that will not answer is the ordinary case here, so an
-   * unreachable server falls back on the name rather than leaving a tunnel
-   * alive with nothing behind it.
-   */
   it("est retrouvé par son nom quand le serveur ne peut plus être interrogé", async () => {
     const { deps, calls } = harness({ orphan: "t-orphan", unreadable: true });
 

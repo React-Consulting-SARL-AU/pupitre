@@ -4,15 +4,6 @@ import { grantOpens, grantPending, grantWithdrawn } from "@shared/servers";
 import { mergeFleet } from "../fleet-run";
 import { appSshPaths, renderSshConfig, sshArgs } from "../ssh-config";
 
-/**
- * The platform's list, merged into the one the app keeps.
- *
- * What these prove: a member who was given a server
- * never types an address and never makes a key. The address comes from
- * `GET /me/servers`, the key is the one this computer registered as a device,
- * and the merge is what puts the two together.
- */
-
 const DEVICE_KEY = "/data/keys/device";
 
 const PATHS = appSshPaths("/data", "/home/jean");
@@ -246,12 +237,6 @@ describe("la révocation", () => {
   });
 });
 
-/**
- * What this section proves: a server removed here stays removed, and a
- * re-enrolled server stays a single server. Both were the same fault seen from
- * two sides — the merge had no memory of a removal, and it bound an entry to an
- * id that re-enrollment had just made stale.
- */
 describe("le retrait sur cet ordinateur", () => {
   it("ne réadopte pas un serveur attribué qu'on avait retiré", () => {
     const merged = merge([], [GRANTED], null, ["srv-platform-1"]);

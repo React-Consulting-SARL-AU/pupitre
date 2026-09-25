@@ -8,16 +8,6 @@ import {
 import { join } from "node:path";
 import { scrubbed } from "./trace";
 
-/**
- * What went wrong in the main process, kept on this computer for support.
- *
- * The trace is off in a packaged build; this file is not, and it holds only
- * failures: the uncaught ones, the rejections nobody awaited, a start that did
- * not finish. Each line is scrubbed like a trace line — a value named like a
- * secret never lands here — and the file turns over past its size, keeping
- * the last few.
- */
-
 const FILE = "main.log";
 const FILE_MODE = 0o600;
 const DIR_MODE = 0o700;
@@ -65,6 +55,7 @@ function described(failure: unknown): Record<string, unknown> {
   return { reason: failure.message, ...(stack ? { stack: stack.trim() } : {}) };
 }
 
+/** Unlike the trace, stays on in a packaged build: failures only, scrubbed like trace lines. */
 export function appLog({
   dir,
   maxBytes = MAX_BYTES,
@@ -93,7 +84,7 @@ export function appLog({
 
         appendFileSync(path, line, { mode: FILE_MODE });
       } catch {
-        // A disk that refuses the log leaves the failure on the error output.
+        // A failure handler must never throw because the disk refused the log.
       }
     },
     path,

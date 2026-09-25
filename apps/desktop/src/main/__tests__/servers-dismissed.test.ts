@@ -3,19 +3,11 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Server } from "@shared/servers";
-
-/**
- * What this file proves: a granted server removed from this computer stays
- * removed. Without that memory, the merge would take it back on the next read —
- * the platform still grants it — and the removal would never look like it
- * happened.
- */
+import { electronStub } from "./electron-stub";
 
 const root = mkdtempSync(join(tmpdir(), "pupitre-servers-"));
 
-mock.module("electron", () => ({
-  app: { getPath: () => root },
-}));
+mock.module("electron", () => electronStub(root));
 
 const { read, remove, restore, write } = await import("../servers");
 

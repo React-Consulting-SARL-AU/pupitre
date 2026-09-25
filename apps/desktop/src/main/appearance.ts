@@ -3,16 +3,15 @@ import {
   readAppearance,
   windowBackground,
 } from "@shared/appearance";
-import { type BrowserWindow, ipcMain, nativeTheme } from "electron";
+import { type BrowserWindow, nativeTheme } from "electron";
+import { listen } from "./ipc";
+import { shape } from "./ipc-guard";
 
-/**
- * The native frame follows the theme the reader chose, not the one the system is in.
- *
- * `themeSource` carries the preference so a window left on "system" keeps
- * turning over with it, and the background is painted from the theme the
- * renderer resolved — the colour seen at the edges while the window resizes,
- * before the page has drawn anything.
- */
+function isAppearance(value: unknown): value is Appearance {
+  return readAppearance(value) !== null;
+}
+
+/** The edges seen while the window resizes are painted before the page draws, from the theme the renderer resolved. */
 export function paintAppearance(
   window: BrowserWindow | null,
   appearance: Appearance
@@ -25,11 +24,7 @@ export function paintAppearance(
 export function registerAppearance(
   currentWindow: () => BrowserWindow | null
 ): void {
-  ipcMain.on("appearance:set", (_event, value: unknown) => {
-    const appearance = readAppearance(value);
-
-    if (appearance) {
-      paintAppearance(currentWindow(), appearance);
-    }
-  });
+  listen("appearance:set", shape(isAppearance), (_event, appearance) =>
+    paintAppearance(currentWindow(), appearance)
+  );
 }

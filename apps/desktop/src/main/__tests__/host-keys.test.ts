@@ -43,9 +43,11 @@ describe("la décision sur la clé d'hôte", () => {
     const decision = hostKeyDecision(PINNED, OTHER);
 
     expect(decision.status).toBe("changed");
+
     if (decision.status !== "changed") {
       return;
     }
+
     expect(decision.expected).toBe(PINNED);
     expect(decision.observed).toBe(OTHER);
     expect(decision.phrase.id).toBe("refusal.hostKey.changed");
@@ -82,6 +84,7 @@ describe("la décision sur la clé d'hôte", () => {
     if (decision.status !== "changed") {
       throw new Error("attendu : changed");
     }
+
     expect(decision.actions).toEqual([REINSTALLED_ACTION, "cancel"]);
   });
 });

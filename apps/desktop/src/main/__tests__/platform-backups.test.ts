@@ -1,11 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { createPlatformClient } from "../platform-client";
 
-/**
- * The backups the platform lists, and the restore it notes: the routes and
- * the bodies the contract names, and nothing of a backup's content.
- */
-
 interface Seen {
   url: string;
   method: string;
@@ -67,6 +62,7 @@ describe("les sauvegardes sur la plateforme", () => {
     const { platform, seen } = recording({ data: [BACKUP] });
 
     const all = await platform.backups("jeton");
+
     await platform.backups("jeton", "srv-1");
 
     expect(all).toEqual({ ok: true, result: [BACKUP] as never });

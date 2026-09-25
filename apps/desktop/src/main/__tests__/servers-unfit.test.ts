@@ -3,12 +3,11 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Server } from "@shared/servers";
+import { electronStub } from "./electron-stub";
 
 const root = mkdtempSync(join(tmpdir(), "pupitre-servers-unfit-"));
 
-mock.module("electron", () => ({
-  app: { getPath: () => root },
-}));
+mock.module("electron", () => electronStub(root));
 
 const { corruptPath, paths, read, reload, write } = await import("../servers");
 

@@ -134,11 +134,7 @@ describe("setSudoPassword", () => {
   });
 });
 
-/**
- * A server whose password this computer does not hold: another laptop, a lost
- * keychain. sudo is what says whether the password typed is the one, on the
- * very session the app would open with it.
- */
+// sudo itself judges a typed password, on the very session the app would open with it.
 describe("enterSudoPassword", () => {
   function server(sudo: "password" | "nopasswd_all" = "password") {
     let offered: string | null = null;

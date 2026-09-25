@@ -8,17 +8,6 @@ import {
   type PlatformBackup as SharedPlatformBackup,
 } from "@pupitre/shared/backup";
 
-/**
- * What the two processes say to each other about backups.
- *
- * The bucket and its access key id are not secrets and cross the bridge; the
- * secret access key stays in the keychain, and the passphrase crosses once, on
- * its way to be derived, and is kept nowhere. What the connection holds of the
- * encryption is the public key and its salt: enough for a server to encrypt,
- * never to decrypt.
- */
-
-/** The bucket, as `core.backup` names its managed fields. */
 export interface BackupStorage {
   endpoint: string;
   region: string;
@@ -28,7 +17,7 @@ export interface BackupStorage {
   access_key_id: string;
 }
 
-/** The public half of the passphrase, and the salt it was derived with. */
+/** Enough for a server to encrypt, never to decrypt. */
 export interface BackupIdentity {
   recipient: string;
   kdf_salt: string;
@@ -36,17 +25,12 @@ export interface BackupIdentity {
 
 export type BackupConnectionView = BackupStorage & BackupIdentity;
 
-/**
- * What the form sends. A secret key left out keeps the one the keychain holds;
- * a passphrase left out keeps the identity the connection holds, or adopts the
- * organization's when it holds none.
- */
+/** An omitted secret keeps the keychain's; an omitted passphrase keeps or adopts the organization's identity. */
 export interface BackupConnectionInput extends BackupStorage {
   secret_access_key?: string;
   passphrase?: string;
 }
 
-/** The identity of the organization's most recent backup, which a second computer adopts. */
 export interface OrganizationIdentity extends BackupIdentity {
   created_at: string;
   server_name: string;
@@ -54,7 +38,6 @@ export interface OrganizationIdentity extends BackupIdentity {
 
 export type PlatformBackup = SharedPlatformBackup;
 
-/** The phases of a restore the main process relays while the passphrase is already verified. */
 export type RestorePhase = "save" | "setup";
 
 export type RestoreUpdate =
@@ -63,14 +46,11 @@ export type RestoreUpdate =
 
 export interface RestoreSetupOptions {
   revert: boolean;
-  /** A backup of the machine as it stands, before a revert replaces it. */
   saveFirst: boolean;
 }
 
-/** Short enough to type, long enough that the salt is not all that stands between the bucket and a guess. */
 export const BACKUP_PASSPHRASE_MIN = 12;
 
-/** Why a field of the bucket is refused: each has its own sentence under the field. */
 export type BackupFieldProblem =
   | "required"
   | "http"
@@ -79,7 +59,7 @@ export type BackupFieldProblem =
   | "region"
   | "prefix";
 
-/** The pattern `core.backup`'s manifest gives its `prefix`. */
+/** Mirrors the `prefix` pattern of `core.backup`'s manifest. */
 const PREFIX_PATTERN = /^[A-Za-z0-9._-]+(\/[A-Za-z0-9._-]+)*$/;
 
 const ENDPOINT = new RegExp(BACKUP_ENDPOINT_PATTERN);
@@ -106,11 +86,6 @@ function endpointProblem(value: string): BackupFieldProblem | null {
     : problemOf(value, ENDPOINT, "endpoint");
 }
 
-/**
- * What the bucket fields get wrong, by the rules the agent and the platform
- * read them with. The form shows these under the fields; the main process
- * refuses on the same ones.
- */
 export function backupStorageProblems(
   storage: BackupStorage
 ): Partial<Record<keyof BackupStorage, BackupFieldProblem>> {
@@ -128,12 +103,10 @@ export function backupStorageProblems(
   ) as Partial<Record<keyof BackupStorage, BackupFieldProblem>>;
 }
 
-/** The data parts of a backup: everything `backup.restore.data` can bring back. */
 export function dataParts(parts: readonly BackupPart[]): BackupPart[] {
   return parts.filter((part) => part.kind !== "setup");
 }
 
-/** What a restored machine owes the next steps: the parts to bring back once its modules stand. */
 export interface RestoredSetup {
   backupId: string;
   parts: BackupPart[];

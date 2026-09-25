@@ -2,18 +2,11 @@ import { describe, expect, it, mock } from "bun:test";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-
-/**
- * What this file proves: after a rollback, the `servers.json` the newer
- * version wrote is read and never written over — its fields this version does
- * not know are still there when the reader updates again.
- */
+import { electronStub } from "./electron-stub";
 
 const root = mkdtempSync(join(tmpdir(), "pupitre-servers-newer-"));
 
-mock.module("electron", () => ({
-  app: { getPath: () => root },
-}));
+mock.module("electron", () => electronStub(root));
 
 const { corruptPath, read, reload, rename } = await import("../servers");
 

@@ -1,11 +1,4 @@
-/**
- * The labels the system displays itself.
- *
- * A file dialog, the menu bar and a notification are painted by macOS or
- * Windows, never by the renderer: they cannot read the app's dictionary, so
- * the main process keeps these phrases, and nothing else. French is typed
- * against English, so a phrase missing from either fails the typecheck.
- */
+/** Painted by the system, which cannot read the renderer's dictionary; only these phrases live in main. */
 const EN = {
   attentionBody: "{title} is waiting for you.",
   attentionTitle: "A session needs you",
@@ -74,7 +67,7 @@ const FR: Record<DialogKey, string> = {
 
 const PLACEHOLDER = /\{(\w+)\}/g;
 
-/** In the language named, `fr-FR` as the system says it or `fr` as the app does. */
+/** `fr-FR` as the system says it, or `fr` as the app does. */
 export function dialogTextIn(
   language: string,
   key: DialogKey,

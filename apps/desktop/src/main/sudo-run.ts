@@ -5,15 +5,6 @@ import { refusalOf } from "./refusal";
 import { drawSudoPassword, hashSudoPassword } from "./sudo-password";
 import type { SudoVault } from "./sudo-vault";
 
-/**
- * The password `sudo` asks of `dev`, set on the server (decision 0015).
- *
- * Drawn and hashed here; the hash leaves on the secret line of `harden.sudo`,
- * the password never leaves. The agent sets it before it restricts the rule,
- * so the password is kept as soon as the agent says it wrote it — a rule that
- * fails afterwards leaves `dev` with that password all the same.
- */
-
 export interface SudoDeps {
   client: Pick<AgentClient, "request">;
   vault: Pick<SudoVault, "keep" | "state">;
@@ -29,6 +20,7 @@ function wrotePassword(event: Event): boolean {
   );
 }
 
+/** Kept once the agent wrote it: a rule that fails afterwards still leaves `dev` with that password. */
 export async function setSudoPassword(
   serverId: string,
   onEvent: (event: Event) => void,
@@ -68,12 +60,7 @@ export interface EnterDeps {
   offer: (serverId: string, password: string | null) => void;
 }
 
-/**
- * A password typed on this computer — shown by another one, or set from the
- * hosting console — kept only once sudo has taken it on the session the app
- * would open with it. A server still under the rule of before asks for no
- * password, and would take any.
- */
+/** A server under the passwordless rule would take any password, so it is refused before being tried. */
 export async function enterSudoPassword(
   serverId: string,
   password: string,

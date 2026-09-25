@@ -3,15 +3,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-/**
- * The bridge, checked as a whole rather than one call at a time.
- *
- * A channel the preload invokes and the main process never registered throws
- * inside the renderer, where it reads as a screen that turns for ever — the
- * kind of failure no screen test sees, because every harness answers the
- * channel the real build had forgotten. The two halves are read here as text:
- * what one side names, the other must answer.
- */
+// An unregistered channel reads as an endless spinner that no screen test sees: every harness answers it.
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MAIN = join(HERE, "..");
@@ -78,7 +70,6 @@ function missing(named: Set<string>, answered: Set<string>): string[] {
   return [...named].filter((channel) => !answered.has(channel)).sort();
 }
 
-/** What the Playwright harness answers in place of the main process. */
 const stubbed = new Set(all(harness, /answer\(\s*"([^"]+)"/g));
 
 describe("la surface IPC", () => {
@@ -99,11 +90,7 @@ describe("la surface IPC", () => {
     expect(missing(pushed, heard)).toEqual([]);
   });
 
-  /*
-    A stub answers on a channel the main process may never have registered, and
-    the scenario passes on a build where the real call throws. Every channel the
-    harness replaces must be one that exists without it.
-  */
+  // A stub on an unregistered channel lets the scenario pass on a build where the real call throws.
   it("ne fait répondre au harnais que des canaux que le main enregistre", () => {
     expect(stubbed.size).toBeGreaterThan(0);
     expect(missing(stubbed, handled)).toEqual([]);

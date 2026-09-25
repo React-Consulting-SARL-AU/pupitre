@@ -23,11 +23,6 @@ import { type TerminalDeps, terminalCommand } from "../terminal-run";
 import { usageError } from "../usage-guard";
 import { type FakeAgent, fakeAgent } from "./fixtures/fake-agent";
 
-/**
- * The channels the usage guard left outside, checked one by one at the door they now
- * share. Each of them used to reach the agent without a word to the account.
- */
-
 const SERVER = "srv-1";
 
 const REFUSAL = {

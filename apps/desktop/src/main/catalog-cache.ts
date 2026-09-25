@@ -3,16 +3,7 @@ import type { Manifest } from "@pupitre/shared/catalog";
 import type { AgentResponse } from "@shared/agent";
 import type { AgentClient } from "./agent-client";
 
-/**
- * The last catalogue each server declared, so that checking a field name does
- * not cost a round trip on every keystroke.
- *
- * It is the catalogue of one agent over one session: the channels closed —
- * for an upgrade, a re-push, another account — or a hello that names another
- * version mean another agent may be answering, and what it declares is asked
- * again. A module the new agent added, a field it now manages, must not be
- * refused on the word of the old one.
- */
+// Valid for one agent over one session: a new epoch or version may be another agent, asked again.
 
 interface Declared {
   epoch: number;

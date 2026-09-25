@@ -42,41 +42,18 @@ import type { PlatformBackup } from "@shared/backups";
 import type { KeyApprovalReceipt } from "@shared/key-approvals";
 import type { FleetServer } from "@shared/servers";
 
-/**
- * The platform, seen from the main process.
- *
- * Nothing here knows Electron, so the whole account can be replayed against the
- * API's own test harness. The bearer token is a parameter of every call and is
- * never held by this module: it belongs to the vault.
- */
-
 export const DEFAULT_PLATFORM_URL = PUPITRE_ORIGINS.app;
 
-/** `bun run dev:web` — the console and its API, on this computer. */
 export const LOCAL_PLATFORM_URL = "http://localhost:3000";
 
-/**
- * The same console, as a remote server reaches it.
- *
- * `localhost` means nothing on the VPS: it is that machine's own loopback,
- * where nothing listens. The named tunnel `bun dev` runs publishes this console
- * under this name, which does not change from one launch to the next, and
- * serves only `/api/v1/agent/` of it.
- */
+/** A VPS cannot reach this computer's localhost: `bun dev` publishes the console under this tunnel name. */
 export const DEV_AGENT_PLATFORM_URL = PUPITRE_ORIGINS.devTunnel;
 
 export const RELEASE_STORAGE_HEADER = "x-pupitre-release-storage";
 
 const REDIRECT = 303;
 
-/**
- * How long a call has to come back, and the binary to arrive.
- *
- * A silent platform — one that accepts the connection and never answers — is
- * the case that doesn't show itself: without a bound, the wizard stays stuck
- * on its step announcing nothing. The binary download keeps its own budget,
- * since it needs it.
- */
+/** A platform that accepts the connection and never answers would otherwise leave the wizard stuck silently. */
 const CALL_MS = 20_000;
 const DOWNLOAD_MS = 5 * 60_000;
 
@@ -104,13 +81,11 @@ export interface PlatformClient {
   deviceCode: () => Promise<AccountResponse<DeviceFlowStart>>;
   deviceToken: (deviceCode: string) => Promise<AccountResponse<DeviceFlowPoll>>;
   me: (token: string) => Promise<AccountResponse<AccountIdentity>>;
-  /** Switches this session's active organization, and this session's alone. */
   switchOrganization: (
     token: string,
     organizationId: string
   ) => Promise<AccountResponse<AccountIdentity>>;
   devices: (token: string) => Promise<AccountResponse<AccountDevice[]>>;
-  /** Revokes a device: its key stops opening the granted servers at the platform's next push. */
   removeDevice: (
     token: string,
     deviceId: string
@@ -130,32 +105,25 @@ export interface PlatformClient {
     version: string,
     arch: string
   ) => Promise<AccountResponse<ReleaseDownload>>;
-  /** The latest version published for this architecture, the one a server should run. */
   latestAgentRelease: (
     token: string,
     arch: string,
     channel?: string
   ) => Promise<AccountResponse<LatestAgentRelease>>;
-  /**
-   * One call per stage of deletion: the first revokes, the second erases the
-   * row. Requires the `admin` role; a row already erased answers `not_found`.
-   */
+  /** Two-stage: the first call revokes, the second erases the row; an erased row answers `not_found`. */
   deleteServer: (
     token: string,
     serverId: string
   ) => Promise<AccountResponse<null>>;
-  /** The backups of the active organization, or of one server, the most recent first. */
   backups: (
     token: string,
     serverId?: string
   ) => Promise<AccountResponse<PlatformBackup[]>>;
-  /** Notes in the journal that a backup was restored on that server. */
   backupRestored: (
     token: string,
     backupId: string,
     serverId: string
   ) => Promise<AccountResponse<null>>;
-  /** The keys servers hold pending that this account may approve. */
   keyApprovals: (
     token: string
   ) => Promise<AccountResponse<PendingKeyApproval[]>>;
@@ -175,37 +143,16 @@ export function isLocalPlatform(baseUrl: string): boolean {
   }
 }
 
-/**
- * How a build conducts itself, decided by the platform it talks to rather than
- * by the folder it runs from.
- *
- * A development build pointed at a hosted platform is a second computer of the
- * same person: the usage right comes from the account, the agent from the
- * release the platform names, and nothing is granted by the build itself. Only
- * a build on the console of this computer gets the developer's shortcuts.
- */
+/** A dev build on a hosted platform behaves as production: only a local console grants developer shortcuts. */
 export function buildKindOf(packaged: boolean, baseUrl: string): BuildKind {
   return packaged || !isLocalPlatform(baseUrl) ? "production" : "development";
 }
 
-/**
- * The platform as the agent is given it: its own, unless that is a console of
- * this computer, which no remote server could reach.
- */
 export function agentBaseUrl(platform: string): string {
   return isLocalPlatform(platform) ? DEV_AGENT_PLATFORM_URL : platform;
 }
 
-/**
- * Which platform a build talks to.
- *
- * A packaged app knows only the hosted one, whatever its environment says: a
- * variable set by anything on the machine must not send the device flow, the
- * bearer token and the enrolment to another address. A development build
- * talks to the console running beside it, or to the one `asked` names — the
- * hosted platform included, which is how a screen is tried against the real
- * account and the real servers without a release.
- */
+/** A packaged app ignores its environment: no variable may redirect the bearer token to another address. */
 export function platformUrlOf(
   packaged: boolean,
   asked: string | undefined
@@ -217,10 +164,6 @@ export function platformUrlOf(
   return asked || LOCAL_PLATFORM_URL;
 }
 
-/**
- * The API base the agent is given: the app's platform, or in a development
- * build the one `asked` names, when the agent has to answer somewhere else.
- */
 export function agentPlatformUrlOf(
   packaged: boolean,
   asked: string | undefined,
@@ -278,11 +221,7 @@ function failureOf(status: number, payload: unknown): AccountError {
 
 const S3_ERROR_RE = /<Code>([^<]*)<\/Code>(?:.*<Message>([^<]*)<\/Message>)?/s;
 
-/**
- * The storage refuses in S3's XML, never in the console's envelope. Its code
- * and message are what say why — a key of the wrong shape, an expired URL —
- * and the refusal is laid on the storage, not on the account.
- */
+/** The storage refuses in S3's XML, never in the console's envelope. */
 async function storageRefusal(
   response: Response,
   version: string
@@ -301,7 +240,7 @@ async function storageRefusal(
   };
 }
 
-/** A contract the app was built against that the platform no longer answers: an app older than the platform. */
+/** An answer off the contract means an app older than the platform. */
 function unreadableAnswer(path: string): AccountError {
   return {
     code: "internal",

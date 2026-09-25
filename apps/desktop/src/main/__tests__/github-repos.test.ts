@@ -1,12 +1,6 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import type { GithubRepo } from "@shared/github";
 
-/**
- * The list the new-project screen asks for, and what the main process does with
- * it: no account connected is a question and not a failure, a refusal from
- * GitHub keeps its own words, and the same token twice in a row is one call.
- */
-
 let token: string | null = null;
 
 mock.module("../connections", () => ({
@@ -35,8 +29,7 @@ function api(calls: number[], repos: readonly GithubRepo[] = [ATLAS]) {
   });
 }
 
-// The list is held per token, so each test opens on one of its own: what is
-// under test is the holding, not what a previous test left behind.
+// The list is cached per token: a fresh token per test keeps one test's cache out of the next.
 let rank = 0;
 
 beforeEach(() => {
@@ -69,16 +62,19 @@ describe("les dépôts que le processus principal tient", () => {
     const calls: number[] = [];
 
     await githubRepos(false, api(calls));
+
     token = null;
 
     const absent = await githubRepos(false, api(calls));
 
     expect(absent.ok).toBe(false);
+
     if (!absent.ok) {
       expect(absent.error.phrase?.id).toBe("refusal.connection.absent");
     }
 
     token = `ghp_de_test_${String(rank)}`;
+
     await githubRepos(false, api(calls));
 
     expect(calls).toHaveLength(2);
@@ -92,6 +88,7 @@ describe("les dépôts que le processus principal tient", () => {
     const answer = await githubRepos(true, failing);
 
     expect(answer.ok).toBe(false);
+
     if (!answer.ok) {
       expect(answer.error.phrase?.id).toBe("refusal.connection.call");
       expect(answer.error.phrase?.values?.reason).toBe("Bad credentials");

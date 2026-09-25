@@ -1,19 +1,15 @@
 import type { Event } from "@pupitre/shared/agent-protocol/envelope";
 import type { SudoOutcome, SudoPasswordState } from "@shared/sudo";
-import { clipboard, ipcMain } from "electron";
+import { clipboard } from "electron";
 import { agentClient } from "./agent";
+import { handle } from "./ipc";
+import { isString, shape } from "./ipc-guard";
 import { refusalOf } from "./refusal";
 import { byId } from "./servers";
 import { offerSudoPassword, sudoVault as vault } from "./sudo-held";
 import { enterSudoPassword, setSudoPassword } from "./sudo-run";
 
-/**
- * The sudo password of each server, seen from the main process.
- *
- * The renderer names a server; the password comes across only for the reveal
- * the reader asked for, or once when the reader types it, and a copy never
- * brings it across at all — the clipboard is written on this side.
- */
+// A copy never brings the password across the bridge: the clipboard is written on this side.
 
 export function securingSudo(
   serverId: string,
@@ -27,22 +23,23 @@ export function forgetSudoPassword(serverId: string): void {
   agentClient.resetPrivileged(serverId);
 }
 
-function known(serverId: unknown): serverId is string {
-  return typeof serverId === "string" && byId(serverId) !== null;
+function known(serverId: string): boolean {
+  return byId(serverId) !== null;
 }
 
 export function registerSudo(): void {
-  ipcMain.handle(
+  handle(
     "sudo:state",
-    (_event, serverId: unknown): SudoPasswordState =>
+    shape(isString),
+    (_event, serverId): SudoPasswordState =>
       known(serverId) ? vault.state(serverId) : { held: false, kept: false }
   );
 
-  ipcMain.handle("sudo:reveal", (_event, serverId: unknown): string | null =>
+  handle("sudo:reveal", shape(isString), (_event, serverId): string | null =>
     known(serverId) ? vault.password(serverId) : null
   );
 
-  ipcMain.handle("sudo:copy", (_event, serverId: unknown): boolean => {
+  handle("sudo:copy", shape(isString), (_event, serverId): boolean => {
     const password = known(serverId) ? vault.password(serverId) : null;
 
     if (password === null) {
@@ -54,9 +51,10 @@ export function registerSudo(): void {
     return true;
   });
 
-  ipcMain.handle(
+  handle(
     "sudo:enter",
-    (_event, serverId: unknown, password: unknown): Promise<SudoOutcome> => {
+    shape(isString, isString),
+    (_event, serverId, password): Promise<SudoOutcome> => {
       if (!known(serverId)) {
         return Promise.resolve({
           error: refusalOf("bad_request", "refusal.server.unknown"),
@@ -64,7 +62,7 @@ export function registerSudo(): void {
         });
       }
 
-      if (typeof password !== "string" || password.length === 0) {
+      if (password.length === 0) {
         return Promise.resolve({
           error: refusalOf("bad_request", "refusal.sudo.empty"),
           ok: false,

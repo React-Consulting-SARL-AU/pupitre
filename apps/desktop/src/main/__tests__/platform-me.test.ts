@@ -19,6 +19,7 @@ const ME = {
       state: "active",
     },
   ],
+  platform_can_act: false,
   platform_role: null,
   role: "owner",
   subscription: null,

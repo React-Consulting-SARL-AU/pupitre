@@ -6,17 +6,6 @@ import type {
 } from "@shared/servers";
 import { trace } from "./trace";
 
-/**
- * Knocking on an address, before anything of ours is on the machine.
- *
- * An SSH server introduces itself first: it sends its banner as soon as the
- * connection is up, before a single byte is asked of the client. Reading that
- * line and hanging up says the three things worth knowing before adding a
- * server — the address resolves, something listens on that port, and what
- * listens speaks SSH — without a key, without a session, and without writing
- * anything on the machine.
- */
-
 const TIMEOUT_MS = 6000;
 const MAX_PORT = 65_535;
 
@@ -43,7 +32,6 @@ function failed(code: ReachFailure, host: string, port: number): AddressReach {
   return reachFailure(code, { host, port });
 }
 
-/** Node names every network refusal; these are the ones an address earns. */
 function codeOf(error: NodeJS.ErrnoException): ReachFailure {
   if (error.code === "ECONNREFUSED") {
     return "refused";
@@ -54,6 +42,7 @@ function codeOf(error: NodeJS.ErrnoException): ReachFailure {
 
 export type Dial = (host: string, port: number) => Socket;
 
+/** An SSH server sends its banner first: reading it and hanging up needs no key and writes nothing. */
 export function reachSsh(
   host: string,
   port: number,
@@ -107,8 +96,7 @@ export function reachSsh(
         return;
       }
 
-      // The line is complete and is not a banner: nothing longer will make it
-      // one, and an SSH server never says anything else first.
+      // An SSH server never says anything else first: a complete line that is no banner settles it.
       if (read.includes("\n")) {
         answer(failed("not-ssh", host, port));
       }

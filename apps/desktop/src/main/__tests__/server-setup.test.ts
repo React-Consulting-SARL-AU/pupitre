@@ -35,12 +35,14 @@ function hash(file: string): string {
   return createHash("sha256").update(readFileSync(file)).digest("hex");
 }
 
-/** A home of its own, with the ~/.ssh/config the app must never touch. */
 function fakeHome(): { home: string; sshConfig: string } {
   const home = mkdtempSync(join(tmpdir(), "pupitre-home-"));
   const dir = join(home, ".ssh");
+
   mkdirSync(dir, { mode: 0o700, recursive: true });
+
   const sshConfig = join(dir, "config");
+
   writeFileSync(sshConfig, SYSTEM_CONFIG, { mode: 0o600 });
 
   return { home, sshConfig };
@@ -75,15 +77,20 @@ describe("le parcours d'ajout d'un serveur", () => {
       [],
       paths
     );
+
     writeSshConfig(created.servers, paths);
+
     const pinned = pinFingerprint(
       created.servers,
       created.server.id,
       "SHA256:x"
     );
+
     writeSshConfig(pinned, paths);
     await untrustHost(created.server, paths);
+
     const left = removeServer(pinned, created.server.id, paths);
+
     writeSshConfig(left, paths);
 
     expect(hash(sshConfig)).toBe(before);

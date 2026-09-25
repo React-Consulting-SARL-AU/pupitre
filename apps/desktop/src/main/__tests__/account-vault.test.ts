@@ -13,13 +13,7 @@ import { ACCOUNT_MIGRATIONS } from "../account-migrations";
 import { createTokenVault, EMPTY_RECORD, type Sealer } from "../account-vault";
 import { expectedRevision } from "../store-migrations";
 
-/**
- * The token never lands readable.
- *
- * The fake sealer stands in for `safeStorage`: it is reversible, like the
- * keychain, and that is precisely why the assertions look at the bytes on disk
- * rather than at what the vault gives back.
- */
+// The fake sealer is reversible like the keychain, so assertions read the bytes on disk, not the vault.
 
 const TOKEN = "pupitre-session-9f2c4a7e-do-not-write-me-down";
 

@@ -33,15 +33,6 @@ import {
 } from "./terminals";
 import { trace } from "./trace";
 
-/**
- * The terminals of the app, and the sign-ins they print.
- *
- * The renderer names a tab, a server, a project, a session; the command a tab
- * runs is decided here — by the agent, or by the app for a shell — and the
- * address a sign-in opens is the one the session printed, never one the
- * renderer sends.
- */
-
 const DEFAULT_COLS = 100;
 const DEFAULT_ROWS = 30;
 
@@ -79,9 +70,7 @@ function registerTerminals(): void {
         return refuseWith("bad_request", "refusal.terminal.unknown");
       }
 
-      // A tab the Services screen asked for runs the command the agent gave
-      // for that database, held here under the tab's identifier: what the
-      // renderer names for it is read no further.
+      // A reserved database shell runs the agent's command; nothing the renderer sends for it is trusted.
       const held = reservedShell(id, serverId);
       const decided = held
         ? { ok: true as const, result: held }
@@ -142,10 +131,7 @@ function registerTerminals(): void {
   });
 }
 
-/**
- * A sign-in that comes back to a port of the machine is carried here on the
- * same port, and held for as long as the session that asked for it.
- */
+/** Forwarded on the same local port, since the sign-in redirects to it, and held as long as the session. */
 async function forwardLogin(
   id: string,
   serverId: string,
@@ -174,7 +160,7 @@ const loginDeps: LoginDeps = {
   serverOf,
 };
 
-/** The renderer names a session; the address it opens is the one that session printed. */
+/** The address opened is the one the session printed, never one the renderer sends. */
 function registerLogins(): void {
   handle("login-open", shape(isString), (_e, id) =>
     openPendingLogin(id, loginDeps)

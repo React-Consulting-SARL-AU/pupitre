@@ -3,19 +3,11 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Server } from "@shared/servers";
-
-/**
- * What this file proves: the identity the platform gives a server when
- * enrolling it is written at once. Without it, the installation that follows
- * does not know which platform server it is talking about, and everything the
- * platform manages for it — tunnel, subdomain — is refused.
- */
+import { electronStub } from "./electron-stub";
 
 const root = mkdtempSync(join(tmpdir(), "pupitre-grant-"));
 
-mock.module("electron", () => ({
-  app: { getPath: () => root },
-}));
+mock.module("electron", () => electronStub(root));
 
 const { byId, noteGrant, write } = await import("../servers");
 

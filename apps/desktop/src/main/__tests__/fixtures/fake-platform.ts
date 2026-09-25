@@ -14,14 +14,6 @@ import type { FleetServer } from "@shared/servers";
 import type { Sealer } from "../../account-vault";
 import type { EnrollInput, PlatformClient } from "../../platform-client";
 
-/**
- * A platform that answers from memory.
- *
- * It replays the shapes the contract fixes — a device code, a session, a
- * device, an enrolment — so the account can be exercised without a network and
- * without the API's own harness, which the integration test uses instead.
- */
-
 const MASK = 0x5a;
 
 export const FAKE_TOKEN = "session-1a2b3c-secret";
@@ -38,7 +30,7 @@ export const IDENTITY: AccountIdentity = {
   subscription: null,
 };
 
-/** The mirror of a plan that stopped: what tells a suspension from a plan never chosen. */
+/** What tells a suspension from a plan never chosen. */
 export const CANCELED_SUBSCRIPTION: MeSubscription = {
   current_period_end: "2026-08-31T00:00:00.000Z",
   servers: { limit: 1, used: 1 },
@@ -76,7 +68,6 @@ export interface FakePlatformOptions {
   servers?: FleetServer[];
   backups?: PlatformBackup[];
   keyApprovals?: PendingKeyApproval[];
-  /** What `POST /me/devices` answers instead of adding the device. */
   addDeviceRefusal?: AccountError;
 }
 
@@ -87,11 +78,9 @@ export interface FakePlatform extends PlatformClient {
   switched: string[];
   /** One call per stage of deletion: the first revokes, the second erases. */
   deletions: string[];
-  /** The devices revoked, in order. */
   revokedDevices: string[];
-  /** The restorations noted, as `<backup> on <server>`. */
+  /** As `<backup> on <server>`. */
   restored: string[];
-  /** The approvals submitted, as sent. */
   approvals: KeyApprovalSubmission[];
 }
 

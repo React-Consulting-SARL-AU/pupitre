@@ -22,7 +22,7 @@ const KEY = "MYSQL_APP_PASSWORD";
 
 const VALUE = "Tr0p-secret-pour-un-journal";
 
-/** service.status rides the session sudo opens without a password, service.secret the privileged one opened next. */
+/** `service.status` rides the passwordless sudo session, `service.secret` the privileged one opened next. */
 const REVEALED = ["service-secret.jsonl", "service-secret-only.jsonl"];
 
 function client(fixtures: string | string[]): {

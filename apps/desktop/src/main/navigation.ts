@@ -1,26 +1,12 @@
 import { pathToFileURL } from "node:url";
 import { isLocalPlatform } from "./platform-client";
 
-/**
- * Where the window may go, and where the browser may be sent.
- *
- * The renderer is a page the app ships: it never navigates, and a link it
- * carries opens in the system browser or not at all. What is decided here is
- * decided from the address alone, so a test can read it without a window.
- */
-
 export interface PageRules {
-  /** The dev server's address, when electron-vite serves the page. */
   devUrl: string | undefined;
-  /** The bundled page, when it does not. */
   indexFile: string;
 }
 
-/**
- * A development build also opens the console running beside it, which speaks
- * plain HTTP on this computer. Everywhere else the browser only ever leaves for
- * an https address.
- */
+/** A development build may also open the plain-HTTP console running on this computer. */
 export function openable(url: string, packaged: boolean): boolean {
   if (url.startsWith("https://")) {
     return true;
@@ -37,7 +23,6 @@ function withoutFragment(url: URL): string {
   return bare.toString();
 }
 
-/** The app's own page, and nothing else: the one place the window may navigate to. */
 export function ownPage(url: string, rules: PageRules): boolean {
   let target: URL;
 
@@ -55,7 +40,7 @@ export function ownPage(url: string, rules: PageRules): boolean {
         return true;
       }
     } catch {
-      // A dev address that is not one: the bundled page is what is left.
+      // A malformed dev address falls through to the bundled page.
     }
   }
 

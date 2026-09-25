@@ -3,25 +3,17 @@ import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import type { Server } from "@shared/servers";
-
-/**
- * What this file proves: the list of servers on disk survives what happens
- * around it. A write lands whole or not at all, and a write that waited on
- * something does not erase what was written meanwhile.
- */
+import { electronStub } from "./electron-stub";
 
 const root = mkdtempSync(join(tmpdir(), "pupitre-servers-file-"));
 
-mock.module("electron", () => ({
-  app: { getPath: () => root },
-}));
+mock.module("electron", () => electronStub(root));
 
 const { add, corruptPath, noteGrant, read, remove, write } = await import(
   "../servers"
 );
 
-// The module is shared with the other server tests of the run, and so is the
-// folder it was first pointed at: the file is the one it really writes.
+// The module is shared across the run's server tests, so the real path comes from the module, not `root`.
 const FILE = corruptPath().replace(/\.corrupt$/, "");
 const DIR = dirname(FILE);
 

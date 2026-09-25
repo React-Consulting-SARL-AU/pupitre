@@ -5,17 +5,9 @@ import {
   versionedFile,
 } from "./store-migrations";
 
-/**
- * The local port a forward last took, per server and remote port.
- *
- * A database client keeps a saved connection on `127.0.0.1:55001`; a forward
- * that came back on 55002 the next day breaks it for no reason. So the port
- * is written down, and asked for again — when it is still free. The file
- * carries its revision like every file the app keeps.
- */
-
 const MAX_PORT = 65_535;
 
+/** A database client saves `127.0.0.1:<port>`: a forward reopened on another port would break it. */
 export interface ForwardMemory {
   recall: (serverId: string, remotePort: number) => number | null;
   remember: (serverId: string, remotePort: number, localPort: number) => void;
@@ -70,17 +62,10 @@ function portsIn(file: VersionedFile): Ports {
   return held.status === "read" ? portsOf(held.document) : {};
 }
 
-/** What the file holds, brought to today's shape; nothing on a file we cannot read. */
 export function readForwardMemory(path: string): { ports: Ports } {
   return { ports: portsIn(forwardsFile(path)) };
 }
 
-/**
- * The memory, on disk at `path`.
- *
- * A file written by a newer version of the app is read and never written: the
- * ports it holds are still good, the shape it has is not ours to change.
- */
 export function forwardMemory(path: string): ForwardMemory {
   const file = forwardsFile(path);
   const ports = portsIn(file);
@@ -105,6 +90,7 @@ export function forwardMemory(path: string): ForwardMemory {
       }
 
       ports[serverId] = { ...ports[serverId], [String(remotePort)]: localPort };
+
       save();
     },
   };

@@ -32,6 +32,24 @@ const COPY_ATTR_RE = new RegExp(
   "g"
 );
 
+const WORDING_ATTRS = new Set(["title", "label", "aria-label"]);
+
+const COPY_PROPS = COPY_ATTRS.filter((attr) => !WORDING_ATTRS.has(attr));
+
+/** A copy property set outside JSX, such as a completion's `help: "projet"`. */
+const COPY_PROP_RE = new RegExp(
+  `\\b(?:${COPY_PROPS.join("|")})\\s*:\\s*(["'\`])((?:\\\\.|(?!\\1).)*?[A-Za-z](?:\\\\.|(?!\\1).)*?)\\1`,
+  "g"
+);
+
+// `label` and `title` also name data (a port called "web"), so only a phrase counts.
+const WORDING_PROP_RE =
+  /\b(?:label|title)\s*:\s*(["'`])((?:\\.|(?!\1).)*?\s(?:\\.|(?!\1).)*?)\1/g;
+
+const DICTIONARY_KEY_RE = /^[a-z][\w-]*(?:\.[\w-]+)+$/;
+
+const TEMPLATE_HOLE = "${";
+
 const JSX_TEXT_RE =
   /(?<![=<>/])>\s*([^<>{}()\n;=]*?[A-Za-z][^<>{}()\n;=]*?)\s*</g;
 
@@ -82,13 +100,7 @@ function walk(dir, out) {
   }
 }
 
-/**
- * The source with comments removed, in two projections. `masked` keeps string
- * and JSX text, so an accent left in copy is still seen; `codeOnly` also blanks
- * quoted and templated bodies, so a JSX text node is read on its own rather than
- * a string literal's contents standing in for one. Blanking keeps offsets, so a
- * match still maps back to its line.
- */
+/** Comments blanked (and string bodies too in `codeOnly`) without moving offsets, so matches map to lines. */
 class Projection {
   constructor(source) {
     this.source = source;
@@ -234,6 +246,21 @@ function scan(file) {
     });
   }
 
+  for (const match of [
+    ...masked.matchAll(COPY_PROP_RE),
+    ...masked.matchAll(WORDING_PROP_RE),
+  ]) {
+    const text = match[2].trim();
+
+    if (!(DICTIONARY_KEY_RE.test(text) || text.includes(TEMPLATE_HOLE))) {
+      violations.push({
+        line: lineOf(masked, match.index),
+        why: "copy property",
+        text: text.slice(0, 60),
+      });
+    }
+  }
+
   for (const match of isTsx ? codeOnly.matchAll(JSX_TEXT_RE) : []) {
     const text = match[1].trim();
 
@@ -267,8 +294,9 @@ function scan(file) {
 
 function main() {
   const files = [];
+
   walk(RENDERER, files);
-  // The main process no longer phrases anything: it names a dictionary entry.
+  // The main process names dictionary entries too, so it must hold no phrase either.
   walk(MAIN, files);
 
   const found = [];
@@ -281,6 +309,7 @@ function main() {
 
   if (found.length === 0) {
     process.stdout.write("check-i18n: no hard-coded interface strings\n");
+
     return;
   }
 
@@ -288,6 +317,7 @@ function main() {
 
   for (const v of found) {
     const rel = relative(join(HERE, ".."), v.file);
+
     process.stderr.write(`${rel}:${v.line}  [${v.why}]  ${v.text}\n`);
   }
 

@@ -1,14 +1,7 @@
 import { ownPage, type PageRules } from "./navigation";
 import { trace } from "./trace";
 
-/**
- * A channel of the bridge, answered only to the app's own page and only for
- * arguments of the shape it takes.
- *
- * Both refusals reject the call rather than answer it: the page the app ships
- * never sends either, so what reaches them is a bug or someone else's frame,
- * and neither gets a phrase to show.
- */
+// Refusals throw instead of answering: the shipped page never sends either, so one is a bug or a foreign frame.
 
 type Check<T> = (value: unknown) => value is T;
 
@@ -27,12 +20,11 @@ export interface Sender {
 
 let page: PageRules | null = null;
 
-/** Where the page the app ships is loaded from: set once, before the window opens. */
+/** Set once, before the window opens. */
 export function trustPage(rules: PageRules): void {
   page = rules;
 }
 
-/** The top frame of the app's own page, and nothing embedded in it or navigated elsewhere. */
 export function fromOwnPage(
   frame: Frame | null,
   rules: PageRules | null = page
@@ -50,12 +42,22 @@ export function isNumber(value: unknown): value is number {
   return typeof value === "number";
 }
 
-/** An argument the handler reads field by field, or refuses in its own words. */
+export function isBoolean(value: unknown): value is boolean {
+  return typeof value === "boolean";
+}
+
+export function optional<T>(
+  check: Check<T>
+): (value: unknown) => value is T | undefined {
+  return (value): value is T | undefined => value === undefined || check(value);
+}
+
+/** For an argument the handler reads field by field, or refuses in its own words. */
 export function anything(_value: unknown): _value is unknown {
   return true;
 }
 
-/** The arguments one by one, each against its check; extra arguments are refused too. */
+/** Extra arguments are refused too. */
 export function shape<const C extends readonly Check<unknown>[]>(
   ...checks: C
 ): (args: unknown[]) => Checked<C> | null {
@@ -74,7 +76,6 @@ function refused(channel: string, why: string): IpcRefused {
   return new IpcRefused(`${channel}: ${why}`);
 }
 
-/** The listener `ipcMain.handle` takes, with both checks in front of `run`. */
 export function guarded<E extends Sender, A extends unknown[], R>(
   channel: string,
   parse: (args: unknown[]) => A | null,

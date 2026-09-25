@@ -7,20 +7,6 @@ import type {
 import { verifyToken as verifyCloudflare } from "./cloudflare-api";
 import { refuseWith } from "./refusal";
 
-/**
- * What a token opens, asked of the provider the moment it is given.
- *
- * The bash stack this replaces checked a token at the eighth step, on the
- * machine, once the client had stopped watching. Here a token is weighed at the
- * fifth second, from the laptop, and what comes back is the account name the
- * client would otherwise have had to copy out of a dashboard.
- *
- * One provider cannot be asked: a 1Password service account token authenticates
- * the `op` CLI and answers no call from here. It is held unnamed rather than
- * labelled with a guess, and the server says at install whether it opens a
- * vault.
- */
-
 const GITHUB = "https://api.github.com/user";
 
 const NEON = "https://console.neon.tech/api/v2/users/me";
@@ -31,14 +17,9 @@ const SUPABASE = "https://api.supabase.com/v1/profile";
 
 const STRIPE = "https://api.stripe.com/v1/account";
 
-/** A provider that has not answered by then is not going to: the field is owed a refusal. */
 const CALL_MS = 20_000;
 
-/**
- * The provider's own message, never the token, and never a stack. A failure
- * whose cause is known names its own refusal, so the screen can say what to
- * add rather than that something was refused.
- */
+/** Carries the provider's own message, never the token nor a stack. */
 export class TokenError extends Error {
   readonly refusal: string | null;
 
@@ -49,7 +30,6 @@ export class TokenError extends Error {
   }
 }
 
-/** A token refused, worded by its cause when the cause is known, by the provider otherwise. */
 export function tokenRefusal(
   kind: ConnectionKind,
   failure: unknown,
@@ -92,7 +72,7 @@ async function read(
   return body;
 }
 
-/** GitHub numbers its accounts, Neon and Cloudflare name them with a string. */
+/** GitHub ids are numbers; the other providers use strings. */
 function text(value: unknown): string {
   if (typeof value === "number") {
     return String(value);
@@ -131,7 +111,6 @@ async function neon(
   return { id, name: named ?? id };
 }
 
-/** Vercel wraps the user; the username is what the CLI prints, the email what the client recognises. */
 async function vercel(
   token: string,
   fetcher: typeof fetch
@@ -165,7 +144,6 @@ async function supabase(
   return { id, name: named ?? id };
 }
 
-/** A Stripe key opens one account, named as its dashboard shows it. */
 async function stripe(
   token: string,
   fetcher: typeof fetch
@@ -187,7 +165,6 @@ async function stripe(
   return { id, name: named ?? id };
 }
 
-/** One Cloudflare token may open several accounts; all of them come back, for the client to pick from. */
 async function cloudflare(
   token: string,
   fetcher: typeof fetch
@@ -205,11 +182,7 @@ async function cloudflare(
   return accounts.map((one) => ({ id: one.id, name: one.name || one.id }));
 }
 
-/**
- * Reads what a token opens, or returns null for a provider with nothing to ask.
- * A refusal throws: a token that does not work is caught here, not on the
- * machine, and never written to the keychain.
- */
+/** Null for a provider with nothing to ask, such as a 1Password service account token. */
 export async function accountsOfToken(
   kind: ConnectionKind,
   token: string,
@@ -234,10 +207,6 @@ export async function accountsOfToken(
   }
 }
 
-/**
- * The account the app acts on among those a token opens: the one the client
- * named, or the only one there is. Several and no name is a choice still owed.
- */
 export function chosenAccount(
   accounts: readonly ConnectionAccount[],
   wanted: string | null
@@ -249,15 +218,7 @@ export function chosenAccount(
   return accounts.length === 1 ? (accounts[0] ?? null) : null;
 }
 
-/**
- * A held token, weighed again, on the account it was connected for.
- *
- * A token revoked on the provider's side says nothing until an install fails
- * on it; asking from the settings is how a reader learns it first. The refusal
- * carries the provider's own words, never the token. A token that still works
- * but no longer opens the account it was connected for is refused too: the
- * zones, the tunnel and the deployments the app reads are that account's.
- */
+/** A working token that no longer opens its connected account is refused: the app reads that account's data. */
 export async function checkToken(
   kind: ConnectionKind,
   token: string,

@@ -17,15 +17,6 @@ import {
   versionedFile,
 } from "./store-migrations";
 
-/**
- * The client's third-party accounts, and nothing of their servers.
- *
- * One token per provider, each through the system keychain, only its ciphertext
- * touching the disk, like the platform's. Nothing of a server is kept here: a
- * tunnel is held by the machine that runs it, so a laptop that is reinstalled
- * finds every server of the account again with nothing but these tokens.
- */
-
 const DIR_MODE = 0o700;
 const FILE_MODE = 0o600;
 
@@ -33,9 +24,8 @@ export interface ConnectionVault {
   sealed: () => boolean;
   token: (kind: ConnectionKind) => string | null;
   account: (kind: ConnectionKind) => ConnectionAccount | null;
-  /** What a connection keeps beside its token that is not a secret: a bucket's address, a public key. */
+  /** Non-secret values kept beside the token: a bucket's address, a public key. */
   settings: (kind: ConnectionKind) => Record<string, unknown> | null;
-  /** True once a token is held, whether or not the provider could name it. */
   holds: (kind: ConnectionKind) => boolean;
   connect: (
     kind: ConnectionKind,
@@ -102,6 +92,7 @@ export function createConnectionVault({
 
     try {
       const value = sealer.decrypt(readFileSync(path));
+
       held.set(kind, value);
 
       return value;
@@ -112,7 +103,6 @@ export function createConnectionVault({
     }
   }
 
-  /** A record written before the ledger is brought to today's shape, and written back once. */
   function record(kind: ConnectionKind): JsonObject | null {
     const file = recordFile(recordPath(kind));
     const held = file.read();
@@ -146,11 +136,7 @@ export function createConnectionVault({
     settings,
     token,
 
-    /**
-     * A record file is written for every connection, named account or not: it
-     * is what says a token was given, on a computer whose keychain refuses to
-     * hold one.
-     */
+    // The record, not the token file, says a token was given: a refusing keychain keeps no token file.
     holds(kind) {
       return existsSync(recordPath(kind));
     },

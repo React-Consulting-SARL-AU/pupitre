@@ -9,33 +9,13 @@ import {
 } from "node:fs";
 import { basename, dirname, join } from "node:path";
 
-/**
- * The app's own configuration, brought to the shape this version reads.
- *
- * The same ledger the agent keeps for /etc/pupitre, on the files the app writes
- * in its data folder. The app updates itself too, and a reader who came back
- * after three releases has a `servers.json` written by the version they left.
- * Reading it as if it were today's shape is how a list of servers turns into an
- * empty screen.
- *
- * The rules are the agent's, and for the same reasons:
- *
- * - The revision is a counter, never a version number. Shapes change far less
- *   often than the app ships.
- * - An identifier is fixed for good: it is what the file remembers.
- * - A migration takes plain JSON and returns plain JSON. Decoding into a type
- *   from today's code would drop, on the way through, every field that type no
- *   longer names — which is what the migration exists to carry over.
- * - A migration is idempotent, and a no-op on what it does not recognise.
- * - The file it changes is copied first, once per batch: a reader who has to go
- *   back to the previous version of the app finds their servers there.
- */
-
 export type JsonObject = Record<string, unknown>;
 
 export interface StoreMigration {
+  /** A counter fixed for good, never a version number: it is what the file remembers. */
   id: number;
   slug: string;
+  /** Plain JSON in and out, idempotent: decoding into today's type would drop the fields it carries over. */
   apply: (document: JsonObject) => JsonObject;
 }
 
@@ -61,13 +41,7 @@ function revisionOf(document: JsonObject): number {
     : 0;
 }
 
-/**
- * A file written by a newer version of the app is left exactly as it is.
- *
- * Running today's migrations over tomorrow's shape would not repair it, and
- * rewriting it would take from the reader the version that does read it. The
- * caller sees a revision it did not ask for and says so.
- */
+/** A file from a newer version is returned untouched: today's migrations cannot repair tomorrow's shape. */
 export function migrate(
   document: JsonObject,
   migrations: readonly StoreMigration[]
@@ -98,9 +72,7 @@ export function migrate(
   };
 }
 
-/** Where a file's bytes come from and go to: the disk, or a test's map. */
 export interface StoreIo {
-  /** The text, or `null` when there is no such file. */
   read: (path: string) => string | null;
   write: (path: string, text: string) => void;
 }
@@ -114,10 +86,7 @@ function missing(failure: unknown): boolean {
   return (failure as NodeJS.ErrnoException | null)?.code === "ENOENT";
 }
 
-/**
- * Written aside and renamed over: a crash in the middle leaves either the
- * previous file or the new one, never a truncated one.
- */
+/** Written aside and renamed over: a crash leaves the previous file or the new one, never a truncated one. */
 export function writeAtomically(
   path: string,
   text: string,
@@ -164,13 +133,7 @@ export function diskIo(modes: FileModes = {}): StoreIo {
   };
 }
 
-/**
- * The file as it was, kept beside itself under the revision it held.
- *
- * One copy per revision, never overwritten: the first migration away from a
- * shape is the one worth keeping, and a batch replayed on a repaired file must
- * not erase what the reader would go back to.
- */
+/** Never overwritten: a batch replayed on a repaired file must not erase what a rollback would go back to. */
 export function keepCopy(
   path: string,
   revision: number,
@@ -206,12 +169,10 @@ export type VersionedRead =
 
 export interface VersionedFile {
   readonly path: string;
-  /** The revision this code writes. */
   readonly version: number;
   read: () => VersionedRead;
-  /** Written by a newer version of the app: read, never written. */
+  /** Written by a newer version of the app: read, never written, so a rollback finds it whole. */
   frozen: () => boolean;
-  /** Stamped and written whole; `false` when the file is frozen. */
   write: (document: JsonObject) => boolean;
   corruptPath: () => string;
 }
@@ -221,7 +182,6 @@ export interface VersionedFileOptions {
   migrations: readonly StoreMigration[];
   /** The revision the file was stamped with before its first migration. */
   baseline?: number;
-  /** A document of the right revision that still is not this file's shape. */
   valid?: (document: JsonObject) => boolean;
   modes?: FileModes;
   io?: StoreIo;
@@ -231,14 +191,6 @@ function isObject(value: unknown): value is JsonObject {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/**
- * One file the app keeps, with its ledger around it.
- *
- * Reading migrates and keeps the previous shape beside the file; a file that
- * does not parse is copied to `<file>.corrupt` before anything can write over
- * it; a file stamped by a newer version is frozen, so the version that reads it
- * finds it as it left it after a rollback.
- */
 export function versionedFile(options: VersionedFileOptions): VersionedFile {
   const { path, migrations } = options;
   const io = options.io ?? diskIo(options.modes);
@@ -325,11 +277,7 @@ export function versionedFile(options: VersionedFileOptions): VersionedFile {
   };
 }
 
-/**
- * The copies go when the file goes. A sign-out that left the previous shape of
- * an account record beside itself would keep on disk exactly what the reader
- * asked to be rid of.
- */
+/** A sign-out that left an older copy of the account record behind would keep what the reader asked to erase. */
 export function forgetCopies(path: string): void {
   const dir = dirname(path);
   const prefix = `${basename(path)}.r`;
@@ -341,6 +289,6 @@ export function forgetCopies(path: string): void {
       }
     }
   } catch {
-    // The folder is not there, so neither is any copy of anything.
+    // No folder, no copy.
   }
 }

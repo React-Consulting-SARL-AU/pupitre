@@ -85,6 +85,7 @@ describe("la copie d'avant la migration", () => {
   it("garde le fichier sous la révision qu'il portait", () => {
     const dir = folder();
     const path = join(dir, "servers.json");
+
     writeFileSync(path, `{"version":2}`);
 
     const copy = keepCopy(path, 2);
@@ -96,6 +97,7 @@ describe("la copie d'avant la migration", () => {
   it("n'écrase pas une copie déjà prise de cette révision", () => {
     const dir = folder();
     const path = join(dir, "servers.json");
+
     writeFileSync(path, `{"version":2}`);
     keepCopy(path, 2);
 
@@ -108,6 +110,7 @@ describe("la copie d'avant la migration", () => {
   it("s'en va avec le fichier qu'elle double", () => {
     const dir = folder();
     const path = join(dir, "account.json");
+
     writeFileSync(path, "{}");
     keepCopy(path, 0);
 
@@ -129,6 +132,7 @@ describe("un fichier versionné", () => {
 
   it("migre à la lecture, garde la forme d'avant et s'écrit estampillé", () => {
     const { path, store } = file();
+
     writeFileSync(path, JSON.stringify({ tz: "UTC", version: 1 }));
 
     const held = store.read();
@@ -150,6 +154,7 @@ describe("un fichier versionné", () => {
   it("ne réécrit jamais un fichier d'une version plus récente", () => {
     const { path, store } = file();
     const newer = JSON.stringify({ later: true, version: 9 });
+
     writeFileSync(path, newer);
 
     expect(store.read()).toMatchObject({ revision: 9, status: "read" });
@@ -161,6 +166,7 @@ describe("un fichier versionné", () => {
   it("se sait gelé même quand on l'écrit sans l'avoir lu", () => {
     const { path, store } = file();
     const newer = JSON.stringify({ version: 9 });
+
     writeFileSync(path, newer);
 
     expect(store.write({ theme: "dark" })).toBe(false);
@@ -169,6 +175,7 @@ describe("un fichier versionné", () => {
 
   it("met de côté un fichier illisible avant que quoi que ce soit ne l'écrase", () => {
     const { path, store } = file();
+
     writeFileSync(path, "{ pas du json");
 
     expect(store.read()).toEqual({

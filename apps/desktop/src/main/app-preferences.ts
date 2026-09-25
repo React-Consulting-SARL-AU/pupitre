@@ -1,24 +1,21 @@
 import { join } from "node:path";
 import type { StartupState } from "@shared/startup";
-import { app, ipcMain, Notification } from "electron";
+import { app, Notification } from "electron";
 import { currentLanguage } from "./agent";
 import { attentionWatcher } from "./attention";
 import { broadcast } from "./broadcast";
 import { dialogTextIn } from "./dialogs";
 import { HARNESSED } from "./harness";
+import { handle } from "./ipc";
+import { isBoolean, shape } from "./ipc-guard";
 import { type PreferencesStore, preferencesStore } from "./preferences";
 import { describeSession, onStates } from "./terminals";
-
-/**
- * What the app does outside its window, as the reader set it: a notification
- * when a session waits, and opening with the session.
- */
 
 const STARTUP_PLATFORMS: NodeJS.Platform[] = ["darwin", "win32"];
 
 let preferences: PreferencesStore | null = null;
 
-/** Read once the data folder is settled, which is after the command line is. */
+/** Read lazily: the data folder is settled only after the command line is. */
 function preferencesOf(): PreferencesStore {
   preferences ??= preferencesStore(
     join(app.getPath("userData"), "preferences.json")
@@ -34,11 +31,7 @@ function startupState(): StartupState {
   };
 }
 
-/**
- * The file is the wish, the system's list of login items is where it lands.
- * Under the harness nothing is registered: a suite is a dozen launches, and
- * none of them should leave the test app in the reader's login items.
- */
+/** Nothing is registered under the harness: a suite must not leave the test app in the login items. */
 function setStartup(enabled: boolean): StartupState {
   preferencesOf().set({ launchAtLogin: enabled });
 
@@ -50,19 +43,19 @@ function setStartup(enabled: boolean): StartupState {
 }
 
 export function registerPreferences(): void {
-  ipcMain.handle(
+  handle(
     "notifications:enabled",
+    shape(),
     () => preferencesOf().read().notifications
   );
-  ipcMain.handle(
+  handle(
     "notifications:set",
-    (_e, enabled: unknown) =>
-      preferencesOf().set({ notifications: enabled === true }).notifications
+    shape(isBoolean),
+    (_e, enabled) =>
+      preferencesOf().set({ notifications: enabled }).notifications
   );
-  ipcMain.handle("startup:state", () => startupState());
-  ipcMain.handle("startup:set", (_e, enabled: unknown) =>
-    setStartup(enabled === true)
-  );
+  handle("startup:state", shape(), () => startupState());
+  handle("startup:set", shape(isBoolean), (_e, enabled) => setStartup(enabled));
 }
 
 function paintBadge(count: number): void {
@@ -73,11 +66,6 @@ function paintBadge(count: number): void {
   }
 }
 
-/**
- * A session that starts waiting while the reader is elsewhere says so once,
- * outside the window. The Dock counts the ones still waiting. Neither happens
- * under the harness, where nothing may reach the screen.
- */
 export function watchAttention({
   bringToFront,
   focused,

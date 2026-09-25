@@ -11,15 +11,6 @@ import { isServerId } from "@shared/ssh-names";
 import type { SudoPasswordState } from "@shared/sudo";
 import type { Sealer } from "./account-vault";
 
-/**
- * The sudo password of each server, through the system keychain.
- *
- * Only its ciphertext touches the disk, one file per server. A computer whose
- * keychain does not answer keeps it for the run and says so: the client is
- * shown it to write down, and the app forgets it on quitting rather than
- * leaving a readable file behind.
- */
-
 const DIR_MODE = 0o700;
 const FILE_MODE = 0o600;
 
@@ -30,6 +21,7 @@ export interface SudoVault {
   forget: (serverId: string) => void;
 }
 
+/** Without a keychain the password lives for the run only, never in a readable file. */
 export function createSudoVault({
   dir,
   sealer,

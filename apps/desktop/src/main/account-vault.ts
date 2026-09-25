@@ -15,15 +15,6 @@ import {
   versionedFile,
 } from "./store-migrations";
 
-/**
- * The session token, and the little that is not one.
- *
- * The token goes through the operating system's keychain — `safeStorage` — and
- * only its ciphertext ever reaches the disk. A computer whose keychain refuses
- * to open keeps the token for the length of the run and says so, rather than
- * falling back to a readable file.
- */
-
 const DIR_MODE = 0o700;
 const FILE_MODE = 0o600;
 
@@ -51,6 +42,7 @@ export const EMPTY_RECORD: AccountRecord = {
 export interface TokenVault {
   sealed: () => boolean;
   token: () => string | null;
+  /** Without a keychain the token lives for the run only, never in a readable file. */
   keep: (token: string) => void;
   record: () => AccountRecord;
   remember: (record: AccountRecord) => void;
@@ -107,7 +99,7 @@ export function createTokenVault({
   }
 
   let file = recordFile(recordPath);
-  /** What a newer version's file could not take: held for the run, never written over it. */
+  // A newer version's file refuses this write: held for the run rather than written over it.
   let unsaved: AccountRecord | null = null;
 
   function remember(record: AccountRecord): void {
@@ -116,12 +108,7 @@ export function createTokenVault({
     }
   }
 
-  /**
-   * A record written by an older version of the app goes back to disk in
-   * today's shape, once. Completing it in memory on every launch would mean
-   * that the day a default changed, every record already written changed
-   * with it. One that does not parse is kept aside as `account.json.corrupt`.
-   */
+  /** Migrated records are written back once: filling defaults in memory would shift them when a default changes. */
   function record(): AccountRecord {
     if (unsaved) {
       return unsaved;

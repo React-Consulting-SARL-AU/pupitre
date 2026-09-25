@@ -17,14 +17,6 @@ import { mutates, READING_COMMANDS, usageError } from "../usage-guard";
 import { echoAgent } from "./fixtures/echo-agent";
 import { type FakeAgent, fakeAgent } from "./fixtures/fake-agent";
 
-/**
- * The usage right in front of the agent, where every channel has to pass.
- *
- * What reads goes through, what acts stops in the client: the proof is that the
- * fake agent never sees the command. Nothing running on the machine is stopped
- * by this path, because nothing is sent.
- */
-
 const MAIN_DIR = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 const CONSOLE_URL = "https://app.pupitre.test/dashboard";
@@ -67,7 +59,6 @@ const SUSPENDED: AccountResponse<UsageRight> = {
   },
 };
 
-/** What stops something on the machine, with enough to call it. */
 const STOPPING: [CommandName, unknown][] = [
   ["project.down", { name: "api" }],
   ["project.restart", { name: "api" }],
@@ -190,10 +181,6 @@ describe("un droit d'usage absent ou expiré", () => {
     });
   }
 
-  /**
-   * The product's promise: nothing that runs is stopped. The refusal is not the
-   * agent's here — the app does not even open the channel.
-   */
   it("n'envoie aucune commande d'arrêt à l'agent, qui n'est jamais lancé", async () => {
     const guarded = client("restricted.jsonl", gateOf(ABSENT));
 
@@ -229,11 +216,6 @@ describe("un droit d'usage absent ou expiré", () => {
   });
 });
 
-/**
- * The point of the whole task: the guard is not a list of channels but the one
- * doorway they all use, so a channel written tomorrow is held by it without
- * anyone remembering to hold it.
- */
 describe("un canal mutant ajouté demain", () => {
   it("est refusé sur toute la surface du contrat, appel, flux et enveloppe", async () => {
     const guarded = client("restricted.jsonl", gateOf(ABSENT));
@@ -333,7 +315,6 @@ describe("les deux sources de refus restent distinctes", () => {
       },
     });
 
-    // The server stays readable despite its restricted mode.
     const status = await guarded.request("srv-1", "status");
 
     expect(status.ok && status.result.projects[0]?.name).toBe("api");

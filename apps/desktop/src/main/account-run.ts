@@ -17,16 +17,6 @@ import type { FleetServer } from "@shared/servers";
 import type { AccountRecord, TokenVault } from "./account-vault";
 import type { EnrollInput, PlatformClient } from "./platform-client";
 
-/**
- * The account, from the code on screen to the right to install.
- *
- * The bearer token is read from the vault at the moment of a call and is never
- * returned, logged or handed to the renderer: what leaves this module is who is
- * signed in and whether Pupitre may work. Seven days without a word from the
- * platform are seven days of work; the eighth is a refusal that says where to
- * go.
- */
-
 const DAY_MS = 86_400_000;
 
 export const TOLERANCE_MS = 7 * DAY_MS;
@@ -42,7 +32,6 @@ const SPACES = /\s+/;
 export interface AccountDeps {
   platform: PlatformClient;
   vault: TokenVault;
-  /** The device's own ed25519 public key, in its OpenSSH one-line form. */
   deviceKey: () => Promise<string>;
   deviceName: () => string;
   build: BuildKind;
@@ -51,7 +40,6 @@ export interface AccountDeps {
   openUrl: (url: string) => void;
 }
 
-/** What the platform said about a new server. The token stays in this module. */
 export interface Enrollment {
   serverId: string;
   release: {
@@ -63,7 +51,6 @@ export interface Enrollment {
   };
 }
 
-/** A published version of the agent, as the platform names it. */
 export interface PublishedAgent {
   version: string;
   arch: string;
@@ -76,12 +63,10 @@ export interface Account {
   signIn: (
     report: (progress: SignInProgress) => void
   ) => Promise<AccountResponse<AccountState>>;
-  /** Stops waiting on the browser: the sign-in under way answers `cancelled` at its next poll. */
   cancelSignIn: () => void;
   signOut: () => AccountState;
   refresh: () => Promise<AccountState>;
   guard: () => AccountResponse<UsageRight>;
-  /** The servers the platform grants this account, whatever its subscription. */
   fleet: () => Promise<AccountResponse<FleetServer[]>>;
   switchOrganization: (organizationId: string) => Promise<AccountState>;
   enroll: (input: EnrollInput) => Promise<AccountResponse<Enrollment>>;
@@ -89,36 +74,17 @@ export interface Account {
     version: string,
     arch: string
   ) => Promise<AccountResponse<Uint8Array>>;
-  /** The version the platform publishes for this architecture, the one a server should reach. */
   latestAgentRelease: (
     arch: string
   ) => Promise<AccountResponse<PublishedAgent>>;
   takeEnrollmentToken: (serverId: string) => string | null;
-  /**
-   * The enrolment the platform granted a server, while its token is unspent.
-   *
-   * A push that failed, or an install refused before the token left, leaves
-   * the seat bought and the token whole: the next attempt reuses it rather than
-   * asking the platform for another row.
-   */
+  /** A failed push keeps the seat bought and the token whole: the next attempt reuses it. */
   heldEnrollment: (serverId: string) => Enrollment | null;
-  /**
-   * Erase the server from the platform, for good.
-   *
-   * The platform deletes in two stages — the first call revokes and leaves
-   * seven days, the second erases the row — and "remove everywhere" asks for
-   * both. A row already gone answers `not_found`, which is the result sought.
-   */
+  /** Calls the two-stage delete twice (revoke, then erase); `not_found` is the result sought. */
   forgetServer: (platformServerId: string) => Promise<AccountResponse<null>>;
-  /** The devices the platform holds for this account, this computer among them. */
   devices: () => Promise<AccountResponse<AccountDevice[]>>;
-  /**
-   * Revokes a device other than this one: its key stops opening the granted
-   * servers. This computer's own device is refused here — signing out is the
-   * gesture for that, and it says what it costs.
-   */
+  /** This computer's own device is refused: signing out is the gesture for that, and it says what it costs. */
   revokeDevice: (deviceId: string) => Promise<AccountResponse<null>>;
-  /** The organization's backups, or one server's when its platform id is given. */
   backups: (
     platformServerId?: string
   ) => Promise<AccountResponse<PlatformBackup[]>>;
@@ -185,10 +151,7 @@ export function usageRightOf(
   };
 }
 
-/**
- * Without a token, the device has no session: a granted usage right — the
- * case of a development build — must not pass itself off as a success.
- */
+/** A development build's granted right must not pass for a session when there is no token. */
 function withoutSession(right: UsageRight): { ok: false; error: AccountError } {
   const refusal = refusalFor(right);
 
@@ -272,6 +235,7 @@ export function createAccount(deps: AccountDeps): Account {
     string,
     { token: string; enrollment: Enrollment }
   >();
+
   let attempt = 0;
 
   function state(): AccountState {
@@ -475,19 +439,14 @@ export function createAccount(deps: AccountDeps): Account {
         identity: identity.result,
       });
     } else if (identity.error.code === "unauthenticated") {
-      // The platform said the session is gone: nothing cached may go on
-      // vouching for it, seven days or seven minutes.
+      // A revoked session voids the cached grace period too.
       deps.vault.clear();
     }
 
     return state();
   }
 
-  /**
-   * `GET /me/servers` asks for a session and nothing else: a member who was
-   * given a server sees it before their organization has any subscription of
-   * its own, which is exactly the case an invitation creates.
-   */
+  // No usage-right guard: an invited member sees granted servers before their organization subscribes.
   async function fleet(): Promise<AccountResponse<FleetServer[]>> {
     const token = deps.vault.token();
 
@@ -563,7 +522,6 @@ export function createAccount(deps: AccountDeps): Account {
     return withToken((token) => deps.platform.latestAgentRelease(token, arch));
   }
 
-  /** The tunnel's three calls need a session, and nothing more: the server already belongs to the account. */
   async function withToken<T>(
     work: (token: string) => Promise<AccountResponse<T>>
   ): Promise<AccountResponse<T>> {
@@ -576,13 +534,6 @@ export function createAccount(deps: AccountDeps): Account {
     return await work(token);
   }
 
-  /**
-   * The active organization, switched from the app.
-   *
-   * What the platform returns replaces the cached identity: the entitlement and
-   * the role are the new organization's, not the old one's, and a refusal
-   * leaves the app exactly where it was.
-   */
   async function switchOrganization(
     organizationId: string
   ): Promise<AccountState> {

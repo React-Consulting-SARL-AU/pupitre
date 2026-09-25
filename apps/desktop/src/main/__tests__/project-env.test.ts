@@ -8,13 +8,6 @@ import {
 } from "../projects-run";
 import { type FakeAgent, fakeAgent } from "./fixtures/fake-agent";
 
-/**
- * The environment file of a project, replayed against the fake agent.
- *
- * What is pinned down: the renderer names a project the list gave, `force`
- * only travels when asked, and what comes back is the keys — never a value.
- */
-
 const SERVER = "srv-1";
 
 let fake: FakeAgent | null = null;

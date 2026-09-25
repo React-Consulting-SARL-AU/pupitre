@@ -11,7 +11,7 @@ import type {
   PlatformBackup,
   RestoreUpdate,
 } from "@shared/backups";
-import { ipcMain, type WebContents } from "electron";
+import type { WebContents } from "electron";
 import { account } from "./account";
 import { agentClient } from "./agent";
 import {
@@ -26,20 +26,14 @@ import {
 } from "./backups-run";
 import { heldBackup, keepBackup } from "./connections";
 import { asAgentError } from "./enrollment-run";
+import { handle } from "./ipc";
+import { anything, isString, shape } from "./ipc-guard";
 import { refuseWith } from "./refusal";
 import { relayTo } from "./relay";
 import { probeBucket } from "./s3";
 import { byId } from "./servers";
 
-/**
- * Backups, wired to this computer: the bucket in the keychain, the platform
- * that lists what the organization holds, and the agent that restores.
- *
- * A restore keeps the private key it derived here, per server, from the
- * configuration to the data — and nowhere else: not on a disk, not in a store,
- * never across the bridge.
- */
-
+// The private key derived for a restore lives here alone, per server: never on disk, in a store or across the bridge.
 const unlocked = new Map<string, Unlocked>();
 
 function forget(serverId: string): void {
@@ -47,12 +41,10 @@ function forget(serverId: string): void {
   unlocked.delete(serverId);
 }
 
-/** A machine a backup's configuration was put on, whose data has not come back yet. */
 export function restoring(serverId: string): boolean {
   return unlocked.has(serverId);
 }
 
-/** The platform's name for a server of the list: the agent's own word first, the grant's otherwise. */
 function platformIdOf(serverId: string): string | null {
   return (
     agentClient.session(serverId)?.server_id ??
@@ -115,7 +107,7 @@ const restoreDeps: SetupDeps & DataDeps = {
 
 function updates(
   sender: WebContents,
-  token: unknown
+  token: string
 ): (update: RestoreUpdate) => void {
   return relayTo<RestoreUpdate>(
     sender,
@@ -125,10 +117,10 @@ function updates(
   );
 }
 
-/** The last word on the update channel: the renderer trusts the answer once every step before it has landed. */
+/** The renderer trusts the answer only once `end` lands, since an answer can overtake its updates. */
 async function ended<T>(
   sender: WebContents,
-  token: unknown,
+  token: string,
   work: Promise<T>
 ): Promise<T> {
   const answer = await work;
@@ -149,10 +141,14 @@ function partsOf(value: unknown): string[] | null {
     : null;
 }
 
-export function registerBackups(): void {
-  ipcMain.handle("backup:connection", () => heldBackup()?.view ?? null);
+function isPassphrase(value: unknown): value is string | null {
+  return value === null || typeof value === "string";
+}
 
-  ipcMain.handle("backup:identity", () => organizationIdentity());
+export function registerBackups(): void {
+  handle("backup:connection", shape(), () => heldBackup()?.view ?? null);
+
+  handle("backup:identity", shape(), () => organizationIdentity());
 
   const connectDeps = {
     derive: deriveBackupIdentity,
@@ -165,17 +161,17 @@ export function registerBackups(): void {
       probeBucket(storage, secret),
   };
 
-  ipcMain.handle("backup:probe", async (_event, input: unknown) => {
+  handle("backup:probe", shape(anything), async (_event, input) => {
     const probed = await probeConnection(input, connectDeps);
 
     return probed.ok ? { ok: true, result: null } : probed;
   });
 
-  ipcMain.handle("backup:connect", (_event, input: unknown) =>
+  handle("backup:connect", shape(anything), (_event, input) =>
     connectBackup(input, connectDeps)
   );
 
-  ipcMain.handle("backup:list", (_event, serverId: unknown) => {
+  handle("backup:list", shape(anything), (_event, serverId) => {
     if (serverId === null) {
       return organizationBackups();
     }
@@ -185,16 +181,10 @@ export function registerBackups(): void {
       : refuseWith("bad_request", "refusal.server.unknown");
   });
 
-  ipcMain.handle(
+  handle(
     "backup:restore-setup",
-    (
-      event,
-      token: unknown,
-      serverId: unknown,
-      backupId: unknown,
-      passphrase: unknown,
-      options: unknown
-    ) => {
+    shape(isString, anything, anything, anything, anything),
+    (event, token, serverId, backupId, passphrase, options) => {
       if (!known(serverId)) {
         return refuseWith("bad_request", "refusal.server.unknown");
       }
@@ -228,16 +218,10 @@ export function registerBackups(): void {
     }
   );
 
-  ipcMain.handle(
+  handle(
     "backup:restore-data",
-    (
-      event,
-      token: unknown,
-      serverId: unknown,
-      backupId: unknown,
-      parts: unknown,
-      passphrase: unknown
-    ) => {
+    shape(isString, anything, anything, anything, isPassphrase),
+    (event, token, serverId, backupId, parts, passphrase) => {
       const named = partsOf(parts);
 
       if (!known(serverId)) {
@@ -259,7 +243,7 @@ export function registerBackups(): void {
           serverId,
           backupId,
           named,
-          typeof passphrase === "string" && passphrase ? passphrase : null,
+          passphrase || null,
           (update: Event) => relay({ event: update, kind: "event" }),
           restoreDeps
         )
@@ -267,7 +251,7 @@ export function registerBackups(): void {
     }
   );
 
-  ipcMain.handle("backup:restore-abort", async (_event, serverId: unknown) => {
+  handle("backup:restore-abort", shape(anything), async (_event, serverId) => {
     if (!known(serverId)) {
       return refuseWith("bad_request", "refusal.server.unknown");
     }

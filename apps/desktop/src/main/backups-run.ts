@@ -28,19 +28,6 @@ import type { CallOptions } from "./agent-client";
 import { refuseWith } from "./refusal";
 import type { ManagedValues } from "./tunnel-run";
 
-/**
- * Backups, seen from the laptop: the bucket it hands the servers, the key they
- * encrypt to, and the restore that needs the passphrase back.
- *
- * The passphrase arrives, is derived here and dropped with the call: nothing
- * of it is written, and only the public key and its salt are kept. The private
- * key a restore derives is held in memory between the configuration and the
- * data — the install and the hardening run in between, and asking the reader
- * twice would be asking them to type a secret for the app's convenience — and
- * is zeroed once the data is back or the restore abandoned.
- */
-
-/** What the keychain holds for the bucket: the settings beside it, and the secret access key. */
 export interface HeldBackup {
   view: BackupConnectionView;
   secret: string;
@@ -54,7 +41,6 @@ export interface DerivedIdentity {
 export interface ConnectDeps {
   held: () => HeldBackup | null;
   keep: (view: BackupConnectionView, secret: string) => void;
-  /** The identity of the organization's most recent backup, from the platform. */
   identity: () => Promise<AgentResponse<OrganizationIdentity | null>>;
   derive: (passphrase: string, salt: string) => Promise<DerivedIdentity>;
   drawSalt: () => string;
@@ -78,7 +64,6 @@ function text(value: unknown): string | null {
   return typeof value === "string" ? value : null;
 }
 
-/** The settings a record kept, when they still have the shape this app writes. */
 export function backupViewOf(
   settings: Record<string, unknown> | null
 ): BackupConnectionView | null {
@@ -107,7 +92,6 @@ export function backupViewOf(
   };
 }
 
-/** The shape of what the form sent, before its values are weighed. */
 export function checkedConnectionInput(
   raw: unknown
 ): BackupConnectionInput | null {
@@ -138,12 +122,7 @@ export function checkedConnectionInput(
   };
 }
 
-/**
- * The identity the connection will hold: a new passphrase draws a new salt,
- * none keeps the one already held, and a first connection without one takes
- * the organization's — a second computer must not need the passphrase to
- * configure, only to restore.
- */
+/** Without a passphrase, a first connection takes the organization's identity: a second computer needs it only to restore. */
 async function identityOf(
   input: BackupConnectionInput,
   deps: ConnectDeps
@@ -192,10 +171,6 @@ async function identityOf(
     : refuseWith("bad_request", "refusal.backup.passphrase.none");
 }
 
-/**
- * The bucket as the reader typed it, written to then cleared: the secret key
- * typed, or the one the keychain holds when none was.
- */
 export async function probeConnection(
   raw: unknown,
   deps: Pick<ConnectDeps, "held" | "probe">,
@@ -274,10 +249,7 @@ export function latestIdentity(
     : null;
 }
 
-/**
- * What `core.backup` takes from the connection at install: every managed field
- * but the secret key in the configuration, the secret key on the secret line.
- */
+/** The secret access key rides the secret line, never the configuration. */
 export function backupManaged(
   modules: readonly string[],
   held: HeldBackup | null,
@@ -316,7 +288,7 @@ export function locationOf(backup: PlatformBackup): BackupLocation {
   };
 }
 
-/** A backup unlocked by its passphrase: the key goes to the agent, and nowhere else. */
+/** Held in memory from setup to data so the passphrase is typed once, then zeroed; it goes to the agent only. */
 export interface Unlocked {
   backup: PlatformBackup;
   privateKey: Buffer;
@@ -331,17 +303,12 @@ type Request = (
 
 export interface RestoreDeps {
   held: () => HeldBackup | null;
-  /** The backups of the organization, from the platform: the one named carries its location and identity. */
   backups: () => Promise<AgentResponse<PlatformBackup[]>>;
   derive: (passphrase: string, salt: string) => Promise<DerivedIdentity>;
   request: Request;
 }
 
-/**
- * The passphrase, checked on this computer against the backup's own public
- * key before anything leaves: a wrong one is refused here, and the machine is
- * never asked to try it.
- */
+/** Checked here against the backup's public key: a wrong passphrase never reaches the machine. */
 export async function unlockBackup(
   backupId: string,
   passphrase: string,
@@ -390,13 +357,7 @@ export interface SetupDeps extends RestoreDeps {
   remember: (serverId: string, unlocked: Unlocked) => void;
 }
 
-/**
- * The configuration of a backup, put on a machine.
- *
- * A revert may first save the machine as it stands — what lets a reader go
- * back on going back. That save runs only once the passphrase is known good:
- * a typing mistake must not cost a backup of several minutes.
- */
+/** The save before a revert runs only once the passphrase is known good: a typo must not cost a long backup. */
 export async function restoreSetup(
   serverId: string,
   backupId: string,
@@ -462,18 +423,12 @@ export async function restoreSetup(
 export interface DataDeps extends RestoreDeps {
   recall: (serverId: string) => Unlocked | null;
   forget: (serverId: string) => void;
-  /** The console learns what the machine now runs; a silence costs a stale console, nothing else. */
+  /** A failure costs a stale console, nothing else. */
   sync: (serverId: string) => Promise<unknown>;
   noteRestored: (backupId: string, serverId: string) => Promise<unknown>;
 }
 
-/**
- * The data of a backup, brought back once its modules stand.
- *
- * The key held since the configuration is used when it is this backup's; a
- * relaunched app holds none, and asks the passphrase again rather than going
- * on without it.
- */
+/** A relaunched app no longer holds the key from setup, and asks the passphrase again. */
 export async function restoreData(
   serverId: string,
   backupId: string,

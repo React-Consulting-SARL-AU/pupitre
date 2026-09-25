@@ -12,14 +12,6 @@ import {
 } from "../projects-run";
 import { type FakeAgent, fakeAgent } from "./fixtures/fake-agent";
 
-/**
- * The git and driving commands of an open project, replayed against the fake
- * agent.
- *
- * What these pin down is the guard: the renderer names a project, and a name
- * the agent never declared becomes a refusal rather than a request.
- */
-
 const SERVER = "srv-1";
 
 let fake: FakeAgent | null = null;
@@ -102,8 +94,7 @@ describe("les commandes d'un projet ouvert", () => {
 
     await listProjects(SERVER, shared);
 
-    // The registry folder is what the list gives, and it is enough to open a
-    // terminal; the repository sits one level above it.
+    // In this fixture the repository sits one level above the registry folder.
     expect(projectFolder(SERVER, "flyleaf-api")).toBe(
       "/home/dev/projects/flyleaf/api"
     );

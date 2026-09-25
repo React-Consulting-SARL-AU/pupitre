@@ -4,12 +4,6 @@ import { objectAddress, type ProbeDeps, probeBucket, signV4 } from "../s3";
 /** AWS's documented example key, split so the commit hook's secret scan does not take it for a real one. */
 const EXAMPLE_KEY_ID = ["AKIA", "IOSFODNN7EXAMPLE"].join("");
 
-/**
- * The signer against the example AWS publishes for Signature Version 4
- * ("GET Object", examplebucket, 24 May 2013), and the probe against the
- * answers S3 gives for each way a connection can be wrong.
- */
-
 const EMPTY_HASH =
   "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 

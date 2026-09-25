@@ -329,11 +329,7 @@ describe("le canal", () => {
     agent.closeAll();
   });
 
-  /**
-   * The agent writes its report once the configuration is validated, so the
-   * previous run's finished report stays on the machine while this one is
-   * being weighed: a cut then must not hand that report over as this one's.
-   */
+  // The previous run's report stays on the machine until this run's configuration is validated.
   it("refuse un rapport fini quelques minutes avant la demande", async () => {
     const { agent, fake } = client([
       "install-cut.jsonl",
@@ -404,12 +400,7 @@ describe("le canal", () => {
     agent.closeAll();
   });
 
-  /**
-   * The agent handles one request at a time: a command it is still on would
-   * hold the next one behind it, and the next one would time out in turn. The
-   * session is cut with the timeout, and the following command opens a fresh
-   * one — the agent finishes the old command on its own.
-   */
+  // The agent handles one request at a time: a command still running would make the next one time out too.
   it("coupe la session sur un timeout, et la suivante repart sur une session neuve", async () => {
     const { agent, fake } = client(
       ["snapshot-timeout.jsonl", "snapshot-loop.jsonl"],
@@ -521,12 +512,7 @@ describe("le canal", () => {
   });
 });
 
-/**
- * A followed journal holds its channel until the reader leaves, not until the
- * agent answers: the service panel shows the journal and the configuration
- * form side by side, and applying the form must not wait for the reader to
- * close the panel.
- */
+// A followed journal holds its channel until the reader leaves, while the form beside it must still apply.
 describe("un journal suivi", () => {
   it("laisse partir un install sans attendre que le lecteur s'en aille", async () => {
     const { agent, fake } = client([
@@ -569,12 +555,7 @@ describe("un journal suivi", () => {
   });
 });
 
-/**
- * A follow the reader lets go of is killed with its channel — the agent has no
- * other way to hear it yet. The cost of that has to stay on the follow channel:
- * a gesture must not wait behind the reopening, and the killed process must
- * not be spoken to again.
- */
+// The agent has no cancel yet: a dropped follow is killed with its channel, and only that channel pays.
 describe("un suivi annulé", () => {
   it("repart sur un processus neuf, sans que le canal de contrôle paie la reconnexion", async () => {
     const { agent, fake } = client([
@@ -713,10 +694,7 @@ describe("la détection d'un projet", () => {
   });
 });
 
-/**
- * The dashboard reads the machine on a timer, and that read holds a channel
- * for most of a second: a folder clicked meanwhile must not sit behind it.
- */
+// A timer read holds its channel for most of a second: a gesture meanwhile must not sit behind it.
 describe("une lecture sur minuterie", () => {
   it("passe par le canal du battement, laissant un geste partir tout de suite", async () => {
     const { agent, fake } = client([
@@ -762,11 +740,6 @@ describe("une lecture sur minuterie", () => {
   });
 });
 
-/**
- * A channel carries one command at a time. A screen that shows nothing while a
- * request waits its turn is the difference between a machine at work and a
- * request that never left, and the caller is the only one who can say it.
- */
 describe("une commande qui attend son tour", () => {
   it("le dit à qui l'a demandée, et pas à celle qui part tout de suite", async () => {
     const { agent } = client("snapshot-loop.jsonl");
@@ -938,13 +911,7 @@ describe("un canal qui refuse de s'ouvrir", () => {
 });
 
 describe("la commande serve selon le compte", () => {
-  /**
-   * `pupitred serve` is a root process. Once hardening has closed root, the app
-   * logs in as dev, where a bare serve reads neither the token nor the
-   * entitlement cache — both 0600 root — and answers entitlement_required for
-   * every command. sudo runs exactly `pupitred serve` for dev without a
-   * password, so the channel asks for it.
-   */
+  // As dev, a bare serve cannot read the 0600 root token and answers entitlement_required to everything.
   it("passe par sudo pour un compte non-root", () => {
     expect(serveAs("dev")).toBe("sudo -n pupitred serve");
     expect(serveAs("deploy")).toBe("sudo -n pupitred serve");
@@ -958,11 +925,7 @@ describe("la commande serve selon le compte", () => {
     expect(privilegedServeAs("root")).toBe("pupitred serve --privileged");
   });
 
-  /**
-   * sudo reads the password on the first line only when the rule asks for one:
-   * under the rule of before, the line would reach pupitred as a request, so the
-   * shell takes it first.
-   */
+  // Under a passwordless sudo rule the password line would reach pupitred as a request.
   it("fait lire le mot de passe par sudo, et par le shell quand sudo n'en veut pas", () => {
     const command = privilegedServeAs("dev");
 
@@ -1064,12 +1027,7 @@ describe("le canal privilégié", () => {
     agent.closeAll();
   });
 
-  /**
-   * sudo writes its prompt before every read of the password: a second prompt
-   * is the first password refused, and the hello the app sent after it is being
-   * read as the next attempt. The channel is cut, and not reopened on the same
-   * password until the caller says it changed.
-   */
+  // A second sudo prompt means the password was refused and the hello is being read as the next attempt.
   it("coupe au second prompt de sudo et le dit, sans rejouer le même mot de passe", async () => {
     const opened: ReturnType<typeof scripted>[] = [];
     const agent = createAgentClient({
@@ -1183,13 +1141,7 @@ describe("le mot de passe d'un canal ssh privilégié", () => {
 });
 
 describe("le serveur d'un canal", () => {
-  /**
-   * A channel belongs to its machine and no other.
-   *
-   * Falling back to another one — the active machine, say — would run on it
-   * what was meant for the one that disappeared. No convenience buys back that
-   * kind of substitution.
-   */
+  // Falling back to the active machine would run on it what was meant for the one that disappeared.
   it("ne se rabat sur aucune autre quand elle est inconnue", async () => {
     const agent = createAgentClient({
       spawn: sshSpawn((serverId) => {
@@ -1217,14 +1169,7 @@ describe("le serveur d'un canal", () => {
 });
 
 describe("un ssh qui meurt vite", () => {
-  /**
-   * `exit` arrives before stderr is handed over.
-   *
-   * Node reports the process ending as soon as it stops, but the streams are
-   * only flushed at `close`. Keying on `exit` lost `ssh`'s complaint when it
-   * arrived a few milliseconds too late — and the screen had nothing but an
-   * exit code to show.
-   */
+  // Node emits `exit` before the streams are flushed at `close`: keying on `exit` lost ssh's complaint.
   function dyingProcess(): { child: EventEmitter; stderr: EventEmitter } {
     const stderr = new EventEmitter() as EventEmitter & {
       setEncoding: () => void;
@@ -1284,13 +1229,7 @@ describe("un ssh qui meurt vite", () => {
   });
 });
 
-/**
- * A process standing in for `ssh`: the test decides what it writes and when.
- *
- * `written` is what the app sent it, line by line; `say` answers on its output,
- * `die` ends it. Nothing here is a transcript, which is the point — these are
- * the shapes no transcript can replay: silence, floods, a broken pipe.
- */
+/** A stand-in for `ssh` for the shapes no transcript can replay: silence, floods, a broken pipe. */
 function scripted(): {
   child: ChildProcess;
   written: string[];

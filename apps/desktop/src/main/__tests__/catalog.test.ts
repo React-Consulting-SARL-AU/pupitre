@@ -4,12 +4,6 @@ import { type AgentClient, createAgentClient } from "../agent-client";
 import { catalogCache } from "../catalog-cache";
 import { type FakeAgent, fakeAgent } from "./fixtures/fake-agent";
 
-/**
- * The catalogue as it crosses the channel: what the agent declares is what the
- * client hands over. Two transcripts, one module apart, and no line of this
- * file names a module.
- */
-
 let agent: FakeAgent | null = null;
 
 function client(fixture: string): AgentClient {
@@ -67,17 +61,13 @@ describe("la commande catalog", () => {
   });
 });
 
-/**
- * The catalogue is one agent's, over one session. Closing the channels —
- * an upgrade, a re-push, another account — or a hello that names another
- * version means another agent may answer, and what it declares is asked again.
- */
 describe("le catalogue gardé d'un serveur", () => {
   async function until(condition: () => boolean): Promise<boolean> {
     for (let i = 0; i < 200; i += 1) {
       if (condition()) {
         return true;
       }
+
       await new Promise((resolve) => setTimeout(resolve, 10));
     }
 

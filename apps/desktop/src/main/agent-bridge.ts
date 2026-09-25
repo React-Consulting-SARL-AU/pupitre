@@ -7,15 +7,7 @@ import type { AgentResponse } from "@shared/agent";
 import { carriesCredential } from "@shared/services";
 import { refuseWith } from "./refusal";
 
-/**
- * The commands the renderer may name on `agent:call` and `agent:stream`.
- *
- * It is the exact set the screens issue today. Everything else either has a
- * channel of its own, where the main process adds what the renderer must not
- * hold — the secrets of an install, the token of an enrolment, the path of a
- * project — or has no screen that asks for it. A command added to the contract
- * is refused here until a screen needs it and says so.
- */
+/** Allow-list: a new protocol command stays refused here until a screen needs it. */
 export const BRIDGE_COMMANDS: ReadonlySet<CommandName> = new Set<CommandName>([
   "snapshot",
   "processes.list",
@@ -57,13 +49,10 @@ export interface BridgeCall {
 }
 
 export interface BridgeDeps {
-  /** Whether this identifier names a server of the app's configuration. */
   knows: (serverId: string) => boolean;
-  /** Whether that server's agent listed this service, as it last answered. */
   declaresService: (serverId: string, id: string) => boolean;
 }
 
-/** The commands that name a service by its `id`, and drive it. */
 const SERVICE_COMMANDS: ReadonlySet<CommandName> = new Set<CommandName>([
   "service.start",
   "service.stop",
@@ -76,14 +65,6 @@ export function isRefusal(
   return "ok" in value;
 }
 
-/**
- * What the renderer is allowed to ask, checked before it becomes a request.
- *
- * The renderer names a server and a command of the protocol; this checks the
- * server against the configuration, the command against the bridge's own list,
- * the parameters against that command's schema, and a service's id against
- * the list the agent itself last gave. Nothing free-form reaches the channel.
- */
 export function checkedCall(
   serverId: unknown,
   cmd: unknown,
@@ -113,14 +94,12 @@ export function checkedCall(
     return refuseWith("bad_request", "refusal.params.invalid", { cmd });
   }
 
-  // A credential is not something a store may hold: those results are read by
-  // the Services channels, which keep the values on this side.
+  // Credential results stay in the main process, read through the Services channels.
   if (carriesCredential(cmd)) {
     return refuseWith("bad_request", "refusal.bridge.credential", { cmd });
   }
 
-  // A secret never crosses the bridge: the flows that carry one send it from the
-  // main process, on the line that follows the request.
+  // Secrets never cross the bridge: the main process sends them itself on the secret line.
   if ((parsed.data as { secrets_stdin?: unknown }).secrets_stdin === true) {
     return refuseWith("bad_request", "refusal.bridge.secret", { cmd });
   }

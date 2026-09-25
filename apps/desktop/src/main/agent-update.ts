@@ -6,7 +6,7 @@ import type {
   AgentUpdateState,
   AgentUpgradeOutcome,
 } from "@shared/agent-update";
-import { ipcMain, type WebContents } from "electron";
+import type { WebContents } from "electron";
 import { account } from "./account";
 import { agentClient } from "./agent";
 import { carriedRelease } from "./agent-binary";
@@ -21,18 +21,13 @@ import { appVersion } from "./app-version";
 import { declaredModules } from "./catalog";
 import { inspect } from "./inspection";
 import { agentResourcesDir } from "./install";
+import { handle } from "./ipc";
+import { anything, isString, shape } from "./ipc-guard";
 import { refusalOf } from "./refusal";
 import { relayTo } from "./relay";
 import { byId } from "./servers";
 
-/**
- * The update screens, seen from the main process.
- *
- * The renderer names a server and, for the modules, names from the catalogue
- * the agent itself declared. The version and the signature of the agent come
- * from the release embedded at build time and never cross the bridge in either
- * direction: what goes back is the envelope, refusal included, as it arrived.
- */
+// The agent's version and signature come from the release embedded at build time and never cross the bridge.
 
 function deps(): AgentUpdateDeps {
   return {
@@ -54,11 +49,11 @@ function unknownServer(): AgentResponse<never> {
   };
 }
 
-function known(serverId: unknown): string | null {
-  return typeof serverId === "string" && byId(serverId) ? serverId : null;
+function known(serverId: string): string | null {
+  return byId(serverId) ? serverId : null;
 }
 
-function relay(sender: WebContents, token: unknown): (event: Event) => void {
+function relay(sender: WebContents, token: string): (event: Event) => void {
   return relayTo<Event>(sender, token, "agent-update:event", "event");
 }
 
@@ -71,12 +66,10 @@ function names(modules: unknown): string[] | null {
 }
 
 export function registerAgentUpdate(): void {
-  ipcMain.handle(
+  handle(
     "agent-update:state",
-    async (
-      _event,
-      serverId: unknown
-    ): Promise<AgentResponse<AgentUpdateState>> => {
+    shape(isString),
+    async (_event, serverId): Promise<AgentResponse<AgentUpdateState>> => {
       const server = known(serverId);
 
       return server
@@ -85,12 +78,13 @@ export function registerAgentUpdate(): void {
     }
   );
 
-  ipcMain.handle(
+  handle(
     "agent-update:agent",
+    shape(isString, isString),
     async (
       event,
-      token: unknown,
-      serverId: unknown
+      token,
+      serverId
     ): Promise<AgentResponse<AgentUpgradeOutcome>> => {
       const server = known(serverId);
 
@@ -100,11 +94,12 @@ export function registerAgentUpdate(): void {
     }
   );
 
-  ipcMain.handle(
+  handle(
     "agent-update:migrate",
+    shape(isString),
     async (
       _event,
-      serverId: unknown
+      serverId
     ): Promise<AgentResponse<AgentMigrateResult | null>> => {
       const server = known(serverId);
 
@@ -112,13 +107,14 @@ export function registerAgentUpdate(): void {
     }
   );
 
-  ipcMain.handle(
+  handle(
     "agent-update:modules",
+    shape(isString, isString, anything),
     async (
       event,
-      token: unknown,
-      serverId: unknown,
-      modules: unknown
+      token,
+      serverId,
+      modules
     ): Promise<AgentResponse<InstallResult>> => {
       const server = known(serverId);
       const wanted = names(modules);

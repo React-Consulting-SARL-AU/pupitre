@@ -36,6 +36,7 @@ const made: string[] = [];
 
 function tempDir(): string {
   const dir = mkdtempSync(join(tmpdir(), "pupitre-agent-"));
+
   made.push(dir);
 
   return dir;
@@ -43,6 +44,7 @@ function tempDir(): string {
 
 function builtAgent(): string {
   const dist = tempDir();
+
   writeFileSync(join(dist, agentFileName("amd64")), AMD64);
   writeFileSync(join(dist, agentFileName("arm64")), ARM64);
 
@@ -51,6 +53,7 @@ function builtAgent(): string {
 
 function publishedAgent(): string {
   const dist = builtAgent();
+
   writeFileSync(
     join(dist, "release.json"),
     JSON.stringify({
@@ -65,6 +68,7 @@ function publishedAgent(): string {
 
 function embedded(from: string): string {
   const resources = join(tempDir(), "agent");
+
   mkdirSync(resources, { recursive: true });
   embedAgent({ from, to: resources });
 
@@ -102,6 +106,7 @@ function recorder(
     child.kill = () => undefined;
 
     const call: Call = { args, command, ended: false, stdin: Buffer.alloc(0) };
+
     calls.push(call);
 
     child.stdin.on("data", (chunk: Buffer) => {
@@ -111,6 +116,7 @@ function recorder(
       call.ended = true;
 
       const answer = reply(call);
+
       setTimeout(() => {
         child.stdout.write(answer.out ?? "");
         child.stderr.write(answer.err ?? "");
@@ -251,11 +257,7 @@ describe("l'envoi du binaire par le canal SSH", () => {
     expect(calls[0].ended).toBe(true);
   });
 
-  /**
-   * A hardened server is reached as `dev`, whom sudo lets run `pupitred` and
-   * nothing else (decision 0015): the agent checks the signature with the key
-   * it carries, then replaces itself. No shell runs as root.
-   */
+  // A hardened server lets `dev` sudo `pupitred` and nothing else, so no shell ever runs as root.
   it("passe par pupitred, qui vérifie la signature, quand le compte de connexion n'est pas root", async () => {
     const resources = tempDir();
     embedAgent({ from: publishedAgent(), to: resources });
@@ -298,12 +300,7 @@ describe("l'envoi du binaire par le canal SSH", () => {
     expect(AGENT_INSTALL_COMMAND).not.toContain("'");
   });
 
-  /**
-   * An agent older than the command answers with its usage, exit 2: on such a
-   * server dev still holds NOPASSWD:ALL, and the shell install of old is the
-   * only one left, on the bytes after the header. Any other refusal of
-   * pupitred ends the push.
-   */
+  // An agent older than the command exits 2 with its usage; there dev still holds NOPASSWD:ALL.
   it("ne retombe sur l'installation d'avant que devant un agent qui ne connaît pas la commande", () => {
     const line =
       installCommandAs("dev", {
@@ -319,12 +316,7 @@ describe("l'envoi du binaire par le canal SSH", () => {
     ).toBe(true);
   });
 
-  /**
-   * A build of the repository carries no release key: nothing checks its
-   * bytes, so sudo places it only on the line the password opens, and the
-   * password rides the first line of standard input, read by sudo — or by the
-   * shell, under the rule of before, where sudo asks for none.
-   */
+  // An unsigned dev build is only placed behind the sudo password, which rides stdin, never the command line.
   it("pose un agent de développement sur la ligne que le mot de passe ouvre", async () => {
     const { calls, spawn } = recorder(() => ({
       out: `${digest("elf")}  /usr/local/bin/pupitred\n`,

@@ -28,25 +28,10 @@ import {
   TRANSFERS_MIGRATIONS,
 } from "./transfers-migrations";
 
-/**
- * The queue of files moving between this computer and the servers.
- *
- * Each transfer is one `rsync` on the app's own SSH configuration, which
- * reuses the master session the agent's channel opened: no second
- * authentication, no second key. `rsync` resumes a cut file where it stopped;
- * where it is missing on either side, `scp` carries the file whole and the two
- * digests are compared at the end. Two run at once, the rest wait their turn,
- * and a link that drops relaunches the transfer with a growing delay.
- *
- * Nothing here knows Electron: the channels, the dialogs and the window are
- * in `transfers.ts`, and a test replays everything with a stubbed `spawn`.
- */
-
 export const SLOTS = 2;
 export const MAX_ATTEMPTS = 5;
 export const FIRST_DELAY_MS = 1000;
 export const MAX_DELAY_MS = 30_000;
-/** How often at most the renderer is told about bytes on their way. */
 export const PROGRESS_INTERVAL_MS = 250;
 const POLL_INTERVAL_MS = 500;
 const STDERR_LIMIT = 2000;
@@ -55,11 +40,7 @@ const SHA256 = /^[0-9a-f]{64}$/;
 /** rsync: socket I/O, protocol stream, timeout; ssh itself: 255. */
 const NETWORK_EXITS = new Set([10, 12, 30, 255]);
 
-/**
- * `--info=progress2`: the bytes so far, the share of the whole, the rate, the
- * time — left when the transfer runs, elapsed on the closing line that names
- * the file count. Lines arrive on `\r` more often than on `\n`.
- */
+/** `--info=progress2`: the time is left while running, elapsed on the closing `xfr#` line; lines end on `\r`. */
 const PROGRESS =
   /(\d[\d,.]*)\s+(\d{1,3})%\s+(\d+(?:\.\d+)?)([kKMGT]?)B\/s\s+(\d+):(\d{2}):(\d{2})/;
 const CLOSING = /xfr#\d+/;
@@ -92,7 +73,6 @@ export interface Progress {
 
 export type ProcessSpawn = (command: string, args: string[]) => ChildProcess;
 
-/** What the disk of this computer says of a path, read by the main process. */
 export interface LocalFiles {
   stat: (path: string) => { kind: TransferKind; size: number } | null;
   hash: (path: string) => Promise<string>;
@@ -102,11 +82,8 @@ export interface LocalFiles {
 }
 
 export interface TransferDeps {
-  /** The `ssh` arguments that name a server, or nothing if it is unknown. */
   resolve: (serverId: string) => string[] | null;
-  /** The absolute folder the agent's `fs.*` paths count from. */
   root: (serverId: string) => Promise<string | null>;
-  /** `fs.stat`, with the digest when asked. */
   stat: (
     serverId: string,
     path: string,
@@ -124,9 +101,8 @@ export interface TransferDeps {
 
 export interface TransferQueue {
   list: () => TransferList;
-  /** A local path the user just pointed at, and only then a path the queue accepts. */
+  /** Only a local path the user picked in a dialog is ever accepted by the queue. */
   designate: (path: unknown) => string | null;
-  /** Whether a path is one the user pointed at through this queue's dialogs. */
   designated: (path: unknown) => path is string;
   upload: (
     serverId: unknown,
@@ -142,9 +118,7 @@ export interface TransferQueue {
   resume: (id: unknown) => TransferList;
   cancel: (id: unknown) => TransferList;
   dismiss: (id: unknown) => TransferList;
-  /** What a previous launch left unfinished, listed as paused. */
   restore: () => TransferList;
-  /** Kills what runs and writes what is left, for the app closing. */
   shutdown: () => void;
 }
 
@@ -167,7 +141,6 @@ function refuse(id: string, values?: Record<string, string | number>) {
   return refuseWith("bad_request", id, values);
 }
 
-/** The remedy of a transfer that stopped: an entry of the renderer's dictionary. */
 function failure(
   id: string,
   values?: Record<string, string | number>
@@ -183,11 +156,7 @@ export function isNetworkExit(code: number | null): boolean {
   return code !== null && NETWORK_EXITS.has(code);
 }
 
-/**
- * A path under the agent's root, as the renderer may name one: relative,
- * never climbing, never a line break or a NUL that a shell would read as
- * something else. The root itself is the empty string.
- */
+/** No line break or NUL: the path reaches a remote shell. The root itself is the empty string. */
 export function remoteRelative(value: unknown): string | null {
   if (
     typeof value !== "string" ||
@@ -236,7 +205,6 @@ export function parseProgress(text: string): Progress | null {
   return null;
 }
 
-/** Whether `rsync --version` named one that knows `--info=progress2`. */
 export function capableRsync(versionOutput: string): boolean {
   const found = RSYNC_VERSION.exec(versionOutput);
 
@@ -253,7 +221,6 @@ export function capableRsync(versionOutput: string): boolean {
   );
 }
 
-/** The `ssh` a transfer rides on: the app's configuration, quoted for rsync's `-e`. */
 function shellOf(sshArgs: string[]): string {
   return ["ssh", ...sshArgs.slice(0, -1).map(argument)].join(" ");
 }
@@ -262,7 +229,6 @@ function hostOf(sshArgs: string[]): string {
   return sshArgs.at(-1) ?? "";
 }
 
-/** The rsync source and destination, the folder's contents when it is one. */
 function endpoints(
   transfer: Pick<Transfer, "direction" | "kind" | "localPath">,
   remote: string
@@ -297,10 +263,7 @@ export function rsyncArgs(
   ];
 }
 
-/**
- * The same move by `scp`: a folder lands in its parent, where `scp -r`
- * creates it by name, whether or not one is already there.
- */
+/** A folder targets its parent: `scp -r` creates it there by name, existing or not. */
 export function scpArgs(
   transfer: Pick<Transfer, "direction" | "kind" | "localPath">,
   sshArgs: string[],
@@ -546,7 +509,6 @@ export function createTransferQueue(deps: TransferDeps): TransferQueue {
     });
   }
 
-  /** The one rsync of this computer that can do the job, looked for once. */
   async function rsyncHere(): Promise<string | null> {
     if (localRsync !== undefined) {
       return localRsync;
@@ -558,6 +520,7 @@ export function createTransferQueue(deps: TransferDeps): TransferQueue {
 
       if (answer?.code === 0 && capableRsync(answer.stdout)) {
         localRsync = candidate;
+
         trace("transfer", "rsync-local", { command: candidate });
 
         return candidate;
@@ -565,12 +528,12 @@ export function createTransferQueue(deps: TransferDeps): TransferQueue {
     }
 
     localRsync = null;
+
     trace("transfer", "rsync-local-missing");
 
     return null;
   }
 
-  /** Whether the server has rsync, asked once per server and per session. */
   async function rsyncThere(
     serverId: string,
     sshArgs: string[]
@@ -632,7 +595,7 @@ export function createTransferQueue(deps: TransferDeps): TransferQueue {
     }
   }
 
-  /** `scp` says nothing while it works: a download at least shows the file growing. */
+  // `scp` reports no progress: a download is measured by the local file growing.
   function pollLocal(
     transfer: Transfer
   ): ReturnType<typeof setInterval> | null {

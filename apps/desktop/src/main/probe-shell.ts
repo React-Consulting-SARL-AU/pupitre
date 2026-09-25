@@ -5,20 +5,12 @@ import { refuseWith } from "./refusal";
 import { lastLine, runSsh, type ShellSpawn } from "./ssh-run";
 import { trace } from "./trace";
 
-/**
- * The probe, on a machine that has no agent yet.
- *
- * `sh -s` reads the script on standard input and runs it from memory: nothing is
- * uploaded, nothing is written, nothing is left behind. A machine we were only
- * looking at must be exactly as it was once we have looked.
- */
-
+/** `sh -s` runs the script from stdin: probing a machine must leave nothing written on it. */
 export const PROBE_REMOTE_COMMAND = "sh -s";
 
 const PROBE_TIMEOUT_MS = 30_000;
 
 export interface ShellProbeOptions {
-  /** What names the server: `-F <app config> <alias>`, or a system host. */
   args: string[];
   script: string;
   spawn?: ShellSpawn;
@@ -39,13 +31,7 @@ function unreadable(): AgentResponse<never> {
   return refuseWith("internal", "refusal.probe.unreadable");
 }
 
-/**
- * The report, read back from the noise.
- *
- * A login banner, a `motd`, a warning from `sudo`: all of it lands on the same
- * stream as the report, and none of it is JSON. The last line that parses as a
- * probe is the report.
- */
+/** A login banner, a motd or a `sudo` warning share stdout with the report: the last probe line wins. */
 function parse(output: string): ProbeResult | null {
   const lines = output
     .split("\n")
@@ -53,6 +39,7 @@ function parse(output: string): ProbeResult | null {
 
   for (const line of lines.reverse()) {
     let value: unknown;
+
     try {
       value = JSON.parse(line.trim());
     } catch {
@@ -60,6 +47,7 @@ function parse(output: string): ProbeResult | null {
     }
 
     const parsed = ProbeResultSchema.safeParse(value);
+
     if (parsed.success) {
       return parsed.data;
     }

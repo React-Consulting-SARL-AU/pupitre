@@ -10,15 +10,7 @@ const ROOT_ENV = resolve("../../.env.local");
 const ENV_KEY = /^[A-Z][A-Z0-9_]*$/;
 const QUOTED = /^"(.*)"$/;
 
-/**
- * The monorepo's local environment, handed to the Electron process.
- *
- * `bun run` loads `.env.local` for itself and passes none of it to the script
- * it runs, and turbo hashes the file without exporting it: a variable written
- * there for the desktop — the platform to talk to, the machine a development
- * build fills in — never reached the main process. It is read here, once, in
- * the process that spawns Electron, and only where the shell said nothing.
- */
+/** `bun run` and turbo never hand `.env.local` to the child, so it is read here, below what the shell set. */
 function loadRootEnv(): void {
   if (!existsSync(ROOT_ENV)) {
     return;
@@ -45,25 +37,12 @@ loadRootEnv();
 
 const AGENT_PROBE = resolve("../agent/internal/probe/probe.sh");
 const EMBEDDED_PROBE = resolve("resources/probe.sh");
-/**
- * Where the embedded agent comes from.
- *
- * In development, the workspace `dist/` that `@pupitre/agent#build` fills;
- * turbo runs that build before `dev` and `build` here, so the agent pushed on a
- * server is the one the sources describe. In a release, `PUPITRE_AGENT_DIST`
- * points at `dist/release/`, so the app embeds exactly the signed binaries the
- * publishing chain produced rather than one more local build.
- */
+
+/** A release points `PUPITRE_AGENT_DIST` at `dist/release/` to embed the signed binaries, not a local build. */
 const AGENT_DIST = resolve(process.env.PUPITRE_AGENT_DIST ?? "../agent/dist");
 const EMBEDDED_AGENT = resolve("resources/agent");
 
-/**
- * The probe the app sends is the agent's own file, copied at build time.
- *
- * A second copy maintained by hand would drift the day the agent's probe learns
- * something new, and the app would go on describing machines with last year's
- * questions.
- */
+/** Copied from the agent at build time: a hand-kept copy would drift from the agent's probe. */
 function embedProbeScript(): Plugin {
   return {
     name: "pupitre-embed-probe",
@@ -74,13 +53,7 @@ function embedProbeScript(): Plugin {
   };
 }
 
-/**
- * The agent the app will push onto a bare server, copied from its own build.
- *
- * A missing build is said out loud and does not stop the app from being built:
- * a developer working on a screen has no reason to need Go, and the install
- * screen tells the reader plainly when there is no binary to send.
- */
+/** A missing agent build only warns: working on a screen should not require Go. */
 function embedAgentBinary(): Plugin {
   return {
     name: "pupitre-embed-agent",
@@ -96,36 +69,18 @@ function embedAgentBinary(): Plugin {
   };
 }
 
-/**
- * CommonJS for the main process and the preload.
- *
- * V8 produces no cache data for an ES module, so bytecode below needs this
- * format; the workspace stays `"type": "module"`, which makes the two entries
- * come out as `.cjs`, and everything that points at them says so.
- */
+/** V8 produces no cache data for an ES module, so bytecode needs CommonJS; the entries come out as `.cjs`. */
 const NODE_SIDE = {
   rollupOptions: { output: { format: "cjs" } },
 } as const;
 
-/**
- * The main process ships as V8 bytecode: no readable code in the archive.
- *
- * The preload does not, and cannot for now: Electron loads it in the renderer,
- * whose V8 refuses cache data produced by the Node isolate that compiled it
- * (`cachedDataRejected`), and the window then opens without its bridge. It is
- * no loss worth chasing — the preload declares channel names and nothing else,
- * exactly like the renderer beside it.
- */
+/** Main only: the renderer's V8 rejects the preload's bytecode (`cachedDataRejected`) and the bridge is lost. */
 const PROTECTED = {
   ...NODE_SIDE,
   bytecode: { protectedStrings: [] as string[] },
 } as const;
 
-/**
- * The version the app says it is: the one electron-builder stamps the bundle
- * with. `app.getVersion()` reads the same field once packaged, but answers
- * Electron's own version from a development folder, which is not this app's.
- */
+/** `app.getVersion()` answers Electron's own version when unpackaged. */
 const APP_VERSION = (
   JSON.parse(readFileSync(resolve("package.json"), "utf8")) as {
     version: string;
@@ -137,13 +92,10 @@ export default defineConfig({
     define: {
       "import.meta.env.MAIN_VITE_APP_VERSION": JSON.stringify(APP_VERSION),
     },
-    // Only package.json `dependencies` stay outside the bundle and ship in the
-    // archive; anything else the main process imports must be a devDependency.
+    // Only `dependencies` ship outside the bundle; anything else the main imports must be a devDependency.
     plugins: [embedProbeScript(), embedAgentBinary(), externalizeDepsPlugin()],
     build: PROTECTED,
-    // The release bucket is named once, by the variable the publishing script
-    // already reads; the full name is the prefix, so nothing else of the
-    // environment ends up in the bundle.
+    // The full variable name as a prefix, so nothing else of the environment ends up in the bundle.
     envPrefix: ["MAIN_VITE_", "VITE_", "PUPITRE_DOWNLOADS_URL"],
     resolve: {
       alias: {

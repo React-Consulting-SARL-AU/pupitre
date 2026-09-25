@@ -1,36 +1,21 @@
 import type { CloudflareConnection, CloudflareZone } from "@shared/cloudflare";
 
-/**
- * The client's Cloudflare account, seen from the laptop.
- *
- * These calls used to live on the VPS, where the token therefore had to sleep.
- * They are here because the server only needs a tunnel's credentials: it runs
- * the tunnel, it does not own it, and nothing of the zone reaches down to it.
- * The zone is not held either — it is derived from the domain each server
- * publishes under, so one account can carry several servers under several
- * zones without the client copying an identifier anywhere.
- */
-
 const ENDPOINT = "https://api.cloudflare.com/client/v4";
 
-/** A call that has not answered by then is not going to: the screen is owed a refusal. */
 const CALL_MS = 20_000;
 
 export interface DnsRecord {
   id: string;
   content: string;
-  /** Cloudflare's free-text note on the record: the one Pupitre writes marks the records it owns. */
   comment: string | null;
 }
 
 export interface CloudflareApi {
   createTunnel: (name: string, secret: string) => Promise<string>;
   findTunnel: (name: string) => Promise<string | null>;
-  /** Whether the account still holds this tunnel: a server can name one it lost. */
   hasTunnel: (id: string) => Promise<boolean>;
   deleteTunnel: (id: string) => Promise<void>;
   zones: () => Promise<CloudflareZone[]>;
-  /** The zone a domain belongs to: the app never asks the client for an identifier. */
   zoneOf: (domain: string) => Promise<CloudflareZone | null>;
   findRecord: (zoneId: string, fqdn: string) => Promise<DnsRecord | null>;
   createRecord: (
@@ -42,7 +27,6 @@ export interface CloudflareApi {
   deleteRecord: (zoneId: string, id: string) => Promise<void>;
 }
 
-/** What a token opens, read from Cloudflare rather than typed by the client. */
 export interface TokenAccount {
   id: string;
   name: string;
@@ -64,18 +48,10 @@ interface Answer<T> {
   errors?: { code?: number; message?: string }[];
 }
 
-/** Written on every record the app creates, and read back before one is repointed or dropped: the zone may carry names nobody here owns. */
+/** Marks the records the app owns: the zone may carry names nobody here wrote. */
 export const RECORD_COMMENT = "pupitre";
 
 /** The token never appears in an error: only Cloudflare's own message surfaces. */
-/**
- * What the token opens, asked of Cloudflare directly.
- *
- * The bash stack checked the token at the fifth second rather than at the
- * eighth step, and this is that check: an account list that comes back is a
- * token that works, and the account it names is the one the client would
- * otherwise have had to copy out of a dashboard.
- */
 export async function verifyToken(
   token: string,
   fetcher: typeof fetch = fetch
@@ -147,11 +123,7 @@ export function cloudflareApi(
   return {
     zones: () => listZones(),
 
-    /**
-     * A domain belongs to the zone whose name it ends on: `dev.flyleaf.dev`
-     * publishes under the `flyleaf.dev` zone, and the longest match wins so a
-     * client who owns both a zone and one of its subdomains gets the right one.
-     */
+    // The longest match wins: an account may hold both a zone and one of its subdomains as zones.
     async zoneOf(domain) {
       const wanted = domain.trim().toLowerCase();
       const held = await listZones();
@@ -176,10 +148,7 @@ export function cloudflareApi(
       return created.id;
     },
 
-    /**
-     * A tunnel the account deleted still answers, with the day it went: what
-     * the server names has to be one that can still carry something.
-     */
+    // A deleted tunnel still answers, carrying `deleted_at`.
     async hasTunnel(id) {
       try {
         const found = await call<{ deleted_at?: string | null }>(
@@ -197,11 +166,7 @@ export function cloudflareApi(
       }
     },
 
-    /**
-     * The name filter of the API is not trusted alone: a tunnel it did not
-     * return still refuses its name to a new one. What the account holds is
-     * read whole and matched here.
-     */
+    // The API's name filter misses tunnels that still hold the name, so the whole list is matched here.
     async findTunnel(name) {
       const found = await call<{ id: string; name: string }[]>(
         "GET",
@@ -211,7 +176,7 @@ export function cloudflareApi(
       return found.find((tunnel) => tunnel.name === name)?.id ?? null;
     },
 
-    /** `cascade` takes the connections down with it: a tunnel still spoken to by a vanished machine refuses to go otherwise. */
+    // Without `cascade`, a tunnel still connected from a vanished machine refuses deletion.
     async deleteTunnel(id) {
       await call(
         "DELETE",

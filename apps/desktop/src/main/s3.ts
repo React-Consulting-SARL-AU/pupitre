@@ -3,13 +3,6 @@ import type { AgentResponse } from "@shared/agent";
 import type { BackupStorage } from "@shared/backups";
 import { refuseWith } from "./refusal";
 
-/**
- * Just enough of S3 to check a bucket before the connection is kept: an AWS
- * Signature Version 4 signer, and a probe that writes then deletes one small
- * object where backups will go. The servers do the real work; this is the
- * laptop making sure the reader typed a key that will let them.
- */
-
 const ALGORITHM = "AWS4-HMAC-SHA256";
 
 const SERVICE = "s3";
@@ -20,7 +13,6 @@ const MILLISECONDS = /\.\d{3}/;
 
 const TRAILING_SLASH = /\/$/;
 
-/** A bucket that has not answered by then is not going to. */
 const CALL_MS = 15_000;
 
 export interface SignedRequest {
@@ -54,7 +46,6 @@ export function encodeSegment(segment: string): string {
   );
 }
 
-/** The headers of a signed request, `authorization` among them. */
 export function signV4(request: SignedRequest): Record<string, string> {
   const date = request.amzDate.slice(0, 8);
   const headers: Record<string, string> = {
@@ -100,7 +91,6 @@ export function amzDateOf(now: Date): string {
     .replace(MILLISECONDS, "");
 }
 
-/** Where an object lies: under the endpoint's path for path-style, in the bucket's own host otherwise. */
 export function objectAddress(
   storage: Pick<BackupStorage, "endpoint" | "bucket" | "path_style">,
   key: string
@@ -132,11 +122,7 @@ export const PROBE_DEPS: ProbeDeps = {
 
 const S3_CODE = /<Code>([^<]*)<\/Code>/;
 
-/**
- * S3's own refusal codes, each with the sentence that says what to change.
- * R2 answers `Unauthorized` for an access key it does not know, where AWS says
- * `InvalidAccessKeyId`.
- */
+/** R2 answers `Unauthorized` for an unknown access key, where AWS says `InvalidAccessKeyId`. */
 const REFUSALS: Record<string, string> = {
   AccessDenied: "refusal.backup.probe.denied",
   AllAccessDisabled: "refusal.backup.probe.denied",
@@ -175,11 +161,7 @@ async function refusalOf(
       });
 }
 
-/**
- * One small object written then deleted under the prefix, signed with the key
- * the reader gave: what every backup will do, done once before anything is
- * kept. The delete matters as much as the write — pruning old backups needs it.
- */
+/** The delete matters as much as the write: pruning old backups needs it. */
 export async function probeBucket(
   storage: BackupStorage,
   secretAccessKey: string,

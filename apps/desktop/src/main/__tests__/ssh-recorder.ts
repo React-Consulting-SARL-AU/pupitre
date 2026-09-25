@@ -3,11 +3,6 @@ import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
 import type { ShellSpawn } from "../ssh-run";
 
-/**
- * An `ssh` that answers from a script: what it was given, and what it says
- * back, so the tests read as the dialogue they check.
- */
-
 export interface Call {
   args: string[];
   stdin: string;
@@ -39,6 +34,7 @@ export function recorder(answers: Answer[]): {
     child.kill = () => undefined;
 
     const call: Call = { args, env: options.env, stdin: "" };
+
     calls.push(call);
 
     child.stdin.on("data", (chunk: Buffer) => {

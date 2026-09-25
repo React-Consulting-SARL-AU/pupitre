@@ -3,16 +3,12 @@ import { app, safeStorage } from "electron";
 import { keychainSealer } from "./keychain";
 import { createSudoVault } from "./sudo-vault";
 
-/**
- * The sudo password of each server as the privileged channel reads it: the
- * one this computer keeps, or the one being tried before it is kept.
- */
-
 export const sudoVault = createSudoVault({
   dir: join(app.getPath("userData"), "sudo"),
   sealer: keychainSealer(safeStorage, process.platform),
 });
 
+/** A password being tried on the privileged channel before it is kept in the vault. */
 const offered = new Map<string, string>();
 
 export function offerSudoPassword(

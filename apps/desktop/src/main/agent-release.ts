@@ -2,23 +2,7 @@ import { createHash, createPublicKey, verify } from "node:crypto";
 import type { AgentResponse } from "@shared/agent";
 import { refuseWith } from "./refusal";
 
-/**
- * The agent's binary, checked before it is pushed anywhere.
- *
- * What comes down from the platform is a file the app did not build: the
- * checksum the enrolment announced and the Ed25519 signature of the release are
- * both verified here, against a key compiled into the app. A binary that fails
- * either never reaches a server.
- */
-
-/**
- * The public half of the release key, the same for every version.
- *
- * Its private half lives only in 1Password and in the CI secret; it signs the
- * agent binary and the app artefacts. Changing this string repudiates
- * everything published before: an app carrying one key and an agent signed by
- * another refuse every update.
- */
+/** Changing this key repudiates every release published before it: apps and agents would refuse each other. */
 export const AGENT_RELEASE_PUBLIC_KEY =
   "hs05klwUQPR+pNnh7lVme+DKN5SUNC3+OGKrEBTOr48=";
 
@@ -33,14 +17,7 @@ export interface ReleaseFingerprint {
   signature: string;
 }
 
-/**
- * What the publishing chain signs, line for line.
- *
- * The signature does not cover the bytes alone: it binds the digest to the
- * published version and architecture, so an authentic binary meant for another
- * machine is refused too. `internal/release` in Go writes exactly these four
- * lines.
- */
+/** Binds the digest to version and arch so an authentic binary for another machine is refused; mirrors Go's. */
 export function signedMessage(
   version: string,
   arch: string,

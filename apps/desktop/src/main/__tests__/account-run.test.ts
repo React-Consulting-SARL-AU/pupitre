@@ -368,11 +368,6 @@ describe("le droit d'usage", () => {
     expect(account.guard().ok).toBe(true);
   });
 
-  /**
-   * The account screen does not word its own refusal: it renders the guard's,
-   * message and fix included, so a refused channel and the screen say the same
-   * thing.
-   */
   it("porte dans son état le refus que le garde oppose aux canaux", async () => {
     let clock = Date.parse("2026-09-04T10:00:00.000Z");
     const { account } = harness({ build: "production", now: () => clock });

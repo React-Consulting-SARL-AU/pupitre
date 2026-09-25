@@ -11,17 +11,6 @@ import type { ServerCreation } from "./server-setup";
 import { SetupError } from "./server-setup";
 import { trace } from "./trace";
 
-/**
- * Adding a server, and opening it in the same gesture when a password came.
- *
- * The form knocked before asking: when the machine takes a password, the draft
- * carries it, and the key just made goes on the machine right here rather than
- * on the next screen. A password the machine refuses undoes the addition —
- * the key is deleted, the entry never shows — and comes back as a refusal of
- * the form, so the reader retypes it where they typed it, with nothing to
- * clean up.
- */
-
 export interface AddRunDeps {
   add: (draft: ServerDraft) => Promise<ServerCreation>;
   remove: (id: string) => Promise<void>;
@@ -54,7 +43,7 @@ function isKeyChoice(value: unknown): value is KeyChoice {
   }
 }
 
-/** The form's draft as it crossed the bridge: the shape only, the values are checked where they are used. */
+/** Checks the shape only: the values are checked where they are used. */
 export function isServerDraft(value: unknown): value is ServerDraft {
   if (typeof value !== "object" || value === null) {
     return false;
@@ -120,8 +109,10 @@ export async function addServerRun(
 
   const installed = await deps.install(server, publicKey, password);
 
+  // A refused password undoes the addition, so the reader retypes it in the form with nothing to clean up.
   if (installed.ok && installed.result.status === "password") {
     await deps.remove(server.id);
+
     trace("servers", "withdrawn", { reason: "password", server: server.id });
 
     return {

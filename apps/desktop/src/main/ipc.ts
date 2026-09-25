@@ -1,7 +1,6 @@
 import { type IpcMainEvent, type IpcMainInvokeEvent, ipcMain } from "electron";
 import { guarded, IpcRefused } from "./ipc-guard";
 
-/** `ipcMain.handle`, behind the checks of `ipc-guard.ts`. */
 export function handle<A extends unknown[], R>(
   channel: string,
   parse: (args: unknown[]) => A | null,
@@ -10,7 +9,7 @@ export function handle<A extends unknown[], R>(
   ipcMain.handle(channel, guarded(channel, parse, run));
 }
 
-/** The same, for a channel the page sends on without waiting: a refusal goes nowhere. */
+/** A fire-and-forget channel: nobody waits for a refusal, so it is dropped. */
 export function listen<A extends unknown[]>(
   channel: string,
   parse: (args: unknown[]) => A | null,

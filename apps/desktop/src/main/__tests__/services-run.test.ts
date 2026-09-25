@@ -215,11 +215,6 @@ describe("l'état d'un service", () => {
   });
 });
 
-/**
- * The services the renderer may name are the ones the agent listed, and the
- * list is the agent's last word: a `snapshot` without a module is a module the
- * app no longer drives.
- */
 describe("les services que l'agent a listés", () => {
   afterEach(() => {
     forgetServices();

@@ -2,24 +2,18 @@ import { join } from "node:path";
 import type { FsStatResult } from "@pupitre/shared/agent-protocol/files";
 import type { AgentResponse } from "@shared/agent";
 import type { TransferList } from "@shared/transfers";
-import { app, dialog, ipcMain } from "electron";
+import { app, dialog } from "electron";
 import { agentClient, currentLanguage } from "./agent";
 import { broadcast } from "./broadcast";
 import { dialogTextIn } from "./dialogs";
+import { handle } from "./ipc";
+import { anything, isString, shape } from "./ipc-guard";
 import { current } from "./platform";
 import { byId, paths } from "./servers";
 import { sshArgs } from "./ssh-config";
 import { createTransferQueue, type TransferQueue } from "./transfers-run";
 
-/**
- * The transfers, on their channels.
- *
- * The renderer never names a path of this computer on its own: it opens one
- * of the three dialogs below, or drops a file, and only a path the user
- * pointed at reaches the queue. What it names on the server is a path under
- * the agent's root, checked again over there.
- */
-
+// A local path reaches the queue only once the user pointed at it, through a dialog below or a drop.
 let queue: TransferQueue | null = null;
 
 function statOn(
@@ -57,31 +51,32 @@ export function registerTransfers(deps: {
     storePath: join(app.getPath("userData"), "transfers.json"),
   });
 
-  ipcMain.handle("transfer:list", (): TransferList => held().list());
+  handle("transfer:list", shape(), (): TransferList => held().list());
 
-  ipcMain.handle(
+  handle(
     "transfer:upload",
-    (_e, serverId: unknown, remoteDir: unknown, localPaths: unknown) =>
+    shape(anything, anything, anything),
+    (_e, serverId, remoteDir, localPaths) =>
       held().upload(serverId, remoteDir, localPaths)
   );
 
-  ipcMain.handle(
+  handle(
     "transfer:download",
-    (_e, serverId: unknown, remotePath: unknown, localPath: unknown) =>
+    shape(anything, anything, anything),
+    (_e, serverId, remotePath, localPath) =>
       held().download(serverId, remotePath, localPath)
   );
 
-  ipcMain.handle("transfer:pause", (_e, id: unknown) => held().pause(id));
-  ipcMain.handle("transfer:resume", (_e, id: unknown) => held().resume(id));
-  ipcMain.handle("transfer:cancel", (_e, id: unknown) => held().cancel(id));
-  ipcMain.handle("transfer:dismiss", (_e, id: unknown) => held().dismiss(id));
+  handle("transfer:pause", shape(isString), (_e, id) => held().pause(id));
+  handle("transfer:resume", shape(isString), (_e, id) => held().resume(id));
+  handle("transfer:cancel", shape(isString), (_e, id) => held().cancel(id));
+  handle("transfer:dismiss", shape(isString), (_e, id) => held().dismiss(id));
 
-  /** A file dropped on the window: the preload read its path, and says so here. */
-  ipcMain.handle("transfer:dropped", (_e, path: unknown) =>
+  handle("transfer:dropped", shape(isString), (_e, path) =>
     held().designate(path)
   );
 
-  ipcMain.handle("transfer:pick-upload", async (): Promise<string[]> => {
+  handle("transfer:pick-upload", shape(), async (): Promise<string[]> => {
     const picked = await dialog.showOpenDialog({
       buttonLabel: dialogTextIn(currentLanguage(), "send"),
       properties: ["openFile", "openDirectory", "multiSelections"],
@@ -99,15 +94,13 @@ export function registerTransfers(deps: {
     });
   });
 
-  ipcMain.handle(
+  handle(
     "transfer:pick-save",
-    async (_e, name: unknown): Promise<string | null> => {
+    shape(isString),
+    async (_e, name): Promise<string | null> => {
       const picked = await dialog.showSaveDialog({
         buttonLabel: dialogTextIn(currentLanguage(), "save"),
-        defaultPath: join(
-          app.getPath("downloads"),
-          typeof name === "string" ? name : ""
-        ),
+        defaultPath: join(app.getPath("downloads"), name),
         properties: ["createDirectory", "showOverwriteConfirmation"],
         title: dialogTextIn(currentLanguage(), "saveAs"),
       });
@@ -118,7 +111,7 @@ export function registerTransfers(deps: {
     }
   );
 
-  ipcMain.handle("transfer:pick-folder", async (): Promise<string | null> => {
+  handle("transfer:pick-folder", shape(), async (): Promise<string | null> => {
     const picked = await dialog.showOpenDialog({
       buttonLabel: dialogTextIn(currentLanguage(), "choose"),
       defaultPath: app.getPath("downloads"),
@@ -132,7 +125,6 @@ export function registerTransfers(deps: {
   queue.restore();
 }
 
-/** Whether a local path came out of one of the dialogs above, and may be written to. */
 export function pickedPath(path: unknown): path is string {
   return held().designated(path);
 }

@@ -1,20 +1,5 @@
 import type { TraceEntry } from "@shared/trace";
 
-/**
- * What the main process does while a server gets added and opened, written
- * where it can be read.
- *
- * Nothing is traced in a packaged build: `index.ts` turns tracing on when the
- * app isn't packaged, and `PUPITRE_TRACE=1` turns it on elsewhere. Lines go
- * out on the main process's own stdout — the terminal that launched
- * `bun run dev` — and to the window, which drops them into the devtools
- * console: both halves of the app get debugged in the same place.
- *
- * A value whose name smells like a secret is never written. This module
- * knows neither Electron nor the bridge: a unit test imports it without
- * turning anything on, and a disabled trace doesn't cost an extra call.
- */
-
 export type { TraceEntry } from "@shared/trace";
 
 export type TraceSink = (entry: TraceEntry) => void;
@@ -26,6 +11,7 @@ const REDACTED = "•••";
 const VALUE_LIMIT = 200;
 const PAD = 2;
 
+// Off by default, so a packaged build traces nothing unless PUPITRE_TRACE=1.
 let on = process.env.PUPITRE_TRACE === "1";
 let sink: TraceSink | null = null;
 

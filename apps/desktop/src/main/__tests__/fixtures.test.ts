@@ -12,23 +12,12 @@ import {
   StepEventSchema,
 } from "@pupitre/shared/agent-protocol/envelope";
 
-/**
- * The transcripts the fake agent replays, read against the protocol itself.
- *
- * These files are written by hand, and until now nothing said they described
- * exchanges `pupitred` could actually hold: a transcript answering a field the
- * agent never sends makes the app's tests pass and its production fail. Every
- * line is weighed here against the contract both sides implement — the shape of
- * a request, of an answer, of an event, and of the command it belongs to.
- */
-
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FIXTURES = join(HERE, "fixtures");
 
-/** Enough transcripts for the guard to mean something, whatever is added later. */
 const COVERAGE = 20;
 
-/** What every schema of the contract can do, without the app depending on zod. */
+/** Structural, so the app does not depend on zod. */
 interface Weighs {
   safeParse: (value: unknown) => {
     success: boolean;
@@ -42,7 +31,7 @@ interface Line {
   body: Record<string, unknown>;
 }
 
-/** A transcript is a session: `#` comments and `@directives` drive the fake machine, not the protocol. */
+/** `#` comments and `@directives` drive the fake machine, not the protocol, and are skipped. */
 function exchanges(file: string): Line[] {
   return readFileSync(join(FIXTURES, file), "utf8")
     .split("\n")
@@ -63,7 +52,6 @@ function exchanges(file: string): Line[] {
     });
 }
 
-/** The refusal a reader can act on: the line, and what the contract holds against it. */
 function against(line: Line, schema: Weighs, value: unknown): string {
   const parsed = schema.safeParse(value);
 
@@ -99,6 +87,7 @@ describe("les transcriptions du faux agent", () => {
             cmd: string;
             params?: unknown;
           };
+
           expect(`line ${line.at}: ${isCommandName(cmd) ? "" : cmd}`).toBe(
             `line ${line.at}: `
           );
@@ -109,8 +98,7 @@ describe("les transcriptions du faux agent", () => {
 
           asked.set(id, cmd);
 
-          // A transcript matches on its parameters, and "*" is how it says it
-          // takes any value: that is a matcher, not a payload to weigh.
+          // "*" is a transcript matcher for any value, not a payload to weigh.
           if (!JSON.stringify(params ?? {}).includes('"*"')) {
             expect(against(line, COMMANDS[cmd].params, params ?? {})).toBe("");
           }
@@ -129,6 +117,7 @@ describe("les transcriptions du faux agent", () => {
         expect(against(line, ResponseSchema, line.body)).toBe("");
 
         const cmd = asked.get(id);
+
         if (cmd && line.body.ok === true) {
           expect(against(line, COMMANDS[cmd].result, line.body.result)).toBe(
             ""

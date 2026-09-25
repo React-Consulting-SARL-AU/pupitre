@@ -47,17 +47,8 @@ import {
 import { forgetSudoPassword } from "./sudo";
 import { usageRefusal } from "./usage-guard";
 
-/**
- * The servers of this computer, as the renderer reaches them.
- *
- * `settle` is what has to be dropped with one server — its channels, its
- * terminals, what the app held for it — when the machine it named is no
- * longer the one the app talks to.
- */
-
 const unknownServer = () => refuseWith("bad_request", "refusal.server.unknown");
 
-/** What the renderer may change on a server, read field by field and nothing else. */
 function serverChanges(value: unknown): ServerChanges {
   const held = (value ?? {}) as Record<string, unknown>;
 
@@ -98,11 +89,6 @@ function registerAdding(): void {
       })
   );
 
-  /**
-   * The password, when the knock asked for one, crosses here with the draft
-   * and goes straight to one `ssh`: the server is added and opened in the same
-   * gesture, or not added at all when the machine refuses it.
-   */
   handle(
     "server-add",
     shape(isServerDraft),
@@ -137,12 +123,7 @@ function registerAdding(): void {
     }
   );
 
-  /**
-   * The file picker for an imported key.
-   *
-   * The renderer never names a path of its own: it opens this dialog, the user
-   * points at a file, and only then does a path reach the main process.
-   */
+  // The renderer never names a key path of its own: only a file picked here is accepted.
   handle("key-file-pick", shape(), async (): Promise<string | null> => {
     const picked = await dialog.showOpenDialog({
       buttonLabel: dialogTextIn(currentLanguage(), "import"),
@@ -161,14 +142,6 @@ function registerChanging(settle: (id: string) => void): void {
   );
   handle("server-activate", shape(isString), (_e, id) => activate(id));
 
-  /**
-   * The address, the port, the account or the SSH name of a server, as the
-   * reader typed them. Each is checked here before it becomes a line of the
-   * SSH file; the channels are dropped when the address, the port or the
-   * account moved, since the ones open reach the old one. The SSH name is
-   * other clients' word for the server — the app's own sessions ride the
-   * identifier and stand.
-   */
   handle(
     "server-update",
     shape(anything, anything),
@@ -211,12 +184,7 @@ function registerLeaving(settle: (id: string) => void): void {
     return await remove(id);
   });
 
-  /**
-   * The server leaves this computer and the platform in the same gesture.
-   *
-   * The platform first: a local removal that left the row standing would make
-   * the only place still able to erase it disappear from the app.
-   */
+  // The platform first: a local removal would lose the only handle able to erase the platform's row.
   handle(
     "server-forget",
     shape(anything),
@@ -252,11 +220,7 @@ function registerTrust(settle: (id: string) => void): void {
       isString(id) ? { ok: true, result: await hostKey(id) } : unknownServer()
   );
 
-  /**
-   * A new host key is a new machine: what was open on the old one — sessions,
-   * the names it declared, its credentials — says nothing about this one, and
-   * the next contact pins what answers.
-   */
+  // A new host key is a new machine: nothing held for the old one carries over.
   handle(
     "server-trust-reinstalled",
     shape(anything),
@@ -271,14 +235,7 @@ function registerTrust(settle: (id: string) => void): void {
     }
   );
 
-  /**
-   * Installing the app's own key on the server, rather than dictating a line.
-   *
-   * The password crosses the bridge once, on its way in, and is held nowhere:
-   * `installKey` hands it to one `ssh` through its askpass helper and forgets
-   * it. The public half is read here rather than sent by the renderer, which
-   * never had to carry it.
-   */
+  // The password is held nowhere: `installKey` hands it to one `ssh` through askpass and forgets it.
   handle(
     "server-key-install",
     shape(anything, anything, anything),

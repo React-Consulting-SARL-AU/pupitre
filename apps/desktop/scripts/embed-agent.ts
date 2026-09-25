@@ -11,15 +11,6 @@ import {
 import { dirname, join, resolve } from "node:path";
 import { ARCHITECTURES } from "@pupitre/shared/catalog";
 
-/**
- * The agent the app carries, copied from the agent's own build.
- *
- * A server that has never seen Pupitre has no way to fetch `pupitred`: the app
- * is what brings it, over the channel it already has. The binary is copied here
- * at build time exactly as `probe.sh` is, with the checksum of what was copied,
- * so what leaves the app is provably what the agent's build produced.
- */
-
 export const AGENT_MANIFEST = "manifest.json";
 
 export const AGENT_RELEASE = "release.json";
@@ -39,14 +30,7 @@ export interface AgentManifest {
   binaries: Record<string, AgentBinaryEntry>;
 }
 
-/**
- * What the publication chain leaves next to the binaries.
- *
- * A plain `go build` writes none of it, and the app then carries an agent it
- * can push onto a bare machine but cannot offer as an update: replacing a
- * running agent is the one gesture that needs a signature, and inventing one
- * here would only get it refused on the server.
- */
+/** Absent after a plain `go build`: the agent can then be pushed to a bare machine but not offered as an update. */
 export interface AgentRelease {
   version: string;
   notes?: string[];
@@ -106,6 +90,7 @@ export function embedAgent({
     }
 
     const content = readFileSync(source);
+
     copyFileSync(source, join(to, file));
     chmodSync(join(to, file), 0o755);
 
@@ -121,9 +106,7 @@ export function embedAgent({
 
   const path = join(to, AGENT_MANIFEST);
 
-  // No manifest rather than a stale one: the screen has to be able to say the
-  // app carries no agent, and an old manifest would make it promise a binary
-  // that is no longer there.
+  // No manifest rather than a stale one that would promise a binary no longer there.
   if (Object.keys(binaries).length === 0) {
     rmSync(path, { force: true });
 

@@ -5,15 +5,7 @@ import {
 } from "@pupitre/shared/agent-protocol";
 import { LIMITED_FLAG, STATE_FLAG } from "./fake-agent-flags";
 
-/**
- * The fake agent: it replays a transcript, and nothing else.
- *
- * It matches on the command and its parameters, never on the `id`, which it
- * echoes back — the client owns the numbering, and a transcript that pinned it
- * would break the moment a channel reconnects. What it does check is that the
- * `id` strictly grows, exactly as `pupitred` does: that is what an out-of-sync
- * client looks like from the other side.
- */
+// Matches command and params, never the echoed id: a transcript pinning it would break on reconnect.
 
 interface Exchange {
   cmd: string;
@@ -32,21 +24,9 @@ const RESTRICTED = "restricted";
 
 const ENTITLEMENT_DIRECTIVE = "@entitlement ";
 
-/**
- * The commands a restricted server still answers.
- *
- * The list is `RESTRICTED_COMMANDS` of `@pupitre/shared/agent-protocol`, itself
- * the copy of `RestrictedCommands` in `apps/agent/internal/entitlement`:
- * `enroll` is in it because a re-enrolment is how a lost or revoked token is
- * repaired, and a transcript that forgot one would let the app test a repair
- * the real agent refuses.
- */
+/** The contract's list, so a transcript cannot test a repair (`enroll`) the real agent refuses. */
 const RESTRICTED_COMMANDS = new Set<string>(CONTRACT_RESTRICTED);
 
-/**
- * The host key this fake server declares. A transcript that enrols trades it
- * against a server token, exactly as `pupitred` does with the one on its disk.
- */
 const HOST_PUBLIC_KEY =
   "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINPmg2sJ7wUW1eUeGGiuIYbYVWH8ihu5xMt/M39EO4Bd root@vps";
 
@@ -55,7 +35,6 @@ const TRACE = 2;
 
 interface Transcript {
   exchanges: Exchange[];
-  /** `@entitlement restricted` on a line of its own, as the agent's own testdata writes it. */
   restricted: boolean;
 }
 
@@ -93,6 +72,7 @@ function parse(path: string): Transcript {
         cmd: string;
         params?: Record<string, unknown>;
       };
+
       exchanges.push({
         cmd: request.cmd,
         params: request.params ?? {},
@@ -108,6 +88,7 @@ function parse(path: string): Transcript {
     }
 
     const current = exchanges.at(-1);
+
     if (!current) {
       throw new Error(`ligne sans requête : ${line}`);
     }
@@ -136,12 +117,7 @@ function fail(id: number, code: string, message: string): void {
   say(JSON.stringify({ id, ok: false, error: { code, message } }));
 }
 
-/**
- * What a restricted server answers to the commands it no longer opens, word for
- * word as `protocol.EntitlementRequired()` phrases it. It costs the transcript
- * nothing: the agent refuses before it dispatches, so the exchange the test is
- * waiting on is still the next one.
- */
+/** Worded as `protocol.EntitlementRequired()`; refused before dispatch, so the transcript cursor stays put. */
 function refuseEntitlement(id: number): void {
   say(
     JSON.stringify({
@@ -156,7 +132,6 @@ function refuseEntitlement(id: number): void {
   );
 }
 
-/** The right an answer came back with, when it carries one. */
 function entitlementOf(reply: Record<string, unknown>): string | null {
   const result = reply.result as { entitlement?: unknown } | undefined;
 
@@ -165,11 +140,7 @@ function entitlementOf(reply: Record<string, unknown>): string | null {
     : null;
 }
 
-/**
- * Requests and secret lines arrive on the same standard input, so the reader
- * pulls one line at a time: a handler that expects a secret takes the line that
- * follows its request instead of letting it be read as the next request.
- */
+// Requests and secret lines share stdin, so a handler awaiting a secret pulls the very next line.
 const lines: string[] = [];
 let waiting: ((line: string | null) => void) | null = null;
 let ended = false;
@@ -177,6 +148,7 @@ let ended = false;
 function feed(line: string | null): void {
   if (waiting) {
     const resolve = waiting;
+
     waiting = null;
     resolve(line);
 
@@ -192,9 +164,11 @@ function feed(line: string | null): void {
 
 function nextLine(): Promise<string | null> {
   const ready = lines.shift();
+
   if (ready !== undefined) {
     return Promise.resolve(ready);
   }
+
   if (ended) {
     return Promise.resolve(null);
   }
@@ -208,11 +182,13 @@ function stable(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map(stable);
   }
+
   if (value === null || typeof value !== "object") {
     return value;
   }
 
   const sorted: Record<string, unknown> = {};
+
   for (const key of Object.keys(value as Record<string, unknown>).sort()) {
     sorted[key] = stable((value as Record<string, unknown>)[key]);
   }
@@ -253,14 +229,7 @@ function same(expected: Record<string, unknown>, got: unknown): boolean {
   return matches(stable(expected), stable(got ?? {}));
 }
 
-/**
- * The one thing this fake really does: trade the enrolment token it was handed
- * on the secret line against a server token, at the platform `params` names.
- *
- * It is what makes an enrolment test end to end rather than a transcript: the
- * token has to be the live one the platform granted, and the platform has to
- * burn it.
- */
+/** The one live act: the platform must grant and burn the token, which makes enrolment tests end to end. */
 async function trade(
   platformUrl: string,
   secret: string,
@@ -290,11 +259,7 @@ async function trade(
   return server_token || null;
 }
 
-/**
- * The usage right as the machine holds it: on disk, shared by every channel.
- * An enrolment on the privileged channel ends the restriction for the others
- * too, as `pupitred` resolves the right again for every command.
- */
+/** On disk, like `pupitred`: an enrolment on the privileged channel lifts the restriction for every channel. */
 function sharedRight(restricted: boolean): {
   refusing: () => boolean;
   set: (refusing: boolean) => void;
@@ -325,7 +290,7 @@ function sharedRight(restricted: boolean): {
 
 function main(): void {
   const path = process.argv[2];
-  // Every channel but the privileged one is `sudo -n pupitred serve`: the fake refuses there what the agent refuses.
+  // Every channel but the privileged one runs `sudo -n pupitred serve` and refuses what the agent refuses.
   const limited = process.argv.includes(LIMITED_FLAG);
   const { exchanges, restricted } = parse(path);
 
@@ -344,6 +309,7 @@ function main(): void {
 
     trace(`id=${request.id} cmd=${request.cmd}`);
 
+    // Like `pupitred`, ids must strictly grow: that is what an out-of-sync client looks like.
     if (request.id <= lastId) {
       fail(
         request.id,
@@ -353,6 +319,7 @@ function main(): void {
 
       return;
     }
+
     lastId = request.id;
 
     if (limited && requiresPrivilege(request.cmd, request.params)) {
@@ -400,6 +367,7 @@ function main(): void {
 
     if (exchange.secret !== null) {
       secret = await nextLine();
+
       if (exchange.secret !== ANY && secret !== exchange.secret) {
         fail(request.id, "bad_request", `flux secret inattendu : ${secret}`);
 
@@ -434,12 +402,11 @@ function main(): void {
       const value = JSON.parse(
         reply.replaceAll("$server_token", traded)
       ) as Record<string, unknown>;
+
       value.id = request.id;
       say(JSON.stringify(value));
 
-      // An enrolment that came back with a right ends the restriction: the
-      // agent resolves its entitlement again, and the seven commands become the
-      // whole contract once more.
+      // The agent resolves its entitlement again after an enrolment that granted a right.
       const granted = exchange.cmd === "enroll" ? entitlementOf(value) : null;
 
       if (granted) {
@@ -455,6 +422,7 @@ function main(): void {
   const pump = async (): Promise<void> => {
     for (;;) {
       const line = await nextLine();
+
       if (line === null) {
         return;
       }
@@ -466,13 +434,18 @@ function main(): void {
   process.stdin.setEncoding("utf8");
   process.stdin.on("data", (chunk: string) => {
     buffer += chunk;
+
     let cut = buffer.indexOf("\n");
+
     while (cut !== -1) {
       const line = buffer.slice(0, cut).trim();
+
       buffer = buffer.slice(cut + 1);
+
       if (line.length > 0) {
         feed(line);
       }
+
       cut = buffer.indexOf("\n");
     }
   });

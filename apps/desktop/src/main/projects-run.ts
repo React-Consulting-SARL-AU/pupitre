@@ -28,15 +28,6 @@ import { PROJECT_ACTIONS, type ProjectAction } from "@shared/projects";
 import type { AgentClient } from "./agent-client";
 import { refuseWith } from "./refusal";
 
-/**
- * The project commands, and what the renderer is allowed to say to them.
- *
- * The renderer describes a project once, when it is added, and names it after
- * that. A name it did not get from the agent goes nowhere: the list and the add
- * are the only two ways into the map below, and every other command is checked
- * against it before it becomes a request.
- */
-
 const FOLLOW_MS = 1_800_000;
 
 const DEFAULT_LINES = 200;
@@ -47,31 +38,17 @@ const PROCESS_OK = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 
 export interface ProjectDeps {
   client: Pick<AgentClient, "request">;
-  /** Whether this identifier still names a server of the app's configuration. */
   knows: (serverId: string) => boolean;
-  /**
-   * Removes the DNS record of a name a project no longer answers to — because
-   * the project leaves, or because its configuration dropped the route. A name
-   * left behind still answers, with nothing behind it anymore.
-   */
+  /** A DNS record left behind a dropped route still answers, with nothing behind it anymore. */
   release?: (serverId: string, hostname: string) => Promise<unknown>;
 }
 
-/**
- * The projects the agent named, and the folders it named for each.
- *
- * `dir` is what the registry holds — relative to a projects root the protocol
- * never states. `path` is that same folder in absolute, resolved by the agent
- * for every project, versioned or not: it is where a terminal starts and what
- * an editor is pointed at. `root` is the root git reports, filled in the day a
- * git command answers, and it is the one the editor prefers on a repository
- * whose registry folder sits below it.
- */
 interface Declared {
+  /** Relative to a projects root the protocol never states. */
   dir: string;
   path: string | null;
+  /** Git's root, preferred by the editor when the registry folder sits below it. */
   root: string | null;
-  /** The names on the web the project answers to, as the agent stored them: what a removal or a rewrite has to hand back. */
   hostnames: readonly string[];
 }
 
@@ -85,19 +62,16 @@ export function forgetProjects(serverId?: string): void {
   }
 }
 
-/** The absolute folder of a project: git's root, else the one the agent gave. */
 export function projectFolder(serverId: string, name: string): string | null {
   const held = declared.get(serverId)?.get(name);
 
   return held?.root ?? held?.path ?? null;
 }
 
-/** The folder the agent registered for a project: what its files are browsed from, git's root or not. */
 export function projectPath(serverId: string, name: string): string | null {
   return declared.get(serverId)?.get(name)?.path ?? null;
 }
 
-/** Whether this server has declared a project under that name. */
 export function declaresProject(serverId: string, name: string): boolean {
   return declared.get(serverId)?.has(name) ?? false;
 }
@@ -108,14 +82,7 @@ function climbs(path: string): boolean {
   return path.split("/").some((segment) => segment === "..");
 }
 
-/**
- * A folder an editor may be pointed at on this server, or nothing.
- *
- * The renderer names a path; it opens only when the agent itself named it — a
- * declared project's folder, or git's root for it — or when it sits under the
- * root the agent's own completions count from, where the file browser walks.
- * A path that climbs, or that no answer of the agent covers, opens nothing.
- */
+/** A renderer path opens only when the agent named it or it sits under the root its completions count from. */
 export function editorFolder(
   serverId: string,
   path: unknown,
@@ -175,7 +142,6 @@ function hostnamesOf(
   );
 }
 
-/** The names the agent holds for a project, as it last answered them. */
 export function projectHostnames(
   serverId: string,
   name: string
@@ -212,20 +178,13 @@ function remember(
   declared.set(serverId, held);
 }
 
-/** The commands whose answer lists every project of the machine, as the agent names them. */
 const LISTINGS: ReadonlySet<string> = new Set([
   "snapshot",
   "status",
   "project.list",
 ]);
 
-/**
- * What a read the renderer made on its own says of the projects.
- *
- * The dashboard and the project screen live on `snapshot`, and a project the
- * app opens on after a launch has never gone through `project.list` here: the
- * names such a read carries are the agent's own, and are kept like the list's.
- */
+/** A project opened after a launch may never go through `project.list`: a `snapshot` also names projects. */
 export function noteProjects(
   serverId: string,
   cmd: string,
@@ -300,10 +259,7 @@ export async function addProject(
   return answer;
 }
 
-/**
- * A parameter at its default stays off the line: the agent's params are closed,
- * and an agent from before `boot` or `runtimes` refuses a key it never learnt.
- */
+/** The agent's params are closed: an agent from before `boot` or `runtimes` refuses a key it never learnt. */
 function withoutDefaults(params: ProjectAddParams): Partial<ProjectAddParams> {
   const { boot, runtimes, ...rest } = params;
 
@@ -314,15 +270,7 @@ function withoutDefaults(params: ProjectAddParams): Partial<ProjectAddParams> {
   };
 }
 
-/**
- * A project rewritten in place, and the names it stops answering to released.
- *
- * The agent replaces the routes and answers the project as it stands; the
- * records are the app's, so the names of before are read against the names of
- * after, and a name that went is dropped from the zone before the tunnel is
- * asked to sync. The renderer names a project the list gave it, never one it
- * made up, and the patch is held to the contract before it becomes a request.
- */
+/** The DNS records are the app's, not the agent's: a hostname the update dropped is released here. */
 export async function updateProject(
   serverId: unknown,
   params: unknown,
@@ -366,12 +314,7 @@ export async function updateProject(
   return answer;
 }
 
-/**
- * A server and a project name the agent itself has named, or nothing.
- *
- * The renderer never gets to invent a project: what it can drive is what the
- * list or the add came back with.
- */
+/** The renderer never invents a project: it drives only what the agent's list or add came back with. */
 function target(
   serverId: unknown,
   name: unknown,
@@ -398,7 +341,6 @@ function isRefusal(
   return "ok" in value;
 }
 
-/** The commands that take a project name and nothing else. */
 export type PlainProjectCommand =
   | "project.install"
   | "project.pull"
@@ -420,13 +362,7 @@ interface PlainResult {
   "project.remove": ProjectRemoveResult;
 }
 
-/**
- * One project, one command, no parameter but its name.
- *
- * `project.git_status` goes out to the network — it asks the remote repository
- * what it has more of — so it is asked when a project opens and when the reader
- * asks again, never from a refresh loop.
- */
+/** `project.git_status` reaches the remote repository: callers ask it on open or on demand, never in a loop. */
 export async function onProject<C extends PlainProjectCommand>(
   cmd: C,
   serverId: unknown,
@@ -490,7 +426,6 @@ export function installProject(
   return onProject("project.install", serverId, name, deps);
 }
 
-/** A process id as the contract spells it: one DNS label, or nothing. */
 function processOf(process: unknown): string | null {
   return typeof process === "string" && PROCESS_OK.test(process)
     ? process
@@ -501,12 +436,7 @@ function isProjectAction(action: unknown): action is ProjectAction {
   return PROJECT_ACTIONS.includes(action as ProjectAction);
 }
 
-/**
- * Start, stop or restart — one project, or every one of them.
- *
- * "all" is the agent's own word, not a name the renderer made up, so it is the
- * one target that does not go through the declared list.
- */
+/** "all" is the agent's own word, so it is the one target that skips the declared list. */
 export async function actOnProject(
   action: unknown,
   serverId: unknown,
@@ -573,12 +503,7 @@ export async function checkoutProject(
   });
 }
 
-/**
- * One file's diff, as git printed it.
- *
- * The path is one the working tree just named; the agent checks it again on its
- * side, because a path is the one thing a renderer could still smuggle in.
- */
+/** Only checked for presence here: the agent validates the path again, the one thing a renderer could smuggle. */
 export async function diffProject(
   serverId: unknown,
   name: unknown,
@@ -601,13 +526,7 @@ export async function diffProject(
   });
 }
 
-/**
- * The environment file of a project: its keys, never a value.
- *
- * Without `force` the agent reads the file it already wrote, or writes it once
- * from the project's template; with it, the file is written again from the
- * vault. Only the names of the keys come back, which is all a screen may show.
- */
+/** Only key names come back, never a value; `force` rewrites the file from the vault. */
 export async function projectEnv(
   serverId: unknown,
   name: unknown,
@@ -630,12 +549,7 @@ export async function projectEnv(
   });
 }
 
-/**
- * The journal of one process of a project, read once or followed.
- *
- * A followed journal holds its channel until the process stops, so it gets the
- * long timeout rather than the minute a read is given.
- */
+/** A followed journal holds its channel until the process stops, hence the long timeout. */
 export async function projectLogs(
   serverId: unknown,
   name: unknown,

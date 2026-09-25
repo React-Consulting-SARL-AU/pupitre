@@ -9,36 +9,24 @@ import {
 } from "./services-run";
 import type { TerminalCommand } from "./terminal-run";
 
-/**
- * A database shell, opened in a terminal tab on the command the agent gave.
- *
- * The renderer names a server, a module and, at most, a database. The command
- * that becomes a session is never its to say: it is asked of the agent here,
- * wrapped in the same tmux session a shell tab gets, and held under the
- * identifier of the tab about to open. `terminal-open` then finds the command
- * by that identifier, and nothing the renderer sends can replace it.
- */
-
-/** What the agent may name as a database, and what may enter a session name. */
 const DATABASE_OK = /^[A-Za-z0-9_-]{1,64}$/;
 
-/** A command holds one line; a second one would be a second command. */
+/** A second line would be a second command. */
 const ONE_LINE = /^[^\r\n\0]+$/;
 
 interface Reserved extends TerminalCommand {
   serverId: string;
 }
 
+/** Held by tab id so `terminal-open` runs the agent's command and nothing the renderer sends can replace it. */
 const reserved = new Map<string, Reserved>();
 
 let counter = 0;
 
-/** The command as one argument of the remote login shell, whatever it carries. */
 export function quoted(command: string): string {
   return `'${command.replaceAll("'", "'\\''")}'`;
 }
 
-/** The tmux session that runs it, on the same model as a shell tab's. */
 export function databaseSession(engine: DbEngine, rank: number): string {
   return `db-${engine}-${rank}`;
 }
@@ -131,7 +119,6 @@ export async function reserveDatabaseShell(
   return { ok: true, result: { id, session } };
 }
 
-/** The command held for this tab on this server, or nothing. */
 export function reservedShell(
   id: unknown,
   serverId: unknown

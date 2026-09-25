@@ -3,7 +3,6 @@ import type { KeyApprovalReceipt as SharedKeyApprovalReceipt } from "@pupitre/sh
 
 export type KeyApprovalReceipt = SharedKeyApprovalReceipt;
 
-/** One pending key, named the way the renderer asks for it: a server and a device. */
 export function approvalKeyOf(
   approval: Pick<PendingKeyApproval, "server" | "device">
 ): string {

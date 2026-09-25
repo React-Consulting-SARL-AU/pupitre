@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { createReadStream, readFileSync } from "node:fs";
 import { basename } from "node:path";
 import type { AppAbout, AppUpdateState } from "@shared/app-update";
-import { app, ipcMain, autoUpdater as squirrel } from "electron";
+import { app, autoUpdater as squirrel } from "electron";
 import electronUpdater, {
   type AppUpdater,
   type UpdateDownloadedEvent,
@@ -10,6 +10,8 @@ import electronUpdater, {
 import { AGENT_RELEASE_PUBLIC_KEY } from "./agent-release";
 import { appVersion } from "./app-version";
 import { broadcast } from "./broadcast";
+import { handle } from "./ipc";
+import { shape } from "./ipc-guard";
 import { trace } from "./trace";
 import {
   checkAppArtefact,
@@ -26,7 +28,6 @@ import {
   type UpdaterEvent,
 } from "./updater-state";
 
-/** Long enough not to poll for nothing, short enough to catch the day's fix. */
 const EVERY_MS = 4 * 60 * 60 * 1000;
 
 /** A signature is a hundred bytes: a fetch that takes longer is a bucket that is not answering. */
@@ -58,7 +59,7 @@ function digest(file: string): Promise<string> {
   });
 }
 
-/** Read again at the moment of installing, when the app is quitting anyway. */
+/** Synchronous: it runs while the app is quitting. */
 function digestNow(file: string): string | null {
   try {
     return createHash("sha256").update(readFileSync(file)).digest("hex");
@@ -76,13 +77,6 @@ function pendingFile(): string | null {
   return internals.downloadedUpdateHelper?.file ?? null;
 }
 
-/**
- * The downloaded artefact against the signature published beside it.
- *
- * The feed says which file was fetched; the one on disk carries the same name.
- * Anything that fails on the way — no signature, a bucket that does not
- * answer, a file that cannot be read — is a download that is not installed.
- */
 async function verifiedDownload(
   info: UpdateDownloadedEvent,
   feedUrl: string
@@ -127,33 +121,22 @@ function moved(event: UpdaterEvent): void {
   broadcast("app-update:changed", state);
 }
 
-/** What the About screen reads, and the two gestures it makes. */
 export function appUpdateState(): AppUpdateState {
   return state;
 }
 
 let lookNow: () => void = () => undefined;
 
-/** The menu's "Check for Updates": the same check, now rather than at the next round. */
 export function checkForUpdates(): void {
   lookNow();
 }
 
-/**
- * Hands the verified archive to Squirrel.Mac now, which puts it in place when
- * the app next quits. electron-updater's proxy is still serving the file it
- * downloaded; raising the flag keeps its own `quitAndInstall` from asking
- * Squirrel a second time.
- */
+/** Raising the flag keeps electron-updater's own `quitAndInstall` from asking Squirrel.Mac a second time. */
 function stageOnMac(): void {
   updater().autoInstallOnAppQuit = true;
   squirrel.checkForUpdates();
 }
 
-/**
- * The AppImage or the NSIS installer, put in place as the app quits — only
- * when the file on disk is still the one verified.
- */
 function installOnQuit(exitCode: number): void {
   if (
     installing ||
@@ -167,22 +150,7 @@ function installOnQuit(exitCode: number): void {
   updater().quitAndInstall(true, false);
 }
 
-/**
- * The check at start, then the same check every few hours.
- *
- * Nothing of this reaches a screen on its own: the update downloads in the
- * background, the About screen follows it, and it is put in place when the app
- * is next quit, so an install never interrupts a terminal that was in the
- * middle of something.
- *
- * electron-updater never installs by itself here: `autoInstallOnAppQuit`
- * stays down while a download has not been verified, on the three systems.
- * A download is `verifying` until the Ed25519 signature published beside it
- * holds for its bytes; only then is it `ready`, and the install — asked for,
- * or on quit — re-reads the file and refuses anything but those bytes.
- * On top of it, Squirrel.Mac checks the Developer ID of what it stages, and
- * electron-updater the Authenticode publisher of the Windows installer.
- */
+/** `autoInstallOnAppQuit` stays down until the Ed25519 signature published beside a download holds for its bytes. */
 export function startUpdater(): UpdaterPlan {
   const plan = updaterPlan(environment());
 
@@ -202,20 +170,21 @@ export function startUpdater(): UpdaterPlan {
 
   lookNow = look;
 
-  ipcMain.handle(
+  handle(
     "app:about",
+    shape(),
     (): AppAbout => ({
       channel: plan.updates ? plan.channel : null,
       version: appVersion(),
     })
   );
-  ipcMain.handle("app-update:state", () => state);
-  ipcMain.handle("app-update:check", () => {
+  handle("app-update:state", shape(), () => state);
+  handle("app-update:check", shape(), () => {
     look();
 
     return state;
   });
-  ipcMain.handle("app-update:install", () => {
+  handle("app-update:install", shape(), () => {
     if (state.status !== "ready" || installing) {
       return state;
     }
@@ -311,6 +280,7 @@ export function startUpdater(): UpdaterPlan {
   look();
 
   const timer = setInterval(look, EVERY_MS);
+
   app.on("will-quit", () => clearInterval(timer));
 
   return plan;

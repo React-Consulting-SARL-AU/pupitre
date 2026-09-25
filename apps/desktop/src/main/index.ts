@@ -1,4 +1,4 @@
-// Before anything reads the data folder: a development build gets its own.
+// Must run before anything reads the data folder: a development build gets its own.
 import "./dev-data";
 import { fileURLToPath } from "node:url";
 import { windowBackground } from "@shared/appearance";
@@ -53,30 +53,15 @@ import { checkForUpdates, startUpdater } from "./updater";
 
 let window: BrowserWindow | null = null;
 
-/** The language the menu and the system's dialogs speak: the system's, until the page says its own. */
+/** The system's language until the page settles on its own. */
 let language = "";
 
-/**
- * A file shipped next to this one, named the way the running system names it.
- *
- * `new URL(...).pathname` yields `/C:/Users/...` on Windows, which no API of
- * Electron opens; `fileURLToPath` gives back the drive letter and the
- * backslashes.
- */
+/** `new URL(...).pathname` yields `/C:/Users/...` on Windows, which no Electron API opens. */
 function beside(relative: string): string {
   return fileURLToPath(new URL(relative, import.meta.url));
 }
 
-/**
- * What has to be dropped with one server: the machine it named is no longer
- * the one the app talks to — removed from the list, reached at another address
- * or another account, or reinstalled under a new host key.
- *
- * Only that server's channels, terminals, project names and credentials go: an
- * install running on another server, and the tabs open on it, are not touched
- * by what happens to this one. Activating, renaming or adding a server drops
- * nothing at all — the file is written, and every session stands.
- */
+/** Drops only this server's sessions: installs and tabs on other servers are left standing. */
 function settle(serverId: string): void {
   agentClient.close(serverId);
   forgetProjects(serverId);
@@ -84,30 +69,19 @@ function settle(serverId: string): void {
   closeFor(serverId);
 }
 
-/**
- * Everything the app holds open on the servers, let go. Called on every way
- * out — the last window closed, Cmd+Q, a relaunch — and harmless twice: an
- * `ssh -L` left behind would keep its local port after the app is gone.
- */
+/** Runs on every way out and is harmless twice: a leftover `ssh -L` would keep its local port. */
 function releaseEverything(): void {
   closeAll();
   forgetServiceCredentials();
   agentClient.closeAll();
 }
 
-/**
- * What the native window paints before the page does, and while it resizes.
- *
- * At creation the choice is still in the renderer, which remembers it, so the
- * window opens on whatever `nativeTheme` says and the renderer corrects it over
- * `appearance:set` before the first paint.
- */
+/** The renderer holds the theme choice and corrects this over `appearance:set` before the first paint. */
 function nativeBackground(): string {
   return windowBackground(nativeTheme.shouldUseDarkColors ? "dark" : "light");
 }
 
-// Said at import, not on ready: macOS has already made the app the active one
-// by then, and a suite of scenarios would take the screen once per file.
+// At import, not on ready: by then macOS has already made the app active and the e2e suite would take the screen.
 stayBehind();
 
 const failed = watchFailures({
@@ -115,14 +89,7 @@ const failed = watchFailures({
   release: releaseEverything,
 });
 
-/**
- * One instance of the app, and one only.
- *
- * A second launch — a double click, a link handed to the app by the system —
- * hands over to the first, which comes to the front and reads what the second
- * was launched with. Under the harness every scenario is its own instance on
- * its own data folder, and none of them takes the screen.
- */
+// Under the harness every scenario is its own instance on its own data folder.
 if (!(HARNESSED || app.requestSingleInstanceLock())) {
   app.quit();
 }
@@ -162,14 +129,6 @@ app.on("open-url", (event, url) => {
 
 const DEV_URL = process.env.ELECTRON_RENDERER_URL;
 
-/**
- * The renderer is a page the app ships, and stays one.
- *
- * It never navigates: a link it carries goes to the system browser through
- * `openable`, or nowhere. The sandbox keeps the preload to what the bridge
- * needs, and no permission — camera, notifications, geolocation — is granted
- * to a page that never asks for one on purpose.
- */
 const PAGE: PageRules = {
   devUrl: DEV_URL,
   indexFile: beside("../renderer/index.html"),
@@ -201,18 +160,13 @@ function createWindow(): void {
     },
   });
 
-  // Under the harness the window is never shown at all. Playwright reaches the
-  // page over the debugger, which draws and captures a window nobody displays;
-  // showing it — even without the focus — would drop it over whatever the
-  // person at this machine is doing, once per scenario file.
+  // Playwright captures over the debugger; showing the window would drop it over the user's work per scenario.
   window.on("ready-to-show", () => {
     if (!HARNESSED) {
       window?.show();
     }
   });
 
-  // The trace follows the window that exists now: a reopened window on macOS
-  // gets the lines, and a closed one is not written to.
   tracesTo((entry) => window?.webContents.send("trace", entry));
   broadcastTo(window.webContents);
   window.on("closed", () => {
@@ -243,7 +197,6 @@ function createWindow(): void {
   }
 }
 
-/** Built again when the page settles on its language: the menu speaks the app's, not the system's. */
 function installMenu(): void {
   const spoken = language || app.getLocale();
 
@@ -319,7 +272,7 @@ app
     }
 
     registerChannels();
-    // Derived file: a version that changes its shape must not wait for an edit.
+    // Rewritten at every start so a version that changes this derived file's shape need not wait for an edit.
     sshPathsWritten();
     startUpdater();
     watchAttention({
@@ -333,6 +286,7 @@ app
     if (opened) {
       openDeepLink(opened);
     }
+
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) {
         createWindow();

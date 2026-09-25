@@ -1,6 +1,6 @@
 import { foldRows } from "@shared/folded-rows";
 
-// A machine can print any address; only these hosts, or a flow that comes back to the machine, ever become a button.
+// A machine can print any address: only these hosts, or a flow back to the machine, become a button.
 const LOGIN_HOSTS = [
   "claude.ai",
   "claude.com",
@@ -34,13 +34,7 @@ function knownHost(host: string): boolean {
   return LOGIN_HOSTS.some((name) => host === name || host.endsWith(`.${name}`));
 }
 
-/**
- * The port a sign-in comes back to on the machine, when the flow ends there.
- *
- * A CLI that listens on its own loopback for the browser's return says so in
- * the `redirect_uri` of the address it prints. That port is on the server, and
- * the browser is on this computer: someone has to carry it across.
- */
+/** The CLI listens on the server's loopback while the browser is here: that port must be forwarded. */
 export function loopbackRedirect(raw: string): number | null {
   try {
     const redirect = new URL(raw).searchParams.get("redirect_uri");
@@ -78,11 +72,7 @@ export function unwrap(lines: string[], cols: number): string[] {
   ).map((line) => line.text);
 }
 
-/**
- * The last one, not the first: a reprinted address is the live one. A row
- * painted before the rest of its address, or one the fold missed, is a
- * fragment of the one just found or of the one already known, not a new one.
- */
+/** The last address wins (a reprint is the live one); a prefix of a known address is a fragment, not a new one. */
 export function loginAddress(
   lines: string[],
   cols: number,

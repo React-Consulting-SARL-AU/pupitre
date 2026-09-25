@@ -1,15 +1,5 @@
 import type { AppUpdateFailure, AppUpdateState } from "@shared/app-update";
 
-/**
- * The updater's state, as one value the window can read.
- *
- * electron-updater speaks in events; the About screen wants a status. This is
- * the fold from one to the other, without Electron, so it is tested by hand:
- * each event answers the next state from the one before. A download is only
- * `verifying` until the release key has vouched for it; `ready` is reached by
- * `verified` alone.
- */
-
 export type UpdaterEvent =
   | { kind: "checking" }
   | { kind: "available"; version: string }
@@ -39,6 +29,7 @@ export function initialUpdateState(updates: boolean): AppUpdateState {
   return { status: "idle", updates };
 }
 
+/** A download stays `verifying` until the release key vouches for it: only `verified` reaches `ready`. */
 export function nextUpdateState(
   state: AppUpdateState,
   event: UpdaterEvent,

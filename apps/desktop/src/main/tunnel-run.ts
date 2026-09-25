@@ -18,18 +18,6 @@ import {
 import { refuseWith } from "./refusal";
 import { trace } from "./trace";
 
-/**
- * The client's tunnel, set up from their laptop and owned by their server.
- *
- * The app holds the Cloudflare token, makes the tunnel and writes the DNS; the
- * server receives what makes it run and is then the only place its identifier
- * lives. Everything after the install reads it back from there — a laptop that
- * is reinstalled, or a server handed to a colleague, finds the same tunnel with
- * nothing but the account token. The zone follows the domain, which is a field
- * of the module like any other, so one account carries several servers under
- * several zones without anyone copying an identifier.
- */
-
 export const CLOUDFLARE_EXPOSURE = "exposure.cloudflare";
 
 export interface ManagedValues {
@@ -37,7 +25,6 @@ export interface ManagedValues {
   secrets: InstallSecrets;
 }
 
-/** What the server says it was configured with: the plain values, never a secret. */
 export interface ServerExposure {
   tunnelId: string;
   domain: string;
@@ -46,16 +33,10 @@ export interface ServerExposure {
 export interface TunnelDeps {
   connection: () => CloudflareConnection | null;
   api: () => CloudflareApi | null;
-  /**
-   * Reads `module.config` on the server: the tunnel it runs, and what it
-   * publishes. `null` says the server answered and runs no tunnel; a server
-   * that could not be asked raises `ExposureUnreadable` rather than answering
-   * `null`, because the two lead to opposite gestures.
-   */
+  /** Throws `ExposureUnreadable` instead of null: "no tunnel" and "unreadable" call opposite gestures. */
   exposureOf: (serverId: string) => Promise<ServerExposure | null>;
 }
 
-/** The server could not be asked what it publishes. It is not an empty answer. */
 export class ExposureUnreadable extends Error {}
 
 const EMPTY: ManagedValues = { config: {}, secrets: {} };
@@ -77,7 +58,6 @@ function tunnelName(serverId: string): string {
   return `pupitre-${serverId}`;
 }
 
-/** The routes as the renderer handed them, each held to the contract's shape, or nothing. */
 export function checkedRoutes(raw: unknown): TunnelRoute[] | null {
   if (!Array.isArray(raw)) {
     return null;
@@ -105,15 +85,7 @@ function under(hostname: string, domain: string): boolean {
   return host === zone || host.endsWith(`.${zone}`);
 }
 
-/**
- * What the installation asks nobody for.
- *
- * The three managed fields come from here. A server that already runs a tunnel
- * the account still holds keeps it and receives no secret at all — Cloudflare
- * never gives one back, and the agent leaves a secret it was not sent exactly
- * as it was. A server with no tunnel, or one naming a tunnel that has since
- * gone, gets a new one made for it.
- */
+/** A kept tunnel gets no secret: Cloudflare never returns one, and the agent keeps a secret it was not sent. */
 export async function managedValues(
   serverId: string,
   modules: readonly string[],
@@ -133,8 +105,7 @@ export async function managedValues(
   try {
     const held = await deps.exposureOf(serverId);
 
-    // A tunnel the account no longer holds is one cloudflared refuses to run:
-    // handing it back would install a service that can never carry anything.
+    // cloudflared refuses to run a tunnel the account no longer holds.
     if (held?.tunnelId && (await api.hasTunnel(held.tunnelId))) {
       return {
         ok: true,
@@ -167,12 +138,7 @@ export async function managedValues(
       },
     };
   } catch (failure) {
-    /**
-     * Making a tunnel is destructive: its name is this server's own, and a new
-     * one deletes what that name already points at. Doing that because the
-     * server could not be asked would take down the tunnel it is running at
-     * that very moment, so the install stops and says so instead.
-     */
+    // Creating a tunnel deletes the same-named one, which may be the one this server runs right now.
     if (failure instanceof ExposureUnreadable) {
       return refuseWith("bad_request", "refusal.cloudflare.exposure.unread", {
         reason: failure.message,
@@ -185,12 +151,7 @@ export async function managedValues(
 
 const NAME_TAKEN = /already have a tunnel with this name/i;
 
-/**
- * A same-named tunnel that survived a reinstall is unusable: its secret left
- * with the machine that ran it. It is looked for and removed first; a name
- * Cloudflare still refuses after that is looked for once more, because its
- * listing lags behind its refusals.
- */
+/** A same-named orphan is unusable (its secret is gone); the retry exists because Cloudflare's listing lags. */
 async function createTunnel(
   serverId: string,
   api: CloudflareApi
@@ -223,12 +184,6 @@ async function createTunnel(
   }
 }
 
-/**
- * The records the agent's routes call for.
- *
- * A record still pointing at a vanished tunnel is error 1033 in the browser:
- * DNS answers, and nothing is behind it.
- */
 export async function syncRecords(
   serverId: string,
   routes: readonly TunnelRoute[],
@@ -247,9 +202,7 @@ export async function syncRecords(
       return notConnected();
     }
 
-    // A record is only ever written under the domain the server publishes:
-    // the app holds the whole account's zones, and a route naming another one
-    // would let a screen write into it.
+    // The token covers every zone of the account: a route outside the server's domain must not write there.
     const foreign = routes.find(
       (route) => !under(route.hostname, exposure.domain)
     );
@@ -300,21 +253,11 @@ export async function syncRecords(
   }
 }
 
-/**
- * The zone may be the one the platform itself lives in, or carry names the
- * client wrote by hand: only a record the app marked as its own is ever
- * repointed or dropped, and a name held by any other record is refused.
- */
+/** The zone may hold the platform's own or hand-written names: only records the app marked are touched. */
 function owned(record: DnsRecord): boolean {
   return record.comment === RECORD_COMMENT;
 }
 
-/**
- * A name a project stops answering to takes its record with it: leaving it
- * behind is a name answering into the void. The hostname is the whole one the
- * agent stored, and only a name under the domain the server publishes is
- * looked for — the zone of that domain is the only one this app writes into.
- */
 export async function dropRecord(
   serverId: string,
   hostname: string,
@@ -353,11 +296,6 @@ export async function dropRecord(
   }
 }
 
-/**
- * The names a server stops publishing when its domain changes: each record the
- * app wrote goes, in whatever zone of the account it sits, and the platform's
- * own names — or anything else in that zone — are never touched.
- */
 export async function releaseRecords(
   _serverId: string,
   hostnames: readonly string[],
@@ -388,7 +326,6 @@ export async function releaseRecords(
   }
 }
 
-/** The tunnel of a server being released follows the server: it has nothing left to carry. */
 export async function dropTunnel(
   serverId: string,
   deps: TunnelDeps
@@ -400,11 +337,7 @@ export async function dropTunnel(
   }
 
   try {
-    // The server is the one that knows; a machine already gone leaves the name,
-    // which is this app's own and enough to find the tunnel again. Releasing a
-    // server it cannot reach is the ordinary case here, so a machine that will
-    // not answer falls back on that name rather than keeping a tunnel alive
-    // with nothing behind it.
+    // A released server is often unreachable: its tunnel is then found by the app's own name for it.
     const exposure = await deps
       .exposureOf(serverId)
       .catch((failure: unknown) => {

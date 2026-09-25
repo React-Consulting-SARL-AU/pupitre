@@ -12,31 +12,17 @@ const ENTRY = join(HERE, "fake-agent-main.ts");
 
 export interface FakeAgent {
   spawn: AgentSpawn;
-  /** How many processes were started, and how many are still running. */
   started: () => number;
   live: () => number;
   /** The `id=… cmd=…` lines the agent saw, in order, all connections mixed. */
   trace: () => string[];
   /** Every line the app wrote on the channel: requests and secret lines alike. */
   written: () => string[];
-  /** The channel each process was started for, in order: one transcript each. */
   purposes: () => ChannelPurpose[];
   killAll: () => void;
 }
 
-/**
- * A `pupitred serve` replaced by a Bun process replaying a transcript.
- *
- * One transcript per connection: a channel that reconnects after a cut gets the
- * next one, which is how the resume path is exercised without a network. The
- * last transcript serves any further connection.
- */
-/**
- * Everything the app writes on the channel, kept as it goes out.
- *
- * A test that has to prove a secret never entered `params` needs the bytes
- * themselves, not what the agent chose to trace on the other side.
- */
+/** Proving a secret never entered `params` needs the bytes sent, not what the agent traced. */
 function watchStdin(child: ChildProcess, sent: string[]): void {
   const stdin = child.stdin;
 
@@ -57,6 +43,7 @@ function watchStdin(child: ChildProcess, sent: string[]): void {
   }) as typeof stdin.write;
 }
 
+/** One transcript per connection, so a reconnect after a cut replays the next; the last serves the rest. */
 export function fakeAgent(fixtures: string | string[]): FakeAgent {
   const paths = (Array.isArray(fixtures) ? fixtures : [fixtures]).map((name) =>
     join(HERE, name)

@@ -13,16 +13,6 @@ import { checkAgentRelease } from "./agent-release";
 import { refusalOf } from "./refusal";
 import { trace } from "./trace";
 
-/**
- * What has to happen before a binary reaches a server.
- *
- * The server is enrolled first: the platform gives it an identity, a seat and
- * the release the app is to push. Only then is the binary fetched, checked
- * against that release's checksum and signature, and sent. A development build
- * with no account keeps the binary it carries; a packaged one has none to fall
- * back on, and says so.
- */
-
 const KNOWN_CODES = new Set<string>([
   ...PROTOCOL_ERROR_CODES,
   "timeout",
@@ -38,15 +28,8 @@ export interface EnrollmentDeps {
   embedded: (arch: string) => AgentResponse<AgentPayload>;
   build: BuildKind;
   releaseKey: string;
-  /**
-   * The identity the platform just gave, written on the local server entry.
-   *
-   * Without it, an installation following the enrollment does not know which
-   * platform server it is talking about: what the platform manages for it — a
-   * tunnel, a subdomain — is asked for by that id.
-   */
+  /** The install that follows asks for platform-managed things (tunnel, subdomain) by this id. */
   bind: (serverId: string, platformServerId: string) => void;
-  /** The Ed25519 host key the app's known_hosts holds for the server, or null. */
   hostFingerprint: (server: Server) => Promise<string | null>;
 }
 
@@ -97,11 +80,7 @@ function unpublished(build: BuildKind): AgentResponse<never> {
   };
 }
 
-/**
- * What the platform is told of a machine, whether it is being installed or
- * repaired. The fingerprint is the Ed25519 one: the platform refuses a token
- * traded with any other host key than the one it pinned.
- */
+/** Ed25519 fingerprint: the platform refuses a token traded with any other host key than the pinned one. */
 export function enrollInput(
   server: Server,
   arch: string,
@@ -177,11 +156,7 @@ function carried(
     : payload;
 }
 
-/**
- * The seat the platform already granted this server, while its token is still
- * whole, or a new one. A retry after a push that failed must not buy the row a
- * second time: the enrolment it holds is the one to hand the agent.
- */
+/** A retry after a failed push reuses the held enrolment rather than buying a second seat. */
 async function enrolment(
   server: Server,
   arch: string,

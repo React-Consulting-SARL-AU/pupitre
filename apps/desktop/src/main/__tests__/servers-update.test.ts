@@ -3,18 +3,11 @@ import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Server } from "@shared/servers";
-
-/**
- * What this file proves: the address, the port and the account of a server
- * change in place, the SSH file the app owns follows, and the pinned host key
- * goes with the address it was pinned for — and only then.
- */
+import { electronStub } from "./electron-stub";
 
 const root = mkdtempSync(join(tmpdir(), "pupitre-servers-update-"));
 
-mock.module("electron", () => ({
-  app: { getPath: () => root },
-}));
+mock.module("electron", () => electronStub(root));
 
 const { paths, read, update, write } = await import("../servers");
 const { changeServer, SetupError } = await import("../server-setup");

@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
-import { ipcMain } from "electron";
 import { account, deviceKeyPath } from "./account";
+import { handle } from "./ipc";
+import { isString, shape } from "./ipc-guard";
 import { createKeyApprovals, sshKeygenSigner } from "./key-approvals-run";
 
 function devicePublicKey(): string | null {
@@ -18,11 +19,11 @@ const keyApprovals = createKeyApprovals({
 });
 
 export function registerKeyApprovals(): void {
-  ipcMain.handle("key-approvals:list", () => keyApprovals.list());
+  handle("key-approvals:list", shape(), () => keyApprovals.list());
 
-  ipcMain.handle(
+  handle(
     "key-approvals:approve",
-    (_event, serverId: unknown, deviceId: unknown) =>
-      keyApprovals.approve(serverId, deviceId)
+    shape(isString, isString),
+    (_event, serverId, deviceId) => keyApprovals.approve(serverId, deviceId)
   );
 }

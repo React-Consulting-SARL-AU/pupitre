@@ -1,12 +1,6 @@
 import type { JsonObject, StoreMigration } from "./store-migrations";
 
-/**
- * The ledger of `connections/<provider>.json`, what a connection keeps beside
- * its token: the account it names and its settings.
- *
- * Adding an entry is the whole of what a shape change costs — see
- * docs/contracts/config-migrations.md.
- */
+/** Every shape change of `connections/<provider>.json` adds an entry: see docs/contracts/config-migrations.md. */
 export const CONNECTIONS_MIGRATIONS: readonly StoreMigration[] = [
   {
     apply: accountNamed,
@@ -15,10 +9,7 @@ export const CONNECTIONS_MIGRATIONS: readonly StoreMigration[] = [
   },
 ];
 
-/**
- * Cloudflare wrote `accountId` and `accountName` before there was a second
- * connection; every connection names its account `id` and `name` since.
- */
+/** Cloudflare wrote `accountId`/`accountName` before every connection named its account `id`/`name`. */
 function accountNamed(document: JsonObject): JsonObject {
   const connection = document.connection;
 

@@ -11,9 +11,7 @@ export interface TerminalDeps {
   knows: (serverId: string) => boolean;
   declares: (serverId: string, project: string) => boolean;
   folder: (serverId: string, project: string) => string | null;
-  /** The folder the agent registered for a project, the one its files are browsed from. */
   path?: (serverId: string, project: string) => string | null;
-  /** The root of the server's files, the one a folder of the server view counts from. */
   root?: (serverId: string) => Promise<string | null>;
 }
 
@@ -23,21 +21,17 @@ export interface TerminalCommand {
   session: string | null;
 }
 
-/** What the renderer names when it asks for a terminal: nothing here is trusted. */
+/** Named by the renderer: nothing here is trusted. */
 export interface TerminalRequest {
-  /** The tab, already read as a string by the channel that owns it. */
   id: string;
   serverId: unknown;
   kind: unknown;
   project: unknown;
-  /** The session a remembered tab carries, or nothing for a tab that is new. */
   session: unknown;
-  /** A folder under the project's — or under the server's root — the shell opens in. */
   dir?: unknown;
 }
 
 const FOLDER_OK = /^\/[\w.\-/+@]{0,240}$/;
-/** A relative folder: no leading slash, no step above, the same alphabet as an absolute one. */
 const SUBFOLDER_OK = /^[\w.\-/+@]{1,240}$/;
 /** tmux refuses "." and ":" in a session name, and refuses an empty one. */
 const SESSION_OK = /^[A-Za-z0-9_-]{1,80}$/;
@@ -48,7 +42,6 @@ export function isSessionName(value: unknown): value is string {
   return typeof value === "string" && SESSION_OK.test(value);
 }
 
-/** A folder named by the renderer, kept under the one the app already trusts. */
 export function isSubfolder(value: unknown): value is string {
   return (
     typeof value === "string" &&
@@ -65,13 +58,7 @@ function part(value: string, fallback: string): string {
   return value.replace(NOT_IN_SESSION, "-").slice(0, NAME_PART) || fallback;
 }
 
-/**
- * The tmux session a shell tab attaches to.
- *
- * The tab's own identifier is what makes it unique and stable: it is written
- * down with the tab, so the same tab asks for the same session at the next
- * launch and `-A` hands back the shell that kept running.
- */
+/** The tab id is persisted, so the same tab reattaches with `-A` to the shell that kept running. */
 function shellSession(project: string | null, id: string): string {
   return `shell-${part(project ?? "server", "server")}-${part(id, "tab")}`;
 }
@@ -95,18 +82,7 @@ export function isAgentKind(kind: TerminalKind): kind is AgentKind {
   return (AGENT_KINDS as readonly string[]).includes(kind);
 }
 
-/**
- * A shell under tmux, exactly as an agent runs.
- *
- * A closed lid, a Wi-Fi that drops or a window closed on macOS lets go of the
- * pipe; what was running keeps running, and `-A` attaches to it again instead of
- * starting a second one beside it.
- *
- * The status line is turned off on that session alone: tmux paints it green,
- * and the app draws its own bar under every terminal anyway. The separator is
- * quoted so the remote shell hands tmux a literal ";" instead of splitting the
- * line in two.
- */
+/** Status line off on this session only: the app draws its own bar under every terminal. */
 function loginShell(session: string, dir: string | null): TerminalCommand {
   const where = dir && FOLDER_OK.test(dir) ? ["-c", dir] : [];
 
@@ -118,6 +94,7 @@ function loginShell(session: string, dir: string | null): TerminalCommand {
       "-s",
       session,
       ...where,
+      // Quoted so the remote shell hands tmux a literal ";" instead of splitting the line.
       "';'",
       "set-option",
       "-t",
@@ -130,11 +107,7 @@ function loginShell(session: string, dir: string | null): TerminalCommand {
   };
 }
 
-/**
- * Where a shell starts: the project's folder, or a folder under it that the
- * renderer named, or one under the server's root when no project is named.
- * The base is always one the agent gave; the renderer only ever names the rest.
- */
+/** The base is always one the agent gave; the renderer only ever names the rest. */
 async function startFolder(
   serverId: string,
   project: string | null,
@@ -152,7 +125,6 @@ async function startFolder(
   return joined((await deps.root?.(serverId)) ?? null, dir);
 }
 
-/** A project the agent has not declared goes nowhere, and neither does its folder. */
 export async function terminalCommand(
   request: TerminalRequest,
   deps: TerminalDeps

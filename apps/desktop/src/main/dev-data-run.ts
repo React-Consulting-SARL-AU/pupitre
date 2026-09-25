@@ -1,25 +1,10 @@
 import { join } from "node:path";
 import { isLocalPlatform } from "./platform-client";
 
-/**
- * Where a development build keeps what it knows.
- *
- * The packaged app on the same computer talks to the platform, this build to
- * the console on this machine: an account, a server or a token of one means
- * nothing to the other, so they never share a folder — nor the single-instance
- * lock and the keychain entry that follow the name. A build pointed at a hosted
- * platform gets a folder named after it for the same reason: its token opens
- * nothing on the local console, and the two sessions may run side by side. The
- * harness names its own folder on the command line and is left alone.
- */
+/** Its own folder, lock and keychain entry per platform: an account or token of one means nothing to another. */
 export const DEVELOPMENT_NAME = "Pupitre Dev";
 
-/**
- * Whether a scenario run drives this launch: only ever a development build. A
- * packaged app ignores `PUPITRE_E2E`, which would otherwise lift its
- * single-instance lock and move the home folder its SSH configuration is
- * written for. `packaged` is only asked when a run is.
- */
+/** A packaged app ignores `PUPITRE_E2E`, which would lift its single-instance lock and move its home folder. */
 export function harnessOn(
   asked: string | undefined,
   packaged: () => boolean

@@ -22,35 +22,14 @@ import { argument, type SshPaths } from "./ssh-config";
 import { lastLine, type ShellSpawn } from "./ssh-run";
 import { trace } from "./trace";
 
-/**
- * Knocking on an account before a key exists for it.
- *
- * The address is asked first whether it speaks SSH at all, then the account is
- * asked what would open it: everything this computer already holds is offered
- * — an agent, the identities of ~/.ssh, the file a reader chose to import —
- * and the refusal, if any, says whether a password would do. That is what the
- * form needs to know before making a key: a machine that opens is not asked a
- * password, a machine that takes one is asked it there and then, and a machine
- * that takes neither is announced before it enters the list, along with the
- * reason the app will hand the line over.
- *
- * The host key is pinned here the way the first connection would pin it: in
- * the app's own known_hosts, on first sight. A key that already sits there and
- * does not match is a refusal, not a warning, exactly as it is later on — unless
- * no server of the list reaches that address any more, in which case the pin
- * is a leftover of a machine that was removed, and is dropped for one more
- * knock.
- */
-
 export interface KnockOptions {
   spawn?: ShellSpawn;
   identities?: string[];
   platform?: Platform;
   timeoutMs?: number;
   reach?: (host: string, port: number) => Promise<AddressReach>;
-  /** Drops a pin no listed server owns; answers whether there was one to drop. */
   forgetStalePin?: () => Promise<boolean>;
-  /** Whether the file picker handed this key path out: no other reaches `ssh -i`. */
+  /** Only a path the file picker handed out may reach `ssh -i`. */
   designated?: (path: unknown) => boolean;
 }
 
@@ -85,6 +64,7 @@ export function knockArgs(
   ];
 }
 
+/** A mismatched host key is refused, unless no listed server owns the pin: then it is a leftover, dropped once. */
 export async function probeAccess(
   target: ServerKnock,
   paths: SshPaths,
@@ -141,10 +121,8 @@ export async function probeAccess(
   };
 }
 
-/** The address, then the account: the second question is only worth asking once the first answers. */
 const MAX_PORT = 65_535;
 
-/** What the form asks to knock on, as it crossed the bridge. */
 export function isServerKnock(value: unknown): value is ServerKnock {
   if (typeof value !== "object" || value === null) {
     return false;

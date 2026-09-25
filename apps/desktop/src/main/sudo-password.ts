@@ -1,13 +1,6 @@
 import { createHash, randomInt } from "node:crypto";
 
-/**
- * The password `sudo` asks of `dev` (decision 0015), drawn on this computer.
- *
- * Six groups of four from an alphabet without the characters people confuse:
- * about 119 bits, readable over the phone, pasted rather than typed. Only its
- * SHA-512 crypt hash leaves for the server; the platform sees neither.
- */
-
+/** No look-alike characters: six groups of four give about 119 bits and stay readable over the phone. */
 const ALPHABET = "23456789abcdefghjkmnpqrstuvwxyz";
 
 const GROUPS = 6;
@@ -21,10 +14,10 @@ const SALT_LENGTH = 16;
 
 const DEFAULT_ROUNDS = 5000;
 
-/** What `sudo` pays on each check, a few dozen milliseconds on the server. */
+/** A few dozen milliseconds per sudo check on the server. */
 export const SUDO_HASH_ROUNDS = 100_000;
 
-/** The digest bytes each group of four characters encodes, in the order glibc writes them. */
+/** Digest bytes per four-character group, in glibc's order. */
 const ENCODING_ORDER: readonly [number, number, number][] = [
   [0, 21, 42],
   [22, 43, 1],
@@ -92,7 +85,6 @@ function sha512(...parts: Buffer[]): Buffer {
   return hash.digest();
 }
 
-/** `length` bytes of `digest` repeated, as the algorithm stretches P and S. */
 function stretched(digest: Buffer, length: number): Buffer {
   const out = Buffer.alloc(length);
 
@@ -129,10 +121,7 @@ function encode(digest: Buffer): string {
   return text;
 }
 
-/**
- * SHA-512 crypt as glibc and `chpasswd -e` read it (Ulrich Drepper's
- * specification). Rounds left out are the default 5000, and are not written.
- */
+/** Drepper's SHA-512 crypt, as glibc and `chpasswd -e` read it; default rounds are left out of the output. */
 export function sha512Crypt(
   password: string,
   salt: string,

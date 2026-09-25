@@ -9,11 +9,6 @@ import { signedMessage } from "../agent-release";
 import { type EnrollmentDeps, prepareAgent } from "../enrollment-run";
 import type { EnrollInput } from "../platform-client";
 
-/**
- * The fixed order: the usage right, then the enrolment, then the binary
- * the platform named. A packaged build has nothing to fall back on.
- */
-
 const SPKI_HEADER_BYTES = 12;
 
 const BINARY = new Uint8Array([0x7f, 0x45, 0x4c, 0x46, 9, 9, 9]);
@@ -89,7 +84,6 @@ function deps({
 }> = {}): EnrollmentDeps & {
   enrolled: EnrollInput[];
   bound: { serverId: string; platformServerId: string }[];
-  /** Hands the token to the agent, as `takeEnrollmentToken` does. */
   spend: (serverId: string) => void;
 } {
   const enrolled: EnrollInput[] = [];
@@ -247,11 +241,7 @@ describe("la préparation de l'agent", () => {
     });
   });
 
-  /**
-   * A push that failed leaves the seat bought and the token unspent: the next
-   * attempt hands the agent that same enrolment rather than buying the row
-   * again. Once the token has left for the agent, a new attempt enrols anew.
-   */
+  // Once the token has left for the agent, a new attempt enrols anew.
   it("réutilise l'enrôlement que le serveur tient encore plutôt que d'en acheter un autre", async () => {
     const ready = deps();
     const granted: Server = {

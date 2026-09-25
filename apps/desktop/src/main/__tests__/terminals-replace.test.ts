@@ -3,12 +3,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { WebContents } from "electron";
-
-/**
- * What this file proves: a tab reopened under the same identifier belongs to
- * its new shell. The old one, killed on the way, still speaks for a moment —
- * its last bytes and its exit are not the new tab's.
- */
+import { electronStub } from "./electron-stub";
 
 const root = mkdtempSync(join(tmpdir(), "pupitre-terminals-"));
 
@@ -19,9 +14,7 @@ interface FakePty {
 
 const spawned: FakePty[] = [];
 
-mock.module("electron", () => ({
-  app: { getPath: () => root },
-}));
+mock.module("electron", () => electronStub(root));
 
 mock.module("node-pty", () => ({
   spawn: () => {

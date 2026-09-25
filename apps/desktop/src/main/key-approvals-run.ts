@@ -27,7 +27,6 @@ export type ApprovalSigner = (
 
 export interface KeyApprovalsDeps {
   account: Pick<Account, "keyApprovals" | "approveKey">;
-  /** This computer's device public key, or null when it has none yet. */
   devicePublicKey: () => string | null;
   deviceKeyPath: () => string;
   sign: ApprovalSigner;
@@ -54,6 +53,7 @@ export function sshKeygenSigner(binary = "ssh-keygen"): ApprovalSigner {
         ["-Y", "sign", "-n", KEY_APPROVAL_NAMESPACE, "-f", keyPath, "-q"],
         { stdio: ["pipe", "pipe", "pipe"], timeout: SIGN_MS }
       );
+
       let signature = "";
       let complaint = "";
 

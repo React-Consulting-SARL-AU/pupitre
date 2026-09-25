@@ -1,10 +1,9 @@
-/** One row of a screen: its text and the columns it occupies, margin included. */
 export interface ScreenRow {
   text: string;
+  /** Columns occupied, margin included. */
   width: number;
 }
 
-/** Where a piece of a folded line sits on the screen: the row, the column it starts at, and its length. */
 export interface FoldedPiece {
   row: number;
   from: number;
@@ -20,18 +19,7 @@ function margin(text: string): number {
   return text.length - text.trimStart().length;
 }
 
-/**
- * The rows of a screen, with a folded line read as one.
- *
- * An address longer than the screen is wide reaches the last column and goes
- * on at the left edge of the next row: the terminal wraps it there, and so
- * does an interface that lays its text out itself, at the margin of its box
- * rather than at the edge. A line that starts indented but runs to the last
- * column was wrapped by the terminal, and its rest sits at column zero.
- * Nothing on the screen says which rows belong together, only that shape
- * does — so every piece remembers where it came from, and a match in the
- * joined text can be pointed back at the screen.
- */
+/** A wrap continues at column zero (terminal) or at the box margin (a TUI that lays out its own text). */
 export function foldRows(
   rows: readonly ScreenRow[],
   cols: number

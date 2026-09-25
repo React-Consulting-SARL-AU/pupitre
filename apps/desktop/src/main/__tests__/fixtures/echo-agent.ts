@@ -7,23 +7,14 @@ import type { AgentSpawn } from "../../agent-client";
 export interface EchoAgent {
   spawn: AgentSpawn;
   started: () => number;
-  /** The commands that actually reached an agent, in order. */
   asked: () => CommandName[];
-  /** The same commands, each prefixed by the channel that carried it: `privileged install`. */
+  /** Each command prefixed by its channel, e.g. `privileged install`. */
   routed: () => string[];
-  /** How many channels the client cut itself. */
   killed: () => number;
   killAll: () => void;
 }
 
-/**
- * An agent that answers anything, in this process.
- *
- * A transcript pins an order, which is what makes it useful; sweeping the whole
- * contract needs the opposite — something that answers every command — so that
- * what goes through and what does not is decided by the guard alone and never
- * by the fixture.
- */
+/** Answers every command so a contract sweep is decided by the guard alone, never by a transcript's order. */
 export function echoAgent(): EchoAgent {
   const asked: CommandName[] = [];
   const routed: string[] = [];
