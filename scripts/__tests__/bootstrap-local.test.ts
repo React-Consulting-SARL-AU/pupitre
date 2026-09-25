@@ -148,9 +148,7 @@ describe("les valeurs tirées au hasard", () => {
   )
 
   test("ne sont jamais partagées par 1Password", () => {
-    // Le coffre est appliqué avant le tirage : une clé présente des deux côtés
-    // serait remplacée par celle du poste, et deux machines ne parleraient plus
-    // du même secret sans que rien ne le dise.
+    // The vault wins over the draw, or two machines would silently hold different secrets.
     for (const key of GENERATED) {
       expect(template).not.toContain(`${key}="op://`)
     }

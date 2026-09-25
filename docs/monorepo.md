@@ -13,7 +13,7 @@ Même outillage que React-Box, mêmes versions quand elles sont compatibles : ce
 | Husky + commitlint | hooks | pre-commit : `ultracite fix` par workspace sur les fichiers indexés, et seul un fichier entièrement indexé est ré-indexé après la passe — un fichier indexé en partie est formaté sur le disque sans que ses morceaux laissés de côté entrent dans le commit ; pre-push : lint, `check:types`, `test` affectés, que `SKIP_PREPUSH=1` saute quand on sait ce qu'on fait ; commits conventionnels |
 | Prisma 7 | schéma et migrations | client généré committé, empreinte `packages/db/src/generated/.prisma-inputs.sha256` vérifiée au lint par `scripts/check-prisma-client-freshness.ts` ; `db:migrate production`, `db:reset production` et `db:seed production` exigent `PUPITRE_ALLOW_MIGRATE_ON=production` sur la ligne de commande |
 | Wrangler 4 | Workers, R2, secrets | `secrets.required` déclarés dans `wrangler.jsonc`, vérifiés avant déploiement |
-| Go 1.26+ (`apps/agent/go.mod`) | l'agent | `gofmt`, `go vet` et `staticcheck` au lint, `govulncheck` et `go test -race` en CI, `garble` en release. Les trois outils sont épinglés dans `apps/agent/package.json` : `bun --cwd=apps/agent run tools:install` installe `staticcheck` et `govulncheck`, `garble:install` installe garble, tous dans le bin de Go, à mettre dans le `PATH`. Go lui-même est installé par Homebrew sur la machine du propriétaire |
+| Go 1.26+ (`apps/agent/go.mod`) | l'agent | `gofmt`, `go vet`, `staticcheck` et `govulncheck` au lint — `go vet` et `staticcheck` une seconde fois avec `-tags dev`, pour que le code du build de développement compile aussi —, `go test` dans les deux variantes aux tests, `go test -race` à la main, `garble` en release. Les trois outils sont épinglés dans `apps/agent/package.json` : `bun --cwd=apps/agent run tools:install` installe `staticcheck` et `govulncheck`, `garble:install` installe garble, tous dans le bin de Go, à mettre dans le `PATH`. Go lui-même est installé par Homebrew sur la machine du propriétaire |
 | electron-vite, electron-builder | l'app desktop | bytecode du processus principal, fusibles, signature et notarisation ; un runner par système |
 
 ## Développement local
@@ -85,8 +85,8 @@ L'app desktop suit d'elle-même : `agentPlatformUrl()` remplace une console de c
 ## Vérifications
 
 ```bash
-bun run lint          # boundaries, ultracite, gofmt et go vet
-bun run check:types
+bun run lint          # boundaries, ultracite, gofmt, go vet, staticcheck, govulncheck
+bun run check:types   # tsgo par workspace, les scripts de la racine, go build avec et sans -tags dev
 bun run test
 bun run build
 ```
@@ -95,7 +95,7 @@ bun run build
 
 | Job | Quand | Ce qu'il fait |
 | --- | --- | --- |
-| `quality` | PR vers `staging` ou `main` ; job `ci` de `release.yml` sur le tag | gitleaks sur les commits nouveaux (ceux de la PR, ou `origin/main..HEAD` pour une release) avec `.gitleaks.toml`, migrations appliquées sur une base vide, lint (dont `gofmt`, `go vet`, `staticcheck`), typecheck, tests de tous les workspaces (dont `go test`), build hors desktop |
+| `quality` | PR vers `staging` ou `main` ; job `ci` de `release.yml` sur le tag | gitleaks sur les commits nouveaux (ceux de la PR, ou `origin/main..HEAD` pour une release) avec `.gitleaks.toml`, migrations appliquées sur une base vide, lint (dont `gofmt`, `go vet`, `staticcheck`, `govulncheck`), typecheck, tests de tous les workspaces (dont `go test`), build hors desktop |
 
 **Ce qui est réellement imposé, et par qui.** `main` n'a **aucune protection côté GitHub** : le dépôt est privé, l'organisation est sur le plan gratuit, et la protection de branche comme les rulesets y répondent 403. Aucun check n'est « requis » au sens de GitHub, et rien n'empêche un humain muni des droits d'écriture de fusionner une pull request rouge. Ce qui tient :
 
@@ -104,13 +104,13 @@ bun run build
 - **La pull request de la release ne se vérifie pas elle-même.** Elle est ouverte par `GITHUB_TOKEN` ; le run `pull_request` qu'elle provoque attend une approbation que personne ne donne, et expire à la fusion — une croix rouge d'une seconde, « workflow file issue » selon `gh run view`, « required approval but was not approved before it expired » dans l'annotation. Ce n'est pas un échec de la CI : le check qui compte est celui du job `ci` de la release, sur le même commit.
 - **Une pull request ouverte à la main** (vers `staging`, ou `staging` → `main` sans release) lance `ci.yml` normalement, mais rien ne bloque sa fusion côté serveur : c'est au propriétaire de ne fusionner qu'au vert.
 
-Ce que la CI ne fait pas, et qui se fait ailleurs : les suites Playwright de la console et de l'app (`bun --cwd=apps/web run test:e2e`, `bun --cwd=apps/desktop run test:e2e`) se passent sur la machine du propriétaire avant une pull request ; `govulncheck` et `go test -race` se lancent à la main depuis `apps/agent` quand une dépendance Go bouge ; aucune couverture n'est mesurée.
+Ce que la CI ne fait pas, et qui se fait ailleurs : les suites Playwright de la console et de l'app (`bun --cwd=apps/web run test:e2e`, `bun --cwd=apps/desktop run test:e2e`) se passent sur la machine du propriétaire avant une pull request ; `go test -race` se lance à la main depuis `apps/agent` quand une dépendance Go bouge ; aucune couverture n'est mesurée.
 
 Ni macOS ni Windows n'ont de job de CI : l'app s'y construit au moment de la release, `release.yml`, et c'est là qu'elle se voit. Windows n'est de toute façon pas éprouvé : le modèle SSH de l'app — une session maître multiplexée par serveur, clés et sockets en 0600 — n'a pas d'équivalent sur OpenSSH pour Windows ; ça devient une tâche le jour où Windows en est une.
 
 Les actions des workflows sont épinglées par SHA, la version en commentaire à côté ; elles avancent à la main, quand on le décide. Il n'y a pas de Dependabot : ses pull requests n'étaient suivies par personne.
 
-Trois workspaces passent `--timeout=60000` à `bun test` : `apps/web`, `apps/desktop` et `packages/api`. Leurs tests démarrent un Postgres en WebAssembly et lui appliquent les migrations avant le premier cas, ce qu'un runner froid met une vingtaine de secondes à faire — au-delà des cinq secondes que `bun test` accorde par défaut, et le hook tombe avant que le premier cas ait pu tourner.
+Trois workspaces passent `--timeout=60000` à `bun test` : `apps/web`, `apps/desktop` et `packages/api`. Leurs tests construisent d'abord la base du harnais, un fichier SQLite sur lequel toutes les migrations de `packages/db/migrations` sont rejouées avant le premier cas : les cinq secondes que `bun test` accorde par défaut ne laissent pas de marge à un runner froid.
 
 ## Frontières de workspace
 
@@ -139,7 +139,7 @@ Deux branches longues, et rien d'autre qui vive plus qu'une pull request.
 | Branche | Ce qu'elle est | Ce qu'elle déploie |
 | --- | --- | --- |
 | `staging` | la branche de travail : tout y arrive, directement ou par pull request. Elle ne déploie rien : tout s'essaie en local, de bout en bout | rien |
-| `main` | la production, et rien d'autre : elle ne change que par la pull request `staging` → `main` qu'une release ouvre et fusionne | `app.pupitre.studio`, `pupitre.studio` |
+| `main` | la production, et rien d'autre : elle ne change que par la pull request `staging` → `main`, celle qu'une release ouvre et fusionne, ou une ouverte à la main quand ni l'app ni l'agent ne changent | `app.pupitre.studio`, `pupitre.studio` |
 
 - **`main` ne se commite ni ne se pousse en local.** `.husky/pre-commit` et `.husky/pre-push` appellent `scripts/assert-branch-writable.ts`, qui refuse l'un et l'autre et dit quoi faire à la place. `PUPITRE_ALLOW_MAIN=1` ouvre l'exception, une fois, en le sachant. Un hook local ne protège que celui qui l'a installé, et il n'y a pas d'autre garde-fou côté GitHub : sur le plan gratuit, `main` n'a ni protection de branche ni ruleset (voir [Vérifications](#vérifications)). La seule vérification imposée par le serveur est celle de la release.
 - **`main` avance par release, ou par une pull request quand ni l'app ni l'agent ne changent.** Le dernier job de `release.yml` ouvre la pull request `staging` → `main` et la fusionne, une fois la version téléchargeable et la CI verte sur son commit de tête. Un changement qui ne touche que la console, le site ou les mails n'a pas besoin d'un numéro : `gh pr create --base main --head staging`, `gh pr checks --watch` jusqu'au vert, puis `gh pr merge --merge`, et Cloudflare Builds reconstruit les deux Workers. Rien n'empêche côté serveur de fusionner avant le vert : c'est une discipline, pas une règle. Un correctif de l'app ou de l'agent, lui, sort avec la version suivante.
@@ -254,7 +254,7 @@ Ils vivent dans **une note 1Password**, `pupitre-GitHub` dans le coffre partagé
 | Champ | Ce que c'est | Comment l'obtenir |
 | --- | --- | --- |
 | `PUPITRE_RELEASE_PRIVATE_KEY` | la moitié privée de la clé Ed25519 qui signe l'agent et les artefacts de l'app | `cd apps/agent && go run ./tools/release keygen`, une seule fois, hors de toute session d'agent |
-| `PUPITRE_PUBLISH_TOKEN` | le jeton de publication, préfixé `pupitre_pub_` : il n'ouvre que les quatre routes de version, n'expire pas et n'appartient à personne | tiré une fois, posé sur les deux Workers et ici — voir [`deploy.md`](./deploy.md) |
+| `PUPITRE_PUBLISH_TOKEN` | le jeton de publication, préfixé `pupitre_pub_` : il n'ouvre que les quatre routes de version, n'expire pas et n'appartient à personne | tiré une fois, posé sur le Worker de la console et ici — voir [`deploy.md`](./deploy.md) |
 | `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | l'accès R2 de la chaîne, en S3, limité aux deux seaux — un jeton d'API Cloudflare ouvrirait tous ceux du compte | Cloudflare → *R2* → *Manage API tokens*, *Object Read & Write* sur `ppt-agent` et `ppt-downloads` |
 | `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD` | le certificat Developer ID en `.p12`, base 64, et son mot de passe ; le runner l'importe dans un trousseau jetable le temps du build | Trousseau d'accès → exporter le certificat et sa clé privée en `.p12`, puis `base64 -i certificat.p12 \| pbcopy` |
 | `APPLE_API_KEY_CONTENT` | le `.p8` de la clé de notarisation, en base 64 | `base64 -i AuthKey_<KeyID>.p8 \| pbcopy` |

@@ -17,6 +17,8 @@ What the firewall lets in is yours to use: SSH on 22, and on 443 too if you chos
 
 Check it: `sudo ufw status` lists exactly those rules, each with the comment of what added it: `ssh`, `caddy`, `tailscale`.
 
+Two ways in bypass that firewall, and stay closed until you open them. Docker writes its own rules ahead of ufw’s: `runtime.docker` therefore publishes container ports on `127.0.0.1` only — on the default bridge and on every network `docker network create` or Compose makes, IPv6 included — and names, on a server that ran containers before, the ones still open on every address until they are recreated; and `-p 0.0.0.0:8080:80` opens one to the internet whatever `ufw status` says. Tailscale SSH, an option of `exposure.tailscale`, answers before sshd: neither root being closed nor fail2ban applies to it, only your tailnet’s access policy decides.
+
 ## No private key leaves your laptop
 
 The app keeps its ed25519 keys in its own folder, in mode `0600`: one for this computer, and one per server you asked it to generate a key for. A key you import is copied in there too; a host declared in your `~/.ssh/config` puts nothing there at all. Only public halves ever leave: into the server's `authorized_keys`, and up to the platform, which passes them on to your organisation's machines. The agent lays one only if it already trusts it, or if it arrives with an approval signed by a device already allowed on that server: the platform, which holds no private key, cannot make one up.

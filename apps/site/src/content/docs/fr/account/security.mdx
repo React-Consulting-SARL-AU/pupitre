@@ -17,6 +17,8 @@ Ce que le pare-feu laisse entrer est à votre usage : SSH sur 22, et aussi sur 4
 
 Vérifiez : `sudo ufw status` liste exactement ces règles, chacune avec le commentaire de ce qui l’a posée : `ssh`, `caddy`, `tailscale`.
 
+Deux entrées échappent à ce pare-feu, et restent fermées tant que vous ne les ouvrez pas. Docker écrit ses propres règles avant celles d’ufw : `runtime.docker` publie donc les ports des conteneurs sur `127.0.0.1` seulement — sur le pont par défaut et sur chaque réseau que `docker network create` ou Compose crée, IPv6 compris — et nomme, sur un serveur qui faisait tourner des conteneurs avant, ceux qui restent ouverts sur toutes les adresses jusqu’à leur recréation ; et `-p 0.0.0.0:8080:80` les ouvre à Internet quoi qu’en dise `ufw status`. Tailscale SSH, une option d’`exposure.tailscale`, répond avant sshd : ni la fermeture de root ni fail2ban ne s’y appliquent, seule la politique d’accès de votre tailnet décide.
+
 ## Aucune clé privée ne quitte votre laptop
 
 L’app garde ses clés ed25519 dans son dossier, en `0600` : une pour cet ordinateur, et une par serveur pour lequel vous lui avez demandé d’en générer une. Une clé que vous importez y est recopiée ; un hôte déclaré dans votre `~/.ssh/config` n’y met rien du tout. Seules les moitiés publiques sortent : vers l’`authorized_keys` du serveur, et vers la plateforme, qui les transmet aux machines de votre organisation. L’agent n’en pose une que s’il la tient déjà pour sûre, ou si elle arrive avec une autorisation signée par un appareil déjà autorisé sur ce serveur : la plateforme, qui n’a aucune clé privée, ne peut pas en fabriquer.

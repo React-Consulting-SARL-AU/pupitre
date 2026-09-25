@@ -18,14 +18,13 @@ const ENV_SOURCE = join(ROOT, ".env.example")
 const WRANGLER_FILE = join(ROOT, "apps/web/wrangler.jsonc")
 const ENV_LINE_RE = /^([A-Z0-9_]+)=/
 
-/** Propres au poste : une valeur tirée au hasard suffit, rien à partager. */
+/** Per-workstation secrets: a random value will do, nothing is shared. */
 export const GENERATED = [
   "BETTER_AUTH_SECRET",
   "INTERNAL_WORKFLOW_SECRET",
 ] as const
 
-/** Chaque outil lit l'environnement sous le nom qu'il attend, mais tous pointent
- * sur le même fichier : une seule valeur à tenir à jour. */
+/** Each tool reads its own file name; all link to `.env.local`, one value to keep. */
 const LINKS = [
   { path: join(ROOT, "apps/web/.dev.vars"), label: "console (wrangler)" },
   { path: join(ROOT, "apps/web/.env.local"), label: "console (vite)" },
@@ -130,11 +129,7 @@ export function stripJsonComments(content: string): string {
   return out
 }
 
-/**
- * Les valeurs non secrètes du développement vivent dans `vars` de
- * `apps/web/wrangler.jsonc`, mais `.dev.vars` masque `vars` clé par clé : sans
- * elles dans `.env.local`, le Worker local démarre avec `BETTER_AUTH_URL` vide.
- */
+/** `.dev.vars` masks wrangler `vars` key by key, so they are copied into `.env.local`. */
 export function wranglerVars(path = WRANGLER_FILE): Record<string, string> {
   if (!existsSync(path)) {
     return {}
@@ -178,11 +173,7 @@ export function localValues(
   return values
 }
 
-/**
- * En local le secret de webhook est celui de l'endpoint que le CLI Stripe tient
- * pour ce compte : `stripe listen` signe avec lui, et il diffère de celui du
- * tableau de bord. Il se dérive donc, comme la base, au lieu d'être partagé.
- */
+/** Locally `stripe listen` signs with its own endpoint secret, not the dashboard's. */
 export function stripeWebhookSecret(
   run = (args: string[]) =>
     spawnSync("stripe", args, { encoding: "utf8" }) as {

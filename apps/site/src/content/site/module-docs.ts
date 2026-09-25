@@ -267,6 +267,10 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
         en: "A daemon configuration that rotates container logs instead of letting them fill the disk.",
         fr: "Une configuration du daemon qui fait tourner les logs des conteneurs au lieu de les laisser remplir le disque.",
       },
+      {
+        en: "Published ports bound to 127.0.0.1 on the default bridge and on every network docker network create or Compose makes: -p 5432:5432 answers on the server and through the SSH session, not on the internet, over IPv4 or IPv6.",
+        fr: "Les ports publiés liés à 127.0.0.1 sur le pont par défaut et sur chaque réseau que docker network create ou Compose crée : -p 5432:5432 répond sur le serveur et à travers la session SSH, pas sur Internet, ni en IPv4 ni en IPv6.",
+      },
     ],
     asks: [
       {
@@ -283,8 +287,8 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
       },
     ],
     notes: {
-      en: "The daemon listens on its socket and on nothing else. Uninstalling takes back the engine and leaves your images, volumes and containers where they are.",
-      fr: "Le daemon écoute sur sa socket et sur rien d’autre. La désinstallation reprend le moteur et laisse vos images, volumes et conteneurs là où ils sont.",
+      en: "The daemon listens on its socket and on nothing else. Docker’s rules come before the firewall’s, so a port published on every address would be open whatever ufw says: to put a container on the web, route a project’s subdomain to its port through Caddy or the tunnel. To publish one directly anyway, name the address — -p 0.0.0.0:8080:80, or 0.0.0.0:8080:80 under ports in a compose file — knowing ufw will not filter it. On a server that ran containers before this setting, dockerd keeps its default bridge while a container runs, each network keeps the options it was created with, and each container its ports: the install names the ones still open on every address, and closing them takes stopping the containers, sudo systemctl restart docker, then docker compose down && docker compose up -d in each project and docker network rm then create for a network made by hand. With nothing running, the install restarts the daemon itself. Uninstalling takes back the engine and leaves your images, volumes and containers where they are.",
+      fr: "Le daemon écoute sur sa socket et sur rien d’autre. Les règles de Docker passent avant celles du pare-feu : un port publié sur toutes les adresses serait ouvert quoi qu’en dise ufw. Pour mettre un conteneur sur le web, routez le sous-domaine d’un projet vers son port par Caddy ou le tunnel. Pour en publier un directement malgré tout, nommez l’adresse — -p 0.0.0.0:8080:80, ou 0.0.0.0:8080:80 sous ports dans un fichier compose — en sachant qu’ufw ne le filtrera pas. Sur un serveur qui faisait tourner des conteneurs avant ce réglage, dockerd garde son pont par défaut tant qu’un conteneur tourne, chaque réseau garde les options de sa création et chaque conteneur ses ports : l’installation nomme ceux qui restent ouverts sur toutes les adresses, et les fermer demande d’arrêter les conteneurs, sudo systemctl restart docker, puis docker compose down && docker compose up -d dans chaque projet et docker network rm puis create pour un réseau créé à la main. Quand rien ne tourne, l’installation relance le daemon elle-même. La désinstallation reprend le moteur et laisse vos images, volumes et conteneurs là où ils sont.",
     },
   },
   "db.mysql": {
@@ -377,7 +381,10 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
       },
     ],
     asks: [
-      { en: "The major version.", fr: "La version majeure." },
+      {
+        en: "The major version. 7.0 exists for Ubuntu 22.04 only; on 24.04 MongoDB publishes 8.0 alone, and 7.0 is refused before anything is installed.",
+        fr: "La version majeure. La 7.0 n’existe que pour Ubuntu 22.04 ; sur 24.04 MongoDB ne publie que la 8.0, et la 7.0 est refusée avant toute installation.",
+      },
       { en: "The port. 27017 by default.", fr: "Le port. 27017 par défaut." },
       {
         en: "The name of the application user.",
@@ -742,8 +749,8 @@ export const MODULE_DOCS: Record<ModuleId, ModuleDoc> = {
       },
     ],
     notes: {
-      en: "The key is typed, not held by the app: it is minted for one machine and opens nothing from the laptop. The machine then keeps its own node key, and the dashboard says under which login it sits. Tailscale lives beside Caddy or the tunnel: it is the private way in, they are the public one. Uninstalling logs the node out of the tailnet before taking the package, the rule and the repository back.",
-      fr: "La clé est tapée, pas tenue par l’app : elle est créée pour une machine et n’ouvre rien depuis le portable. La machine garde ensuite sa propre clé de nœud, et le tableau de bord dit sous quel login elle est. Tailscale cohabite avec Caddy ou le tunnel : c’est l’entrée privée, eux sont l’entrée publique. La désinstallation déconnecte le nœud du tailnet avant de reprendre le paquet, la règle et le dépôt.",
+      en: "The key is typed, not held by the app: it is minted for one machine and opens nothing from the laptop. The machine then keeps its own node key, and the dashboard says under which login it sits. Tailscale lives beside Caddy or the tunnel: it is the private way in, they are the public one. Tailscale SSH is off by default: it answers before sshd, so neither AllowUsers, nor root being closed, nor fail2ban applies to it, and only your tailnet’s access policy decides who gets in and as which account, root included. Uninstalling logs the node out of the tailnet before taking the package, the rule and the repository back.",
+      fr: "La clé est tapée, pas tenue par l’app : elle est créée pour une machine et n’ouvre rien depuis le portable. La machine garde ensuite sa propre clé de nœud, et le tableau de bord dit sous quel login elle est. Tailscale cohabite avec Caddy ou le tunnel : c’est l’entrée privée, eux sont l’entrée publique. Tailscale SSH est désactivé par défaut : il répond avant sshd, donc ni AllowUsers, ni la fermeture de root, ni fail2ban ne s’y appliquent, et seule la politique d’accès de votre tailnet décide qui entre et sous quel compte, root compris. La désinstallation déconnecte le nœud du tailnet avant de reprendre le paquet, la règle et le dépôt.",
     },
   },
   "exposure.caddy": {

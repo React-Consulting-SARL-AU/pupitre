@@ -1,6 +1,6 @@
 ---
 title: Troubleshooting
-description: A server that asks for a subscription, restricted mode, fail2ban banning your own address, the sudo password of dev, and an install step that failed.
+description: A server that asks for a subscription, restricted mode, fail2ban banning your own address, the sudo password of dev, an install step that failed, and where the app writes its errors.
 locale: en
 section: account
 sectionOrder: 3
@@ -97,3 +97,13 @@ Under the failed step, a line reads `replay: sudo pupitred install --only=<modul
 - `dev doctor` runs a short diagnosis, and `dev status` shows what runs, the ports and the services.
 
 The steps themselves are described in [the onboarding, step by step](/docs/start/onboarding/).
+
+## The app ran into an error
+
+When the app runs into an error it did not expect, it offers **Relaunch**: it reopens where it was, and the sessions on your servers keep running. What happened is written on your computer, in a file support will ask you for:
+
+- macOS: `~/Library/Application Support/Pupitre/logs/main.log`
+- Windows: `%APPDATA%\Pupitre\logs\main.log`
+- Linux: `~/.config/Pupitre/logs/main.log`
+
+The file keeps only errors, with no password or token, and the three before it alongside (`main.1.log`…). Attach it to your message to support.

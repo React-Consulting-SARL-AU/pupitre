@@ -6,7 +6,7 @@ Pupitre est un monorepo Bun. Trois surfaces et un agent : l'app desktop qui pilo
 
 | Workspace | Runtime | Responsabilité |
 | --- | --- | --- |
-| `apps/desktop` | Electron 42, React 19, node-pty, `ssh` système | Onboarding d'un serveur, catalogue de services, projets, terminaux, agents, compte |
+| `apps/desktop` | Electron 44, React 19, node-pty, `ssh` système | Onboarding d'un serveur, catalogue de services, projets, terminaux, agents, compte |
 | `apps/agent` | Go, binaire statique, systemd | Sonde, modules d'installation, registre des projets, pilotage tmux, clés, heartbeat, mise à jour |
 | `apps/web` | TanStack Start sur Cloudflare Workers | Console `app.pupitre.studio`, montage de `/api/v1` (Elysia) et `/api/auth` (Better Auth), emails, Workflows |
 | `apps/site` | Astro sur un Worker Cloudflare à assets statiques | `pupitre.studio` : marketing, docs publiques, blog, légal, téléchargement |
@@ -54,9 +54,9 @@ La stack bash sous `server/` est la spécification des modules : ordre des étap
 
 ## Plateforme
 
-`apps/web` combine TanStack Start, React 19, Vite et le plugin Cloudflare. Les routes de la console vivent dans `src/routes/` ; `src/routes/api/v1/$.ts` délègue à `@pupitre/api/server`, `src/routes/api/auth/$.ts` à `@pupitre/auth/server`. Le Worker sert `/api/v1/*` directement ; la route TanStack Start reste le chemin de dev.
+`apps/web` combine TanStack Start, React 19, Vite et le plugin Cloudflare. Les routes de la console vivent dans `src/routes/` ; `src/routes/api/auth/$.ts` délègue à `@pupitre/auth/server`. `/api/v1/*` n'a pas de route TanStack : l'entrée du Worker, `src/worker.ts`, le passe à `@pupitre/api/server` avant Start, en développement comme en production, avec `/internal/*`, le handler `email` d'Email Routing, les Workflows et les Durable Objects.
 
-Elysia est montée sur `/api/v1` dans `packages/api/src/server.ts` et reste le contrat unique pour la console et l'app desktop, consommé via Eden Treaty (`@pupitre/api/client`). Les tests d'intégration démarrent la même API sur PGlite via `@pupitre/api/testing`.
+Elysia est montée sur `/api/v1` dans `packages/api/src/server.ts` et reste le contrat unique pour la console et l'app desktop, consommé via Eden Treaty (`@pupitre/api/client`). Les tests d'intégration démarrent la même API sur un fichier SQLite construit par les migrations de D1, via `@pupitre/api/testing`.
 
 Better Auth vit dans `packages/auth` avec l'adaptateur Prisma : lien magique, GitHub, `deviceAuthorization` et `bearer` pour l'app desktop, `organization` avec les rôles `owner`, `admin`, `member`, `admin` pour le support, `openAPI`. Passkeys, `twoFactor` et `sso` s'ajoutent sans migration. Une organisation personnelle est créée à l'inscription : tout appartient à une organisation.
 
@@ -80,4 +80,4 @@ Variables publiques du web en `VITE_*` ; secrets en variables runtime ou secrets
 
 ## Déploiement
 
-`apps/web` : un seul environnement Wrangler en ligne, `production`, déployé par Cloudflare Builds sur un push de `main` — `build:production` (migrations D1 puis build) puis `deploy:production` (vérification des secrets requis puis `wrangler deploy --keep-vars`). Il n'y a pas de staging en ligne : tout s'essaie en local. `main` n'avance que par une release, dont le dernier job fusionne `staging` dans `main` une fois l'app et l'agent publiés. Runbook dans [deploy.md](./deploy.md), noms exacts dans [monorepo.md](./monorepo.md). `apps/site` : un Worker à assets statiques, Cloudflare Builds sur le même push de `main`. `apps/desktop` : GitHub Actions par tag, builds signés et notarisés, publication sur un bucket R2 public — `dl.pupitre.studio` — et déclaration à la plateforme, qui sert la page de téléchargement du site. `apps/agent` : le même tag, garble, signature, publication sur le bucket R2 privé via l'API de la plateforme.
+`apps/web` : un seul environnement Wrangler en ligne, `production`, déployé par Cloudflare Builds sur un push de `main` — `build:production` (migrations D1 puis build) puis `deploy:production` (vérification des secrets requis puis `wrangler deploy --keep-vars`). Il n'y a pas de staging en ligne : tout s'essaie en local. `main` ne change que par la pull request `staging` → `main`, fusionnée par un merge commit : celle que le dernier job d'une release ouvre et fusionne une fois l'app et l'agent publiés, ou une ouverte à la main quand ni l'app ni l'agent ne changent. Runbook dans [deploy.md](./deploy.md), noms exacts dans [monorepo.md](./monorepo.md). `apps/site` : un Worker à assets statiques, Cloudflare Builds sur le même push de `main`. `apps/desktop` : GitHub Actions par tag, builds signés et notarisés, publication sur un bucket R2 public — `dl.pupitre.studio` — et déclaration à la plateforme, qui sert la page de téléchargement du site. `apps/agent` : le même tag, garble, signature, publication sur le bucket R2 privé via l'API de la plateforme.

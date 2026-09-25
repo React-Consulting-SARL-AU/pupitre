@@ -19,7 +19,8 @@ export const AFFILIATE_HIT_URL_PREFIX = `${PUPITRE_ORIGINS.app}/api/v1/affiliate
 
 const READ_CODE = `var r=new URLSearchParams(location.search).get(${JSON.stringify(AFFILIATE_QUERY)});`
 
-const WRITE_COOKIE = `var h=location.hostname,n=${JSON.stringify(AFFILIATE_COOKIE_DOMAIN)},d=h===n||h.endsWith("."+n)?";Domain=."+n:"";document.cookie=${JSON.stringify(`${AFFILIATE_COOKIE}=`)}+r+";Path=/;Max-Age=${AFFILIATE_COOKIE_MAX_AGE};SameSite=Lax"+d;`
+// The first link a visitor came through keeps the referral, as the console does.
+const WRITE_COOKIE = `if((";"+document.cookie.replace(/\\s/g,"")).indexOf(${JSON.stringify(`;${AFFILIATE_COOKIE}=`)})<0){var h=location.hostname,n=${JSON.stringify(AFFILIATE_COOKIE_DOMAIN)},d=h===n||h.endsWith("."+n)?";Domain=."+n:"",s=location.protocol==="https:"?";Secure":"";document.cookie=${JSON.stringify(`${AFFILIATE_COOKIE}=`)}+r+";Path=/;Max-Age=${AFFILIATE_COOKIE_MAX_AGE};SameSite=Lax"+s+d}`
 
 // A blocked or full sessionStorage throws on read as well as on write, and a
 // counted visit is never worth losing the page over.

@@ -1,6 +1,6 @@
 ---
 title: Dépannage
-description: Un serveur qui réclame un abonnement, le mode restreint, fail2ban qui bannit votre propre adresse, le mot de passe sudo de dev, et une étape d’installation en échec.
+description: Un serveur qui réclame un abonnement, le mode restreint, fail2ban qui bannit votre propre adresse, le mot de passe sudo de dev, une étape d’installation en échec, et où l’app écrit ses erreurs.
 locale: fr
 section: account
 sectionOrder: 3
@@ -97,3 +97,13 @@ Sous l’étape en échec, une ligne indique `relance : sudo pupitred install --
 - `dev doctor` lance un diagnostic court, et `dev status` montre ce qui tourne, les ports et les services.
 
 Les étapes elles-mêmes sont décrites dans [l’onboarding, pas à pas](/fr/docs/start/onboarding/).
+
+## L’app a rencontré une erreur
+
+Quand l’app tombe sur une erreur qu’elle n’attendait pas, elle propose **Relancer** : elle rouvre là où elle était, et les sessions sur vos serveurs continuent de tourner. Ce qui s’est passé est écrit sur votre ordinateur, dans un fichier que le support vous demandera :
+
+- macOS : `~/Library/Application Support/Pupitre/logs/main.log`
+- Windows : `%APPDATA%\Pupitre\logs\main.log`
+- Linux : `~/.config/Pupitre/logs/main.log`
+
+Le fichier ne garde que les erreurs, sans mot de passe ni jeton, et les trois précédents à côté (`main.1.log`…). Joignez-le à votre message au support.

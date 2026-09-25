@@ -42,7 +42,7 @@ Deux variables de build, absentes en local : `PUBLIC_RELEASES_URL` (liste des re
 
 ## Tests
 
-Tests de rendu Astro, script de parité fr/en, test des mots interdits sur `src/content`, Lighthouse en CI sur l'accueil et une page de doc.
+Tests de rendu Astro sous Vitest (`bun run test`, jamais `bun test`, qui échoue à tort sur les composants Astro), et `check:content`, lancé par `lint` : parité fr/en des routes, mots interdits sur `src/content` et `src/pages`, pages légales complètes. Aucun Lighthouse ne tourne, ni en CI ni ailleurs : la performance se mesure à la main.
 
 Les collections de contenu ne se chargent pas dans le conteneur Astro de Vitest : on teste les pages adossées à une collection par leur **modèle** (frontmatter sur le disque, parité des dossiers `en` et `fr`) plutôt que par leur rendu, et on garde le rendu pour ce qui est adossé à des données statiques.
 

@@ -1,12 +1,7 @@
 {
   "$schema": "https://v2-10-5.turborepo.dev/schema.json",
   "ui": "tui",
-  "globalDependencies": [
-    "biome.jsonc",
-    "bunfig.toml",
-    "tsconfig.base.json",
-    "tsconfig.worker.json"
-  ],
+  "globalDependencies": ["biome.jsonc", "bunfig.toml", "tsconfig.base.json"],
   "globalEnv": ["CI"],
   // envMode is strict: a variable missing here reaches no task at all.
   "globalPassThroughEnv": [

@@ -14,7 +14,7 @@ Ce que fait le processus principal de `apps/desktop` et pourquoi. Les règles d'
 
 Jamais de `ssh` par appel. Un canal qui tombe pendant `install`, `upgrade` ou `harden` se rouvre aussi longtemps que la commande avait de temps, et le rapport de l'agent — écrit avant chaque étape — se relit jusqu'à `finished_at` ; un canal que l'app a fermé elle-même ne se rouvre pas.
 
-Le renderer nomme les commandes du protocole sur `agent:call` ; `src/main/agent-bridge.ts` n'en laisse passer que celles de `BRIDGE_COMMANDS`, avec des paramètres de la forme du contrat, vers un serveur connu et un service que l'agent vient de lister. Un canal IPC dédié n'existe que quand le main ajoute ou retient quelque chose : un secret, un jeton, un chemin local, un `ssh`, un fichier.
+Le renderer nomme les commandes du protocole sur `agent:call` ; `src/main/agent-bridge.ts` n'en laisse passer que celles de `BRIDGE_COMMANDS`, avec des paramètres de la forme du contrat, vers un serveur connu et un service que l'agent vient de lister. Un canal IPC dédié n'existe que quand le main ajoute ou retient quelque chose : un secret, un jeton, un chemin local, un `ssh`, un fichier. Les canaux des serveurs et des terminaux passent par `handle` et `listen` de `ipc.ts` : ils ne répondent qu'au cadre du haut de la page que l'app livre, et à des arguments de la forme attendue (`shape` de `ipc-guard.ts`) — le reste est rejeté avant que le gestionnaire ne tourne. Les résultats de l'agent qui deviennent une ligne de commande ou un chemin local (`agent.open`, `db.shell`, `completions`, `project.list`, `fs.stat`) sont pesés contre le contrat dans tous les builds, et refusés (`refusal.agent.shape`) quand ils n'en ont pas la forme.
 
 ## SSH : configuration, clés, partage
 
@@ -42,7 +42,15 @@ Trois gestes, dans cet ordre : `agent.upgrade`, la fermeture du canal — le `se
 
 ## Les fichiers que l'app garde
 
-`servers.json`, `account.json` et `transfers.json` passent par `store-migrations.ts` : une entrée numérotée par changement de forme, du JSON brut en entrée comme en sortie, une copie `<fichier>.r<révision>` avant le premier changement. Un fichier écrit par une version plus récente n'est jamais réécrit.
+`servers.json`, `account.json`, `transfers.json`, `forwards.json` (le port local que chaque redirection a pris la dernière fois), `preferences.json` (ce que le main lit lui-même) et `connections/<fournisseur>.json` (le compte et les réglages d'une connexion, à côté de son jeton) passent par `versionedFile()` de `store-migrations.ts`, chacun avec son registre `<store>-migrations.ts` : une entrée numérotée par changement de forme, du JSON brut en entrée comme en sortie, une copie `<fichier>.r<révision>` avant le premier changement. Chaque écriture est estampillée, écrite à côté puis renommée. Un fichier qui ne se lit pas est copié en `<fichier>.corrupt` avant que rien ne l'écrase ; un fichier écrit par une version plus récente — ce que laisse un retour en arrière par `promote.yml` — est lu et jamais réécrit : un changement tient la session, et la version qui l'a écrit le retrouve entier.
+
+## Ce qui reste quand l'app se ferme
+
+La dernière fenêtre fermée, `Cmd+Q` ou une relance lâchent tout ce que l'app tient sur les serveurs — terminaux, canaux, redirections (`releaseEverything`, sur `window-all-closed` comme sur `will-quit`). Une redirection `ssh -L` tient sa propre connexion (`ControlMaster=no`, `ControlPath=none`) : sur la session maître, elle vivrait dans le maître et garderait son port local après la fin du processus.
+
+## Les pannes du processus principal
+
+Une exception que rien n'a rattrapée, une promesse rejetée que personne n'attendait et un démarrage qui n'aboutit pas sont écrits dans `userData/logs/main.log`, build empaqueté compris (`app-log.ts`, `failures.ts`) : une ligne par panne, avec sa pile, passée au même nettoyage que la trace, en 0600, et trois générations gardées au-delà de 512 Kio. Une exception ou un démarrage manqué proposent de relancer l'app ; une promesse rejetée ne fait qu'être écrite. C'est ce fichier que le support demande ([Dépannage](../apps/site/src/content/docs/fr/account/troubleshooting.mdx)).
 
 ## Les transferts
 
@@ -64,7 +72,7 @@ La page « Sauvegardes » d'un serveur lit `backup.status`, `backup.contents` et
 
 ## La trace en développement
 
-`trace.ts` écrit ce que fait le processus principal — chaque `ssh`, chaque commande de l'agent, chaque phase d'un enrôlement — sur la sortie du processus principal et dans la console de la fenêtre. Rien dans un build empaqueté ; `PUPITRE_TRACE=1` l'allume ailleurs. Aucune valeur dont le nom sent le secret n'y est écrite.
+`trace.ts` écrit ce que fait le processus principal — chaque `ssh`, chaque commande de l'agent, chaque phase d'un enrôlement — sur la sortie du processus principal et dans la console de la fenêtre. Rien dans un build empaqueté ; `PUPITRE_TRACE=1` l'allume ailleurs. Aucune valeur dont le nom sent le secret n'y est écrite, ni ce qui suit le nom d'un secret dans une phrase (`Bearer …`, `password=…`).
 
 ## Arborescence
 
