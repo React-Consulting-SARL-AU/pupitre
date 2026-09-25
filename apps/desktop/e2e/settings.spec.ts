@@ -68,18 +68,19 @@ test.describe("les réglages de l'app", () => {
     await app.evaluate(({ BrowserWindow }) => {
       for (const window of BrowserWindow.getAllWindows()) {
         window.webContents.send("app-update:changed", {
-          error: "ENOTFOUND dl.pupitre.studio",
+          failure: "refused",
           status: "error",
           updates: true,
+          version: "0.9.0",
         });
       }
     });
 
     await expect(page.locator('[data-callout="app-update"]')).toContainText(
-      "ENOTFOUND dl.pupitre.studio"
+      "La version 0.9.0 ne porte pas la signature de release de Pupitre"
     );
     await expect(
-      page.getByText("Vérifiez la connexion et réessayez")
+      page.getByText("téléchargez Pupitre depuis pupitre.studio")
     ).toBeVisible();
   });
 

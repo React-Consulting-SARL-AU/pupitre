@@ -20,12 +20,12 @@ import {
   tokenRefusal,
 } from "./account-tokens";
 import { accountValues, type HeldConnection } from "./account-values";
-import type { Sealer } from "./account-vault";
 import { agentClient } from "./agent";
 import { backupManaged, backupViewOf, type HeldBackup } from "./backups-run";
 import { declaredManifests } from "./catalog";
 import { type CloudflareApi, cloudflareApi } from "./cloudflare-api";
 import { createConnectionVault } from "./connection-vault";
+import { keychainSealer } from "./keychain";
 import { refuseWith } from "./refusal";
 import {
   CLOUDFLARE_EXPOSURE,
@@ -56,15 +56,9 @@ import {
  * would have retyped for every server.
  */
 
-const sealer: Sealer = {
-  available: () => safeStorage.isEncryptionAvailable(),
-  decrypt: (value) => safeStorage.decryptString(value),
-  encrypt: (value) => safeStorage.encryptString(value),
-};
-
 const vault = createConnectionVault({
   dir: app.getPath("userData"),
-  sealer,
+  sealer: keychainSealer(safeStorage, process.platform),
 });
 
 function cloudflareAccount(): {

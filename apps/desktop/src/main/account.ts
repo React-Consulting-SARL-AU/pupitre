@@ -8,9 +8,10 @@ import type {
 import type { AgentResponse } from "@shared/agent";
 import { app, ipcMain, safeStorage } from "electron";
 import { type Account, createAccount } from "./account-run";
-import { createTokenVault, type Sealer } from "./account-vault";
+import { createTokenVault } from "./account-vault";
 import { asAgentError } from "./enrollment-run";
 import { openOutside } from "./foreground";
+import { keychainSealer } from "./keychain";
 import { generateKey, keyPaths, readPublicKey } from "./keys";
 import { createPlatformClient } from "./platform-client";
 import { buildKind, platformUrl } from "./platform-url";
@@ -27,12 +28,6 @@ import { paths } from "./servers";
  */
 
 const DEVICE_KEY_ID = "device";
-
-const sealer: Sealer = {
-  available: () => safeStorage.isEncryptionAvailable(),
-  decrypt: (value) => safeStorage.decryptString(value),
-  encrypt: (value) => safeStorage.encryptString(value),
-};
 
 /**
  * One ed25519 key for this computer, made once and never leaving it. Only the
@@ -67,7 +62,10 @@ export const account: Account = createAccount({
   now: () => Date.now(),
   openUrl: openOutside,
   platform: createPlatformClient({ baseUrl: platformUrl() }),
-  vault: createTokenVault({ dir: app.getPath("userData"), sealer }),
+  vault: createTokenVault({
+    dir: app.getPath("userData"),
+    sealer: keychainSealer(safeStorage, process.platform),
+  }),
   wait: (ms) =>
     new Promise((resolve) => {
       setTimeout(resolve, ms);

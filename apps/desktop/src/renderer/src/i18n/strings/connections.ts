@@ -5,7 +5,7 @@ export const connections = {
     "connections.connected": "Connected as {account}.",
     "connections.held": "Token in place.",
     "connections.unsealed":
-      "This computer has no system keychain: the token is held for this session only.",
+      "This computer has no system keychain the app can use: the token is held until the app quits. On Linux, install and unlock GNOME Keyring or KWallet, then restart Pupitre.",
     "connections.forget": "Disconnect",
     "connections.forgetConfirm": "Disconnect",
     "connections.forgetQuestion.unknown":
@@ -113,7 +113,7 @@ export const connections = {
     "connections.connected": "Connecté en tant que {account}.",
     "connections.held": "Token en place.",
     "connections.unsealed":
-      "Cet ordinateur n'a pas de trousseau système : le token n'est gardé que pour cette session.",
+      "Cet ordinateur n'a pas de trousseau système que l'app puisse utiliser : le token n'est gardé que jusqu'à la fermeture de l'app. Sous Linux, installez et déverrouillez GNOME Keyring ou KWallet, puis redémarrez Pupitre.",
     "connections.forget": "Déconnecter",
     "connections.forgetConfirm": "Déconnecter",
     "connections.forgetQuestion.unknown":

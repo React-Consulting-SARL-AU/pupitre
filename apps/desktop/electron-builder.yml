@@ -20,15 +20,12 @@ protocols:
     schemes:
       - pupitre
 
+# What goes into the archive is named, not what stays out: the bundles and the
+# manifest. electron-builder adds the production dependencies on its own —
+# only what the main process loads at runtime, everything else is bundled.
 files:
-  - "!src/**"
-  - "!electron.vite.config.{js,ts,mjs,cjs,d.ts}"
-  - "!{.gitignore,bun.lock,package-lock.json,pnpm-lock.yaml,biome.jsonc}"
-  - "!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}"
-  - "!**/*.tsbuildinfo"
-  - "!README.md"
-  - "!scripts/**"
-  - "!resources/**"
+  - out/**
+  - package.json
 
 # The probe is sent to the server on standard input: it has to stay a readable
 # file outside the asar archive.
@@ -137,10 +134,12 @@ win:
   icon: build/icon.png
   target:
     - nsis
-  # Signing is Azure Trusted Signing, whose four names are read in the portal.
-  # They are not in this file: the release workflow passes them on the command
-  # line from repository variables, so a build without them is unsigned and says
-  # so rather than failing. See the runbook in docs/monorepo.md.
+  # Signing is Azure Trusted Signing, whose names are read in the portal. They
+  # are not in this file: the release workflow passes them on the command line
+  # from repository variables, the publisher among them, which app-update.yml
+  # carries so an installed app refuses an installer signed by anyone else. A
+  # stable build without them stops; a beta or local one is unsigned and says
+  # so. See the runbook in docs/monorepo.md.
 
 nsis:
   artifactName: Pupitre-Setup-${version}-${arch}.${ext}

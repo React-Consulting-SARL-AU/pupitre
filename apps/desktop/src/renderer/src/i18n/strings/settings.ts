@@ -13,6 +13,10 @@ export const settings = {
     "settings.section.notifications": "Notifications",
     "settings.section.startup": "Startup",
     "settings.section.about": "About",
+    "settings.help.title": "Help",
+    "settings.help.docs": "Documentation",
+    "settings.help.support": "Contact support",
+    "settings.help.legal": "Terms and privacy",
     "settings.ssh.reading": "Reading the SSH configuration",
     "settings.ssh.label":
       "Let ssh, my editors and my coding agents reach my servers by name",
@@ -45,13 +49,22 @@ export const settings = {
     "settings.about.downloading": "Downloading version {version}",
     "settings.about.downloadingAt":
       "Downloading version {version} — {percent}%",
+    "settings.about.verifying": "Checking the signature of version {version}",
     "settings.about.ready":
       "Version {version} is ready — restart to install it",
     "settings.about.readyFix":
       "The terminals reopen on the new version; the sessions keep running on the servers.",
     "settings.about.restart": "Restart now",
-    "settings.about.error": "The update could not be fetched: {reason}",
-    "settings.about.errorFix": "Check the connection and try again.",
+    "settings.about.failed": "The update could not be downloaded.",
+    "settings.about.failedFix":
+      "Check the connection, then check for updates again. This version keeps working meanwhile.",
+    "settings.about.refused":
+      "Version {version} does not carry Pupitre's release signature: it was not installed.",
+    "settings.about.refusedFix":
+      "This version keeps working. If it happens again, download Pupitre from pupitre.studio.",
+    "settings.about.changed":
+      "The downloaded update changed after its signature was checked: it was not installed.",
+    "settings.about.changedFix": "Check for updates to download it again.",
     "settings.terminal.fontSize.label": "Type size",
     "settings.terminal.fontSize.help": "From {min} to {max} px.",
     "settings.terminal.family.label": "Face",
@@ -99,6 +112,10 @@ export const settings = {
     "settings.ssh.servers": "Serveurs",
     "settings.ssh.none": "Aucun serveur ajouté par l'app pour l'instant.",
     "settings.section.about": "À propos",
+    "settings.help.title": "Aide",
+    "settings.help.docs": "Documentation",
+    "settings.help.support": "Contacter le support",
+    "settings.help.legal": "Conditions et confidentialité",
     "settings.notifications.reading": "Lecture de la préférence",
     "settings.notifications.label": "Me prévenir quand une session attend",
     "settings.notifications.detail":
@@ -124,14 +141,24 @@ export const settings = {
     "settings.about.downloading": "Téléchargement de la version {version}",
     "settings.about.downloadingAt":
       "Téléchargement de la version {version} — {percent} %",
+    "settings.about.verifying":
+      "Vérification de la signature de la version {version}",
     "settings.about.ready":
       "La version {version} est prête — redémarrez pour l'installer",
     "settings.about.readyFix":
       "Les terminaux reviennent sur la nouvelle version ; les sessions continuent sur les serveurs.",
     "settings.about.restart": "Redémarrer maintenant",
-    "settings.about.error":
-      "La mise à jour n'a pas pu être récupérée : {reason}",
-    "settings.about.errorFix": "Vérifiez la connexion et réessayez.",
+    "settings.about.failed": "La mise à jour n'a pas pu être téléchargée.",
+    "settings.about.failedFix":
+      "Vérifiez la connexion, puis recherchez de nouveau une mise à jour. Cette version continue de fonctionner d'ici là.",
+    "settings.about.refused":
+      "La version {version} ne porte pas la signature de release de Pupitre : elle n'a pas été installée.",
+    "settings.about.refusedFix":
+      "Cette version continue de fonctionner. Si cela se reproduit, téléchargez Pupitre depuis pupitre.studio.",
+    "settings.about.changed":
+      "La mise à jour téléchargée a changé après la vérification de sa signature : elle n'a pas été installée.",
+    "settings.about.changedFix":
+      "Recherchez une mise à jour pour la télécharger de nouveau.",
     "settings.terminal.fontSize.label": "Taille du texte",
     "settings.terminal.fontSize.help": "De {min} à {max} px.",
     "settings.terminal.family.label": "Police",

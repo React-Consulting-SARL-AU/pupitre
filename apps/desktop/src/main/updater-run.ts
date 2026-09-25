@@ -1,10 +1,12 @@
-import { createHash } from "node:crypto";
 import { basename } from "node:path";
 import {
   RELEASE_CHANNELS,
   type ReleaseChannel,
 } from "@pupitre/shared/releases";
-import { artefactOf, signedAppMessage } from "../../scripts/release-artefacts";
+import {
+  signedAppMessage,
+  signedArtefactOf,
+} from "../../scripts/release-artefacts";
 import { signatureHolds } from "./agent-release";
 
 /**
@@ -69,42 +71,67 @@ export function feedUrl(
 }
 
 export interface DownloadedArtefact {
-  bytes: Uint8Array;
   /** The artefact's file name, which says which system and chip it is for. */
   file: string;
+  /** The hex SHA-256 of the bytes on disk. */
+  sha256: string;
   version: string;
   /** The base64 Ed25519 signature published next to the artefact. */
   signature: string;
+}
+
+/** A download the release key vouched for: that file, with those bytes. */
+export interface VerifiedUpdate {
+  file: string;
+  sha256: string;
+  version: string;
 }
 
 /**
  * Whether a downloaded artefact is the one the release key signed.
  *
  * The signature binds the digest to the version, the system and the chip, the
- * way the release chain wrote it: an authentic AppImage of another
- * version, or of another architecture, is refused too. macOS and Windows have
- * their platform's own signature checked by electron-updater; Linux has none,
- * and this is what stands in for it.
+ * way the release chain wrote it: an authentic artefact of another version,
+ * or of another architecture, is refused too. It holds on the three systems —
+ * the AppImage, the NSIS installer, and the `.zip` electron-updater fetches on
+ * macOS, which carries the system and chip of the `.dmg` it is built beside.
+ * macOS and Windows check their platform's own signature on top of it.
  */
 export function checkAppArtefact(
   downloaded: DownloadedArtefact,
   publicKey: string
 ): boolean {
-  const artefact = artefactOf(basename(downloaded.file));
+  const artefact = signedArtefactOf(basename(downloaded.file));
 
   if (!artefact) {
     return false;
   }
 
-  const sha256 = createHash("sha256").update(downloaded.bytes).digest("hex");
   const message = signedAppMessage(
     downloaded.version,
     artefact.os,
     artefact.arch,
-    sha256
+    downloaded.sha256
   );
 
   return signatureHolds(message, downloaded.signature.trim(), publicKey);
+}
+
+/**
+ * Whether the file electron-updater is about to install is the one verified,
+ * with the bytes it had then. Anything else — nothing verified, another file,
+ * bytes that changed or no longer read — is not installed.
+ */
+export function installable(
+  verified: VerifiedUpdate | null,
+  pending: string | null,
+  digestOf: (file: string) => string | null
+): boolean {
+  if (!(verified && pending) || pending !== verified.file) {
+    return false;
+  }
+
+  return digestOf(pending) === verified.sha256;
 }
 
 /**

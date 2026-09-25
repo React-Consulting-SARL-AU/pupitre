@@ -1,25 +1,18 @@
 import type { BuildKind } from "@shared/account";
 import { app } from "electron";
 import {
-  agentBaseUrl,
+  agentPlatformUrlOf,
   buildKindOf,
-  DEFAULT_PLATFORM_URL,
-  LOCAL_PLATFORM_URL,
+  platformUrlOf,
 } from "./platform-client";
 
 /**
- * Which platform this build talks to.
- *
- * A packaged app knows only the hosted one. A development build talks to the
- * console running beside it, so the whole account — device flow, enrolment,
- * console links — stays on this computer; `PUPITRE_PLATFORM_URL` names another
- * one when it is elsewhere, the hosted platform included: that is how a screen
- * is tried against the real account and the real servers without a release.
+ * Which platform this build talks to: the hosted one once packaged, the
+ * console beside it in development, or the one `PUPITRE_PLATFORM_URL` names —
+ * `bun run dev:desktop:prod` points it at the hosted platform.
  */
 export function platformUrl(): string {
-  const fallback = app.isPackaged ? DEFAULT_PLATFORM_URL : LOCAL_PLATFORM_URL;
-
-  return process.env.PUPITRE_PLATFORM_URL || fallback;
+  return platformUrlOf(app.isPackaged, process.env.PUPITRE_PLATFORM_URL);
 }
 
 /**
@@ -28,13 +21,15 @@ export function platformUrl(): string {
  *
  * A development console is served on this computer, which the VPS has no way to
  * reach; what leaves for the server is the tunnel that publishes that same
- * console. `PUPITRE_AGENT_PLATFORM_URL` names another one when the agent has to
- * answer somewhere else than the app does.
+ * console. `PUPITRE_AGENT_PLATFORM_URL` names another one, in a development
+ * build only, when the agent has to answer somewhere else than the app does.
  */
 export function agentPlatformUrl(): string {
-  const base = process.env.PUPITRE_AGENT_PLATFORM_URL || platformUrl();
-
-  return new URL("/api/v1", agentBaseUrl(base)).toString();
+  return agentPlatformUrlOf(
+    app.isPackaged,
+    process.env.PUPITRE_AGENT_PLATFORM_URL,
+    platformUrl()
+  );
 }
 
 export function buildKind(): BuildKind {

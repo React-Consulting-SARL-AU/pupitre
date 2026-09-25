@@ -1,18 +1,24 @@
-import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { createReadStream, readFileSync } from "node:fs";
 import { basename } from "node:path";
 import type { AppAbout, AppUpdateState } from "@shared/app-update";
-import { app, ipcMain } from "electron";
-import electronUpdater, { type UpdateDownloadedEvent } from "electron-updater";
+import { app, ipcMain, autoUpdater as squirrel } from "electron";
+import electronUpdater, {
+  type AppUpdater,
+  type UpdateDownloadedEvent,
+} from "electron-updater";
 import { AGENT_RELEASE_PUBLIC_KEY } from "./agent-release";
 import { appVersion } from "./app-version";
 import { broadcast } from "./broadcast";
 import { trace } from "./trace";
 import {
   checkAppArtefact,
+  installable,
   signatureUrl,
   type UpdaterEnvironment,
   type UpdaterPlan,
   updaterPlan,
+  type VerifiedUpdate,
 } from "./updater-run";
 import {
   initialUpdateState,
@@ -26,6 +32,11 @@ const EVERY_MS = 4 * 60 * 60 * 1000;
 /** A signature is a hundred bytes: a fetch that takes longer is a bucket that is not answering. */
 const SIGNATURE_MS = 20_000;
 
+/** Built on first read: a development build never makes one. */
+function updater(): AppUpdater {
+  return electronUpdater.autoUpdater;
+}
+
 function environment(): UpdaterEnvironment {
   return {
     appImage: process.env.APPIMAGE,
@@ -36,8 +47,37 @@ function environment(): UpdaterEnvironment {
   };
 }
 
+function digest(file: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const hash = createHash("sha256");
+
+    createReadStream(file)
+      .on("data", (chunk) => hash.update(chunk))
+      .on("error", reject)
+      .on("end", () => resolve(hash.digest("hex")));
+  });
+}
+
+/** Read again at the moment of installing, when the app is quitting anyway. */
+function digestNow(file: string): string | null {
+  try {
+    return createHash("sha256").update(readFileSync(file)).digest("hex");
+  } catch {
+    return null;
+  }
+}
+
+/** The file electron-updater hands to the installer, from its own record rather than an event's. */
+function pendingFile(): string | null {
+  const internals = updater() as unknown as {
+    downloadedUpdateHelper?: { file: string | null } | null;
+  };
+
+  return internals.downloadedUpdateHelper?.file ?? null;
+}
+
 /**
- * The downloaded AppImage against the signature published beside it.
+ * The downloaded artefact against the signature published beside it.
  *
  * The feed says which file was fetched; the one on disk carries the same name.
  * Anything that fails on the way — no signature, a bucket that does not
@@ -46,14 +86,14 @@ function environment(): UpdaterEnvironment {
 async function verifiedDownload(
   info: UpdateDownloadedEvent,
   feedUrl: string
-): Promise<boolean> {
+): Promise<VerifiedUpdate | null> {
   const file = basename(info.downloadedFile);
-  const entry =
-    info.files.find((candidate) => basename(candidate.url) === file) ??
-    info.files[0];
+  const entry = info.files.find(
+    (candidate) => basename(candidate.url) === file
+  );
 
   if (!entry) {
-    return false;
+    return null;
   }
 
   const response = await fetch(signatureUrl(entry.url, feedUrl), {
@@ -61,19 +101,26 @@ async function verifiedDownload(
   });
 
   if (!response.ok) {
-    return false;
+    return null;
   }
 
   const signature = await response.text();
-  const bytes = await readFile(info.downloadedFile);
-
-  return checkAppArtefact(
-    { bytes, file, signature, version: info.version },
+  const sha256 = await digest(info.downloadedFile);
+  const holds = checkAppArtefact(
+    { file, sha256, signature, version: info.version },
     AGENT_RELEASE_PUBLIC_KEY
   );
+
+  return holds
+    ? { file: info.downloadedFile, sha256, version: info.version }
+    : null;
 }
 
 let state: AppUpdateState = initialUpdateState(false);
+
+let verified: VerifiedUpdate | null = null;
+
+let installing = false;
 
 function moved(event: UpdaterEvent): void {
   state = nextUpdateState(state, event);
@@ -93,33 +140,64 @@ export function checkForUpdates(): void {
 }
 
 /**
+ * Hands the verified archive to Squirrel.Mac now, which puts it in place when
+ * the app next quits. electron-updater's proxy is still serving the file it
+ * downloaded; raising the flag keeps its own `quitAndInstall` from asking
+ * Squirrel a second time.
+ */
+function stageOnMac(): void {
+  updater().autoInstallOnAppQuit = true;
+  squirrel.checkForUpdates();
+}
+
+/**
+ * The AppImage or the NSIS installer, put in place as the app quits — only
+ * when the file on disk is still the one verified.
+ */
+function installOnQuit(exitCode: number): void {
+  if (
+    installing ||
+    exitCode !== 0 ||
+    !installable(verified, pendingFile(), digestNow)
+  ) {
+    return;
+  }
+
+  installing = true;
+  updater().quitAndInstall(true, false);
+}
+
+/**
  * The check at start, then the same check every few hours.
  *
- * Nothing of this reaches a screen: the update downloads on its own and is put
- * in place when the app is next quit, so an install never interrupts a terminal
- * that was in the middle of something.
+ * Nothing of this reaches a screen on its own: the update downloads in the
+ * background, the About screen follows it, and it is put in place when the app
+ * is next quit, so an install never interrupts a terminal that was in the
+ * middle of something.
  *
- * On Linux nothing but this app checks what it downloaded, so the install on
- * quit is withheld until the signature beside the artefact has been verified.
- * The flag is lowered a microtask after the download is announced, once
- * electron-updater has registered its quit handler — it only does so while the
- * flag is up — and raised again only by a signature that holds.
+ * electron-updater never installs by itself here: `autoInstallOnAppQuit`
+ * stays down while a download has not been verified, on the three systems.
+ * A download is `verifying` until the Ed25519 signature published beside it
+ * holds for its bytes; only then is it `ready`, and the install — asked for,
+ * or on quit — re-reads the file and refuses anything but those bytes.
+ * On top of it, Squirrel.Mac checks the Developer ID of what it stages, and
+ * electron-updater the Authenticode publisher of the Windows installer.
  */
 export function startUpdater(): UpdaterPlan {
   const plan = updaterPlan(environment());
 
   state = initialUpdateState(plan.updates);
 
-  const { autoUpdater } = electronUpdater;
-
   const look = () => {
     if (!plan.updates) {
       return;
     }
 
-    autoUpdater.checkForUpdatesAndNotify().catch(() => {
-      // No network, or the feed refused us: the next round will say the same.
-    });
+    updater()
+      .checkForUpdates()
+      .catch(() => {
+        // No network, or the feed refused us: the next round will say the same.
+      });
   };
 
   lookNow = look;
@@ -138,9 +216,19 @@ export function startUpdater(): UpdaterPlan {
     return state;
   });
   ipcMain.handle("app-update:install", () => {
-    if (state.status === "ready") {
-      autoUpdater.quitAndInstall();
+    if (state.status !== "ready" || installing) {
+      return state;
     }
+
+    if (!installable(verified, pendingFile(), digestNow)) {
+      verified = null;
+      moved({ kind: "changed" });
+
+      return state;
+    }
+
+    installing = true;
+    updater().quitAndInstall();
 
     return state;
   });
@@ -149,9 +237,11 @@ export function startUpdater(): UpdaterPlan {
     return plan;
   }
 
+  const autoUpdater = updater();
+
   autoUpdater.setFeedURL(plan.feed);
   autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.autoInstallOnAppQuit = false;
 
   autoUpdater.on("checking-for-update", () => moved({ kind: "checking" }));
   autoUpdater.on("update-available", (info) =>
@@ -163,39 +253,59 @@ export function startUpdater(): UpdaterPlan {
   autoUpdater.on("download-progress", (progress) =>
     moved({ kind: "progress", percent: progress.percent })
   );
-  autoUpdater.on("update-downloaded", (info) =>
-    moved({ kind: "downloaded", version: info.version })
-  );
-  autoUpdater.on("error", (failure) =>
-    moved({ kind: "error", message: failure.message })
-  );
+  autoUpdater.on("error", (failure) => {
+    trace("updater", "failed", { reason: failure.message });
+    installing = false;
+    moved({ kind: "error" });
+  });
 
-  if (process.platform === "linux") {
-    autoUpdater.on("update-downloaded", (info) => {
-      queueMicrotask(() => {
-        autoUpdater.autoInstallOnAppQuit = false;
+  let round = 0;
 
-        verifiedDownload(info, plan.feed.url)
-          .catch((failure: unknown) => {
-            trace("updater", "signature-unread", {
-              reason:
-                failure instanceof Error ? failure.message : String(failure),
-            });
+  autoUpdater.on("update-downloaded", (info) => {
+    // Synchronous, before electron-updater reads the flag to hand the file on.
+    autoUpdater.autoInstallOnAppQuit = false;
+    verified = null;
+    round += 1;
 
-            return false;
-          })
-          .then((verified) => {
-            trace("updater", verified ? "verified" : "refused", {
-              version: info.version,
-            });
-            autoUpdater.autoInstallOnAppQuit = verified;
+    const mine = round;
 
-            if (!verified) {
-              moved({ kind: "refused", version: info.version });
-            }
-          });
+    moved({ kind: "downloaded", version: info.version });
+
+    verifiedDownload(info, plan.feed.url)
+      .catch((failure: unknown) => {
+        trace("updater", "signature-unread", {
+          reason: failure instanceof Error ? failure.message : String(failure),
+        });
+
+        return null;
+      })
+      .then((held) => {
+        if (mine !== round) {
+          return;
+        }
+
+        trace("updater", held ? "verified" : "refused", {
+          version: info.version,
+        });
+
+        if (!held) {
+          moved({ kind: "refused", version: info.version });
+
+          return;
+        }
+
+        verified = held;
+
+        if (process.platform === "darwin") {
+          stageOnMac();
+        }
+
+        moved({ kind: "verified", version: info.version });
       });
-    });
+  });
+
+  if (process.platform !== "darwin") {
+    app.on("quit", (_event, exitCode) => installOnQuit(exitCode));
   }
 
   look();

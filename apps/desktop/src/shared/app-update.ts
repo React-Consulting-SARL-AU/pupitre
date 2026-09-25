@@ -9,8 +9,15 @@ export type AppUpdateStatus =
   | "checking"
   | "available"
   | "downloading"
+  | "verifying"
   | "ready"
   | "error";
+
+/**
+ * Why the update stopped: the check or the download failed, the release key
+ * refused what was downloaded, or the file changed after it was verified.
+ */
+export type AppUpdateFailure = "failed" | "refused" | "changed";
 
 export interface AppUpdateState {
   status: AppUpdateStatus;
@@ -20,8 +27,8 @@ export interface AppUpdateState {
   version?: string;
   /** How far the download is, from 0 to 100, while `downloading`. */
   percent?: number;
-  /** What went wrong, in the updater's own words, while `error`. */
-  error?: string;
+  /** Why, while `error`. */
+  failure?: AppUpdateFailure;
   /** When the feed was last asked, as an ISO date. */
   checkedAt?: string;
 }

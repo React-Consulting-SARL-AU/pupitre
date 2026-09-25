@@ -137,15 +137,9 @@ export default defineConfig({
     define: {
       "import.meta.env.MAIN_VITE_APP_VERSION": JSON.stringify(APP_VERSION),
     },
-    // The design tokens ship as TypeScript: Electron cannot require them at
-    // runtime, so they are bundled in rather than externalised.
-    plugins: [
-      embedProbeScript(),
-      embedAgentBinary(),
-      externalizeDepsPlugin({
-        exclude: ["@pupitre/auth", "@pupitre/design", "@pupitre/shared"],
-      }),
-    ],
+    // Only package.json `dependencies` stay outside the bundle and ship in the
+    // archive; anything else the main process imports must be a devDependency.
+    plugins: [embedProbeScript(), embedAgentBinary(), externalizeDepsPlugin()],
     build: PROTECTED,
     // The release bucket is named once, by the variable the publishing script
     // already reads; the full name is the prefix, so nothing else of the
