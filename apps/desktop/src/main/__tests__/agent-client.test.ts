@@ -265,8 +265,9 @@ describe("le canal", () => {
       "id=2 cmd=install",
       "id=3 cmd=hello",
       "id=4 cmd=report",
-      "id=5 cmd=hello",
-      "id=6 cmd=report",
+      "id=5 cmd=report",
+      "id=6 cmd=hello",
+      "id=7 cmd=report",
     ]);
 
     agent.closeAll();
