@@ -3,6 +3,7 @@ package daemon_test
 import (
 	"encoding/json"
 	"errors"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -235,6 +236,36 @@ func TestKeysTrustLaysTheDeviceKey(t *testing.T) {
 
 	if b.fake.Modes[keys.DefaultSignersPath] != 0o600 {
 		t.Fatalf("signers mode = %o", b.fake.Modes[keys.DefaultSignersPath])
+	}
+}
+
+func TestKeysTrustOnAFreshServerWaitsForDevThenLaysTheKey(t *testing.T) {
+	b := newBench(t, true)
+	delete(b.fake.Files, daemon.DefaultKeysPath)
+
+	answer := serve(t, b, contract.EntitlementValid, `{"id":2,"cmd":"keys.trust","params":{"public_key":"`+desktopDevice.line+`"}}`)[0]
+	assertKeysResult(t, answer, 0)
+
+	if !b.trust(t).Trusts(desktopDevice.fingerprint(t)) {
+		t.Fatal("the device was not trusted")
+	}
+
+	if _, written := b.fake.Files[daemon.DefaultKeysPath]; written {
+		t.Fatal("authorized_keys was written before dev exists")
+	}
+
+	b.platform.want(asked(desktopDevice))
+	b.sync(t, b.agent())
+
+	if _, written := b.fake.Files[daemon.DefaultKeysPath]; written {
+		t.Fatal("a sync wrote authorized_keys before dev exists")
+	}
+
+	b.fake.Dirs[filepath.Dir(daemon.DefaultKeysPath)] = true
+	b.sync(t, b.agent())
+
+	if !b.opens(desktopDevice) {
+		t.Fatalf("authorized_keys once dev exists:\n%s", b.authorized())
 	}
 }
 

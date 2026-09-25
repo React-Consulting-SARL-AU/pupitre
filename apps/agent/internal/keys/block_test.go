@@ -160,6 +160,7 @@ func TestSyncRefusesALinkPlantedInPlaceOfTheFile(t *testing.T) {
 
 func TestSyncCreatesTheFileWhenThereIsNone(t *testing.T) {
 	fake, ctx := machine(t, "")
+	fake.Dirs["/home/dev/.ssh"] = true
 
 	changed, err := keys.Sync(ctx, keys.Target{Path: path, Owner: "dev"}, parse(t, laptop))
 	if err != nil || !changed {
@@ -168,6 +169,19 @@ func TestSyncCreatesTheFileWhenThereIsNone(t *testing.T) {
 
 	if !strings.Contains(string(fake.Files[path]), laptop) || fake.Owners[path] != "dev:dev" {
 		t.Fatalf("content = %q, owner = %q", fake.Files[path], fake.Owners[path])
+	}
+}
+
+func TestSyncWaitsForTheAccountBeforeWritingAnything(t *testing.T) {
+	fake, ctx := machine(t, "")
+
+	changed, err := keys.Sync(ctx, keys.Target{Path: path, Owner: "dev"}, parse(t, laptop))
+	if err != nil || changed {
+		t.Fatalf("Sync = %v, %v", changed, err)
+	}
+
+	if _, written := fake.Files[path]; written {
+		t.Fatal("the block was written before the account exists")
 	}
 }
 
