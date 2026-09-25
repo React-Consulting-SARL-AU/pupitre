@@ -107,7 +107,9 @@ export const BACKUP_EXCLUDED_DIRS = [
  * agents, so nobody logs in again after a restore. Whichever exist are carried
  * in one `home` part; `.ssh/authorized_keys` never is — the platform rewrites
  * its block every thirty seconds, and a restored one would open the machine to
- * keys the platform has revoked.
+ * keys the platform has revoked. `.claude/remote` is not either: the binaries
+ * Claude downloads there come back on their own, and one that runs cannot be
+ * written over.
  */
 export const BACKUP_HOME_PATHS = [
   ".ssh",
@@ -128,7 +130,10 @@ export const BACKUP_HOME_PATHS = [
   ".zsh_history",
 ] as const
 
-export const BACKUP_HOME_EXCLUDED = [".ssh/authorized_keys"] as const
+export const BACKUP_HOME_EXCLUDED = [
+  ".ssh/authorized_keys",
+  ".claude/remote",
+] as const
 
 /**
  * A path under the dev user's home, relative, one segment at a time, where no

@@ -1,7 +1,7 @@
 import { InstallProgress } from "@renderer/components/install/install-progress";
 import { Button } from "@renderer/components/ui/button";
+import { Dialog } from "@renderer/components/ui/dialog";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
-import { Section } from "@renderer/components/ui/section";
 import { WaitingNotice } from "@renderer/components/ui/waiting-notice";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { ModuleProgress } from "@renderer/lib/module-progress";
@@ -12,8 +12,10 @@ import { BackupsExtraChoice } from "./backups-extra-choice";
 import { BackupsRestoreResult } from "./backups-restore-result";
 
 /**
- * A revert as it runs: which phase, what the agent reports of it, where it
- * stopped and why in the agent's own words, and what came back at the end.
+ * A revert as it runs, held over the whole window: nothing else can be touched
+ * while the server's configuration and data are replaced. It says which phase,
+ * what the agent reports of it, where it stopped and why in the agent's own
+ * words, and what came back at the end — and only then lets go.
  */
 export function BackupsRevertProgress({
   revert,
@@ -47,21 +49,23 @@ export function BackupsRevertProgress({
       : null;
   const atInstall = at === "install";
   const saving = at === "save";
-  const dismiss = (
-    <Button icon={X} onClick={onDismiss} size="sm" variant="discreet">
-      {t("backups.revert.dismiss")}
-    </Button>
-  );
+  const finished = revert.status === "failed" || revert.status === "done";
 
   return (
-    <Section
+    <Dialog
       actions={
-        revert.status === "failed" || revert.status === "done"
-          ? dismiss
-          : undefined
+        finished ? (
+          <Button icon={X} onClick={onDismiss} variant="discreet">
+            {t("backups.revert.dismiss")}
+          </Button>
+        ) : null
       }
-      name="backup-revert"
+      locked={!finished}
+      name="backup-revert-progress"
+      onClose={onDismiss}
+      open
       title={t("backups.revert.progressTitle", { backup: named })}
+      width="large"
     >
       {revert.status === "running" ? (
         <WaitingNotice
@@ -105,6 +109,6 @@ export function BackupsRevertProgress({
           wording={saving ? "backup" : "restore"}
         />
       ) : null}
-    </Section>
+    </Dialog>
   );
 }

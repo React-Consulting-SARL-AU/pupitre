@@ -261,6 +261,8 @@ func (b *bench) tree() {
 		".ssh/id_ed25519":                       "private key of dev",
 		".ssh/authorized_keys":                  "the platform's own block",
 		".claude.json":                          `{"session":"signed in"}`,
+		".claude/settings.json":                 `{"model":"opus"}`,
+		".claude/remote/ccd-cli/2.1.280":        "a binary Claude downloads again",
 		"notes/todo.md":                         "- restore everything",
 		"projects/intranet/src/a.ts":            "export const a = 1",
 		"projects/intranet/.git/HEAD":           "ref: refs/heads/feature\n",

@@ -304,12 +304,23 @@ test.describe("sauvegardes", () => {
     ).toBeVisible();
     await expect(page.getByRole("checkbox", { name: "GitHub" })).toBeChecked();
 
+    const progress = page.locator('[data-dialog="backup-revert-progress"]');
+
+    await test.step("le retour tient la fenêtre : Échap ne le ferme pas", async () => {
+      await page.keyboard.press("Escape");
+
+      await expect(progress).toBeVisible();
+    });
+
     await page
       .getByRole("button", { name: "Désinstaller 1 service et continuer" })
       .click();
 
-    await expect(page.getByText(REVERTED)).toBeVisible();
-    await expect(page.getByText("intranet", { exact: true })).toBeVisible();
+    await expect(progress.getByText(REVERTED)).toBeVisible();
+    await expect(progress.getByText("intranet", { exact: true })).toBeVisible();
+    await assertAccessible(page, "backups/revert-done");
+    await progress.getByRole("button", { name: "Fermer" }).click();
+    await expect(progress).toBeHidden();
   });
 
   test("la destination dit ce que tient le serveur, l'aligne, et tout peut recommencer", async () => {

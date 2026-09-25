@@ -81,7 +81,8 @@ func TestABackupCarriesEveryPartSealedForTheRecipient(t *testing.T) {
 	}
 
 	home := names(opened(t, bucket, result.Key+"/home.pupitre"))
-	if !slices.Contains(home, ".ssh/id_ed25519") || slices.Contains(home, ".ssh/authorized_keys") || !slices.Contains(home, ".claude.json") {
+	if !slices.Contains(home, ".ssh/id_ed25519") || slices.Contains(home, ".ssh/authorized_keys") || !slices.Contains(home, ".claude.json") ||
+		!slices.Contains(home, ".claude/settings.json") || slices.ContainsFunc(home, func(name string) bool { return strings.HasPrefix(name, ".claude/remote") }) {
 		t.Fatalf("home = %v", home)
 	}
 
