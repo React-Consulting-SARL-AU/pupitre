@@ -24,7 +24,6 @@ const blog = defineCollection({
   schema: base.extend({
     date: z.coerce.date(),
     author: z.string().min(1),
-    reading: z.string().min(1),
     translation: z.string().min(1),
   }),
 })

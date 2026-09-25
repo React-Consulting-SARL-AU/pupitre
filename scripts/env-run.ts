@@ -6,13 +6,6 @@ import {
   readEnvironments,
 } from "./environments"
 
-/**
- * A command run in an environment: the fields of its 1Password note, in the
- * command's environment and nowhere else. `bun run env production -- …` is
- * how a workstation touches production — on purpose, one command at a time,
- * nothing written, nothing printed but the names.
- */
-
 function main(args: readonly string[]): number {
   const { argv, name } = commandOf(args)
   const config = readEnvironments()

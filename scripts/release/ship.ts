@@ -2,16 +2,6 @@ import { hasFlag, say } from "./cli"
 import { git, originTags, RELEASE_BRANCH, resolve } from "./resolve"
 import { run } from "./shell"
 
-/**
- * The last gesture on this machine: what the release changed in the
- * repository — the version the app declares and the changelog — is committed,
- * the version is tagged, and both go to the remote. The tag is what the
- * runners pick up; from here the release is theirs, up to the merge.
- *
- * A push the pre-push hook refused leaves the commit and the tag behind:
- * run again, the step finds them on HEAD, absent from origin, and pushes.
- */
-
 const RELEASE_PATHS = [
   "apps/desktop/package.json",
   "apps/site/src/content/changelog",
@@ -19,7 +9,7 @@ const RELEASE_PATHS = [
 
 export type TagPlan = "tag" | "push"
 
-/** Whether the tag is still to cut, or cut on HEAD and only waiting for its push. */
+// A push refused by the pre-push hook leaves the tag on HEAD, so a rerun only pushes.
 export function tagPlan(
   tag: string,
   tagged: string | null,

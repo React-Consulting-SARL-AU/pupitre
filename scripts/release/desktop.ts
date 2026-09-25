@@ -17,17 +17,7 @@ import { hasFlag, say, variable } from "./cli"
 import { type Bucket, bucket, get, keys, put } from "./r2"
 import { run } from "./shell"
 
-/**
- * The app for the system this host runs: built with the agent that was just
- * published, signed where the system asks for it, then left in the private
- * bucket for the publish step — which runs anywhere, and signs every file
- * with the release key before anything becomes public.
- *
- * One system per host, and no cross-building: node-pty is compiled for the
- * machine that packages it, and notarization and Trusted Signing each run on
- * their own system only.
- */
-
+// One system per host: node-pty, notarization and Trusted Signing cannot cross-build.
 const ROOT = path.resolve(import.meta.dir, "../..")
 
 const DESKTOP_DIR = path.join(ROOT, "apps/desktop")
@@ -42,10 +32,8 @@ export const SYSTEMS = {
 
 export type System = (typeof SYSTEMS)[keyof typeof SYSTEMS]
 
-/** The files a system's build hands to the publish step, listed for it. */
 export const WORK_INDEX = "index.json"
 
-/** The updater feed each system reads. */
 const FEED_OF: Record<System, string> = {
   linux: "latest-linux.yml",
   macos: "latest-mac.yml",
@@ -62,7 +50,6 @@ export function systemOfHost(platform: string): System {
   return system
 }
 
-/** What a build leaves for the publish step, for one system: its installers, what the updater fetches beside them, its feed. */
 export function publishable(
   system: System,
   files: readonly string[]
@@ -88,7 +75,6 @@ const MAC_SIGNING = [
   "APPLE_CERTIFICATE_PASSWORD",
 ] as const
 
-/** The three names the build is given, the publisher electron-updater checks, and the Entra ID application Trusted Signing logs in with. */
 const WINDOWS_SIGNING = [
   "AZURE_SIGNING_ENDPOINT",
   "AZURE_SIGNING_ACCOUNT",
@@ -99,15 +85,12 @@ const WINDOWS_SIGNING = [
   "AZURE_CLIENT_SECRET",
 ] as const
 
-/**
- * What an installed app updates to is on the stable channel: it ships signed
- * or not at all. A beta build may go out unsigned, and says so.
- */
+// Installed apps update from stable, so stable ships signed or not at all.
 export function signingRequired(channel: string): boolean {
   return channel === STABLE_CHANNEL
 }
 
-/** Stopgap until Azure Trusted Signing exists: the release names it, and deleting that line restores the rule. */
+// Stopgap until Azure Trusted Signing exists.
 export function windowsSigningRequired(
   channel: string,
   env: NodeJS.ProcessEnv
@@ -129,10 +112,7 @@ function refuseUnsigned(
   }
 }
 
-/**
- * electron-builder skips signing with a word in its log when it finds no
- * identity; on the stable channel that is a failed build, not an unsigned one.
- */
+// electron-builder silently skips signing without an identity; stable must fail instead.
 export function enforcedSigning(system: System, required: boolean): string[] {
   if (!required || system === "linux") {
     return []
@@ -141,15 +121,6 @@ export function enforcedSigning(system: System, required: boolean): string[] {
   return [`-c.${system === "macos" ? "mac" : "win"}.forceCodeSigning=true`]
 }
 
-/**
- * macOS signs with the Developer ID certificate it is given — a bare runner
- * imports it into a throwaway keychain — or, without one, with the identity
- * of this Mac's keychain; and notarizes with the App Store Connect key, given
- * as a file for as long as the build lasts. Without the key, a beta build is
- * neither signed nor notarized, and says so; a stable one stops. Apple keeps
- * a notarization for minutes without a word: the debug output says where it
- * stands.
- */
 export function macSigning(
   env: NodeJS.ProcessEnv,
   keyFile: (content: string) => string,
@@ -170,6 +141,7 @@ export function macSigning(
       APPLE_API_ISSUER: issuer,
       APPLE_API_KEY: keyFile(keyContent),
       APPLE_API_KEY_ID: keyId,
+      // Notarization stays silent for minutes otherwise.
       DEBUG: "electron-notarize*",
       ...(certificate && password
         ? { CSC_KEY_PASSWORD: password, CSC_LINK: certificate }
@@ -184,12 +156,6 @@ export function macSigning(
   return { CSC_IDENTITY_AUTO_DISCOVERY: "false" }
 }
 
-/**
- * Windows signs through Azure Trusted Signing when its three names are given.
- * The publisher — the certificate's subject name, which Trusted Signing does
- * not report — goes into `app-update.yml`, and an installed app then refuses
- * an update whose Authenticode signer is anyone else.
- */
 export function windowsSigning(
   env: NodeJS.ProcessEnv,
   required: boolean
@@ -201,6 +167,7 @@ export function windowsSigning(
   const endpoint = env.AZURE_SIGNING_ENDPOINT
   const account = env.AZURE_SIGNING_ACCOUNT
   const profile = env.AZURE_SIGNING_PROFILE
+  // Trusted Signing does not report the subject name the updater checks signers against.
   const publisher = env.AZURE_SIGNING_PUBLISHER
 
   if (endpoint && account && profile) {

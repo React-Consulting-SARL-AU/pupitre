@@ -1,7 +1,5 @@
 export const en = {
   "site.name": "Pupitre",
-  "site.domain": "pupitre.studio",
-  "site.tagline": "A machine of their own for your AI agents.",
 
   "a11y.skip": "Skip to content",
 
@@ -20,7 +18,6 @@ export const en = {
   "theme.light": "Light",
   "theme.dark": "Dark",
 
-  "locale.label": "Language",
   "locale.alternateName": "Français",
 
   "footer.tagline":
@@ -52,12 +49,10 @@ export const en = {
   "docs.search": "Search",
   "docs.searchPlaceholder": "Search the docs",
   "docs.searchEmpty": "No page matches.",
-  "docs.searchCount": "{count} page(s)",
   "docs.next": "Next",
   "docs.previous": "Previous",
   "docs.start": "Start here",
   "docs.back": "All docs",
-  "docs.updated": "Section",
 
   "blog.label": "Blog",
   "blog.title": "Blog — Pupitre",
@@ -69,7 +64,6 @@ export const en = {
   "blog.by": "By",
   "blog.rss": "RSS",
   "blog.back": "All posts",
-  "blog.reading": "Reading time",
   "blog.empty": "Nothing published yet.",
 
   "legal.label": "Legal",

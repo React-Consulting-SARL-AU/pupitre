@@ -18,10 +18,6 @@ function isButton(tag: string): boolean {
   return (attribute(tag, "class") ?? "").split(SPACE_RE).includes("btn")
 }
 
-/**
- * Every button the site renders declares `data-emphasis` in its component, so a
- * test can ask what a link is for without naming the classes that paint it.
- */
 export function actions(html: string): Action[] {
   return [...html.matchAll(ACTION_RE)]
     .map(([, , attributes, inner]) => ({
@@ -47,7 +43,6 @@ export function offersDownloadAsMainAction(html: string): boolean {
   )
 }
 
-/** The buttons whose emphasis was never declared, which the helper cannot see. */
 export function undeclaredButtons(html: string): string[] {
   return (html.match(BUTTON_TAG_RE) ?? [])
     .filter(isButton)

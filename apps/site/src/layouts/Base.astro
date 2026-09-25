@@ -1,7 +1,7 @@
 ---
 import displayFont from "@pupitre/design/fonts/bricolage-grotesque-700-latin.woff2?url"
 import dataFont from "@pupitre/design/fonts/jetbrains-mono-latin.woff2?url"
-import { LIGHT } from "@pupitre/design/tokens"
+import { DARK, LIGHT } from "@pupitre/design/tokens"
 import Analytics from "../components/Analytics.astro"
 import Footer from "../components/Footer.astro"
 import Nav from "../components/Nav.astro"
@@ -52,7 +52,7 @@ const image = ogUrl(pathname)
     <meta name="description" content={description} />
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content={LIGHT.base} media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content={LIGHT.ink} media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content={DARK.base} media="(prefers-color-scheme: dark)" />
     {noIndex && <meta name="robots" content="noindex, follow" />}
     <link rel="canonical" href={canonical} />
     {

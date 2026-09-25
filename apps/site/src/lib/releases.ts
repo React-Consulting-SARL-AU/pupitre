@@ -23,9 +23,8 @@ export interface AppAsset {
   arch: Architecture
   format: string
   url: string
-  /** Absent on the static fallback, which cannot know the published file. */
   size_bytes?: number
-  /** Absent on the static fallback: a wrong checksum is worse than none. */
+  // Absent on the static fallback: a wrong checksum is worse than none.
   sha256?: string
 }
 
@@ -42,7 +41,7 @@ function assetOf({ os, arch, format, url, bytes, sha256 }: AppBuild): AppAsset {
   return { os, arch, format, url, size_bytes: bytes, sha256 }
 }
 
-/** A release with one build whose digest the page could not show is dropped whole: silence beats a wrong claim. */
+// One build without a showable digest drops the whole release: silence beats a wrong claim.
 export function parseRelease(value: unknown): AppRelease | null {
   const parsed = AppReleaseSchema.safeParse(value)
 
@@ -140,12 +139,6 @@ async function readReleases(
   }
 }
 
-/**
- * Read at build time, once per release: a version reaches the page through the
- * build that follows its publication, never through the visitor's browser.
- * Locally, a platform out of reach ships the last list the repository knows and
- * says so; a production build stops rather than publish links it has not read.
- */
 export async function loadReleases({
   fetcher = fetch,
   warn = (message) => process.emitWarning(message),

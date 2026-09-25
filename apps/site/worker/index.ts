@@ -16,7 +16,6 @@ async function notFoundPage(
   return new Response(page.body, { status: 404, headers: page.headers })
 }
 
-/** Two things the static layer cannot say: `www` is not a host, the apex is; and a 404 page is not found. */
 export default {
   fetch(request: Request, env: Env): Promise<Response> | Response {
     const url = new URL(request.url)

@@ -1,8 +1,4 @@
-# What a release needs, as 1Password references only: `release secrets` sets
-# each reference as a repository secret for the runners, and the workflow
-# reads the plain lines from this file. Committed on purpose — there is no
-# value here. The note is `pupitre-GitHub` in the shared vault; rename both
-# here if it moves.
+# Committed on purpose: plain settings and 1Password references only, never a value.
 
 PUPITRE_PLATFORM_URL=https://app.pupitre.studio
 PUPITRE_DOWNLOADS_URL=https://dl.pupitre.studio

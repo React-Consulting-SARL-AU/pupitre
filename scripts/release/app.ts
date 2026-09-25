@@ -18,18 +18,7 @@ import { SYSTEMS, type System, WORK_INDEX } from "./desktop"
 import { type AppPublication, declareApp, platformFromEnv } from "./platform"
 import { type Bucket, bucket, get, keys, put } from "./r2"
 
-/**
- * The app, made public: every installer the three systems left in the private
- * bucket is signed with the release key, put in the public bucket with its
- * signature alongside, and declared to the platform. The updater's feeds go
- * up rewritten to point at the version's folder, under the channel's. The
- * rows declared are kept with the agent's, so that `promote` can say them
- * again to production without rebuilding anything.
- *
- * Nothing here runs on a workstation: the release key lives in the runner's
- * secrets, and travels in its environment only.
- */
-
+// Runner only: the release key lives in the runner's secrets, never on a workstation.
 const ROOT = path.resolve(import.meta.dir, "../..")
 
 const WORK_DIR = path.join(ROOT, "apps/desktop/dist/publish")
@@ -38,7 +27,7 @@ const ED25519_PKCS8_PREFIX = "302e020100300506032b657004220420"
 
 const SEED_BYTES = 32
 
-/** The raw 64 bytes Ed25519 calls a private key, wrapped as Node wants them. */
+// The raw 64-byte Ed25519 key wrapped as the PKCS#8 Node expects.
 export function releaseKey(encoded: string): KeyObject {
   const raw = Buffer.from(encoded, "base64")
 
@@ -111,7 +100,6 @@ interface Signed {
   signature: string
 }
 
-/** A file and its `.sig` beside it, both public: what the app verifies before installing. */
 async function publishSigned(
   file: string,
   artefact: Artefact,

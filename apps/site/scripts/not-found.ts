@@ -5,11 +5,7 @@ import { DEFAULT_LOCALE, LOCALES } from "../src/lib/i18n"
 
 const LOCALE_PREFIXES = LOCALES.filter((locale) => locale !== DEFAULT_LOCALE)
 
-/**
- * The assets layer answers a missing page with the nearest `404.html` up the
- * tree, and Astro writes a localised one as `<locale>/404/index.html`, which it
- * never looks for.
- */
+// The assets layer looks for `<locale>/404.html`, never Astro's `<locale>/404/index.html`.
 export function flattenNotFoundPages(
   dist: string,
   prefixes: readonly string[] = LOCALE_PREFIXES

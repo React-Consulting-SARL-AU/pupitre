@@ -16,15 +16,11 @@ const t = translator(locale)
 >
   <span
     aria-hidden="true"
+    data-size={size}
     class:list={[
-      "data grid place-items-center rounded-lg bg-inverse font-medium text-inverse-ink shadow-raised",
-      size === "lg" ? "size-9 text-[14px]" : "size-7 text-[12px]",
+      "brand-glyph grid place-items-center rounded-lg bg-inverse font-medium text-inverse-ink shadow-raised",
+      size === "lg" ? "size-9" : "size-7",
     ]}>&gt;_</span
   >
-  <span
-    class:list={[
-      "font-display font-bold tracking-tight",
-      size === "lg" ? "text-[19px]" : "text-[16px]",
-    ]}>{t("site.name")}</span
-  >
+  <span data-size={size} class="brand-wordmark">{t("site.name")}</span>
 </a>

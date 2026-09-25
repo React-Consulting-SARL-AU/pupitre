@@ -2,23 +2,7 @@ import { readFileSync, writeFileSync } from "node:fs"
 import { S3Client } from "bun"
 import { say } from "./cli"
 
-/**
- * The buckets are the one place every step meets: what a step produces goes
- * up under the version's folder, what the next step needs comes down from
- * there. A runner that holds the bucket's key can take any step over from
- * any machine, and nothing depends on where the previous one ran.
- *
- * They are reached over S3, with a key that opens the two buckets and nothing
- * else on the account — the Cloudflare API would want a token over every
- * bucket the account has. `put` is idempotent: the same key written twice
- * holds the same bytes, so a step run again after a failure rewrites what it
- * had written.
- *
- * Objects pass through memory rather than being streamed to and from disk:
- * Bun's streaming to a file crashes on Windows, and nothing here is larger
- * than an installer.
- */
-
+// Objects pass through memory: Bun's streaming to a file crashes on Windows.
 export const R2_VARIABLES = {
   accountId: "R2_ACCOUNT_ID",
   accessKeyId: "R2_ACCESS_KEY_ID",
@@ -96,11 +80,9 @@ export async function get(
   writeFileSync(file, Buffer.from(await object.arrayBuffer()))
 }
 
-/** The folder of a version in the private bucket, one subfolder per producer. */
 export const keys = {
   agent: (version: string, file: string) => `agent/${version}/${file}`,
   appDeclarations: (version: string) => `app/${version}/publications.json`,
-  /** Where a desktop build leaves its artefacts for the publish step, per system. */
   work: (version: string, os: string, file: string) =>
     `work/${version}/${os}/${file}`,
 }

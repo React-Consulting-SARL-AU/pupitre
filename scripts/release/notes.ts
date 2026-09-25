@@ -6,16 +6,6 @@ import { hasFlag, say } from "./cli"
 import { git, lastVersion, originTags } from "./resolve"
 import { run } from "./shell"
 
-/**
- * The changelog entry of a version, drafted by Claude from what git says and
- * left for the owner to read before anything is committed.
- *
- * The draft is written straight into the two files the site serves, in the
- * form `check` validates; the owner rewrites what needs it and runs `check`
- * again. What is committed is what the owner read, never what a model wrote
- * unseen.
- */
-
 const ROOT = path.resolve(import.meta.dir, "../..")
 
 const CHANGELOG_DIR = path.join(ROOT, "apps/site/src/content/changelog")
@@ -24,7 +14,6 @@ const SKILL = path.join(ROOT, ".claude/skills/release/SKILL.md")
 
 const VOICE = path.join(ROOT, "docs/product/PRODUCT.md")
 
-/** The entry after the last one the site holds, in either locale. */
 export function nextOrder(dir = CHANGELOG_DIR): number {
   let highest = 0
 

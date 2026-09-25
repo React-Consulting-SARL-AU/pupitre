@@ -4,16 +4,6 @@ import { appVersion } from "./check"
 import { argumentOf, say } from "./cli"
 import { bump, lastVersion, originTags, pendingVersion } from "./resolve"
 
-/**
- * The next version, written where the app declares it.
- *
- * It follows the last tag origin holds: a patch for a fix, a minor for a
- * feature, a major when the protocol between the app and the agent drops or
- * renames a field. A tag on HEAD that origin has not seen is a release stopped
- * before its push, and its version is kept for `ship` to resume, not bumped.
- * Nothing else changes here — the changelog is `notes`, the tag is `ship`.
- */
-
 const ROOT = path.resolve(import.meta.dir, "../..")
 
 const MANIFEST = path.join(ROOT, "apps/desktop/package.json")
@@ -51,7 +41,7 @@ export function nextVersion(
   return last ? bump(last, partOf(argv)) : declared
 }
 
-/** The line is rewritten in place: the file keeps its formatting and its key order. */
+// Rewritten in place so the manifest keeps its formatting and key order.
 export function writeAppVersion(version: string, manifest = MANIFEST): void {
   const source = readFileSync(manifest, "utf8")
 

@@ -4,21 +4,7 @@ import { hasFlag, say } from "./cli"
 import { git, RELEASE_BRANCH, resolve } from "./resolve"
 import { run } from "./shell"
 
-/**
- * The end of a release: `staging` goes into `main` by a pull request, merged
- * with a merge commit and nothing else — a squash or a rebase would leave the
- * tagged commit out of `main`, and the next version would count from the
- * wrong tag. It runs once everything the version names is downloadable, so
- * the site and the console that rebuild from `main` find what they name.
- *
- * `main` has no protection on GitHub's side, so the merge itself is the gate:
- * it waits for the CI job on the pull request's head commit and refuses to
- * merge unless that job succeeded — a head nobody checked is refused too.
- *
- * A pull request left open by a previous run is reused; a `main` that already
- * holds the tag has nothing to do.
- */
-
+// A squash or rebase would leave the tagged commit out of `main`; `main` is unprotected, so CI is gated here.
 const MAIN = "main"
 
 const CI_JOB = "Quality"
@@ -48,7 +34,7 @@ export function pullRequestTitle(version: string): string {
   return `release: v${version}`
 }
 
-/** `Quality` from a pull request run, `CI / Quality` when `release.yml` calls it. */
+// `Quality` from a pull request run, `CI / Quality` when `release.yml` calls it.
 function isCiJob(name: string): boolean {
   return name === CI_JOB || name.endsWith(` / ${CI_JOB}`)
 }

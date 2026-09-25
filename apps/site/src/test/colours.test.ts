@@ -5,11 +5,7 @@ import { describe, expect, it } from "vitest"
 const SOURCE_RE = /\.(ts|astro|css)$/
 const TEST_RE = /\.test\.ts$/
 
-/**
- * A colour written by hand: a hex triplet or quadruplet, or a colour function
- * given channels rather than a token. `color-mix(in srgb, var(--base), …)` and
- * `currentColor` are not colours of their own, so they are not matched.
- */
+// `color-mix(in srgb, var(--base), …)` and `currentColor` are not colours of their own.
 const HAND_WRITTEN_COLOUR =
   /#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})(?![0-9a-zA-Z_-])|\b(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\(/
 

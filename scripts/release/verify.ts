@@ -1,17 +1,6 @@
 import { FEEDS, feedKey } from "../../apps/desktop/scripts/release-artefacts"
 import { say, variable } from "./cli"
 
-/**
- * What a customer meets once a version is published, checked from outside:
- * the platform describes the version, every installer it names is served
- * whole by the public bucket, and the channel's feeds point at the version
- * and at files that exist, each with its release signature beside it — a
- * feed is what an installed app follows, and a
- * file the platform never heard of is exactly what it would name. A release
- * is not done because every step returned: it is done when this passes, and
- * it passes again on any day the question comes up.
- */
-
 interface Build {
   os: string
   arch: string
@@ -38,7 +27,6 @@ export function feedUrls(feed: string): string[] {
   return [...feed.matchAll(FEED_URL_RE)].map((match) => match[1] as string)
 }
 
-/** Nothing to say about a file served whole; else what is wrong with it. */
 export function verdictOf(
   status: number,
   contentLength: string | null,

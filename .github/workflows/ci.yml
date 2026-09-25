@@ -1,12 +1,6 @@
 name: CI
 
-# One job, run two ways: on a pull request towards `staging` or `main`, and
-# called by `release.yml` on the tagged commit before anything is built — the
-# release pull request is opened by `GITHUB_TOKEN`, whose own run waits for an
-# approval nobody gives and expires at the merge, so it proves nothing. A push
-# to `staging` checks nothing: the minutes are paid, the pre-push hook has run
-# the same checks, and the release checks the commit that reaches `main`. The
-# end-to-end suites run on the owner's machine; they are not repeated here.
+# No push trigger: minutes are paid, the pre-push hook runs the same checks, and releases call this job.
 on:
   pull_request:
     branches: [staging, main]
@@ -27,8 +21,6 @@ env:
   TURBO_TELEMETRY_DISABLED: "1"
 
 jobs:
-  # Cheapest first on one runner: checkout, install and the turbo cache are
-  # paid once, and a lint failure surfaces before anything has been built.
   quality:
     name: Quality
     runs-on: blacksmith-4vcpu-ubuntu-2404
@@ -40,8 +32,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      # The binary, not the action: the action wants a paid licence from any
-      # organisation. Pinned by digest.
+      # The binary, not the action, which wants a paid licence from any organisation.
       - name: Install gitleaks
         env:
           VERSION: 8.30.1
@@ -53,8 +44,6 @@ jobs:
           echo "${SHA256}  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum -c -
           tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
 
-      # A pull request scans its own commits; a release scans what `main`
-      # does not hold yet, which is what it is about to merge.
       - name: Scan the new commits for secrets
         env:
           RANGE: ${{ github.event_name == 'pull_request' && format('{0}..{1}', github.event.pull_request.base.sha, github.event.pull_request.head.sha) || 'origin/main..HEAD' }}
@@ -93,8 +82,6 @@ jobs:
       - name: Generate Prisma client
         run: bun run db:generate
 
-      # The same files D1 applies, on the SQLite miniflare keeps: a migration
-      # that does not apply stops here, before any environment.
       - name: Apply the migrations on an empty local database
         run: bun run db:migrate local
 
@@ -107,7 +94,5 @@ jobs:
       - name: Test
         run: bun run test
 
-      # electron-builder has nothing to prove here; the desktop workspace still
-      # goes through lint, typecheck and test above.
       - name: Build
         run: bun run build -- --filter='!@pupitre/desktop'

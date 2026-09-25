@@ -6,10 +6,7 @@
   --breakpoint-xs: 30rem;
 }
 
-/**
- * Unlayered on purpose: `@pupitre/design` declares `--font-ui-size` outside any
- * layer, and an unlayered declaration beats a layered one whatever its order.
- */
+/* Unlayered on purpose, to beat the unlayered `--font-ui-size` of `@pupitre/design`. */
 :root {
   --font-ui-size: 15px;
   --shell-max: 76rem;
@@ -160,11 +157,7 @@
   }
 }
 
-/**
- * Scroll-driven, so nothing runs on a timer and nothing needs a script. The
- * hidden start sits inside both guards: a browser without view timelines, or a
- * reader who asked for less motion, is never served a blank page.
- */
+/* The hidden start sits inside both guards, so no browser is ever served a blank page. */
 @utility reveal {
   @media (prefers-reduced-motion: no-preference) {
     @supports (animation-timeline: view()) {
@@ -176,7 +169,6 @@
   }
 }
 
-/** The same, offset by column so a row of cards arrives one after the other. */
 @utility reveal-group {
   @media (prefers-reduced-motion: no-preference) {
     @supports (animation-timeline: view()) {
@@ -227,14 +219,7 @@
   }
 }
 
-/**
- * The word that cools. Once the headline has landed, a cold front crosses it
- * from left to right: the letters turn the blue of ice, a pane of frosted glass
- * closes over them and fogs up before it clears, and a breath of cold air rolls
- * out beneath and sinks, as it does when a fridge opens. The resting style is
- * the cooled one, so a reader who asked for less motion sees the word already
- * cold behind its glass.
- */
+/* The resting style is the cooled one, so reduced motion shows the word already frosted. */
 @utility frost {
   position: relative;
   display: inline-block;
@@ -303,7 +288,7 @@
   }
 }
 
-/** Above the fold there is nothing to scroll into, so this one runs on load. */
+/* Above the fold there is nothing to scroll into, so this one runs on load. */
 @utility enter-group {
   @media (prefers-reduced-motion: no-preference) {
     & > * {
@@ -430,6 +415,34 @@
   font-variant-numeric: tabular-nums;
   line-height: 1;
   letter-spacing: -0.03em;
+}
+
+@utility figure-lg {
+  font-size: 44px;
+}
+
+@utility figure-xl {
+  font-size: clamp(64px, 44px + 3.5vw, 104px);
+}
+
+@utility brand-glyph {
+  font-family: var(--font-data);
+  font-size: var(--font-small-size);
+
+  &[data-size="lg"] {
+    font-size: 14px;
+  }
+}
+
+@utility brand-wordmark {
+  font-family: var(--font-display);
+  font-size: var(--font-title-size);
+  font-weight: var(--font-display-weight);
+  letter-spacing: -0.025em;
+
+  &[data-size="lg"] {
+    font-size: 19px;
+  }
 }
 
 @utility eyebrow {
@@ -572,11 +585,7 @@
   }
 }
 
-/**
- * A service logo set in the margin beside the hero and the closing call to
- * action. The slot places it and brings it in; the tile inside carries the
- * endless float, so the two motions never fight over one transform.
- */
+/* The slot places, the tile floats: two motions never share one transform. */
 @utility drift-slot {
   --drift-keep: 1.5rem;
 
@@ -592,11 +601,6 @@
   }
 }
 
-/**
- * The hero constellation leaves before the page does: as the reader scrolls,
- * the logos climb ahead of the text and fade, so the wall of services below
- * gets the stage to itself.
- */
 @utility drift-layer {
   --lift-away: 24rem;
 
@@ -621,7 +625,6 @@
   align-items: center;
   justify-content: center;
   background: var(--surface);
-  border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-raised);
 
@@ -665,7 +668,6 @@
   border-radius: var(--radius-full);
 }
 
-/** The lid of a school desk: it lifts a little when you reach for it. */
 @utility desk-lid {
   transform-origin: top center;
   transition:

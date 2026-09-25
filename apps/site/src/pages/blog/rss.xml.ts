@@ -3,7 +3,7 @@ import rss from "@astrojs/rss"
 import { docSlug } from "../../lib/docs"
 import { byNewest, feedLanguage } from "../../lib/feeds"
 import { localizePath, translator } from "../../lib/i18n"
-import { canonicalUrl, SITE_URL } from "../../lib/seo"
+import { canonicalUrl } from "../../lib/seo"
 
 const LOCALE = "en"
 
@@ -17,7 +17,7 @@ export async function GET() {
   return rss({
     title: `${t("site.name")} — ${t("blog.label")}`,
     description: t("blog.description"),
-    site: SITE_URL,
+    site: canonicalUrl(localizePath("/blog/", LOCALE)),
     customData: `<language>${feedLanguage(LOCALE)}</language>`,
     items: byNewest(
       posts.map((post) => ({

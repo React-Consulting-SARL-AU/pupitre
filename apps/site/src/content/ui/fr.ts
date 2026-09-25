@@ -2,8 +2,6 @@ import type { Dictionary } from "./en"
 
 export const fr: Dictionary = {
   "site.name": "Pupitre",
-  "site.domain": "pupitre.studio",
-  "site.tagline": "Une machine à eux pour vos agents IA.",
 
   "a11y.skip": "Aller au contenu",
 
@@ -22,7 +20,6 @@ export const fr: Dictionary = {
   "theme.light": "Clair",
   "theme.dark": "Sombre",
 
-  "locale.label": "Langue",
   "locale.alternateName": "English",
 
   "footer.tagline":
@@ -55,12 +52,10 @@ export const fr: Dictionary = {
   "docs.search": "Rechercher",
   "docs.searchPlaceholder": "Rechercher dans la doc",
   "docs.searchEmpty": "Aucune page ne correspond.",
-  "docs.searchCount": "{count} page(s)",
   "docs.next": "Suivant",
   "docs.previous": "Précédent",
   "docs.start": "Commencer ici",
   "docs.back": "Toute la doc",
-  "docs.updated": "Section",
 
   "blog.label": "Blog",
   "blog.title": "Blog — Pupitre",
@@ -72,7 +67,6 @@ export const fr: Dictionary = {
   "blog.by": "Par",
   "blog.rss": "RSS",
   "blog.back": "Tous les articles",
-  "blog.reading": "Temps de lecture",
   "blog.empty": "Rien de publié pour l’instant.",
 
   "legal.label": "Légal",

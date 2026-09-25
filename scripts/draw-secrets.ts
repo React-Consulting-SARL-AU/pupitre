@@ -8,23 +8,16 @@ import {
 } from "./environments"
 import { parseTemplate, TEMPLATE } from "./release/secrets"
 
-/**
- * The secrets nobody has to fetch anywhere: drawn here and deposited in the
- * 1Password notes, so no value is ever typed by hand. A field that already
- * holds a value is left alone — rotating a session secret signs everyone out;
- * empty the field in 1Password to have it drawn again. Nothing is printed
- * but names.
- */
-
+// A filled field is never redrawn: rotating a session secret signs everyone out.
 const PUBLISH_TOKEN_PREFIX = "pupitre_pub_"
 
-/** Each environment note gets its own, except the workstation, which draws them itself (`dev:prepare`). */
+// The workstation draws its own in `dev:prepare`.
 export const DRAWN_PER_ENVIRONMENT = [
   "BETTER_AUTH_SECRET",
   "INTERNAL_WORKFLOW_SECRET",
 ] as const
 
-/** One value, word for word the same in every environment note and in the release note. */
+// The same value in every environment note and in the release note.
 export const DRAWN_ONCE = "PUPITRE_PUBLISH_TOKEN"
 
 export interface Note {

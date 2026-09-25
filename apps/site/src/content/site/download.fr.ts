@@ -11,7 +11,6 @@ export const downloadFr: DownloadContent = {
     headline: "L’app pour votre machine.",
     lead: "Une app desktop, trois systèmes. Elle parle à votre serveur en SSH avec une clé qu’elle génère sur cet appareil ; rien d’autre n’est installé sur votre laptop.",
     detecting: "Votre système",
-    unknown: "Choisissez votre système",
   },
   account: {
     title: "L’app a besoin d’un compte Pupitre",
@@ -43,14 +42,10 @@ export const downloadFr: DownloadContent = {
     lead: "Chaque fichier ci-dessous est la même version. L’app vérifie ses propres mises à jour contre la signature.",
     verify: "Chaque build est publié avec sa taille et son SHA-256.",
     download: "Télécharger",
-    size: "Taille",
     digest: "SHA-256",
-    format: "Format",
     empty: "Aucun build publié pour ce système.",
   },
   release: {
-    label: "Version",
-    title: "Ce qui est publié",
     version: "Version",
     published: "Publiée",
     channel: "Canal",

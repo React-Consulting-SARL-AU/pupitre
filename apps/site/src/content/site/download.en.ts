@@ -11,7 +11,6 @@ export const downloadEn: DownloadContent = {
     headline: "The app for your machine.",
     lead: "One desktop app, three systems. It talks to your server over SSH with a key it generates on this device; nothing else is installed on your laptop.",
     detecting: "Your system",
-    unknown: "Pick your system",
   },
   account: {
     title: "The app needs a Pupitre account",
@@ -43,14 +42,10 @@ export const downloadEn: DownloadContent = {
     lead: "Every file below is the same release. The app checks its own updates against the signature.",
     verify: "Every build is published with its size and its SHA-256.",
     download: "Download",
-    size: "Size",
     digest: "SHA-256",
-    format: "Format",
     empty: "No build published for this system yet.",
   },
   release: {
-    label: "Release",
-    title: "What is published",
     version: "Version",
     published: "Published",
     channel: "Channel",

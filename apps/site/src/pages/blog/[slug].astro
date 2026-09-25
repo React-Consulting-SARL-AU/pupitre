@@ -3,6 +3,7 @@ import { getCollection, render } from "astro:content"
 import Post from "../../layouts/Post.astro"
 import { docSlug } from "../../lib/docs"
 import { localizePath, translator } from "../../lib/i18n"
+import { readingTime } from "../../lib/reading"
 
 export async function getStaticPaths() {
   const posts = await getCollection(
@@ -26,7 +27,10 @@ const t = translator("en")
   description={entry.data.description}
   label={t("blog.label")}
   date={entry.data.date}
-  meta={[entry.data.reading, `${t("blog.by")} ${entry.data.author}`]}
+  meta={[
+    readingTime(entry.body ?? "", "en"),
+    `${t("blog.by")} ${entry.data.author}`,
+  ]}
   backHref={localizePath("/blog/", "en")}
   backLabel={t("blog.back")}
   translation={entry.data.translation}

@@ -18,10 +18,7 @@ export function readConsent(storage: Pick<Storage, "getItem">): Consent | null {
   }
 }
 
-/**
- * Memory persistence is the whole point: PostHog then writes no cookie and no
- * `localStorage` id, so a page view carries no identifier across pages.
- */
+// Memory persistence leaves no cookie nor stored id, so no identifier crosses pages.
 export function posthogOptions(host: string): Record<string, unknown> {
   return {
     api_host: host,

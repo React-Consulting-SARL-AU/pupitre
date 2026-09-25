@@ -1,17 +1,6 @@
 name: Release
 
-# One tag, one version. The owner's Mac wrote the version and the notes and
-# pushed the tag — `scripts/release.sh`; from here every step is a command of
-# `scripts/release`, run the same way on these runners or on a machine of ours.
-# This file installs the tools, names the step and hands it its secrets; the
-# buckets are the only thing the jobs share, and every step is idempotent, so
-# a failed job is re-run alone and the release resumes where it stood.
-#
-# The tag sits on `staging`. `ci.yml` checks the tagged commit first, and
-# nothing is signed, published or declared unless it passes. The version is
-# then built, declared to the platform and checked from outside; `staging` is
-# merged into `main` last, which is what deploys the site and the console.
-# `promote.yml` is the way back.
+# Jobs share nothing but the buckets and every step is idempotent, so a failed job is re-run alone.
 on:
   push:
     tags: ["v*"]
@@ -79,14 +68,10 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # The addresses and the bucket names come from the template the owner's
-      # Mac uses; the secrets are the same template's references, set once by
-      # `release secrets`.
+      # Plain lines only; the template's op:// references are repository secrets set by `release secrets`.
       - name: Read the release settings
         run: grep -Ev '^\s*(#|$)|op://' scripts/release/release.env.tpl >> "$GITHUB_ENV"
 
-      # The version and the channel, from git and the manifest; the other jobs
-      # read them from this job rather than resolving twice.
       - name: Resolve the release
         id: resolve
         run: |
@@ -102,10 +87,6 @@ jobs:
       - name: Check the changelog and the app version
         run: bun scripts/release/index.ts check
 
-      # A version the bucket already holds is taken from there, not rebuilt:
-      # garble does not reproduce a binary, and the platform keeps the digests.
-      # This runner tries the amd64 binary; the arm64 one is tried on its own
-      # machine below, never under emulation.
       - name: Build, sign and smoke the agent
         run: bun scripts/release/index.ts agent build
         env:
@@ -155,14 +136,11 @@ jobs:
           name: agent-${{ fromJSON(needs.agent.outputs.release).version }}
           path: apps/agent/dist/release
 
-      # The binary this machine can run, run: version and hello, natively.
       - name: Smoke the arm64 agent
         run: bun scripts/release/index.ts agent smoke
         env:
           PUPITRE_RELEASE_PRIVATE_KEY: ${{ secrets.PUPITRE_RELEASE_PRIVATE_KEY }}
 
-      # Both binaries tried on their own machine: the private bucket, then the
-      # platform.
       - name: Publish the agent
         run: bun scripts/release/index.ts agent publish
         env:
@@ -176,7 +154,6 @@ jobs:
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     strategy:
-      # One system failing does not stop the others: it is re-run alone.
       fail-fast: false
       matrix:
         include:
@@ -200,20 +177,12 @@ jobs:
         with:
           node-version: 22
 
-      # Electron and electron-builder's tools are downloaded once per version
-      # of each, not once per release.
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .cache
           key: electron-${{ runner.os }}-${{ hashFiles('apps/desktop/package.json') }}
 
-      # node-pty links against the Spectre-mitigated MSVC libraries, which the
-      # Blacksmith Windows image does not always carry; the installer it has
-      # adds them, on whichever Visual Studio the image ships — the edition and
-      # its path change with the image, so vswhere names it. The step only
-      # prepares the ground: what it could not do is printed with the
-      # installer's own log, and the build of node-pty right after is the
-      # judge, with an error that names what is missing.
+      # node-pty needs them and the Blacksmith image does not always carry them; the node-pty build is the judge.
       - name: Install the Spectre-mitigated MSVC libraries
         if: runner.os == 'Windows'
         shell: powershell
@@ -251,10 +220,6 @@ jobs:
       - name: Read the release settings
         run: grep -Ev '^\s*(#|$)|op://' scripts/release/release.env.tpl >> "$GITHUB_ENV"
 
-      # The step reads the agent from the bucket, builds the app of this
-      # system, signs it where the system asks for it — a stable build stops
-      # when a signing value is missing — and leaves the result in the bucket
-      # for the publish job.
       - name: Build the app
         run: bun scripts/release/index.ts desktop
         env:
@@ -300,8 +265,6 @@ jobs:
       - name: Read the release settings
         run: grep -Ev '^\s*(#|$)|op://' scripts/release/release.env.tpl >> "$GITHUB_ENV"
 
-      # Every installer the three systems left: signed with the release key,
-      # put in the public bucket, declared to the platform.
       - name: Sign, upload and declare
         run: bun scripts/release/index.ts app publish
         env:
@@ -310,9 +273,6 @@ jobs:
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
 
-      # The release is done when what a customer downloads is there: the
-      # platform describes the version, the bucket serves every file whole
-      # and the feeds point at it. The report is the run's summary.
       - name: Verify what a customer downloads
         run: bun scripts/release/index.ts verify | tee -a "$GITHUB_STEP_SUMMARY"
 
@@ -348,11 +308,6 @@ jobs:
       - name: Read the release settings
         run: grep -Ev '^\s*(#|$)|op://' scripts/release/release.env.tpl >> "$GITHUB_ENV"
 
-      # Everything the version names is downloadable: `staging` goes into
-      # `main` by a pull request, merged with a merge commit so the tagged
-      # commit stays in its history, and only when its head is the tagged
-      # commit and the CI check run on it passed. The push of `main` is what
-      # deploys the site and the console; made with this token, it runs no
-      # other workflow.
+      # A push made with GITHUB_TOKEN triggers no other workflow.
       - name: Open the pull request and merge it
         run: bun scripts/release/index.ts merge

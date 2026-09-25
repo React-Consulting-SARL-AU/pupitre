@@ -14,7 +14,7 @@ describe("DownloadButton", () => {
       label: "Download the app",
       main: true,
     })
-    expect(html).not.toContain("font-data")
+    expect(html).not.toContain('class="data"')
   })
 
   it("shows the OS as data next to the label when given", async () => {
@@ -22,8 +22,6 @@ describe("DownloadButton", () => {
       props: { href: "/download/", label: "Download", os: "macOS" },
     })
 
-    expect(html).toContain(
-      '<span class="font-data text-[12px] tabular-nums">macOS</span>'
-    )
+    expect(html).toContain('<span class="data">macOS</span>')
   })
 })

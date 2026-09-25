@@ -57,9 +57,7 @@ describe("Base layout", () => {
     expect(html).toContain("<p>body</p>")
   })
 
-  // Byte equality would only measure the formatter: it sorts the attributes of
-  // an SVG and reindents the stylesheet. What must not drift is the drawing —
-  // the small cut, since a tab shows it under twenty-four pixels.
+  // Byte equality would only measure the formatter; the drawing is what must not drift.
   it("serves the brand mark itself as the favicon", () => {
     const favicon = readFileSync(
       new URL("../../public/favicon.svg", import.meta.url),
