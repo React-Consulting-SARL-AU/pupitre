@@ -21,26 +21,18 @@ export const AgentOpenParamsSchema = z.strictObject({
   project: ProjectNameSchema,
 })
 
-export type AgentOpenParams = z.infer<typeof AgentOpenParamsSchema>
-
 export const AgentOpenResultSchema = z.object({
   command: z.string(),
   session: z.string(),
 })
 
-export type AgentOpenResult = z.infer<typeof AgentOpenResultSchema>
-
 export const SessionsListResultSchema = z.object({
   sessions: z.array(SessionSchema),
 })
 
-export type SessionsListResult = z.infer<typeof SessionsListResultSchema>
-
 export const SessionsCleanResultSchema = z.object({
   killed: z.int().nonnegative(),
 })
-
-export type SessionsCleanResult = z.infer<typeof SessionsCleanResultSchema>
 
 export const ProcessSchema = z.object({
   pid: z.int().positive(),
@@ -62,8 +54,6 @@ export const ProcessKillParamsSchema = z.strictObject({
   pid: z.int().positive(),
   force: z.boolean().optional(),
 })
-
-export type ProcessKillParams = z.infer<typeof ProcessKillParamsSchema>
 
 export const ShotSchema = z.object({
   name: z.string(),
@@ -95,8 +85,6 @@ export const ShotsCleanParamsSchema = z.strictObject({
   path: z.string().min(1).optional(),
 })
 
-export type ShotsCleanParams = z.infer<typeof ShotsCleanParamsSchema>
-
 export const ShotsCleanResultSchema = z.object({
   removed: z.int().nonnegative(),
 })
@@ -116,15 +104,11 @@ export const ShotMediaTypeSchema = z.enum(SHOT_MEDIA_TYPES)
 
 export type ShotMediaType = z.infer<typeof ShotMediaTypeSchema>
 
-export const SHOT_CHUNK_BYTES = 48 * 1024
-
 export const SHOT_MAX_BYTES = 16 * 1024 * 1024
 
 export const ShotsReadParamsSchema = z.strictObject({
   path: z.string().min(1),
 })
-
-export type ShotsReadParams = z.infer<typeof ShotsReadParamsSchema>
 
 export const ShotsReadResultSchema = z.object({
   path: z.string(),

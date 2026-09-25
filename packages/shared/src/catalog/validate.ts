@@ -68,6 +68,24 @@ function heldItems(
   return { count: items.length, items }
 }
 
+/** A line break or a nul would end the configuration line a secret is written into and start another. */
+export const SECRET_PATTERN = "^[^\\r\\n\\x00]*$"
+
+const SECRET_LINE_BREAK_RE = /[\r\n\0]/
+
+function secretProblem(
+  held: SecretsHeld,
+  moduleId: string,
+  key: string
+): FieldProblem | null {
+  const kept = held(moduleId, key)
+  const broken =
+    typeof kept !== "number" &&
+    kept.some((value) => SECRET_LINE_BREAK_RE.test(value))
+
+  return broken ? problem(moduleId, key, "pattern", SECRET_PATTERN) : null
+}
+
 export type ConfigValues = Record<string, Record<string, unknown>>
 
 function problem(
@@ -146,6 +164,14 @@ function listProblem(
   }
 
   const least = Math.max(field.min ?? 0, field.required ? 1 : 0)
+
+  if (field.items === "secret") {
+    const broken = secretProblem(held, moduleId, field.key)
+
+    if (broken) {
+      return broken
+    }
+  }
 
   const { count, items } =
     field.items === "secret"
@@ -266,7 +292,7 @@ export function validateField(
   if (field.kind === "secret") {
     return field.required && heldItems(held, moduleId, field.key).count === 0
       ? problem(moduleId, field.key, "required")
-      : null
+      : secretProblem(held, moduleId, field.key)
   }
 
   if (field.kind === "list") {

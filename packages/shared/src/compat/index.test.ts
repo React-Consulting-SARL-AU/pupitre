@@ -3,11 +3,9 @@ import { PROTOCOL_VERSION } from "../agent-protocol/envelope"
 import { compareVersions } from "../semver"
 import {
   agentFloorFor,
-  appFloorFor,
   compatibility,
   GENERATIONS,
   generationOf,
-  protocolOf,
 } from "./index"
 
 describe("la feuille de compatibilité", () => {
@@ -51,18 +49,14 @@ describe("generationOf", () => {
 })
 
 describe("les planchers", () => {
-  it("nomment l'agent qu'une app pilote et l'app qu'un agent sert", () => {
+  it("nomment l'agent qu'une app pilote", () => {
     expect(agentFloorFor("0.1.0")).toBe("0.1.0")
-    expect(appFloorFor("0.1.0")).toBe("0.1.0")
-    expect(protocolOf("app", "0.1.0")).toBe(1)
     expect(agentFloorFor("0.2.0")).toBe("0.2.0")
-    expect(appFloorFor("0.3.1")).toBe("0.2.0")
-    expect(protocolOf("agent", "0.2.0")).toBe(2)
   })
 
   it("ne nomment rien pour une version que la feuille ignore", () => {
     expect(agentFloorFor("0.0.1")).toBeNull()
-    expect(appFloorFor("dev")).toBeNull()
+    expect(agentFloorFor("dev")).toBeNull()
   })
 })
 

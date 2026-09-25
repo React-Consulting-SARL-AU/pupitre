@@ -4292,7 +4292,8 @@
                 "enum": [
                   "file",
                   "dir",
-                  "link"
+                  "link",
+                  "special"
                 ]
               },
               "size_bytes": {
@@ -4353,7 +4354,8 @@
           "enum": [
             "file",
             "dir",
-            "link"
+            "link",
+            "special"
           ]
         },
         "size_bytes": {
@@ -6152,7 +6154,7 @@
           "pattern": "^[0-9]{8}T[0-9]{6}Z-[0-9a-f]{6}$"
         },
         "created_at": {
-          "type": "string"
+          "$ref": "#/$defs/Instant"
         },
         "trigger": {
           "type": "string",
@@ -6286,10 +6288,10 @@
           "maximum": 720
         },
         "last_run_at": {
-          "type": "string"
+          "$ref": "#/$defs/Instant"
         },
         "last_ok_at": {
-          "type": "string"
+          "$ref": "#/$defs/Instant"
         },
         "last_error": {
           "type": "string",
@@ -6676,6 +6678,186 @@
       "required": [
         "signers",
         "pending"
+      ]
+    },
+    "Instant": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+    },
+    "AgentExchange": {
+      "type": "object",
+      "properties": {
+        "enrollment_token": {
+          "type": "string",
+          "minLength": 1
+        },
+        "host_public_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "agent_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "arch": {
+          "type": "string",
+          "enum": [
+            "amd64",
+            "arm64"
+          ]
+        }
+      },
+      "required": [
+        "enrollment_token",
+        "host_public_key",
+        "agent_version",
+        "arch"
+      ]
+    },
+    "ServerToken": {
+      "type": "object",
+      "properties": {
+        "server_token": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "server_token"
+      ]
+    },
+    "AgentState": {
+      "type": "object",
+      "properties": {
+        "entitlement": {
+          "type": "string",
+          "enum": [
+            "valid",
+            "grace",
+            "suspended"
+          ]
+        },
+        "valid_until": {
+          "$ref": "#/$defs/Instant"
+        },
+        "authorized_keys": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "keys": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AgentStateKey"
+          }
+        },
+        "target_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "minimum_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "hostname": {
+          "type": "string"
+        },
+        "server_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "entitlement",
+        "valid_until",
+        "authorized_keys",
+        "keys",
+        "target_version",
+        "minimum_version",
+        "hostname",
+        "server_id"
+      ]
+    },
+    "Heartbeat": {
+      "type": "object",
+      "properties": {
+        "disk": {
+          "type": "number",
+          "minimum": 0
+        },
+        "ram": {
+          "type": "number",
+          "minimum": 0
+        },
+        "load": {
+          "type": "number",
+          "minimum": 0
+        },
+        "sessions": {
+          "maxItems": 100,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "stack_version": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "modules": {
+          "maxItems": 100,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 200
+          }
+        },
+        "agent_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "ssh_user": {
+          "type": "string",
+          "maxLength": 32,
+          "pattern": "^[A-Za-z_][A-Za-z0-9_-]{0,31}$"
+        },
+        "disk_total_gb": {
+          "type": "number",
+          "minimum": 0
+        },
+        "disk_free_gb": {
+          "type": "number",
+          "minimum": 0
+        },
+        "ram_total_mb": {
+          "type": "number",
+          "minimum": 0
+        },
+        "ram_used_mb": {
+          "type": "number",
+          "minimum": 0
+        },
+        "backup": {
+          "$ref": "#/$defs/BackupBeat"
+        },
+        "keys": {
+          "$ref": "#/$defs/KeysBeat"
+        }
+      },
+      "required": [
+        "disk",
+        "ram",
+        "load",
+        "sessions",
+        "stack_version",
+        "modules"
       ]
     },
     "Manifest": {

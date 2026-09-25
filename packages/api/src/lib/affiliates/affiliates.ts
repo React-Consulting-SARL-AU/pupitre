@@ -1,9 +1,13 @@
 import type { AffiliateLink, Prisma } from "@pupitre/db/cloudflare/client"
 import { PUPITRE_ORIGINS } from "@pupitre/shared/legal"
-import { AFFILIATE_CODE_LENGTH, AFFILIATE_CODE_RE } from "@pupitre/shared/plans"
+import {
+  AFFILIATE_CODE_LENGTH,
+  AFFILIATE_CODE_RE,
+  LIVE_SUBSCRIPTION_STATUSES,
+} from "@pupitre/shared/plans"
 import { getPrisma, isUniqueViolation } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
-import { LIVE_SUBSCRIPTION_STATUSES, liveAmong } from "../billing/subscription"
+import { liveAmong } from "../billing/subscription"
 import { type AffiliateClicks, clicksInWindow, clicksOf } from "./clicks"
 
 export interface AffiliateLinkView {

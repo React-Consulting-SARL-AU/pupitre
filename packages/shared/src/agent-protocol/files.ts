@@ -13,11 +13,6 @@ import { SHOT_MEDIA_TYPES } from "./processes"
 /** Past that a listing stops helping, and a folder of ten thousand entries is not read on a channel. */
 export const FILE_LIST_LIMIT = 2000
 
-/** The cut of a read, as a capture's: a line of about 64 KiB, never a megabyte on one line. */
-export const FILE_CHUNK_BYTES = 48 * 1024
-
-export const FILE_TEXT_MAX_BYTES = 1024 * 1024
-
 export const FILE_IMAGE_MAX_BYTES = 16 * 1024 * 1024
 
 export const FILE_WRITE_MAX_BYTES = 1024 * 1024
@@ -34,7 +29,8 @@ export const FileMediaTypeSchema = z.enum(FILE_MEDIA_TYPES)
 
 export type FileMediaType = z.infer<typeof FileMediaTypeSchema>
 
-export const FILE_KINDS = ["file", "dir", "link"] as const
+/** `special` is a pipe, a socket or a device: listed, never read, since a read would wait on it forever. */
+export const FILE_KINDS = ["file", "dir", "link", "special"] as const
 
 export const FileKindSchema = z.enum(FILE_KINDS)
 
@@ -65,8 +61,6 @@ export const FsListParamsSchema = z.strictObject({
   path: FilePathSchema,
 })
 
-export type FsListParams = z.infer<typeof FsListParamsSchema>
-
 export const FsListResultSchema = z.object({
   path: FilePathSchema,
   entries: z.array(FileEntrySchema),
@@ -79,8 +73,6 @@ export const FsStatParamsSchema = z.strictObject({
   path: FilePathSchema,
   hash: z.boolean().optional(),
 })
-
-export type FsStatParams = z.infer<typeof FsStatParamsSchema>
 
 export const FsStatResultSchema = z.object({
   path: FilePathSchema,
@@ -99,8 +91,6 @@ export type FsStatResult = z.infer<typeof FsStatResultSchema>
 export const FsReadParamsSchema = z.strictObject({
   path: z.string().min(1),
 })
-
-export type FsReadParams = z.infer<typeof FsReadParamsSchema>
 
 export const FsReadResultSchema = z.object({
   path: FilePathSchema,
@@ -129,8 +119,6 @@ export const FsWriteParamsSchema = z.strictObject({
   sha256: FileDigestSchema.optional(),
 })
 
-export type FsWriteParams = z.infer<typeof FsWriteParamsSchema>
-
 export const FsWriteResultSchema = z.object({
   path: FilePathSchema,
   size_bytes: z.int().nonnegative().max(FILE_WRITE_MAX_BYTES),
@@ -150,21 +138,15 @@ export const FsMkdirParamsSchema = z.strictObject({
   path: z.string().min(1),
 })
 
-export type FsMkdirParams = z.infer<typeof FsMkdirParamsSchema>
-
 export const FsRenameParamsSchema = z.strictObject({
   path: z.string().min(1),
   to: z.string().min(1),
 })
 
-export type FsRenameParams = z.infer<typeof FsRenameParamsSchema>
-
 export const FsRemoveParamsSchema = z.strictObject({
   path: z.string().min(1),
   recursive: z.boolean().optional(),
 })
-
-export type FsRemoveParams = z.infer<typeof FsRemoveParamsSchema>
 
 export const FsRemoveResultSchema = z.object({
   path: FilePathSchema,

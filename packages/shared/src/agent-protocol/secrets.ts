@@ -10,13 +10,9 @@ export const ServiceSecretParamsSchema = z.strictObject({
   key: SecretKeySchema,
 })
 
-export type ServiceSecretParams = z.infer<typeof ServiceSecretParamsSchema>
-
 export const ServiceSecretResultSchema = z.object({
   key: SecretKeySchema,
 })
-
-export type ServiceSecretResult = z.infer<typeof ServiceSecretResultSchema>
 
 export const SecretEventSchema = z.object({
   id: RequestIdSchema,
@@ -32,11 +28,7 @@ export const SecretsSyncParamsSchema = z.strictObject({
   process: ProcessIdSchema.optional(),
 })
 
-export type SecretsSyncParams = z.infer<typeof SecretsSyncParamsSchema>
-
 export const SecretsSyncResultSchema = ProjectEnvResultSchema
-
-export type SecretsSyncResult = z.infer<typeof SecretsSyncResultSchema>
 
 export const DB_ENGINES = ["mysql", "postgres", "mongodb"] as const
 
@@ -48,8 +40,6 @@ export const DbParamsSchema = z.strictObject({
   engine: DbEngineSchema,
   name: z.string().min(1).optional(),
 })
-
-export type DbParams = z.infer<typeof DbParamsSchema>
 
 export const DbDumpResultSchema = z.object({
   path: z.string(),
@@ -68,13 +58,9 @@ export const DbShellResultSchema = z.object({
   command: z.string(),
 })
 
-export type DbShellResult = z.infer<typeof DbShellResultSchema>
-
 export const DbUrlResultSchema = z.object({
   url: z.string(),
 })
-
-export type DbUrlResult = z.infer<typeof DbUrlResultSchema>
 
 export const TUNNEL_STATES = ["running", "stopped", "failed", "absent"] as const
 

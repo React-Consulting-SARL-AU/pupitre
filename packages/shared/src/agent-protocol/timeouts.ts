@@ -73,8 +73,3 @@ export const COMMAND_TIMEOUTS_MS: Partial<Record<CommandName, number>> = {
 export function timeoutOf(cmd: CommandName): number {
   return COMMAND_TIMEOUTS_MS[cmd] ?? DEFAULT_TIMEOUT_MS
 }
-
-/** When to start saying how long this is allowed to take. */
-export function patienceOf(cmd: CommandName): number {
-  return Math.round(timeoutOf(cmd) / 2)
-}

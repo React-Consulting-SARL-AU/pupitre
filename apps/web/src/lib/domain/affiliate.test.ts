@@ -6,6 +6,7 @@ import {
   affiliateConversionFigures,
   affiliateCookieDomain,
   affiliateCookieFor,
+  affiliateCookieToWrite,
   affiliateLinkTab,
   affiliateLinkTabFor,
   filterAffiliateLinks,
@@ -59,24 +60,46 @@ describe("isAffiliateCode", () => {
 
 describe("affiliateCookieFor", () => {
   it("keeps the code ninety days on the console alone", () => {
-    expect(affiliateCookieFor("ada-2026", "localhost")).toBe(
+    expect(affiliateCookieFor("ada-2026", "localhost", false)).toBe(
       "pupitre_ref=ada-2026; Path=/; Max-Age=7776000; SameSite=Lax"
     )
   })
 
-  it("shares it with the site under the product domain", () => {
-    expect(affiliateCookieFor("ada-2026", "app.pupitre.studio")).toBe(
-      "pupitre_ref=ada-2026; Path=/; Max-Age=7776000; SameSite=Lax; Domain=.pupitre.studio"
+  it("shares it with the site under the product domain, over https only", () => {
+    expect(affiliateCookieFor("ada-2026", "app.pupitre.studio", true)).toBe(
+      "pupitre_ref=ada-2026; Path=/; Max-Age=7776000; SameSite=Lax; Secure; Domain=.pupitre.studio"
     )
-    expect(affiliateCookieFor("ada", "pupitre.studio")).toContain(
+    expect(affiliateCookieFor("ada", "pupitre.studio", true)).toContain(
       "Domain=.pupitre.studio"
     )
   })
 
   it("does not mistake a lookalike host for the product domain", () => {
-    expect(affiliateCookieFor("ada", "notpupitre.studio")).not.toContain(
+    expect(affiliateCookieFor("ada", "notpupitre.studio", true)).not.toContain(
       "Domain="
     )
+  })
+})
+
+describe("affiliateCookieToWrite", () => {
+  it("credits the first link that brought the visitor, not a later one", () => {
+    expect(
+      affiliateCookieToWrite(
+        "pupitre_ref=first-touch",
+        "later",
+        "localhost",
+        false
+      )
+    ).toBeNull()
+  })
+
+  it("writes the code when none was kept, or the one kept is unreadable", () => {
+    expect(affiliateCookieToWrite("", "ada", "localhost", false)).toBe(
+      affiliateCookieFor("ada", "localhost", false)
+    )
+    expect(
+      affiliateCookieToWrite("pupitre_ref=AD", "ada", "localhost", false)
+    ).toBe(affiliateCookieFor("ada", "localhost", false))
   })
 })
 

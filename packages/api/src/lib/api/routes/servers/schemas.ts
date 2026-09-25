@@ -1,9 +1,7 @@
-import {
-  AlertKind,
-  ReleaseChannel,
-  ServerStatus,
-} from "@pupitre/db/cloudflare/enums"
 import { ARCHITECTURES } from "@pupitre/shared/catalog"
+import { ALERT_KINDS, SERVER_STATUSES } from "@pupitre/shared/platform-api"
+import { ServerEnrollmentSchema } from "@pupitre/shared/platform-api/account"
+import { RELEASE_CHANNELS } from "@pupitre/shared/releases"
 import {
   SSH_FINGERPRINT_PATTERN,
   SSH_PORT_MAX,
@@ -12,23 +10,11 @@ import {
   SSH_USER_PATTERN,
 } from "@pupitre/shared/ssh"
 import { t } from "elysia"
+import { fromContract } from "../../contract-schema"
 import { dateTime } from "../../openapi-models"
 import { backupBeatSchema } from "../backups/schemas"
 
-export const SERVER_STATUSES = [
-  ServerStatus.enrolling,
-  ServerStatus.active,
-  ServerStatus.grace,
-  ServerStatus.suspended,
-  ServerStatus.revoked,
-] as const
-
 export const serverStatusSchema = t.UnionEnum([...SERVER_STATUSES])
-
-export const RELEASE_CHANNELS = [
-  ReleaseChannel.stable,
-  ReleaseChannel.beta,
-] as const
 
 export const releaseChannelSchema = t.UnionEnum([...RELEASE_CHANNELS])
 
@@ -53,20 +39,9 @@ export const enrollBody = t.Object({
   ),
 })
 
-export const enrollmentSchema = t.Object(
-  {
-    server_id: t.String(),
-    enrollment_token: t.String(),
-    release: t.Object({
-      version: t.String(),
-      url: t.String(),
-      sha256: t.String(),
-      signature: t.String(),
-      channel: releaseChannelSchema,
-    }),
-  },
-  { $id: "ServerEnrollment" }
-)
+export const enrollmentSchema = fromContract(ServerEnrollmentSchema, {
+  $id: "ServerEnrollment",
+})
 
 export const serverUsageSchema = t.Object(
   {
@@ -81,15 +56,6 @@ export const serverUsageSchema = t.Object(
   },
   { $id: "ServerUsage" }
 )
-
-export const ALERT_KINDS = [
-  AlertKind.server_unreachable,
-  AlertKind.disk_high,
-  AlertKind.agent_outdated,
-  AlertKind.entitlement_grace,
-  AlertKind.backup_failed,
-  AlertKind.backup_stale,
-] as const
 
 export const alertKindSchema = t.UnionEnum([...ALERT_KINDS])
 

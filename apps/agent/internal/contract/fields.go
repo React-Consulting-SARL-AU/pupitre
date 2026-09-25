@@ -297,6 +297,9 @@ func listProblem(module string, field Field, value any, held SecretsHeld) *Field
 
 	if field.Items == ItemsSecret {
 		items = nonBlank(held(module, field.Key))
+		if wrong := secretProblem(module, field, held(module, field.Key)); wrong != nil {
+			return wrong
+		}
 	} else if declared, ok := value.([]any); ok {
 		for _, item := range declared {
 			items = append(items, stringOf(item))
@@ -351,6 +354,19 @@ func versionsProblem(module string, field Field, value any) *FieldProblem {
 	return nil
 }
 
+// SecretPattern is what every secret matches: a line break or a nul would end the configuration line it is written into and start another.
+const SecretPattern = `^[^\r\n\x00]*$`
+
+func secretProblem(module string, field Field, values []string) *FieldProblem {
+	for _, value := range values {
+		if strings.ContainsAny(value, "\r\n\x00") {
+			return problemOf(module, field.Key, ProblemPattern, SecretPattern)
+		}
+	}
+
+	return nil
+}
+
 func nonBlank(items []string) []string {
 	kept := make([]string, 0, len(items))
 	for _, item := range items {
@@ -387,7 +403,7 @@ func ValidateField(module string, field Field, value any, held SecretsHeld) *Fie
 			return problemOf(module, field.Key, ProblemRequired, "")
 		}
 
-		return nil
+		return secretProblem(module, field, held(module, field.Key))
 	case FieldList:
 		return listProblem(module, field, value, held)
 	}
@@ -417,6 +433,40 @@ func Resolved(field Field, values map[string]any) any {
 	}
 
 	return field.Default
+}
+
+// NormalizeValues is what a module reads: each text the way it was judged, trimmed, and lower-cased for a domain, a hostname or an email. The values sent are left as they were.
+func NormalizeValues(manifest Manifest, values map[string]any) map[string]any {
+	if values == nil {
+		return nil
+	}
+
+	normalized := make(map[string]any, len(values))
+	for key, value := range values {
+		normalized[key] = value
+	}
+
+	for _, field := range manifest.Fields {
+		switch value := values[field.Key].(type) {
+		case string:
+			if field.Kind == FieldText {
+				normalized[field.Key] = Normalize(field.Format, value)
+			}
+		case []any:
+			if field.Kind == FieldList && field.Items != ItemsSecret {
+				items := make([]any, len(value))
+				for index, item := range value {
+					items[index] = item
+					if text, ok := item.(string); ok {
+						items[index] = Normalize(field.Format, text)
+					}
+				}
+				normalized[field.Key] = items
+			}
+		}
+	}
+
+	return normalized
 }
 
 // ValidateModule weighs a whole module, every field against the value it will be configured with.

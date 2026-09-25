@@ -1,11 +1,12 @@
 const CONSOLE_ROOT = "/dashboard"
 
-/**
- * Inside the console the sidebar carries the theme, the language and the legal
- * pages; everywhere else — sign-in, device flow, status — the footer does.
- */
+// Inside the console the sidebar carries theme, language and legal pages; everywhere else the footer does.
 export function sidebarCarriesChrome(pathname: string): boolean {
   return pathname === CONSOLE_ROOT || pathname.startsWith(`${CONSOLE_ROOT}/`)
+}
+
+export function consoleSection(pathname: string): string {
+  return pathname.slice(CONSOLE_ROOT.length).split("/")[1] ?? ""
 }
 
 const APPLE_RE = /mac os x|macintosh|iphone|ipad|ipod/i

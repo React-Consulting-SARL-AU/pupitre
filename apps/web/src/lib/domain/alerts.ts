@@ -1,16 +1,6 @@
+import type { AlertKind } from "@pupitre/shared/platform-api"
 import type { StatusShape, StatusTone } from "@/lib/domain/server-status"
 import type { DictionaryKey } from "@/lib/i18n/en"
-
-export const ALERT_KINDS = [
-  "server_unreachable",
-  "disk_high",
-  "agent_outdated",
-  "entitlement_grace",
-  "backup_failed",
-  "backup_stale",
-] as const
-
-export type AlertKind = (typeof ALERT_KINDS)[number]
 
 export interface AlertLook {
   shape: StatusShape

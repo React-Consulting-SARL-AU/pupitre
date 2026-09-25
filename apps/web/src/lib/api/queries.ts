@@ -1,6 +1,7 @@
 import { ApiError, unwrap } from "@pupitre/api/client"
 import type { Locale } from "@pupitre/shared/i18n"
 import type { OrgRole } from "@pupitre/shared/permissions"
+import { isLiveSubscriptionStatus } from "@pupitre/shared/plans"
 import { keepPreviousData, queryOptions } from "@tanstack/react-query"
 import { api } from "@/lib/api/client"
 import { readAffiliateCode } from "@/lib/domain/affiliate"
@@ -269,10 +270,8 @@ export type Subscription = NonNullable<
   Awaited<ReturnType<typeof readSubscription>>
 >
 
-const LIVE_SUBSCRIPTION_STATUSES = new Set(["active", "trialing", "past_due"])
-
 export function isLiveSubscription(subscription: Subscription): boolean {
-  return LIVE_SUBSCRIPTION_STATUSES.has(subscription.status)
+  return isLiveSubscriptionStatus(subscription.status)
 }
 
 /**

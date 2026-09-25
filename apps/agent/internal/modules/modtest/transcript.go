@@ -21,63 +21,6 @@ import (
 
 const Secret = "s3cret-de-test"
 
-var eventDefinitions = map[string]string{
-	"step": "StepEvent",
-	"shot": "ShotEvent",
-}
-
-var resultDefinitions = map[string]string{
-	"probe":     "ProbeResult",
-	"catalog":   "CatalogResult",
-	"install":   "InstallResult",
-	"uninstall": "UninstallResult",
-	"upgrade":   "UpgradeResult",
-	"harden":    "HardenResult",
-	"report":    "ReportResult",
-	"hello":     "HelloResult",
-	"ping":      "PingResult",
-
-	"snapshot":        "SnapshotResult",
-	"status":          "StatusResult",
-	"service.status":  "ServiceStatusResult",
-	"service.secret":  "ServiceSecretResult",
-	"service.start":   "ServiceStartResult",
-	"service.stop":    "ServiceStopResult",
-	"service.restart": "ServiceRestartResult",
-	"service.logs":    "ServiceLogsResult",
-	"completions":     "CompletionsResult",
-	"project.list":    "ProjectListResult",
-	"project.add":     "ProjectAddResult",
-	"project.detect":  "ProjectDetectResult",
-	"project.remove":  "ProjectRemoveResult",
-	"project.up":      "ProjectUpResult",
-	"project.down":    "ProjectDownResult",
-	"project.restart": "ProjectRestartResult",
-	"project.logs":    "ProjectLogsResult",
-	"project.install": "ProjectInstallResult",
-	"project.url":     "ProjectUrlResult",
-
-	"project.pull":         "ProjectPullResult",
-	"project.sync":         "ProjectSyncResult",
-	"project.branches":     "ProjectBranchesResult",
-	"project.checkout":     "ProjectCheckoutResult",
-	"project.git_status":   "ProjectGitStatusResult",
-	"project.working_tree": "ProjectWorkingTreeResult",
-	"project.diff":         "ProjectDiffResult",
-	"agent.open":           "AgentOpenResult",
-	"sessions.list":        "SessionsListResult",
-	"sessions.clean":       "SessionsCleanResult",
-	"processes.list":       "ProcessesListResult",
-	"process.kill":         "ProcessKillResult",
-	"shots.list":           "ShotsListResult",
-	"shots.url":            "ShotsUrlResult",
-	"shots.read":           "ShotsReadResult",
-	"shots.clean":          "ShotsCleanResult",
-	"reboot":               "RebootResult",
-	"doctor":               "DoctorResult",
-	"diag":                 "DiagResult",
-}
-
 type TranscriptOptions struct {
 	Registry *modules.Registry
 	Register func(*protocol.Server, *modules.Engine)
@@ -326,35 +269,64 @@ func report(t *testing.T, got, want []string) {
 func assertContractLine(t *testing.T, line string, commands map[int64]string) {
 	t.Helper()
 
-	object, ok := decodeJSON(t, line).(map[string]any)
-	if !ok {
-		t.Fatalf("output %q is not an object", line)
+	if err := contractViolation(line, commands); err != nil {
+		t.Error(err)
+	}
+}
+
+// A definition missing from the contract is a violation too: a command or an event nobody typed is never let through.
+func contractViolation(line string, commands map[int64]string) error {
+	value, err := contract.Decode([]byte(line))
+	if err != nil {
+		return fmt.Errorf("output %q is not JSON: %w", line, err)
 	}
 
-	id, _ := object["id"].(json.Number).Int64()
+	object, ok := value.(map[string]any)
+	if !ok {
+		return fmt.Errorf("output %q is not an object", line)
+	}
 
-	if event, isEvent := object["event"]; isEvent {
-		definition := "Event"
-		if named, known := eventDefinitions[fmt.Sprint(event)]; known {
-			definition = named
-		}
-
-		if err := contract.Validate(definition, object); err != nil {
-			t.Errorf("output %q violates %s: %v", line, definition, err)
-		}
-		return
+	if _, isEvent := object["event"]; isEvent {
+		return eventViolation(line, object)
 	}
 
 	if err := contract.Validate("Response", object); err != nil {
-		t.Errorf("output %q violates Response: %v", line, err)
+		return fmt.Errorf("output %q violates Response: %w", line, err)
 	}
 
-	definition, known := resultDefinitions[commands[id]]
-	if object["ok"] == true && known {
-		if err := contract.Validate(definition, object["result"]); err != nil {
-			t.Errorf("result of %s violates %s: %v\n%s", commands[id], definition, err, line)
-		}
+	if object["ok"] != true {
+		return nil
 	}
+
+	id, _ := object["id"].(json.Number).Int64()
+	command, sent := commands[id]
+	if !sent {
+		return fmt.Errorf("output %q answers an id no request of the transcript carries", line)
+	}
+
+	definition := contract.ResultDefinition(command)
+	if err := contract.Validate(definition, object["result"]); err != nil {
+		return fmt.Errorf("result of %s violates %s: %w\n%s", command, definition, err, line)
+	}
+
+	return nil
+}
+
+func eventViolation(line string, object map[string]any) error {
+	if err := contract.Validate("Event", object); err != nil {
+		return fmt.Errorf("output %q violates Event: %w", line, err)
+	}
+
+	definition := eventDefinition(object["event"].(string))
+	if err := contract.Validate(definition, object); err != nil {
+		return fmt.Errorf("output %q violates %s: %w", line, definition, err)
+	}
+
+	return nil
+}
+
+func eventDefinition(event string) string {
+	return strings.ToUpper(event[:1]) + event[1:] + "Event"
 }
 
 func assertNoSecret(t *testing.T, label string, raw []byte) {

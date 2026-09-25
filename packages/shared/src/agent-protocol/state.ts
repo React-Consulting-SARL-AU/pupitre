@@ -387,13 +387,9 @@ export const StatusResultSchema = z.object({
   projects: z.array(ProjectSchema),
 })
 
-export type StatusResult = z.infer<typeof StatusResultSchema>
-
 export const ServiceStatusParamsSchema = z.strictObject({
   id: z.string().min(1),
 })
-
-export type ServiceStatusParams = z.infer<typeof ServiceStatusParamsSchema>
 
 export const LOGIN_STATES = ["signed_in", "signed_out", "unknown"] as const
 
@@ -437,15 +433,11 @@ export type ServiceStatusResult = z.infer<typeof ServiceStatusResultSchema>
  */
 export const ServiceActionParamsSchema = ServiceStatusParamsSchema
 
-export type ServiceActionParams = z.infer<typeof ServiceActionParamsSchema>
-
 export const ServiceLogsParamsSchema = z.strictObject({
   id: z.string().min(1),
   lines: z.int().positive().optional(),
   follow: z.boolean().optional(),
 })
-
-export type ServiceLogsParams = z.infer<typeof ServiceLogsParamsSchema>
 
 export const ServiceLogsResultSchema = z.object({
   lines: z.array(z.string()),
@@ -464,8 +456,6 @@ export type SubCommand = z.infer<typeof SubCommandSchema>
 export const CompletionsParamsSchema = z.strictObject({
   path: z.string().optional(),
 })
-
-export type CompletionsParams = z.infer<typeof CompletionsParamsSchema>
 
 /**
  * `path` is read under `root`, the projects folder, and never above it. Entries

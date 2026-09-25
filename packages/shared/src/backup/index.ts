@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { InstantSchema } from "../platform-api"
 
 /**
  * A backup of a Pupitre server, as it lies in the client's own S3 bucket.
@@ -162,13 +163,6 @@ export type BackupDatabaseEngine = z.infer<typeof BackupDatabaseEngineSchema>
  */
 export const BACKUP_DATABASE_ITEM_PATTERN =
   "^((postgres|mysql|mongodb):[A-Za-z0-9_-]{1,64}|redis:\\*)$"
-
-export function backupDatabaseItem(
-  engine: BackupDatabaseEngine,
-  name: string
-): string {
-  return `${engine}:${name}`
-}
 
 /** A project as the settings name it: its name in the registry. */
 export const BACKUP_PROJECT_ITEM_PATTERN = "^[a-z0-9][a-z0-9._-]*$"
@@ -432,7 +426,7 @@ export type BackupCounts = z.infer<typeof BackupCountsSchema>
  */
 export const BackupDeclarationSchema = z.object({
   id: BackupIdSchema,
-  created_at: z.string(),
+  created_at: InstantSchema,
   trigger: BackupTriggerSchema,
   name: BackupNameSchema.optional(),
   bytes: z.int().nonnegative(),
@@ -446,6 +440,14 @@ export const BackupDeclarationSchema = z.object({
 
 export type BackupDeclaration = z.infer<typeof BackupDeclarationSchema>
 
+/** A declaration as the platform lists it back, with the server it came from; `server_id` is null once that server is gone. */
+export const PlatformBackupSchema = BackupDeclarationSchema.extend({
+  server_id: z.string().nullable(),
+  server_name: z.string(),
+})
+
+export type PlatformBackup = z.infer<typeof PlatformBackupSchema>
+
 /**
  * The heartbeat's word on backups, enough for the console and the alerts.
  * `last_warnings` counts the parts the last backup could not carry — a
@@ -454,8 +456,8 @@ export type BackupDeclaration = z.infer<typeof BackupDeclarationSchema>
  */
 export const BackupBeatSchema = z.object({
   interval_hours: BackupIntervalSchema,
-  last_run_at: z.string().optional(),
-  last_ok_at: z.string().optional(),
+  last_run_at: InstantSchema.optional(),
+  last_ok_at: InstantSchema.optional(),
   last_error: z.string().max(500).optional(),
   last_warnings: z.int().nonnegative().optional(),
 })
@@ -465,14 +467,4 @@ export type BackupBeat = z.infer<typeof BackupBeatSchema>
 /** A scheduled backup is late once two intervals have gone by without one succeeding. */
 export function backupStaleAfterHours(intervalHours: number): number | null {
   return intervalHours > 0 ? intervalHours * 2 : null
-}
-
-export function countsOf(parts: readonly BackupPart[]): BackupCounts {
-  return {
-    setup: parts.some((part) => part.kind === "setup"),
-    home: parts.some((part) => part.kind === "home"),
-    databases: parts.filter((part) => part.kind === "database").length,
-    projects: parts.filter((part) => part.kind === "project").length,
-    paths: parts.filter((part) => part.kind === "path").length,
-  }
 }

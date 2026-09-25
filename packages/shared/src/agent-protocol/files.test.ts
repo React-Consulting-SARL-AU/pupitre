@@ -1,9 +1,7 @@
 import { describe, expect, it } from "bun:test"
 import {
-  FILE_CHUNK_BYTES,
   FILE_IMAGE_MAX_BYTES,
   FILE_LIST_LIMIT,
-  FILE_TEXT_MAX_BYTES,
   FILE_WRITE_MAX_BYTES,
   FsListResultSchema,
   FsReadResultSchema,
@@ -104,10 +102,6 @@ describe("une lecture", () => {
       }).success
     ).toBe(false)
   })
-
-  it("coupe sur un multiple de trois, si bien que base64 ne complète que le dernier morceau", () => {
-    expect(FILE_CHUNK_BYTES % 3).toBe(0)
-  })
 })
 
 describe("une écriture", () => {
@@ -148,9 +142,8 @@ describe("une suppression", () => {
 })
 
 describe("les plafonds", () => {
-  it("laissent une image peser plus qu'un texte, et une écriture pas plus qu'un texte", () => {
-    expect(FILE_IMAGE_MAX_BYTES).toBeGreaterThan(FILE_TEXT_MAX_BYTES)
-    expect(FILE_WRITE_MAX_BYTES).toBe(FILE_TEXT_MAX_BYTES)
+  it("laissent une image peser plus qu'une écriture", () => {
+    expect(FILE_IMAGE_MAX_BYTES).toBeGreaterThan(FILE_WRITE_MAX_BYTES)
     expect(FILE_LIST_LIMIT).toBeGreaterThan(0)
   })
 })

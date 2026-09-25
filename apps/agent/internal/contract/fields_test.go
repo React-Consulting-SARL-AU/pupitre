@@ -3,6 +3,7 @@ package contract
 import (
 	_ "embed"
 	"encoding/json"
+	"reflect"
 	"testing"
 )
 
@@ -166,5 +167,73 @@ func TestAnAbsentValueFallsBackOnTheManifestDefault(t *testing.T) {
 
 	if len(problems) != 1 || problems[0].Field != "port" || problems[0].Code != ProblemMin {
 		t.Fatalf("problems = %+v", problems)
+	}
+}
+
+// A secret is written into requirepass, a SQL statement, /etc/pupitre/env: a line break there ends the line it belongs to and starts another.
+func TestASecretHoldingALineBreakOrANulIsRefused(t *testing.T) {
+	single := Field{Key: "password", Kind: FieldSecret, Label: "Mot de passe", Required: true}
+	list := Field{Key: "keys", Kind: FieldList, Items: ItemsSecret, Label: "Clés"}
+
+	for _, value := range []string{"s3cret\nrename-command CONFIG \"\"", "s3cret\r", "s3cr\x00et"} {
+		held := func(string, string) []string { return []string{value} }
+
+		if problem := ValidateField("db.redis", single, nil, held); problem == nil || problem.Code != ProblemPattern {
+			t.Errorf("secret %q: problem = %+v", value, problem)
+		}
+
+		listed := func(string, string) []string { return []string{"fine", value} }
+		if problem := ValidateField("ai.hermes", list, nil, listed); problem == nil || problem.Code != ProblemPattern {
+			t.Errorf("secret list holding %q: problem = %+v", value, problem)
+		}
+	}
+
+	held := func(string, string) []string { return []string{`s3cret with spaces, quotes " and ' and a tab	too`} }
+	if problem := ValidateField("db.redis", single, nil, held); problem != nil {
+		t.Fatalf("anything but a line break or a nul passes: %+v", problem)
+	}
+}
+
+// What the module is configured with is the value that was judged: a domain judged in lower case, trimmed, is not written as the client typed it.
+func TestTheValuesAModuleReadsAreTheOnesThatWereJudged(t *testing.T) {
+	manifest := Manifest{
+		ID: "exposure.caddy",
+		Fields: []Field{
+			{Key: "domain", Kind: FieldText, Label: "Domaine", Format: FormatDomain},
+			{Key: "app_role", Kind: FieldText, Label: "Rôle", Format: FormatIdentifier},
+			{Key: "hosts", Kind: FieldList, Label: "Hôtes", Format: FormatHostname},
+			{Key: "port", Kind: FieldNumber, Label: "Port"},
+			{Key: "engine", Kind: FieldSelect, Label: "Moteur", Options: []string{"mysql"}},
+		},
+	}
+	sent := map[string]any{
+		"domain":   "  Flyleaf.DEV \n",
+		"app_role": " app ",
+		"hosts":    []any{" API.flyleaf.dev", "web.flyleaf.dev "},
+		"port":     float64(443),
+		"engine":   "mysql",
+		"unknown":  " kept as sent ",
+	}
+
+	got := NormalizeValues(manifest, sent)
+
+	want := map[string]any{
+		"domain":   "flyleaf.dev",
+		"app_role": "app",
+		"hosts":    []any{"api.flyleaf.dev", "web.flyleaf.dev"},
+		"port":     float64(443),
+		"engine":   "mysql",
+		"unknown":  " kept as sent ",
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("normalized = %#v", got)
+	}
+
+	if sent["domain"] != "  Flyleaf.DEV \n" {
+		t.Fatal("the request itself is left as it was sent")
+	}
+
+	if NormalizeValues(manifest, nil) != nil {
+		t.Fatal("nothing sent stays nothing")
 	}
 }

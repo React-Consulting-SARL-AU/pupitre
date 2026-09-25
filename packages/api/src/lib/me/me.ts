@@ -3,7 +3,7 @@ import type { OrgRole } from "@pupitre/shared/permissions"
 import type { SessionUser } from "../api/plugins/auth"
 import { getPrisma, withOrganization } from "../api/prisma"
 import { entitlementForOrganization } from "../billing/entitlement"
-import { countSeatedServers } from "../billing/seats"
+import { countSeatedServers, seatQuotaFor } from "../billing/seats"
 import { liveSubscriptionOf } from "../billing/subscription"
 import {
   organizationReasonOf,
@@ -33,9 +33,11 @@ export interface MeSubscriptionView {
 export async function subscriptionForMe(
   organizationId: string
 ): Promise<MeSubscriptionView | null> {
-  const [subscription, used] = await Promise.all([
+  const scoped = withOrganization(getPrisma(), organizationId)
+  const [subscription, used, { quota }] = await Promise.all([
     liveSubscriptionOf(organizationId),
-    countSeatedServers(withOrganization(getPrisma(), organizationId)),
+    countSeatedServers(scoped),
+    seatQuotaFor(scoped, organizationId),
   ])
 
   if (!subscription) {
@@ -47,7 +49,7 @@ export async function subscriptionForMe(
     trial_ends_at:
       subscription.status === "trialing" ? subscription.currentPeriodEnd : null,
     current_period_end: subscription.currentPeriodEnd,
-    servers: { used, limit: subscription.quantity },
+    servers: { used, limit: quota },
   }
 }
 

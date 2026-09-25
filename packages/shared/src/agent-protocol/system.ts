@@ -6,8 +6,6 @@ export const DoneResultSchema = z.object({
   done: z.literal(true),
 })
 
-export type DoneResult = z.infer<typeof DoneResultSchema>
-
 export const AuthorizedKeySchema = z.object({
   fingerprint: z.string(),
   comment: z.string().optional(),
@@ -35,8 +33,6 @@ export const KeysTrustParamsSchema = z.strictObject({
   public_key: ApprovedKeySchema,
 })
 
-export type KeysTrustParams = z.infer<typeof KeysTrustParamsSchema>
-
 /**
  * The platform, told now rather than at the next turn of the daemon.
  *
@@ -56,8 +52,6 @@ export const AgentUpgradeParamsSchema = z.strictObject({
   signature: z.string().min(1).optional(),
   allow_downgrade: z.boolean().optional(),
 })
-
-export type AgentUpgradeParams = z.infer<typeof AgentUpgradeParamsSchema>
 
 export const AgentUpgradeResultSchema = z.object({
   previous_version: z.string(),
@@ -80,21 +74,15 @@ export const DoctorResultSchema = z.object({
   checks: z.array(DoctorCheckSchema),
 })
 
-export type DoctorResult = z.infer<typeof DoctorResultSchema>
-
 export const DiagResultSchema = z.object({
   generated_at: z.string(),
   report: z.string(),
 })
 
-export type DiagResult = z.infer<typeof DiagResultSchema>
-
 export const EnrollParamsSchema = z.strictObject({
   platform_url: z.url(),
   secrets_stdin: z.literal(true),
 })
-
-export type EnrollParams = z.infer<typeof EnrollParamsSchema>
 
 export const EnrollSecretsSchema = z.strictObject({
   enrollment_token: z.string().min(1),

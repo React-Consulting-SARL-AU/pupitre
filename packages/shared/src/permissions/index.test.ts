@@ -22,11 +22,19 @@ describe("roles", () => {
 })
 
 describe("permissions", () => {
-  it("are <scope>:<action> slugs over the six scopes", () => {
+  it("are <scope>:<action> slugs over the seven scopes", () => {
     const scopes = new Set(PERMISSIONS.map((slug) => slug.split(":")[0]))
 
     expect([...scopes].sort()).toEqual(
-      ["admin", "audit", "billing", "devices", "members", "servers"].sort()
+      [
+        "admin",
+        "audit",
+        "billing",
+        "devices",
+        "members",
+        "organizations",
+        "servers",
+      ].sort()
     )
     for (const slug of PERMISSIONS) {
       expect(slug).toMatch(SLUG_RE)
@@ -51,6 +59,13 @@ describe("hasPermission", () => {
     expect(hasPermission("admin", "members:invite")).toBe(true)
     expect(hasPermission("member", "members:invite")).toBe(false)
     expect(hasPermission("member", "members:view")).toBe(true)
+  })
+
+  it("leaves the organization's settings to its owners and admins", () => {
+    expect(hasPermission("owner", "organizations:manage")).toBe(true)
+    expect(hasPermission("admin", "organizations:manage")).toBe(true)
+    expect(hasPermission("member", "organizations:manage")).toBe(false)
+    expect(hasPermission("platform_admin", "organizations:manage")).toBe(false)
   })
 
   it("lets every member see servers and manage their own devices", () => {

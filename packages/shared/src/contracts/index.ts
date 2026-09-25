@@ -77,6 +77,13 @@ import {
   KeysBeatSchema,
   SERVER_ID_PATTERN,
 } from "../keys"
+import { InstantSchema } from "../platform-api"
+import {
+  AgentExchangeSchema,
+  AgentStateSchema,
+  HeartbeatSchema,
+  ServerTokenSchema,
+} from "../platform-api/agent"
 
 export const CONTRACT_ID = "https://pupitre.studio/contracts/agent/schema.json"
 
@@ -147,6 +154,11 @@ export const CONTRACT_DEFINITIONS: Readonly<Record<string, z.ZodType>> = {
   KeyApproval: KeyApprovalSchema,
   AgentStateKey: AgentStateKeySchema,
   KeysBeat: KeysBeatSchema,
+  Instant: InstantSchema,
+  AgentExchange: AgentExchangeSchema,
+  ServerToken: ServerTokenSchema,
+  AgentState: AgentStateSchema,
+  Heartbeat: HeartbeatSchema,
   Manifest: ManifestSchema,
   Field: FieldSchema,
   FieldProblem: FieldProblemSchema,

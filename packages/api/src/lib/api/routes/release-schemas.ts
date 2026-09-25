@@ -1,14 +1,18 @@
 import { ReleaseChannel } from "@pupitre/db/cloudflare/enums"
 import { ARCHITECTURES } from "@pupitre/shared/catalog"
-import { MAX_R2_KEY_LENGTH, SEMVER_PATTERN } from "@pupitre/shared/releases"
+import { LatestAgentReleaseSchema } from "@pupitre/shared/platform-api/account"
+import {
+  MAX_R2_KEY_LENGTH,
+  MAX_VERSION_LENGTH,
+  RELEASE_CHANNELS,
+  SEMVER_PATTERN,
+  SHA256_PATTERN,
+} from "@pupitre/shared/releases"
 import { t } from "elysia"
 import { DEFAULT_ARCH } from "../../releases/releases"
+import { fromContract } from "../contract-schema"
 import { dateTime } from "../openapi-models"
-import {
-  architectureSchema,
-  RELEASE_CHANNELS,
-  releaseChannelSchema,
-} from "./servers/schemas"
+import { architectureSchema, releaseChannelSchema } from "./servers/schemas"
 
 const publishedChannelSchema = t.UnionEnum([...RELEASE_CHANNELS], {
   default: ReleaseChannel.beta,
@@ -22,11 +26,7 @@ const requestedArchitectureSchema = t.UnionEnum([...ARCHITECTURES], {
   default: DEFAULT_ARCH,
 })
 
-const SHA256_PATTERN = "^[0-9a-f]{64}$"
-
 const ED25519_SIGNATURE_PATTERN = "^[A-Za-z0-9+/]{86}==$"
-
-const MAX_VERSION_LENGTH = 64
 
 export const releasePublishBody = t.Object({
   version: t.String({ pattern: SEMVER_PATTERN, maxLength: MAX_VERSION_LENGTH }),
@@ -52,15 +52,9 @@ export const releaseSchema = t.Object(
   { $id: "Release" }
 )
 
-export const latestReleaseSchema = t.Object(
-  {
-    version: t.String(),
-    arch: t.String(),
-    sha256: t.String(),
-    signature: t.String(),
-  },
-  { $id: "LatestRelease" }
-)
+export const latestReleaseSchema = fromContract(LatestAgentReleaseSchema, {
+  $id: "LatestRelease",
+})
 
 export const agentReleaseSchema = t.Object(
   {

@@ -1,5 +1,7 @@
 import {
   ANNUAL_FREE_MONTHS,
+  BILLING_INTERVALS,
+  type BillingInterval,
   type BillingMode,
   getPlan,
   isPlatformProduct,
@@ -8,9 +10,7 @@ import {
 import type { StatusLook } from "@/lib/domain/server-status"
 import type { DictionaryKey } from "@/lib/i18n/en"
 
-export const BILLING_INTERVALS = ["month", "year"] as const
-
-export type BillingIntervalName = (typeof BILLING_INTERVALS)[number]
+export type BillingIntervalName = BillingInterval
 
 export type CheckoutReturn = "billing" | "start"
 

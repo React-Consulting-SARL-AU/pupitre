@@ -640,9 +640,10 @@ type Shot struct {
 }
 
 const (
-	FileKindFile = "file"
-	FileKindDir  = "dir"
-	FileKindLink = "link"
+	FileKindFile    = "file"
+	FileKindDir     = "dir"
+	FileKindLink    = "link"
+	FileKindSpecial = "special"
 )
 
 // The permission bits as an octal string, `0644`: a number would read as decimal on both sides of the channel.

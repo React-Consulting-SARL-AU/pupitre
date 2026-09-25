@@ -1,11 +1,6 @@
 import { describe, expect, it } from "bun:test"
 import { COMMAND_NAMES, type CommandName } from "./index"
-import {
-  COMMAND_TIMEOUTS_MS,
-  DEFAULT_TIMEOUT_MS,
-  patienceOf,
-  timeoutOf,
-} from "./timeouts"
+import { COMMAND_TIMEOUTS_MS, DEFAULT_TIMEOUT_MS, timeoutOf } from "./timeouts"
 
 describe("les délais des commandes", () => {
   it("ne nomment que des commandes du contrat", () => {
@@ -23,10 +18,5 @@ describe("les délais des commandes", () => {
   it("laissent une installation aller au bout d'un miroir lent", () => {
     expect(timeoutOf("install")).toBeGreaterThan(timeoutOf("snapshot"))
     expect(timeoutOf("harden")).toBe(timeoutOf("install"))
-  })
-
-  /** Past half of it, the screen says how long this is allowed to take. */
-  it("disent à mi-course quand commencer à le dire", () => {
-    expect(patienceOf("install")).toBe(timeoutOf("install") / 2)
   })
 })

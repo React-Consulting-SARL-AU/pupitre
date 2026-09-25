@@ -23,15 +23,11 @@ export const ProjectParamsSchema = z.strictObject({
   name: ProjectNameSchema,
 })
 
-export type ProjectParams = z.infer<typeof ProjectParamsSchema>
-
 /** A project and one of its processes: what the logs and the debugger are read on. */
 export const ProcessParamsSchema = z.strictObject({
   name: ProjectNameSchema,
   process: ProcessIdSchema,
 })
-
-export type ProcessParams = z.infer<typeof ProcessParamsSchema>
 
 export const ProjectTargetSchema = z.union([
   ProjectNameSchema,
@@ -50,8 +46,6 @@ export const ProjectTargetParamsSchema = z
   .refine((target) => !(target.name === "all" && target.process), {
     message: "all names no process",
   })
-
-export type ProjectTargetParams = z.infer<typeof ProjectTargetParamsSchema>
 
 export const ProjectListResultSchema = z.object({
   projects: z.array(ProjectSchema),
@@ -224,8 +218,6 @@ export const ProjectLogsParamsSchema = z.strictObject({
   follow: z.boolean().optional(),
 })
 
-export type ProjectLogsParams = z.infer<typeof ProjectLogsParamsSchema>
-
 export const ProjectLogsResultSchema = z.object({
   lines: z.array(z.string()),
 })
@@ -252,8 +244,6 @@ export const ProjectInstallParamsSchema = z.strictObject({
   process: ProcessIdSchema.optional(),
 })
 
-export type ProjectInstallParams = z.infer<typeof ProjectInstallParamsSchema>
-
 export const ProcessInstallSchema = z.object({
   process: ProcessIdSchema,
   command: z.string().min(1),
@@ -275,8 +265,6 @@ export const ProjectEnvParamsSchema = z.strictObject({
   process: ProcessIdSchema.optional(),
   force: z.boolean().optional(),
 })
-
-export type ProjectEnvParams = z.infer<typeof ProjectEnvParamsSchema>
 
 /** A repository that versions no template is a project without an environment, not a refusal: `keys` is empty and `template` false. */
 export const ProjectEnvResultSchema = z.object({
@@ -303,8 +291,6 @@ export const ProjectCheckoutParamsSchema = z.strictObject({
   name: ProjectNameSchema,
   branch: z.string().min(1),
 })
-
-export type ProjectCheckoutParams = z.infer<typeof ProjectCheckoutParamsSchema>
 
 export const ProjectCheckoutResultSchema = z.object({
   branch: z.string(),
@@ -365,8 +351,6 @@ export const ProjectDiffParamsSchema = z.strictObject({
   path: z.string().min(1),
 })
 
-export type ProjectDiffParams = z.infer<typeof ProjectDiffParamsSchema>
-
 export const ProjectDiffResultSchema = z.object({
   path: z.string(),
   patch: z.string(),
@@ -387,5 +371,3 @@ export const ProjectDebugResultSchema = z.object({
   port: PortSchema,
   debug_port: PortSchema,
 })
-
-export type ProjectDebugResult = z.infer<typeof ProjectDebugResultSchema>

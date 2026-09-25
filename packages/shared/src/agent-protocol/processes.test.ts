@@ -6,7 +6,6 @@ import {
   ProcessKillParamsSchema,
   SessionsCleanResultSchema,
   SessionsListResultSchema,
-  SHOT_CHUNK_BYTES,
   SHOT_MAX_BYTES,
   ShotEventSchema,
   ShotsCleanParamsSchema,
@@ -22,13 +21,13 @@ describe("AgentOpenParamsSchema and AgentOpenResultSchema", () => {
     expect(
       AgentOpenParamsSchema.safeParse({
         kind: "hermes",
-        project: "flymate-api",
+        project: "flyleaf-api",
       }).success
     ).toBe(true)
     expect(
       AgentOpenResultSchema.safeParse({
-        command: "tmux attach -t claude-flymate-api",
-        session: "claude-flymate-api",
+        command: "tmux attach -t claude-flyleaf-api",
+        session: "claude-flyleaf-api",
       }).success
     ).toBe(true)
   })
@@ -66,7 +65,7 @@ describe("sessions and processes", () => {
             cpu: 12.5,
             ram_mb: 340,
             command: "node vite",
-            project: "flymate-api",
+            project: "flyleaf-api",
           },
         ],
       }).success
@@ -162,9 +161,5 @@ describe("shots.read", () => {
         size_bytes: SHOT_MAX_BYTES + 1,
       }).success
     ).toBe(false)
-  })
-
-  it("keeps the chunk cut on a multiple of three so base64 pads only the last one", () => {
-    expect(SHOT_CHUNK_BYTES % 3).toBe(0)
   })
 })

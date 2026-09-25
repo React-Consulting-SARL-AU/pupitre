@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test"
+import { ALERT_KINDS } from "@pupitre/shared/platform-api"
 import { translator } from "@/lib/i18n/i18n"
-import { ALERT_KINDS, alertLook, countAlerts } from "./alerts"
+import { alertLook, countAlerts } from "./alerts"
 
 describe("alertLook", () => {
   it("donne une forme, un ton, un libellé et un remède à chaque genre", () => {

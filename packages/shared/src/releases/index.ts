@@ -98,3 +98,13 @@ export const AppReleaseSchema = z.object({
 })
 
 export type AppRelease = z.infer<typeof AppReleaseSchema>
+
+/** One artefact with its release around it, as a publication answers. */
+export const AppReleaseBuildSchema = AppBuildSchema.extend({
+  version: z.string(),
+  notes: z.string(),
+  channel: ReleaseChannelSchema,
+  published_at: z.iso.datetime(),
+})
+
+export type AppReleaseBuild = z.infer<typeof AppReleaseBuildSchema>

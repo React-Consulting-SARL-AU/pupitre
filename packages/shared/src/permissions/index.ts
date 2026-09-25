@@ -34,6 +34,8 @@ const CATALOG = [
   { slug: "billing:view" },
   { slug: "billing:manage", implies: ["billing:view"] },
   { slug: "audit:view" },
+  // Plural: Better Auth's own `organization` statement would be overwritten.
+  { slug: "organizations:manage" },
   { slug: "admin:servers" },
   { slug: "admin:releases" },
   { slug: "admin:users" },
@@ -83,6 +85,7 @@ const ADMIN_PERMISSIONS: readonly Permission[] = [
   "servers:manage",
   "members:manage",
   "audit:view",
+  "organizations:manage",
 ]
 
 const OWNER_PERMISSIONS: readonly Permission[] = [

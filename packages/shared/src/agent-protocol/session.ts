@@ -5,8 +5,6 @@ import { ConfigRevisionSchema } from "./migrate"
 
 export const EmptyParamsSchema = z.strictObject({})
 
-export type EmptyParams = z.infer<typeof EmptyParamsSchema>
-
 export const ENTITLEMENTS = ["valid", "grace", "restricted", "dev"] as const
 
 export const EntitlementSchema = z.enum(ENTITLEMENTS)
@@ -28,8 +26,6 @@ export const HelloParamsSchema = z.strictObject({
   locale: LocaleSchema.optional(),
 })
 
-export type HelloParams = z.infer<typeof HelloParamsSchema>
-
 /**
  * `config` says where the configuration on the machine stands against the
  * binary now reading it. An agent from before the ledger answers without it,
@@ -50,5 +46,3 @@ export type HelloResult = z.infer<typeof HelloResultSchema>
 export const PingResultSchema = z.object({
   ts: z.string(),
 })
-
-export type PingResult = z.infer<typeof PingResultSchema>

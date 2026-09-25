@@ -1,6 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { renderContractSchema } from "../src/contracts"
+import { PUPITRE_ORIGINS } from "../src/legal"
+import { PLATFORM_API_PATH } from "../src/platform-api"
 
 const AGENT_CONTRACT = path.resolve(
   import.meta.dir,
@@ -27,6 +29,15 @@ interface Artefact {
   content: string
 }
 
+/** The platform the agent speaks to by default: product names stay out of schema.json, so a test holds the Go constant to this. */
+function platformFixtures(): string {
+  const platform = {
+    api_url: `${PUPITRE_ORIGINS.app}${PLATFORM_API_PATH}`,
+  }
+
+  return `${JSON.stringify(platform, null, 2)}\n`
+}
+
 /**
  * The field fixtures travel with the schema: they are the only proof that the
  * app and the agent refuse the same value for the same reason, and a Go test
@@ -49,6 +60,10 @@ function artefacts(): Artefact[] {
     {
       content: readFileSync(KEY_APPROVAL_FIXTURES, "utf8"),
       output: path.join(AGENT_CONTRACT, "key-approval.fixtures.json"),
+    },
+    {
+      content: platformFixtures(),
+      output: path.join(AGENT_CONTRACT, "platform.fixtures.json"),
     },
   ]
 }

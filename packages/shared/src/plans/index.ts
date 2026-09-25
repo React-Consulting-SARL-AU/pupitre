@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { InstantSchema } from "../platform-api"
 
 export const PLAN_IDS = ["solo", "team", "hosted"] as const
 
@@ -84,6 +85,24 @@ export const PLATFORM_PRODUCTS: readonly string[] = [
   GRANTED_PRODUCT,
 ]
 
+/** The statuses Stripe still bills under: the subscription that counts for an organization is the last touched of them. */
+export const LIVE_SUBSCRIPTION_STATUSES = ["active", "trialing", "past_due"]
+
+export function isLiveSubscriptionStatus(status: string): boolean {
+  return LIVE_SUBSCRIPTION_STATUSES.includes(status)
+}
+
+/** What the team may do to one subscription row: the platform lists them per row, the console only shows them. */
+export const SUBSCRIPTION_ACTIONS = [
+  "resize",
+  "extend_trial",
+  "resume",
+  "cancel",
+  "delete",
+] as const
+
+export type SubscriptionAction = (typeof SUBSCRIPTION_ACTIONS)[number]
+
 export function isPlatformProduct(product: string): boolean {
   return PLATFORM_PRODUCTS.includes(product)
 }
@@ -156,8 +175,8 @@ export function formatUsd(amount: number): string {
  */
 export const MeSubscriptionSchema = z.object({
   status: z.string().min(1),
-  trial_ends_at: z.string().nullable(),
-  current_period_end: z.string().nullable(),
+  trial_ends_at: InstantSchema.nullable(),
+  current_period_end: InstantSchema.nullable(),
   servers: z.object({
     used: z.int().nonnegative(),
     limit: z.int().nonnegative(),

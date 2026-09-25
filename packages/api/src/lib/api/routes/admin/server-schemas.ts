@@ -1,11 +1,11 @@
 import { SuspensionReason } from "@pupitre/db/cloudflare/enums"
+import { SERVER_STATUSES } from "@pupitre/shared/platform-api"
 import { t } from "elysia"
 import { ADMIN_SERVER_SORTS } from "../../../servers/admin"
 import { dateTime } from "../../openapi-models"
 import {
   metricSampleSchema,
   releaseChannelSchema,
-  SERVER_STATUSES,
   serverFields,
 } from "../servers/schemas"
 import {

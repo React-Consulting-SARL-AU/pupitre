@@ -1,7 +1,6 @@
 import type { OrgRole } from "@pupitre/shared/permissions"
 import {
   GRANTED_PRODUCT,
-  isPlatformProduct,
   LAUNCH_PRODUCT,
   STRIPE_PRODUCT,
 } from "@pupitre/shared/plans"
@@ -10,7 +9,8 @@ import {
   type OrganizationState,
   PLATFORM_ORGANIZATION_ID,
 } from "@pupitre/shared/platform"
-import { SERVER_STATUSES, type StatusLook } from "@/lib/domain/server-status"
+import { SERVER_STATUSES } from "@pupitre/shared/platform-api"
+import type { StatusLook } from "@/lib/domain/server-status"
 import type { DictionaryKey } from "@/lib/i18n/en"
 
 export const MAX_REASON_LENGTH = 500
@@ -95,55 +95,6 @@ export function productKey(product: string | null): DictionaryKey | null {
   }
 
   return PRODUCT_KEYS[product] ?? PRODUCT_KEYS[STRIPE_PRODUCT]
-}
-
-/** The statuses under which an organisation still holds its right of use, as `/me` counts them. */
-const LIVE_SUBSCRIPTION_STATUSES = ["active", "trialing", "past_due"]
-
-export function subscriptionIsLive(status: string): boolean {
-  return LIVE_SUBSCRIPTION_STATUSES.includes(status)
-}
-
-export function canCancelSubscription(status: string): boolean {
-  return status !== "canceled"
-}
-
-export interface SubscriptionRow {
-  product: string
-  status: string
-}
-
-/** A platform row is the team's to remove; a Stripe row only once Stripe has let go of it. */
-export function canDeleteSubscription({
-  product,
-  status,
-}: SubscriptionRow): boolean {
-  return isPlatformProduct(product) || !subscriptionIsLive(status)
-}
-
-export function canResizeSubscription(product: string): boolean {
-  return product === GRANTED_PRODUCT
-}
-
-/** Stripe holds the trial: only a row it still bills as `trialing` takes a new end. */
-export function canExtendTrial({ product, status }: SubscriptionRow): boolean {
-  return !isPlatformProduct(product) && status === "trialing"
-}
-
-export interface ResumableSubscription extends SubscriptionRow {
-  cancel_at_period_end: boolean
-}
-
-export function canResumeSubscription({
-  product,
-  status,
-  cancel_at_period_end,
-}: ResumableSubscription): boolean {
-  return (
-    !isPlatformProduct(product) &&
-    subscriptionIsLive(status) &&
-    cancel_at_period_end
-  )
 }
 
 const STRIPE_EVENT_STATUS_KEYS: Record<string, DictionaryKey> = {

@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { InstantSchema } from "../platform-api"
 
 /**
  * A key reaches a server's managed block only with an approval signed by a key
@@ -151,7 +152,7 @@ export const PendingKeyApprovalSchema = z.object({
   }),
   user: z.object({ id: z.string(), name: z.string(), email: z.string() }),
   signers: z.array(KeyFingerprintSchema),
-  reported_at: z.string(),
+  reported_at: InstantSchema,
 })
 
 export type PendingKeyApproval = z.infer<typeof PendingKeyApprovalSchema>

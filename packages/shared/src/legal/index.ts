@@ -60,6 +60,9 @@ export const LEGAL_CONTACTS = {
 export const PUPITRE_ORIGINS = {
   site: "https://pupitre.studio",
   app: "https://app.pupitre.studio",
+  downloads: "https://dl.pupitre.studio",
+  /** The named tunnel `bun dev` publishes the local console under, for a remote agent to reach. */
+  devTunnel: "https://dev.pupitre.studio",
 } as const
 
 /** Every address under this domain reaches the platform inbox, catch-all. */
@@ -73,6 +76,15 @@ export const MAIL_MAX_BYTES = 20 * 1024 * 1024
 
 /** D1 refuses a row past a megabyte; the raw `.eml` in the bucket keeps the whole body. */
 export const MAIL_MAX_TEXT_CHARS = 200_000
+
+/** Past this, an inbound mail's parts stay in its raw `.eml` only: each one is a bucket write the Worker pays for. */
+export const MAIL_MAX_INBOUND_ATTACHMENTS = 20
+
+/** The most recent `References` ids a message is threaded by and answered with. */
+export const MAIL_MAX_REFERENCES = 20
+
+/** The only authserv-id whose `Authentication-Results` the inbox trusts: the Email Routing MX that received the mail. */
+export const MAIL_TRUSTED_AUTHSERV_ID = "mx.cloudflare.net"
 
 export const MAIL_LOCAL_PART_MAX_LENGTH = 64
 
@@ -197,10 +209,10 @@ export const LEGAL_DOCUMENTS: readonly LegalDocument[] = [
   { slug: "privacy", order: 4, updated: "2026-09-25" },
   { slug: "data-processing", order: 5, updated: "2026-09-25" },
   { slug: "billing", order: 6, updated: "2026-09-24" },
-  { slug: "cookies", order: 7, updated: "2026-09-24" },
-  { slug: "sub-processors", order: 8, updated: "2026-09-24" },
+  { slug: "cookies", order: 7, updated: "2026-09-25" },
+  { slug: "sub-processors", order: 8, updated: "2026-09-25" },
   { slug: "security", order: 9, updated: "2026-09-24" },
-  { slug: "third-party", order: 10, updated: "2026-09-24" },
+  { slug: "third-party", order: 10, updated: "2026-09-25" },
   { slug: "legal-notice", order: 11, updated: "2026-09-24" },
   { slug: "changes", order: 12, updated: "2026-09-25" },
 ]

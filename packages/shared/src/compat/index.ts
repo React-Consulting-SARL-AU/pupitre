@@ -72,15 +72,6 @@ export function agentFloorFor(appVersion: string): string | null {
   return generationOf("app", appVersion)?.agent ?? null
 }
 
-/** The oldest app this agent version agrees to serve. */
-export function appFloorFor(agentVersion: string): string | null {
-  return generationOf("agent", agentVersion)?.app ?? null
-}
-
-export function protocolOf(side: Side, version: string): number | null {
-  return generationOf(side, version)?.protocol ?? null
-}
-
 /**
  * The verdict reads in a single direction: whichever of the two is behind
  * the other is the one that needs updating.

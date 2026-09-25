@@ -1,5 +1,6 @@
 import { StripeEventStatus } from "@pupitre/db/cloudflare/enums"
 import { ORG_ROLES } from "@pupitre/shared/permissions"
+import { SUBSCRIPTION_ACTIONS } from "@pupitre/shared/plans"
 import {
   ACCOUNT_STATES,
   ORGANIZATION_STATES,
@@ -314,6 +315,7 @@ const adminSubscriptionViewFields = {
   live: t.Boolean(),
   seats: t.Object({ paid: t.Integer(), used: t.Integer() }),
   drifted: t.Boolean(),
+  allowed_actions: t.Array(t.UnionEnum([...SUBSCRIPTION_ACTIONS])),
 }
 
 export const adminSubscriptionSchema = t.Object(adminSubscriptionViewFields, {

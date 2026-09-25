@@ -4,9 +4,13 @@ import type {
   Subscription,
 } from "@pupitre/db/cloudflare/client"
 import {
+  GRANTED_PRODUCT,
+  isLiveSubscriptionStatus,
   isPlatformProduct,
   PLATFORM_PRODUCTS,
   STRIPE_PRODUCT,
+  SUBSCRIPTION_ACTIONS,
+  type SubscriptionAction,
 } from "@pupitre/shared/plans"
 import { getPrisma } from "../api/prisma"
 import { stripeSubscriptionUrl } from "../billing/config"
@@ -44,6 +48,7 @@ export interface AdminSubscriptionView
   seats: AdminSubscriptionSeats
   /** The row that counts pays for fewer servers than the organisation seats: the reading of `ReconcileSeats`. */
   drifted: boolean
+  allowed_actions: SubscriptionAction[]
 }
 
 export interface AdminStripeEventView {
@@ -203,6 +208,28 @@ function isDrifted(
   )
 }
 
+/** A platform row is the team's to remove, a Stripe one only once Stripe let go of it; Stripe alone holds a trial. */
+export function allowedSubscriptionActions({
+  product,
+  status,
+  cancelAtPeriodEnd,
+}: Pick<
+  Subscription,
+  "product" | "status" | "cancelAtPeriodEnd"
+>): SubscriptionAction[] {
+  const platform = isPlatformProduct(product)
+  const billed = isLiveSubscriptionStatus(status)
+  const allowed: Record<SubscriptionAction, boolean> = {
+    resize: product === GRANTED_PRODUCT,
+    extend_trial: !platform && status === "trialing",
+    resume: !platform && billed && cancelAtPeriodEnd,
+    cancel: status !== "canceled",
+    delete: platform || !billed,
+  }
+
+  return SUBSCRIPTION_ACTIONS.filter((action) => allowed[action])
+}
+
 function toView(
   subscription: SubscriptionWithOrganization,
   live: Set<string>,
@@ -217,6 +244,7 @@ function toView(
       used: used.get(subscription.organizationId) ?? 0,
     },
     drifted: isDrifted(subscription, live, used),
+    allowed_actions: allowedSubscriptionActions(subscription),
   }
 }
 

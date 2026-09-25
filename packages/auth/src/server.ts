@@ -1,6 +1,7 @@
 import { passkey } from "@better-auth/passkey"
 import { scopedPrismaClient } from "@pupitre/db/scope"
 import { DEFAULT_LOCALE, LOCALES, localeOf } from "@pupitre/shared/i18n"
+import { LEGAL_CONTACTS } from "@pupitre/shared/legal"
 import { PLATFORM_ADMIN_ROLE } from "@pupitre/shared/permissions"
 import { betterAuth } from "better-auth"
 import { prismaAdapter } from "better-auth/adapters/prisma"
@@ -71,8 +72,7 @@ export type SocialProviderId = (typeof SOCIAL_PROVIDER_IDS)[number]
 export const RELYING_PARTY_NAME = "Pupitre"
 export const BACKUP_CODE_COUNT = 10
 
-export const ACCOUNT_DEACTIVATED_MESSAGE =
-  "This account is closed. Write to support@pupitre.studio to have it reopened."
+export const ACCOUNT_DEACTIVATED_MESSAGE = `This account is closed. Write to ${LEGAL_CONTACTS.support} to have it reopened.`
 
 export const DEVICE_VERIFICATION_PATH = "/auth/device"
 export const INVITATION_PATH = "/auth/invitation"

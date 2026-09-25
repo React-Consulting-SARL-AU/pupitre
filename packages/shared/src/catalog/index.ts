@@ -322,8 +322,6 @@ export const PRESET_IDS = ["web-js", "full", "minimal"] as const
 
 export const PresetIdSchema = z.enum(PRESET_IDS)
 
-export type PresetId = z.infer<typeof PresetIdSchema>
-
 /**
  * A preset names modules the way a manifest does: a module the agent gained
  * before this package knew of it can enter one without a release here.
@@ -381,13 +379,3 @@ export const PRESETS: readonly Preset[] = [
     ],
   },
 ]
-
-export function getPreset(id: PresetId): Preset {
-  const preset = PRESETS.find((candidate) => candidate.id === id)
-
-  if (!preset) {
-    throw new Error(`Unknown preset: ${id}`)
-  }
-
-  return preset
-}

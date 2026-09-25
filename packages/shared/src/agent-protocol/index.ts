@@ -407,14 +407,6 @@ export const RESTRICTED_COMMANDS = [
   "platform.sync",
 ] as const satisfies readonly CommandName[]
 
-export type RestrictedCommandName = (typeof RESTRICTED_COMMANDS)[number]
-
-export function isAllowedInRestrictedMode(
-  cmd: string
-): cmd is RestrictedCommandName {
-  return (RESTRICTED_COMMANDS as readonly string[]).includes(cmd)
-}
-
 /**
  * A binary on a server that was never enrolled has no state to show and no
  * server to upgrade: it says who it is, answers a ping, hands out a diagnostic,
@@ -446,22 +438,12 @@ export const MIGRATION_COMMANDS = [
   "platform.sync",
 ] as const satisfies readonly CommandName[]
 
-export type MigrationCommandName = (typeof MIGRATION_COMMANDS)[number]
-
-export function isAllowedWhileMigrating(
-  cmd: string
-): cmd is MigrationCommandName {
-  return (MIGRATION_COMMANDS as readonly string[]).includes(cmd)
-}
-
 export const UNENROLLED_COMMANDS = [
   "hello",
   "ping",
   "diag",
   "enroll",
 ] as const satisfies readonly CommandName[]
-
-export type UnenrolledCommandName = (typeof UNENROLLED_COMMANDS)[number]
 
 /**
  * What `pupitred serve` answers without `--privileged`: the session sudo opens
@@ -545,8 +527,6 @@ export const LIMITED_COMMANDS = [
   "diag",
 ] as const satisfies readonly CommandName[]
 
-export type LimitedCommandName = (typeof LIMITED_COMMANDS)[number]
-
 /** `allow_downgrade` lifts the version floor: a signed but older, known-faulty agent is root code of the caller's choosing. */
 export function requiresPrivilege(cmd: string, params?: unknown): boolean {
   if (!(LIMITED_COMMANDS as readonly string[]).includes(cmd)) {
@@ -559,10 +539,4 @@ export function requiresPrivilege(cmd: string, params?: unknown): boolean {
     params !== null &&
     (params as { allow_downgrade?: unknown }).allow_downgrade === true
   )
-}
-
-export function isAllowedWithoutEnrolment(
-  cmd: string
-): cmd is UnenrolledCommandName {
-  return (UNENROLLED_COMMANDS as readonly string[]).includes(cmd)
 }

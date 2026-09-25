@@ -1,3 +1,4 @@
+import { isEntitled } from "@pupitre/shared/platform-api"
 import { entitlementLook, type StatusLook } from "@/lib/domain/server-status"
 import type { DictionaryKey } from "@/lib/i18n/en"
 
@@ -45,8 +46,6 @@ const COPY: Record<OnboardingStepId, StepCopy> = {
   server: { title: "onboarding.server.title", lead: "onboarding.server.lead" },
 }
 
-const ENTITLED = new Set(["valid", "grace"])
-
 /** A server that has been online once: enrolling never was, revoked no longer counts. */
 const EVER_ONLINE = new Set(["active", "grace", "suspended"])
 
@@ -66,7 +65,7 @@ function doneFlags({
 }: OnboardingInput): Known[] {
   return [
     true,
-    ENTITLED.has(entitlement),
+    isEntitled(entitlement),
     devices === null ? null : devices > 0,
     servers === null ? null : onboardingComplete(servers),
   ]

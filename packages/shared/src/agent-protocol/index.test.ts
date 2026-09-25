@@ -2,8 +2,6 @@ import { describe, expect, it } from "bun:test"
 import {
   COMMAND_NAMES,
   COMMANDS,
-  isAllowedInRestrictedMode,
-  isAllowedWhileMigrating,
   isCommandName,
   LIMITED_COMMANDS,
   MIGRATION_COMMANDS,
@@ -136,31 +134,33 @@ describe("restricted mode", () => {
         "status",
       ].sort()
     )
-    expect(isAllowedInRestrictedMode("snapshot")).toBe(true)
-    expect(isAllowedInRestrictedMode("install")).toBe(false)
+    expect(RESTRICTED_COMMANDS).toContain("snapshot")
+    expect(RESTRICTED_COMMANDS).not.toContain("install")
   })
 
   it("lets a restricted server re-enrol, the gesture that repairs it", () => {
-    expect(isAllowedInRestrictedMode("enroll")).toBe(true)
+    expect(RESTRICTED_COMMANDS).toContain("enroll")
   })
 })
 
 describe("a configuration that is not at the expected revision", () => {
+  const migrating: readonly string[] = MIGRATION_COMMANDS
+
   it("keeps open the view of the machine and the ways out", () => {
     for (const cmd of ["snapshot", "diag", "agent.upgrade", "agent.migrate"]) {
-      expect(isAllowedWhileMigrating(cmd)).toBe(true)
+      expect(migrating).toContain(cmd)
     }
   })
 
   it("closes everything that reads or writes a configuration", () => {
     for (const cmd of ["install", "upgrade", "module.config", "project.add"]) {
-      expect(isAllowedWhileMigrating(cmd)).toBe(false)
+      expect(migrating).not.toContain(cmd)
     }
   })
 
   it("lets a restricted server migrate too, since it can still update", () => {
     for (const cmd of RESTRICTED_COMMANDS) {
-      expect(isAllowedWhileMigrating(cmd)).toBe(true)
+      expect(MIGRATION_COMMANDS).toContain(cmd)
     }
 
     expect(MIGRATION_COMMANDS).toContain("agent.migrate")

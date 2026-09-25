@@ -45,6 +45,7 @@ const served = (over: Record<string, unknown> = {}) => ({
       format: "dmg",
       bytes: 120_000_000,
       sha256: DIGEST,
+      signature: null,
       url: "https://example.test/mac",
     },
   ],

@@ -1,5 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
 import { ApiError, createApiClient, unwrap } from "../../client"
+import { KEPT_LAUNCH_SEAT } from "../../lib/billing/subscription"
 import { bootApiTestServer, resetDb, TEST_BASE_URL } from "../../testing"
 import {
   createOrganizationWithMembers,
@@ -229,6 +230,30 @@ describe("GET /me", () => {
     expect(me.json.subscription?.servers).toEqual({ used: 0, limit: 3 })
   })
 
+  it("compte le siège gardé du lancement dans la limite, comme l'enrôlement", async () => {
+    const own = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: { quantity: 2, status: "active" },
+    })
+    const [owner] = own.members
+    const { prisma } = await bootApiTestServer()
+
+    await prisma.subscription.create({
+      data: {
+        organizationId: own.organization.id,
+        stripeSubscriptionId: "launch_kept_fixture",
+        product: KEPT_LAUNCH_SEAT.product,
+        quantity: 1,
+        status: KEPT_LAUNCH_SEAT.status,
+        currentPeriodEnd: KEPT_LAUNCH_SEAT.currentPeriodEnd,
+      },
+    })
+
+    const me = await apiRequest<MeBody>("/me", { session: owner })
+
+    expect(me.json.subscription?.servers.limit).toBe(3)
+  })
+
   it("is reachable through the typed Eden client", async () => {
     const server = await bootApiTestServer()
     const { user } = await createUser()
@@ -266,7 +291,7 @@ describe("PATCH /me — l'organisation active", () => {
 
   async function memberOfTwo() {
     const first = await createOrganizationWithMembers({
-      name: "Flymate",
+      name: "Flyleaf",
       roles: ["owner"],
       subscription: {},
     })

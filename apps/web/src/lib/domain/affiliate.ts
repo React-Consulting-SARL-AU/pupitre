@@ -138,7 +138,11 @@ export function affiliateCookieDomain(hostname: string): string | null {
 }
 
 /** The same cookie the site sets, so the console and the site read each other's. */
-export function affiliateCookieFor(code: string, hostname: string): string {
+export function affiliateCookieFor(
+  code: string,
+  hostname: string,
+  secure: boolean
+): string {
   const attributes = [
     `${AFFILIATE_COOKIE}=${code}`,
     "Path=/",
@@ -147,11 +151,27 @@ export function affiliateCookieFor(code: string, hostname: string): string {
   ]
   const domain = affiliateCookieDomain(hostname)
 
+  if (secure) {
+    attributes.push("Secure")
+  }
+
   if (domain) {
     attributes.push(`Domain=${domain}`)
   }
 
   return attributes.join("; ")
+}
+
+/** First touch wins: a later link does not take the credit from the one that brought the visitor. */
+export function affiliateCookieToWrite(
+  cookie: string,
+  code: string,
+  hostname: string,
+  secure: boolean
+): string | null {
+  return affiliateCodeFrom(cookie)
+    ? null
+    : affiliateCookieFor(code, hostname, secure)
 }
 
 export function readAffiliateCode(): string | null {
@@ -162,6 +182,15 @@ export function readAffiliateCode(): string | null {
 
 /** The one place the console writes the cookie, so the rule lives here and not in a route. */
 export function writeAffiliateCookie(code: string): void {
-  // biome-ignore lint/suspicious/noDocumentCookie: the code must survive the sign-in and reach the checkout on another page
-  document.cookie = affiliateCookieFor(code, window.location.hostname)
+  const cookie = affiliateCookieToWrite(
+    document.cookie,
+    code,
+    window.location.hostname,
+    window.location.protocol === "https:"
+  )
+
+  if (cookie) {
+    // biome-ignore lint/suspicious/noDocumentCookie: the code must survive the sign-in and reach the checkout on another page
+    document.cookie = cookie
+  }
 }

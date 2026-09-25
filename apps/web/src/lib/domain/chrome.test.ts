@@ -1,9 +1,25 @@
 import { describe, expect, it } from "bun:test"
 import {
+  consoleSection,
   SHORTCUT_MODIFIERS,
   shortcutModifier,
   sidebarCarriesChrome,
 } from "./chrome"
+
+describe("la section de la console", () => {
+  it("reste la même d'une page à l'autre d'une même section", () => {
+    expect(consoleSection("/dashboard/admin/inbox/thr_1")).toBe("admin")
+    expect(consoleSection("/dashboard/admin/users")).toBe("admin")
+    expect(consoleSection("/dashboard/servers/srv_1")).toBe("servers")
+  })
+
+  it("change quand la barre latérale change de section", () => {
+    expect(consoleSection("/dashboard/billing")).not.toBe(
+      consoleSection("/dashboard/servers")
+    )
+    expect(consoleSection("/dashboard")).toBe("")
+  })
+})
 
 describe("le chrome de la console", () => {
   it("laisse la barre latérale porter le thème et le légal dans la console", () => {

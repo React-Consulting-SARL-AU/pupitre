@@ -68,8 +68,6 @@ export const ModuleConfigParamsSchema = z.strictObject({
   id: z.string().min(1),
 })
 
-export type ModuleConfigParams = z.infer<typeof ModuleConfigParamsSchema>
-
 /**
  * What the agent retained from the last request for this module.
  *
@@ -108,8 +106,6 @@ export const InstallParamsSchema = z.strictObject({
   secrets_stdin: z.boolean(),
 })
 
-export type InstallParams = z.infer<typeof InstallParamsSchema>
-
 /**
  * The same request as `install`, weighed and not run.
  *
@@ -122,8 +118,6 @@ export const InstallCheckParamsSchema = z.strictObject({
   config: ModuleConfigSchema,
   defer: z.array(z.string().min(1)).optional(),
 })
-
-export type InstallCheckParams = z.infer<typeof InstallCheckParamsSchema>
 
 export const InstallCheckResultSchema = z.object({
   problems: z.array(FieldProblemSchema),
@@ -152,19 +146,13 @@ export const UninstallParamsSchema = z.strictObject({
   modules: z.array(z.string().min(1)).min(1),
 })
 
-export type UninstallParams = z.infer<typeof UninstallParamsSchema>
-
 export const UninstallResultSchema = z.object({
   failed: z.array(z.string()),
 })
 
-export type UninstallResult = z.infer<typeof UninstallResultSchema>
-
 export const HardenParamsSchema = z.strictObject({
   user: z.literal("dev"),
 })
-
-export type HardenParams = z.infer<typeof HardenParamsSchema>
 
 /**
  * `root_kept` says root is still reachable because the configuration asked for
@@ -189,8 +177,6 @@ export const HardenSudoParamsSchema = z.strictObject({
   secrets_stdin: z.literal(true),
 })
 
-export type HardenSudoParams = z.infer<typeof HardenSudoParamsSchema>
-
 export const HardenSudoSecretsSchema = z.strictObject({
   password_hash: z.string().regex(new RegExp(SUDO_PASSWORD_HASH_PATTERN)),
 })
@@ -201,13 +187,9 @@ export const HardenSudoResultSchema = z.object({
   sudo: z.literal("password"),
 })
 
-export type HardenSudoResult = z.infer<typeof HardenSudoResultSchema>
-
 export const UpgradeParamsSchema = z.strictObject({
   modules: z.array(z.string().min(1)).optional(),
 })
-
-export type UpgradeParams = z.infer<typeof UpgradeParamsSchema>
 
 export const ReportStepSchema = z.object({
   step: z.string(),

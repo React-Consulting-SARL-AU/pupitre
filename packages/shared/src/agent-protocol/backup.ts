@@ -74,8 +74,6 @@ export const BackupRunParamsSchema = z.strictObject({
   projects: BackupProjectModeSchema.optional(),
 })
 
-export type BackupRunParams = z.infer<typeof BackupRunParamsSchema>
-
 /**
  * `declared` is false when the platform did not answer: the backup exists in
  * the bucket all the same, and the daemon declares it again at its next turn.
@@ -95,24 +93,16 @@ export const BackupDeleteParamsSchema = z.strictObject({
   id: BackupIdSchema,
 })
 
-export type BackupDeleteParams = z.infer<typeof BackupDeleteParamsSchema>
-
 export const BackupDeleteResultSchema = z.object({
   deleted: z.boolean(),
 })
-
-export type BackupDeleteResult = z.infer<typeof BackupDeleteResultSchema>
 
 export const BackupInspectParamsSchema = z.strictObject({
   location: BackupLocationSchema,
   secrets_stdin: z.literal(true),
 })
 
-export type BackupInspectParams = z.infer<typeof BackupInspectParamsSchema>
-
 export const BackupInspectResultSchema = BackupManifestSchema
-
-export type BackupInspectResult = z.infer<typeof BackupInspectResultSchema>
 
 /**
  * The secret line of a command that reads a bucket. The access key travels
@@ -141,10 +131,6 @@ export const BackupRestoreSetupParamsSchema = z.strictObject({
   revert: z.boolean().optional(),
   secrets_stdin: z.literal(true),
 })
-
-export type BackupRestoreSetupParams = z.infer<
-  typeof BackupRestoreSetupParamsSchema
->
 
 /**
  * The machine's configuration as the backup left it, migrated to the revision
@@ -183,10 +169,6 @@ export const BackupRestoreDataParamsSchema = z.strictObject({
   start: z.boolean().optional(),
   secrets_stdin: z.literal(true),
 })
-
-export type BackupRestoreDataParams = z.infer<
-  typeof BackupRestoreDataParamsSchema
->
 
 export const BackupRestoreDataResultSchema = z.object({
   restored: z.array(z.string()),
