@@ -3,9 +3,11 @@ import type { EmailMessage } from "@pupitre/auth/server"
 import type { Server } from "@pupitre/db/cloudflare/client"
 import type { BackupBeat } from "@pupitre/shared/backup"
 import {
+  ALERT_BATCH_SIZE,
   activeAlertsFor,
   evaluateAlerts,
   evaluateServerAlerts,
+  notifyAlert,
 } from "../../lib/alerts/alerts"
 import { toStoredUsage } from "../../lib/servers/metrics"
 import { type ApiTestServer, bootApiTestServer, resetDb } from "../../testing"
@@ -100,6 +102,53 @@ describe("le serveur injoignable", () => {
     expect(
       await harness.prisma.alert.count({ where: { serverId: server.id } })
     ).toBe(1)
+  })
+
+  it("renvoie à la passe suivante l'email d'une alerte encore ouverte dont l'envoi avait échoué", async () => {
+    const { server } = await silentServer(31)
+
+    await evaluateServerAlerts(server)
+    await harness.prisma.alert.updateMany({
+      where: { serverId: server.id },
+      data: { notifiedAt: null },
+    })
+
+    const before = alertEmails().length
+    const runs = await evaluateAlerts()
+
+    expect(runs).toEqual([])
+    expect(alertEmails()).toHaveLength(before + 1)
+    expect(
+      (
+        await harness.prisma.alert.findFirstOrThrow({
+          where: { serverId: server.id },
+        })
+      ).notifiedAt
+    ).toBeInstanceOf(Date)
+    expect(
+      await harness.prisma.alert.count({ where: { serverId: server.id } })
+    ).toBe(1)
+  })
+
+  it("ne renvoie rien pour une alerte déjà notifiée ou refermée", async () => {
+    const { server } = await silentServer(31)
+
+    await evaluateServerAlerts(server)
+
+    const [alert] = await harness.prisma.alert.findMany({
+      where: { serverId: server.id },
+    })
+    const before = alertEmails().length
+
+    expect(await notifyAlert(alert?.id ?? "")).toBe(false)
+
+    await harness.prisma.alert.updateMany({
+      where: { serverId: server.id },
+      data: { notifiedAt: null, resolvedAt: new Date() },
+    })
+
+    expect(await notifyAlert(alert?.id ?? "")).toBe(false)
+    expect(alertEmails()).toHaveLength(before)
   })
 
   it("repart après un retour à la normale suivi d'une nouvelle panne", async () => {
@@ -355,6 +404,31 @@ describe("le balayage de tous les serveurs", () => {
     const run = runs.find((entry) => entry.serverId === server.id)
 
     expect(run?.opened).toEqual(["server_unreachable"])
+  })
+
+  it("parcourt les serveurs par lots et ne rend que ceux dont une alerte a bougé", async () => {
+    const { organization } = await createOrganizationWithMembers({
+      roles: ["owner"],
+    })
+
+    for (let index = 0; index < ALERT_BATCH_SIZE + 2; index += 1) {
+      await harness.prisma.server.create({
+        data: {
+          organizationId: organization.id,
+          name: `vps-${index}`,
+          arch: "amd64",
+          status: "active",
+          lastHeartbeatAt: new Date(),
+        },
+      })
+    }
+
+    const { server } = await silentServer(45)
+    const runs = await evaluateAlerts()
+
+    expect(runs).toEqual([
+      { serverId: server.id, opened: ["server_unreachable"], resolved: [] },
+    ])
   })
 
   it("liste les alertes actives par serveur", async () => {

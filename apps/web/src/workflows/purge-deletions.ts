@@ -12,6 +12,7 @@ import {
   sweepExpiredVerifications,
   sweepServerMetrics,
 } from "@pupitre/api/platform/retention"
+import { batchStep } from "./steps"
 
 export const PURGE_ORGANIZATIONS_STEP = "purge-organizations"
 
@@ -33,11 +34,6 @@ export interface PurgeDeletionsReport {
   organizations: string[]
   users: string[]
   swept: Record<SweepName, number>
-}
-
-/** Each batch is its own step, so a retry replays one batch and never the ones already done. */
-export function batchStep(name: string, index: number): string {
-  return `${name}-${index + 1}`
 }
 
 async function purgeOrganizations(step: WorkflowStep): Promise<string[]> {

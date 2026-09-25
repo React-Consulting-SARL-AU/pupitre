@@ -6,6 +6,7 @@ import {
   DECOMMISSION_SERVER_STEP,
   runDecommissionServer,
 } from "./decommission-server"
+import { batchStep } from "./steps"
 
 const DAY_MS = 86_400_000
 
@@ -43,7 +44,7 @@ describe("le workflow DecommissionServer", () => {
     const decommissioned = await runDecommissionServer(recorder.step)
 
     expect(decommissioned).toEqual([serverId])
-    expect(recorder.names).toEqual([DECOMMISSION_SERVER_STEP])
+    expect(recorder.names).toEqual([batchStep(DECOMMISSION_SERVER_STEP, 0)])
 
     const { prisma } = await bootApiTestServer()
 

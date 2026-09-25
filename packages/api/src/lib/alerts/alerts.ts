@@ -7,6 +7,7 @@ import {
   sendServerGraceEmail,
   sendServerUnreachableEmail,
 } from "../../emails/notifications"
+import { type CursorBatch, walkBatches } from "../api/batches"
 import { getPrisma } from "../api/prisma"
 import { readBackupBeat } from "../backups/beat"
 import { CHANNEL_SOURCES } from "../releases/releases"
@@ -29,16 +30,42 @@ export interface AlertRun extends AlertVerdict {
   serverId: string
 }
 
-async function publishedVersionsFor(server: ServerRow): Promise<string[]> {
+/** Servers one step evaluates: their open alerts come back in one `in` list. */
+export const ALERT_BATCH_SIZE = 50
+
+/** Emails one step sends: a retry re-sends only those still marked unsent. */
+export const ALERT_NOTICE_BATCH_SIZE = 10
+
+export interface AlertBatch extends CursorBatch {
+  /** Only the servers whose alerts opened or closed. */
+  runs: AlertRun[]
+  /** Open alerts still owed their email: just opened, or whose email failed before. */
+  pending: string[]
+}
+
+type PublishedVersions = (server: ServerRow) => string[]
+
+/** One read for the releases every server of the batch compares its agent with. */
+async function publishedVersionsFor(
+  servers: ServerRow[]
+): Promise<PublishedVersions> {
+  const arches = [...new Set(servers.map((server) => server.arch))]
   const releases = await getPrisma().release.findMany({
-    where: {
-      arch: server.arch,
-      channel: { in: CHANNEL_SOURCES[server.channel] },
-    },
-    select: { version: true },
+    where: { arch: { in: arches } },
+    select: { version: true, arch: true, channel: true },
   })
 
-  return [...new Set(releases.map((release) => release.version))]
+  return (server) => {
+    const channels = CHANNEL_SOURCES[server.channel]
+    const versions = releases
+      .filter(
+        (release) =>
+          release.arch === server.arch && channels.includes(release.channel)
+      )
+      .map((release) => release.version)
+
+    return [...new Set(versions)]
+  }
 }
 
 export function alertStateOf(
@@ -109,80 +136,182 @@ function notify(
   })
 }
 
-async function openAlert(
-  server: ServerRow,
-  kind: AlertKind,
-  state: AlertState,
-  now: Date
-): Promise<void> {
-  const prisma = getPrisma()
-  const alert = await prisma.alert.create({
-    data: { serverId: server.id, kind, firstSeenAt: now },
-  })
-  const notified = await notify(server, kind, state, now)
+function openAlertsBy(alerts: Alert[]): Map<string, Alert[]> {
+  const byServer = new Map<string, Alert[]>()
 
-  if (notified) {
-    await prisma.alert.update({
-      where: { id: alert.id },
-      data: { notifiedAt: now },
-    })
+  for (const alert of alerts) {
+    byServer.set(alert.serverId, [
+      ...(byServer.get(alert.serverId) ?? []),
+      alert,
+    ])
   }
+
+  return byServer
 }
 
 /**
  * One open row per kind and per server is the whole anti-spam rule: nothing
  * leaves while an episode is open, and the next email waits for the return to
- * normal that closes it.
+ * normal that closes it. The emails themselves are sent apart, so a failed
+ * one stays owed and is tried again at the next evaluation.
  */
-export async function evaluateServerAlerts(
-  server: ServerRow,
-  now: Date = new Date()
-): Promise<AlertVerdict> {
-  const prisma = getPrisma()
-  const state = alertStateOf(server, await publishedVersionsFor(server))
-  const raised = detectAlerts(state, now)
-  const open = await prisma.alert.findMany({
-    where: { serverId: server.id, resolvedAt: null },
-  })
-  const openKinds = new Set(open.map((alert: Alert) => alert.kind))
-  const opened = raised.filter((kind) => !openKinds.has(kind))
-  const settled = open.filter((alert: Alert) => !raised.includes(alert.kind))
+async function evaluateServers(
+  servers: ServerRow[],
+  now: Date
+): Promise<Omit<AlertBatch, "next">> {
+  if (servers.length === 0) {
+    return { runs: [], pending: [] }
+  }
 
-  if (settled.length > 0) {
+  const prisma = getPrisma()
+  const [versionsOf, open] = await Promise.all([
+    publishedVersionsFor(servers),
+    prisma.alert.findMany({
+      where: {
+        serverId: { in: servers.map((server) => server.id) },
+        resolvedAt: null,
+      },
+    }),
+  ])
+  const openByServer = openAlertsBy(open)
+  const settledByKind = new Map<AlertKind, string[]>()
+  const runs: AlertRun[] = []
+  const pending: string[] = []
+
+  for (const server of servers) {
+    const raised = detectAlerts(alertStateOf(server, versionsOf(server)), now)
+    const mine = openByServer.get(server.id) ?? []
+    const openKinds = new Set(mine.map((alert) => alert.kind))
+    const opened = raised.filter((kind) => !openKinds.has(kind))
+    const settled = mine.filter((alert) => !raised.includes(alert.kind))
+    const owed = mine.filter(
+      (alert) => raised.includes(alert.kind) && alert.notifiedAt === null
+    )
+
+    pending.push(...owed.map((alert) => alert.id))
+
+    for (const alert of settled) {
+      settledByKind.set(alert.kind, [
+        ...(settledByKind.get(alert.kind) ?? []),
+        server.id,
+      ])
+    }
+
+    for (const kind of opened) {
+      const alert = await prisma.alert.create({
+        data: { serverId: server.id, kind, firstSeenAt: now },
+      })
+
+      pending.push(alert.id)
+    }
+
+    if (opened.length > 0 || settled.length > 0) {
+      runs.push({
+        serverId: server.id,
+        opened,
+        resolved: settled.map((alert) => alert.kind),
+      })
+    }
+  }
+
+  for (const [kind, serverIds] of settledByKind) {
     await prisma.alert.updateMany({
-      where: { id: { in: settled.map((alert: Alert) => alert.id) } },
+      where: { serverId: { in: serverIds }, kind, resolvedAt: null },
       data: { resolvedAt: now },
     })
   }
 
-  for (const kind of opened) {
-    await openAlert(server, kind, state, now)
-  }
-
-  return { opened, resolved: settled.map((alert: Alert) => alert.kind) }
+  return { runs, pending }
 }
 
-export async function evaluateAlerts(
+/** The email of one open alert, unless it already left or the episode closed since. */
+export async function notifyAlert(
+  alertId: string,
   now: Date = new Date()
-): Promise<AlertRun[]> {
+): Promise<boolean> {
+  const prisma = getPrisma()
+  const alert = await prisma.alert.findUnique({
+    where: { id: alertId },
+    include: { server: true },
+  })
+
+  if (!alert || alert.resolvedAt || alert.notifiedAt) {
+    return false
+  }
+
+  const versionsOf = await publishedVersionsFor([alert.server])
+  const state = alertStateOf(alert.server, versionsOf(alert.server))
+  const notified = await notify(alert.server, alert.kind, state, now)
+
+  if (notified) {
+    await prisma.alert.updateMany({
+      where: { id: alert.id, notifiedAt: null },
+      data: { notifiedAt: now },
+    })
+  }
+
+  return notified
+}
+
+export async function notifyAlerts(
+  alertIds: string[],
+  now: Date = new Date()
+): Promise<string[]> {
+  const notified: string[] = []
+
+  for (const alertId of alertIds) {
+    if (await notifyAlert(alertId, now)) {
+      notified.push(alertId)
+    }
+  }
+
+  return notified
+}
+
+export async function evaluateServerAlerts(
+  server: ServerRow,
+  now: Date = new Date()
+): Promise<AlertVerdict> {
+  const { runs, pending } = await evaluateServers([server], now)
+
+  await notifyAlerts(pending, now)
+
+  return { opened: runs[0]?.opened ?? [], resolved: runs[0]?.resolved ?? [] }
+}
+
+export async function evaluateAlertsBatch(
+  after: string | null,
+  now: Date = new Date()
+): Promise<AlertBatch> {
   const servers = await getPrisma().server.findMany({
     where: {
       OR: [
         { status: { in: ["active", "grace"] } },
         { alerts: { some: { resolvedAt: null } } },
       ],
+      ...(after === null ? {} : { id: { gt: after } }),
     },
-    orderBy: { createdAt: "asc" },
+    orderBy: { id: "asc" },
+    take: ALERT_BATCH_SIZE,
   })
-  const runs: AlertRun[] = []
+  const evaluated = await evaluateServers(servers, now)
+  const next =
+    servers.length < ALERT_BATCH_SIZE ? null : (servers.at(-1)?.id ?? null)
 
-  for (const server of servers) {
-    const verdict = await evaluateServerAlerts(server, now)
+  return { ...evaluated, next }
+}
 
-    runs.push({ serverId: server.id, ...verdict })
-  }
+export async function evaluateAlerts(
+  now: Date = new Date()
+): Promise<AlertRun[]> {
+  const batches = await walkBatches((after) => evaluateAlertsBatch(after, now))
 
-  return runs
+  await notifyAlerts(
+    batches.flatMap((batch) => batch.pending),
+    now
+  )
+
+  return batches.flatMap((batch) => batch.runs)
 }
 
 /**

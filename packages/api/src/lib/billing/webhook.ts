@@ -1,6 +1,7 @@
 import type { BillingInterval } from "@pupitre/db/cloudflare/client"
-import { getPrisma } from "../api/prisma"
+import { getPrisma, isUniqueViolation } from "../api/prisma"
 import { type AuditAction, recordEvent } from "../audit/audit"
+import { stripeEventLeaseMsFromEnv } from "./config"
 import { applyOrganizationEntitlement, mirrorSubscription } from "./mirror"
 import type { RemoteSubscription } from "./provider"
 import { getBillingProvider, getWebhookSecret } from "./runtime"
@@ -19,8 +20,6 @@ export type HandledEventType = (typeof HANDLED_EVENT_TYPES)[number]
 
 const SUBSCRIPTION_EVENT_PREFIX = "customer.subscription."
 
-const UNIQUE_VIOLATION = "P2002"
-
 export class StripeSignatureInvalidError extends Error {
   readonly refusal: SignatureRefusal
 
@@ -35,6 +34,13 @@ export class StripeEventMalformedError extends Error {
   constructor() {
     super("this payload is not a Stripe event")
     this.name = "StripeEventMalformedError"
+  }
+}
+
+export class StripeEventInFlightError extends Error {
+  constructor(eventId: string) {
+    super(`the Stripe event ${eventId} is being processed by another delivery`)
+    this.name = "StripeEventInFlightError"
   }
 }
 
@@ -219,18 +225,13 @@ async function organizationOf(
   )
 }
 
-async function onSubscriptionEvent(
-  object: Record<string, unknown>,
+/** Whatever the delivery said, the mirror takes what Stripe answers now: a late event never revives nor overrides a newer state. */
+async function followSubscription(
+  organizationId: string,
+  subscriptionId: string,
   now: Date
-): Promise<boolean> {
-  const announced = toRemoteSubscription(object as StripeSubscriptionPayload)
-  const organizationId = await organizationOf(announced)
-
-  if (!organizationId) {
-    return false
-  }
-
-  const remote = await getBillingProvider().retrieveSubscription(announced.id)
+): Promise<void> {
+  const remote = await getBillingProvider().retrieveSubscription(subscriptionId)
 
   await rememberCustomer(organizationId, remote.customer_id, remote.interval)
 
@@ -242,6 +243,20 @@ async function onSubscriptionEvent(
     remote
   )
   await applyOrganizationEntitlement(organizationId, now)
+}
+
+async function onSubscriptionEvent(
+  object: Record<string, unknown>,
+  now: Date
+): Promise<boolean> {
+  const announced = toRemoteSubscription(object as StripeSubscriptionPayload)
+  const organizationId = await organizationOf(announced)
+
+  if (!organizationId) {
+    return false
+  }
+
+  await followSubscription(organizationId, announced.id, now)
 
   return true
 }
@@ -250,32 +265,21 @@ async function onInvoicePaymentFailed(
   object: Record<string, unknown>,
   now: Date
 ): Promise<boolean> {
-  const customerId = idOf(object.customer)
   const subscriptionId = invoiceSubscriptionOf(object)
+
+  if (!subscriptionId) {
+    return false
+  }
+
   const organizationId =
     (await organizationOfSubscription(subscriptionId)) ??
-    (await organizationOfCustomer(customerId))
+    (await organizationOfCustomer(idOf(object.customer)))
 
   if (!organizationId) {
     return false
   }
 
-  if (subscriptionId) {
-    await getPrisma().subscription.updateMany({
-      where: { stripeSubscriptionId: subscriptionId },
-      data: { status: "past_due" },
-    })
-  }
-
-  await applyOrganizationEntitlement(organizationId, now)
-  await recordEvent({
-    action: "subscription.updated",
-    actorUserId: null,
-    organizationId,
-    targetType: "subscription",
-    targetId: subscriptionId ?? customerId ?? organizationId,
-    payload: { status: "past_due", reason: "invoice.payment_failed" },
-  })
+  await followSubscription(organizationId, subscriptionId, now)
 
   return true
 }
@@ -315,26 +319,21 @@ function dispatch(
   return Promise.resolve(false)
 }
 
-function isUniqueViolation(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    (error as { code?: unknown }).code === UNIQUE_VIOLATION
-  )
-}
+type Claim = "claimed" | "processed" | "in_flight"
 
 /**
  * The event is claimed before anything runs: two deliveries racing on two
  * isolates collapse on the primary key, and only one of them handles it. A
- * claim left `failed` by a handler that threw is taken again on Stripe's
- * retry, since the 500 it got is what asks for one.
+ * claim left `failed`, or held past its lease by an isolate that died, is
+ * taken again on Stripe's retry; one still in flight is refused, so Stripe
+ * keeps retrying until it has been processed.
  */
 async function claimEvent(
   id: string,
   type: string,
   subscriptionId: string | null,
   now: Date
-): Promise<boolean> {
+): Promise<Claim> {
   const prisma = getPrisma()
 
   try {
@@ -342,19 +341,37 @@ async function claimEvent(
       data: { id, type, subscriptionId, status: "processing", receivedAt: now },
     })
 
-    return true
+    return "claimed"
   } catch (error) {
     if (!isUniqueViolation(error)) {
       throw error
     }
   }
 
+  const leaseExpiredBefore = new Date(
+    now.getTime() - stripeEventLeaseMsFromEnv()
+  )
   const retried = await prisma.stripeEvent.updateMany({
-    where: { id, status: "failed" },
+    where: {
+      id,
+      OR: [
+        { status: "failed" },
+        { status: "processing", receivedAt: { lt: leaseExpiredBefore } },
+      ],
+    },
     data: { status: "processing", subscriptionId, receivedAt: now },
   })
 
-  return retried.count === 1
+  if (retried.count === 1) {
+    return "claimed"
+  }
+
+  const stored = await prisma.stripeEvent.findUnique({
+    where: { id },
+    select: { status: true },
+  })
+
+  return stored?.status === "processed" ? "processed" : "in_flight"
 }
 
 export interface StripeWebhookInput {
@@ -395,10 +412,18 @@ export async function handleStripeWebhook({
   }
 
   const object = envelope.data?.object ?? {}
+  const claim = await claimEvent(
+    id,
+    type,
+    announcedSubscriptionOf(type, object),
+    now
+  )
 
-  if (
-    !(await claimEvent(id, type, announcedSubscriptionOf(type, object), now))
-  ) {
+  if (claim === "in_flight") {
+    throw new StripeEventInFlightError(id)
+  }
+
+  if (claim === "processed") {
     return { event_id: id, type, handled: false, duplicate: true }
   }
 

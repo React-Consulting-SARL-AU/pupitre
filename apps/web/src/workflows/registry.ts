@@ -33,11 +33,22 @@ export function workflowsScheduledAt(cron: string): readonly WorkflowName[] {
   return WORKFLOW_CRONS[cron as keyof typeof WORKFLOW_CRONS] ?? []
 }
 
+/** The instance a cron fire starts: a second delivery of the same fire names the same instance, which Cloudflare refuses. */
+export function scheduledInstanceId(
+  name: WorkflowName,
+  scheduledTime: number
+): string {
+  return `${name}-${scheduledTime}`
+}
+
 export async function startWorkflow(
   env: CloudflareEnv,
-  name: WorkflowName
+  name: WorkflowName,
+  id?: string
 ): Promise<string> {
-  const instance = await env[WORKFLOW_BINDINGS[name]].create()
+  const instance = await env[WORKFLOW_BINDINGS[name]].create(
+    id === undefined ? undefined : { id }
+  )
 
   return instance.id
 }

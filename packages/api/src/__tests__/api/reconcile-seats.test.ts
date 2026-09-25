@@ -1,5 +1,9 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
-import { reconcileSeats } from "../../lib/billing/reconcile"
+import { LAUNCH_PRODUCT, LAUNCH_SEATS } from "@pupitre/shared/plans"
+import {
+  reconcileSeats,
+  SEAT_RECONCILIATION_BATCH_SIZE,
+} from "../../lib/billing/reconcile"
 import { type ApiTestServer, bootApiTestServer, resetDb } from "../../testing"
 import { useFakeBilling } from "../../testing/billing"
 import {
@@ -75,6 +79,74 @@ describe("reconcileSeats", () => {
     expect(warned).toHaveLength(1)
     expect(warned[0]?.text).toContain("3")
     expect(warned[0]?.text).toContain("2")
+  })
+
+  it("warns once per drift, and again only when the count changes", async () => {
+    const { organization, owner } = await organizationSeating(3, 2)
+
+    await reconcileSeats()
+    await reconcileSeats()
+
+    const warnedOf = () =>
+      server.sentEmails.filter((email) => email.to === owner.user.email)
+
+    expect(warnedOf()).toHaveLength(1)
+    expect(
+      await server.prisma.event.count({
+        where: { action: "seats.drifted", organizationId: organization.id },
+      })
+    ).toBe(1)
+
+    await createServer({ organizationId: organization.id })
+    await reconcileSeats()
+
+    expect(warnedOf()).toHaveLength(2)
+  })
+
+  it("never counts the seat kept from the launch as a billed one", async () => {
+    const { organization, subscription } = await organizationSeating(3, 2)
+
+    await server.prisma.subscription.create({
+      data: {
+        organizationId: organization.id,
+        stripeSubscriptionId: `launch_${organization.id}`,
+        product: LAUNCH_PRODUCT,
+        quantity: LAUNCH_SEATS,
+        status: "active",
+      },
+    })
+
+    const report = await reconcileSeats({ apply: true })
+
+    expect(report).toEqual([
+      expect.objectContaining({
+        stripe_subscription_id: subscription.stripeSubscriptionId,
+        paid: 2,
+        seated: 2,
+        drift: 0,
+        applied: false,
+      }),
+    ])
+    expect(server.sentEmails).toHaveLength(0)
+    expect(useFakeBilling().quantities).toHaveLength(0)
+  })
+
+  it("reconciles every billed subscription, page after page", async () => {
+    const total = SEAT_RECONCILIATION_BATCH_SIZE + 3
+
+    for (let index = 0; index < total; index += 1) {
+      const { organization } = await createOrganizationWithMembers({
+        roles: ["owner"],
+      })
+
+      await subscribeOrganization({
+        organizationId: organization.id,
+        quantity: 1,
+        status: "active",
+      })
+    }
+
+    expect(await reconcileSeats()).toHaveLength(total)
   })
 
   it("stays silent when the paid seats cover the servers", async () => {

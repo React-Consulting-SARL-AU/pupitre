@@ -6,6 +6,7 @@ import {
 } from "@pupitre/api/testing/factories"
 import { recordSteps } from "@/testing/workflow"
 import { RECONCILE_SEATS_STEP, runReconcileSeats } from "./reconcile-seats"
+import { batchStep } from "./steps"
 
 const PAID_SEATS = 4
 
@@ -44,7 +45,7 @@ describe("le workflow ReconcileSeats", () => {
 
     const report = await runReconcileSeats(recorder.step)
 
-    expect(recorder.names).toEqual([RECONCILE_SEATS_STEP])
+    expect(recorder.names).toEqual([batchStep(RECONCILE_SEATS_STEP, 0)])
     expect(report).toHaveLength(1)
     expect(report[0]).toMatchObject({
       organization_id: organizationId,

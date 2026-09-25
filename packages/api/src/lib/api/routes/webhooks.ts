@@ -2,6 +2,7 @@ import { resolveLocale } from "@pupitre/shared/i18n"
 import { Elysia } from "elysia"
 import {
   handleStripeWebhook,
+  StripeEventInFlightError,
   StripeEventMalformedError,
   StripeSignatureInvalidError,
 } from "../../billing/webhook"
@@ -42,6 +43,16 @@ export const webhooksRoutes = new Elysia({
         )
       }
 
+      if (error instanceof StripeEventInFlightError) {
+        set.status = 409
+
+        return apiError(
+          "conflict",
+          translate(locale, "stripe_event_in_flight"),
+          translate(locale, "stripe_event_in_flight_fix")
+        )
+      }
+
       if (error instanceof StripeEventMalformedError) {
         set.status = 400
 
@@ -61,6 +72,6 @@ export const webhooksRoutes = new Elysia({
     detail: {
       summary: "Les événements Stripe, signés et idempotents",
     },
-    response: { 200: stripeWebhookAck, 400: errorResponse },
+    response: { 200: stripeWebhookAck, 400: errorResponse, 409: errorResponse },
   }
 )

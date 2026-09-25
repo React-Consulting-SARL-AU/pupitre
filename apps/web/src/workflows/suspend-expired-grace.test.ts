@@ -8,10 +8,14 @@ import {
 import { resetFakeMail, useFakeMail } from "@pupitre/api/testing/mail"
 import { GRANTED_PRODUCT, LAUNCH_PRODUCT } from "@pupitre/shared/plans"
 import { recordSteps } from "@/testing/workflow"
+import { batchStep } from "./steps"
 import {
+  ALIGN_LAUNCH_STEP,
+  ANNOUNCE_SUSPENSION_STEP,
+  CANCEL_ENDED_LAUNCH_STEP,
   EXPIRE_GRANTED_STEP,
+  KEEP_LAUNCH_SEATS_STEP,
   PURGE_MAIL_UPLOADS_STEP,
-  RECONCILE_LAUNCH_STEP,
   runSuspendExpiredGrace,
   SUSPEND_EXPIRED_GRACE_STEP,
 } from "./suspend-expired-grace"
@@ -70,11 +74,15 @@ describe("le workflow SuspendExpiredGrace", () => {
       purgedUploads: [],
     })
     expect(recorder.names).toEqual([
-      RECONCILE_LAUNCH_STEP,
-      EXPIRE_GRANTED_STEP,
-      SUSPEND_EXPIRED_GRACE_STEP,
+      batchStep(ALIGN_LAUNCH_STEP, 0),
+      batchStep(KEEP_LAUNCH_SEATS_STEP, 0),
+      batchStep(CANCEL_ENDED_LAUNCH_STEP, 0),
+      batchStep(EXPIRE_GRANTED_STEP, 0),
+      batchStep(SUSPEND_EXPIRED_GRACE_STEP, 0),
+      batchStep(ANNOUNCE_SUSPENSION_STEP, 0),
       PURGE_MAIL_UPLOADS_STEP,
     ])
+    expect((await bootApiTestServer()).sentEmails).toHaveLength(1)
 
     const { prisma } = await bootApiTestServer()
 
@@ -124,6 +132,10 @@ describe("le workflow SuspendExpiredGrace", () => {
     })
     const { server } = await createServer({ organizationId: organization.id })
 
+    await prisma.server.update({
+      where: { id: server.id },
+      data: { createdAt: new Date(ended.getTime() - DAY_MS) },
+    })
     useLaunchBilling({ endsAt: ended })
 
     const report = await runSuspendExpiredGrace(recordSteps().step)

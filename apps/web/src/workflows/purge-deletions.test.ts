@@ -9,12 +9,12 @@ import {
 } from "@pupitre/api/testing/factories"
 import { recordSteps } from "@/testing/workflow"
 import {
-  batchStep,
   PURGE_ORGANIZATIONS_STEP,
   PURGE_USERS_STEP,
   runPurgeDeletions,
   SWEEPS,
 } from "./purge-deletions"
+import { batchStep } from "./steps"
 
 const DAY_MS = 86_400_000
 

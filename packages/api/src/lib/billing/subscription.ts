@@ -2,9 +2,19 @@ import type {
   BillingInterval,
   Subscription,
 } from "@pupitre/db/cloudflare/client"
+import {
+  LAUNCH_PRODUCT,
+  LIVE_SUBSCRIPTION_STATUSES,
+  PLATFORM_PRODUCTS,
+} from "@pupitre/shared/plans"
 import { getPrisma } from "../api/prisma"
 
-export const LIVE_SUBSCRIPTION_STATUSES = ["active", "trialing", "past_due"]
+/** The seat an organization kept for good from the free launch: never billed, on top of whatever it pays. */
+export const KEPT_LAUNCH_SEAT = {
+  product: LAUNCH_PRODUCT,
+  status: "active",
+  currentPeriodEnd: null,
+} as const
 
 /** The same choice as `liveSubscriptionOf`, over rows already sorted by last touch. */
 export function liveAmong<T extends { status: string }>(
@@ -40,6 +50,20 @@ export async function liveSubscriptionOf(
       orderBy: { updatedAt: "desc" },
     }))
   )
+}
+
+/** The live subscription Stripe bills, leaving aside what the platform granted itself. */
+export function billedSubscriptionOf(
+  organizationId: string
+): Promise<Subscription | null> {
+  return getPrisma().subscription.findFirst({
+    where: {
+      organizationId,
+      status: { in: LIVE_SUBSCRIPTION_STATUSES },
+      product: { notIn: [...PLATFORM_PRODUCTS] },
+    },
+    orderBy: { updatedAt: "desc" },
+  })
 }
 
 export interface SubscriptionView {

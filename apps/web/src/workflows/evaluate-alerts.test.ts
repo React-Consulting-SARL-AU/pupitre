@@ -5,7 +5,12 @@ import {
   createServer,
 } from "@pupitre/api/testing/factories"
 import { recordSteps } from "@/testing/workflow"
-import { EVALUATE_ALERTS_STEP, runEvaluateAlerts } from "./evaluate-alerts"
+import {
+  EVALUATE_ALERTS_STEP,
+  NOTIFY_ALERTS_STEP,
+  runEvaluateAlerts,
+} from "./evaluate-alerts"
+import { batchStep } from "./steps"
 
 const SILENCE_MS = 1_860_000
 
@@ -42,7 +47,10 @@ describe("le workflow EvaluateAlerts", () => {
 
     const runs = await runEvaluateAlerts(recorder.step)
 
-    expect(recorder.names).toEqual([EVALUATE_ALERTS_STEP])
+    expect(recorder.names).toEqual([
+      batchStep(EVALUATE_ALERTS_STEP, 0),
+      batchStep(NOTIFY_ALERTS_STEP, 0),
+    ])
     expect(runs).toEqual([
       { serverId, opened: ["server_unreachable"], resolved: [] },
     ])

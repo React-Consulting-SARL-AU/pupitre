@@ -45,14 +45,14 @@ export async function handleInternalWorkflowTrigger(
   const name = workflowNamed(pathname.slice(INTERNAL_WORKFLOW_PREFIX.length))
 
   if (request.method !== "POST" || !name) {
-    return refuse(404, "not_found", "Ce déclencheur interne n'existe pas.")
+    return refuse(404, "not_found", "No such internal trigger.")
   }
 
   if (!isInternalTriggerAuthorized(request, env)) {
     return refuse(
       401,
       "unauthenticated",
-      "Le secret des déclencheurs internes est absent ou faux."
+      "The internal trigger secret is missing or wrong."
     )
   }
 

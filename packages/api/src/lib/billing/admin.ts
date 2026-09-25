@@ -1,9 +1,16 @@
 import type { Subscription } from "@pupitre/db/cloudflare/client"
-import { GRANTED_PRODUCT, isPlatformProduct } from "@pupitre/shared/plans"
+import {
+  GRANTED_PRODUCT,
+  isPlatformProduct,
+  LIVE_SUBSCRIPTION_STATUSES,
+} from "@pupitre/shared/plans"
 import { PLATFORM_ORGANIZATION_ID } from "@pupitre/shared/platform"
 import { getPrisma } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
-import { cancelEndedSubscriptions } from "./expiry"
+import {
+  cancelEndedSubscriptions,
+  cancelEndedSubscriptionsBatch,
+} from "./expiry"
 import {
   graceOrganizationServers,
   restoreOrganizationServers,
@@ -14,7 +21,7 @@ import { applyOrganizationEntitlement, mirrorSubscription } from "./mirror"
 import type { RemoteSubscription } from "./provider"
 import { getBillingProvider } from "./runtime"
 import { assertSeatsCoverUsage } from "./seats"
-import { LIVE_SUBSCRIPTION_STATUSES, liveSubscriptionOf } from "./subscription"
+import { liveSubscriptionOf } from "./subscription"
 
 export interface PlatformBillingActor {
   userId: string
@@ -469,11 +476,16 @@ export async function deleteSubscriptionByAdmin(
   return true
 }
 
+const ENDED_GRANT_FILTER = { product: GRANTED_PRODUCT, status: "active" }
+
+export function expireGrantedSubscriptionsBatch(
+  now: Date = new Date()
+): Promise<string[]> {
+  return cancelEndedSubscriptionsBatch(ENDED_GRANT_FILTER, now)
+}
+
 export function expireGrantedSubscriptions(
   now: Date = new Date()
 ): Promise<string[]> {
-  return cancelEndedSubscriptions(
-    { product: GRANTED_PRODUCT, status: "active" },
-    now
-  )
+  return cancelEndedSubscriptions(ENDED_GRANT_FILTER, now)
 }

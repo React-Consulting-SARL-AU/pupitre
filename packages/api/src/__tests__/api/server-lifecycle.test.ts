@@ -1,8 +1,11 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
 import {
+  DECOMMISSION_BATCH_SIZE,
   DECOMMISSION_DELAY_MS,
   decommissionDueServers,
+  ENROLLMENT_EXPIRY_BATCH_SIZE,
   expireEnrollments,
+  METRIC_DELETE_CHUNK,
 } from "../../lib/servers/expire"
 import { bootApiTestServer, resetDb } from "../../testing"
 import { createOrganizationWithMembers } from "../../testing/factories"
@@ -167,5 +170,76 @@ describe("decommissionDueServers", () => {
     })
 
     expect(server).toBeNull()
+  })
+
+  it("empties a week of samples in chunks before removing servers, past one batch", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { organization } = await createOrganizationWithMembers({
+      roles: ["owner"],
+    })
+    const due = new Date(Date.now() - HOUR_MS)
+    const ids: string[] = []
+
+    for (let index = 0; index < DECOMMISSION_BATCH_SIZE + 1; index += 1) {
+      const server = await prisma.server.create({
+        data: {
+          organizationId: organization.id,
+          name: `vps-${index}`,
+          arch: "amd64",
+          status: "revoked",
+          decommissionAt: due,
+        },
+      })
+
+      ids.push(server.id)
+    }
+
+    await prisma.serverMetric.createMany({
+      data: Array.from({ length: METRIC_DELETE_CHUNK + 3 }, (_, index) => ({
+        serverId: ids[0] ?? "",
+        at: new Date(due.getTime() - index * 60_000),
+        sample: {},
+      })),
+    })
+
+    expect((await decommissionDueServers()).sort()).toEqual(ids.sort())
+    expect(await prisma.server.count()).toBe(0)
+    expect(await prisma.serverMetric.count()).toBe(0)
+  })
+})
+
+describe("expireEnrollments past one batch", () => {
+  beforeAll(async () => {
+    await bootApiTestServer()
+  })
+
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it("revokes every expired enrolment, batch after batch", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { organization } = await createOrganizationWithMembers({
+      roles: ["owner"],
+    })
+    const total = ENROLLMENT_EXPIRY_BATCH_SIZE + 2
+
+    for (let index = 0; index < total; index += 1) {
+      await prisma.server.create({
+        data: {
+          organizationId: organization.id,
+          name: `vps-${index}`,
+          arch: "amd64",
+          status: "enrolling",
+          enrollmentTokenHash: `hash-${index}`,
+          enrollmentExpiresAt: new Date(Date.now() - HOUR_MS),
+        },
+      })
+    }
+
+    expect(await expireEnrollments()).toHaveLength(total)
+    expect(await prisma.server.count({ where: { status: "revoked" } })).toBe(
+      total
+    )
   })
 })
