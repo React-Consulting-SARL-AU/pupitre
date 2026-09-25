@@ -2,13 +2,7 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { sshSlug } from "@shared/ssh-names";
 import { controlClass, Field, fieldAria } from "../ui/field";
 
-/**
- * The word a server answers to after `ssh`, typed beside its name.
- *
- * Under the field, what `ssh` will get: the typed word made fit for a `Host`
- * line, or the name's own when nothing is typed — the placeholder says which,
- * and a blank field means "from the name" rather than "none".
- */
+/** A blank field means "drawn from the server name", not "no SSH name". */
 export function ServerSshNameField({
   name,
   serverName,
@@ -17,9 +11,7 @@ export function ServerSshNameField({
   disabled = false,
   onChange,
 }: {
-  /** The control's identifier, which the caption and the refusal hang from. */
   name: string;
-  /** The server's name, which the SSH name is drawn from when nothing is typed. */
   serverName: string;
   value: string;
   problem?: string;

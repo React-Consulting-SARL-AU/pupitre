@@ -229,7 +229,7 @@ function numbered(bytes: Bytes, size: number): Chunk[] {
   return pieces(bytes, size).map((piece, seq) => ({ bytes: piece, seq }));
 }
 
-/** The agent as it answers `shots.read`: chunks first, then what proves them. */
+// `shots.read` answers with the chunks first, then what proves them.
 function reader(
   chunks: readonly Chunk[],
   ack: Partial<ShotsReadResult>,

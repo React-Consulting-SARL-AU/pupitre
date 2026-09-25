@@ -2,7 +2,6 @@ import type { ProjectGitStatusResult } from "@pupitre/shared/agent-protocol/proj
 import { Callout } from "@renderer/components/ui/callout";
 import { useTranslations } from "@renderer/i18n/use-translations";
 
-/** The gap with the upstream in one line: behind, ahead, and what is not committed. */
 export function ProjectGitSummary({ git }: { git: ProjectGitStatusResult }) {
   const t = useTranslations();
 

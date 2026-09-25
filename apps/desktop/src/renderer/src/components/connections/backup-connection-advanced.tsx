@@ -8,11 +8,6 @@ import { BackupConnectionTextField } from "./backup-connection-text-field";
 
 type Advanced = Pick<BackupStorage, "region" | "prefix" | "path_style">;
 
-/**
- * What a bucket rarely needs changed, folded away and opened on its own when
- * one of them is refused: the prefix, and for a service Pupitre does not know,
- * the region and the addressing.
- */
 export function BackupConnectionAdvanced({
   provider,
   values,

@@ -15,12 +15,6 @@ const LOOK: Partial<
   starting: { label: "state.project.starting", shape: "breathing" },
 };
 
-/**
- * The project as the agent leaves it: its state and its address.
- *
- * The address is the agent's own — a tunnel gives a public one, a bare machine
- * gives the port — so nothing here builds a URL of its own.
- */
 export function ProjectAddOutcome({
   name,
   state,

@@ -4,14 +4,6 @@ import { CheckBox } from "../ui/check-box";
 import { controlClass } from "../ui/field";
 import { IconButton } from "../ui/icon-button";
 
-/**
- * What a port is on the web: nothing, or a name.
- *
- * The switch and the name share one cell, because they are one decision: a
- * port that is published has a name, and a port that has no name is not
- * published. A name the server already stored shows whole, as it answers; a
- * new one is a subdomain the agent completes with the server's domain.
- */
 export function ProjectPortWeb({
   name,
   labelledBy,
@@ -23,14 +15,11 @@ export function ProjectPortWeb({
   onChange,
   onGenerate,
 }: {
-  /** The id of the row, so a form of several rows keeps each control addressable. */
   name: string;
-  /** The caption of the column, which the head of the table carries. */
   labelledBy: string;
   publish: boolean;
   value: string;
   placeholder: string;
-  /** The name is refused, and the row says why beneath itself. */
   wrong: boolean;
   onPublish: (value: boolean) => void;
   onChange: (value: string) => void;

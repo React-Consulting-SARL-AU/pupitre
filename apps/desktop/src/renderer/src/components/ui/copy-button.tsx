@@ -5,12 +5,6 @@ import { Button, type ButtonVariant } from "./button";
 
 const FEEDBACK_MS = 1600;
 
-/**
- * A button that puts something on the clipboard and says so where it was
- * pressed: the glyph turns into a check and the label into "copied" for a
- * moment, then the button is itself again. What is copied is the caller's —
- * text, an image — and a clipboard that refuses leaves the button as it was.
- */
 export function CopyButton({
   children,
   onCopy,

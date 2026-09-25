@@ -9,14 +9,6 @@ import { useEffect, useRef, useState } from "react";
 
 const MIDDLE_BUTTON = 1;
 
-/**
- * One tab of a row of sessions.
- *
- * The dot says what the session is doing before the name does, and the mark
- * says what kind it is once the reader has renamed it; the close button shows
- * on the tab in front and on the one under the mouse, and a middle click
- * closes without looking for it. A double click, F2 or Enter opens the name.
- */
 export function TerminalTab({
   session,
   active,
@@ -29,7 +21,6 @@ export function TerminalTab({
   session: TerminalInfo;
   active: boolean;
   state: AgentState | undefined;
-  /** What the tooltip prints before the key of a shortcut. */
   chord: string;
   onActivate: () => void;
   onClose: () => void;
@@ -121,7 +112,7 @@ export function TerminalTab({
         </button>
       </Tooltip>
 
-      {/* A pointer's shortcut only: the keyboard and the reader close from the bar's own button. */}
+      {/* Pointer-only shortcut: the keyboard closes from the bar's own button. */}
       <Tooltip label={t("terminals.closeTabHint", { chord })}>
         <button
           aria-hidden="true"

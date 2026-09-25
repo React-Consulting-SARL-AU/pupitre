@@ -2,15 +2,7 @@ import { RadioGroup, RadioLine } from "@renderer/components/ui/radio";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { ConnectionAccount } from "@shared/connections";
 
-/**
- * The one question a token cannot answer for itself.
- *
- * A Cloudflare token may open several accounts, and the app acts on one: its
- * zones are the ones offered for a domain, its tunnel is the one created, its
- * identifier is the one Wrangler deploys to. Taking the first the provider
- * listed left a reader with a zone list from the wrong account and nothing to
- * change it; here the account is theirs to name before anything is kept.
- */
+// A token may open several accounts; silently taking the first one listed showed zones from the wrong one.
 export function ConnectionAccountChoice({
   kind,
   accounts,

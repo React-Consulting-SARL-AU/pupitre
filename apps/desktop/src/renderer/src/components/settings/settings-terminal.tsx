@@ -20,14 +20,7 @@ import { RotateCcw } from "lucide-react";
 
 const SCROLLBACK_STEP = 1000;
 
-/**
- * The look of every terminal, chosen once.
- *
- * Each choice lands on the open sessions the moment it is made — xterm draws
- * on a canvas and is handed the value by hand — so nothing here asks to be
- * saved or applied. The face is a list, never a field: a name xterm cannot
- * measure breaks the grid of every cell.
- */
+// The font is a closed list: a family xterm cannot measure breaks the cell grid.
 export function SettingsTerminal() {
   const t = useTranslations();
 

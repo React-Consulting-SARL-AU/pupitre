@@ -8,7 +8,6 @@ export type SessionState =
   | { status: "ended"; session: string | null; code: number }
   | { status: "failed"; error: AgentError };
 
-/** A sign-in a session is waiting on: its host, and whether the browser already has it. */
 export interface LoginLink {
   host: string;
   opened: boolean;
@@ -16,16 +15,11 @@ export interface LoginLink {
 
 interface TerminalsStore {
   sessions: Record<string, SessionState>;
-  /** The sign-in each session is waiting on, by session; the address itself never comes. */
+  /** The login address itself stays in main: only its host reaches the renderer. */
   links: Record<string, LoginLink>;
-  /** The session whose search bar is open. */
   search: string | null;
 
-  /**
-   * Answers with the session the machine named, so the tab can be found again.
-   * `size` is what the host measured before opening; without it the PTY opens
-   * at the classic 80×24 and is resized a frame later.
-   */
+  /** Without `size` the PTY opens at 80×24 and is resized a frame later. */
   start: (
     id: string,
     serverId: string,
@@ -35,7 +29,6 @@ interface TerminalsStore {
     dir?: string | null,
     size?: TerminalSize | null
   ) => Promise<string | null>;
-  /** The same tab, a fresh process: what the reader asks for when one has ended. */
   restart: (
     id: string,
     serverId: string,
@@ -47,7 +40,6 @@ interface TerminalsStore {
   ) => Promise<string | null>;
   noteExit: (id: string, code: number) => void;
   noteLink: (id: string, host: string) => void;
-  /** Opens the sign-in in the reader's browser; the address stays in the main process. */
   openLogin: (id: string) => Promise<void>;
   dismissLogin: (id: string) => void;
   openSearch: (id: string) => void;
@@ -109,7 +101,6 @@ export const useTerminals = create<TerminalsStore>((set, get) => ({
     return get().start(id, serverId, kind, project, session, dir, size);
   },
 
-  /** The process is gone; the tab stays, with what it printed and the way out. */
   noteExit(id, code) {
     const current = get().sessions[id];
 
@@ -126,7 +117,7 @@ export const useTerminals = create<TerminalsStore>((set, get) => ({
     }));
   },
 
-  /** A fresh address, even on a host already shown: the browser has not seen this one. */
+  // A new address resets `opened` even on the same host: the browser has not seen it.
   noteLink(id, host) {
     set((state) => ({
       links: { ...state.links, [id]: { host, opened: false } },
@@ -144,7 +135,6 @@ export const useTerminals = create<TerminalsStore>((set, get) => ({
     }
   },
 
-  /** The bar goes, the address stays put: the same one printed again is not news. */
   dismissLogin(id) {
     set((state) => ({ links: without(state.links, id) }));
   },

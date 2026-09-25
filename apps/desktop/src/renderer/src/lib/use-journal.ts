@@ -2,7 +2,6 @@ import type { AgentError, AgentResponse } from "@shared/agent";
 import { useEffect, useRef, useState } from "react";
 import { JournalBuffer, type JournalRow } from "./journal-buffer";
 
-/** A follow the preload opened: its outcome, and the way to leave it. */
 export interface Follow {
   done: Promise<AgentResponse<unknown>>;
   cancel: () => void;
@@ -10,26 +9,19 @@ export interface Follow {
 
 export interface Journal {
   rows: readonly JournalRow[];
-  /** True once the bound has cut the oldest rows: what is shown is no longer the whole stream. */
+  /** The bound has dropped the oldest rows. */
   cut: boolean;
   error: AgentError | null;
   retry: () => void;
 }
 
-/**
- * A journal followed line by line, for as long as the reader stays.
- *
- * The lines land in a terminal-shaped buffer, and what lands between two
- * frames is drawn in one: a build that prints a thousand lines a second is one
- * render per frame, not a thousand. `key` names what is followed; a new key
- * empties the buffer and opens the follow again, as does a retry.
- */
 export function useJournal(
   open: (onLine: (line: string) => void) => Follow,
   key: string,
   limit: number
 ): Journal {
   const opener = useRef(open);
+
   opener.current = open;
 
   const [rows, setRows] = useState<readonly JournalRow[]>([]);

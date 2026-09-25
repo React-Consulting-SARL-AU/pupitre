@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 interface GestureFailureStore {
-  /** The last gesture that stopped on an error nobody else caught, until it is put away. */
+  // A gesture error no screen caught; `count` bumps so a repeat still shows.
   failure: { text: string; count: number } | null;
   fail: (text: string) => void;
   dismiss: () => void;

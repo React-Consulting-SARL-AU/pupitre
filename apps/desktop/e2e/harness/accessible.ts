@@ -3,22 +3,9 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { expect, type Page } from "@playwright/test";
 
-/**
- * What an automated pass can say about a screen.
- *
- * It catches the things a machine is good at: a control with no name, a field
- * whose caption is tied to nothing, a contrast below the floor. It says nothing
- * about whether the screen makes sense — that is what the rest of the scenario
- * is for. Serious and critical violations fail; the rest is left to a human,
- * because a rule can be right in general and wrong here.
- *
- * `axe-core` is injected rather than driven through its Playwright wrapper: the
- * wrapper opens a page of its own to reach frames, and Electron has no such
- * target. This window has no frames either, so nothing is lost.
- */
-
 const require = createRequire(import.meta.url);
 
+// Injected rather than via its Playwright wrapper, which opens a page Electron cannot give it.
 const SOURCE = readFileSync(
   join(dirname(require.resolve("axe-core/package.json")), "axe.min.js"),
   "utf8"
@@ -34,10 +21,7 @@ interface Violation {
 }
 
 export async function assertAccessible(page: Page, screen: string) {
-  // A block still rising is a colour still blending into its background: what
-  // would be measured is a frame nobody reads, not the screen. The one looping
-  // animation of the system means "in progress" and never ends, so it is left
-  // out — a dot that breathes is a dot, not a colour on its way somewhere.
+  // Mid-animation colours fail contrast; infinite loops (progress dots) never finish, so skip them.
   await page.waitForFunction(() =>
     document
       .getAnimations()
@@ -86,7 +70,6 @@ export async function assertAccessible(page: Page, screen: string) {
   expect(`${screen}\n${said}`.trim()).toBe(screen);
 }
 
-/** The order the keyboard walks a screen in, by whatever names each control. */
 export function tabOrder(page: Page): Promise<string[]> {
   return page.evaluate(() => {
     const focusable = document.querySelectorAll<HTMLElement>(

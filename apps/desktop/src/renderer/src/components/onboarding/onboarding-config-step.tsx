@@ -4,14 +4,6 @@ import { ConfigScreen } from "../config/config-screen";
 import { OnboardingReplayNotice } from "./onboarding-replay-notice";
 import { OnboardingResumeNotice } from "./onboarding-resume-notice";
 
-/**
- * The configuration screen, mounted for the three moments that need
- * it: before the first install, again for a module whose secret the app no
- * longer has, and once more for what an interrupted install never sent.
- *
- * The way back to the services is the shell's own, in the band above: the
- * bar the step ends on does not say it a second time.
- */
 export function OnboardingConfigStep({
   serverName,
   replaying,
@@ -21,7 +13,6 @@ export function OnboardingConfigStep({
 }: {
   serverName: string;
   replaying: string | null;
-  /** What a resumed onboarding has left to install, and must ask about again. */
   remaining: readonly string[];
   onInstall: () => void;
   onReplay: (moduleId: string) => void;

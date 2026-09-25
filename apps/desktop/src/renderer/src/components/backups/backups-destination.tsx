@@ -23,7 +23,6 @@ function text(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
-/** The bucket a server backs up to, as its own values name it. */
 function serverStorage(values: Record<string, unknown>): BackupStorage {
   return {
     access_key_id: text(values.access_key_id),
@@ -35,13 +34,6 @@ function serverStorage(values: Record<string, unknown>): BackupStorage {
   };
 }
 
-/**
- * Where this server's backups go, as the server holds it — and the one place
- * the bucket and its key are changed. A change is kept on this computer, then
- * applied to the server at once, secret key included: nothing waits for an
- * Apply found on another tab. Below, the way to take backups off the server
- * and set them up again.
- */
 export function BackupsDestination({
   serverId,
   manifest,
@@ -78,6 +70,7 @@ export function BackupsDestination({
     return store.reconfigure(serverId, manifest.id);
   }
 
+  // Applied at once, secret key included, so nothing waits on an Apply from another tab.
   async function savedThenApplied(): Promise<void> {
     setEditing(false);
     await applyHeld();

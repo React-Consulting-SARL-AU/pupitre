@@ -5,22 +5,13 @@ import type { ServiceControl } from "@renderer/stores/services";
 import type { ServiceDetail } from "@shared/services";
 import { Play, RotateCw, Square } from "lucide-react";
 
-/**
- * The three gestures a unit takes, and the one the state calls for first.
- *
- * They concern the service as a whole, so they stand in the page's header
- * with the way back and the reread. A failed service is offered its start
- * before anything else: that is its remedy, without a reinstall. A restart is
- * confirmed by name, because it cuts whoever is connected to the service at
- * that moment.
- */
+/** A restart is confirmed: it cuts whoever is connected to the service. */
 export function ServiceControls({
   detail,
   busy,
   onControl,
 }: {
   detail: ServiceDetail;
-  /** The command in flight, as the protocol names it. */
   busy: string | null;
   onControl: (cmd: ServiceControl) => Promise<void>;
 }) {

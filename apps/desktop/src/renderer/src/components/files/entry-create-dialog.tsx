@@ -8,16 +8,6 @@ import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
 import { controlClass, Field, fieldAria } from "../ui/field";
 
-/**
- * The name of a file or a folder to make where the reader stands, asked in
- * a dialog.
- *
- * The name is a name and nothing else — a slash would be a path, and the
- * entry is made in the folder on screen. The field takes the focus so the
- * name is typed at once, Enter sends it, and the dialog goes away once the
- * entry is made; a refusal stays under the field.
- */
-
 export type EntryKind = "file" | "dir";
 
 export const ENTRY_CREATE_ICON: Record<EntryKind, LucideIcon> = {
@@ -43,7 +33,6 @@ export function EntryCreateDialog({
   onClose,
 }: {
   kind: EntryKind;
-  /** Ties the caption and the help to the input, and names it in a test. */
   name: string;
   onCreate: (entry: string) => Promise<AgentError | null>;
   onClose: () => void;

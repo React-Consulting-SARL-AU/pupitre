@@ -1,10 +1,5 @@
 import type { ReactNode } from "react";
 
-/**
- * What to do about a figure that crossed its line, under the gauge that says
- * so. A tinted bar names the problem; this names the way out, with the gesture
- * that takes it, so the alert is never a colour the reader has to interpret.
- */
 export function DashboardStatRemedy({
   text,
   actions,
@@ -12,7 +7,6 @@ export function DashboardStatRemedy({
 }: {
   text: string;
   actions: ReactNode;
-  /** What the remedy is about, for whoever has to find it. */
   name: string;
 }) {
   return (

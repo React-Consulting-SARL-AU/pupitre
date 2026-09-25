@@ -1,12 +1,5 @@
 import type { ReactNode } from "react";
 
-/**
- * One entry of the sidebar, in the second and third planes of the menu.
- *
- * The entries are `ink`; the active one sits on `raised` and carries a marker
- * on its left — the plane that says "you are here" without a colour doing the
- * work alone.
- */
 export function SidebarEntry({
   active,
   onClick,

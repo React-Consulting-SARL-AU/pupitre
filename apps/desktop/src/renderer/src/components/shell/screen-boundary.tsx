@@ -1,14 +1,6 @@
 import { Component, type ReactNode } from "react";
 import { ScreenFailure } from "./screen-failure";
 
-/**
- * What stands between a screen that throws and a window that goes white.
- *
- * A render that raises unmounts everything above it, which used to take the
- * sidebar and the whole app with it: the reader saw a blank page and had no
- * way back. The screen alone is lost here, said plainly, and leaving it is
- * enough to try again — `view` changes, the boundary forgets what happened.
- */
 // biome-ignore lint/style/useReactFunctionComponents: React has no function form of an error boundary; getDerivedStateFromError is a class API
 export class ScreenBoundary extends Component<
   { view: string; children: ReactNode },

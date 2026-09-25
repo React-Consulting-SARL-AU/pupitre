@@ -7,7 +7,6 @@ import { IconButton } from "../ui/icon-button";
 import { ProjectPortWeb } from "./project-port-web";
 import { portsColumns, portsHead } from "./project-ports-columns";
 
-/** What one row of the ports section lets the reader change. */
 export interface PortEdits {
   rowLabel: (index: number, value: string) => void;
   rowPort: (index: number, value: number) => void;
@@ -18,7 +17,6 @@ export interface PortEdits {
   removeRow: (index: number) => void;
 }
 
-/** The control a refusal concerns: the line beneath the row is tied to it. */
 const PROBLEM_FIELD: Record<RowProblem, "label" | "port" | "web"> = {
   label: "label",
   labelTaken: "label",
@@ -45,15 +43,6 @@ const PROBLEM_TEXT: Record<
   webTaken: "projectAdd.form.subdomain.taken",
 };
 
-/**
- * One port of the project, on one line: its label, its number and, when the
- * server can publish it, what it is on the web.
- *
- * The first row is the main port — the one that decides the state — and it
- * cannot go. A row refused before the agent is asked says why beneath itself,
- * tied to the control it concerns; a name of several levels is not refused,
- * but what it costs is said in the same place.
- */
 export function ProjectPortRow({
   scope,
   index,
@@ -68,9 +57,7 @@ export function ProjectPortRow({
   index: number;
   row: PortRow;
   problem: RowProblem | null;
-  /** Whether the server can publish a port at all: no exposure, no switch. */
   exposure: boolean;
-  /** The project's name, which the name on the web is proposed from. */
   placeholder: string;
   removable: boolean;
   edit: PortEdits;

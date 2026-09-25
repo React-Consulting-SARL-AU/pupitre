@@ -2,15 +2,6 @@ import { expect, test } from "@playwright/test";
 import { assertAccessible } from "./harness/accessible";
 import { launchPupitre, type Running } from "./harness/launch";
 
-/**
- * A service, opened from the list and driven from its page.
- *
- * The panel used to be reachable by no scenario at all, which is how it came
- * to show a reader an empty page: everything it draws comes from two answers,
- * and a screen with neither said nothing rather than saying so. The unit's
- * gestures and its journal come from the harness too: the state shown after
- * a stop is the one the answer carried, never the one the click hoped for.
- */
 const HELD_BACK = /tant que le serveur est retenu/;
 
 const RESTART_QUESTION = /Redémarrer PostgreSQL/;
@@ -104,7 +95,6 @@ test.describe("services", () => {
       await expect(page.getByText("Mot de passe applicatif")).toBeVisible();
     });
 
-    /** A catalogue the server refuses used to take the whole Configuration section with it. */
     await test.step("elle dit pourquoi les réglages manquent", async () => {
       await expect(page.locator('[data-config="unknown"]')).toBeVisible();
       await expect(page.getByText(HELD_BACK)).toBeVisible();
@@ -187,7 +177,7 @@ test.describe("services", () => {
       await expect(
         page.getByRole("heading", { name: "PostgreSQL" })
       ).toBeVisible();
-      // The copy button fades in from its disabled shade once the journal answers; measured mid-fade it reads grey.
+      // The copy button fades in once the journal answers; measured mid-fade it fails contrast.
       await expect(
         page
           .locator('[data-service-journal="db.postgres"]')

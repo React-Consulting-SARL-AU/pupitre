@@ -22,35 +22,22 @@ import { DashboardProjectCard } from "./dashboard-project-card";
 import { DashboardRootNotice } from "./dashboard-root-notice";
 import { DashboardServices } from "./dashboard-services";
 
-/**
- * The state of the machine in one page: services, projects, memory, disk,
- * sessions.
- *
- * Everything drawn here comes from a single `snapshot`, so the page costs one
- * command however many projects the machine holds. It takes it as a prop rather
- * than reading the store, which is what lets it be rendered from a fixture.
- */
-
 interface Props {
   snapshot: SnapshotResult;
-  /** The name the app gives the server; the machine's own when it has none. */
   serverName?: string;
   busy: string | null;
-  /** The sessions the app still has a tab on. */
   attached: readonly string[];
-  /** Whose account each service works as, for those that work as somebody. */
   accounts?: Readonly<Record<string, LoginState>>;
   onOpenProject: (name: string) => void;
   onAddProject: () => void;
   onAct: Gesture<[ProjectAction, string]>;
   onStopSession: (pid: number) => void;
-  /** Answer with the promise of the cleaning and the button waits on it. */
+  /** Return the cleaning's promise so the button stays pending on it. */
   onCleanSessions: () => unknown;
   onReboot: () => void;
   onOpenService?: (moduleId: string) => void;
   onAddService?: () => void;
   onOpenTerminal?: () => void;
-  /** Root access stayed open, or dev still becomes root without a password: the securing is offered again. */
   securing?: SecuringNeed | null;
   onSecure?: () => void;
 }

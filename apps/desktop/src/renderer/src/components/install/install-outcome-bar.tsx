@@ -4,14 +4,6 @@ import { ArrowRight, RotateCcw } from "lucide-react";
 import { ActionBar } from "../ui/action-bar";
 import { Button } from "../ui/button";
 
-/**
- * The way out of the installation, and what stands in it.
- *
- * The bar stays open unless what failed was something the rest depends on;
- * then the button waits, and says why at its own height. When several
- * services failed and all of them can simply run again, one gesture retries
- * them together.
- */
 export function InstallOutcomeBar({
   result,
   blocking,
@@ -21,7 +13,6 @@ export function InstallOutcomeBar({
   replaying,
 }: {
   result: InstallResult;
-  /** Failed modules the catalogue calls mandatory: the ones that bar the way. */
   blocking: readonly string[];
   nameOf: (moduleId: string) => string;
   onReplayAll?: () => Promise<void> | void;

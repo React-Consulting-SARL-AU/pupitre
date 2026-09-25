@@ -7,13 +7,6 @@ import { Panel } from "../ui/panel";
 import { Section } from "../ui/section";
 import { ProjectAddSourceStatus } from "./project-add-source-status";
 
-/**
- * The source, once settled: what the configuration was read from.
- *
- * The repository and its branch, or the folder, stay in sight above the
- * fields they filled in, with what the agent read there. Changing them is
- * the section's own gesture, and it goes back to the first page of the form.
- */
 export function ProjectAddSourceSummary({
   draft,
   detection,

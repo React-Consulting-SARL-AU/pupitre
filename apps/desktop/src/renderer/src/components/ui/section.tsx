@@ -3,30 +3,12 @@ import { ChevronRight } from "lucide-react";
 import type { ReactNode, Ref } from "react";
 import { Label } from "./label";
 
-/**
- * One section of a page: a caption, the gestures that concern the whole
- * section on the caption's line, and the content under them.
- *
- * Every section of a page reads the same way, whatever it holds — a form, a
- * list, a journal — so the reader finds a section's actions where the last
- * section had them. A gesture that ends a form is not one of them: it stays
- * at the foot of the form, where the last field is read.
- *
- * A page that is read for one thing among several — a help page — folds its
- * sections: the captions then read as a table of contents, and the one the
- * reader came for opens under their click. What is folded stays in the
- * document, hidden, so a search or a test finds it where it is.
- */
-
 interface SectionProps {
   title: string;
-  /** What qualifies the caption on its line: a count, a state. */
   aside?: ReactNode;
-  /** The gestures of the section, on the caption's line. */
   actions?: ReactNode;
-  /** What this section is about, for whoever has to find it. */
   name?: string;
-  /** The caption, when a remedy elsewhere on the page has to land the reader here. */
+  /** Lets a remedy elsewhere on the page move the focus to this caption. */
   ref?: Ref<HTMLHeadingElement>;
   className?: string;
   children: ReactNode;
@@ -90,7 +72,7 @@ export function Section({
   );
 }
 
-/** A section that folds under its caption; `open` says how it starts. */
+// Folded content stays mounted, so a search or a test still finds it.
 export function FoldingSection({
   title,
   aside,

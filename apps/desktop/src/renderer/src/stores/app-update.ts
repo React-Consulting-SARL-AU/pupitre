@@ -1,24 +1,14 @@
 import type { AppAbout, AppUpdateState } from "@shared/app-update";
 import { create } from "zustand";
 
-/**
- * The app's own update, as the About screen reads it.
- *
- * The main process checks, downloads and installs on its own; this store holds
- * the state it broadcasts and asks for the two gestures. Nothing here polls: a
- * change arrives on the channel, and the screen follows.
- */
-
 interface AppUpdateStore {
   about: AppAbout | null;
   state: AppUpdateState | null;
 
   read: () => Promise<void>;
-  /** Asks the feed now rather than at the next round. */
   check: () => Promise<void>;
-  /** Quits and relaunches on the downloaded version; a no-op unless one is ready. */
+  // Quits and relaunches; a no-op unless a downloaded version is ready.
   install: () => Promise<void>;
-  /** Follows the main process's broadcasts; returns what stops following. */
   listen: () => () => void;
 }
 

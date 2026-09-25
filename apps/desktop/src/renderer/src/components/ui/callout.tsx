@@ -13,11 +13,7 @@ import { IconButton } from "./icon-button";
 
 export type CalloutTone = "info" | "ok" | "warn" | "danger";
 
-/**
- * Each tone carries its own glyph — circle, check, triangle, octagon — so the
- * four stay apart when the colour is gone. The colour is on the glyph alone:
- * a whole card painted red shouts, and the words in it are what has to be read.
- */
+// Each tone has its own glyph so the four stay apart without colour; only the glyph is tinted.
 const LOOK: Record<CalloutTone, { icon: ButtonIcon; glyph: string }> = {
   info: { icon: Info, glyph: "text-ink-3" },
   ok: { icon: CircleCheck, glyph: "text-ok" },
@@ -25,7 +21,6 @@ const LOOK: Record<CalloutTone, { icon: ButtonIcon; glyph: string }> = {
   danger: { icon: OctagonAlert, glyph: "text-danger" },
 };
 
-/** The remedy: a line to type stays a line to type, a sentence stays a sentence. */
 function CalloutFix({ fix }: { fix: string }) {
   if (looksLikeCommand(fix)) {
     return (
@@ -52,14 +47,11 @@ export function Callout({
 }: {
   tone?: CalloutTone;
   children: ReactNode;
-  /** The remedy, printed exactly as the server phrased it. */
   fix?: string;
   action?: ReactNode;
-  /** The card can be put away: the message was read, and the screen moves on. */
   onDismiss?: () => void;
-  /** What this card is about, for whoever has to find it. */
   name?: string;
-  /** Inside a Panel: the frame is the panel's, a second one would be a card in a card. */
+  /** Inside a Panel, which already draws the frame. */
   bare?: boolean;
 }) {
   const t = useTranslations();

@@ -1,7 +1,6 @@
 import { Label } from "@renderer/components/ui/label";
 import type { ReactNode } from "react";
 
-/** The first plane of the menu: a group caption, in spaced capitals. */
 export function SidebarGroup({
   title,
   action,

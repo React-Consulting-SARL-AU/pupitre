@@ -4,15 +4,6 @@ import { assertAccessible } from "./harness/accessible";
 import { ANSWERS } from "./harness/fixtures";
 import { launchPupitre, type Running } from "./harness/launch";
 
-/**
- * A server whose agent answers `restricted`.
- *
- * The account is valid: the two sources of refusal are distinct, and it is the
- * machine that is suspended. It stays readable — the dashboard, its projects
- * and its sessions are there — and the app says once, at the top, why nothing
- * else is possible, and offers the one repair it can carry out itself.
- */
-
 const REPAIR = "Rattacher à nouveau ce serveur";
 
 const SIGNED_IN = {
@@ -45,22 +36,14 @@ const SIGNED_IN = {
   },
 };
 
-/** Signed in, but the platform knows no device for this computer: nothing to
- * ask a re-enrolment token with. */
+// Without a device there is nothing to ask a re-enrolment token with.
 const WITHOUT_DEVICE = { ...SIGNED_IN, device: null };
 
 interface Harness {
   account: unknown;
   answers: Record<string, unknown>;
-  /** Whether a re-enrolment may repair the server, or the account has nothing to repair it with. */
-  repairable: boolean;
 }
 
-/**
- * The server refuses to act until it is re-enrolled, and the exchange itself is
- * what flips it: `reenroll:start` stands for the main process, which asked the
- * platform for a token and handed it to the agent.
- */
 function stubRestricted(
   app: ElectronApplication,
   repairable: boolean
@@ -68,13 +51,13 @@ function stubRestricted(
   return app.evaluate(
     ({ ipcMain }, harness: Harness) => {
       const state = globalThis as unknown as { pupitreRepaired?: boolean };
+
       state.pupitreRepaired = false;
 
       ipcMain.removeHandler("account:state");
       ipcMain.handle("account:state", () => harness.account);
 
-      // The platform sync refreshes the account a moment after the window
-      // opens; left on the fixture, it would put the device back.
+      // The platform sync refreshes the account after the window opens and would restore the device.
       ipcMain.removeHandler("account:refresh");
       ipcMain.handle("account:refresh", () => harness.account);
 
@@ -114,7 +97,6 @@ function stubRestricted(
     {
       account: repairable ? SIGNED_IN : WITHOUT_DEVICE,
       answers: ANSWERS as Record<string, unknown>,
-      repairable,
     }
   );
 }
@@ -145,7 +127,6 @@ test.describe("serveur en mode restreint", () => {
       page.getByRole("button", { name: "Ouvrir la console" })
     ).toBeVisible();
 
-    // The machine stays in view: the sidebar and its projects.
     await expect(
       page.getByRole("button", { name: "Tableau de bord" })
     ).toBeVisible();
@@ -154,8 +135,6 @@ test.describe("serveur en mode restreint", () => {
     await assertAccessible(page, "serveur/restreint");
   });
 
-  // The account has nothing to get a token with: the platform would refuse,
-  // so the app doesn't offer a gesture that would fix nothing.
   test("n'offre pas le ré-enrôlement à un appareil sans compte", async () => {
     await expect(
       running.page.getByRole("button", { name: REPAIR })
@@ -189,7 +168,6 @@ test.describe("réparer un serveur restreint depuis l'app", () => {
       page.getByText("se laisse lire, et refuse tout le reste")
     ).toBeHidden();
 
-    // Nothing has stopped: the machine and its projects are still there.
     await expect(page.getByText("flyleaf-api").first()).toBeVisible();
     await expect(page.getByRole("button", { name: REPAIR })).toBeHidden();
   });

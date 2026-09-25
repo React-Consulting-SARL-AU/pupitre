@@ -14,14 +14,6 @@ import { StepFailure } from "../ui/step-failure";
 import { WaitingNotice } from "../ui/waiting-notice";
 import { OnboardingEnrollmentNote } from "./onboarding-enrollment-note";
 
-/**
- * The agent's binary, put on the machine before anything is asked of it.
- *
- * The server is enrolled first: the platform gives it a seat, names the release
- * to push, and hands the binary over. Only a development build without an
- * account still pushes the one the app built locally. The usage right was
- * settled before the onboarding opened, so nothing is asked of it here.
- */
 export function OnboardingAgentScreen({
   serverName,
   onContinue,

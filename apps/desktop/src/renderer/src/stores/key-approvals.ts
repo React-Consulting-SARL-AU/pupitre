@@ -16,7 +16,7 @@ export type ApprovalProgress =
 
 interface KeyApprovalsStore {
   state: KeyApprovalsState;
-  /** Keyed by `approvalKeyOf`, so only the row clicked waits or shows its refusal. */
+  // Keyed by `approvalKeyOf` so only the clicked row waits or shows its refusal.
   progress: Record<string, ApprovalProgress>;
   read: () => Promise<void>;
   approve: (approval: PendingKeyApproval) => Promise<void>;

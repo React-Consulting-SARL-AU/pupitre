@@ -8,13 +8,6 @@ export interface MenuEntry<Id extends string> {
   icon?: ButtonIcon;
 }
 
-/**
- * A square button that opens a list of choices instead of doing one thing.
- *
- * The button reads like an `IconButton`: the name lives in its bubble, and it
- * stays drawn as pressed while the list is open. The list closes on a choice,
- * on Escape, and on a click anywhere else.
- */
 export function Menu<Id extends string>({
   icon: Icon,
   label,

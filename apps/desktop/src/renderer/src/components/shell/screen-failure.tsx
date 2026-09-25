@@ -4,13 +4,6 @@ import { RefreshCw } from "lucide-react";
 import { Button } from "../ui/button";
 import { Details } from "../ui/details";
 
-/**
- * A screen that stopped on the app's own fault, rather than the server's.
- *
- * Nothing here is the machine's doing, so nothing is promised about it: the
- * screen says the app could not draw this one, offers to draw it again, and
- * keeps what was raised under Details for whoever reports it.
- */
 export function ScreenFailure({
   detail,
   onRetry,

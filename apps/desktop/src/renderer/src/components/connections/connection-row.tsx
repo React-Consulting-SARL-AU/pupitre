@@ -8,16 +8,6 @@ import { ChevronRight } from "lucide-react";
 import { ConnectionCard } from "./connection-card";
 import type { ConnectionDescriptor } from "./connection-descriptors";
 
-/**
- * One account on a line, and its form folded under it.
- *
- * A list rather than a screen per provider: the catalogue gains accounts faster
- * than a row of tabs can take them, and what a reader wants at a glance is
- * which are connected — not four forms stacked on top of each other. The line
- * says the name, the brand and the state; the fold holds what there is to type,
- * and every one of them starts closed: a page that opened three forms at once
- * would be the stack this replaces.
- */
 export function ConnectionRow({
   connection,
   installed,

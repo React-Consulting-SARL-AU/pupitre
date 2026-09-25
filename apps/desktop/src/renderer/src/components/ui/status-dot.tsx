@@ -16,13 +16,7 @@ const TONE: Record<StatusTone, string> = {
 
 const SOLID: StatusShape[] = ["filled", "breathing", "ringed"];
 
-/**
- * The state of a thing, told by a shape.
- *
- * Full dot online, hollow circle stopped, struck dot failed, breathing dot in
- * progress, ringed dot waiting for you. The tone only confirms what the outline
- * already says, so the screen survives being read in pure greys.
- */
+// The shape carries the state on its own; the tone only confirms it, so the dot survives pure greys.
 export function StatusDot({
   shape,
   tone = "neutral",
@@ -31,7 +25,7 @@ export function StatusDot({
 }: {
   shape: StatusShape;
   tone?: StatusTone;
-  /** Absent means the dot is decorative and its meaning is written next to it. */
+  /** Omit when the meaning is already written next to the dot. */
   label?: string;
   size?: number;
 }) {

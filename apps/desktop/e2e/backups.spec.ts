@@ -14,15 +14,6 @@ import {
 } from "./harness/backups";
 import { launchPupitre, type Running } from "./harness/launch";
 
-/**
- * Backups, from the connection to a server taken back to one of them.
- *
- * The bucket's connection is kept by the real main process — the passphrase
- * derived there and dropped — so what this scenario reads back from the disk
- * is what the app actually left on it. The agent and the platform are the
- * harness's.
- */
-
 const SECRET_KEY = "fake-secret-access-key-of-the-harness";
 
 const BACKUP_DONE = /Sauvegarde terminée/;
@@ -38,7 +29,7 @@ const WEEKS_KEPT = /Environ 14 semaines d'historique/;
 
 const DRIFT = /Ce serveur sauvegarde avec un autre bucket ou une autre clé/;
 
-/** Every file the app wrote, the link it keeps back to its own folder aside. */
+// lstat, so the link the app keeps back to its own folder is not followed.
 function filesUnder(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
     const path = join(dir, name);

@@ -3,13 +3,7 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import type { AgentState } from "@shared/terminals";
 import { StatusDot, type StatusShape, type StatusTone } from "./status-dot";
 
-/**
- * What a session is doing, in one dot.
- *
- * Only two states should catch the eye: "working", which breathes, and
- * "attention", which does not move but wears a ring. The other three are
- * deliberately dull — they say there is nothing to do.
- */
+// Only "working" and "attention" catch the eye; the other states stay deliberately dull.
 const APPEARANCE: Record<
   AgentState,
   { shape: StatusShape; tone: StatusTone; title: DictionaryKey }
@@ -29,7 +23,6 @@ const APPEARANCE: Record<
   finished: { shape: "struck", title: "ui.agent.finished", tone: "neutral" },
 };
 
-/** The words for a state, for the places that write it next to the dot. */
 export function agentStateLabel(state: AgentState): DictionaryKey {
   return APPEARANCE[state].title;
 }

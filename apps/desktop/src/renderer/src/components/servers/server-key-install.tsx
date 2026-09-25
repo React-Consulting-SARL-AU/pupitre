@@ -14,25 +14,11 @@ import { StatusDot } from "../ui/status-dot";
 import { WaitingNotice } from "../ui/waiting-notice";
 import { ServerKeyCard } from "./server-key-card";
 
-/**
- * The key, put on the server by the app rather than by the reader.
- *
- * It starts on its own the moment the server is added, because that is the one
- * thing standing between a machine that was just declared and a machine that
- * answers. Three outcomes, and each is a different screen: it opens, and the
- * step walks on by itself; it needs the account's password, and that is the
- * only thing asked; it cannot be done from here, and then — only then — the
- * line to paste comes back, with the reason it came back.
- *
- * The password lives in this component's state for as long as it takes to send
- * it, and nowhere else: not in the store, not in the trace, not on a command
- * line.
- */
-
 const SETTLED_MS = 900;
 
 const PASSWORD = "servers.key.password";
 
+/** The password lives only in this component's state, until it is sent. */
 export function ServerKeyInstall({
   server,
   publicKey,
@@ -53,11 +39,11 @@ export function ServerKeyInstall({
 
   const [password, setPassword] = useState("");
 
-  // Taking over: the app stops trying and hands back the key and the command
-  // line. This isn't moving to the next step — the machine isn't open yet.
+  // Not onDone: the machine is not open yet, the reader installs the key by hand.
   const [byHand, setByHand] = useState(false);
 
   const done = useRef(onDone);
+
   done.current = onDone;
 
   useEffect(() => {
@@ -66,8 +52,6 @@ export function ServerKeyInstall({
     }
   }, [server.id, installKey]);
 
-  // The throwaway machine's password, typed by a development build so the
-  // developer does not: it lands where a typed one would, and nowhere else.
   useEffect(() => {
     window.pupitre.devDefaults().then((defaults) => {
       if (defaults?.server.password) {
@@ -76,8 +60,6 @@ export function ServerKeyInstall({
     });
   }, []);
 
-  // The key opens the machine: there is nothing left to read here, and holding
-  // the reader on a green tick would only be a click asking to be made.
   useEffect(() => {
     if (keyInstall.status !== "opened") {
       return;
@@ -233,12 +215,6 @@ export function ServerKeyInstall({
   );
 }
 
-/**
- * What the screen has to say about the refusal, if there is one.
- *
- * Taking over by hand is not a failure: the app then has nothing to hold
- * against the machine, and the card shows without a warning.
- */
 function refusalOf(
   t: ReturnType<typeof useTranslations>,
   keyInstall: ReturnType<typeof useServers.getState>["keyInstall"]

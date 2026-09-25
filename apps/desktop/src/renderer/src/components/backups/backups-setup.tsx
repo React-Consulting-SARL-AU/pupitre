@@ -44,16 +44,6 @@ const DRAWN_FIELDS: readonly string[] = [
   ...CONTENT_FIELDS,
 ];
 
-/**
- * The first setup of a server's backups, one question at a time: where they
- * go, what seals them, how often, and what they carry.
- *
- * The bucket is proven by a test write before the passphrase is asked, and
- * kept on this computer once the passphrase step is passed; the frequency and
- * the content are the module's own draft, applied to the server at the end.
- * The secret key and the passphrase live in this component until they are
- * sent, and nowhere else.
- */
 export function BackupsSetup({
   serverId,
   manifest,
@@ -66,11 +56,9 @@ export function BackupsSetup({
   serverId: string;
   manifest: Manifest;
   contents: ContentsState;
-  /** Docker runs here, and its volumes are not in any backup. */
   docker: boolean;
   nameOf: (moduleId: string) => string;
   onRetryContents: () => Promise<void>;
-  /** The module applied: the page reads the server again, and runs a first backup when asked. */
   onActivated: (runFirst: boolean) => Promise<void>;
 }) {
   const t = useTranslations();
@@ -91,6 +79,7 @@ export function BackupsSetup({
   const [editing, setEditing] = useState(false);
   const [provider, setProvider] = useState<BackupProvider>("r2");
   const [storage, setStorage] = useState<BackupStorage>(() => storageOf(null));
+  // The secret key and the passphrase live only in this state until they are sent.
   const [secret, setSecret] = useState("");
   const [renewing, setRenewing] = useState(false);
   const [phrase, setPhrase] = useState<PhraseDraft>(NO_PHRASE);

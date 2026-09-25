@@ -6,14 +6,6 @@ import { DashboardPanel } from "../dashboard/dashboard-panel";
 import { DashboardServices } from "../dashboard/dashboard-services";
 import { ServerRebootingScreen } from "../shell/server-rebooting-screen";
 
-/**
- * The dashboard, rendered from one `snapshot` fixture.
- *
- * The harness is `react-dom/server`: the panel takes everything it draws as a
- * prop, so a static render says what a browser would without pulling a DOM into
- * `bun test`.
- */
-
 const NOOP = () => undefined;
 
 const RESOLVED = () => Promise.resolve();
@@ -113,7 +105,7 @@ describe("le tableau de bord", () => {
     expect(open).not.toContain("L'accès root de ce serveur est resté ouvert.");
   });
 
-  /** atlas-web answers on the machine alone, flyleaf-api under a name on the web: only the second opens from here. */
+  // In the fixture only flyleaf-api has a public hostname; atlas-web is local only.
   it("n'offre d'ouvrir que les projets qui ont un nom sur le web", () => {
     const html = panel();
 

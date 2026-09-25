@@ -6,19 +6,12 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { PROJECT_LOOK } from "@renderer/lib/project-state";
 import { GitBranch } from "lucide-react";
 
-/**
- * The state and the branch, on the line of the name.
- *
- * The branch button carries the answer to the question you actually arrive
- * with — is what runs the code I think it is — and clicking it goes to the diff.
- */
 export function ProjectMeta({
   project,
   git,
   onSeeDiff,
 }: {
   project: Project;
-  /** Absent while the network read is in flight, or when it failed. */
   git: ProjectGitStatusResult | null;
   onSeeDiff: () => void;
 }) {

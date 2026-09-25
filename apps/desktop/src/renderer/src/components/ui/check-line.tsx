@@ -1,14 +1,6 @@
 import type { ReactNode } from "react";
 import { CheckBox } from "./check-box";
 
-/**
- * A checkbox and its word on one line, the word clickable.
- *
- * The settings are made of these: one choice, said once, landing the moment it
- * is made. The label wraps the control so the whole line is the target; what
- * the choice changes for the reader, when it is not plain from the word, reads
- * under it in a fainter ink.
- */
 export function CheckLine({
   name,
   label,
@@ -20,11 +12,9 @@ export function CheckLine({
 }: {
   name: string;
   label: string;
-  /** What the choice changes, when the word alone does not say. */
   detail?: ReactNode;
   checked: boolean;
   disabled?: boolean;
-  /** `sm` in a toolbar, next to other small controls. */
   size?: "sm" | "md";
   onChange: (next: boolean) => void;
 }) {

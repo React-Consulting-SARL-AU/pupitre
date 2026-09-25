@@ -2,15 +2,6 @@ import { StatusDot } from "@renderer/components/ui/status-dot";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { ServerAccess, ServerReach } from "@shared/servers";
 
-/**
- * What the address answered, told by a shape.
- *
- * A full dot for an SSH server that introduced itself and an account the app
- * will open, a hollow one for an account the app will not open by itself, a
- * struck one for an address that refused, stayed silent, or answered something
- * else. The failure carries the main process's own words and its remedy,
- * unchanged.
- */
 export function ServerReachNotice({ reach }: { reach: ServerReach }) {
   const t = useTranslations();
 

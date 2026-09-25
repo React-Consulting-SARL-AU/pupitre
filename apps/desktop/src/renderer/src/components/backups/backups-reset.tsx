@@ -8,11 +8,6 @@ import type { AgentError } from "@shared/agent";
 import { RotateCcw } from "lucide-react";
 import { useState } from "react";
 
-/**
- * Backups taken off the server, to be set up again from the first step. The
- * backups already made stay in the bucket and in the list; the bucket and key
- * this computer holds go too when the reader asks for a fresh start.
- */
 export function BackupsReset({
   onReset,
 }: {

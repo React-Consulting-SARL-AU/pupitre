@@ -11,14 +11,7 @@ import { ProjectDiffCount } from "./project-diff-count";
 import { ProjectDiffFiles } from "./project-diff-files";
 import { ProjectDiffPatch } from "./project-diff-patch";
 
-/**
- * The working tree of a project, and the diff of the file you select.
- *
- * Read-only, deliberately and entirely: there is no staging, no discarding, no
- * editing. What this view is for is seeing what changed before restarting a
- * project or switching a branch — and the moment it could also write, every
- * misclick would cost someone their work on a machine they are not looking at.
- */
+// Read-only on purpose: a misclick here would cost work on a machine the reader is not looking at.
 export function ProjectDiff({
   tree,
   diff,

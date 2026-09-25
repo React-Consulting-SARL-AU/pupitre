@@ -3,12 +3,6 @@ import { expect, test } from "@playwright/test";
 import { assertAccessible } from "./harness/accessible";
 import { launchPupitre, type Running } from "./harness/launch";
 
-/**
- * The account screen, from a packaged build that refuses to install without one
- * to the identity the console confirmed. Only the platform is replaced: the
- * window, the bridge and the store are the app's own.
- */
-
 const USER_CODE = "WDJB-MJHT";
 
 const CONSOLE_URL = "https://app.pupitre.test/dashboard";
@@ -17,7 +11,7 @@ const APPROVAL_MS = 300;
 
 const MS_PER_DAY = 86_400_000;
 
-/** A trial ending in `days` days, counted the way Stripe does: a day begun still counts. */
+// An hour short of the mark: Stripe counts a day begun as a whole day.
 function trialEndingIn(days: number): string {
   return new Date(Date.now() + days * MS_PER_DAY - 3_600_000).toISOString();
 }
@@ -105,8 +99,6 @@ function stubAccount(app: ElectronApplication): Promise<void> {
       const clock = globalThis as { trialEndingSoon?: boolean };
 
       answer("account:state", () => current);
-      // Once the scenario says so, the platform answers a trial about to end:
-      // the card is read again from what it said, not from what it kept.
       answer("account:refresh", () => {
         if (clock.trialEndingSoon) {
           current = withTrial(current, fixtures.trialEndingSoon);
@@ -168,8 +160,6 @@ test.describe("compte", () => {
   test("le device flow mène de l'écran de compte à l'identité confirmée", async () => {
     const { page } = running;
 
-    // The app opens on the account: nothing about a machine sits behind it,
-    // and a first launch is not a fault — the sign-in card is all it says.
     await expect(
       page.getByRole("heading", { name: "Connectez-vous pour ouvrir Pupitre" })
     ).toBeVisible();
@@ -193,8 +183,6 @@ test.describe("compte", () => {
     await expect(page.getByText("Abonnement actif")).toBeVisible();
     await expect(page.getByText("Atelier Ada")).toBeVisible();
 
-    // The trial is the headline of the subscription: its days, in a calm tone
-    // while there are enough of them.
     const subscription = page.locator("[data-subscription]");
 
     await expect(subscription).toHaveAttribute("data-subscription", "trialing");
@@ -206,7 +194,6 @@ test.describe("compte", () => {
 
     await assertAccessible(page, "reglages/compte");
 
-    // Two days left: the same card turns to a warning and says what to do.
     await running.app.evaluate(() => {
       (globalThis as { trialEndingSoon?: boolean }).trialEndingSoon = true;
     });
@@ -218,14 +205,12 @@ test.describe("compte", () => {
       subscription.getByText("Choisissez une offre dans la console")
     ).toBeVisible();
 
-    // Signing out is asked twice: the question says what stays and what stops.
     await page.getByRole("button", { name: "Se déconnecter" }).click();
     await expect(
       page.getByText("l'app ne pilote plus aucun serveur")
     ).toBeVisible();
     await page.getByRole("button", { name: "Se déconnecter" }).last().click();
 
-    // Settings stay in front: it's where the account gets repaired.
     await page.getByRole("tab", { name: "Compte" }).click();
 
     await expect(page.getByText("Aucun compte connecté")).toBeVisible();

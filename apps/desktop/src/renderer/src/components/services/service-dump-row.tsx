@@ -5,13 +5,6 @@ import { databaseOfDump } from "@renderer/lib/dumps";
 import { since, weight } from "@renderer/lib/format";
 import { RotateCcw, Trash2 } from "lucide-react";
 
-/**
- * One dump of the server's folder, and the two things it can become.
- *
- * Restoring names the database the file feeds — read off the file name the
- * way the agent reads it — so the reader sees what will be overwritten before
- * confirming. Removing is confirmed too: a dump is what one goes back to.
- */
 export function ServiceDumpRow({
   dump,
   busy,
@@ -19,7 +12,6 @@ export function ServiceDumpRow({
   onRemove,
 }: {
   dump: FileEntry;
-  /** Another gesture is in flight: the row's own wait and takes none. */
   busy: boolean;
   onRestore: () => Promise<void>;
   onRemove: () => Promise<void>;

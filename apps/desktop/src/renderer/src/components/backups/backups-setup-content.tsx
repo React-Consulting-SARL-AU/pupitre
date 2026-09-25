@@ -5,7 +5,6 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import type { ContentsState } from "@renderer/stores/backups";
 import { BackupsContentFields } from "./backups-content-fields";
 
-/** The last step: what backups carry, and whether a first one runs right away. */
 export function BackupsSetupContent({
   manifest,
   contents,
@@ -17,7 +16,6 @@ export function BackupsSetupContent({
 }: {
   manifest: Manifest;
   contents: ContentsState;
-  /** Docker runs here, and its volumes are not in any backup. */
   docker: boolean;
   runFirst: boolean;
   problemOf: (key: string) => string | undefined;

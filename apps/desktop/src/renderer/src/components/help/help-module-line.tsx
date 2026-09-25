@@ -3,7 +3,6 @@ import { Callout } from "@renderer/components/ui/callout";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { Boxes } from "lucide-react";
 
-/** Whether the tool a client expects on the server is there, as the snapshot says. */
 export function HelpModuleLine({
   module,
   server,

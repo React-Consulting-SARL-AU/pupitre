@@ -30,12 +30,7 @@ function heading(level: Level) {
   };
 }
 
-/**
- * Markdown as the file carries it, drawn in the interface's own greys and
- * never as raw HTML: react-markdown drops any tag the text holds, so nothing
- * in a file reaches the page as markup. Links open outside the app, which is
- * what the window's open handler makes of a new tab.
- */
+// react-markdown drops raw HTML; the window's open handler sends `_blank` links outside the app.
 export function Markdown({ source }: { source: string }) {
   return (
     <div className="flex flex-col gap-3">

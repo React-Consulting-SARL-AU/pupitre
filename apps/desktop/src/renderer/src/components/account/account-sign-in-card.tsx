@@ -10,12 +10,6 @@ import type { SignInState } from "@renderer/stores/account";
 import { ExternalLink, LogIn, RotateCw, X } from "lucide-react";
 import { AccountCode } from "./account-code";
 
-/**
- * The device flow, as it is lived: a code to read, a browser that opens on it,
- * and a wait that says what it is waiting for. The code stays on screen until
- * someone approves it, because that is the one thing to type over there.
- */
-
 const STEPS = ["browser", "approve", "back"] as const;
 
 export function AccountSignInCard({
@@ -28,7 +22,6 @@ export function AccountSignInCard({
   signIn: SignInState;
   consoleUrl: string;
   onConnect: () => void;
-  /** Stops waiting on the browser and brings the card back to its first gesture. */
   onCancel: () => void;
   onOpenUrl: (url: string) => void;
 }) {
@@ -96,7 +89,9 @@ export function AccountSignInCard({
               />
             </span>
             <p className="text-ink-2 text-small leading-relaxed">
-              {t(`account.signIn.step.${step}`, { url: consoleUrl })}
+              {t(`account.signIn.step.${step}`, {
+                url: signIn.verificationUri,
+              })}
             </p>
           </li>
         ))}

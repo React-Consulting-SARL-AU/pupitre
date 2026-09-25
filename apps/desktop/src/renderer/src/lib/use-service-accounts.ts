@@ -6,14 +6,6 @@ import { type LoginAnswer, useLogins } from "../stores/logins";
 import { snapshotOf, useSnapshot } from "../stores/snapshot";
 import { accountStateOf } from "./account-state";
 
-/**
- * Whose account each service works as, by module identifier.
- *
- * `answers` are the CLIs' own, and count only when they were asked of this
- * server; `connections` are the accounts this computer holds, which a module
- * declaring one is read against. A module with nothing to sign in to has no
- * entry.
- */
 export function serviceAccountsOf(
   services: readonly Service[],
   answers: Readonly<Record<string, LoginAnswer>>,
@@ -38,13 +30,7 @@ export function serviceAccountsOf(
   return accounts;
 }
 
-/**
- * The accounts of the services given, asked while `active`: once per opening
- * and again when the list of modules changes — the CLIs through
- * `service.status`, the held accounts through the main process. A restricted
- * agent refuses `service.status`: its CLIs are not asked, and the notice at the
- * top of the shell is the one place that says why.
- */
+/** A restricted agent refuses `service.status`, so its CLIs are not asked; the shell's notice says why. */
 export function useServiceAccounts(
   serverId: string | null,
   services: readonly Service[],

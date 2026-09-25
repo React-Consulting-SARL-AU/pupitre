@@ -23,25 +23,12 @@ import {
 import { WaitingLine } from "../ui/waiting-line";
 import { ServiceDumpRow } from "./service-dump-row";
 
-/**
- * The gestures a database accepts, and what each one answered.
- *
- * The shell opens as a terminal tab: the main process asks the agent for the
- * command and runs it there, and this page never sees the line. A dump written
- * on the server comes to this computer on its own transfer, and a dump of this
- * computer goes up the same way before it is imported: a file of several
- * gigabytes never rides the agent's channel. The dumps already on the server
- * are listed from the folder they live in, each with its way back.
- *
- * The databases themselves are not listed: the contract has no command that
- * names them, and the app invents nothing the agent did not say.
- */
-
 const TITLES: Record<DatabaseOutcome["kind"], DictionaryKey> = {
   dump: "services.database.outcome.dump",
   import: "services.database.outcome.import",
 };
 
+/** No list of databases: the protocol has no command that names them. */
 export function ServiceDatabase({
   outcome,
   dumps,
@@ -58,14 +45,13 @@ export function ServiceDatabase({
 }: {
   outcome: DatabaseOutcome | null;
   dumps: DumpsState;
-  /** The command in flight, as the protocol names it. */
   busy: string | null;
-  /** The dumps still on their way up, imported when they land. */
+  /** Uploads that are imported once they land. */
   pendingImports: readonly PendingImport[];
   onShell: () => Promise<void>;
   onDump: () => Promise<void>;
   onImport: () => Promise<void>;
-  /** Answers once the dialog closed and the transfer is queued, or was declined. */
+  /** Resolves once the transfer is queued or the dialog declined. */
   onDownloadDump: () => Promise<void>;
   onImportFromComputer: () => Promise<void>;
   onReadDumps: () => Promise<void>;

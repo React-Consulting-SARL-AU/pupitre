@@ -1,22 +1,12 @@
 import { expect, test } from "@playwright/test";
 import { launchPupitre, type Running } from "./harness/launch";
 
-/**
- * The mouse in a session.
- *
- * tmux asks for the mouse on every session, and the agents under it do too:
- * a press must reach them, otherwise no pane can be picked and nothing in
- * Claude Code answers a click. Option on macOS, Shift elsewhere, keeps a drag
- * for the terminal's own selection. And what tmux copies, announced with
- * OSC 52, must land in the clipboard here. `terminal-open` is answered by the
- * harness; what the terminal would send the PTY is caught on `terminal-write`.
- */
 const FLYLEAF_CARD = /^flyleaf-api/;
 const SELECT_MODIFIER = process.platform === "darwin" ? "Alt" : "Shift";
 const ESC = "\x1b";
 const MOUSE_ON = `${ESC}[?1000h${ESC}[?1006h`;
 const COPIED_BY_TMUX = "copié dans tmux";
-/** An SGR press then its release, ESC written `^[` the way a terminal shows it. */
+// An SGR press then its release, with ESC shown as `^[` by written().
 const CLICK_REPORTED = /\^\[\[<0;\d+;\d+M\^\[\[<0;\d+;\d+m/;
 const ANY_REPORT = /\^\[\[</;
 

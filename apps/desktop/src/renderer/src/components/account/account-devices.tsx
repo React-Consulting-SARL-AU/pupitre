@@ -8,20 +8,7 @@ import type { AccountDevice } from "@shared/account";
 import { useEffect } from "react";
 import { AccountDeviceList } from "./account-device-list";
 
-/**
- * The computers this account signed in from, and the gesture that lets one go.
- *
- * Every device holds a key the platform pushes on the granted servers; a
- * laptop that left the team keeps opening them until it is revoked here or in
- * the console. This computer is in the list and cannot revoke itself — signing
- * out is that gesture, and it says what it closes.
- */
-export function AccountDevices({
-  current,
-}: {
-  /** The device this computer is, as the platform named it. */
-  current: AccountDevice | null;
-}) {
+export function AccountDevices({ current }: { current: AccountDevice | null }) {
   const t = useTranslations();
 
   const devices = useAccount((store) => store.devices);

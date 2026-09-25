@@ -13,14 +13,6 @@ import type { UsageRight } from "@shared/account";
 import { ExternalLink } from "lucide-react";
 import { billingUrlOf } from "./account-subscription-card";
 
-/**
- * The right to work, told by a shape.
- *
- * A full dot is a fresh answer from the platform, a ringed one the cache that
- * still holds, a hollow circle a development build that answers for itself, a
- * struck dot a refusal. The seven days are named, because that is the promise.
- */
-
 interface Look {
   shape: StatusShape;
   tone: StatusTone;
@@ -103,7 +95,6 @@ function detailOf(
   return t("account.usage.none");
 }
 
-/** Where the console settles the right when it does not stand: billing for a plan, the dashboard otherwise. */
 function consoleOf(usage: UsageRight): string | null {
   if (usage.status === "granted") {
     return null;

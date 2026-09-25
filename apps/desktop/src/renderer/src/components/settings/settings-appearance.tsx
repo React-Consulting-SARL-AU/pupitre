@@ -7,13 +7,6 @@ import { LOCALE_PREFERENCES, useLocale } from "@renderer/stores/locale";
 import { useTheme } from "@renderer/stores/theme";
 import { THEME_PREFERENCES, type ThemePreference } from "@shared/appearance";
 
-/**
- * Light, dark, or whatever the system says.
- *
- * The choice lands on `<html data-theme>`, which is what the tokens of
- * `@pupitre/design` key off: the window, the panels and the open terminals turn
- * over on the spot, with nothing reloaded and no session lost.
- */
 export function SettingsAppearance() {
   const t = useTranslations();
 

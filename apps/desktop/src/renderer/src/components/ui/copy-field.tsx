@@ -1,17 +1,12 @@
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { Check, Copy } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { IconButton } from "./icon-button";
 import { Label } from "./label";
 
 const FEEDBACK_MS = 1600;
 
-/**
- * A line meant to leave the app: a public key, a command to paste.
- *
- * It wraps rather than scrolls, because what matters is being able to read the
- * whole thing before trusting it to a server.
- */
+// Wraps rather than scrolls, so the whole value can be read before it is trusted to a server.
 export function CopyField({
   label,
   value,
@@ -21,21 +16,38 @@ export function CopyField({
   label: string;
   value: string;
   help?: string;
-  /** Several commands, one per line: the breaks are kept as typed. */
   lines?: boolean;
 }) {
   const t = useTranslations();
 
   const [copied, setCopied] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (timer.current) {
+        clearTimeout(timer.current);
+      }
+    },
+    []
+  );
 
   async function copy() {
     try {
       await navigator.clipboard.writeText(value);
-      setCopied(true);
-      setTimeout(() => setCopied(false), FEEDBACK_MS);
     } catch {
       setCopied(false);
+
+      return;
     }
+
+    setCopied(true);
+
+    if (timer.current) {
+      clearTimeout(timer.current);
+    }
+
+    timer.current = setTimeout(() => setCopied(false), FEEDBACK_MS);
   }
 
   return (

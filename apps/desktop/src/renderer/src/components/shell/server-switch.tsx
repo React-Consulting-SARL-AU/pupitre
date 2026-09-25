@@ -6,16 +6,6 @@ import { ChevronsUpDown, Settings } from "lucide-react";
 import { StatusDot, type StatusShape, type StatusTone } from "../ui/status-dot";
 import { Tooltip } from "../ui/tooltip";
 
-/**
- * The server card at the head of the sidebar, and the menu that switches it.
- *
- * Every server this computer knows is listed, the driven one marked, and each
- * carries the shape of its state: a filled dot for the one in front, a hollow
- * one for a server that can be opened, a struck one for a server the platform
- * has taken back. Switching used to be a thirteen-pixel dot three screens
- * away; here it is the card itself.
- */
-
 const ITEM =
   "flex cursor-default select-none items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-control text-ink outline-none data-[highlighted]:bg-raised";
 

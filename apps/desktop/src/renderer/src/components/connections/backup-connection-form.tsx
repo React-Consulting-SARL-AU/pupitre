@@ -22,15 +22,6 @@ import { BackupPassphraseFields } from "./backup-passphrase-fields";
 import { BackupStorageFields } from "./backup-storage-fields";
 import type { ConnectionDescriptor } from "./connection-descriptors";
 
-/**
- * The bucket, the access key, and the passphrase backups are sealed with.
- *
- * A first computer of the organization chooses the passphrase; the next ones
- * take the organization's public key and are asked for nothing but the bucket.
- * A connection already held keeps its secret key and its passphrase unless the
- * reader types new ones. The main process writes then deletes an object in the
- * bucket before keeping anything, and its refusal is said here.
- */
 export function BackupConnectionForm({
   connection,
   initial,
@@ -41,9 +32,8 @@ export function BackupConnectionForm({
 }: {
   connection: ConnectionDescriptor;
   initial: BackupConnectionView | null;
-  /** The bucket to start from when this computer holds none: the one a server already backs up to. */
+  /** The bucket a server already backs up to, for a computer that holds no connection yet. */
   start?: BackupStorage;
-  /** What saving does beyond keeping the connection, when it does more. */
   saveLabel?: string;
   onSaved?: () => Promise<void> | void;
   onCancel?: () => void;

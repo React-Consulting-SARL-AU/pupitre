@@ -22,14 +22,6 @@ import { destroy } from "../lib/terminals";
 import { useServers } from "./servers";
 import { useTerminals } from "./terminals";
 
-/**
- * Where the reader is in the app, and what they left open.
- *
- * Nothing here comes from the server: a view, a selected project, a set of
- * terminal tabs. The state of the machine lives in the snapshot store, and this
- * one only says which part of it is on screen.
- */
-
 export const VIEWS = [
   "dashboard",
   "project",
@@ -46,6 +38,7 @@ export const VIEWS = [
 
 export type View = (typeof VIEWS)[number];
 
+// A half-filled form is no place to return to; "terminals" settles itself on the first snapshot.
 const NOT_RESTORED: readonly View[] = ["project-add", "terminals"];
 
 const remembered = readNavigation();
@@ -65,22 +58,12 @@ function rememberedTabs(): Record<string, ProjectTab> {
 function rememberedView(): View {
   const read = remembered.view as View | undefined;
 
-  // "project" is only restorable once we know which project, and the terminals
-  // view only once one is open: both settle themselves on the first snapshot.
-  // A form left half-way is not a place to come back to.
   return read && VIEWS.includes(read) && !NOT_RESTORED.includes(read)
     ? read
     : "dashboard";
 }
 
-/**
- * One place the reader has been: a view, the project when the view is one,
- * and the service when the view is the services page opened on one of them.
- *
- * The history is the app's own, not the window's: the window never navigates,
- * and what "back" must undo is a change of view. It lives for one run, so a
- * relaunch opens on the last view with nothing behind it.
- */
+/** An entry of the app's own history, not the window's; it lives for one run. */
 export interface Location {
   view: View;
   selection: string | null;
@@ -108,7 +91,6 @@ function locationIn(names: readonly string[], location: Location): boolean {
   );
 }
 
-/** The name a tab opens with, in the reader's language; the reader may rename it. */
 function titleOf(kind: TerminalKind, rank: number): string {
   const t = translate();
   const title = t(`terminals.kind.${kind}`);
@@ -116,12 +98,6 @@ function titleOf(kind: TerminalKind, rank: number): string {
   return rank > 1 ? t("terminals.kind.numbered", { rank, title }) : title;
 }
 
-/**
- * Terminals are grouped by project and by row: a project's shells sit in one
- * row and its agents — a Claude next to a Codex — in another, each knowing
- * nothing of the other's, nor of another project's. The server's own
- * terminals have no project.
- */
 export type TerminalRow = "shell" | "agent";
 
 export function rowOf(kind: TerminalKind): TerminalRow {
@@ -148,8 +124,7 @@ function groupKeyOf(terminal: Terminal): string {
   return groupKey(terminal.project, rowOf(terminal.kind));
 }
 
-// tmux exits 0 once the program it held has left, however that program left;
-// a broken link is ssh's own 255, and the session is still there to reattach.
+// tmux exits 0 however its program left; a broken link is ssh's 255 and the session survives.
 const CLEAN_EXIT = 0;
 
 function text(value: unknown): string | null {
@@ -163,7 +138,6 @@ function isKind(value: unknown): value is TerminalKind {
   );
 }
 
-/** A tab is read back whole or not at all: half a tab opens on nothing. */
 function tabOf(entry: RememberedTerminal): Terminal | null {
   const id = text(entry.id);
   const title = text(entry.title);
@@ -189,14 +163,7 @@ export interface RestoredTerminals {
   activeTerminal: string | null;
 }
 
-/**
- * The tabs the last run left, closed and ready to be opened again.
- *
- * Anything the memory cannot make a tab of is dropped rather than repaired, and
- * a tab in front that is no longer there — or in front of a group it does not
- * belong to — leaves its group with none: a bad line on the disk costs a tab,
- * never the launch.
- */
+/** Unreadable entries are dropped, never repaired: a bad line on disk costs a tab, never the launch. */
 export function restoredTerminals(
   memory: Navigation = readNavigation()
 ): RestoredTerminals {
@@ -220,7 +187,7 @@ export function restoredTerminals(
   };
 }
 
-/** A tab named elsewhere: its identifier is the main process's, its title the caller's. */
+/** A tab the main process already named; the title is the caller's. */
 export interface GivenTerminal {
   id: string;
   title: string;
@@ -229,65 +196,41 @@ export interface GivenTerminal {
 interface NavigationStore {
   view: View;
   selection: string | null;
-  /** The service whose page is open, when the view is the services one. */
   service: string | null;
   terminals: Terminal[];
-  /** The active tab of each group, by group key. */
+  // Keyed by `groupKey`.
   activeTabs: Record<string, string>;
-  /** What each session is doing, held by the main process. */
   terminalStates: Record<string, AgentState>;
   activeTerminal: string | null;
-  /** The tab each project was left on, by project name. */
   projectTabs: Record<string, ProjectTab>;
-  /** Where the reader has been this run, oldest first. */
   history: Location[];
-  /** The entry of `history` on screen. */
   cursor: number;
 
   goTo: (view: View) => void;
-  /** The services page, opened on one service's own page. */
   openService: (moduleId: string) => void;
   select: (name: string) => void;
   back: () => void;
   forward: () => void;
-  /** A project that has left the registry must not keep the selection. */
   settle: (names: readonly string[]) => void;
-  /**
-   * `dir` is a folder under the project's — or under the server's root — the
-   * shell opens in. `given` is a tab the main process already named, with the
-   * title the screen that asked for it wants: the shell of a database.
-   */
+  // `dir` is a folder under the project's or the server's root; `given` is a tab the main process already named.
   openTerminal: (
     project: string | null,
     kind: TerminalKind,
     dir?: string | null,
     given?: GivenTerminal | null
   ) => string;
-  /**
-   * The session the shortcut asks for, in the project on screen. A shell
-   * falls back to the server; an agent only runs in a project.
-   */
+  // A shell falls back to the server; an agent only runs in a project.
   openTerminalHere: (kind?: TerminalKind) => void;
-  /** A project's terminals open on a shell when none is there yet. */
   ensureTerminal: (project: string | null) => void;
-  /** The tab waiting for the reader to confirm that its session stops with it. */
   closing: string | null;
   askCloseTerminal: (id: string) => void;
   keepTerminal: () => void;
-  /** `ended` says the session is already gone: nothing is left to kill on the machine. */
+  // `ended`: the session is already gone, so nothing is killed on the machine.
   closeTerminal: (id: string, ended?: boolean) => void;
-  /**
-   * The process behind a tab has exited with `code`.
-   *
-   * An agent that left cleanly takes its tab with it — quitting Claude is
-   * done with Claude, not with an empty pane to close by hand. A shell keeps
-   * its tab with what it printed, and so does any session whose link broke
-   * rather than ended: the session lives on, and the tab is the way back.
-   */
+  // A clean agent exit closes its tab; a shell or a broken link keeps it as the way back.
   endTerminal: (id: string, code: number) => void;
   activateTerminal: (id: string) => void;
   renameTerminal: (id: string, title: string) => void;
-  /** The session the main process named for a tab, so the next run finds it. */
   noteSession: (id: string, session: string) => void;
   noteStates: (states: Record<string, AgentState>) => void;
   setProjectTab: (project: string, tab: ProjectTab) => void;
@@ -300,13 +243,7 @@ const START: Location = {
   view: rememberedView(),
 };
 
-/**
- * Leaves for a location, as a browser would: what was ahead is forgotten.
- *
- * Arriving where one already stands writes nothing, so a menu entry pressed
- * twice is one page and not two, and "back" is never a step that changes
- * nothing.
- */
+// Browser-like: what was ahead is dropped, and moving where one already stands adds no entry.
 function move(
   state: NavigationStore,
   next: Location
@@ -337,6 +274,7 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
     set((state) =>
       move(state, { selection: state.selection, service: null, view })
     );
+
     persist(get());
   },
 
@@ -348,6 +286,7 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
         view: "services",
       })
     );
+
     persist(get());
   },
 
@@ -355,6 +294,7 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
     set((state) =>
       move(state, { selection: name, service: null, view: "project" })
     );
+
     persist(get());
   },
 
@@ -382,8 +322,7 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
     persist(get());
   },
 
-  // A project that has left the registry leaves the history too: a "back"
-  // that lands on a page with nothing to draw is a "back" that does nothing.
+  // A project gone from the registry leaves the history too, so "back" never lands on nothing.
   settle(names) {
     const state = get();
     const selection =
@@ -450,6 +389,7 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
         { dir, dormant: false, id, kind, project, session: null, title },
       ],
     }));
+
     persist(get());
 
     return id;
@@ -466,8 +406,7 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
     }
   },
 
-  // Opening a project's terminals must give a shell right away: nobody comes
-  // there to click "new" a second time. Its agents are the reader's choice.
+  // A project's terminals open on a shell right away; agents stay the reader's choice.
   ensureTerminal(project) {
     if (group(get().terminals, project, "shell").length === 0) {
       get().openTerminal(project, "shell");
@@ -483,6 +422,7 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
 
     if (closeStopsWork(leaving, get().terminalStates[id])) {
       set({ closing: id });
+
       return;
     }
 
@@ -493,8 +433,7 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
     set({ closing: null });
   },
 
-  // Closing a tab is the reader saying they are done with that session: the
-  // session dies with it, where closing the window only lets go of the pipe.
+  // Closing a tab kills its session; closing the window only lets go of the pipe.
   closeTerminal(id, ended = false) {
     const leaving = get().terminals.find((t) => t.id === id);
 
@@ -533,6 +472,7 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
         terminals: remaining,
       };
     });
+
     persist(get());
   },
 
@@ -544,8 +484,7 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
     }
   },
 
-  // Coming back to a remembered tab is what opens it: this is where a tab left
-  // by the last run stops being a name and becomes a session again.
+  // Activating is what wakes a dormant tab left by the last run.
   activateTerminal(id) {
     const target = get().terminals.find((t) => t.id === id);
 
@@ -568,6 +507,7 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
         t.id === id ? { ...t, dormant: false } : t
       ),
     }));
+
     persist(get());
   },
 
@@ -583,6 +523,7 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
         t.id === id ? { ...t, title: clean } : t
       ),
     }));
+
     persist(get());
   },
 
@@ -592,6 +533,7 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
         t.id === id ? { ...t, session } : t
       ),
     }));
+
     persist(get());
   },
 
@@ -604,12 +546,7 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
     persist(get());
   },
 
-  /**
-   * Another server: its terminals were talking to a machine we have left.
-   *
-   * The pipes are let go of, not the sessions: nothing of the reader's is
-   * destroyed on a machine because the list of servers moved.
-   */
+  // Another server: let go of the pipes, never destroy the sessions left on the machine.
   reset() {
     for (const terminal of get().terminals) {
       destroy(terminal.id);
@@ -627,11 +564,11 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
       terminals: [],
       terminalStates: {},
     });
+
     persist(get());
   },
 }));
 
-/** A tab that is gone takes with it the place it held in front of its group. */
 function withTabs(
   state: NavigationStore,
   terminals: Terminal[]
@@ -650,10 +587,7 @@ function withTabs(
   };
 }
 
-/**
- * A remembered tab on a project the registry no longer declares can never open
- * again. One the reader has opened stays: it is their work, not a leftover.
- */
+// A dormant tab of an undeclared project can never reopen; an opened one is the reader's work.
 function opensStill(names: readonly string[], terminal: Terminal): boolean {
   return (
     !terminal.dormant ||
@@ -662,7 +596,6 @@ function opensStill(names: readonly string[], terminal: Terminal): boolean {
   );
 }
 
-/** What the main process needs to end a session: which machine, and which name. */
 function endOf(terminal: Terminal | undefined): TerminalEnd | null {
   const serverId = useServers.getState().config?.active ?? null;
 
@@ -692,13 +625,7 @@ function remember(terminal: Terminal): RememberedTerminal {
   return { dir, id, kind, project, session, title };
 }
 
-/**
- * Writes the navigation down, after the fact.
- *
- * Called from the actions rather than from a subscription: only the place and
- * the open tabs are worth remembering, and a subscription would write on every
- * poll — twice a second, for a value that did not move.
- */
+// Called from the actions, not a subscription, which would write on every poll.
 function persist(state: NavigationStore): void {
   writeNavigation({
     project: state.selection ?? undefined,
@@ -718,12 +645,7 @@ const RANK: Record<AgentState, number> = {
   working: 3,
 };
 
-/**
- * The most telling state of a group of sessions.
- *
- * One dot per tab does not fit in a sidebar: we keep the most pressing state,
- * the one that would justify going and looking.
- */
+/** The most pressing state of a group, since the sidebar has room for one dot. */
 export function dominantState(
   sessions: readonly Terminal[],
   states: Record<string, AgentState>

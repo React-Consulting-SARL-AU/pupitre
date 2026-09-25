@@ -5,15 +5,6 @@ import {
   SUBDOMAIN_PATTERN,
 } from "@pupitre/shared/agent-protocol/state";
 
-/**
- * What can be worked out about a project before the server is asked anything.
- *
- * Everything here is a proposal: a name read off a repository address, a port
- * no declared project holds, a start command that matches the package manager.
- * The agent stays the authority — it refuses what it cannot honour, and its
- * refusal carries the port to use instead.
- */
-
 export const FIRST_PORT = 3000;
 export const LAST_PORT = 65_535;
 
@@ -41,7 +32,7 @@ const TRAILING_NOISE = /[-._]+$/;
 
 const TRAILING_DASH = /-+$/;
 
-/** Past that many namesakes the reader is better off naming the thing themselves. */
+// Past that many namesakes the reader is better off naming the thing themselves.
 const LAST_RANK = 99;
 
 export function isGitSource(value: string): boolean {
@@ -54,13 +45,7 @@ export function isGitSource(value: string): boolean {
   );
 }
 
-/**
- * A project name the registry accepts, read off an address or a folder.
- *
- * The pattern is the protocol's own: lowercase, digits, dot, dash, underscore,
- * starting on a letter or a digit. What does not fit becomes a dash rather than
- * disappearing, so two different repositories never collapse into one name.
- */
+/** Unfit characters become dashes rather than vanish, so two repositories never share a name. */
 export function nameFromSource(value: string): string {
   const trimmed = value.trim().replace(TRAILING_SLASHES, "");
 
@@ -79,14 +64,7 @@ export function nameFromSource(value: string): string {
     .replace(TRAILING_NOISE, "");
 }
 
-/**
- * A subdomain proposed from a project's name.
- *
- * A project name takes a dot and an underscore, a DNS label takes neither: a
- * repository called `my.site` would otherwise fill the field with a value the
- * agent refuses, and the only way out would be to retype it. Everything that is
- * not a letter, a digit or a dash folds into a dash.
- */
+/** A project name may hold dots and underscores, a DNS label neither, so both fold into dashes. */
 export function subdomainFromName(name: string): string {
   return name
     .toLowerCase()
@@ -96,7 +74,6 @@ export function subdomainFromName(name: string): string {
     .replace(TRAILING_DASH, "");
 }
 
-/** The pattern the agent applies, applied here first: no round trip to be refused. */
 export function validSubdomain(value: string): boolean {
   return (
     value.length > 0 &&
@@ -105,23 +82,11 @@ export function validSubdomain(value: string): boolean {
   );
 }
 
-/**
- * More than one label, which a Cloudflare universal certificate does not carry.
- *
- * It is not a refusal: the client owns the zone, and may well own the Advanced
- * Certificate Manager that covers it. The screen says what it costs.
- */
+/** A warning, not a refusal: a universal certificate lacks it, but the client may own Advanced Certificate Manager. */
 export function spansSeveralLevels(value: string): boolean {
   return value.includes(".");
 }
 
-/**
- * A subdomain no declared project holds: the folded name, then -2, -3…
- *
- * The names come from `project.list`, so what is proposed is free as far as the
- * agent knows. It stays the agent's call — it holds the registry, and it is the
- * one that refuses.
- */
 export function freeSubdomain(name: string, taken: readonly string[]): string {
   const base = subdomainFromName(name);
 
@@ -142,7 +107,6 @@ export function freeSubdomain(name: string, taken: readonly string[]): string {
   return base;
 }
 
-/** A folder path the registry accepts: relative to the projects root, no "..". */
 export function folderFromSource(value: string, name: string): string {
   if (isGitSource(value)) {
     return name;
@@ -168,14 +132,6 @@ export function freePort(taken: readonly number[], from = FIRST_PORT): number {
   return FIRST_PORT;
 }
 
-/**
- * The port the agent named in its remedy.
- *
- * A refusal on a taken port carries the next free one as a value, and taking it
- * from there beats guessing a second time from a list the agent has just proved
- * to be stale. The sentence beside it is for the reader, not for the app: a
- * wording changes, a field does not.
- */
 export function portFromRemedy(remedy: Remedy | undefined): number | null {
   return remedy?.code === "port_taken" ? remedy.port_free : null;
 }

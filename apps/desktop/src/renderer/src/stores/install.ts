@@ -23,17 +23,6 @@ import {
 import { useCatalog } from "./catalog";
 import { useChannel } from "./channel";
 
-/**
- * The installation as the screen watches it happen.
- *
- * Everything here came from the agent's `step` events, or from the report read
- * back after a cut — the two are drawn the same way on purpose, so a screen
- * that lost its channel and found it again looks like one that never lost it.
- * Nothing of what the reader typed as a secret ever reaches this store: the
- * install carries only the plain configuration, and the secret line is written
- * by the main process.
- */
-
 export type {
   ModuleProgress,
   ModuleStatus,
@@ -50,7 +39,7 @@ export type InstallState =
 interface Requested {
   modules: readonly string[];
   config: ModuleConfig;
-  /** What this installation left unconfigured, so a replay leaves it alone too. */
+  // Kept so a replay leaves these modules unconfigured too.
   defer: readonly string[];
 }
 
@@ -59,37 +48,28 @@ interface InstallStore {
   modules: ModuleProgress[];
   log: string[];
   requested: Requested;
-  /** A refusal took the typed secrets with it: the screen says so next to the way back. */
   secretsDropped: boolean;
-  /** How long to wait between two readings of a report still being written. */
   pollMs: number;
 
   start: (
     serverId: string,
     modules: readonly string[],
     config: ModuleConfig,
-    /** Modules to put on the machine without configuring: their questions wait. */
     defer?: readonly string[]
   ) => Promise<void>;
-  /** The catalogue's choice, once its generated secrets have landed. */
   startChosen: (serverId: string) => Promise<void>;
-  /** The configuration is given again when the reader has just retyped it. */
+  // `config` is passed only when the reader has just retyped it.
   replay: (
     serverId: string,
     moduleId: string,
     config?: ModuleConfig
   ) => Promise<void>;
-  /** Runs every module that failed again, with the configuration it was given. */
   replayFailed: (serverId: string) => Promise<void>;
-  /**
-   * Reads the report back, which is what a channel that dropped left behind —
-   * and reads it again while the machine is still writing it.
-   */
   reload: (serverId: string) => Promise<void>;
   reset: () => void;
 
   counts: () => { done: number; total: number };
-  /** Whether a module of this run has already started: the machine has changed. */
+  // True once any module started: the machine has already changed.
   touched: () => boolean;
   elapsed: () => number;
   failed: () => readonly string[];
@@ -157,13 +137,7 @@ function logLine(update: InstallUpdate): string | null {
 
 const EMPTY: Requested = { config: {}, defer: [], modules: [] };
 
-/**
- * Nothing waits once the agent has answered. A module it said little of — an
- * agent that emits no steps, a channel that swallowed them, a step whose end
- * never came back — takes the fate the result gives it, so the list agrees with
- * the sentence under it and no step is left turning under an install that is
- * over.
- */
+// Modules the agent said little of take the result's verdict, so no step keeps spinning after the end.
 function settled(
   modules: readonly ModuleProgress[],
   ran: readonly string[],
@@ -178,7 +152,6 @@ function settled(
   });
 }
 
-/** The earlier result, with the replayed modules judged again. */
 function merged(
   before: InstallResult,
   after: InstallResult,
@@ -195,22 +168,15 @@ function merged(
 }
 
 export const useInstall = create<InstallStore>((set, get) => {
-  /** Which reading of the report is the current one: an older one stops. */
+  // Bumped by every run and reset, so an older report poll stops.
   let reading = 0;
 
-  /** What the main process last said of its vault: whether the typed secrets are still in it. */
   let vaultHeld = false;
 
-  /**
-   * The report, read until it is finished.
-   *
-   * An empty `finished_at` is a machine still at work — after a channel the
-   * app gave up on, or on an install another session of the app left running.
-   * The screen shows what the report says, then asks again, and settles only
-   * on the report of a run that is over.
-   */
+  // An empty `finished_at` means the machine is still at work: poll until the run is over.
   async function follow(serverId: string): Promise<void> {
     reading += 1;
+
     const turn = reading;
 
     for (;;) {
@@ -294,11 +260,7 @@ export const useInstall = create<InstallStore>((set, get) => {
     }));
   }
 
-  /**
-   * A replay runs in the list it came from: the module goes back to pending
-   * where it stands, the others keep what the agent said of them, and the
-   * result is the earlier one with this module's fate corrected.
-   */
+  // A replay resets only its modules to pending and merges its verdict into the earlier result.
   async function run(
     serverId: string,
     modules: readonly string[],
@@ -332,23 +294,18 @@ export const useInstall = create<InstallStore>((set, get) => {
       defer
     );
 
-    // A machine already installing is not a machine that refused: the run this
-    // app started before it was closed, or another session's, is followed to
-    // its end rather than reported as a failure.
+    // Already installing (an earlier run of this app or another session's): follow it, not a failure.
     if (!answer.ok && answer.error.code === "busy") {
       await follow(serverId);
 
       return;
     }
 
-    // A configuration the agent refused names its fields: the form marks them,
-    // as it would have had `install.check` caught them first.
     if (!answer.ok && answer.error.remedy?.code === "invalid_fields") {
       useCatalog.getState().noteProblems(answer.error.remedy.problems);
     }
 
-    // The secrets left the vault with the request: a refusal loses them, and a
-    // form that still said "filled" would send the next attempt without them.
+    // A refusal empties the vault; marks still saying "filled" would resend without the secrets.
     if (!(answer.ok || vaultHeld)) {
       const catalog = useCatalog.getState();
 
@@ -381,12 +338,10 @@ export const useInstall = create<InstallStore>((set, get) => {
     return config;
   }
 
-  /** What was put off the first time stays off: a deferred module is replayed as deferred. */
   function deferredOf(modules: readonly string[]): string[] {
     return get().requested.defer.filter((id) => modules.includes(id));
   }
 
-  /** A configuration given again is the one every later replay runs with. */
   function remember(config: ModuleConfig): void {
     set((state) => ({
       requested: {
@@ -507,11 +462,7 @@ export const useInstall = create<InstallStore>((set, get) => {
   };
 });
 
-/**
- * A link that comes back finds the report where the install left it. The app
- * only ever lost sight of the machine, never the machine itself: what the
- * agent did while nobody watched is read back rather than done twice.
- */
+// A returning channel reads the report back rather than redoing what the agent did unwatched.
 useChannel.subscribe((now, before) => {
   const { install, touched, reload } = useInstall.getState();
 

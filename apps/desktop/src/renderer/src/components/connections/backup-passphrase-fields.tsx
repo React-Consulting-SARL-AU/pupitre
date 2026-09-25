@@ -11,14 +11,6 @@ import { BACKUP_PASSPHRASE_MIN } from "@shared/backups";
 import { Dices } from "lucide-react";
 import { BackupConnectionTextField } from "./backup-connection-text-field";
 
-/**
- * The passphrase, typed twice or drawn, and said to be the only key there is.
- *
- * It stays in the form until it is sent: the main process derives it and keeps
- * the public key alone. A drawn one is shown once, fills both fields, and is
- * saved only once the reader says it is written down somewhere else — a drawn
- * phrase is one nobody remembers.
- */
 export function BackupPassphraseFields({
   phrase,
   shown,
@@ -26,9 +18,7 @@ export function BackupPassphraseFields({
   onChange,
 }: {
   phrase: PhraseDraft;
-  /** Whether a refusal may be said yet: once typed in, or once sent. */
   shown: boolean;
-  /** The form was sent: what is still owed is said. */
   attempted: boolean;
   onChange: (next: PhraseDraft) => void;
 }) {

@@ -6,7 +6,6 @@ import {
   fieldAria,
 } from "@renderer/components/ui/field";
 
-/** One line of the bucket's form: its caption, its help, and its refusal under it. */
 export function BackupConnectionTextField({
   name,
   label,

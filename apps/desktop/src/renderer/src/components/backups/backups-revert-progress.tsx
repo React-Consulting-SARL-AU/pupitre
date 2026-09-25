@@ -11,12 +11,6 @@ import { X } from "lucide-react";
 import { BackupsExtraChoice } from "./backups-extra-choice";
 import { BackupsRestoreResult } from "./backups-restore-result";
 
-/**
- * A revert as it runs, held over the whole window: nothing else can be touched
- * while the server's configuration and data are replaced. It says which phase,
- * what the agent reports of it, where it stopped and why in the agent's own
- * words, and what came back at the end — and only then lets go.
- */
 export function BackupsRevertProgress({
   revert,
   phases,
@@ -28,13 +22,9 @@ export function BackupsRevertProgress({
   onDismiss,
 }: {
   revert: Exclude<RevertState, { status: "idle" | "refused" }>;
-  /** The phases this revert walks: the save only when it was asked for, the extra modules only when there are some. */
   phases: readonly RevertPhase[];
-  /** What the agent reported of the save or of the data. */
   steps: readonly ModuleProgress[];
-  /** The modules the install is putting back. */
   installing: readonly ModuleProgress[];
-  /** The backup as the sentences name it: its name if it has one, and its date. */
   named: string;
   nameOf: (moduleId: string) => string;
   onSettle: (uninstall: readonly string[]) => Promise<void>;

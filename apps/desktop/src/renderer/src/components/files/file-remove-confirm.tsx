@@ -20,14 +20,12 @@ function confirmLabel(
     : t.plural("files.remove.confirmHeld", held);
 }
 
-/** How many entries the refusal counts, when it carries the count as a value rather than in its sentence. */
 function heldOf(refusal: AgentError | null): number | null {
   const entries = refusal?.phrase?.values?.entries;
 
   return typeof entries === "number" ? entries : null;
 }
 
-/** A folder the agent held back is asked about again, with the refusal as it came. */
 export function FileRemoveConfirm({
   entry,
   refusal,
@@ -35,7 +33,6 @@ export function FileRemoveConfirm({
   onCancel,
 }: {
   entry: FileEntry;
-  /** The agent's answer to the first attempt, when it held the folder back. */
   refusal: AgentError | null;
   onRemove: (recursive: boolean) => Promise<void>;
   onCancel: () => void;

@@ -39,12 +39,7 @@ const FIELD = {
   user: "servers.add.user",
 };
 
-/**
- * The port as a number, or null when what was typed is not one.
- *
- * `Number.parseInt` would read "22abc" as 22 and "" as NaN; a port is a whole
- * number between 1 and 65535, and nothing else reaches the draft.
- */
+/** Not `Number.parseInt`, which reads "22abc" as 22. */
 export function portOf(typed: string): number | null {
   const text = typed.trim();
 
@@ -57,16 +52,12 @@ export function portOf(typed: string): number | null {
   return port >= 1 && port <= PORT_MAX ? port : null;
 }
 
-/**
- * What the port field stands at: the number the draft will carry, and the
- * refusal under the field once something that is not a port has been typed.
- * An alias of `~/.ssh/config` carries its own port in that file.
- */
 function portState(
   mode: Mode,
   typed: string,
   t: ReturnType<typeof useTranslations>
 ): { portNumber: number | null; portProblem?: string } {
+  // An alias of `~/.ssh/config` carries its own port in that file.
   if (mode === "system") {
     return { portNumber: 22 };
   }
@@ -82,7 +73,6 @@ function portState(
   };
 }
 
-/** Whether the draft has everything the chosen way of giving a key needs. */
 function readyToAdd({
   mode,
   systemHost,
@@ -138,25 +128,7 @@ const MODES: {
   },
 ];
 
-/**
- * Adding a server: an address, a port, an account, and who owns the key.
- *
- * The three ways of giving a key are shown side by side rather than hidden in a
- * menu, because choosing between them is the one decision of this screen — and
- * the recommended one says so.
- *
- * The address is knocked on before it is declared: a typo, a closed port or a
- * web server on 22 is worth learning here rather than three screens later. So
- * is the account: the knock says whether something here already opens it,
- * whether it takes a password — asked right here, and gone with the draft —
- * or whether the app will have to hand the line over. The test never blocks —
- * a machine that is down is still worth declaring — but it goes first, and
- * adding waits behind its answer.
- *
- * The password lives in this component's state for as long as it takes to send
- * it, and nowhere else: not in the store, not in the trace, not on a command
- * line.
- */
+/** The password lives only in this component's state, until it is sent. */
 export function ServerAddForm({
   busy,
   error,
@@ -166,7 +138,6 @@ export function ServerAddForm({
   busy: boolean;
   error: AgentError | null;
   onSubmit: (draft: ServerDraft) => void;
-  /** Absent when there's nothing behind it: a button that leads nowhere. */
   onCancel?: () => void;
 }) {
   const t = useTranslations();
@@ -191,8 +162,7 @@ export function ServerAddForm({
     });
   }, []);
 
-  // A development build types the developer's own machine, and only into a
-  // field still blank: nothing here ever overwrites what was just typed.
+  // Dev defaults only fill blank fields: they never overwrite what was typed.
   useEffect(() => {
     window.pupitre.devDefaults().then((defaults) => {
       if (!defaults) {
@@ -213,6 +183,7 @@ export function ServerAddForm({
 
   async function pickFile() {
     const picked = await window.pupitre.pickKeyFile();
+
     if (picked) {
       setReach(null);
       setFile(picked);
@@ -228,9 +199,11 @@ export function ServerAddForm({
     if (mode === "import") {
       return { file, mode: "import" };
     }
+
     if (mode === "system") {
       return { host: systemHost, mode: "system" };
     }
+
     return { mode: "generate" };
   }
 
@@ -279,7 +252,7 @@ export function ServerAddForm({
     setTesting(false);
   }
 
-  /** A result describes the address that was typed then; a new one is untested. */
+  // A reach result describes the address typed then; a new one is untested.
   function retype(set: (value: string) => void) {
     return (value: string) => {
       setReach(null);
@@ -297,8 +270,7 @@ export function ServerAddForm({
     user,
   });
 
-  // An alias of `~/.ssh/config` carries its address in that file, which this
-  // window does not read: there is nothing here to knock on.
+  // A `~/.ssh/config` alias keeps its address in a file this window does not read.
   const testable =
     mode !== "system" &&
     host.trim() !== "" &&

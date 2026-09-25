@@ -19,18 +19,6 @@ import { CatalogPresets } from "./catalog-presets";
 import { CatalogResources } from "./catalog-resources";
 import { CatalogSearch } from "./catalog-search";
 
-/**
- * The catalogue as the agent declared it, and nothing else.
- *
- * Categories, modules, summaries and presets all come from the answer to
- * `catalog`: a module that appears on the server appears here, in its
- * category, with its fields, without a line of this file changing. What the
- * choice weighs is said last, once, against the machine.
- *
- * A search narrows the categories and takes the presets off screen with it:
- * they are the answer to « what should I install », and someone typing a name
- * has already answered that.
- */
 export function CatalogChoice({
   catalog,
   selected,
@@ -48,7 +36,6 @@ export function CatalogChoice({
   blocked: Map<string, string>;
   warnings: readonly ResourceWarning[];
   probe?: ProbeResult | null;
-  /** What the server already runs, so a preset promises only what it adds. */
   installed?: Installed;
   query?: string;
   onQuery?: (query: string) => void;

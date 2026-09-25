@@ -7,10 +7,6 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import type { SshShareState } from "@shared/ssh-names";
 import { Settings } from "lucide-react";
 
-/**
- * Whether the system's SSH file includes the app's, and what each server
- * answers to once it does: the command, the account, the key.
- */
 export function HelpReachSection({
   state,
   onSettings,

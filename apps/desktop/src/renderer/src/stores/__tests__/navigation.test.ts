@@ -18,7 +18,6 @@ Object.defineProperty(globalThis, "localStorage", {
   },
 });
 
-/** What a previous run left on the disk, as this one will read it. */
 function remembered(memory: Navigation & { terminals?: unknown[] }): void {
   held.clear();
   held.set(STORAGE_ENTRY, JSON.stringify(memory));

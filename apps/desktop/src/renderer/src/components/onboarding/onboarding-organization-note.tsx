@@ -7,14 +7,7 @@ import type { AccountIdentity } from "@shared/account";
 import { Users } from "lucide-react";
 import { useState } from "react";
 
-/**
- * The organization the server is about to be enrolled for.
- *
- * The console files a server under the organization active on this computer
- * at the moment the agent is sent, and that moment comes without a question:
- * this card says it beforehand, and lets the reader change it while there is
- * still something to change.
- */
+/** The console enrols the server under whichever organization is active when the agent is sent. */
 export function OnboardingOrganizationNote({
   identity,
   onSwitch,

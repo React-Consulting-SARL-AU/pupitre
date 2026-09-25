@@ -19,7 +19,7 @@ function named(hostname: string): SnapshotResult {
   return { ...SNAPSHOT, machine: { ...SNAPSHOT.machine, hostname } };
 }
 
-/** Each server's snapshot lands when the test says; every other command answers at once. */
+// Snapshots land when the test resolves them; every other command answers at once.
 function agents(answers: Record<string, Deferred<SnapshotResult>>): void {
   stubPupitre({
     agentCall: (serverId: string, cmd: string) => {
@@ -46,6 +46,7 @@ describe("une réponse tardive d'un serveur quitté", () => {
   it("ne se pose pas sur le serveur devenu actif", async () => {
     const a = deferred<SnapshotResult>();
     const b = deferred<SnapshotResult>();
+
     agents({ "srv-a": a, "srv-b": b });
 
     const slow = useSnapshot.getState().read("srv-a");
@@ -65,6 +66,7 @@ describe("une réponse tardive d'un serveur quitté", () => {
 
   it("ne rouvre pas un serveur oublié entre-temps", async () => {
     const a = deferred<SnapshotResult>();
+
     agents({ "srv-a": a });
 
     const slow = useSnapshot.getState().read("srv-a");
@@ -78,6 +80,7 @@ describe("une réponse tardive d'un serveur quitté", () => {
 
   it("ne repeint pas la machine après un redémarrage demandé", async () => {
     const a = deferred<SnapshotResult>();
+
     agents({ "srv-a": a });
 
     const slow = useSnapshot.getState().read("srv-a");
@@ -128,6 +131,7 @@ describe("un serveur qui redémarre", () => {
     await useSnapshot.getState().reboot("srv-a", "atelier");
 
     const a = deferred<SnapshotResult>();
+
     agents({ "srv-a": a });
 
     const read = useSnapshot.getState().read("srv-a");
@@ -168,6 +172,7 @@ describe("un serveur qui redémarre", () => {
 describe("la lecture d'un serveur", () => {
   it("garde le snapshot tel que l'agent le renvoie", async () => {
     const a = deferred<SnapshotResult>();
+
     agents({ "srv-a": a });
 
     const read = useSnapshot.getState().read("srv-a");
@@ -188,6 +193,7 @@ describe("la lecture d'un serveur", () => {
 describe("une lecture qui échoue après une réussie", () => {
   it("garde la machine à l'écran et la marque, jusqu'à la lecture suivante", async () => {
     let answering = true;
+
     stubPupitre({
       agentCall: (_serverId: string, cmd: string) =>
         Promise.resolve(

@@ -12,7 +12,6 @@ export interface SelectGroup<T extends string> {
   options: readonly SelectOption<T>[];
 }
 
-/** What floats under a control — a list of choices, a menu — shares one frame. */
 export const POPUP_CLASS =
   "elevation-overlay z-50 rounded-md border border-line bg-surface p-1 outline-none transition-pop data-[ending-style]:opacity-0 data-[starting-style]:opacity-0";
 
@@ -44,16 +43,6 @@ function SelectItems<T extends string>({
   ));
 }
 
-/**
- * One value among the ones a list allows, drawn by the app rather than by the
- * platform.
- *
- * The control reads like every other field — same frame, same inks, same
- * refusal border — and the list opens under it in the frame every floating
- * thing of the app shares. What the reader sees is always a label, never a
- * value: the value is what the form keeps. Groups, when the list has them,
- * are captioned the way every menu of the app captions its groups.
- */
 export function Select<T extends string>({
   value,
   onChange,
@@ -70,12 +59,9 @@ export function Select<T extends string>({
   onChange: (next: T) => void;
   options?: readonly SelectOption<T>[];
   groups?: readonly SelectGroup<T>[];
-  /** A name reads in the interface face; a version, a port, a code in the data face. */
   kind?: FieldText;
-  /** The control is refused: it takes the border every refused field takes. */
   wrong?: boolean;
   disabled?: boolean;
-  /** What the control says while no option stands. */
   placeholder?: string;
   className?: string;
   id?: string;

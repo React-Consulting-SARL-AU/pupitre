@@ -11,7 +11,6 @@ import {
   walkedBefore,
 } from "../onboarding-machine";
 
-/** The sequence, with nothing around it: no store, no screen, no server. */
 function walk(from: MachineState, ...events: Event[]): MachineState {
   return events.reduce((state, event) => transition(state, event).state, from);
 }
@@ -22,7 +21,6 @@ function effectsOf(state: MachineState, event: Event): string[] {
 
 const OPENED = walk(CLOSED, { serverId: "srv-1", type: "begin" });
 
-/** An organization without backups: nothing to start from, nothing to bring back. */
 const PLAIN = { backups: false, restored: null };
 
 describe("repartir d'une sauvegarde", () => {
@@ -145,7 +143,7 @@ describe("l'ordre des étapes", () => {
     ]);
   });
 
-  /** A bare machine has no catalogue to answer with; a managed one needs no binary. */
+  // A managed machine already runs the agent, so no binary is sent.
   it("passe de l'inspection au catalogue quand l'agent est déjà là", () => {
     expect(walk(OPENED, { type: "inspected" }).step).toBe("catalog");
   });
@@ -183,7 +181,6 @@ describe("le chemin du retour", () => {
     expect(canGoBack({ ...OPENED, step: "done" })).toBe(false);
   });
 
-  /** A step walked back to was already entered: the binary is not sent twice, the machine not read again. */
   it("ne rejoue pas ce qu'entrer dans l'étape avait déclenché", () => {
     const onAgent = walk(OPENED, { type: "needsAgent" });
     const onCatalog = walk(onAgent, { type: "agentSent" });
@@ -204,7 +201,7 @@ describe("ce qu'une étape déclenche en y entrant", () => {
     ).toContain("startHarden");
   });
 
-  /** The console learns what the machine runs rather than five minutes later. */
+  // Otherwise the console only learns what the machine runs on its next sync, minutes later.
   it("prévient la console après l'installation et après le durcissement", () => {
     expect(
       effectsOf({ ...OPENED, step: "install" }, { type: "installed" })
@@ -220,7 +217,6 @@ describe("ce qu'une étape déclenche en y entrant", () => {
     ).toContain("reloadFleet");
   });
 
-  /** A new onboarding starts on an empty shelf: nothing of the last one is inherited. */
   it("oublie le brouillon en ouvrant un nouvel onboarding", () => {
     expect(effectsOf(OPENED, { serverId: "srv-2", type: "begin" })).toContain(
       "forget"
@@ -268,11 +264,7 @@ describe("un serveur qui quitte la liste", () => {
     expect(state.step).toBe("closed");
   });
 
-  /**
-   * Quitting keeps the progress so the servers screen can offer it back — but a
-   * finished sequence has nothing to come back to, and one left on the shelf was
-   * read there as an install that stopped half-way.
-   */
+  // A finished sequence left on the shelf read as an install that stopped half-way.
   it("efface l'étagère en quittant une séquence finie", () => {
     expect(effectsOf({ ...OPENED, step: "done" }, { type: "close" })).toContain(
       "forget"

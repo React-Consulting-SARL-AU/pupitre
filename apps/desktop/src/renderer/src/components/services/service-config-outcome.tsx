@@ -7,10 +7,6 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import type { ModuleProgress } from "@renderer/lib/module-progress";
 import type { ApplyState } from "@renderer/stores/services";
 
-/**
- * What an apply says of itself under the form: the wait, the agent's steps,
- * its refusal, and the verdict once it is over.
- */
 export function ServiceConfigOutcome({
   apply,
   steps,
@@ -22,7 +18,6 @@ export function ServiceConfigOutcome({
   steps: readonly ModuleProgress[];
   name: string;
   nameOf: (moduleId: string) => string;
-  /** A refusal took the typed secrets with it: they have to be typed again. */
   secretsDropped: boolean;
 }) {
   const t = useTranslations();

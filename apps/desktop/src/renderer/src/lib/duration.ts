@@ -6,13 +6,6 @@ const MINUTE_MS = 60_000;
 const HOUR_MS = 3_600_000;
 const MEGABYTE = 1_000_000;
 
-/**
- * A duration the eye can compare at a glance.
- *
- * Under a minute it stays in seconds with one decimal, because that is where
- * the difference between two steps shows; past that, the decimal is noise and
- * the minutes are what the reader is waiting on.
- */
 export function humanMs(ms: number): string {
   const t = translate();
   const second = t("format.unit.second");

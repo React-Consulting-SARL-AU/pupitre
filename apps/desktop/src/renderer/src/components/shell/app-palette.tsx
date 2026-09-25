@@ -10,14 +10,6 @@ import { useMemo } from "react";
 import { tabOfKind } from "../projects/project-tabs";
 import { CommandPalette } from "./command-palette";
 
-/**
- * The palette filled with what this window knows.
- *
- * The views are the sidebar's, in its order; the projects and the terminals
- * are the driven server's; the servers are every one this computer knows,
- * the driven one aside. Picking one is exactly the click it stands for.
- */
-
 const VIEWS: readonly { view: View; label: DictionaryKey }[] = [
   { label: "shell.sidebar.dashboard", view: "dashboard" },
   { label: "shell.sidebar.services", view: "services" },

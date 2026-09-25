@@ -10,17 +10,6 @@ import type { AgentError } from "@shared/agent";
 import { OctagonX, X } from "lucide-react";
 import type { ReactNode } from "react";
 
-/**
- * What weighs on the machine, heaviest first.
- *
- * "It's slow" cannot be fixed without knowing what is slow: each row therefore
- * carries the project responsible when the agent managed to find it, rather
- * than an anonymous "java" nobody could attribute.
- *
- * A stop that did not take — the process is still listed at the next read —
- * turns its button into a forced one: the first asks, the second does not.
- */
-
 const BUSY_CPU = 50;
 
 const HEAVY_MB = 2048;
@@ -33,9 +22,9 @@ export function ActivityProcesses({
   onRetry,
 }: {
   processes: readonly Process[];
-  /** The pids a stop was sent to and that are still here. */
+  /** Pids still listed by the read that followed their stop: their button forces. */
   lingering?: readonly number[];
-  /** The last read that failed, while the rows are the read before it. */
+  /** The rows stay those of the last successful read. */
   problem?: AgentError | null;
   onStop: (pid: number, force: boolean) => void;
   onRetry?: () => void;
@@ -45,6 +34,7 @@ export function ActivityProcesses({
   const peak = Math.max(...processes.map((p) => p.cpu), 1);
 
   let body: ReactNode;
+
   if (problem) {
     body = (
       <div data-processes="failed">

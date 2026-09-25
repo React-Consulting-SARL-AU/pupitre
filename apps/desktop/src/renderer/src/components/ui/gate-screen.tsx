@@ -4,15 +4,6 @@ import type { ReactNode } from "react";
 import { Label } from "./label";
 import { WindowBand } from "./window-band";
 
-/**
- * A screen that stands in front of the app: no account yet, no machine yet, a
- * machine that does not answer, a machine that restarts.
- *
- * Every one of them reads the same way — the mark and what the screen is
- * about, a title, one line of consequence, what the screen holds, and the ways
- * forward at its foot — so the reader who meets two of them in a row knows
- * where to look. The cascade reveals them in that order.
- */
 export function GateScreen({
   eyebrow,
   title,
@@ -26,15 +17,13 @@ export function GateScreen({
 }: {
   eyebrow: string;
   title: string;
-  /** What the screen changes for the reader, in one sentence. */
   lead?: string;
   children?: ReactNode;
-  /** The ways forward, the main one first. */
   actions?: ReactNode;
-  /** Where the actions arrive in the cascade, after what the screen holds. */
+  /** Cascade index of the actions, after whatever rises inside `children`. */
   actionsAt?: number;
   narrow?: boolean;
-  /** Set beside a panel that already carries the mark on a wide window. */
+  /** Next to a panel that already shows the mark on a wide window. */
   beside?: boolean;
 } & Record<`data-${string}`, string | undefined>) {
   return (

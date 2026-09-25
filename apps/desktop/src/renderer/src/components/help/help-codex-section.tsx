@@ -5,11 +5,6 @@ import { HelpModuleLine } from "./help-module-line";
 import type { HelpTarget } from "./help-screen";
 import { HelpTerminalSteps } from "./help-terminal-steps";
 
-/**
- * Codex on the server, from the ChatGPT app or from a terminal. The app has
- * no form to fill: it reads the hosts of ~/.ssh/config, which is why the
- * shared file matters here more than anywhere.
- */
 export function HelpCodexSection({
   target,
   installed,

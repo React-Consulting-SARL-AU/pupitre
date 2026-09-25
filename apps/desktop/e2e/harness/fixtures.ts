@@ -6,8 +6,7 @@ import {
 import type { AccountState } from "../../src/shared/account";
 import type { ServersConfig } from "../../src/shared/servers";
 
-// TEST-NET-1 is never routed: a channel that escapes the harness reaches
-// nothing rather than someone.
+// TEST-NET-1 is never routed: a channel escaping the harness reaches nothing.
 export const SERVERS: ServersConfig = {
   active: "e2e-atelier",
   servers: [
@@ -25,9 +24,6 @@ export const SERVERS: ServersConfig = {
   version: 1,
 };
 
-// The snapshot the screen tests already render from: a capture and a unit test
-// disagree about the interface, never about the data.
-/** What the unit answers once systemd has had its say: the state, never the intention. */
 function postgres(state: "running" | "stopped") {
   return {
     credentials: {},
@@ -72,7 +68,6 @@ export const ANSWERS: Partial<Record<CommandName, unknown>> = {
   },
 };
 
-/** One entry of the fake tree, as `fs.list` describes it. */
 export interface FixtureEntry {
   name: string;
   kind: "file" | "dir";
@@ -81,13 +76,7 @@ export interface FixtureEntry {
   mode: string;
 }
 
-/**
- * The working tree of the fake server, under the root its completions name.
- *
- * `fs.list` reads a folder here, `fs.stat` and `fs.read` a file: the text is
- * what the editor opens, and what a write replaces. The archive is listed and
- * described but never read — it is the file the app says is to be downloaded.
- */
+/** `dump.tar.gz` has no text on purpose: it is the file the app offers to download. */
 export const FILES: {
   root: string;
   folders: Record<string, FixtureEntry[]>;
@@ -179,13 +168,7 @@ export const FILES: {
   },
 };
 
-/**
- * Someone is signed in on this computer.
- *
- * The app opens on the sign-in as long as nobody is, so every scenario that is
- * not about the account itself starts from an identity the platform confirmed.
- * The specs that do test the account replace these two channels with their own.
- */
+/** Signed in by default: the app opens on the sign-in otherwise; account specs replace it. */
 export const ACCOUNT: AccountState = {
   build: "production",
   checkedAt: "2026-09-06T09:00:00.000Z",

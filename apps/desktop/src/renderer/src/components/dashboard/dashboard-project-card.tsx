@@ -17,16 +17,7 @@ import type { Gesture } from "@renderer/lib/use-pending";
 import type { ProjectAction } from "@renderer/stores/snapshot";
 import { ExternalLink, Package, Play, RotateCw, Square } from "lucide-react";
 
-/**
- * One project, and the three things you do to it from here.
- *
- * Everything shown comes from the snapshot: the state, the ports, the branch,
- * the memory. A project of several processes shows one pill per process, so
- * a server up and a client down read as what they are. The gap with the
- * remote repository does not — it costs a network round trip per project —
- * and lives on the project's own page.
- */
-
+// The gap with the remote lives on the project page: it costs a network round trip per project.
 export function DashboardProjectCard({
   project,
   busy,

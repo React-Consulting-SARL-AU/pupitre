@@ -78,7 +78,6 @@ describe("le tunnel de l'agent", () => {
     expect(useTunnel.getState().problem).toBeNull();
   });
 
-  /** A name the account refuses is said where the routes are, not lost in a trace. */
   it("garde le refus de l'écriture des noms", async () => {
     stubPupitre({
       agentCall: () =>

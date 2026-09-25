@@ -3,15 +3,6 @@ import { expect, test } from "@playwright/test";
 import { assertAccessible } from "./harness/accessible";
 import { launchPupitre, type Running } from "./harness/launch";
 
-/**
- * The invited member, from the settings to the machine.
- *
- * Only the platform is replaced: the window, the bridge and the stores are the
- * app's own. What the scenario watches is the promise of the shared fleet — the server
- * arrives with its address, no field asks for one, and the first opening leads
- * straight to the customisation rather than to an installation.
- */
-
 const CONSOLE_URL = "https://app.pupitre.test/dashboard";
 
 const GRANTED_ID = "e2e-attribue";
@@ -127,8 +118,6 @@ test.describe("serveur attribué", () => {
 
     await page.getByRole("button", { name: "Réglages" }).click();
 
-    // One machine, one row: the console's word sits among the server's facts
-    // rather than in a list of its own.
     await expect(page.getByText(ADDRESS)).toHaveCount(1);
     await expect(page.getByText("Attribué · actif")).toBeVisible();
     await expect(page.getByText("Atelier Ada").first()).toBeVisible();
@@ -137,8 +126,6 @@ test.describe("serveur attribué", () => {
 
     await page.getByRole("button", { exact: true, name: "Ouvrir" }).click();
 
-    // Already installed by the organisation: the app opens on it, and no
-    // assistant stands in the way.
     await expect(page.getByText("atelier partagé").first()).toBeVisible();
     await expect(page.getByText("Quitter l'assistant")).toHaveCount(0);
   });

@@ -2,12 +2,6 @@ import type { FsStatResult } from "@pupitre/shared/agent-protocol/files";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { since, weight } from "@renderer/lib/format";
 
-/**
- * What the agent says of a file without reading it: its weight, its type
- * when it recognises one, when it last changed, and its mode. It is all the
- * pane has for a file the channel does not carry, and it is shown for every
- * file, under the image or beside the editor's name.
- */
 export function FileSheet({ stat }: { stat: FsStatResult }) {
   const t = useTranslations();
 

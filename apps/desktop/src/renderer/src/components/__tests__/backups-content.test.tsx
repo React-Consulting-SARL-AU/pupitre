@@ -33,7 +33,7 @@ function databases(
   );
 }
 
-/** The drawn checkbox of one line, found back from the hidden input that names it. */
+// The drawn checkbox is found back from the hidden input that names it.
 function box(html: string, name: string): string {
   const at = html.indexOf(`name="${name}"`);
   const role = html.lastIndexOf('role="checkbox"', at);

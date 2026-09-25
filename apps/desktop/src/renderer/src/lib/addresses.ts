@@ -17,12 +17,10 @@ export function trimmedAddress(raw: string): string {
   return address;
 }
 
-/** A piece of a line: text as it is, or an address to follow. */
 export type Piece =
   | { kind: "text"; text: string }
   | { kind: "address"; text: string };
 
-/** The line cut around the addresses it carries, in order; a line without one is a single piece. */
 export function piecesOf(line: string): readonly Piece[] {
   const pieces: Piece[] = [];
   let from = 0;

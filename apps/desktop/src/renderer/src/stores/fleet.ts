@@ -9,15 +9,6 @@ import { grantGone, grantPending } from "@shared/servers";
 import { create } from "zustand";
 import { useServers } from "./servers";
 
-/**
- * The servers the platform grants this account, as the screen reads them.
- *
- * The store builds no address and names no key: the main process merged the
- * platform's list into the local one, and what lives here is that merge plus
- * the single gesture the screen offers — opening one of them, named by its
- * local identifier.
- */
-
 export type FleetState =
   | { status: "idle" }
   | { status: "reading" }
@@ -38,13 +29,7 @@ export interface GrantedServer extends Server {
   grant: ServerGrant;
 }
 
-/**
- * The servers of the local list the platform grants, and only those.
- *
- * An attribution the platform has let go is not one: the entry that carried it
- * was typed here, so it keeps its place in the list — but nothing counts it
- * as given by the organization any more.
- */
+/** A released grant keeps its local entry but no longer counts as granted. */
 export function grantedServers(state: FleetState): GrantedServer[] {
   const servers = fleetView(state)?.config.servers ?? [];
 
@@ -53,13 +38,7 @@ export function grantedServers(state: FleetState): GrantedServer[] {
   );
 }
 
-/**
- * Granted servers that were removed from this computer.
- *
- * The platform still grants them; it is the local list that hides them. The
- * panel gives their count and offers the way back, otherwise an accidental
- * removal would have none.
- */
+/** Still granted but hidden locally, so an accidental removal has a way back. */
 export function dismissedGrants(state: FleetState): FleetServer[] {
   const view = fleetView(state);
   const dismissed = new Set(view?.config.dismissed ?? []);
@@ -67,7 +46,6 @@ export function dismissedGrants(state: FleetState): FleetServer[] {
   return view?.granted.filter((server) => dismissed.has(server.id)) ?? [];
 }
 
-/** Granted, but with no address to reach: the app could not adopt them. */
 export function unreachableGrants(state: FleetState): number {
   return fleetView(state)?.granted.filter((server) => !server.host).length ?? 0;
 }
@@ -95,6 +73,7 @@ export const useFleet = create<FleetStore>((set, get) => ({
 
     if (!answer.ok) {
       set({ state: { error: answer.error, status: "failed" } });
+
       return;
     }
 
@@ -120,10 +99,10 @@ export const useFleet = create<FleetStore>((set, get) => ({
       return;
     }
 
-    // Nothing is asked of the platform while the key is not there: the wait is
-    // the state, and the next read is what ends it.
+    // While the key is pending nothing is asked of the platform; the next read resumes the open.
     if (grantPending(server.grant)) {
       set({ opening: { serverId, status: "waiting" } });
+
       return;
     }
 
@@ -131,10 +110,12 @@ export const useFleet = create<FleetStore>((set, get) => ({
 
     if (!answer.ok) {
       set({ opening: { error: answer.error, serverId, status: "refused" } });
+
       return;
     }
 
     await useServers.getState().load();
+
     set({ opening: { serverId, status: "opened" } });
   },
 

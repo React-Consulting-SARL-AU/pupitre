@@ -5,7 +5,6 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import type { DiffState } from "@renderer/stores/project";
 import { ProjectDiffPatchRows } from "./project-diff-patch-rows";
 
-/** Waiting, read, refused or nothing chosen — never a bare spinner. */
 export function ProjectDiffPatch({
   state,
   onRetry,

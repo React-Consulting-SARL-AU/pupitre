@@ -7,10 +7,6 @@ import { useId, useState } from "react";
 import { controlClass } from "../ui/field";
 import { IconButton } from "../ui/icon-button";
 
-/**
- * A name edited where it stands: Enter or the tick sends it, Escape or the
- * cross puts the old name back, and a refusal stays under the field.
- */
 export function FileRenameField({
   name,
   onRename,

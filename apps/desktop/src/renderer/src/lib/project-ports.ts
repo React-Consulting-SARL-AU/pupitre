@@ -17,29 +17,16 @@ import {
   validSubdomain,
 } from "./project-draft";
 
-/**
- * The ports of a process, one row each, as the form shows them.
- *
- * The first row is the main port — the one that decides the state and the
- * local address. Every row carries a short label and, when the reader chooses
- * to publish it, the name it answers to on the web: a subdomain the agent
- * completes with the server's domain, or, on a route the server already
- * holds, the whole hostname it stored. Nothing here decides anything the agent
- * has not said: what is proposed is free as far as the app knows, and the
- * registry is the one that refuses.
- */
-
 export interface PortRow {
-  /** What tells one row from another on screen while their labels are typed. */
+  /** Stays stable while the label is being typed. */
   key: string;
   label: string;
   port: number;
   publish: boolean;
-  /** The name on the web: a subdomain, or a whole hostname when `whole` is set. */
   web: string;
-  /** True on a route the server stored: `web` is the hostname as it stands. */
+  /** On a route the server stored, `web` is its whole hostname rather than a subdomain. */
   whole: boolean;
-  /** True once the reader typed the name themselves: it stops following the project's name. */
+  /** Set once the reader typed `web`: it stops following the project's name. */
   ownWeb: boolean;
 }
 
@@ -51,7 +38,6 @@ export type RowProblem =
   | "web"
   | "webTaken";
 
-/** What the rows are weighed against: what the other projects of the server hold. */
 export interface Held {
   ports: readonly number[];
   hostnames: readonly string[];
@@ -69,7 +55,6 @@ const LOWEST_PORT = 1024;
 
 const HIGHEST_PORT = 65_535;
 
-/** The labels proposed to a row added by hand, in the order projects usually grow. */
 const USUAL_LABELS = ["web", "api", "docs", "admin", "worker"];
 
 export function validLabel(value: string): boolean {
@@ -100,11 +85,6 @@ function validPort(port: number): boolean {
   return Number.isInteger(port) && port >= LOWEST_PORT && port <= HIGHEST_PORT;
 }
 
-/**
- * The subdomain proposed for a row: the project's own name on the main row of
- * its first process, `<label>-<name>` on the others, each one no declared
- * project holds.
- */
 export function proposedWeb(
   name: string,
   label: string,
@@ -123,7 +103,6 @@ export function proposedWeb(
   return freeSubdomain(stem, taken);
 }
 
-/** The subdomains the held hostnames start with: what a proposal must not repeat. */
 export function heldSubdomains(hostnames: readonly string[]): string[] {
   return hostnames.map((hostname) => hostname.split(".")[0] ?? "");
 }
@@ -144,7 +123,6 @@ function row(partial: Partial<PortRow> & { port: number }): PortRow {
   };
 }
 
-/** One row on a free port, with the first usual label no row carries yet. */
 export function firstRow(port: number, publish: boolean): PortRow {
   return row({ label: USUAL_LABELS[0] ?? "web", port, publish });
 }
@@ -170,7 +148,6 @@ export function addedRow(
   });
 }
 
-/** The rows the agent read off a monorepo, in its order, all published when the server can. */
 export function rowsFromDetection(
   routes: readonly DetectedRoute[],
   publish: boolean
@@ -180,12 +157,7 @@ export function rowsFromDetection(
   );
 }
 
-/**
- * The rows of a declared process, as the configuration screen opens them.
- *
- * A route the server stored a name for keeps that name whole: what the reader
- * sees is what answers, and what they send back, unchanged, is what stays.
- */
+/** A stored hostname stays whole, so sending it back unchanged keeps it as it is. */
 export function rowsFromProcess(process: Process): PortRow[] {
   const rows = process.routes.map((route) =>
     row({
@@ -205,11 +177,7 @@ export function rowsFromProcess(process: Process): PortRow[] {
   return [row({ label: "web", port: process.port, publish: false }), ...rows];
 }
 
-/**
- * Every row's name on the web refreshed from the project's name, except those
- * the reader took over. `main` says whether the first row is the project's
- * main one — the first process's — and takes the bare name.
- */
+/** `main`: the first row belongs to the first process and takes the bare project name. */
 export function followName(
   rows: readonly PortRow[],
   name: string,
@@ -225,20 +193,13 @@ export function followName(
     }
 
     const web = proposedWeb(name, current.label, main && index === 0, claimed);
+
     claimed.push(web);
 
     return { ...current, web, whole: false };
   });
 }
 
-/**
- * Why the agent would refuse a row, weighed before it is asked.
- *
- * A port another project holds, a label another row of this project carries,
- * a name on the web that DNS would not take or that a project already answers
- * to: catching them here keeps the button from sending a form that comes back
- * with a phase in failure.
- */
 export function rowProblem(
   rows: readonly PortRow[],
   index: number,
@@ -309,7 +270,6 @@ export function rowsReady(
   );
 }
 
-/** The routes `project.add` takes: a subdomain for what is published, nothing for the rest. */
 export function routeRequests(
   rows: readonly PortRow[],
   exposure: boolean
@@ -326,7 +286,6 @@ export function routeRequests(
   });
 }
 
-/** The routes `project.update` takes: a stored name travels whole, a new one as a subdomain. */
 export function routePatches(
   rows: readonly PortRow[],
   exposure: boolean
@@ -347,14 +306,13 @@ export function routePatches(
   });
 }
 
-/** The names on the web a project's processes hold: what a rewrite may take away. */
 export function hostnamesOf(project: Pick<Project, "processes">): string[] {
   return project.processes.flatMap((process) =>
     process.routes.flatMap((route) => route.hostname ?? [])
   );
 }
 
-/** What a project weighs: the memory of every process, ancestry included, as the agent summed each. */
+/** Each `ram_mb` already counts the whole process tree, as the agent summed it. */
 export function memoryOf(project: Pick<Project, "processes">): number {
   return project.processes.reduce(
     (total, process) => total + (process.ram_mb ?? 0),
@@ -362,7 +320,6 @@ export function memoryOf(project: Pick<Project, "processes">): number {
   );
 }
 
-/** Every port a project holds on the machine: the main one of each process, and the ones its routes name. */
 export function portsOf(project: Pick<Project, "processes">): number[] {
   return project.processes.flatMap((process) => [
     process.port,
@@ -370,7 +327,6 @@ export function portsOf(project: Pick<Project, "processes">): number[] {
   ]);
 }
 
-/** What the other projects of a server hold, read off the list the agent gave. */
 export function heldBy(projects: readonly Project[], except?: string): Held {
   const others = projects.filter((project) => project.name !== except);
 

@@ -1,9 +1,5 @@
 import type { ReactNode } from "react";
 
-/**
- * A small figure beside a caption — how many are moving, which device is this
- * one. It never wraps or shrinks: a count split over two lines reads as two.
- */
 export function CountPill({
   children,
   className = "",

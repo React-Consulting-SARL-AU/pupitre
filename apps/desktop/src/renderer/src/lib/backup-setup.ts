@@ -1,9 +1,3 @@
-/**
- * The steps a first setup of backups walks, and the fields of `core.backup`
- * each one answers: a refusal of the agent sends the reader back to the step
- * that holds its field.
- */
-
 export const BACKUP_SETUP_STEPS = [
   "bucket",
   "passphrase",

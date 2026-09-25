@@ -3,14 +3,6 @@ import { accountOf, useAccount } from "@renderer/stores/account";
 import { useChannel } from "@renderer/stores/channel";
 import { Callout } from "../ui/callout";
 
-/**
- * What holds the whole sequence rather than one of its steps.
- *
- * A link that dropped and a usage right the platform stopped confirming are not
- * failures of the step the reader is on: the step stands where it is, reading
- * goes on, and this says why nothing is moving. Both come back on their own;
- * the onboarding store is what holds and releases the step, this only says so.
- */
 export function OnboardingBanner({
   serverId,
   serverName,

@@ -3,13 +3,6 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { measured, memory } from "@renderer/lib/format";
 import { Fact, FactList } from "../ui/fact";
 
-/**
- * The machine in four figures, as the probe measured them.
- *
- * Nothing is converted and nothing is rounded further: what is shown is what
- * the next screen will weigh services against. Only the unit words and the
- * decimal mark follow the reader's language.
- */
 export function OnboardingInspectionSummary({ probe }: { probe: ProbeResult }) {
   const t = useTranslations();
 

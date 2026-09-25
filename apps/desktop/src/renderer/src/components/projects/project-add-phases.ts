@@ -17,10 +17,7 @@ export interface PhaseLook {
   label: DictionaryKey;
 }
 
-/**
- * Five fates, five outlines. The tone only confirms what the shape already
- * says, so the whole screen survives being read in pure greys.
- */
+// Each shape alone must tell the status apart: the tone only confirms it, so greys still read.
 export const PHASE_LOOK: Record<PhaseStatus, PhaseLook> = {
   fail: {
     label: "projectAdd.phaseStatus.fail",

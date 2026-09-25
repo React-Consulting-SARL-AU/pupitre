@@ -1,14 +1,6 @@
 import type { ReactNode } from "react";
 import { Label } from "./label";
 
-/**
- * Facts read in columns: a caption, the value under it, a detail under that.
- *
- * An address, an organization, a fingerprint, a command: wherever a screen
- * lays out what it knows, it is this grid, so the reader's eye finds the
- * caption at the same height and the value in the same ink from one page to
- * the next.
- */
 export function FactList({
   children,
   columns = 2,
@@ -35,9 +27,7 @@ export function Fact({
 }: {
   label: string;
   children: ReactNode;
-  /** What qualifies the value, in a fainter ink under it. */
   detail?: ReactNode;
-  /** A name or a sentence reads in the interface face; everything else is data. */
   prose?: boolean;
   className?: string;
 } & Record<`data-${string}`, string | number | undefined>) {

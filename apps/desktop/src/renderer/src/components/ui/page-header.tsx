@@ -2,21 +2,13 @@ import { type ReactNode, useEffect, useRef } from "react";
 import { Label } from "./label";
 
 export interface PageHeaderProps {
-  /** What stands left of the title: the logo of the thing the page is about. */
   leading?: ReactNode;
   eyebrow?: string;
   title: ReactNode;
-  /** What sits on the title's line, after it: a state, a branch. */
   meta?: ReactNode;
   description?: ReactNode;
   actions?: ReactNode;
-  /**
-   * The step this header opens, when the page is one step of a sequence.
-   * Each new value sends the focus to the title: a panel that is replaced
-   * takes the focused button with it, and saying where the reader has arrived
-   * puts the tab order back at the top of the work rather than at the end of
-   * a screen that has gone.
-   */
+  /** Each new step focuses the title: the replaced panel took the focused button with it. */
   step?: string;
 }
 

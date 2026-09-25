@@ -10,13 +10,6 @@ const MASK = "••••-••••-••••-••••-••••-�
 
 const FEEDBACK_MS = 1600;
 
-/**
- * The sudo password of `dev` on this server, hidden until it is asked for.
- *
- * A computer that does not hold it — another laptop, a keychain lost, a
- * keychain-less run that ended — has it typed: every privileged gesture needs
- * it, the securing that would set a new one included (decision 0015).
- */
 export function ServerSudoFact({ serverId }: { serverId: string }) {
   const t = useTranslations();
 
@@ -37,6 +30,7 @@ export function ServerSudoFact({ serverId }: { serverId: string }) {
     return null;
   }
 
+  // Even the securing that would set a new password needs the current one (decision 0015).
   if (!state.held) {
     return (
       <Fact data-sudo-password="absent" label={t("sudo.password.label")}>

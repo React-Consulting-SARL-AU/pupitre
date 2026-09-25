@@ -10,12 +10,6 @@ import {
 } from "../../__tests__/probe-fixtures";
 import { OnboardingInspectionResult } from "../onboarding/onboarding-inspection-result";
 
-/**
- * Four probe reports, four screens. The harness is `react-dom/server`: these
- * components hold no state and touch no DOM API, so a static render says
- * everything a browser would.
- */
-
 function screen(probe: ProbeResult): string {
   return renderToStaticMarkup(
     <OnboardingInspectionResult probe={probe} serverName="staging" />
@@ -99,6 +93,7 @@ describe("serveur occupé", () => {
 
     for (const reason of OCCUPIED.verdict.reasons) {
       const at = rendered.indexOf(text(reason).trim());
+
       expect(at).toBeGreaterThan(cursor);
       cursor = at;
     }

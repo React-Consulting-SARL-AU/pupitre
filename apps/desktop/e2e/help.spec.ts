@@ -3,13 +3,6 @@ import { expect, test } from "@playwright/test";
 import { assertAccessible } from "./harness/accessible";
 import { launchPupitre, type Running } from "./harness/launch";
 
-/**
- * The help page, from the sidebar: what another client needs to reach the
- * driven server, with that server's own values on it. The SSH file the main
- * process would read is the harness's empty one, so the state is answered
- * here as a shared file naming the fixture server.
- */
-
 function stubSshShare(app: ElectronApplication): Promise<void> {
   return app.evaluate(({ ipcMain }) => {
     const state = {
@@ -59,7 +52,6 @@ test.describe("l'aide", () => {
       page.locator('[data-help-server="e2e-atelier"]')
     ).toContainText("ssh atelier");
 
-    // The other sections wait folded under their caption, a table of contents.
     await expect(page.locator('[data-section="help-claude"]')).toHaveAttribute(
       "data-closed",
       ""
@@ -74,7 +66,7 @@ test.describe("l'aide", () => {
     await page.getByRole("button", { name: "Codex" }).click();
     await page.getByRole("button", { name: "Votre éditeur" }).click();
 
-    // Claude Code is on the fixture server, Codex is not: each says so.
+    // The fixture server has Claude Code but not Codex.
     await expect(
       page.locator('[data-callout="help-module-ai.claude"]')
     ).toHaveAttribute("data-tone", "ok");
@@ -82,7 +74,6 @@ test.describe("l'aide", () => {
       page.locator('[data-callout="help-module-ai.codex"]')
     ).toHaveAttribute("data-tone", "warn");
 
-    // The terminal steps open in the first project's folder.
     await expect(
       page.getByText("cd /home/dev/projects/flyleaf && claude")
     ).toBeVisible();

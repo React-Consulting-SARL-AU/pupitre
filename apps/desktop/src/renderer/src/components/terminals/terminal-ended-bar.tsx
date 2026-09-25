@@ -4,12 +4,6 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import type { Gesture } from "@renderer/lib/use-pending";
 import { RotateCw, X } from "lucide-react";
 
-/**
- * The process is gone, and the tab says so where the prompt used to be.
- *
- * What was printed stays on screen to be read; the two ways out are a fresh
- * process in the same tab, or the tab itself going away.
- */
 export function TerminalEndedBar({
   code,
   onReopen,

@@ -7,19 +7,6 @@ import type { ReenrollState } from "@renderer/stores/reenroll";
 import { ExternalLink } from "lucide-react";
 import { ServerReenrollAction } from "./server-reenroll-action";
 
-/**
- * What the agent says of its own right to work.
- *
- * It is the server's own answer, not the account's: this computer may be
- * signed in and this machine still be suspended. A restricted agent keeps
- * everything running and answers only its read commands, so the screen stays
- * readable and says once, at the top, why every button below would refuse.
- *
- * `enroll` is the one of those commands that repairs, and the one repair the
- * app can carry out itself — offered only when the account holds a usage right,
- * because without one the platform would refuse to grant a token and the
- * gesture would trade one refusal for another.
- */
 export function ServerRestrictedNotice({
   entitlement,
   repair,
@@ -29,6 +16,7 @@ export function ServerRestrictedNotice({
 }: {
   entitlement: SnapshotResult["entitlement"];
   repair: ReenrollState;
+  /** Requires a usage right: without one the platform refuses the new token. */
   repairable: boolean;
   onRepair: () => void;
   onOpenConsole: () => void;

@@ -35,20 +35,14 @@ interface Saved {
   serverId: string | null;
   step: OnboardingStep;
   installed: boolean;
-  /**
-   * The catalogue choice and the answers typed under it, so an app closed
-   * half-way opens on the same selection rather than on a blank form. No secret
-   * is ever in here: they never reach this side of the bridge.
-   */
+  /** Never holds a secret: secrets do not reach this side of the bridge. */
   selected: readonly string[];
   values: Record<string, Record<string, unknown>>;
-  /** The backup the machine took its configuration from, and the data parts it still owes. */
   restored: RestoredSetup | null;
 }
 
 const KEY = "pupitre.onboarding";
 
-/** How long the form waits for a pause before the draft reaches the shelf. */
 const DRAFT_PAUSE_MS = 400;
 
 const held = new Map<string, string>();
@@ -63,22 +57,12 @@ const memory = {
   },
 };
 
-/**
- * The bridge to the main process, when there is a window to hold it.
- *
- * The machine runs an effect on entering a step, so a store exercised outside a
- * window — a test, a headless render — reaches for a bridge that is not there.
- * It answers nothing rather than throwing, and the step stands where it is.
- */
+// Outside a window (a test, a headless render) effects find no bridge and answer nothing instead of throwing.
 function bridge(): Partial<Window["pupitre"]> {
   return globalThis.window?.pupitre ?? {};
 }
 
-/**
- * Where the progress is written down, so a relaunched app opens on the screen
- * the reader left. `localStorage` is the renderer's own; a build that has none
- * — a test, a headless render — falls back to memory rather than throwing.
- */
+// Falls back to memory where localStorage is missing or throws (a test, a headless render).
 function shelf(): Pick<Storage, "getItem" | "setItem" | "removeItem"> {
   try {
     return globalThis.localStorage ?? memory;
@@ -126,12 +110,11 @@ export function forgetOnboarding(): void {
 }
 
 interface OnboardingStore extends MachineState {
-  /** The machine is being read again after a relaunch, before any screen acts. */
+  /** True while a relaunch reads the machine again, before any screen acts. */
   recovering: boolean;
   delivery: DeliveryState;
 
   send: (event: Event) => void;
-  /** The catalogue changed under an open onboarding: the draft follows, after a pause. */
   noteDraft: () => void;
   open: () => void;
   begin: (serverId: string) => void;
@@ -140,14 +123,11 @@ interface OnboardingStore extends MachineState {
   canGoBack: () => boolean;
   replay: (moduleId: string) => OnboardingStep;
   sendAgent: () => Promise<void>;
-  /** The machine takes a backup's configuration; the catalogue opens on its choice. */
   restoreFrom: (backupId: string, passphrase: string) => Promise<void>;
-  /** The data parts chosen, brought back once the machine stands; then the sequence is done. */
   bringData: (
     parts: readonly string[],
     passphrase: string | null
   ) => Promise<void>;
-  /** The restore mark is let go and the data left in the bucket. */
   skipData: () => Promise<void>;
   close: () => void;
   resume: () => Promise<void>;
@@ -169,14 +149,7 @@ function shelved(): Draft {
   return { selected: saved?.selected ?? [], values: saved?.values ?? {} };
 }
 
-/**
- * The choice this onboarding made, when the catalogue still holds it.
- *
- * The screens that add a service to another machine mount the same store, and
- * their selection has nothing to do with an onboarding waiting elsewhere: a
- * catalogue read for another server answers nothing at all rather than an
- * emptiness that would erase what is already on the shelf.
- */
+// Other screens share the catalogue store: a catalogue read for another server must not erase the shelved draft.
 function ownDraft(serverId: string | null): Draft | null {
   const catalog = useCatalog.getState();
   const read =
@@ -189,10 +162,7 @@ function ownDraft(serverId: string | null): Draft | null {
   return { selected: catalog.selected, values: catalog.values };
 }
 
-/**
- * A server the list has read and does not hold. A list not yet read holds
- * nothing, and says nothing about the machine either.
- */
+// A list not yet read says nothing about the machine.
 function unknownServer(serverId: string): boolean {
   const config = useServers.getState().config;
 
@@ -200,19 +170,12 @@ function unknownServer(serverId: string): boolean {
 }
 
 export const useOnboarding = create<OnboardingStore>((set, get) => {
-  /**
-   * The choice as it stood when it was last this server's.
-   *
-   * The pause below is what keeps a keystroke off the disk, and this is what
-   * keeps the pause honest: what is written is the draft at the moment it
-   * changed, not whatever the catalogue happens to hold when the timer fires.
-   */
+  // The draft as it changed, not whatever the catalogue holds when the debounce fires.
   let pending: { serverId: string | null; draft: Draft } | null = null;
 
-  /** Which sequence is under way: what an earlier one left waiting is dropped. */
+  // Bumped per sequence so work an earlier one left waiting is dropped.
   let sequence = 0;
 
-  /** A step is written down the moment it changes: it is what a resume reads first. */
   function persist(): void {
     const { serverId, installed, step } = get();
 
@@ -227,10 +190,6 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
     keep({ installed, restored, serverId, step, ...own });
   }
 
-  /**
-   * The answers typed under the choice, written down as they are made: an app
-   * closed on the configuration screen has to find them again when it opens.
-   */
   let writing: ReturnType<typeof setTimeout> | null = null;
 
   function persistSoon(): void {
@@ -252,11 +211,6 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
     }, DRAFT_PAUSE_MS);
   }
 
-  /**
-   * The install the step asks for: what a resumed onboarding still owes the
-   * machine, or else the catalogue's choice. Nothing chosen is not an install
-   * to run, and an install already under way is not started twice.
-   */
   function startInstall(serverId: string, owed: readonly string[]): void {
     const catalog = useCatalog.getState();
     const asked = owed.length > 0 ? owed : catalog.selected;
@@ -266,8 +220,7 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
       return;
     }
 
-    // The generated secrets are made in the main process, one round trip each:
-    // starting before they have landed would install a database without one.
+    // Generated secrets land one round trip each: starting earlier would install a database without one.
     catalog.settled().then(() => {
       if (own !== sequence) {
         return;
@@ -314,12 +267,7 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
       case "reloadReport":
         useInstall.getState().reload(effect.serverId);
         break;
-      /**
-       * The console is told at once rather than at the daemon's next turn. An
-       * agent too old to answer, or a platform that is out of reach, costs five
-       * minutes of a stale console and nothing else — so nothing here waits on
-       * it, and nothing here fails on it.
-       */
+      // Fire and forget: a failed sync only leaves the console stale until the daemon's next turn.
       case "platformSync":
         bridge()
           .syncPlatform?.(effect.serverId)
@@ -333,11 +281,6 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
     }
   }
 
-  /**
-   * Whether the organization has backups to start from: the platform is asked
-   * once the machine is chosen, and a platform out of reach offers none rather
-   * than holding the sequence.
-   */
   async function listBackups(): Promise<void> {
     const own = sequence;
 
@@ -352,7 +295,6 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
     }
   }
 
-  /** A hardening already under way on this machine is not asked for twice. */
   function hardening(serverId: string): boolean {
     const { harden } = useHarden.getState();
 
@@ -379,14 +321,7 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
     }
   }
 
-  /**
-   * What is left to install, once the machine has said what it already runs.
-   *
-   * Nothing is deduced from the events the app saw before it closed: an install
-   * cut mid-run writes no report, so the probe is the only account of it. A
-   * module that still has to be installed and carries a secret goes back
-   * through the configuration, because the vault left with the app.
-   */
+  // An install cut mid-run writes no report, so the probe is the only account of what is left.
   function settle(saved: Saved, installedModules: readonly string[]): void {
     const left = restored(
       useCatalog.getState().modules(),
@@ -402,6 +337,7 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
       return;
     }
 
+    // The vault left with the app, so a secret-carrying module goes back through the configuration.
     const asks = left.some((id) => {
       const manifest = manifestOf(id);
 
@@ -415,18 +351,10 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
     });
   }
 
-  /**
-   * The machine, read again before the resumed screen does anything to it.
-   *
-   * What comes back from the shelf is the step and the choice; what the server
-   * runs comes from the server. The app never installs on the strength of what
-   * it merely remembers.
-   */
   async function recover(saved: Saved): Promise<void> {
     const serverId = saved.serverId;
 
-    // Before the catalogue nothing had been chosen, and those screens read the
-    // machine themselves anyway.
+    // Before the catalogue nothing was chosen, and those screens read the machine themselves.
     if (
       !serverId ||
       ONBOARDING_STEPS.indexOf(saved.step) < ONBOARDING_STEPS.indexOf("catalog")
@@ -437,13 +365,12 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
     set({ recovering: true });
 
     try {
-      // The `resume` event already asked for the probe: this waits on that one.
+      // Waits on the probe the `resume` event already asked for.
       await useInspection.getState().inspect(serverId);
 
       const probe = probeOf(serverId);
 
-      // Past the install the choice has become the machine: the probe is read
-      // for what the last screens weigh against it, and nothing is rebuilt.
+      // Past the install the choice has become the machine: nothing is rebuilt.
       if (
         ONBOARDING_STEPS.indexOf(saved.step) >
         ONBOARDING_STEPS.indexOf("install")
@@ -590,7 +517,6 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
       send({ type: "dataSkipped" });
     },
 
-    /** Leaving the wizard keeps the progress: the servers screen offers it back. */
     close() {
       send({ type: "close" });
     },
@@ -602,9 +528,6 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
         return;
       }
 
-      // A sequence about a machine the app no longer knows is not offered back:
-      // every step after the choice would ask something of a server that is
-      // gone. The list is only consulted once it has been read.
       if (saved.serverId && unknownServer(saved.serverId)) {
         keep(null);
 
@@ -634,14 +557,6 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
   };
 });
 
-/**
- * A machine that leaves the list takes the sequence about it with it.
- *
- * It is removed from the settings, or a relaunch reads a list it is no longer
- * in: either way the steps that follow the choice have nothing to run on, and
- * the onboarding goes back to the choice rather than showing a screen whose
- * only answer the machine would refuse.
- */
 useServers.subscribe(() => {
   const { step, serverId } = useOnboarding.getState();
 
@@ -654,10 +569,6 @@ useServers.subscribe(() => {
   }
 });
 
-/**
- * A usage right the platform stopped confirming freezes the step rather than
- * failing it: the machine holds, and takes up again when the account does.
- */
 useAccount.subscribe((now, before) => {
   const lost = Boolean(accountOf(now.view)?.refusal);
   const had = Boolean(accountOf(before.view)?.refusal);
@@ -667,12 +578,6 @@ useAccount.subscribe((now, before) => {
   }
 });
 
-/**
- * A change made in the catalogue, and not by a step, still reaches the shelf.
- *
- * It goes through the store's own pause rather than writing on every keystroke,
- * and it writes nothing at all while no onboarding is open.
- */
 useCatalog.subscribe(() => {
   const { step, serverId } = useOnboarding.getState();
 

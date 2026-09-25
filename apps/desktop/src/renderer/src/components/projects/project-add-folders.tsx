@@ -12,13 +12,6 @@ import { Callout } from "../ui/callout";
 import { EmptyState } from "../ui/empty-state";
 import { WaitingNotice } from "../ui/waiting-notice";
 
-/**
- * The folders of the server, walked rather than typed.
- *
- * Only folders are listed: what is being chosen is where a project lives, and
- * a file is never that. The trail and the new-folder dialog are the file
- * browser's own, so the two screens walk the server the same way.
- */
 export function ProjectAddFolders({
   state,
   picked,
@@ -27,7 +20,7 @@ export function ProjectAddFolders({
   onCreate,
 }: {
   state: FolderState;
-  /** The folder chosen so far, relative to the projects root. */
+  /** Relative to the projects root. */
   picked: string;
   onBrowse: (path: string) => Promise<void> | void;
   onPick: (path: string) => void;

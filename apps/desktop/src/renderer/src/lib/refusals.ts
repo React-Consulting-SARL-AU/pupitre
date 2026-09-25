@@ -1,19 +1,10 @@
 import type { AgentError } from "@shared/agent";
 
-/**
- * A refusal that is not news.
- *
- * A server whose usage right the platform stopped confirming refuses every
- * command that reads its catalogue, its tunnel or its services, each with the
- * same sentence. The screen says it once, where it can be acted on; the ones
- * that follow are the consequence, and printing them stacks three red boxes
- * saying the same thing.
- */
+/** Every command repeats this refusal; the shell's notice already says it once. */
 export function heldForUsage(error: AgentError | null | undefined): boolean {
   return error?.code === "entitlement_required";
 }
 
-/** The refusal a screen may print: nothing when the shell's notice already says it. */
 export function unlessHeld(error: AgentError | null): AgentError | null {
   return heldForUsage(error) ? null : error;
 }

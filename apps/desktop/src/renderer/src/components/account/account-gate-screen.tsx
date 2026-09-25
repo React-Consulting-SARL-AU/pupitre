@@ -10,14 +10,6 @@ import { AccountGateSubscriptionCard } from "./account-gate-subscription-card";
 import { AccountSignInCard } from "./account-sign-in-card";
 import { AccountUsageNotice } from "./account-usage-notice";
 
-/**
- * The first screen of the app, and the last one it falls back to.
- *
- * Nothing of a machine is behind it: no onboarding, no server, no terminal. It
- * opens on every launch that finds nobody signed in on this computer, a
- * development build included — that build keeps its own way past, but it says
- * so out loud instead of skipping the screen.
- */
 export function AccountGateScreen({
   account,
   onSettings,
@@ -35,20 +27,14 @@ export function AccountGateScreen({
   const bypass = useAccount((state) => state.bypass);
 
   const platform = new URL(account.consoleUrl).host;
-  // The way past is a development build's own right: it is not offered when
-  // the platform refused, since taking it would change nothing.
+  // Not offered once the platform refused: skipping would change nothing.
   const skippable =
     account.build === "development" && account.usage.status === "granted";
   const openConsole = (url: string) => window.pupitre.openUrl(url);
 
-  // A first launch has no account yet: that is the nominal state of this
-  // screen, not a fault, and the sign-in card is the whole of what it has to
-  // say. A right that expired or was suspended is a fault, and says so once:
-  // the notice carries the fix, no refusal is repeated under it.
+  // No account yet is this screen's nominal state, not a fault to report.
   const fault = account.usage.status !== "absent";
 
-  // An account that is signed in and lacks a plan is not asked to sign in
-  // again: the screen names the organization and sends to billing instead.
   const missingPlan =
     account.identity &&
     (account.usage.status === "unsubscribed" ||

@@ -1,9 +1,3 @@
-/**
- * What the main process refuses, in the language of whoever is looking.
- *
- * A refusal coming from the app names one of these entries; a refusal coming
- * from the agent is shown as is, in the language the server answered in.
- */
 export const refusals = {
   en: {
     "refusal.project.command.unknown": "Unknown project command: {cmd}.",

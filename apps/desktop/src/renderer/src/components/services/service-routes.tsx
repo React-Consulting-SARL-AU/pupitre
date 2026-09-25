@@ -7,13 +7,6 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import type { AgentError } from "@shared/agent";
 import { RefreshCw } from "lucide-react";
 
-/**
- * What the exposure module publishes: the agent's own list of routes.
- *
- * The state and the restart are the service's, said above with the rest; this
- * section holds only what the tunnel adds — the hostnames it answers for, and
- * the sync that rewrites them from the projects.
- */
 export function ServiceRoutes({
   tunnel,
   busy,
@@ -22,7 +15,6 @@ export function ServiceRoutes({
 }: {
   tunnel: TunnelStatusResult;
   busy: string | null;
-  /** What the last sync refused, the agent's or the account's. */
   problem: AgentError | null;
   onSync: () => void;
 }) {

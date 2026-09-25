@@ -1,10 +1,3 @@
-/**
- * What the published version says of itself.
- *
- * The notes belong to the release the app carries, printed in the order they
- * were written: nothing here summarises them, and a version that shipped
- * without notes shows none rather than a sentence we made up for it.
- */
 export function AgentUpdateNotes({ notes }: { notes: readonly string[] }) {
   if (notes.length === 0) {
     return null;

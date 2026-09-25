@@ -10,7 +10,6 @@ import type { PlatformBackup } from "@shared/backups";
 import { Archive } from "lucide-react";
 import { BackupsRow } from "./backups-row";
 
-/** The server's backups, as the platform lists them, the most recent first. */
 export function BackupsList({
   list,
   busy,
@@ -21,7 +20,6 @@ export function BackupsList({
 }: {
   list: ListState;
   busy: boolean;
-  /** What the last removal was refused for, in the agent's words. */
   problem: AgentError | null;
   onRetry: () => Promise<void>;
   onRevert: (backup: PlatformBackup) => void;

@@ -8,13 +8,6 @@ import type {
 } from "../../stores/onboarding-machine";
 import { OnboardingProgress } from "./onboarding-progress";
 
-/**
- * The side of the assistant that answers "where am I, and on what machine".
- *
- * It holds no control: the way on and the way back live with the step, which is
- * the only screen that knows whether going on is allowed. Below the split it
- * gives way to the step itself — a narrow window owes the reader the work.
- */
 export function OnboardingRail({
   step,
   steps,
@@ -22,9 +15,7 @@ export function OnboardingRail({
   serverName,
 }: {
   step: OnboardingStep;
-  /** The steps this sequence walks: the count and the rail both read from it. */
   steps: readonly OnboardingStep[];
-  /** Where the first step is within itself: choosing, adding, or laying the key. */
   stage?: ServerStage;
   serverName?: string;
 }) {

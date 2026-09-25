@@ -7,14 +7,6 @@ const HOME_PREFIX = /^~?\/?/;
 
 const WHOLE_ENGINE = "*";
 
-/**
- * An agent step said the way the reader would say it.
- *
- * A step the dictionary knows reads as its phrase; one the agent names after a
- * tool (`install-node-22`) reads as its verb and the tool; a backup part reads
- * as the part. Anything else keeps the agent's own id, which is what the
- * Details of the step show in every case.
- */
 export function stepLabel(t: Translate, step: string): string {
   const known = `install.step.${step}`;
 

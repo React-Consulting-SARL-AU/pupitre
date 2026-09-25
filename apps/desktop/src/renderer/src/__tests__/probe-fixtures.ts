@@ -1,12 +1,6 @@
 import type { ProbeResult } from "@pupitre/shared/agent-protocol/install";
 
-/**
- * Four machines, as `probe.sh` describes them.
- *
- * The wording is the probe's own: these fixtures are copied from what the script
- * prints, so a test that reads them reads the server's words and not ours.
- */
-
+// Wording copied from what `probe.sh` prints, so tests read the server's words and not ours.
 const UBUNTU = {
   os: "ubuntu",
   version: "24.04",

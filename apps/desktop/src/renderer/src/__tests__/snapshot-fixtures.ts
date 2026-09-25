@@ -7,15 +7,7 @@ import type {
 } from "@pupitre/shared/agent-protocol/projects";
 import type { SnapshotResult } from "@pupitre/shared/agent-protocol/state";
 
-/**
- * One `snapshot`, as an agent would answer it, and what the other commands of
- * an open project answer beside it.
- *
- * Every screen test renders from here: what the interface shows is what the
- * agent said, so a fixture is the honest starting point — and a field the agent
- * would not fill is absent here too.
- */
-
+// A field the agent would not fill is absent here too.
 export const SNAPSHOT: SnapshotResult = {
   entitlement: "dev",
   machine: {
@@ -140,8 +132,7 @@ export const SNAPSHOT: SnapshotResult = {
       runs: true,
       state: "failed",
     },
-    // Put on the machine and left for later: not a failure, and the screen has
-    // to say which of the two it is.
+    // Installed but not configured: the screen must not read it as a failure.
     {
       configured: false,
       id: "tool.github",

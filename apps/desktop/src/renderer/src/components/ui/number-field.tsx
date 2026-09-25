@@ -4,14 +4,6 @@ import { Minus, Plus } from "lucide-react";
 const STEPPER =
   "clickable flex w-9 shrink-0 cursor-pointer items-center justify-center text-ink-3 transition-soft hover:bg-raised hover:text-ink disabled:cursor-not-allowed disabled:opacity-40";
 
-/**
- * A number with a floor and a ceiling, stepped by two buttons or typed.
- *
- * The platform's own spinner is two pixels tall and takes no keyboard; this
- * one is drawn at the size everything else is drawn at, and the arrow keys
- * step the value as the buttons do. What lands is always inside the bounds,
- * so a preference never holds a value the reader could not have chosen.
- */
 export function NumberField({
   value,
   onChange,

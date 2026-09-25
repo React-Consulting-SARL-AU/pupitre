@@ -14,19 +14,6 @@ import {
 import { InstallStepRow } from "./install-step-row";
 import { InstallStepWait } from "./install-step-wait";
 
-/**
- * One module of the installation, told the way the reader would tell it.
- *
- * The line says the name, where it stands and how long it took; a module at
- * work names the step it is on, because that is what a wait owes. The steps
- * already crossed are how the agent went about it, and stay under Details, each
- * with the agent's own line when it had one, and the command that would repair
- * the module by hand — untouched, because a rewritten one would send the reader
- * to a machine we imagined rather than the one that failed.
- *
- * The title line is as tall as the logo's plate and centres on it, so the dot,
- * the name and the logo sit level whether or not a step line follows.
- */
 const LOGO = 20;
 
 export function InstallModuleRow({
@@ -104,6 +91,7 @@ export function InstallModuleRow({
                 />
               ))}
             </ul>
+            {/* The agent's repair command is shown verbatim: a rewritten one would target an imagined machine. */}
             {replay ? (
               <code className="mt-1 block break-all font-data text-ink-3">
                 {replay}

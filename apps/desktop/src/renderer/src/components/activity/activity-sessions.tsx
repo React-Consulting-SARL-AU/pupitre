@@ -18,15 +18,6 @@ import {
   X,
 } from "lucide-react";
 
-/**
- * What outlives whatever started it.
- *
- * An agent or a remote IDE backend keeps living when its terminal disappears —
- * app closed, IntelliJ window shut — and holds its memory for nobody. A
- * JetBrains backend alone weighs several gigabytes. An agent that still has a
- * project can be taken back: its tab reopens on the tmux session it runs in.
- */
-
 const HEAVY_MB = 1024;
 
 const HEAVY_TOTAL_MB = 2048;
@@ -54,11 +45,10 @@ export function ActivitySessions({
   onReattach,
 }: {
   sessions: readonly Session[];
-  /** The sessions the app still has a tab on: the others are the strays. */
   attached: readonly string[];
   onStop: (pid: number) => void;
   onClean: () => void;
-  /** Opens a tab on the session's project and kind: the agent reattaches to it. */
+  /** The new tab reattaches to the session's tmux session. */
   onReattach?: (project: string, kind: TerminalAgent) => void;
 }) {
   const t = useTranslations();

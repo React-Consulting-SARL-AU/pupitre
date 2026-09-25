@@ -1,11 +1,6 @@
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { Details } from "../ui/details";
-/**
- * Everything that was said, folded away.
- *
- * The module list above already tells the story; this is for the line someone
- * will want to paste into a ticket, so it keeps the order and nothing else.
- */
+
 export function InstallLog({ lines }: { lines: readonly string[] }) {
   const t = useTranslations();
 

@@ -52,7 +52,6 @@ describe("une lecture répétée", () => {
   describe("fenêtre cachée", () => {
     type Listener = () => void;
 
-    /** A page that says whether it is hidden and can be told to change its mind, handed to the beat itself. */
     function page(hidden: boolean): {
       page: PollPage;
       show: () => void;
@@ -74,6 +73,7 @@ describe("une lecture répétée", () => {
         page: fake,
         hide: () => {
           fake.hidden = true;
+
           for (const listener of held) {
             listener();
           }
@@ -81,6 +81,7 @@ describe("une lecture répétée", () => {
         listeners: () => held.size,
         show: () => {
           fake.hidden = false;
+
           for (const listener of held) {
             listener();
           }

@@ -2,20 +2,13 @@ import { since } from "@renderer/lib/format";
 import type { GithubRepo } from "@shared/github";
 import { GitBranch, Lock } from "lucide-react";
 
-/** A repository that has never been pushed to has no date to show, and shows none. */
+/** A never-pushed repository has no parsable date: it shows none. */
 export function pushedSince(value: string): string {
   const at = Date.parse(value);
 
   return Number.isNaN(at) ? "" : since(at);
 }
 
-/**
- * One repository of the connected account, as it is picked.
- *
- * Four things decide: the full name, whether it is private — which is what
- * costs a module on the server — the branch it opens on, and the day it last
- * moved, because that is how a reader finds the one they were working in.
- */
 export function ProjectAddRepoRow({
   repo,
   picked,

@@ -7,15 +7,6 @@ import { Label } from "../ui/label";
 import { type PortEdits, ProjectPortRow } from "./project-port-row";
 import { portsColumns, portsHead } from "./project-ports-columns";
 
-/**
- * The ports of a process, as a table: one line each, what the machine runs
- * on the left, what the web reaches on the right.
- *
- * Without an exposure module the table is a plain reading of ports. Behind a
- * Cloudflare tunnel the app writes the records itself; behind Caddy the reader
- * points their own DNS at the server, and the address to write is said here,
- * once, rather than discovered when a name fails to answer.
- */
 export function ProjectPorts({
   scope,
   rows,
@@ -24,13 +15,10 @@ export function ProjectPorts({
   placeholder,
   edit,
 }: {
-  /** What the ids of this table start with: one process's table is not another's. */
   scope: string;
   rows: readonly PortRow[];
-  /** Why each row would be refused, in the order of the rows. */
   problems: readonly (RowProblem | null)[];
   exposure: Exposure | null;
-  /** The project's name, which each name on the web is proposed from. */
   placeholder: string;
   edit: PortEdits;
 }) {

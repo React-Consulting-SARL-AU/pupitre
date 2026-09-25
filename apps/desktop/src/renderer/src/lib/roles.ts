@@ -7,7 +7,6 @@ const ROLE_KEYS: Record<string, DictionaryKey> = {
   owner: "role.owner",
 };
 
-/** The role in the reader's language; a role the app does not know, as said. */
 export function roleLabel(t: Translate, role: string): string {
   const key = ROLE_KEYS[role];
 

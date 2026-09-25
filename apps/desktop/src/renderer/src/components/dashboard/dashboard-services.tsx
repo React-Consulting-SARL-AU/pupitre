@@ -9,20 +9,6 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { LOGIN_LOOK, SERVICE_LOOK } from "@renderer/lib/project-state";
 import { Boxes, Plus } from "lucide-react";
 
-/**
- * What the machine runs besides the projects, as the agent reports it.
- *
- * The list is the agent's: a module it did not install is not a row here, and
- * the app holds no catalogue of its own. Only the modules whose manifest says
- * they hold a process are shown — a language, a CLI or a hardening pass has no
- * state to watch, and belongs to the services page, not to this one. The logo
- * is the one splash of colour the system allows. A card opens the service's
- * own page, where it is configured, read and stopped.
- *
- * A service that runs as somebody — a coding agent, a tunnel — says whether
- * it is connected next to whether it runs: the two are read the same way, and
- * a CLI that runs signed out is the one thing a running state hides.
- */
 export function DashboardServices({
   services,
   accounts = {},
@@ -30,7 +16,6 @@ export function DashboardServices({
   onAdd,
 }: {
   services: readonly Service[];
-  /** Whose account each service works as, for those that work as somebody. */
   accounts?: Readonly<Record<string, LoginState>>;
   onOpen?: (moduleId: string) => void;
   onAdd?: () => void;

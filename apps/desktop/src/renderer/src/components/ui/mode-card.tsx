@@ -4,18 +4,12 @@ import type { ReactNode } from "react";
 import type { ButtonIcon } from "./button";
 import { Label } from "./label";
 
-/**
- * The ways of doing a thing, shown side by side rather than hidden in a
- * menu, because choosing between them is the decision the screen is asking
- * for. One of them always stands; the arrow keys walk from one to the next.
- */
 export function ModeCards<T extends string>({
   label,
   value,
   onChange,
   children,
 }: {
-  /** What is being chosen, for whoever hears it rather than reads it. */
   label: string;
   value: T;
   onChange: (next: T) => void;
@@ -33,11 +27,6 @@ export function ModeCards<T extends string>({
   );
 }
 
-/**
- * One way of doing a thing, picked like a radio and read like a card.
- *
- * The note is where a screen says which one it would take.
- */
 export function ModeCard({
   value,
   icon: Icon,
@@ -49,7 +38,6 @@ export function ModeCard({
   icon: ButtonIcon;
   title: string;
   detail: string;
-  /** A word above the detail: recommended, required, what it costs. */
   note?: string;
 }) {
   return (

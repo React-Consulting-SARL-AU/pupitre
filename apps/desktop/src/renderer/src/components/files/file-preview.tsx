@@ -30,18 +30,6 @@ const VIEW_KEY: Record<
   source: "files.view.source",
 };
 
-/**
- * The right pane: the file the reader picked, in whatever form it takes.
- *
- * Text is edited and saved from here, an image is shown, and a file the
- * channel does not carry shows its sheet and offers the one way to open it:
- * a transfer to this computer, on its own channel. A text that also has a
- * drawn form — Markdown, SVG — opens drawn, and a word in the header turns it
- * into the code it is; the drawing follows the buffer, so an edit is seen
- * before it is saved. A write the agent refused because the file changed is
- * said as such, with the one way out: reading it again, which drops the
- * buffer, and says so.
- */
 export function FilePreview({
   preview,
   view,
@@ -62,7 +50,6 @@ export function FilePreview({
   view: PreviewView;
   write: WriteState;
   draft: string | null;
-  /** True while a gesture that would drop the buffer waits for the reader's word. */
   leaving: boolean;
   onShow: (path: string) => Promise<void>;
   onView: (view: PreviewView) => void;
@@ -72,7 +59,6 @@ export function FilePreview({
   onEdit: (text: string) => void;
   onConfirmLeave: () => void;
   onStay: () => void;
-  /** Brings the shown file to this computer; answers once the transfer is queued. */
   onDownload: () => Promise<void>;
 }) {
   const t = useTranslations();

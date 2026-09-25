@@ -2,11 +2,6 @@ import { Button } from "@renderer/components/ui/button";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { RefreshCw, Undo2 } from "lucide-react";
 
-/**
- * The foot of a module's form: how many values are refused — named when no
- * field above carries them — the way back, and Apply, which has nothing to do
- * until something differs from what the server holds.
- */
 export function ServiceConfigFooter({
   refused,
   stray = [],
@@ -15,13 +10,12 @@ export function ServiceConfigFooter({
   applicable,
   onDiscard,
 }: {
-  /** How many fields the form or the server refuses. */
   refused: number;
-  /** The refusals no field of the form carries, each said with the field it names. */
+  /** Refusals that no field of the form carries. */
   stray?: readonly string[];
   running: boolean;
   dirty: boolean;
-  /** Apply stands open even with nothing changed: an account to send again, a module to install. */
+  /** Enables Apply with nothing changed: an account to resend, a module to install. */
   applicable: boolean;
   onDiscard?: () => void;
 }) {

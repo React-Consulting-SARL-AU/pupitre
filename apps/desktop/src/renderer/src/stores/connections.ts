@@ -9,16 +9,6 @@ import type {
 import { NO_CONNECTIONS } from "@shared/connections";
 import { create } from "zustand";
 
-/**
- * The third-party accounts the app holds, once for every server.
- *
- * A connection is what a module declares it needs before it can be installed.
- * The token never comes back across the bridge: this store sends it and then
- * knows only which account it opened. What it shows says an account is
- * connected, never with what.
- */
-
-/** What the provider said the last time it was asked about a held token. */
 export type ConnectionHealth =
   | { status: "checking" }
   | { status: "answered"; account: string; at: number }
@@ -27,36 +17,29 @@ export type ConnectionHealth =
 
 interface ConnectionStore {
   state: ConnectionsState;
-  /** The account whose token is being sent or taken back, so the other cards stay quiet. */
   busy: ConnectionKind | null;
   problems: Partial<Record<ConnectionKind, AgentError>>;
-  /** The accounts a token opened when it opened several: the card asks which one before anything is kept. */
+  // Set when a token opens several accounts: the card asks which one before keeping it.
   choices: Partial<Record<ConnectionKind, ConnectionAccount[]>>;
   zones: readonly CloudflareZone[];
   zonesFor: string | null;
   health: Partial<Record<ConnectionKind, ConnectionHealth>>;
 
   read: () => Promise<void>;
-  /** True once the account is kept; false on a refusal, or while a choice is still owed. */
+  // False on a refusal, and also while an account choice is still owed.
   connect: (
     kind: ConnectionKind,
     token: string,
     accountId?: string
   ) => Promise<boolean>;
-  /** A token retyped makes the accounts the previous one opened moot. */
   dropChoice: (kind: ConnectionKind) => void;
   forget: (kind: ConnectionKind) => Promise<void>;
-  /** Asks the provider whether the token still opens an account. */
   verify: (kind: ConnectionKind) => Promise<void>;
   loadZones: () => Promise<void>;
   holds: (kind: string) => boolean;
 }
 
-/**
- * What forgetting an account takes away, said before it is taken: the installed
- * modules of a server that declare this connection, by the manifests the
- * agent gave. A catalogue not read answers no module, not none.
- */
+/** `known` is false when the catalogue was not read: no module then means unknown, not none. */
 export function forgetScope(
   kind: ConnectionKind,
   installed: readonly string[],
@@ -131,6 +114,7 @@ export const useConnections = create<ConnectionStore>((set, get) => ({
       state: outcome.state,
       zonesFor: null,
     }));
+
     await get().loadZones();
 
     return true;
@@ -199,11 +183,6 @@ export const useConnections = create<ConnectionStore>((set, get) => ({
     });
   },
 
-  /**
-   * The zones of the connected account, read when the screen opens rather than
-   * remembered: a zone added on Cloudflare this morning is one the form offers
-   * this afternoon.
-   */
   async loadZones() {
     const held = get().state.cloudflare;
     const account = held.status === "connected" ? held.account : null;

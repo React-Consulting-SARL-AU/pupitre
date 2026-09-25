@@ -27,13 +27,6 @@ const ICONS: Record<ProjectTab, IconComponent> = {
   terminals: SquareTerminal,
 };
 
-/**
- * One row of tabs, driven by a list rather than by a chain of conditions.
- *
- * The badge is whatever the tab has to say for itself — the number of changed
- * files, the number of open sessions — and the dot the state of the sessions
- * behind it.
- */
 export function ProjectTabBar({
   tabs,
   active,
@@ -50,6 +43,7 @@ export function ProjectTabBar({
   states: Record<string, AgentState>;
 }) {
   const t = useTranslations();
+
   const chord = projectChordLabel(isMac);
 
   return (

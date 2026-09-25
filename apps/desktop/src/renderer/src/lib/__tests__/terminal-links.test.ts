@@ -4,7 +4,6 @@ import { addressProvider } from "../terminal-links";
 
 const COLS = 40;
 
-/** A screen made of rows, each cell one column wide, as xterm's buffer hands them out. */
 function screen(rows: string[]): Terminal {
   const lines = rows.map((text) => ({
     isWrapped: false,

@@ -6,7 +6,6 @@ import { dated, weight } from "@renderer/lib/format";
 import type { PlatformBackup } from "@shared/backups";
 import { History, Trash2 } from "lucide-react";
 
-/** One backup of the server: when, what it holds, and the two things to do with it. */
 export function BackupsRow({
   backup,
   busy,
@@ -14,7 +13,6 @@ export function BackupsRow({
   onRemove,
 }: {
   backup: PlatformBackup;
-  /** A revert or a removal is under way: no other gesture starts beside it. */
   busy: boolean;
   onRevert: () => void;
   onRemove: () => Promise<void>;

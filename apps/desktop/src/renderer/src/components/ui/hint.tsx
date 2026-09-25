@@ -4,14 +4,6 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { ExternalLink, Info } from "lucide-react";
 import { Tooltip } from "./tooltip";
 
-/**
- * The long form of a field's help, behind a bubble.
- *
- * What decides is read without a gesture — a caption, a reason, an error. This
- * carries the rest: where a value is found, which permissions a token needs,
- * what it costs to get it wrong. It opens on a click and on a key, never on a
- * hover alone, and its target is the twenty-eight pixels around the glyph.
- */
 export function Hint({ hint, label }: { hint: FieldHint; label: string }) {
   const t = useTranslations();
 

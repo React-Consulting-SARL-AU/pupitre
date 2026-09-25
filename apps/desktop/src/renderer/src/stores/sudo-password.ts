@@ -1,13 +1,7 @@
 import type { SudoOutcome, SudoPasswordState } from "@shared/sudo";
 import { create } from "zustand";
 
-/**
- * What this computer holds of each server's sudo password (decision 0015).
- *
- * The password itself is never state: it crosses for the one reveal asked for,
- * and a copy is written to the clipboard by the main process.
- */
-
+// The password itself is never state: it crosses the bridge only for one reveal (decision 0015).
 interface SudoPasswordStore {
   states: Readonly<Record<string, SudoPasswordState>>;
   read: (serverId: string) => Promise<void>;

@@ -8,11 +8,6 @@ import { Callout } from "../ui/callout";
 import { FactList } from "../ui/fact";
 import { Panel } from "../ui/panel";
 
-/**
- * The sudo password the securing set on `dev` (decision 0015), shown where the
- * securing ends: masked, to reveal or copy. A computer without a keychain
- * forgets it on quitting, and says so while it can still be written down.
- */
 export function OnboardingHardenSudo({
   serverId,
   sudo,

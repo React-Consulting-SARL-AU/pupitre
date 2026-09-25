@@ -7,12 +7,6 @@ import { Callout } from "../ui/callout";
 
 const MB_PER_GB = 1024;
 
-/**
- * What the selection asks of the machine, against what the probe measured.
- *
- * One line, in figures, because the margin is what decides; and a warning only
- * when the sum passes what the machine actually has.
- */
 export function CatalogResources({
   needs,
   probe,

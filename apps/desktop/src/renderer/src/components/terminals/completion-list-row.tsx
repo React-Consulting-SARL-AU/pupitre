@@ -7,7 +7,6 @@ const MARK: Record<CandidateKind, string> = {
   history: "↺",
 };
 
-/** One candidate of the list: its kind as a glyph, its text, its help when it has one. */
 export function CompletionListRow({
   candidate,
   active,

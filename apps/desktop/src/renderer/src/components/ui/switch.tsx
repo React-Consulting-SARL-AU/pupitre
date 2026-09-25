@@ -1,13 +1,6 @@
 import { Switch as Base } from "@base-ui-components/react/switch";
 import type { ReactNode } from "react";
 
-/**
- * A preference that is on or off, landing the moment it is flipped.
- *
- * A checkbox says "include this"; a switch says "this is on". The settings
- * are made of the second kind, so they take this control: the word on the
- * left, what the choice changes under it, the switch at the end of the line.
- */
 export function Switch({
   name,
   checked,
@@ -35,10 +28,6 @@ export function Switch({
   );
 }
 
-/**
- * A switch and its word on one line, the word clickable and the switch at
- * the end of it, so a column of preferences reads as a column.
- */
 export function SwitchLine({
   name,
   label,
@@ -49,7 +38,6 @@ export function SwitchLine({
 }: {
   name: string;
   label: string;
-  /** What the choice changes for the reader, when the word alone does not say. */
   detail?: ReactNode;
   checked: boolean;
   disabled?: boolean;

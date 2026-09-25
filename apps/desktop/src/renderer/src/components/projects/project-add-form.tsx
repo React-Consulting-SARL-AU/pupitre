@@ -26,18 +26,6 @@ import { ProjectProcesses } from "./project-processes";
 
 const NAME_FIELD = "project.name";
 
-/**
- * What the agent needs to know about a project, asked in two pages.
- *
- * The first settles where the project comes from — a repository and its
- * branch, or a folder — and ends on the agent reading it. The second opens
- * on what it read: which processes the source holds, which manager each
- * locks, which script starts it and which port it wants; the name comes off
- * the last segment of the address, the ports are ones no declared project
- * holds. Everything proposed there stays editable — the machine decides what
- * it accepts, and says so. The gesture that ends each page stands in the bar
- * at the foot of the screen, not here.
- */
 export interface DraftEdits extends SourceEdits, ProcessEdits {
   name: (value: string) => void;
   startNow: (value: boolean) => void;
@@ -64,24 +52,18 @@ export function ProjectAddForm({
 }: {
   step: AddStep;
   draft: Draft;
-  /** The project the server already declares at this folder or under this name: the way on is to open it. */
   declared: Project | null;
-  /** What the agent read off the source, or why it could not. */
   detection: DetectionState;
   repos: ReposState;
   folders: FolderState;
-  /** What publishes a port on this server, or nothing: no exposure, no name on the web. */
   exposure: Exposure | null;
-  /** Whether `tool.github` sits on this server. */
   githubModule: boolean;
-  /** Why each process would be refused, in the order of the processes. */
+  /** Index-aligned with `draft.processes`. */
   processProblems: readonly (ProcessProblem | null)[];
-  /** Why each port row would be refused, process by process. */
+  /** Index-aligned with `draft.processes`, then with each process's port rows. */
   rowProblems: readonly (readonly (RowProblem | null)[])[];
   edit: DraftEdits;
-  /** What the page's own gesture does: reads the source, or creates the project. */
   onSubmit: () => void;
-  /** Back to the first page, the configuration kept. */
   onEditSource: () => void;
   onConnect: () => void;
   onInstallModule: () => void;

@@ -197,8 +197,7 @@ describe("la configuration d'un module installé", () => {
 });
 
 describe("l'attente d'une configuration appliquée", () => {
-  // The agent checks the machine before its first step says anything: a row
-  // that read "waiting" until then looked like a click that had done nothing.
+  // The agent checks the machine before its first step, and a row reading "waiting" looked like a dead click.
   it("montre le module au travail dès le geste, avant la première étape", async () => {
     let seen: string | undefined;
 
@@ -252,8 +251,7 @@ describe("le domaine d'une exposition", () => {
     state: "online" as const,
   });
 
-  // The agent moved the names; the records follow from here: the ones of
-  // before go, the ones of now are written, and nothing else in the zone moves.
+  // The agent moved the names; the app moves the records, and nothing else in the zone.
   it("retire les noms d'avant et écrit ceux du nouveau domaine", async () => {
     const order: string[] = [];
     let domain = "flyleaf.dev";
@@ -468,6 +466,7 @@ describe("le formulaire d'un module installé", () => {
 
   it("revient à ce que le serveur tient, secrets tapés compris", async () => {
     let forgotten = 0;
+
     configuredMySQL({
       forgetInstallSecrets: () => {
         forgotten += 1;
@@ -490,6 +489,7 @@ describe("le formulaire d'un module installé", () => {
 
   it("dit ce qui cloche sur un champ répondu, et sur tous une fois l'application demandée", async () => {
     const sent: unknown[] = [];
+
     configuredMySQL({
       startInstall: () => {
         sent.push("install");
@@ -527,6 +527,7 @@ describe("le formulaire d'un module installé", () => {
 
   it("demande au serveur de peser les valeurs avant de les appliquer, et pose son refus sur le champ", async () => {
     const sent: unknown[] = [];
+
     configuredMySQL({
       checkInstall: (_server, modules, config) => {
         sent.push({ check: { config, modules } });
@@ -574,7 +575,6 @@ describe("le formulaire d'un module installé", () => {
       { field: "port", message: "le port 3307 est déjà pris par nginx" },
     ]);
 
-    // The verdict was about that value: changing it is what lifts the refusal.
     useServices.getState().setValue("port", 3308);
     expect(useServices.getState().refused).toEqual([]);
   });
@@ -724,11 +724,7 @@ describe("une machine déjà en train d'installer", () => {
 });
 
 describe("un module posé sans ses réglages", () => {
-  /**
-   * The catalogue would have made the password when the module was chosen; a
-   * module put off got none, and the panel makes it so that applying is all
-   * that finishes the module.
-   */
+  // A deferred module never got the secrets the catalogue generates on selection.
   it("reçoit à l'ouverture les secrets que son manifeste dit de générer", async () => {
     const made: string[] = [];
 

@@ -9,11 +9,6 @@ import {
   type EntryKind,
 } from "./entry-create-dialog";
 
-/**
- * The gesture that makes a file or a folder where the reader stands: one
- * button in the header, and the dialog it opens. The dialog is mounted anew
- * each time, so it never remembers a name from before.
- */
 export function EntryCreate({
   kind,
   name,
@@ -21,14 +16,13 @@ export function EntryCreate({
   onCreate,
 }: {
   kind: EntryKind;
-  /** Ties the caption and the help to the input, and names it in a test. */
   name: string;
-  /** No folder is on screen yet, so nothing can be made in it. */
   disabled?: boolean;
   onCreate: (entry: string) => Promise<AgentError | null>;
 }) {
   const t = useTranslations();
 
+  // The dialog remounts on each open so it never remembers a previous name.
   const [asking, setAsking] = useState(false);
 
   return (

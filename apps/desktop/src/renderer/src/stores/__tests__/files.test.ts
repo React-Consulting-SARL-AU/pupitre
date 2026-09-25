@@ -37,7 +37,6 @@ interface Call {
 
 interface Agent {
   calls: Call[];
-  /** What `fs.write` answers, when the test decides it. */
   write?: (params: { sha256?: string }) => unknown;
   /** The digest `fs.stat { hash: true }` reports, when a test moves the file. */
   onServer?: string;
@@ -45,9 +44,7 @@ interface Agent {
   receipt?: Partial<{ sha256: string; chunks: number }>;
   /** Refuses `fs.remove` unless recursive, as on a folder that holds something. */
   held?: number;
-  /** Delays each `fs.list` answer so a test can leave the folder meanwhile. */
   slowList?: () => Promise<void>;
-  /** What `fs.rename` answers, when the test decides it. */
   rename?: () => unknown;
 }
 
@@ -531,6 +528,7 @@ describe("l'écriture d'un fichier", () => {
 
   it("garde le tampon modifié d'un serveur quand on en change, sans l'écrire sur l'autre", async () => {
     const agent = await opened();
+
     await useFiles.getState().show(SERVER, "projects/atlas/.env");
     useFiles.getState().edit("PORT=3100\n");
 

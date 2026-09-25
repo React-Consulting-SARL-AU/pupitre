@@ -6,10 +6,6 @@ import type { VersionOrder } from "@shared/agent-update";
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
 
-/**
- * The shell both sides of the banner share: what the gap is, the two versions
- * in the app's data face, and the way to put it away until the next release.
- */
 export function AgentUpdateFrame({
   order,
   title,

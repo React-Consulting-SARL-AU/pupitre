@@ -19,16 +19,6 @@ import { WaitingNotice } from "../ui/waiting-notice";
 import { ProjectAddRepoPicked } from "./project-add-repo-picked";
 import { ProjectAddRepoRow } from "./project-add-repo-row";
 
-/**
- * The repositories of the connected account, found rather than scrolled.
- *
- * The list is not the screen: it opens under the search while the reader
- * looks, sorted by the day each repository last moved, and folds away as soon
- * as one is chosen — what stays is the chosen one and the way back. Nothing
- * here goes back to GitHub while the reader types. A computer with no account
- * connected is not an error — it is a question, and the way to answer it is
- * one button away.
- */
 function matching(
   repos: readonly GithubRepo[],
   filter: string
@@ -50,11 +40,10 @@ export function ProjectAddRepos({
   onConnect,
 }: {
   state: ReposState;
-  /** The clone address of the repository chosen, or an empty string. */
+  /** Clone URL of the chosen repository, or empty. */
   picked: string;
   onPick: (repo: GithubRepo) => void;
   onRefresh: () => Promise<void> | void;
-  /** Opens the settings on the connections, and comes back to this draft. */
   onConnect: () => void;
 }) {
   const t = useTranslations();
@@ -144,7 +133,7 @@ export function ProjectAddRepos({
   }
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: the blur is not a gesture — the focus leaving the search and its list is what folds the list, and the controls inside stay the interactive ones
+    // biome-ignore lint/a11y/noStaticElementInteractions: not a gesture, focus leaving the search and its list folds the list
     // biome-ignore lint/a11y/noNoninteractiveElementInteractions: same reason
     <div className="flex flex-col gap-2" data-repos-open={open} onBlur={leave}>
       <div className="flex items-end gap-2">

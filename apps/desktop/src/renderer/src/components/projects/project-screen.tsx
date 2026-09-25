@@ -31,20 +31,11 @@ import { ProjectOverview } from "./project-overview";
 import { ProjectTabBar } from "./project-tab-bar";
 import { type ProjectTab, tabsFor } from "./project-tabs";
 
-/**
- * One project, its state and the four things you read about it.
- *
- * The screen owns the tab it is on and nothing else: every reading of the
- * server goes through the project store, and every command through the snapshot
- * one. `project.git_status` is asked here on arrival — it leaves the machine —
- * and never again unless the reader asks.
- */
-
 interface Props {
   serverId: string;
   project: Project;
   services: readonly Service[];
-  /** The server's address, said on the configuration when a Caddy exposure asks the reader to point their DNS at it. */
+  /** Where a Caddy exposure asks the reader to point their DNS. */
   host?: string;
   onRemoved: () => void;
 }
@@ -94,8 +85,7 @@ export function ProjectScreen({
     [readEnv, serverId, name]
   );
 
-  // The tab lives in the navigation store, so coming back to this project
-  // reopens the tab you left it on, and a shortcut can switch it from outside.
+  // Kept in the navigation store: returning reopens the same tab, and shortcuts switch it from outside.
   const setTab = useCallback(
     (next: ProjectTab) => setProjectTab(name, next),
     [name, setProjectTab]
@@ -108,8 +98,8 @@ export function ProjectScreen({
   const repo =
     store.branches.status === "read" ? store.branches.branches.repo : true;
   const tabs = useMemo(() => tabsFor({ repo }), [repo]);
-  // A remembered tab the project no longer offers falls back to the overview:
-  // a folder that is no longer a repository.
+
+  // A remembered tab vanishes when the folder is no longer a repository.
   const tab = tabs.includes(savedTab) ? savedTab : "overview";
 
   useProjectShortcuts(tabs, tab, setTab);
@@ -160,8 +150,7 @@ export function ProjectScreen({
     setSyncing(false);
   }
 
-  // The dashboard is read again before it is shown: a card of the project
-  // just removed, with live buttons, would otherwise sit there until the beat.
+  // Re-read first, or the dashboard keeps the removed project's live card until the next beat.
   async function remove() {
     const answer = await window.pupitre.removeProject(serverId, name);
 

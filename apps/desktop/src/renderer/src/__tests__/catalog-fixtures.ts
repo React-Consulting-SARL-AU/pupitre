@@ -4,15 +4,7 @@ import type {
 } from "@pupitre/shared/agent-protocol/install";
 import type { Manifest, Preset } from "@pupitre/shared/catalog";
 
-/**
- * Two catalogues, as two agents would answer them.
- *
- * They are written here rather than derived from the contract on purpose: the
- * app must render whatever the agent declares, so a test that read the app's
- * own list would prove nothing. The second catalogue is the first plus a module
- * this codebase has never heard of.
- */
-
+// Hand-written, not derived from the contract: the app must render whatever the agent declares.
 const BOTH = ["amd64", "arm64"] as const;
 
 export const CORE_SYSTEM: Manifest = {
@@ -209,10 +201,6 @@ export const DB_MYSQL: Manifest = {
   since: "0.1.0",
 };
 
-/**
- * A database the presets never mention: what a reader adds to a server that is
- * already running, long after the onboarding.
- */
 export const DB_MONGODB: Manifest = {
   id: "db.mongodb",
   category: "database",
@@ -385,7 +373,6 @@ export const EXPOSURE_CADDY: Manifest = {
   since: "0.1.0",
 };
 
-/** Only amd64: the arm64 machines have nothing to run it. */
 export const TOOL_LEGACY: Manifest = {
   id: "tool.legacy",
   category: "tool",
@@ -455,10 +442,7 @@ export const CATALOG: CatalogResult = {
   presets: PRESETS,
 };
 
-/**
- * A module no line of this codebase knows about, added by a newer agent. If the
- * screen shows it, nothing about the catalogue is written in the app.
- */
+/** Unknown to the app, as a newer agent would add it. */
 export const DB_CLICKHOUSE: Manifest = {
   id: "db.clickhouse",
   category: "database",
@@ -504,7 +488,7 @@ const UBUNTU = {
   },
 };
 
-/** Four gigabytes, the smallest machine the probe still calls ready. */
+/** The smallest machine the probe still calls ready. */
 export const SMALL_MACHINE: ProbeResult = {
   ...UBUNTU,
   arch: "amd64",
@@ -519,7 +503,6 @@ export const LARGE_MACHINE: ProbeResult = {
   disk_free_gb: 240,
 };
 
-/** Room in memory, none on disk. */
 export const FULL_DISK_MACHINE: ProbeResult = {
   ...UBUNTU,
   arch: "amd64",

@@ -3,17 +3,6 @@ import { assertAccessible } from "./harness/accessible";
 import { ANSWERS } from "./harness/fixtures";
 import { launchPupitre, type Running, savedShots } from "./harness/launch";
 
-/**
- * The gallery as a grid: the captures grouped by the day the agent filed them
- * under, each tile asking for its bytes as it reaches the screen, and one of
- * them deleted by its own button — `shots.clean { path }`, then the list read
- * again so the grid says what is left.
- *
- * The harness of `e2e/harness` names no capture; this scenario answers the
- * gallery commands itself, on top of the fixtures it already serves.
- */
-
-// A one-pixel PNG: enough bytes for a thumbnail, and a digest the app checks.
 const PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
   "base64"
@@ -59,6 +48,7 @@ test.describe("la galerie", () => {
           snapshotReads?: number;
           cleaned?: unknown[];
         };
+
         kept.cleaned = [];
 
         let shots = [...fixtures.shots];
@@ -240,9 +230,7 @@ test.describe("la galerie", () => {
     });
 
     await test.step("Enregistrer… demande la boîte, puis écrit les octets où elle a pointé", async () => {
-      // The dialog itself stays shut under the harness: it answers the path
-      // it would have returned, and the window hands that one back with the
-      // bytes it already holds.
+      // The native save dialog never opens under the harness: answer its path directly.
       await running.app.evaluate(({ ipcMain }, target: string) => {
         ipcMain.removeHandler("transfer:pick-save");
         ipcMain.handle("transfer:pick-save", () => target);

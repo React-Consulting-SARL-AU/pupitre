@@ -18,19 +18,10 @@ const LOOK: Record<Kind, { shape: StatusShape; tone: StatusTone }> = {
   incompatible: { shape: "struck", tone: "danger" },
 };
 
-/**
- * A verdict whose one reason is the verdict itself: the title and the summary
- * above already say it, and saying it a third time reads as a fault.
- */
+// Their only reason restates the title; printing it again reads as a fault.
 const RESTATED: readonly Kind[] = ["bare", "managed"];
 
-/**
- * The verdict, then what led to it, then what lifts it.
- *
- * `reasons` and `fixes` are printed exactly as the probe phrased them: they
- * describe the machine that answered, and a sentence rewritten here would
- * describe the machine we imagined instead.
- */
+/** Prints `reasons` and `fixes` verbatim: they describe the machine that answered. */
 export function OnboardingInspectionVerdict({ probe }: { probe: ProbeResult }) {
   const t = useTranslations();
 

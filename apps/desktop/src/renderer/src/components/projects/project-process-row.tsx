@@ -11,13 +11,6 @@ import { Play, RotateCw, Square } from "lucide-react";
 
 const HEAVY_MB = 2048;
 
-/**
- * One process of the project, and the three things you do to it.
- *
- * Everything shown comes from the snapshot: the state, the port, the folder,
- * the commands, what it weighs. A field the agent left empty shows as empty
- * rather than as a guess.
- */
 export function ProjectProcessRow({
   process,
   busy,

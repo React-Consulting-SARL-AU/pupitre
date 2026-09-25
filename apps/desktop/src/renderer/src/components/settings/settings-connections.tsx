@@ -8,20 +8,11 @@ import { useEffect } from "react";
 import { CONNECTIONS } from "../connections/connection-descriptors";
 import { ConnectionRow } from "../connections/connection-row";
 
-/** The backup bucket is set where backups are, on each server's Backups page. */
+// The backup bucket is set per server, on its Backups page.
 const ACCOUNT_CONNECTIONS = CONNECTIONS.filter(
   (connection) => connection.kind !== "backup"
 );
 
-/**
- * The third-party accounts the app holds, seen from the preferences.
- *
- * One line per account, its form folded under it — the same card the
- * configuration screen shows above the module that needs one, so connecting an
- * account there and looking at it here are one thing, not two screens that
- * could disagree. Forgetting an account names what it takes away: the modules
- * of the active server that declare it, by the manifests the catalogue read.
- */
 export function SettingsConnections() {
   const read = useConnections((store) => store.read);
   const server = useServers((store) =>

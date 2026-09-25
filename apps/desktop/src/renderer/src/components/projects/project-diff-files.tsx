@@ -3,18 +3,6 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { type KeyboardEvent, useId } from "react";
 import { ProjectDiffFileRow } from "./project-diff-file-row";
 
-/**
- * The changed files, grouped as git groups them.
- *
- * `code` is the pair of letters `git status --porcelain` gives, kept verbatim
- * in the tooltip rather than interpreted: it says more than any word we could
- * put in its place, and git is the one who defines it.
- *
- * The list answers the keyboard as a list does: the arrows and `j`/`k` move
- * the selection through the files in the order they are drawn, whichever
- * group they sit in, and the diff follows.
- */
-
 export const STAGES = {
   staged: { className: "text-ok", label: "project.diff.stage.staged" },
   unstaged: { className: "text-warn", label: "project.diff.stage.unstaged" },
@@ -23,14 +11,13 @@ export const STAGES = {
 
 const ORDER = ["staged", "unstaged", "untracked"] as const;
 
-/** The files in the order the list draws them: by stage, then as git listed them. */
 export function drawnOrder(files: readonly FileChange[]): readonly string[] {
   return ORDER.flatMap((stage) =>
     files.filter((file) => file.stage === stage).map((file) => file.path)
   );
 }
 
-/** The path a key moves to, or null when the key is not one of the list's. */
+/** Null when the key does not move the selection. */
 export function pathAfterKey(
   key: string,
   order: readonly string[],

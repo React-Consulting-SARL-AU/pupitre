@@ -9,11 +9,7 @@ import { useRef, useState } from "react";
 
 const NAME = "sudo-enter";
 
-/**
- * The sudo password of `dev`, typed on a computer that does not hold it. The
- * main process keeps it once sudo on the server has taken it; the field is
- * emptied either way.
- */
+/** The main process keeps the password only once sudo on the server accepted it. */
 export function ServerSudoEnterDialog({
   serverId,
   open,
@@ -38,6 +34,7 @@ export function ServerSudoEnterDialog({
 
   async function keep(): Promise<void> {
     const typed = password;
+
     setPassword("");
 
     const outcome = await enter(serverId, typed);
@@ -49,6 +46,7 @@ export function ServerSudoEnterDialog({
     }
 
     const said = agentText(t, outcome.error);
+
     setProblem(said.fix ? `${said.message} ${said.fix}` : said.message);
   }
 

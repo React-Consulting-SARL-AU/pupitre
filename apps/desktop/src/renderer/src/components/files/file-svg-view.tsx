@@ -10,12 +10,6 @@ interface Drawing {
   size: ShotSize | null;
 }
 
-/**
- * An SVG drawn from its text, so the drawing follows the buffer as it is
- * edited. The image is an object URL made of the text on screen, measured
- * as the gallery measures a capture, and let go as soon as the text changes
- * or the view leaves.
- */
 export function FileSvgView({
   path,
   text,

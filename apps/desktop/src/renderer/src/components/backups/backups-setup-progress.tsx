@@ -5,10 +5,6 @@ import {
 } from "@renderer/lib/backup-setup";
 import { Check } from "lucide-react";
 
-/**
- * Where the setup is: each step numbered, a done one checked and open to go
- * back to, the current one inked, the ones ahead waiting in grey.
- */
 export function BackupsSetupProgress({
   current,
   onGo,
@@ -32,6 +28,7 @@ export function BackupsSetupProgress({
         const label = t(`backups.setup.step.${step}`);
 
         let mark = "border-line text-ink-4";
+
         if (done) {
           mark = "border-inverse bg-inverse text-inverse-ink";
         } else if (now) {

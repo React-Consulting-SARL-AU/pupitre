@@ -2,17 +2,8 @@ import { expect, test } from "@playwright/test";
 import { assertAccessible } from "./harness/accessible";
 import { launchPupitre, type Running } from "./harness/launch";
 
-/**
- * A project added from the dashboard, from the source to the journal.
- *
- * The dashboard used to offer no way in at all: the agent had the commands and
- * the main process the channels, and no screen asked for either. The scenario
- * walks the three ways in, the phases and the outcome against answers shaped
- * like the contract, and ends on the project the snapshot already lists.
- */
 const REPO = "https://github.com/ada/atlas-web.git";
 
-/** The cards, the rows and the outcome, named the way the window names them. */
 const GITHUB_CARD = /^GitHub/;
 const DOTTED_ROW = /ada\/my\.site/;
 const ATLAS_ROW = /ada\/atlas-web/;
@@ -60,8 +51,6 @@ test.describe("nouveau projet", () => {
 
         answer("github:repos", () => ({ ok: true, result: fixtures.repos }));
 
-        // What the window sent is kept, so the scenario reads the routes it
-        // declared rather than trusting the phases alone.
         const kept = globalThis as { added?: unknown };
 
         answer("project:add", (_serverId, params) => {
@@ -118,8 +107,6 @@ test.describe("nouveau projet", () => {
           return { ok: true, result: { done: true } };
         });
 
-        // The outcome follows the machine: once started, the snapshot has to
-        // report the project online, as a real read would.
         answer("project:act", () => {
           const held = (globalThis as { answers?: Record<string, unknown> })
             .answers?.snapshot as
@@ -209,10 +196,6 @@ test.describe("nouveau projet", () => {
       );
     });
 
-    /**
-     * The repository whose name carries a dot: the subdomain proposed is the
-     * folded one, which the agent accepts, and not the name, which it refuses.
-     */
     await test.step("un dépôt à point propose un sous-domaine valide", async () => {
       await page.getByRole("button", { name: "Modifier la source" }).click();
 
@@ -280,10 +263,6 @@ test.describe("nouveau projet", () => {
       ).toHaveValue("atlas-web");
     });
 
-    /**
-     * A second port, on a free number and under a name derived from the first,
-     * published or not as the reader decides: the agent gets both routes.
-     */
     await test.step("un second port se déclare, et se publie ou non", async () => {
       await page.getByRole("button", { name: "Ajouter un port" }).click();
 

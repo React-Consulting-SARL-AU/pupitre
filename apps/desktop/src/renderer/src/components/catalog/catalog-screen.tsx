@@ -10,14 +10,6 @@ import { StepFailure } from "../ui/step-failure";
 import { WaitingNotice } from "../ui/waiting-notice";
 import { CatalogChoice } from "./catalog-choice";
 
-/**
- * What to install on this server, read from the agent's own catalogue.
- *
- * The screen asks `catalog` and draws the answer. It weighs the selection
- * against the report the probe left behind on the previous screen, which is why
- * a machine that was never inspected simply gets no warning rather than a
- * guessed one. The screen ends on the gesture, with the count beside it.
- */
 export function CatalogScreen({
   serverId,
   serverName,
@@ -27,9 +19,7 @@ export function CatalogScreen({
 }: {
   serverId: string;
   serverName?: string;
-  /** What the header offers on the whole sequence: a way out of it. */
   actions?: ReactNode;
-  /** The header sits on the page, as the onboarding's steps read theirs. */
   plain?: boolean;
   onConfigure?: () => void;
 }) {
@@ -47,9 +37,7 @@ export function CatalogScreen({
   const installed = useCatalog((state) => state.installed);
 
   useEffect(() => {
-    // A catalogue already read for this server is kept: coming back from the
-    // configuration, or from an onboarding taken up again, must not throw away
-    // the choice that was made under it.
+    // Reloading would throw away the selection made under the catalogue already read.
     const held = useCatalog.getState().catalog;
 
     if (held.status !== "idle" && held.serverId === serverId) {

@@ -9,19 +9,7 @@ import type { GitState } from "@renderer/stores/project";
 import { Download, RotateCw } from "lucide-react";
 import { ProjectGitSummary } from "./project-git-summary";
 
-/**
- * The gap with the remote repository, and when it was last measured.
- *
- * This is the one read in the app that leaves the machine, so it is never in a
- * refresh loop: it runs when the project opens, when a branch is taken, and
- * when the reader presses the button. The timestamp is there so nobody mistakes
- * a ten-minute-old answer for a live one.
- *
- * Commits to pull come with the gesture that pulls them: `project.sync`, which
- * pulls and then reinstalls the dependencies — the button says both, because
- * the second half is what takes the time.
- */
-
+// The only read that leaves the machine: never on a timer, and stamped so an old answer is not taken as live.
 export function ProjectGitState({
   state,
   onCheck,

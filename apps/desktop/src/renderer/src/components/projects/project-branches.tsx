@@ -10,17 +10,7 @@ import { ArrowRightLeft, GitBranchPlus } from "lucide-react";
 import { useState } from "react";
 import { ProjectBranchCreate } from "./project-branch-create";
 
-/**
- * The branches of the project, and the one it is on.
- *
- * Both lists come from the agent, local and remote, and the list keeps them
- * apart: a remote branch is one the machine has not taken yet. Taking a branch
- * is `project.checkout`, and a refused switch comes back with the agent's own
- * reason rather than one written here. Choosing a branch in the list is not
- * yet taking it: the switch is a button of its own, so a tree with uncommitted
- * changes reads the warning before the agent refuses, not after. A branch that
- * does not exist yet is named in the form that opens under the list.
- */
+// Picking is not switching: the switch is its own button so a dirty tree reads the warning first.
 export function ProjectBranches({
   state,
   folder,

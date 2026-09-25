@@ -10,8 +10,7 @@ import { startTerminalSettings } from "./stores/terminal-settings";
 import { startThemeWatch } from "./stores/theme";
 import "./styles.css";
 
-// Before the first paint: the attribute has to be on <html> or the window
-// flashes the wrong theme on launch.
+// Before the first paint, or the window flashes the wrong theme on launch.
 startThemeWatch();
 startLocaleWatch();
 startTerminalSettings();

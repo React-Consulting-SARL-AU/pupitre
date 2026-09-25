@@ -8,16 +8,6 @@ import { create } from "zustand";
 import { bridged } from "../lib/bridged";
 import { useConnections } from "./connections";
 
-/**
- * The bucket backups go to, as this computer holds it.
- *
- * Nothing secret is here: the settings of the bucket and the public key are
- * not secrets, the secret access key never comes back from the keychain, and
- * the passphrase is sent once and forgotten on the way. What the store also
- * knows is whether the organization already has an identity to adopt — a
- * second computer takes it rather than asking for the passphrase.
- */
-
 export type HeldState =
   | { status: "idle" }
   | { status: "reading" }
@@ -37,12 +27,9 @@ interface BackupConnectionStore {
   problem: AgentError | null;
 
   read: () => Promise<void>;
-  /** True once the bucket took a test write; false on a refusal, which the form shows. */
   probe: (input: BackupConnectionInput) => Promise<boolean>;
-  /** True once the connection is kept; false on a refusal, which the form shows. */
   save: (input: BackupConnectionInput) => Promise<boolean>;
   forget: () => Promise<void>;
-  /** The refusal belongs to the step that got it: moving on leaves it behind. */
   dismiss: () => void;
 }
 
@@ -101,6 +88,7 @@ export const useBackupConnection = create<BackupConnectionStore>((set) => ({
     }
 
     set({ held: { status: "read", view: answer.result }, saving: false });
+
     await useConnections.getState().read();
 
     return true;

@@ -12,12 +12,6 @@ import {
 } from "../project-add";
 import { useTunnel } from "../tunnel";
 
-/**
- * A project added as the screen drives it: an address in, a running project
- * and its journal out. The agent is a stub, because what is under test is what
- * the store does with an envelope, not what a server does with a repository.
- */
-
 const REPO = "https://github.com/moi/vite-starter.git";
 
 const SHOP = "https://github.com/moi/shop.git";
@@ -45,7 +39,6 @@ function project(params: ProjectAddParams) {
   };
 }
 
-/** The one process of a fresh draft: most projects have one. */
 function main() {
   return useProjectAdd.getState().draft.processes[0];
 }
@@ -60,12 +53,10 @@ function web(index = 0, process = 0): string {
   );
 }
 
-/** The routes of the first process, as `project.add` takes them. */
 function routes(process = 0) {
   return useProjectAdd.getState().params().processes[process]?.routes;
 }
 
-/** The one process `project.add` takes, most of the time. */
 function single(
   overrides: Partial<ProjectAddParams["processes"][number]>
 ): ProjectAddParams["processes"][number] {
@@ -358,7 +349,7 @@ describe("un dépôt qui démarre", () => {
     expect(useProjectAdd.getState().draft.processes).toHaveLength(1);
   });
 
-  /** The agent wrote the route; the name that reaches it is written from the account the app holds. */
+  // The agent writes the route; the DNS name is written from the account the app holds.
   it("fait pointer le nom vers le tunnel quand le projet est publié", async () => {
     const sent: string[] = [];
     const named: string[] = [];
@@ -453,7 +444,7 @@ describe("un dépôt qui démarre", () => {
     expect(phase("up")).toBe("ok");
   });
 
-  /** The route is the declaration's; dependencies that will not install are no reason for the name to stay unwritten. */
+  // The route belongs to the declaration, so failed dependencies must not leave the name unwritten.
   it("écrit le nom sur le web même quand les dépendances ne s'installent pas", async () => {
     const named: string[] = [];
 
@@ -552,8 +543,7 @@ describe("ce que l'agent lit dans la source", () => {
     expect(main()?.cmd).toBe("pnpm dev --port 5200");
   });
 
-  // The wait names what the agent is cloning, so a reader who just changed
-  // the branch sees that the change was taken rather than a line that did not move.
+  // Naming the branch shows a reader who just changed it that the change was taken.
   it("dit, pendant la lecture, quelle branche l'agent clone", async () => {
     let seen: DetectionState | undefined;
 
@@ -590,8 +580,7 @@ describe("ce que l'agent lit dans la source", () => {
     expect(seen).toEqual({ source: REPO, status: "reading" });
   });
 
-  // A script that freezes --host react-box.localhost binds to a name only the
-  // laptop resolves: declared as the host, the agent makes the server answer to it.
+  // A frozen `--host x.localhost` only resolves on the laptop, so it must be declared as the host.
   it("déclare le nom en .localhost que le dépôt fige, et la boucle locale sinon", async () => {
     detecting({
       ok: true,
@@ -662,9 +651,6 @@ describe("ce que l'agent lit dans la source", () => {
     ]);
   });
 
-  // A repository that holds a server and its client is two processes: each
-  // keeps its folder, its manager and its command, and the ports are proposed
-  // one after the other.
   it("prend les processus d'un dépôt qui en tient plusieurs, chacun dans son dossier", async () => {
     const asked: ProjectAddParams[] = [];
 
@@ -726,7 +712,6 @@ describe("ce que l'agent lit dans la source", () => {
       ["client", "client", "pnpm", "pnpm dev --port 3001", "web-intranet"],
     ]);
 
-    // The server stays private; the client takes the project's own name.
     useProjectAdd.getState().setRowPublish(0, 0, false);
     useProjectAdd.getState().setRowPort(0, 0, 8081);
     useProjectAdd.getState().generateRowWeb(1, 0);
@@ -747,7 +732,6 @@ describe("ce que l'agent lit dans la source", () => {
     expect(useProjectAdd.getState().run).toMatchObject({ status: "done" });
   });
 
-  /** A detection weighed against a declared project holding the given ports. */
   function detectingBeside(ports: number[], processes: unknown[]): void {
     stubPupitre({
       ...QUIET_RUN,
@@ -781,9 +765,7 @@ describe("ce que l'agent lit dans la source", () => {
     });
   }
 
-  // A repository declares the port it was written on; when another project of
-  // the server already holds it, the form opens on the next free one rather
-  // than on a refusal the reader has to fix by hand.
+  // Opening on the next free port spares the reader a refusal to fix by hand.
   it("propose le port libre suivant quand un autre projet tient celui que le dépôt déclare", async () => {
     detectingBeside(
       [5173],
@@ -1248,7 +1230,6 @@ describe("ce que le lecteur choisit du démarrage", () => {
     expect(useProjectAdd.getState().params().boot).toBe(true);
   });
 
-  /** A project the reader does not start is declared, fetched and installed all the same: only the start is left out, and the outcome says stopped. */
   it("laisse le projet arrêté quand le démarrage n'est pas demandé", async () => {
     let started = 0;
 
@@ -1280,7 +1261,7 @@ describe("ce que le lecteur choisit du démarrage", () => {
 });
 
 describe("un démarrage qui prend son temps", () => {
-  /** `project.up` answers before the port is bound: what follows is read off the list of projects, through the main process. */
+  // `project.up` answers before the port is bound, so what follows is read off the project list.
   function stub(states: readonly string[]) {
     const polled: string[] = [];
     let started = false;
@@ -1294,7 +1275,9 @@ describe("un démarrage qui prend son temps", () => {
         }
 
         polled.push("project.list");
+
         const state = states[Math.min(reads, states.length - 1)];
+
         reads += 1;
 
         return Promise.resolve({

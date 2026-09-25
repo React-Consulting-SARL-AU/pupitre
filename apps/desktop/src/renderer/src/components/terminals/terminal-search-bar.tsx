@@ -5,13 +5,6 @@ import { clearFind, find, focus } from "@renderer/lib/terminals";
 import { ChevronDown, ChevronUp, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-/**
- * A search laid over the terminal, that never writes into it.
- *
- * Typing looks as you type and grows the selection with the word; Enter goes
- * to the next occurrence, Shift+Enter to the previous one, Escape hands the
- * keyboard back to the session. The count comes from xterm itself.
- */
 export function TerminalSearchBar({
   id,
   onClose,

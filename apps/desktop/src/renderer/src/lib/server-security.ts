@@ -3,12 +3,7 @@ import type { Server } from "@shared/servers";
 
 export type SecuringNeed = "root" | "sudo";
 
-/**
- * What the securing still owes a server of the app. A securing that went
- * through moves the app off root, and gives `dev` a sudo password (decision
- * 0015): one still on root never finished, and one whose agent still reports
- * `nopasswd_all` was secured before passwords existed.
- */
+/** Still on root: securing never finished; `nopasswd_all`: secured before sudo passwords (decision 0015). */
 export function needsSecuring(
   server: Server | null,
   sudo?: SudoState

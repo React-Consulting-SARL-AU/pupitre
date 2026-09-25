@@ -23,10 +23,6 @@ const HOURS = Array.from({ length: 24 }, (_, hour) => hour);
 
 const DEFAULT_CUSTOM_INTERVAL = 48;
 
-/**
- * When backups run and how many stay: an interval among the usual ones or
- * any other, the hour a daily one starts at, and the retention said in time.
- */
 export function BackupsFrequencyFields({
   values,
   problemOf,

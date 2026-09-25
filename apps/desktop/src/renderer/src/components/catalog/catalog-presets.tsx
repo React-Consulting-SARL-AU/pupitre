@@ -21,19 +21,6 @@ interface Replacing {
   lost: readonly Manifest[];
 }
 
-/**
- * The shortcuts, ahead of the twenty-odd modules.
- *
- * A preset says what it brings by name, not by count: the reader picks between
- * « Node.js, MySQL, Claude Code » and « everything », not between 7 and 23.
- * Those names are what it brings *here* — a module the server already runs, or
- * one this architecture has nothing to run, is not promised twice.
- *
- * A preset that carries `choose_one` names modules that contradict each other —
- * the exposures, the agents — and asks which one before it is applied.
- * Applying it silently would either install none of them or install two that
- * refuse to stand together.
- */
 export function CatalogPresets({
   presets,
   modules,
@@ -43,9 +30,7 @@ export function CatalogPresets({
   onPick,
 }: {
   presets: readonly Preset[];
-  /** The catalogue, so a choice shows the names the agent gave rather than ids. */
   modules: readonly Manifest[];
-  /** What is ticked right now, so an applied preset says so. */
   selected: readonly string[];
   installed?: Installed;
   probe?: ProbeResult | null;
@@ -90,7 +75,6 @@ export function CatalogPresets({
     onPick?.(preset.id, chosen);
   }
 
-  /** What the preset adds to the core here, in the catalogue's own words. */
   function brings(offer: PresetOffer): string {
     if (bringsNothing(offer)) {
       return t("catalog.presets.nothing");

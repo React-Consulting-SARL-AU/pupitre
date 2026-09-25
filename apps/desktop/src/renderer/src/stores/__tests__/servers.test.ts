@@ -215,7 +215,9 @@ describe("la clé d'hôte", () => {
     await useServers.getState().checkHostKey("srv-a");
 
     const state = useServers.getState().hostKey;
+
     expect(state.status).toBe("changed");
+
     if (state.status !== "changed") {
       return;
     }
@@ -238,11 +240,13 @@ describe("la clé d'hôte", () => {
 
   it("remplace l'empreinte quand le serveur a été réinstallé, et rouvre la connexion", async () => {
     const forgotten: string[] = [];
+
     stubPupitre({
       hostKey: () =>
         Promise.resolve({ ok: true, result: { status: "first_contact" } }),
       trustReinstalled: (serverId: string) => {
         forgotten.push(serverId);
+
         return Promise.resolve({
           ok: true,
           result: { active: "srv-a", servers: [STAGING] },
@@ -300,17 +304,21 @@ describe("la liste", () => {
 
   it("renomme, choisit l'actif et supprime par identifiant", async () => {
     const calls: string[] = [];
+
     stubPupitre({
       activateServer: (id: string) => {
         calls.push(`activate ${id}`);
+
         return Promise.resolve({ active: id, servers: [STAGING] });
       },
       removeServer: (id: string) => {
         calls.push(`remove ${id}`);
+
         return Promise.resolve({ active: null, servers: [] });
       },
       renameServer: (id: string, name: string) => {
         calls.push(`rename ${id} ${name}`);
+
         return Promise.resolve({
           active: "srv-a",
           servers: [{ ...STAGING, name }],

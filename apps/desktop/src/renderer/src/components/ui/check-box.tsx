@@ -1,13 +1,6 @@
 import { Checkbox } from "@base-ui-components/react/checkbox";
 import { Check, Lock, Minus } from "lucide-react";
 
-/**
- * A checkbox whose state is a shape before it is a colour.
- *
- * A hidden native input keeps the form and the label working; the square is
- * what the eye reads — a tick when chosen, a padlock when the catalogue calls
- * the module mandatory, a dash when something else stands in the way.
- */
 export function CheckBox({
   name,
   checked,
@@ -26,6 +19,7 @@ export function CheckBox({
   const off = disabled || locked;
 
   let glyph = <Check size={11} strokeWidth={2.5} />;
+
   if (locked) {
     glyph = <Lock size={10} strokeWidth={2} />;
   } else if (disabled && !checked) {

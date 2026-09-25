@@ -26,16 +26,6 @@ import type { ButtonIcon } from "../ui/button";
 import { DIALOG_BACKDROP } from "../ui/dialog";
 import { Kbd } from "../ui/kbd";
 
-/**
- * Everywhere the reader can go, one keystroke away.
- *
- * The views, the projects of the driven server, the terminals open on it and
- * the servers this computer knows are one list, filtered as the reader types,
- * walked with the arrows and entered with Return. The palette is a dialog over
- * the shell and a listbox inside it: a reader who never sees it hears the
- * count, the selection and where Return leads.
- */
-
 const ICON: Record<PaletteKind, ButtonIcon> = {
   project: Folder,
   server: ServerIcon,
@@ -70,8 +60,7 @@ export function CommandPalette({
   const shown = useMemo(() => filterEntries(entries, term), [entries, term]);
   const selected = shown[Math.min(index, shown.length - 1)] ?? null;
 
-  // What was typed belongs to this opening, and only to it: a re-render of the
-  // shell — a snapshot tick — must not empty the field under the reader.
+  // Reset on opening only: a snapshot re-render must not clear the field mid-typing.
   useEffect(() => {
     if (open) {
       setTerm("");

@@ -15,9 +15,7 @@ test.describe("police d'affichage", () => {
     await running.app.close();
   });
 
-  // The machine running this has no Bricolage Grotesque installed and the app
-  // is offline by construction here: what the heading draws with can only be
-  // the file the app carries.
+  // The font is not installed and the harness is offline: only the bundled file can draw it.
   test("un titre est dessiné dans la police embarquée, sans requête réseau", async () => {
     const heading = running.page.getByRole("heading", { level: 1 }).first();
 

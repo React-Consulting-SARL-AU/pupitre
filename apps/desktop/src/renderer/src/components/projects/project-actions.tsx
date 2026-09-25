@@ -8,10 +8,6 @@ import type { ProjectAction } from "@renderer/stores/snapshot";
 import { Play, RefreshCw, RotateCw, Square, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 
-/**
- * What you do with the whole project: run it, sync it, let it go — and, on a
- * line of their own under those, open it in an editor of this computer.
- */
 export function ProjectActions({
   project,
   busy,
@@ -26,7 +22,7 @@ export function ProjectActions({
   syncing: boolean;
   onAct: Gesture<[ProjectAction, string]>;
   onSync: () => void;
-  /** Answer with the promise of the removal and the button waits on it. */
+  /** Return the removal's promise so the button stays pending on it. */
   onRemove: () => Promise<void>;
   editors: ReactNode;
 }) {

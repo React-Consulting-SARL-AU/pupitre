@@ -37,7 +37,7 @@ beforeEach(() => {
 });
 
 describe("le refus d'un jeton à la connexion", () => {
-  /** Two forms on one screen: a refusal belongs under the one that sent the token. */
+  // Two forms share the screen, so a refusal belongs under the one that sent the token.
   it("reste sous le compte qui l'a reçu, et sous lui seul", async () => {
     stubPupitre({
       connectAccount: () =>
@@ -132,7 +132,6 @@ describe("un jeton qui ouvre plusieurs comptes", () => {
     { id: "acc-2", name: "Atelier" },
   ];
 
-  /** Nothing is kept until the reader names the account: the choice sits under the card, not in the keychain. */
   it("n'est pas connecté tant que le compte n'est pas choisi", async () => {
     stubPupitre({
       connectAccount: () =>

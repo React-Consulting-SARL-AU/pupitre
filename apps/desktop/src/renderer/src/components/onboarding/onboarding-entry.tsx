@@ -7,14 +7,6 @@ import { savedOnboarding, useOnboarding } from "../../stores/onboarding";
 import { Button } from "../ui/button";
 import { StatusDot } from "../ui/status-dot";
 
-/**
- * The way into the onboarding, at the foot of the server's own row.
- *
- * It shows itself only when nothing says this machine already runs the agent:
- * a session the app has opened, or a probe that read a version off it. An
- * onboarding left half-way is offered back rather than started over. The row
- * above already names the machine, so the line says only what it lacks.
- */
 export function OnboardingEntry({ server }: { server: Server }) {
   const t = useTranslations();
 
@@ -42,8 +34,7 @@ export function OnboardingEntry({ server }: { server: Server }) {
 
   const saved = savedOnboarding();
 
-  // A sequence that reached its end is not one to come back to: `resume` refuses
-  // a finished shelf, so offering it would put a button here that answers nothing.
+  // `resume` refuses a finished onboarding, so offering it would be a dead button.
   const unfinished = saved?.serverId === server.id && saved.step !== "done";
 
   if (step !== "closed" || (managed && !unfinished)) {

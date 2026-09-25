@@ -1,7 +1,6 @@
 import type { ShotsReadResult } from "@pupitre/shared/agent-protocol/processes";
 import { type Bytes, checkedBytes } from "./file-bytes";
 
-/** The bytes of a capture, put back together and checked against the receipt. */
 export function shotBytes(
   chunks: ReadonlyMap<number, string>,
   receipt: ShotsReadResult
@@ -14,12 +13,7 @@ export interface ShotSize {
   height: number;
 }
 
-/**
- * The dimensions of a capture, read from the file rather than from the agent.
- *
- * The protocol says what a capture weighs, never how wide it is. A decoder that
- * cannot read this kind of image answers nothing, and the frame does without.
- */
+/** Read from the file because the protocol gives a capture's weight, never its dimensions. */
 export async function shotSize(blob: Blob): Promise<ShotSize | null> {
   if (typeof createImageBitmap !== "function") {
     return null;

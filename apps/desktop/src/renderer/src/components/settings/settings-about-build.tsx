@@ -3,8 +3,6 @@ import type { Translate } from "@renderer/i18n/i18n";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { AppAbout } from "@shared/app-update";
 
-/** The build this is: its version, in the data face, and the channel it follows. */
-
 function channelLabel(about: AppAbout, t: Translate): string {
   if (about.channel === null) {
     return t("settings.about.channel.none");

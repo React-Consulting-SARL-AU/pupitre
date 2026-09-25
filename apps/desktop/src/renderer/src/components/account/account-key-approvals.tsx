@@ -6,7 +6,6 @@ import { approvalKeyOf } from "@shared/key-approvals";
 import { useEffect } from "react";
 import { AccountKeyApprovalRow } from "./account-key-approval-row";
 
-/** Rendered only when a server waits on this computer's signature: a lone computer never sees it. */
 export function AccountKeyApprovals() {
   const t = useTranslations();
 

@@ -6,11 +6,6 @@ import { useFingerprint } from "@renderer/lib/use-fingerprint";
 import type { IdentityState } from "@renderer/stores/backup-connection";
 import type { BackupConnectionView } from "@shared/backups";
 
-/**
- * The second step: the key backups are sealed to. The one this computer
- * holds, or the organization's, is kept unless the reader asks for a new
- * passphrase; a first computer chooses one, typed twice or drawn.
- */
 export function BackupsSetupPassphrase({
   held,
   identity,

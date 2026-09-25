@@ -15,10 +15,8 @@ export function DashboardStat({
   title: string;
   value: string;
   detail: string;
-  /** Absent: the figure has no ceiling to be read against. */
   share?: number;
   alert?: boolean;
-  /** What to do about the alert; drawn only while there is one. */
   remedy?: ReactNode;
   icon: ComponentType<{ size?: number; strokeWidth?: number }>;
 }) {

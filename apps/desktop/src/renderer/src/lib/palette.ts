@@ -1,21 +1,14 @@
 import type { KeyChord } from "./terminal-shortcuts";
 
-/**
- * The command palette, as pure functions: what it lists, how it filters, how
- * the keyboard walks it. The component draws; nothing here needs a DOM.
- */
-
 export type PaletteKind = "view" | "project" | "terminal" | "server";
 
 export interface PaletteEntry {
   id: string;
   kind: PaletteKind;
   label: string;
-  /** A second line: a host, a project state, the kind of a terminal. */
   hint?: string;
 }
 
-/** The chord that opens the palette: command on macOS, control elsewhere. */
 export function paletteChordOf(event: KeyChord, mac: boolean): boolean {
   if (event.type !== "keydown" || event.altKey || event.shiftKey) {
     return false;
@@ -28,7 +21,6 @@ export function paletteChordOf(event: KeyChord, mac: boolean): boolean {
   return chord && event.key.toLowerCase() === "k";
 }
 
-/** The label a tooltip prints, on this platform. */
 export function paletteChordLabel(mac: boolean): string {
   return mac ? "⌘K" : "Ctrl+K";
 }
@@ -47,12 +39,6 @@ function rankOf(entry: PaletteEntry, term: string): number {
   return entry.hint?.toLowerCase().includes(term) ? 2 : -1;
 }
 
-/**
- * The entries that carry the term, the ones that start with it first.
- *
- * An empty term keeps them all, in the order given: the palette then reads as
- * a table of contents rather than a search.
- */
 export function filterEntries(
   entries: readonly PaletteEntry[],
   term: string
@@ -70,7 +56,6 @@ export function filterEntries(
     .map((one) => one.entry);
 }
 
-/** Where the selection goes on an arrow key, wrapping at both ends. */
 export function stepSelection(
   index: number,
   count: number,

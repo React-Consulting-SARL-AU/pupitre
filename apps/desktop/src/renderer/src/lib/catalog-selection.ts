@@ -15,23 +15,8 @@ import { translate } from "@renderer/i18n/translate";
 import { itemKey, type SecretMark } from "@shared/secrets";
 import { decimal } from "./format";
 
-/**
- * What a selection of modules implies, computed from the manifests alone.
- *
- * Nothing here knows a module by name: dependencies, conflicts, architectures
- * and resources are read from what the agent declared, so a module added on the
- * server behaves like the others the moment it appears.
- */
-
 export type Selection = readonly string[];
 
-/**
- * The modules the server already runs.
- *
- * They are what makes the catalogue usable a second time: a module added after
- * the fact must not drag its already-satisfied requirements into the install,
- * and one that is already there is not a choice to make.
- */
 export type Installed = readonly string[];
 
 export interface FieldGroup {
@@ -60,7 +45,6 @@ function index(modules: readonly Manifest[]): Map<string, Manifest> {
   return new Map(modules.map((module) => [module.id, module]));
 }
 
-/** The catalogue's own order, so the screen never re-sorts what it was given. */
 function ordered(
   modules: readonly Manifest[],
   ids: Iterable<string>
@@ -86,13 +70,7 @@ export function byCategory(modules: readonly Manifest[]): CategoryGroup[] {
   })).filter((group) => group.modules.length > 0);
 }
 
-/**
- * A module and everything it requires, or nothing at all.
- *
- * A requirement the machine cannot run makes the whole choice impossible: half
- * of it would be a module installed without what it needs. The probe is weighed
- * here rather than by the caller, so a preset cannot tick what a click cannot.
- */
+/** All requirements or nothing: half a choice would install a module without what it needs. */
 export function select(
   modules: readonly Manifest[],
   selected: Selection,
@@ -177,14 +155,7 @@ export function toggle(
     : select(modules, selected, id, installed, probe);
 }
 
-/**
- * What a preset amounts to on this machine.
- *
- * A preset names modules for a catalogue, not for a server: on an arm64 box, or
- * on one that already runs something its list contradicts, part of it simply
- * cannot happen. Those parts are dropped rather than ticked, so applying a
- * preset never leaves a selection the install would refuse.
- */
+/** Drops what this machine cannot run, so a preset never yields a selection the install refuses. */
 export function fromPreset(
   modules: readonly Manifest[],
   preset: Preset,
@@ -200,14 +171,12 @@ export function fromPreset(
   return ordered(modules, chosen);
 }
 
-/** A preset that names exclusive modules carries the one the reader picked, and none of the others. */
 export function withChoice(preset: Preset, chosen?: string): Preset {
   return chosen && preset.choose_one?.includes(chosen)
     ? { ...preset, modules: [...preset.modules, chosen] }
     : preset;
 }
 
-/** What applying a preset takes out of the selection, and with it what was typed for those modules. */
 export function droppedBy(
   modules: readonly Manifest[],
   preset: Preset,
@@ -225,11 +194,6 @@ export function droppedBy(
   });
 }
 
-/**
- * Why a module cannot be chosen right now, in the words the reader needs: it is
- * already there, it collides with one the server already runs or with one just
- * chosen, or the architecture the probe measured has nothing to run it.
- */
 export function blocked(
   modules: readonly Manifest[],
   selected: Selection,
@@ -289,24 +253,12 @@ export function blocked(
   return why;
 }
 
-/**
- * A preset, weighed against this machine before it is offered.
- *
- * The catalogue's presets are written for the catalogue: the same three are
- * shown on a fresh server and on one that already runs half of them. What they
- * are worth here is not — hence `adds`, which names what applying it would
- * actually put on the machine, and `applied`, which is how the reader sees that
- * the click landed.
- */
 export interface PresetOffer {
   preset: Preset;
-  /** Everything it would install here, the core it implies included. */
+  /** Includes the mandatory core the preset implies. */
   installs: readonly Manifest[];
-  /** What it would add on top of that core: the promise its card carries. */
   adds: readonly Manifest[];
-  /** The exclusive modules still open, once the machine has had its say. */
   choices: readonly Manifest[];
-  /** True when what is selected is exactly what this preset yields. */
   applied: boolean;
 }
 
@@ -373,11 +325,6 @@ export function presetOffers(
   );
 }
 
-/**
- * A preset with nothing left to install: the server already runs all of it,
- * the core included. « Only the core » is not that — it is a choice, and one
- * a reader comes back to after ticking too much.
- */
 export function bringsNothing(offer: PresetOffer): boolean {
   return offer.installs.length === 0 && offer.choices.length === 0;
 }
@@ -385,18 +332,10 @@ export function bringsNothing(offer: PresetOffer): boolean {
 const DIACRITICS = /\p{Diacritic}/gu;
 const SPACES = /\s+/;
 
-/** Lower case and without accents, so « préréglage » is found by "prereglage". */
 function plain(value: string): string {
   return value.normalize("NFD").replace(DIACRITICS, "").toLowerCase();
 }
 
-/**
- * The modules a search phrase leaves.
- *
- * The phrase is weighed against the words the agent gave — name, summary,
- * identifier — because those are what the reader sees on the cards. Every term
- * has to land somewhere, so a second word narrows rather than widens.
- */
 export function matching(
   modules: readonly Manifest[],
   query: string
@@ -431,13 +370,7 @@ export function totals(
     );
 }
 
-/**
- * What the selection asks for, against what the probe measured.
- *
- * Silent without a probe: an unmeasured machine is not a machine that is too
- * small, and inventing a threshold here would contradict the only figures the
- * app has.
- */
+/** Silent without a probe: an unmeasured machine is not one that is too small. */
 export function resourceWarnings(
   modules: readonly Manifest[],
   selected: Selection,
@@ -473,11 +406,6 @@ export function resourceWarnings(
   return warnings;
 }
 
-/**
- * A `managed` field is never asked for: its value comes from the platform, and
- * the configuration screen never shows it. A module whose fields are all
- * managed therefore asks nothing, and reads as such.
- */
 export function fieldsOf(
   modules: readonly Manifest[],
   selected: Selection
@@ -494,14 +422,11 @@ export function fieldsOf(
 
 type Marks = Record<string, SecretMark>;
 
-/** A problem, and the manifest and field it belongs to, so a screen can draw it. */
 export interface FieldProblemView extends FieldProblem {
   manifest: Manifest;
-  /** The field the problem names, when the manifest still declares one. */
   declared?: Field;
 }
 
-/** How many values are held for a secret field: one, or the ranks of a secret list. */
 export function heldSecrets(secrets: Record<string, Marks>): SecretsHeld {
   return (moduleId, key) => {
     const marks = secrets[moduleId];
@@ -511,6 +436,7 @@ export function heldSecrets(secrets: Record<string, Marks>): SecretsHeld {
     }
 
     let filled = 0;
+
     while (marks?.[itemKey(key, filled)]?.filled) {
       filled += 1;
     }
@@ -519,14 +445,7 @@ export function heldSecrets(secrets: Record<string, Marks>): SecretsHeld {
   };
 }
 
-/**
- * What the chosen modules refuse, by the rules of the manifest and nothing
- * else — the same rules the agent applies to the same values before its first
- * step, so a configuration this screen accepts is one the server accepts.
- *
- * A managed field is skipped: the app fills it on the way out, from a
- * connection, and a form that asked for it would be asking twice.
- */
+/** The agent's own rules, so what this screen accepts the server accepts; managed fields are filled on the way out. */
 export function problemsOf(
   modules: readonly Manifest[],
   selected: Selection,
@@ -552,15 +471,7 @@ export function problemsOf(
   });
 }
 
-/**
- * Whether a field has to be answered before the install, or can be left as
- * the manifest set it.
- *
- * A secret is always shown: typed, it is the one thing the reader must supply;
- * generated, the line saying so is what tells them no password is theirs to
- * invent. Everything that came with a default is a setting, not a question —
- * and a question stays one once answered, so nothing moves under the reader.
- */
+/** Decided by the manifest, not the value, so a field never moves once answered. */
 export function asked(field: Field): boolean {
   if (field.kind === "secret") {
     return true;
@@ -582,9 +493,7 @@ export function asked(field: Field): boolean {
 }
 
 export interface SplitFields {
-  /** What the reader has to answer. */
   asked: readonly Field[];
-  /** What the manifest already answered, and can be changed. */
   kept: readonly Field[];
 }
 
@@ -595,7 +504,6 @@ export function splitFields(fields: readonly Field[]): SplitFields {
   };
 }
 
-/** What a field is worth before anyone touches it, per its manifest. */
 export function defaultsOf(manifest: Manifest): Record<string, unknown> {
   const values: Record<string, unknown> = {};
 
@@ -626,7 +534,6 @@ export function defaultsOf(manifest: Manifest): Record<string, unknown> {
   return values;
 }
 
-/** The secret fields the manifest says to generate rather than ask for. */
 export function generatedKeysOf(manifest: Manifest): string[] {
   return manifest.fields
     .filter(
@@ -638,12 +545,7 @@ export function generatedKeysOf(manifest: Manifest): string[] {
     .map((field) => field.key);
 }
 
-/**
- * A module whose install carried a secret.
- *
- * The vault is emptied the moment the secrets leave, so replaying such a module
- * without asking again would install it with nothing where its password was.
- */
+/** The vault empties once secrets are sent, so replaying such a module must ask again. */
 export function carriesSecret(manifest: Manifest): boolean {
   return manifest.fields.some(
     (field) =>
@@ -653,14 +555,6 @@ export function carriesSecret(manifest: Manifest): boolean {
   );
 }
 
-/**
- * A selection written down before the app closed, read back against the machine
- * as it stands now.
- *
- * What the catalogue no longer declares is dropped, what the server already
- * runs is dropped with it: the reader comes back to the choice they made, minus
- * the part of it that has since become a fact.
- */
 export function restored(
   modules: readonly Manifest[],
   selected: Selection,

@@ -38,14 +38,6 @@ function rootState(outcome: HardenOutcome | null): "closed" | "kept" | "open" {
   return outcome?.harden.root_kept ? "kept" : "open";
 }
 
-/**
- * The onboarding, in the one order that works.
- *
- * The order itself is the machine's, and every step is reached by an event that
- * justifies it rather than by naming it: there is no way to land on the install
- * with nothing selected. This component says what each screen answers with, and
- * nothing else — the shell around it stays put while the body alone changes.
- */
 export function OnboardingFlow() {
   const t = useTranslations();
 
@@ -70,7 +62,7 @@ export function OnboardingFlow() {
 
   const [stage, setStage] = useState<ServerStage>("pick");
 
-  // The rail follows the demand at once; the panel takes the time to leave.
+  // The rail follows `step` at once; the body waits for `shown` to finish leaving.
   const { shown, motion } = useStepShift(step, (candidate) =>
     ONBOARDING_STEPS.indexOf(candidate as (typeof ONBOARDING_STEPS)[number])
   );
@@ -79,8 +71,7 @@ export function OnboardingFlow() {
     loadServers();
   }, [loadServers]);
 
-  // The way back closes when the machine has changed, and not when the button
-  // was pressed: an install refused before its first step left it untouched.
+  // Back closes once the machine changed, not on click: a refused install touched nothing.
   useEffect(() => {
     if (touched) {
       useOnboarding.getState().send({ type: "touched" });
@@ -150,7 +141,6 @@ export function OnboardingFlow() {
       );
     }
 
-    // The steps whose screen takes the machine's name and a single answer.
     const answered: Partial<Record<OnboardingStep, ReactNode>> = {
       agent: (
         <OnboardingAgentScreen
@@ -252,10 +242,7 @@ export function OnboardingFlow() {
       steps={steps}
     >
       <div className={`h-full ${motion}`} key={shown}>
-        {/*
-          While the machine is being read again, no screen acts: a server whose
-          state the app has only remembered is one it must not touch.
-        */}
+        {/* No screen may act on a server state the app only remembered. */}
         {recovering ? (
           <div className={`${STEP_COLUMN} h-full py-10`}>
             <WaitingNotice

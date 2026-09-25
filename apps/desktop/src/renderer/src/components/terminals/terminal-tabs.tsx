@@ -18,20 +18,6 @@ import { TerminalNewButton } from "./terminal-new-button";
 import { TerminalPane } from "./terminal-pane";
 import { TerminalTab } from "./terminal-tab";
 
-/**
- * The sessions of one project — or of the server — side by side, whatever
- * their kind: a shell next to a Claude next to a Codex.
- *
- * None is unmounted when you move to the next: they are all rendered, and only
- * the active one gets opacity and events. A terminal hidden by `display:none`
- * would measure zero rows, and the session brought back to the front would draw
- * itself crooked.
- *
- * The row is a tab list in the keyboard's sense too: the arrows move between
- * sessions, and the shortcuts a terminal catches — new, close, next, search —
- * land here, where the row knows its neighbours. "New" from a session opens
- * another of its kind.
- */
 export function TerminalTabs({
   sessions,
   active,
@@ -46,7 +32,6 @@ export function TerminalTabs({
   sessions: readonly TerminalInfo[];
   active: string | null;
   states: Record<string, AgentState>;
-  /** What the "+" can open here: the shell, and the agents the machine holds. */
   kinds: readonly TerminalKind[];
   project: string | null;
   onActivate: (id: string) => void;
@@ -192,7 +177,7 @@ export function TerminalTabs({
         ) : null}
       </div>
 
-      {/* The panes stack by z-index; isolated, they never paint over a dialog. */}
+      {/* Hidden by opacity, never display:none (xterm would measure zero rows); isolate keeps them under dialogs. */}
       <div className="relative isolate min-h-0 flex-1">
         {sessions.map((session) => (
           <div

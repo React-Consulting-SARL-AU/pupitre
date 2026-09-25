@@ -6,17 +6,9 @@ import { stepOf as stepFrom, withStep } from "../lib/module-progress";
 import type { StepEntry } from "./install";
 import { useServers } from "./servers";
 
-/**
- * The hardening as the screen watches it happen.
- *
- * The steps are the agent's own, in its order and its words; `root_closed` and
- * `reason` come back untouched, because a refusal explained by the app would
- * describe the machine we imagine rather than the one that answered.
- */
-
 export type HardenState =
   | { status: "idle" }
-  /** Sent, but behind a longer command on the same channel. */
+  // Sent, but queued behind a longer command on the same channel.
   | { status: "queued"; serverId: string }
   | { status: "running"; serverId: string }
   | { status: "switching"; serverId: string; user: string }
@@ -31,13 +23,7 @@ interface HardenStore {
   reset: () => void;
 }
 
-/**
- * The `step` event of a hardening, read by the reader the install uses.
- *
- * The hardening emits one module's worth of steps and no module name, so the
- * shared reader's answer is unwrapped here — the shape of a step is the
- * protocol's, and there is no second account of it.
- */
+// Hardening steps carry no module name, so one is lent to reuse the install's step reader.
 function stepOf(update: HardenUpdate): StepEntry | null {
   if (update.kind !== "event") {
     return null;

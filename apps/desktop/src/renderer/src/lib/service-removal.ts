@@ -3,30 +3,16 @@ import type { DictionaryKey } from "@renderer/i18n/en";
 import { translate } from "@renderer/i18n/translate";
 import { carriesSecret } from "./catalog-selection";
 
-/**
- * What retiring a module costs, said before it is retired.
- *
- * Nothing here is guessed from a module's name: the category, the dependencies
- * and the secret fields are the manifest's own, so a module the app has never
- * heard of gets a confirmation as precise as the ones it knows. A module the
- * catalogue no longer declares keeps the generic line and loses the rest —
- * still removable, and still with a bill.
- */
-
 export interface Removal {
   allowed: boolean;
-  /** Why it cannot be removed at all, when the catalogue forbids it. */
   refusal?: string;
-  /** What disappears with it, one line each. */
   losses: string[];
-  /** The installed modules that named it in their requirements. */
   dependents: readonly Manifest[];
 }
 
 export interface RemovalTarget {
   id: string;
   name: string;
-  /** What this server's catalogue declares for it, when it declares it. */
   manifest: Manifest | null;
 }
 
@@ -45,6 +31,7 @@ function dependentsOf(id: string, installed: readonly Manifest[]): Manifest[] {
   );
 }
 
+/** Read off the manifest alone, so a module the app never heard of gets as precise a confirmation. */
 export function removalOf(
   target: RemovalTarget,
   installed: readonly Manifest[]

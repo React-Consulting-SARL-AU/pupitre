@@ -7,11 +7,6 @@ import { HelpModuleLine } from "./help-module-line";
 import type { HelpTarget } from "./help-screen";
 import { HelpTerminalSteps } from "./help-terminal-steps";
 
-/**
- * Claude Code on the server, from the Claude app or from a terminal. The
- * app's form asks four things; each is answered with the driven server's own
- * value, so the reader copies rather than works it out.
- */
 export function HelpClaudeSection({
   target,
   installed,

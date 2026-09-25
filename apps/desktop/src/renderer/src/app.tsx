@@ -65,14 +65,11 @@ import {
 } from "./stores/snapshot";
 import { useTerminals } from "./stores/terminals";
 
-/** A shell of its own, lost alone when it throws: the window stays. */
 function guarded(view: string, screen: ReactNode): ReactNode {
   return <ScreenBoundary view={view}>{screen}</ScreenBoundary>;
 }
 
 export function App() {
-  // Where the settings open when a screen sent the reader there to repair
-  // something: a connection to make, and then the way back to their draft.
   const [settingsSection, setSettingsSection] =
     useState<SettingsSection>("servers");
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -174,11 +171,7 @@ export function App() {
 
   usePaletteShortcut(openPalette);
 
-  // The account is read before anything of a machine is: a build without a
-  // usage right opens on the account, and the list of servers it would show is
-  // not what the reader has to answer first. The list comes next: an onboarding
-  // left half-way reopens where it stopped, and a machine that has left the
-  // list stops it there.
+  // The account comes first: a build without a usage right must open on it, not on the servers.
   const boot = useCallback(async () => {
     await readAccount();
 
@@ -204,8 +197,7 @@ export function App() {
 
   useEffect(() => useChannel.getState().listen(), []);
 
-  // A session that prints a login address: only the main process saw the
-  // address, and only the host comes here.
+  // Only the host of a login address reaches the renderer; the address stays in the main process.
   useEffect(() => {
     const link = window.pupitre.onTerminalLink((payload) =>
       useTerminals.getState().noteLink(payload.id, payload.host)
@@ -226,8 +218,7 @@ export function App() {
   const projects = snapshot?.projects;
 
   useEffect(() => {
-    // Until the first snapshot lands there is no list to settle against, and
-    // settling against an empty one would drop the project we remembered.
+    // Settling before the first snapshot would drop the remembered project.
     if (!projects) {
       return;
     }
@@ -238,9 +229,6 @@ export function App() {
     settle(names);
   }, [projects, settle]);
 
-  // The comparison is read once on arrival, and then on the platform's beat:
-  // a server upgraded from elsewhere, or a release published since, has to
-  // reach the banner without a relaunch.
   useEffect(() => {
     forgetUpdate();
 
@@ -320,8 +308,7 @@ export function App() {
 
   const account = accountOf(accountView);
 
-  // Until the keychain has answered there is no right to judge, and guessing
-  // one would open the onboarding on a build that refuses to install.
+  // Guessing a usage right before the keychain answers could open the onboarding on a build that refuses to install.
   if (!account) {
     return <AccountReadingScreen />;
   }
@@ -383,8 +370,6 @@ export function App() {
   const project = snapshot.projects.find((p) => p.name === selection) ?? null;
   const serverName = server?.name ?? snapshot.machine.hostname;
 
-  // The server's own screens take nothing but the server: a lookup, not a
-  // branch each, so a view added tomorrow is one key here.
   const serverScreens: Partial<Record<View, ReactNode>> = {
     files: (
       <FilesScreen
@@ -534,10 +519,7 @@ export function App() {
               </div>
             ) : null}
 
-            {/*
-              The project is opened once the snapshot lists it: selecting a name
-              the list does not hold yet would fall back on the first project.
-            */}
+            {/* Selecting before the snapshot lists the new project would fall back on the first one. */}
             {view === "project-add" ? (
               <div className="absolute inset-0">
                 <ProjectAddScreen
@@ -571,9 +553,6 @@ export function App() {
               <div className="absolute inset-0">
                 <ServicesScreen
                   onCloseService={() => goTo("services")}
-                  onMachineName={(name) =>
-                    serverId && useServers.getState().rename(serverId, name)
-                  }
                   onOpenService={openService}
                   serverId={serverId}
                   serverName={server?.name}

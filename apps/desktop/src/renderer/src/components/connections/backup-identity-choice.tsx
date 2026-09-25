@@ -6,18 +6,12 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { dated } from "@renderer/lib/format";
 import type { IdentityState } from "@renderer/stores/backup-connection";
 
-/**
- * Which key backups are sealed to: the one this computer holds, the
- * organization's when it has backups already, or a new passphrase when the
- * reader asks for one.
- */
 export function BackupIdentityChoice({
   held,
   identity,
   renewing,
   onRenew,
 }: {
-  /** This computer already holds an identity. */
   held: boolean;
   identity: IdentityState;
   renewing: boolean;

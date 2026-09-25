@@ -18,14 +18,6 @@ import { ServerSwitch } from "../shell/server-switch";
 import { ShortcutsDialog } from "../shell/shortcuts-dialog";
 import { SignOutDialog } from "../shell/sign-out-dialog";
 
-/**
- * The screens of the second half of phase seven, drawn once each.
- *
- * What is checked is what a reader gets without a gesture: the gesture the
- * state calls for, the shape of each state, the roles a keyboard needs, and
- * the fact that nothing here ever prints a command or a secret.
- */
-
 const later = () => Promise.resolve();
 
 function text(html: string): string {

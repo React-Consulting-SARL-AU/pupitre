@@ -8,10 +8,6 @@ import {
 } from "./onboarding-inspection-actions";
 import { OnboardingInspectionVerdict } from "./onboarding-inspection-verdict";
 
-/**
- * The report, laid out: the machine, the verdict, then what to do about it —
- * on the bar the screen ends on, where every step's gesture is.
- */
 export function OnboardingInspectionResult({
   probe,
   serverName,

@@ -8,7 +8,7 @@ import { ServerSudoFact } from "../servers/server-sudo-fact";
 
 const PASSWORD = "k7mp-q2xw-9hdt-3vzc-u8fa-6rne";
 
-/** The store is read before the mount, as the screens before it would have: the component then draws on what it finds. */
+// The store is read before mounting, as the preceding screens would have done.
 async function holding(kept: boolean, copied: string[] = []): Promise<void> {
   stubPupitre({
     copySudoPassword: (serverId: string) => {
@@ -23,7 +23,7 @@ async function holding(kept: boolean, copied: string[] = []): Promise<void> {
   await useSudoPassword.getState().read("srv-1");
 }
 
-/** A click whose gesture settles inside act: the button waits on its promise, then lets go. */
+// The button waits on its promise, so the click must settle inside act.
 async function press(selector: string): Promise<void> {
   await act(async () => {
     document.querySelector<HTMLElement>(selector)?.click();
@@ -52,9 +52,11 @@ afterEach(() => {
 describe("le mot de passe sudo sur la fiche du serveur", () => {
   it("reste masqué jusqu'à ce qu'on le demande, et se copie sans passer par l'écran", async () => {
     const copied: string[] = [];
+
     await holding(true, copied);
 
     const view = await mount(<ServerSudoFact serverId="srv-1" />);
+
     await waitUntil(() => view.text().includes("Mot de passe sudo de dev"));
 
     expect(view.text()).not.toContain(PASSWORD);
@@ -70,11 +72,7 @@ describe("le mot de passe sudo sur la fiche du serveur", () => {
     view.unmount();
   });
 
-  /**
-   * sudo asks this computer for the password before any privileged gesture,
-   * and the securing that would set a new one is itself such a gesture: the
-   * way back is the password typed here, kept once sudo takes it.
-   */
+  // Securing is itself a privileged gesture, so the only way in is the password typed here.
   it("sur un ordinateur qui ne le tient pas, le fait saisir et le garde une fois accepté", async () => {
     const entered: string[] = [];
     let held = false;

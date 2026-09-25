@@ -202,9 +202,24 @@ describe("la connexion", () => {
       verificationUri: `${CONSOLE_URL}/device`,
     });
 
-    expect(text(html)).toContain("Le navigateur s'est ouvert");
+    expect(text(html)).toContain(
+      `Le navigateur s'est ouvert sur ${CONSOLE_URL}/device.`
+    );
     expect(text(html)).toContain("approuvez-le");
     expect(text(html)).toContain("dès que la console a confirmé");
+  });
+
+  it("nomme la page de vérification du code, pas l'adresse de la console", () => {
+    const html = card({
+      status: "waiting",
+      userCode: "WDJB-MJHT",
+      verificationUri: "https://app.pupitre.test/device?user_code=WDJB-MJHT",
+    });
+
+    expect(text(html)).toContain(
+      "Le navigateur s'est ouvert sur https://app.pupitre.test/device?user_code=WDJB-MJHT."
+    );
+    expect(text(html)).not.toContain(CONSOLE_URL);
   });
 
   it("rouvre le navigateur sur l'adresse du code, et laisse annuler l'attente", async () => {

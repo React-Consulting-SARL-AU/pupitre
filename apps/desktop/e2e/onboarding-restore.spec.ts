@@ -12,11 +12,6 @@ const INSTALL = /^Installer$/;
 const CONFIGURE = /^Continuer avec/;
 const ADOPTED = /Votre organisation a déjà des sauvegardes/;
 
-/**
- * A new server started from the organization's backup, on a computer that
- * has never configured backups: the bucket is given, the organization's key is
- * taken without the passphrase, and the passphrase is asked once, to restore.
- */
 test.describe("onboarding depuis une sauvegarde", () => {
   let running: Running;
 

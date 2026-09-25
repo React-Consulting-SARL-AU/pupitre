@@ -3,20 +3,11 @@ import { assertAccessible } from "./harness/accessible";
 import { launchPupitre, type Running, snapshotReads } from "./harness/launch";
 import { answerOnboarding } from "./harness/onboarding";
 
-/**
- * The catalogue, on a bare machine and on one that already runs services.
- *
- * It is the same screen in both places, and both are where a preset is worth
- * something: the shortcuts have to promise what they would really install
- * here, and the choice has to survive the snapshot the app polls underneath.
- */
-
 const BOTH = ["amd64", "arm64"];
 
-/** How many turns of the snapshot poll the choice has to survive. */
 const POLLS = 2;
 
-/** Comfortably more than those turns take, on a runner that is slow to draw. */
+// Comfortably more than two snapshot polls take on a runner slow to draw.
 const POLLS_TIMEOUT_MS = 20_000;
 
 const INSTALL = /^Installer$/;

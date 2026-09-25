@@ -1,13 +1,11 @@
 import type { ServiceDetail } from "@shared/services";
 import { Details } from "../ui/details";
 
-/** What the agent says of this module right now, under its name. */
 export function ServicePanelFacts({
   detail,
   refusal,
 }: {
   detail: ServiceDetail;
-  /** Why the module cannot be retired, when the catalogue forbids it. */
   refusal?: string;
 }) {
   const facts = [
@@ -15,8 +13,6 @@ export function ServicePanelFacts({
     detail.port ? `port ${detail.port}` : null,
   ].filter(Boolean);
 
-  // What names the module on the machine decides nothing for the reader, and
-  // decides everything for whoever goes looking on the server itself.
   const named = [detail.id, detail.unit].filter(Boolean).join(" · ");
 
   return (

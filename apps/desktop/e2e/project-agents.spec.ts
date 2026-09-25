@@ -2,15 +2,6 @@ import { expect, test } from "@playwright/test";
 import { assertAccessible } from "./harness/accessible";
 import { launchPupitre, type Running } from "./harness/launch";
 
-/**
- * The agents tab of a project.
- *
- * Nothing starts on arrival: the tab offers one card per agent the snapshot's
- * modules hold — `ai.claude` in the fixtures — and the shells stay on their
- * own tab. Pressing a card opens the session; `terminal-open` is answered here
- * rather than by a real `ssh`, and the exit of the agent is pushed the way the
- * main process pushes it, so the tab is seen closing itself.
- */
 const FLYLEAF_CARD = /^flyleaf-api/;
 const CLAUDE_CARD = /Claude/;
 const AGENTS_TAB = /^Agents/;

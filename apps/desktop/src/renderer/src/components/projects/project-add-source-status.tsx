@@ -3,14 +3,6 @@ import type { DetectionState, SourceKind } from "../../stores/project-add";
 import { LiveDuration } from "../ui/live-duration";
 import { WaitingLine } from "../ui/waiting-line";
 
-/**
- * What the source line says beneath itself.
- *
- * While the agent looks, the line says what it is cloning — the branch just
- * typed, or the repository's own — and counts the wait, so a reader who
- * changed the branch sees that the change was taken. Once it has looked, the
- * line keeps what it found.
- */
 export function ProjectAddSourceStatus({
   detection,
   kind,

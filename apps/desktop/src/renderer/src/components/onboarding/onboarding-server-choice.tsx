@@ -5,14 +5,6 @@ import type { Server } from "@shared/servers";
 import { ArrowRight } from "lucide-react";
 import { Spinner } from "../ui/spinner";
 
-/**
- * A machine already known, offered for the picking rather than for management.
- *
- * The settings row can rename, show a key, delete: none of that belongs here,
- * because at this step there is only one thing to do with these machines, and
- * that is take one. The whole card is the button, so there is nowhere to hunt
- * for the click.
- */
 export function OnboardingServerChoice({
   server,
   onPick,

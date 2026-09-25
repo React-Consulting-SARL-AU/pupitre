@@ -3,19 +3,6 @@ import type { ReactNode } from "react";
 import { humanMs } from "../../lib/duration";
 import { StatusDot } from "./status-dot";
 
-/**
- * A wait that says what is happening, where it is, and how long it has taken.
- *
- * `detail` says what is happening in the reader's own words: a spinner alone
- * would leave the reader with nothing but the fact that something is slow.
- * `phases` goes further where the app actually knows — the shapes then carry
- * the progress, a done phase full, the current one breathing, what is ahead
- * hollow, exactly as the rail of the onboarding does.
- *
- * The elapsed time only appears once the wait has become one: under a couple of
- * seconds a counter would flash and say nothing.
- */
-
 export type WaitingPhaseState = "done" | "running" | "ahead";
 
 export interface WaitingPhase {
@@ -36,6 +23,7 @@ const TONE = {
   running: "text-ink",
 } as const;
 
+// Under a couple of seconds a counter would only flash.
 const COUNTED_FROM_MS = 2000;
 
 export function WaitingNotice({
@@ -45,7 +33,6 @@ export function WaitingNotice({
 }: {
   title: string;
   detail?: ReactNode;
-  /** The named steps of the wait, when the app knows them. */
   phases?: readonly WaitingPhase[];
 }) {
   const elapsed = useElapsed(true);

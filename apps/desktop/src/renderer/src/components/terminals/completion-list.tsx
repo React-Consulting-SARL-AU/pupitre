@@ -7,22 +7,15 @@ const LIST_HEIGHT = 260;
 
 interface Props {
   id: string;
-  /** The frame the list is placed in: the one holding the terminal. */
   frame: RefObject<HTMLDivElement | null>;
 }
 
-/**
- * The grey suggestion and the list, laid over the terminal.
- *
- * Nothing here touches the terminal: we read a cursor position and write into
- * the PTY when a candidate is accepted, exactly as if the keystroke came from
- * the keyboard. The terminal does not know a list is open above it.
- */
 export function CompletionList({ id, frame }: Props) {
   const t = useTranslations();
 
   const state = useCompletion(id);
   const box = frame.current?.getBoundingClientRect();
+
   if (!(state.cursor && box) || state.closed) {
     return null;
   }

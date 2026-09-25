@@ -5,13 +5,6 @@ import { Kbd } from "./kbd";
 import { panelClass } from "./panel";
 import { Spinner } from "./spinner";
 
-/**
- * A gesture big enough to be the whole point of a panel.
- *
- * Where a `Button` sits on a line, a tile is a card: the mark of the thing it
- * starts, its name, what qualifies it, and the arrow that says it leads
- * somewhere. It waits on the promise of the gesture like any other control.
- */
 export function TileButton({
   mark,
   children,
@@ -20,12 +13,9 @@ export function TileButton({
   onClick,
   className = "",
 }: {
-  /** What the thing looks like: a service logo, an icon. */
   mark: ReactNode;
   children: ReactNode;
-  /** What the name leaves unsaid, under it. */
   detail?: string;
-  /** The chord that presses this tile from the keyboard, drawn as a key cap. */
   shortcut?: string;
   onClick: Gesture;
   className?: string;

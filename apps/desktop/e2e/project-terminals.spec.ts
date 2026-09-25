@@ -2,17 +2,6 @@ import { expect, test } from "@playwright/test";
 import { assertAccessible } from "./harness/accessible";
 import { launchPupitre, type Running } from "./harness/launch";
 
-/**
- * The keyboard on a project's page.
- *
- * ⌘T on a project must give a shell in that project, on its terminals tab —
- * not a terminal on the server, which is what it gave before; ⌘⇧T an agent
- * session on its agents tab; ⌘⌥ with an arrow or a digit walks the tabs, from
- * inside a session as from the page. Every chord is written on the control it
- * presses, and ⌘/ lists them all. The menu commands are pushed the way the
- * main process pushes them; `terminal-open` is answered here rather than by a
- * real `ssh`.
- */
 const FLYLEAF_CARD = /^flyleaf-api/;
 const TERMINALS_TAB = /^Terminaux/;
 const AGENTS_TAB = /^Agents/;

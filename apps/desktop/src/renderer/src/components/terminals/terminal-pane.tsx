@@ -31,18 +31,13 @@ interface Props {
   id: string;
   kind: TerminalKind;
   project: string | null;
-  /** The folder under the project's the shell opens in, when the tab named one. */
   dir?: string | null;
-  /** The session the tab was attached to, handed back so it finds it again. */
   session: string | null;
-  /** A tab the last run left: it draws, but nothing is attached until asked. */
   dormant: boolean;
-  /** The tab in front: the only one whose search bar stays open. */
   active: boolean;
   state: AgentState | undefined;
   onClose: () => void;
   onResume: () => void;
-  /** The shortcuts that move between tabs, answered by whoever holds the row. */
   onShortcut: (shortcut: TerminalShortcut) => void;
 }
 
@@ -57,14 +52,6 @@ const OPENING_KEY: Record<TerminalKind, DictionaryKey> = {
   shell: "terminals.openingShell",
 };
 
-/**
- * A window onto a living terminal.
- *
- * This component owns nothing: it borrows the element held by the registry and
- * gives it back when it unmounts. That is what allows switching tabs or projects
- * without losing a session — and never having to hide a terminal with
- * `display:none`, which would make xterm measure zero rows.
- */
 export function TerminalPane({
   id,
   kind,
@@ -84,8 +71,8 @@ export function TerminalPane({
   const stage = useRef<HTMLDivElement | null>(null);
   const answerRef = useRef(answer);
   answerRef.current = answer;
-  // Read when the session opens, never a reason to open it again: the name comes
-  // back from the machine and is written on the tab a moment later.
+
+  // Read when the session opens, never a reason to reopen it: the name comes back a moment later.
   const attachedRef = useRef(attached);
   attachedRef.current = attached;
 
@@ -103,8 +90,10 @@ export function TerminalPane({
 
   const atBottom = useTerminalStatus(id).atBottom;
 
+  // Borrows the registry's xterm element, so switching tabs never needs display:none (zero rows).
   useEffect(() => {
     const container = host.current;
+
     if (!(container && serverId) || dormant) {
       return;
     }
@@ -112,8 +101,8 @@ export function TerminalPane({
     const entry = obtain(id, kind);
     container.appendChild(entry.host);
     onShortcut(id, (shortcut) => answerRef.current(shortcut));
-    // Measured once the host is in the page, so the PTY opens at the size it
-    // will actually have rather than at 80×24 and a resize a frame later.
+
+    // Sized once the host is in the page, so the PTY opens at its real size rather than 80×24.
     start(
       id,
       serverId,
@@ -130,6 +119,7 @@ export function TerminalPane({
 
     const observer = new ResizeObserver(() => fitTerminal(id));
     observer.observe(container);
+
     const frame = requestAnimationFrame(() => {
       fitTerminal(id);
       focus(id);

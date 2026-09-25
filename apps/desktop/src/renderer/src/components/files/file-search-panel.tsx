@@ -43,15 +43,6 @@ type QueryPatch = Partial<
   >
 >;
 
-/**
- * The search and replace of the open file, over the editor's own query.
- *
- * The panel holds no state of its own: the query lives in the editor, the
- * count is read from its text and its cursor, and the fields dispatch every
- * keystroke back. Enter walks the matches, Escape hands the focus back to
- * the text, and the three switches — case, expression, whole word — read as
- * pressed when they are on.
- */
 export function FileSearchPanel({ panel }: { panel: SearchPanelHandle }) {
   const t = useTranslations();
   const { query, matches } = useSyncExternalStore(panel.subscribe, panel.read);

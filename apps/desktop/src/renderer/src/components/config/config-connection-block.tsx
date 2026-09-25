@@ -8,15 +8,6 @@ import { ConnectionCard } from "../connections/connection-card";
 import { descriptorOf } from "../connections/connection-descriptors";
 import { ConfigZoneField } from "./config-zone-field";
 
-/**
- * The account a module publishes through, asked where the module is configured.
- *
- * A connection used to live in the preferences, three screens away, and its
- * absence surfaced as an install that refused everything at the last moment.
- * It is asked here instead, above the questions it makes answerable, and the
- * zone it opens fills in the domain rather than asking for an identifier
- * nobody should have to copy.
- */
 export function ConfigConnectionBlock({ module }: { module: Manifest }) {
   const t = useTranslations();
 
@@ -38,9 +29,7 @@ export function ConfigConnectionBlock({ module }: { module: Manifest }) {
     }
   }, [picksZone, loadZones]);
 
-  // A module naming a connection this app has never heard of comes from an
-  // agent that is ahead of it: nothing is drawn rather than a block that would
-  // ask for a token it could not place.
+  // An unknown connection kind comes from a newer agent; draw nothing rather than ask for a token.
   if (!connection) {
     return null;
   }

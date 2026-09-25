@@ -3,12 +3,7 @@ import { TERMINAL_FONT } from "@renderer/lib/completion";
 import { type PatchRow, parsePatch } from "@renderer/lib/patch";
 import { useMemo } from "react";
 
-/**
- * A patch row reads by its sign first.
- *
- * The tint is `ok` or `danger` at a tenth of an opacity — enough to group the
- * lines at a glance, never enough to be the only thing saying what they are.
- */
+// The sign carries the meaning; the faint tint only groups the lines.
 const ROW: Record<
   PatchRow["kind"],
   { sign: string; background: string; text: string }
@@ -31,7 +26,7 @@ export function ProjectDiffPatchRows({
 
   const rows = useMemo(() => parsePatch(patch), [patch]);
 
-  // A problem is said once, above the patch, by whoever holds the header.
+  // The header already shows the problem above the patch.
   if (rows.length === 0) {
     return problem ? null : (
       <p className="p-6 text-center text-control text-ink-3">

@@ -13,27 +13,10 @@ import { Undo2 } from "lucide-react";
 import { useEffect } from "react";
 import { FleetOrganizations } from "./fleet-organizations";
 
-/**
- * What the organization grants that the list of servers cannot show by itself.
- *
- * A granted machine is a row of that list, like one typed here; this panel
- * carries the rest — the organizations to choose between, a platform that did
- * not answer, the grants removed from this computer and the ones with no
- * address yet. It also asks for the first read that merges the platform's list
- * into the local one; the heartbeat that follows the platform lives above the
- * screens, because a grant lands while the app is open.
- */
-
 export function FleetPanel({
   silentWhenEmpty = false,
 }: {
-  /**
-   * Say nothing as long as the organization grants nothing.
-   *
-   * "No server is granted to you" is information in the settings, and an
-   * obstacle in the wizard: there, what has to be possible when nothing is
-   * granted is adding a machine.
-   */
+  /** In the wizard, "nothing granted" would stand in the way of adding a machine. */
   silentWhenEmpty?: boolean;
 } = {}) {
   const t = useTranslations();
@@ -52,6 +35,7 @@ export function FleetPanel({
     readAccount();
   }, [readAccount]);
 
+  // Only the first read: the heartbeat that follows the platform lives above the screens.
   useEffect(() => {
     if (identity) {
       read();

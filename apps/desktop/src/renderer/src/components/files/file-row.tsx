@@ -11,7 +11,6 @@ import { FileEntryMenu, type MenuPoint } from "./file-entry-menu";
 import { FileRemoveConfirm } from "./file-remove-confirm";
 import { FileRenameField } from "./file-rename-field";
 
-/** What the row is doing besides showing its entry. */
 export type RowMode = "view" | "renaming" | "removing";
 
 const ICON = {
@@ -21,14 +20,6 @@ const ICON = {
   special: FileCog,
 } as const;
 
-/**
- * One entry of the folder on screen.
- *
- * Clicking the name opens it — a folder is walked into, a file is shown on
- * the right. Everything else is in the menu, from the button at the end of
- * the row or from a right click on the name, and a rename or a deletion
- * happens in the row itself rather than in a dialog over the list.
- */
 export function FileRow({
   entry,
   selected,
@@ -45,7 +36,6 @@ export function FileRow({
   selected: boolean;
   editors: readonly RemoteEditor[];
   mode: RowMode;
-  /** The agent's refusal of the first deletion, when it held a folder back. */
   refusal: AgentError | null;
   onOpen: () => void;
   onAct: (action: FileAction) => void;
@@ -61,6 +51,22 @@ export function FileRow({
   const Icon = ICON[entry.kind];
   const modified = Date.parse(entry.modified_at);
   const folder = entry.kind === "dir";
+  const special = entry.kind === "special";
+
+  function nameLabel(): string {
+    if (special) {
+      return t("files.menu.label", { name: entry.name });
+    }
+
+    return folder
+      ? t("files.row.enter", { name: entry.name })
+      : t("files.row.show", { name: entry.name });
+  }
+
+  function openMenu(): void {
+    setPoint(null);
+    setOpen(true);
+  }
 
   function onContextMenu(event: MouseEvent<HTMLElement>): void {
     event.preventDefault();
@@ -87,17 +93,11 @@ export function FileRow({
             onRename={onRename}
           />
         ) : (
-          <Tooltip
-            label={
-              folder
-                ? t("files.row.enter", { name: entry.name })
-                : t("files.row.show", { name: entry.name })
-            }
-          >
+          <Tooltip label={nameLabel()}>
             <button
               aria-current={selected ? "true" : undefined}
               className="flex h-9 min-w-0 flex-1 items-center gap-2.5 px-3 text-left transition-fast hover:bg-raised"
-              onClick={onOpen}
+              onClick={special ? openMenu : onOpen}
               onContextMenu={onContextMenu}
               type="button"
             >

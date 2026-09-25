@@ -1,17 +1,9 @@
-/**
- * The disc that turns while a gesture is still working.
- *
- * It sits where the icon of a button sits, so the control answers in the place
- * it was clicked without changing width. The faint ring behind the arc keeps
- * the glyph the same weight as the icon it replaces, rather than a line that
- * appears and disappears as it turns.
- */
 export function Spinner({
   size = 13,
   label,
 }: {
   size?: number;
-  /** Absent means the wait is already written next to it. */
+  /** Omit when the wait is already written next to the spinner. */
   label?: string;
 }) {
   return (

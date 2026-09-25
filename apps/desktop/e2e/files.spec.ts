@@ -4,28 +4,17 @@ import { pickOption } from "./harness/controls";
 import { ANSWERS, FILES } from "./harness/fixtures";
 import { launchPupitre, type Running } from "./harness/launch";
 
-/**
- * The files of a project, walked and edited from its page.
- *
- * The scenario opens the Files tab of a declared project, walks into a
- * folder, opens a text file, changes it and saves it, against a fake tree
- * the harness serves the way the agent would: a listing per folder, a stat
- * per entry, the bytes on `file` events with their receipt, and a write that
- * refuses when the digest is not the one it last gave.
- */
 const FLYLEAF_CARD = /^flyleaf-api/;
 const SAVED = /^Enregistré /;
 const DIGEST = /^[0-9a-f]{64}$/;
 const BLOB_URL = /^blob:/;
 
-/** What the harness kept of the writes the window sent. */
 interface Written {
   path: string;
   sha256?: string;
   text: string;
 }
 
-/** What the harness kept of the folders the window asked for. */
 type Made = string[];
 
 async function themed(page: Page, theme: "light" | "dark"): Promise<void> {
@@ -68,6 +57,7 @@ test.describe("les fichiers d'un projet", () => {
           snapshotReads?: number;
           written?: Written[];
         };
+
         kept.made = [];
         kept.written = [];
 
@@ -373,6 +363,7 @@ test.describe("les fichiers d'un projet", () => {
       await page.locator('[data-entry="README.md"] button').first().click();
 
       const rendered = page.locator('[data-rendered="markdown"]');
+
       await expect(rendered).toBeVisible();
       await expect(
         rendered.getByRole("heading", { name: "Flyleaf" })
@@ -381,6 +372,7 @@ test.describe("les fichiers d'un projet", () => {
       await expect(page.locator(".cm-content")).toHaveCount(0);
 
       const views = page.getByRole("group", { name: "Vue" });
+
       await expect(
         views.getByRole("button", { name: "Rendu" })
       ).toHaveAttribute("aria-pressed", "true");
@@ -413,6 +405,7 @@ test.describe("les fichiers d'un projet", () => {
       await page.locator('[data-entry="logo.svg"] button').first().click();
 
       const image = page.getByRole("img", { name: "Image logo.svg" });
+
       await expect(image).toBeVisible();
       await expect(image).toHaveAttribute("src", BLOB_URL);
       await expect
@@ -436,6 +429,7 @@ test.describe("les fichiers d'un projet", () => {
       await page.getByRole("button", { name: "Nouveau dossier" }).click();
 
       const dialog = page.getByRole("dialog", { name: "Nouveau dossier" });
+
       await expect(dialog).toBeVisible();
       await expect(dialog.getByLabel("Nom")).toBeFocused();
 
@@ -484,6 +478,7 @@ test.describe("les fichiers d'un projet", () => {
       const panel = page.getByRole("search", { name: "Rechercher" });
       const field = panel.getByRole("textbox", { name: "Rechercher" });
       const count = panel.getByRole("status");
+
       await expect(field).toBeFocused();
 
       await field.fill("export");
@@ -567,6 +562,7 @@ test.describe("les fichiers d'un projet", () => {
       await page.getByRole("button", { name: "Nouveau fichier" }).click();
 
       const dialog = page.getByRole("dialog", { name: "Nouveau fichier" });
+
       await expect(dialog).toBeVisible();
       await expect(dialog.getByLabel("Nom")).toBeFocused();
 

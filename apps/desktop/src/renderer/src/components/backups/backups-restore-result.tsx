@@ -4,11 +4,6 @@ import { Fact, FactList } from "@renderer/components/ui/fact";
 import { Panel } from "@renderer/components/ui/panel";
 import { useTranslations } from "@renderer/i18n/use-translations";
 
-/**
- * What came back, in the agent's own account: the restore is said as the
- * success it is, and what did not come back is said once, part by part with
- * its reason, rather than as a count beside a list that repeats it.
- */
 export function BackupsRestoreResult({
   result,
   headline,
@@ -18,6 +13,7 @@ export function BackupsRestoreResult({
 }) {
   const t = useTranslations();
 
+  // Warnings say why each part was missed; the bare failed list is only a fallback.
   const missed = result.warnings.length > 0 ? result.warnings : result.failed;
 
   return (

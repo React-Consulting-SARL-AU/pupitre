@@ -1,7 +1,6 @@
 import { Dialog as Base } from "@base-ui-components/react/dialog";
 import type { ReactNode, RefObject } from "react";
 
-/** The veil, the frame and the heading every dialog of the app shares, alert or not. */
 export const DIALOG_BACKDROP =
   "fixed inset-0 bg-base/60 transition-pop data-[ending-style]:opacity-0 data-[starting-style]:opacity-0";
 
@@ -16,17 +15,6 @@ const WIDTH = {
   large: "w-[min(56rem,calc(100vw-2rem))]",
 };
 
-/**
- * A question that floats over the window and waits for one answer.
- *
- * The frame is the same for every dialog: a veil that closes it when clicked,
- * Escape that closes it too, the focus held inside and sent back where it was
- * once the answer is given. The title takes the focus first so a reader hears
- * the question before the controls — unless the caller names the one control
- * that should take it, a field to fill. What is asked and how it is answered
- * come from the caller. A `locked` dialog holds the window for work that must
- * not be interrupted: neither the veil nor Escape closes it, only its actions.
- */
 export function Dialog({
   open,
   name,
@@ -39,16 +27,15 @@ export function Dialog({
   locked = false,
 }: {
   open: boolean;
-  /** Names the dialog in a test and ties the heading to the frame. */
   name: string;
   title: string;
   onClose: () => void;
-  /** The control that takes the focus on opening, when it is not the title. */
+  /** Takes the focus on opening instead of the title, which screen readers announce first. */
   focus?: RefObject<HTMLElement | null>;
   children: ReactNode;
   actions: ReactNode;
-  /** `wide` for a dialog that holds a form rather than a sentence. */
   width?: keyof typeof WIDTH;
+  /** Neither the veil nor Escape closes it, only its actions: for work that must not be interrupted. */
   locked?: boolean;
 }) {
   return (

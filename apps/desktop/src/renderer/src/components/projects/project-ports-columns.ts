@@ -1,12 +1,4 @@
-/**
- * The columns of the ports table, shared by its head and its rows so that
- * what a caption says sits above what it names.
- *
- * The head carries the ids the controls of every row point at: one caption
- * labels a whole column, the way a table does, rather than each row repeating
- * three captions of its own. The scope tells one process's table from
- * another's on the same screen.
- */
+/** One caption per column labels every row's control; the scope keeps each process's table apart. */
 export function portsHead(scope: string) {
   return {
     label: `${scope}.head.label`,

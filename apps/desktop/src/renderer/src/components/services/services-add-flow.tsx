@@ -10,15 +10,6 @@ import { useInstall } from "@renderer/stores/install";
 import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 
-/**
- * Adding a module to a server that already runs some.
- *
- * There is no second catalogue, no second configuration screen and no second
- * report: these are the ones the onboarding walks through, mounted again with
- * the modules already installed declared as such — so the questions asked are
- * the new module's own, and the machine is not reconfigured around it.
- */
-
 type Step = "catalog" | "config" | "install";
 
 export function ServicesAddFlow({
@@ -29,7 +20,6 @@ export function ServicesAddFlow({
 }: {
   serverId: string;
   serverName?: string;
-  /** The identifiers the snapshot reports, so the catalogue skips them. */
   installed: readonly string[];
   onDone: () => void;
 }) {
@@ -38,9 +28,7 @@ export function ServicesAddFlow({
   const [step, setStep] = useState<Step>("catalog");
   const [replaying, setReplaying] = useState<string | null>(null);
 
-  // The snapshot is polled, so the prop is a new array every few seconds while
-  // the reader is choosing. The flow reads the machine as it stood when it
-  // opened, and nothing under the reader moves until they leave.
+  // Frozen at entry: the polled snapshot hands a new array every few seconds.
   const [entered] = useState(() => installed.join(" "));
 
   useEffect(() => {
@@ -54,10 +42,7 @@ export function ServicesAddFlow({
     return { [moduleId]: useCatalog.getState().config()[moduleId] ?? {} };
   }
 
-  /**
-   * A module that carried a secret cannot simply run again: the vault was
-   * emptied when the secrets left, so its configuration is asked a second time.
-   */
+  // A module that carried a secret is asked again: the vault was emptied after the run.
   async function replay(moduleId: string): Promise<void> {
     const manifest = useCatalog
       .getState()

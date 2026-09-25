@@ -24,11 +24,6 @@ import { ProjectOverview } from "../projects/project-overview";
 import { ProjectTabBar } from "../projects/project-tab-bar";
 import { tabOfKind, tabsFor } from "../projects/project-tabs";
 
-/**
- * A project's screens, rendered from the same `snapshot` fixture as the
- * dashboard, plus what its own commands answer.
- */
-
 const NOOP = () => undefined;
 const RESOLVED = () => Promise.resolve();
 

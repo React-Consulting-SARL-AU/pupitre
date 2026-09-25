@@ -8,22 +8,9 @@ import type { EnvState } from "@renderer/stores/project";
 import { ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { useState } from "react";
 
-/** How many keys the panel shows before it asks to be opened. */
 export const ENV_PREVIEW_KEYS = 4;
 
-/**
- * The environment file of a project, by the names of its keys and nothing else.
- *
- * The agent writes `.env.local` from the project's template and answers with
- * the keys it holds: a value never crosses the channel, so a screen cannot
- * show one by accident. A file of forty keys would bury the panel, so it opens
- * on a count and the first few names, and the whole list is one click away.
- * Writing it again is a gesture that overwrites what a reader may have edited
- * by hand on the server, which is why it is asked twice — and it is not
- * offered at all when the repository versions no template, since there would
- * be nothing to write it from. A project without a template is not broken:
- * many need no environment, so the panel says so in a plain line, not an alert.
- */
+// Only key names cross the channel, never values, so none can show here by accident.
 export function ProjectEnv({
   state,
   onRead,

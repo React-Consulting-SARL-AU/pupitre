@@ -1,18 +1,3 @@
-/**
- * The rows of a journal captured from a terminal, as a terminal would show them.
- *
- * What a process writes is not a list of lines: a download counter comes back
- * on its own line with a carriage return, Gradle redraws its progress area by
- * moving the cursor up, a build erases to the end of the line before writing
- * the next figure. Stripping those sequences glues every redraw into one long
- * line; honouring them keeps one row per line, rewritten in place. Colours
- * and everything else the sequences say are dropped: the journal is read in
- * one ink.
- *
- * The rows are bounded, and each row is replaced rather than mutated when its
- * text changes, so a screen keyed on the ids only redraws what moved.
- */
-
 export interface JournalRow {
   id: number;
   text: string;
@@ -29,20 +14,20 @@ const CSI_PARAMETER = /[0-9;?]/;
 
 const CSI_INTERMEDIATE = /[ -/]/;
 
+// Cursor moves and carriage returns are honoured, or every progress redraw would glue into one line.
 export class JournalBuffer {
   private readonly rows: JournalRow[] = [];
   private readonly limit: number;
   private row = 0;
   private col = 0;
   private next = 1;
-  /** How many rows the bound has cut from the top since the buffer was opened. */
   dropped = 0;
 
   constructor(limit: number) {
     this.limit = limit;
   }
 
-  /** One event of the follow: a line the process wrote, its newline implied. */
+  /** A follow event is one line with its newline implied. */
   write(line: string): void {
     this.feed(line);
     this.newline();
@@ -61,6 +46,7 @@ export class JournalBuffer {
 
     while (at < text.length) {
       CONTROL.lastIndex = at;
+
       const control = CONTROL.exec(text)?.index ?? text.length;
 
       if (control > at) {
@@ -75,7 +61,6 @@ export class JournalBuffer {
     }
   }
 
-  /** Handles the control character at `at` and says where the text resumes. */
   private control(text: string, at: number): number {
     switch (text[at]) {
       case "\n":
@@ -212,13 +197,13 @@ export class JournalBuffer {
     this.col += run.length;
   }
 
-  /** The row below exists once something lands on it: a journal never ends on the cursor's empty line. */
+  // The next row only exists once text lands on it, so a journal never ends on an empty row.
   private newline(): void {
     this.row += 1;
     this.col = 0;
   }
 
-  /** A screen wiped by the process starts a page of its own, below what it wrote before. */
+  // A cleared screen starts below what was written, never over it.
   private freshPage(): void {
     this.row = this.rows.length;
     this.col = 0;
@@ -265,6 +250,7 @@ export class JournalBuffer {
     }
   }
 
+  // Replaced, never mutated, so a screen keyed on ids only redraws what moved.
   private replace(text: string): void {
     const current = this.ensured();
 
@@ -273,7 +259,6 @@ export class JournalBuffer {
     }
   }
 
-  /** The row under the cursor, created — with the ones above it — when the cursor went past the end. */
   private ensured(): JournalRow {
     while (this.rows.length <= this.row) {
       this.rows.push({ id: this.next, text: "" });
@@ -296,7 +281,6 @@ export class JournalBuffer {
   }
 }
 
-/** A start or stop the agent wrote into the journal, with its moment. */
 export interface JournalMark {
   kind: "up" | "down";
   at: string;
@@ -312,7 +296,6 @@ export function markOf(text: string): JournalMark | null {
     : null;
 }
 
-/** The rows that carry the term, case aside; an empty term keeps them all. */
 export function matchingRows<R extends { text: string }>(
   rows: readonly R[],
   term: string

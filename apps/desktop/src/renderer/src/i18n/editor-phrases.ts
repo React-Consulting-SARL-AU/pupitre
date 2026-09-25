@@ -1,7 +1,6 @@
 import { EditorState, type Extension } from "@codemirror/state";
 import type { Translate } from "./i18n";
 
-/** The words CodeMirror speaks on its own — to a reader, and on the go-to-line panel. */
 export function editorPhrases(t: Translate): Extension {
   return EditorState.phrases.of({
     "current match": t("files.search.announce.current"),

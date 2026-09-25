@@ -2,14 +2,7 @@ import type { TerminalKind } from "@shared/terminals";
 import { Bot, SquareTerminal } from "lucide-react";
 import type { ComponentType } from "react";
 
-/**
- * The Claude, Codex, Cursor, OpenCode, Gemini and Copilot marks.
- *
- * The paths are those published by Simple Icons, scaled and given the
- * lucide-react signature (`size`, inherited colour) so they sit next to the
- * other icons of the interface without adjustment. Codex carries the OpenAI
- * mark, which is the tool's own.
- */
+// Paths from Simple Icons, given the lucide-react signature; Codex wears the OpenAI mark.
 interface Props {
   size?: number;
   className?: string;
@@ -120,7 +113,6 @@ export function CopilotIcon({ size = 14, className }: Props) {
   );
 }
 
-/** The mark each kind of terminal wears, wherever sessions of several kinds sit side by side. */
 export const KIND_ICONS: Record<TerminalKind, IconComponent> = {
   claude: ClaudeIcon,
   codex: CodexIcon,

@@ -5,14 +5,7 @@ import { Button } from "../ui/button";
 import { Panel } from "../ui/panel";
 import { HostKeyFingerprint } from "./host-key-fingerprint";
 
-/**
- * The refusal, and the only two ways out of it.
- *
- * Both fingerprints are shown side by side because that is what lets someone
- * with access to the machine settle the question in ten seconds. Nothing here
- * offers to "continue anyway": the app cannot tell a reinstallation from an
- * impostor, so it asks rather than guesses.
- */
+/** No "continue anyway": the app cannot tell a reinstallation from an impostor. */
 export function HostKeyAlert({
   state,
   serverName,

@@ -2,14 +2,6 @@ import { expect, test } from "@playwright/test";
 import { assertAccessible } from "./harness/accessible";
 import { launchPupitre, type Running } from "./harness/launch";
 
-/**
- * The configuration of a declared project, reopened from its page.
- *
- * The overview lists every address the project answers on; the configuration
- * tab shows the same form as the add, filled from the project, and sends the
- * patch. The scenario publishes a second port and reads the agent's answer
- * under the form, against answers shaped like the contract.
- */
 const FLYLEAF_CARD = /^flyleaf-api/;
 
 test.describe("la configuration d'un projet", () => {

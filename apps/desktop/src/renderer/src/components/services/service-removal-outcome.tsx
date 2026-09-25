@@ -7,11 +7,6 @@ import type { ModuleProgress } from "@renderer/lib/module-progress";
 import type { RemovalState } from "@renderer/stores/services";
 import { ArrowLeft } from "lucide-react";
 
-/**
- * A removal as it happens, drawn by the rows the installation already uses:
- * `uninstall` reports the same steps, and a reader who has seen one install
- * has already learnt to read this.
- */
 export function ServiceRemovalOutcome({
   removal,
   steps,

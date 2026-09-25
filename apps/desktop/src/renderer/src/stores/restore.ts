@@ -10,16 +10,6 @@ import { type ModuleProgress, record, stepOf } from "../lib/module-progress";
 import { restoredConfig } from "../lib/restored-config";
 import { useCatalog } from "./catalog";
 
-/**
- * A new server started from a backup, as the onboarding walks it.
- *
- * The backups are the organization's, listed by the platform; the passphrase
- * goes to the main process once, which checks it against the backup's public
- * key before the machine is asked anything. Once the configuration stands, the
- * catalogue and the form open on what the backup held; the data waits for the
- * modules to be installed and the machine hardened.
- */
-
 export type OrganizationBackups =
   | { status: "idle" }
   | { status: "loading" }
@@ -42,12 +32,10 @@ interface RestoreStore {
   setup: SetupState;
   data: DataState;
   steps: ModuleProgress[];
-  /** The backup whose configuration the machine now holds, and the data it still owes. */
   restored: RestoredSetup | null;
 
-  /** How many backups the organization holds; none when the platform could not say. */
+  /** Zero also when the platform could not say. */
   list: () => Promise<number>;
-  /** True once the configuration stands and the catalogue holds the backup's choice. */
   start: (
     serverId: string,
     backupId: string,
@@ -59,7 +47,6 @@ interface RestoreStore {
     passphrase: string | null
   ) => Promise<boolean>;
   abort: (serverId: string) => Promise<void>;
-  /** A resumed onboarding takes the restore back from the shelf. */
   adopt: (restored: RestoredSetup | null) => void;
   reset: () => void;
 }

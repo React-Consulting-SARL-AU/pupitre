@@ -16,13 +16,6 @@ import { useRestore } from "@renderer/stores/restore";
 import { ArrowRight, DatabaseBackup } from "lucide-react";
 import { useState } from "react";
 
-/**
- * What the backup holds beyond its configuration, brought back once the
- * machine runs its modules: the dev account's keys and sessions, the
- * databases, the folders, the projects — then the projects started, so the
- * server works the moment the step is over. Everything is ticked; a part left
- * out stays in the bucket.
- */
 export function OnboardingDataScreen({
   serverName,
   onContinue,

@@ -9,15 +9,6 @@ import { useState } from "react";
 
 const COPY_MS = 1600;
 
-/**
- * Every address a project answers on: one line per port of each process.
- *
- * A port with a name on the web opens and copies as `https://<name>`; a port
- * without one shows where it listens on the machine, which is reached through
- * the app's SSH session and nowhere else. Publishing another port is a gesture
- * to the configuration, where the ports live.
- */
-
 interface Line {
   label: string;
   host: string;
@@ -44,12 +35,12 @@ function linesOf(project: Project, mainLabel: string): Line[] {
     }));
   });
 }
+
 export function ProjectAddresses({
   project,
   onPublish,
 }: {
   project: Project;
-  /** Opens the configuration on the ports: that is where a port gets its name. */
   onPublish: () => void;
 }) {
   const t = useTranslations();

@@ -10,15 +10,6 @@ import { WaitingNotice } from "../ui/waiting-notice";
 import type { InspectionActions } from "./onboarding-inspection-actions";
 import { OnboardingInspectionResult } from "./onboarding-inspection-result";
 
-/**
- * The inspection of one server, from the wait to the verdict.
- *
- * The probe only reads: it is sent on standard input and runs from memory, so a
- * server we decide against is left exactly as it was found. The screen says so,
- * because that is the promise being made while the reader waits. The probe is
- * asked for by the onboarding on entering the step; this only draws its answer
- * and offers to ask again.
- */
 export function OnboardingInspectionScreen({
   serverId,
   serverName,

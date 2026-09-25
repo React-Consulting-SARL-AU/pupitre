@@ -10,16 +10,7 @@ import { useJournal } from "@renderer/lib/use-journal";
 import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
-/**
- * The journal of one process of a project, as a continuous stream.
- *
- * A project of several processes has several journals, and the bar picks
- * which one is read; the first is the default. The lines arrive as `log`
- * events of `project.logs` followed, so the app never tails a file itself and
- * never names one. The history is bounded: a watcher can write megabytes, and
- * the page would not recover.
- */
-
+// A watcher can write megabytes the page would never recover from.
 const MAX_LINES = 3000;
 
 const TAIL = 400;
@@ -31,7 +22,7 @@ export function ProjectLogs({
 }: {
   serverId: string;
   project: string;
-  /** The ids of the project's processes, the main one first. */
+  /** Main process first: it is the one shown by default. */
   processes: readonly string[];
 }) {
   const t = useTranslations();

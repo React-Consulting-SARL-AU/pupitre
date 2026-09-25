@@ -2,6 +2,7 @@ import { Tabs } from "@base-ui-components/react/tabs";
 import type { ReactNode } from "react";
 import { Tooltip } from "./tooltip";
 
+// No overflow rule on the row: the active tab's -mb-px over the border would grow a scrollbar.
 const LIST = {
   horizontal: "flex gap-0.5 border-line border-b",
   vertical: "flex w-52 shrink-0 flex-col gap-0.5",
@@ -17,15 +18,6 @@ const SHAPE = {
     "rounded-sm px-3 py-2 text-left hover:bg-raised data-[active]:bg-raised",
 };
 
-/**
- * One row of tabs, whatever the language — or one column, when the page is
- * a list of panes rather than a page with faces.
- *
- * The bar holds the choice and the arrow keys; each `Tab` names one face of
- * the page. No overflow rule on the row: the pixel the active tab pulls over
- * the border would grow a scrollbar out of it, and a bar on two lines reads
- * as two bars.
- */
 export function TabBar<T extends string>({
   label,
   value,
@@ -33,7 +25,6 @@ export function TabBar<T extends string>({
   orientation = "horizontal",
   children,
 }: {
-  /** What the row switches between, for whoever hears it rather than reads it. */
   label: string;
   value: T;
   onChange: (next: T) => void;
@@ -62,7 +53,6 @@ export function Tab({
 }: {
   value: string;
   orientation?: keyof typeof SHAPE;
-  /** What the bubble says over the tab: the shortcut that reaches it. */
   hint?: string;
   children: ReactNode;
 }) {

@@ -7,16 +7,6 @@ import { ArrowDownToLine, ArrowUpFromLine, Pause, Play, X } from "lucide-react";
 import { IconButton } from "../ui/icon-button";
 import { StatusDot, type StatusShape, type StatusTone } from "../ui/status-dot";
 
-/**
- * One transfer of the panel: where it goes, how far it is, and the three
- * gestures it takes.
- *
- * The state is read by its shape first — breathing while it runs, ringed
- * while it waits, hollow when paused, full when done, struck when it stopped.
- * The figures come from the main process as it read them off rsync; `scp`
- * gives none, and the row says so instead of pretending.
- */
-
 const LOOK: Record<
   Transfer["status"],
   { shape: StatusShape; tone: StatusTone; label: DictionaryKey | null }

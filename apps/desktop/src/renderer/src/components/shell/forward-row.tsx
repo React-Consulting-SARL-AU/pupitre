@@ -4,20 +4,12 @@ import { X } from "lucide-react";
 import { IconButton } from "../ui/icon-button";
 import { StatusDot } from "../ui/status-dot";
 
-/**
- * One forward of the panel: what it serves, where it answers, and its end.
- *
- * The local address is the thing the reader came for — it is what a database
- * client is pointed at — so it is the line in `font-data`. A forward that did
- * not get its usual port says so here too, where it would be looked for.
- */
 export function ForwardRow({
   forward,
   serverName,
   onClose,
 }: {
   forward: PortForward;
-  /** The server it reaches, for a list that mixes several. */
   serverName: string | null;
   onClose: () => Promise<void>;
 }) {

@@ -23,12 +23,6 @@ import { CatalogChoice } from "../catalog/catalog-choice";
 import { CatalogPresetChoice } from "../catalog/catalog-preset-choice";
 import { CatalogPresets } from "../catalog/catalog-presets";
 
-/**
- * The catalogue as it is drawn, from a catalogue and a probe and nothing else.
- * `react-dom/server` is enough: the screen holds no state of its own, the store
- * above it does.
- */
-
 function screen(
   catalog: CatalogResult,
   selected: readonly string[],
@@ -48,7 +42,7 @@ function screen(
   );
 }
 
-/** The opening tag that carries this attribute, whatever order it renders in. */
+// Attribute order in the rendered tag is not stable, so the whole opening tag is matched.
 function tag(html: string, attribute: string, value: string): string {
   const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const match = html.match(
@@ -289,7 +283,6 @@ describe("un préréglage qui nomme des modules exclusifs", () => {
     expect(html).toContain('role="radiogroup"');
   });
 
-  /** Exposing nothing is a state of its own, not a reason to cancel the preset. */
   it("laisse n'en prendre aucun sans abandonner le préréglage", () => {
     expect(question()).toContain('data-preset-option="none"');
   });
@@ -301,7 +294,7 @@ describe("un préréglage qui nomme des modules exclusifs", () => {
     expect(html).not.toContain('value="exposure.cloudflare"');
   });
 
-  /** A preset that carried one of them would be choosing; one that carried none would leave a hole. */
+  // A preset carrying one of them would already have chosen for the reader.
   it("ne porte lui-même aucun des modules qu'il oppose", () => {
     for (const id of preset?.choose_one ?? []) {
       expect(preset?.modules).not.toContain(id);
@@ -328,7 +321,7 @@ describe("chercher un service dans le catalogue", () => {
     expect(html).not.toContain('data-module="runtime.node"');
   });
 
-  /** The presets answer « what should I install »; a name already answers it. */
+  // A typed name already answers "what should I install", which is what presets are for.
   it("retire les préréglages tant qu'une phrase est tapée", () => {
     expect(screen(CATALOG, [], LARGE_MACHINE)).toContain('data-preset="full"');
     expect(

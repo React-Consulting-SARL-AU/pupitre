@@ -17,17 +17,6 @@ import { restoredConfig } from "../lib/restored-config";
 import { useBackupConnection } from "./backup-connection";
 import { useInstall } from "./install";
 
-/**
- * The backups of one server, as its page works with them.
- *
- * Where they stand comes from the agent (`backup.status`), which of them exist
- * from the platform, and the settings from the module's own form. A revert is
- * the one long gesture here: a save of the machine as it stands, the backup's
- * configuration, the install that follows it, the modules the backup does not
- * hold, then the data — each phase said as it runs, and a failure stopping on
- * the agent's own words.
- */
-
 export type StatusState =
   | { status: "idle" }
   | { status: "loading"; serverId: string }
@@ -71,9 +60,8 @@ export type RevertState =
       backupId: string;
       phase: RevertPhase;
     }
-  /** The backup does not hold these modules: the reader says which go. */
   | { status: "choosing"; serverId: string; backupId: string; extra: string[] }
-  /** Refused before anything left this computer: a wrong passphrase, a platform out of reach. */
+  // Refused before anything left this computer: wrong passphrase, platform out of reach.
   | { status: "refused"; serverId: string; backupId: string; error: AgentError }
   | {
       status: "failed";
@@ -90,28 +78,21 @@ export type RevertState =
     };
 
 interface BackupsStore {
-  /** The server's catalogue: `core.backup`'s form, and the names of the modules a revert installs. */
   modules: readonly Manifest[];
   manifest: Manifest | null;
   state: StatusState;
-  /** What the server holds that backups can carry: the checklist of the content section. */
   contents: ContentsState;
   list: ListState;
   run: RunState;
   revert: RevertState;
-  /** The steps the agent reported for the current save or restore of data. */
   steps: ModuleProgress[];
-  /** The configuration a revert put in place, for the phases that follow it. */
   setup: BackupRestoreSetupResult | null;
-  /** Whether the revert under way saves the machine first. */
   saveFirst: boolean;
   removing: string | null;
   problem: AgentError | null;
 
   read: (serverId: string) => Promise<void>;
-  /** Where backups stand, read again; the list too once a backup under way has ended. */
   refresh: (serverId: string) => Promise<void>;
-  /** A backup now, known by the name the reader gave it, or by its date. */
   runNow: (serverId: string, name?: string) => Promise<void>;
   remove: (serverId: string, backupId: string) => Promise<void>;
   revertTo: (
@@ -120,12 +101,10 @@ interface BackupsStore {
     passphrase: string,
     saveFirst: boolean
   ) => Promise<void>;
-  /** The modules the backup does not hold, uninstalled or kept, then the data. */
   settleExtra: (
     serverId: string,
     uninstall: readonly string[]
   ) => Promise<void>;
-  /** Backups taken off the server — its module uninstalled — and this computer's bucket forgotten when asked. */
   reset: (
     serverId: string,
     forgetConnection: boolean
@@ -135,7 +114,6 @@ interface BackupsStore {
   forget: () => void;
 }
 
-/** A backup of a configuration alone: nothing to bring back after it. */
 const NOTHING_RESTORED: BackupRestoreDataResult = {
   failed: [],
   restored: [],
@@ -143,7 +121,6 @@ const NOTHING_RESTORED: BackupRestoreDataResult = {
   warnings: [],
 };
 
-/** An install that left modules failed is not a machine to pour data into. */
 function installFailure(): AgentError | null {
   const { install } = useInstall.getState();
 
@@ -321,8 +298,7 @@ export const useBackups = create<BackupsStore>((set, get) => {
         "backup.status"
       );
 
-      // A beat that misses keeps what was read: the page does not flicker to an
-      // error for one answer that did not come.
+      // A missed beat keeps what was read rather than flickering to an error.
       if (!answer.ok) {
         if (!held) {
           set({ state: { error: answer.error, serverId, status: "failed" } });

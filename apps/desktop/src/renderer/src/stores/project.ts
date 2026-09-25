@@ -8,19 +8,6 @@ import type {
 import type { AgentError } from "@shared/agent";
 import { create } from "zustand";
 
-/**
- * What an open project costs to know, and when each part is worth paying for.
- *
- * The branches and the working tree are local reads on the server: they are
- * asked whenever the project opens or a tab does. `project.git_status` is not —
- * it queries the remote repository over the network — so it is asked once, on
- * opening, and then only when the reader asks again. It never sits in a loop.
- *
- * Every read lands only on the project it was asked for: a slow answer from a
- * project the reader has since left would otherwise paint its branches or its
- * tree on the one now open.
- */
-
 export type GitState =
   | { status: "idle" }
   | { status: "reading" }
@@ -52,14 +39,13 @@ export type DiffState =
   | { status: "failed"; path: string; error: AgentError };
 
 interface ProjectStore {
-  /** The project every piece of state below belongs to. */
+  /** Answers for any other project are dropped, so a slow read never paints the one now open. */
   name: string | null;
   git: GitState;
   branches: BranchState;
   tree: TreeState;
   diff: DiffState;
   env: EnvState;
-  /** True while a branch is being taken: the selector waits for the answer. */
   switching: boolean;
   problem: AgentError | null;
 
@@ -68,7 +54,7 @@ interface ProjectStore {
   readBranches: (serverId: string, name: string) => Promise<void>;
   readTree: (serverId: string, name: string) => Promise<void>;
   readDiff: (serverId: string, name: string, path: string) => Promise<void>;
-  /** The keys of `.env.local`; `force` asks the agent to write it again. */
+  /** `force` makes the agent rewrite `.env.local`. */
   readEnv: (serverId: string, name: string, force?: boolean) => Promise<void>;
   checkout: (serverId: string, name: string, branch: string) => Promise<void>;
   sync: (serverId: string, name: string) => Promise<void>;
@@ -90,7 +76,7 @@ export const useProject = create<ProjectStore>((set, get) => ({
   ...EMPTY,
   name: null,
 
-  /** Opening a project pays for the network read, once. */
+  // git_status queries the remote over the network: read on open and on demand, never polled.
   async open(serverId, name) {
     if (get().name !== name) {
       set({ ...EMPTY, name });
@@ -182,11 +168,7 @@ export const useProject = create<ProjectStore>((set, get) => ({
     });
   },
 
-  /**
-   * The branch just taken has a lead of its own: the one we were looking at
-   * says nothing about it any more, and this is the moment you want to know
-   * whether there is anything to pull before restarting.
-   */
+  // The new branch has its own lead on the remote, so git status is read again.
   async checkout(serverId, name, branch) {
     set({ problem: null, switching: true });
 

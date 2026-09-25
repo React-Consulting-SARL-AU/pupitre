@@ -1,6 +1,5 @@
 import type { AgentResponse } from "@shared/agent";
 
-/** One command to the agent of a server, typed by what the caller expects back. */
 export function agentCall<T>(
   serverId: string,
   cmd: Parameters<Window["pupitre"]["agentCall"]>[1],
@@ -11,7 +10,7 @@ export function agentCall<T>(
   >;
 }
 
-/** The same command on the dashboard's beat: what a screen reads on a timer. */
+/** Rides the beat channel, for reads a screen repeats on a timer. */
 export function agentPoll<T>(
   serverId: string,
   cmd: Parameters<Window["pupitre"]["agentPoll"]>[1],

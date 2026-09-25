@@ -3,13 +3,7 @@ import { LogOut } from "lucide-react";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
 
-/**
- * The question the menu's "Sign out" asks before anything happens.
- *
- * The menu is painted by the system and cannot ask; the window can, and it
- * asks here, in the same words the account screen uses. Escape, the backdrop
- * and the cancel button all leave the account as it is.
- */
+/** The native menu cannot ask for confirmation, so its "Sign out" asks here. */
 export function SignOutDialog({
   open,
   onConfirm,

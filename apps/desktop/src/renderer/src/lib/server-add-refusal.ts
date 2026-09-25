@@ -9,7 +9,7 @@ const KEY_FILE_REFUSALS = new Set([
   "refusal.key.unreadable",
 ]);
 
-/** The field on screen a refusal of the addition is about; none, and it is said at the foot of the form. */
+/** Null means the refusal belongs at the foot of the form, under no field. */
 export function refusedField(
   error: AgentError | null,
   mode: KeyChoice["mode"],

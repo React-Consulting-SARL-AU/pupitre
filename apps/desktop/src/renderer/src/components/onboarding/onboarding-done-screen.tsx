@@ -12,10 +12,6 @@ const ROOT_LINE = {
   open: "onboarding.done.rootOpen",
 } as const;
 
-/**
- * The end of the onboarding: a machine that runs the agent, reached by the
- * account it opened. What comes next — the first project — is its own screen.
- */
 export function OnboardingDoneScreen({
   serverName,
   user,
@@ -25,7 +21,7 @@ export function OnboardingDoneScreen({
 }: {
   serverName?: string;
   user: string;
-  /** Closed, kept open because the configuration asked for it, or left open by a hardening that stopped. */
+  /** "kept" is asked for by the configuration; "open" means the hardening stopped. */
   root: "closed" | "kept" | "open";
   onClose?: () => void;
   onSecure?: () => void;

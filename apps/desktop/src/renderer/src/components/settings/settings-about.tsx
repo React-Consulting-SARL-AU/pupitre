@@ -8,13 +8,6 @@ import { SettingsAboutBuild } from "./settings-about-build";
 import { SettingsAboutHelp } from "./settings-about-help";
 import { SettingsAboutUpdate } from "./settings-about-update";
 
-/**
- * The build this is, and where its next one stands.
- *
- * The version and the channel say what the reader runs; the updater's state
- * says what it is doing about the next one, and follows the main process's
- * broadcasts for as long as the section is open.
- */
 export function SettingsAbout() {
   const t = useTranslations();
 

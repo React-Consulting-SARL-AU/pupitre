@@ -27,10 +27,6 @@ import {
 import { useConnections } from "./connections";
 import { probeOf } from "./inspection";
 
-/**
- * What the main process answered about a secret: the marks when it took it,
- * its refusal word for word when it would not.
- */
 function marksOf(answer: AgentResponse<SecretMarks>): {
   problem: AgentError | null;
   secrets?: SecretMarks;
@@ -39,15 +35,6 @@ function marksOf(answer: AgentResponse<SecretMarks>): {
     ? { problem: null, secrets: answer.result }
     : { problem: answer.error };
 }
-
-/**
- * The catalogue screen's state, and none of its secrets.
- *
- * Everything visible here came from the agent: the modules, their fields, their
- * presets. What the reader types into a `secret` field goes straight to the
- * main process and comes back as a mark — filled, generated, revealed — so this
- * store can be serialised, inspected or dumped without leaking anything.
- */
 
 export type CatalogState =
   | { status: "idle" }
@@ -59,38 +46,26 @@ interface CatalogStore {
   catalog: CatalogState;
   selected: readonly string[];
   values: Record<string, Record<string, unknown>>;
+  // Only marks: secret values stay in the main process, so this store is safe to dump.
   secrets: SecretMarks;
-  /** A refusal the main process opposed to a secret, kept as it worded it. */
   problem: AgentError | null;
-  /** What the server already runs, when the screen is opened on top of it. */
   installed: Installed;
-  /** The fields answered so far, as `<module>.<key>`. */
+  // Keys are `<module>.<key>`.
   touched: ReadonlySet<string>;
-  /** True once an install was asked for and refused: every field speaks then. */
   attempted: boolean;
-  /** What the server refused when the app asked it to weigh the configuration. */
   refused: readonly FieldProblemView[];
-  /**
-   * The modules to install without configuring: the reader said they would
-   * answer their questions later. Nothing of theirs is weighed, and the server
-   * stops after putting them on the machine.
-   */
+  // Installed unconfigured: nothing of theirs is weighed and the server stops after placing them.
   deferred: readonly string[];
-  /**
-   * The secrets a restored machine already holds, by module: they count as
-   * answered, are never generated again, and are left off the secret line.
-   */
+  // Secrets a restored machine already holds: they count as answered and are never regenerated.
   held: Record<string, readonly string[]>;
-  /** The modules a backup brought: a connection this computer lacks does not hold them back. */
+  // A connection missing on this computer does not hold these back.
   restoredModules: readonly string[];
 
   load: (serverId: string, installed?: Installed) => Promise<void>;
-  /** Puts back the choice an interrupted onboarding had written down. */
   restore: (
     selected: readonly string[],
     values: Record<string, Record<string, unknown>>
   ) => void;
-  /** The choice a backup made, with what the machine now holds for it. */
   adoptRestore: (restored: {
     selected: readonly string[];
     values: Record<string, Record<string, unknown>>;
@@ -98,9 +73,8 @@ interface CatalogStore {
     deferred: readonly string[];
   }) => void;
   toggle: (moduleId: string) => void;
-  /** Puts a service's questions off, or takes them back up. */
   defer: (moduleId: string, later: boolean) => void;
-  /** `chosen` is the one of the preset's exclusive modules the reader picked. */
+  // `chosen` picks among the preset's mutually exclusive modules.
   usePreset: (presetId: string, chosen?: string) => void;
   setValue: (moduleId: string, key: string, value: unknown) => void;
 
@@ -108,26 +82,19 @@ interface CatalogStore {
   generate: (moduleId: string, key: string) => Promise<void>;
   reveal: (moduleId: string, key: string) => Promise<string | null>;
   forget: () => Promise<void>;
-  /** The vault was emptied by a refused install: the marks that said "filled" no longer hold. */
+  // A refused install empties the vault, so the "filled" marks no longer hold.
   dropSecrets: () => void;
-  /** Whether any secret was typed or generated on this form. */
   typedSecrets: () => boolean;
-  /** Waits on the secrets a selection asked the main process to make. */
+  // Resolves once the secrets generated for the selection exist.
   settled: () => Promise<void>;
 
   modules: () => readonly Manifest[];
   groups: () => FieldGroup[];
-  /** What the selection gets wrong, by the manifests' own rules. */
   problems: () => FieldProblemView[];
-  /** The problems a field is allowed to show: touched, or an install already refused. */
   shown: () => FieldProblemView[];
-  /** Notes that a field has been answered, so it may start showing its own refusal. */
   touch: (moduleId: string, key: string) => void;
-  /** Notes that an install was asked for and refused: every field speaks now. */
   attempt: () => void;
-  /** What the server refused, put back on the fields it names. */
   noteProblems: (problems: readonly FieldProblem[]) => void;
-  /** Asks the server to weigh the configuration, and keeps what it refuses. */
   check: (modules: readonly string[]) => Promise<readonly FieldProblemView[]>;
   unreachable: () => Map<string, string>;
   warnings: () => ResourceWarning[];
@@ -137,7 +104,6 @@ interface CatalogStore {
 
 const EMPTY: CatalogResult = { modules: [], presets: [] };
 
-/** A secret the machine holds weighs as one given: filled, neither typed nor generated here. */
 function withHeld(
   secrets: SecretMarks,
   held: Record<string, readonly string[]>
@@ -168,11 +134,7 @@ function catalogOf(state: CatalogState): CatalogResult {
 export const useCatalog = create<CatalogStore>((set, get) => {
   let pending: Promise<unknown> = Promise.resolve();
 
-  /**
-   * A secret the manifest says to generate, made in the main process the moment
-   * its module is chosen: the reader is never asked to invent a password, and
-   * the value never travels to get here.
-   */
+  // Generated in the main process on selection, so the value never crosses the bridge.
   function generateFor(added: readonly string[]): void {
     const serverId = serverOf(get().catalog);
 
@@ -208,10 +170,7 @@ export const useCatalog = create<CatalogStore>((set, get) => {
     }
   }
 
-  /**
-   * What a development build types for the developer: a field the manifest
-   * declares, on a module just chosen, and only where nothing was answered.
-   */
+  // Development builds only; applied to a newly chosen module where nothing was answered.
   let prefilled: Record<string, Record<string, string>> = {};
 
   async function readDevDefaults(): Promise<void> {
@@ -272,9 +231,7 @@ export const useCatalog = create<CatalogStore>((set, get) => {
     async load(serverId, installed = []) {
       set({ catalog: { serverId, status: "loading" }, installed });
 
-      // The accounts are weighed with the fields, so they are read with the
-      // catalogue rather than when a card happens to be on screen: a module
-      // used to be called unconnected until its own panel had been visited.
+      // Connections are weighed with the fields, so read them now, not when a card shows.
       const [answer] = await Promise.all([
         window.pupitre.catalog(serverId),
         useConnections.getState().read(),
@@ -304,11 +261,7 @@ export const useCatalog = create<CatalogStore>((set, get) => {
       reselect(mandatory(answer.result.modules, installed));
     },
 
-    /**
-     * The selection comes back, the secrets do not: they never left the main
-     * process, which forgot them when it closed. Reselecting is what makes the
-     * generated ones again, one round trip each, before anything is installed.
-     */
+    // Secrets are not restored; reselecting regenerates the generated ones.
     restore(selected, values) {
       if (get().catalog.status !== "ready") {
         return;
@@ -318,11 +271,7 @@ export const useCatalog = create<CatalogStore>((set, get) => {
       reselect(restored(get().modules(), selected, get().installed));
     },
 
-    /**
-     * What the backup held is chosen and answered already: its values fill the
-     * form, and the secrets the machine holds are neither asked nor made again
-     * — a database password drawn anew would lock the restored projects out.
-     */
+    // Held secrets are never redrawn: a new database password would lock restored projects out.
     adoptRestore({ selected, values, held, deferred }) {
       if (get().catalog.status !== "ready") {
         return;
@@ -334,14 +283,10 @@ export const useCatalog = create<CatalogStore>((set, get) => {
         restoredModules: [...selected],
         values: { ...values },
       });
+
       reselect(restored(get().modules(), selected, get().installed));
     },
 
-    /**
-     * Putting a service off is a decision about this installation, not about the
-     * service: what was already typed stays typed, and taking the questions back
-     * up finds the form as it was left.
-     */
     defer(moduleId, later) {
       const held = get().deferred;
 
@@ -353,8 +298,7 @@ export const useCatalog = create<CatalogStore>((set, get) => {
         deferred: later
           ? [...held, moduleId]
           : held.filter((one) => one !== moduleId),
-        // A refusal the server sent about a module nobody answers any more says
-        // nothing: it was about values this install no longer carries.
+        // A deferred module's refusals concern values this install no longer carries.
         refused: later
           ? get().refused.filter((one) => one.module !== moduleId)
           : get().refused,
@@ -394,7 +338,7 @@ export const useCatalog = create<CatalogStore>((set, get) => {
 
     setValue(moduleId, key, value) {
       set((state) => ({
-        // A refusal the server sent about this field was about the old value.
+        // A server refusal about this field was about the old value.
         refused: state.refused.filter(
           (problem) => !(problem.module === moduleId && problem.field === key)
         ),
@@ -435,10 +379,7 @@ export const useCatalog = create<CatalogStore>((set, get) => {
       );
     },
 
-    /**
-     * The one time a secret comes back across the bridge. The caller shows it
-     * and drops it; asking again answers nothing.
-     */
+    // The only time a secret crosses the bridge: shown once by the caller, then dropped.
     async reveal(moduleId, key) {
       const serverId = serverOf(get().catalog);
 
@@ -451,6 +392,7 @@ export const useCatalog = create<CatalogStore>((set, get) => {
         moduleId,
         key
       );
+
       set({ secrets: answer.marks });
 
       return answer.value;
@@ -510,12 +452,7 @@ export const useCatalog = create<CatalogStore>((set, get) => {
       ];
     },
 
-    /**
-     * A field says what is wrong with it once it has been answered, or once an
-     * install has been asked for. Before that the form is a page of empty
-     * required fields, and marking them all red on arrival tells nobody
-     * anything they did not already know.
-     */
+    // Held back until touched or an install is attempted, so a fresh form is not all red.
     shown() {
       const { touched, attempted } = get();
 
@@ -532,6 +469,7 @@ export const useCatalog = create<CatalogStore>((set, get) => {
     touch(moduleId, key) {
       set((state) => {
         const touched = new Set(state.touched);
+
         touched.add(`${moduleId}.${key}`);
 
         return { touched };
@@ -542,12 +480,6 @@ export const useCatalog = create<CatalogStore>((set, get) => {
       set({ attempted: true });
     },
 
-    /**
-     * What only the server could know — a port another program already listens
-     * on, a directory that is a file — put back on the field it belongs to. It
-     * is dropped the moment that field changes, because the answer may have
-     * been the whole point.
-     */
     noteProblems(problems) {
       const known = new Map(
         get()
@@ -563,9 +495,7 @@ export const useCatalog = create<CatalogStore>((set, get) => {
             (one) => one.key === problem.field
           );
 
-          // A managed value is written on the way out, from a connected
-          // account: a server that calls it missing is saying it has not been
-          // given it yet, and no field on this screen could answer that.
+          // Managed values come from a connected account at install; no field here can answer them.
           if (declared?.managed === true) {
             return [];
           }
@@ -575,12 +505,7 @@ export const useCatalog = create<CatalogStore>((set, get) => {
       });
     },
 
-    /**
-     * The last thing only the machine knows: a port another program already
-     * listens on, a directory that is a file. An agent too old to answer says
-     * so, and the app goes on with what it checked itself — refusing an install
-     * because the server cannot weigh it would refuse the ones this exists for.
-     */
+    // An agent too old to check does not block the install: the local checks still apply.
     async check(modules) {
       const serverId = serverOf(get().catalog);
 
@@ -588,8 +513,7 @@ export const useCatalog = create<CatalogStore>((set, get) => {
         return [];
       }
 
-      // A bridge that does not answer must not leave the button turning: the
-      // agent weighs the same configuration again before it touches anything.
+      // A silent bridge must not leave the button spinning; the agent re-checks before installing.
       const answer = await window.pupitre
         .checkInstall(serverId, modules, get().config(), get().deferred)
         .catch(() => null);
@@ -620,7 +544,6 @@ export const useCatalog = create<CatalogStore>((set, get) => {
       );
     },
 
-    /** What `install` will carry in `params`: the values, never the secrets. */
     config() {
       const config: ModuleConfig = {};
 
@@ -633,11 +556,14 @@ export const useCatalog = create<CatalogStore>((set, get) => {
 
     reset() {
       pending = Promise.resolve();
+
       set({
         attempted: false,
         catalog: { status: "idle" },
+        deferred: [],
         held: {},
         installed: [],
+        problem: null,
         refused: [],
         restoredModules: [],
         secrets: {},

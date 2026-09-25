@@ -15,25 +15,7 @@ import { AgentUpdateFrame } from "./agent-update-frame";
 import { AgentUpdateNotes } from "./agent-update-notes";
 import { ConfigMigrationPanel } from "./config-migration-panel";
 
-/**
- * The gap between the agent this app can offer and the one the server runs.
- *
- * Ahead, it offers the update and the notes that came with it. Behind, it says
- * so and stops there: the server runs a newer agent, everything this app still
- * knows how to ask goes on working, and barring the screens over a version
- * number would break the app rather than the mismatch. Too far behind — a
- * generation of protocol away — nothing can be asked of that agent any more,
- * and the banner says which gesture repairs it.
- *
- * A configuration that is not the shape its agent reads comes before all of
- * that: nothing can be driven on such a server, so no version gap is worth
- * showing until it is settled.
- */
-/**
- * The revision the configuration reached, when the migration that followed the
- * upgrade actually had something to carry over. An agent from before the ledger
- * says nothing, and neither does one that was already where it belongs.
- */
+/** Null when nothing migrated, including agents older than the migration ledger. */
 function migrated(upgrade: UpgradeState): number | null {
   if (upgrade.status !== "done") {
     return null;
@@ -60,7 +42,6 @@ export function AgentUpdateBanner({
   journal: readonly string[];
   onUpgrade: () => void;
   onMigrate: () => void;
-  /** Opens the assistant that reinstalls the agent on this server. */
   onRepair: () => void;
   onHide: () => void;
 }) {
@@ -108,6 +89,7 @@ export function AgentUpdateBanner({
     );
   }
 
+  // A newer agent still answers everything this app asks: inform, never bar the screens.
   if (order === "behind") {
     return (
       <AgentUpdateFrame

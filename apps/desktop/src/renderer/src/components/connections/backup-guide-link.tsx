@@ -1,7 +1,6 @@
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { ExternalLink } from "lucide-react";
 
-/** The site's guide to creating a bucket and its key, opened in the browser. */
 export function BackupGuideLink() {
   const t = useTranslations();
 

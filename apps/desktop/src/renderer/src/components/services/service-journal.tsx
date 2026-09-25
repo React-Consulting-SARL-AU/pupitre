@@ -8,14 +8,7 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { useJournal } from "@renderer/lib/use-journal";
 import { useState } from "react";
 
-/**
- * The unit's journal, followed line by line.
- *
- * The lines are `log` events of `service.logs` followed: the app never names a
- * unit, never tails a file. The history is bounded — a service that loops on
- * an error writes megabytes.
- */
-
+// A service looping on an error writes megabytes.
 const MAX_LINES = 2000;
 
 const TAIL = 120;
@@ -27,7 +20,6 @@ export function ServiceJournal({
 }: {
   serverId: string;
   moduleId: string;
-  /** The service's own name, for the reader; the unit stays the agent's. */
   name: string;
 }) {
   const t = useTranslations();

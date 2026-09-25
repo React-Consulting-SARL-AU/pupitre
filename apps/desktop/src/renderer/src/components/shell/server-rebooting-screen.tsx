@@ -4,14 +4,6 @@ import { WaitingNotice } from "@renderer/components/ui/waiting-notice";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { Settings as SettingsIcon } from "lucide-react";
 
-/**
- * A machine the reader just told to restart.
- *
- * Its silence is expected, so it is not the unready screen with its refusal
- * and its repair buttons: it is a wait that says whose, what it changes for
- * the reader, and how long it has been. The dashboard comes back on its own
- * with the first `snapshot` that answers.
- */
 export function ServerRebootingScreen({
   serverName,
   onSettings,

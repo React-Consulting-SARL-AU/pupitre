@@ -5,17 +5,6 @@ import { useState } from "react";
 import { Button, type ButtonIcon, type ButtonVariant } from "./button";
 import { DIALOG_BACKDROP, DIALOG_POPUP, DIALOG_TITLE } from "./dialog";
 
-/**
- * A gesture that cannot be undone, asked twice.
- *
- * The button stays what it is, where it is; the question floats over the
- * window in a dialog, the same frame as every other question the app asks,
- * so nothing around the button moves or breaks to make room for it. The
- * confirmation says what it will do, not "are you sure".
- *
- * The dialog stays up while the work runs, so the spinner turns on the answer
- * that was clicked instead of on a row that has already vanished.
- */
 export function ConfirmButton({
   children,
   question,
@@ -30,17 +19,14 @@ export function ConfirmButton({
   className = "",
 }: {
   children: string;
-  /** What is about to happen, in one line. */
   question: string;
   confirmLabel: string;
   onConfirm: Gesture;
   icon?: ButtonIcon;
   variant?: ButtonVariant;
-  /** The answer's look: red for what cannot be undone, `inverse` for a gesture that can. */
   confirmVariant?: "destructive" | "inverse";
   size?: "sm" | "md";
   disabled?: boolean;
-  /** The visible label and the item it acts on, for a button repeated on every row. */
   ariaLabel?: string;
   className?: string;
 }) {
@@ -51,6 +37,7 @@ export function ConfirmButton({
     setWorking(true);
 
     try {
+      // Closed only after the work, so the spinner stays on the answer rather than on a row that vanished.
       await onConfirm();
       setAsking(false);
     } finally {
@@ -86,11 +73,6 @@ export function ConfirmButton({
   );
 }
 
-/**
- * The question of a ConfirmButton, drawn on its own: what a test reads, and
- * what the button opens. An alert rather than a dialog: it does not go away
- * on a click beside it, only on one of its two answers or on Escape.
- */
 export function ConfirmDialog({
   open,
   title,

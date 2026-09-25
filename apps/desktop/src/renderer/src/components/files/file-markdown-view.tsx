@@ -1,6 +1,5 @@
 import { Markdown } from "../ui/markdown";
 
-/** A Markdown file drawn from the buffer on screen, in the frame the editor takes. */
 export function FileMarkdownView({ text }: { text: string }) {
   return (
     <div

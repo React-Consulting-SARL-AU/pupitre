@@ -9,16 +9,7 @@ import type { ThumbnailState } from "@renderer/stores/shots";
 import { ImageOff, Trash2 } from "lucide-react";
 import { useEffect, useRef } from "react";
 
-/**
- * One capture in the grid: its picture when it has reached the screen, its
- * name and weight, and the gesture that removes it.
- *
- * The bytes are asked for the moment the tile scrolls into view and never
- * before: a gallery of three hundred captures is three hundred reads over one
- * channel, and the reader is looking at twelve of them.
- */
-/** The box a thumbnail is drawn in, so the grid does not jump when the bytes land. */
-const TILE = { height: 200, width: 320 };
+const THUMBNAIL_SIZE = { height: 200, width: 320 };
 
 export function ShotTile({
   shot,
@@ -43,8 +34,7 @@ export function ShotTile({
   const visible = useRef(onVisible);
   visible.current = onVisible;
 
-  // Watched once per capture: the callback is read through the ref, so a
-  // parent that renders again does not put a new observer on every tile.
+  // Bytes are read only once the tile scrolls into view: one agent channel serves the whole gallery.
   // biome-ignore lint/correctness/useExhaustiveDependencies: the path is the identity of the tile, and the only reason to watch again
   useEffect(() => {
     const element = frame.current;
@@ -89,9 +79,9 @@ export function ShotTile({
             <img
               alt={t("shots.alt", { name: shot.name })}
               className="h-full w-full object-cover"
-              height={TILE.height}
+              height={THUMBNAIL_SIZE.height}
               src={thumbnail.url}
-              width={TILE.width}
+              width={THUMBNAIL_SIZE.width}
             />
           ) : null}
 

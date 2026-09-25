@@ -9,10 +9,7 @@ export interface Look {
   label: DictionaryKey;
 }
 
-/**
- * Five fates, five outlines. The tone only confirms what the shape already
- * says, so the whole screen survives being read in pure greys.
- */
+// Each status has its own shape so the screen still reads in pure greys; tone only confirms it.
 export const MODULE_LOOK: Record<ModuleStatus, Look> = {
   pending: {
     label: "install.moduleStatus.pending",
@@ -33,10 +30,8 @@ export const MODULE_LOOK: Record<ModuleStatus, Look> = {
   },
 };
 
-/** What a module's run is doing: installing it, backing it up, or bringing it back. */
 export type ModuleWording = "install" | "backup" | "restore";
 
-/** The fates a backup or a restore words its own way; the others read as an install's. */
 export const MODULE_WORDS: Record<
   ModuleWording,
   Partial<Record<ModuleStatus, DictionaryKey>>
@@ -52,7 +47,6 @@ export const MODULE_WORDS: Record<
   },
 };
 
-/** A step that went through, but had something to say. */
 export const WARNED_STEP: Look = {
   label: "install.stepStatus.warned",
   shape: "ringed",

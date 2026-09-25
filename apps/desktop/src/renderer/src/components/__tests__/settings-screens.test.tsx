@@ -5,12 +5,7 @@ import { SettingsAboutBuild } from "../settings/settings-about-build";
 import { SettingsAboutUpdate } from "../settings/settings-about-update";
 import { CheckLine } from "../ui/check-line";
 
-/**
- * What the sections the seventh phase adds to the settings draw, from what the
- * main process would have answered. The sections that read a store are walked
- * by the Playwright scenario, where the bridge answers for real.
- */
-
+// Sections that read a store are covered by the Playwright scenario, where the bridge answers for real.
 const RESOLVED = () => Promise.resolve();
 
 function text(html: string): string {

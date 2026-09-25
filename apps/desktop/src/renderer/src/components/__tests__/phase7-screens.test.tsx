@@ -39,11 +39,6 @@ import { ProjectGitState } from "../projects/project-git-state";
 import { portOf, ServerAddForm } from "../servers/server-add-form";
 import { grantStatusLabel } from "../servers/server-grant-detail";
 
-/**
- * The screens of the seventh phase, rendered from the same fixtures as the
- * rest: what each one says, and the gesture each one puts where it belongs.
- */
-
 const NOOP = () => undefined;
 
 const RESOLVED = () => Promise.resolve();
@@ -373,7 +368,6 @@ describe("un compte tiers connecté", () => {
     );
   });
 
-  /** Two tokens of one account, because only one of them goes to the server. */
   it("sépare le jeton du tunnel, qui reste ici, de celui de Wrangler, qui part", () => {
     const t = translator("fr");
     const [tunnel, wrangler] = CONNECTIONS.filter((one) =>
@@ -393,7 +387,7 @@ describe("un compte tiers connecté", () => {
     expect(wrangler?.hint).toContain("Aucune permission Tunnel ni DNS");
   });
 
-  /** Several accounts is a question the reader answers, never the first the provider listed. */
+  // Never default to the first account the provider lists.
   it("fait choisir le compte quand le jeton en ouvre plusieurs", () => {
     const html = renderToStaticMarkup(
       <ConnectionAccountChoice

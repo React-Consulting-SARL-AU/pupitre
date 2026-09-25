@@ -3,7 +3,6 @@ import type { AgentError } from "@shared/agent";
 import { agentLine } from "./agent-error";
 import type { Translate } from "./i18n";
 
-/** Why a file or folder name will not do: the rule the app knows, then what the agent said. */
 export function entryProblem(
   t: Translate,
   typed: string,

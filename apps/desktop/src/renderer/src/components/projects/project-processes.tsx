@@ -11,18 +11,6 @@ import { Button } from "../ui/button";
 import { Section } from "../ui/section";
 import { type ProcessEdits, ProjectProcessCard } from "./project-process-card";
 
-/**
- * The processes of a project, one card each, the main one first.
- *
- * A project of one process is the usual case and shows one card; a repository
- * that holds a server and its client shows two, each with its own folder,
- * manager, command and ports. The agent proposes the list from what it read
- * in the repository, and the reader adds, removes or corrects.
- *
- * Folded, each card is one line saying what the process is until the reader
- * opens it; one added since the list opened, or one the registry would
- * refuse, opens on its own.
- */
 export function ProjectProcesses({
   processes,
   problems,
@@ -33,19 +21,16 @@ export function ProjectProcesses({
   edit,
 }: {
   processes: readonly ProcessDraft[];
-  /** Why each process would be refused, in the order of the processes. */
   problems: readonly (ProcessProblem | null)[];
-  /** Why each row of each process would be refused, process by process. */
   rowProblems: readonly (readonly (RowProblem | null)[])[];
   exposure: Exposure | null;
-  /** The project's name, which each name on the web is proposed from. */
   placeholder: string;
-  /** Closes each card on its summary, for a reader who knows the project. */
   folded?: boolean;
   edit: ProcessEdits;
 }) {
   const t = useTranslations();
 
+  // A process added after the list opened starts unfolded.
   const [known] = useState(() => new Set(processes.map((draft) => draft.key)));
 
   return (

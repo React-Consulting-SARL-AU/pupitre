@@ -4,15 +4,6 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { riseAt } from "@renderer/lib/motion";
 import { Plus, Settings as SettingsIcon } from "lucide-react";
 
-/**
- * The app with an account and not one machine yet.
- *
- * It is the only screen that has nothing to report, so it is the only one that
- * may say what is about to happen: three steps, in the order the assistant runs
- * them, and the one button that starts them. Everything named here is what the
- * agent will do — nothing is promised that the next screens do not carry out.
- */
-
 const STEPS = ["inspect", "install", "harden"] as const;
 
 export function FirstRunScreen({

@@ -16,8 +16,7 @@ import {
   useRef,
 } from "react";
 
-/** Closer than this to the bottom, in pixels, counts as reading the tail. */
-const TAIL_REACH = 40;
+const TAIL_REACH_PX = 40;
 
 const MARK_ICON = {
   up: Play,
@@ -25,17 +24,6 @@ const MARK_ICON = {
   down: Square,
 };
 
-/**
- * The rows of a journal, read as a terminal would have shown them.
- *
- * The pane follows the tail until the reader takes hold of it: scrolling up,
- * or pressing on a line to select it, lets the tail go, and scrolling back to
- * the bottom hooks it again, so a selection never runs away from the pointer.
- * The text is selectable as one block and copies line by line. An address
- * reads as a link; a start or stop the agent wrote into the journal reads as
- * a rule across the pane rather than as a line among the others, and the
- * empty line the agent puts before it folds into the rule.
- */
 export function JournalPane({
   rows,
   follow,
@@ -49,7 +37,6 @@ export function JournalPane({
   onFollowChange: (next: boolean) => void;
   label: string;
   className?: string;
-  /** What reads above the rows: a cut notice, a wait, an empty search. */
   children?: ReactNode;
 }) {
   const box = useRef<HTMLDivElement | null>(null);
@@ -67,13 +54,14 @@ export function JournalPane({
     const element = event.currentTarget;
     const atTail =
       element.scrollHeight - element.scrollTop - element.clientHeight <
-      TAIL_REACH;
+      TAIL_REACH_PX;
 
     if (atTail !== follow) {
       onFollowChange(atTail);
     }
   }
 
+  // Pressing a line lets the tail go, so a selection never runs away from the pointer.
   function onPointerDown(event: PointerEvent<HTMLDivElement>): void {
     const onLink = (event.target as HTMLElement).closest("a") !== null;
 

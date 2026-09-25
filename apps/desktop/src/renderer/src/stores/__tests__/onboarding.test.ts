@@ -48,10 +48,7 @@ const REPORT = {
   warned: [],
 };
 
-/**
- * A step is never reached by naming it: it is reached by an event that
- * justifies it. Walking there is what a reader does, and what these tests do.
- */
+// A step is only reached through an event that justifies it, never by naming it.
 const ONWARD: Record<OnboardingStep, Event> = {
   server: { serverId: "srv-1", type: "serverChosen" },
   inspection: { type: "needsAgent" },
@@ -65,10 +62,7 @@ const ONWARD: Record<OnboardingStep, Event> = {
   done: { type: "close" },
 };
 
-/**
- * The draft waits for a pause before it reaches the shelf: a keystroke is not a
- * reason to touch the disk. These tests wait the same pause the app does.
- */
+// The draft is only saved after a typing pause; the tests wait the same pause as the app.
 function settledDraft(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 450));
 }
@@ -89,7 +83,6 @@ function walkTo(step: OnboardingStep): void {
   throw new Error(`${step} is not reachable from here`);
 }
 
-/** What the machine answers a relaunched app, and nothing more. */
 function server(probe: ProbeResult): void {
   stubPupitre({
     catalog: () => Promise.resolve({ ok: true, result: CATALOG }),
@@ -100,7 +93,6 @@ function server(probe: ProbeResult): void {
   });
 }
 
-/** The list of machines as the app has just read it. */
 function knownServers(ids: readonly string[]): void {
   useServers.setState({
     config: {
@@ -120,7 +112,7 @@ function knownServers(ids: readonly string[]): void {
   });
 }
 
-/** A relaunch: every store is new, and only the shelf crossed over. */
+// Every store starts fresh; only the saved draft survives.
 function relaunch(): void {
   useOnboarding.setState({
     delivery: { status: "idle" },
@@ -138,8 +130,7 @@ function relaunch(): void {
 }
 
 beforeEach(() => {
-  // The machine acts on entering a step, so every test needs a bridge, even the
-  // ones that only look at the order the steps come in.
+  // The machine acts on entering a step, so even pure ordering tests need a bridge.
   stubPupitre({});
   forgetOnboarding();
   useOnboarding.getState().reset();
@@ -203,6 +194,7 @@ describe("l'ordre de l'onboarding", () => {
 describe("ce que le store fait en entrant dans une étape", () => {
   it("lit la machine dès le choix du serveur, une seule fois", () => {
     let asked = 0;
+
     stubPupitre({
       inspect: () => {
         asked += 1;
@@ -222,6 +214,7 @@ describe("ce que le store fait en entrant dans une étape", () => {
 
   it("ne relit pas la machine en revenant sur l'inspection", () => {
     let asked = 0;
+
     stubPupitre({
       inspect: () => {
         asked += 1;
@@ -240,6 +233,7 @@ describe("ce que le store fait en entrant dans une étape", () => {
 
   it("lance l'installation du choix du catalogue, avec sa configuration", async () => {
     const sent: { modules: readonly string[]; config: unknown }[] = [];
+
     stubPupitre({
       startInstall: (_serverId, modules, config) => {
         sent.push({ config, modules });
@@ -270,6 +264,7 @@ describe("ce que le store fait en entrant dans une étape", () => {
 
   it("n'installe rien quand rien n'est choisi", async () => {
     let asked = 0;
+
     stubPupitre({
       startInstall: () => {
         asked += 1;
@@ -291,6 +286,7 @@ describe("ce que le store fait en entrant dans une étape", () => {
 
   it("relit la machine une seule fois à la reprise", async () => {
     let asked = 0;
+
     stubPupitre({
       catalog: () => Promise.resolve({ ok: true, result: CATALOG }),
       generateInstallSecret: () => Promise.resolve({ ok: true, result: {} }),
@@ -447,8 +443,7 @@ describe("une app qui redémarre", () => {
     useCatalog.getState().toggle("runtime.node");
     walkTo("config");
 
-    // The app closes on the form: the value is written without any step
-    // changing after it.
+    // The app closes on the form, so no step change follows the value.
     useCatalog.getState().setValue("runtime.node", "version", "22");
     await settledDraft();
 
@@ -685,8 +680,7 @@ describe("le brouillon appartient à son serveur", () => {
     await useCatalog.getState().load("srv-1");
     useCatalog.getState().toggle("db.postgres");
 
-    // The same store, loaded on a different machine: its selection isn't
-    // the one this onboarding expects.
+    // Loaded for another machine, so this selection is not the one the onboarding expects.
     await useCatalog.getState().load("srv-2");
     useCatalog.getState().toggle("runtime.node");
     walkTo("config");

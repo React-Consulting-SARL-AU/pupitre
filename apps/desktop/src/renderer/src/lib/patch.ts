@@ -1,16 +1,6 @@
-/**
- * A patch, turned into rows with their line numbers.
- *
- * The numbers come from the hunk headers — the only place git states them — and
- * are then incremented per row. Anything before the first hunk is the file
- * header: kept, dimmed, because "new file mode" and "rename from" are exactly
- * what you want to read on those files.
- */
-
 export interface PatchRow {
   kind: "meta" | "hunk" | "add" | "remove" | "context";
   text: string;
-  /** Line numbers on each side, when the row has one. */
   before: number | null;
   after: number | null;
 }
@@ -63,7 +53,7 @@ export function parsePatch(patch: string): PatchRow[] {
         text: line.slice(1),
       });
     } else if (line.startsWith("\\")) {
-      // "\ No newline at end of file" — git's own note, not a line of content.
+      // "\ No newline at end of file" is git's own note, not a line of content.
       rows.push(meta(line));
     } else if (line.length > 0 || rows.length > 0) {
       rows.push({

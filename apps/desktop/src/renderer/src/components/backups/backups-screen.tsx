@@ -18,18 +18,9 @@ import { BackupsSetup } from "./backups-setup";
 import { BackupsStatus } from "./backups-status";
 import { type BackupsTab, BackupsTabs } from "./backups-tabs";
 
-/** A scheduled backup starts on its own: the state is read again while the page is open. */
+// A scheduled backup starts on its own, so the state is re-read while the page is open.
 const STATUS_POLL_MS = 10_000;
 
-/**
- * A server's backups.
- *
- * A server without backups yet walks a setup, one question at a time. Once
- * they are on, the page is a column of tabs: the dashboard — a backup under
- * way, the last one, the next, and every backup to go back to — then the
- * frequency, the content and the destination, each its own pane of
- * `core.backup`'s settings.
- */
 export function BackupsScreen({
   serverId,
   serverName,
@@ -37,7 +28,6 @@ export function BackupsScreen({
 }: {
   serverId: string;
   serverName?: string;
-  /** The modules the snapshot lists, for what Docker leaves out. */
   installed: readonly string[];
 }) {
   const t = useTranslations();
@@ -93,8 +83,7 @@ export function BackupsScreen({
     verifying
   );
 
-  // The dialog has done its part once the passphrase is known good: the
-  // revert goes on on the dashboard, and nothing typed in it is kept.
+  // Once the passphrase is accepted the revert goes on in the overview and nothing typed is kept.
   useEffect(() => {
     if (reverting) {
       setAsking(null);

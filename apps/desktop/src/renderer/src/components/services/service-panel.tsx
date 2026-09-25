@@ -30,19 +30,6 @@ import { ServiceRemoval } from "./service-removal";
 import { ServiceRemovalOutcome } from "./service-removal-outcome";
 import { ServiceRoutes } from "./service-routes";
 
-/**
- * One service, day to day.
- *
- * Everything on this page is the agent's answer for this module: its state, its
- * port, the labels of its credentials, and what a removal would cost according
- * to its own manifest. The app adds the masks, the confirmation, and the `ssh`
- * that brings its port here.
- *
- * Every service reads in the same order, and a section a module has nothing
- * for is not drawn: the account it works as, the unit's gestures, what opens
- * it, what it was told, what only a database or a tunnel adds, its journal,
- * and the port brought to this computer.
- */
 export function ServicePanel({
   serverId,
   serverName,
@@ -56,10 +43,8 @@ export function ServicePanel({
   serverId: string;
   serverName: string | null;
   moduleId: string;
-  /** The manifest this server declares for the module, when it declares one. */
   manifest: Manifest | null;
   installed: readonly Manifest[];
-  /** The catalogue is refused for the whole server, not lost for this module. */
   catalogHeld?: boolean;
   onBack: () => void;
   onReloadCatalog?: () => void;
@@ -78,21 +63,19 @@ export function ServicePanel({
   const { open } = store;
   const picksZone = manifest?.connection === "cloudflare" && zonesConnected;
 
-  // The domain of a tunnel is picked among the account's zones: they are read
-  // once the panel knows the module publishes through that account.
   useEffect(() => {
     if (picksZone) {
       loadZones();
     }
   }, [picksZone, loadZones]);
 
-  // The manifest is read through a ref: a catalogue re-read hands a new object
-  // for the same module, and reopening the form on it would drop what was typed.
+  // A catalogue re-read hands a new manifest object; reopening on it would drop typed values.
   const held = useRef(manifest);
+
   held.current = manifest;
+
   const manifestId = manifest?.id ?? null;
 
-  // Leaving the page is enough to drop the values, whichever way it is left.
   // biome-ignore lint/correctness/useExhaustiveDependencies: the form reopens when the module or its manifest's identity changes, not on every object the catalogue hands
   useEffect(() => {
     open(serverId, moduleId, held.current);
@@ -123,8 +106,6 @@ export function ServicePanel({
   const ready = detail.status === "ready" && detail.moduleId === moduleId;
   const name = ready ? detail.detail.name : (manifest?.name ?? moduleId);
 
-  // The frame stands before the agent answers: the name, the way back and the
-  // reread do not move while the module is being read, or when it was not.
   const frame = {
     actions: (
       <>

@@ -4,10 +4,6 @@ import type { ReactElement, ReactNode } from "react";
 const OPEN_DELAY_MS = 150;
 const GROUP_TIMEOUT_MS = 500;
 
-/**
- * The delay every bubble shares: short, and skipped while the pointer walks
- * from one control to the next, so a row of icons reads without waiting.
- */
 export function TooltipProvider({ children }: { children: ReactNode }) {
   return (
     <Base.Provider delay={OPEN_DELAY_MS} timeout={GROUP_TIMEOUT_MS}>
@@ -16,19 +12,13 @@ export function TooltipProvider({ children }: { children: ReactNode }) {
   );
 }
 
-/**
- * The bubble that names a control on hover and on focus.
- *
- * Electron on macOS stopped showing the platform's own `title` bubble with
- * Chromium 140 (electron/electron issue 49843), so the name is drawn by the app,
- * through a portal: it escapes the `overflow-hidden` panels the control sits
- * in. The child must take a ref and spread props, as every button here does.
- */
+// Electron on macOS no longer shows native `title` bubbles since Chromium 140 (electron/electron issue 49843).
 export function Tooltip({
   label,
   children,
 }: {
   label: string;
+  /** Must take a ref and spread the props it receives. */
   children: ReactElement<Record<string, unknown>>;
 }) {
   return (

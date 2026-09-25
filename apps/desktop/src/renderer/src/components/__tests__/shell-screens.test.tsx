@@ -13,11 +13,6 @@ import { ServerLinkNotice } from "../shell/server-link-notice";
 import { ServerRestrictedNotice } from "../shell/server-restricted-notice";
 import { ServerUnreadyScreen } from "../shell/server-unready-screen";
 
-/**
- * The shell around the screens: the sidebar, the two states of a server, and
- * the two pages that hang off the menu rather than off a project.
- */
-
 const NOOP = () => undefined;
 
 const SERVER: Server = {
@@ -270,7 +265,6 @@ describe("le mode restreint de l'agent", () => {
     }
   });
 
-  /** The account is valid, the server isn't: the repair is offered. */
   it("offre le ré-enrôlement à côté de la console", () => {
     const html = restricted();
 
@@ -287,10 +281,7 @@ describe("le mode restreint de l'agent", () => {
     expect(html).toContain("disabled");
   });
 
-  /**
-   * Without an entitlement the platform would refuse the token, so the app does
-   * not offer a gesture that would repair nothing. The console stays available.
-   */
+  // Without an entitlement the platform would refuse the token, so a repair would fix nothing.
   it("n'offre pas la réparation quand le compte n'a pas de droit d'usage", () => {
     const html = restricted({ repairable: false });
 
@@ -362,7 +353,6 @@ describe("qui peut réparer un serveur restreint", () => {
     }
   });
 
-  /** A development build with no known device: nothing to sign, nothing to repair. */
   it("ne laisse pas réparer sans appareil connu de la console", () => {
     expect(
       repairable(

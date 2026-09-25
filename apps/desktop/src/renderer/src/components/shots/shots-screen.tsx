@@ -16,7 +16,6 @@ import { useEffect } from "react";
 import { ShotTile } from "./shot-tile";
 import { ShotViewer } from "./shot-viewer";
 
-/** The day a group is filed under, said in the reader's language. */
 function dayLabel(day: string): string {
   const parsed = Date.parse(`${day}T12:00:00Z`);
 
@@ -31,15 +30,6 @@ function dayLabel(day: string): string {
       }).format(parsed);
 }
 
-/**
- * The gallery of a server, listed and read from here.
- *
- * The files stay where the agent put them: what the app brings over is the
- * bytes of the captures on screen, checked against the fingerprint that came
- * with them, grouped by the day folder the agent filed them under. The
- * server's own gallery address is still there for a browser, but the app no
- * longer needs it to show an image.
- */
 export function ShotsScreen({
   serverId,
   serverName,

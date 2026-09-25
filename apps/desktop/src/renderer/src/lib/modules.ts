@@ -5,15 +5,6 @@ import type {
 import { editorsFor, type RemoteEditor } from "@shared/editors";
 import type { TerminalAgent } from "@shared/terminals";
 
-/**
- * What the machine offers, read off the modules the agent installed.
- *
- * The app holds no list of what a server can do: `snapshot.services` names the
- * modules that are actually there, and a button exists only when its module
- * does. A machine without `ai.claude` shows no Claude tab, and one without an
- * editor module shows no editor.
- */
-
 const AGENT_MODULES: Record<string, TerminalAgent> = {
   "ai.claude": "claude",
   "ai.codex": "codex",
@@ -24,10 +15,7 @@ const AGENT_MODULES: Record<string, TerminalAgent> = {
   "ai.hermes": "hermes",
 };
 
-/**
- * Only the package managers whose runtime a catalogue module actually names.
- * Lending Bun the Node mark would name the wrong product, so it gets none.
- */
+// Bun gets no module: lending it Node's mark would name the wrong product.
 const RUNTIME_MODULES: Partial<Record<PackageManager, string>> = {
   gradle: "runtime.java",
   npm: "runtime.node",
@@ -43,7 +31,6 @@ export function installedModules(services: readonly Service[]): string[] {
   return services.map((service) => service.id);
 }
 
-/** An agent and the module that put it on the machine, as the snapshot names it. */
 export interface AgentModule {
   agent: TerminalAgent;
   moduleId: string;

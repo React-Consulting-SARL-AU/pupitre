@@ -10,7 +10,6 @@ import type { Translate } from "@renderer/i18n/i18n";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { databaseLabel, ENGINE_NAMES, excluding } from "@renderer/lib/backups";
 
-/** An exclusion that names a database no longer listed: named as well as its item allows. */
 function goneLabel(t: Translate, item: string): string {
   const [engine, ...rest] = item.split(":");
 
@@ -19,11 +18,6 @@ function goneLabel(t: Translate, item: string): string {
     : item;
 }
 
-/**
- * The databases a backup carries: the whole category, then each database the
- * server holds, ticked unless the settings leave it out. An exclusion naming a
- * database that is gone stays, unticked, so it holds if the database returns.
- */
 export function BackupsContentDatabases({
   label,
   carried,
@@ -36,7 +30,6 @@ export function BackupsContentDatabases({
 }: {
   label: string;
   carried: boolean;
-  /** Null until the server has said what it holds. */
   databases: BackupContentsResult["databases"] | null;
   unreadable: BackupContentsResult["unreadable"];
   excluded: readonly string[];
@@ -47,6 +40,7 @@ export function BackupsContentDatabases({
   const t = useTranslations();
 
   const listed = new Set((databases ?? []).map((one) => one.item));
+  // Exclusions of vanished databases stay listed so they still hold if the database returns.
   const gone = excluded.filter((item) => !listed.has(item));
 
   return (

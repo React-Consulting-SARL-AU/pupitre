@@ -10,13 +10,6 @@ import { AccountSignInCard } from "./account-sign-in-card";
 import { AccountSubscriptionCard } from "./account-subscription-card";
 import { AccountUsageNotice } from "./account-usage-notice";
 
-/**
- * The account section of the settings.
- *
- * It shows the right to work first, because that is what decides whether the
- * app can install anything, and the identity second. Nothing here holds a
- * token: the main process answers with a state, and the state is what is drawn.
- */
 export function AccountPanel() {
   const t = useTranslations();
 

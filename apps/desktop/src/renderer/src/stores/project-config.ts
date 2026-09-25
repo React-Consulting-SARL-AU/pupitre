@@ -33,23 +33,10 @@ import {
 import { useSnapshot } from "./snapshot";
 import { useTunnel } from "./tunnel";
 
-/**
- * The configuration of a declared project, reopened.
- *
- * It is the same form as the add, filled from the project the snapshot gave —
- * the branch, and each process with its command, its install line, its folder,
- * its ports and their names on the web — minus what cannot change without
- * removing the project: the source and the name. What it sends is the whole
- * list of processes, because the screen sends what it shows. A changed
- * command restarts its process, a name on the web taken out stops answering:
- * both are said before the button is pressed, not after.
- */
-
 export interface ConfigDraft {
   branch: string;
-  /** Whether the project starts with the server. */
   boot: boolean;
-  /** The runtime version pinned by tool; a tool absent runs at the machine's default. */
+  /** A tool left out runs at the machine's default version. */
   runtimes: ProjectRuntimes;
   processes: ProcessDraft[];
 }
@@ -57,11 +44,7 @@ export interface ConfigDraft {
 export type ConfigState =
   | { status: "idle" }
   | { status: "saving"; name: string }
-  /**
-   * `sync` is what the exposure refused after the agent had taken the patch:
-   * the project is saved, its names on the web are not all written. `warnings`
-   * are the agent's own, about what it refused after the row was written.
-   */
+  // `sync`: the project is saved but the exposure refused to write its hostnames.
   | {
       status: "saved";
       name: string;
@@ -72,7 +55,6 @@ export type ConfigState =
   | { status: "failed"; name: string; error: AgentError };
 
 interface ProjectConfigStore {
-  /** The project the draft was opened from, or nothing. */
   project: Project | null;
   draft: ConfigDraft;
   exposure: boolean;
@@ -86,7 +68,7 @@ interface ProjectConfigStore {
   ) => void;
   setBranch: (value: string) => void;
   setBoot: (value: boolean) => void;
-  /** An empty version takes the pin off: the tool runs at the machine's default. */
+  /** An empty version unpins the tool. */
   setRuntime: (tool: RuntimeTool, version: string) => void;
   setProcessId: (process: number, value: string) => void;
   setProcessDir: (process: number, value: string) => void;
@@ -102,7 +84,6 @@ interface ProjectConfigStore {
   removeRow: (process: number, row: number) => void;
   addProcess: () => void;
   removeProcess: (process: number) => void;
-  /** Sends the patch, syncs the exposure when a name changed, then reads the snapshot again. */
   save: (serverId: string) => Promise<void>;
   close: () => void;
 
@@ -110,9 +91,7 @@ interface ProjectConfigStore {
   processProblem: (process: number) => ProcessProblem | null;
   rowProblems: (process: number) => (RowProblem | null)[];
   ready: () => boolean;
-  /** The processes whose command or folder differs from the project's: saving restarts those that run. */
   restarts: () => string[];
-  /** The names on the web the project holds today and the draft no longer names: they stop answering. */
   dropped: () => string[];
   changed: () => boolean;
 }
@@ -325,7 +304,7 @@ export const useProjectConfig = create<ProjectConfigStore>((set, get) => {
       ]);
     },
 
-    /** A project always has a process: the last one cannot go. */
+    // A project always keeps at least one process.
     removeProcess(process) {
       const { processes } = get().draft;
 
@@ -397,12 +376,7 @@ export const useProjectConfig = create<ProjectConfigStore>((set, get) => {
       });
     },
 
-    /**
-     * The whole list of processes, and the branch when it differs.
-     *
-     * The branch travels only when set — the registry keeps a branch or none,
-     * and an empty field means "leave it".
-     */
+    // An empty branch field means "leave it", never "clear it".
     patch() {
       const { draft, project, exposure } = get();
       const branch = draft.branch.trim();

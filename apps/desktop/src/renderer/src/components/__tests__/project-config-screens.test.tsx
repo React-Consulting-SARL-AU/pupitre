@@ -13,11 +13,6 @@ import {
 import type { ConfigState } from "../../stores/project-config";
 import { ProjectConfigPanel } from "../projects/project-config-panel";
 
-/**
- * What the configuration tab shows: the same form as the add, minus the source
- * and the name, and what the save will do said before the button.
- */
-
 const PROJECT = SNAPSHOT.projects[0];
 
 const EDIT = {
@@ -124,7 +119,7 @@ describe("la configuration d'un projet", () => {
     expect(text(html)).toContain("Enregistrer la configuration");
   });
 
-  /** The first choice is whether the project follows the server; a reader who only came for that never scrolls. */
+  // A reader who only came to choose whether the project boots with the server never scrolls.
   it("demande d'abord si le projet démarre avec le serveur, avant la branche", () => {
     const html = panel({ status: "idle" });
 
@@ -134,7 +129,6 @@ describe("la configuration d'un projet", () => {
     );
   });
 
-  /** A process the reader did not come for folds under one line saying what it is; one the registry would refuse opens on its refusal. */
   it("replie chaque processus sous son résumé, et ouvre celui qui serait refusé", () => {
     const folded = panel({ status: "idle" });
     const refused = panel({ status: "idle" }, { processProblems: ["cmd"] });
@@ -148,7 +142,6 @@ describe("la configuration d'un projet", () => {
     expect(refused).toMatch(/data-open=""[^>]*data-process="0"/);
   });
 
-  /** Each runtime the server holds at several majors gets a select: the default first, named, then the majors; a server without a runtime shows nothing of it. */
   it("propose une version par runtime installé, le défaut nommé, rien sans runtime", async () => {
     const html = panel({ status: "idle" }, { runtimes: { node: "22" } });
     const none = panel({ status: "idle" }, { services: [] });

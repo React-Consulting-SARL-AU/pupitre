@@ -2,7 +2,6 @@ import type { SearchQuery } from "@codemirror/search";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { Matches } from "@renderer/lib/editor-search";
 
-/** How many matches the query has, and which one the cursor is on. */
 export function FileSearchCount({
   matches,
   query,

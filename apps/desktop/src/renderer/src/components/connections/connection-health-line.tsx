@@ -5,13 +5,6 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { since } from "@renderer/lib/format";
 import type { ConnectionHealth } from "@renderer/stores/connections";
 
-/**
- * What the provider answered when asked again about a held token.
- *
- * A token revoked upstream reads here, in the provider's own words, rather
- * than as a failed install three screens later. A provider that cannot be
- * asked says so instead of pretending to have checked.
- */
 export function ConnectionHealthLine({ health }: { health: ConnectionHealth }) {
   const t = useTranslations();
 

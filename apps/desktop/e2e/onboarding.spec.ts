@@ -6,10 +6,6 @@ import { answerOnboarding, reachConfig } from "./harness/onboarding";
 const INSTALL = /^Installer$/;
 const ADVANCED = /^Réglages avancés/;
 
-/**
- * The whole sequence, from a machine nobody has touched to a server the app
- * drives. The guide claimed this scenario existed for a while; it did not.
- */
 test.describe("onboarding", () => {
   let running: Running;
 

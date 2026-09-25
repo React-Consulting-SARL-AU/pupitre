@@ -16,16 +16,6 @@ import {
   isRequired,
 } from "./config-field-control";
 
-/**
- * One service's questions, under its own name and logo.
- *
- * What has to be answered is asked first; what the manifest already answered
- * waits behind « Advanced settings », closed — unless one of those settings is
- * refused, in which case it opens on its own so the refusal is read. A service
- * with nothing to decide says so, rather than leaving the reader looking for a
- * question that is not there. What a service needs before its own questions —
- * an account it publishes through — is said above them.
- */
 export function ConfigModuleGroup({
   group,
   values,
@@ -42,22 +32,17 @@ export function ConfigModuleGroup({
   group: FieldGroup;
   values: Record<string, unknown>;
   marks?: Record<string, SecretMark>;
-  /** The secrets the machine already holds, restored from a backup. */
   held?: readonly string[];
-  /** What this service gets wrong, already filtered to what may be shown. */
   problems: readonly FieldProblemView[];
-  /** The connection this service declares, when it declares one. */
   before?: ReactNode;
-  /** Where the service stands in the sequence; said only when there is one. */
   position?: { index: number; total: number };
-  /** The reader just moved here: the heading takes the focus, and says so. */
   focus?: boolean;
-  /** The reader put this service's questions off: nothing of it is asked. */
   deferred?: boolean;
   onDefer?: (later: boolean) => void;
   handlers: FieldHandlers;
 }) {
   const t = useTranslations();
+
   const heading = useRef<HTMLHeadingElement>(null);
   const [advancedOpened, setAdvancedOpened] = useState(false);
 
@@ -178,11 +163,6 @@ export function ConfigModuleGroup({
         </Details>
       ) : null}
 
-      {/*
-        Putting a service off is a decision about this installation, not about
-        the service: it sits at the foot of its own panel, discreet, and never
-        offered for a module the machine cannot do without.
-      */}
       {!(deferred || group.module.mandatory) && onDefer ? (
         <div className="border-line border-t pt-4">
           <Button

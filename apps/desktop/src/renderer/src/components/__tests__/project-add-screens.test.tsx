@@ -19,11 +19,6 @@ import { ProjectAddPanel } from "../projects/project-add-panel";
 import { ProjectAddRepos } from "../projects/project-add-repos";
 import { ProjectAddSteps } from "../projects/project-add-steps";
 
-/**
- * What the new-project screen shows in each of its states. The panel takes
- * everything it draws as a prop: the store above it is tested on its own.
- */
-
 const ROWS: PortRow[] = [
   {
     key: "row-1",
@@ -495,11 +490,7 @@ describe("un projet qui ne démarre pas", () => {
     expect(rendered).not.toContain("Modifier le formulaire");
   });
 
-  /**
-   * A declaration refused — a folder already busy, a name taken — is fixed in
-   * the form, and nothing exists on the server yet: the form must be reachable
-   * with the draft intact, where Cancel would drop it.
-   */
+  // Nothing exists on the server yet: Cancel would drop a draft the reader only has to fix.
   it("offre de revenir au formulaire quand la déclaration est refusée", () => {
     const rendered = text(
       panel({
@@ -518,10 +509,7 @@ describe("un projet qui ne démarre pas", () => {
     expect(rendered).toContain("Réessayer");
   });
 
-  /**
-   * Sources that would not come — a wrong branch, a private repository — left
-   * a declared project behind: the form is reachable too, and names it.
-   */
+  // Failed sources leave a declared project behind, so the way back names it.
   it("offre de revenir au formulaire quand les sources n'ont pas pu venir", () => {
     const rendered = text(
       panel({
@@ -574,7 +562,6 @@ describe("un projet en ligne", () => {
     expect(rendered).toContain('data-outcome="online"');
   });
 
-  /** The machine's own address is shown for what it is; only a name on the web opens from this computer. */
   it("n'offre d'ouvrir qu'une adresse publique", () => {
     const rendered = panel({
       name: "vite-starter",

@@ -1,4 +1,3 @@
-/** Lines added and removed, by their sign as much as by their tone. */
 export function ProjectDiffCount({
   added,
   removed,

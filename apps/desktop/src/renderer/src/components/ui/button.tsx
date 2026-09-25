@@ -24,10 +24,7 @@ const VARIANT: Record<ButtonVariant, string> = {
     "border border-transparent text-ink-2 hover:bg-raised hover:text-ink",
   danger:
     "border border-line-strong text-ink-2 hover:border-danger hover:text-danger",
-  // The one filled colour of the system, and it is spent here: the gesture that
-  // destroys must be the loudest thing on the panel that asks for it, never the
-  // quietest. `base` is white on the light theme and near-black on the dark one,
-  // so the ink stays readable on both reds.
+  // The system's only filled colour; `text-base` stays readable on the red in both themes.
   destructive:
     "border border-danger bg-danger text-base hover:border-danger/80 hover:bg-danger/80",
 };
@@ -40,10 +37,6 @@ const SIZE = {
 const SHARED =
   "clickable inline-flex shrink-0 items-center whitespace-nowrap rounded-full transition-soft";
 
-/**
- * A button that waits is not a button that is off: it keeps its full ink and
- * turns its spinner, and only a control that really cannot be pressed fades.
- */
 function stateClass(waiting: boolean, disabled: boolean): string {
   if (waiting) {
     return "cursor-progress";
@@ -66,18 +59,15 @@ export function Button({
   className = "",
 }: {
   children: ReactNode;
-  /** Answer with the promise of the work started and the button waits on it. */
+  /** Return the work's promise and the button waits on it. */
   onClick?: Gesture;
   variant?: ButtonVariant;
   size?: keyof typeof SIZE;
   icon?: ButtonIcon;
-  /** While it works the button spins in place of its icon, and takes no click. */
   loading?: boolean;
   disabled?: boolean;
   submit?: boolean;
-  /** What the label leaves unsaid, in a bubble on hover. */
   hint?: string;
-  /** The visible label and the item it acts on, for a button repeated on every row. */
   ariaLabel?: string;
   className?: string;
 }) {
@@ -86,6 +76,7 @@ export function Button({
   const waiting = loading || pending;
 
   let glyph: ReactNode = null;
+
   if (waiting) {
     glyph = <Spinner size={14} />;
   } else if (Icon) {

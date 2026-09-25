@@ -4,19 +4,11 @@ import { ArrowLeftRight, FolderGit2, GitBranch, Lock } from "lucide-react";
 import { Button } from "../ui/button";
 import { pushedSince } from "./project-add-repo-row";
 
-/**
- * The repository the reader settled on, read where the list used to be.
- *
- * Once a repository is chosen the list has done its work: what stays is the
- * one line that matters — the name, whether it is private, the branch it
- * opens on — and the way back to the list for a reader who changes their mind.
- */
 export function ProjectAddRepoPicked({
   repo,
   onChange,
 }: {
   repo: GithubRepo;
-  /** Brings the search back, the choice standing until another is made. */
   onChange: () => void;
 }) {
   const t = useTranslations();

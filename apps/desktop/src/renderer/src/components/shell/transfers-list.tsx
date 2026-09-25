@@ -9,13 +9,6 @@ import { IconButton } from "../ui/icon-button";
 import { Label } from "../ui/label";
 import { TransferRow } from "./transfer-row";
 
-/**
- * The transfers drawn: a count of what is moving, a fold, one row each.
- *
- * Nothing shows while the list is empty and nothing was refused. The panel
- * folds on a click and keeps its count, because a dump takes minutes and the
- * reader has gone elsewhere by then.
- */
 export function TransfersList({
   transfers,
   problem,

@@ -6,10 +6,6 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { HardDriveUpload } from "lucide-react";
 import { useRef, useState } from "react";
 
-/**
- * A backup now, and the name it goes by if the reader gives one. Left empty,
- * the backup is known by its date, as a scheduled one is.
- */
 export function BackupsNameDialog({
   open,
   onConfirm,

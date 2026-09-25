@@ -7,15 +7,6 @@ import { since } from "@renderer/lib/format";
 import type { AppUpdateFailure, AppUpdateState } from "@shared/app-update";
 import { RefreshCw, RotateCw } from "lucide-react";
 
-/**
- * Where the next version stands, and the two gestures it takes.
- *
- * A downloaded update used to wait in silence for the next quit: here it asks
- * to be installed. An update that could not be fetched says so, with the way
- * out; a build that does not update itself says that instead of a button that
- * would do nothing.
- */
-
 function checkedLine(state: AppUpdateState, t: Translate): string | null {
   return state.checkedAt
     ? t("settings.about.checked", { since: since(Date.parse(state.checkedAt)) })

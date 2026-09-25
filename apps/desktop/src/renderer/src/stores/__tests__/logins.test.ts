@@ -73,6 +73,7 @@ describe("les comptes des services en marche", () => {
 
   it("montre la réponse précédente pendant qu'il redemande, sauf sur un autre serveur", async () => {
     let asked = 0;
+
     stubPupitre({
       serviceDetail: (_server, moduleId) =>
         new Promise((resolve) => {
@@ -91,12 +92,14 @@ describe("les comptes des services en marche", () => {
     await useLogins.getState().read(SERVER, ["ai.claude"]);
 
     const again = useLogins.getState().read(SERVER, ["ai.claude"]);
+
     expect(useLogins.getState().answers["ai.claude"]).toMatchObject({
       status: "answered",
     });
     await again;
 
     const elsewhere = useLogins.getState().read("srv-2", ["ai.claude"]);
+
     expect(useLogins.getState().answers["ai.claude"]).toEqual({
       status: "asking",
     });
@@ -122,6 +125,7 @@ describe("les comptes des services en marche", () => {
     });
 
     const slow = useLogins.getState().read(SERVER, ["ai.claude"]);
+
     useLogins.getState().forget();
     await slow;
 

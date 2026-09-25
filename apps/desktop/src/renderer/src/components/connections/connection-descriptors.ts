@@ -1,25 +1,17 @@
 import type { ConnectionKind } from "@shared/connections";
 import type { DictionaryKey } from "../../i18n/en";
 
-/**
- * What each account needs said, and where the client goes to get its token.
- *
- * The wording lives in the dictionary like every other phrase; this only names
- * which entry belongs to which provider, and the one page that issues a token.
- * A provider the laptop cannot ask carries `named: false`: the screen then says
- * the token is held rather than naming an account it never learnt.
- */
 export interface ConnectionDescriptor {
   kind: ConnectionKind;
-  /** The module whose brand this account wears, for the logo the row shows. */
+  /** The module id whose logo stands for this account. */
   logo: string;
   title: DictionaryKey;
-  /** What the account is for, when the title and the token's own lines leave it unsaid. */
   intro?: DictionaryKey;
   label: DictionaryKey;
   help: DictionaryKey;
   hint: DictionaryKey;
   url: string;
+  /** False when the provider cannot be asked who the token belongs to. */
   named: boolean;
 }
 

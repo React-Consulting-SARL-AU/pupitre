@@ -5,15 +5,6 @@ import { assertAccessible } from "./harness/accessible";
 import { toggle } from "./harness/controls";
 import { launchPupitre, type Running } from "./harness/launch";
 
-/**
- * The three sections the seventh phase adds to the settings, against the real
- * bridge: the version the build carries, the updater's state as the main
- * process broadcasts it, and the two preferences it keeps in its own file. The
- * harness registers nothing with the system: a login item written here would
- * outlive the suite, and so would a line in the reader's own SSH file — the
- * one the SSH section writes lands in the folder the harness throws away.
- */
-
 const VERSION = (
   JSON.parse(
     readFileSync(new URL("../package.json", import.meta.url), "utf8")
@@ -41,13 +32,12 @@ test.describe("les réglages de l'app", () => {
       "data-app-version",
       VERSION
     );
-    // Built from the working tree, this copy follows no channel.
+    // Built from the working tree, this copy follows no update channel.
     await expect(page.getByText("Pas mise à jour par l'app")).toBeVisible();
     await expect(page.locator('[data-app-update="off"]')).toBeVisible();
 
     await assertAccessible(page, "reglages/a-propos");
 
-    // What the updater would say once a download has landed.
     await app.evaluate(({ BrowserWindow }) => {
       for (const window of BrowserWindow.getAllWindows()) {
         window.webContents.send("app-update:changed", {
@@ -141,6 +131,7 @@ test.describe("les réglages de l'app", () => {
     const userData = await app.evaluate(({ app: electron }) =>
       electron.getPath("userData")
     );
+    // The harness keeps the system SSH file inside the throwaway user folder.
     const file = join(userData, "home", ".ssh", "config");
     const line = await page.locator("[data-ssh-include]").innerText();
 

@@ -10,7 +10,6 @@ export function InstallProgress({
 }: {
   modules: readonly ModuleProgress[];
   nameOf: (moduleId: string) => string;
-  /** A backup or a restore runs through the same rows, in its own words. */
   wording?: ModuleWording;
 }) {
   return (

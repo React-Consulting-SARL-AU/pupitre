@@ -6,12 +6,6 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { usePreferences } from "@renderer/stores/preferences";
 import { useEffect } from "react";
 
-/**
- * Whether a session that waits for the reader may say so outside the window.
- *
- * The main process posts the notification and paints the badge, so it is the
- * one that keeps the answer: the switch asks it and draws what it wrote back.
- */
 export function SettingsNotifications() {
   const t = useTranslations();
 

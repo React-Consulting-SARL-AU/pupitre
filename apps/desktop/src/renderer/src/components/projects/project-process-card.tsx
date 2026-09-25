@@ -19,7 +19,6 @@ import { Select } from "../ui/select";
 import type { PortEdits } from "./project-port-row";
 import { ProjectPorts } from "./project-ports";
 
-/** What the processes section lets the reader change, process by process. */
 export interface ProcessEdits {
   processId: (process: number, value: string) => void;
   processDir: (process: number, value: string) => void;
@@ -37,7 +36,6 @@ export interface ProcessEdits {
   removeProcess: (process: number) => void;
 }
 
-/** The port edits of one process, as its table takes them. */
 function portEditsOf(edit: ProcessEdits, process: number): PortEdits {
   return {
     addRow: () => edit.addRow(process),
@@ -70,7 +68,6 @@ const PROBLEM_TEXT: Record<
   idTaken: "projectAdd.processes.idTaken",
 };
 
-/** One line of what the process is: its ports, each with its name on the web. */
 function portsSummary(draft: ProcessDraft): string {
   return draft.rows
     .map((row) =>
@@ -79,16 +76,6 @@ function portsSummary(draft: ProcessDraft): string {
     .join(" · ");
 }
 
-/**
- * One process of the project: what it is called, the folder it runs from,
- * the manager that installs it, the command that starts it, and its ports.
- *
- * The first one is the main process — its first port decides the project's
- * address — and it cannot go. A refused field says why beneath itself, tied
- * to the control it concerns. Folded, the card is its summary line; it opens
- * on a click, and on its own while a field would be refused — a fold that
- * hid a refusal would leave the reader with a button that does nothing.
- */
 export function ProjectProcessCard({
   index,
   draft,
@@ -105,7 +92,6 @@ export function ProjectProcessCard({
   problem: ProcessProblem | null;
   rowProblems: readonly (RowProblem | null)[];
   exposure: Exposure | null;
-  /** The project's name, which each name on the web is proposed from. */
   placeholder: string;
   removable: boolean;
   folded: boolean;
@@ -119,6 +105,7 @@ export function ProjectProcessCard({
   const field = problem ? PROBLEM_FIELD[problem] : null;
   const problemText = problem ? t(PROBLEM_TEXT[problem]) : undefined;
   const refused = problem !== null || rowProblems.some(Boolean);
+  // A fold hiding a refusal would leave the reader with a submit button that does nothing.
   const open = opened || refused;
   const summary = [draft.dir, draft.cmd].filter(Boolean).join(" · ");
 

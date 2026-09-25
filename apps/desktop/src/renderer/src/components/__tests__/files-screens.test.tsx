@@ -19,11 +19,6 @@ import { FilePreview } from "../files/file-preview";
 import { FileRow } from "../files/file-row";
 import { FileSvgView } from "../files/file-svg-view";
 
-/**
- * What the file browser shows in each of its states. The two panes take
- * everything they draw as props: the store above them is tested on its own.
- */
-
 function entry(
   name: string,
   kind: FileEntry["kind"] = "file",
@@ -443,6 +438,40 @@ describe("le menu d'une entrée", () => {
         `[id="${input?.getAttribute("aria-describedby")}"]`
       )?.textContent
     ).toBe("entrée déjà présente : src/beta.ts");
+
+    view.unmount();
+  });
+
+  it("n'ouvre aucun aperçu d'un tube ou d'une socket : un clic sur le nom ouvre son menu", async () => {
+    const opened: string[] = [];
+    const view = await mount(
+      <FileRow
+        editors={[]}
+        entry={entry("events.fifo", "special", 0)}
+        mode="view"
+        onAct={noop}
+        onCancel={noop}
+        onOpen={() => opened.push("events.fifo")}
+        onRemove={later}
+        onRename={accepted}
+        refusal={null}
+        selected={false}
+      />
+    );
+    const name = [...view.container.querySelectorAll("button")].find(
+      (candidate) => candidate.textContent?.includes("events.fifo")
+    );
+
+    expect(name?.getAttribute("data-tooltip")).toBe("Actions sur events.fifo");
+
+    await view.click(name ?? null);
+
+    const items = [...document.querySelectorAll("[data-action]")].map((item) =>
+      item.getAttribute("data-action")
+    );
+
+    expect(opened).toEqual([]);
+    expect(items).toEqual(["rename", "remove"]);
 
     view.unmount();
   });

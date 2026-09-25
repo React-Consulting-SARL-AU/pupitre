@@ -11,7 +11,6 @@ export const BACKUPS_TABS = [
 
 export type BackupsTab = (typeof BACKUPS_TABS)[number];
 
-/** The panes of backups in place, in a column as the settings hold theirs, and the one open beside them. */
 export function BackupsTabs({
   tab,
   onTab,

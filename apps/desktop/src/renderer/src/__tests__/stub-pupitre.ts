@@ -1,17 +1,7 @@
 import { NO_CONNECTIONS } from "@shared/connections";
 import type { PupitreApi } from "../../../preload";
 
-/**
- * A `window.pupitre` for the length of a test.
- *
- * The stores are never tested against a real agent: what matters here is what
- * they do with the envelope, and an envelope is cheaper to write than a server.
- *
- * The calls below are the ones a step fires on its own — the machine acts when
- * a step is entered, so a test that walks past the agent or the hardening would
- * otherwise have to stub two commands it is not looking at. They answer nothing
- * and change nothing; a test that cares about one of them replaces it.
- */
+// Calls a step fires on its own when entered, stubbed so a test only replaces the ones it looks at.
 const QUIET: Partial<PupitreApi> = {
   checkInstall: () =>
     Promise.resolve({ ok: true, result: { problems: [], warnings: [] } }),
@@ -51,7 +41,7 @@ const QUIET: Partial<PupitreApi> = {
     }),
 };
 
-/** A poll is the same command on another channel, which no store can tell apart. */
+// A poll is the same command on another channel, which no store can tell apart.
 function polling(partial: Partial<PupitreApi>): Partial<PupitreApi> {
   return partial.agentCall && !partial.agentPoll
     ? { agentPoll: partial.agentCall }

@@ -10,7 +10,6 @@ import { choiceOf } from "@renderer/lib/backup-schedule";
 import { dated, weight } from "@renderer/lib/format";
 import type { StatusState } from "@renderer/stores/backups";
 
-/** The interval in the words the settings choose it with. */
 function frequencyLabel(t: Translate, interval: number): string {
   const choice = choiceOf(interval);
 
@@ -19,14 +18,12 @@ function frequencyLabel(t: Translate, interval: number): string {
     : t(`backups.frequency.choice.${choice}`);
 }
 
-/** Where this server's backups stand, in the agent's own words. */
 export function BackupsStatus({
   state,
   docker,
   onRetry,
 }: {
   state: StatusState;
-  /** Docker runs here, and its volumes are not in any backup. */
   docker: boolean;
   onRetry: () => Promise<void>;
 }) {

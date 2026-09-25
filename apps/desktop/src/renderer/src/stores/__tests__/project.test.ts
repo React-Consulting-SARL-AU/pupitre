@@ -23,7 +23,6 @@ function deferred<T>(): Deferred<T> {
   return { promise, resolve };
 }
 
-/** One project's answers, each landing when the test says so. */
 interface Answers {
   branches: Deferred<ProjectBranchesResult>;
   git: Deferred<ProjectGitStatusResult>;
@@ -64,6 +63,7 @@ describe("une réponse tardive d'un projet quitté", () => {
   it("ne se pose pas sur le projet ouvert depuis", async () => {
     const a = project();
     const b = project();
+
     agent({ a, b });
 
     const slow = useProject.getState().open("srv", "a");
@@ -89,6 +89,7 @@ describe("une réponse tardive d'un projet quitté", () => {
 
   it("ne repeint pas l'arbre d'un projet fermé", async () => {
     const a = project();
+
     agent({ a });
 
     useProject.setState({ name: "a" });
@@ -106,6 +107,7 @@ describe("une réponse tardive d'un projet quitté", () => {
 describe("l'ouverture d'un projet", () => {
   it("lit ses branches et son écart, et les garde tels quels", async () => {
     const a = project();
+
     agent({ a });
 
     const opening = useProject.getState().open("srv", "a");

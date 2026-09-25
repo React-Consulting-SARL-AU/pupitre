@@ -35,14 +35,12 @@ function answerFromFixtures(app: ElectronApplication): Promise<void> {
   };
 
   return app.evaluate(({ BrowserWindow, ipcMain }, fixtures: Harness) => {
-    // Every snapshot read is counted, so a scenario waits on the polls it
-    // needs rather than on a clock that guesses at them. The answers stay
-    // reachable, so a scenario that acts on the machine can make the next
-    // read say so.
+    // Snapshot reads are counted so a scenario waits on polls, not on a guessed clock.
     const counted = globalThis as {
       snapshotReads?: number;
       answers?: Record<string, unknown>;
     };
+
     counted.answers = fixtures.answers;
     counted.snapshotReads = 0;
 
@@ -86,19 +84,17 @@ function answerFromFixtures(app: ElectronApplication): Promise<void> {
         order: "same",
       },
     }));
-    // No transfer moves under the harness, and no native dialog opens: a
-    // file picker dropped over the screen would be the one window the suite
-    // is not allowed to show.
+
+    // A native file picker would be the one window the suite must never show.
     answer("transfer:list", () => ({ revision: 0, transfers: [] }));
     answer("transfer:pick-upload", () => []);
     answer("transfer:pick-save", () => null);
     answer("transfer:pick-folder", () => null);
-    // A capture saved on the disk goes through the same dialog; here the
-    // write is recorded rather than made, so a scenario reads what would have
-    // landed, and where.
+
     const saves = globalThis as {
       savedShots?: { path: unknown; bytes: number }[];
     };
+
     saves.savedShots = [];
     answer("shots:save", (path: unknown, bytes: unknown) => {
       saves.savedShots?.push({
@@ -108,15 +104,13 @@ function answerFromFixtures(app: ElectronApplication): Promise<void> {
 
       return { ok: true, result: { path } };
     });
-    // A followed journal and a database shell would open the agent's channel:
-    // the journal answers three lines and closes, the shell names a tab. The
-    // answer waits a beat, as a real follow does: an answer sent on the heels
-    // of its events overtakes them, and the page stops listening on it.
+
     answer("service:forwards", () => []);
     answer("service:db-shell", () => ({
       ok: true,
       result: { id: "db-e2e", session: "db-postgres-1" },
     }));
+
     ipcMain.removeHandler("service:logs");
     ipcMain.handle("service:logs", async (event, token: unknown) => {
       for (const line of [
@@ -127,6 +121,7 @@ function answerFromFixtures(app: ElectronApplication): Promise<void> {
         event.sender.send("service:log-line", { line, token });
       }
 
+      // An answer sent on the heels of its events overtakes them, and the page stops listening.
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       return { ok: true, result: { lines: [] } };
@@ -153,15 +148,13 @@ function answerFromFixtures(app: ElectronApplication): Promise<void> {
       return { ok: true, result };
     });
 
-    // The content size, not the window size: a title bar of a few points would
-    // put every capture at the mercy of the machine taking it.
+    // Content size, not window size: the title bar height varies with the machine.
     for (const window of BrowserWindow.getAllWindows()) {
       window.setContentSize(fixtures.width, fixtures.height);
     }
   }, harness);
 }
 
-/** What the window asked the harness to write on the disk, in order. */
 export function savedShots(
   app: ElectronApplication
 ): Promise<{ path: unknown; bytes: number }[]> {
@@ -172,23 +165,19 @@ export function savedShots(
   );
 }
 
-/** How many times the window has asked the harness for `snapshot`. */
 export function snapshotReads(app: ElectronApplication): Promise<number> {
   return app.evaluate(
     () => (globalThis as { snapshotReads?: number }).snapshotReads ?? 0
   );
 }
 
-// The real window and the real bridge; only the SSH channel is replaced, and
-// the throwaway user folder keeps this machine's own configuration out of it.
 export async function launchPupitre(): Promise<Running> {
+  // A throwaway user folder keeps this machine's own configuration out.
   const userData = mkdtempSync(join(tmpdir(), "pupitre-e2e-"));
 
   const app = await electron.launch({
     args: [ENTRY, `--user-data-dir=${userData}`],
-    // The app stays out of the way: no Dock icon, never the active application,
-    // and a window shown without being focused. It is still drawn, so the
-    // captures do not change.
+    // Keeps the app off the Dock and unfocused; the window is still drawn for captures.
     env: { ...process.env, PUPITRE_E2E: "1" },
   });
 
@@ -196,8 +185,7 @@ export async function launchPupitre(): Promise<Running> {
 
   await answerFromFixtures(app);
 
-  // The scenarios and the reference captures are written in French; pin the
-  // language so the machine's own locale cannot change what the window says.
+  // Pinned to French so the machine's locale cannot change what the window says.
   await page.evaluate(() => {
     try {
       window.localStorage.setItem(
@@ -209,8 +197,7 @@ export async function launchPupitre(): Promise<Running> {
     }
   });
 
-  // What the window read on the way up came from the real channels; one reload
-  // puts it on the fixtures.
+  // The first load read the real channels; reload onto the fixtures.
   await page.reload();
   await page.evaluate(() => document.fonts.ready);
 

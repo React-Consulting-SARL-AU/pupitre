@@ -32,25 +32,15 @@ import { SidebarEntry } from "./sidebar-entry";
 import { SidebarGroup } from "./sidebar-group";
 import { TransfersPanel } from "./transfers-panel";
 
-/**
- * The three planes of the menu: the group caption, the entries, the active one.
- *
- * Everything listed here comes from the snapshot the agent just answered — the
- * projects, their states, their memory. The app adds the terminals it opened
- * itself, and nothing else.
- */
-
 interface Props {
   view: View;
   server: Server | null;
-  /** Every server this computer knows, for the switch at the head. */
   servers: readonly Server[];
   onSwitchServer: (id: string) => void;
   projects: readonly Project[];
   selection: string | null;
-  /** The server's own terminals; a project's live on its page. */
+  /** Server-level terminals only; a project's terminals live on its page. */
   terminals: readonly Terminal[];
-  /** Every session, to flag the agents of a project that is not open. */
   allTerminals: readonly Terminal[];
   states: Record<string, AgentState>;
   activeTerminal: string | null;

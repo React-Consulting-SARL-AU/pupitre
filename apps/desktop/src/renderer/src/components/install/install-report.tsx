@@ -8,14 +8,6 @@ import { Details } from "../ui/details";
 import { Panel } from "../ui/panel";
 import { StatusDot } from "../ui/status-dot";
 
-/**
- * What the agent concluded, and what can still be done about it.
- *
- * `failed` and `warned` are its own lists, printed in its own order. A module
- * that failed says so in plain words, says what it means for the reader, and
- * keeps the agent's own line and the repair command under Details; its button
- * runs `install` again for it alone. The way out is the bar the screen ends on.
- */
 export function InstallReport({
   result,
   modules,

@@ -1,6 +1,5 @@
 import { Label } from "../ui/label";
 
-/** One of the two fingerprints, under the word that says whose it is. */
 export function HostKeyFingerprint({
   label,
   value,

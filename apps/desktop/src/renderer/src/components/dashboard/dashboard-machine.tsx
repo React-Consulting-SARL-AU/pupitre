@@ -20,16 +20,6 @@ const LOW_RAM_MB = 1024;
 
 const LOW_DISK_SHARE = 0.9;
 
-/**
- * The four figures that decide whether the machine can take one more thing.
- *
- * They come from `snapshot.machine`, as the agent measured them. There is no
- * processor percentage in the protocol — the load average is what a Unix
- * machine actually reports — so it is the load, divided by the cores, that says
- * whether the machine is keeping up. A figure past its line tints its gauge
- * and says what to do: a project to stop when memory or the processor is
- * short, sessions to clean when the disk is, and a terminal in every case.
- */
 export function DashboardMachine({
   machine,
   projectsRam,
@@ -42,11 +32,9 @@ export function DashboardMachine({
   machine: Machine;
   projectsRam: number;
   projectCount: number;
-  /** How many projects are up: none, and stopping one is not a remedy. */
   runningProjects?: number;
-  /** Takes the reader to the projects, where one is stopped by its own button. */
   onStopProject?: () => void;
-  /** Answer with the promise of the cleaning and the button waits on it. */
+  /** Return the cleaning's promise so the button stays pending on it. */
   onCleanSessions?: () => unknown;
   onOpenTerminal?: () => void;
 }) {
@@ -54,6 +42,7 @@ export function DashboardMachine({
 
   const free = machine.ram_total_mb - machine.ram_used_mb;
   const load = machine.load[0];
+  // The protocol has no CPU percentage: load per core says whether the machine keeps up.
   const perCore = load / machine.cores;
   const usedDisk = machine.disk_total_gb - machine.disk_free_gb;
 
