@@ -37,6 +37,13 @@ const SIZE = {
 const SHARED =
   "clickable inline-flex shrink-0 items-center whitespace-nowrap rounded-full transition-soft";
 
+export function buttonClass(
+  variant: ButtonVariant = "default",
+  size: keyof typeof SIZE = "md"
+): string {
+  return `${SHARED} ${VARIANT[variant]} ${SIZE[size]}`;
+}
+
 function stateClass(waiting: boolean, disabled: boolean): string {
   if (waiting) {
     return "cursor-progress";
@@ -87,7 +94,7 @@ export function Button({
     <button
       aria-busy={waiting}
       aria-label={ariaLabel}
-      className={`${SHARED} ${VARIANT[variant]} ${SIZE[size]} ${stateClass(waiting, disabled)} ${className}`}
+      className={`${buttonClass(variant, size)} ${stateClass(waiting, disabled)} ${className}`}
       disabled={disabled || waiting}
       onClick={click}
       type={submit ? "submit" : "button"}

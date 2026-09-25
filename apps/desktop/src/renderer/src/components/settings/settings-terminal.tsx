@@ -6,6 +6,7 @@ import { Section } from "@renderer/components/ui/section";
 import { Select } from "@renderer/components/ui/select";
 import { SwitchLine } from "@renderer/components/ui/switch";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import { count } from "@renderer/lib/format";
 import {
   DEFAULT_TERMINAL_SETTINGS,
   FONT_SIZE_MAX,
@@ -100,8 +101,8 @@ export function SettingsTerminal() {
 
           <Field
             help={t("settings.terminal.scrollback.help", {
-              max: SCROLLBACK_MAX,
-              min: SCROLLBACK_MIN,
+              max: count(SCROLLBACK_MAX),
+              min: count(SCROLLBACK_MIN),
             })}
             label={t("settings.terminal.scrollback.label")}
             name="settings.terminal.scrollback"

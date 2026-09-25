@@ -16,6 +16,10 @@ export function decimal(value: number, digits = 1): string {
   return currentLocale() === "fr" ? fixed.replace(".", ",") : fixed;
 }
 
+export function count(value: number): string {
+  return new Intl.NumberFormat(currentLocale()).format(value);
+}
+
 export function memory(mb: number | undefined): string {
   if (!mb) {
     return EMPTY;

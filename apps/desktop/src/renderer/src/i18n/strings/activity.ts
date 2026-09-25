@@ -23,7 +23,7 @@ export const activity = {
     "activity.stop": "Stop",
     "activity.clean.question":
       "Sessions idle for a long time are stopped along with what runs in them, with no way back.",
-    "activity.clean.action": "Stop the ones that linger",
+    "activity.clean.action": "Stop idle sessions",
   },
   fr: {
     "activity.title": "Processus et sessions",
@@ -49,6 +49,6 @@ export const activity = {
     "activity.stop": "Arrêter",
     "activity.clean.question":
       "Les sessions inactives depuis longtemps sont arrêtées avec ce qui y tourne, sans retour possible.",
-    "activity.clean.action": "Arrêter celles qui traînent",
+    "activity.clean.action": "Arrêter les sessions inactives",
   },
 } as const;

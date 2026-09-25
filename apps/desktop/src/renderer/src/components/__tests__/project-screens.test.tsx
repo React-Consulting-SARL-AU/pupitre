@@ -318,6 +318,30 @@ describe("les adresses d'un projet", () => {
     expect(bare).toContain('data-addresses="1"');
     expect(bare).toContain("127.0.0.1:3100");
   });
+
+  it("n'offrent d'ouvrir un nom sur le web que tant que son processus tourne", () => {
+    const online = renderToStaticMarkup(
+      <ProjectAddresses onPublish={NOOP} project={PROJECT} />
+    );
+    const halted = renderToStaticMarkup(
+      <ProjectAddresses
+        onPublish={NOOP}
+        project={{
+          ...PROJECT,
+          processes: PROJECT.processes.map((process) => ({
+            ...process,
+            state: "stopped" as const,
+          })),
+          state: "stopped",
+        }}
+      />
+    );
+
+    expect(online).toContain('data-tooltip="Ouvrir flyleaf.example.org"');
+    expect(halted).toContain("flyleaf.example.org");
+    expect(halted).toContain('data-published="true"');
+    expect(halted).not.toContain("Ouvrir ");
+  });
 });
 
 describe("le diff d'un projet", () => {

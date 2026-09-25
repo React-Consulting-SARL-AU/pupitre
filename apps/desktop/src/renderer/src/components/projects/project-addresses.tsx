@@ -4,6 +4,8 @@ import { IconButton } from "@renderer/components/ui/icon-button";
 import { Panel } from "@renderer/components/ui/panel";
 import { Section } from "@renderer/components/ui/section";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import { routeLabel } from "@renderer/lib/project-addresses";
+import { isRunning } from "@renderer/lib/project-state";
 import { Check, Copy, ExternalLink, Plus } from "lucide-react";
 import { useState } from "react";
 
@@ -13,11 +15,12 @@ interface Line {
   label: string;
   host: string;
   port: number;
+  live: boolean;
   hostname?: string;
 }
 
 function linesOf(project: Project, mainLabel: string): Line[] {
-  const several = project.processes.length > 1;
+  const count = project.processes.length;
 
   return project.processes.flatMap((process) => {
     const routes =
@@ -27,7 +30,8 @@ function linesOf(project: Project, mainLabel: string): Line[] {
 
     return routes.map((route) => ({
       host: process.host,
-      label: several ? `${process.id}/${route.label}` : route.label,
+      label: routeLabel(count, process.id, route.label),
+      live: isRunning(process.state),
       port: route.port,
       ...("hostname" in route && route.hostname
         ? { hostname: route.hostname }
@@ -72,6 +76,7 @@ export function ProjectAddresses({
       >
         {lines.map((route) => {
           const url = route.hostname ? `https://${route.hostname}` : null;
+          const openable = url !== null && route.live;
           const shown = url
             ? url.replace("https://", "")
             : `${route.host}:${route.port}`;
@@ -86,7 +91,7 @@ export function ProjectAddresses({
                 {route.label}
               </span>
 
-              {url ? (
+              {openable ? (
                 <button
                   className="min-w-0 flex-1 truncate text-left font-data text-control text-ink hover:underline"
                   onClick={() => window.pupitre.openUrl(url)}
@@ -100,7 +105,7 @@ export function ProjectAddresses({
                 </span>
               )}
 
-              {url ? (
+              {openable ? (
                 <IconButton
                   icon={ExternalLink}
                   label={t("project.addresses.open", { hostname: shown })}

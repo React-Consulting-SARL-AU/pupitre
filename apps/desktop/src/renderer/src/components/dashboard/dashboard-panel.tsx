@@ -96,22 +96,26 @@ export function DashboardPanel({
           <Button icon={FolderPlus} onClick={onAddProject} variant="inverse">
             {t("dashboard.panel.newProject")}
           </Button>
-          <Button
-            disabled={busy !== null}
-            icon={Play}
-            onClick={() => onAct("project.up", "all")}
-          >
-            {t("dashboard.panel.startAll")}
-          </Button>
-          <ConfirmButton
-            confirmLabel={t("dashboard.panel.stopAll")}
-            disabled={busy !== null}
-            icon={Square}
-            onConfirm={() => onAct("project.down", "all")}
-            question={t("dashboard.panel.stopAllQuestion")}
-          >
-            {t("dashboard.panel.stopAll")}
-          </ConfirmButton>
+          {projects.length > 0 ? (
+            <>
+              <Button
+                disabled={busy !== null || up.length === projects.length}
+                icon={Play}
+                onClick={() => onAct("project.up", "all")}
+              >
+                {t("dashboard.panel.startAll")}
+              </Button>
+              <ConfirmButton
+                confirmLabel={t("dashboard.panel.stopAll")}
+                disabled={busy !== null || up.length === 0}
+                icon={Square}
+                onConfirm={() => onAct("project.down", "all")}
+                question={t("dashboard.panel.stopAllQuestion")}
+              >
+                {t("dashboard.panel.stopAll")}
+              </ConfirmButton>
+            </>
+          ) : null}
           <span aria-hidden="true" className="mx-1 h-5 w-px bg-line" />
           <ConfirmButton
             confirmLabel={t("dashboard.panel.reboot")}
@@ -160,15 +164,6 @@ export function DashboardPanel({
         />
       </Section>
 
-      <Section name="services" title={t("dashboard.panel.services")}>
-        <DashboardServices
-          accounts={accounts}
-          onAdd={onAddService}
-          onOpen={onOpenService}
-          services={snapshot.services}
-        />
-      </Section>
-
       <Section
         name="projects"
         ref={projectsHeading}
@@ -199,6 +194,15 @@ export function DashboardPanel({
             ))}
           </div>
         )}
+      </Section>
+
+      <Section name="services" title={t("dashboard.panel.services")}>
+        <DashboardServices
+          accounts={accounts}
+          onAdd={onAddService}
+          onOpen={onOpenService}
+          services={snapshot.services}
+        />
       </Section>
 
       <ActivitySessions
