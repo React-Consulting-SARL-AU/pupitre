@@ -2,7 +2,8 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import type { Server } from "@shared/servers";
 import { Download } from "lucide-react";
 import { useEffect, useState } from "react";
-import { probeOf } from "../../stores/inspection";
+import { useChannel } from "../../stores/channel";
+import { useInspection } from "../../stores/inspection";
 import { savedOnboarding, useOnboarding } from "../../stores/onboarding";
 import { Button } from "../ui/button";
 import { StatusDot } from "../ui/status-dot";
@@ -14,16 +15,22 @@ export function OnboardingEntry({ server }: { server: Server }) {
   const begin = useOnboarding((state) => state.begin);
   const resume = useOnboarding((state) => state.resume);
 
-  const [managed, setManaged] = useState(true);
+  // A channel is only ever noted after the agent's greeting, so even a lost one proves the agent is there.
+  const greetedSinceLaunch = useChannel(
+    (state) => state.states[server.id] !== undefined
+  );
+  const probedAgent = useInspection((state) =>
+    Boolean(state.probes[server.id]?.agent_version)
+  );
+
+  const [greetedBefore, setGreetedBefore] = useState<boolean | null>(null);
 
   useEffect(() => {
     let dropped = false;
 
     window.pupitre.agentSession(server.id).then((session) => {
-      const probe = probeOf(server.id);
-
       if (!dropped) {
-        setManaged(Boolean(session) || Boolean(probe?.agent_version));
+        setGreetedBefore(Boolean(session));
       }
     });
 
@@ -31,6 +38,8 @@ export function OnboardingEntry({ server }: { server: Server }) {
       dropped = true;
     };
   }, [server.id]);
+
+  const managed = greetedBefore !== false || greetedSinceLaunch || probedAgent;
 
   const saved = savedOnboarding();
 

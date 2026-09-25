@@ -22,6 +22,7 @@ export function Fact({
   children,
   detail,
   prose = false,
+  wide = false,
   className = "",
   ...rest
 }: {
@@ -29,12 +30,18 @@ export function Fact({
   children: ReactNode;
   detail?: ReactNode;
   prose?: boolean;
+  wide?: boolean;
   className?: string;
 } & Record<`data-${string}`, string | number | undefined>) {
   const value = prose ? "text-ink-2" : "font-data text-small text-ink-2";
+  const span = wide ? "sm:col-span-full" : "";
 
   return (
-    <div className={`min-w-0 ${className}`} {...rest}>
+    <div
+      className={`min-w-0 ${span} ${className}`}
+      data-wide={wide ? "true" : undefined}
+      {...rest}
+    >
       <dt>
         <Label>{label}</Label>
       </dt>

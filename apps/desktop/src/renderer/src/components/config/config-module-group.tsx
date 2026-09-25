@@ -59,7 +59,10 @@ export function ConfigModuleGroup({
   const { asked, kept } = splitFields(group.fields);
   const keptRefused = kept.some((field) => problemOf(field.key));
   const asksSecret = asked.some((field) => field.kind === "secret");
-  const asksRequired = group.fields.some(isRequired);
+  const advancedOpen = advancedOpened || keptRefused;
+  const asksRequired = asked.some(isRequired);
+  const keepsRequired = advancedOpen && !asksRequired && kept.some(isRequired);
+  const legend = <RequiredLegend>{t("common.field.required")}</RequiredLegend>;
 
   function control(field: FieldGroup["fields"][number]) {
     return (
@@ -139,9 +142,7 @@ export function ConfigModuleGroup({
         </div>
       ) : null}
 
-      {!deferred && asksRequired ? (
-        <RequiredLegend>{t("common.field.required")}</RequiredLegend>
-      ) : null}
+      {!deferred && asksRequired ? legend : null}
 
       {!deferred && asksSecret ? (
         <p className="text-ink-3 text-small leading-relaxed">
@@ -155,11 +156,12 @@ export function ConfigModuleGroup({
           label={t("config.advanced", { count: kept.length })}
           name="advanced"
           onOpenChange={setAdvancedOpened}
-          open={advancedOpened || keptRefused}
+          open={advancedOpen}
         >
           <div className="mt-3 grid @lg/module:grid-cols-2 gap-6">
             {kept.map(control)}
           </div>
+          {keepsRequired ? <div className="mt-6">{legend}</div> : null}
         </Details>
       ) : null}
 

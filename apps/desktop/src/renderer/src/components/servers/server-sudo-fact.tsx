@@ -33,11 +33,9 @@ export function ServerSudoFact({ serverId }: { serverId: string }) {
   // Even the securing that would set a new password needs the current one (decision 0015).
   if (!state.held) {
     return (
-      <Fact data-sudo-password="absent" label={t("sudo.password.label")}>
+      <Fact data-sudo-password="absent" label={t("sudo.password.label")} wide>
         <span className="flex items-center gap-1">
-          <span className="min-w-0 flex-1 truncate text-ink-3">
-            {t("sudo.password.absent")}
-          </span>
+          <span className="text-ink-3">{t("sudo.password.absent")}</span>
           <IconButton
             icon={KeyRound}
             label={t("sudo.password.enter")}
@@ -69,9 +67,10 @@ export function ServerSudoFact({ serverId }: { serverId: string }) {
       data-sudo-password={shown === null ? "masked" : "revealed"}
       detail={state.kept ? t("sudo.password.kept") : t("sudo.password.unkept")}
       label={t("sudo.password.label")}
+      wide
     >
       <span className="flex items-center gap-1">
-        <span className="min-w-0 flex-1 truncate">{shown ?? MASK}</span>
+        <span className="whitespace-nowrap">{shown ?? MASK}</span>
         <IconButton
           icon={shown === null ? Eye : EyeOff}
           label={

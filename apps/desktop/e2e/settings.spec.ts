@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 import { assertAccessible } from "./harness/accessible";
 import { toggle } from "./harness/controls";
+import { SERVERS } from "./harness/fixtures";
 import { launchPupitre, type Running } from "./harness/launch";
 
 const VERSION = (
@@ -112,6 +113,29 @@ test.describe("les réglages de l'app", () => {
       notifications: false,
       version: 2,
     });
+  });
+
+  test("un serveur dont l'agent répond après l'ouverture des réglages cesse d'offrir l'installation", async () => {
+    const { app, page } = running;
+
+    await page.getByRole("button", { name: "Réglages" }).click();
+    await page.getByRole("tab", { name: "Serveurs" }).click();
+
+    const entry = page.locator("[data-onboarding-entry]");
+
+    // The harness answers agent:call itself, so no channel greets until one is announced.
+    await expect(entry).toBeVisible();
+
+    await app.evaluate(({ BrowserWindow }, serverId) => {
+      for (const window of BrowserWindow.getAllWindows()) {
+        window.webContents.send("agent:channel", { serverId, state: "open" });
+      }
+    }, SERVERS.servers[0].id);
+
+    await expect(entry).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Installer Pupitre" })
+    ).toHaveCount(0);
   });
 
   test("la section SSH écrit une ligne Include en tête du fichier du système, et la retire", async () => {

@@ -72,6 +72,24 @@ describe("le mot de passe sudo sur la fiche du serveur", () => {
     view.unmount();
   });
 
+  it("tient une ligne entière de la fiche et se lit en entier une fois montré", async () => {
+    await holding(true);
+
+    const view = await mount(<ServerSudoFact serverId="srv-1" />);
+
+    await waitUntil(() => view.text().includes("Mot de passe sudo de dev"));
+    await press('[aria-label="Afficher le mot de passe sudo de dev"]');
+
+    const fact = document.querySelector('[data-sudo-password="revealed"]');
+    const value = [...(fact?.querySelectorAll("span") ?? [])].find(
+      (span) => span.textContent === PASSWORD
+    );
+
+    expect(fact?.getAttribute("data-wide")).toBe("true");
+    expect(value?.className).not.toContain("truncate");
+    view.unmount();
+  });
+
   // Securing is itself a privileged gesture, so the only way in is the password typed here.
   it("sur un ordinateur qui ne le tient pas, le fait saisir et le garde une fois accepté", async () => {
     const entered: string[] = [];

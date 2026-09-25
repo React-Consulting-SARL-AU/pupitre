@@ -426,3 +426,44 @@ describe("ce qui est demandé d'abord, et ce qui attend derrière", () => {
     expect(text(html)).toContain("2 sur 5");
   });
 });
+
+describe("la légende des champs obligatoires", () => {
+  const withDefaults = Object.fromEntries(
+    CATALOG.modules.map((module) => [module.id, defaultsOf(module)])
+  );
+
+  it("suit un champ obligatoire posé à l'écran", () => {
+    const html = form(CATALOG.modules, ["core.system"], {
+      values: withDefaults,
+    });
+
+    expect(text(html).match(/Champ obligatoire/g)).toHaveLength(1);
+  });
+
+  it("reste absente d'un service dont aucun champ montré n'est obligatoire", () => {
+    const html = form(CATALOG.modules, ["runtime.node"], {
+      values: withDefaults,
+    });
+
+    expect(text(html)).not.toContain("Champ obligatoire");
+  });
+
+  it("apparaît quand le pli ouvert montre un champ obligatoire", async () => {
+    const view = await mount(
+      <div>
+        {groups(CATALOG.modules, ["runtime.node"], { values: withDefaults })}
+      </div>
+    );
+
+    expect(view.container.textContent).not.toContain("Champ obligatoire");
+
+    await view.click(
+      view.container.querySelector('[data-details="advanced"] button')
+    );
+
+    expect(
+      view.container.textContent?.match(/Champ obligatoire/g)
+    ).toHaveLength(1);
+    view.unmount();
+  });
+});
