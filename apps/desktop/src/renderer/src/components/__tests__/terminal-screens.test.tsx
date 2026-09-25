@@ -23,8 +23,8 @@ describe("un onglet de session", () => {
           dormant: false,
           id: "t1",
           kind: "claude",
-          project: "flymate-api",
-          session: "claude-flymate-api",
+          project: "flyleaf-api",
+          session: "claude-flyleaf-api",
           title: "Claude",
         }}
         state="attention"
@@ -120,12 +120,12 @@ describe("la barre de statut", () => {
       <TerminalStatusBar
         id="t-status"
         kind="shell"
-        project="flymate-api"
+        project="flyleaf-api"
         state="idle"
       />
     );
 
-    expect(html).toContain("flymate-api");
+    expect(html).toContain("flyleaf-api");
     expect(html).toContain("/home/dev/app");
     expect(html).toContain("132×43");
     expect(html).toContain("au repos");

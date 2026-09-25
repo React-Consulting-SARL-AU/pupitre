@@ -411,7 +411,7 @@ describe("revenir à une sauvegarde", () => {
     const data = await restoreData(
       SERVER,
       listed.id,
-      ["db-postgres-flymate.pupitre"],
+      ["db-postgres-flyleaf.pupitre"],
       null,
       (event) => events.push(event),
       deps
@@ -444,7 +444,7 @@ describe("revenir à une sauvegarde", () => {
     const answer = await restoreData(
       SERVER,
       listed.id,
-      ["db-postgres-flymate.pupitre"],
+      ["db-postgres-flyleaf.pupitre"],
       null,
       () => undefined,
       {
@@ -467,7 +467,7 @@ describe("revenir à une sauvegarde", () => {
     const withBucket = await restoreData(
       SERVER,
       listed.id,
-      ["db-postgres-flymate.pupitre"],
+      ["db-postgres-flyleaf.pupitre"],
       null,
       () => undefined,
       {

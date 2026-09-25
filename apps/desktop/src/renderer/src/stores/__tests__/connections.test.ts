@@ -85,7 +85,7 @@ describe("le refus d'un jeton à la connexion", () => {
             state: {
               ...CONNECTED,
               [kind]: {
-                account: { id: "1", name: "flymate" },
+                account: { id: "1", name: "flyleaf" },
                 sealed: true,
                 status: "connected",
               },
@@ -128,7 +128,7 @@ describe("le refus d'un jeton à la connexion", () => {
 
 describe("un jeton qui ouvre plusieurs comptes", () => {
   const ACCOUNTS = [
-    { id: "acc-1", name: "Flymate" },
+    { id: "acc-1", name: "Flyleaf" },
     { id: "acc-2", name: "Atelier" },
   ];
 

@@ -23,7 +23,7 @@ const GRANTED: FleetServer = {
   id: "srv-platform-1",
   keyReady: true,
   name: "vps-atelier",
-  organization: { id: "org-1", name: "Flymate" },
+  organization: { id: "org-1", name: "Flyleaf" },
   port: 22,
   status: "active",
   user: "dev",

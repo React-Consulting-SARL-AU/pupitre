@@ -23,7 +23,7 @@ const SERVER = "srv-1";
 
 const PASSWORD = "s3cr3t-de-la-base";
 
-const URL = `postgresql://remote:${PASSWORD}@127.0.0.1:5432/flymate`;
+const URL = `postgresql://remote:${PASSWORD}@127.0.0.1:5432/flyleaf`;
 
 type Sent = { cmd: CommandName; params: unknown };
 
@@ -126,14 +126,14 @@ describe("l'état d'un service", () => {
       "service.status": {
         ...STATUS,
         id: "tool.github",
-        login: { account: "flymate", state: "signed_in" },
+        login: { account: "flyleaf", state: "signed_in" },
       },
     });
 
     const answer = await readService(SERVER, "tool.github", signed.deps);
 
     expect(answer.ok && answer.result.login).toEqual({
-      account: "flymate",
+      account: "flyleaf",
       state: "signed_in",
     });
 
@@ -298,7 +298,7 @@ describe("l'URL de connexion d'une base", () => {
   it("la range avec les autres identifiants du module", async () => {
     const { deps } = agent({ "db.url": { url: URL } });
 
-    await readDatabaseUrl(SERVER, "db.postgres", "flymate", deps);
+    await readDatabaseUrl(SERVER, "db.postgres", "flyleaf", deps);
 
     expect(
       await credentialValue(SERVER, "db.postgres", CONNECTION_LABEL, deps)

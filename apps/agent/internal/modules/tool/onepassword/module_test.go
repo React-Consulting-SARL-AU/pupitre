@@ -16,16 +16,16 @@ import (
 
 const (
 	token    = "s3cret-de-test"
-	injected = "DATABASE_URL=postgres://dev:motdepasse@127.0.0.1/flymate\nAUTH_SECRET=au-secret\n"
+	injected = "DATABASE_URL=postgres://dev:motdepasse@127.0.0.1/flyleaf\nAUTH_SECRET=au-secret\n"
 
-	projects = `web|flymate/apps/web|-|bun|web.localhost|3000|app|bun run dev
-api|flymate/apps/api|-|bun|api.localhost|3001|-|bun run api
+	projects = `web|flyleaf/apps/web|-|bun|web.localhost|3000|app|bun run dev
+api|flyleaf/apps/api|-|bun|api.localhost|3001|-|bun run api
 `
 )
 
 const (
-	home    = registry.ProjectsDir + "/flymate/apps/web"
-	root    = registry.ProjectsDir + "/flymate"
+	home    = registry.ProjectsDir + "/flyleaf/apps/web"
+	root    = registry.ProjectsDir + "/flyleaf"
 	target  = home + "/.env.local"
 	example = "DATABASE_URL=\nAUTH_SECRET=\n"
 )
@@ -41,7 +41,7 @@ func machine() *modtest.FakeSys {
 	fake.Packages[pkg] = "2.32.0"
 	fake.Files[registry.DefaultConf] = []byte(projects)
 	fake.Files[home+"/"+templateName] = []byte("DATABASE_URL={{ op://{{OP_VAULT}}/{{OP_ITEM}}/url }}\n")
-	fake.Files[root+"/"+configName] = []byte(`{"vault":"Dev","item":"flymate"}`)
+	fake.Files[root+"/"+configName] = []byte(`{"vault":"Dev","item":"flyleaf"}`)
 	fake.Answer("op inject", strings.TrimSuffix(injected, "\n"))
 
 	return fake
@@ -148,7 +148,7 @@ func TestSecretNeverLeaks(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := Env(ctx, "flymate", "web", false); err != nil {
+	if _, err := Env(ctx, "flyleaf", "web", false); err != nil {
 		t.Fatal(err)
 	}
 
@@ -184,7 +184,7 @@ func TestEnvInjectsTheTemplateAndReturnsKeysOnly(t *testing.T) {
 	fake := machine()
 	ctx := newContext(t, fake, modtest.Secrets{"service_account_token": token})
 
-	result, err := Env(ctx, "flymate", "web", false)
+	result, err := Env(ctx, "flyleaf", "web", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -217,7 +217,7 @@ func TestEnvInjectsTheTemplateAndReturnsKeysOnly(t *testing.T) {
 			sent = string(call.Stdin)
 		}
 	}
-	if !strings.Contains(sent, "op://Dev/flymate/url") {
+	if !strings.Contains(sent, "op://Dev/flyleaf/url") {
 		t.Fatalf("the placeholders of the template must be substituted before op sees it: %q", sent)
 	}
 }
@@ -228,7 +228,7 @@ func TestEnvKeepsAnExistingFileUnlessForced(t *testing.T) {
 	fake.Files[target] = []byte("DATABASE_URL=deja-la\n")
 	ctx := newContext(t, fake, modtest.Secrets{"service_account_token": token})
 
-	result, err := Env(ctx, "flymate", "web", false)
+	result, err := Env(ctx, "flyleaf", "web", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -237,7 +237,7 @@ func TestEnvKeepsAnExistingFileUnlessForced(t *testing.T) {
 		t.Fatalf("nothing must be rewritten: %+v", result)
 	}
 
-	forced, err := Env(ctx, "flymate", "web", true)
+	forced, err := Env(ctx, "flyleaf", "web", true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -253,7 +253,7 @@ func TestEnvFallsBackOnTheVersionedExampleWithoutASecretManager(t *testing.T) {
 	fake.Files[home+"/"+exampleName] = []byte(example)
 	ctx := newContext(t, fake, nil)
 
-	result, err := Env(ctx, "flymate", "web", false)
+	result, err := Env(ctx, "flyleaf", "web", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -269,7 +269,7 @@ func TestEnvAnswersNoTemplateWhenTheRepositoryVersionsNothing(t *testing.T) {
 	delete(fake.Files, home+"/"+templateName)
 	ctx := newContext(t, fake, modtest.Secrets{"service_account_token": token})
 
-	result, err := Env(ctx, "flymate", "web", false)
+	result, err := Env(ctx, "flyleaf", "web", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -284,7 +284,7 @@ func TestEnvAnswersNoTemplateWhenTheRepositoryVersionsNothing(t *testing.T) {
 
 	fake.Files[target] = []byte("PORT=3000\n")
 
-	kept, err := Env(ctx, "flymate", "web", false)
+	kept, err := Env(ctx, "flyleaf", "web", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -300,7 +300,7 @@ func TestEnvRefusesATemplateItCannotInject(t *testing.T) {
 	delete(fake.Packages, pkg)
 	ctx := newContext(t, fake, nil)
 
-	_, err := Env(ctx, "flymate", "web", false)
+	_, err := Env(ctx, "flyleaf", "web", false)
 
 	failure, isProtocol := err.(*protocol.Error)
 	if !isProtocol || failure.Code != contract.ErrorBadRequest || !strings.Contains(failure.Fix, "tool.1password") {
@@ -312,12 +312,12 @@ func TestEnvSaysWhetherTheRepositoryVersionsATemplate(t *testing.T) {
 	fake := machine()
 	ctx := newContext(t, fake, modtest.Secrets{"service_account_token": token})
 
-	written, err := Env(ctx, "flymate", "web", false)
+	written, err := Env(ctx, "flyleaf", "web", false)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	read, err := Env(ctx, "flymate", "web", false)
+	read, err := Env(ctx, "flyleaf", "web", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -338,7 +338,7 @@ func TestEnvRefusesAnUnknownProject(t *testing.T) {
 		t.Fatalf("want project_not_found, got %#v", err)
 	}
 
-	_, err = Env(ctx, "flymate", "ghost", false)
+	_, err = Env(ctx, "flyleaf", "ghost", false)
 
 	failure, isProtocol = err.(*protocol.Error)
 	if !isProtocol || failure.Code != contract.ErrorProjectNotFound {
@@ -352,7 +352,7 @@ func TestEnvWithoutAProcessWritesAtTheRoot(t *testing.T) {
 	fake.Files[root+"/"+exampleName] = []byte(example)
 	ctx := newContext(t, fake, nil)
 
-	result, err := Env(ctx, "flymate", "", false)
+	result, err := Env(ctx, "flyleaf", "", false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -378,10 +378,10 @@ func TestLoginAsksOpWhoamiWithTheTokenTheMachineHolds(t *testing.T) {
 	}
 
 	fake := configuredMachine()
-	fake.Answer("op whoami", `{"url":"https://flymate.1password.com","user_type":"SERVICE_ACCOUNT","account_uuid":"A"}`)
+	fake.Answer("op whoami", `{"url":"https://flyleaf.1password.com","user_type":"SERVICE_ACCOUNT","account_uuid":"A"}`)
 
 	got, asked := (Module{}).Login(newContext(t, fake, modtest.Secrets{}))
-	if want := (contract.Login{State: contract.LoginSignedIn, Account: "flymate.1password.com"}); !asked || got != want {
+	if want := (contract.Login{State: contract.LoginSignedIn, Account: "flyleaf.1password.com"}); !asked || got != want {
 		t.Fatalf("login = %+v (%v), want %+v", got, asked, want)
 	}
 

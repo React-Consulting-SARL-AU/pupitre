@@ -11,7 +11,7 @@ const DATABASES = [
 ] as const;
 
 const PROJECTS = [
-  { included: true, name: "flymate-api", repo: true },
+  { included: true, name: "flyleaf-api", repo: true },
   { included: true, name: "billing", repo: false },
 ];
 

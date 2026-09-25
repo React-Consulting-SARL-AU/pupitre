@@ -446,7 +446,7 @@ func TestRealListInAndStatInDescribeWhatIsOnTheDisk(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(root, "notes"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "notes", "readme.md"), []byte("# flymate\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "notes", "readme.md"), []byte("# flyleaf\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.Symlink("readme.md", filepath.Join(root, "notes", "inside")); err != nil {
@@ -499,7 +499,7 @@ func TestRealWriteFileInReplacesAtomicallyAndKeepsTheMode(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(root, "notes"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "notes", "readme.md"), []byte("# flymate\n"), 0o640); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "notes", "readme.md"), []byte("# flyleaf\n"), 0o640); err != nil {
 		t.Fatal(err)
 	}
 

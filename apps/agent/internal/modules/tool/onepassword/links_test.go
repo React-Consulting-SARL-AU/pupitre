@@ -20,7 +20,7 @@ func TestEnvNeverReadsALinkThatLeavesTheProject(t *testing.T) {
 	fake.Links[home+"/"+exampleName] = "/etc/pupitre/server.token"
 	ctx := newContext(t, fake, modtest.Secrets{"service_account_token": token})
 
-	result, _ := Env(ctx, "flymate", "web", false)
+	result, _ := Env(ctx, "flyleaf", "web", false)
 
 	if strings.Contains(string(fake.Files[target]), "ne-doit-jamais-sortir") || strings.Contains(strings.Join(result.Keys, ","), "PUPITRE_SERVER_TOKEN") {
 		t.Fatalf("the token must not reach .env.local: %q %+v", fake.Files[target], result)
@@ -39,7 +39,7 @@ func TestEnvNeverReadsAnEnvFileThatIsALinkOutOfTheProject(t *testing.T) {
 	fake.Links[target] = "/etc/pupitre/server.token"
 	ctx := newContext(t, fake, modtest.Secrets{"service_account_token": token})
 
-	result, _ := Env(ctx, "flymate", "web", false)
+	result, _ := Env(ctx, "flyleaf", "web", false)
 
 	if strings.Contains(strings.Join(result.Keys, ","), "PUPITRE_SERVER_TOKEN") {
 		t.Fatalf("the names of a file out of the project must not be read: %+v", result)
@@ -55,7 +55,7 @@ func TestEnvFollowsALinkThatStaysInTheProject(t *testing.T) {
 	fake.Links[home+"/"+exampleName] = "../../" + exampleName
 	ctx := newContext(t, fake, nil)
 
-	result, err := Env(ctx, "flymate", "web", false)
+	result, err := Env(ctx, "flyleaf", "web", false)
 	if err != nil {
 		t.Fatal(err)
 	}

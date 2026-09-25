@@ -115,11 +115,11 @@ export const FILES: {
         kind: "dir",
         mode: "0755",
         modified_at: "2026-09-01T10:00:00Z",
-        name: "flymate",
+        name: "flyleaf",
         size_bytes: 4096,
       },
     ],
-    "projects/flymate": [
+    "projects/flyleaf": [
       {
         kind: "dir",
         mode: "0755",
@@ -156,7 +156,7 @@ export const FILES: {
         size_bytes: 118,
       },
     ],
-    "projects/flymate/src": [
+    "projects/flyleaf/src": [
       {
         kind: "file",
         mode: "0644",
@@ -169,12 +169,12 @@ export const FILES: {
   root: "/home/dev/projects",
   texts: {
     ".bashrc": "export PATH=$HOME/.bun/bin:$PATH\n",
-    "projects/flymate/.env": "PORT=3000\n",
-    "projects/flymate/README.md":
-      "# Flymate\n\nThe API behind the booking app.\n\n| Route | Port |\n|---|---|\n| api | 3000 |\n",
-    "projects/flymate/logo.svg":
+    "projects/flyleaf/.env": "PORT=3000\n",
+    "projects/flyleaf/README.md":
+      "# Flyleaf\n\nThe API behind the booking app.\n\n| Route | Port |\n|---|---|\n| api | 3000 |\n",
+    "projects/flyleaf/logo.svg":
       '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32"><rect width="64" height="32" fill="#000"/></svg>',
-    "projects/flymate/src/index.ts":
+    "projects/flyleaf/src/index.ts":
       "export const port = 3000;\nexport const host = 'x';\n",
   },
 };

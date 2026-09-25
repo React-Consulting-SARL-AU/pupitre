@@ -149,7 +149,7 @@ test.describe("serveur en mode restreint", () => {
     await expect(
       page.getByRole("button", { name: "Tableau de bord" })
     ).toBeVisible();
-    await expect(page.getByText("flymate-api").first()).toBeVisible();
+    await expect(page.getByText("flyleaf-api").first()).toBeVisible();
 
     await assertAccessible(page, "serveur/restreint");
   });
@@ -190,7 +190,7 @@ test.describe("réparer un serveur restreint depuis l'app", () => {
     ).toBeHidden();
 
     // Nothing has stopped: the machine and its projects are still there.
-    await expect(page.getByText("flymate-api").first()).toBeVisible();
+    await expect(page.getByText("flyleaf-api").first()).toBeVisible();
     await expect(page.getByRole("button", { name: REPAIR })).toBeHidden();
   });
 });

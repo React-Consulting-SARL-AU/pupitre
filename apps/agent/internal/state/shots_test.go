@@ -76,8 +76,8 @@ func TestShotsURLComesFromTheGalleryRow(t *testing.T) {
 		t.Fatalf("got %q", got)
 	}
 
-	fake.Files["/etc/pupitre/env"] = []byte(state.DomainKey + "=flymate.dev\n")
-	if got := reader.ShotsURL(); got != "https://shots.flymate.dev" {
+	fake.Files["/etc/pupitre/env"] = []byte(state.DomainKey + "=flyleaf.dev\n")
+	if got := reader.ShotsURL(); got != "https://shots.flyleaf.dev" {
 		t.Fatalf("got %q", got)
 	}
 }
@@ -138,7 +138,7 @@ func TestShotsReadRendersTheExactBytesOfTheFile(t *testing.T) {
 
 func TestShotsReadOpensOnlyWhatTheGalleryLists(t *testing.T) {
 	fake, reader := shotFixture(t)
-	fake.Files["/etc/pupitre/env"] = []byte("PUPITRE_DOMAIN=flymate.dev\n")
+	fake.Files["/etc/pupitre/env"] = []byte("PUPITRE_DOMAIN=flyleaf.dev\n")
 	fake.Files["/home/dev/shots/2026-09-04/notes.txt"] = []byte("rien à voir\n")
 
 	for _, refused := range []string{

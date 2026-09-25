@@ -16,7 +16,7 @@ func TestServiceStatusAsksTheCliWhoIsSignedInAndTheSnapshotDoesNot(t *testing.T)
 	fake := modtest.NewFakeSys()
 	fake.Packages["gh"] = "2.80.0"
 	fake.Files["/etc/pupitre/env"] = []byte("GITHUB_TOKEN=s3cret\n")
-	fake.Answer("gh auth status", `{"hosts":{"github.com":[{"state":"success","active":true,"host":"github.com","login":"flymate"}]}}`)
+	fake.Answer("gh auth status", `{"hosts":{"github.com":[{"state":"success","active":true,"host":"github.com","login":"flyleaf"}]}}`)
 
 	registry := modules.NewRegistry()
 	registry.Register(github.Module{})
@@ -41,7 +41,7 @@ func TestServiceStatusAsksTheCliWhoIsSignedInAndTheSnapshotDoesNot(t *testing.T)
 		t.Fatal(err)
 	}
 
-	if status.Login == nil || *status.Login != (contract.Login{State: contract.LoginSignedIn, Account: "flymate"}) {
+	if status.Login == nil || *status.Login != (contract.Login{State: contract.LoginSignedIn, Account: "flyleaf"}) {
 		t.Fatalf("login = %+v", status.Login)
 	}
 

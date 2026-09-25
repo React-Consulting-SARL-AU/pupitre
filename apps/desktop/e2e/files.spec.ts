@@ -13,7 +13,7 @@ import { launchPupitre, type Running } from "./harness/launch";
  * per entry, the bytes on `file` events with their receipt, and a write that
  * refuses when the digest is not the one it last gave.
  */
-const FLYMATE_CARD = /^flymate-api/;
+const FLYLEAF_CARD = /^flyleaf-api/;
 const SAVED = /^Enregistré /;
 const DIGEST = /^[0-9a-f]{64}$/;
 const BLOB_URL = /^blob:/;
@@ -42,9 +42,9 @@ async function themed(page: Page, theme: "light" | "dark"): Promise<void> {
 
 async function openFiles(page: Page): Promise<void> {
   await page.getByRole("button", { name: "Tableau de bord" }).click();
-  await page.getByRole("button", { name: FLYMATE_CARD }).first().click();
+  await page.getByRole("button", { name: FLYLEAF_CARD }).first().click();
   await expect(
-    page.getByRole("heading", { name: "flymate-api" })
+    page.getByRole("heading", { name: "flyleaf-api" })
   ).toBeVisible();
 
   await page.getByRole("tab", { exact: true, name: "Fichiers" }).click();
@@ -149,7 +149,7 @@ test.describe("les fichiers d'un projet", () => {
             command: "dev",
             path: "",
             paths: [],
-            projects: ["flymate-api"],
+            projects: ["flyleaf-api"],
             root: tree.root,
             sub: [],
           },
@@ -339,7 +339,7 @@ test.describe("les fichiers d'un projet", () => {
 
       await expect(page.locator("[data-files-root]")).toHaveAttribute(
         "data-files-root",
-        "projects/flymate"
+        "projects/flyleaf"
       );
       await expect(page.locator('[data-entry="src"]')).toBeVisible();
       await expect(page.locator('[data-entry="README.md"]')).toBeVisible();
@@ -375,7 +375,7 @@ test.describe("les fichiers d'un projet", () => {
       const rendered = page.locator('[data-rendered="markdown"]');
       await expect(rendered).toBeVisible();
       await expect(
-        rendered.getByRole("heading", { name: "Flymate" })
+        rendered.getByRole("heading", { name: "Flyleaf" })
       ).toBeVisible();
       await expect(rendered.getByRole("cell", { name: "3000" })).toBeVisible();
       await expect(page.locator(".cm-content")).toHaveCount(0);
@@ -389,7 +389,7 @@ test.describe("les fichiers d'un projet", () => {
 
       await views.getByRole("button", { name: "Code" }).click();
       await expect(rendered).toHaveCount(0);
-      await expect(page.locator(".cm-content")).toContainText("# Flymate");
+      await expect(page.locator(".cm-content")).toContainText("# Flyleaf");
 
       await page.locator(".cm-content").click();
       await page.keyboard.press("ControlOrMeta+End");
@@ -451,7 +451,7 @@ test.describe("les fichiers d'un projet", () => {
         () => (globalThis as { made?: Made }).made ?? []
       );
 
-      expect(made).toEqual(["projects/flymate/docs"]);
+      expect(made).toEqual(["projects/flyleaf/docs"]);
     });
 
     await test.step("descendre dans un dossier suit le fil d'Ariane", async () => {
@@ -540,7 +540,7 @@ test.describe("les fichiers d'un projet", () => {
       );
 
       expect(written).toHaveLength(1);
-      expect(written[0]?.path).toBe("projects/flymate/src/index.ts");
+      expect(written[0]?.path).toBe("projects/flyleaf/src/index.ts");
       expect(written[0]?.sha256).toMatch(DIGEST);
       expect(written[0]?.text).toContain("export const debug = true;");
       expect(written[0]?.text).toContain("export const host = 'y';");
@@ -586,7 +586,7 @@ test.describe("les fichiers d'un projet", () => {
 
       expect(written).toHaveLength(3);
       expect(written[2]).toEqual({
-        path: "projects/flymate/src/notes.md",
+        path: "projects/flyleaf/src/notes.md",
         sha256: undefined,
         text: "",
       });
@@ -601,7 +601,7 @@ test.describe("les fichiers d'un projet", () => {
       await page.keyboard.press("Enter");
 
       await expect(
-        dialog.getByText("entrée déjà présente : projects/flymate/src/index.ts")
+        dialog.getByText("entrée déjà présente : projects/flyleaf/src/index.ts")
       ).toBeVisible();
       await expect(dialog.getByLabel("Nom")).toHaveAttribute(
         "aria-invalid",

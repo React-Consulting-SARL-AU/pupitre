@@ -1833,7 +1833,7 @@ describe("le navigateur de dossiers", () => {
                   kind: "dir",
                   mode: "0755",
                   modified_at: "2026-09-01T10:00:00Z",
-                  name: "flymate",
+                  name: "flyleaf",
                   size_bytes: 0,
                 },
                 {
@@ -1878,7 +1878,7 @@ describe("le navigateur de dossiers", () => {
 
     expect(asked).toEqual([{ cmd: "fs.list", params: { path: "projects" } }]);
     expect(useProjectAdd.getState().folders).toMatchObject({
-      folders: ["flymate"],
+      folders: ["flyleaf"],
       path: "",
       status: "ready",
     });
@@ -1890,14 +1890,14 @@ describe("le navigateur de dossiers", () => {
     await useProjectAdd.getState().prepare("srv-1", null);
     useProjectAdd.getState().setKind("dir");
     await useProjectAdd.getState().browse("srv-1", "");
-    useProjectAdd.getState().pickFolder("flymate/api");
+    useProjectAdd.getState().pickFolder("flyleaf/api");
 
     expect(useProjectAdd.getState().draft).toMatchObject({
-      dir: "flymate/api",
+      dir: "flyleaf/api",
       name: "api",
     });
     expect(useProjectAdd.getState().params()).toMatchObject({
-      dir: "flymate/api",
+      dir: "flyleaf/api",
     });
   });
 
@@ -1906,7 +1906,7 @@ describe("le navigateur de dossiers", () => {
 
     await useProjectAdd.getState().prepare("srv-1", null);
     useProjectAdd.getState().setKind("dir");
-    await useProjectAdd.getState().browse("srv-1", "flymate");
+    await useProjectAdd.getState().browse("srv-1", "flyleaf");
     await useProjectAdd.getState().makeFolder("srv-1", "api");
 
     expect(asked.map((call) => call.cmd)).toEqual([
@@ -1916,7 +1916,7 @@ describe("le navigateur de dossiers", () => {
     ]);
     expect(asked[1]).toEqual({
       cmd: "fs.mkdir",
-      params: { path: "projects/flymate/api" },
+      params: { path: "projects/flyleaf/api" },
     });
   });
 
@@ -1925,7 +1925,7 @@ describe("le navigateur de dossiers", () => {
 
     await useProjectAdd.getState().prepare("srv-1", null);
     useProjectAdd.getState().setKind("dir");
-    await useProjectAdd.getState().browse("srv-1", "flymate");
+    await useProjectAdd.getState().browse("srv-1", "flyleaf");
 
     const listed = window.pupitre.agentCall;
 
@@ -1936,7 +1936,7 @@ describe("le navigateur de dossiers", () => {
           ? Promise.resolve({
               error: {
                 code: "bad_request",
-                message: "entrée déjà présente : projects/flymate/api",
+                message: "entrée déjà présente : projects/flyleaf/api",
               },
               ok: false,
             })
@@ -1946,7 +1946,7 @@ describe("le navigateur de dossiers", () => {
     const refusal = await useProjectAdd.getState().makeFolder("srv-1", "api");
 
     expect(refusal).toMatchObject({
-      message: "entrée déjà présente : projects/flymate/api",
+      message: "entrée déjà présente : projects/flyleaf/api",
     });
     expect(useProjectAdd.getState().folders.status).toBe("ready");
   });

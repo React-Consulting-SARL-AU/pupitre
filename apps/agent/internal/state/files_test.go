@@ -18,7 +18,7 @@ func filesFixture(t *testing.T) (*modtest.FakeSys, *state.Reader) {
 	fake, reader := agentFixture(t)
 	fake.Dirs["/home/dev"] = true
 	fake.Dirs["/home/dev/notes"] = true
-	fake.Files["/home/dev/notes/readme.md"] = []byte("# flymate\n")
+	fake.Files["/home/dev/notes/readme.md"] = []byte("# flyleaf\n")
 	fake.Files["/home/dev/notes/logo.png"] = []byte("\x89PNG\r\n")
 	fake.Modes["/home/dev/notes/readme.md"] = 0o644
 	fake.Modes["/home/dev/notes"] = 0o755
@@ -201,13 +201,13 @@ func TestAWriteReplacesTheFileAndKeepsItsMode(t *testing.T) {
 	before := fake.Files["/home/dev/notes/readme.md"]
 
 	written, err := reader.WriteFile("notes/readme.md",
-		base64.StdEncoding.EncodeToString([]byte("# flymate\n\nDeux lignes.\n")), digest(before))
+		base64.StdEncoding.EncodeToString([]byte("# flyleaf\n\nDeux lignes.\n")), digest(before))
 	if err != nil {
 		t.Fatalf("WriteFile: %v", err)
 	}
 
 	stored := fake.Files["/home/dev/notes/readme.md"]
-	if string(stored) != "# flymate\n\nDeux lignes.\n" {
+	if string(stored) != "# flyleaf\n\nDeux lignes.\n" {
 		t.Fatalf("the file holds %q", stored)
 	}
 
@@ -234,15 +234,15 @@ func TestANewFileBelongsToTheProjectsUser(t *testing.T) {
 
 func TestAWriteOnAFileThatMovedOnIsRefused(t *testing.T) {
 	fake, reader := filesFixture(t)
-	stale := digest([]byte("# flymate\n"))
-	fake.Files["/home/dev/notes/readme.md"] = []byte("# flymate\n\nun agent est passé\n")
+	stale := digest([]byte("# flyleaf\n"))
+	fake.Files["/home/dev/notes/readme.md"] = []byte("# flyleaf\n\nun agent est passé\n")
 
 	_, err := reader.WriteFile("notes/readme.md", base64.StdEncoding.EncodeToString([]byte("écrasé\n")), stale)
 	if err == nil {
 		t.Fatal("the write overwrote what an agent had just written")
 	}
 
-	if string(fake.Files["/home/dev/notes/readme.md"]) != "# flymate\n\nun agent est passé\n" {
+	if string(fake.Files["/home/dev/notes/readme.md"]) != "# flyleaf\n\nun agent est passé\n" {
 		t.Fatal("the file was touched by a refused write")
 	}
 }
@@ -254,7 +254,7 @@ func TestAWriteWithoutADigestNeverOverwrites(t *testing.T) {
 		t.Fatal("an existing file was overwritten without a digest")
 	}
 
-	if string(fake.Files["/home/dev/notes/readme.md"]) != "# flymate\n" {
+	if string(fake.Files["/home/dev/notes/readme.md"]) != "# flyleaf\n" {
 		t.Fatal("the file was touched by a refused write")
 	}
 }
@@ -305,7 +305,7 @@ func TestARenameNeverOverwritesWhatIsAlreadyThere(t *testing.T) {
 		t.Fatal("the entry stayed where it was")
 	}
 
-	if string(fake.Files["/home/dev/notes/README.md"]) != "# flymate\n" {
+	if string(fake.Files["/home/dev/notes/README.md"]) != "# flyleaf\n" {
 		t.Fatal("the content did not travel")
 	}
 
@@ -379,7 +379,7 @@ func TestAStatCarriesTheDigestOnlyWhenItIsAsked(t *testing.T) {
 		t.Fatalf("StatFile: %v", err)
 	}
 
-	if hashed.SHA256 != digest([]byte("# flymate\n")) {
+	if hashed.SHA256 != digest([]byte("# flyleaf\n")) {
 		t.Fatalf("unexpected digest %+v", hashed)
 	}
 

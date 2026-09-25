@@ -86,12 +86,12 @@ func TestWhatTheSettingsLeaveOutStaysOutAndIsRecorded(t *testing.T) {
 func TestTheRolesGoWithTheirEngineAsLongAsOneDatabaseDoes(t *testing.T) {
 	bucket := s3test.New(t, bucketName)
 	b := newBench(t, bucket).configured()
-	b.fake.Answer("FROM pg_database WHERE datallowconn", "shop\nflymate\n")
-	b.fake.Answer("pg_dump --format=custom --dbname=flymate", "PGDMP flymate")
+	b.fake.Answer("FROM pg_database WHERE datallowconn", "shop\nflyleaf\n")
+	b.fake.Answer("pg_dump --format=custom --dbname=flyleaf", "PGDMP flyleaf")
 	b.setting("exclude_databases", []string{"postgres:shop"})
 
 	keys := keys(b.run(contract.BackupTriggerManual).Parts)
-	if !slices.Contains(keys, "db-postgres-roles.pupitre") || !slices.Contains(keys, "db-postgres-flymate.pupitre") || slices.Contains(keys, "db-postgres-shop.pupitre") {
+	if !slices.Contains(keys, "db-postgres-roles.pupitre") || !slices.Contains(keys, "db-postgres-flyleaf.pupitre") || slices.Contains(keys, "db-postgres-shop.pupitre") {
 		t.Fatalf("parts = %v", keys)
 	}
 }

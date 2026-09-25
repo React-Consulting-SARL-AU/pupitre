@@ -249,8 +249,8 @@ const CONTENTS = {
     {
       engine: "postgres",
       included: true,
-      item: "postgres:flymate",
-      name: "flymate",
+      item: "postgres:flyleaf",
+      name: "flyleaf",
     },
     {
       engine: "mysql",
@@ -261,7 +261,7 @@ const CONTENTS = {
     { engine: "redis", included: false, item: "redis:*", name: "*" },
   ],
   projects: [
-    { included: true, name: "flymate-api", repo: true },
+    { included: true, name: "flyleaf-api", repo: true },
     { included: true, name: "atlas-web", repo: true },
     { included: true, name: "billing", repo: false },
   ],
@@ -306,9 +306,9 @@ export const RESTORE_SETUP = {
       bytes: 48_213_990,
       engine: "postgres",
       format: "pg_custom",
-      key: "db-postgres-flymate.pupitre",
+      key: "db-postgres-flyleaf.pupitre",
       kind: "database",
-      name: "flymate",
+      name: "flyleaf",
       sha256: "b".repeat(64),
     },
     {
@@ -639,7 +639,7 @@ export function answerBackups(
             for (const name of [
               "setup",
               "home",
-              "db:postgres:flymate",
+              "db:postgres:flyleaf",
               "manifest",
               "declare",
               "prune",

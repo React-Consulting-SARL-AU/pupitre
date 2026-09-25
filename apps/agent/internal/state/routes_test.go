@@ -13,7 +13,7 @@ import (
 	"pupitre.studio/agent/internal/sys/env"
 )
 
-const domain = "flymate.dev"
+const domain = "flyleaf.dev"
 
 func published(t *testing.T) (*modtest.FakeSys, *state.Reader) {
 	t.Helper()
@@ -69,7 +69,7 @@ func TestAddResolvesEachNameOnTheWebOnceFromTheDomain(t *testing.T) {
 	}
 
 	local := string(fake.Files[registry.DefaultLocal])
-	if !strings.Contains(local, `"hostname": "api-shop.flymate.dev"`) {
+	if !strings.Contains(local, `"hostname": "api-shop.flyleaf.dev"`) {
 		t.Fatalf("the hostname must be stored whole:\n%s", local)
 	}
 }

@@ -31,7 +31,7 @@ func (r recorder) Run(cmd sys.Command) (sys.Output, error) {
 
 // What create-vite lays down, and nothing more: no lockfile, a dev script that names no port.
 const vitePackage = `{
-  "name": "flymate",
+  "name": "flyleaf",
   "private": true,
   "type": "module",
   "scripts": { "dev": "vite", "build": "vite build", "preview": "vite preview" },
@@ -82,7 +82,7 @@ func TestDetectReadsAFolderWithoutInstallingAnything(t *testing.T) {
 
 	// 3000 is the port of the declared project of the fixture, so the free one below it is what the hint has to name.
 	process := only(t, detected)
-	if process.ID != "flymate" || process.Dir != "." || process.PkgMgr != "bun" || process.Install != "bun install" || process.Cmd != "bun run dev --port 3001" || process.PortHint != 3001 {
+	if process.ID != "flyleaf" || process.Dir != "." || process.PkgMgr != "bun" || process.Install != "bun install" || process.Cmd != "bun run dev --port 3001" || process.PortHint != 3001 {
 		t.Fatalf("unexpected detection: %+v", process)
 	}
 }
@@ -219,7 +219,7 @@ func TestDetectNamesTheManagerTheRepositoryProves(t *testing.T) {
 		},
 		{
 			name:   "a python project",
-			files:  map[string]string{"pyproject.toml": "[project]\nname = \"flymate\"\n"},
+			files:  map[string]string{"pyproject.toml": "[project]\nname = \"flyleaf\"\n"},
 			pkgmgr: "uv",
 			cmd:    "uv run dev --port 3001",
 		},
@@ -231,7 +231,7 @@ func TestDetectNamesTheManagerTheRepositoryProves(t *testing.T) {
 		},
 		{
 			name:   "a folder that proves nothing",
-			files:  map[string]string{"README.md": "flymate\n"},
+			files:  map[string]string{"README.md": "flyleaf\n"},
 			pkgmgr: "none",
 			cmd:    "",
 		},
@@ -361,7 +361,7 @@ func TestDetectClonesARepositoryAndLeavesNothingBehind(t *testing.T) {
 	}
 
 	base := t.TempDir()
-	origin := filepath.Join(base, "flymate.git")
+	origin := filepath.Join(base, "flyleaf.git")
 	run(t, base, "git", "init", "--quiet", "--bare", "--initial-branch=main", origin)
 
 	seed := filepath.Join(base, "seed")
@@ -485,7 +485,7 @@ func TestDetectReadsTheBranchItIsGiven(t *testing.T) {
 	}
 
 	base := t.TempDir()
-	origin := filepath.Join(base, "flymate.git")
+	origin := filepath.Join(base, "flyleaf.git")
 	run(t, base, "git", "init", "--quiet", "--bare", "--initial-branch=main", origin)
 
 	seed := filepath.Join(base, "seed")

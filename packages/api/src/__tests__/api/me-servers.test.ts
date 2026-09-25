@@ -195,7 +195,7 @@ describe("l'organisation qui porte le serveur", () => {
 
   it("voyage avec chaque serveur attribué", async () => {
     const { organization, members } = await createOrganizationWithMembers({
-      name: "Flymate",
+      name: "Flyleaf",
       roles: ["owner"],
       subscription: {},
     })
@@ -210,13 +210,13 @@ describe("l'organisation qui porte le serveur", () => {
 
     expect(listed.json.data[0]?.organization).toEqual({
       id: organization.id,
-      name: "Flymate",
+      name: "Flyleaf",
     })
   })
 
   it("distingue les serveurs de deux organisations d'un même membre", async () => {
     const first = await createOrganizationWithMembers({
-      name: "Flymate",
+      name: "Flyleaf",
       roles: ["owner"],
       subscription: {},
     })
@@ -241,7 +241,7 @@ describe("l'organisation qui porte le serveur", () => {
 
     expect(
       listed.json.data.map((server) => server.organization.name).sort()
-    ).toEqual(["Autre", "Flymate"])
+    ).toEqual(["Autre", "Flyleaf"])
   })
 
   it("ne dit rien de plus de l'organisation", async () => {

@@ -4,7 +4,7 @@
 @file /proc/meminfo MemTotal: 8127744 kB\nMemAvailable: 6291456 kB\nSwapTotal: 2097152 kB\nSwapFree: 2097152 kB
 @file /proc/loadavg 0.12 0.34 0.56 1/512 900
 @file /proc/uptime 98765.43 700000.00
-@file /etc/pupitre/env PUPITRE_DOMAIN=flymate.dev
+@file /etc/pupitre/env PUPITRE_DOMAIN=flyleaf.dev
 @reply nproc 4
 @answer uname -m :: aarch64
 @answer df -P -B1 Filesystem 1B-blocks Used Available Capacity Mounted\n/dev/sda1 85899345920 21474836480 64424509440 25% /

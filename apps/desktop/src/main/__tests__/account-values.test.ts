@@ -17,16 +17,16 @@ import { accountValues, type HeldConnection } from "../account-values";
 const HELD: Record<string, HeldConnection> = {
   "1password": { account: null, token: "ops_de_test" },
   cloudflare: {
-    account: { id: "407880e9a2f71d528020f4201d604548", name: "Flymate" },
+    account: { id: "407880e9a2f71d528020f4201d604548", name: "Flyleaf" },
     token: "cf_de_test",
   },
   github: {
-    account: { id: "70213307", name: "flymate" },
+    account: { id: "70213307", name: "flyleaf" },
     token: "ghp_de_test",
   },
-  neon: { account: { id: "u_1", name: "flymate" }, token: "neon_de_test" },
+  neon: { account: { id: "u_1", name: "flyleaf" }, token: "neon_de_test" },
   wrangler: {
-    account: { id: "407880e9a2f71d528020f4201d604548", name: "Flymate" },
+    account: { id: "407880e9a2f71d528020f4201d604548", name: "Flyleaf" },
     token: "cf_wrangler_de_test",
   },
 };

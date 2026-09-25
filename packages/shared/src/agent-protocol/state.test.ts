@@ -48,11 +48,11 @@ const service = {
 const process = {
   id: "api",
   dir: "api",
-  path: "/home/dev/projects/flymate/api",
+  path: "/home/dev/projects/flyleaf/api",
   pkgmgr: "bun",
   host: "127.0.0.1",
   port: 5173,
-  routes: [{ label: "web", port: 5173, hostname: "flymate.example.org" }],
+  routes: [{ label: "web", port: 5173, hostname: "flyleaf.example.org" }],
   cmd: "bun run dev",
   install: "bun install",
   state: "online",
@@ -63,13 +63,13 @@ const process = {
 }
 
 const project = {
-  name: "flymate",
-  dir: "flymate",
-  path: "/home/dev/projects/flymate",
-  repo: "git@github.com:acme/flymate.git",
+  name: "flyleaf",
+  dir: "flyleaf",
+  path: "/home/dev/projects/flyleaf",
+  repo: "git@github.com:acme/flyleaf.git",
   processes: [process],
   state: "online",
-  url: "https://flymate.example.org",
+  url: "https://flyleaf.example.org",
   branch: "main",
 }
 
@@ -78,7 +78,7 @@ const session = {
   seconds: 1200,
   ram_mb: 512,
   kind: "claude",
-  project: "flymate-api",
+  project: "flyleaf-api",
   command: "claude --resume",
 }
 
@@ -187,12 +187,12 @@ describe("MachineSchema, ServiceSchema, ProjectSchema, SessionSchema", () => {
 
     expect(ProjectSchema.safeParse(withoutPath).success).toBe(false)
     expect(
-      ProjectSchema.safeParse({ ...project, path: "flymate" }).success
+      ProjectSchema.safeParse({ ...project, path: "flyleaf" }).success
     ).toBe(false)
     expect(
       ProjectSchema.safeParse({
         ...project,
-        processes: [{ ...process, path: "flymate/api" }],
+        processes: [{ ...process, path: "flyleaf/api" }],
       }).success
     ).toBe(false)
   })
@@ -405,7 +405,7 @@ describe("ServiceStatusParamsSchema and ServiceStatusResultSchema", () => {
     expect(
       ServiceStatusResultSchema.safeParse({
         ...service,
-        credentials: { app_user: "flymate", app_password: "••••••••" },
+        credentials: { app_user: "flyleaf", app_password: "••••••••" },
       }).success
     ).toBe(true)
   })
@@ -490,12 +490,12 @@ describe("CompletionsParamsSchema", () => {
   it("accepts a folder to list, and none", () => {
     expect(CompletionsParamsSchema.safeParse({}).success).toBe(true)
     expect(
-      CompletionsParamsSchema.safeParse({ path: "flymate/api" }).success
+      CompletionsParamsSchema.safeParse({ path: "flyleaf/api" }).success
     ).toBe(true)
   })
 
   it("rejects an unknown key", () => {
-    expect(CompletionsParamsSchema.safeParse({ dir: "flymate" }).success).toBe(
+    expect(CompletionsParamsSchema.safeParse({ dir: "flyleaf" }).success).toBe(
       false
     )
   })
@@ -505,10 +505,10 @@ describe("CompletionsResultSchema", () => {
   const completions = {
     command: "dev",
     sub: [{ name: "up", help: "start a project", args: [["$project", "all"]] }],
-    projects: ["flymate-api"],
+    projects: ["flyleaf-api"],
     root: "/home/dev/projects",
     path: "",
-    paths: ["flymate/", "README.md"],
+    paths: ["flyleaf/", "README.md"],
   }
 
   it("accepts the grammar, the projects and the paths", () => {

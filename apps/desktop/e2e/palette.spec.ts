@@ -41,7 +41,7 @@ test.describe("palette", () => {
         palette.locator('[data-palette-entry="view:dashboard"]')
       ).toBeVisible();
       await expect(
-        palette.locator('[data-palette-entry="project:flymate-api"]')
+        palette.locator('[data-palette-entry="project:flyleaf-api"]')
       ).toBeVisible();
     });
 

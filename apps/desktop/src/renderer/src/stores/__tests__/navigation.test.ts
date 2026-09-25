@@ -64,7 +64,7 @@ describe("l'historique de navigation", () => {
     const nav = useNavigation.getState();
 
     nav.goTo("services");
-    nav.select("flymate-api");
+    nav.select("flyleaf-api");
 
     expect(where()).toMatchObject({ cursor: 2, length: 3, view: "project" });
 
@@ -81,7 +81,7 @@ describe("l'historique de navigation", () => {
 
     expect(where()).toMatchObject({
       cursor: 2,
-      selection: "flymate-api",
+      selection: "flyleaf-api",
       view: "project",
     });
   });
@@ -199,8 +199,8 @@ describe("l'historique de navigation", () => {
 
     nav.goTo("services");
     nav.goTo("services");
-    nav.select("flymate-api");
-    nav.select("flymate-api");
+    nav.select("flyleaf-api");
+    nav.select("flyleaf-api");
 
     expect(where()).toMatchObject({ cursor: 2, length: 3 });
   });
@@ -208,7 +208,7 @@ describe("l'historique de navigation", () => {
   it("distingue deux projets mais pas deux fois le tableau de bord", () => {
     const nav = useNavigation.getState();
 
-    nav.select("flymate-api");
+    nav.select("flyleaf-api");
     nav.select("atlas-web");
     nav.goTo("dashboard");
 
@@ -222,7 +222,7 @@ describe("l'historique de navigation", () => {
   it("retire de l'historique un projet qui a quitté le registre", () => {
     const nav = useNavigation.getState();
 
-    nav.select("flymate-api");
+    nav.select("flyleaf-api");
     nav.select("atlas-web");
     nav.goTo("dashboard");
     useNavigation.getState().settle(["atlas-web"]);
@@ -239,11 +239,11 @@ describe("l'historique de navigation", () => {
   });
 
   it("garde la sélection courante quand le projet ouvert est toujours là", () => {
-    useNavigation.getState().select("flymate-api");
+    useNavigation.getState().select("flyleaf-api");
 
     const before = useNavigation.getState();
 
-    before.settle(["flymate-api", "atlas-web"]);
+    before.settle(["flyleaf-api", "atlas-web"]);
 
     expect(useNavigation.getState().history).toBe(before.history);
   });
@@ -252,7 +252,7 @@ describe("l'historique de navigation", () => {
     const nav = useNavigation.getState();
 
     nav.goTo("services");
-    nav.select("flymate-api");
+    nav.select("flyleaf-api");
     useNavigation.getState().reset();
 
     expect(where()).toEqual({
@@ -279,13 +279,13 @@ describe("les onglets d'un lancement à l'autre", () => {
   it("relit les onglets, leurs titres, leur session et celui qui était devant", () => {
     remembered({
       terminal: "t2",
-      terminalTabs: { "@server": "t2", "flymate-api:agents": "t1" },
+      terminalTabs: { "@server": "t2", "flyleaf-api:agents": "t1" },
       terminals: [
         tab({
           id: "t1",
           kind: "claude",
-          project: "flymate-api",
-          session: "claude-flymate-api",
+          project: "flyleaf-api",
+          session: "claude-flyleaf-api",
           title: "Claude",
         }),
         tab({ id: "t2", session: "shell-server-t2", title: "Le build" }),
@@ -301,19 +301,19 @@ describe("les onglets d'un lancement à l'autre", () => {
       "Le build",
     ]);
     expect(state.terminals.map((terminal) => terminal.session)).toEqual([
-      "claude-flymate-api",
+      "claude-flyleaf-api",
       "shell-server-t2",
     ]);
     expect(state.activeTabs).toEqual({
       "@server": "t2",
-      "flymate-api:agents": "t1",
+      "flyleaf-api:agents": "t1",
     });
     expect(state.activeTerminal).toBe("t2");
   });
 
   it("oublie l'onglet devant d'un groupe qu'aucun onglet ne forme", () => {
     remembered({
-      terminalTabs: { "@server": "t1", "flymate-api:claude": "t1" },
+      terminalTabs: { "@server": "t1", "flyleaf-api:claude": "t1" },
       terminals: [tab({})],
     });
 
@@ -324,8 +324,8 @@ describe("les onglets d'un lancement à l'autre", () => {
 
   it("oublie l'onglet devant d'une rangée où il ne siège pas", () => {
     remembered({
-      terminalTabs: { "flymate-api": "t1" },
-      terminals: [tab({ kind: "claude", project: "flymate-api" })],
+      terminalTabs: { "flyleaf-api": "t1" },
+      terminals: [tab({ kind: "claude", project: "flyleaf-api" })],
     });
 
     useNavigation.setState(restoredTerminals());
@@ -388,9 +388,9 @@ describe("les onglets d'un lancement à l'autre", () => {
 
   it("retire l'onglet remémoré d'un projet que le registre ne déclare plus", () => {
     remembered({
-      terminalTabs: { "@server": "t2", "flymate-api:agents": "t1" },
+      terminalTabs: { "@server": "t2", "flyleaf-api:agents": "t1" },
       terminals: [
-        tab({ id: "t1", kind: "claude", project: "flymate-api" }),
+        tab({ id: "t1", kind: "claude", project: "flyleaf-api" }),
         tab({ id: "t2" }),
       ],
     });
@@ -406,36 +406,36 @@ describe("les onglets d'un lancement à l'autre", () => {
 
   it("met les shells d'un projet dans une rangée et ses agents dans l'autre", () => {
     const store = useNavigation.getState();
-    const shell = store.openTerminal("flymate-api", "shell");
-    const claude = store.openTerminal("flymate-api", "claude");
-    const codex = store.openTerminal("flymate-api", "codex");
-    const second = store.openTerminal("flymate-api", "claude");
+    const shell = store.openTerminal("flyleaf-api", "shell");
+    const claude = store.openTerminal("flyleaf-api", "claude");
+    const codex = store.openTerminal("flyleaf-api", "codex");
+    const second = store.openTerminal("flyleaf-api", "claude");
 
     const state = useNavigation.getState();
 
     expect(
       state.terminals
-        .filter((terminal) => terminal.project === "flymate-api")
+        .filter((terminal) => terminal.project === "flyleaf-api")
         .map((terminal) => terminal.title)
     ).toEqual(["Terminal", "Claude", "Codex", "Claude 2"]);
     expect(state.activeTabs).toEqual({
-      "flymate-api": shell,
-      "flymate-api:agents": second,
+      "flyleaf-api": shell,
+      "flyleaf-api:agents": second,
     });
 
     useNavigation.getState().closeTerminal(second);
 
     expect(useNavigation.getState().activeTabs).toEqual({
-      "flymate-api": shell,
-      "flymate-api:agents": codex,
+      "flyleaf-api": shell,
+      "flyleaf-api:agents": codex,
     });
 
     useNavigation.getState().activateTerminal(claude);
-    useNavigation.getState().ensureTerminal("flymate-api");
+    useNavigation.getState().ensureTerminal("flyleaf-api");
 
     expect(useNavigation.getState().activeTabs).toEqual({
-      "flymate-api": shell,
-      "flymate-api:agents": claude,
+      "flyleaf-api": shell,
+      "flyleaf-api:agents": claude,
     });
     expect(useNavigation.getState().terminals).toHaveLength(3);
   });
@@ -453,18 +453,18 @@ describe("les onglets d'un lancement à l'autre", () => {
 
     const claude = useNavigation
       .getState()
-      .openTerminal("flymate-api", "claude");
-    const codex = useNavigation.getState().openTerminal("flymate-api", "codex");
+      .openTerminal("flyleaf-api", "claude");
+    const codex = useNavigation.getState().openTerminal("flyleaf-api", "codex");
 
-    useNavigation.getState().noteSession(claude, "claude-flymate-api");
-    useNavigation.getState().noteSession(codex, "codex-flymate-api");
+    useNavigation.getState().noteSession(claude, "claude-flyleaf-api");
+    useNavigation.getState().noteSession(codex, "codex-flyleaf-api");
     useNavigation.getState().endTerminal(claude, 0);
     useNavigation.getState().closeTerminal(codex);
 
     expect(useNavigation.getState().terminals).toHaveLength(0);
     expect(ends).toEqual([
       null,
-      { serverId: "srv", session: "codex-flymate-api" },
+      { serverId: "srv", session: "codex-flyleaf-api" },
     ]);
 
     useServers.setState({ config: null });
@@ -475,7 +475,7 @@ describe("les onglets d'un lancement à l'autre", () => {
     const busy = useNavigation.getState().openTerminal(null, "shell");
     const claude = useNavigation
       .getState()
-      .openTerminal("flymate-api", "claude");
+      .openTerminal("flyleaf-api", "claude");
 
     for (const id of [shell, busy, claude]) {
       useNavigation.getState().noteSession(id, `session-${id}`);
@@ -519,10 +519,10 @@ describe("les onglets d'un lancement à l'autre", () => {
   it("ferme sans demander un onglet dont la session est finie ou n'a jamais été nommée", () => {
     const claude = useNavigation
       .getState()
-      .openTerminal("flymate-api", "claude");
-    const codex = useNavigation.getState().openTerminal("flymate-api", "codex");
+      .openTerminal("flyleaf-api", "claude");
+    const codex = useNavigation.getState().openTerminal("flyleaf-api", "codex");
 
-    useNavigation.getState().noteSession(claude, "claude-flymate-api");
+    useNavigation.getState().noteSession(claude, "claude-flyleaf-api");
     useNavigation.getState().noteStates({ [claude]: "finished" });
 
     useNavigation.getState().askCloseTerminal(claude);
@@ -533,10 +533,10 @@ describe("les onglets d'un lancement à l'autre", () => {
   });
 
   it("garde l'onglet d'un shell qui a quitté, et celui d'un agent dont la liaison a rompu", () => {
-    const shell = useNavigation.getState().openTerminal("flymate-api", "shell");
+    const shell = useNavigation.getState().openTerminal("flyleaf-api", "shell");
     const claude = useNavigation
       .getState()
-      .openTerminal("flymate-api", "claude");
+      .openTerminal("flyleaf-api", "claude");
 
     useNavigation.getState().endTerminal(shell, 0);
     useNavigation.getState().endTerminal(claude, 255);
@@ -547,8 +547,8 @@ describe("les onglets d'un lancement à l'autre", () => {
   });
 
   it("n'ouvre un shell à l'arrivée que si la rangée des shells est vide, jamais un agent", () => {
-    useNavigation.getState().openTerminal("flymate-api", "claude");
-    useNavigation.getState().ensureTerminal("flymate-api");
+    useNavigation.getState().openTerminal("flyleaf-api", "claude");
+    useNavigation.getState().ensureTerminal("flyleaf-api");
 
     const kinds = useNavigation
       .getState()
@@ -556,31 +556,31 @@ describe("les onglets d'un lancement à l'autre", () => {
 
     expect(kinds).toEqual(["claude", "shell"]);
 
-    useNavigation.getState().ensureTerminal("flymate-api");
+    useNavigation.getState().ensureTerminal("flyleaf-api");
 
     expect(useNavigation.getState().terminals).toHaveLength(2);
   });
 
   it("garde l'onglet ouvert d'un projet disparu : c'est le travail du lecteur", () => {
-    useNavigation.getState().openTerminal("flymate-api", "shell");
+    useNavigation.getState().openTerminal("flyleaf-api", "shell");
     useNavigation.getState().settle(["atlas-web"]);
 
     expect(useNavigation.getState().terminals).toHaveLength(1);
   });
 
   it("ouvre le terminal du raccourci dans le projet affiché, sur son onglet des terminaux", () => {
-    useNavigation.getState().select("flymate-api");
-    useNavigation.getState().setProjectTab("flymate-api", "files");
+    useNavigation.getState().select("flyleaf-api");
+    useNavigation.getState().setProjectTab("flyleaf-api", "files");
     useNavigation.getState().openTerminalHere();
 
     const state = useNavigation.getState();
 
     expect(state.terminals.map((terminal) => terminal.project)).toEqual([
-      "flymate-api",
+      "flyleaf-api",
     ]);
-    expect(state.projectTabs["flymate-api"]).toBe("terminals");
+    expect(state.projectTabs["flyleaf-api"]).toBe("terminals");
     expect(where()).toMatchObject({
-      selection: "flymate-api",
+      selection: "flyleaf-api",
       view: "project",
     });
   });
@@ -596,10 +596,10 @@ describe("les onglets d'un lancement à l'autre", () => {
   });
 
   it("ouvre l'agent du raccourci dans le projet affiché, sur son onglet des agents, jamais sur le serveur", () => {
-    useNavigation.getState().select("flymate-api");
+    useNavigation.getState().select("flyleaf-api");
     useNavigation.getState().openTerminalHere("claude");
 
-    expect(useNavigation.getState().projectTabs["flymate-api"]).toBe("agents");
+    expect(useNavigation.getState().projectTabs["flyleaf-api"]).toBe("agents");
     expect(
       useNavigation.getState().terminals.map((terminal) => terminal.kind)
     ).toEqual(["claude"]);

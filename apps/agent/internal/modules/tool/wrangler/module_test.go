@@ -177,12 +177,12 @@ func TestLoginAsksWranglerWhoamiWithTheTokenTheMachineHolds(t *testing.T) {
 		want    contract.Login
 	}{
 		"a user token": {
-			answer: `{"loggedIn":true,"authType":"API Token","email":"jordan@example.org","accounts":[{"id":"` + account + `","name":"Flymate"}]}`,
+			answer: `{"loggedIn":true,"authType":"API Token","email":"jordan@example.org","accounts":[{"id":"` + account + `","name":"Flyleaf"}]}`,
 			want:   contract.Login{State: contract.LoginSignedIn, Account: "jordan@example.org"},
 		},
 		"an account token": {
-			answer: `{"loggedIn":true,"authType":"API Token","accounts":[{"id":"other","name":"Other"},{"id":"` + account + `","name":"Flymate"}]}`,
-			want:   contract.Login{State: contract.LoginSignedIn, Account: "Flymate"},
+			answer: `{"loggedIn":true,"authType":"API Token","accounts":[{"id":"other","name":"Other"},{"id":"` + account + `","name":"Flyleaf"}]}`,
+			want:   contract.Login{State: contract.LoginSignedIn, Account: "Flyleaf"},
 		},
 		"refused": {
 			answer:  "",

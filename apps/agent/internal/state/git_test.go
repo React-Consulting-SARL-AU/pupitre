@@ -103,7 +103,7 @@ func gitFixture(t *testing.T) fixtureRepo {
 
 	seed := filepath.Join(base, "seed")
 	run(t, base, "git", "clone", "--quiet", origin, seed)
-	write(t, filepath.Join(seed, "README.md"), "flymate\n")
+	write(t, filepath.Join(seed, "README.md"), "flyleaf\n")
 	write(t, filepath.Join(seed, "src/app.ts"), "export const app = 1\n")
 	run(t, seed, "git", "add", "-A")
 	run(t, seed, "git", "commit", "--quiet", "-m", "premier jet")
@@ -248,7 +248,7 @@ func TestDiffRefusesAPathGitMustNeverSee(t *testing.T) {
 func TestWorkingTreeListsEveryStageWithItsCounts(t *testing.T) {
 	repo := gitFixture(t)
 	run(t, repo.work, "git", "add", "README.md")
-	write(t, filepath.Join(repo.work, "README.md"), "flymate\nune ligne de plus\n")
+	write(t, filepath.Join(repo.work, "README.md"), "flyleaf\nune ligne de plus\n")
 	run(t, repo.work, "git", "add", "README.md")
 
 	tree, err := repo.reader.WorkingTree("web")
@@ -497,7 +497,7 @@ func TestSyncClonesTheBranchTheRegistryNames(t *testing.T) {
 
 	seed := filepath.Join(base, "seed")
 	run(t, base, "git", "clone", "--quiet", origin, seed)
-	write(t, filepath.Join(seed, "README.md"), "flymate\n")
+	write(t, filepath.Join(seed, "README.md"), "flyleaf\n")
 	run(t, seed, "git", "add", "-A")
 	run(t, seed, "git", "commit", "--quiet", "-m", "premier jet")
 	run(t, seed, "git", "push", "--quiet", "origin", "main")
@@ -555,7 +555,7 @@ func initRepo(t *testing.T, dir string) {
 	}
 
 	run(t, dir, "git", "init", "--quiet", "--initial-branch=main")
-	write(t, filepath.Join(dir, "README.md"), "flymate\n")
+	write(t, filepath.Join(dir, "README.md"), "flyleaf\n")
 	run(t, dir, "git", "add", "-A")
 	run(t, dir, "git", "commit", "--quiet", "-m", "premier jet")
 }

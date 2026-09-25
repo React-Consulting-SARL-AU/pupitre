@@ -47,8 +47,8 @@ var fieldCatalog = map[string]Message{
 		EN: "a hostname is expected, with no space and no slash",
 	},
 	"field.problem.format.domain": {
-		FR: "un domaine est attendu, comme flymate.dev, sans schéma ni slash",
-		EN: "a domain is expected, like flymate.dev, with no scheme and no slash",
+		FR: "un domaine est attendu, comme flyleaf.dev, sans schéma ni slash",
+		EN: "a domain is expected, like flyleaf.dev, with no scheme and no slash",
 	},
 	"field.problem.format.email": {
 		FR: "une adresse e-mail est attendue",

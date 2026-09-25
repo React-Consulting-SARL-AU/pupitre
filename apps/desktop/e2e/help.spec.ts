@@ -84,10 +84,10 @@ test.describe("l'aide", () => {
 
     // The terminal steps open in the first project's folder.
     await expect(
-      page.getByText("cd /home/dev/projects/flymate && claude")
+      page.getByText("cd /home/dev/projects/flyleaf && claude")
     ).toBeVisible();
     await expect(
-      page.getByText("zed://ssh/atelier/home/dev/projects/flymate")
+      page.getByText("zed://ssh/atelier/home/dev/projects/flyleaf")
     ).toBeVisible();
 
     await assertAccessible(page, "aide/ouverte");

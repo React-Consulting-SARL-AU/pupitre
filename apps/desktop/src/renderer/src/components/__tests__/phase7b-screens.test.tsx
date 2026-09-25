@@ -344,9 +344,9 @@ describe("la palette", () => {
     { id: "dashboard", kind: "view", label: "Tableau de bord" },
     {
       hint: "online",
-      id: "flymate-api",
+      id: "flyleaf-api",
       kind: "project",
-      label: "flymate-api",
+      label: "flyleaf-api",
     },
   ];
 
@@ -365,7 +365,7 @@ describe("la palette", () => {
     expect(html).toContain('role="listbox"');
     expect(html).toContain('role="combobox"');
     expect(html).toContain('data-palette-entry="view:dashboard"');
-    expect(html).toContain('data-palette-entry="project:flymate-api"');
+    expect(html).toContain('data-palette-entry="project:flyleaf-api"');
     expect(html.match(/aria-selected="true"/g)).toHaveLength(1);
     expect(text(html)).toContain("2 résultats");
     expect(document.activeElement?.getAttribute("role")).toBe("combobox");

@@ -126,7 +126,7 @@ describe("un chemin que le renderer aurait inventé", () => {
       params: { path: "projects" },
       serverId: "srv-1",
     });
-    expect(refused("fs.mkdir", { path: "projects/flymate" })).toBeNull();
+    expect(refused("fs.mkdir", { path: "projects/flyleaf" })).toBeNull();
   });
 
   it("refuse ce que le contrat de la commande ne lit pas", () => {

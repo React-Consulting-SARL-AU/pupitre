@@ -13,7 +13,7 @@ import { launchPupitre, type Running } from "./harness/launch";
  * main process pushes them; `terminal-open` is answered here rather than by a
  * real `ssh`.
  */
-const FLYMATE_CARD = /^flymate-api/;
+const FLYLEAF_CARD = /^flyleaf-api/;
 const TERMINALS_TAB = /^Terminaux/;
 const AGENTS_TAB = /^Agents/;
 const PROJECT_CHORD =
@@ -33,7 +33,7 @@ test.describe("le clavier sur la page d'un projet", () => {
       ipcMain.handle("terminal-open", (_event, ...args: unknown[]) => {
         kept.opened?.push(args);
 
-        return { ok: true, result: { session: "flymate-api" } };
+        return { ok: true, result: { session: "flyleaf-api" } };
       });
     });
   });
@@ -59,9 +59,9 @@ test.describe("le clavier sur la page d'un projet", () => {
   test("ouvre les sessions dans le projet affiché et marche dans ses onglets", async () => {
     const { page } = running;
 
-    await page.getByRole("button", { name: FLYMATE_CARD }).first().click();
+    await page.getByRole("button", { name: FLYLEAF_CARD }).first().click();
 
-    const heading = page.getByRole("heading", { name: "flymate-api" });
+    const heading = page.getByRole("heading", { name: "flyleaf-api" });
     const tabs = page.getByRole("tablist", { name: "Les pages du projet" });
     const selected = (name: RegExp | string) =>
       expect(tabs.getByRole("tab", { name })).toHaveAttribute(
@@ -87,7 +87,7 @@ test.describe("le clavier sur la page d'un projet", () => {
 
       expect(calls).toHaveLength(1);
       expect(calls[0]?.[2]).toBe("shell");
-      expect(calls[0]?.[3]).toBe("flymate-api");
+      expect(calls[0]?.[3]).toBe("flyleaf-api");
     });
 
     await test.step("⌘⇧T ouvre le premier agent de la machine, sur l'onglet des agents", async () => {
@@ -104,7 +104,7 @@ test.describe("le clavier sur la page d'un projet", () => {
 
       expect(calls).toHaveLength(2);
       expect(calls[1]?.[2]).toBe("claude");
-      expect(calls[1]?.[3]).toBe("flymate-api");
+      expect(calls[1]?.[3]).toBe("flyleaf-api");
     });
 
     await test.step("⌘⌥← et ⌘⌥→ passent à l'onglet voisin, ⌘⌥1 saute au premier", async () => {

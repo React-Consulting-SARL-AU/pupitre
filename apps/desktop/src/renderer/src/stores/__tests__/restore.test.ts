@@ -55,9 +55,9 @@ const SETUP: BackupRestoreSetupResult = {
       bytes: 48_213_990,
       engine: "postgres",
       format: "pg_custom",
-      key: "db-postgres-flymate.pupitre",
+      key: "db-postgres-flyleaf.pupitre",
       kind: "database",
-      name: "flymate",
+      name: "flyleaf",
       sha256: "b".repeat(64),
     },
   ],
@@ -216,14 +216,14 @@ describe("repartir d'une sauvegarde pendant l'onboarding", () => {
           module: "core.backup",
           ms: 5300,
           status: "ok",
-          step: "db:postgres:flymate",
+          step: "db:postgres:flyleaf",
         } as never);
 
         return Promise.resolve({
           ok: true,
           result: {
             failed: [],
-            restored: ["db-postgres-flymate.pupitre"],
+            restored: ["db-postgres-flyleaf.pupitre"],
             started: ["intranet"],
             warnings: [],
           },
@@ -237,10 +237,10 @@ describe("repartir d'une sauvegarde pendant l'onboarding", () => {
 
     const done = await useRestore
       .getState()
-      .bringData(SERVER, ["db-postgres-flymate.pupitre"], null);
+      .bringData(SERVER, ["db-postgres-flyleaf.pupitre"], null);
 
     expect(done).toBe(true);
-    expect(asked).toEqual(["db-postgres-flymate.pupitre"]);
+    expect(asked).toEqual(["db-postgres-flyleaf.pupitre"]);
     expect(useRestore.getState().steps[0]).toMatchObject({
       id: "core.backup",
       status: "ok",

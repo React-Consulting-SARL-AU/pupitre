@@ -28,7 +28,7 @@ func configuredMachine() *modtest.FakeSys {
 	fake.Files[keyPath+".pub"] = []byte("ssh-ed25519 AAAA staging")
 	fake.Files[env.Path] = []byte(envKey + "=" + token + "\n")
 	fake.Answer("hostname", "staging")
-	fake.Answer("gh api user", "flymate")
+	fake.Answer("gh api user", "flyleaf")
 	fake.Answer("credential.https://github.com.helper", "!gh auth git-credential")
 	fake.Answer("gh ssh-key list", "staging\tssh-ed25519 AAAA\t2026-09-04")
 
@@ -186,7 +186,7 @@ func TestStatusCitesTheKeyNeverTheValue(t *testing.T) {
 
 func TestUninstallLeavesTheServerKeyAlone(t *testing.T) {
 	fake := configuredMachine()
-	fake.Files[hostsPath] = []byte("github.com:\n    oauth_token: " + token + "\n    user: flymate\n")
+	fake.Files[hostsPath] = []byte("github.com:\n    oauth_token: " + token + "\n    user: flyleaf\n")
 	ctx := newContext(t, fake, modtest.Secrets{"token": token})
 
 	if err := (Module{}).Uninstall(ctx); err != nil {
@@ -246,8 +246,8 @@ func TestLoginReadsWhatGhAuthStatusSays(t *testing.T) {
 		want    contract.Login
 	}{
 		"signed in": {
-			answer: `{"hosts":{"github.com":[{"state":"success","active":true,"host":"github.com","login":"flymate","tokenSource":"GITHUB_TOKEN"}]}}`,
-			want:   contract.Login{State: contract.LoginSignedIn, Account: "flymate"},
+			answer: `{"hosts":{"github.com":[{"state":"success","active":true,"host":"github.com","login":"flyleaf","tokenSource":"GITHUB_TOKEN"}]}}`,
+			want:   contract.Login{State: contract.LoginSignedIn, Account: "flyleaf"},
 		},
 		"nobody": {
 			answer:  `{"hosts":{}}`,

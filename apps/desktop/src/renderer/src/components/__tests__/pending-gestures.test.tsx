@@ -77,7 +77,7 @@ describe("un geste long garde son bouton en attente", () => {
   it("crée une branche sans fermer le formulaire avant la réponse", async () => {
     const view = await mount(
       <ProjectBranches
-        folder="/home/dev/projects/flymate"
+        folder="/home/dev/projects/flyleaf"
         onCheckout={NEVER}
         state={{
           branches: {
@@ -86,7 +86,7 @@ describe("un geste long garde son bouton en attente", () => {
             local: ["main"],
             remote: [],
             repo: true,
-            root: "/home/dev/projects/flymate",
+            root: "/home/dev/projects/flyleaf",
           },
           status: "read",
         }}
@@ -128,7 +128,7 @@ describe("un geste long garde son bouton en attente", () => {
         editor={editor}
         onOpen={NEVER}
         onShare={NEVER}
-        root="/home/dev/projects/flymate"
+        root="/home/dev/projects/flyleaf"
         share={null}
       />
     );

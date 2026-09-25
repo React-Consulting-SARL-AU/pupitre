@@ -4,8 +4,8 @@
 > {"id":4,"cmd":"hello"}
 > {"id":5,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}
 > {"id":6,"cmd":"ping","params":{"x":1}}
-> {"id":7,"cmd":"project.logs","params":{"name":"Flymate","process":"api"}}
-> {"id":8,"cmd":"project.logs","params":{"name":"flymate-api","process":"api","lines":0}}
+> {"id":7,"cmd":"project.logs","params":{"name":"Flyleaf","process":"api"}}
+> {"id":8,"cmd":"project.logs","params":{"name":"flyleaf-api","process":"api","lines":0}}
 > {"id":9,"cmd":"install","params":{"modules":[],"config":{},"secrets_stdin":true}}
 > {"id":10,"cmd":"ping"}
 < {"id":1,"ok":false,"error":{"code":"bad_request","message":"invalid parameters: params/app_version: required field"}}

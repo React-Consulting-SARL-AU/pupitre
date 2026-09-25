@@ -256,7 +256,7 @@ describe("le domaine d'une exposition", () => {
   // before go, the ones of now are written, and nothing else in the zone moves.
   it("retire les noms d'avant et écrit ceux du nouveau domaine", async () => {
     const order: string[] = [];
-    let domain = "flymate.dev";
+    let domain = "flyleaf.dev";
 
     stubPupitre({
       agentCall: (_server, cmd) => {
@@ -302,7 +302,7 @@ describe("le domaine d'une exposition", () => {
       serviceDetail: () => Promise.resolve({ ok: true, result: DETAIL }),
       startInstall: () => {
         order.push("install");
-        domain = "flymate.studio";
+        domain = "flyleaf.studio";
 
         return Promise.resolve({
           ok: true,
@@ -323,7 +323,7 @@ describe("le domaine d'une exposition", () => {
     });
 
     await useServices.getState().readConfig(SERVER, "exposure.cloudflare");
-    useServices.getState().setValue("domain", "flymate.studio");
+    useServices.getState().setValue("domain", "flyleaf.studio");
     await useServices.getState().reconfigure(SERVER, "exposure.cloudflare");
 
     expect(
@@ -332,9 +332,9 @@ describe("le domaine d'une exposition", () => {
       )
     ).toEqual([
       "install",
-      "release web.flymate.dev",
+      "release web.flyleaf.dev",
       "tunnel.sync",
-      "records web.flymate.studio",
+      "records web.flyleaf.studio",
     ]);
   });
 
@@ -349,7 +349,7 @@ describe("le domaine d'une exposition", () => {
           ok: true,
           result: {
             id: "exposure.cloudflare",
-            values: { domain: "flymate.dev" },
+            values: { domain: "flyleaf.dev" },
             secrets: [],
           },
         } as AgentResponse<unknown>);
@@ -357,7 +357,7 @@ describe("le domaine d'une exposition", () => {
       listProjects: () =>
         Promise.resolve({
           ok: true,
-          result: { projects: [web("web.flymate.dev")] },
+          result: { projects: [web("web.flyleaf.dev")] },
         }),
       releaseTunnelRecords: () => {
         order.push("release");

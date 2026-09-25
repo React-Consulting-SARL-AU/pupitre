@@ -117,8 +117,8 @@ describe("la configuration d'un projet", () => {
     expect(html).toContain('id="config.branch"');
     expect(html).toContain('id="project.processes.0.install"');
     expect(html).toContain('id="project.processes.0.id"');
-    expect(html).toContain('value="flymate.example.org"');
-    expect(html).toContain('value="api-flymate.example.org"');
+    expect(html).toContain('value="flyleaf.example.org"');
+    expect(html).toContain('value="api-flyleaf.example.org"');
     expect(html).not.toContain('id="project.source"');
     expect(html).not.toContain('id="project.name"');
     expect(text(html)).toContain("Enregistrer la configuration");
@@ -141,7 +141,7 @@ describe("la configuration d'un projet", () => {
 
     expect(folded).toMatch(/data-closed=""[^>]*data-process="0"/);
     expect(folded).toMatch(
-      /data-process-fold="0"[^>]*>[\s\S]*?3000[\s\S]*?flymate\.example\.org[\s\S]*?<\/button>/
+      /data-process-fold="0"[^>]*>[\s\S]*?3000[\s\S]*?flyleaf\.example\.org[\s\S]*?<\/button>/
     );
     expect(text(folded)).toContain("principal");
 
@@ -178,12 +178,12 @@ describe("la configuration d'un projet", () => {
     const html = text(
       panel(
         { status: "idle" },
-        { dropped: ["api-flymate.example.org"], restarts: ["flymate-api"] }
+        { dropped: ["api-flyleaf.example.org"], restarts: ["flyleaf-api"] }
       )
     );
 
-    expect(html).toContain("redémarre flymate-api");
-    expect(html).toContain("api-flymate.example.org");
+    expect(html).toContain("redémarre flyleaf-api");
+    expect(html).toContain("api-flyleaf.example.org");
     expect(html).toContain("cessent de répondre");
   });
 
@@ -192,9 +192,9 @@ describe("la configuration d'un projet", () => {
       throw new Error("the fixture has no project");
     }
 
-    const saving = panel({ name: "flymate-api", status: "saving" });
+    const saving = panel({ name: "flyleaf-api", status: "saving" });
     const saved = text(
-      panel({ name: "flymate-api", project: PROJECT, status: "saved" })
+      panel({ name: "flyleaf-api", project: PROJECT, status: "saved" })
     );
     const failed = text(
       panel({
@@ -203,13 +203,13 @@ describe("la configuration d'un projet", () => {
           fix: "Give a name under example.org.",
           message: "shop.elsewhere.org is not under this server's domain",
         },
-        name: "flymate-api",
+        name: "flyleaf-api",
         status: "failed",
       })
     );
 
     expect(saving).toContain('aria-busy="true"');
-    expect(saved).toContain("flymate-api est réécrit dans le registre");
+    expect(saved).toContain("flyleaf-api est réécrit dans le registre");
     expect(failed).toContain(
       "shop.elsewhere.org is not under this server's domain"
     );
@@ -222,7 +222,7 @@ describe("la configuration d'un projet", () => {
     }
 
     const html = panel({
-      name: "flymate-api",
+      name: "flyleaf-api",
       project: PROJECT,
       status: "saved",
       sync: {
@@ -233,7 +233,7 @@ describe("la configuration d'un projet", () => {
       warnings: ["le démarrage a refusé, le processus reste arrêté"],
     });
 
-    expect(text(html)).toContain("flymate-api est réécrit dans le registre");
+    expect(text(html)).toContain("flyleaf-api est réécrit dans le registre");
     expect(text(html)).toContain("le tunnel refuse");
     expect(text(html)).toContain("Reconnecte le compte Cloudflare.");
     expect(text(html)).toContain(

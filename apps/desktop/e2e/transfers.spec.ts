@@ -134,7 +134,7 @@ test.describe("les transferts", () => {
             command: "dev",
             path: "",
             paths: [],
-            projects: ["flymate-api"],
+            projects: ["flyleaf-api"],
             root: files.root,
             sub: [],
           },
@@ -261,7 +261,7 @@ test.describe("les transferts", () => {
       await page.getByRole("button", { exact: true, name: "Fichiers" }).click();
       await expect(page.locator("[data-files-root]")).toBeVisible();
       await page.locator('[data-entry="projects"] button').first().click();
-      await expect(page.locator('[data-entry="flymate"]')).toBeVisible();
+      await expect(page.locator('[data-entry="flyleaf"]')).toBeVisible();
 
       await page.getByRole("button", { name: "Envoyer…" }).click();
 
@@ -338,7 +338,7 @@ test.describe("les transferts", () => {
     });
 
     await test.step("Télécharger, depuis le menu d'une entrée, demande où enregistrer", async () => {
-      await page.getByRole("button", { name: "Actions sur flymate" }).click();
+      await page.getByRole("button", { name: "Actions sur flyleaf" }).click();
       await page
         .getByRole("menuitem", { name: "Télécharger sur cet ordinateur" })
         .click();
@@ -348,7 +348,7 @@ test.describe("les transferts", () => {
       );
 
       expect(downloads).toEqual([
-        ["e2e-atelier", "projects/flymate", "/Users/e2e/Downloads"],
+        ["e2e-atelier", "projects/flyleaf", "/Users/e2e/Downloads"],
       ]);
 
       const row = page.locator('[data-transfer="t2"]');
@@ -359,7 +359,7 @@ test.describe("les transferts", () => {
     await test.step("annuler retire le transfert de ce qui bouge", async () => {
       const row = page.locator('[data-transfer="t2"]');
 
-      await row.getByRole("button", { name: "Annuler flymate" }).click();
+      await row.getByRole("button", { name: "Annuler flyleaf" }).click();
 
       await expect(row).toHaveAttribute("data-status", "cancelled");
       await expect(

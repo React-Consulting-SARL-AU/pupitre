@@ -148,8 +148,8 @@ export function cloudflareApi(
     zones: () => listZones(),
 
     /**
-     * A domain belongs to the zone whose name it ends on: `dev.flymate.dev`
-     * publishes under the `flymate.dev` zone, and the longest match wins so a
+     * A domain belongs to the zone whose name it ends on: `dev.flyleaf.dev`
+     * publishes under the `flyleaf.dev` zone, and the longest match wins so a
      * client who owns both a zone and one of its subdomains gets the right one.
      */
     async zoneOf(domain) {

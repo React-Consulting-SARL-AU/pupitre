@@ -10,7 +10,7 @@ import { launchPupitre, type Running } from "./harness/launch";
  * patch. The scenario publishes a second port and reads the agent's answer
  * under the form, against answers shaped like the contract.
  */
-const FLYMATE_CARD = /^flymate-api/;
+const FLYLEAF_CARD = /^flyleaf-api/;
 
 test.describe("la configuration d'un projet", () => {
   let running: Running;
@@ -56,15 +56,15 @@ test.describe("la configuration d'un projet", () => {
           ok: true,
           result: {
             branch: "main",
-            dir: "flymate",
+            dir: "flyleaf",
             name: sent.name,
-            path: "/home/dev/projects/flymate",
+            path: "/home/dev/projects/flyleaf",
             processes: (sent.patch.processes ?? []).map((process) => ({
               cmd: process.cmd,
               dir: process.dir,
               host: process.host,
               id: process.id,
-              path: "/home/dev/projects/flymate",
+              path: "/home/dev/projects/flyleaf",
               pkgmgr: process.pkgmgr,
               port: process.port,
               routes: process.routes.map(
@@ -80,11 +80,11 @@ test.describe("la configuration d'un projet", () => {
                 }
               ),
               state: "online",
-              url: "https://flymate.example.org",
+              url: "https://flyleaf.example.org",
             })),
-            repo: "https://example.org/moi/flymate.git",
+            repo: "https://example.org/moi/flyleaf.git",
             state: "online",
-            url: "https://flymate.example.org",
+            url: "https://flyleaf.example.org",
           },
         };
       });
@@ -101,13 +101,13 @@ test.describe("la configuration d'un projet", () => {
     const { page } = running;
 
     await test.step("la page du projet liste ses adresses", async () => {
-      await page.getByRole("button", { name: FLYMATE_CARD }).first().click();
+      await page.getByRole("button", { name: FLYLEAF_CARD }).first().click();
 
       await expect(
-        page.getByRole("heading", { name: "flymate-api" })
+        page.getByRole("heading", { name: "flyleaf-api" })
       ).toBeVisible();
       await expect(page.locator('[data-addresses="2"]')).toBeVisible();
-      await expect(page.getByText("api-flymate.example.org")).toBeVisible();
+      await expect(page.getByText("api-flyleaf.example.org")).toBeVisible();
     });
 
     await test.step("publier un autre port ouvre la configuration, le processus replié sur son résumé", async () => {
@@ -118,7 +118,7 @@ test.describe("la configuration d'un projet", () => {
 
       await expect(process).toHaveAttribute("data-closed", "");
       await expect(fold).toContainText(
-        "3000 → flymate.example.org · 3001 → api-flymate.example.org"
+        "3000 → flyleaf.example.org · 3001 → api-flyleaf.example.org"
       );
       await expect(page.locator("#project\\.processes\\.0\\.cmd")).toBeHidden();
 
@@ -129,10 +129,10 @@ test.describe("la configuration d'un projet", () => {
       );
       await expect(
         page.locator("#project\\.processes\\.0\\.ports\\.0\\.web")
-      ).toHaveValue("flymate.example.org");
+      ).toHaveValue("flyleaf.example.org");
       await expect(
         page.locator("#project\\.processes\\.0\\.ports\\.1\\.web")
-      ).toHaveValue("api-flymate.example.org");
+      ).toHaveValue("api-flyleaf.example.org");
       await expect(
         page.getByRole("button", { name: "Enregistrer la configuration" })
       ).toBeDisabled();
@@ -148,7 +148,7 @@ test.describe("la configuration d'un projet", () => {
       ).toHaveValue("docs");
       await expect(
         page.locator("#project\\.processes\\.0\\.ports\\.2\\.web")
-      ).toHaveValue("docs-flymate-api");
+      ).toHaveValue("docs-flyleaf-api");
       await expect(
         page.getByRole("button", { name: "Enregistrer la configuration" })
       ).toBeEnabled();
@@ -159,7 +159,7 @@ test.describe("la configuration d'un projet", () => {
         .locator("#project\\.processes\\.0\\.cmd")
         .fill("bun run dev --port 3000 --host 127.0.0.1");
 
-      await expect(page.getByText("redémarre flymate-api")).toBeVisible();
+      await expect(page.getByText("redémarre flyleaf-api")).toBeVisible();
     });
 
     await test.step("la réponse de l'agent se lit sous le formulaire", async () => {
@@ -169,7 +169,7 @@ test.describe("la configuration d'un projet", () => {
 
       await expect(page.locator('[data-config="saved"]')).toBeVisible();
       await expect(
-        page.getByText("flymate-api est réécrit dans le registre")
+        page.getByText("flyleaf-api est réécrit dans le registre")
       ).toBeVisible();
 
       const updated = await running.app.evaluate(
@@ -177,25 +177,25 @@ test.describe("la configuration d'un projet", () => {
       );
 
       expect(updated).toEqual({
-        name: "flymate-api",
+        name: "flyleaf-api",
         patch: {
           processes: [
             {
               cmd: "bun run dev --port 3000 --host 127.0.0.1",
               dir: ".",
               host: "127.0.0.1",
-              id: "flymate-api",
+              id: "flyleaf-api",
               install: "",
               pkgmgr: "bun",
               port: 3000,
               routes: [
-                { hostname: "flymate.example.org", label: "web", port: 3000 },
+                { hostname: "flyleaf.example.org", label: "web", port: 3000 },
                 {
-                  hostname: "api-flymate.example.org",
+                  hostname: "api-flyleaf.example.org",
                   label: "api",
                   port: 3001,
                 },
-                { label: "docs", port: 3002, subdomain: "docs-flymate-api" },
+                { label: "docs", port: 3002, subdomain: "docs-flyleaf-api" },
               ],
             },
           ],
@@ -204,7 +204,7 @@ test.describe("la configuration d'un projet", () => {
 
       await expect(
         page.locator("#project\\.processes\\.0\\.ports\\.2\\.web")
-      ).toHaveValue("docs-flymate-api.example.org");
+      ).toHaveValue("docs-flyleaf-api.example.org");
     });
   });
 });

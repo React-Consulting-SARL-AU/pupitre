@@ -28,7 +28,7 @@ func fixture(t *testing.T, name string) []byte {
 	return raw
 }
 
-const domain = "flymate.dev"
+const domain = "flyleaf.dev"
 
 func loaded(t *testing.T) (*modtest.FakeSys, *registry.File) {
 	t.Helper()
@@ -292,7 +292,7 @@ func TestAddWritesTheLocalFileOnly(t *testing.T) {
 	}
 
 	local := string(fake.Files[registry.DefaultLocal])
-	if !strings.Contains(local, `"name": "shop"`) || !strings.Contains(local, `"hostname": "shop.flymate.dev"`) || strings.Contains(local, `"repo": "-"`) {
+	if !strings.Contains(local, `"name": "shop"`) || !strings.Contains(local, `"hostname": "shop.flyleaf.dev"`) || strings.Contains(local, `"repo": "-"`) {
 		t.Fatalf("the row must be written as JSON, its values without the dashes of the old format:\n%s", local)
 	}
 
@@ -610,29 +610,29 @@ func TestUpdateReplacesTheProcessesAndKeepsTheRest(t *testing.T) {
 func TestRehostMovesEveryNameUnderTheOldDomain(t *testing.T) {
 	fake, file := loaded(t)
 
-	moved, err := file.Rehost(context(fake), domain, "flymate.studio")
+	moved, err := file.Rehost(context(fake), domain, "flyleaf.studio")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	want := []string{"admin-web.flymate.dev", "api.flymate.dev", "mail.flymate.dev", "web.flymate.dev"}
+	want := []string{"admin-web.flyleaf.dev", "api.flyleaf.dev", "mail.flyleaf.dev", "web.flyleaf.dev"}
 	if !reflect.DeepEqual(moved, want) {
 		t.Fatalf("moved = %v, want %v", moved, want)
 	}
 
-	if file.Domain != "flymate.studio" {
+	if file.Domain != "flyleaf.studio" {
 		t.Fatalf("the registry now resolves against %q", file.Domain)
 	}
 
 	web, _ := reload(fake).Get("web")
-	if routes := process(web, "web").Routes; routes[0].Hostname != "web.flymate.studio" || routes[1].Hostname != "admin-web.flymate.studio" {
+	if routes := process(web, "web").Routes; routes[0].Hostname != "web.flyleaf.studio" || routes[1].Hostname != "admin-web.flyleaf.studio" {
 		t.Fatalf("the move must survive a reload: %+v", routes)
 	}
-	if routes := process(web, "mail").Routes; routes[0].Hostname != "mail.flymate.studio" {
+	if routes := process(web, "mail").Routes; routes[0].Hostname != "mail.flyleaf.studio" {
 		t.Fatalf("every process moves: %+v", routes)
 	}
 
-	again, err := file.Rehost(context(fake), "flymate.studio", "flymate.studio")
+	again, err := file.Rehost(context(fake), "flyleaf.studio", "flyleaf.studio")
 	if err != nil || len(again) != 0 {
 		t.Fatalf("the same domain moves nothing: %v, %v", again, err)
 	}

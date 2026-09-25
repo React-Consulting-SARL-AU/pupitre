@@ -15,7 +15,7 @@ import {
 describe("secrets", () => {
   it("sync names the project whose environment file is rebuilt", () => {
     expect(
-      SecretsSyncParamsSchema.safeParse({ project: "flymate-api" }).success
+      SecretsSyncParamsSchema.safeParse({ project: "flyleaf-api" }).success
     ).toBe(true)
   })
 
@@ -66,7 +66,7 @@ describe("databases", () => {
   it("name an engine and an optional database", () => {
     expect(DbParamsSchema.safeParse({ engine: "postgres" }).success).toBe(true)
     expect(
-      DbParamsSchema.safeParse({ engine: "mysql", name: "flymate" }).success
+      DbParamsSchema.safeParse({ engine: "mysql", name: "flyleaf" }).success
     ).toBe(true)
     expect(DbParamsSchema.safeParse({ engine: "sqlite" }).success).toBe(false)
   })
@@ -74,19 +74,19 @@ describe("databases", () => {
   it("accept dump, import, shell and url results", () => {
     expect(
       DbDumpResultSchema.safeParse({
-        path: "/home/dev/dumps/flymate.sql.gz",
+        path: "/home/dev/dumps/flyleaf.sql.gz",
         size_bytes: 1024,
       }).success
     ).toBe(true)
     expect(
-      DbImportResultSchema.safeParse({ imported: ["flymate.sql.gz"] }).success
+      DbImportResultSchema.safeParse({ imported: ["flyleaf.sql.gz"] }).success
     ).toBe(true)
     expect(
-      DbShellResultSchema.safeParse({ command: "psql flymate" }).success
+      DbShellResultSchema.safeParse({ command: "psql flyleaf" }).success
     ).toBe(true)
     expect(
       DbUrlResultSchema.safeParse({
-        url: "postgres://flymate@127.0.0.1:5432/flymate",
+        url: "postgres://flyleaf@127.0.0.1:5432/flyleaf",
       }).success
     ).toBe(true)
     expect(DbDumpResultSchema.safeParse({ size_bytes: 1 }).success).toBe(false)
@@ -102,9 +102,9 @@ describe("tunnel", () => {
         state: "running",
         routes: [
           {
-            hostname: "flymate.acme.dev",
+            hostname: "flyleaf.acme.dev",
             service: "http://127.0.0.1:5173",
-            project: "flymate-api",
+            project: "flyleaf-api",
           },
         ],
       }).success

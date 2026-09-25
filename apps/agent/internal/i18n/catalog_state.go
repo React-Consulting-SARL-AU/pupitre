@@ -231,8 +231,8 @@ var stateCatalog = map[string]Message{
 		EN: "absolute path refused: %s",
 	},
 	"state.path.absolute.fix": {
-		FR: "Donnez un chemin relatif à la racine des projets, par exemple flymate/api.",
-		EN: "Give a path relative to the projects root, for example flymate/api.",
+		FR: "Donnez un chemin relatif à la racine des projets, par exemple flyleaf/api.",
+		EN: "Give a path relative to the projects root, for example flyleaf/api.",
 	},
 	"state.path.outside": {
 		FR: "chemin hors de la racine des projets : %s",

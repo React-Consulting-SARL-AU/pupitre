@@ -16,7 +16,7 @@ import (
 	"pupitre.studio/agent/internal/sys/env"
 )
 
-const domain = "flymate.dev"
+const domain = "flyleaf.dev"
 
 func shop() registry.Project {
 	return registry.Project{

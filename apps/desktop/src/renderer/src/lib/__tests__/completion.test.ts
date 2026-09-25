@@ -24,18 +24,18 @@ const GRAMMAR: CompletionsResult = {
       name: "logs",
     },
   ],
-  projects: ["flymate-api", "atlas-web"],
+  projects: ["flyleaf-api", "atlas-web"],
   root: "/home/dev/projects",
   path: "",
-  paths: ["flymate/", "atlas/"],
+  paths: ["flyleaf/", "atlas/"],
 };
 
 const SOURCES = {
   catalog: GRAMMAR,
-  history: ["git status", "pupitred up flymate-api"],
+  history: ["git status", "pupitred up flyleaf-api"],
   paths: ["src/", "src/lib.ts"],
-  processes: { "atlas-web": ["web"], "flymate-api": ["api", "worker"] },
-  projects: ["flymate-api", "atlas-web"],
+  processes: { "atlas-web": ["web"], "flyleaf-api": ["api", "worker"] },
+  projects: ["flyleaf-api", "atlas-web"],
 };
 
 describe("split", () => {
@@ -73,12 +73,12 @@ describe("propose", () => {
 
     const projects = candidates.filter((c) => c.kind === "argument");
 
-    expect(projects.map((c) => c.text)).toEqual(["flymate-api", "atlas-web"]);
+    expect(projects.map((c) => c.text)).toEqual(["flyleaf-api", "atlas-web"]);
     expect(projects[0].help).toBe("projet");
   });
 
   it("remplace $process par les processus du projet tapé juste avant", () => {
-    const { candidates } = propose("pupitred logs flymate-api ", SOURCES);
+    const { candidates } = propose("pupitred logs flyleaf-api ", SOURCES);
 
     const processes = candidates.filter((c) => c.kind === "argument");
 
@@ -104,9 +104,9 @@ describe("propose", () => {
   });
 
   it("n'offre jamais le jeton déjà tapé", () => {
-    const { candidates } = propose("pupitred up flymate-api", SOURCES);
+    const { candidates } = propose("pupitred up flyleaf-api", SOURCES);
 
-    expect(candidates.map((c) => c.text)).not.toContain("flymate-api");
+    expect(candidates.map((c) => c.text)).not.toContain("flyleaf-api");
   });
 });
 
@@ -114,8 +114,8 @@ describe("underRoot", () => {
   const ROOT = "/home/dev/projects";
 
   it("rend le dossier demandé relatif à la racine des projets", () => {
-    expect(underRoot(ROOT, "/home/dev/projects/flymate", "api/")).toBe(
-      "flymate/api"
+    expect(underRoot(ROOT, "/home/dev/projects/flyleaf", "api/")).toBe(
+      "flyleaf/api"
     );
   });
 
@@ -130,7 +130,7 @@ describe("underRoot", () => {
   it("ne demande rien hors de la racine, ni par le dossier ni par un ..", () => {
     expect(underRoot(ROOT, "/etc", "")).toBeNull();
     expect(
-      underRoot(ROOT, "/home/dev/projects/flymate", "../../../")
+      underRoot(ROOT, "/home/dev/projects/flyleaf", "../../../")
     ).toBeNull();
   });
 });
