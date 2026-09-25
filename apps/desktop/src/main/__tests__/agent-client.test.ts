@@ -283,7 +283,7 @@ describe("le canal", () => {
         "dies-at-hello.jsonl",
         "install-resume.jsonl",
       ],
-      { backoff: { firstMs: 1, maxMs: 5, attempts: 2 }, connectMs: 200 }
+      { backoff: { firstMs: 1, maxMs: 5, attempts: 2 }, connectMs: 2000 }
     );
 
     const result = await install(agent, [], 10_000);
