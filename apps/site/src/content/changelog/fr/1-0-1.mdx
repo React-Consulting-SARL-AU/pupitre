@@ -1,0 +1,25 @@
+---
+title: L'ajout d'un serveur tout neuf fonctionne de nouveau
+description: L'onboarding d'un serveur fraîchement installé ne s'arrête plus sur « la clé n'a pas pu être posée ».
+locale: fr
+version: 1.0.1
+channel: stable
+date: 2026-09-25
+order: 20
+---
+
+Une correction dans l'agent.
+
+## L'ajout d'un serveur
+
+- **L'onboarding d'un serveur fraîchement installé ne s'arrête plus sur « la clé n'a pas pu être posée ».** Pupitre 1.0 autorisait votre appareil avant de créer le compte `dev`, échouait, et « Réessayer » revenait à la même erreur. L'appareil est désormais autorisé d'abord, et ouvre `dev` dès que le compte existe.
+
+## Limites connues
+
+- Un serveur qui n'a pas encore accepté le mot de passe sudo garde l'ancienne règle, sans mot de passe, tant qu'il n'est pas appliqué.
+- Tous les appareils autorisés perdus, l'accès ne se repose que depuis la console de l'hébergeur, par `sudo pupitred keys reset`.
+- Les volumes Docker ne sont pas sauvegardés ; l'app le dit quand le runtime Docker est installé.
+- Qui lit le bucket lit les manifestes, en clair : le nom du serveur, les noms des projets, des bases et des dossiers, l'adresse et la branche des dépôts. Jamais un contenu, jamais un secret — ceux-là sont scellés.
+- Qui tient la clé S3 peut effacer les sauvegardes : le versionnage ou le verrouillage d'objets du bucket sont la parade, et le guide le dit.
+- Perdue, la passphrase rend les sauvegardes illisibles — personne ne peut la recouvrer.
+- L'installateur Windows n'est toujours pas signé : SmartScreen avertit au premier lancement.
