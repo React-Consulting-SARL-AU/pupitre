@@ -7,7 +7,7 @@ This server carries every development project, and `dev` is the only way to
 drive them. A `bun run dev` launched by hand duplicates the process and holds the
 port; `dev` starts each process in its own tmux window, with its log.
 
-`dev` is a link to `pupitred dev`. Every command takes `--json`.
+Every `dev` command takes `--json`.
 
 ## Seeing what runs
 
@@ -28,8 +28,6 @@ all run is `partial`.
 Read `dev logs` before concluding that something is broken: a project `starting`
 for ten seconds is usually still compiling.
 
-The logs are also plain files: `~/.pupitre/logs/<project>/<process>.log`.
-
 ## Starting, stopping
 
     dev up <project> [process]          dev up all
@@ -49,8 +47,7 @@ the machine unless the owner asked for it in the Pupitre app.
 
 ## Registering a project
 
-The registry, `/etc/pupitre/projects.local.json`, belongs to root and to the
-agent: never edit it. `dev` cannot add, change or remove a project. Ask the owner
+The project registry belongs to root and to the agent: never edit it. `dev` cannot add, change or remove a project. Ask the owner
 to do it from the Pupitre app, which detects the processes, the package manager,
 the start command and the port of a repository, and refuses a port already held
 with a free one to use instead. Give them what they need: the repository, each
@@ -117,9 +114,8 @@ needs; restoring is done from the Pupitre app.
 
 ## Root, sudo and SSH keys
 
-- `dev` has no passwordless sudo, except the two lines Pupitre itself uses
-  (`sudo -n pupitred serve`, `sudo -n pupitred binary install`). Everything else
-  asks for the `dev` password, which you do not have and must not look for. A
+- `dev` has no passwordless sudo, except two exact commands the agent itself
+  uses. Everything else asks for the `dev` password, which you do not have and must not look for. A
   server the owner has not moved to this rule yet still lets sudo through without
   a password: do not use it there either.
 - `dev db dump`, `dev db import` and `dev backup now` open a privileged session:
@@ -128,9 +124,8 @@ needs; restoring is done from the Pupitre app.
 - Anything that needs root — packages, system services, firewall, installing a
   database or a runtime — goes through the owner and the Pupitre app. Say what is
   needed and why, then stop.
-- Never touch `~/.ssh/authorized_keys`: the block between
-  `# >>> pupitre keys >>>` and `# <<< pupitre keys <<<` is managed by the agent,
-  and a key only enters it through an approval signed from one of the owner's
-  devices. Never add a key anywhere else in that file either.
-- Never read or write `/etc/pupitre`, `/var/lib/pupitre` or
-  `/usr/local/bin/pupitred`.
+- Never touch `~/.ssh/authorized_keys`: its marked block is managed by the
+  agent, and a key only enters it through an approval signed from one of the
+  owner's devices. Never add a key anywhere else in that file either.
+- Never read or write the agent's own files: its configuration, its state and
+  its binary belong to root.

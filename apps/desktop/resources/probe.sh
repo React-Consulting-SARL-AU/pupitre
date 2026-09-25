@@ -207,7 +207,7 @@ can_sudo() {
     return 0
   fi
 
-  # Decision 0015: a secured dev runs `pupitred serve` alone without a password, which is all a managed machine asks; -l asks without running it.
+  # Decision 0015: a secured dev runs the agent's serve alone without a password, which is all a managed machine asks; -l asks without running it.
   agent=$(at /usr/local/bin/pupitred)
   if [ -x "$agent" ] && sudo -n -l "$agent" serve >/dev/null 2>&1; then
     printf 'true'
