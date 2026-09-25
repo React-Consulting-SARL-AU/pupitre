@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { ApprovedKeySchema, KeyFingerprintSchema } from "../keys"
 import { EntitlementSchema } from "./session"
 
 export const DoneResultSchema = z.object({
@@ -11,16 +12,30 @@ export const AuthorizedKeySchema = z.object({
   fingerprint: z.string(),
   comment: z.string().optional(),
   device_id: z.string().optional(),
+  signer: z.boolean().optional(),
 })
 
 export type AuthorizedKey = z.infer<typeof AuthorizedKeySchema>
 
+/** `pending` names the keys the platform asked for that no valid approval covers yet. */
 export const KeysListResultSchema = z.object({
   keys: z.array(AuthorizedKeySchema),
+  pending: z.array(KeyFingerprintSchema).optional(),
   synced_at: z.string().optional(),
 })
 
 export type KeysListResult = z.infer<typeof KeysListResultSchema>
+
+/**
+ * A key the app installs over its own SSH session becomes a signer: the root
+ * of trust is laid by SSH, never by the platform. It enters the managed block
+ * at once, and stays there as long as the platform still asks for it.
+ */
+export const KeysTrustParamsSchema = z.strictObject({
+  public_key: ApprovedKeySchema,
+})
+
+export type KeysTrustParams = z.infer<typeof KeysTrustParamsSchema>
 
 /**
  * The platform, told now rather than at the next turn of the daemon.

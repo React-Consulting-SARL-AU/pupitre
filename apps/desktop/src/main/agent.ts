@@ -3,7 +3,9 @@ import { app, ipcMain } from "electron";
 import { account } from "./account";
 import { checkedCall, isRefusal } from "./agent-bridge";
 import {
+  type ChannelPurpose,
   createAgentClient,
+  privilegedServeAs,
   type SshTarget,
   serveAs,
   sshSpawn,
@@ -16,6 +18,7 @@ import { relayTo } from "./relay";
 import { paths, read } from "./servers";
 import { declaresService, noteServices } from "./services-run";
 import { sshArgs } from "./ssh-config";
+import { sudoPasswordFor } from "./sudo-held";
 import { usageError } from "./usage-guard";
 
 /**
@@ -25,14 +28,24 @@ import { usageError } from "./usage-guard";
  * fake agent; the SSH target it needs is resolved here, where the configuration
  * lives, and so is the account whose usage right stands in front of it.
  */
-function target(serverId: string): SshTarget | null {
+function target(serverId: string, purpose: ChannelPurpose): SshTarget | null {
   const server = read().servers.find((s) => s.id === serverId);
 
   if (!server) {
     return null;
   }
 
-  return { args: sshArgs(server, paths()), serveCommand: serveAs(server.user) };
+  const args = sshArgs(server, paths());
+
+  if (purpose !== "privileged") {
+    return { args, serveCommand: serveAs(server.user) };
+  }
+
+  const serveCommand = privilegedServeAs(server.user);
+
+  return server.user === "root"
+    ? { args, serveCommand }
+    : { args, preamble: sudoPasswordFor(serverId) ?? "", serveCommand };
 }
 
 /**
@@ -60,6 +73,7 @@ export const agentClient = createAgentClient({
   locale: () => language,
   gate: () => usageError(() => account.guard()),
   spawn: sshSpawn(target),
+  sudoHeld: (serverId) => sudoPasswordFor(serverId) !== null,
   validateResults: !app.isPackaged,
 });
 

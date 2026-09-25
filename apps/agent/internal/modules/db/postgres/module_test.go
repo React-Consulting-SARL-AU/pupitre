@@ -324,13 +324,12 @@ func TestShellAndDumpStayOnTheSocketAccount(t *testing.T) {
 		t.Fatalf("shell = %q", command)
 	}
 
-	fake.Answer("stat", "8192\n")
 	path, size, err := Dump(ctx, "shop")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if path != dumps.Dir+"/shop_20260904-1200.dump" || size != 8192 {
+	if path != dumps.Dir+"/shop_20260904-1200.dump" || size != int64(len("dump")) || string(fake.Files[path]) != "dump" {
 		t.Fatalf("dump = %q, %d", path, size)
 	}
 
@@ -341,10 +340,14 @@ func TestShellAndDumpStayOnTheSocketAccount(t *testing.T) {
 		}
 	}
 
-	for _, want := range []string{"--format=custom", "--file=" + path, "--username=app", "--host=127.0.0.1", "shop"} {
+	for _, want := range []string{"--format=custom", "--username=app", "--host=127.0.0.1", "shop"} {
 		if !strings.Contains(dumped, want) {
 			t.Errorf("pg_dump lacks %q: %q", want, dumped)
 		}
+	}
+
+	if strings.Contains(dumped, "--file") {
+		t.Fatalf("pg_dump prints the dump, root writes it where no link of dev's leads: %q", dumped)
 	}
 
 	if strings.Contains(dumped, appPassword) {

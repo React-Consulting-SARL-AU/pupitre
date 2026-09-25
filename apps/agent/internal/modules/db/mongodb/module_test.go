@@ -262,14 +262,19 @@ func TestMongodumpArchivesAreImportedAndNamedInTheReport(t *testing.T) {
 		t.Fatalf("the report must name the imported database: %+v", ctx.Events())
 	}
 
-	var restore string
+	var restore, fed string
 	for _, call := range fake.Calls {
 		if call.Argv[0] == "mongorestore" {
 			restore = strings.Join(call.Argv, " ")
+			fed = call.StdinPath
 		}
 	}
 
-	for _, want := range []string{"--archive=" + dumps.Dir + "/dump_shop_20260101.archive.gz", "--gzip", "--username=app", "--config=" + toolsConfigPath} {
+	if fed != dumps.Dir+"/dump_shop_20260101.archive.gz" {
+		t.Fatalf("the archive reaches mongorestore on a standard input root opened without following a link: %q", fed)
+	}
+
+	for _, want := range []string{"--archive", "--gzip", "--username=app", "--config=" + toolsConfigPath} {
 		if !strings.Contains(restore, want) {
 			t.Errorf("mongorestore lacks %q: %q", want, restore)
 		}
@@ -338,13 +343,12 @@ func TestShellPromptsForThePasswordAndDumpWritesAnArchive(t *testing.T) {
 		t.Fatal("the shell command never carries the password, mongosh asks for it")
 	}
 
-	fake.Answer("stat", "2048\n")
 	path, size, err := Dump(ctx, "shop")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if path != dumps.Dir+"/shop_20260904-1200.archive.gz" || size != 2048 {
+	if path != dumps.Dir+"/shop_20260904-1200.archive.gz" || size != int64(len("dump")) || string(fake.Files[path]) != "dump" {
 		t.Fatalf("dump = %q, %d", path, size)
 	}
 }
@@ -561,7 +565,6 @@ func TestInstallingOneVersionDropsTheListOfAnother(t *testing.T) {
 
 func TestADumpBelongsToDev(t *testing.T) {
 	fake := installedSys(t)
-	fake.Answer("stat", "2048\n")
 	ctx := newContext(t, fake)
 
 	path, _, err := Dump(ctx, "shop")

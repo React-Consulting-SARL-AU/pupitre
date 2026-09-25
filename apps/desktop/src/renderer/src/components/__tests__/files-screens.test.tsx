@@ -3,8 +3,9 @@ import type {
   FileEntry,
   FsStatResult,
 } from "@pupitre/shared/agent-protocol/files";
+import { act } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { mount } from "../../__tests__/dom";
+import { mount, typeInto } from "../../__tests__/dom";
 import type {
   ListingState,
   PreviewState,
@@ -62,6 +63,7 @@ const STAT: FsStatResult = {
 
 const noop = () => undefined;
 const later = () => Promise.resolve();
+const accepted = () => Promise.resolve(null);
 
 function list(
   listing: ListingState,
@@ -78,11 +80,11 @@ function list(
       onDismiss={noop}
       onDrop={later}
       onHidden={noop}
-      onMakeFile={later}
-      onMakeFolder={later}
+      onMakeFile={accepted}
+      onMakeFolder={accepted}
       onRefresh={later}
       onRemove={later}
-      onRename={later}
+      onRename={accepted}
       onShow={later}
       onSort={noop}
       onUpload={later}
@@ -147,7 +149,12 @@ describe("le nouveau fichier et le nouveau dossier", () => {
 
   it("attendent un dossier à l'écran avant d'être offerts", () => {
     const html = renderToStaticMarkup(
-      <EntryCreate disabled kind="file" name="files.newFile" onCreate={later} />
+      <EntryCreate
+        disabled
+        kind="file"
+        name="files.newFile"
+        onCreate={accepted}
+      />
     );
 
     expect(html).toContain("disabled");
@@ -159,7 +166,7 @@ describe("le nouveau fichier et le nouveau dossier", () => {
         kind="dir"
         name="files.newFolder"
         onClose={noop}
-        onCreate={later}
+        onCreate={accepted}
       />
     );
     const html = view.html();
@@ -182,7 +189,7 @@ describe("le nouveau fichier et le nouveau dossier", () => {
         kind="file"
         name="files.newFile"
         onClose={noop}
-        onCreate={later}
+        onCreate={accepted}
       />
     );
     const html = view.html();
@@ -191,6 +198,72 @@ describe("le nouveau fichier et le nouveau dossier", () => {
     expect(html).toContain('placeholder="notes.md"');
     expect(html).toContain('data-dialog="files.newFile"');
     expect(document.activeElement?.id).toBe("files.newFile");
+
+    view.unmount();
+  });
+
+  it("reste ouvert sur un refus, et le dit sous le champ", async () => {
+    const closed: string[] = [];
+    const view = await mount(
+      <EntryCreateDialog
+        kind="file"
+        name="files.newFile"
+        onClose={() => closed.push("closed")}
+        onCreate={() =>
+          Promise.resolve({
+            code: "bad_request" as const,
+            message: "entrée déjà présente : src/index.ts",
+          })
+        }
+      />
+    );
+    const input = document.getElementById("files.newFile");
+
+    await typeInto(input, "index.ts");
+    await view.key(input, "Enter");
+    await act(() => Promise.resolve());
+
+    expect(closed).toEqual([]);
+    expect(input?.getAttribute("aria-invalid")).toBe("true");
+    expect(document.getElementById("files.newFile-problem")?.textContent).toBe(
+      "entrée déjà présente : src/index.ts"
+    );
+
+    view.unmount();
+  });
+});
+
+describe("quitter un fichier modifié", () => {
+  it("demande dans une alerte qui nomme le fichier, et Échap y reste", async () => {
+    const said: string[] = [];
+    const view = await mount(
+      <FilePreview
+        draft="PORT=3100\n"
+        leaving
+        onClose={noop}
+        onConfirmLeave={() => said.push("leave")}
+        onDownload={later}
+        onEdit={noop}
+        onReread={later}
+        onSave={later}
+        onShow={later}
+        onStay={() => said.push("stay")}
+        onView={noop}
+        preview={textOf("src/.env", "PORT=3000\n")}
+        view="source"
+        write={{ status: "idle" }}
+      />
+    );
+    const alert = document.querySelector("[role=alertdialog]");
+
+    expect(alert?.textContent).toContain("Quitter .env");
+    expect(alert?.textContent).toContain(
+      ".env a des modifications non enregistrées"
+    );
+
+    await view.key(document.activeElement, "Escape");
+
+    expect(said).toEqual(["stay"]);
 
     view.unmount();
   });
@@ -278,26 +351,37 @@ describe("le menu d'une entrée", () => {
     expect(html).toContain('data-tooltip="Actions sur src"');
   });
 
-  it("demande confirmation dans la ligne avant de supprimer, et nomme les entrées retenues", () => {
-    const asked = renderToStaticMarkup(
+  it("demande confirmation dans une alerte qu'Échap ferme, et dit le refus d'un dossier plein tel qu'il vient", async () => {
+    const cancelled: string[] = [];
+
+    const asked = await mount(
       <FileRow
         editors={[]}
         entry={entry("src", "dir")}
         mode="removing"
         onAct={noop}
-        onCancel={noop}
+        onCancel={() => cancelled.push("src")}
         onOpen={noop}
         onRemove={later}
-        onRename={later}
+        onRename={accepted}
         refusal={null}
         selected={false}
       />
     );
+    const alert = document.querySelector("[role=alertdialog]");
 
-    expect(asked).toContain("Le dossier src est supprimé du serveur.");
-    expect(asked).toContain("Annuler");
+    expect(alert?.textContent).toContain("Supprimer src");
+    expect(alert?.textContent).toContain(
+      "Le dossier src est supprimé du serveur."
+    );
 
-    const held = renderToStaticMarkup(
+    await asked.key(document.activeElement, "Escape");
+
+    expect(cancelled).toEqual(["src"]);
+
+    asked.unmount();
+
+    const held = await mount(
       <FileRow
         editors={[]}
         entry={entry("src", "dir")}
@@ -306,7 +390,7 @@ describe("le menu d'une entrée", () => {
         onCancel={noop}
         onOpen={noop}
         onRemove={later}
-        onRename={later}
+        onRename={accepted}
         refusal={{
           code: "bad_request",
           fix: "Rappelez fs.remove avec recursive: true.",
@@ -315,9 +399,52 @@ describe("le menu d'une entrée", () => {
         selected={false}
       />
     );
+    const again = document.querySelector("[role=alertdialog]");
 
-    expect(held).toContain("dossier non vide : src contient 14 entrées");
-    expect(held).toContain("Supprimer le dossier et ses 14 entrées");
+    expect(again?.textContent).toContain(
+      "dossier non vide : src contient 14 entrées"
+    );
+    expect(again?.textContent).toContain(
+      "Supprimer le dossier et ce qu'il contient"
+    );
+
+    held.unmount();
+  });
+
+  it("garde le champ de renommage ouvert sur un refus, et le dit sous lui", async () => {
+    const view = await mount(
+      <FileRow
+        editors={[]}
+        entry={entry("alpha.ts")}
+        mode="renaming"
+        onAct={noop}
+        onCancel={noop}
+        onOpen={noop}
+        onRemove={later}
+        onRename={() =>
+          Promise.resolve({
+            code: "bad_request" as const,
+            message: "entrée déjà présente : src/beta.ts",
+          })
+        }
+        refusal={null}
+        selected={false}
+      />
+    );
+    const input = view.container.querySelector("input");
+
+    await typeInto(input, "beta.ts");
+    await view.key(input, "Enter");
+    await act(() => Promise.resolve());
+
+    expect(input?.getAttribute("aria-invalid")).toBe("true");
+    expect(
+      view.container.querySelector(
+        `[id="${input?.getAttribute("aria-describedby")}"]`
+      )?.textContent
+    ).toBe("entrée déjà présente : src/beta.ts");
+
+    view.unmount();
   });
 
   it("renomme en place, avec un champ nommé d'après l'entrée", () => {
@@ -330,7 +457,7 @@ describe("le menu d'une entrée", () => {
         onCancel={noop}
         onOpen={noop}
         onRemove={later}
-        onRename={later}
+        onRename={accepted}
         refusal={null}
         selected={false}
       />

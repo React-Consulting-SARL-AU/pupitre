@@ -18,10 +18,41 @@ import (
 )
 
 // Source is what one archive holds: entries under Root, each a relative path, and what Skip leaves out wherever it lies.
+// With an Area, a Root or an entry that is itself a link is followed, as long as it ends inside the Area; without one, no link is.
 type Source struct {
 	Root    string
 	Entries []string
 	Skip    func(rel string, dir bool) bool
+	Area    string
+}
+
+// OutsideError is a folder to carry that is a link ending outside the area it may lead to.
+type OutsideError struct {
+	Path   string
+	Target string
+}
+
+func (e *OutsideError) Error() string {
+	return e.Path + " leads to " + e.Target + ", outside the folders a backup reads"
+}
+
+// Resolve follows every link of full and says where it ends, refused when that is outside area.
+func Resolve(full, area string) (string, error) {
+	resolved, err := filepath.EvalSymlinks(full)
+	if err != nil {
+		return "", err
+	}
+
+	bound, err := filepath.EvalSymlinks(area)
+	if err != nil {
+		return "", err
+	}
+
+	if !within(bound, resolved) {
+		return "", &OutsideError{Path: full, Target: resolved}
+	}
+
+	return resolved, nil
 }
 
 // Whole is the entry that names the root itself.
@@ -45,52 +76,94 @@ type visit func(rel, full string, info fs.FileInfo, target string) error
 
 // walk goes over what the source holds in lexical order, the same walk for the archive and for its fingerprint.
 func (s Source) walk(each visit) error {
+	root, err := s.root()
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
 	for _, entry := range s.Entries {
-		start := filepath.Join(s.Root, filepath.FromSlash(entry))
-
-		if _, err := os.Lstat(start); errors.Is(err, fs.ErrNotExist) {
-			continue
-		}
-
-		err := filepath.WalkDir(start, func(full string, entry fs.DirEntry, err error) error {
-			if err != nil {
-				if errors.Is(err, fs.ErrNotExist) {
-					return nil
-				}
-
-				return err
-			}
-
-			rel, err := filepath.Rel(s.Root, full)
-			if err != nil {
-				return err
-			}
-			rel = filepath.ToSlash(rel)
-
-			if rel != Whole && s.Skip != nil && s.Skip(rel, entry.IsDir()) {
-				if entry.IsDir() {
-					return filepath.SkipDir
-				}
-
-				return nil
-			}
-
-			info, err := entry.Info()
-			if errors.Is(err, fs.ErrNotExist) {
-				return nil
-			}
-			if err != nil {
-				return err
-			}
-
-			return s.visit(rel, full, info, each)
-		})
-		if err != nil {
+		if err := s.walkEntry(root, entry, each); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func (s Source) root() (string, error) {
+	if s.Area == "" {
+		return s.Root, nil
+	}
+
+	return Resolve(s.Root, s.Area)
+}
+
+// An entry that is itself a link is walked where it leads, and named in the archive as the entry: a restore puts it back under that name.
+func (s Source) walkEntry(root, entry string, each visit) error {
+	start := filepath.Join(root, filepath.FromSlash(entry))
+
+	info, err := os.Lstat(start)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+
+	base, prefix := root, ""
+	if err == nil && info.Mode()&fs.ModeSymlink != 0 && s.Area != "" {
+		resolved, err := Resolve(start, s.Area)
+		if err != nil {
+			return err
+		}
+
+		base, prefix, start = resolved, entry, resolved
+	}
+
+	return filepath.WalkDir(start, func(full string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				return nil
+			}
+
+			return err
+		}
+
+		rel, err := filepath.Rel(base, full)
+		if err != nil {
+			return err
+		}
+		rel = named(prefix, filepath.ToSlash(rel))
+
+		if rel != Whole && s.Skip != nil && s.Skip(rel, entry.IsDir()) {
+			if entry.IsDir() {
+				return filepath.SkipDir
+			}
+
+			return nil
+		}
+
+		info, err := entry.Info()
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+
+		return s.visit(rel, full, info, each)
+	})
+}
+
+func named(prefix, rel string) string {
+	switch {
+	case prefix == "" || prefix == Whole:
+		return rel
+	case rel == Whole:
+		return prefix
+	}
+
+	return prefix + "/" + rel
 }
 
 // A link is kept only when what it names stays under the root; sockets, pipes and devices never are.

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"io/fs"
 	"maps"
 	"os"
 	"path/filepath"
@@ -209,29 +210,53 @@ func (r *restoring) database(part contract.BackupPart, reader io.Reader) error {
 
 // An extra path is replaced whole: laid out beside the home first, then swapped in.
 func (r *restoring) path(part contract.BackupPart, reader io.Reader) error {
-	home := r.service.paths.Home
 	rel := strings.TrimSuffix(part.Path, "/")
 
 	if !extraPathPattern.MatchString(part.Path) {
 		return corrupt(i18n.T("backup.corrupt.part", part.Key, part.Path))
 	}
 
-	staged, err := archive.Staging(home, "path", r.owner)
+	home, err := os.OpenRoot(r.service.paths.Home)
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(staged)
+	defer home.Close()
 
-	if err := archive.Extract(reader, staged, r.owner); err != nil {
+	staged, err := archive.Staging(home, ".", "path", r.owner)
+	if err != nil {
+		return err
+	}
+	defer home.RemoveAll(staged)
+
+	if err := archive.ExtractIn(reader, home, staged, r.owner); err != nil {
 		return err
 	}
 
-	target := filepath.Join(home, rel)
-	if err := archive.MakeDirs(home, filepath.Dir(target), r.owner); err != nil {
+	target := filepath.Join(r.service.paths.Home, rel)
+	if resolved, err := r.through(target); err == nil && resolved != target {
+		within, err := r.inHome(resolved)
+		if err != nil {
+			return err
+		}
+
+		return archive.Swap(home, filepath.Join(staged, rel), within)
+	}
+
+	if err := archive.MakeDirs(home, filepath.Dir(rel), r.owner); err != nil {
 		return err
 	}
 
-	return archive.Swap(filepath.Join(staged, rel), target)
+	return archive.Swap(home, filepath.Join(staged, rel), rel)
+}
+
+// A folder the dev account made a link to comes back where the link leads, when that is inside the home; the link stays.
+func (r *restoring) through(target string) (string, error) {
+	info, err := os.Lstat(target)
+	if err != nil || info.Mode()&os.ModeSymlink == 0 {
+		return target, nil
+	}
+
+	return archive.Resolve(target, r.service.paths.Home)
 }
 
 // A full project replaces its folder whole, work not pushed included; an env project is cloned, then gets its .env files.
@@ -242,12 +267,29 @@ func (r *restoring) project(part contract.BackupPart, reader io.Reader) error {
 			WithFix(i18n.T("backup.restore.project.fix"))
 	}
 
+	destination, err := r.through(project.Path)
+
 	if part.Mode == contract.BackupProjectsEnv {
+		if err != nil {
+			return err
+		}
+
+		within, err := r.inHome(destination)
+		if err != nil {
+			return err
+		}
+
 		if _, err := r.service.options.Reader.Pull(part.Name); err != nil {
 			return err
 		}
 
-		if err := archive.Extract(reader, project.Path, r.owner); err != nil {
+		home, err := os.OpenRoot(r.service.paths.Home)
+		if err != nil {
+			return err
+		}
+		defer home.Close()
+
+		if err := archive.ExtractIn(reader, home, within, r.owner); err != nil {
 			return err
 		}
 
@@ -256,28 +298,61 @@ func (r *restoring) project(part contract.BackupPart, reader io.Reader) error {
 		return nil
 	}
 
-	parent := filepath.Dir(project.Path)
-	if err := makeDirs(parent, r.owner); err != nil {
-		return err
+	if err != nil {
+		destination = project.Path
 	}
 
-	staged, err := archive.Staging(parent, part.Name, r.owner)
+	within, err := r.inHome(destination)
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(staged)
 
-	if err := archive.Extract(reader, staged, r.owner); err != nil {
+	home, err := os.OpenRoot(r.service.paths.Home)
+	if err != nil {
+		return err
+	}
+	defer home.Close()
+
+	parent := filepath.Dir(within)
+	if _, err := home.Stat(parent); errors.Is(err, fs.ErrNotExist) {
+		if err := archive.MakeDirs(home, parent, r.owner); err != nil {
+			return err
+		}
+	}
+
+	staged, err := archive.Staging(home, parent, part.Name, r.owner)
+	if err != nil {
+		return err
+	}
+	defer home.RemoveAll(staged)
+
+	if err := archive.ExtractIn(reader, home, staged, r.owner); err != nil {
 		return err
 	}
 
-	if err := archive.Swap(staged, project.Path); err != nil {
+	if err := archive.Swap(home, staged, within); err != nil {
 		return err
 	}
 
 	r.brought = append(r.brought, part.Name)
 
 	return nil
+}
+
+// inHome names a path under the home, as the root of the home takes it; the home's own links, a temporary folder's on macOS, spell it one more way.
+func (r *restoring) inHome(full string) (string, error) {
+	bases := []string{r.service.paths.Home}
+	if evaluated, err := filepath.EvalSymlinks(r.service.paths.Home); err == nil {
+		bases = append(bases, evaluated)
+	}
+
+	for _, base := range bases {
+		if rel, err := filepath.Rel(base, full); err == nil && filepath.IsLocal(rel) {
+			return rel, nil
+		}
+	}
+
+	return "", &archive.UnsafeError{Name: full}
 }
 
 // leftOut is what a fresh server makes of what the settings kept out of the backup; a server taken back to it keeps its own.
@@ -318,29 +393,6 @@ func (r *restoring) leftOut(excluded contract.BackupExcluded) {
 	for _, item := range excluded.Databases {
 		r.result.Warnings = append(r.result.Warnings, i18n.T("backup.excluded.database", item))
 	}
-}
-
-// makeDirs makes a folder and whatever it needed, from the nearest one that exists, each given to owner.
-func makeDirs(dir string, owner archive.Owner) error {
-	base := dir
-	for {
-		if _, err := os.Stat(base); err == nil {
-			break
-		}
-
-		parent := filepath.Dir(base)
-		if parent == base {
-			break
-		}
-
-		base = parent
-	}
-
-	if base == dir {
-		return nil
-	}
-
-	return archive.MakeDirs(base, dir, owner)
 }
 
 // settle gives the restored registry what project.add gives a new row, then starts what ran.

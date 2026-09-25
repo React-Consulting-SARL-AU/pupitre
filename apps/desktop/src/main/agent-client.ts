@@ -5,6 +5,7 @@ import {
   type CommandName,
   type CommandParams,
   type CommandResult,
+  requiresPrivilege,
 } from "@pupitre/shared/agent-protocol";
 import {
   type Event,
@@ -99,20 +100,33 @@ export interface CallOptions {
    * they never asked for as the slowness of their own click.
    */
   polled?: boolean;
+  /**
+   * The command rides the privileged channel whatever the contract says of it:
+   * what proves the sudo password this computer is about to keep.
+   */
+  privileged?: boolean;
 }
 
 /**
- * Four channels per server: a gesture must wait neither behind an install nor
- * behind the dashboard's beat, and an install must not wait behind a journal
- * the reader keeps open beside it.
+ * Four channels per server that sudo opens without a password: a gesture must
+ * wait neither behind an install nor behind the dashboard's beat, and an
+ * install must not wait behind a journal the reader keeps open beside it. A
+ * fifth, `privileged`, carries what the contract keeps for `pupitred serve
+ * --privileged`, opened on demand with the sudo password and closed once idle.
  */
-export type ChannelPurpose = "control" | "work" | "beat" | "follow";
+export type ChannelPurpose =
+  | "control"
+  | "work"
+  | "beat"
+  | "follow"
+  | "privileged";
 
 const PURPOSES: readonly ChannelPurpose[] = [
   "control",
   "beat",
   "work",
   "follow",
+  "privileged",
 ];
 
 export type AgentSpawn = (context: {
@@ -169,6 +183,10 @@ export interface AgentClientOptions {
    * is what tells a developer the two sides disagree.
    */
   validateResults?: boolean;
+  /** How long the privileged channel stays open with nothing to carry. */
+  idleMs?: number;
+  /** Whether this computer holds the server's sudo password: what a refusal of sudo says. */
+  sudoHeld?: (serverId: string) => boolean;
 }
 
 /**
@@ -256,8 +274,28 @@ const WORK_CHANNEL_COMMANDS: readonly CommandName[] = [
 /** A command allowed more than a minute holds the channel long enough to need its own. */
 const WORK_CHANNEL_MS = 60_000;
 
-function purposeOf(cmd: CommandName, polled: boolean): ChannelPurpose {
-  if (polled) {
+/**
+ * A root session kept open is one a later gesture reuses without asking sudo
+ * again; one kept forever is a root process for nobody.
+ */
+const PRIVILEGED_IDLE_MS = 60_000;
+
+/**
+ * What sudo writes before every read of the password. The first is expected;
+ * the second means the first password was refused.
+ */
+export const SUDO_PROMPT = "pupitre-sudo:";
+
+function purposeOf(
+  cmd: CommandName,
+  params: unknown,
+  options: CallOptions
+): ChannelPurpose {
+  if (options.privileged === true || requiresPrivilege(cmd, params)) {
+    return "privileged";
+  }
+
+  if (options.polled === true) {
     return "beat";
   }
 
@@ -517,6 +555,10 @@ class AgentChannel {
   private announced = false;
   /** Whether the process now running has written anything on its output yet. */
   private sawOutput = false;
+  /** sudo's prompts heard on this process, and the tail a prompt split across two chunks starts in. */
+  private prompts = 0;
+  private promptTail = "";
+  private idle: ReturnType<typeof setTimeout> | null = null;
 
   readonly serverId: string;
   private readonly purpose: ChannelPurpose;
@@ -551,10 +593,15 @@ class AgentChannel {
     }
 
     this.waiting += 1;
+    this.stayAwake();
 
     const next = this.queue.then(() => this.exchange(cmd, params, call));
     const done = () => {
       this.waiting -= 1;
+
+      if (this.waiting === 0) {
+        this.restLater();
+      }
     };
 
     this.queue = next.then(done, done);
@@ -571,9 +618,72 @@ class AgentChannel {
       refusalOf("disconnected", "refusal.channel.closed")
     );
 
+    this.stayAwake();
     this.settlePending(closed);
     this.destroy();
     this.refusal = closed;
+  }
+
+  private stayAwake(): void {
+    if (this.idle) {
+      clearTimeout(this.idle);
+      this.idle = null;
+    }
+  }
+
+  /**
+   * The privileged channel is a root session: once nothing has used it for a
+   * while it is let go, quietly — the link is fine, and the next gesture that
+   * needs it opens it again.
+   */
+  private restLater(): void {
+    if (this.purpose !== "privileged") {
+      return;
+    }
+
+    this.stayAwake();
+    this.idle = setTimeout(() => {
+      this.idle = null;
+
+      if (this.waiting === 0) {
+        trace("agent", "rest", {
+          channel: this.purpose,
+          server: this.serverId,
+        });
+        this.announced = false;
+        this.destroy();
+      }
+    }, this.options.idleMs);
+    this.idle.unref?.();
+  }
+
+  /**
+   * A second prompt is sudo refusing the password written on the first line,
+   * and reading the hello sent after it as the next attempt. The channel does
+   * not try the same password again: `resetPrivileged` is how a new one is
+   * given a chance.
+   */
+  private hear(chunk: string): void {
+    const heard = this.promptTail + chunk;
+
+    this.prompts += heard.split(SUDO_PROMPT).length - 1;
+    this.promptTail = heard.slice(-(SUDO_PROMPT.length - 1));
+
+    if (this.prompts < 2 || this.refusal) {
+      return;
+    }
+
+    const refused = new AgentCallError(
+      refusalOf(
+        "privilege_required",
+        this.options.sudoHeld(this.serverId)
+          ? "refusal.sudo.refused"
+          : "refusal.sudo.absent"
+      )
+    );
+
+    this.refusal = refused;
+    this.sever(refused);
   }
 
   private async exchange<C extends CommandName>(
@@ -815,6 +925,8 @@ class AgentChannel {
     this.buffer = "";
     this.stderr = "";
     this.sawOutput = false;
+    this.prompts = 0;
+    this.promptTail = "";
 
     proc.stdout?.setEncoding("utf8");
     proc.stdout?.on("data", (chunk: string) => this.read(chunk));
@@ -822,6 +934,10 @@ class AgentChannel {
     proc.stderr?.on("data", (chunk: string) => {
       this.stderr = (this.stderr + chunk).slice(-STDERR_KEPT);
       trace("agent", "stderr", { channel: this.purpose, line: chunk.trim() });
+
+      if (this.purpose === "privileged") {
+        this.hear(chunk);
+      }
     });
     // A request written to an ssh that has just died is an EPIPE on its stdin,
     // raised as an event: unheard, it takes the whole main process down.
@@ -870,7 +986,9 @@ class AgentChannel {
     } catch (error) {
       if (
         error instanceof AgentCallError &&
-        (error.code === "protocol_mismatch" || error.code === "hello_required")
+        (error.code === "protocol_mismatch" ||
+          error.code === "hello_required" ||
+          error.code === "privilege_required")
       ) {
         this.refusal = error;
       }
@@ -1160,6 +1278,8 @@ export class AgentClient {
       skewMs: options.skewMs ?? DEFAULT_SKEW_MS,
       now: options.now ?? Date.now,
       validateResults: options.validateResults ?? false,
+      idleMs: options.idleMs ?? PRIVILEGED_IDLE_MS,
+      sudoHeld: options.sudoHeld ?? (() => true),
     };
   }
 
@@ -1261,6 +1381,17 @@ export class AgentClient {
     this.epochs.set(serverId, this.epoch(serverId) + 1);
   }
 
+  /**
+   * The privileged channel, let go so that the next gesture opens it with the
+   * sudo password as it now stands: kept, entered or replaced on this computer.
+   */
+  resetPrivileged(serverId: string): void {
+    const key = `${serverId}:privileged`;
+
+    this.channels.get(key)?.close();
+    this.channels.delete(key);
+  }
+
   closeAll(): void {
     const closed = new Set<string>();
 
@@ -1294,7 +1425,7 @@ export class AgentClient {
 
     return refused
       ? Promise.reject(new AgentCallError(refused))
-      : this.channel(serverId, purposeOf(cmd, options.polled === true)).run(
+      : this.channel(serverId, purposeOf(cmd, params, options)).run(
           cmd,
           params,
           options
@@ -1324,6 +1455,8 @@ export interface SshTarget {
   args: string[];
   /** The remote command, when the agent does not sit in the PATH. */
   serveCommand?: string;
+  /** The sudo password, written on the first line and nowhere else: never an argument, never traced. */
+  preamble?: string;
 }
 
 export const SERVE_COMMAND = "pupitred serve";
@@ -1336,12 +1469,44 @@ export const SERVE_COMMAND = "pupitred serve";
  * reading the server token and the entitlement cache, both `0600 root`, driving
  * systemd. Once hardening has closed root, the app logs in as `dev`, and a bare
  * `serve` there reads none of that and answers `entitlement_required` for every
- * command. `dev` holds passwordless sudo from hardening, so the channel asks
- * for it; root needs none and may not have sudo at all.
+ * command. sudo runs exactly this line for `dev` without a password once the
+ * securing set one (decision 0015) — the limited session, which refuses what
+ * the contract keeps for `--privileged` — so the channel asks for it; root
+ * needs none and may not have sudo at all.
  */
 export function serveAs(user: string): string {
   return user === "root" ? SERVE_COMMAND : `sudo -n ${SERVE_COMMAND}`;
 }
+
+const PRIVILEGED_SERVE = `${SERVE_COMMAND} --privileged`;
+
+/**
+ * The privileged session for the account the channel logs in as.
+ *
+ * sudo asks `dev` for its password to run anything but `pupitred serve` and
+ * `pupitred binary install` exactly (decision 0015): the app writes the
+ * password on the first line, and `sudo -S` reads it there, byte by byte,
+ * leaving the protocol to pupitred. A server still under the rule of before
+ * asks for no password, and the line would reach pupitred as a request: there,
+ * the shell reads it first. The prompt is a marker: a second one on the error
+ * stream is the password refused.
+ */
+export function privilegedServeAs(user: string): string {
+  if (user === "root") {
+    return PRIVILEGED_SERVE;
+  }
+
+  return [
+    `if sudo -n true 2>/dev/null; then IFS= read -r p; exec sudo -n ${PRIVILEGED_SERVE}; fi`,
+    `exec sudo -S -p '${SUDO_PROMPT}' ${PRIVILEGED_SERVE}`,
+  ].join("; ");
+}
+
+export type SshLaunch = (
+  command: string,
+  args: string[],
+  options: { stdio: ["pipe", "pipe", "pipe"] }
+) => ChildProcess;
 
 /**
  * The channel as it opens on a real server: one `ssh`, one `pupitred serve`.
@@ -1354,10 +1519,11 @@ export function serveAs(user: string): string {
  * falling back on another machine would run there what was meant for this one.
  */
 export function sshSpawn(
-  resolve: (serverId: string) => SshTarget | null
+  resolve: (serverId: string, purpose: ChannelPurpose) => SshTarget | null,
+  launch: SshLaunch = spawnChild
 ): AgentSpawn {
-  return ({ serverId }) => {
-    const target = resolve(serverId);
+  return ({ serverId, purpose }) => {
+    const target = resolve(serverId, purpose);
 
     if (!target) {
       throw new AgentCallError(
@@ -1379,8 +1545,14 @@ export function sshSpawn(
 
     trace("agent", "ssh", { args, server: serverId });
 
-    return spawnChild("ssh", args, {
+    const proc = launch("ssh", args, {
       stdio: ["pipe", "pipe", "pipe"],
     });
+
+    if (target.preamble !== undefined) {
+      proc.stdin?.write(`${target.preamble}\n`);
+    }
+
+    return proc;
   };
 }

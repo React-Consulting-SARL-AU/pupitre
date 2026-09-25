@@ -27,6 +27,8 @@ type Options struct {
 	// ServerID names this server on the platform once the daemon has read it; empty says nothing yet.
 	ServerID func() string
 	Now      func() time.Time
+	// Limited is the session sudo opens for dev without a password: it refuses what the contract keeps for --privileged.
+	Limited bool
 }
 
 type Server struct {
@@ -77,6 +79,15 @@ func (s *Server) Config() contract.ConfigRevision {
 	return s.options.Config()
 }
 
+func (s *Server) privileged(cmd string, params any) *Error {
+	if !s.options.Limited || !contract.RequiresPrivilege(cmd, params) {
+		return nil
+	}
+
+	return NewError(contract.ErrorPrivilegeRequired, i18n.T("protocol.privilege.required", cmd)).
+		WithFix(i18n.T("protocol.privilege.required.fix"))
+}
+
 func (s *Server) gate(cmd string) (contract.ConfigRevision, bool) {
 	config := s.Config()
 
@@ -102,14 +113,6 @@ func (s *Server) Call(cmd string, params any, emit func(event string, fields map
 		return nil, unknownCommand(cmd)
 	}
 
-	if !s.Entitlement().Allows(cmd) {
-		return nil, EntitlementRequired()
-	}
-
-	if config, gated := s.gate(cmd); gated {
-		return nil, MigrationRequired(config)
-	}
-
 	if params == nil {
 		params = map[string]any{}
 	}
@@ -122,6 +125,18 @@ func (s *Server) Call(cmd string, params any, emit func(event string, fields map
 	value, err := contract.Decode(raw)
 	if err != nil {
 		return nil, badRequest(i18n.T("protocol.params.unreadable", err.Error()))
+	}
+
+	if refused := s.privileged(cmd, value); refused != nil {
+		return nil, refused
+	}
+
+	if !s.Entitlement().Allows(cmd) {
+		return nil, EntitlementRequired()
+	}
+
+	if config, gated := s.gate(cmd); gated {
+		return nil, MigrationRequired(config)
 	}
 
 	if err := contract.Validate(contract.ParamsDefinition(cmd), value); err != nil {
@@ -253,24 +268,24 @@ func (s *session) handle(line []byte) error {
 	object, isObject := value.(map[string]any)
 	if err != nil || !isObject {
 		s.fail(0, badRequest(i18n.T("protocol.request.unreadable")))
-		return s.writeErr
+		return s.writeFailure()
 	}
 
 	id, ok := requestID(object["id"])
 	if !ok {
 		s.fail(0, badRequest(i18n.T("protocol.id.invalid")))
-		return s.writeErr
+		return s.writeFailure()
 	}
 
 	if id <= s.lastID {
 		s.fail(id, badRequest(i18n.T("protocol.id.not_increasing", id, s.lastID)))
-		return s.writeErr
+		return s.writeFailure()
 	}
 	s.lastID = id
 
 	if err := contract.Validate("Request", value); err != nil {
 		s.fail(id, badRequest(i18n.T("protocol.request.invalid", err.Error())))
-		return s.writeErr
+		return s.writeFailure()
 	}
 
 	cmd := object["cmd"].(string)
@@ -285,7 +300,7 @@ func (s *session) handle(line []byte) error {
 		s.write(successResponse{ID: id, OK: true, Result: result})
 	}
 
-	return s.writeErr
+	return s.writeFailure()
 }
 
 // The secrets line is consumed the moment the request announces it, before any
@@ -304,6 +319,10 @@ func (s *session) dispatch(id int64, cmd string, params any, line []byte) (any, 
 	handler, known := s.server.handlers[cmd]
 	if !known {
 		return nil, unknownCommand(cmd)
+	}
+
+	if refused := s.server.privileged(cmd, params); refused != nil {
+		return nil, refused
 	}
 
 	if !s.server.Entitlement().Allows(cmd) {
@@ -438,6 +457,14 @@ func (s *session) write(line any) {
 	if s.writeErr != nil {
 		close(s.broken)
 	}
+}
+
+// The reader goroutine writes too, when it refuses a line over the limit.
+func (s *session) writeFailure() error {
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
+	return s.writeErr
 }
 
 func requestID(value any) (int64, bool) {

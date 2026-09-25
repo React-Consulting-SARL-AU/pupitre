@@ -7,6 +7,7 @@ import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/daemon"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/sudo"
 	"pupitre.studio/agent/internal/sys/apt"
 	"pupitre.studio/agent/internal/sys/file"
 	"pupitre.studio/agent/internal/sys/user"
@@ -18,7 +19,7 @@ const (
 	ProjectsDir = Home + "/projects"
 	Shell       = user.Shell
 
-	sudoersPath        = "/etc/sudoers.d/90-dev"
+	sudoersPath        = sudo.Path
 	sysctlPath         = "/etc/sysctl.d/99-pupitre.conf"
 	aptPeriodicPath    = "/etc/apt/apt.conf.d/52pupitre"
 	timezonePath       = "/etc/timezone"
@@ -73,7 +74,7 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 
 	return modules.Status{
 		Installed:  true,
-		Configured: file.Same(ctx, sudoersPath, []byte(sudoers)) && file.HasBlock(ctx, zshrcPath, ID) && file.HasBlock(ctx, bashrcPath, ID) && linked(ctx) && file.Same(ctx, daemon.UnitPath, []byte(daemon.UnitFile)),
+		Configured: sudoGranted(ctx) && file.HasBlock(ctx, zshrcPath, ID) && file.HasBlock(ctx, bashrcPath, ID) && linked(ctx) && file.Same(ctx, daemon.UnitPath, []byte(daemon.UnitFile)),
 		Version:    osVersion(ctx),
 	}, nil
 }

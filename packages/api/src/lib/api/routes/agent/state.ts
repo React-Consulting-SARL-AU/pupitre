@@ -1,8 +1,12 @@
+import { resolveLocale } from "@pupitre/shared/i18n"
 import { Elysia, t } from "elysia"
 import { readAgentState, recordHeartbeat } from "../../../servers/agent-state"
+import { SshAddressInvalidError } from "../../../servers/ssh-address"
+import { apiError } from "../../errors"
 import { errorResponse } from "../../openapi-models"
 import { requireServer } from "../../plugins/guards"
 import { serializeData } from "../../prisma"
+import { describeMalformedBodyField } from "../../validation-errors"
 import { agentStateSchema, heartbeatBody } from "./schemas"
 
 export const agentStateRoutes = new Elysia({ name: "agent-state-routes" })
@@ -18,8 +22,22 @@ export const agentStateRoutes = new Elysia({ name: "agent-state-routes" })
   )
   .post(
     "/agent/heartbeat",
-    async ({ currentServer, body, set }) => {
-      await recordHeartbeat(currentServer, body)
+    async ({ currentServer, body, request, set }) => {
+      try {
+        await recordHeartbeat(currentServer, body)
+      } catch (error) {
+        if (!(error instanceof SshAddressInvalidError)) {
+          throw error
+        }
+
+        const { message, fix } = describeMalformedBodyField(
+          error.field,
+          resolveLocale(request.headers)
+        )
+
+        set.status = 422
+        return apiError("validation", message, fix)
+      }
 
       set.status = 204
     },

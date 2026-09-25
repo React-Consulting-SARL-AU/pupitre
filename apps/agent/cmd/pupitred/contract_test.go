@@ -16,7 +16,7 @@ func TestTheServerAnswersEveryCommandOfTheContract(t *testing.T) {
 	setupCLI(t)
 
 	served := map[string]bool{}
-	for _, cmd := range newServer(newEngine()).Capabilities() {
+	for _, cmd := range newServer(newEngine(), false).Capabilities() {
 		served[contract.ParamsDefinition(cmd)] = true
 	}
 
@@ -60,7 +60,11 @@ func TestEveryAnswerMatchesItsResultDefinition(t *testing.T) {
 		t.Fatalf("install: %s", lines[len(lines)-1])
 	}
 
-	server := newServer(newEngine())
+	previous := effectiveUID
+	effectiveUID = func() int { return 0 }
+	t.Cleanup(func() { effectiveUID = previous })
+
+	server := newServer(newEngine(), false)
 
 	cases := []struct {
 		cmd    string
@@ -92,6 +96,9 @@ func TestEveryAnswerMatchesItsResultDefinition(t *testing.T) {
 		{"tunnel.restart", map[string]any{}},
 		{"secrets.sync", map[string]any{"project": "web"}},
 		{"platform.sync", map[string]any{}},
+		{"keys.trust", map[string]any{"public_key": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIIpnKVP1oHEgOAeBppA7YR+8vwKg5ylIyTLxWKT7IaS"}},
+		{"keys.sync", map[string]any{}},
+		{"keys.list", map[string]any{}},
 		{"doctor", map[string]any{}},
 		{"diag", map[string]any{}},
 		{"service.secret", map[string]any{"id": "tool.demo", "key": "DEMO_PASSWORD"}},

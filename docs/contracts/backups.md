@@ -28,12 +28,14 @@ Une sauvegarde est un préfixe du seau, un objet par partie, et un `manifest.jso
 | Partie | Contenu (en clair, avant gzip) | Quand |
 | --- | --- | --- |
 | `setup` | un tar de `etc/pupitre/install.json`, `etc/pupitre/projects.local.json`, `etc/pupitre/projects.conf`, `etc/pupitre/migrations.json`, `etc/pupitre/env`, `var/lib/pupitre/projects.running.json` — ceux qui existent | toujours |
-| `home` | un tar, relatif à `/home/dev`, des entrées de `BACKUP_HOME_PATHS` qui existent, sans `.ssh/authorized_keys` | `home` coché (défaut) |
+| `home` | un tar, relatif à `/home/dev`, des entrées de `BACKUP_HOME_PATHS` qui existent, sans `BACKUP_HOME_EXCLUDED` (`.ssh/authorized_keys`, et `.claude/remote`, les binaires que Claude retélécharge) ; restauré fichier par fichier, chacun écrit à côté puis renommé sur sa place, si bien qu'un binaire qui tourne est remplacé plutôt que refusé (`text file busy`) | `home` coché (défaut) |
 | `database` | une base par partie, au format que dit `format` ; `name: "*"` pour ce qui appartient au serveur entier : les rôles PostgreSQL (`pg_roles`), les comptes MySQL ou MariaDB faits à la main (`mysql_users` : chacun supprimé puis recréé avec l'empreinte de son mot de passe — en hexadécimal sous MySQL 8 —, puis ses droits une fois tous les comptes faits ; `root`, les comptes système et les deux comptes du module n'y sont jamais, le module les refait), l'instantané Redis (`rdb`) | `databases` coché (défaut), pour chaque moteur installé ; les bases système (`postgres`, `template*`, `mysql`, `sys`, `information_schema`, `performance_schema`, `admin`, `config`, `local`) n'en sont pas |
 | `project` | mode `full` : un tar du dossier du projet, `.git` compris, sans les dossiers de `BACKUP_EXCLUDED_DIRS` à quelque profondeur que ce soit ; mode `env` : les seuls fichiers ignorés par git dont le nom commence par `.env`, à la racine et dans le dossier de chaque processus | `projects` coché (défaut) ; le mode suit `projects_env_only`, et un projet sans dépôt est toujours `full` |
 | `path` | un tar d'un chemin de `extra_paths`, relatif à `/home/dev` | un par chemin |
 
 `install.json` porte les secrets des modules en clair — mots de passe des bases, jetons des outils, clés des fournisseurs de modèles, identifiants du tunnel : c'est ce qui fait qu'une restauration ne redemande rien. Le tar garde modes, liens symboliques internes et dates ; l'extraction redonne tout au compte `dev` (ou root pour `setup`), refuse un chemin absolu, un `..` et un lien qui sortirait de sa racine.
+
+Un dossier de projet ou un chemin d'`extra_paths` qui est lui-même un lien est suivi s'il mène à un dossier de `/home/dev` : la partie porte ce qu'il y trouve, sous le nom du lien, et la restauration le remet là où le lien mène, le lien gardé. Les liens rencontrés à l'intérieur ne sont jamais suivis. Un lien qui mène hors de `/home/dev`, ou nulle part, laisse la partie de côté avec un avertissement, jamais une archive vide.
 
 Ce qui n'y est jamais : `server.token`, `platform.url`, `entitlement.json`, les clés d'hôte SSH, `authorized_keys`, les binaires, les paquets, les runtimes, les dépendances des projets, les journaux, la galerie de captures, les volumes Docker.
 
@@ -159,7 +161,7 @@ Une table `Backup`, des routes, deux alertes. Le détail est dans [platform-api.
 - `POST /agent/backups` (jeton de serveur) déclare une sauvegarde, `BackupDeclaration` ; idempotent sur l'identifiant.
 - `DELETE /agent/backups/:id` (jeton de serveur) retire la référence d'une sauvegarde de ce serveur.
 - `GET /backups` et `GET /servers/:id/backups` (session) listent les sauvegardes de l'organisation, les plus récentes d'abord ; un `member` ne voit que celles des serveurs qui lui sont attribués.
-- `POST /backups/:id/forget` (`admin`) cache une référence sans toucher au seau.
+- `POST /backups/:id/forget` (`admin`) efface une référence sans toucher au seau.
 - `POST /backups/:id/restored` (session) note une restauration dans le journal.
 - `backup_failed` quand le dernier battement porte une erreur plus récente que le dernier succès, ou une dernière sauvegarde incomplète (`last_warnings` positif) ; `backup_stale` quand deux intervalles sont passés sans succès.
 

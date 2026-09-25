@@ -3,6 +3,7 @@ package postgres
 import (
 	"errors"
 	"fmt"
+	"io"
 	"regexp"
 	"strconv"
 	"strings"
@@ -453,23 +454,16 @@ func Dump(ctx *modules.Context, name string) (string, int64, error) {
 		return "", 0, err
 	}
 
-	path, err := dumps.Target(ctx, database(name), ".dump")
-	if err != nil {
-		return "", 0, err
-	}
-
 	argv := []string{
 		"pg_dump", "--format=custom", "--host=" + loopback, "--port=" + strconv.Itoa(port(ctx)),
-		"--username=" + appRole(ctx), "--no-password", "--file=" + path, database(name),
-	}
-	cmd := sys.Command{Argv: argv, Env: []string{"PGPASSWORD=" + ctx.Secret("app_password")}}
-	if _, err := sys.Exec(ctx, cmd); err != nil {
-		return "", 0, err
+		"--username=" + appRole(ctx), "--no-password", database(name),
 	}
 
-	size, err := dumps.Written(ctx, path)
+	return dumps.Write(ctx, database(name), ".dump", func(out io.Writer) error {
+		_, err := sys.Exec(ctx, sys.Command{Argv: argv, Env: []string{"PGPASSWORD=" + ctx.Secret("app_password")}, Output: out})
 
-	return path, size, err
+		return err
+	})
 }
 
 func Import(ctx *modules.Context, name string) ([]string, error) {

@@ -10,6 +10,7 @@ import (
 	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/keys"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/sudo"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/file"
 	"pupitre.studio/agent/internal/sys/systemd"
@@ -68,8 +69,19 @@ func loginShell(ctx *modules.Context, name string) (string, bool) {
 	return "", false
 }
 
+// A new server opens sudo until the securing sets a password; one that has a password keeps it.
 func grantSudo(ctx *modules.Context) error {
-	return writeIfChanged(ctx, "grant-sudo", sudoersPath, []byte(sudoers), 0o440)
+	return ctx.Step("grant-sudo", func() (modules.Outcome, error) {
+		if file.Same(ctx, sudoersPath, []byte(sudo.Restricted)) || file.Same(ctx, sudoersPath, []byte(sudo.Open)) {
+			return modules.Skipped, nil
+		}
+
+		return modules.Done, file.WriteAtomic(ctx, sudoersPath, []byte(sudo.Open), 0o440)
+	})
+}
+
+func sudoGranted(ctx *modules.Context) bool {
+	return sudo.State(ctx) != ""
 }
 
 // The tools the dev user installs land under ~/.local; a folder there that
@@ -121,7 +133,7 @@ func seedAuthorizedKeys(ctx *modules.Context) error {
 			return modules.Failed, err
 		}
 
-		current, err := file.Read(ctx, authorizedKeysPath)
+		current, err := ctx.Sys().ReadFileIn(Home, strings.TrimPrefix(authorizedKeysPath, Home+"/"))
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return modules.Failed, err
 		}

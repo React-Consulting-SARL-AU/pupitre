@@ -12,11 +12,14 @@ import { Section } from "@renderer/components/ui/section";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { memoryOf } from "@renderer/lib/project-ports";
 import { isRunning } from "@renderer/lib/project-state";
+import type { SecuringNeed } from "@renderer/lib/server-security";
+import type { Gesture } from "@renderer/lib/use-pending";
 import type { ProjectAction } from "@renderer/stores/snapshot";
 import { FolderPlus, Package, Play, Power, Square } from "lucide-react";
 import { useRef } from "react";
 import { DashboardMachine } from "./dashboard-machine";
 import { DashboardProjectCard } from "./dashboard-project-card";
+import { DashboardRootNotice } from "./dashboard-root-notice";
 import { DashboardServices } from "./dashboard-services";
 
 /**
@@ -39,13 +42,16 @@ interface Props {
   accounts?: Readonly<Record<string, LoginState>>;
   onOpenProject: (name: string) => void;
   onAddProject: () => void;
-  onAct: (action: ProjectAction, name: string) => void;
+  onAct: Gesture<[ProjectAction, string]>;
   onStopSession: (pid: number) => void;
   /** Answer with the promise of the cleaning and the button waits on it. */
   onCleanSessions: () => unknown;
   onReboot: () => void;
   onOpenService?: (moduleId: string) => void;
   onOpenTerminal?: () => void;
+  /** Root access stayed open, or dev still becomes root without a password: the securing is offered again. */
+  securing?: SecuringNeed | null;
+  onSecure?: () => void;
 }
 
 export function DashboardPanel({
@@ -62,6 +68,8 @@ export function DashboardPanel({
   onReboot,
   onOpenService,
   onOpenTerminal,
+  securing = null,
+  onSecure,
 }: Props) {
   const t = useTranslations();
 
@@ -127,6 +135,10 @@ export function DashboardPanel({
       eyebrow={serverName ?? snapshot.machine.hostname}
       title={t("dashboard.panel.title")}
     >
+      {securing && onSecure ? (
+        <DashboardRootNotice need={securing} onSecure={onSecure} />
+      ) : null}
+
       <Section
         aside={
           <span className="font-data text-[12px] text-ink-3">

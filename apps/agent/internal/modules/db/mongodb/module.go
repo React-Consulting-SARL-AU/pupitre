@@ -3,6 +3,7 @@ package mongodb
 import (
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"regexp"
 	"strconv"
@@ -298,12 +299,12 @@ func importDumps(ctx *modules.Context, options dumps.Options) ([]string, error) 
 	options.NativeGzip = true
 	options.Load = func(dump dumps.File) error {
 		return withCredentials(ctx, func(credentials []string) error {
-			argv := append(credentials, "--archive="+dump.Path)
+			argv := append(credentials, "--archive")
 			if dump.Gzip {
 				argv = append(argv, "--gzip")
 			}
 
-			_, err := sys.Exec(ctx, sys.Command{Argv: append([]string{"mongorestore"}, argv...)})
+			_, err := sys.Exec(ctx, sys.Command{Argv: append([]string{"mongorestore"}, argv...), StdinPath: dump.Path})
 
 			return err
 		})
@@ -424,24 +425,14 @@ func Dump(ctx *modules.Context, name string) (string, int64, error) {
 		return "", 0, err
 	}
 
-	path, err := dumps.Target(ctx, database(name), ".archive.gz")
-	if err != nil {
-		return "", 0, err
-	}
+	return dumps.Write(ctx, database(name), ".archive.gz", func(out io.Writer) error {
+		return withCredentials(ctx, func(credentials []string) error {
+			argv := append(credentials, "--db="+database(name), "--archive", "--gzip")
+			_, err := sys.Exec(ctx, sys.Command{Argv: append([]string{"mongodump"}, argv...), Output: out})
 
-	err = withCredentials(ctx, func(credentials []string) error {
-		argv := append(credentials, "--db="+database(name), "--archive="+path, "--gzip")
-		_, err := sys.Exec(ctx, sys.Command{Argv: append([]string{"mongodump"}, argv...)})
-
-		return err
+			return err
+		})
 	})
-	if err != nil {
-		return "", 0, err
-	}
-
-	size, err := dumps.Written(ctx, path)
-
-	return path, size, err
 }
 
 func Import(ctx *modules.Context, name string) ([]string, error) {

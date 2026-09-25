@@ -38,6 +38,10 @@ func hardened(keepRoot bool, name string) Result {
 func Harden(ctx *modules.Context, name string) Result {
 	keepRoot := options(ctx).KeepRoot
 
+	if err := protectLinks(ctx); err != nil {
+		return rootStays(message(err))
+	}
+
 	reason, err := checkAuthorizedKeys(ctx, name)
 	if err != nil {
 		return rootStays(err.Error())

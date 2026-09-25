@@ -766,8 +766,9 @@ func url(project registry.Project) string {
 	return processURL(project.Processes[0])
 }
 
-func head(ctx sys.Context, root string) string {
-	raw, err := file.Read(ctx, root+"/.git/HEAD")
+// Dev writes the repository: its HEAD is read inside the projects root, never through a link that leaves it.
+func head(ctx sys.Context, projects, dir string) string {
+	raw, err := ctx.Sys().ReadFileIn(projects, dir+"/.git/HEAD")
 	if err != nil {
 		return ""
 	}

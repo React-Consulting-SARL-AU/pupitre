@@ -10,6 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  ed25519Of,
   hostKeyDecision,
   keyLines,
   liveKeys,
@@ -100,6 +101,25 @@ describe("le refus que ssh renvoie", () => {
     expect(looksLikeHostKeyChange("Permission denied (publickey).")).toBe(
       false
     );
+  });
+});
+
+describe("l'empreinte Ed25519 que l'enrôlement épingle", () => {
+  it("prend la ligne Ed25519 de known_hosts, quelle que soit sa place", () => {
+    expect(
+      ed25519Of(
+        [
+          "# Host [vps.test]:2222 found: line 1 ",
+          `[vps.test]:2222 ECDSA ${OTHER}`,
+          "# Host [vps.test]:2222 found: line 2 ",
+          `[vps.test]:2222 ED25519 ${PINNED}`,
+        ].join("\n")
+      )
+    ).toBe(PINNED);
+  });
+
+  it("ne rend rien quand ssh s'est entendu sur un autre type", () => {
+    expect(ed25519Of(`vps.test ECDSA ${OTHER}\n`)).toBeNull();
   });
 });
 

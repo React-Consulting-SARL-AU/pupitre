@@ -46,6 +46,8 @@ export interface EnrollmentDeps {
    * tunnel, a subdomain — is asked for by that id.
    */
   bind: (serverId: string, platformServerId: string) => void;
+  /** The Ed25519 host key the app's known_hosts holds for the server, or null. */
+  hostFingerprint: (server: Server) => Promise<string | null>;
 }
 
 export interface PreparedAgent {
@@ -95,15 +97,24 @@ function unpublished(build: BuildKind): AgentResponse<never> {
   };
 }
 
-/** What the platform is told of a machine, whether it is being installed or repaired. */
-export function enrollInput(server: Server, arch: string, deviceId: string) {
+/**
+ * What the platform is told of a machine, whether it is being installed or
+ * repaired. The fingerprint is the Ed25519 one: the platform refuses a token
+ * traded with any other host key than the one it pinned.
+ */
+export function enrollInput(
+  server: Server,
+  arch: string,
+  deviceId: string,
+  ed25519: string | null
+) {
   return {
     device_id: deviceId,
     host: server.host,
     port: server.port,
     probe: { arch },
     ssh_user: server.user || "root",
-    ...(server.hostFingerprint ? { fingerprint: server.hostFingerprint } : {}),
+    ...(ed25519 ? { fingerprint: ed25519 } : {}),
   };
 }
 
@@ -139,6 +150,8 @@ async function fromPlatform(
       content: Buffer.from(bytes),
       path: `pupitred ${enrollment.release.version}`,
       sha256: checked.result.sha256,
+      signature: enrollment.release.signature,
+      version: enrollment.release.version,
     },
   };
 }
@@ -188,7 +201,11 @@ async function enrolment(
     return { ok: true, result: held };
   }
 
-  return lift(await deps.account.enroll(enrollInput(server, arch, deviceId)));
+  const ed25519 = await deps.hostFingerprint(server);
+
+  return lift(
+    await deps.account.enroll(enrollInput(server, arch, deviceId, ed25519))
+  );
 }
 
 export async function prepareAgent(

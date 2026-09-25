@@ -9,6 +9,7 @@ import {
   EnrollResultSchema,
   EnrollSecretsSchema,
   KeysListResultSchema,
+  KeysTrustParamsSchema,
 } from "./system"
 
 describe("keys", () => {
@@ -28,6 +29,33 @@ describe("keys", () => {
     expect(
       KeysListResultSchema.safeParse({ keys: [{ comment: "x" }] }).success
     ).toBe(false)
+  })
+
+  it("say which keys sign and which wait for an approval", () => {
+    expect(
+      KeysListResultSchema.safeParse({
+        keys: [{ fingerprint: "SHA256:abc", signer: true }],
+        pending: ["SHA256:bfE4sIISeLP0EoiJhWxcXY6eN1yxSvh+02YHKswso0U"],
+      }).success
+    ).toBe(true)
+  })
+
+  it("trust a bare key and refuse one with options or of a refused type", () => {
+    const key =
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIIpnKVP1oHEgOAeBppA7YR+8vwKg5ylIyTLxWKT7IaS"
+
+    expect(KeysTrustParamsSchema.safeParse({ public_key: key }).success).toBe(
+      true
+    )
+
+    for (const public_key of [
+      `command="sh" ${key}`,
+      "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ",
+    ]) {
+      expect(KeysTrustParamsSchema.safeParse({ public_key }).success).toBe(
+        false
+      )
+    }
   })
 })
 

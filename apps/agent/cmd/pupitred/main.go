@@ -61,10 +61,16 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	case migrate.Command:
 		return runMigrate(newMigrator(newEngine()), args[1:], stdout, stderr)
 	case "serve":
+		limited, known := serveMode(args[1:])
+		if !known {
+			usage(stderr)
+			return 2
+		}
+
 		// A channel that drops takes the session, not the command: the write
 		// fails, the work goes on, and the report says where it got to.
 		signal.Ignore(syscall.SIGPIPE, syscall.SIGHUP)
-		if err := newServer(newEngine()).Serve(stdin, stdout); err != nil {
+		if err := newServer(newEngine(), limited).Serve(stdin, stdout); err != nil {
 			fmt.Fprintln(stderr, err)
 			return 1
 		}
@@ -95,6 +101,12 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return runGallery(args[1:], stderr)
 	case "backup":
 		return runBackup(args[1:], stdin, stdout, stderr)
+	case "binary":
+		engine := newEngine()
+		options := upgradeOptions(engine, newMigrator(engine))
+		return runBinary(selfupdate.New(options), options.BinaryPath, args[1:], stdin, stdout, stderr)
+	case keysCommand:
+		return runKeys(newEngine(), args[1:], stdout, stderr)
 	}
 
 	usage(stderr)
@@ -102,14 +114,26 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 }
 
 func usage(stderr io.Writer) {
-	fmt.Fprintln(stderr, "usage: pupitred <serve|daemon|enroll|install [--only=id,id] [--skip=id,id]|migrate [--status] [--restore=NAME]|probe [--script] [--projects=DIR]|report|resume|dev|shot|gallery|backup open [--salt=B64|--private-key] FILE|version>")
+	fmt.Fprintln(stderr, "usage: pupitred <serve [--privileged]|daemon|enroll|install [--only=id,id] [--skip=id,id]|migrate [--status] [--restore=NAME]|probe [--script] [--projects=DIR]|report|resume|dev|shot|gallery|backup open [--salt=B64|--private-key] FILE|keys reset --key KEY|FILE.pub|binary install [--privileged] [--allow-downgrade] < HEADER+FILE|version>")
+}
+
+// sudo runs `pupitred serve` exactly without a password (decision 0015): that line is the limited session, and any other is refused.
+func serveMode(args []string) (limited, known bool) {
+	switch {
+	case len(args) == 0:
+		return true, true
+	case len(args) == 1 && args[0] == "--privileged":
+		return false, true
+	}
+
+	return false, false
 }
 
 // The configuration is brought to this binary's shape before the binary reads
 // any of it. Nothing waits on a lock for it: a machine already at the revision
 // answers on one read of a small file, which is what every second channel of an
 // install under way does.
-func newServer(engine *modules.Engine) *protocol.Server {
+func newServer(engine *modules.Engine, limited bool) *protocol.Server {
 	migrator := newMigrator(engine)
 	brought(migrator, engine)
 
@@ -121,6 +145,7 @@ func newServer(engine *modules.Engine) *protocol.Server {
 		Config:       migrator.State,
 		Entitlement:  newResolver(engine).State,
 		ServerID:     backups.ServerID,
+		Limited:      limited,
 	})
 	modules.RegisterCommands(server, engine)
 	core.RegisterCommands(server, engine)
@@ -128,7 +153,7 @@ func newServer(engine *modules.Engine) *protocol.Server {
 	exposure.RegisterCommands(server, engine)
 	tool.RegisterCommands(server, engine)
 	probe.RegisterCommands(server, probeOptions(engine))
-	selfupdate.RegisterCommands(server, upgradeOptions(engine))
+	selfupdate.RegisterCommands(server, upgradeOptions(engine, migrator))
 	migrate.RegisterCommands(server, migrator)
 	daemon.RegisterCommands(server, daemonOptions(engine))
 	state.RegisterCommands(server, reader)
@@ -203,7 +228,10 @@ func daemonOptions(engine *modules.Engine) daemon.Options {
 		AgentVersion: version,
 		TokenPath:    tokenPath(),
 		ServerIDPath: serverIDPath(),
-		KeysPath:     pathFromEnv("PUPITRE_KEYS_PATH", daemon.DefaultKeysPath),
+		KeysPath:     keysPath(),
+		SignersPath:  signersPath(),
+		KeysLock:     keysLockPath(),
+		Euid:         effectiveUID,
 		HostKeyPath:  pathFromEnv("PUPITRE_HOST_KEY_PATH", daemon.DefaultHostKeyPath),
 		LogPath:      engine.LogPath,
 		Platform:     platform.Client{BaseURL: os.Getenv("PUPITRE_PLATFORM_URL"), Version: version},
@@ -227,14 +255,17 @@ func entitlementPath() string {
 	return pathFromEnv("PUPITRE_ENTITLEMENT_PATH", entitlement.DefaultCachePath)
 }
 
-func upgradeOptions(engine *modules.Engine) selfupdate.Options {
+func upgradeOptions(engine *modules.Engine, migrator *migrate.Runner) selfupdate.Options {
 	return selfupdate.Options{
-		Sys:        engine.Sys,
-		Version:    version,
-		BinaryPath: pathFromEnv("PUPITRE_BINARY_PATH", selfupdate.DefaultBinaryPath),
-		TokenPath:  tokenPath(),
-		LogPath:    engine.LogPath,
-		Platform:   platform.Client{BaseURL: os.Getenv("PUPITRE_PLATFORM_URL"), Version: version},
+		Sys:         engine.Sys,
+		Version:     version,
+		BinaryPath:  pathFromEnv("PUPITRE_BINARY_PATH", selfupdate.DefaultBinaryPath),
+		TokenPath:   tokenPath(),
+		LogPath:     engine.LogPath,
+		Platform:    platform.Client{BaseURL: os.Getenv("PUPITRE_PLATFORM_URL"), Version: version},
+		Migrator:    migrator,
+		UpgradeLock: pathFromEnv("PUPITRE_UPGRADE_LOCK_PATH", selfupdate.DefaultLockPath),
+		InstallLock: engine.LockPath,
 	}
 }
 
@@ -271,6 +302,8 @@ func migrateOptions(engine *modules.Engine) migrate.Options {
 			Ledger:  pathFromEnv("PUPITRE_LEDGER_PATH", migrate.DefaultLedger),
 			Backups: pathFromEnv("PUPITRE_BACKUPS_PATH", migrate.DefaultBackups),
 			Lock:    engine.LockPath,
+			Keys:    keysPath(),
+			Signers: signersPath(),
 		},
 		Sys: engine.Sys,
 	}

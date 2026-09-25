@@ -592,7 +592,15 @@ type Machine struct {
 	DiskTotalGB  float64    `json:"disk_total_gb"`
 	DiskFreeGB   float64    `json:"disk_free_gb"`
 	AgentVersion string     `json:"agent_version"`
+	Sudo         SudoState  `json:"sudo,omitempty"`
 }
+
+type SudoState string
+
+const (
+	SudoPassword    SudoState = "password"
+	SudoNopasswdAll SudoState = "nopasswd_all"
+)
 
 type Session struct {
 	PID     int    `json:"pid"`

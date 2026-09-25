@@ -1,5 +1,9 @@
 import { describe, expect, it } from "bun:test"
-import { RESTRICTED_COMMANDS, UNENROLLED_COMMANDS } from "../agent-protocol"
+import {
+  LIMITED_COMMANDS,
+  RESTRICTED_COMMANDS,
+  UNENROLLED_COMMANDS,
+} from "../agent-protocol"
 import { PROTOCOL_VERSION } from "../agent-protocol/envelope"
 import {
   MANDATORY_MODULE_IDS,
@@ -87,6 +91,13 @@ describe("buildContractSchema", () => {
     expect(schema.$defs.RestrictedCommands).toEqual({
       type: "string",
       enum: [...RESTRICTED_COMMANDS],
+    })
+  })
+
+  it("exports what a session opened without the password answers", () => {
+    expect(schema.$defs.LimitedCommands).toEqual({
+      type: "string",
+      enum: [...LIMITED_COMMANDS],
     })
   })
 

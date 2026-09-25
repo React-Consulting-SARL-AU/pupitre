@@ -157,6 +157,19 @@ describe("MachineSchema, ServiceSchema, ProjectSchema, SessionSchema", () => {
     ).toBe(false)
   })
 
+  it("says what sudo asks of dev, and nothing from an agent older than the field", () => {
+    expect(MachineSchema.parse(machine).sudo).toBeUndefined()
+    expect(MachineSchema.parse({ ...machine, sudo: "password" }).sudo).toBe(
+      "password"
+    )
+    expect(MachineSchema.parse({ ...machine, sudo: "nopasswd_all" }).sudo).toBe(
+      "nopasswd_all"
+    )
+    expect(
+      MachineSchema.safeParse({ ...machine, sudo: "nopasswd" }).success
+    ).toBe(false)
+  })
+
   it("reject a three-value load with a string and an unknown session kind", () => {
     expect(
       MachineSchema.safeParse({ ...machine, load: "0.12 0.2 0.25" }).success

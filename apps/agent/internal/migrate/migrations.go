@@ -52,6 +52,13 @@ func All() []Migration {
 			Touches: []Target{TargetProjects},
 			Apply:   projectsRuntimes,
 		},
+		{
+			ID:      6,
+			Slug:    "key-signers",
+			Since:   "0.10.0",
+			Touches: []Target{TargetSigners},
+			Apply:   keySigners,
+		},
 	}
 }
 

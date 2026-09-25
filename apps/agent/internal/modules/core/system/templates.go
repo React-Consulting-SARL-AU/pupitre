@@ -5,8 +5,6 @@ import (
 	"strings"
 )
 
-const sudoers = "dev ALL=(ALL) NOPASSWD:ALL\n"
-
 const sysctl = `fs.inotify.max_user_watches=524288
 fs.inotify.max_user_instances=1024
 vm.swappiness=10

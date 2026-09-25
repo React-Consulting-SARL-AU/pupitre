@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/sudo"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/file"
 )
@@ -39,6 +40,7 @@ func Machine(ctx sys.Context, version string) contract.Machine {
 		DiskTotalGB:  total,
 		DiskFreeGB:   free,
 		AgentVersion: version,
+		Sudo:         sudo.State(ctx),
 	}
 }
 

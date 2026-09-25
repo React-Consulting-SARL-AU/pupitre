@@ -18,6 +18,7 @@ import { StatusDot, type StatusShape } from "../ui/status-dot";
 import { ServerGrantDetail } from "./server-grant-detail";
 import { ServerGrantOpen } from "./server-grant-open";
 import { ServerRowEditing } from "./server-row-editing";
+import { ServerSudoFact } from "./server-sudo-fact";
 
 /**
  * One server, and everything that can be done to it from a list.
@@ -168,6 +169,9 @@ export function ServerRow({
           {server.hostFingerprint ?? t("servers.row.notPinned")}
         </Fact>
         {grant ? <ServerGrantDetail grant={grant} /> : null}
+        {server.origin === "app" ? (
+          <ServerSudoFact serverId={server.id} />
+        ) : null}
       </FactList>
 
       {grant && onOpen ? (

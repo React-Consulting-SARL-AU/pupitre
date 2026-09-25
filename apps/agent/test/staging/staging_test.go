@@ -99,10 +99,28 @@ func agentWithSecrets(t *testing.T, host, secrets string, requests ...request) [
 	return succeeded(t, converse(t, host, carrying...), requests)
 }
 
+// The suite drives the whole protocol, so it speaks to the privileged session: root, or dev under the rule of before, open it
+// without a password; a secured dev needs the password, read from the environment of whoever runs the suite, never a file.
 func converse(t *testing.T, host string, requests ...request) []response {
 	t.Helper()
 
-	cmd := sshCommand(host, "sudo", "-n", "pupitred", "serve")
+	if password := os.Getenv(sudoPasswordVariable); password != "" {
+		return converseOn(t, sshCommand(host, privilegedServe), password, requests...)
+	}
+
+	return converseOn(t, sshCommand(host, "sudo", "-n", "pupitred", "serve", "--privileged"), "", requests...)
+}
+
+const sudoPasswordVariable = "PUPITRE_STAGING_SUDO_PASSWORD"
+
+// The line the app opens: sudo reads the password on the first line, or the shell does under the rule of before.
+const privilegedServe = `if sudo -n true 2>/dev/null; then IFS= read -r p; exec sudo -n pupitred serve --privileged; fi; exec sudo -S -p '' pupitred serve --privileged`
+
+// preamble is written before the first request: the sudo password, for a session sudo -S opens.
+func converseOn(t *testing.T, cmd *exec.Cmd, preamble string, requests ...request) []response {
+	t.Helper()
+
+	host := strings.Join(cmd.Args, " ")
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
@@ -121,6 +139,9 @@ func converse(t *testing.T, host string, requests ...request) []response {
 	all := append([]request{{Cmd: "hello", Params: map[string]any{"app_version": "0.0.0-staging", "protocol": contract.ProtocolVersion}}}, requests...)
 	go func() {
 		defer stdin.Close()
+		if preamble != "" {
+			fmt.Fprintf(stdin, "%s\n", preamble)
+		}
 		for i, req := range all {
 			// A command that takes no argument still sends an object: the agent's
 			// params are a closed shape, and a bare null is not one.

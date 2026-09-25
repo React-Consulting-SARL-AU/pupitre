@@ -102,10 +102,13 @@ type Sys interface {
 	RenameIn(root, from, to string) error
 	// RemoveIn deletes an entry under root, everything under it included when recursive.
 	RemoveIn(root, rel string, recursive bool) error
+	// CreateIn opens a new file under root for owner to stream into, replacing whatever stood at its name, a link included, without writing through it.
+	CreateIn(root, rel, owner string) (io.WriteCloser, error)
 	ReadDir(path string) ([]Entry, error)
+	// WriteFile, AppendFile, Chown, MkdirAll and Remove follow a link on the way only when root owns it and its folder: never one another account could plant.
 	// WriteFile replaces the file atomically at the mode asked for — KeepMode leaves it as it was — and never hands a user's file to root.
 	WriteFile(path string, data []byte, mode fs.FileMode) error
-	// AppendFile creates a missing file for its owner, as that user's own tee would have.
+	// AppendFile creates a missing file for its owner, as that user's own tee would have, and refuses a link at the path.
 	AppendFile(path string, data []byte, owner string) error
 	// Stat describes a regular file and refuses a symlink, so a listing never follows one out of its folder.
 	Stat(path string) (size int64, mtime time.Time, err error)
@@ -114,7 +117,8 @@ type Sys interface {
 	Chown(path, user, group string) error
 	Owner(path string) (string, error)
 	MkdirAll(path string, mode fs.FileMode) error
-	Signal(pid int, sig syscall.Signal) error
+	// Signal, given an owner, reaches the process only while it runs as that account, so a pid recycled since it was looked up is spared.
+	Signal(pid int, owner string, sig syscall.Signal) error
 }
 
 // Ranged reads a file by ranges, which is what a journal that grows for days

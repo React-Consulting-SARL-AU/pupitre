@@ -188,12 +188,18 @@ func aggregate(processes []contract.ProjectProcess) contract.ProjectState {
 
 // Read from .git/HEAD rather than by launching git: git takes ten milliseconds just to start, and several projects share one repository.
 func (r *Reader) branch(cache map[string]string, project registry.Project) string {
-	root := project.RootPath(r.options.Paths.Resolved().Projects)
+	projects := r.options.Paths.Resolved().Projects
+
+	root := project.RootPath(projects)
+	if root == "" {
+		return ""
+	}
+
 	if branch, read := cache[root]; read {
 		return branch
 	}
 
-	cache[root] = head(r.ctx(), root)
+	cache[root] = head(r.ctx(), projects, below(projects, root))
 
 	return cache[root]
 }

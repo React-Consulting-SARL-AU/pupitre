@@ -1,4 +1,8 @@
 import type {
+  KeyApprovalSubmission,
+  PendingKeyApproval,
+} from "@pupitre/shared/keys";
+import type {
   AccountDevice,
   AccountError,
   AccountResponse,
@@ -8,6 +12,7 @@ import type {
   UsageRight,
 } from "@shared/account";
 import type { PlatformBackup } from "@shared/backups";
+import type { KeyApprovalReceipt } from "@shared/key-approvals";
 import type { FleetServer } from "@shared/servers";
 import type { AccountRecord, TokenVault } from "./account-vault";
 import type { EnrollInput, PlatformClient } from "./platform-client";
@@ -71,6 +76,8 @@ export interface Account {
   signIn: (
     report: (progress: SignInProgress) => void
   ) => Promise<AccountResponse<AccountState>>;
+  /** Stops waiting on the browser: the sign-in under way answers `cancelled` at its next poll. */
+  cancelSignIn: () => void;
   signOut: () => AccountState;
   refresh: () => Promise<AccountState>;
   guard: () => AccountResponse<UsageRight>;
@@ -119,6 +126,10 @@ export interface Account {
     backupId: string,
     platformServerId: string
   ) => Promise<AccountResponse<null>>;
+  keyApprovals: () => Promise<AccountResponse<PendingKeyApproval[]>>;
+  approveKey: (
+    approval: KeyApprovalSubmission
+  ) => Promise<AccountResponse<KeyApprovalReceipt>>;
 }
 
 function keyBody(line: string): string {
@@ -261,6 +272,7 @@ export function createAccount(deps: AccountDeps): Account {
     string,
     { token: string; enrollment: Enrollment }
   >();
+  let attempt = 0;
 
   function state(): AccountState {
     const record = deps.vault.record();
@@ -316,6 +328,17 @@ export function createAccount(deps: AccountDeps): Account {
       publicKey
     );
 
+    if (!created.ok && created.error.code === "reauthentication_required") {
+      return {
+        ok: false,
+        error: {
+          code: created.error.code,
+          message: "refusal.device.reauthenticate",
+          phrase: { id: "refusal.device.reauthenticate" },
+        },
+      };
+    }
+
     if (created.ok || created.error.code !== "device_exists") {
       return created;
     }
@@ -353,11 +376,23 @@ export function createAccount(deps: AccountDeps): Account {
     intervalSeconds: number,
     expiresInSeconds: number
   ): Promise<AccountResponse<string>> {
+    const own = attempt;
     let interval = Math.max(intervalSeconds, 1) * SECOND_MS;
     const deadline = deps.now() + expiresInSeconds * SECOND_MS;
 
     while (deps.now() < deadline) {
       await deps.wait(interval);
+
+      if (attempt !== own) {
+        return {
+          ok: false,
+          error: {
+            code: "cancelled",
+            message: "refusal.signIn.cancelled",
+            phrase: { id: "refusal.signIn.cancelled" },
+          },
+        };
+      }
 
       const polled = await deps.platform.deviceToken(deviceCode);
 
@@ -583,6 +618,10 @@ export function createAccount(deps: AccountDeps): Account {
     signIn,
     state,
 
+    cancelSignIn() {
+      attempt += 1;
+    },
+
     signOut() {
       deps.vault.clear();
       enrollments.clear();
@@ -655,6 +694,14 @@ export function createAccount(deps: AccountDeps): Account {
       return withToken((token) =>
         deps.platform.backupRestored(token, backupId, platformServerId)
       );
+    },
+
+    keyApprovals() {
+      return withToken((token) => deps.platform.keyApprovals(token));
+    },
+
+    approveKey(approval) {
+      return withToken((token) => deps.platform.approveKey(token, approval));
     },
   };
 }

@@ -43,6 +43,7 @@ const QUIET: Partial<PupitreApi> = {
       error: { code: "internal", message: "no agent in this test" },
       ok: false,
     }),
+  sudoPasswordState: () => Promise.resolve({ held: false, kept: false }),
   syncPlatform: () =>
     Promise.resolve({
       error: { code: "internal", message: "no platform in this test" },

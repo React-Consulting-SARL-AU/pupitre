@@ -36,7 +36,7 @@ describe("un onglet de session", () => {
     expect(html).toContain('data-shape="ringed"');
     expect(html).toContain('data-terminal-kind="claude"');
     expect(html).toContain("<title>Claude</title>");
-    expect(html).toContain("Fermer l&#x27;onglet (⌘W)");
+    expect(html).toContain("Fermer l&#x27;onglet et arrêter la session (⌘W)");
   });
 
   it("cache le bouton de fermeture d'un onglet qui n'est pas devant", () => {

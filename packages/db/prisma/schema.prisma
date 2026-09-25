@@ -96,6 +96,7 @@ model User {
   events          Event[]      @relation("EventActor")
   passkeys        Passkey[]
   twoFactors      TwoFactor[]
+  keyApprovals    KeyApproval[] @relation("KeyApprovalApprover")
 
   @@unique([email])
   @@index([deletionAt])
@@ -279,6 +280,7 @@ model Device {
 
   enrolledServers   Server[]              @relation("ServerEnrollingDevice")
   serverRevocations ServerRevokedDevice[]
+  keyApprovals      KeyApproval[]
 
   @@index([userId])
 }
@@ -321,6 +323,9 @@ model Server {
   /// The heartbeat's last word on backups, a `BackupBeat`; a heartbeat without one keeps it.
   backup                 Json?
   backups                Backup[]
+  /// The heartbeat's last `KeysBeat` and when it came, `{ signers, pending, reported_at }`; a heartbeat without one keeps it.
+  keyReport              Json?
+  keyApprovals           KeyApproval[]
   createdAt              DateTime              @default(now())
   updatedAt              DateTime              @updatedAt
 
@@ -341,6 +346,7 @@ model ServerMetric {
   sample   Json
 
   @@index([serverId, at])
+  @@index([at])
 }
 
 model Alert {
@@ -400,6 +406,25 @@ model ServerRevokedDevice {
   @@index([deviceId])
 }
 
+/// A device key admitted on a server by the signature of a key the agent trusts (decision 0014); `issuedAt` keeps the signed spelling.
+model KeyApproval {
+  id               String   @id @default(cuid())
+  serverId         String
+  server           Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  deviceId         String
+  device           Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  userId           String
+  signer           String
+  issuedAt         String
+  signature        String
+  approvedByUserId String?
+  approvedBy       User?    @relation("KeyApprovalApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+  createdAt        DateTime @default(now())
+
+  @@unique([serverId, deviceId, signer])
+  @@index([deviceId])
+}
+
 model Subscription {
   id                   String       @id @default(cuid())
   organizationId       String
@@ -437,7 +462,7 @@ model AffiliateLink {
   notes        String?
   createdById  String?
   createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
+  updatedAt    DateTime            @default(now()) @updatedAt
   disabledAt   DateTime?
   referrals    Referral[]
   clickDays    AffiliateClickDay[]
@@ -508,7 +533,7 @@ model MailMailbox {
   enabled     Boolean  @default(true)
   sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime @default(now()) @updatedAt
 
   threads   MailThread[]
   templates MailTemplate[]
@@ -559,7 +584,7 @@ model MailNote {
   body            String
   createdByUserId String
   createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  updatedAt       DateTime   @default(now()) @updatedAt
 
   @@index([threadId, createdAt])
 }
@@ -573,7 +598,7 @@ model MailDraft {
   cc              Json?
   attachments     Json?
   updatedByUserId String
-  updatedAt       DateTime   @updatedAt
+  updatedAt       DateTime   @default(now()) @updatedAt
 }
 
 model MailActivity {
@@ -596,7 +621,7 @@ model MailTemplate {
   body            String
   createdByUserId String?
   createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  updatedAt       DateTime     @default(now()) @updatedAt
 
   @@index([mailboxId])
 }

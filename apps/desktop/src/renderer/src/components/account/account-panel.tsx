@@ -5,6 +5,7 @@ import { accountOf, useAccount } from "@renderer/stores/account";
 import { useEffect } from "react";
 import { AccountDevices } from "./account-devices";
 import { AccountIdentityCard } from "./account-identity-card";
+import { AccountKeyApprovals } from "./account-key-approvals";
 import { AccountSignInCard } from "./account-sign-in-card";
 import { AccountSubscriptionCard } from "./account-subscription-card";
 import { AccountUsageNotice } from "./account-usage-notice";
@@ -23,6 +24,7 @@ export function AccountPanel() {
   const signIn = useAccount((state) => state.signIn);
   const read = useAccount((state) => state.read);
   const connect = useAccount((state) => state.connect);
+  const cancelSignIn = useAccount((state) => state.cancelSignIn);
   const refresh = useAccount((state) => state.refresh);
   const disconnect = useAccount((state) => state.disconnect);
 
@@ -60,13 +62,15 @@ export function AccountPanel() {
             onDisconnect={disconnect}
             onRefresh={refresh}
           />
+          <AccountKeyApprovals />
           <AccountDevices current={account.device} />
         </>
       ) : (
         <AccountSignInCard
           consoleUrl={account.consoleUrl}
+          onCancel={cancelSignIn}
           onConnect={connect}
-          onOpenConsole={() => window.pupitre.openUrl(account.consoleUrl)}
+          onOpenUrl={(url) => window.pupitre.openUrl(url)}
           signIn={signIn}
         />
       )}

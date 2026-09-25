@@ -2,12 +2,14 @@ package dumps
 
 import (
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/sys"
 )
 
 func newContext(t *testing.T, fake *modtest.FakeSys) *modules.Context {
@@ -161,17 +163,30 @@ func TestAFailedImportIsReportedAndLetsTheNextOneThrough(t *testing.T) {
 // A plain x.sql beside x.sql.gz is the client's: the archive is decompressed under a name of its own, and only that copy goes.
 func TestGzippedDumpIsDecompressedUnderItsOwnNameThenRemoved(t *testing.T) {
 	var seen []string
+	var decompressed string
 	fake, ctx := withDumps(t, Dir+"/dump_shop_20260101.sql.gz")
 	fake.Files[Dir+"/dump_shop_20260101.sql.gz"] = []byte("gz")
 	fake.Files[Dir+"/dump_shop_20260101.sql"] = []byte("-- the client's own plain dump\n")
 
-	if _, err := Import(ctx, Options{Patterns: []string{"*.sql.gz"}, Load: loaded(&seen)}); err != nil {
+	load := func(dump File) error {
+		decompressed = string(fake.Files[dump.Path])
+
+		return loaded(&seen)(dump)
+	}
+
+	if _, err := Import(ctx, Options{Patterns: []string{"*.sql.gz"}, Load: load}); err != nil {
 		t.Fatal(err)
 	}
 
 	copied := Dir + "/.pupitre-import-dump_shop_20260101.sql"
-	if strings.Join(seen, "") != "shop ← "+copied {
-		t.Fatalf("the loader must receive the decompressed copy: %v", seen)
+	if strings.Join(seen, "") != "shop ← "+copied || decompressed != "gz" {
+		t.Fatalf("the loader must receive the decompressed copy: %v, %q", seen, decompressed)
+	}
+
+	if !slices.ContainsFunc(fake.Calls, func(call sys.Command) bool {
+		return call.Argv[0] == "gzip" && call.StdinPath == Dir+"/dump_shop_20260101.sql.gz"
+	}) {
+		t.Fatalf("gzip must read the archive on a standard input root opened: %v", fake.Commands())
 	}
 
 	if _, kept := fake.Files[copied]; kept {
@@ -184,6 +199,34 @@ func TestGzippedDumpIsDecompressedUnderItsOwnNameThenRemoved(t *testing.T) {
 
 	if _, kept := fake.Files[Dir+"/dump_shop_20260101.sql.gz"]; !kept {
 		t.Fatal("the original archive stays where the client put it")
+	}
+}
+
+// find lists regular files only, but dev can swap one for a link before root opens it.
+func TestACompressedDumpLinkedOutOfTheHomeIsNeverRead(t *testing.T) {
+	var seen []string
+	archive := Dir + "/dump_shop_20260101.sql.gz"
+	fake, ctx := withDumps(t, archive)
+	fake.Files["/etc/shadow"] = []byte("root:$6$secret")
+	fake.Links[archive] = "/etc/shadow"
+
+	imported, err := Import(ctx, Options{Patterns: []string{"*.sql.gz"}, Load: loaded(&seen)})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(imported) != 0 || len(seen) != 0 {
+		t.Fatalf("a link must never reach the loader: %v %v", imported, seen)
+	}
+
+	for path, content := range fake.Files {
+		if strings.HasPrefix(path, Dir+"/") && strings.Contains(string(content), "secret") {
+			t.Fatalf("root copied the link's target into %s", path)
+		}
+	}
+
+	if _, marked := fake.Files[markerDir+"/dump_shop_20260101.sql.gz.done"]; marked {
+		t.Fatal("a refused dump stays replayable")
 	}
 }
 

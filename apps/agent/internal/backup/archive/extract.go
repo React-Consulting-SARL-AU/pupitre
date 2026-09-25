@@ -60,6 +60,21 @@ func Extract(r io.Reader, root string, owner Owner) error {
 	}
 	defer scoped.Close()
 
+	return extract(r, scoped, root, owner)
+}
+
+// ExtractIn lays the archive out in rel, reached through base: a link swapped in for rel can only lead somewhere else under base.
+func ExtractIn(r io.Reader, base *os.Root, rel string, owner Owner) error {
+	scoped, err := base.OpenRoot(rel)
+	if err != nil {
+		return err
+	}
+	defer scoped.Close()
+
+	return extract(r, scoped, filepath.Join(base.Name(), rel), owner)
+}
+
+func extract(r io.Reader, scoped *os.Root, root string, owner Owner) error {
 	archive := tar.NewReader(r)
 	var folders []folder
 	var links []string
@@ -201,6 +216,7 @@ func within(root, candidate string) bool {
 	return candidate == root || strings.HasPrefix(candidate, root+string(filepath.Separator))
 }
 
+// A file is written beside its place then renamed over it: a binary that runs refuses to be written into, and a rename leaves the running one its old inode.
 func writeEntry(scoped *os.Root, name string, mode fs.FileMode, modTime time.Time, content io.Reader, owner Owner) error {
 	if err := ensureDir(scoped, path.Dir(name), owner); err != nil {
 		return err
@@ -210,7 +226,24 @@ func writeEntry(scoped *os.Root, name string, mode fs.FileMode, modTime time.Tim
 		return err
 	}
 
-	file, err := scoped.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	staged := path.Join(path.Dir(name), "."+path.Base(name)+".restoring-"+rand.Text()[:8])
+	if err := stageEntry(scoped, staged, mode, modTime, content, owner); err != nil {
+		scoped.Remove(staged)
+
+		return err
+	}
+
+	if err := scoped.Rename(staged, name); err != nil {
+		scoped.Remove(staged)
+
+		return err
+	}
+
+	return nil
+}
+
+func stageEntry(scoped *os.Root, name string, mode fs.FileMode, modTime time.Time, content io.Reader, owner Owner) error {
+	file, err := scoped.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
 	if err != nil {
 		return err
 	}
@@ -310,42 +343,31 @@ func chown(scoped *os.Root, name string, owner Owner) error {
 	return scoped.Lchown(name, owner.UID, owner.GID)
 }
 
-// MakeDirs makes dir, an absolute folder under base, and every folder it needed on the way, each given to owner.
-func MakeDirs(base, dir string, owner Owner) error {
-	rel, err := filepath.Rel(base, dir)
-	if err != nil {
-		return err
-	}
-
-	name, ok := Clean(filepath.ToSlash(rel))
+// MakeDirs makes dir, a folder named under base, and every folder it needed on the way, each given to owner.
+func MakeDirs(base *os.Root, dir string, owner Owner) error {
+	name, ok := Clean(filepath.ToSlash(dir))
 	if !ok {
 		return &UnsafeError{Name: dir}
 	}
 
-	scoped, err := os.OpenRoot(base)
-	if err != nil {
-		return err
-	}
-	defer scoped.Close()
-
-	return ensureDir(scoped, name, owner)
+	return ensureDir(base, name, owner)
 }
 
-// Staging is a fresh folder in parent, on the file system of whatever it will replace there, where an archive is laid out first.
-func Staging(parent, label string, owner Owner) (string, error) {
+// Staging is a fresh folder in parent under base, on the file system of whatever it will replace there, where an archive is laid out first; it is named under base.
+func Staging(base *os.Root, parent, label string, owner Owner) (string, error) {
 	suffix := make([]byte, 4)
 	if _, err := rand.Read(suffix); err != nil {
 		return "", err
 	}
 
 	staged := filepath.Join(parent, ".pupitre-restore-"+label+"-"+hex.EncodeToString(suffix))
-	if err := os.Mkdir(staged, 0o700); err != nil {
+	if err := base.Mkdir(staged, 0o700); err != nil {
 		return "", err
 	}
 
 	if owner != Unchanged {
-		if err := os.Lchown(staged, owner.UID, owner.GID); err != nil {
-			os.RemoveAll(staged)
+		if err := base.Lchown(staged, owner.UID, owner.GID); err != nil {
+			base.RemoveAll(staged)
 
 			return "", err
 		}
@@ -354,36 +376,37 @@ func Staging(parent, label string, owner Owner) (string, error) {
 	return staged, nil
 }
 
+// Swap puts staged in target's place, both named under base: every step is taken through base, so a link on the way can only lead somewhere else under it.
 // A folder moved to another parent takes a new date on some file systems: Swap gives it back the archive's, or the next backup would send it again.
-func Swap(staged, target string) error {
-	info, err := os.Lstat(staged)
+func Swap(base *os.Root, staged, target string) error {
+	info, err := base.Lstat(staged)
 	if err != nil {
 		return err
 	}
 
 	aside := ""
 
-	if _, err := os.Lstat(target); err == nil {
+	if _, err := base.Lstat(target); err == nil {
 		aside = target + ".pupitre-replaced"
-		if err := os.RemoveAll(aside); err != nil {
+		if err := base.RemoveAll(aside); err != nil {
 			return err
 		}
 
-		if err := os.Rename(target, aside); err != nil {
+		if err := base.Rename(target, aside); err != nil {
 			return err
 		}
 	}
 
-	if err := os.Rename(staged, target); err != nil {
+	if err := base.Rename(staged, target); err != nil {
 		if aside != "" {
-			os.Rename(aside, target)
+			base.Rename(aside, target)
 		}
 
 		return err
 	}
 
 	if aside != "" {
-		if err := os.RemoveAll(aside); err != nil {
+		if err := base.RemoveAll(aside); err != nil {
 			return err
 		}
 	}
@@ -392,5 +415,5 @@ func Swap(staged, target string) error {
 		return nil
 	}
 
-	return os.Chtimes(target, info.ModTime(), info.ModTime())
+	return base.Chtimes(target, info.ModTime(), info.ModTime())
 }

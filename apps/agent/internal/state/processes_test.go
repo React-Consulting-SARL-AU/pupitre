@@ -189,6 +189,32 @@ func TestKillTermsThenKillsWhenForced(t *testing.T) {
 	}
 }
 
+// The grace before the KILL is long enough for the pid to be handed to a process of root: that one must be spared.
+func TestKillSparesAPidRecycledDuringTheGrace(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	machine(fake)
+	fake.Spawn(modtest.Proc{PID: agentPID, PPID: 1, User: "root", RSS: 16 * 1024, Args: "/usr/local/bin/pupitred serve"})
+	fake.Spawn(modtest.Proc{PID: 7400, PPID: 1, RSS: 900 * 1024, Args: "/home/dev/.gradle/daemon/gradle"})
+	fake.Stubborn[7400] = true
+
+	reader := state.New(state.Options{
+		Sys:          fake,
+		Now:          modtest.NewClock(time.Millisecond).Now,
+		Registry:     modules.NewRegistry(),
+		AgentVersion: "0.0.0-test",
+		Self:         func() int { return agentPID },
+		Sleep: func(time.Duration) {
+			fake.Spawn(modtest.Proc{PID: 7400, PPID: 1, User: "root", RSS: 8 * 1024, Args: "/usr/sbin/sshd -D"})
+		},
+	})
+
+	reader.Kill(7400, true)
+
+	if strings.Join(fake.Signals, " ") != "TERM 7400" || !fake.Alive(7400) {
+		t.Fatalf("root's process under the recycled pid must not be killed: %v", fake.Signals)
+	}
+}
+
 // Idleness is what says a session is forgotten, never its age: an agent typed into a minute ago has been running three hours too.
 func TestSessionsCleanMeasuresIdlenessNotAge(t *testing.T) {
 	fake, reader := sessionFixture(t)

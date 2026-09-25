@@ -30,6 +30,7 @@ import {
   normalizeHost,
 } from "./enrollment-key"
 import type { ServerRow } from "./server-row"
+import { assertSshAddress } from "./ssh-address"
 import {
   generateEnrollmentToken,
   generateServerToken,
@@ -90,6 +91,20 @@ export class EnrollmentTokenExpiredError extends Error {
   constructor() {
     super("this enrollment token expired")
     this.name = "EnrollmentTokenExpiredError"
+  }
+}
+
+export class ServerRepairForbiddenError extends Error {
+  constructor() {
+    super("only the assigned member or an owner or admin repairs a server")
+    this.name = "ServerRepairForbiddenError"
+  }
+}
+
+export class HostKeyMismatchError extends Error {
+  constructor() {
+    super("the presented host key is not the one pinned for this server")
+    this.name = "HostKeyMismatchError"
   }
 }
 
@@ -187,12 +202,33 @@ async function createServer(
  */
 async function repairServer(
   prisma: OrganizationPrisma,
+  actor: EnrollActor,
   serverId: string,
   grant: EnrollmentGrant
 ) {
+  const [server, membership] = await Promise.all([
+    prisma.server.findFirst({
+      where: { id: serverId },
+      select: { assignedUserId: true },
+    }),
+    prisma.member.findFirst({
+      where: { userId: actor.userId },
+      select: { role: true },
+    }),
+  ])
+  const repairs =
+    server?.assignedUserId === actor.userId ||
+    membership?.role === "owner" ||
+    membership?.role === "admin"
+
+  if (!repairs) {
+    throw new ServerRepairForbiddenError()
+  }
+
+  const { sshUser: _sshUser, hostFingerprint: _pin, ...kept } = grant
   const repaired = await prisma.server.updateMany({
     where: { id: serverId, status: { in: SEATED_STATUSES } },
-    data: grant,
+    data: kept,
   })
 
   if (repaired.count === 0) {
@@ -204,12 +240,13 @@ async function repairServer(
 
 async function repairSeatedServer(
   prisma: OrganizationPrisma,
+  actor: EnrollActor,
   target: EnrollTarget,
   grant: EnrollmentGrant
 ) {
   const known = await seatedServerAt(prisma, target)
 
-  return known ? await repairServer(prisma, known.id, grant) : null
+  return known ? await repairServer(prisma, actor, known.id, grant) : null
 }
 
 async function claimServer(
@@ -218,7 +255,7 @@ async function claimServer(
   target: EnrollTarget,
   grant: EnrollmentGrant
 ): Promise<ClaimedServer> {
-  const repaired = await repairSeatedServer(prisma, target, grant)
+  const repaired = await repairSeatedServer(prisma, actor, target, grant)
 
   if (repaired) {
     return { server: repaired, repaired: true }
@@ -234,7 +271,7 @@ async function claimServer(
       throw error
     }
 
-    const raced = await repairSeatedServer(prisma, target, grant)
+    const raced = await repairSeatedServer(prisma, actor, target, grant)
 
     if (!raced) {
       throw error
@@ -248,6 +285,14 @@ export async function enrollServer(
   actor: EnrollActor,
   input: EnrollInput
 ): Promise<EnrollResult> {
+  const host = normalizeHost(input.host)
+
+  assertSshAddress({
+    host,
+    ssh_user: input.ssh_user,
+    fingerprint: input.fingerprint,
+  })
+
   const prisma = withOrganization(getPrisma(), actor.organizationId)
   const device = await prisma.device.findFirst({
     where: { id: input.device_id, userId: actor.userId },
@@ -265,7 +310,7 @@ export async function enrollServer(
   }
 
   const target: EnrollTarget = {
-    host: normalizeHost(input.host),
+    host,
     port: input.port ?? DEFAULT_SSH_PORT,
   }
 
@@ -374,8 +419,13 @@ export async function exchangeEnrollmentToken(
     throw new EnrollmentTokenExpiredError()
   }
 
-  const serverToken = generateServerToken()
   const hostFingerprint = await fingerprintOfPublicKey(input.host_public_key)
+
+  if (server.hostFingerprint && server.hostFingerprint !== hostFingerprint) {
+    throw new HostKeyMismatchError()
+  }
+
+  const serverToken = generateServerToken()
   const held = await entitlementForOrganization(server.organizationId)
   const burnt = await prisma.server.updateMany({
     where: { id: server.id, enrollmentExpiresAt: grantedUntil },

@@ -63,6 +63,56 @@ describe("le tableau de bord", () => {
     expect(html).toContain("idea-backend");
   });
 
+  it("offre de relancer la sécurisation tant que l'accès root reste ouvert, et seulement alors", () => {
+    const open = text(
+      renderToStaticMarkup(
+        <DashboardPanel
+          attached={[]}
+          busy={null}
+          onAct={NOOP}
+          onAddProject={NOOP}
+          onCleanSessions={NOOP}
+          onOpenProject={NOOP}
+          onReboot={NOOP}
+          onSecure={NOOP}
+          onStopSession={NOOP}
+          securing="root"
+          snapshot={SNAPSHOT}
+        />
+      )
+    );
+
+    expect(open).toContain("L'accès root de ce serveur est resté ouvert.");
+    expect(open).toContain("Relancer la sécurisation");
+    expect(text(panel())).not.toContain("Relancer la sécurisation");
+  });
+
+  it("offre de relancer la sécurisation tant que dev devient root sans mot de passe", () => {
+    const open = text(
+      renderToStaticMarkup(
+        <DashboardPanel
+          attached={[]}
+          busy={null}
+          onAct={NOOP}
+          onAddProject={NOOP}
+          onCleanSessions={NOOP}
+          onOpenProject={NOOP}
+          onReboot={NOOP}
+          onSecure={NOOP}
+          onStopSession={NOOP}
+          securing="sudo"
+          snapshot={SNAPSHOT}
+        />
+      )
+    );
+
+    expect(open).toContain(
+      "Sur ce serveur, dev devient encore root sans mot de passe."
+    );
+    expect(open).toContain("Relancer la sécurisation");
+    expect(open).not.toContain("L'accès root de ce serveur est resté ouvert.");
+  });
+
   /** atlas-web answers on the machine alone, flymate-api under a name on the web: only the second opens from here. */
   it("n'offre d'ouvrir que les projets qui ont un nom sur le web", () => {
     const html = panel();

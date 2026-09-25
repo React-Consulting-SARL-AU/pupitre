@@ -19,6 +19,10 @@ export const API_ERROR_CODES = [
   "release_not_found",
   "app_release_not_found",
   "stripe_signature_invalid",
+  "key_approval_invalid",
+  "reauthentication_required",
+  "server_repair_forbidden",
+  "host_key_mismatch",
   "internal",
 ] as const
 

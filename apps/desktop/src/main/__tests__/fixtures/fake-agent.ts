@@ -1,7 +1,11 @@
 import { type ChildProcess, spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import { rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { AgentSpawn } from "../../agent-client";
+import type { AgentSpawn, ChannelPurpose } from "../../agent-client";
+import { LIMITED_FLAG, STATE_FLAG } from "./fake-agent-flags";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ENTRY = join(HERE, "fake-agent-main.ts");
@@ -15,6 +19,8 @@ export interface FakeAgent {
   trace: () => string[];
   /** Every line the app wrote on the channel: requests and secret lines alike. */
   written: () => string[];
+  /** The channel each process was started for, in order: one transcript each. */
+  purposes: () => ChannelPurpose[];
   killAll: () => void;
 }
 
@@ -59,11 +65,22 @@ export function fakeAgent(fixtures: string | string[]): FakeAgent {
   const running = new Set<ChildProcess>();
   const traces: string[] = [];
   const sent: string[] = [];
+  const purposes: ChannelPurpose[] = [];
+  const state = join(tmpdir(), `pupitre-fake-agent-${randomUUID()}`);
 
   return {
-    spawn: () => {
+    purposes: () => [...purposes],
+    spawn: (context) => {
       const path = paths[Math.min(children.length, paths.length - 1)];
-      const child = spawn(process.execPath, [ENTRY, path], {
+      const args = [ENTRY, path, `${STATE_FLAG}${state}`];
+
+      if (context?.purpose !== "privileged") {
+        args.push(LIMITED_FLAG);
+      }
+
+      purposes.push(context?.purpose ?? "control");
+
+      const child = spawn(process.execPath, args, {
         stdio: ["pipe", "pipe", "pipe"],
       });
 
@@ -93,6 +110,8 @@ export function fakeAgent(fixtures: string | string[]): FakeAgent {
       for (const child of children) {
         child.kill();
       }
+
+      rmSync(state, { force: true });
     },
   };
 }

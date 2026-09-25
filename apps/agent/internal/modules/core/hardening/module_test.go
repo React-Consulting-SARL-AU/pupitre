@@ -53,7 +53,7 @@ func TestInstallOnABareMachine(t *testing.T) {
 		t.Errorf("firewall = %+v", fake.Firewall)
 	}
 
-	if string(fake.Files[jailPath]) != string(jail(false)) || !strings.Contains(string(fake.Files[jailPath]), "port = 22\n") || fake.Units[jailUnit] != modtest.UnitActive {
+	if string(fake.Files[jailPath]) != string(jail([]int{22})) || !strings.Contains(string(fake.Files[jailPath]), "port = 22\n") || fake.Units[jailUnit] != modtest.UnitActive {
 		t.Errorf("jail = %q, unit %s", fake.Files[jailPath], fake.Units[jailUnit])
 	}
 
@@ -274,7 +274,7 @@ func TestConfigureOnAHardenedMachineAppliesTheChangedFragment(t *testing.T) {
 func TestConfigureOnAHardenedMachineRevertsAFragmentSshdRefuses(t *testing.T) {
 	fake := hardenedMachine(t)
 	Harden(newContext(t, fake, Options{}), "dev")
-	fake.FailProgram("sshd", "Port: bad port number")
+	fake.FailLine("sshd -t", "Port: bad port number")
 
 	ctx := newContext(t, fake, Options{SSH443: true})
 	err := (Module{}).Configure(ctx)

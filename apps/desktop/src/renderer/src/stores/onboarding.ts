@@ -135,6 +135,7 @@ interface OnboardingStore extends MachineState {
   noteDraft: () => void;
   open: () => void;
   begin: (serverId: string) => void;
+  secure: (serverId: string) => void;
   back: () => void;
   canGoBack: () => boolean;
   replay: (moduleId: string) => OnboardingStep;
@@ -475,6 +476,13 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
     }
   }
 
+  function startOver(event: Event): void {
+    sequence += 1;
+    set({ delivery: { status: "idle" } });
+    useRestore.getState().reset();
+    send(event);
+  }
+
   return {
     ...CLOSED,
     delivery: { status: "idle" },
@@ -485,17 +493,15 @@ export const useOnboarding = create<OnboardingStore>((set, get) => {
     noteDraft: persistSoon,
 
     open() {
-      sequence += 1;
-      set({ delivery: { status: "idle" } });
-      useRestore.getState().reset();
-      send({ type: "open" });
+      startOver({ type: "open" });
     },
 
     begin(serverId) {
-      sequence += 1;
-      set({ delivery: { status: "idle" } });
-      useRestore.getState().reset();
-      send({ serverId, type: "begin" });
+      startOver({ serverId, type: "begin" });
+    },
+
+    secure(serverId) {
+      startOver({ serverId, type: "secure" });
     },
 
     canGoBack() {

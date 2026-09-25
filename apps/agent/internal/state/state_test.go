@@ -15,6 +15,7 @@ import (
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/state"
+	"pupitre.studio/agent/internal/sudo"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/lock"
 	"pupitre.studio/agent/internal/tmux"
@@ -109,6 +110,29 @@ func TestSnapshotReadsTheMachineTheProjectsAndTheEntitlement(t *testing.T) {
 	}
 	if snapshot.Entitlement != contract.EntitlementDev {
 		t.Fatalf("got %s", snapshot.Entitlement)
+	}
+}
+
+func TestSnapshotSaysWhatSudoAsksOfDev(t *testing.T) {
+	fake, reader := fixture(t)
+
+	if got := reader.Snapshot().Machine.Sudo; got != "" {
+		t.Fatalf("no sudoers rule, sudo = %q", got)
+	}
+
+	fake.Files[sudo.Path] = []byte(sudo.Open)
+	if got := reader.Snapshot().Machine.Sudo; got != contract.SudoNopasswdAll {
+		t.Fatalf("sudo = %q", got)
+	}
+
+	fake.Files[sudo.Path] = []byte(sudo.Restricted)
+	snapshot := reader.Snapshot()
+	if snapshot.Machine.Sudo != contract.SudoPassword {
+		t.Fatalf("sudo = %q", snapshot.Machine.Sudo)
+	}
+
+	if err := contract.ValidateValue("SnapshotResult", snapshot); err != nil {
+		t.Fatal(err)
 	}
 }
 

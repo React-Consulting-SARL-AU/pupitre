@@ -121,7 +121,16 @@ func (p prober) sudo() bool {
 		return true
 	}
 
-	_, err := p.sys.Run(sys.Command{Argv: []string{"sudo", "-n", "true"}})
+	if _, err := p.sys.Run(sys.Command{Argv: []string{"sudo", "-n", "true"}}); err == nil {
+		return true
+	}
+
+	// Decision 0015: a secured dev runs `pupitred serve` alone without a password, which is all a managed machine asks; -l asks without running it.
+	if !p.exists(agentPath) {
+		return false
+	}
+
+	_, err := p.sys.Run(sys.Command{Argv: []string{"sudo", "-n", "-l", p.root + agentPath, "serve"}})
 
 	return err == nil
 }

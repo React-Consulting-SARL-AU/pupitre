@@ -154,7 +154,7 @@ func prepare(cmd Command) (child, error) {
 	}
 
 	if cmd.StdinPath != "" {
-		input, err := os.Open(cmd.StdinPath)
+		input, err := openRegular(cmd.StdinPath)
 		if err != nil {
 			cancel()
 
@@ -266,7 +266,7 @@ func (Real) ReadFile(path string) ([]byte, error) {
 }
 
 func (Real) ReadTail(path string, max int64) ([]byte, error) {
-	handle, err := os.Open(path)
+	handle, err := openRegular(path)
 	if err != nil {
 		return nil, err
 	}
@@ -286,7 +286,7 @@ func (Real) ReadTail(path string, max int64) ([]byte, error) {
 }
 
 func (Real) ReadFrom(path string, offset int64) ([]byte, error) {
-	handle, err := os.Open(path)
+	handle, err := openRegular(path)
 	if err != nil {
 		return nil, err
 	}
@@ -416,6 +416,11 @@ func (Real) WriteFileIn(root, rel, owner string, data []byte) error {
 		}
 	}
 
+	return replace(dir, name, data, mode, uid, gid)
+}
+
+// replace publishes data under name by a rename from a file written beside it: a link at the name is replaced, never written through.
+func replace(dir *os.Root, name string, data []byte, mode fs.FileMode, uid, gid int) error {
 	tmp, tmpName, err := neighbour(dir, name)
 	if err != nil {
 		return err
@@ -609,93 +614,93 @@ func (Real) ReadDir(path string) ([]Entry, error) {
 // write stays atomic, and it must not hand a user's file to root. The mode is
 // the one asked for, so a file left too open by an earlier run gets tightened.
 func (Real) WriteFile(path string, data []byte, mode fs.FileMode) error {
-	dir := filepath.Dir(path)
+	dir, name, err := openParent(path)
+	if err != nil {
+		return err
+	}
+	defer dir.Close()
 
-	var owner *syscall.Stat_t
-	if existing, err := os.Lstat(path); err == nil && existing.Mode().IsRegular() {
+	uid, gid := -1, -1
+	if existing, err := dir.Lstat(name); err == nil && existing.Mode().IsRegular() {
 		if mode == KeepMode {
 			mode = existing.Mode().Perm()
 		}
-		owner, _ = existing.Sys().(*syscall.Stat_t)
+
+		if held, ok := existing.Sys().(*syscall.Stat_t); ok {
+			uid, gid = int(held.Uid), int(held.Gid)
+		}
 	}
 
 	if mode == KeepMode {
 		mode = DefaultMode
 	}
 
-	tmp, err := os.CreateTemp(dir, "."+filepath.Base(path)+".*")
-	if err != nil {
-		return err
-	}
-	tmpPath := tmp.Name()
+	err = replace(dir, name, data, mode, uid, gid)
 
-	cleanup := func(err error) error {
-		tmp.Close()
-		os.Remove(tmpPath)
-		return err
+	// A bind-mounted file — /etc/hosts in a container — cannot be replaced, only rewritten where it stands.
+	if errors.Is(err, syscall.EBUSY) {
+		return rewrite(dir, name, data)
 	}
 
-	if _, err := tmp.Write(data); err != nil {
-		return cleanup(err)
-	}
-
-	if err := tmp.Chmod(mode); err != nil {
-		return cleanup(err)
-	}
-
-	if owner != nil {
-		if err := tmp.Chown(int(owner.Uid), int(owner.Gid)); err != nil {
-			return cleanup(err)
-		}
-	}
-
-	if err := tmp.Sync(); err != nil {
-		return cleanup(err)
-	}
-
-	if err := tmp.Close(); err != nil {
-		os.Remove(tmpPath)
-		return err
-	}
-
-	if err := os.Rename(tmpPath, path); err != nil {
-		os.Remove(tmpPath)
-
-		// A bind-mounted file — /etc/hosts in a container — cannot be replaced, only rewritten where it stands.
-		if errors.Is(err, syscall.EBUSY) {
-			return os.WriteFile(path, data, mode)
-		}
-
-		return err
-	}
-
-	return nil
+	return err
 }
 
-func (Real) AppendFile(path string, data []byte, owner string) error {
-	_, err := os.Lstat(path)
-	created := errors.Is(err, fs.ErrNotExist)
-
-	handle, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o644)
+func rewrite(dir *os.Root, name string, data []byte) error {
+	handle, _, err := openEntry(dir, name, os.O_WRONLY)
 	if err != nil {
 		return err
 	}
 	defer handle.Close()
 
-	if created && owner != "" {
-		uid, gid, err := idsOf(owner, "")
-		if err != nil {
-			return err
-		}
-
-		if err := handle.Chown(uid, gid); err != nil {
-			return err
-		}
+	if err := handle.Truncate(0); err != nil {
+		return err
 	}
 
 	_, err = handle.Write(data)
 
 	return err
+}
+
+func (Real) AppendFile(path string, data []byte, owner string) error {
+	dir, name, err := openParent(path)
+	if err != nil {
+		return err
+	}
+	defer dir.Close()
+
+	handle, err := dir.OpenFile(name, os.O_WRONLY|os.O_APPEND|os.O_CREATE|os.O_EXCL, 0o644)
+	switch {
+	case err == nil:
+		if err := chownHandle(handle, owner); err != nil {
+			handle.Close()
+
+			return err
+		}
+	case errors.Is(err, fs.ErrExist):
+		if handle, _, err = openEntry(dir, name, os.O_WRONLY|os.O_APPEND); err != nil {
+			return err
+		}
+	default:
+		return err
+	}
+	defer handle.Close()
+
+	_, err = handle.Write(data)
+
+	return err
+}
+
+func chownHandle(handle *os.File, owner string) error {
+	if owner == "" {
+		return nil
+	}
+
+	uid, gid, err := idsOf(owner, "")
+	if err != nil {
+		return err
+	}
+
+	return handle.Chown(uid, gid)
 }
 
 func (Real) Stat(path string) (int64, time.Time, error) {
@@ -712,7 +717,12 @@ func (Real) Stat(path string) (int64, time.Time, error) {
 }
 
 func (Real) Remove(path string) error {
-	err := os.Remove(path)
+	dir, name, err := openParent(path)
+	if err == nil {
+		err = dir.Remove(name)
+		dir.Close()
+	}
+
 	if errors.Is(err, fs.ErrNotExist) {
 		return nil
 	}
@@ -739,7 +749,13 @@ func (Real) Chown(path, owner, group string) error {
 		return err
 	}
 
-	return os.Lchown(path, uid, gid)
+	dir, name, err := openParent(path)
+	if err != nil {
+		return err
+	}
+	defer dir.Close()
+
+	return dir.Lchown(name, uid, gid)
 }
 
 // An empty group means the owner's own.
@@ -795,10 +811,100 @@ func (Real) Owner(path string) (string, error) {
 	return account.Username, nil
 }
 
+// Each folder made is entered only once checked to be the one made: a link swapped in for it is refused.
 func (Real) MkdirAll(path string, mode fs.FileMode) error {
-	return os.MkdirAll(path, mode)
+	parts := components(path)
+
+	existing := len(parts)
+	var dir *os.Root
+	for ; existing >= 0; existing-- {
+		opened, err := openDir(separator + filepath.Join(parts[:existing]...))
+		if err == nil {
+			dir = opened
+
+			break
+		}
+
+		if !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
+	}
+
+	if dir == nil {
+		return &fs.PathError{Op: "mkdir", Path: path, Err: fs.ErrNotExist}
+	}
+
+	for _, name := range parts[existing:] {
+		if err := dir.Mkdir(name, mode); err != nil && !errors.Is(err, fs.ErrExist) {
+			dir.Close()
+
+			return err
+		}
+
+		seen, err := dir.Lstat(name)
+		if err != nil {
+			dir.Close()
+
+			return err
+		}
+
+		next, err := enter(dir, name, seen)
+		dir.Close()
+		if err != nil {
+			return &fs.PathError{Op: "mkdir", Path: path, Err: err}
+		}
+
+		dir = next
+	}
+
+	return dir.Close()
 }
 
-func (Real) Signal(pid int, sig syscall.Signal) error {
-	return syscall.Kill(pid, sig)
+func (Real) CreateIn(root, rel, owner string) (io.WriteCloser, error) {
+	scoped, err := os.OpenRoot(root)
+	if err != nil {
+		return nil, err
+	}
+	defer scoped.Close()
+
+	dir, err := scoped.OpenRoot(inside(filepath.Dir(rel)))
+	if err != nil {
+		return nil, err
+	}
+	defer dir.Close()
+
+	name := filepath.Base(rel)
+	if err := dir.Remove(name); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return nil, err
+	}
+
+	handle, err := dir.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := chownHandle(handle, owner); err != nil {
+		handle.Close()
+		dir.Remove(name)
+
+		return nil, err
+	}
+
+	return handle, nil
+}
+
+func (Real) Signal(pid int, owner string, sig syscall.Signal) error {
+	if owner == "" {
+		return syscall.Kill(pid, sig)
+	}
+
+	// ps prints a uid in place of a name too long for its column.
+	uid, err := strconv.Atoi(owner)
+	if err != nil {
+		if uid, _, err = idsOf(owner, ""); err != nil {
+			return err
+		}
+	}
+
+	return signalAs(pid, uid, sig)
 }

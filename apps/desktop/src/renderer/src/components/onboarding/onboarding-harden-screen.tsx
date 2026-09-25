@@ -10,13 +10,15 @@ import { Screen } from "../ui/screen";
 import { WaitingNotice } from "../ui/waiting-notice";
 import { OnboardingHardenFailed } from "./onboarding-harden-failed";
 import { OnboardingHardenOutcome } from "./onboarding-harden-outcome";
+import { OnboardingHardenSudo } from "./onboarding-harden-sudo";
 
 /**
  * The last step of the onboarding: root closed, and the app moved to `dev`.
  *
  * The app asks for the hardening and watches the agent do it; it only rewrites
  * its own SSH configuration once the agent says root is closed — which the
- * agent only says once a key has opened `dev` in front of it.
+ * agent only says once a key has opened `dev` in front of it. Then `dev` gets
+ * its sudo password.
  */
 export function OnboardingHardenScreen({
   serverId,
@@ -103,6 +105,14 @@ export function OnboardingHardenScreen({
         <OnboardingHardenOutcome
           onRetry={() => start(serverId)}
           outcome={harden.outcome}
+        />
+      ) : null}
+
+      {harden.status === "done" && harden.outcome.sudo ? (
+        <OnboardingHardenSudo
+          onRetry={() => start(serverId)}
+          serverId={serverId}
+          sudo={harden.outcome.sudo}
         />
       ) : null}
     </Screen>

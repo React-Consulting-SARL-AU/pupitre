@@ -3,10 +3,11 @@ import type { HardenOutcome, HardenUpdate } from "@shared/harden";
 import { ipcMain } from "electron";
 import { account } from "./account";
 import { agentClient } from "./agent";
-import { runHarden } from "./harden-run";
+import { runSecuring } from "./harden-run";
 import { refusalOf } from "./refusal";
 import { relayTo } from "./relay";
 import { byId, switchAccount } from "./servers";
+import { securingSudo } from "./sudo";
 import { usageRefusal } from "./usage-guard";
 
 /**
@@ -15,7 +16,7 @@ import { usageRefusal } from "./usage-guard";
  * The renderer names a server and nothing else: the account to open is fixed by
  * the protocol at `dev`, so no name typed in the interface ever becomes one on
  * the machine. What comes back is the agent's own answer, plus what the app did
- * with its own SSH configuration.
+ * with its own SSH configuration and the sudo password it set.
  */
 export function registerHarden(): void {
   ipcMain.handle(
@@ -47,9 +48,10 @@ export function registerHarden(): void {
         "update"
       );
 
-      return await runHarden(serverId, update, {
+      return await runSecuring(serverId, update, {
         client: agentClient,
         close: (id) => agentClient.close(id),
+        sudo: securingSudo,
         switchUser: switchAccount,
         user: (id) => byId(id)?.user ?? null,
       });

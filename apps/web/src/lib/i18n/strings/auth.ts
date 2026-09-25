@@ -33,6 +33,9 @@ export const auth = {
     "auth.device.openApp": "Open the Pupitre app",
     "auth.device.denied": "Request refused.",
     "auth.device.deniedFix": "If that was not you, no session was opened.",
+    "auth.device.signInAgain":
+      "Confirming a device needs a sign-in less than {minutes} minutes old.",
+    "auth.device.signInAgainAction": "Sign in again",
 
     "auth.twoFactor.title": "Second factor",
     "auth.twoFactor.description":
@@ -99,6 +102,9 @@ export const auth = {
     "auth.device.denied": "Demande refusée.",
     "auth.device.deniedFix":
       "Si ce n'était pas vous, aucune session n'a été ouverte.",
+    "auth.device.signInAgain":
+      "Confirmer un appareil demande une connexion de moins de {minutes} minutes.",
+    "auth.device.signInAgainAction": "Se reconnecter",
 
     "auth.twoFactor.title": "Second facteur",
     "auth.twoFactor.description":

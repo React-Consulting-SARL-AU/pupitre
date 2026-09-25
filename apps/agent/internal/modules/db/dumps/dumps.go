@@ -2,23 +2,26 @@
 package dumps
 
 import (
+	"io"
 	"path"
 	"pupitre.studio/agent/internal/i18n"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/runtime/shell"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/file"
 )
 
 const (
-	Dir        = "/home/dev/dumps"
-	Owner      = "dev"
-	markerDir  = "/var/lib/pupitre/dumps"
-	tempPrefix = ".pupitre-import-"
+	home        = shell.Home
+	dumpsFolder = "dumps"
+	Dir         = home + "/" + dumpsFolder
+	Owner       = shell.User
+	markerDir   = "/var/lib/pupitre/dumps"
+	tempPrefix  = ".pupitre-import-"
 )
 
 type File struct {
@@ -47,36 +50,36 @@ func SafeName(name string) bool {
 	return safeName.MatchString(name)
 }
 
-// Target is where a dump of this database lands, stamped with the moment: ~/dumps is dev's, the doc says to drop dumps there and the folder must let them.
-func Target(ctx *modules.Context, name, suffix string) (string, error) {
-	if err := file.MkdirOwned(ctx, Dir, Owner, Owner, 0o755); err != nil {
-		return "", err
+// Write streams a dump into a file root makes for dev in ~/dumps: a dump tool told a path would follow a link dev planted there.
+func Write(ctx *modules.Context, name, suffix string, dump func(out io.Writer) error) (string, int64, error) {
+	if err := ctx.Sys().MkdirIn(home, dumpsFolder, Owner); err != nil {
+		return "", 0, err
 	}
 
-	return Dir + "/" + name + "_" + ctx.Now().Format("20060102-1504") + suffix, nil
-}
+	rel := dumpsFolder + "/" + name + "_" + ctx.Now().Format("20060102-1504") + suffix
 
-// Written hands a dump root just wrote to dev and measures it.
-func Written(ctx *modules.Context, path string) (int64, error) {
-	if err := file.Chown(ctx, path, Owner, Owner); err != nil {
-		return 0, err
-	}
-
-	return size(ctx, path), nil
-}
-
-func size(ctx *modules.Context, path string) int64 {
-	out, err := sys.Exec(ctx, sys.Command{Argv: []string{"stat", "-c", "%s", path}})
+	out, err := ctx.Sys().CreateIn(home, rel, Owner)
 	if err != nil {
-		return 0
+		return "", 0, err
 	}
 
-	bytes, err := strconv.ParseInt(strings.TrimSpace(out.Stdout), 10, 64)
+	dumped := dump(out)
+	if closed := out.Close(); dumped == nil {
+		dumped = closed
+	}
+
+	if dumped != nil {
+		ctx.Sys().RemoveIn(home, rel, false)
+
+		return "", 0, dumped
+	}
+
+	written, err := ctx.Sys().StatIn(home, rel)
 	if err != nil {
-		return 0
+		return "", 0, err
 	}
 
-	return bytes
+	return home + "/" + rel, written.SizeBytes, nil
 }
 
 // One step per dump, named after its database: the report says what was imported without naming a single secret.
@@ -123,30 +126,37 @@ func load(ctx *modules.Context, dump File, options Options) (done bool) {
 }
 
 // gunzip -c … | mysql would need a shell; decompressing beside the archive
-// keeps every command to an argv. The archive is decompressed under a name of
-// its own, through a hard link gzip consumes: a plain x.sql the client left
-// beside x.sql.gz is neither overwritten nor taken away with the copy.
+// keeps every command to an argv. gzip reads the archive on a standard input
+// root opens, which refuses a link dev planted, and writes to a file root
+// makes under a name of its own: a plain x.sql the client left beside x.sql.gz
+// is neither overwritten nor taken away with the copy.
 func prepare(ctx *modules.Context, dump File, native bool) (File, func(), error) {
 	if !dump.Gzip || native {
 		return dump, func() {}, nil
 	}
 
-	linked := path.Dir(dump.Path) + "/" + tempPrefix + path.Base(dump.Path)
-	plain := strings.TrimSuffix(linked, ".gz")
+	rel := dumpsFolder + "/" + tempPrefix + strings.TrimSuffix(path.Base(dump.Path), ".gz")
+	cleanup := func() { ctx.Sys().RemoveIn(home, rel, false) }
 
-	if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"ln", "--force", dump.Path, linked}}); err != nil {
+	out, err := ctx.Sys().CreateIn(home, rel, "")
+	if err != nil {
 		return File{}, func() {}, err
 	}
 
-	if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"gzip", "--decompress", "--force", linked}}); err != nil {
-		file.Remove(ctx, linked)
+	_, err = sys.Exec(ctx, sys.Command{Argv: []string{"gzip", "--decompress", "--stdout"}, StdinPath: dump.Path, Output: out})
+	if closed := out.Close(); err == nil {
+		err = closed
+	}
+
+	if err != nil {
+		cleanup()
 
 		return File{}, func() {}, err
 	}
 
-	dump.Path, dump.Gzip = plain, false
+	dump.Path, dump.Gzip = home+"/"+rel, false
 
-	return dump, func() { file.Remove(ctx, plain) }, nil
+	return dump, cleanup, nil
 }
 
 func mark(ctx *modules.Context, dump File) error {

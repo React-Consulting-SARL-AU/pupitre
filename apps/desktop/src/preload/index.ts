@@ -43,6 +43,7 @@ import type {
   EnrollResult,
   PlatformSyncResult,
 } from "@pupitre/shared/agent-protocol/system";
+import type { PendingKeyApproval } from "@pupitre/shared/keys";
 import type {
   AccountDevice,
   AccountResponse,
@@ -75,11 +76,13 @@ import type { DevDefaults } from "@shared/dev";
 import type { RemoteEditorId } from "@shared/editors";
 import type { GithubRepo } from "@shared/github";
 import type { HardenOutcome, HardenUpdate } from "@shared/harden";
+import type { HelpLink } from "@shared/help";
 import type {
   AgentDelivery,
   AgentSendPhase,
   InstallUpdate,
 } from "@shared/install";
+import type { KeyApprovalReceipt } from "@shared/key-approvals";
 import type { SecretMarks } from "@shared/secrets";
 import type {
   FleetView,
@@ -102,6 +105,7 @@ import type {
 import type { DeepLink, MenuCommand } from "@shared/shell";
 import type { SshShareState } from "@shared/ssh-names";
 import type { StartupState } from "@shared/startup";
+import type { SudoOutcome, SudoPasswordState } from "@shared/sudo";
 import type {
   AgentState,
   TerminalEnd,
@@ -259,6 +263,13 @@ const api = {
   /** Revokes another device: its key stops opening the granted servers. */
   revokeDevice: (deviceId: string): Promise<AgentResponse<null>> =>
     ipcRenderer.invoke("account:device-revoke", deviceId),
+  keyApprovals: (): Promise<AgentResponse<PendingKeyApproval[]>> =>
+    ipcRenderer.invoke("key-approvals:list"),
+  approveKey: (
+    serverId: string,
+    deviceId: string
+  ): Promise<AgentResponse<KeyApprovalReceipt>> =>
+    ipcRenderer.invoke("key-approvals:approve", serverId, deviceId),
 
   /**
    * The device flow: a code to read out, a browser that opens on it, and the
@@ -272,6 +283,8 @@ const api = {
       "account:sign-in-progress",
       (payload) => onProgress(payload.progress)
     ),
+  /** Stops waiting on the browser; the sign-in under way answers `cancelled`. */
+  cancelSignIn: (): void => ipcRenderer.send("account:sign-in-cancel"),
 
   /**
    * The agent protocol, as it stands: a command of `COMMANDS`, its parameters,
@@ -413,6 +426,22 @@ const api = {
       (payload) => onUpdate(payload.update),
       serverId
     ),
+
+  /** Whether this computer holds the server's sudo password, and in the keychain or only for this run. */
+  sudoPasswordState: (serverId: string): Promise<SudoPasswordState> =>
+    ipcRenderer.invoke("sudo:state", serverId),
+  /** Shown once, to the reader who asked. */
+  revealSudoPassword: (serverId: string): Promise<string | null> =>
+    ipcRenderer.invoke("sudo:reveal", serverId),
+  /** The clipboard is written on the other side: the password never comes here. */
+  copySudoPassword: (serverId: string): Promise<boolean> =>
+    ipcRenderer.invoke("sudo:copy", serverId),
+  /** Kept once sudo has taken it on the server: crosses once, never comes back. */
+  enterSudoPassword: (
+    serverId: string,
+    password: string
+  ): Promise<SudoOutcome> =>
+    ipcRenderer.invoke("sudo:enter", serverId, password),
 
   /**
    * The projects of a server, and what drives them.
@@ -1077,6 +1106,10 @@ const api = {
     ipcRenderer.invoke("server-trust-reinstalled", id),
 
   openUrl: (url: string): Promise<void> => ipcRenderer.invoke("open-url", url),
+
+  /** The main process builds the address: a support mail carries the app and system versions. */
+  openHelp: (link: HelpLink, language: string): Promise<void> =>
+    ipcRenderer.invoke("help:open", link, language),
 
   /**
    * A gesture the native menu asked for: the window performs it as it would a

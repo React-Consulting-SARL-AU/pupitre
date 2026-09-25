@@ -35,6 +35,42 @@ const FR = {
   device_exists: "Cet appareil est déjà enregistré.",
   device_exists_fix:
     "Utilisez l'appareil déjà enregistré, ou ajoutez-en un avec une autre clé.",
+  reauthentication_required:
+    "Ajouter un appareil demande une connexion de moins de {minutes} minutes.",
+  reauthentication_required_fix:
+    "Reconnectez-vous, avec votre clé d'accès ou votre second facteur si le compte en a un, puis ajoutez l'appareil.",
+  key_approval_target_not_found: "Ce serveur ou cet appareil n'existe pas.",
+  key_approval_forbidden:
+    "Vous ne pouvez pas autoriser cet appareil sur ce serveur.",
+  key_approval_forbidden_fix:
+    "La personne attribuée au serveur autorise ses propres appareils ; un propriétaire ou un administrateur de l'organisation autorise ceux de tous.",
+  key_approval_mismatch:
+    "Cette approbation ne nomme pas la clé ni l'utilisateur de cet appareil.",
+  key_approval_mismatch_fix:
+    "Signez de nouveau depuis l'app : l'approbation reprend la clé et l'utilisateur tels que la plateforme les connaît.",
+  key_approval_not_held: "Ce serveur n'attend pas la clé de cet appareil.",
+  key_approval_not_held_fix:
+    "Attribuez d'abord le serveur au propriétaire de l'appareil, ou rendez-lui l'appareil sur ce serveur.",
+  key_approval_signer:
+    "La clé qui signe n'est pas celle d'un de vos appareils.",
+  key_approval_signer_fix:
+    "Signez depuis un appareil enregistré sur votre compte et déjà autorisé sur ce serveur.",
+  key_approval_issued_at:
+    "Cette approbation est datée hors de la fenêtre acceptée.",
+  key_approval_issued_at_fix:
+    "Signez de nouveau : une approbation vaut {days} jours, et l'horloge de l'appareil doit être à l'heure.",
+  key_approval_signature:
+    "Cette signature n'est pas une approbation Pupitre de la clé nommée dans signer.",
+  key_approval_signature_fix:
+    "Signez avec ssh-keygen -Y sign -n {namespace}, par la clé de l'appareil nommée dans signer.",
+  server_repair_forbidden:
+    "Un serveur déjà installé ne se répare que par la personne qui y est attribuée, ou par un propriétaire ou un administrateur de l'organisation.",
+  server_repair_forbidden_fix:
+    "Demandez à la personne attribuée au serveur, ou à un administrateur de l'organisation, de relancer l'installation.",
+  host_key_mismatch:
+    "La clé d'hôte de cette machine n'est pas celle que la plateforme connaît pour ce serveur.",
+  host_key_mismatch_fix:
+    "Si la machine a été réinstallée, retirez le serveur depuis la console puis ajoutez-le de nouveau.",
   server_not_found: "Ce serveur n'existe pas.",
   server_revoked_no_suspend:
     "Ce serveur est révoqué : il n'y a rien à suspendre.",
@@ -70,6 +106,10 @@ const FR = {
     "Ce compte est le seul propriétaire d'une organisation qui porte encore un serveur ou un abonnement.",
   sole_owner_fix:
     "Transférez l'organisation à un autre membre, ou fermez-la : POST /admin/organizations/:id/transfer, DELETE /admin/organizations/:id.",
+  account_sole_owner:
+    "Votre compte est le seul propriétaire d'une organisation qui porte encore un serveur ou un abonnement payant.",
+  account_sole_owner_fix:
+    "Retirez les serveurs de cette organisation et résiliez son abonnement depuis la facturation, ou donnez le rôle de propriétaire à un autre membre, puis supprimez le compte.",
   email_verified: "L'adresse de ce compte est déjà vérifiée.",
   email_verified_fix:
     "Il n'y a rien à renvoyer ; le compte se connecte par lien magique ou clé d'accès.",
@@ -341,6 +381,39 @@ const EN: Record<MessageKey, string> = {
   device_exists: "This device is already registered.",
   device_exists_fix:
     "Use the device already registered, or add one with another key.",
+  reauthentication_required:
+    "Adding a device needs a sign-in less than {minutes} minutes old.",
+  reauthentication_required_fix:
+    "Sign in again, with your passkey or your second factor if the account has one, then add the device.",
+  key_approval_target_not_found: "This server or this device does not exist.",
+  key_approval_forbidden: "You may not approve this device on this server.",
+  key_approval_forbidden_fix:
+    "The person assigned to the server approves their own devices; an owner or admin of the organization approves anyone's.",
+  key_approval_mismatch:
+    "This approval does not name this device's key or user.",
+  key_approval_mismatch_fix:
+    "Sign again from the app: the approval takes the key and the user as the platform knows them.",
+  key_approval_not_held: "This server does not expect this device's key.",
+  key_approval_not_held_fix:
+    "Assign the server to the device's owner first, or give the device back on this server.",
+  key_approval_signer: "The signing key is not one of your devices.",
+  key_approval_signer_fix:
+    "Sign from a device registered on your account and already trusted by this server.",
+  key_approval_issued_at: "This approval is dated outside the accepted window.",
+  key_approval_issued_at_fix:
+    "Sign again: an approval lasts {days} days, and the device's clock must be right.",
+  key_approval_signature:
+    "This signature is not a Pupitre approval made by the key named in signer.",
+  key_approval_signature_fix:
+    "Sign with ssh-keygen -Y sign -n {namespace}, using the key of the device named in signer.",
+  server_repair_forbidden:
+    "A server already installed is repaired only by the person assigned to it, or by an owner or admin of the organization.",
+  server_repair_forbidden_fix:
+    "Ask the person assigned to the server, or an admin of the organization, to run the installation again.",
+  host_key_mismatch:
+    "This machine's host key is not the one the platform knows for this server.",
+  host_key_mismatch_fix:
+    "If the machine was reinstalled, remove the server from the console, then add it again.",
   server_not_found: "This server does not exist.",
   server_revoked_no_suspend:
     "This server is revoked: there is nothing left to suspend.",
@@ -376,6 +449,10 @@ const EN: Record<MessageKey, string> = {
     "This account is the sole owner of an organization that still holds a server or a subscription.",
   sole_owner_fix:
     "Transfer the organization to another member, or close it: POST /admin/organizations/:id/transfer, DELETE /admin/organizations/:id.",
+  account_sole_owner:
+    "Your account is the sole owner of an organization that still holds a server or a paid subscription.",
+  account_sole_owner_fix:
+    "Remove that organization's servers and cancel its subscription from billing, or make another member an owner, then delete the account.",
   email_verified: "This account's address is already verified.",
   email_verified_fix:
     "There is nothing to send again; the account signs in with a magic link or a passkey.",

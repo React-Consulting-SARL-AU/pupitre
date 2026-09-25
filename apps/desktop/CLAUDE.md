@@ -14,7 +14,7 @@ Electron 44 · electron-vite (bytecode sur le main seul, le preload reste du Jav
 
 - Elle n'a pas de second modèle : elle affiche ce que `snapshot` renvoie. Une information nouvelle apparaît dans l'agent d'abord.
 - Le renderer ne touche pas au système : `contextIsolation` on, `nodeIntegration` off, surface explicite dans `src/preload`. Il nomme un serveur, un projet, une action ; le main valide le nom contre ce que l'agent vient de donner.
-- Jamais un `ssh` par appel : un client par serveur (`agent-client.ts`), quatre canaux — contrôle, travail, battement (`agentPoll`), suivi (journaux). → [canaux](../../docs/desktop.md#les-canaux-vers-lagent)
+- Jamais un `ssh` par appel : un client par serveur (`agent-client.ts`), cinq canaux — contrôle, travail, battement (`agentPoll`), suivi (journaux) sur `sudo -n pupitred serve`, et privilégié, ouvert à la demande avec le mot de passe sudo pour ce que `requiresPrivilege` désigne. → [canaux](../../docs/desktop.md#les-canaux-vers-lagent)
 - Jamais `~/.ssh/config` réécrit : la config SSH est celle de l'app (`userData/ssh/config`, `-F`), partagée par une ligne `Include` sur geste explicite. → [SSH](../../docs/desktop.md#ssh--configuration-clés-partage)
 - Jamais un secret dans un store, un log, une commande ou une ligne de commande : flux secret du protocole, `SSH_ASKPASS` pour un mot de passe, oublié après l'envoi. → [clé](../../docs/desktop.md#poser-la-clé-sur-un-serveur)
 - Jamais le jeton bearer hors de `safeStorage` ni à travers le pont. Sans compte, seul un build de développement installe ; la sorte de build suit la plateforme, pas le dossier. → [compte](../../docs/desktop.md#le-compte-et-linstallation)

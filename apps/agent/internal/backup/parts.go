@@ -229,6 +229,13 @@ func (j *job) project(project contract.Project, mode string) {
 		return
 	}
 
+	home := j.service.paths.Home
+	if _, err := archive.Resolve(project.Path, home); err != nil {
+		j.warnings = append(j.warnings, i18n.T("backup.project.unfollowed", project.Name, project.Path, unfollowed(err)))
+
+		return
+	}
+
 	if project.Repo == "" {
 		mode = contract.BackupProjectsFull
 	}
@@ -238,7 +245,7 @@ func (j *job) project(project contract.Project, mode string) {
 		part.Git = &held
 	}
 
-	tree := archive.Source{Root: project.Path, Entries: []string{archive.Whole}, Skip: archive.ExcludingDirs(contract.Backup.ExcludedDirs)}
+	tree := archive.Source{Root: project.Path, Entries: []string{archive.Whole}, Skip: archive.ExcludingDirs(contract.Backup.ExcludedDirs), Area: home}
 	if mode == contract.BackupProjectsEnv {
 		files, err := j.envFiles(project)
 		if err != nil {
@@ -247,7 +254,7 @@ func (j *job) project(project contract.Project, mode string) {
 			return
 		}
 
-		tree = archive.Source{Root: project.Path, Entries: files}
+		tree = archive.Source{Root: project.Path, Entries: files, Area: home}
 	}
 
 	j.tree(step, part, tree)
@@ -324,8 +331,23 @@ func (j *job) paths() {
 			continue
 		}
 
-		j.tree(step, contract.BackupPart{Kind: contract.BackupPartPath, Path: wanted}, archive.Source{Root: root, Entries: []string{rel}})
+		if _, err := archive.Resolve(filepath.Join(root, rel), root); err != nil {
+			j.warnings = append(j.warnings, i18n.T("backup.path.unfollowed", wanted, unfollowed(err)))
+
+			continue
+		}
+
+		j.tree(step, contract.BackupPart{Kind: contract.BackupPartPath, Path: wanted}, archive.Source{Root: root, Entries: []string{rel}, Area: root})
 	}
+}
+
+func unfollowed(err error) string {
+	var outside *archive.OutsideError
+	if errors.As(err, &outside) {
+		return outside.Target
+	}
+
+	return err.Error()
 }
 
 // keyFor names a part's object after what it holds, once in a backup.

@@ -4,6 +4,10 @@ import {
   pollDeviceFlow,
   startDeviceFlow,
 } from "@pupitre/auth/client/desktop";
+import type {
+  KeyApprovalSubmission,
+  PendingKeyApproval,
+} from "@pupitre/shared/keys";
 import { PUPITRE_ORIGINS } from "@pupitre/shared/legal";
 import type { MeSubscription } from "@pupitre/shared/plans";
 import type {
@@ -15,6 +19,7 @@ import type {
   Entitlement,
 } from "@shared/account";
 import type { PlatformBackup } from "@shared/backups";
+import type { KeyApprovalReceipt } from "@shared/key-approvals";
 import type { FleetServer } from "@shared/servers";
 
 /**
@@ -178,6 +183,14 @@ export interface PlatformClient {
     backupId: string,
     serverId: string
   ) => Promise<AccountResponse<null>>;
+  /** The keys servers hold pending that this account may approve. */
+  keyApprovals: (
+    token: string
+  ) => Promise<AccountResponse<PendingKeyApproval[]>>;
+  approveKey: (
+    token: string,
+    approval: KeyApprovalSubmission
+  ) => Promise<AccountResponse<KeyApprovalReceipt>>;
 }
 
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
@@ -209,6 +222,41 @@ export function buildKindOf(packaged: boolean, baseUrl: string): BuildKind {
  */
 export function agentBaseUrl(platform: string): string {
   return isLocalPlatform(platform) ? DEV_AGENT_PLATFORM_URL : platform;
+}
+
+/**
+ * Which platform a build talks to.
+ *
+ * A packaged app knows only the hosted one, whatever its environment says: a
+ * variable set by anything on the machine must not send the device flow, the
+ * bearer token and the enrolment to another address. A development build
+ * talks to the console running beside it, or to the one `asked` names — the
+ * hosted platform included, which is how a screen is tried against the real
+ * account and the real servers without a release.
+ */
+export function platformUrlOf(
+  packaged: boolean,
+  asked: string | undefined
+): string {
+  if (packaged) {
+    return DEFAULT_PLATFORM_URL;
+  }
+
+  return asked || LOCAL_PLATFORM_URL;
+}
+
+/**
+ * The API base the agent is given: the app's platform, or in a development
+ * build the one `asked` names, when the agent has to answer somewhere else.
+ */
+export function agentPlatformUrlOf(
+  packaged: boolean,
+  asked: string | undefined,
+  platform: string
+): string {
+  const base = (!packaged && asked) || platform;
+
+  return new URL("/api/v1", agentBaseUrl(base)).toString();
 }
 
 export function offlineError(error: unknown, baseUrl?: string): AccountError {
@@ -551,6 +599,25 @@ export function createPlatformClient({
         `/backups/${encodeURIComponent(backupId)}/restored`,
         { body: JSON.stringify({ server_id: serverId }), method: "POST" }
       );
+    },
+
+    async keyApprovals(token) {
+      const answer = await call<{ data: PendingKeyApproval[] }>(
+        token,
+        "/me/key-approvals"
+      );
+
+      return answer.ok ? { ok: true, result: answer.result.data } : answer;
+    },
+
+    async approveKey(token, approval) {
+      const answer = await call<{ data: KeyApprovalReceipt }>(
+        token,
+        "/me/key-approvals",
+        { body: JSON.stringify(approval), method: "POST" }
+      );
+
+      return answer.ok ? { ok: true, result: answer.result.data } : answer;
     },
   };
 }

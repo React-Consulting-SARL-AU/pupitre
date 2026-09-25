@@ -2,9 +2,11 @@ package platform
 
 import (
 	"errors"
+	"io/fs"
 	"path"
 	"strings"
 
+	"pupitre.studio/agent/internal/keys"
 	"pupitre.studio/agent/internal/sys"
 )
 
@@ -16,7 +18,11 @@ const (
 	urlMode = 0o644
 )
 
-var ErrNoToken = errors.New("no server token: this server is not enrolled")
+var (
+	ErrNoToken         = errors.New("no server token: this server is not enrolled")
+	ErrServerIDInvalid = errors.New("the platform named this server with an identifier outside the contract")
+	ErrServerIDChanged = errors.New("the platform named this server otherwise than the identifier already kept")
+)
 
 func LoadToken(machine sys.Sys, filePath string) (string, error) {
 	if filePath == "" {
@@ -110,15 +116,32 @@ func LoadServerID(machine sys.Sys, filePath string) string {
 	return strings.TrimSpace(string(raw))
 }
 
-// SaveServerID writes the identifier down when it changed, and says whether it did.
+// SaveServerID writes the identifier down the first time the platform names it, and says whether it did.
+//
+// It is sticky: approvals are checked against it, so a platform that named
+// the server otherwise would redirect them. Only an enrolment, a gesture made
+// on the machine, clears it.
 func SaveServerID(machine sys.Sys, filePath, id string) (bool, error) {
 	if filePath == "" {
 		filePath = DefaultServerIDPath
 	}
 
 	id = strings.TrimSpace(id)
-	if id == "" || LoadServerID(machine, filePath) == id {
+	if id == "" {
 		return false, nil
+	}
+
+	if !keys.ValidServerID(id) {
+		return false, ErrServerIDInvalid
+	}
+
+	stored := LoadServerID(machine, filePath)
+	if stored == id {
+		return false, nil
+	}
+
+	if keys.ValidServerID(stored) {
+		return false, ErrServerIDChanged
 	}
 
 	if err := machine.MkdirAll(path.Dir(filePath), tokenDir); err != nil {
@@ -126,6 +149,18 @@ func SaveServerID(machine sys.Sys, filePath, id string) (bool, error) {
 	}
 
 	return true, machine.WriteFile(filePath, []byte(id+"\n"), urlMode)
+}
+
+func ForgetServerID(machine sys.Sys, filePath string) error {
+	if filePath == "" {
+		filePath = DefaultServerIDPath
+	}
+
+	if err := machine.Remove(filePath); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+
+	return nil
 }
 
 // Root only, and nothing else on the disk says it: the token is the whole of what ties this binary to a server.

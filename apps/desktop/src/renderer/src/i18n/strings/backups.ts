@@ -92,7 +92,10 @@ export const backups = {
     "backups.extra.settle.other": "Uninstall {count} services and go on",
 
     "backups.result.restored": "Parts restored",
-    "backups.result.failed": "Parts failed",
+    "backups.result.missed.one":
+      "One part did not come back; everything else is in place:",
+    "backups.result.missed.other":
+      "{count} parts did not come back; everything else is in place:",
     "backups.result.started": "Projects started",
 
     "backups.part.setup": "Configuration",
@@ -415,7 +418,10 @@ export const backups = {
     "backups.extra.settle.other": "Désinstaller {count} services et continuer",
 
     "backups.result.restored": "Parties restaurées",
-    "backups.result.failed": "Parties en échec",
+    "backups.result.missed.one":
+      "Une partie n'est pas revenue ; tout le reste est en place :",
+    "backups.result.missed.other":
+      "{count} parties ne sont pas revenues ; tout le reste est en place :",
     "backups.result.started": "Projets démarrés",
 
     "backups.part.setup": "Configuration",

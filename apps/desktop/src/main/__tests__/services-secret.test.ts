@@ -22,12 +22,15 @@ const KEY = "MYSQL_APP_PASSWORD";
 
 const VALUE = "Tr0p-secret-pour-un-journal";
 
-function client(fixture: string): {
+/** service.status rides the session sudo opens without a password, service.secret the privileged one opened next. */
+const REVEALED = ["service-secret.jsonl", "service-secret-only.jsonl"];
+
+function client(fixtures: string | string[]): {
   agent: AgentClient;
   deps: ServicesDeps;
   fake: FakeAgent;
 } {
-  const fake = fakeAgent(fixture);
+  const fake = fakeAgent(fixtures);
   const agent = createAgentClient({
     appVersion: "0.1.0",
     backoff: { attempts: 3, firstMs: 5, maxMs: 20 },
@@ -52,7 +55,7 @@ afterEach(() => {
 
 describe("révéler un identifiant", () => {
   it("montre la valeur du serveur, pas le nom de la variable", async () => {
-    const { agent, deps } = client("service-secret.jsonl");
+    const { agent, deps } = client(REVEALED);
 
     const detail = await readService(SERVER, MODULE, deps);
     const shown = await credentialValue(SERVER, MODULE, LABEL, deps);
@@ -79,7 +82,7 @@ describe("révéler un identifiant", () => {
   });
 
   it("redemande la valeur à chaque fois, l'app n'en garde aucune", async () => {
-    const { agent, deps, fake } = client("service-secret.jsonl");
+    const { agent, deps, fake } = client(REVEALED);
 
     await readService(SERVER, MODULE, deps);
 
@@ -107,7 +110,10 @@ describe("révéler un identifiant", () => {
   });
 
   it("rend rien quand l'agent refuse la clé", async () => {
-    const { agent, deps } = client("service-secret-refused.jsonl");
+    const { agent, deps } = client([
+      "service-secret.jsonl",
+      "service-secret-refused.jsonl",
+    ]);
 
     await readService(SERVER, MODULE, deps);
 
@@ -149,7 +155,7 @@ describe("le chemin que la valeur ne prend pas", () => {
   });
 
   it("n'apparaît dans aucune ligne écrite ni dans aucun fichier", async () => {
-    const { agent, deps, fake } = client("service-secret.jsonl");
+    const { agent, deps, fake } = client(REVEALED);
 
     const written: string[] = [];
     const kept = { error: console.error, log: console.log, warn: console.warn };

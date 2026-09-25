@@ -20,6 +20,11 @@ func unverifiable(cause error) *protocol.Error {
 		WithFix(i18n.T("selfupdate.signature.unverifiable.fix"))
 }
 
+func unsignedRefused() *protocol.Error {
+	return protocol.NewError(contract.ErrorPrivilegeRequired, i18n.T("selfupdate.unsigned.refused")).
+		WithFix(i18n.T("selfupdate.unsigned.refused.fix"))
+}
+
 func corrupted(version, announced, computed string) *protocol.Error {
 	return protocol.NewError(contract.ErrorBadSignature,
 		i18n.T("selfupdate.corrupted", version, computed, announced)).
@@ -81,6 +86,16 @@ func restartFailed(version string, cause error) *protocol.Error {
 	return protocol.NewError(contract.ErrorInternal,
 		i18n.T("selfupdate.restart.failed", version, cause)).
 		WithFix(i18n.T("selfupdate.restart.failed.fix"))
+}
+
+func upgradeBusy() *protocol.Error {
+	return protocol.NewError(contract.ErrorBusy, i18n.T("selfupdate.busy")).
+		WithFix(i18n.T("selfupdate.busy.fix"))
+}
+
+func installBusy() *protocol.Error {
+	return protocol.NewError(contract.ErrorBusy, i18n.T("selfupdate.install.busy")).
+		WithFix(i18n.T("selfupdate.install.busy.fix"))
 }
 
 func silent(version, restored string, cause error) *protocol.Error {

@@ -46,6 +46,9 @@ export const dashboard = {
     "dashboard.panel.summary": "{up} online of {projects}",
     "dashboard.panel.summaryBroken": "{up} online of {projects} · {broken}",
     "dashboard.panel.title": "Dashboard",
+    "dashboard.rootOpen.message": "Root access to this server stayed open.",
+    "dashboard.rootOpen.fix":
+      "Run the securing again: it closes root access and moves the app to the dev account.",
     "dashboard.project.one": "{count} project",
     "dashboard.project.other": "{count} projects",
     "dashboard.services.emptyTitle": "Nothing running",
@@ -96,6 +99,10 @@ export const dashboard = {
     "dashboard.panel.summary": "{up} en ligne sur {projects}",
     "dashboard.panel.summaryBroken": "{up} en ligne sur {projects} · {broken}",
     "dashboard.panel.title": "Tableau de bord",
+    "dashboard.rootOpen.message":
+      "L'accès root de ce serveur est resté ouvert.",
+    "dashboard.rootOpen.fix":
+      "Relancez la sécurisation : elle ferme l'accès root et fait passer l'app par le compte dev.",
     "dashboard.project.one": "{count} projet",
     "dashboard.project.other": "{count} projets",
     "dashboard.services.emptyTitle": "Rien en marche",

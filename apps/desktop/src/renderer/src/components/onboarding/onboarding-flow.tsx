@@ -61,6 +61,7 @@ export function OnboardingFlow() {
   const back = useOnboarding((state) => state.back);
   const canGoBack = useOnboarding((state) => state.canGoBack);
   const close = useOnboarding((state) => state.close);
+  const secure = useOnboarding((state) => state.secure);
 
   const touched = useInstall((state) => state.touched());
 
@@ -225,6 +226,7 @@ export function OnboardingFlow() {
     return (
       <OnboardingDoneScreen
         onClose={close}
+        onSecure={() => secure(serverId)}
         root={rootState(outcome)}
         serverName={server.name}
         user={outcome?.user ?? server.user}

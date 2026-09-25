@@ -14,6 +14,7 @@ import {
   setTestSession,
 } from "@pupitre/auth/testing";
 import type { ProbeResult } from "@pupitre/shared/agent-protocol/install";
+import { publicKeyFingerprint } from "@pupitre/shared/keys";
 import type { SignInProgress } from "@shared/account";
 import type { AgentResponse } from "@shared/agent";
 import type { InstallUpdate } from "@shared/install";
@@ -236,7 +237,7 @@ describe("le compte contre l'API de la plateforme", () => {
     const started = Date.now();
     const enrolled = await account.enroll({
       device_id: account.state().device?.id ?? "",
-      fingerprint: "SHA256:host",
+      fingerprint: (await publicKeyFingerprint(DEVICE_PUBLIC_KEY)) ?? "",
       host: "vps.test",
       port: 22,
       probe: { arch: "amd64" },
@@ -408,7 +409,7 @@ describe("le compte contre l'API de la plateforme", () => {
     await account.signIn(report);
 
     const bridge = await platformBridge();
-    const fake = fakeAgent(["enroll-install.jsonl", "enroll-work.jsonl"]);
+    const fake = fakeAgent("enroll-install.jsonl");
     const client = createAgentClient({
       appVersion: "0.1.0",
       backoff: { attempts: 2, firstMs: 5, maxMs: 20 },
@@ -494,8 +495,7 @@ describe("le compte contre l'API de la plateforme", () => {
     expect(fake.trace()).toEqual([
       "id=1 cmd=hello",
       "id=2 cmd=enroll",
-      "id=1 cmd=hello",
-      "id=2 cmd=install",
+      "id=3 cmd=install",
     ]);
 
     // The token did serve that one exchange: the platform refuses it a second time.

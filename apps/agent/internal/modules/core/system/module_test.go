@@ -9,6 +9,7 @@ import (
 	"pupitre.studio/agent/internal/devcli"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/sudo"
 )
 
 const (
@@ -91,7 +92,7 @@ func TestInstallOnABareMachine(t *testing.T) {
 	}
 
 	files := map[string]string{
-		sudoersPath:        sudoers,
+		sudoersPath:        sudo.Open,
 		sysctlPath:         sysctl,
 		aptPeriodicPath:    aptPeriodic,
 		timezonePath:       "Europe/Paris\n",
@@ -161,6 +162,28 @@ func TestReplayOnAnInstalledMachineChangesNothing(t *testing.T) {
 	}
 
 	t.Logf("first run: %d calls, %d mutations; replay: %d calls, 0 mutations", calls, mutations, len(fake.Calls)-calls)
+}
+
+// The password rule is the client's choice, taken by harden.sudo: an upgrade never hands NOPASSWD:ALL back.
+func TestUpgradeLeavesTheSudoPasswordRuleInPlace(t *testing.T) {
+	fake := bareMachine()
+	run(t, newContext(t, fake))
+	fake.Files[passwdPath] = []byte("root:x:0:0:root:/root:/bin/bash\ndev:x:1000:1000::/home/dev:/usr/bin/zsh\n")
+	fake.Files[sudoersPath] = []byte(sudo.Restricted)
+
+	status, err := (Module{}).Check(newContext(t, fake))
+	if err != nil || !status.Configured {
+		t.Fatalf("a machine under the password rule must read as configured: %+v, %v", status, err)
+	}
+
+	ctx := newContext(t, fake)
+	if err := (Module{}).Upgrade(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if string(fake.Files[sudoersPath]) != sudo.Restricted || statuses(ctx)["grant-sudo"] != contract.StepSkip {
+		t.Fatalf("sudoers = %q, steps %v", fake.Files[sudoersPath], statuses(ctx))
+	}
 }
 
 // A machine installed before rsync joined the list still reads as installed, and the next upgrade is what brings the package: once, then never again.
@@ -281,6 +304,29 @@ func TestSeedingSkipsRestrictedKeysAndKeepsDevKeys(t *testing.T) {
 
 	if got := string(fake.Files[authorizedKeysPath]); strings.Count(got, "ssh-ed25519") != 1 || !strings.Contains(got, "# platform block") {
 		t.Fatalf("dev keys must be kept and not duplicated: %q", got)
+	}
+}
+
+// Root reads dev's authorized_keys to add its own: a link dev planted there must not bring another file into it.
+func TestSeedingRefusesAnAuthorizedKeysLinkOutOfTheHome(t *testing.T) {
+	fake := bareMachine()
+	fake.Files["/etc/shadow"] = []byte("root:$6$secret:20000:0:99999:7:::\n")
+	fake.Links[authorizedKeysPath] = "/etc/shadow"
+	ctx := newContext(t, fake)
+
+	if err := (Module{}).Install(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := (Module{}).Configure(ctx); err == nil {
+		t.Fatal("a link out of the home was read as dev's keys")
+	}
+
+	if statuses(ctx)["seed-authorized-keys"] != contract.StepFail {
+		t.Fatalf("steps = %v", statuses(ctx))
+	}
+
+	if strings.Contains(string(fake.Files[authorizedKeysPath]), "secret") {
+		t.Fatal("the linked file reached dev's authorized_keys")
 	}
 }
 

@@ -2,6 +2,7 @@ export const onboarding = {
   en: {
     "onboarding.thisServer": "This server",
     "onboarding.finish": "Finish",
+    "onboarding.secureAgain": "Run the securing again",
 
     "onboarding.agent.title": "Agent",
     "onboarding.agent.readCatalog": "Choose the services",
@@ -168,6 +169,7 @@ export const onboarding = {
   fr: {
     "onboarding.thisServer": "Ce serveur",
     "onboarding.finish": "Terminer",
+    "onboarding.secureAgain": "Relancer la sécurisation",
 
     "onboarding.agent.title": "Agent",
     "onboarding.agent.readCatalog": "Choisir les services",

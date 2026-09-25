@@ -487,3 +487,27 @@ describe("la trace d'une reprise", () => {
     expect(canGoBack(state)).toBe(false);
   });
 });
+
+describe("relancer la sécurisation d'un serveur installé", () => {
+  const secure: Event = { serverId: "srv-1", type: "secure" };
+
+  it("ouvre directement l'étape de sécurité et la lance", () => {
+    const { state, effects } = transition(CLOSED, secure);
+
+    expect(state).toMatchObject({
+      installed: true,
+      serverId: "srv-1",
+      step: "harden",
+    });
+    expect(effects).toContainEqual({ kind: "startHarden", serverId: "srv-1" });
+    expect(canGoBack(state)).toBe(false);
+  });
+
+  it("se relance depuis la fin d'un onboarding où root est resté ouvert", () => {
+    const done = walk(transition(CLOSED, secure).state, { type: "hardened" });
+
+    expect(done.step).toBe("done");
+    expect(effectsOf(done, secure)).toContain("startHarden");
+    expect(walk(done, secure).step).toBe("harden");
+  });
+});

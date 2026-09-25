@@ -162,7 +162,7 @@ func TestResponseOneOfMessageIsExact(t *testing.T) {
 		t.Fatal("expected an error, got nil")
 	}
 
-	if got, want := err.Error(), "/error/code: must be one of hello_required, protocol_mismatch, bad_request, invalid_config, unknown_command, entitlement_required, project_not_found, module_not_found, no_report, service_not_found, bad_signature, downgrade_refused, migration_required, busy, storage_refused, backup_missing, backup_unsupported, backup_corrupt, internal"; got != want {
+	if got, want := err.Error(), "/error/code: must be one of hello_required, protocol_mismatch, bad_request, invalid_config, unknown_command, entitlement_required, project_not_found, module_not_found, no_report, service_not_found, bad_signature, downgrade_refused, migration_required, busy, storage_refused, backup_missing, backup_unsupported, backup_corrupt, privilege_required, internal"; got != want {
 		t.Fatalf("message = %q, want %q", got, want)
 	}
 }

@@ -3,6 +3,7 @@ package migrate
 import (
 	"path"
 
+	"pupitre.studio/agent/internal/keys"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/sys/env"
@@ -37,6 +38,7 @@ const (
 	TargetProjects Target = "projects"
 	// TargetProjectsConf is the local registry as it was written before revision 1, and only migration 1 reads it.
 	TargetProjectsConf Target = "projects.local.conf"
+	TargetSigners      Target = "signers.json"
 )
 
 type Paths struct {
@@ -49,6 +51,9 @@ type Paths struct {
 	// Lock is the install lock: a migration and an install never run at once.
 	// Empty means no lock, which is the tests' case and nobody else's.
 	Lock string
+	// Keys is dev's authorized_keys: read, never written, by a migration.
+	Keys    string
+	Signers string
 }
 
 func (p Paths) Resolved() Paths {
@@ -70,6 +75,12 @@ func (p Paths) Resolved() Paths {
 	if p.Backups == "" {
 		p.Backups = DefaultBackups
 	}
+	if p.Keys == "" {
+		p.Keys = keys.DefaultPath
+	}
+	if p.Signers == "" {
+		p.Signers = keys.DefaultSignersPath
+	}
 
 	return p
 }
@@ -84,6 +95,8 @@ func (p Paths) Of(target Target) string {
 		return resolved.Env
 	case TargetProjects:
 		return resolved.Projects
+	case TargetSigners:
+		return resolved.Signers
 	}
 
 	return path.Join(resolved.Dir, string(target))

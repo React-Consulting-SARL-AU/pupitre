@@ -18,6 +18,7 @@ import { PassThrough } from "node:stream";
 import { agentFileName, embedAgent } from "../../../scripts/embed-agent";
 import {
   AGENT_INSTALL_COMMAND,
+  AGENT_REMOTE_PATH,
   agentPayload,
   agentSshArgs,
   carriedRelease,
@@ -242,27 +243,35 @@ describe("l'envoi du binaire par le canal SSH", () => {
     });
     expect(calls).toHaveLength(1);
     expect(calls[0].command).toBe("ssh");
-    expect(calls[0].args).toEqual(agentSshArgs(SSH_ARGS, "root"));
+    expect(calls[0].args).toEqual(
+      agentSshArgs(SSH_ARGS, AGENT_INSTALL_COMMAND)
+    );
     expect(calls[0].args.at(-1)).toBe(AGENT_INSTALL_COMMAND);
     expect(calls[0].stdin.toString()).toBe(AMD64);
     expect(calls[0].ended).toBe(true);
   });
 
   /**
-   * A hardened server is reached as `dev`, who owns neither `/usr/local/bin`
-   * nor the unit: the same line goes through the sudo the hardening granted.
+   * A hardened server is reached as `dev`, whom sudo lets run `pupitred` and
+   * nothing else (decision 0015): the agent checks the signature with the key
+   * it carries, then replaces itself. No shell runs as root.
    */
-  it("passe par sudo quand le compte de connexion n'est pas root", async () => {
+  it("passe par pupitred, qui vérifie la signature, quand le compte de connexion n'est pas root", async () => {
     const resources = tempDir();
-    embedAgent({ from: builtAgent(), to: resources });
+    embedAgent({ from: publishedAgent(), to: resources });
     const payload = agentPayload(resources, "amd64");
 
     if (!payload.ok) {
       throw new Error("le binaire embarqué manque");
     }
 
+    expect(payload.result).toMatchObject({
+      signature: "c2lnbmF0dXJlLWFtZDY0",
+      version: "0.4.0",
+    });
+
     const { calls, spawn } = recorder(() => ({
-      out: `${digest(AMD64)}  /usr/local/bin/.pupitred.new\n`,
+      out: `${digest(AMD64)}  /usr/local/bin/pupitred\n`,
     }));
 
     const answer = await sendAgentBinary({
@@ -272,12 +281,118 @@ describe("l'envoi du binaire par le canal SSH", () => {
       user: "dev",
     });
 
+    const line = calls[0]?.args.at(-1) ?? "";
+
     expect(answer.ok).toBe(true);
-    expect(calls[0].args.at(-1)).toBe(
-      `sudo -n sh -c '${AGENT_INSTALL_COMMAND}'`
+    expect(calls[0]?.stdin.toString()).toBe(
+      `${JSON.stringify({ signature: "c2lnbmF0dXJlLWFtZDY0", version: "0.4.0" })}\n${AMD64}`
     );
-    expect(installCommandAs("root")).toBe(AGENT_INSTALL_COMMAND);
+    expect(line).toContain(
+      `sudo -n ${AGENT_REMOTE_PATH} binary install < "$t"`
+    );
+    expect(line).not.toContain("--version");
+    expect(line).not.toContain("c2lnbmF0dXJlLWFtZDY0");
+    expect(installCommandAs("root", payload.result)).toBe(
+      AGENT_INSTALL_COMMAND
+    );
     expect(AGENT_INSTALL_COMMAND).not.toContain("'");
+  });
+
+  /**
+   * An agent older than the command answers with its usage, exit 2: on such a
+   * server dev still holds NOPASSWD:ALL, and the shell install of old is the
+   * only one left, on the bytes after the header. Any other refusal of
+   * pupitred ends the push.
+   */
+  it("ne retombe sur l'installation d'avant que devant un agent qui ne connaît pas la commande", () => {
+    const line =
+      installCommandAs("dev", {
+        signature: "c2lnbmF0dXJl",
+        version: "0.4.0",
+      }) ?? "";
+
+    expect(line).toContain('[ "$s" -eq 2 ] || exit "$s"');
+    expect(
+      line.endsWith(
+        `tail -n +2 "$t" | sudo -n sh -c '${AGENT_INSTALL_COMMAND}'`
+      )
+    ).toBe(true);
+  });
+
+  /**
+   * A build of the repository carries no release key: nothing checks its
+   * bytes, so sudo places it only on the line the password opens, and the
+   * password rides the first line of standard input, read by sudo — or by the
+   * shell, under the rule of before, where sudo asks for none.
+   */
+  it("pose un agent de développement sur la ligne que le mot de passe ouvre", async () => {
+    const { calls, spawn } = recorder(() => ({
+      out: `${digest("elf")}  /usr/local/bin/pupitred\n`,
+    }));
+
+    const answer = await sendAgentBinary({
+      args: SSH_ARGS,
+      password: "k7mp-q2xw",
+      payload: {
+        arch: "amd64",
+        bytes: 3,
+        content: Buffer.from("elf"),
+        path: "pupitred",
+        sha256: digest("elf"),
+        signature: null,
+        version: "0.0.0-unreleased",
+      },
+      spawn,
+      user: "dev",
+    });
+
+    const line = calls[0]?.args.at(-1) ?? "";
+
+    expect(answer.ok).toBe(true);
+    expect(calls[0]?.stdin.toString()).toBe(
+      `k7mp-q2xw\n${JSON.stringify({ version: "0.0.0-unreleased" })}\nelf`
+    );
+    expect(line).toContain("IFS= read -r p");
+    expect(line).toContain("if sudo -n true 2>/dev/null");
+    expect(line).toContain(
+      `sudo -n ${AGENT_REMOTE_PATH} binary install --privileged < "$t"`
+    );
+    expect(line).toContain(
+      `{ printf '%s\\n' "$p"; cat "$t"; } | sudo -S -p '' ${AGENT_REMOTE_PATH} binary install --privileged`
+    );
+    expect(line).not.toContain("k7mp");
+  });
+
+  it("refuse une version ou une signature qui sortirait de ses guillemets", async () => {
+    expect(
+      installCommandAs("dev", {
+        signature: null,
+        version: "0.4.0'; rm -rf ~; '",
+      })
+    ).toBeNull();
+    expect(
+      installCommandAs("dev", { signature: "c2ln'bmF0", version: "0.4.0" })
+    ).toBeNull();
+
+    const { calls, spawn } = recorder(() => ({}));
+
+    const answer = await sendAgentBinary({
+      args: SSH_ARGS,
+      payload: {
+        arch: "amd64",
+        bytes: 3,
+        content: Buffer.from("elf"),
+        path: "pupitred",
+        sha256: digest("elf"),
+        signature: null,
+        version: "$(reboot)",
+      },
+      spawn,
+      user: "dev",
+    });
+
+    expect(answer.ok).toBe(false);
+    expect(calls.length).toBe(0);
   });
 
   it("refuse un serveur qui n'a pas reçu les mêmes octets", async () => {

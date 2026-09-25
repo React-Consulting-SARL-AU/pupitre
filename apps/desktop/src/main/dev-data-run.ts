@@ -14,6 +14,19 @@ import { isLocalPlatform } from "./platform-client";
  */
 export const DEVELOPMENT_NAME = "Pupitre Dev";
 
+/**
+ * Whether a scenario run drives this launch: only ever a development build. A
+ * packaged app ignores `PUPITRE_E2E`, which would otherwise lift its
+ * single-instance lock and move the home folder its SSH configuration is
+ * written for. `packaged` is only asked when a run is.
+ */
+export function harnessOn(
+  asked: string | undefined,
+  packaged: () => boolean
+): boolean {
+  return asked === "1" && !packaged();
+}
+
 export function developmentDataFolder(
   appData: string,
   packaged: boolean,

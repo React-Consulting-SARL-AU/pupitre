@@ -58,8 +58,10 @@ import { openOutside, stayBehind } from "./foreground";
 import { githubRepos } from "./github";
 import { registerHarden } from "./harden";
 import { HARNESSED } from "./harness";
+import { openHelp, registerHelp } from "./help";
 import { registerInspection } from "./inspection";
 import { registerInstall } from "./install";
+import { registerKeyApprovals } from "./key-approvals";
 import { designatedKeyFile, designateKeyFile } from "./key-files";
 import { installKey } from "./key-install";
 import { knock } from "./knock";
@@ -105,6 +107,8 @@ import {
   registerServices,
 } from "./services";
 import { registerShots } from "./shots";
+import { registerSignInCancel } from "./sign-in-cancel";
+import { forgetSudoPassword, registerSudo } from "./sudo";
 import {
   type LoginDeps,
   openFromTerminal,
@@ -563,6 +567,7 @@ function registerServerChannels(): void {
     }
 
     settle(id);
+    forgetSudoPassword(id);
 
     return await removeServer(id);
   });
@@ -596,6 +601,7 @@ function registerServerChannels(): void {
       }
 
       settle(server.id);
+      forgetSudoPassword(server.id);
 
       return { ok: true, result: await removeServer(server.id) };
     }
@@ -628,6 +634,7 @@ function registerServerChannels(): void {
       }
 
       settle(id);
+      forgetSudoPassword(id);
 
       return { ok: true, result: await trustReinstalled(id) };
     }
@@ -902,6 +909,7 @@ function registerChannels(): void {
   registerInstall();
   registerReenroll();
   registerHarden();
+  registerSudo();
   registerLanguage();
   registerProjects({ root: workRoot });
   registerConnections();
@@ -918,6 +926,9 @@ function registerChannels(): void {
   registerLoginChannels();
   registerTransfers({ root: workRoot });
   registerShots();
+  registerHelp();
+  registerSignInCancel();
+  registerKeyApprovals();
 
   ipcMain.handle("completions", (_e, serverId: unknown, path: unknown) =>
     completions(serverId, path)
@@ -976,6 +987,7 @@ app
         menuTemplate(process.platform, app.isPackaged, app.getLocale(), {
           checkUpdates: checkForUpdates,
           goToProject: () => relayMenu("palette"),
+          help: (link) => openHelp(link, app.getLocale()),
           newAgent: () => relayMenu("new-agent"),
           newTerminal: () => relayMenu("new-terminal"),
           preferences: () => relayMenu("preferences"),

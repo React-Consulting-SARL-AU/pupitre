@@ -331,7 +331,7 @@ func (r *Runner) configured() bool {
 }
 
 func (r *Runner) context() *Context {
-	return &Context{Paths: r.paths, logf: r.options.Logf, machine: r.options.Sys}
+	return &Context{Paths: r.paths, logf: r.options.Logf, machine: r.options.Sys, now: r.now}
 }
 
 func (r *Runner) now() time.Time {

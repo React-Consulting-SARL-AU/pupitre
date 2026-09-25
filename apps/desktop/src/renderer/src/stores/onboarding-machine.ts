@@ -89,6 +89,8 @@ export type Effect =
 export type Event =
   | { type: "open" }
   | { type: "begin"; serverId: string }
+  /** An installed server whose root stayed open takes the security step again, alone. */
+  | { type: "secure"; serverId: string }
   | { type: "serverChosen"; serverId: string }
   | { type: "inspected" }
   | { type: "needsAgent" }
@@ -303,6 +305,12 @@ export function transition(state: MachineState, event: Event): Transition {
 
     case "begin":
       return start({ ...CLOSED, serverId: event.serverId }, "inspection");
+
+    case "secure":
+      return start(
+        { ...CLOSED, installed: true, serverId: event.serverId },
+        "harden"
+      );
 
     case "serverChosen":
       return move({ ...state, serverId: event.serverId }, "inspection");

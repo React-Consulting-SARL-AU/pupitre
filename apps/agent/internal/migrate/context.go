@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"pupitre.studio/agent/internal/sys"
 )
@@ -21,10 +22,19 @@ type Context struct {
 
 	machine sys.Sys
 	logf    func(string, ...any)
+	now     func() time.Time
 }
 
 func (c *Context) Sys() sys.Sys {
 	return c.machine
+}
+
+func (c *Context) Now() time.Time {
+	if c.now == nil {
+		return time.Now()
+	}
+
+	return c.now()
 }
 
 func (c *Context) Logf(format string, args ...any) {

@@ -1,5 +1,13 @@
+import type {
+  KeyApprovalSubmission,
+  PendingKeyApproval,
+} from "@pupitre/shared/keys";
 import type { MeSubscription } from "@pupitre/shared/plans";
-import type { AccountDevice, AccountIdentity } from "@shared/account";
+import type {
+  AccountDevice,
+  AccountError,
+  AccountIdentity,
+} from "@shared/account";
 import type { PlatformBackup } from "@shared/backups";
 import type { FleetServer } from "@shared/servers";
 import type { Sealer } from "../../account-vault";
@@ -70,6 +78,9 @@ export interface FakePlatformOptions {
   binary?: Uint8Array;
   servers?: FleetServer[];
   backups?: PlatformBackup[];
+  keyApprovals?: PendingKeyApproval[];
+  /** What `POST /me/devices` answers instead of adding the device. */
+  addDeviceRefusal?: AccountError;
 }
 
 export interface FakePlatform extends PlatformClient {
@@ -83,6 +94,8 @@ export interface FakePlatform extends PlatformClient {
   revokedDevices: string[];
   /** The restorations noted, as `<backup> on <server>`. */
   restored: string[];
+  /** The approvals submitted, as sent. */
+  approvals: KeyApprovalSubmission[];
 }
 
 const READY_RELEASE: EnrollBody["release"] = {
@@ -103,6 +116,7 @@ export function fakePlatform(options: FakePlatformOptions = {}): FakePlatform {
   const deletions: string[] = [];
   const revokedDevices: string[] = [];
   const restored: string[] = [];
+  const approvals: KeyApprovalSubmission[] = [];
 
   function seen<T>(token: string, result: T) {
     seenTokens.push(token);
@@ -112,6 +126,7 @@ export function fakePlatform(options: FakePlatformOptions = {}): FakePlatform {
 
   return {
     added,
+    approvals,
     baseUrl: "https://app.pupitre.test",
     deletions,
     enrolled,
@@ -207,6 +222,15 @@ export function fakePlatform(options: FakePlatformOptions = {}): FakePlatform {
     servers: (token) => Promise.resolve(seen(token, options.servers ?? [])),
 
     addDevice: (token, name, publicKey) => {
+      if (options.addDeviceRefusal) {
+        seenTokens.push(token);
+
+        return Promise.resolve({
+          error: options.addDeviceRefusal,
+          ok: false as const,
+        });
+      }
+
       added.push({ name, publicKey });
       devices.push({ ...DEVICE, name, publicKey });
 
@@ -248,5 +272,21 @@ export function fakePlatform(options: FakePlatformOptions = {}): FakePlatform {
           version: options.latest?.version ?? "0.0.0-dev",
         })
       ),
+
+    keyApprovals: (token) =>
+      Promise.resolve(seen(token, options.keyApprovals ?? [])),
+
+    approveKey: (token, approval) => {
+      approvals.push(approval);
+
+      return Promise.resolve(
+        seen(token, {
+          device_id: approval.device_id,
+          issued_at: approval.issued_at,
+          server_id: approval.server_id,
+          signer: approval.signer,
+        })
+      );
+    },
   };
 }

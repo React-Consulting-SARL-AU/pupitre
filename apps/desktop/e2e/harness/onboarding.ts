@@ -188,10 +188,15 @@ export function answerOnboarding(
             root_closed: true,
             root_kept: false,
           },
+          sudo: { kept: true, ok: true },
           switched: true,
           user: "dev",
         },
       }));
+
+      answer("sudo:state", () => ({ held: true, kept: true }));
+      answer("sudo:reveal", () => "k7mp-q2xw-9hdt-3vzc-u8fa-6rne");
+      answer("sudo:enter", () => ({ kept: true, ok: true }));
 
       answer("platform:sync", () => ({
         ok: true,

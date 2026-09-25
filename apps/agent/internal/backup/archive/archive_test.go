@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -210,14 +211,15 @@ func TestSwapReplacesAFolderWhole(t *testing.T) {
 	parent := t.TempDir()
 	target := filepath.Join(parent, "intranet")
 	write(t, target, "stale.txt", "gone after the swap")
+	scoped := openRoot(t, parent)
 
-	staged, err := Staging(parent, "intranet", Unchanged)
+	staged, err := Staging(scoped, ".", "intranet", Unchanged)
 	if err != nil {
 		t.Fatal(err)
 	}
-	write(t, staged, "fresh.txt", "restored")
+	write(t, filepath.Join(parent, staged), "fresh.txt", "restored")
 
-	if err := Swap(staged, target); err != nil {
+	if err := Swap(scoped, staged, "intranet"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -245,5 +247,42 @@ func TestSmallFilesRoundTripInMemory(t *testing.T) {
 
 	if _, err := ReadFiles(bytes.NewReader(hostile(t, &tar.Header{Name: "../x", Typeflag: tar.TypeReg}, "")), 10); err == nil {
 		t.Fatal("a climbing name must be refused")
+	}
+}
+
+// A running binary refuses to be written into (ETXTBSY): the restored file takes its place, and whoever holds the old one keeps it.
+func TestAFileInUseIsReplacedNotWrittenInto(t *testing.T) {
+	target := t.TempDir()
+	write(t, target, "bin/tool", "old binary")
+
+	held, err := os.Open(filepath.Join(target, "bin/tool"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer held.Close()
+
+	archived := hostile(t, &tar.Header{Name: "bin/tool", Typeflag: tar.TypeReg, Mode: 0o755, ModTime: time.Unix(1_700_000_000, 0)}, "new binary")
+	if err := Extract(bytes.NewReader(archived), target, Unchanged); err != nil {
+		t.Fatal(err)
+	}
+
+	kept, err := io.ReadAll(held)
+	if err != nil || string(kept) != "old binary" {
+		t.Fatalf("the holder reads %q, %v", kept, err)
+	}
+
+	restored, err := os.ReadFile(filepath.Join(target, "bin/tool"))
+	if err != nil || string(restored) != "new binary" {
+		t.Fatalf("the path reads %q, %v", restored, err)
+	}
+
+	info, err := os.Stat(filepath.Join(target, "bin/tool"))
+	if err != nil || info.Mode().Perm() != 0o755 || !info.ModTime().Equal(time.Unix(1_700_000_000, 0)) {
+		t.Fatalf("mode and date = %v", info)
+	}
+
+	entries, _ := os.ReadDir(filepath.Join(target, "bin"))
+	if len(entries) != 1 {
+		t.Fatalf("nothing staged may stay behind: %v", entries)
 	}
 }

@@ -17,14 +17,26 @@ type fixture struct {
 	Replies map[string]string
 	Absent  []string
 	Failing []string
-	Agent   string
-	Current string
+	// FailingLines fail one command line, where Failing fails every call of a program.
+	FailingLines []string
+	Agent        string
+	Current      string
 }
 
 const (
 	projectsPlaceholder = "%PROJECTS%"
+	agentPlaceholder    = "%AGENT%"
 	repliesVariable     = "PUPITRE_FAKE_REPLIES"
 )
+
+func (f fixture) failingLines(root string) []string {
+	lines := make([]string, 0, len(f.FailingLines))
+	for _, line := range f.FailingLines {
+		lines = append(lines, strings.ReplaceAll(line, agentPlaceholder, root+agentPath))
+	}
+
+	return lines
+}
 
 var fakePrograms = []string{"uname", "free", "df", "ss", "netstat", "sudo", "id"}
 
@@ -37,6 +49,7 @@ done
 safe=$(printf '%s' "$key" | tr -c 'A-Za-z0-9' '_')
 [ -f "$PUPITRE_FAKE_REPLIES/$name.absent" ] && exit 127
 [ -f "$PUPITRE_FAKE_REPLIES/$name.fail" ] && exit 1
+[ -f "$PUPITRE_FAKE_REPLIES/$safe.fail" ] && exit 1
 [ -f "$PUPITRE_FAKE_REPLIES/$safe.out" ] && cat "$PUPITRE_FAKE_REPLIES/$safe.out"
 exit 0
 `
@@ -99,6 +112,9 @@ func (f fixture) options(t *testing.T, root string) Options {
 	for _, program := range append(append([]string{}, f.Absent...), f.Failing...) {
 		fake.FailProgram(program, program+" : indisponible")
 	}
+	for _, line := range f.failingLines(root) {
+		fake.LineFailures[line] = line + " : refusé"
+	}
 
 	fake.Dirs[projectsDir(root)] = true
 	if f.Agent != "" {
@@ -130,6 +146,9 @@ func (f fixture) onDisk(t *testing.T, root string) []string {
 	}
 	for _, program := range f.Failing {
 		write(t, filepath.Join(replies, program+".fail"), "", 0o644)
+	}
+	for _, line := range f.failingLines(root) {
+		write(t, filepath.Join(replies, sanitize(line)+".fail"), "", 0o644)
 	}
 	for _, program := range fakePrograms {
 		write(t, filepath.Join(bin, program), fakeProgram, 0o755)

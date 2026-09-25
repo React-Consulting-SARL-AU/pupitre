@@ -339,6 +339,7 @@
         "backup_missing",
         "backup_unsupported",
         "backup_corrupt",
+        "privilege_required",
         "internal"
       ]
     },
@@ -379,6 +380,76 @@
         "agent.migrate",
         "enroll",
         "platform.sync"
+      ]
+    },
+    "LimitedCommands": {
+      "type": "string",
+      "enum": [
+        "hello",
+        "ping",
+        "probe",
+        "catalog",
+        "module.config",
+        "report",
+        "snapshot",
+        "status",
+        "service.status",
+        "service.start",
+        "service.stop",
+        "service.restart",
+        "service.logs",
+        "completions",
+        "project.list",
+        "project.add",
+        "project.detect",
+        "project.update",
+        "project.remove",
+        "project.up",
+        "project.down",
+        "project.restart",
+        "project.logs",
+        "project.pull",
+        "project.sync",
+        "project.install",
+        "project.env",
+        "project.branches",
+        "project.checkout",
+        "project.git_status",
+        "project.working_tree",
+        "project.diff",
+        "project.url",
+        "project.debug",
+        "agent.open",
+        "sessions.list",
+        "sessions.clean",
+        "processes.list",
+        "process.kill",
+        "shots.list",
+        "shots.url",
+        "shots.read",
+        "shots.clean",
+        "fs.list",
+        "fs.stat",
+        "fs.read",
+        "fs.write",
+        "fs.mkdir",
+        "fs.rename",
+        "fs.remove",
+        "secrets.sync",
+        "db.shell",
+        "db.url",
+        "tunnel.status",
+        "tunnel.sync",
+        "tunnel.restart",
+        "backup.status",
+        "backup.contents",
+        "keys.list",
+        "keys.sync",
+        "platform.sync",
+        "agent.upgrade",
+        "agent.migrate",
+        "doctor",
+        "diag"
       ]
     },
     "ConfigRevision": {
@@ -1069,6 +1140,36 @@
         "next_user"
       ]
     },
+    "HardenSudoParams": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string",
+          "const": "dev"
+        },
+        "secrets_stdin": {
+          "type": "boolean",
+          "const": true
+        }
+      },
+      "required": [
+        "user",
+        "secrets_stdin"
+      ],
+      "additionalProperties": false
+    },
+    "HardenSudoResult": {
+      "type": "object",
+      "properties": {
+        "sudo": {
+          "type": "string",
+          "const": "password"
+        }
+      },
+      "required": [
+        "sudo"
+      ]
+    },
     "UpgradeParams": {
       "type": "object",
       "properties": {
@@ -1290,6 +1391,13 @@
             },
             "agent_version": {
               "type": "string"
+            },
+            "sudo": {
+              "type": "string",
+              "enum": [
+                "password",
+                "nopasswd_all"
+              ]
             }
           },
           "required": [
@@ -5469,11 +5577,21 @@
               },
               "device_id": {
                 "type": "string"
+              },
+              "signer": {
+                "type": "boolean"
               }
             },
             "required": [
               "fingerprint"
             ]
+          }
+        },
+        "pending": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^SHA256:[A-Za-z0-9+/]{43}$"
           }
         },
         "synced_at": {
@@ -5505,11 +5623,76 @@
               },
               "device_id": {
                 "type": "string"
+              },
+              "signer": {
+                "type": "boolean"
               }
             },
             "required": [
               "fingerprint"
             ]
+          }
+        },
+        "pending": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^SHA256:[A-Za-z0-9+/]{43}$"
+          }
+        },
+        "synced_at": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "keys"
+      ]
+    },
+    "KeysTrustParams": {
+      "type": "object",
+      "properties": {
+        "public_key": {
+          "type": "string",
+          "maxLength": 512,
+          "pattern": "^(?:ssh-ed25519|ecdsa-sha2-nistp(?:256|384|521)) [A-Za-z0-9+/]+={0,2}$"
+        }
+      },
+      "required": [
+        "public_key"
+      ],
+      "additionalProperties": false
+    },
+    "KeysTrustResult": {
+      "type": "object",
+      "properties": {
+        "keys": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "fingerprint": {
+                "type": "string"
+              },
+              "comment": {
+                "type": "string"
+              },
+              "device_id": {
+                "type": "string"
+              },
+              "signer": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "fingerprint"
+            ]
+          }
+        },
+        "pending": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^SHA256:[A-Za-z0-9+/]{43}$"
           }
         },
         "synced_at": {
@@ -5772,6 +5955,19 @@
       },
       "required": [
         "enrollment_token"
+      ],
+      "additionalProperties": false
+    },
+    "HardenSudoSecrets": {
+      "type": "object",
+      "properties": {
+        "password_hash": {
+          "type": "string",
+          "pattern": "^\\$(y\\$[./0-9A-Za-z]+\\$[./0-9A-Za-z]{1,86}\\$[./0-9A-Za-z]{43}|6\\$(rounds=[1-9][0-9]{3,8}\\$)?[./0-9A-Za-z]{1,16}\\$[./0-9A-Za-z]{86})$"
+        }
+      },
+      "required": [
+        "password_hash"
       ],
       "additionalProperties": false
     },
@@ -6388,6 +6584,99 @@
         "path_style"
       ],
       "additionalProperties": false
+    },
+    "KeyApproval": {
+      "type": "object",
+      "properties": {
+        "server_id": {
+          "type": "string",
+          "pattern": "^(?:c[a-z0-9]{24}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
+        },
+        "public_key": {
+          "type": "string",
+          "maxLength": 512,
+          "pattern": "^(?:ssh-ed25519|ecdsa-sha2-nistp(?:256|384|521)) [A-Za-z0-9+/]+={0,2}$"
+        },
+        "user_id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,64}$"
+        },
+        "issued_at": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+        },
+        "signer": {
+          "type": "string",
+          "pattern": "^SHA256:[A-Za-z0-9+/]{43}$"
+        },
+        "signature": {
+          "type": "string",
+          "maxLength": 2048,
+          "pattern": "^-----BEGIN SSH SIGNATURE-----\\n(?:[A-Za-z0-9+/=]{1,76}\\n)+-----END SSH SIGNATURE-----\\n?$"
+        }
+      },
+      "required": [
+        "server_id",
+        "public_key",
+        "user_id",
+        "issued_at",
+        "signer",
+        "signature"
+      ],
+      "additionalProperties": false
+    },
+    "AgentStateKey": {
+      "type": "object",
+      "properties": {
+        "public_key": {
+          "type": "string",
+          "maxLength": 512,
+          "pattern": "^(?:ssh-ed25519|ecdsa-sha2-nistp(?:256|384|521)) [A-Za-z0-9+/]+={0,2}$"
+        },
+        "user_id": {
+          "type": "string"
+        },
+        "device_id": {
+          "type": "string"
+        },
+        "approvals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/KeyApproval"
+          }
+        }
+      },
+      "required": [
+        "public_key",
+        "user_id",
+        "device_id",
+        "approvals"
+      ]
+    },
+    "KeysBeat": {
+      "type": "object",
+      "properties": {
+        "signers": {
+          "maxItems": 100,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^SHA256:[A-Za-z0-9+/]{43}$"
+          }
+        },
+        "pending": {
+          "maxItems": 100,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^SHA256:[A-Za-z0-9+/]{43}$"
+          }
+        }
+      },
+      "required": [
+        "signers",
+        "pending"
+      ]
     },
     "Manifest": {
       "type": "object",
@@ -7339,8 +7628,29 @@
           ".zsh_history"
         ],
         "home_excluded": [
-          ".ssh/authorized_keys"
+          ".ssh/authorized_keys",
+          ".claude/remote"
         ]
+      }
+    },
+    "KeyApprovalRules": {
+      "type": "object",
+      "const": {
+        "hashes": [
+          "sha512",
+          "sha256"
+        ],
+        "max_age_seconds": 604800,
+        "future_skew_seconds": 300,
+        "key_types": [
+          "ssh-ed25519",
+          "ecdsa-sha2-nistp256",
+          "ecdsa-sha2-nistp384",
+          "ecdsa-sha2-nistp521"
+        ],
+        "key_pattern": "^(?:ssh-ed25519|ecdsa-sha2-nistp(?:256|384|521)) [A-Za-z0-9+/]+={0,2}$",
+        "fingerprint_pattern": "^SHA256:[A-Za-z0-9+/]{43}$",
+        "server_id_pattern": "^(?:c[a-z0-9]{24}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$"
       }
     }
   }

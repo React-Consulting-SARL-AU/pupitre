@@ -9,6 +9,10 @@ export interface EchoAgent {
   started: () => number;
   /** The commands that actually reached an agent, in order. */
   asked: () => CommandName[];
+  /** The same commands, each prefixed by the channel that carried it: `privileged install`. */
+  routed: () => string[];
+  /** How many channels the client cut itself. */
+  killed: () => number;
   killAll: () => void;
 }
 
@@ -22,10 +26,12 @@ export interface EchoAgent {
  */
 export function echoAgent(): EchoAgent {
   const asked: CommandName[] = [];
+  const routed: string[] = [];
   const children: PassThrough[] = [];
+  let killed = 0;
 
   return {
-    spawn: () => {
+    spawn: ({ purpose }) => {
       const stdout = new PassThrough();
       const stderr = new PassThrough();
 
@@ -48,6 +54,7 @@ export function echoAgent(): EchoAgent {
             }
 
             asked.push(parsed.cmd);
+            routed.push(`${purpose} ${parsed.cmd}`);
             stdout.write(
               `${JSON.stringify({ id: parsed.id, ok: true, result: {} })}\n`
             );
@@ -57,9 +64,15 @@ export function echoAgent(): EchoAgent {
         },
       });
 
-      const proc = Object.assign(new EventEmitter(), {
+      const proc: ChildProcess = Object.assign(new EventEmitter(), {
         exitCode: null,
-        kill: () => true,
+        kill: () => {
+          killed += 1;
+          Object.assign(proc, { exitCode: 143 });
+          proc.emit("close", 143);
+
+          return true;
+        },
         stderr,
         stdin,
         stdout,
@@ -71,6 +84,8 @@ export function echoAgent(): EchoAgent {
     },
     started: () => children.length,
     asked: () => [...asked],
+    routed: () => [...routed],
+    killed: () => killed,
     killAll: () => {
       for (const stdout of children) {
         stdout.end();

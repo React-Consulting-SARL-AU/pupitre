@@ -300,13 +300,12 @@ func TestShellAndDumpStayOnTheSocketAccount(t *testing.T) {
 		t.Fatalf("shell = %q", command)
 	}
 
-	fake.Replies["stat"] = "4096\n"
 	path, size, err := Dump(ctx, "shop")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if path != dumps.Dir+"/shop_20260904-1200.sql" || size != 4096 {
+	if path != dumps.Dir+"/shop_20260904-1200.sql" || size != int64(len("dump")) || string(fake.Files[path]) != "dump" {
 		t.Fatalf("dump = %q, %d", path, size)
 	}
 
@@ -317,8 +316,8 @@ func TestShellAndDumpStayOnTheSocketAccount(t *testing.T) {
 		}
 	}
 
-	if !strings.Contains(dumped, "--result-file="+path) || !strings.Contains(dumped, "--single-transaction") {
-		t.Fatalf("mysqldump writes the file itself: %q", dumped)
+	if strings.Contains(dumped, "--result-file") || !strings.Contains(dumped, "--single-transaction") {
+		t.Fatalf("mysqldump prints the dump, root writes it where no link of dev's leads: %q", dumped)
 	}
 }
 

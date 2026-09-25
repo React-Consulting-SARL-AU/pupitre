@@ -4,6 +4,7 @@ import type { HardenOutcome, HardenUpdate } from "@shared/harden";
 import { create } from "zustand";
 import { stepOf as stepFrom, withStep } from "../lib/module-progress";
 import type { StepEntry } from "./install";
+import { useServers } from "./servers";
 
 /**
  * The hardening as the screen watches it happen.
@@ -82,6 +83,10 @@ export const useHarden = create<HardenStore>((set) => ({
         ? { outcome: answer.result, serverId, status: "done" }
         : { error: answer.error, serverId, status: "failed" },
     });
+
+    if (answer.ok && answer.result.user) {
+      await useServers.getState().load();
+    }
   },
 
   reset() {

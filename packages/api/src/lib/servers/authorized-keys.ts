@@ -1,11 +1,43 @@
 import type { ApiPrisma } from "../api/prisma"
+import { isBanned } from "../platform/lifecycle"
 
-export async function authorizedKeysForUser(
+/** A banned, closed or departing account keeps no key on any server, whatever it is assigned. */
+async function accountHoldsKeys(
   prisma: ApiPrisma,
   userId: string,
-  excludedDeviceIds: string[] = []
-): Promise<string[]> {
-  const devices = await prisma.device.findMany({
+  now: Date
+): Promise<boolean> {
+  const account = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      banned: true,
+      banExpires: true,
+      deactivatedAt: true,
+      deletionAt: true,
+    },
+  })
+
+  if (!account || account.deactivatedAt || account.deletionAt) {
+    return false
+  }
+
+  return !isBanned(account, now)
+}
+
+export interface HeldDevice {
+  id: string
+  userId: string
+  name: string
+  publicKey: string
+  fingerprint: string
+}
+
+async function devicesOfUser(
+  prisma: ApiPrisma,
+  userId: string,
+  excludedDeviceIds: string[]
+): Promise<HeldDevice[]> {
+  return await prisma.device.findMany({
     where: {
       userId,
       ...(excludedDeviceIds.length > 0
@@ -13,10 +45,14 @@ export async function authorizedKeysForUser(
         : {}),
     },
     orderBy: { createdAt: "asc" },
-    select: { publicKey: true },
+    select: {
+      id: true,
+      userId: true,
+      name: true,
+      publicKey: true,
+      fingerprint: true,
+    },
   })
-
-  return devices.map((device) => device.publicKey)
 }
 
 export async function revokedDeviceIdsForServer(
@@ -31,16 +67,22 @@ export async function revokedDeviceIdsForServer(
   return revocations.map((revocation) => revocation.deviceId)
 }
 
-export async function authorizedKeysForServer(
+/** The devices whose keys a server should hold: its assigned member's, less the ones this server revoked. */
+export async function heldDevicesForServer(
   prisma: ApiPrisma,
-  serverId: string
-): Promise<string[]> {
+  serverId: string,
+  now: Date = new Date()
+): Promise<HeldDevice[]> {
   const server = await prisma.server.findUnique({
     where: { id: serverId },
     select: { assignedUserId: true, organizationId: true, status: true },
   })
 
   if (!server?.assignedUserId || server.status === "suspended") {
+    return []
+  }
+
+  if (!(await accountHoldsKeys(prisma, server.assignedUserId, now))) {
     return []
   }
 
@@ -58,24 +100,35 @@ export async function authorizedKeysForServer(
 
   const revoked = await revokedDeviceIdsForServer(prisma, serverId)
 
-  return await authorizedKeysForUser(prisma, server.assignedUserId, revoked)
+  return await devicesOfUser(prisma, server.assignedUserId, revoked)
+}
+
+export async function authorizedKeysForServer(
+  prisma: ApiPrisma,
+  serverId: string,
+  now: Date = new Date()
+): Promise<string[]> {
+  const devices = await heldDevicesForServer(prisma, serverId, now)
+
+  return devices.map((device) => device.publicKey)
 }
 
 /**
  * `key_ready` sits on each server, so it answers per server: an account owning
  * a key somewhere does not mean this machine will receive it. A server is ready
- * when its assigned member still belongs to its organization and keeps at least
+ * when its assigned member, neither banned nor closed, still belongs to its organization and keeps at least
  * one device this server has not revoked — the very keys
  * `authorizedKeysForServer` would hand it.
  */
 export async function keyReadyByServer(
   prisma: ApiPrisma,
   userId: string,
-  servers: { id: string; organizationId: string }[]
+  servers: { id: string; organizationId: string }[],
+  now: Date = new Date()
 ): Promise<Map<string, boolean>> {
   const ready = new Map(servers.map((server) => [server.id, false]))
 
-  if (servers.length === 0) {
+  if (servers.length === 0 || !(await accountHoldsKeys(prisma, userId, now))) {
     return ready
   }
 

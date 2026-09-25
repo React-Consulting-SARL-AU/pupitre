@@ -194,8 +194,29 @@ func TestStateReadsEverythingTheAgentPolls(t *testing.T) {
 		t.Fatalf("state = %+v", state)
 	}
 
-	if len(state.AuthorizedKeys) != 1 || !state.ValidUntil.Equal(time.Date(2026, time.September, 5, 12, 0, 0, 0, time.UTC)) {
-		t.Fatalf("keys %v, valid until %s", state.AuthorizedKeys, state.ValidUntil)
+	if state.Keys != nil || !state.ValidUntil.Equal(time.Date(2026, time.September, 5, 12, 0, 0, 0, time.UTC)) {
+		t.Fatalf("keys %v, valid until %s", state.Keys, state.ValidUntil)
+	}
+}
+
+// Absent and empty say two different things: a platform that predates approvals, and one that wants no key at all.
+func TestStateTellsAbsentKeysFromAnEmptyList(t *testing.T) {
+	answers := map[string]int{
+		`{"entitlement":"valid","valid_until":"2026-09-05T12:00:00.000Z","keys":[]}`: 0,
+		`{"entitlement":"valid","valid_until":"2026-09-05T12:00:00.000Z","keys":[{"public_key":"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINIqIikYhGRpaqoJuvKifjn/NLVieWICV3MrBVyZO2Lj","user_id":"u1","device_id":"d1","approvals":[]}]}`: 1,
+	}
+
+	for answer, want := range answers {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.Write([]byte(answer))
+		}))
+
+		state, err := platform.Client{BaseURL: server.URL, Token: "jeton"}.State(context.Background())
+		server.Close()
+
+		if err != nil || state.Keys == nil || len(*state.Keys) != want {
+			t.Fatalf("%s: state = %+v, err = %v", answer, state, err)
+		}
 	}
 }
 

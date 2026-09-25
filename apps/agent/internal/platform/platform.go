@@ -95,14 +95,15 @@ func (e *Error) Revoked() bool {
 	return e.Status == http.StatusUnauthorized && e.Code == CodeInvalidServerToken
 }
 
-// What the platform knows of this server: the entitlement, the keys that open it, the version it should run.
+// What the platform knows of this server: the entitlement, the keys it asks for, the version it should run.
 type State struct {
-	Entitlement    string    `json:"entitlement"`
-	ValidUntil     time.Time `json:"valid_until"`
-	AuthorizedKeys []string  `json:"authorized_keys"`
-	TargetVersion  string    `json:"target_version"`
-	MinimumVersion string    `json:"minimum_version"`
-	Hostname       string    `json:"hostname"`
+	Entitlement string    `json:"entitlement"`
+	ValidUntil  time.Time `json:"valid_until"`
+	// Keys is nil when the platform predates approvals: nothing it says then moves the keys.
+	Keys           *[]contract.AgentStateKey `json:"keys"`
+	TargetVersion  string                    `json:"target_version"`
+	MinimumVersion string                    `json:"minimum_version"`
+	Hostname       string                    `json:"hostname"`
 	// ServerID names this server on the platform, and its prefix in the backup bucket.
 	ServerID string `json:"server_id"`
 }
@@ -136,6 +137,9 @@ type Heartbeat struct {
 
 	// Backup is sent only by a server whose backup module is installed: silence leaves what the platform knew.
 	Backup *contract.BackupBeat `json:"backup,omitempty"`
+
+	// Keys is sent once a read of the state has said which keys wait for an approval.
+	Keys *contract.KeysBeat `json:"keys,omitempty"`
 }
 
 // What the publication chain deposited for a version: the platform's own word on what the binary must hash to, and the signature that binds it.

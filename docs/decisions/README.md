@@ -17,3 +17,5 @@ Une décision par fichier, numérotée, jamais réécrite : une décision qui ch
 | [0011](./0011-cloudflare-d1.md) | Cloudflare D1 plutôt que Neon : toute la plateforme chez Cloudflare |
 | [0012](./0012-ssh-config-include.md) | Une ligne `Include` dans `~/.ssh/config`, sur demande |
 | [0013](./0013-sauvegardes-s3-chiffrees.md) | Sauvegardes chiffrées dans le seau S3 du client |
+| [0014](./0014-cles-approuvees-par-un-appareil.md) | Un accès au serveur n'est accordé que par un appareil déjà autorisé |
+| [0015](./0015-sudo-par-mot-de-passe.md) | `dev` passe par un mot de passe pour sudo, sauf pour `pupitred` |

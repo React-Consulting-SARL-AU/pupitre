@@ -52,6 +52,11 @@ func (s *Service) open(ctx *modules.Context, location contract.BackupLocation, s
 			WithFix(i18n.T("backup.location.invalid.fix"))
 	}
 
+	if location.SHA256 == "" {
+		return opened{}, protocol.NewError(contract.ErrorBadRequest, i18n.T("backup.location.digest", path.Base(key))).
+			WithFix(i18n.T("backup.location.digest.fix"))
+	}
+
 	client := s.bucket(s3.Client{
 		Endpoint:        location.Endpoint,
 		Region:          location.Region,
@@ -72,7 +77,7 @@ func (s *Service) open(ctx *modules.Context, location contract.BackupLocation, s
 		return opened{}, module.StorageRefused(err)
 	}
 
-	if location.SHA256 != "" && sha256Hex(raw) != location.SHA256 {
+	if sha256Hex(raw) != location.SHA256 {
 		return opened{}, corrupt(i18n.T("backup.corrupt.digest", contract.BackupManifestKey))
 	}
 

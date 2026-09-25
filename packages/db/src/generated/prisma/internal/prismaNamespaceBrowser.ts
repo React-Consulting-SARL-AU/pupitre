@@ -67,6 +67,7 @@ export const ModelName = {
   Alert: 'Alert',
   Backup: 'Backup',
   ServerRevokedDevice: 'ServerRevokedDevice',
+  KeyApproval: 'KeyApproval',
   Subscription: 'Subscription',
   OrganizationBilling: 'OrganizationBilling',
   AffiliateLink: 'AffiliateLink',
@@ -303,6 +304,7 @@ export const ServerScalarFieldEnum = {
   lastHeartbeatAt: 'lastHeartbeatAt',
   lastUsage: 'lastUsage',
   backup: 'backup',
+  keyReport: 'keyReport',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -368,6 +370,21 @@ export const ServerRevokedDeviceScalarFieldEnum = {
 } as const
 
 export type ServerRevokedDeviceScalarFieldEnum = (typeof ServerRevokedDeviceScalarFieldEnum)[keyof typeof ServerRevokedDeviceScalarFieldEnum]
+
+
+export const KeyApprovalScalarFieldEnum = {
+  id: 'id',
+  serverId: 'serverId',
+  deviceId: 'deviceId',
+  userId: 'userId',
+  signer: 'signer',
+  issuedAt: 'issuedAt',
+  signature: 'signature',
+  approvedByUserId: 'approvedByUserId',
+  createdAt: 'createdAt'
+} as const
+
+export type KeyApprovalScalarFieldEnum = (typeof KeyApprovalScalarFieldEnum)[keyof typeof KeyApprovalScalarFieldEnum]
 
 
 export const SubscriptionScalarFieldEnum = {

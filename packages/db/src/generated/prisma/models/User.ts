@@ -303,6 +303,7 @@ export type UserWhereInput = {
   events?: Prisma.EventListRelationFilter
   passkeys?: Prisma.PasskeyListRelationFilter
   twoFactors?: Prisma.TwoFactorListRelationFilter
+  keyApprovals?: Prisma.KeyApprovalListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -334,6 +335,7 @@ export type UserOrderByWithRelationInput = {
   events?: Prisma.EventOrderByRelationAggregateInput
   passkeys?: Prisma.PasskeyOrderByRelationAggregateInput
   twoFactors?: Prisma.TwoFactorOrderByRelationAggregateInput
+  keyApprovals?: Prisma.KeyApprovalOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -368,6 +370,7 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   events?: Prisma.EventListRelationFilter
   passkeys?: Prisma.PasskeyListRelationFilter
   twoFactors?: Prisma.TwoFactorListRelationFilter
+  keyApprovals?: Prisma.KeyApprovalListRelationFilter
 }, "id" | "email">
 
 export type UserOrderByWithAggregationInput = {
@@ -449,6 +452,7 @@ export type UserCreateInput = {
   events?: Prisma.EventCreateNestedManyWithoutActorUserInput
   passkeys?: Prisma.PasskeyCreateNestedManyWithoutUserInput
   twoFactors?: Prisma.TwoFactorCreateNestedManyWithoutUserInput
+  keyApprovals?: Prisma.KeyApprovalCreateNestedManyWithoutApprovedByInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -480,6 +484,7 @@ export type UserUncheckedCreateInput = {
   events?: Prisma.EventUncheckedCreateNestedManyWithoutActorUserInput
   passkeys?: Prisma.PasskeyUncheckedCreateNestedManyWithoutUserInput
   twoFactors?: Prisma.TwoFactorUncheckedCreateNestedManyWithoutUserInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedCreateNestedManyWithoutApprovedByInput
 }
 
 export type UserUpdateInput = {
@@ -511,6 +516,7 @@ export type UserUpdateInput = {
   events?: Prisma.EventUpdateManyWithoutActorUserNestedInput
   passkeys?: Prisma.PasskeyUpdateManyWithoutUserNestedInput
   twoFactors?: Prisma.TwoFactorUpdateManyWithoutUserNestedInput
+  keyApprovals?: Prisma.KeyApprovalUpdateManyWithoutApprovedByNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -542,6 +548,7 @@ export type UserUncheckedUpdateInput = {
   events?: Prisma.EventUncheckedUpdateManyWithoutActorUserNestedInput
   passkeys?: Prisma.PasskeyUncheckedUpdateManyWithoutUserNestedInput
   twoFactors?: Prisma.TwoFactorUncheckedUpdateManyWithoutUserNestedInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedUpdateManyWithoutApprovedByNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -824,6 +831,22 @@ export type UserUpdateOneWithoutAssignedServersNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutAssignedServersInput, Prisma.UserUpdateWithoutAssignedServersInput>, Prisma.UserUncheckedUpdateWithoutAssignedServersInput>
 }
 
+export type UserCreateNestedOneWithoutKeyApprovalsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutKeyApprovalsInput, Prisma.UserUncheckedCreateWithoutKeyApprovalsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutKeyApprovalsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneWithoutKeyApprovalsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutKeyApprovalsInput, Prisma.UserUncheckedCreateWithoutKeyApprovalsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutKeyApprovalsInput
+  upsert?: Prisma.UserUpsertWithoutKeyApprovalsInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutKeyApprovalsInput, Prisma.UserUpdateWithoutKeyApprovalsInput>, Prisma.UserUncheckedUpdateWithoutKeyApprovalsInput>
+}
+
 export type UserCreateNestedOneWithoutEventsInput = {
   create?: Prisma.XOR<Prisma.UserCreateWithoutEventsInput, Prisma.UserUncheckedCreateWithoutEventsInput>
   connectOrCreate?: Prisma.UserCreateOrConnectWithoutEventsInput
@@ -868,6 +891,7 @@ export type UserCreateWithoutSessionsInput = {
   events?: Prisma.EventCreateNestedManyWithoutActorUserInput
   passkeys?: Prisma.PasskeyCreateNestedManyWithoutUserInput
   twoFactors?: Prisma.TwoFactorCreateNestedManyWithoutUserInput
+  keyApprovals?: Prisma.KeyApprovalCreateNestedManyWithoutApprovedByInput
 }
 
 export type UserUncheckedCreateWithoutSessionsInput = {
@@ -898,6 +922,7 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   events?: Prisma.EventUncheckedCreateNestedManyWithoutActorUserInput
   passkeys?: Prisma.PasskeyUncheckedCreateNestedManyWithoutUserInput
   twoFactors?: Prisma.TwoFactorUncheckedCreateNestedManyWithoutUserInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedCreateNestedManyWithoutApprovedByInput
 }
 
 export type UserCreateOrConnectWithoutSessionsInput = {
@@ -944,6 +969,7 @@ export type UserUpdateWithoutSessionsInput = {
   events?: Prisma.EventUpdateManyWithoutActorUserNestedInput
   passkeys?: Prisma.PasskeyUpdateManyWithoutUserNestedInput
   twoFactors?: Prisma.TwoFactorUpdateManyWithoutUserNestedInput
+  keyApprovals?: Prisma.KeyApprovalUpdateManyWithoutApprovedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -974,6 +1000,7 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   events?: Prisma.EventUncheckedUpdateManyWithoutActorUserNestedInput
   passkeys?: Prisma.PasskeyUncheckedUpdateManyWithoutUserNestedInput
   twoFactors?: Prisma.TwoFactorUncheckedUpdateManyWithoutUserNestedInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedUpdateManyWithoutApprovedByNestedInput
 }
 
 export type UserCreateWithoutAccountsInput = {
@@ -1004,6 +1031,7 @@ export type UserCreateWithoutAccountsInput = {
   events?: Prisma.EventCreateNestedManyWithoutActorUserInput
   passkeys?: Prisma.PasskeyCreateNestedManyWithoutUserInput
   twoFactors?: Prisma.TwoFactorCreateNestedManyWithoutUserInput
+  keyApprovals?: Prisma.KeyApprovalCreateNestedManyWithoutApprovedByInput
 }
 
 export type UserUncheckedCreateWithoutAccountsInput = {
@@ -1034,6 +1062,7 @@ export type UserUncheckedCreateWithoutAccountsInput = {
   events?: Prisma.EventUncheckedCreateNestedManyWithoutActorUserInput
   passkeys?: Prisma.PasskeyUncheckedCreateNestedManyWithoutUserInput
   twoFactors?: Prisma.TwoFactorUncheckedCreateNestedManyWithoutUserInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedCreateNestedManyWithoutApprovedByInput
 }
 
 export type UserCreateOrConnectWithoutAccountsInput = {
@@ -1080,6 +1109,7 @@ export type UserUpdateWithoutAccountsInput = {
   events?: Prisma.EventUpdateManyWithoutActorUserNestedInput
   passkeys?: Prisma.PasskeyUpdateManyWithoutUserNestedInput
   twoFactors?: Prisma.TwoFactorUpdateManyWithoutUserNestedInput
+  keyApprovals?: Prisma.KeyApprovalUpdateManyWithoutApprovedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -1110,6 +1140,7 @@ export type UserUncheckedUpdateWithoutAccountsInput = {
   events?: Prisma.EventUncheckedUpdateManyWithoutActorUserNestedInput
   passkeys?: Prisma.PasskeyUncheckedUpdateManyWithoutUserNestedInput
   twoFactors?: Prisma.TwoFactorUncheckedUpdateManyWithoutUserNestedInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedUpdateManyWithoutApprovedByNestedInput
 }
 
 export type UserCreateWithoutMembersInput = {
@@ -1140,6 +1171,7 @@ export type UserCreateWithoutMembersInput = {
   events?: Prisma.EventCreateNestedManyWithoutActorUserInput
   passkeys?: Prisma.PasskeyCreateNestedManyWithoutUserInput
   twoFactors?: Prisma.TwoFactorCreateNestedManyWithoutUserInput
+  keyApprovals?: Prisma.KeyApprovalCreateNestedManyWithoutApprovedByInput
 }
 
 export type UserUncheckedCreateWithoutMembersInput = {
@@ -1170,6 +1202,7 @@ export type UserUncheckedCreateWithoutMembersInput = {
   events?: Prisma.EventUncheckedCreateNestedManyWithoutActorUserInput
   passkeys?: Prisma.PasskeyUncheckedCreateNestedManyWithoutUserInput
   twoFactors?: Prisma.TwoFactorUncheckedCreateNestedManyWithoutUserInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedCreateNestedManyWithoutApprovedByInput
 }
 
 export type UserCreateOrConnectWithoutMembersInput = {
@@ -1216,6 +1249,7 @@ export type UserUpdateWithoutMembersInput = {
   events?: Prisma.EventUpdateManyWithoutActorUserNestedInput
   passkeys?: Prisma.PasskeyUpdateManyWithoutUserNestedInput
   twoFactors?: Prisma.TwoFactorUpdateManyWithoutUserNestedInput
+  keyApprovals?: Prisma.KeyApprovalUpdateManyWithoutApprovedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutMembersInput = {
@@ -1246,6 +1280,7 @@ export type UserUncheckedUpdateWithoutMembersInput = {
   events?: Prisma.EventUncheckedUpdateManyWithoutActorUserNestedInput
   passkeys?: Prisma.PasskeyUncheckedUpdateManyWithoutUserNestedInput
   twoFactors?: Prisma.TwoFactorUncheckedUpdateManyWithoutUserNestedInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedUpdateManyWithoutApprovedByNestedInput
 }
 
 export type UserCreateWithoutInvitationsInput = {
@@ -1276,6 +1311,7 @@ export type UserCreateWithoutInvitationsInput = {
   events?: Prisma.EventCreateNestedManyWithoutActorUserInput
   passkeys?: Prisma.PasskeyCreateNestedManyWithoutUserInput
   twoFactors?: Prisma.TwoFactorCreateNestedManyWithoutUserInput
+  keyApprovals?: Prisma.KeyApprovalCreateNestedManyWithoutApprovedByInput
 }
 
 export type UserUncheckedCreateWithoutInvitationsInput = {
@@ -1306,6 +1342,7 @@ export type UserUncheckedCreateWithoutInvitationsInput = {
   events?: Prisma.EventUncheckedCreateNestedManyWithoutActorUserInput
   passkeys?: Prisma.PasskeyUncheckedCreateNestedManyWithoutUserInput
   twoFactors?: Prisma.TwoFactorUncheckedCreateNestedManyWithoutUserInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedCreateNestedManyWithoutApprovedByInput
 }
 
 export type UserCreateOrConnectWithoutInvitationsInput = {
@@ -1352,6 +1389,7 @@ export type UserUpdateWithoutInvitationsInput = {
   events?: Prisma.EventUpdateManyWithoutActorUserNestedInput
   passkeys?: Prisma.PasskeyUpdateManyWithoutUserNestedInput
   twoFactors?: Prisma.TwoFactorUpdateManyWithoutUserNestedInput
+  keyApprovals?: Prisma.KeyApprovalUpdateManyWithoutApprovedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutInvitationsInput = {
@@ -1382,6 +1420,7 @@ export type UserUncheckedUpdateWithoutInvitationsInput = {
   events?: Prisma.EventUncheckedUpdateManyWithoutActorUserNestedInput
   passkeys?: Prisma.PasskeyUncheckedUpdateManyWithoutUserNestedInput
   twoFactors?: Prisma.TwoFactorUncheckedUpdateManyWithoutUserNestedInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedUpdateManyWithoutApprovedByNestedInput
 }
 
 export type UserCreateWithoutPasskeysInput = {
@@ -1412,6 +1451,7 @@ export type UserCreateWithoutPasskeysInput = {
   assignedServers?: Prisma.ServerCreateNestedManyWithoutAssignedUserInput
   events?: Prisma.EventCreateNestedManyWithoutActorUserInput
   twoFactors?: Prisma.TwoFactorCreateNestedManyWithoutUserInput
+  keyApprovals?: Prisma.KeyApprovalCreateNestedManyWithoutApprovedByInput
 }
 
 export type UserUncheckedCreateWithoutPasskeysInput = {
@@ -1442,6 +1482,7 @@ export type UserUncheckedCreateWithoutPasskeysInput = {
   assignedServers?: Prisma.ServerUncheckedCreateNestedManyWithoutAssignedUserInput
   events?: Prisma.EventUncheckedCreateNestedManyWithoutActorUserInput
   twoFactors?: Prisma.TwoFactorUncheckedCreateNestedManyWithoutUserInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedCreateNestedManyWithoutApprovedByInput
 }
 
 export type UserCreateOrConnectWithoutPasskeysInput = {
@@ -1488,6 +1529,7 @@ export type UserUpdateWithoutPasskeysInput = {
   assignedServers?: Prisma.ServerUpdateManyWithoutAssignedUserNestedInput
   events?: Prisma.EventUpdateManyWithoutActorUserNestedInput
   twoFactors?: Prisma.TwoFactorUpdateManyWithoutUserNestedInput
+  keyApprovals?: Prisma.KeyApprovalUpdateManyWithoutApprovedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutPasskeysInput = {
@@ -1518,6 +1560,7 @@ export type UserUncheckedUpdateWithoutPasskeysInput = {
   assignedServers?: Prisma.ServerUncheckedUpdateManyWithoutAssignedUserNestedInput
   events?: Prisma.EventUncheckedUpdateManyWithoutActorUserNestedInput
   twoFactors?: Prisma.TwoFactorUncheckedUpdateManyWithoutUserNestedInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedUpdateManyWithoutApprovedByNestedInput
 }
 
 export type UserCreateWithoutTwoFactorsInput = {
@@ -1548,6 +1591,7 @@ export type UserCreateWithoutTwoFactorsInput = {
   assignedServers?: Prisma.ServerCreateNestedManyWithoutAssignedUserInput
   events?: Prisma.EventCreateNestedManyWithoutActorUserInput
   passkeys?: Prisma.PasskeyCreateNestedManyWithoutUserInput
+  keyApprovals?: Prisma.KeyApprovalCreateNestedManyWithoutApprovedByInput
 }
 
 export type UserUncheckedCreateWithoutTwoFactorsInput = {
@@ -1578,6 +1622,7 @@ export type UserUncheckedCreateWithoutTwoFactorsInput = {
   assignedServers?: Prisma.ServerUncheckedCreateNestedManyWithoutAssignedUserInput
   events?: Prisma.EventUncheckedCreateNestedManyWithoutActorUserInput
   passkeys?: Prisma.PasskeyUncheckedCreateNestedManyWithoutUserInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedCreateNestedManyWithoutApprovedByInput
 }
 
 export type UserCreateOrConnectWithoutTwoFactorsInput = {
@@ -1624,6 +1669,7 @@ export type UserUpdateWithoutTwoFactorsInput = {
   assignedServers?: Prisma.ServerUpdateManyWithoutAssignedUserNestedInput
   events?: Prisma.EventUpdateManyWithoutActorUserNestedInput
   passkeys?: Prisma.PasskeyUpdateManyWithoutUserNestedInput
+  keyApprovals?: Prisma.KeyApprovalUpdateManyWithoutApprovedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTwoFactorsInput = {
@@ -1654,6 +1700,7 @@ export type UserUncheckedUpdateWithoutTwoFactorsInput = {
   assignedServers?: Prisma.ServerUncheckedUpdateManyWithoutAssignedUserNestedInput
   events?: Prisma.EventUncheckedUpdateManyWithoutActorUserNestedInput
   passkeys?: Prisma.PasskeyUncheckedUpdateManyWithoutUserNestedInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedUpdateManyWithoutApprovedByNestedInput
 }
 
 export type UserCreateWithoutDevicesInput = {
@@ -1684,6 +1731,7 @@ export type UserCreateWithoutDevicesInput = {
   events?: Prisma.EventCreateNestedManyWithoutActorUserInput
   passkeys?: Prisma.PasskeyCreateNestedManyWithoutUserInput
   twoFactors?: Prisma.TwoFactorCreateNestedManyWithoutUserInput
+  keyApprovals?: Prisma.KeyApprovalCreateNestedManyWithoutApprovedByInput
 }
 
 export type UserUncheckedCreateWithoutDevicesInput = {
@@ -1714,6 +1762,7 @@ export type UserUncheckedCreateWithoutDevicesInput = {
   events?: Prisma.EventUncheckedCreateNestedManyWithoutActorUserInput
   passkeys?: Prisma.PasskeyUncheckedCreateNestedManyWithoutUserInput
   twoFactors?: Prisma.TwoFactorUncheckedCreateNestedManyWithoutUserInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedCreateNestedManyWithoutApprovedByInput
 }
 
 export type UserCreateOrConnectWithoutDevicesInput = {
@@ -1760,6 +1809,7 @@ export type UserUpdateWithoutDevicesInput = {
   events?: Prisma.EventUpdateManyWithoutActorUserNestedInput
   passkeys?: Prisma.PasskeyUpdateManyWithoutUserNestedInput
   twoFactors?: Prisma.TwoFactorUpdateManyWithoutUserNestedInput
+  keyApprovals?: Prisma.KeyApprovalUpdateManyWithoutApprovedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutDevicesInput = {
@@ -1790,6 +1840,7 @@ export type UserUncheckedUpdateWithoutDevicesInput = {
   events?: Prisma.EventUncheckedUpdateManyWithoutActorUserNestedInput
   passkeys?: Prisma.PasskeyUncheckedUpdateManyWithoutUserNestedInput
   twoFactors?: Prisma.TwoFactorUncheckedUpdateManyWithoutUserNestedInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedUpdateManyWithoutApprovedByNestedInput
 }
 
 export type UserCreateWithoutAssignedServersInput = {
@@ -1820,6 +1871,7 @@ export type UserCreateWithoutAssignedServersInput = {
   events?: Prisma.EventCreateNestedManyWithoutActorUserInput
   passkeys?: Prisma.PasskeyCreateNestedManyWithoutUserInput
   twoFactors?: Prisma.TwoFactorCreateNestedManyWithoutUserInput
+  keyApprovals?: Prisma.KeyApprovalCreateNestedManyWithoutApprovedByInput
 }
 
 export type UserUncheckedCreateWithoutAssignedServersInput = {
@@ -1850,6 +1902,7 @@ export type UserUncheckedCreateWithoutAssignedServersInput = {
   events?: Prisma.EventUncheckedCreateNestedManyWithoutActorUserInput
   passkeys?: Prisma.PasskeyUncheckedCreateNestedManyWithoutUserInput
   twoFactors?: Prisma.TwoFactorUncheckedCreateNestedManyWithoutUserInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedCreateNestedManyWithoutApprovedByInput
 }
 
 export type UserCreateOrConnectWithoutAssignedServersInput = {
@@ -1896,6 +1949,7 @@ export type UserUpdateWithoutAssignedServersInput = {
   events?: Prisma.EventUpdateManyWithoutActorUserNestedInput
   passkeys?: Prisma.PasskeyUpdateManyWithoutUserNestedInput
   twoFactors?: Prisma.TwoFactorUpdateManyWithoutUserNestedInput
+  keyApprovals?: Prisma.KeyApprovalUpdateManyWithoutApprovedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAssignedServersInput = {
@@ -1923,6 +1977,147 @@ export type UserUncheckedUpdateWithoutAssignedServersInput = {
   members?: Prisma.MemberUncheckedUpdateManyWithoutUserNestedInput
   invitations?: Prisma.InvitationUncheckedUpdateManyWithoutUserNestedInput
   devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
+  events?: Prisma.EventUncheckedUpdateManyWithoutActorUserNestedInput
+  passkeys?: Prisma.PasskeyUncheckedUpdateManyWithoutUserNestedInput
+  twoFactors?: Prisma.TwoFactorUncheckedUpdateManyWithoutUserNestedInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedUpdateManyWithoutApprovedByNestedInput
+}
+
+export type UserCreateWithoutKeyApprovalsInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  role?: string | null
+  banned?: boolean | null
+  banReason?: string | null
+  banExpires?: Date | string | null
+  twoFactorEnabled?: boolean | null
+  locale?: string
+  deactivatedAt?: Date | string | null
+  deactivatedReason?: string | null
+  deactivatedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
+  sessions?: Prisma.SessionCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountCreateNestedManyWithoutUserInput
+  members?: Prisma.MemberCreateNestedManyWithoutUserInput
+  invitations?: Prisma.InvitationCreateNestedManyWithoutUserInput
+  devices?: Prisma.DeviceCreateNestedManyWithoutUserInput
+  assignedServers?: Prisma.ServerCreateNestedManyWithoutAssignedUserInput
+  events?: Prisma.EventCreateNestedManyWithoutActorUserInput
+  passkeys?: Prisma.PasskeyCreateNestedManyWithoutUserInput
+  twoFactors?: Prisma.TwoFactorCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutKeyApprovalsInput = {
+  id: string
+  name: string
+  email: string
+  emailVerified?: boolean
+  image?: string | null
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  role?: string | null
+  banned?: boolean | null
+  banReason?: string | null
+  banExpires?: Date | string | null
+  twoFactorEnabled?: boolean | null
+  locale?: string
+  deactivatedAt?: Date | string | null
+  deactivatedReason?: string | null
+  deactivatedByUserId?: string | null
+  deletionAt?: Date | string | null
+  deletionReason?: string | null
+  deletionByUserId?: string | null
+  sessions?: Prisma.SessionUncheckedCreateNestedManyWithoutUserInput
+  accounts?: Prisma.AccountUncheckedCreateNestedManyWithoutUserInput
+  members?: Prisma.MemberUncheckedCreateNestedManyWithoutUserInput
+  invitations?: Prisma.InvitationUncheckedCreateNestedManyWithoutUserInput
+  devices?: Prisma.DeviceUncheckedCreateNestedManyWithoutUserInput
+  assignedServers?: Prisma.ServerUncheckedCreateNestedManyWithoutAssignedUserInput
+  events?: Prisma.EventUncheckedCreateNestedManyWithoutActorUserInput
+  passkeys?: Prisma.PasskeyUncheckedCreateNestedManyWithoutUserInput
+  twoFactors?: Prisma.TwoFactorUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutKeyApprovalsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutKeyApprovalsInput, Prisma.UserUncheckedCreateWithoutKeyApprovalsInput>
+}
+
+export type UserUpsertWithoutKeyApprovalsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutKeyApprovalsInput, Prisma.UserUncheckedUpdateWithoutKeyApprovalsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutKeyApprovalsInput, Prisma.UserUncheckedCreateWithoutKeyApprovalsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutKeyApprovalsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutKeyApprovalsInput, Prisma.UserUncheckedUpdateWithoutKeyApprovalsInput>
+}
+
+export type UserUpdateWithoutKeyApprovalsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  banned?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  banReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  locale?: Prisma.StringFieldUpdateOperationsInput | string
+  deactivatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deactivatedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deactivatedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sessions?: Prisma.SessionUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUpdateManyWithoutUserNestedInput
+  members?: Prisma.MemberUpdateManyWithoutUserNestedInput
+  invitations?: Prisma.InvitationUpdateManyWithoutUserNestedInput
+  devices?: Prisma.DeviceUpdateManyWithoutUserNestedInput
+  assignedServers?: Prisma.ServerUpdateManyWithoutAssignedUserNestedInput
+  events?: Prisma.EventUpdateManyWithoutActorUserNestedInput
+  passkeys?: Prisma.PasskeyUpdateManyWithoutUserNestedInput
+  twoFactors?: Prisma.TwoFactorUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutKeyApprovalsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  emailVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  image?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  role?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  banned?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  banReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  banExpires?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  twoFactorEnabled?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  locale?: Prisma.StringFieldUpdateOperationsInput | string
+  deactivatedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deactivatedReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deactivatedByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  deletionReason?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  deletionByUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sessions?: Prisma.SessionUncheckedUpdateManyWithoutUserNestedInput
+  accounts?: Prisma.AccountUncheckedUpdateManyWithoutUserNestedInput
+  members?: Prisma.MemberUncheckedUpdateManyWithoutUserNestedInput
+  invitations?: Prisma.InvitationUncheckedUpdateManyWithoutUserNestedInput
+  devices?: Prisma.DeviceUncheckedUpdateManyWithoutUserNestedInput
+  assignedServers?: Prisma.ServerUncheckedUpdateManyWithoutAssignedUserNestedInput
   events?: Prisma.EventUncheckedUpdateManyWithoutActorUserNestedInput
   passkeys?: Prisma.PasskeyUncheckedUpdateManyWithoutUserNestedInput
   twoFactors?: Prisma.TwoFactorUncheckedUpdateManyWithoutUserNestedInput
@@ -1956,6 +2151,7 @@ export type UserCreateWithoutEventsInput = {
   assignedServers?: Prisma.ServerCreateNestedManyWithoutAssignedUserInput
   passkeys?: Prisma.PasskeyCreateNestedManyWithoutUserInput
   twoFactors?: Prisma.TwoFactorCreateNestedManyWithoutUserInput
+  keyApprovals?: Prisma.KeyApprovalCreateNestedManyWithoutApprovedByInput
 }
 
 export type UserUncheckedCreateWithoutEventsInput = {
@@ -1986,6 +2182,7 @@ export type UserUncheckedCreateWithoutEventsInput = {
   assignedServers?: Prisma.ServerUncheckedCreateNestedManyWithoutAssignedUserInput
   passkeys?: Prisma.PasskeyUncheckedCreateNestedManyWithoutUserInput
   twoFactors?: Prisma.TwoFactorUncheckedCreateNestedManyWithoutUserInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedCreateNestedManyWithoutApprovedByInput
 }
 
 export type UserCreateOrConnectWithoutEventsInput = {
@@ -2032,6 +2229,7 @@ export type UserUpdateWithoutEventsInput = {
   assignedServers?: Prisma.ServerUpdateManyWithoutAssignedUserNestedInput
   passkeys?: Prisma.PasskeyUpdateManyWithoutUserNestedInput
   twoFactors?: Prisma.TwoFactorUpdateManyWithoutUserNestedInput
+  keyApprovals?: Prisma.KeyApprovalUpdateManyWithoutApprovedByNestedInput
 }
 
 export type UserUncheckedUpdateWithoutEventsInput = {
@@ -2062,6 +2260,7 @@ export type UserUncheckedUpdateWithoutEventsInput = {
   assignedServers?: Prisma.ServerUncheckedUpdateManyWithoutAssignedUserNestedInput
   passkeys?: Prisma.PasskeyUncheckedUpdateManyWithoutUserNestedInput
   twoFactors?: Prisma.TwoFactorUncheckedUpdateManyWithoutUserNestedInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedUpdateManyWithoutApprovedByNestedInput
 }
 
 
@@ -2079,6 +2278,7 @@ export type UserCountOutputType = {
   events: number
   passkeys: number
   twoFactors: number
+  keyApprovals: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2091,6 +2291,7 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   events?: boolean | UserCountOutputTypeCountEventsArgs
   passkeys?: boolean | UserCountOutputTypeCountPasskeysArgs
   twoFactors?: boolean | UserCountOutputTypeCountTwoFactorsArgs
+  keyApprovals?: boolean | UserCountOutputTypeCountKeyApprovalsArgs
 }
 
 /**
@@ -2166,6 +2367,13 @@ export type UserCountOutputTypeCountTwoFactorsArgs<ExtArgs extends runtime.Types
   where?: Prisma.TwoFactorWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountKeyApprovalsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.KeyApprovalWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -2196,6 +2404,7 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   events?: boolean | Prisma.User$eventsArgs<ExtArgs>
   passkeys?: boolean | Prisma.User$passkeysArgs<ExtArgs>
   twoFactors?: boolean | Prisma.User$twoFactorsArgs<ExtArgs>
+  keyApprovals?: boolean | Prisma.User$keyApprovalsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -2276,6 +2485,7 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   events?: boolean | Prisma.User$eventsArgs<ExtArgs>
   passkeys?: boolean | Prisma.User$passkeysArgs<ExtArgs>
   twoFactors?: boolean | Prisma.User$twoFactorsArgs<ExtArgs>
+  keyApprovals?: boolean | Prisma.User$keyApprovalsArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -2293,6 +2503,7 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     events: Prisma.$EventPayload<ExtArgs>[]
     passkeys: Prisma.$PasskeyPayload<ExtArgs>[]
     twoFactors: Prisma.$TwoFactorPayload<ExtArgs>[]
+    keyApprovals: Prisma.$KeyApprovalPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2717,6 +2928,7 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   events<T extends Prisma.User$eventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$eventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   passkeys<T extends Prisma.User$passkeysArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$passkeysArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$PasskeyPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   twoFactors<T extends Prisma.User$twoFactorsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$twoFactorsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TwoFactorPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  keyApprovals<T extends Prisma.User$keyApprovalsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$keyApprovalsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$KeyApprovalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3369,6 +3581,30 @@ export type User$twoFactorsArgs<ExtArgs extends runtime.Types.Extensions.Interna
   take?: number
   skip?: number
   distinct?: Prisma.TwoFactorScalarFieldEnum | Prisma.TwoFactorScalarFieldEnum[]
+}
+
+/**
+ * User.keyApprovals
+ */
+export type User$keyApprovalsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the KeyApproval
+   */
+  select?: Prisma.KeyApprovalSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the KeyApproval
+   */
+  omit?: Prisma.KeyApprovalOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.KeyApprovalInclude<ExtArgs> | null
+  where?: Prisma.KeyApprovalWhereInput
+  orderBy?: Prisma.KeyApprovalOrderByWithRelationInput | Prisma.KeyApprovalOrderByWithRelationInput[]
+  cursor?: Prisma.KeyApprovalWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.KeyApprovalScalarFieldEnum | Prisma.KeyApprovalScalarFieldEnum[]
 }
 
 /**

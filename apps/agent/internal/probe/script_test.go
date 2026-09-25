@@ -99,6 +99,7 @@ func TestBothProbesProduceTheSameJSON(t *testing.T) {
 	cases := map[string]fixture{
 		"bare":         bareUbuntu(),
 		"managed":      managedFixture(),
+		"secured":      securedFixture(),
 		"occupied":     occupiedFixture(),
 		"incompatible": debianFixture(),
 		"netstat":      netstatFixture(),

@@ -2,6 +2,8 @@ package backup_test
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"os"
@@ -234,7 +236,8 @@ func TestAConfigurationFromANewerAgentIsRefused(t *testing.T) {
 	manifest.Server.ConfigRevision = 99
 	rewritten, _ := json.Marshal(manifest)
 	bucket.PutObject(made.Key+"/"+contract.BackupManifestKey, rewritten, source.now)
-	location.SHA256 = ""
+	digest := sha256.Sum256(rewritten)
+	location.SHA256 = hex.EncodeToString(digest[:])
 
 	fresh := newBench(t, bucket)
 	if _, err := fresh.service.RestoreSetup(nil, location, fresh.secrets(), false); refusalCode(err) != contract.ErrorBackupUnsupported {

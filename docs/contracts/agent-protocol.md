@@ -1,6 +1,6 @@
 # Protocole app ↔ agent
 
-Le canal est une session SSH ouverte par l'app avec la clé du client, qui lance `pupitred serve`. L'app écrit une requête JSON par ligne sur l'entrée standard ; l'agent répond par une ligne JSON, ou par un flux d'événements puis une réponse. Les types vivent dans `packages/shared/src/agent-protocol/` et sont exportés en JSON Schema pour Go.
+Le canal est une session SSH ouverte par l'app avec la clé du client, qui lance `pupitred serve` — ou `pupitred serve --privileged`, voir [deux sessions](#deux-sessions--sans-mot-de-passe-et-privilégiée). L'app écrit une requête JSON par ligne sur l'entrée standard ; l'agent répond par une ligne JSON, ou par un flux d'événements puis une réponse. Les types vivent dans `packages/shared/src/agent-protocol/` et sont exportés en JSON Schema pour Go.
 
 ## Enveloppe
 
@@ -18,7 +18,7 @@ Le canal est une session SSH ouverte par l'app avec la clé du client, qui lance
 
 - `id` est choisi par l'app, croissant, jamais réutilisé dans une session.
 - Une ligne, requête ou événement, ne dépasse pas quatre mébioctets — la plus grande ligne légale du protocole, un `fs.write`, en tient moins de la moitié. Chaque côté coupe au-delà : l'app ferme le canal, l'agent répond `bad_request` puis ferme la session.
-- Les requêtes sont sérialisées côté app : une seule commande en vol par canal. Les commandes longues (`install`, `upgrade`, `project.pull`, `project.sync`) ouvrent un second canal pour ne pas bloquer les lectures d'état, les lectures que l'app fait sur minuterie (`snapshot`, `processes.list`) un troisième, pour qu'un geste n'attende jamais derrière elles, et les journaux suivis (`project.logs`, `service.logs`) un quatrième : un suivi tient son canal tant que le lecteur reste, et rien de borné ne doit attendre derrière lui.
+- Les requêtes sont sérialisées côté app : une seule commande en vol par canal. Les commandes longues (`project.pull`, `project.sync`) ouvrent un second canal pour ne pas bloquer les lectures d'état, les lectures que l'app fait sur minuterie (`snapshot`, `processes.list`) un troisième, pour qu'un geste n'attende jamais derrière elles, et les journaux suivis (`project.logs`, `service.logs`) un quatrième : un suivi tient son canal tant que le lecteur reste, et rien de borné ne doit attendre derrière lui. Ces quatre canaux sont la session sans mot de passe ; ce que le contrat garde pour `--privileged` — `install` et `upgrade` compris — passe sur un cinquième, ouvert à la demande et refermé après une minute sans usage.
 - Toute erreur porte un `code` stable, un `message` pour l'humain, un `fix` quand un remède existe, et un `remedy` quand ce remède tient dans une valeur.
 - La première commande d'une session est `hello` ; l'agent refuse le reste tant qu'elle n'a pas eu lieu.
 - **Une coupure emporte la session, pas la commande.** `pupitred serve` ignore la fermeture de ses descripteurs : `install`, `upgrade` et `harden` vont jusqu'au bout sans personne pour les lire, le rapport est écrit avant chaque étape, et un verrou sur `/var/lib/pupitre/install.lock` fait refuser `busy` à toute autre session — ou à `pupitred install` sur la machine — tant que cette exécution dure. L'app, elle, rouvre le canal aussi longtemps que la commande avait de temps, rejoue les étapes que le canal n'a pas portées d'après le rapport, et le relit jusqu'à `finished_at`. Un rapport daté d'avant la demande est celui d'une autre exécution : la coupure reste alors la seule vérité à dire, et `busy` en réponse à un `install` se suit comme une installation en cours.
@@ -43,7 +43,7 @@ Deux remèdes existent. `invalid_fields` accompagne `invalid_config` et porte le
 
 ## Commandes
 
-Tout ce qui suit est dans le contrat et répond sur `pupitred serve`. Neuf commandes ne sont appelées par aucun écran de l'app aujourd'hui : `status`, `doctor`, `diag`, `project.debug`, `sessions.list`, `secrets.sync`, `keys.list`, `keys.sync` et `tunnel.restart`. `status` et `doctor` s'obtiennent aussi sur la machine par `pupitred dev status` et `pupitred dev doctor` ; les autres n'ont que le protocole.
+Tout ce qui suit est dans le contrat et répond sur `pupitred serve --privileged` ; `pupitred serve` n'en répond qu'une partie, voir [deux sessions](#deux-sessions--sans-mot-de-passe-et-privilégiée). Neuf commandes ne sont appelées par aucun écran de l'app aujourd'hui : `status`, `doctor`, `diag`, `project.debug`, `sessions.list`, `secrets.sync`, `keys.list`, `keys.sync` et `tunnel.restart`. `status` et `doctor` s'obtiennent aussi sur la machine par `pupitred dev status` et `pupitred dev doctor` ; les autres n'ont que le protocole.
 
 ### Session
 
@@ -76,6 +76,7 @@ Tout ce qui suit est dans le contrat et répond sur `pupitred serve`. Neuf comma
 | `install.check` | `{ modules[], config, defer?: moduleId[] }` | `{ problems: FieldProblem[], warnings[] }` d'après [service-catalog.md](./service-catalog.md). Aucun secret ne l'accompagne et rien n'est touché : elle rejoue la validation des champs et y ajoute ce que seule la machine sait — un port déjà écouté, un dossier qui est un fichier, un fuseau que ce noyau ignore. Elle ne juge jamais un secret, que l'app est seule à détenir avant l'installation |
 | `uninstall` | `{ modules[] }` | événements `step`, puis `{ failed[] }` |
 | `harden` | `{ user: "dev" }` | événements `step`, puis `{ root_closed: boolean, root_kept: boolean, next_user, reason? }`. Ne ferme root que si une clé ouvre `dev`. `root_kept` dit que root reste ouvert parce que `keep_root` le demande, jamais parce que le durcissement a renoncé : les deux drapeaux ne sont jamais vrais ensemble, et un refus est `root_closed: false` avec sa `reason` |
+| `harden.sudo` | `{ user: "dev", secrets_stdin: true }`, puis la ligne `{ password_hash }` | événements `step`, puis `{ sudo: "password" }`. Donne à `dev` le mot de passe dont l'app a calculé l'empreinte, puis ne lui laisse sans mot de passe que `pupitred` ([décision 0015](../decisions/0015-sudo-par-mot-de-passe.md)) ; voir [le mot de passe sudo](#le-mot-de-passe-sudo) |
 | `upgrade` | `{ modules?: string[] }` | idem `install`, sur les modules déjà présents |
 | `module.config` | `{ id }` | ce que l'agent a retenu de la dernière demande pour ce module : `{ id, values, secrets[] }`. `values` porte la configuration en clair, `secrets[]` le seul nom des champs secrets détenus — aucune valeur de secret ne sort par là. C'est ce que l'app remet dans le formulaire d'un module déjà installé |
 | `report` | — | le rapport de l'installation en cours ou de la dernière ; `no_report` tant qu'aucune n'a eu lieu sur ce serveur. L'agent l'écrit avant chaque événement `step` : tant que l'installation court, `finished_at` est vide et une étape `start` sans fin est celle qui tourne. C'est ce qu'une app dont le canal a coupé relit, jusqu'à ce que `finished_at` soit posé |
@@ -92,7 +93,7 @@ Ils rendent aussi deux réponses du manifeste, pour que le tableau de bord de l'
 
 | Commande | Résultat |
 | --- | --- |
-| `snapshot` | `{ machine, services[], projects[], sessions[], entitlement }` en un appel, chaque projet avec ses `processes[]`. C'est ce que le tableau de bord lit toutes les 3 secondes |
+| `snapshot` | `{ machine, services[], projects[], sessions[], entitlement }` en un appel, chaque projet avec ses `processes[]`. C'est ce que le tableau de bord lit toutes les 3 secondes. `machine.sudo` dit ce que sudo demande à `dev` : `password` sous la règle de `harden.sudo`, `nopasswd_all` sous celle d'avant ; absent pour toute autre règle, et d'un agent antérieur au champ |
 | `status` | `{ services[], projects[] }` allégé |
 | `service.status` `{ id }` | état, version, port, identifiants (masqués), unité systemd, `versions[]` pour un runtime tenu à plusieurs majeures, `path` quand le poste du lecteur doit pointer un dossier que le module a posé (le backend qu'ouvre JetBrains Gateway), et `login` pour un module dont le CLI se connecte à un compte |
 | `completions` `{ path? }` | de quoi compléter une ligne de terminal : `{ command, sub[], projects[], root, path, paths[] }` |
@@ -274,10 +275,11 @@ Le format, le chiffrement et le déroulé sont dans [backups.md](./backups.md). 
 | Commande | Paramètres |
 | --- | --- |
 | `enroll` | `{ platform_url, secrets_stdin: true }` : le jeton d'enrôlement est lu sur le flux secret ; l'agent l'échange contre son jeton de serveur, écrit `platform_url` dans `/etc/pupitre/platform.url` — le battement de cœur et le droit d'usage tournent sans l'app, et rien d'autre ne leur dirait où répondre — puis lit `/agent/state` une première fois. Résultat `{ enrolled: true, entitlement, synced_at? }`. Répond aussi en [mode restreint](#mode-restreint), et c'est la commande qui en sort |
-| `keys.list` | — : les clés du bloc balisé, `{ keys[]: { fingerprint, comment?, device_id? }, synced_at? }`. `device_id` est réservé : aucun agent ne l'émet encore |
-| `keys.sync` | — : force une lecture de `/api/v1/agent/state` |
+| `keys.list` | — : les clés du bloc balisé, `{ keys[]: { fingerprint, comment?, device_id?, signer? }, synced_at? }`. `signer` dit que l'agent tient cette clé pour sûre et accepte ce qu'elle signe. `device_id` est réservé : aucun agent ne l'émet encore |
+| `keys.sync` | — : force une lecture de `/api/v1/agent/state`, et rend la même liste avec `pending[]`, les empreintes des clés que la plateforme demande et qu'aucune approbation valide ne couvre encore |
+| `keys.trust` | `{ public_key }` : une clé nue, `type base64`, Ed25519 ou ECDSA NIST, sans option ni commentaire. Elle devient signataire et entre tout de suite dans le bloc. C'est le geste de l'app, sur sa propre session SSH, juste après l'enrôlement : la racine de confiance est posée par SSH, jamais par la plateforme. Rend la liste de `keys.list`. Voir [les clés approuvées](#une-clé-nentre-que-sur-une-approbation) |
 | `platform.sync` | — : la même lecture, suivie du heartbeat. `{ synced_at, heartbeat_at? }`. L'app la demande à la fin d'une installation et d'un durcissement, pour que la console montre les modules au lieu d'un serveur vide pendant cinq minutes. Elle lit et rapporte, ne touche à rien de la machine, et reste donc ouverte en mode restreint : un serveur dont la plateforme n'a pas confirmé le droit d'usage est exactement celui qui doit redemander. Un `heartbeat_at` absent dit que l'état a été lu et que le battement n'est pas passé ; le daemon le refera |
-| `agent.upgrade` | `{ version?, signature?, allow_downgrade? }` : télécharge, vérifie, remplace, redémarre |
+| `agent.upgrade` | `{ version?, signature?, allow_downgrade? }` : télécharge, vérifie, remplace, redémarre. `busy` pendant une autre mise à jour, une installation, une sauvegarde ou une restauration. Un nouveau binaire qui ne répond pas à `hello` est remplacé par l'ancien, et la configuration qu'il a migrée est remise à la révision d'avant ([migrations de configuration](./config-migrations.md#lordre-dune-mise-à-jour)) |
 | `agent.migrate` | — : porte la configuration de la machine à la forme que ce binaire lit, et rend `{ revision, expected, state, applied[], pending[], backup?, failure?, restored }`. Elle répond toujours, même quand une migration a refusé : ce sont les autres commandes qui refusent alors. Voir [migrations de configuration](./config-migrations.md) |
 | `reboot` | — |
 | `doctor` | — : diagnostic court |
@@ -285,7 +287,7 @@ Le format, le chiffrement et le déroulé sont dans [backups.md](./backups.md). 
 
 ## Le flux secret
 
-Une commande qui porte un secret (`install`, `enroll`) annonce `secrets_stdin: true`. L'app écrit alors **la ligne suivante de l'entrée standard** avec les secrets en JSON, immédiatement après la requête ; l'agent la consomme avant d'appeler le handler, sans la journaliser ni la renvoyer. Aucun secret n'apparaît dans `params`, dans un événement ou dans un rapport.
+Une commande qui porte un secret (`install`, `enroll`, `harden.sudo`) annonce `secrets_stdin: true`. L'app écrit alors **la ligne suivante de l'entrée standard** avec les secrets en JSON, immédiatement après la requête ; l'agent la consomme avant d'appeler le handler, sans la journaliser ni la renvoyer. Aucun secret n'apparaît dans `params`, dans un événement ou dans un rapport.
 
 C'est bien l'entrée standard et non un descripteur séparé : `ssh` ne transmet que les descripteurs 0, 1 et 2, si bien qu'un `fd 3` ouvert par l'app n'atteindrait jamais l'agent. Comme les requêtes sont sérialisées, la ligne qui suit une requête à `secrets_stdin: true` est sans ambiguïté sa ligne de secrets.
 
@@ -312,6 +314,70 @@ Un champ `list` d'`items: "secret"` — `ai.hermes.providers`, par exemple — s
 ```jsonc
 { "ai.hermes": { "providers.0": "sk-…", "providers.1": "sk-…" } }
 ```
+
+Pour `harden.sudo`, la ligne porte l'empreinte `crypt` du mot de passe de `dev`, jamais le mot de passe (schéma `HardenSudoSecrets`, motif `SUDO_PASSWORD_HASH_PATTERN`) :
+
+```jsonc
+{ "password_hash": "$6$rounds=100000$…$…" }
+```
+
+## Le mot de passe sudo
+
+`harden.sudo` est le seul chemin vers la règle sudo de la [décision 0015](../decisions/0015-sudo-par-mot-de-passe.md). Aucune migration ne la pose : l'agent ne peut pas inventer un mot de passe que le client ne connaîtrait pas, si bien qu'un serveur installé avant elle garde `dev ALL=(ALL) NOPASSWD:ALL` jusqu'à ce que l'app appelle la commande. `core.system` pose cette règle d'avant sur un serveur neuf et ne réécrit jamais la nouvelle.
+
+**Ce que l'app fait.** Elle tire le mot de passe sur l'ordinateur — six groupes de quatre caractères sans ceux qu'on confond —, en calcule l'empreinte SHA-512 `crypt` (`$6$rounds=100000$…`), la seule chose qui part, et garde le mot de passe au trousseau. Elle appelle la commande juste après `harden`, sur la session rouverte en `dev`.
+
+**Ce que l'agent fait, dans cet ordre**, chaque étape un événement `step` :
+
+1. `check-sshd-passwords` — `sshd -T -C user=dev` doit rendre `passwordauthentication no`, et `no` pour `kbdinteractiveauthentication` et `challengeresponseauthentication` quand elles paraissent : un mot de passe sur un SSH qui en prend serait une porte depuis n'importe où. Sinon `bad_request`, rien n'est touché.
+2. `check-agent-binary` — `/usr/local/bin/pupitred` et chacun des dossiers au-dessus appartiennent à root, ne sont pas des liens, et ni le groupe ni les autres ne les écrivent. Sinon `internal`, rien n'est touché : la règle nommerait un binaire que `dev` pourrait remplacer.
+3. `set-password` — `chpasswd -e` reçoit `dev:<empreinte>` sur son entrée standard. Sauté quand `/etc/shadow` tient déjà cette empreinte.
+4. `restrict-sudo` — la règle est écrite dans `/etc/sudoers.d/.90-dev.pupitre`, un nom que sudo ne lit pas, vérifiée par `visudo -c -f`, puis écrite atomiquement dans `/etc/sudoers.d/90-dev`, 0440 root. Sautée quand le fichier la tient déjà.
+
+```
+dev ALL=(ALL:ALL) ALL
+dev ALL=(root) NOPASSWD: /usr/local/bin/pupitred serve, /usr/local/bin/pupitred binary install
+```
+
+sudo retient la dernière règle qui s'applique : celle de `pupitred` vient donc après celle qui demande le mot de passe. Une commande que sudoers écrit avec des arguments ne correspond qu'à ces arguments, exactement ; un joker y correspondrait aussi à une espace, donc à tout argument ajouté. La règle nomme deux lignes exactes et aucun joker : `sudo -n pupitred serve` et `sudo -n pupitred binary install` passent, `pupitred serve --privileged`, `pupitred serve ""`, `pupitred binary install --privileged` et toute autre sous-commande — `keys reset`, `migrate`, `install`, `dev`, `version` — tombent sur la première règle et demandent le mot de passe. `SETENV` n'est pas accordé : `sudo PUPITRE_…=… pupitred serve` et `sudo -E` sont refusés. Le mot de passe passe avant la règle : une règle qui demanderait un mot de passe que `dev` n'a pas enfermerait le client dehors. Un échec de `restrict-sudo` laisse donc `dev` avec le nouveau mot de passe et l'ancienne règle ; l'app garde le mot de passe dès que `set-password` n'a pas échoué.
+
+Rejouée, la commande ne change rien d'autre que le mot de passe qu'on lui donne : c'est ainsi qu'un mot de passe perdu se remplace depuis l'app. L'empreinte ne va ni dans `params`, ni au journal, ni dans un message d'erreur, où le refus d'une ligne mal formée ne cite que le motif attendu.
+
+**Poser un binaire d'agent en `dev`.** `sudo` n'ouvrant plus de shell à `dev`, l'app pousse le binaire dans un fichier de `dev` et le confie à `sudo -n pupitred binary install`, sur l'entrée standard, derrière une première ligne qui porte ce que la signature couvre : `{"version":"<v>","signature":"<b64>"}`. Ni la version ni la signature ne sont des arguments : la ligne que sudo laisse passer sans mot de passe reste exacte. `pupitred` vérifie la signature avec la clé qu'il porte, sur la version, son architecture et l'empreinte des octets reçus ([ce que la signature couvre](#ce-que-la-signature-dune-mise-à-jour-couvre)), refuse une version sous la sienne, puis se remplace comme `agent.upgrade` le fait, retour en arrière compris, et écrit `<empreinte>  <chemin>` sur sa sortie. Une ligne illisible, sans version ou avec un champ inconnu est refusée, code 1, avant tout remplacement. Tout drapeau fait une autre ligne de commande, que sudo n'ouvre que sur le mot de passe : `--allow-downgrade` lève le plancher, `--privileged` seul dit que le mot de passe a été donné. Un agent construit sans clé — un build du dépôt, l'agent de développement — n'a rien pour vérifier les octets : il refuse `binary install` en `privilege_required`, et ne pose le binaire que par `binary install --privileged`. L'app y fait passer un agent non signé avec le mot de passe sur la première ligne, lu par `sudo -S` — ou par le shell sous la règle d'avant, où sudo n'en demande pas. Un agent antérieur à la sous-commande répond par son usage, code 2 ; sur un tel serveur `dev` tient encore `NOPASSWD:ALL`, et l'app retombe sur l'installation par `sh -c`, sur les octets qui suivent la première ligne. La toute première installation, sur un serveur nu joint en root, n'a pas de `pupitred` pour vérifier quoi que ce soit : l'app y écrit le binaire qu'elle a vérifié elle-même.
+
+## Deux sessions : sans mot de passe et privilégiée
+
+`pupitred serve` est la ligne que sudo lance pour `dev` sans mot de passe : tout ce qui tourne en `dev` — un agent IA, un `postinstall`, un terminal — peut l'ouvrir. C'est la **session limitée**. `pupitred serve --privileged` est une autre ligne, que sudo ne lance que sur le mot de passe de `dev` : la **session privilégiée**. L'argument est ce que sudo a comparé ; aucun autre drapeau n'est admis, `pupitred serve` refuse tout argument inconnu par son usage, code 2. En root — l'onboarding avant la sécurisation —, l'app lance `pupitred serve --privileged` directement.
+
+La session limitée répond aux commandes de `LIMITED_COMMANDS` (`packages/shared`, exporté sous `LimitedCommands`), et refuse les autres par `privilege_required`, avec le `fix` qui nomme la session privilégiée, avant toute autre vérification et après avoir consommé une éventuelle ligne de secrets. C'est une liste blanche : une commande ajoutée au contrat est privilégiée tant qu'on ne l'y déclare pas. Chaque commande de la liste est au pire une gêne entre les mains de `dev` :
+
+| Session limitée | Pourquoi |
+| --- | --- |
+| `hello`, `ping`, `probe`, `catalog`, `report`, `snapshot`, `status`, `service.status`, `module.config`, `completions`, `doctor`, `diag`, `backup.status`, `backup.contents`, `keys.list`, `tunnel.status`, `db.url`, `db.shell` | des lectures qui ne rendent aucun secret que root tient : `module.config` tait les champs secrets, `service.status` ne nomme que des variables, `db.url` et `db.shell` rendent une adresse sans mot de passe et une ligne à taper |
+| `project.*`, `agent.open`, `sessions.*`, `processes.list`, `process.kill`, `shots.*`, `fs.*`, `secrets.sync` | le travail de `dev` sur ce qui est à `dev` : les processus tournent en `dev`, `fs.*` ne voit que son dossier par `os.Root`, `process.kill` ne vise qu'un processus de `dev`, les gabarits se lisent dans la racine du projet, le jeton 1Password est aussi dans l'environnement de `dev` |
+| `service.start`, `service.stop`, `service.restart`, `service.logs`, `tunnel.sync`, `tunnel.restart` | une unité déjà configurée, arrêtée ou relancée ; le tunnel ne publie que les routes du registre, sous le domaine du serveur |
+| `platform.sync`, `keys.sync` | ce que le daemon fait toutes les 30 secondes : une clé n'entre que sur une approbation signée |
+| `agent.upgrade`, `agent.migrate` | un binaire signé Ed25519 au-dessus du plancher, une migration vers l'avant — sans `allow_downgrade`, qui rend la commande privilégiée |
+
+| Session privilégiée seulement | Pourquoi |
+| --- | --- |
+| `install`, `install.check`, `upgrade`, `uninstall` | une configuration fournie par l'appelant devient des fichiers root et des commandes root ; `install.check` la fait peser par des préflights qui tiennent les secrets de la machine |
+| `harden`, `harden.sudo` | SSH, root et le mot de passe sudo de `dev` lui-même |
+| `service.secret`, `db.dump`, `db.import` | un secret de `/etc/pupitre/env`, une base entière, un dump de `~/dumps` joué par le superutilisateur du moteur |
+| `backup.run`, `backup.delete`, `backup.inspect`, `backup.restore.*` | une sauvegarde de plus élague les anciennes, une suppression les perd, une restauration réécrit la configuration |
+| `keys.trust`, `enroll` | à qui le serveur fait confiance, et à quelle plateforme il répond |
+| `reboot`, `agent.upgrade { allow_downgrade: true }` | la machine arrêtée ; un binaire signé mais connu faillible |
+
+**Ce que l'app fait.** Elle ouvre les quatre canaux de la session limitée comme avant, par `sudo -n pupitred serve`, et un cinquième, privilégié, à la demande, pour chaque commande que `requiresPrivilege` (`packages/shared`) désigne. Pour `dev`, ce canal lance :
+
+```sh
+if sudo -n true 2>/dev/null; then IFS= read -r p; exec sudo -n pupitred serve --privileged; fi
+exec sudo -S -p 'pupitre-sudo:' pupitred serve --privileged
+```
+
+et écrit sur la première ligne de l'entrée standard le mot de passe gardé au trousseau — une ligne vide quand l'ordinateur n'en tient pas —, puis le protocole. `sudo -S` lit cette ligne octet par octet et laisse le reste à `pupitred`. Sous la règle d'avant, sudo ne demande rien et la ligne irait à `pupitred` comme une requête : le shell la lit d'abord. Le mot de passe n'est jamais un argument, une variable d'environnement ni une ligne de journal. `pupitre-sudo:` est le prompt que sudo écrit avant chaque lecture : un second sur la sortie d'erreur est le mot de passe refusé — et `hello` lu comme la tentative suivante —, l'app coupe le canal et le dit (`privilege_required`, « refusé » ou « absent de cet ordinateur ») sans le retenter avec le même mot de passe. Le canal privilégié se referme après une minute sans usage.
+
+**Sur la machine.** `pupitred dev` parle de même à `sudo -n pupitred serve` quand le compte qui le tape ne lit pas le rattachement ; un verbe privilégié — `dev db dump`, `dev db import`, `dev backup now` — ouvre `sudo pupitred serve --privileged`, dont sudo demande le mot de passe sur le terminal, et refuse sans terminal.
 
 ## Un service se pilote sur son unité
 
@@ -422,6 +488,34 @@ La clé publique correspondante est **embarquée dans le binaire à l'édition d
 
 Ce format est la référence commune de la chaîne de publication, de l'agent et de l'app. Le changer casse les trois à la fois.
 
+## Une clé n'entre que sur une approbation
+
+La plateforme transmet les clés publiques des appareils ; elle ne peut plus ouvrir un serveur ([décision 0014](../decisions/0014-cles-approuvees-par-un-appareil.md)). L'agent tient une liste de **signataires** dans `/etc/pupitre/signers.json`, root, 0600, et n'écrit dans le bloc balisé d'`authorized_keys` qu'une clé signataire, ou une clé qui arrive avec une approbation signée par un signataire.
+
+**Qui devient signataire.** Une clé posée par `keys.trust` sur la session SSH de l'app, une clé acceptée par une approbation valide, la clé de `sudo pupitred keys reset`, et, une seule fois, les clés que le bloc tenait quand la migration 6 (`key-signers`) a tourné : un serveur déjà en service garde ses appareils sans que personne n'ait à les réapprouver.
+
+**Ce que `/agent/state` porte.** `keys[]`, une entrée par clé que la plateforme veut sur ce serveur : `{ public_key, user_id, device_id, approvals[] }`. `authorized_keys`, la liste nue d'avant, reste servie aux agents plus anciens ; un agent de cette version l'ignore. Une réponse sans `keys` laisse le bloc et les signataires tels qu'ils sont.
+
+**Une approbation** est `{ server_id, public_key, user_id, issued_at, signer, signature }` (`KeyApproval` dans `packages/shared/src/keys`). `signature` est une signature SSHSIG armurée, faite par `ssh-keygen -Y sign -n pupitre-key-approval` avec la clé privée d'un appareil, qui ne quitte jamais son ordinateur, sur ces octets exacts, cinq lignes terminées chacune par un seul `\n`, ASCII :
+
+```
+pupitre-key-approval-v1
+server_id:<server_id>
+public_key:<type> <base64>
+user_id:<user_id>
+issued_at:<AAAA-MM-JJTHH:MM:SSZ>
+```
+
+Rien n'est retaillé ni réordonné d'un côté ou de l'autre. La clé est `type base64` sans commentaire ; la date est UTC, à la seconde. Les deux côtés sont tenus au même jeu d'essai, fait par un vrai `ssh-keygen` (`packages/shared/src/keys/fixtures.json`, exporté en `key-approval.fixtures.json` pour l'agent).
+
+**Ce que l'agent vérifie** avant d'accepter une clé : les champs tiennent leurs motifs ; `server_id` est l'identifiant que ce serveur a déjà noté, jamais celui que la réponse du moment annonce ; `public_key` et `user_id` sont ceux de l'entrée ; la clé est Ed25519 ou ECDSA NIST, sans option, sans caractère de contrôle ; `issued_at` a moins de sept jours et pas plus de cinq minutes d'avance ; `signer` est l'empreinte d'un signataire et la clé portée par l'enveloppe est la sienne ; l'espace de noms est `pupitre-key-approval`, le hachage `sha512` ou `sha256` ; la signature vérifie ; et la date est postérieure au dernier retrait de cette clé, pour qu'une approbation rejouée ne ramène pas un appareil qu'on a retiré. Sinon l'entrée est ignorée et comptée **en attente**. Une clé acceptée devient signataire à son tour.
+
+**Retirer ne demande rien.** Un signataire que la plateforme ne demande plus quitte le bloc et la liste, et son retrait est noté. Mais l'agent **ne retire jamais la dernière clé** : quand il ne resterait rien, le bloc et les signataires restent tels qu'ils sont. Une révocation du jeton de serveur suspend le droit d'usage et ne touche plus aux clés, pour la même raison.
+
+**Le heartbeat** porte `keys: { signers[], pending[] }`, des empreintes seulement — la plateforme a déjà les clés publiques. Un changement de l'ensemble en attente fait battre le daemon tout de suite, pour que l'app d'un appareil signataire propose l'approbation sans attendre cinq minutes.
+
+**Le secours** est sur la machine : depuis la console de l'hébergeur, `sudo pupitred keys reset --key <clé publique ou fichier .pub>` remplace le bloc et les signataires par cette clé seule. L'onboarding de l'app la reprend ensuite, et repose sa propre clé d'appareil par `keys.trust`.
+
 ## Le plancher de version
 
 Une signature ne périme jamais : le binaire vulnérable d'hier reste signé demain. Sans garde-fou, qui tient le canal peut donc réinstaller une version ancienne et connue faillible. L'agent refuse de descendre.
@@ -430,7 +524,7 @@ Une signature ne périme jamais : le binaire vulnérable d'hier reste signé dem
 
 La version courante est le plancher qui compte, parce que l'agent la connaît sans rien demander : elle tient quand la plateforme est injoignable, c'est-à-dire précisément quand un canal hostile a le plus de latitude. `minimum_version` est la mémoire de la plateforme — la dernière version qu'elle a vue tourner sur ce serveur — et sert le cas où le binaire a été remplacé sans l'accord de l'agent : celui qui redémarre en 0.9.0 se voit rappeler qu'on l'a connu en 1.4.0. Quand la plateforme ne répond pas, le plancher se réduit à la version courante, et la mise à jour vers l'avant reste possible : un agent périmé doit rester réparable.
 
-`allow_downgrade: true` lève le plancher, et rien d'autre : la signature, l'empreinte, la version et l'architecture sont vérifiées comme toujours. C'est un geste explicite du propriétaire, que l'app ne compose pas seule ; le refus qui le précède porte le `fix` qui le nomme.
+`allow_downgrade: true` lève le plancher, et rien d'autre : la signature, l'empreinte, la version et l'architecture sont vérifiées comme toujours. C'est un geste explicite du propriétaire, que l'app ne compose pas seule ; le refus qui le précède porte le `fix` qui le nomme. La session limitée le refuse par `privilege_required` : un binaire signé mais connu faillible, choisi par qui tient `dev`, serait du code root de son choix.
 
 ## Versionnage
 

@@ -20,6 +20,7 @@ import { restoring } from "./backups";
 import { declaredModules } from "./catalog";
 import { managedValues, weighedValues } from "./connections";
 import { prepareAgent } from "./enrollment-run";
+import { ed25519Fingerprint } from "./host-keys";
 import { inspect } from "./inspection";
 import {
   type EnrollmentGrant,
@@ -34,6 +35,7 @@ import { refuseWith } from "./refusal";
 import { relayTo } from "./relay";
 import { byId, noteGrant, paths } from "./servers";
 import { sshArgs } from "./ssh-config";
+import { sudoPasswordFor } from "./sudo-held";
 import { usageRefusal } from "./usage-guard";
 
 /**
@@ -80,6 +82,7 @@ async function deliver(
     bind: noteGrant,
     build: buildKind(),
     embedded: (wanted) => agentPayload(agentResourcesDir(), wanted),
+    hostFingerprint: (held) => ed25519Fingerprint(held, paths()),
     releaseKey: AGENT_RELEASE_PUBLIC_KEY,
   });
 
@@ -91,6 +94,7 @@ async function deliver(
 
   const sent = await sendAgentBinary({
     args: sshArgs(server, paths()),
+    password: sudoPasswordFor(serverId),
     payload: prepared.result.payload,
     user: server.user,
   });
@@ -101,6 +105,10 @@ async function deliver(
         result: { ...sent.result, enrollment: prepared.result.enrollment },
       }
     : sent;
+}
+
+export function accountDeviceKey(): string | null {
+  return account.state().device?.publicKey ?? null;
 }
 
 export function enrollmentGrant(
@@ -180,6 +188,7 @@ async function sendAgent(
 
   const enrolled = await enrolAgent(serverId, sent.result.enrollment, {
     client: agentClient,
+    deviceKey: accountDeviceKey,
     enrollment: enrollmentGrant,
     identity: (id) => agentClient.session(id)?.server_id ?? null,
   });
@@ -224,6 +233,7 @@ export function registerInstall(): void {
         update,
         {
           client: agentClient,
+          deviceKey: accountDeviceKey,
           identity: (id) => agentClient.session(id)?.server_id ?? null,
           declared: declaredModules,
           deliver,

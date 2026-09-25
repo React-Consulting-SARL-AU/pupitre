@@ -20,7 +20,7 @@ func serveOn(t *testing.T, lines ...string) []string {
 	t.Helper()
 
 	var out bytes.Buffer
-	if err := newServer(newEngine()).Serve(strings.NewReader(strings.Join(lines, "\n")+"\n"), &out); err != nil {
+	if err := newServer(newEngine(), false).Serve(strings.NewReader(strings.Join(lines, "\n")+"\n"), &out); err != nil {
 		t.Fatalf("serve: %v", err)
 	}
 

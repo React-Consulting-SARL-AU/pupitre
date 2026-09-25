@@ -3,12 +3,17 @@
 package staging
 
 import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"io"
 	"os"
 	"strings"
 	"testing"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/s3"
 )
 
 // The identity of the backup fixtures: what "correct horse battery staple" derives with this salt.
@@ -57,8 +62,26 @@ func (b bucket) secrets(private bool) string {
 	return string(encoded)
 }
 
-func (b bucket) location(key string) contract.BackupLocation {
-	return contract.BackupLocation{Endpoint: b.endpoint, Region: b.region, Bucket: b.name, Key: key, PathStyle: true}
+// location carries the manifest's digest as the platform records it: a restore refuses a location without one.
+func (b bucket) location(t *testing.T, key string) contract.BackupLocation {
+	t.Helper()
+
+	location := contract.BackupLocation{Endpoint: b.endpoint, Region: b.region, Bucket: b.name, Key: key, PathStyle: true}
+	client := s3.Client{Endpoint: b.endpoint, Region: b.region, Bucket: b.name, AccessKeyID: b.accessKey, SecretAccessKey: b.secretKey, PathStyle: true}
+
+	body, err := client.Get(context.Background(), key+"/"+contract.BackupManifestKey)
+	if err != nil {
+		t.Fatalf("manifest of %s: %v", key, err)
+	}
+	defer body.Close()
+
+	hasher := sha256.New()
+	if _, err := io.Copy(hasher, body); err != nil {
+		t.Fatalf("manifest of %s: %v", key, err)
+	}
+	location.SHA256 = hex.EncodeToString(hasher.Sum(nil))
+
+	return location
 }
 
 // A server the platform has not named yet has no prefix to back up under: the test names it when it must.
@@ -100,8 +123,10 @@ func TestABackupLeavesTheServerSealedAndComesBack(t *testing.T) {
 		t.Fatalf("backup = %+v", made)
 	}
 
+	location := store.location(t, made.Key)
+
 	inspected := decode[contract.BackupManifest](t, agentWithSecrets(t, host, store.secrets(false), request{Cmd: "backup.inspect", Params: map[string]any{
-		"location": store.location(made.Key), "secrets_stdin": true,
+		"location": location, "secrets_stdin": true,
 	}})[0].Result)
 	if inspected.ID != made.ID || inspected.Recipient != stagingRecipient {
 		t.Fatalf("manifest = %+v", inspected)
@@ -117,7 +142,7 @@ func TestABackupLeavesTheServerSealedAndComesBack(t *testing.T) {
 	ssh(t, host, "sudo", "-n", "rm", "-rf", "/home/dev/"+stagingNotes)
 
 	restored := decode[contract.BackupRestoreDataResult](t, agentWithSecrets(t, host, store.secrets(true), request{Cmd: "backup.restore.data", Params: map[string]any{
-		"location": store.location(made.Key), "parts": []string{pathKey}, "start": false, "secrets_stdin": true,
+		"location": location, "parts": []string{pathKey}, "start": false, "secrets_stdin": true,
 	}})[0].Result)
 	if len(restored.Failed) != 0 || len(restored.Restored) != 1 {
 		t.Fatalf("restore = %+v", restored)
@@ -132,7 +157,7 @@ func TestABackupLeavesTheServerSealedAndComesBack(t *testing.T) {
 		t.Fatal("the backup must leave the bucket")
 	}
 
-	gone := attempt(t, host, request{Cmd: "backup.inspect", Params: map[string]any{"location": store.location(made.Key), "secrets_stdin": true}, Secrets: store.secrets(false)})[0]
+	gone := attempt(t, host, request{Cmd: "backup.inspect", Params: map[string]any{"location": location, "secrets_stdin": true}, Secrets: store.secrets(false)})[0]
 	if gone.OK || !strings.Contains(string(gone.Error), string(contract.ErrorBackupMissing)) {
 		t.Fatalf("a deleted backup: %s", gone.Error)
 	}

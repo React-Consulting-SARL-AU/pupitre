@@ -198,9 +198,9 @@ func Remove(ctx sys.Context, path string) (bool, error) {
 	return true, ctx.Sys().Remove(path)
 }
 
-// A block edits a file that is someone else's: the file keeps the mode it had.
+// A block edits a file that is someone else's: it keeps its mode, and a link at its name is followed only within its folder.
 func EnsureBlock(ctx sys.Context, path, name string, content []byte) (bool, error) {
-	current, err := ctx.Sys().ReadFile(path)
+	current, err := ownedBySomeoneElse(ctx, path)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return false, err
 	}
@@ -215,8 +215,12 @@ func EnsureBlock(ctx sys.Context, path, name string, content []byte) (bool, erro
 	return true, ctx.Sys().WriteFile(path, updated, sys.KeepMode)
 }
 
+func ownedBySomeoneElse(ctx sys.Context, path string) ([]byte, error) {
+	return ctx.Sys().ReadFileIn(filepath.Dir(path), filepath.Base(path))
+}
+
 func ReadBlock(ctx sys.Context, path, name string) ([]byte, bool) {
-	current, err := ctx.Sys().ReadFile(path)
+	current, err := ownedBySomeoneElse(ctx, path)
 	if err != nil {
 		return nil, false
 	}
@@ -242,13 +246,13 @@ func WithBlock(current []byte, name string, content []byte) []byte {
 }
 
 func HasBlock(ctx sys.Context, path, name string) bool {
-	current, err := ctx.Sys().ReadFile(path)
+	current, err := ownedBySomeoneElse(ctx, path)
 
 	return err == nil && strings.Contains(string(current), blockStart(name)+"\n") && strings.Contains(string(current), blockEnd(name)+"\n")
 }
 
 func RemoveBlock(ctx sys.Context, path, name string) (bool, error) {
-	current, err := ctx.Sys().ReadFile(path)
+	current, err := ownedBySomeoneElse(ctx, path)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return false, nil

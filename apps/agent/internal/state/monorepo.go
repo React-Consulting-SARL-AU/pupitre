@@ -8,7 +8,6 @@ import (
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/registry"
-	"pupitre.studio/agent/internal/sys/file"
 )
 
 // A Turborepo runs every workspace from its root, in one window: the project holds the root's command and one port per workspace that listens.
@@ -77,7 +76,7 @@ func (s sources) workspaces(globs []string) []workspace {
 
 	for _, glob := range globs {
 		for _, dir := range s.expand(glob) {
-			member := sources{ctx: s.ctx, root: s.root + "/" + dir}
+			member := s.sub(dir)
 			manifest := member.packageJSON()
 			if !manifest.Present {
 				continue
@@ -117,16 +116,9 @@ func (s sources) expand(glob string) []string {
 		return nil
 	}
 
-	entries, err := file.List(s.ctx, s.root+"/"+parent)
-	if err != nil {
-		return nil
-	}
-
 	var dirs []string
-	for _, entry := range entries {
-		if entry.Dir && !strings.HasPrefix(entry.Name, ".") {
-			dirs = append(dirs, parent+"/"+entry.Name)
-		}
+	for _, name := range s.folders(parent) {
+		dirs = append(dirs, parent+"/"+name)
 	}
 
 	return dirs

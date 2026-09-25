@@ -13,6 +13,7 @@ import {
   PROJECT_LOOK,
 } from "@renderer/lib/project-state";
 import { publicUrl } from "@renderer/lib/public-url";
+import type { Gesture } from "@renderer/lib/use-pending";
 import type { ProjectAction } from "@renderer/stores/snapshot";
 import { ExternalLink, Package, Play, RotateCw, Square } from "lucide-react";
 
@@ -35,7 +36,7 @@ export function DashboardProjectCard({
   project: Project;
   busy: boolean;
   onOpen: (name: string) => void;
-  onAct: (action: ProjectAction, name: string) => void;
+  onAct: Gesture<[ProjectAction, string]>;
 }) {
   const t = useTranslations();
   const address = publicUrl(project.url);

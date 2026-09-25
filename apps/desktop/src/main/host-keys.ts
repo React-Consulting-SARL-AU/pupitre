@@ -31,6 +31,7 @@ const CHANGED_MARKS = [
 
 const FINGERPRINT = /SHA256:[A-Za-z0-9+/=]+/;
 const FINGERPRINTS = /SHA256:[A-Za-z0-9+/=]+/g;
+const ED25519_LISTED = /\sED25519\s+SHA256:/;
 const SCAN_TIMEOUT_S = 3;
 const FILE_MODE = 0o600;
 
@@ -195,6 +196,46 @@ export async function observedFingerprint(
   } catch {
     return null;
   }
+}
+
+/**
+ * The Ed25519 fingerprint the app's known_hosts holds for that server, the one
+ * key the agent declares when it trades its token; null when `ssh` settled on
+ * another type, and the platform then pins what the agent declares.
+ */
+export async function ed25519Fingerprint(
+  server: Address,
+  paths: SshPaths
+): Promise<string | null> {
+  if (!existsSync(paths.knownHostsPath)) {
+    return null;
+  }
+
+  try {
+    const { stdout } = await run("ssh-keygen", [
+      "-l",
+      "-F",
+      knownHostsKey(server),
+      "-f",
+      paths.knownHostsPath,
+    ]);
+
+    return ed25519Of(stdout);
+  } catch {
+    return null;
+  }
+}
+
+export function ed25519Of(listing: string): string | null {
+  for (const line of listing.split("\n")) {
+    if (line.startsWith("#") || !ED25519_LISTED.test(line)) {
+      continue;
+    }
+
+    return FINGERPRINT.exec(line)?.[0] ?? null;
+  }
+
+  return null;
 }
 
 /** Forgets the recorded key, so the next contact pins whatever answers. */

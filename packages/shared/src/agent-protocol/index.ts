@@ -33,6 +33,8 @@ import {
   CatalogResultSchema,
   HardenParamsSchema,
   HardenResultSchema,
+  HardenSudoParamsSchema,
+  HardenSudoResultSchema,
   InstallCheckParamsSchema,
   InstallCheckResultSchema,
   InstallParamsSchema,
@@ -129,6 +131,7 @@ import {
   EnrollParamsSchema,
   EnrollResultSchema,
   KeysListResultSchema,
+  KeysTrustParamsSchema,
   PlatformSyncResultSchema,
 } from "./system"
 
@@ -148,6 +151,10 @@ export const COMMANDS = {
   },
   uninstall: { params: UninstallParamsSchema, result: UninstallResultSchema },
   harden: { params: HardenParamsSchema, result: HardenResultSchema },
+  "harden.sudo": {
+    params: HardenSudoParamsSchema,
+    result: HardenSudoResultSchema,
+  },
   upgrade: { params: UpgradeParamsSchema, result: InstallResultSchema },
   report: { params: EmptyParamsSchema, result: InstallReportSchema },
   snapshot: { params: EmptyParamsSchema, result: SnapshotResultSchema },
@@ -349,6 +356,7 @@ export const COMMANDS = {
   enroll: { params: EnrollParamsSchema, result: EnrollResultSchema },
   "keys.list": { params: EmptyParamsSchema, result: KeysListResultSchema },
   "keys.sync": { params: EmptyParamsSchema, result: KeysListResultSchema },
+  "keys.trust": { params: KeysTrustParamsSchema, result: KeysListResultSchema },
   "platform.sync": {
     params: EmptyParamsSchema,
     result: PlatformSyncResultSchema,
@@ -454,6 +462,104 @@ export const UNENROLLED_COMMANDS = [
 ] as const satisfies readonly CommandName[]
 
 export type UnenrolledCommandName = (typeof UNENROLLED_COMMANDS)[number]
+
+/**
+ * What `pupitred serve` answers without `--privileged`: the session sudo opens
+ * for `dev` without a password (decision 0015), which anything running as
+ * `dev` can open too — an AI agent, a `postinstall`.
+ *
+ * Each command here is at worst an inconvenience in such hands: a read that
+ * reveals no secret root holds, a gesture on `dev`'s own projects, files and
+ * processes, a unit already configured started or stopped, a signed agent
+ * placed above its floor. What configures the machine, reveals a secret,
+ * changes whom the server trusts or where it reports, restores, deletes a
+ * backup or reboots stays with `pupitred serve --privileged`, which sudo only
+ * runs on the client's password. A whitelist: a command added to the contract
+ * is privileged until it is declared here.
+ */
+export const LIMITED_COMMANDS = [
+  "hello",
+  "ping",
+  "probe",
+  "catalog",
+  "module.config",
+  "report",
+  "snapshot",
+  "status",
+  "service.status",
+  "service.start",
+  "service.stop",
+  "service.restart",
+  "service.logs",
+  "completions",
+  "project.list",
+  "project.add",
+  "project.detect",
+  "project.update",
+  "project.remove",
+  "project.up",
+  "project.down",
+  "project.restart",
+  "project.logs",
+  "project.pull",
+  "project.sync",
+  "project.install",
+  "project.env",
+  "project.branches",
+  "project.checkout",
+  "project.git_status",
+  "project.working_tree",
+  "project.diff",
+  "project.url",
+  "project.debug",
+  "agent.open",
+  "sessions.list",
+  "sessions.clean",
+  "processes.list",
+  "process.kill",
+  "shots.list",
+  "shots.url",
+  "shots.read",
+  "shots.clean",
+  "fs.list",
+  "fs.stat",
+  "fs.read",
+  "fs.write",
+  "fs.mkdir",
+  "fs.rename",
+  "fs.remove",
+  "secrets.sync",
+  "db.shell",
+  "db.url",
+  "tunnel.status",
+  "tunnel.sync",
+  "tunnel.restart",
+  "backup.status",
+  "backup.contents",
+  "keys.list",
+  "keys.sync",
+  "platform.sync",
+  "agent.upgrade",
+  "agent.migrate",
+  "doctor",
+  "diag",
+] as const satisfies readonly CommandName[]
+
+export type LimitedCommandName = (typeof LIMITED_COMMANDS)[number]
+
+/** `allow_downgrade` lifts the version floor: a signed but older, known-faulty agent is root code of the caller's choosing. */
+export function requiresPrivilege(cmd: string, params?: unknown): boolean {
+  if (!(LIMITED_COMMANDS as readonly string[]).includes(cmd)) {
+    return true
+  }
+
+  return (
+    cmd === "agent.upgrade" &&
+    typeof params === "object" &&
+    params !== null &&
+    (params as { allow_downgrade?: unknown }).allow_downgrade === true
+  )
+}
 
 export function isAllowedWithoutEnrolment(
   cmd: string

@@ -1,7 +1,8 @@
 import { t } from "elysia"
 import { dateTime } from "../../openapi-models"
 import { backupBeatSchema } from "../backups/schemas"
-import { architectureSchema } from "../servers/schemas"
+import { agentStateKeySchema, keysBeatSchema } from "../key-approval-schemas"
+import { architectureSchema, sshUserSchema } from "../servers/schemas"
 
 export const exchangeBody = t.Object({
   enrollment_token: t.String({ minLength: 1 }),
@@ -20,6 +21,7 @@ export const agentStateSchema = t.Object(
     entitlement: t.UnionEnum(["valid", "grace", "suspended"]),
     valid_until: dateTime,
     authorized_keys: t.Array(t.String()),
+    keys: t.Array(agentStateKeySchema),
     target_version: t.Nullable(t.String()),
     minimum_version: t.Nullable(t.String()),
     hostname: t.String(),
@@ -47,7 +49,7 @@ export const heartbeatBody = t.Object({
   agent_version: t.Optional(t.String({ minLength: 1, maxLength: 40 })),
   // The account whose authorized_keys the agent manages, hence the one the
   // apps must open the machine with once hardening moved it off root.
-  ssh_user: t.Optional(t.String({ minLength: 1, maxLength: 32 })),
+  ssh_user: t.Optional(sshUserSchema),
 
   // The quantities behind the percentages. Optional: an agent older than this
   // field sends none, and the console then has only the percentage to show.
@@ -56,4 +58,5 @@ export const heartbeatBody = t.Object({
   ram_total_mb: t.Optional(t.Number({ minimum: 0 })),
   ram_used_mb: t.Optional(t.Number({ minimum: 0 })),
   backup: t.Optional(backupBeatSchema),
+  keys: t.Optional(keysBeatSchema),
 })

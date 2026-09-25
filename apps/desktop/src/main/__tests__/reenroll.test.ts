@@ -58,8 +58,11 @@ const ENROLLED: Enrollment = {
 
 let fake: FakeAgent | null = null;
 
+/** The machine is read on the session sudo opens without a password, the enrolment rides the privileged one. */
+const RESTRICTED = ["reenroll-restricted.jsonl", "reenroll-enroll.jsonl"];
+
 function agent(
-  fixture: string,
+  fixture: string[],
   guard: AccountResponse<UsageRight> = GRANTED
 ): AgentClient {
   fake = fakeAgent(fixture);
@@ -121,7 +124,7 @@ afterEach(() => {
 
 describe("un serveur restreint au jeton révoqué", () => {
   it("redevient valide après l'action, sans passer par la console", async () => {
-    const client = agent("reenroll-restricted.jsonl");
+    const client = agent(RESTRICTED);
 
     const before = await client.request(SERVER, "project.down", {
       name: "api",
@@ -157,37 +160,41 @@ describe("un serveur restreint au jeton révoqué", () => {
       "id=1 cmd=hello",
       "id=2 cmd=project.down",
       "id=3 cmd=snapshot",
-      "id=4 cmd=enroll",
-      "id=5 cmd=snapshot",
-      "id=6 cmd=project.down",
+      "id=1 cmd=hello",
+      "id=2 cmd=enroll",
+      "id=4 cmd=snapshot",
+      "id=5 cmd=project.down",
     ]);
+    expect(fake?.purposes()).toEqual(["control", "privileged"]);
 
     client.closeAll();
   });
 
   /**
-   * The promise: nothing that runs stops. The repair opens no second channel,
-   * sends no install and asks for no restart — one `snapshot` to read the
-   * machine, one `enroll` to repair the right.
+   * The promise: nothing that runs stops. The repair sends no install and asks
+   * for no restart — one `snapshot` to read the machine, one `enroll` to repair
+   * the right, on the privileged session since it rewrites where the server
+   * reports.
    */
   it("ne demande au serveur que de quoi lire la machine et refaire l'échange", async () => {
-    const client = agent("reenroll-restricted.jsonl");
+    const client = agent(RESTRICTED);
 
     const repaired = await runReenroll(SERVER, deps(client));
 
     expect(repaired.ok).toBe(true);
-    expect(fake?.started()).toBe(1);
+    expect(fake?.purposes()).toEqual(["control", "privileged"]);
     expect(fake?.trace()).toEqual([
       "id=1 cmd=hello",
       "id=2 cmd=snapshot",
-      "id=3 cmd=enroll",
+      "id=1 cmd=hello",
+      "id=2 cmd=enroll",
     ]);
 
     client.closeAll();
   });
 
   it("enrôle sur l'architecture que la machine a déclarée, sans sonde", async () => {
-    const client = agent("reenroll-restricted.jsonl");
+    const client = agent(RESTRICTED);
     const asked: string[] = [];
     let probed = 0;
 
@@ -219,7 +226,7 @@ describe("un serveur restreint au jeton révoqué", () => {
 
 describe("le jeton d'enrôlement", () => {
   it("ne paraît dans aucun params, aucun journal, aucun résultat", async () => {
-    const client = agent("reenroll-restricted.jsonl");
+    const client = agent(RESTRICTED);
     const held = vault();
 
     const repaired = await runReenroll(SERVER, deps(client, held));
@@ -253,7 +260,7 @@ describe("le jeton d'enrôlement", () => {
   });
 
   it("n'envoie rien au serveur quand la plateforme n'a accordé aucun jeton", async () => {
-    const client = agent("reenroll-restricted.jsonl");
+    const client = agent(RESTRICTED);
 
     const repaired = await runReenroll(
       SERVER,
@@ -272,7 +279,7 @@ describe("le jeton d'enrôlement", () => {
 
 describe("un compte sans droit d'usage", () => {
   it("refuse la réparation dans les mots du compte, sans toucher la plateforme", async () => {
-    const client = agent("reenroll-restricted.jsonl", ABSENT);
+    const client = agent(RESTRICTED, ABSENT);
     let asked = 0;
 
     const repaired = await runReenroll(
@@ -306,7 +313,7 @@ describe("un compte sans droit d'usage", () => {
    * offers a gesture the platform would refuse.
    */
   it("s'accorde avec le garde des canaux, qui tient enroll comme toute commande mutante", async () => {
-    const client = agent("reenroll-restricted.jsonl", ABSENT);
+    const client = agent(RESTRICTED, ABSENT);
 
     const refused = await client.request(SERVER, "enroll", {
       platform_url: PLATFORM,
@@ -321,7 +328,7 @@ describe("un compte sans droit d'usage", () => {
   });
 
   it("rend le refus de la plateforme tel quel quand c'est elle qui refuse", async () => {
-    const client = agent("reenroll-restricted.jsonl");
+    const client = agent(RESTRICTED);
 
     const repaired = await runReenroll(
       SERVER,

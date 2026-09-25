@@ -199,6 +199,9 @@ func (f *transcript) directive(t *testing.T, path, line string) {
 	case "fail":
 		program, stderr, _ := strings.Cut(rest, " ")
 		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.FailProgram(program, stderr) })
+	case "failline":
+		fragment, stderr := cutAnswer(rest)
+		f.prepare = append(f.prepare, func(fake *FakeSys) { fake.FailLine(fragment, stderr) })
 	default:
 		t.Fatalf("%s: unknown directive %q", path, line)
 	}

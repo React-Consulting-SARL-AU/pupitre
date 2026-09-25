@@ -28,6 +28,9 @@ export const AGENT_REMOTE_PATH = "/usr/local/bin/pupitred";
 
 const AGENT_STAGING_PATH = "/usr/local/bin/.pupitred.new";
 
+/** A build of the repository publishes no version: its agent carries no release key, and places it unchecked. */
+const UNRELEASED = "0.0.0-unreleased";
+
 /**
  * Written aside, then renamed over the old one: replacing a running `pupitred`
  * in place would fail with ETXTBSY on the very server that is answering us.
@@ -39,20 +42,91 @@ const AGENT_STAGING_PATH = "/usr/local/bin/.pupitred.new";
  */
 export const AGENT_INSTALL_COMMAND = `set -e; install -m 755 /dev/stdin ${AGENT_STAGING_PATH}; sha256sum ${AGENT_STAGING_PATH}; mv -f ${AGENT_STAGING_PATH} ${AGENT_REMOTE_PATH}; systemctl restart pupitred 2>/dev/null || true`;
 
+/** What the signature covers, and what the agent is asked to check it against. */
+export interface PushedRelease {
+  version: string;
+  signature: string | null;
+}
+
+const SHELL_VERSION = /^[0-9A-Za-z.+-]+$/;
+
+const SHELL_SIGNATURE = /^[A-Za-z0-9+/=]+$/;
+
 /**
- * The install command for the account the push logs in as: `/usr/local/bin`
- * and the unit belong to root, and a hardened server is reached as `dev`,
- * who holds passwordless sudo for exactly this. Root needs none.
+ * The install command for the account the push logs in as.
+ *
+ * A bare server is reached as root, and has no `pupitred` yet to check
+ * anything: the binary the app verified is written as it is. A hardened one is
+ * reached as `dev`, whom sudo lets run exactly `pupitred binary install`
+ * without a password (decision 0015): the bytes land in a file of dev's,
+ * behind a first line saying what the signature covers, and pupitred checks
+ * the signature with the key it carries before it replaces itself. A build of
+ * the repository has no signature to check, so it goes by `--privileged`,
+ * which sudo runs on the password alone (`pushedInput` puts it first). An
+ * agent older than the command answers with its usage, exit 2 — on such a
+ * server dev still holds NOPASSWD:ALL, and the shell install is the one left.
+ *
+ * A version or a signature that would not read as one is no command at all.
  */
-export function installCommandAs(user: string): string {
-  return user === "root"
-    ? AGENT_INSTALL_COMMAND
-    : `sudo -n sh -c '${AGENT_INSTALL_COMMAND}'`;
+export function installCommandAs(
+  user: string,
+  release: PushedRelease
+): string | null {
+  if (user === "root") {
+    return AGENT_INSTALL_COMMAND;
+  }
+
+  if (
+    !SHELL_VERSION.test(release.version) ||
+    (release.signature !== null && !SHELL_SIGNATURE.test(release.signature))
+  ) {
+    return null;
+  }
+
+  const install = `${AGENT_REMOTE_PATH} binary install`;
+  const placed =
+    release.signature === null
+      ? [
+          `IFS= read -r p; cat > "$t"; s=0`,
+          `if sudo -n true 2>/dev/null; then sudo -n ${install} --privileged < "$t" || s=$?; else { printf '%s\\n' "$p"; cat "$t"; } | sudo -S -p '' ${install} --privileged || s=$?; fi`,
+        ]
+      : [`cat > "$t"; s=0`, `sudo -n ${install} < "$t" || s=$?`];
+
+  return [
+    `set -e; t=$(mktemp); trap 'rm -f "$t"' EXIT`,
+    ...placed,
+    `[ "$s" -eq 2 ] || exit "$s"`,
+    `tail -n +2 "$t" | sudo -n sh -c '${AGENT_INSTALL_COMMAND}'`,
+  ].join("; ");
+}
+
+/**
+ * What the push writes on standard input: the binary alone for root; for dev,
+ * the line the signature covers first, and before it the sudo password when
+ * the binary goes by the line only the password opens.
+ */
+export function pushedInput(
+  user: string,
+  payload: AgentPayload,
+  password: string | null
+): Buffer {
+  if (user === "root") {
+    return payload.content;
+  }
+
+  const header = `${JSON.stringify(
+    payload.signature === null
+      ? { version: payload.version }
+      : { signature: payload.signature, version: payload.version }
+  )}\n`;
+  const unlock = payload.signature === null ? `${password ?? ""}\n` : "";
+
+  return Buffer.concat([Buffer.from(unlock + header), payload.content]);
 }
 
 const SEND_TIMEOUT_MS = 180_000;
 
-export interface AgentPayload {
+export interface AgentPayload extends PushedRelease {
   arch: string;
   path: string;
   sha256: string;
@@ -62,8 +136,8 @@ export interface AgentPayload {
 
 export type ShellSpawn = (command: string, args: string[]) => ChildProcess;
 
-export function agentSshArgs(args: string[], user: string): string[] {
-  return ["-o", "BatchMode=yes", ...args, installCommandAs(user)];
+export function agentSshArgs(args: string[], command: string): string[] {
+  return ["-o", "BatchMode=yes", ...args, command];
 }
 
 function absent(arch: string): AgentResponse<never> {
@@ -152,7 +226,15 @@ export function agentPayload(
 
   return {
     ok: true,
-    result: { arch, bytes: content.byteLength, content, path, sha256 },
+    result: {
+      arch,
+      bytes: content.byteLength,
+      content,
+      path,
+      sha256,
+      signature: entry.signature ?? null,
+      version: manifest?.version ?? UNRELEASED,
+    },
   };
 }
 
@@ -177,6 +259,7 @@ export function sendAgentBinary({
   args,
   payload,
   user,
+  password = null,
   spawn = defaultSpawn,
   timeoutMs = SEND_TIMEOUT_MS,
 }: {
@@ -184,11 +267,26 @@ export function sendAgentBinary({
   payload: AgentPayload;
   /** The account `args` log in as: what decides whether the install goes through sudo. */
   user: string;
+  /** The sudo password of `dev`, for a binary without a signature: it rides the first line, never the command. */
+  password?: string | null;
   spawn?: ShellSpawn;
   timeoutMs?: number;
 }): Promise<AgentResponse<AgentDelivery>> {
+  const command = installCommandAs(user, payload);
+
+  if (command === null) {
+    return Promise.resolve({
+      ok: false,
+      error: {
+        ...refusalOf("internal", "refusal.binary.install", {
+          detail: payload.version,
+        }),
+      },
+    });
+  }
+
   return new Promise((resolve) => {
-    const child = spawn("ssh", agentSshArgs(args, user));
+    const child = spawn("ssh", agentSshArgs(args, command));
 
     let out = "";
     let err = "";
@@ -273,6 +371,6 @@ export function sendAgentBinary({
       });
     });
 
-    child.stdin?.end(payload.content);
+    child.stdin?.end(pushedInput(user, payload, password));
   });
 }

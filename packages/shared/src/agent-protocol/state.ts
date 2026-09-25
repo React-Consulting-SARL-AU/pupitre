@@ -7,6 +7,18 @@ import {
 import { PortSchema } from "./ports"
 import { EntitlementSchema } from "./session"
 
+/**
+ * What `sudo` asks of `dev` (decision 0015). `password`: everything but
+ * `pupitred` asks for the password the app drew. `nopasswd_all`: the rule every
+ * server had before, kept until the client accepts a password. Absent when the
+ * sudoers file is neither, or from an agent older than the field.
+ */
+export const SUDO_STATES = ["password", "nopasswd_all"] as const
+
+export const SudoStateSchema = z.enum(SUDO_STATES)
+
+export type SudoState = z.infer<typeof SudoStateSchema>
+
 export const MachineSchema = z.object({
   hostname: z.string(),
   os: z.string(),
@@ -21,6 +33,7 @@ export const MachineSchema = z.object({
   disk_total_gb: z.number().nonnegative(),
   disk_free_gb: z.number().nonnegative(),
   agent_version: z.string(),
+  sudo: SudoStateSchema.optional(),
 })
 
 export type Machine = z.infer<typeof MachineSchema>

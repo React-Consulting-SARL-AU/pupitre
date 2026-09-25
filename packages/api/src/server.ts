@@ -1,6 +1,9 @@
 import { openapi } from "@elysiajs/openapi"
 import { configureAuthEmails } from "@pupitre/auth/emails"
-import { configureOrganizationHooks } from "@pupitre/auth/hooks"
+import {
+  configureAccountHooks,
+  configureOrganizationHooks,
+} from "@pupitre/auth/hooks"
 import { type Auth, CLIENT_IP_HEADER } from "@pupitre/auth/server"
 import { resolveLocale } from "@pupitre/shared/i18n"
 import { type AnyElysia, Elysia, ValidationError } from "elysia"
@@ -18,6 +21,7 @@ import {
 import { routes } from "./lib/api/routes"
 import { describeValidationError } from "./lib/api/validation-errors"
 import { translate } from "./lib/i18n"
+import { deleteAccountFromConsole } from "./lib/me/delete-account"
 import { unassignServersOfMember } from "./lib/servers/assign"
 
 export type { ApiPrisma } from "./lib/api/prisma"
@@ -29,6 +33,7 @@ configureOrganizationHooks({
   onMemberRemoved: ({ organizationId, userId }) =>
     unassignServersOfMember(organizationId, userId).then(() => undefined),
 })
+configureAccountHooks({ onAccountDeleting: deleteAccountFromConsole })
 
 export interface ApiRuntime {
   prisma: ApiPrisma

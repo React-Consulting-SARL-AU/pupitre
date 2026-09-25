@@ -8,6 +8,7 @@ import (
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/i18n"
+	"pupitre.studio/agent/internal/keys"
 	"pupitre.studio/agent/internal/platform"
 	"pupitre.studio/agent/internal/protocol"
 )
@@ -15,10 +16,12 @@ import (
 type authorizedKey struct {
 	Fingerprint string `json:"fingerprint"`
 	Comment     string `json:"comment,omitempty"`
+	Signer      bool   `json:"signer"`
 }
 
 type keysResult struct {
 	Keys     []authorizedKey `json:"keys"`
+	Pending  []string        `json:"pending,omitempty"`
 	SyncedAt string          `json:"synced_at,omitempty"`
 }
 
@@ -76,11 +79,26 @@ func RegisterCommands(server *protocol.Server, options Options) {
 		return agent.listed(), nil
 	})
 
+	server.Register("keys.trust", func(_ *protocol.Context, raw json.RawMessage) (any, error) {
+		var params struct {
+			PublicKey string `json:"public_key"`
+		}
+		if err := json.Unmarshal(raw, &params); err != nil {
+			return nil, protocol.NewError(contract.ErrorBadRequest, i18n.T("command.params.unreadable", err.Error()))
+		}
+
+		if err := agent.Trust(params.PublicKey); err != nil {
+			return nil, trustFailed(err)
+		}
+
+		return agent.listed(), nil
+	})
+
 	// An installation that has just changed the machine says so now rather than
 	// at the daemon's next turn: the console shows the modules instead of an
 	// empty server for the following five minutes.
 	server.Register("platform.sync", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
-		synced, err := agent.Sync(context.Background())
+		synced, _, err := agent.read(context.Background(), "")
 		if err != nil {
 			return nil, syncFailed(err)
 		}
@@ -99,10 +117,16 @@ func RegisterCommands(server *protocol.Server, options Options) {
 
 func (d *Daemon) listed() keysResult {
 	listed := d.Keys()
+	trusted := d.signers()
 
 	result := keysResult{Keys: make([]authorizedKey, 0, len(listed))}
 	for _, key := range listed {
-		result.Keys = append(result.Keys, authorizedKey{Fingerprint: key.Fingerprint(), Comment: key.Comment})
+		fingerprint := key.Fingerprint()
+		result.Keys = append(result.Keys, authorizedKey{Fingerprint: fingerprint, Comment: key.Comment, Signer: trusted[fingerprint]})
+	}
+
+	if pending, known := d.lastPending(); known {
+		result.Pending = pending
 	}
 
 	if syncedAt := d.SyncedAt(); !syncedAt.IsZero() {
@@ -110,6 +134,20 @@ func (d *Daemon) listed() keysResult {
 	}
 
 	return result
+}
+
+func trustFailed(cause error) *protocol.Error {
+	switch {
+	case errors.Is(cause, keys.ErrKeyRefused):
+		return protocol.NewError(contract.ErrorBadRequest, i18n.T("keys.trust.refused")).
+			WithFix(i18n.T("keys.trust.refused.fix"))
+	case errors.Is(cause, ErrNotRoot):
+		return protocol.NewError(contract.ErrorBadRequest, i18n.T("keys.trust.root")).
+			WithFix(i18n.T("keys.trust.root.fix"))
+	}
+
+	return protocol.NewError(contract.ErrorInternal, i18n.T("keys.trust.failed", cause.Error())).
+		WithFix(i18n.T("keys.trust.failed.fix"))
 }
 
 // The token comes off the secret line and is never read back out of params: it is a secret the way an install password is.

@@ -1,5 +1,6 @@
 import { accountCallbackLink } from "@pupitre/shared/app-links"
 import { useEffect, useState } from "react"
+import { DeviceSignInAgain } from "@/components/auth/device-sign-in-again"
 import { Button, buttonClassName } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
 import { FieldError } from "@/components/ui/field-error"
@@ -14,13 +15,19 @@ import {
   denyDeviceCode,
   formatUserCode,
   lookupDeviceCode,
+  needsFreshSignIn,
   normalizeUserCode,
 } from "@/lib/auth/device-flow"
 import { appOrigin, leaveFor } from "@/lib/config/urls"
 import type { DictionaryKey } from "@/lib/i18n/en"
 import { type DeviceCodeInput, deviceCodeSchema } from "@/lib/schemas/auth"
 
-export type DeviceStep = "code" | "confirm" | "approved" | "denied"
+export type DeviceStep =
+  | "code"
+  | "confirm"
+  | "approved"
+  | "denied"
+  | "reauthenticate"
 
 /** Where a confirmed device is sent back: the app, which takes the session over. */
 export const APP_RETURN_LINK = accountCallbackLink({ device: "approved" })
@@ -79,6 +86,12 @@ export function DeviceCodeForm({ initialCode = "" }: DeviceCodeFormProps) {
 
         await denyDeviceCode(appOrigin(), code)
       } catch (error) {
+        if (needsFreshSignIn(error)) {
+          setStep("reauthenticate")
+
+          return
+        }
+
         throw new Error(t(deviceErrorKey(error)))
       }
 
@@ -88,6 +101,10 @@ export function DeviceCodeForm({ initialCode = "" }: DeviceCodeFormProps) {
 
   if (step === "approved") {
     return <DeviceApproved />
+  }
+
+  if (step === "reauthenticate") {
+    return <DeviceSignInAgain userCode={code} />
   }
 
   if (step === "denied") {

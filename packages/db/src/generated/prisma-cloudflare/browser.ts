@@ -98,6 +98,11 @@ export type Backup = Prisma.BackupModel
  */
 export type ServerRevokedDevice = Prisma.ServerRevokedDeviceModel
 /**
+ * Model KeyApproval
+ * A device key admitted on a server by the signature of a key the agent trusts (decision 0014); `issuedAt` keeps the signed spelling.
+ */
+export type KeyApproval = Prisma.KeyApprovalModel
+/**
  * Model Subscription
  * 
  */

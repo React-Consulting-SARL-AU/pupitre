@@ -42,13 +42,15 @@ type FakeSys struct {
 	Answers  map[string]string
 	Refusals map[string]string
 	Failures map[string]string
-	Once     map[string]string
-	Users    map[string]string
-	Groups   map[string][]string
-	Tools    map[string]string
-	Versions map[string][]string
-	Sessions map[string]bool
-	Windows  map[string]int
+	// LineFailures fails the command lines holding a fragment, where Failures fails every call of a program.
+	LineFailures map[string]string
+	Once         map[string]string
+	Users        map[string]string
+	Groups       map[string][]string
+	Tools        map[string]string
+	Versions     map[string][]string
+	Sessions     map[string]bool
+	Windows      map[string]int
 	// Twins are the extra windows a name was opened under, by pid: tmux keeps every one and refuses the name as ambiguous.
 	Twins map[string][]int
 	// Provides maps a virtual package name to the package apt installs for it.
@@ -95,41 +97,42 @@ type Proc struct {
 
 func NewFakeSys() *FakeSys {
 	return &FakeSys{
-		Files:      map[string][]byte{},
-		Modes:      map[string]fs.FileMode{},
-		Owners:     map[string]string{},
-		Dirs:       map[string]bool{},
-		Packages:   map[string]string{},
-		Upgrades:   map[string]string{},
-		Units:      map[string]UnitState{},
-		Restarts:   map[string]int{},
-		Replies:    map[string]string{},
-		Answers:    map[string]string{},
-		Refusals:   map[string]string{},
-		Failures:   map[string]string{},
-		Once:       map[string]string{},
-		Users:      map[string]string{"root": "/root"},
-		Groups:     map[string][]string{},
-		Tools:      map[string]string{},
-		Versions:   map[string][]string{},
-		Sessions:   map[string]bool{},
-		Windows:    map[string]int{},
-		Twins:      map[string][]int{},
-		Provides:   map[string]string{},
-		Split:      map[string]bool{},
-		Activity:   map[string]time.Time{},
-		Dead:       map[string]int{},
-		Binds:      map[string]int{},
-		Listen:     map[int]bool{},
-		Uptimes:    map[int]int{},
-		Procs:      map[int]Proc{},
-		Stubborn:   map[int]bool{},
-		Links:      map[string]string{},
-		Archives:   map[string][]string{},
-		Extensions: map[string]string{},
-		Times:      map[string]time.Time{},
-		Now:        Epoch,
-		Fed:        map[string][]byte{},
+		Files:        map[string][]byte{},
+		Modes:        map[string]fs.FileMode{},
+		Owners:       map[string]string{},
+		Dirs:         map[string]bool{},
+		Packages:     map[string]string{},
+		Upgrades:     map[string]string{},
+		Units:        map[string]UnitState{},
+		Restarts:     map[string]int{},
+		Replies:      map[string]string{},
+		Answers:      map[string]string{},
+		Refusals:     map[string]string{},
+		Failures:     map[string]string{},
+		LineFailures: map[string]string{},
+		Once:         map[string]string{},
+		Users:        map[string]string{"root": "/root"},
+		Groups:       map[string][]string{},
+		Tools:        map[string]string{},
+		Versions:     map[string][]string{},
+		Sessions:     map[string]bool{},
+		Windows:      map[string]int{},
+		Twins:        map[string][]int{},
+		Provides:     map[string]string{},
+		Split:        map[string]bool{},
+		Activity:     map[string]time.Time{},
+		Dead:         map[string]int{},
+		Binds:        map[string]int{},
+		Listen:       map[int]bool{},
+		Uptimes:      map[int]int{},
+		Procs:        map[int]Proc{},
+		Stubborn:     map[int]bool{},
+		Links:        map[string]string{},
+		Archives:     map[string][]string{},
+		Extensions:   map[string]string{},
+		Times:        map[string]time.Time{},
+		Now:          Epoch,
+		Fed:          map[string][]byte{},
 	}
 }
 
@@ -166,6 +169,10 @@ func (f *FakeSys) Refuse(fragment, stdout string) {
 
 func (f *FakeSys) FailProgram(program, stderr string) {
 	f.Failures[program] = stderr
+}
+
+func (f *FakeSys) FailLine(fragment, stderr string) {
+	f.LineFailures[fragment] = stderr
 }
 
 // FailOnce refuses the next call of a program and answers the ones after: a reload that fails, then succeeds on the previous configuration.
@@ -245,6 +252,12 @@ func (f *FakeSys) run(cmd sys.Command) (sys.Output, error) {
 
 	line := strings.Join(cmd.Argv, " ")
 
+	for fragment, stderr := range f.LineFailures {
+		if strings.Contains(line, fragment) {
+			return f.fail(program, stderr)
+		}
+	}
+
 	// A reply keyed by the whole argv wins: some programs answer differently per argument, like df on two paths.
 	if reply, keyed := f.Replies[line]; keyed {
 		return sys.Output{Stdout: reply}, nil
@@ -311,7 +324,9 @@ func (f *FakeSys) run(cmd sys.Command) (sys.Output, error) {
 	case "gunzip":
 		return f.gunzip(cmd.Argv[1:])
 	case "gzip":
-		return f.gzip(cmd.Argv[1:])
+		return f.gzip(cmd)
+	case "sysctl":
+		return f.sysctl(cmd.Argv[1:])
 	case "chmod":
 		return f.chmod(cmd.Argv[1:])
 	case "rm":
@@ -335,22 +350,25 @@ func (f *FakeSys) run(cmd sys.Command) (sys.Output, error) {
 	return sys.Output{Stdout: f.Replies[program]}, nil
 }
 
-// A dump program leaves its archive where it was told to, as the real one does.
+// A dump program leaves its archive where it was told to, as the real one does, or prints it when told no path.
 func (f *FakeSys) dump(args []string) (sys.Output, error) {
 	for _, arg := range args {
 		for _, flag := range []string{"--file=", "--result-file=", "--archive="} {
 			if path, found := strings.CutPrefix(arg, flag); found {
 				f.Files[path] = []byte("dump")
 				f.mutate("write " + path)
+
+				return sys.Output{}, nil
 			}
 		}
 	}
 
-	return sys.Output{}, nil
+	return sys.Output{Stdout: "dump"}, nil
 }
 
 // sshd -T prints the effective configuration, keywords lowercased, a list
-// keyword once per value, the first setting of a keyword winning. The
+// keyword once per value, the first setting of a keyword winning — but Port
+// and ListenAddress, which add up across every file, as sshd does. The
 // fragments of sshd_config.d are read unless a sshd_config without an Include
 // line sits on the machine, as on an image that predates them.
 func (f *FakeSys) sshd(args []string) (sys.Output, error) {
@@ -379,12 +397,17 @@ func (f *FakeSys) sshd(args []string) (sys.Output, error) {
 			if key = strings.ToLower(key); !found || key == "include" {
 				continue
 			}
+			if key == "port" || key == "listenaddress" {
+				effective[key] = append(effective[key], strings.Fields(value)...)
+
+				continue
+			}
 			if _, set := effective[key]; !set {
 				effective[key] = strings.Fields(value)
 			}
 		}
 	}
-	for key, value := range map[string]string{"permitrootlogin": "prohibit-password", "passwordauthentication": "yes"} {
+	for key, value := range map[string]string{"permitrootlogin": "prohibit-password", "passwordauthentication": "yes", "port": "22"} {
 		if _, set := effective[key]; !set {
 			effective[key] = []string{value}
 		}
@@ -685,11 +708,21 @@ func symbolic(args []string) bool {
 	return slices.Contains(args, "--symbolic")
 }
 
-// gzip --decompress leaves the plain file beside the archive and takes the archive away unless told to keep it.
-func (f *FakeSys) gzip(args []string) (sys.Output, error) {
+// gzip --decompress leaves the plain file beside the archive and takes the archive away unless told to keep it; told --stdout, it prints what its standard input holds.
+func (f *FakeSys) gzip(cmd sys.Command) (sys.Output, error) {
+	args := cmd.Argv[1:]
 	path := args[len(args)-1]
 	if !slices.Contains(args, "--decompress") && !slices.Contains(args, "-d") {
 		return f.fail("gzip", "gzip: compression is not played by the fake")
+	}
+
+	if slices.Contains(args, "--stdout") || slices.Contains(args, "-c") {
+		content, err := f.stdin(cmd)
+		if err != nil {
+			return sys.Output{}, err
+		}
+
+		return sys.Output{Stdout: string(content)}, nil
 	}
 
 	content, err := f.ReadFile(path)
@@ -706,6 +739,41 @@ func (f *FakeSys) gzip(args []string) (sys.Output, error) {
 	}
 
 	return sys.Output{}, f.Remove(path)
+}
+
+// A standard input root opens is refused when a link stands at its name or on its way, as the real one refuses a link another account planted.
+func (f *FakeSys) stdin(cmd sys.Command) ([]byte, error) {
+	for at := cmd.StdinPath; at != "/" && at != "."; at = filepath.Dir(at) {
+		if _, linked := f.Links[at]; linked {
+			return nil, &fs.PathError{Op: "open", Path: cmd.StdinPath, Err: syscall.ELOOP}
+		}
+	}
+
+	return f.ReadFile(cmd.StdinPath)
+}
+
+// sysctl -p sets the running kernel to what the file says, which the fake keeps under /proc/sys.
+func (f *FakeSys) sysctl(args []string) (sys.Output, error) {
+	if !slices.Contains(args, "-p") {
+		return sys.Output{}, nil
+	}
+
+	content, err := f.ReadFile(args[len(args)-1])
+	if err != nil {
+		return f.fail("sysctl", "sysctl: cannot open \""+args[len(args)-1]+"\": No such file or directory")
+	}
+
+	for _, line := range strings.Split(string(content), "\n") {
+		key, value, found := strings.Cut(line, "=")
+		key = strings.TrimSpace(key)
+		if !found || key == "" || strings.HasPrefix(key, "#") {
+			continue
+		}
+
+		f.Files["/proc/sys/"+strings.ReplaceAll(key, ".", "/")] = []byte(strings.TrimSpace(value) + "\n")
+	}
+
+	return sys.Output{}, nil
 }
 
 func (f *FakeSys) readlink(args []string) (sys.Output, error) {
@@ -1566,12 +1634,53 @@ func (f *FakeSys) RemoveIn(root, rel string, recursive bool) error {
 	return nil
 }
 
+// A new file is laid where the name was, a link there included, and holds what was streamed once it is closed.
+func (f *FakeSys) CreateIn(root, rel, owner string) (io.WriteCloser, error) {
+	path, err := f.inside(root, rel)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := f.follow(root, filepath.Dir(path)); err != nil {
+		return nil, err
+	}
+
+	f.forget(path)
+
+	return &created{fake: f, path: path, owner: owner}, nil
+}
+
+type created struct {
+	fake    *FakeSys
+	path    string
+	owner   string
+	content []byte
+}
+
+func (c *created) Write(p []byte) (int, error) {
+	c.content = append(c.content, p...)
+
+	return len(p), nil
+}
+
+func (c *created) Close() error {
+	c.fake.Files[c.path] = c.content
+	c.fake.Modes[c.path] = 0o600
+	c.fake.Times[c.path] = c.fake.Now
+	if c.owner != "" {
+		c.fake.Owners[c.path] = c.owner + ":" + c.owner
+	}
+	c.fake.mutate("write " + c.path)
+
+	return nil
+}
+
 // The path a root-scoped call reaches, or the refusal os.Root would give: nothing is named from outside the root it belongs to.
 func (f *FakeSys) inside(root, rel string) (string, error) {
-	base := strings.TrimSuffix(root, "/")
+	base := filepath.Clean(root)
 	path := filepath.Join(base, rel)
 
-	if filepath.IsAbs(rel) || (path != base && !strings.HasPrefix(path, base+"/")) {
+	if filepath.IsAbs(rel) || (path != base && !strings.HasPrefix(path, strings.TrimSuffix(base, "/")+"/")) {
 		return "", &fs.PathError{Op: "openat", Path: rel, Err: errEscapes}
 	}
 
@@ -1862,9 +1971,14 @@ func (f *FakeSys) Owner(path string) (string, error) {
 }
 
 // A process that ignores SIGTERM is the whole point of force: it must still be there when the grace period is over.
-func (f *FakeSys) Signal(pid int, sig syscall.Signal) error {
-	if _, running := f.Procs[pid]; !running {
+func (f *FakeSys) Signal(pid int, owner string, sig syscall.Signal) error {
+	proc, running := f.Procs[pid]
+	if !running {
 		return syscall.ESRCH
+	}
+
+	if owner != "" && proc.User != owner {
+		return syscall.EPERM
 	}
 
 	if sig == 0 {

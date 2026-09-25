@@ -2,9 +2,14 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import type { HardenUpdate } from "@shared/harden";
 import { stubPupitre } from "../../__tests__/stub-pupitre";
 import { useHarden } from "../harden";
+import { useServers } from "../servers";
 
 const REASON =
   "Aucune clé n'ouvre le compte dev : /home/dev/.ssh/authorized_keys est vide.";
+
+const NO_SERVERS = {
+  servers: () => Promise.resolve({ active: null, servers: [] }),
+};
 
 beforeEach(() => {
   useHarden.getState().reset();
@@ -13,6 +18,7 @@ beforeEach(() => {
 describe("harden", () => {
   it("garde les étapes de l'agent et la bascule sur dev", async () => {
     stubPupitre({
+      ...NO_SERVERS,
       harden: (_serverId, onUpdate: (update: HardenUpdate) => void) => {
         onUpdate({
           event: {
@@ -58,6 +64,34 @@ describe("harden", () => {
     expect(useHarden.getState().steps).toEqual([
       { ms: 1200, status: "ok", step: "compte dev" },
     ]);
+  });
+
+  it("relit la liste des serveurs quand l'app a changé de compte, pour que chaque écran parle de dev", async () => {
+    let read = 0;
+
+    stubPupitre({
+      harden: () =>
+        Promise.resolve({
+          ok: true,
+          result: {
+            harden: { next_user: "dev", root_closed: true, root_kept: false },
+            reconnected: true,
+            user: "dev",
+          },
+        }),
+      servers: () => {
+        read += 1;
+
+        return Promise.resolve({ active: "srv-1", servers: [] });
+      },
+    });
+
+    await useHarden.getState().start("srv-1");
+
+    expect(read).toBe(1);
+    expect(useServers.getState().config).toMatchObject({ active: "srv-1" });
+
+    useServers.setState({ config: null });
   });
 
   it("garde root ouvert et la raison telle que l'agent la donne", async () => {
@@ -115,6 +149,7 @@ describe("une sécurisation qui attend le canal", () => {
     const seen: string[] = [];
 
     stubPupitre({
+      ...NO_SERVERS,
       harden: (_serverId, onUpdate: (update: HardenUpdate) => void) => {
         onUpdate({ kind: "queued" });
         seen.push(useHarden.getState().harden.status);

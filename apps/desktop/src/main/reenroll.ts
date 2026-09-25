@@ -4,11 +4,12 @@ import { ipcMain } from "electron";
 import { account } from "./account";
 import { agentClient } from "./agent";
 import { enrollInput } from "./enrollment-run";
+import { ed25519Fingerprint } from "./host-keys";
 import { inspect } from "./inspection";
 import { enrollmentGrant } from "./install";
 import { runReenroll } from "./reenroll-run";
 import { refusalOf, refuseWith } from "./refusal";
-import { byId, noteGrant } from "./servers";
+import { byId, noteGrant, paths } from "./servers";
 
 /**
  * The repair of a restricted server, seen from the main process.
@@ -49,7 +50,12 @@ function reenroll(serverId: unknown): Promise<AgentResponse<EnrollResult>> {
       }
 
       const enrolled = await account.enroll(
-        enrollInput(server, arch, device.id)
+        enrollInput(
+          server,
+          arch,
+          device.id,
+          await ed25519Fingerprint(server, paths())
+        )
       );
 
       if (enrolled.ok) {

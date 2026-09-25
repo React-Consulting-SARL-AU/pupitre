@@ -212,8 +212,20 @@ var commandCatalog = map[string]Message{
 		EN: "this command reads the server's enrolment and entitlement, two files only root opens",
 	},
 	"devcli.elevate.password.fix": {
-		FR: "Relancez-la par sudo : sudo dev <commande>.",
-		EN: "Run it through sudo: sudo dev <command>.",
+		FR: "sudo n'a pas lancé pupitred serve sans mot de passe : relancez la sécurisation depuis l'app, qui pose la règle, ou tapez la commande en root.",
+		EN: "sudo did not run pupitred serve without a password: run the securing again from the app, which sets the rule, or type the command as root.",
+	},
+	"devcli.elevate.privileged": {
+		FR: "cette commande demande le mot de passe sudo de dev",
+		EN: "this command needs the sudo password of dev",
+	},
+	"devcli.elevate.privileged.fix": {
+		FR: "Tapez-la dans un terminal où sudo peut demander le mot de passe sudo de dev ; l'app le montre dans Réglages › Serveurs.",
+		EN: "Type it in a terminal where sudo can ask for the sudo password of dev; the app shows it in Settings › Servers.",
+	},
+	"devcli.elevate.lost": {
+		FR: "la session de pupitred serve s'est interrompue : %s",
+		EN: "the pupitred serve session broke off: %s",
 	},
 	"devcli.elevate.root.fix": {
 		FR: "Cette machine n'a pas sudo : ouvrez une session root.",

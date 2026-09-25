@@ -35,6 +35,22 @@ export class DeviceCodeError extends Error {
   }
 }
 
+/** Better Auth's code, lowercased, when the browser's sign-in is too old to confirm a device. */
+export const SESSION_NOT_FRESH = "session_not_fresh"
+
+export const DEVICE_PAGE_PATH = "/auth/device"
+
+export function needsFreshSignIn(error: unknown): boolean {
+  return error instanceof DeviceCodeError && error.code === SESSION_NOT_FRESH
+}
+
+/** Where a new sign-in hands the reader back: this page, on the same code. */
+export function deviceReturnPath(userCode: string): string {
+  const search = new URLSearchParams({ user_code: normalizeUserCode(userCode) })
+
+  return `${DEVICE_PAGE_PATH}?${search.toString()}`
+}
+
 export function normalizeUserCode(value: string): string {
   return value.toUpperCase().replaceAll(/[^A-Z0-9]/g, "")
 }

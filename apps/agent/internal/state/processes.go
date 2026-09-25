@@ -241,7 +241,8 @@ func (r *Reader) CleanSessions() int {
 			continue
 		}
 
-		if err := r.signal(session.PID, syscall.SIGTERM); err == nil {
+		row, _ := table.get(session.PID)
+		if err := r.signal(session.PID, row.User, syscall.SIGTERM); err == nil {
 			killed++
 		}
 	}
@@ -303,25 +304,26 @@ func (r *Reader) Kill(pid int, force bool) error {
 		return badPID(i18n.T("state.pid.ancestor", strconv.Itoa(pid)), i18n.T("state.pid.ancestor.fix"))
 	}
 
-	if err := r.signal(pid, syscall.SIGTERM); err != nil {
+	if err := r.signal(pid, target.User, syscall.SIGTERM); err != nil {
 		return protocol.NewError(contract.ErrorInternal, i18n.T("state.process.kill.failed", strconv.Itoa(pid))).
 			WithFix(i18n.T("state.process.kill.failed.fix"))
 	}
 
 	if force {
 		r.sleep(KillGrace)
-		if alive := r.ctx().Sys().Signal(pid, 0); alive == nil {
-			return r.signal(pid, syscall.SIGKILL)
+		if alive := r.ctx().Sys().Signal(pid, target.User, 0); alive == nil {
+			return r.signal(pid, target.User, syscall.SIGKILL)
 		}
 	}
 
 	return nil
 }
 
-func (r *Reader) signal(pid int, sig syscall.Signal) error {
+// The owner seen in the table goes with every signal: a pid recycled since by another account is not the process that was chosen.
+func (r *Reader) signal(pid int, owner string, sig syscall.Signal) error {
 	r.ctx().Logf("kill -%d %d", sig, pid)
 
-	return r.ctx().Sys().Signal(pid, sig)
+	return r.ctx().Sys().Signal(pid, owner, sig)
 }
 
 func (r *Reader) panes() map[int]string {

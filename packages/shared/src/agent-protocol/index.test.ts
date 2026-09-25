@@ -5,8 +5,10 @@ import {
   isAllowedInRestrictedMode,
   isAllowedWhileMigrating,
   isCommandName,
+  LIMITED_COMMANDS,
   MIGRATION_COMMANDS,
   RESTRICTED_COMMANDS,
+  requiresPrivilege,
 } from "./index"
 
 const CONTRACT_COMMANDS = [
@@ -19,6 +21,7 @@ const CONTRACT_COMMANDS = [
   "module.config",
   "uninstall",
   "harden",
+  "harden.sudo",
   "upgrade",
   "report",
   "snapshot",
@@ -85,6 +88,7 @@ const CONTRACT_COMMANDS = [
   "enroll",
   "keys.list",
   "keys.sync",
+  "keys.trust",
   "platform.sync",
   "agent.upgrade",
   "agent.migrate",
@@ -160,6 +164,73 @@ describe("a configuration that is not at the expected revision", () => {
     }
 
     expect(MIGRATION_COMMANDS).toContain("agent.migrate")
+  })
+})
+
+describe("a session opened without the password", () => {
+  it("lets through what a dev process could not turn into root", () => {
+    for (const cmd of [
+      "hello",
+      "snapshot",
+      "project.up",
+      "fs.write",
+      "service.restart",
+      "agent.upgrade",
+      "agent.migrate",
+      "platform.sync",
+    ]) {
+      expect(requiresPrivilege(cmd)).toBe(false)
+    }
+  })
+
+  it("keeps for the privileged session what configures, reveals or trusts", () => {
+    for (const cmd of [
+      "install",
+      "install.check",
+      "uninstall",
+      "upgrade",
+      "harden",
+      "harden.sudo",
+      "service.secret",
+      "db.dump",
+      "db.import",
+      "backup.run",
+      "backup.delete",
+      "backup.inspect",
+      "backup.restore.setup",
+      "backup.restore.data",
+      "backup.restore.abort",
+      "enroll",
+      "keys.trust",
+      "reboot",
+    ]) {
+      expect(requiresPrivilege(cmd)).toBe(true)
+    }
+  })
+
+  it("holds a command unknown to the list for privileged", () => {
+    expect(requiresPrivilege("db.drop")).toBe(true)
+  })
+
+  it("keeps a downgrade for the privileged session", () => {
+    expect(requiresPrivilege("agent.upgrade", { version: "1.0.0" })).toBe(false)
+    expect(requiresPrivilege("agent.upgrade", { allow_downgrade: true })).toBe(
+      true
+    )
+  })
+
+  it("names only contract commands, each of them classified once", () => {
+    for (const cmd of LIMITED_COMMANDS) {
+      expect(isCommandName(cmd)).toBe(true)
+    }
+
+    expect(new Set(LIMITED_COMMANDS).size).toBe(LIMITED_COMMANDS.length)
+  })
+
+  it("keeps open what a restricted or migrating server answers, bar enrolment", () => {
+    for (const cmd of [...RESTRICTED_COMMANDS, ...MIGRATION_COMMANDS]) {
+      expect(requiresPrivilege(cmd)).toBe(cmd === "enroll")
+    }
   })
 })
 

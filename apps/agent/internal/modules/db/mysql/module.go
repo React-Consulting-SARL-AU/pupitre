@@ -3,6 +3,7 @@ package mysql
 import (
 	"errors"
 	"fmt"
+	"io"
 	"regexp"
 	"strconv"
 	"strings"
@@ -398,22 +399,16 @@ func Dump(ctx *modules.Context, name string) (string, int64, error) {
 		return "", 0, err
 	}
 
-	path, err := dumps.Target(ctx, database(name), ".sql")
-	if err != nil {
-		return "", 0, err
-	}
-
 	argv := []string{
 		"mysqldump", "--protocol=socket", "--single-transaction", "--routines", "--events",
-		"--default-character-set=utf8mb4", "--result-file=" + path, database(name),
-	}
-	if _, err := sys.Exec(ctx, sys.Command{Argv: argv}); err != nil {
-		return "", 0, err
+		"--default-character-set=utf8mb4", database(name),
 	}
 
-	size, err := dumps.Written(ctx, path)
+	return dumps.Write(ctx, database(name), ".sql", func(out io.Writer) error {
+		_, err := sys.Exec(ctx, sys.Command{Argv: argv, Output: out})
 
-	return path, size, err
+		return err
+	})
 }
 
 func Import(ctx *modules.Context, name string) ([]string, error) {

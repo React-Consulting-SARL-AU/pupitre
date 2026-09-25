@@ -34,6 +34,8 @@ const CARRIED: AgentPayload = {
   content: Buffer.from([1, 2, 3]),
   path: "/resources/agent/pupitred-linux-amd64",
   sha256: "carried",
+  signature: null,
+  version: "0.0.0-unreleased",
 };
 
 function keyPair() {
@@ -167,6 +169,8 @@ function deps({
     build,
     embedded,
     enrolled,
+    hostFingerprint: (server) =>
+      Promise.resolve(server.hostFingerprint ?? null),
     releaseKey,
     spend: (serverId) => {
       held.delete(serverId);
@@ -194,6 +198,21 @@ describe("la préparation de l'agent", () => {
     });
   });
 
+  it("ne nomme à la plateforme que l'empreinte Ed25519, que l'agent déclarera à l'échange", async () => {
+    const signed = signedRelease(BINARY);
+    const ready = deps({
+      release: signed.release,
+      releaseKey: signed.publicKey,
+    });
+
+    await prepareAgent(SERVER, "amd64", {
+      ...ready,
+      hostFingerprint: () => Promise.resolve(null),
+    });
+
+    expect(ready.enrolled[0]).not.toHaveProperty("fingerprint");
+  });
+
   it("enrôle le serveur avant d'envoyer quoi que ce soit", async () => {
     const signed = signedRelease(BINARY);
     const ready = deps({
@@ -218,7 +237,12 @@ describe("la préparation de l'agent", () => {
           release: { available: true, version: "1.4.0" },
           serverId: "srv-platform-1",
         },
-        payload: { arch: "amd64", path: "pupitred 1.4.0" },
+        payload: {
+          arch: "amd64",
+          path: "pupitred 1.4.0",
+          signature: signed.release.signature,
+          version: "1.4.0",
+        },
       },
     });
   });

@@ -421,17 +421,17 @@ func TestRealSignalReachesTheProcessAndSaysWhenItIsGone(t *testing.T) {
 	}
 	pid := process.Process.Pid
 
-	if err := (Real{}).Signal(pid, 0); err != nil {
+	if err := (Real{}).Signal(pid, "", 0); err != nil {
 		t.Fatalf("a running process must answer signal 0: %v", err)
 	}
 
-	if err := (Real{}).Signal(pid, syscall.SIGTERM); err != nil {
+	if err := (Real{}).Signal(pid, "", syscall.SIGTERM); err != nil {
 		t.Fatal(err)
 	}
 
 	process.Wait()
 
-	if err := (Real{}).Signal(pid, 0); err == nil {
+	if err := (Real{}).Signal(pid, "", 0); err == nil {
 		t.Fatal("a reaped process must not answer signal 0")
 	}
 }

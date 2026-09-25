@@ -5,7 +5,10 @@ import type {
   ModuleConfig,
   ProbeResult,
 } from "@pupitre/shared/agent-protocol/install";
-import type { EnrollResult } from "@pupitre/shared/agent-protocol/system";
+import type {
+  EnrollResult,
+  KeysListResult,
+} from "@pupitre/shared/agent-protocol/system";
 import type { EnrollmentSummary } from "@shared/account";
 import type { AgentResponse } from "@shared/agent";
 import type { InstallUpdate } from "@shared/install";
@@ -68,6 +71,8 @@ export interface InstallDeps {
   ) => Promise<AgentResponse<ManagedValues>>;
   /** The identity the agent already answers with, when it has one. */
   identity?: (serverId: string) => string | null;
+  /** This computer's device public key, laid as a signer once enrolled; null without an account. */
+  deviceKey?: () => string | null;
 }
 
 export interface CheckDeps extends Pick<InstallDeps, "client" | "declared"> {
@@ -126,6 +131,8 @@ export interface EnrolRetry {
   sleep: (ms: number) => Promise<void>;
 }
 
+const SPACES = /\s+/;
+
 const ENROL_RETRY: EnrolRetry = {
   attempts: 4,
   delayMs: 2000,
@@ -143,7 +150,7 @@ const ENROL_RETRY: EnrolRetry = {
 export async function enrolAgent(
   serverId: string,
   enrollment: EnrollmentSummary | null | undefined,
-  deps: Pick<InstallDeps, "client" | "enrollment" | "identity">,
+  deps: Pick<InstallDeps, "client" | "enrollment" | "identity" | "deviceKey">,
   retry: EnrolRetry = ENROL_RETRY
 ): Promise<AgentResponse<EnrollResult | null>> {
   const granted = enrollment ? deps.enrollment(enrollment.serverId) : null;
@@ -152,6 +159,49 @@ export async function enrolAgent(
     return { ok: true, result: null };
   }
 
+  const enrolled = await exchangeToken(serverId, granted, deps, retry);
+
+  if (!enrolled.ok) {
+    return enrolled;
+  }
+
+  const trusted = await trustDevice(serverId, deps);
+
+  return trusted.ok ? enrolled : trusted;
+}
+
+/** The root of trust of decision 0014: laid over the app's own SSH session, never by the platform. */
+export async function trustDevice(
+  serverId: string,
+  deps: Pick<InstallDeps, "client" | "deviceKey">
+): Promise<AgentResponse<KeysListResult | null>> {
+  const line = deps.deviceKey?.();
+
+  if (!line) {
+    return { ok: true, result: null };
+  }
+
+  const answer = await deps.client.request(serverId, "keys.trust", {
+    public_key: bareKey(line),
+  });
+
+  if (!answer.ok && answer.error.code === "unknown_command") {
+    return { ok: true, result: null };
+  }
+
+  return answer;
+}
+
+function bareKey(line: string): string {
+  return line.trim().split(SPACES).slice(0, 2).join(" ");
+}
+
+async function exchangeToken(
+  serverId: string,
+  granted: EnrollmentGrant,
+  deps: Pick<InstallDeps, "client" | "identity">,
+  retry: EnrolRetry
+): Promise<AgentResponse<EnrollResult | null>> {
   if (deps.identity?.(serverId)) {
     return { ok: true, result: null };
   }

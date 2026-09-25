@@ -16,7 +16,7 @@ import (
 )
 
 type Options struct {
-	Server *protocol.Server
+	Server Caller
 	Tmux   tmux.Options
 }
 

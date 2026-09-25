@@ -251,7 +251,7 @@ describe("la vue d'ensemble d'un projet", () => {
         git={{ at: Date.now(), git: GIT_STATUS, status: "read" }}
         onAct={NOOP}
         onCheckGit={NOOP}
-        onCheckout={NOOP}
+        onCheckout={RESOLVED}
         onConfigure={NOOP}
         onReadEnv={NOOP}
         onRegenerateEnv={() => Promise.resolve()}
@@ -283,7 +283,7 @@ describe("la vue d'ensemble d'un projet", () => {
         git={{ status: "idle" }}
         onAct={NOOP}
         onCheckGit={NOOP}
-        onCheckout={NOOP}
+        onCheckout={RESOLVED}
         onConfigure={NOOP}
         onReadEnv={NOOP}
         onRegenerateEnv={() => Promise.resolve()}
@@ -386,7 +386,7 @@ describe("les éditeurs distants", () => {
     const html = renderToStaticMarkup(
       <ProjectEditors
         editors={remoteEditors(SNAPSHOT.services)}
-        onOpen={NOOP}
+        onOpen={RESOLVED}
         onShare={RESOLVED}
         root={GIT_STATUS.root}
         share={null}
@@ -408,7 +408,7 @@ describe("les éditeurs distants", () => {
     const html = renderToStaticMarkup(
       <ProjectEditors
         editors={remoteEditors(SNAPSHOT.services)}
-        onOpen={NOOP}
+        onOpen={RESOLVED}
         onShare={RESOLVED}
         root={null}
         share={null}
@@ -422,7 +422,7 @@ describe("les éditeurs distants", () => {
     const html = renderToStaticMarkup(
       <ProjectEditors
         editors={remoteEditors(SNAPSHOT.services)}
-        onOpen={NOOP}
+        onOpen={RESOLVED}
         onShare={RESOLVED}
         root={GIT_STATUS.root}
         share="/home/jean/.ssh/config"

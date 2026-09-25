@@ -141,6 +141,36 @@ describe("la connexion", () => {
       error: { code: "expired" },
     });
   });
+
+  it("s'arrête quand on l'annule, sans garder de jeton, et la suivante repart", async () => {
+    const { deps } = harness({
+      polls: ["authorization_pending", "authorization_pending", "authorized"],
+    });
+    const { report } = progressOf();
+    let cancelling = true;
+    const account = createAccount({
+      ...deps,
+      wait: () => {
+        if (cancelling) {
+          account.cancelSignIn();
+        }
+
+        return Promise.resolve();
+      },
+    });
+
+    const answer = await account.signIn(report);
+
+    expect(answer).toMatchObject({
+      ok: false,
+      error: { code: "cancelled", phrase: { id: "refusal.signIn.cancelled" } },
+    });
+    expect(account.state().identity).toBeNull();
+
+    cancelling = false;
+
+    expect((await account.signIn(report)).ok).toBe(true);
+  });
 });
 
 describe("le jeton", () => {

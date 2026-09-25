@@ -1,6 +1,7 @@
 import type { Event } from "@pupitre/shared/agent-protocol/envelope";
 import type { HardenResult } from "@pupitre/shared/agent-protocol/install";
 import type { AgentError } from "@shared/agent";
+import type { SudoOutcome } from "@shared/sudo";
 
 /**
  * What the hardening says about itself while it runs.
@@ -29,4 +30,6 @@ export interface HardenOutcome {
   reconnected: boolean;
   /** Why the reconnection on the new account did not happen. */
   error?: AgentError;
+  /** The sudo password set once the app speaks as `dev`; absent when it never got that far. */
+  sudo?: SudoOutcome;
 }

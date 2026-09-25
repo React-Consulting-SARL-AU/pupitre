@@ -27,7 +27,7 @@ Pupitre Desktop ──── ssh, clé du client ────▶ pupitred (VPS d
 ## Les règles qui ne bougent pas
 
 1. **Le serveur du client est la source de vérité** pour ses projets, ses services, ses secrets. L'app affiche ce que l'agent renvoie. La plateforme ne stocke ni code, ni secrets, ni contenu.
-2. **Aucune clé privée hors du laptop du client.** L'app génère ses clés ed25519 dans son dossier, une par appareil et une par serveur qu'elle installe ; seules les moitiés publiques remontent à la plateforme, qui les transmet à l'agent.
+2. **Aucune clé privée hors du laptop du client.** L'app génère ses clés ed25519 dans son dossier, une par appareil et une par serveur qu'elle installe ; seules les moitiés publiques remontent à la plateforme, qui les transmet à l'agent. Et donc aucun accès sans un laptop du client : l'agent ne pose une clé transmise que si un appareil qu'il tient déjà pour sûr l'a approuvée ([décision 0014](./decisions/0014-cles-approuvees-par-un-appareil.md)).
 3. **Aucune connexion entrante vers le serveur du client**, ni de la plateforme, ni du support. L'agent tire ce dont il a besoin par HTTPS sortant. Le seul port ouvert est SSH, pour le client.
 4. **Rien de lisible n'est déposé sur le serveur.** Un binaire, des unités systemd générées, des fichiers de configuration. Pas de script.
 5. **L'app exige une première connexion réussie, puis reste utilisable sans la plateforme pendant sept jours** : le droit d'usage est mis en cache, puis l'agent passe en mode restreint sans rien casser de ce qui tourne. L'exposition ne dépend pas d'elle du tout : le tunnel est sur le compte Cloudflare du client, monté par l'app depuis son laptop, et rien de la plateforme n'est sur le chemin.
@@ -48,7 +48,7 @@ Le compte est requis. L'app demande une connexion au premier lancement, puis lit
 
 Il porte aussi le registre de migrations de sa propre configuration : `pupitred migrate` sur la machine, `agent.migrate` sur le protocole.
 
-Deux interfaces : le protocole JSON sur SSH pour l'app (un processus `pupitred serve` par session), et l'API de la plateforme en HTTPS sortant pour le droit d'usage, les clés et les mises à jour. La sous-commande `pupitred dev` — aussi appelable `dev`, un lien vers le binaire — donne les mêmes commandes à un humain dans un terminal SSH : elle passe par les mêmes gestionnaires, avec les mêmes refus. Le durcissement ferme root en dernier, après avoir vérifié que `dev` accepte une clé.
+Deux interfaces : le protocole JSON sur SSH pour l'app (un processus `pupitred serve` par session, limité, ou `pupitred serve --privileged` que sudo n'ouvre qu'avec le mot de passe de `dev`), et l'API de la plateforme en HTTPS sortant pour le droit d'usage, les clés et les mises à jour. La sous-commande `pupitred dev` — aussi appelable `dev`, un lien vers le binaire — donne les mêmes commandes à un humain dans un terminal SSH : elle passe par les mêmes gestionnaires, avec les mêmes refus. Le durcissement ferme root en dernier, après avoir vérifié que `dev` accepte une clé.
 
 La stack bash sous `server/` est la spécification des modules : ordre des étapes, pièges d'apt, rapport de fin, commandes de pilotage. Elle disparaît module par module.
 

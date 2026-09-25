@@ -236,9 +236,17 @@ var backupCatalog = map[string]Message{
 		FR: "le projet %s n'est pas sauvegardé : son dossier %s est absent",
 		EN: "the project %s is not backed up: its folder %s is missing",
 	},
+	"backup.project.unfollowed": {
+		FR: "le projet %s n'est pas sauvegardé : son dossier %s est un lien qui ne mène pas à un dossier de /home/dev (%s)",
+		EN: "the project %s is not backed up: its folder %s is a link that does not lead to a folder of /home/dev (%s)",
+	},
 	"backup.path.missing": {
 		FR: "le dossier %s n'existe pas dans /home/dev",
 		EN: "the folder %s does not exist in /home/dev",
+	},
+	"backup.path.unfollowed": {
+		FR: "le dossier %s n'est pas sauvegardé : c'est un lien qui ne mène pas à un dossier de /home/dev (%s)",
+		EN: "the folder %s is not backed up: it is a link that does not lead to a folder of /home/dev (%s)",
 	},
 	"backup.path.refused": {
 		FR: "le chemin %s sort de /home/dev ou n'en est pas un",

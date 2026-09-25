@@ -119,6 +119,21 @@ describe("la fin du parcours", () => {
       "L'accès root est resté ouvert, comme demandé"
     );
     expect(text(html)).not.toContain("relancez la sécurisation");
+    expect(text(html)).not.toContain("Relancer la sécurisation");
+  });
+
+  it("offre de relancer la sécurisation quand l'accès root est resté ouvert", () => {
+    const html = renderToStaticMarkup(
+      <OnboardingDoneScreen
+        onSecure={() => undefined}
+        root="open"
+        serverName="Staging"
+        user="root"
+      />
+    );
+
+    expect(text(html)).toContain("relancez la sécurisation");
+    expect(text(html)).toContain("Relancer la sécurisation");
   });
 });
 

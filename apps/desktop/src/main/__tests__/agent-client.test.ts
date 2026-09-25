@@ -9,11 +9,14 @@ import {
   type AgentClientOptions,
   createAgentClient,
   defaultTimeout,
+  privilegedServeAs,
   reportOfRun,
+  SUDO_PROMPT,
   serveAs,
   sshSpawn,
 } from "../agent-client";
 import { enableTrace, type TraceEntry, tracesTo } from "../trace";
+import { type EchoAgent, echoAgent } from "./fixtures/echo-agent";
 import { type FakeAgent, fakeAgent } from "./fixtures/fake-agent";
 
 const SERVER = "staging";
@@ -939,7 +942,8 @@ describe("la commande serve selon le compte", () => {
    * `pupitred serve` is a root process. Once hardening has closed root, the app
    * logs in as dev, where a bare serve reads neither the token nor the
    * entitlement cache — both 0600 root — and answers entitlement_required for
-   * every command. dev holds passwordless sudo, so the channel asks for it.
+   * every command. sudo runs exactly `pupitred serve` for dev without a
+   * password, so the channel asks for it.
    */
   it("passe par sudo pour un compte non-root", () => {
     expect(serveAs("dev")).toBe("sudo -n pupitred serve");
@@ -948,6 +952,233 @@ describe("la commande serve selon le compte", () => {
 
   it("n'ajoute pas sudo pour root, qui n'en a pas besoin", () => {
     expect(serveAs("root")).toBe("pupitred serve");
+  });
+
+  it("ouvre la session privilégiée directement en root", () => {
+    expect(privilegedServeAs("root")).toBe("pupitred serve --privileged");
+  });
+
+  /**
+   * sudo reads the password on the first line only when the rule asks for one:
+   * under the rule of before, the line would reach pupitred as a request, so the
+   * shell takes it first.
+   */
+  it("fait lire le mot de passe par sudo, et par le shell quand sudo n'en veut pas", () => {
+    const command = privilegedServeAs("dev");
+
+    expect(command).toContain("sudo -n true");
+    expect(command).toContain("sudo -n pupitred serve --privileged");
+    expect(command).toContain(
+      `sudo -S -p '${SUDO_PROMPT}' pupitred serve --privileged`
+    );
+    expect(command.indexOf("read -r")).toBeLessThan(
+      command.indexOf("sudo -n pupitred serve --privileged")
+    );
+  });
+});
+
+describe("le canal privilégié", () => {
+  function echoClient(options: Partial<AgentClientOptions> = {}): {
+    agent: AgentClient;
+    echo: EchoAgent;
+  } {
+    const echo = echoAgent();
+    const agent = createAgentClient({
+      spawn: echo.spawn,
+      backoff: { firstMs: 1, maxMs: 2, attempts: 1 },
+      connectMs: 200,
+      ...options,
+    });
+
+    return { agent, echo };
+  }
+
+  it("porte ce que le contrat garde pour --privileged, et le reste sur les canaux sans mot de passe", async () => {
+    const { agent, echo } = echoClient();
+
+    await agent.call(SERVER, "snapshot", undefined, { polled: true });
+    await agent.call(SERVER, "project.up", { name: "web" });
+    await agent.call(SERVER, "service.secret", {
+      id: "db.mysql",
+      key: "MYSQL_APP_PASSWORD",
+    });
+    await agent.call(SERVER, "install", {
+      config: {},
+      modules: ["db.mysql"],
+      secrets_stdin: true,
+    });
+    await agent.call(SERVER, "agent.upgrade", { version: "1.2.0" });
+    await agent.call(SERVER, "agent.upgrade", {
+      allow_downgrade: true,
+      version: "1.1.0",
+    });
+
+    expect(echo.routed().filter((line) => !line.endsWith(" hello"))).toEqual([
+      "beat snapshot",
+      "control project.up",
+      "privileged service.secret",
+      "privileged install",
+      "work agent.upgrade",
+      "privileged agent.upgrade",
+    ]);
+
+    agent.closeAll();
+  });
+
+  it("mène un geste de lecture sur le canal privilégié quand l'appelant le demande", async () => {
+    const { agent, echo } = echoClient();
+
+    await agent.call(SERVER, "ping", undefined, { privileged: true });
+
+    expect(echo.routed()).toEqual(["privileged hello", "privileged ping"]);
+
+    agent.closeAll();
+  });
+
+  it("se ferme une fois oisif, sans annoncer une coupure, et se rouvre au geste suivant", async () => {
+    const changes: string[] = [];
+    const { agent, echo } = echoClient({
+      idleMs: 20,
+      onChannel: (_server, state) => changes.push(state),
+    });
+
+    await agent.call(SERVER, "reboot");
+    expect(await until(() => echo.killed() === 1)).toBe(true);
+
+    await agent.call(SERVER, "reboot");
+
+    expect(echo.started()).toBe(2);
+    expect(changes).toEqual(["open", "open"]);
+
+    agent.closeAll();
+  });
+
+  it("ne se ferme pas tant que la session sans mot de passe reste ouverte à côté", async () => {
+    const { agent, echo } = echoClient({ idleMs: 20 });
+
+    await agent.call(SERVER, "snapshot");
+    await delay(60);
+
+    expect(echo.killed()).toBe(0);
+
+    agent.closeAll();
+  });
+
+  /**
+   * sudo writes its prompt before every read of the password: a second prompt
+   * is the first password refused, and the hello the app sent after it is being
+   * read as the next attempt. The channel is cut, and not reopened on the same
+   * password until the caller says it changed.
+   */
+  it("coupe au second prompt de sudo et le dit, sans rejouer le même mot de passe", async () => {
+    const opened: ReturnType<typeof scripted>[] = [];
+    const agent = createAgentClient({
+      spawn: () => {
+        const ssh = scripted();
+        opened.push(ssh);
+
+        return ssh.child;
+      },
+      backoff: { firstMs: 1, maxMs: 2, attempts: 3 },
+      connectMs: 500,
+      sudoHeld: () => true,
+    });
+
+    const answer = agent.request(SERVER, "reboot");
+
+    expect(await until(() => opened.length === 1)).toBe(true);
+    const [ssh] = opened;
+    ssh?.child.stderr?.emit("data", SUDO_PROMPT);
+    ssh?.child.stderr?.emit("data", `Sorry, try again.\n${SUDO_PROMPT}`);
+
+    expect(await answer).toMatchObject({
+      ok: false,
+      error: {
+        code: "privilege_required",
+        phrase: { id: "refusal.sudo.refused" },
+      },
+    });
+    expect(ssh?.killed()).toBe(true);
+
+    expect(await agent.request(SERVER, "reboot")).toMatchObject({
+      ok: false,
+      error: { phrase: { id: "refusal.sudo.refused" } },
+    });
+    expect(opened.length).toBe(1);
+
+    agent.resetPrivileged(SERVER);
+    agent.request(SERVER, "reboot");
+    expect(await until(() => opened.length === 2)).toBe(true);
+
+    agent.closeAll();
+  });
+
+  it("dit que cet ordinateur ne tient pas le mot de passe quand il n'en avait aucun", async () => {
+    const { agent, ssh } = scriptedClient({ sudoHeld: () => false });
+
+    const answer = agent.request(SERVER, "reboot");
+
+    await until(() => ssh.written.length > 0);
+    ssh.child.stderr?.emit("data", `${SUDO_PROMPT}${SUDO_PROMPT}`);
+
+    expect(await answer).toMatchObject({
+      ok: false,
+      error: {
+        code: "privilege_required",
+        phrase: { id: "refusal.sudo.absent" },
+      },
+    });
+
+    agent.closeAll();
+  });
+
+  it("n'écoute pas le prompt de sudo sur un canal sans mot de passe", async () => {
+    const { agent, ssh } = scriptedClient();
+
+    const answer = agent.request(SERVER, "ping");
+
+    await untilWritten(ssh, 1);
+    ssh.child.stderr?.emit("data", `${SUDO_PROMPT}${SUDO_PROMPT}`);
+    ssh.say(GREETING);
+    await untilWritten(ssh, 2);
+    ssh.say(JSON.stringify({ id: 2, ok: true, result: { ts: "now" } }));
+
+    expect(await answer).toMatchObject({ ok: true });
+
+    agent.closeAll();
+  });
+});
+
+describe("le mot de passe d'un canal ssh privilégié", () => {
+  it("part sur la première ligne, avant hello", async () => {
+    const written: string[] = [];
+    const spawn = sshSpawn(
+      (_serverId, purpose) =>
+        purpose === "privileged"
+          ? {
+              args: ["-F", "/tmp/config", "pupitre-x"],
+              serveCommand: privilegedServeAs("dev"),
+              preamble: "k7mp-q2xw",
+            }
+          : { args: ["-F", "/tmp/config", "pupitre-x"] },
+      () => {
+        const ssh = scripted();
+        Object.assign(ssh.stdin, {
+          write: (chunk: string) => {
+            written.push(chunk);
+
+            return true;
+          },
+        });
+
+        return ssh.child;
+      }
+    );
+
+    spawn({ purpose: "privileged", serverId: "x" });
+    spawn({ purpose: "control", serverId: "x" });
+
+    expect(written).toEqual(["k7mp-q2xw\n"]);
   });
 });
 

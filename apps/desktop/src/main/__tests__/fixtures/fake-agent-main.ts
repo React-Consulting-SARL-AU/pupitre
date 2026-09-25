@@ -1,5 +1,9 @@
-import { readFileSync, writeSync } from "node:fs";
-import { RESTRICTED_COMMANDS as CONTRACT_RESTRICTED } from "@pupitre/shared/agent-protocol";
+import { existsSync, readFileSync, writeFileSync, writeSync } from "node:fs";
+import {
+  RESTRICTED_COMMANDS as CONTRACT_RESTRICTED,
+  requiresPrivilege,
+} from "@pupitre/shared/agent-protocol";
+import { LIMITED_FLAG, STATE_FLAG } from "./fake-agent-flags";
 
 /**
  * The fake agent: it replays a transcript, and nothing else.
@@ -286,15 +290,50 @@ async function trade(
   return server_token || null;
 }
 
+/**
+ * The usage right as the machine holds it: on disk, shared by every channel.
+ * An enrolment on the privileged channel ends the restriction for the others
+ * too, as `pupitred` resolves the right again for every command.
+ */
+function sharedRight(restricted: boolean): {
+  refusing: () => boolean;
+  set: (refusing: boolean) => void;
+} {
+  const path = process.argv
+    .find((arg) => arg.startsWith(STATE_FLAG))
+    ?.slice(STATE_FLAG.length);
+  let local = restricted;
+
+  if (path && restricted && !existsSync(path)) {
+    writeFileSync(path, RESTRICTED);
+  }
+
+  return {
+    refusing: () =>
+      path && existsSync(path)
+        ? readFileSync(path, "utf8") === RESTRICTED
+        : local,
+    set: (refusing) => {
+      local = refusing;
+
+      if (path) {
+        writeFileSync(path, refusing ? RESTRICTED : "valid");
+      }
+    },
+  };
+}
+
 function main(): void {
   const path = process.argv[2];
+  // Every channel but the privileged one is `sudo -n pupitred serve`: the fake refuses there what the agent refuses.
+  const limited = process.argv.includes(LIMITED_FLAG);
   const { exchanges, restricted } = parse(path);
 
   let cursor = 0;
   let lastId = -1;
   let buffer = "";
   let traded = "";
-  let refusing = restricted;
+  const right = sharedRight(restricted);
 
   const handle = async (line: string): Promise<void> => {
     const request = JSON.parse(line) as {
@@ -316,7 +355,21 @@ function main(): void {
     }
     lastId = request.id;
 
-    if (refusing && !RESTRICTED_COMMANDS.has(request.cmd)) {
+    if (limited && requiresPrivilege(request.cmd, request.params)) {
+      if (request.params?.secrets_stdin === true) {
+        await nextLine();
+      }
+
+      fail(
+        request.id,
+        "privilege_required",
+        `${request.cmd} n'est pas ouvert à une session sans le mot de passe sudo de dev`
+      );
+
+      return;
+    }
+
+    if (right.refusing() && !RESTRICTED_COMMANDS.has(request.cmd)) {
       refuseEntitlement(request.id);
 
       return;
@@ -390,7 +443,7 @@ function main(): void {
       const granted = exchange.cmd === "enroll" ? entitlementOf(value) : null;
 
       if (granted) {
-        refusing = granted === RESTRICTED;
+        right.set(granted === RESTRICTED);
       }
     }
 

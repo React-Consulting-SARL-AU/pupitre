@@ -162,10 +162,14 @@ export const refusals = {
     "refusal.release.unsigned":
       "The console did not sign agent version {version}.",
     "refusal.release.unsigned.fix":
+      "Try again later; if it lasts, contact support.",
+    "refusal.release.unsigned.fix.dev":
       "Publish a signed agent version before installing it on a server.",
     "refusal.release.key":
       "This app carries no public key to validate the agent's binaries.",
     "refusal.release.key.fix":
+      "Reinstall the app from pupitre.studio; if it lasts, contact support.",
+    "refusal.release.key.fix.dev":
       "Build the app again with the release signing key.",
     "refusal.release.signature":
       "The signature of agent version {version} is invalid.",
@@ -199,6 +203,19 @@ export const refusals = {
     "refusal.channel.closed": "The connection to the server was closed.",
     "refusal.channel.closed.fix":
       "Open the server again, or run the command once more.",
+    "refusal.sudo.absent":
+      "This computer does not hold the sudo password of dev for this server.",
+    "refusal.sudo.absent.fix":
+      "Enter it in Settings › Servers: the app of a computer that keeps it shows it there. Lost everywhere: set a new one from the hosting console with passwd dev, then enter it.",
+    "refusal.sudo.refused":
+      "sudo refused the sudo password of dev this computer holds.",
+    "refusal.sudo.refused.fix":
+      "Enter the current one in Settings › Servers: the app of a computer that keeps it shows it there, or set a new one from the hosting console with passwd dev.",
+    "refusal.sudo.open":
+      "This server does not ask dev for a sudo password yet.",
+    "refusal.sudo.open.fix":
+      "Run the securing again: it gives dev a sudo password, kept on this computer.",
+    "refusal.sudo.empty": "The sudo password of dev is empty.",
     "refusal.port.range": "This port does not exist.",
     "refusal.port.range.fix":
       "A port runs from 1 to 65535; the service's own is on its card.",
@@ -269,6 +286,7 @@ export const refusals = {
     "refusal.signIn.denied": "The request was denied in the browser.",
     "refusal.signIn.denied.fix":
       "Start signing in again and approve the code shown.",
+    "refusal.signIn.cancelled": "Signing in was cancelled.",
     "refusal.signIn.expired": "The code shown expired before it was approved.",
     "refusal.signIn.expired.fix": "Start signing in again for a fresh code.",
     "refusal.device.none": "This computer is signed in to no Pupitre account.",
@@ -291,8 +309,11 @@ export const refusals = {
       "Build the agent with bun --cwd=apps/agent run build, then build the app again.",
     "refusal.binary.mismatch.fix":
       "Run the installation again; if the gap stays, check the server's disk space.",
-    "refusal.release.none": "No agent version is published for this machine.",
+    "refusal.release.none":
+      "No agent version is available for this machine yet.",
     "refusal.release.none.fix":
+      "Try again later; if it lasts, contact support.",
+    "refusal.release.none.fix.dev":
       "Publish an agent version from the console before installing a server.",
     "refusal.binary.missing": "This app carries no agent binary.",
     "refusal.server.added": "This server could not be added.",
@@ -301,6 +322,8 @@ export const refusals = {
     "refusal.terminal.unknown": "This terminal has no identifier.",
     "refusal.terminal.unknown.fix": "Close this tab and open another one.",
     "refusal.release.unpublished.fix":
+      "Try again later; if it lasts, contact support.",
+    "refusal.release.unpublished.fix.dev":
       "Publish an agent version, or stay on a development build.",
     "refusal.release.storage.fix":
       "Nothing is wrong on your server: the platform signs the download address with its storage credentials. Try again later; if it lasts, tell Pupitre.",
@@ -364,10 +387,14 @@ export const refusals = {
     "refusal.agentUpdate.binary":
       "This app carries no agent for the {arch} architecture, and the console publishes none for this server.",
     "refusal.agentUpdate.binary.fix":
+      "Try again later; if it lasts, contact support.",
+    "refusal.agentUpdate.binary.fix.dev":
       "Build the agent with bun --cwd=apps/agent run build, then rebuild the app.",
     "refusal.agentUpdate.signature":
       "This app carries no signature for the agent {version} on {arch}, and this server no longer reaches the console that serves it.",
     "refusal.agentUpdate.signature.fix":
+      "Check that this server reaches the internet, then try again; if it lasts, contact support.",
+    "refusal.agentUpdate.signature.fix.dev":
       "Publish this version with bun --cwd=apps/agent run release, then rebuild the app.",
     "refusal.tunnel.route.foreign":
       "{hostname} is not under {domain}, the domain this server publishes.",
@@ -538,10 +565,14 @@ export const refusals = {
     "refusal.release.unsigned":
       "La console n'a pas signé la version {version} de l'agent.",
     "refusal.release.unsigned.fix":
+      "Réessayez plus tard ; si ça dure, contactez le support.",
+    "refusal.release.unsigned.fix.dev":
       "Publiez une version signée de l'agent avant de l'installer sur un serveur.",
     "refusal.release.key":
       "Cette app ne porte pas la clé publique qui valide les binaires de l'agent.",
     "refusal.release.key.fix":
+      "Réinstallez l'app depuis pupitre.studio ; si ça dure, contactez le support.",
+    "refusal.release.key.fix.dev":
       "Reconstruisez l'app avec la clé de signature des releases.",
     "refusal.release.signature":
       "La signature de la version {version} de l'agent est invalide.",
@@ -576,6 +607,19 @@ export const refusals = {
     "refusal.channel.closed": "La connexion au serveur a été fermée.",
     "refusal.channel.closed.fix":
       "Rouvrez le serveur, ou relancez la commande.",
+    "refusal.sudo.absent":
+      "Cet ordinateur ne tient pas le mot de passe sudo de dev pour ce serveur.",
+    "refusal.sudo.absent.fix":
+      "Saisissez-le dans Réglages › Serveurs : l'app d'un ordinateur qui le garde l'y montre. Perdu partout : posez-en un nouveau depuis la console de l'hébergeur avec passwd dev, puis saisissez-le.",
+    "refusal.sudo.refused":
+      "sudo a refusé le mot de passe sudo de dev que cet ordinateur tient.",
+    "refusal.sudo.refused.fix":
+      "Saisissez l'actuel dans Réglages › Serveurs : l'app d'un ordinateur qui le garde l'y montre, ou posez-en un nouveau depuis la console de l'hébergeur avec passwd dev.",
+    "refusal.sudo.open":
+      "Ce serveur ne demande pas encore de mot de passe sudo à dev.",
+    "refusal.sudo.open.fix":
+      "Relancez la sécurisation : elle donne à dev un mot de passe sudo, gardé sur cet ordinateur.",
+    "refusal.sudo.empty": "Le mot de passe sudo de dev est vide.",
     "refusal.port.range": "Ce port n'existe pas.",
     "refusal.port.range.fix":
       "Un port va de 1 à 65535 ; celui du service est dans sa fiche.",
@@ -647,6 +691,7 @@ export const refusals = {
     "refusal.signIn.denied": "La demande a été refusée dans le navigateur.",
     "refusal.signIn.denied.fix":
       "Relancez la connexion et approuvez le code affiché.",
+    "refusal.signIn.cancelled": "La connexion a été annulée.",
     "refusal.signIn.expired": "Le code affiché a expiré avant d'être approuvé.",
     "refusal.signIn.expired.fix":
       "Relancez la connexion pour obtenir un nouveau code.",
@@ -672,8 +717,10 @@ export const refusals = {
     "refusal.binary.mismatch.fix":
       "Relancez l'installation ; si l'écart persiste, vérifiez l'espace disque du serveur.",
     "refusal.release.none":
-      "Aucune version de l'agent n'est publiée pour cette machine.",
+      "Aucune version de l'agent n'est encore disponible pour cette machine.",
     "refusal.release.none.fix":
+      "Réessayez plus tard ; si ça dure, contactez le support.",
+    "refusal.release.none.fix.dev":
       "Publiez une version de l'agent depuis la console avant d'installer un serveur.",
     "refusal.binary.missing": "Cette app ne porte pas de binaire d'agent.",
     "refusal.server.added": "Ce serveur n'a pas pu être ajouté.",
@@ -682,6 +729,8 @@ export const refusals = {
     "refusal.terminal.unknown": "Ce terminal n'a pas d'identifiant.",
     "refusal.terminal.unknown.fix": "Fermez cet onglet et ouvrez-en un autre.",
     "refusal.release.unpublished.fix":
+      "Réessayez plus tard ; si ça dure, contactez le support.",
+    "refusal.release.unpublished.fix.dev":
       "Publiez une version de l'agent, ou restez sur un build de développement.",
     "refusal.release.storage.fix":
       "Rien n'est en cause sur votre serveur : la plateforme signe l'adresse de téléchargement avec ses accès au stockage. Réessayez plus tard ; si ça dure, prévenez Pupitre.",
@@ -749,10 +798,14 @@ export const refusals = {
     "refusal.agentUpdate.binary":
       "Cette app ne porte pas d'agent pour l'architecture {arch}, et la console n'en publie pas pour ce serveur.",
     "refusal.agentUpdate.binary.fix":
+      "Réessayez plus tard ; si ça dure, contactez le support.",
+    "refusal.agentUpdate.binary.fix.dev":
       "Construisez l'agent avec bun --cwd=apps/agent run build, puis reconstruisez l'app.",
     "refusal.agentUpdate.signature":
       "Cette app ne porte pas la signature de l'agent {version} pour {arch}, et ce serveur n'atteint plus la console qui la sert.",
     "refusal.agentUpdate.signature.fix":
+      "Vérifiez que ce serveur joint internet, puis réessayez ; si ça dure, contactez le support.",
+    "refusal.agentUpdate.signature.fix.dev":
       "Publiez cette version avec bun --cwd=apps/agent run release, puis reconstruisez l'app.",
     "refusal.tunnel.route.foreign":
       "{hostname} n'est pas sous {domain}, le domaine que ce serveur publie.",

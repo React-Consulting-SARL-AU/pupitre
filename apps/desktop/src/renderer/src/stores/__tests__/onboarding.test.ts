@@ -547,6 +547,28 @@ describe("une app qui redémarre", () => {
     expect(useCatalog.getState().catalog.status).toBe("idle");
   });
 
+  it("relance la sécurisation d'un serveur installé sans repasser par les autres étapes", () => {
+    let hardened = 0;
+
+    knownServers(["srv-1"]);
+    stubPupitre({
+      harden: () => {
+        hardened += 1;
+
+        return new Promise(() => undefined);
+      },
+    });
+
+    useHarden.getState().reset();
+    useOnboarding.getState().secure("srv-1");
+
+    expect(useOnboarding.getState()).toMatchObject({
+      serverId: "srv-1",
+      step: "harden",
+    });
+    expect(hardened).toBe(1);
+  });
+
   it("relance le durcissement quand la reprise tombe dessus et que rien ne tourne", async () => {
     let hardened = 0;
 

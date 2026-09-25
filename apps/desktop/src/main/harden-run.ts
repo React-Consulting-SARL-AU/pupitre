@@ -1,5 +1,7 @@
+import type { Event } from "@pupitre/shared/agent-protocol/envelope";
 import type { AgentError, AgentResponse } from "@shared/agent";
 import type { HardenOutcome, HardenUpdate } from "@shared/harden";
+import type { SudoOutcome } from "@shared/sudo";
 import type { AgentClient } from "./agent-client";
 import { refusalOf } from "./refusal";
 import { trace } from "./trace";
@@ -133,6 +135,39 @@ async function afterCut(
   deps.close(serverId);
 
   return { ok: false, error: cut };
+}
+
+export interface SecuringDeps extends HardenDeps {
+  /** Sets the sudo password of `dev` on the session the app just reopened as `dev`. */
+  sudo: (
+    serverId: string,
+    onEvent: (event: Event) => void
+  ) => Promise<SudoOutcome>;
+}
+
+/**
+ * The securing as a whole: the hardening, then the sudo password (decision
+ * 0015). The password comes once the app speaks as `dev` and SSH no longer
+ * takes passwords; a hardening that left root open, or a reconnection that
+ * failed, leaves sudo as it was.
+ */
+export async function runSecuring(
+  serverId: string,
+  update: (change: HardenUpdate) => void,
+  deps: SecuringDeps,
+  retry: ProbeRetry = PROBE_RETRY
+): Promise<AgentResponse<HardenOutcome>> {
+  const hardened = await runHarden(serverId, update, deps, retry);
+
+  if (!(hardened.ok && hardened.result.reconnected)) {
+    return hardened;
+  }
+
+  const sudo = await deps.sudo(serverId, (event) =>
+    update({ event, kind: "event" })
+  );
+
+  return { ok: true, result: { ...hardened.result, sudo } };
 }
 
 export async function runHarden(

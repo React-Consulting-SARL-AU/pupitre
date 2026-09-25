@@ -90,7 +90,7 @@ const EDIT = {
   boot: () => undefined,
   branch: () => undefined,
   browse: () => undefined,
-  createFolder: () => Promise.resolve(),
+  createFolder: () => Promise.resolve(null),
   generateRowWeb: () => undefined,
   kind: () => undefined,
   loadRepos: () => Promise.resolve(),
@@ -297,6 +297,20 @@ describe("le formulaire d'un nouveau projet", () => {
       'aria-describedby="project.processes.0.ports.0.web-problem" aria-invalid="true"'
     );
     expect(text(refused)).toContain("les points séparent les niveaux");
+  });
+
+  it("dit sous le nom du projet pourquoi il est refusé, et le lie au champ", () => {
+    const refused = panel({ status: "idle" }, { draft: { name: "Mon Site" } });
+
+    expect(refused).toContain('id="project.name-problem"');
+    expect(refused).toContain('aria-invalid="true"');
+    expect(text(refused)).toContain(
+      "Minuscules, chiffres, points, tirets et soulignés, en commençant par une lettre ou un chiffre."
+    );
+    expect(panel({ status: "idle" })).not.toContain("project.name-problem");
+    expect(panel({ status: "idle" }, { draft: { name: "" } })).not.toContain(
+      "project.name-problem"
+    );
   });
 
   it("dit, derrière Caddy, l'adresse à écrire dans le DNS", () => {

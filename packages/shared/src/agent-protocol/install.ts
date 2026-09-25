@@ -180,6 +180,29 @@ export const HardenResultSchema = z.object({
 
 export type HardenResult = z.infer<typeof HardenResultSchema>
 
+/** A `crypt(3)` hash, yescrypt (`$y$`) or SHA-512 (`$6$`): never the password itself. */
+export const SUDO_PASSWORD_HASH_PATTERN =
+  "^\\$(y\\$[./0-9A-Za-z]+\\$[./0-9A-Za-z]{1,86}\\$[./0-9A-Za-z]{43}|6\\$(rounds=[1-9][0-9]{3,8}\\$)?[./0-9A-Za-z]{1,16}\\$[./0-9A-Za-z]{86})$"
+
+export const HardenSudoParamsSchema = z.strictObject({
+  user: z.literal("dev"),
+  secrets_stdin: z.literal(true),
+})
+
+export type HardenSudoParams = z.infer<typeof HardenSudoParamsSchema>
+
+export const HardenSudoSecretsSchema = z.strictObject({
+  password_hash: z.string().regex(new RegExp(SUDO_PASSWORD_HASH_PATTERN)),
+})
+
+export type HardenSudoSecrets = z.infer<typeof HardenSudoSecretsSchema>
+
+export const HardenSudoResultSchema = z.object({
+  sudo: z.literal("password"),
+})
+
+export type HardenSudoResult = z.infer<typeof HardenSudoResultSchema>
+
 export const UpgradeParamsSchema = z.strictObject({
   modules: z.array(z.string().min(1)).optional(),
 })

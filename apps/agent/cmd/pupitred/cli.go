@@ -20,14 +20,21 @@ import (
 )
 
 // Typed in a login shell rather than negotiated by `hello`: the locale comes
-// from the reader's own shell, and the command becomes root itself when the
-// account it runs under cannot read what the answer depends on.
+// from the reader's own shell, and the verbs reach a server running as root
+// when the account they run under cannot read what the answer depends on.
 func runDev(engine *modules.Engine, args []string, stdout, stderr io.Writer) int {
-	if err := devcli.RealElevation(engine.Sys, tokenPath(), entitlementPath()).Run(args); err != nil {
+	local := func() devcli.Caller { return newServer(engine, false) }
+
+	caller, err := devcli.RealElevation(engine.Sys, tokenPath(), entitlementPath()).Caller(local, version)
+	if err != nil {
 		return devcli.PrintFailure(stderr, err)
 	}
 
-	return devcli.Run(devcli.Options{Server: newServer(engine), Tmux: stateOptions().Tmux}, args, stdout, stderr)
+	if remote, isRemote := caller.(*devcli.Remote); isRemote {
+		defer remote.Close()
+	}
+
+	return devcli.Run(devcli.Options{Server: caller, Tmux: stateOptions().Tmux}, args, stdout, stderr)
 }
 
 // The replay every fix prints reads the configuration once it is the shape this binary reads, as serve does.

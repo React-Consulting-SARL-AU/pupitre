@@ -2,6 +2,7 @@ import { z } from "zod"
 import {
   COMMAND_NAMES,
   COMMANDS,
+  LIMITED_COMMANDS,
   MIGRATION_COMMANDS,
   RESTRICTED_COMMANDS,
   UNENROLLED_COMMANDS,
@@ -20,7 +21,10 @@ import {
   ProtocolErrorSchema,
 } from "../agent-protocol/errors"
 import { FileEventSchema } from "../agent-protocol/files"
-import { InstallSecretsSchema } from "../agent-protocol/install"
+import {
+  HardenSudoSecretsSchema,
+  InstallSecretsSchema,
+} from "../agent-protocol/install"
 import { ConfigRevisionSchema } from "../agent-protocol/migrate"
 import { ShotEventSchema } from "../agent-protocol/processes"
 import { SecretEventSchema } from "../agent-protocol/secrets"
@@ -61,6 +65,18 @@ import {
 import { FORMAT_PATTERNS } from "../catalog/formats"
 import { FieldProblemSchema } from "../catalog/validate"
 import { GENERATIONS, type Generation } from "../compat"
+import {
+  AgentStateKeySchema,
+  APPROVED_KEY_PATTERN,
+  APPROVED_KEY_TYPES,
+  KEY_APPROVAL_FUTURE_SKEW_SECONDS,
+  KEY_APPROVAL_HASHES,
+  KEY_APPROVAL_MAX_AGE_SECONDS,
+  KEY_FINGERPRINT_PATTERN,
+  KeyApprovalSchema,
+  KeysBeatSchema,
+  SERVER_ID_PATTERN,
+} from "../keys"
 
 export const CONTRACT_ID = "https://pupitre.studio/contracts/agent/schema.json"
 
@@ -112,11 +128,13 @@ export const CONTRACT_DEFINITIONS: Readonly<Record<string, z.ZodType>> = {
   RestrictedCommands: z.enum(RESTRICTED_COMMANDS),
   UnenrolledCommands: z.enum(UNENROLLED_COMMANDS),
   MigrationCommands: z.enum(MIGRATION_COMMANDS),
+  LimitedCommands: z.enum(LIMITED_COMMANDS),
   ConfigRevision: ConfigRevisionSchema,
   Project: ProjectSchema,
   ...commandDefinitions(),
   InstallSecrets: InstallSecretsSchema,
   EnrollSecrets: EnrollSecretsSchema,
+  HardenSudoSecrets: HardenSudoSecretsSchema,
   BackupSecrets: BackupSecretsSchema,
   BackupManifest: BackupManifestSchema,
   BackupDeclaration: BackupDeclarationSchema,
@@ -126,6 +144,9 @@ export const CONTRACT_DEFINITIONS: Readonly<Record<string, z.ZodType>> = {
   BackupPart: BackupPartSchema,
   BackupPartKey: BackupPartKeySchema,
   BackupLocation: BackupLocationSchema,
+  KeyApproval: KeyApprovalSchema,
+  AgentStateKey: AgentStateKeySchema,
+  KeysBeat: KeysBeatSchema,
   Manifest: ManifestSchema,
   Field: FieldSchema,
   FieldProblem: FieldProblemSchema,
@@ -179,6 +200,23 @@ export const CONTRACT_CONSTANTS: Readonly<Record<string, JsonObject>> = {
       excluded_dirs: BACKUP_EXCLUDED_DIRS,
       home_paths: BACKUP_HOME_PATHS,
       home_excluded: BACKUP_HOME_EXCLUDED,
+    },
+  },
+  /**
+   * What an approval is held to (decision 0014). The namespace and the header
+   * name the product, so they stay out of this document: the agent holds them
+   * as its own constants, checked against key-approval.fixtures.json.
+   */
+  KeyApprovalRules: {
+    type: "object",
+    const: {
+      hashes: KEY_APPROVAL_HASHES,
+      max_age_seconds: KEY_APPROVAL_MAX_AGE_SECONDS,
+      future_skew_seconds: KEY_APPROVAL_FUTURE_SKEW_SECONDS,
+      key_types: APPROVED_KEY_TYPES,
+      key_pattern: APPROVED_KEY_PATTERN,
+      fingerprint_pattern: KEY_FINGERPRINT_PATTERN,
+      server_id_pattern: SERVER_ID_PATTERN,
     },
   },
 }

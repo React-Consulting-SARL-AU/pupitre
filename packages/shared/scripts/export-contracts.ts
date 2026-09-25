@@ -17,6 +17,11 @@ const BACKUP_FIXTURES = path.resolve(
   "../src/backup/fixtures.json"
 )
 
+const KEY_APPROVAL_FIXTURES = path.resolve(
+  import.meta.dir,
+  "../src/keys/fixtures.json"
+)
+
 interface Artefact {
   output: string
   content: string
@@ -40,6 +45,10 @@ function artefacts(): Artefact[] {
     {
       content: readFileSync(BACKUP_FIXTURES, "utf8"),
       output: path.join(AGENT_CONTRACT, "backup.fixtures.json"),
+    },
+    {
+      content: readFileSync(KEY_APPROVAL_FIXTURES, "utf8"),
+      output: path.join(AGENT_CONTRACT, "key-approval.fixtures.json"),
     },
   ]
 }

@@ -445,10 +445,7 @@ describe("l'enrôlement", () => {
   }
 
   it("remet le jeton sur le flux secret, jamais dans params", async () => {
-    const client = agent([
-      "enroll-then-install.jsonl",
-      "install-no-secrets.jsonl",
-    ]);
+    const client = agent(["enroll-then-install.jsonl"]);
 
     const answer = await runInstall(
       SERVER,
@@ -466,9 +463,9 @@ describe("l'enrôlement", () => {
     expect(fake?.trace()).toEqual([
       "id=1 cmd=hello",
       "id=2 cmd=enroll",
-      "id=1 cmd=hello",
-      "id=2 cmd=install",
+      "id=3 cmd=install",
     ]);
+    expect(fake?.purposes()).toEqual(["privileged"]);
 
     client.closeAll();
   });

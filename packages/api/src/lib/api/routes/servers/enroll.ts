@@ -6,15 +6,18 @@ import {
   EntitlementMissingError,
   enrollServer,
   SeatQuotaReachedError,
+  ServerRepairForbiddenError,
 } from "../../../servers/enrollment"
+import { SshAddressInvalidError } from "../../../servers/ssh-address"
 import { type ApiErrorPayload, apiError } from "../../errors"
 import { errorResponse } from "../../openapi-models"
 import { requireEntitlement, requireOrg } from "../../plugins/guards"
 import { serializeData } from "../../prisma"
+import { describeMalformedBodyField } from "../../validation-errors"
 import { enrollBody, enrollmentSchema } from "./schemas"
 
 interface Refusal {
-  status: 403 | 404
+  status: 403 | 404 | 422
   payload: ApiErrorPayload
 }
 
@@ -23,6 +26,12 @@ function refusalFor(
   locale: Locale,
   organizationId: string
 ): Refusal | null {
+  if (error instanceof SshAddressInvalidError) {
+    const { message, fix } = describeMalformedBodyField(error.field, locale)
+
+    return { status: 422, payload: apiError("validation", message, fix) }
+  }
+
   if (error instanceof EnrollmentDeviceUnknownError) {
     return {
       status: 404,
@@ -37,6 +46,17 @@ function refusalFor(
         error.refusal,
         translate(locale, error.refusal),
         translate(locale, `${error.refusal}_fix`)
+      ),
+    }
+  }
+
+  if (error instanceof ServerRepairForbiddenError) {
+    return {
+      status: 403,
+      payload: apiError(
+        "server_repair_forbidden",
+        translate(locale, "server_repair_forbidden"),
+        translate(locale, "server_repair_forbidden_fix")
       ),
     }
   }
@@ -96,6 +116,7 @@ export const enrollRoutes = new Elysia({ name: "servers-enroll-routes" })
         401: errorResponse,
         403: errorResponse,
         404: errorResponse,
+        422: errorResponse,
       },
     }
   )

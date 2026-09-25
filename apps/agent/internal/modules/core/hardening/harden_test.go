@@ -60,7 +60,7 @@ func TestHardenWithoutKeyKeepsRootAndChangesNothing(t *testing.T) {
 		t.Fatalf("result = %+v", result)
 	}
 
-	if strings.Join(steps, " ") != "check-authorized-keys=ok" || len(fake.Mutations) != mutations {
+	if strings.Join(steps, " ") != "protect-links=skip check-authorized-keys=ok" || len(fake.Mutations) != mutations {
 		t.Fatalf("steps = %v, mutations = %v", steps, fake.Mutations[mutations:])
 	}
 
@@ -104,7 +104,7 @@ func TestHardenClosesRootThenReplaysWithoutWriting(t *testing.T) {
 		t.Fatalf("result = %+v", result)
 	}
 
-	if strings.Join(steps, " ") != "check-authorized-keys=ok write-sshd-fragment=ok validate-sshd-config=ok reload-sshd=ok confirm-sshd-config=ok" {
+	if strings.Join(steps, " ") != "protect-links=skip check-authorized-keys=ok write-sshd-fragment=ok validate-sshd-config=ok reload-sshd=ok confirm-sshd-config=ok" {
 		t.Fatalf("steps = %v", steps)
 	}
 
@@ -126,7 +126,7 @@ func TestHardenClosesRootThenReplaysWithoutWriting(t *testing.T) {
 	mutations := len(fake.Mutations)
 	result, steps = events(fake, t, Options{}, "dev")
 
-	if !result.RootClosed || strings.Join(steps, " ") != "check-authorized-keys=ok write-sshd-fragment=skip" || len(fake.Mutations) != mutations || fake.Restarts["ssh"] != 1 {
+	if !result.RootClosed || strings.Join(steps, " ") != "protect-links=skip check-authorized-keys=ok write-sshd-fragment=skip" || len(fake.Mutations) != mutations || fake.Restarts["ssh"] != 1 {
 		t.Fatalf("replay: result %+v, steps %v, mutations %v", result, steps, fake.Mutations[mutations:])
 	}
 }
@@ -162,7 +162,7 @@ func TestInvalidSSHDConfigIsRevertedAndRootStays(t *testing.T) {
 		t.Fatalf("result = %+v", result)
 	}
 
-	if strings.Join(steps, " ") != "check-authorized-keys=ok write-sshd-fragment=ok validate-sshd-config=fail revert-sshd-fragment=ok" {
+	if strings.Join(steps, " ") != "protect-links=skip check-authorized-keys=ok write-sshd-fragment=ok validate-sshd-config=fail revert-sshd-fragment=ok" {
 		t.Fatalf("steps = %v", steps)
 	}
 
@@ -241,7 +241,7 @@ func TestKeepRootAppliesTheFragmentAndLeavesRootAWayIn(t *testing.T) {
 		t.Fatalf("result = %+v", result)
 	}
 
-	if strings.Join(steps, " ") != "check-authorized-keys=ok write-sshd-fragment=ok validate-sshd-config=ok reload-sshd=ok confirm-sshd-config=ok" {
+	if strings.Join(steps, " ") != "protect-links=skip check-authorized-keys=ok write-sshd-fragment=ok validate-sshd-config=ok reload-sshd=ok confirm-sshd-config=ok" {
 		t.Fatalf("steps = %v", steps)
 	}
 
@@ -254,7 +254,7 @@ func TestKeepRootAppliesTheFragmentAndLeavesRootAWayIn(t *testing.T) {
 
 	result, steps = events(fake, t, keep, "dev")
 
-	if result.RootClosed || !result.RootKept || strings.Join(steps, " ") != "check-authorized-keys=ok write-sshd-fragment=skip" {
+	if result.RootClosed || !result.RootKept || strings.Join(steps, " ") != "protect-links=skip check-authorized-keys=ok write-sshd-fragment=skip" {
 		t.Fatalf("replay: result %+v, steps %v", result, steps)
 	}
 }
@@ -276,7 +276,7 @@ func TestHardenConfirmsTheEffectiveConfigurationAfterReload(t *testing.T) {
 
 	_, steps := events(fake, t, Options{}, "dev")
 
-	if strings.Join(steps, " ") != "check-authorized-keys=ok write-sshd-fragment=ok validate-sshd-config=ok reload-sshd=ok confirm-sshd-config=ok" {
+	if strings.Join(steps, " ") != "protect-links=skip check-authorized-keys=ok write-sshd-fragment=ok validate-sshd-config=ok reload-sshd=ok confirm-sshd-config=ok" {
 		t.Fatalf("steps = %v", steps)
 	}
 

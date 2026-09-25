@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -14,7 +15,6 @@ import (
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/sys"
-	"pupitre.studio/agent/internal/sys/file"
 	"pupitre.studio/agent/internal/sys/net"
 	"pupitre.studio/agent/internal/sys/user"
 )
@@ -133,16 +133,19 @@ func (r *Reader) Detect(repo, dir, branch string) (contract.ProjectDetect, error
 }
 
 func (r *Reader) detectDir(dir string) (contract.ProjectDetect, error) {
-	root := registry.Under(r.options.Paths.Resolved().Projects, dir)
+	projects := r.options.Paths.Resolved().Projects
+
+	root := registry.Under(projects, dir)
 	if root == "" {
 		return contract.ProjectDetect{}, bad(i18n.T("state.dir.outside", dir), i18n.T("state.dir.outside.fix"))
 	}
 
-	if !file.Exists(r.ctx(), root) {
+	files := r.sourcesIn(projects, below(projects, root))
+	if !files.exists(".") {
 		return contract.ProjectDetect{}, bad(i18n.T("state.dir.absent", dir), i18n.T("state.dir.absent.fix"))
 	}
 
-	return r.read(root), nil
+	return r.read(files), nil
 }
 
 // The clone lands in the cache of the projects user, never in the projects root: a half-clone must not be able to pass for a project.
@@ -156,7 +159,8 @@ func (r *Reader) detectRepo(repo, branch string) (contract.ProjectDetect, error)
 	}
 
 	cache := r.options.Detect
-	target := cache.Cache + "/" + cache.Name()
+	name := cache.Name()
+	target := cache.Cache + "/" + name
 
 	r.sweep(cache.Cache)
 	defer r.discard(target)
@@ -171,7 +175,17 @@ func (r *Reader) detectRepo(repo, branch string) (contract.ProjectDetect, error)
 			WithFix(cloneFix(out))
 	}
 
-	return r.read(target), nil
+	return r.read(r.sourcesIn(cache.Cache, name)), nil
+}
+
+// A repository is read inside the folder it was found under, never through a link that leaves it: dev writes the repository, root reads it.
+func (r *Reader) sourcesIn(root, dir string) sources {
+	return sources{ctx: r.ctx(), root: root, dir: dir}
+}
+
+// The name a path registry.Under kept under root goes by for the reads scoped to root.
+func below(root, full string) string {
+	return strings.TrimPrefix(strings.TrimPrefix(full, path.Clean(root)), "/")
 }
 
 // The trees and the small blobs come in one pack, the working tree stays empty: a detection reads a handful of manifests, and a repository heavy with assets or history must cost no more than an empty one. A server that knows no filter says so and sends everything, which reads the same.
@@ -259,8 +273,7 @@ func (r *Reader) sweep(cache string) {
 }
 
 // One process per folder that asks for one: the root, then each folder of the first level that carries its own manifest. A monorepo run from its root is the root alone, its workspaces being its routes; a repository that asks for nothing is one process without a command.
-func (r *Reader) read(root string) contract.ProjectDetect {
-	files := sources{ctx: r.ctx(), root: root}
+func (r *Reader) read(files sources) contract.ProjectDetect {
 	taken := map[int]bool{}
 	ids := map[string]bool{}
 
@@ -276,8 +289,7 @@ func (r *Reader) read(root string) contract.ProjectDetect {
 	processes := r.folder(files, registry.RootDir, rootID, taken, ids)
 
 	for _, entry := range files.members() {
-		member := sources{ctx: r.ctx(), root: root + "/" + entry}
-		processes = append(processes, r.folder(member, entry, entry, taken, ids)...)
+		processes = append(processes, r.folder(files.sub(entry), entry, entry, taken, ids)...)
 	}
 
 	if len(processes) == 0 {
@@ -289,20 +301,14 @@ func (r *Reader) read(root string) contract.ProjectDetect {
 
 // The folders of the first level that carry their own manifest: a package.json, a pyproject.toml, or a Gradle wrapper of their own.
 func (s sources) members() []string {
-	entries, err := file.List(s.ctx, s.root)
-	if err != nil {
-		return nil
-	}
-
 	var members []string
-	for _, entry := range entries {
-		if !entry.Dir || strings.HasPrefix(entry.Name, ".") || skippedFolders[entry.Name] {
+	for _, name := range s.folders(".") {
+		if skippedFolders[name] {
 			continue
 		}
 
-		member := sources{ctx: s.ctx, root: s.root + "/" + entry.Name}
-		if member.first("package.json", "pyproject.toml", "gradlew") != "" {
-			members = append(members, entry.Name)
+		if s.sub(name).first("package.json", "pyproject.toml", "gradlew") != "" {
+			members = append(members, name)
 		}
 	}
 
@@ -469,22 +475,51 @@ func (r *Reader) freePort(wanted int, taken map[int]bool) int {
 	return declared.FreePort(wanted, busy)
 }
 
+// One folder of a repository, named from the root every read stays inside.
 type sources struct {
 	ctx  sys.Context
 	root string
+	dir  string
+}
+
+func (s sources) at(name string) string {
+	return path.Join(s.dir, name)
+}
+
+func (s sources) sub(name string) sources {
+	return sources{ctx: s.ctx, root: s.root, dir: s.at(name)}
 }
 
 func (s sources) exists(name string) bool {
-	return file.Exists(s.ctx, s.root+"/"+name)
+	_, err := s.ctx.Sys().StatIn(s.root, s.at(name))
+
+	return err == nil
 }
 
 func (s sources) read(name string) string {
-	raw, err := file.Read(s.ctx, s.root+"/"+name)
+	raw, err := s.ctx.Sys().ReadFileIn(s.root, s.at(name))
 	if err != nil {
 		return ""
 	}
 
 	return string(raw)
+}
+
+// The folders a folder holds, hidden ones left out; a link is never one of them.
+func (s sources) folders(name string) []string {
+	nodes, err := s.ctx.Sys().ListIn(s.root, s.at(name))
+	if err != nil {
+		return nil
+	}
+
+	var folders []string
+	for _, node := range nodes {
+		if node.Kind == sys.NodeDir && !strings.HasPrefix(node.Name, ".") {
+			folders = append(folders, node.Name)
+		}
+	}
+
+	return folders
 }
 
 func (s sources) first(names ...string) string {
