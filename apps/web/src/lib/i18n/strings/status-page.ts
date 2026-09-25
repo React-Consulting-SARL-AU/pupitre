@@ -7,6 +7,7 @@ export const statusPage = {
     "statusPage.api": "API",
     "statusPage.database": "Database",
     "statusPage.latestRelease": "Latest published agent version",
+    "statusPage.releasePublished": "Published",
     "statusPage.noRelease": "None",
     "statusPage.unreachable": "The page got no answer. Reload in a minute.",
     "statusPage.checkedAt": "Read on {date}.",
@@ -26,6 +27,7 @@ export const statusPage = {
     "statusPage.api": "API",
     "statusPage.database": "Base de données",
     "statusPage.latestRelease": "Dernière version publiée de l'agent",
+    "statusPage.releasePublished": "Publiée",
     "statusPage.noRelease": "Aucune",
     "statusPage.unreachable":
       "La page n'a pas obtenu de réponse. Rechargez dans une minute.",

@@ -173,7 +173,7 @@ export function ServerAssignment({
                 {assignee.email}
               </p>
             </div>
-            <span className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
+            <span className="text-label">
               {t(roleKey(assignee.role) ?? "role.member")}
             </span>
           </div>

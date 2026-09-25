@@ -101,7 +101,7 @@ export function AdminAffiliateLinkList({
         ),
       failed: () => ({
         title: t("admin.links.toggleFailed"),
-        fix: t("admin.links.toggleFailedFix"),
+        fix: t("common.retryLater"),
       }),
     },
   })

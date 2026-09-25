@@ -18,6 +18,7 @@ export function AdminOverview() {
   if (overview.isError) {
     return (
       <AdminFailure
+        error={overview.error}
         fetching={overview.isFetching}
         onRetry={() => {
           overview.refetch()

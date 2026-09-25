@@ -3,15 +3,11 @@ import { Link } from "@tanstack/react-router"
 import { buttonClassName } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
 import { useTranslations } from "@/hooks/use-locale"
-import { deviceReturnPath } from "@/lib/auth/device-flow"
+import { DEVICE_PAGE_PATH } from "@/lib/auth/device-flow"
 
 const MINUTE_SECONDS = 60
 
-export interface DeviceSignInAgainProps {
-  userCode: string
-}
-
-export function DeviceSignInAgain({ userCode }: DeviceSignInAgainProps) {
+export function DeviceSignInAgain() {
   const t = useTranslations()
 
   return (
@@ -24,7 +20,7 @@ export function DeviceSignInAgain({ userCode }: DeviceSignInAgainProps) {
       />
       <Link
         className={buttonClassName({ variant: "primary" })}
-        search={{ callbackURL: deviceReturnPath(userCode) }}
+        search={{ callbackURL: DEVICE_PAGE_PATH }}
         to="/auth/sign-in"
       >
         {t("auth.device.signInAgainAction")}

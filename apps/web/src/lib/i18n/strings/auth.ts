@@ -25,6 +25,10 @@ export const auth = {
     "auth.device.check": "Check the code",
     "auth.device.confirmLead":
       "A device is asking to open a session on your account. Check that this code is the one shown on the device.",
+    "auth.device.foreignCode":
+      "Confirm only a code your own app is showing right now.",
+    "auth.device.foreignCodeFix":
+      "Confirming a code someone sent you gives them your account.",
     "auth.device.confirm": "Confirm this device",
     "auth.device.deny": "Refuse",
     "auth.device.approved": "Device confirmed.",
@@ -93,6 +97,10 @@ export const auth = {
     "auth.device.check": "Vérifier le code",
     "auth.device.confirmLead":
       "Un appareil demande à ouvrir une session sur votre compte. Vérifiez que ce code est bien celui affiché sur l'appareil.",
+    "auth.device.foreignCode":
+      "Ne confirmez qu'un code que votre propre app affiche à l'instant.",
+    "auth.device.foreignCodeFix":
+      "Confirmer un code qu'on vous a envoyé donne votre compte à son auteur.",
     "auth.device.confirm": "Confirmer cet appareil",
     "auth.device.deny": "Refuser",
     "auth.device.approved": "Appareil confirmé.",

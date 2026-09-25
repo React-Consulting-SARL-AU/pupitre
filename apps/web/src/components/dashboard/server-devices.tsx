@@ -35,11 +35,7 @@ export function ServerDevices({
   const { user } = useDashboardContext()
   const mine = assignedUserId === user.id
   const devices = useQuery({ ...devicesQueryOptions(), enabled: mine })
-  /**
-   * Removing a key doesn't remove the device: revocation applies to this
-   * server alone, and the API doesn't return it. Nothing to reconcile here
-   * up front — what moves is the server's log, right below.
-   */
+  // The revocation touches this server alone and returns nothing: only the server's log moves.
   const revoke = useOptimisticMutation<RevokeTarget, void>({
     mutationFn: ({ id }) => revokeServerDevice(serverId, id),
     invalidate: [queryKeys.server(serverId)],
@@ -51,7 +47,7 @@ export function ServerDevices({
         }),
       failed: () => ({
         title: t("servers.devices.revokeFailed"),
-        fix: t("servers.devices.revokeFailedFix"),
+        fix: t("common.retryLater"),
       }),
     },
   })

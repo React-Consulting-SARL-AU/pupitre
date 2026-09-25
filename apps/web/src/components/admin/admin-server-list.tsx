@@ -1,4 +1,5 @@
 import { ADMIN_PAGE_SIZE } from "@pupitre/shared/platform"
+import { SERVER_STATUSES } from "@pupitre/shared/platform-api"
 import type { ReleaseChannel } from "@pupitre/shared/releases"
 import { useQuery } from "@tanstack/react-query"
 import { Ban, HardDrive, RotateCcw, Rss, X } from "lucide-react"
@@ -43,7 +44,7 @@ import {
   readFlag,
   type SortDirection,
 } from "@/lib/domain/list-search"
-import { SERVER_STATUSES, statusLook } from "@/lib/domain/server-status"
+import { statusLook } from "@/lib/domain/server-status"
 import type { ConfirmFormValues } from "@/lib/schemas/confirm-form"
 
 export const SERVER_SORTS = ["created_at", "last_heartbeat_at", "name"] as const

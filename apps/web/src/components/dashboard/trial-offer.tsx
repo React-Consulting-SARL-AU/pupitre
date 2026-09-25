@@ -1,5 +1,6 @@
 import {
   ANNUAL_FREE_MONTHS,
+  BILLING_INTERVALS,
   formatUsd,
   TRIAL_DAYS,
   TRIAL_SEATS,
@@ -19,7 +20,6 @@ import { startCheckout, statusQueryOptions } from "@/lib/api/queries"
 import { leaveFor } from "@/lib/config/urls"
 import {
   amountUsd,
-  BILLING_INTERVALS,
   type BillingIntervalName,
   INTERVAL_KEYS,
   START_PROMISES,

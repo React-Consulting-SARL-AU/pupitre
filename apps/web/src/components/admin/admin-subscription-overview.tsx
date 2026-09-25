@@ -1,8 +1,8 @@
 import { Link } from "@tanstack/react-router"
 import { ExternalLink } from "lucide-react"
-import { AdminFacts } from "@/components/admin/admin-facts"
 import { AdminSubscriptionStatus } from "@/components/admin/admin-subscription-status"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
+import { Facts } from "@/components/ui/facts"
 import { StatusDot } from "@/components/ui/status-dot"
 import { useTranslations } from "@/hooks/use-locale"
 import type { AdminSubscriptionDetail } from "@/lib/api/admin-queries"
@@ -44,7 +44,7 @@ export function AdminSubscriptionOverview({
         </div>
       </CardHeader>
 
-      <AdminFacts
+      <Facts
         facts={[
           {
             label: t("admin.servers.organization"),

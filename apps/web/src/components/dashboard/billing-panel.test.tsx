@@ -216,6 +216,8 @@ describe("BillingPanel", () => {
     )
 
     expect(container.textContent).toContain("One machine during the launch")
+    expect(container.textContent).toContain("stays free for good")
+    expect(container.textContent).not.toContain("suspended")
     expect(container.textContent).toContain("1 server")
     expect(container.textContent).not.toContain("Manage the subscription")
     expect(container.textContent).not.toContain("Trial running")

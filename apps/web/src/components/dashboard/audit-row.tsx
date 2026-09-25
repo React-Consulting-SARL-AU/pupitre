@@ -1,25 +1,16 @@
-import type { ReactNode } from "react"
 import { useTranslations } from "@/hooks/use-locale"
+import type { AdminOrganizationDetail } from "@/lib/api/admin-queries"
 import { actionKey, targetKey } from "@/lib/domain/audit"
 import { formatDateTime } from "@/lib/utils/format"
 
-export interface AuditRowEvent {
-  action: string
-  target_type: string
-  target_id: string
-  created_at: string
-}
+export type AuditRowEvent = AdminOrganizationDetail["events"][number]
 
 export interface AuditRowProps {
   event: AuditRowEvent
-  /** Who did it, already written out; nothing when the platform did it by itself. */
-  actor: string | null
-  /** What the platform journal adds and an organisation's does not: whose organisation the line belongs to. */
-  context?: ReactNode
 }
 
-/** One line of a journal, read the same way on an organisation's page and on the platform's. */
-export function AuditRow({ event, actor, context }: AuditRowProps) {
+/** One line of a platform page's journal. */
+export function AuditRow({ event }: AuditRowProps) {
   const t = useTranslations()
   const action = actionKey(event.action)
   const target = targetKey(event.target_type)
@@ -35,9 +26,8 @@ export function AuditRow({ event, actor, context }: AuditRowProps) {
         </p>
       </div>
       <div className="text-right">
-        {context}
         <p className="truncate font-data text-[12px] text-ink-2">
-          {actor ?? t("auditUi.system")}
+          {event.actor?.email ?? t("auditUi.system")}
         </p>
         <p className="font-data text-[12px] text-ink-3 tabular-nums">
           {formatDateTime(event.created_at, t)}

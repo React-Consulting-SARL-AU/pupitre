@@ -1,5 +1,5 @@
+import { BILLING_INTERVALS } from "@pupitre/shared/plans"
 import { z } from "zod"
-import { BILLING_INTERVALS } from "@/lib/domain/billing"
 import type { Translate } from "@/lib/i18n/i18n"
 
 export const MIN_SEATS = 1

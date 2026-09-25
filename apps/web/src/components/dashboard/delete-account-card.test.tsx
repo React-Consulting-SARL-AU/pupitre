@@ -39,6 +39,15 @@ afterEach(() => {
 })
 
 describe("DeleteAccountCard", () => {
+  it("sits in a danger zone that says what the deletion removes", async () => {
+    const { container, unmount } = await render(card())
+
+    mounted.push(unmount)
+
+    expect(container.querySelector(".border-danger")).not.toBeNull()
+    expect(container.textContent).toContain("It cannot be undone")
+  })
+
   it("keeps the deletion locked until the email is typed back", async () => {
     const { container, unmount, click } = await render(card())
 
@@ -47,7 +56,9 @@ describe("DeleteAccountCard", () => {
     await click(trigger(container, "Delete my account"))
 
     const confirm = trigger(container, "Delete for good")
-    const field = document.querySelector("#confirm-email")
+    const field = document.querySelector("#delete-account-keyword")
+
+    expect(document.body.textContent).toContain("Retype ada@test.local")
 
     if (!field) {
       throw new Error("no confirmation field")

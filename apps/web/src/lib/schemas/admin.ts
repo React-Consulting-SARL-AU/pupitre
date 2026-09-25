@@ -5,7 +5,7 @@ import {
   AFFILIATE_PARTNER_NAME_MAX_LENGTH,
 } from "@pupitre/shared/plans"
 import { z } from "zod"
-import { endOfDayIso, MAX_REASON_LENGTH } from "@/lib/domain/admin"
+import { endOfDayIso } from "@/lib/domain/admin"
 import type { Translate } from "@/lib/i18n/i18n"
 import { MAX_SEATS, MIN_SEATS } from "@/lib/schemas/billing"
 
@@ -142,22 +142,6 @@ export type RenameOrganizationInput = z.input<
 export type RenameOrganizationValues = z.output<
   ReturnType<typeof renameOrganizationSchema>
 >
-
-export interface ReasonCopy {
-  required: string
-  tooLong: string
-}
-
-/** Suspending a server and banning an account both write a reason someone else reads. */
-export function reasonSchema({ required, tooLong }: ReasonCopy) {
-  return z.object({
-    reason: z.string().trim().min(1, required).max(MAX_REASON_LENGTH, tooLong),
-  })
-}
-
-export type ReasonInput = z.input<ReturnType<typeof reasonSchema>>
-
-export type ReasonValues = z.output<ReturnType<typeof reasonSchema>>
 
 function affiliateNameField(t: Translate) {
   return z

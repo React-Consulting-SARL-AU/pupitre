@@ -102,7 +102,7 @@ export function AdminServerDanger({ server }: AdminServerDangerProps) {
       ),
     failed: {
       title: t("admin.servers.deleteFailed"),
-      fix: t("admin.servers.deleteFailedFix"),
+      fix: t("common.retryLater"),
     },
     onDone: () => {
       if (deletion.deletion === "purge") {

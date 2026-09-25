@@ -18,7 +18,6 @@ export const twoFactor = {
     "twoFactor.preparing": "Preparing…",
     "twoFactor.prepareFailed":
       "The second factor could not be prepared. Try again in a moment.",
-    "twoFactor.prepareFailedFix": "Try again in a moment.",
     "twoFactor.disableFailed": "The second factor could not be turned off.",
     "twoFactor.disableFailedFix": "Reload the page, then try again.",
     "twoFactor.qrLabel": "Second factor QR code",
@@ -55,7 +54,6 @@ export const twoFactor = {
     "twoFactor.preparing": "Préparation…",
     "twoFactor.prepareFailed":
       "Le second facteur n'a pas pu être préparé. Réessayez dans un instant.",
-    "twoFactor.prepareFailedFix": "Réessayez dans un instant.",
     "twoFactor.disableFailed": "Le second facteur n'a pas pu être désactivé.",
     "twoFactor.disableFailedFix": "Rechargez la page, puis réessayez.",
     "twoFactor.qrLabel": "QR code du second facteur",

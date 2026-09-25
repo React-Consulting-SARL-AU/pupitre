@@ -45,7 +45,7 @@ export function AdminAffiliateLinkDeleteDialog({
   const refusal = remove.isError
     ? {
         message: said?.message ?? t("admin.links.deleteFailed"),
-        fix: said?.fix ?? t("admin.links.deleteFailedFix"),
+        fix: said?.fix ?? t("common.retryLater"),
       }
     : null
 

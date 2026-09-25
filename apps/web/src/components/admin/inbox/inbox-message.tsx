@@ -51,7 +51,7 @@ export function InboxMessage({ message }: InboxMessageProps) {
           </div>
         </div>
         <div className="text-right">
-          <p className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
+          <p className="text-label">
             {outbound ? t("inbox.messageSent") : t("inbox.messageReceived")}
           </p>
           <p
@@ -79,9 +79,7 @@ export function InboxMessage({ message }: InboxMessageProps) {
 
       {message.attachments.length > 0 ? (
         <div className="flex flex-col gap-1.5">
-          <p className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-            {t("inbox.attachments")}
-          </p>
+          <p className="text-label">{t("inbox.attachments")}</p>
           <ul className="flex flex-wrap gap-2">
             {message.attachments.map((attachment) => (
               <li className="min-w-0" key={attachment.id}>

@@ -32,7 +32,6 @@ export const lists = {
     "deviceList.emptyDescription":
       "The Pupitre app registers your device at its first connection.",
     "deviceList.revokeFailed": "The revocation failed.",
-    "deviceList.revokeFailedFix": "Try again in a moment.",
     "deviceList.revoked":
       "“{name}” is revoked. Its key leaves your servers within a minute.",
 
@@ -46,7 +45,6 @@ export const lists = {
     "memberList.removed": "{email} is no longer a member.",
     "memberList.invitations": "Pending invitations",
     "memberList.cancelFailed": "The invitation could not be cancelled.",
-    "memberList.cancelFailedFix": "Try again in a moment.",
     "memberList.cancelled": "The invitation to {email} is cancelled.",
     "memberList.noInvitation": "No pending invitation.",
   },
@@ -84,7 +82,6 @@ export const lists = {
     "deviceList.emptyDescription":
       "L'app Pupitre enregistre votre appareil à sa première connexion.",
     "deviceList.revokeFailed": "La révocation a échoué.",
-    "deviceList.revokeFailedFix": "Réessayez dans un instant.",
     "deviceList.revoked":
       "« {name} » est révoqué. Sa clé quitte vos serveurs en moins d'une minute.",
 
@@ -99,7 +96,6 @@ export const lists = {
     "memberList.removed": "{email} n'est plus membre.",
     "memberList.invitations": "Invitations en attente",
     "memberList.cancelFailed": "L'invitation n'a pas pu être annulée.",
-    "memberList.cancelFailedFix": "Réessayez dans un instant.",
     "memberList.cancelled": "L'invitation de {email} est annulée.",
     "memberList.noInvitation": "Aucune invitation en attente.",
   },

@@ -40,6 +40,7 @@ export function AdminAffiliateLinkDetail({
   if (link.isError) {
     return (
       <AdminFailure
+        error={link.error}
         fetching={link.isFetching}
         onRetry={() => {
           link.refetch()

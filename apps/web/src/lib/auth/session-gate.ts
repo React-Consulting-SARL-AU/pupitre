@@ -1,17 +1,18 @@
 import type { QueryClient } from "@tanstack/react-query"
 import { redirect } from "@tanstack/react-router"
-import { meQueryOptions } from "@/lib/api/queries"
+import { isUnauthenticated } from "@/lib/api/errors"
+import { type Me, meQueryOptions } from "@/lib/api/queries"
 
 export interface SessionGateInput {
   context: { queryClient: QueryClient }
   location: { href: string }
 }
 
-/**
- * A page that needs a person behind it sends them to sign in and comes back
- * here afterwards: the device and invitation pages are opened from a link,
- * often in a browser that holds no session yet.
- */
+function signInAndComeBack(href: string) {
+  return redirect({ to: "/auth/sign-in", search: { callbackURL: href } })
+}
+
+// The device and invitation pages are opened from a link, often in a browser that holds no session yet.
 export async function requireSession({
   context,
   location,
@@ -21,9 +22,21 @@ export async function requireSession({
     .catch(() => null)
 
   if (!me) {
-    throw redirect({
-      to: "/auth/sign-in",
-      search: { callbackURL: location.href },
-    })
+    throw signInAndComeBack(location.href)
+  }
+}
+
+export async function readSessionOrSignIn({
+  context,
+  location,
+}: SessionGateInput): Promise<Me | null> {
+  try {
+    return await context.queryClient.ensureQueryData(meQueryOptions())
+  } catch (error) {
+    if (isUnauthenticated(error)) {
+      throw signInAndComeBack(location.href)
+    }
+
+    return null
   }
 }

@@ -145,7 +145,7 @@ export function PasskeyPanel() {
 
       {revocation.error ? (
         <Callout
-          fix={t("passkeys.revokeFailedFix")}
+          fix={t("common.retryLater")}
           title={revocation.error}
           tone="danger"
         />

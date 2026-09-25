@@ -1,4 +1,7 @@
-import { PLATFORM_PRODUCTS } from "@pupitre/shared/plans"
+import {
+  LIVE_SUBSCRIPTION_STATUSES,
+  PLATFORM_PRODUCTS,
+} from "@pupitre/shared/plans"
 import {
   deletionDeadline,
   PLATFORM_ORGANIZATION_ID,
@@ -8,7 +11,6 @@ import { getApiAuth } from "../api/plugins/auth"
 import { getPrisma } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import { SEATED_STATUSES } from "../billing/seats"
-import { LIVE_SUBSCRIPTION_STATUSES } from "../billing/subscription"
 import { removeDevice } from "../devices/devices"
 import { unassignServersOfMember } from "../servers/assign"
 import { purgeOrganization } from "./organization-lifecycle"

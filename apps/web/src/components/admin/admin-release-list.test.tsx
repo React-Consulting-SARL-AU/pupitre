@@ -3,6 +3,7 @@ import { ADMIN_PAGE_SIZE } from "@pupitre/shared/platform"
 import type { UseQueryResult } from "@tanstack/react-query"
 import { AdminReleaseList } from "@/components/admin/admin-release-list"
 import type { ReleaseBuild } from "@/lib/domain/admin"
+import { ListSearchHarness } from "@/testing/list-search"
 import { render, trigger, withDashboard } from "@/testing/render"
 
 const mounted: (() => void)[] = []
@@ -29,14 +30,22 @@ function settled(data: ReleaseBuild[]): UseQueryResult<ReleaseBuild[]> {
 
 function list(count: number) {
   return withDashboard(
-    <AdminReleaseList
-      builds={settled(builds(count))}
-      canPromote={false}
-      onPromote={() => undefined}
-      promoting={undefined}
-      target="the agents"
-      title="Agent versions"
-    />
+    <ListSearchHarness<{ offset?: number }>>
+      {({ search, setSearch }) => (
+        <AdminReleaseList
+          builds={settled(builds(count))}
+          canPromote={false}
+          offset={search.offset ?? 0}
+          onOffsetChange={(offset) => {
+            setSearch({ offset })
+          }}
+          onPromote={() => undefined}
+          promoting={undefined}
+          target="the agents"
+          title="Agent versions"
+        />
+      )}
+    </ListSearchHarness>
   )
 }
 

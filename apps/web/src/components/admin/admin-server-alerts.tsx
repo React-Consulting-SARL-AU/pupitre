@@ -23,7 +23,7 @@ export function AdminServerAlerts({ server, canAct }: AdminServerAlertsProps) {
       done: () => t("admin.servers.alertsCleared", { name: server.name }),
       failed: () => ({
         title: t("admin.servers.clearAlertsFailed"),
-        fix: t("admin.servers.clearAlertsFailedFix"),
+        fix: t("common.retryLater"),
       }),
     },
   })

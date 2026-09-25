@@ -114,7 +114,7 @@ export function InboxWorkspace({ search, setSearch }: InboxWorkspaceProps) {
     onError: () => {
       toasts.failed({
         title: t("inbox.bulkFailed"),
-        fix: t("inbox.bulkFailedFix"),
+        fix: t("common.retryLater"),
       })
     },
   })
@@ -131,7 +131,7 @@ export function InboxWorkspace({ search, setSearch }: InboxWorkspaceProps) {
     onError: () => {
       toasts.failed({
         title: t("inbox.changeFailed"),
-        fix: t("inbox.changeFailedFix"),
+        fix: t("common.retryLater"),
       })
     },
   })

@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
 import { Archive } from "lucide-react"
-import { useState } from "react"
 import { backupColumns } from "@/components/dashboard/backup-columns"
 import { AsyncDataTable } from "@/components/ui/async-data-table"
 import { useTranslations } from "@/hooks/use-locale"
@@ -16,12 +15,19 @@ import {
   queryKeys,
 } from "@/lib/api/queries"
 import { BACKUPS_PER_PAGE } from "@/lib/domain/backups"
+import type { ListSearchHandle } from "@/lib/domain/list-search"
 
-export function BackupList() {
+export interface BackupListSearch {
+  offset?: number
+}
+
+export type BackupListProps = ListSearchHandle<BackupListSearch>
+
+export function BackupList({ search, setSearch }: BackupListProps) {
   const t = useTranslations()
   const canForget = usePermission("servers:delete")
   const backups = useQuery(backupsQueryOptions())
-  const [offset, setOffset] = useState(0)
+  const offset = search.offset ?? 0
 
   const forget = useOptimisticMutation<Backup, void>({
     mutationFn: (backup) => forgetBackup(backup.id),
@@ -61,7 +67,9 @@ export function BackupList() {
       isPending={backups.isPending}
       limit={BACKUPS_PER_PAGE}
       offset={offset}
-      onOffsetChange={setOffset}
+      onOffsetChange={(next) => {
+        setSearch({ offset: next })
+      }}
       refetch={() => {
         backups.refetch()
       }}

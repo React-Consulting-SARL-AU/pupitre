@@ -1,9 +1,9 @@
 import { Activity } from "lucide-react"
-import { AdminFacts } from "@/components/admin/admin-facts"
 import { ServerBackupBeat } from "@/components/dashboard/server-backup-beat"
 import { ServerMetrics } from "@/components/dashboard/server-metrics"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
+import { Facts } from "@/components/ui/facts"
 import { useTranslations } from "@/hooks/use-locale"
 import type { AdminServerDetail } from "@/lib/api/admin-queries"
 import { formatDateTime, formatRatio } from "@/lib/utils/format"
@@ -33,7 +33,7 @@ export function AdminServerUsage({ server }: AdminServerUsageProps) {
             </span>
           </CardHeader>
 
-          <AdminFacts
+          <Facts
             facts={[
               { label: t("servers.disk"), value: formatRatio(usage.disk, t) },
               { label: t("servers.ram"), value: formatRatio(usage.ram, t) },

@@ -52,6 +52,7 @@ export function AdminServerDetail({
   if (server.isError) {
     return (
       <AdminFailure
+        error={server.error}
         fetching={server.isFetching}
         onRetry={() => {
           server.refetch()
@@ -93,14 +94,7 @@ export function AdminServerDetail({
         {
           value: "log",
           label: t("admin.servers.tab.log"),
-          panel: (
-            <AdminEventsCard
-              events={detail.events.map((event) => ({
-                ...event,
-                actor: event.actor?.email ?? null,
-              }))}
-            />
-          ),
+          panel: <AdminEventsCard events={detail.events} />,
         },
         ...(acts
           ? [

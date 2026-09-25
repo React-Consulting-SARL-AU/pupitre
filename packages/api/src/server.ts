@@ -6,10 +6,12 @@ import {
 } from "@pupitre/auth/hooks"
 import { type Auth, CLIENT_IP_HEADER } from "@pupitre/auth/server"
 import { resolveLocale } from "@pupitre/shared/i18n"
+import { PLATFORM_ORGANIZATION_ID } from "@pupitre/shared/platform"
 import { type AnyElysia, Elysia, ValidationError } from "elysia"
 import { authEmails } from "./emails/renderer"
 import { createEmailSender } from "./emails/send"
 import { apiError, createErrorRef } from "./lib/api/errors"
+import { isForeignCookieWrite } from "./lib/api/origin"
 import { configureAuth } from "./lib/api/plugins/auth"
 import { type ApiPrisma, configurePrisma } from "./lib/api/prisma"
 import {
@@ -21,6 +23,7 @@ import {
 import { routes } from "./lib/api/routes"
 import { describeValidationError } from "./lib/api/validation-errors"
 import { translate } from "./lib/i18n"
+import { publishInboxEvent } from "./lib/mail/realtime"
 import { deleteAccountFromConsole } from "./lib/me/delete-account"
 import { unassignServersOfMember } from "./lib/servers/assign"
 
@@ -30,8 +33,13 @@ export type { ApiPrisma } from "./lib/api/prisma"
 // this module's exports: the port has to be filled at import time.
 configureAuthEmails({ renderer: authEmails, sendEmail: createEmailSender() })
 configureOrganizationHooks({
-  onMemberRemoved: ({ organizationId, userId }) =>
-    unassignServersOfMember(organizationId, userId).then(() => undefined),
+  onMemberRemoved: async ({ organizationId, userId }) => {
+    await unassignServersOfMember(organizationId, userId)
+
+    if (organizationId === PLATFORM_ORGANIZATION_ID) {
+      await publishInboxEvent({ type: "access.revoked", user_id: userId })
+    }
+  },
 })
 configureAccountHooks({ onAccountDeleting: deleteAccountFromConsole })
 
@@ -166,6 +174,17 @@ export async function handleApiRequest(request: Request): Promise<Response> {
 
   if (!verdict.allowed) {
     return tooManyRequests(request, verdict)
+  }
+
+  if (isForeignCookieWrite(request)) {
+    const locale = resolveLocale(request.headers)
+
+    return Response.json(
+      apiError("forbidden", translate(locale, "forbidden")),
+      {
+        status: 403,
+      }
+    )
   }
 
   return await app.handle(request)

@@ -1,7 +1,7 @@
-import { accountCallbackLink } from "@pupitre/shared/app-links"
-import { useEffect, useState } from "react"
+import { useState } from "react"
+import { DeviceApproved } from "@/components/auth/device-approved"
 import { DeviceSignInAgain } from "@/components/auth/device-sign-in-again"
-import { Button, buttonClassName } from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
 import { FieldError } from "@/components/ui/field-error"
 import { Input } from "@/components/ui/input"
@@ -18,19 +18,11 @@ import {
   needsFreshSignIn,
   normalizeUserCode,
 } from "@/lib/auth/device-flow"
-import { appOrigin, leaveFor } from "@/lib/config/urls"
+import { appOrigin } from "@/lib/config/urls"
 import type { DictionaryKey } from "@/lib/i18n/en"
 import { type DeviceCodeInput, deviceCodeSchema } from "@/lib/schemas/auth"
 
-export type DeviceStep =
-  | "code"
-  | "confirm"
-  | "approved"
-  | "denied"
-  | "reauthenticate"
-
-/** Where a confirmed device is sent back: the app, which takes the session over. */
-export const APP_RETURN_LINK = accountCallbackLink({ device: "approved" })
+type DeviceStep = "code" | "confirm" | "approved" | "denied" | "reauthenticate"
 
 const DEVICE_ERRORS = new Set([
   "invalid_user_code",
@@ -47,18 +39,15 @@ function deviceErrorKey(error: unknown): DictionaryKey {
   return "device.error.unknown"
 }
 
-export interface DeviceCodeFormProps {
-  initialCode?: string
-}
-
-export function DeviceCodeForm({ initialCode = "" }: DeviceCodeFormProps) {
+// The code is always typed from the app: one carried by a link could be someone else's, sent to phish an approval.
+export function DeviceCodeForm() {
   const t = useTranslations()
   const [step, setStep] = useState<DeviceStep>("code")
-  const [code, setCode] = useState(normalizeUserCode(initialCode))
+  const [code, setCode] = useState("")
   const cycle = useRequestCycle()
   const form = useForm<DeviceCodeInput>({
     schema: deviceCodeSchema(t),
-    defaultValues: { code: formatUserCode(initialCode) },
+    defaultValues: { code: "" },
   })
 
   const check = form.handleSubmit((values) =>
@@ -104,7 +93,7 @@ export function DeviceCodeForm({ initialCode = "" }: DeviceCodeFormProps) {
   }
 
   if (step === "reauthenticate") {
-    return <DeviceSignInAgain userCode={code} />
+    return <DeviceSignInAgain />
   }
 
   if (step === "denied") {
@@ -123,6 +112,11 @@ export function DeviceCodeForm({ initialCode = "" }: DeviceCodeFormProps) {
         <p className="rounded-sm bg-sunken px-4 py-4 text-center font-data text-[22px] text-ink tracking-[0.2em]">
           {formatUserCode(code)}
         </p>
+        <Callout
+          fix={t("auth.device.foreignCodeFix")}
+          title={t("auth.device.foreignCode")}
+          tone="warn"
+        />
         <div className="flex gap-2">
           <Button
             className="flex-1"
@@ -176,33 +170,5 @@ export function DeviceCodeForm({ initialCode = "" }: DeviceCodeFormProps) {
       </Button>
       {cycle.error ? <Callout title={cycle.error} tone="danger" /> : null}
     </form>
-  )
-}
-
-/**
- * The browser is asked to hand the reader back to the app; when it will not
- * without a click, the button does it, and the app polls anyway.
- */
-function DeviceApproved() {
-  const t = useTranslations()
-
-  useEffect(() => {
-    leaveFor(APP_RETURN_LINK)
-  }, [])
-
-  return (
-    <div className="flex flex-col gap-4" data-testid="device-approved">
-      <Callout
-        fix={t("auth.device.approvedFix")}
-        title={t("auth.device.approved")}
-        tone="ok"
-      />
-      <a
-        className={buttonClassName({ variant: "primary" })}
-        href={APP_RETURN_LINK}
-      >
-        {t("auth.device.openApp")}
-      </a>
-    </div>
   )
 }

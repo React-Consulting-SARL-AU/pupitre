@@ -1,10 +1,10 @@
+import { isLiveSubscriptionStatus } from "@pupitre/shared/plans"
 import { Link } from "@tanstack/react-router"
 import { AdminGrantDialog } from "@/components/admin/admin-grant-dialog"
 import { AdminSubscriptionStatus } from "@/components/admin/admin-subscription-status"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
 import { useTranslations } from "@/hooks/use-locale"
 import type { AdminOrganizationDetail } from "@/lib/api/admin-queries"
-import { subscriptionIsLive } from "@/lib/domain/admin"
 import { formatDate, formatProduct } from "@/lib/utils/format"
 
 export interface AdminOrganizationSubscriptionsProps {
@@ -18,7 +18,7 @@ export function AdminOrganizationSubscriptions({
 }: AdminOrganizationSubscriptionsProps) {
   const t = useTranslations()
   const hasLive = detail.subscription
-    ? subscriptionIsLive(detail.subscription.status)
+    ? isLiveSubscriptionStatus(detail.subscription.status)
     : false
 
   return (

@@ -184,7 +184,7 @@ export function AsyncDataTable<Row>({
   }, [pageKeys])
 
   if (isPending) {
-    return <SkeletonRows label={t("admin.reading")} />
+    return <SkeletonRows label={t("table.reading")} />
   }
 
   if (isError) {
@@ -200,8 +200,8 @@ export function AsyncDataTable<Row>({
             {t("common.retry")}
           </Button>
         }
-        fix={errorFix ?? t("admin.failedFix")}
-        title={errorTitle ?? t("admin.failed")}
+        fix={errorFix ?? t("common.retryLater")}
+        title={errorTitle ?? t("table.failed")}
         tone="danger"
       />
     )
@@ -255,7 +255,7 @@ export function AsyncDataTable<Row>({
           <CardHeader>
             <CardTitle>{title}</CardTitle>
             <span className="font-data text-[12px] text-ink-3 tabular-nums">
-              {t("admin.range", {
+              {t("table.range", {
                 from: offset + 1,
                 to: offset + data.length,
                 total,
@@ -291,7 +291,7 @@ export function AsyncDataTable<Row>({
                           sorted ? ARIA_SORT[sort.direction] : undefined
                         }
                         className={cn(
-                          "px-4 py-2 font-medium text-[10.5px] text-ink-3 uppercase tracking-[0.08em]",
+                          "px-4 py-2 font-medium text-label",
                           column.align === "end" && "text-right",
                           column.hideBelow && HIDDEN_BELOW[column.hideBelow],
                           column.width
@@ -365,8 +365,7 @@ export function AsyncDataTable<Row>({
                             "px-4 py-3 align-middle text-[13px] text-ink-2",
                             column.align === "end" && "text-right tabular-nums",
                             column.hideBelow && HIDDEN_BELOW[column.hideBelow],
-                            // The row's link covers the row; only a cell holding
-                            // its own control rises above it, the rest follow it.
+                            // The row's link covers the row: only a cell holding its own control rises above it.
                             column.interactive && "relative"
                           )}
                           key={column.key}
@@ -409,11 +408,11 @@ export function AsyncDataTable<Row>({
       )}
 
       <Pagination
-        nextLabel={t("admin.next")}
+        nextLabel={t("table.next")}
         offset={offset}
         onOffsetChange={onOffsetChange}
         pageSize={limit}
-        previousLabel={t("admin.previous")}
+        previousLabel={t("table.previous")}
         total={total}
       />
     </div>

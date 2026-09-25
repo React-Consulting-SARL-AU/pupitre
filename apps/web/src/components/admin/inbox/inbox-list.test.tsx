@@ -33,6 +33,7 @@ function thread(overrides: Partial<InboxThread> = {}): InboxThread {
     contact: null,
     linked_organization: null,
     from: { email: "ada@test.local", name: "Ada Lovelace" },
+    sender_authenticated: true,
     snippet: "My server refuses the agent.",
     messages: 1,
     notes: 0,
@@ -103,7 +104,18 @@ describe("InboxList", () => {
     expect(container.textContent).toContain("Draft kept")
     expect(container.textContent).toContain("2 internal notes")
     expect(container.textContent).toContain("Nobody assigned")
+    expect(container.textContent).not.toContain("Unverified sender")
     expect(container.querySelectorAll("ul > li")).toHaveLength(1)
+  })
+
+  it("warns of a sender the receiving server could not authenticate", async () => {
+    const { container, unmount } = await renderList({
+      threads: [thread({ sender_authenticated: false })],
+    })
+
+    mounted.push(unmount)
+
+    expect(container.textContent).toContain("Unverified sender")
   })
 
   it("names the key in the title of opening and of selecting a conversation", async () => {

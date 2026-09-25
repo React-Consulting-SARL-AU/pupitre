@@ -60,7 +60,7 @@ export function ProfileForm() {
         saved.addressAsked ? t("profile.emailAsked") : t("profile.saved"),
       failed: () => ({
         title: t("profile.failed"),
-        fix: t("profile.failedFix"),
+        fix: t("common.retryLater"),
       }),
     },
   })

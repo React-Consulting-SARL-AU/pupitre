@@ -17,17 +17,13 @@ export function ServerBackupBeat({ beat }: ServerBackupBeatProps) {
   return (
     <dl className="grid gap-gutter px-4 py-3 sm:grid-cols-3">
       <div>
-        <dt className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-          {t("backups.interval")}
-        </dt>
+        <dt className="text-label">{t("backups.interval")}</dt>
         <dd className="text-[13px] text-ink">
           {formatBackupInterval(beat.interval_hours, t)}
         </dd>
       </div>
       <div>
-        <dt className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-          {t("backups.lastOk")}
-        </dt>
+        <dt className="text-label">{t("backups.lastOk")}</dt>
         <dd
           className="text-[13px] text-ink"
           title={
@@ -38,9 +34,7 @@ export function ServerBackupBeat({ beat }: ServerBackupBeatProps) {
         </dd>
       </div>
       <div className="min-w-0">
-        <dt className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-          {t("backups.lastError")}
-        </dt>
+        <dt className="text-label">{t("backups.lastError")}</dt>
         {missing > 0 ? (
           <dd className="text-[13px] text-warn">
             {t.plural("backups.missing", missing)}

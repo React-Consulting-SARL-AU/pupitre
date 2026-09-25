@@ -30,9 +30,7 @@ export function UsageBar({ label, percent, className }: UsageBarProps) {
 
   return (
     <div className={cn("flex items-center gap-3", className)}>
-      <span className="w-14 shrink-0 text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-        {label}
-      </span>
+      <span className="w-14 shrink-0 text-label">{label}</span>
       <span
         aria-label={
           reading === null

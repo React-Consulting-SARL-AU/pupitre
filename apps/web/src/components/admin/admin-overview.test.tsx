@@ -165,6 +165,29 @@ describe("AdminOverview", () => {
     expect(inbox).toContain("unread=true")
   })
 
+  it("names an unread mail without a subject instead of leaving its line blank", async () => {
+    const { prisma } = await bootApiTestServer()
+
+    await prisma.mailThread.create({
+      data: {
+        address: "support@pupitre.studio",
+        subject: "",
+        normalizedSubject: "",
+        unread: true,
+      },
+    })
+
+    const { container, unmount } = await render(page())
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("See everything") === true
+    )
+
+    expect(container.textContent).toContain("No subject")
+  })
+
   it("raises a scheduled deletion and links to the account it will erase", async () => {
     const { prisma } = await bootApiTestServer()
     const doomed = await createConsoleUser({ email: "ada@test.local" })

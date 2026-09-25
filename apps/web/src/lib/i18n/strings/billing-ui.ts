@@ -19,7 +19,7 @@ export const billingUi = {
     "billing.launchKeptSeats":
       "One machine for good: more seats come with a subscription.",
     "billing.launchEnds":
-      "When the launch ends, without a subscription, the servers go to grace, then suspended.",
+      "The machine enrolled before the launch ends stays free for good; without one, a subscription will be needed afterwards.",
     "billing.seatsFailed": "The seats could not be changed.",
     "billing.seatsFailedFix":
       "Try again in a moment; if it persists, open the billing area.",
@@ -81,7 +81,7 @@ export const billingUi = {
     "billing.launchKeptSeats":
       "Une machine pour de bon : d'autres sièges viennent avec un abonnement.",
     "billing.launchEnds":
-      "À la fin du lancement, sans abonnement, les serveurs passent en sursis, puis suspendus.",
+      "La machine rattachée avant la fin du lancement reste gratuite pour de bon ; sans elle, il faudra ensuite un abonnement.",
     "billing.seatsFailed": "Les sièges n'ont pas pu être changés.",
     "billing.seatsFailedFix":
       "Réessayez dans un instant ; si cela persiste, ouvrez l'espace de facturation.",

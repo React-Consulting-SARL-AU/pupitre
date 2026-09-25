@@ -399,8 +399,6 @@ async function readReleases() {
   return unwrap(await api().api.v1.admin.releases.get()).data
 }
 
-export type AdminRelease = Awaited<ReturnType<typeof readReleases>>[number]
-
 export function adminReleasesQueryOptions() {
   return queryOptions({
     queryKey: queryKeys.admin.releases,
@@ -416,10 +414,7 @@ async function readAppReleasesOn(channel: "stable" | "beta") {
   ).data
 }
 
-/**
- * The app has no admin listing: its versions come from the public one, which
- * answers a channel at a time, and a version lives in exactly one channel.
- */
+/** The app's versions come from the public listing, a channel at a time: a version lives in exactly one. */
 async function readAppReleases(): Promise<ReleaseBuild[]> {
   const channels = await Promise.all([
     readAppReleasesOn("stable"),

@@ -8,7 +8,7 @@ export const start = {
     "start.launchUntil": "Free until {date}",
     "start.launchOpen": "Free for the whole launch",
     "start.launchLead":
-      "Nothing is charged during the launch. When it ends, the servers stop unless a subscription is taken.",
+      "Nothing is charged during the launch, and the machine you enrol before it ends stays free for good. Without one enrolled by then, a subscription will be needed.",
     "start.launchAction": "Start",
     "start.launchActionPending": "Opening…",
     "start.launchFailed": "The launch access could not be opened.",
@@ -67,7 +67,7 @@ export const start = {
     "start.launchUntil": "Gratuit jusqu'au {date}",
     "start.launchOpen": "Gratuit pendant tout le lancement",
     "start.launchLead":
-      "Rien n'est prélevé pendant le lancement. À sa fin, les serveurs s'arrêtent sauf abonnement.",
+      "Rien n'est prélevé pendant le lancement, et la machine rattachée avant sa fin reste gratuite pour de bon. Sans machine rattachée d'ici là, il faudra un abonnement.",
     "start.launchAction": "Commencer",
     "start.launchActionPending": "Ouverture…",
     "start.launchFailed": "L'accès de lancement n'a pas pu être ouvert.",

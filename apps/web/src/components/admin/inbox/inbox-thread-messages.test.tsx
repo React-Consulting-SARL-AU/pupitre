@@ -17,6 +17,7 @@ function message(rank: number): InboxMessage {
     text: `Message number ${rank}`,
     has_html: false,
     automated: false,
+    authenticated: true,
     delivery: "received",
     error: null,
     sent_by: null,

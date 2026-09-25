@@ -1,8 +1,7 @@
 import { Link } from "@tanstack/react-router"
-import type { AdminFact } from "@/components/admin/admin-facts"
-import { AdminFacts } from "@/components/admin/admin-facts"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
 import { CopyButton } from "@/components/ui/copy-button"
+import { type Fact, Facts } from "@/components/ui/facts"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { useTranslations } from "@/hooks/use-locale"
 import type { AdminOrganizationDetail } from "@/lib/api/admin-queries"
@@ -34,7 +33,7 @@ export function AdminOrganizationOverview({
   const reason = detail.reason
   const counted = detail.subscription
 
-  const facts: AdminFact[] = [
+  const facts: Fact[] = [
     { label: t("admin.organizations.slug"), value: detail.slug },
     {
       label: t("admin.organizations.kind"),
@@ -114,7 +113,7 @@ export function AdminOrganizationOverview({
           <StatusBadge look={organizationLook(detail.state)} />
         </CardHeader>
 
-        <AdminFacts facts={facts} />
+        <Facts facts={facts} />
       </Card>
 
       <Card>

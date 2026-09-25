@@ -16,13 +16,6 @@ import {
   resumeSubscription,
 } from "@/lib/api/admin-queries"
 import { queryKeys } from "@/lib/api/queries"
-import {
-  canCancelSubscription,
-  canDeleteSubscription,
-  canExtendTrial,
-  canResizeSubscription,
-  canResumeSubscription,
-} from "@/lib/domain/admin"
 import type { Translate } from "@/lib/i18n/i18n"
 import type { ConfirmFormValues } from "@/lib/schemas/confirm-form"
 import { formatDateTime } from "@/lib/utils/format"
@@ -56,6 +49,7 @@ export function AdminSubscriptionActions({
   const t = useTranslations()
   const navigate = useNavigate()
   const organization = subscription.organization
+  const allowed = new Set(subscription.allowed_actions)
   const around = [
     queryKeys.admin.subscription(subscription.id),
     queryKeys.admin.allSubscriptions,
@@ -100,7 +94,7 @@ export function AdminSubscriptionActions({
 
   return (
     <div className="flex flex-col gap-gutter">
-      {canResizeSubscription(subscription.product) ? (
+      {allowed.has("resize") ? (
         <AdminSubscriptionResizeForm
           endsAt={subscription.current_period_end}
           organization={organization}
@@ -109,7 +103,7 @@ export function AdminSubscriptionActions({
         />
       ) : null}
 
-      {canExtendTrial(subscription) ? (
+      {allowed.has("extend_trial") ? (
         <AdminSubscriptionTrialForm
           organization={organization}
           subscriptionId={subscription.id}
@@ -117,7 +111,7 @@ export function AdminSubscriptionActions({
         />
       ) : null}
 
-      {canResumeSubscription(subscription) ? (
+      {allowed.has("resume") ? (
         <DangerZone
           action={
             <ConfirmDialog
@@ -144,7 +138,7 @@ export function AdminSubscriptionActions({
         />
       ) : null}
 
-      {canCancelSubscription(subscription.status) ? (
+      {allowed.has("cancel") ? (
         <DangerZone
           action={
             <ConfirmFormDialog
@@ -175,7 +169,7 @@ export function AdminSubscriptionActions({
         />
       ) : null}
 
-      {canDeleteSubscription(subscription) ? (
+      {allowed.has("delete") ? (
         <DangerZone
           action={
             <ConfirmFormDialog

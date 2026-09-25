@@ -19,10 +19,7 @@ export interface DeviceCodeLookup {
   expires_at?: string
 }
 
-/**
- * The reason travels as a code, never as a sentence: the screen that shows it
- * knows the reader's language, this module does not.
- */
+/** A code, never a sentence: the screen that shows it knows the reader's language, this module does not. */
 export class DeviceCodeError extends Error {
   readonly code: string
   readonly status: number
@@ -42,13 +39,6 @@ export const DEVICE_PAGE_PATH = "/auth/device"
 
 export function needsFreshSignIn(error: unknown): boolean {
   return error instanceof DeviceCodeError && error.code === SESSION_NOT_FRESH
-}
-
-/** Where a new sign-in hands the reader back: this page, on the same code. */
-export function deviceReturnPath(userCode: string): string {
-  const search = new URLSearchParams({ user_code: normalizeUserCode(userCode) })
-
-  return `${DEVICE_PAGE_PATH}?${search.toString()}`
 }
 
 export function normalizeUserCode(value: string): string {

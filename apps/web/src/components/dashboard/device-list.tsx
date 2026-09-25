@@ -38,7 +38,7 @@ export function DeviceList() {
       done: (_data, target) => t("deviceList.revoked", { name: target.name }),
       failed: () => ({
         title: t("deviceList.revokeFailed"),
-        fix: t("deviceList.revokeFailedFix"),
+        fix: t("common.retryLater"),
       }),
     },
   })

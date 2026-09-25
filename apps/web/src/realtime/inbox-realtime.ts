@@ -3,6 +3,7 @@ import {
   configureInboxRealtime,
   type InboxEvent,
 } from "@pupitre/api/mail/realtime"
+import { isForeignOrigin } from "@pupitre/api/origin"
 import {
   equalsInConstantTime,
   INTERNAL_SECRET_HEADER,
@@ -24,6 +25,11 @@ const KEEPALIVE_PONG = "pong"
 
 const INTERNAL_ORIGIN = "https://inbox-realtime.internal"
 
+// Set by the Worker once the session is resolved; the room is reachable only through the Worker's stub.
+const SOCKET_USER_HEADER = "x-pupitre-inbox-user"
+
+const REVOKED_CLOSE_CODE = 4403
+
 export function isInboxSocketUpgrade(request: Request): boolean {
   return (
     request.headers.get("upgrade")?.toLowerCase() === WEBSOCKET_UPGRADE ||
@@ -35,23 +41,24 @@ function refuse(status: number, code: string, message: string): Response {
   return Response.json({ error: { code, message } }, { status })
 }
 
-/**
- * The socket answers with hibernation: the object keeps no state of its own,
- * so an idle room costs nothing and a broadcast reaches whoever is still there.
- */
-export function acceptInboxSocket(state: DurableObjectState): Response {
+function refuseNonSocket(): Response {
+  return refuse(400, "validation", "This address only accepts a WebSocket.")
+}
+
+/** Hibernation keeps no state in the object: an idle room costs nothing, and each socket is tagged with its reader. */
+export function acceptInboxSocket(
+  state: DurableObjectState,
+  userId: string
+): Response {
   const pair = new WebSocketPair()
   const [client, server] = Object.values(pair)
 
-  state.acceptWebSocket(server)
+  state.acceptWebSocket(server, [userId])
 
   return new Response(null, { status: 101, webSocket: client })
 }
 
-/**
- * A socket the runtime has already torn down throws on `send`; the round must
- * still reach the others, so the faulty one is dropped instead of the frame.
- */
+// A socket the runtime already tore down throws on `send`: it is dropped so the round still reaches the others.
 function sendOrDrop(socket: WebSocket, payload: string): void {
   try {
     socket.send(payload)
@@ -72,6 +79,15 @@ export function broadcastInboxEvent(
 
   for (const socket of state.getWebSockets()) {
     sendOrDrop(socket, payload)
+  }
+}
+
+export function closeRevokedInboxSockets(
+  state: DurableObjectState,
+  userId: string
+): void {
+  for (const socket of state.getWebSockets(userId)) {
+    socket.close(REVOKED_CLOSE_CODE, "Access to the inbox was revoked.")
   }
 }
 
@@ -102,24 +118,28 @@ export async function handleInboxRealtimeRequest(
       return refuse(
         401,
         "unauthenticated",
-        "Le secret des déclencheurs internes est absent ou faux."
+        "The internal trigger secret is missing or wrong."
       )
     }
 
-    broadcastInboxEvent(state, (await request.json()) as InboxEvent)
+    const event = (await request.json()) as InboxEvent
+
+    if (event.type === "access.revoked" && event.user_id) {
+      closeRevokedInboxSockets(state, event.user_id)
+    } else {
+      broadcastInboxEvent(state, event)
+    }
 
     return new Response(null, { status: 204 })
   }
 
-  if (!isInboxSocketUpgrade(request)) {
-    return refuse(
-      400,
-      "validation",
-      "Cette adresse n'accepte qu'une connexion WebSocket."
-    )
+  const userId = request.headers.get(SOCKET_USER_HEADER)
+
+  if (!(isInboxSocketUpgrade(request) && userId)) {
+    return refuseNonSocket()
   }
 
-  return acceptInboxSocket(state)
+  return acceptInboxSocket(state, userId)
 }
 
 function inboxStub(env: CloudflareEnv) {
@@ -128,54 +148,56 @@ function inboxStub(env: CloudflareEnv) {
   )
 }
 
-/**
- * The socket answers to the same refusals as the routes it mirrors, in the
- * order `refuseSession` uses: a session the platform no longer honours says
- * what it refuses before anything about a role.
- */
+/** The same refusals, in the same order, as the routes the socket mirrors: an account the platform no longer honours first. */
 export function inboxSocketRefusal(auth: AuthContext): Response | null {
   if (auth.accountRefusal) {
     return refuse(
       403,
       "forbidden",
-      "Ce compte est désactivé : la plateforme n'honore plus sa session."
+      "This account is deactivated: the platform no longer honours its session."
     )
   }
 
   if (!(auth.user && auth.session)) {
-    return refuse(401, "unauthenticated", "Authentification requise.")
+    return refuse(401, "unauthenticated", "Authentication required.")
   }
 
   if (!auth.isPlatformAdmin) {
-    return refuse(403, "forbidden", "Réservé à l'équipe Pupitre.")
+    return refuse(403, "forbidden", "Reserved for the Pupitre team.")
   }
 
   return null
 }
 
-/**
- * The socket opens only for the platform team, and the session is resolved
- * before the request ever reaches the object: the room has no reader of its own.
- */
+/** The socket opens only for the platform team, from the console: the room has no reader of its own. */
 export async function handleInboxEventsRequest(
   request: Request,
   env: CloudflareEnv
 ): Promise<Response> {
-  const refused = inboxSocketRefusal(await resolveAuthContext(request))
+  if (isForeignOrigin(request)) {
+    return refuse(
+      403,
+      "forbidden",
+      "This socket only opens from the Pupitre console."
+    )
+  }
+
+  const auth = await resolveAuthContext(request)
+  const refused = inboxSocketRefusal(auth)
 
   if (refused) {
     return refused
   }
 
-  if (!isInboxSocketUpgrade(request)) {
-    return refuse(
-      400,
-      "validation",
-      "Cette adresse n'accepte qu'une connexion WebSocket."
-    )
+  if (!(isInboxSocketUpgrade(request) && auth.user)) {
+    return refuseNonSocket()
   }
 
-  return await inboxStub(env).fetch(request)
+  const forwarded = new Request(request)
+
+  forwarded.headers.set(SOCKET_USER_HEADER, auth.user.id)
+
+  return await inboxStub(env).fetch(forwarded)
 }
 
 /** What each write calls once the Worker is up: the API knows the room only through this. */

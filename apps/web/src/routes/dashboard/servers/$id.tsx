@@ -13,7 +13,8 @@ import { ServerMetrics } from "@/components/dashboard/server-metrics"
 import { ServerModules } from "@/components/dashboard/server-modules"
 import { Button } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
-import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle } from "@/components/ui/card"
+import { Facts } from "@/components/ui/facts"
 import { PageHeader } from "@/components/ui/page-header"
 import { RouteError, RouteNotFound } from "@/components/ui/route-error"
 import { PageSkeleton, SkeletonCards } from "@/components/ui/skeleton"
@@ -133,36 +134,34 @@ function ServerPage() {
             <CardTitle>{t("serverPage.state")}</CardTitle>
             <StatusBadge look={statusLook(detail.status, detail.stale)} />
           </CardHeader>
-          <CardBody className="grid gap-gutter sm:grid-cols-3">
-            <div>
-              <p className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-                {t("serverPage.agent")}
-              </p>
-              <p className="font-data text-[12px] text-ink tabular-nums">
-                {detail.agent_version ?? t("format.none")}
-                {detail.target_version &&
-                detail.target_version !== detail.agent_version
-                  ? ` → ${detail.target_version}`
-                  : ""}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-                {t("serverPage.lastHeartbeat")}
-              </p>
-              <p className="text-[13px] text-ink">
-                {formatRelative(detail.last_heartbeat_at, t)}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-                {t("serverPage.hostFingerprint")}
-              </p>
-              <p className="truncate font-data text-[12px] text-ink-2">
-                {detail.host_fingerprint ?? t("format.none")}
-              </p>
-            </div>
-          </CardBody>
+          <Facts
+            facts={[
+              {
+                label: t("serverPage.agent"),
+                value: (
+                  <span className="font-data text-[12px] tabular-nums">
+                    {detail.agent_version ?? t("format.none")}
+                    {detail.target_version &&
+                    detail.target_version !== detail.agent_version
+                      ? ` → ${detail.target_version}`
+                      : ""}
+                  </span>
+                ),
+              },
+              {
+                label: t("serverPage.lastHeartbeat"),
+                value: formatRelative(detail.last_heartbeat_at, t),
+              },
+              {
+                label: t("serverPage.hostFingerprint"),
+                value: (
+                  <span className="block truncate font-data text-[12px] text-ink-2">
+                    {detail.host_fingerprint ?? t("format.none")}
+                  </span>
+                ),
+              },
+            ]}
+          />
         </Card>
 
         <ServerAlerts alerts={detail.alerts} />

@@ -1,8 +1,8 @@
-import { Dialog } from "@base-ui-components/react/dialog"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useNavigate, useRouter } from "@tanstack/react-router"
 import { Button } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
+import { DialogClose, DialogPopup, DialogRoot } from "@/components/ui/dialog"
 import { FieldError } from "@/components/ui/field-error"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -66,60 +66,50 @@ export function CreateOrganizationDialog({
   const slug = organizationSlugFor(form.watch("name") ?? "")
 
   return (
-    <Dialog.Root onOpenChange={onOpenChange} open={open}>
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 bg-base/70 backdrop-blur-[2px]" />
-        <Dialog.Popup className="fixed top-1/2 left-1/2 w-[min(440px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 rounded-lg bg-surface p-6 shadow-overlay outline-none">
-          <Dialog.Title className="font-bold font-display text-[16px] text-ink leading-[1.2]">
-            {t("organization.createTitle")}
-          </Dialog.Title>
-          <Dialog.Description className="mt-2 text-[13px] text-ink-2">
-            {t("organization.createDescription")}
-          </Dialog.Description>
+    <DialogRoot onOpenChange={onOpenChange} open={open}>
+      <DialogPopup
+        description={t("organization.createDescription")}
+        size="sm"
+        title={t("organization.createTitle")}
+      >
+        <form
+          className="mt-gutter flex flex-col gap-2"
+          noValidate
+          onSubmit={(event) => {
+            submit(event)
+          }}
+        >
+          <Label htmlFor="organization-name">{t("organization.name")}</Label>
+          <Input
+            autoComplete="off"
+            id="organization-name"
+            placeholder={t("organization.namePlaceholder")}
+            {...form.register("name")}
+          />
+          <p className="font-data text-[11px] text-ink-3">{slug}</p>
 
-          <form
-            className="mt-gutter flex flex-col gap-2"
-            noValidate
-            onSubmit={(event) => {
-              submit(event)
-            }}
-          >
-            <Label htmlFor="organization-name">{t("organization.name")}</Label>
-            <Input
-              autoComplete="off"
-              id="organization-name"
-              placeholder={t("organization.namePlaceholder")}
-              {...form.register("name")}
+          <FieldError>{form.formState.errors.name?.message}</FieldError>
+
+          {create.isError ? (
+            <Callout
+              fix={t("organization.createFailedFix")}
+              title={t("organization.createFailed")}
+              tone="danger"
             />
-            <p className="font-data text-[11px] text-ink-3">{slug}</p>
+          ) : null}
 
-            <FieldError>{form.formState.errors.name?.message}</FieldError>
-
-            {create.isError ? (
-              <Callout
-                fix={t("organization.createFailedFix")}
-                title={t("organization.createFailed")}
-                tone="danger"
-              />
-            ) : null}
-
-            <div className="mt-4 flex justify-end gap-2">
-              <Dialog.Close
-                render={<Button variant="ghost">{t("common.cancel")}</Button>}
-              />
-              <Button
-                disabled={create.isPending}
-                type="submit"
-                variant="primary"
-              >
-                {create.isPending
-                  ? t("organization.creating")
-                  : t("organization.createAction")}
-              </Button>
-            </div>
-          </form>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+          <div className="mt-4 flex justify-end gap-2">
+            <DialogClose
+              render={<Button variant="ghost">{t("common.cancel")}</Button>}
+            />
+            <Button disabled={create.isPending} type="submit" variant="primary">
+              {create.isPending
+                ? t("organization.creating")
+                : t("organization.createAction")}
+            </Button>
+          </div>
+        </form>
+      </DialogPopup>
+    </DialogRoot>
   )
 }

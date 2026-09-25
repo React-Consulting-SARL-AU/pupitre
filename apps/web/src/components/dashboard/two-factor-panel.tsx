@@ -148,7 +148,7 @@ export function TwoFactorPanel() {
 
       {activation.error ? (
         <Callout
-          fix={t("twoFactor.prepareFailedFix")}
+          fix={t("common.retryLater")}
           title={activation.error}
           tone="danger"
         />

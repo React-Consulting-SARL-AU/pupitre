@@ -245,7 +245,7 @@ const FR = {
     "Ce fil ne porte aucune adresse à qui répondre.",
   mail_thread_has_no_recipient_fix:
     "Écrivez un nouveau message depuis la boîte, en nommant le destinataire.",
-  mail_send_failed: "L'envoi a échoué : {reason}",
+  mail_send_failed: "Le service d'envoi a refusé le message.",
   mail_send_failed_fix:
     "Le message est enregistré comme échoué dans le fil ; réessayez, l'envoi ne part qu'une fois.",
   mail_attachment_blocked:
@@ -308,6 +308,18 @@ const FR = {
     "Cette organisation n'a pas encore de client Stripe.",
   billing_customer_missing_fix:
     "Passez d'abord par le checkout : POST /orgs/{organization}/checkout.",
+  billing_already_subscribed:
+    "Cette organisation paie déjà un abonnement en cours : un second checkout la facturerait deux fois.",
+  billing_already_subscribed_fix:
+    "Ajoutez des sièges à l'abonnement en cours (POST /orgs/{organization}/seats), ou gérez-le depuis le portail (POST /orgs/{organization}/portal).",
+  launch_subscription_ended:
+    "L'abonnement du lancement de cette organisation est arrêté : il ne se rouvre pas.",
+  launch_subscription_ended_fix:
+    "Écrivez à support@pupitre.studio pour le faire rouvrir par l'équipe Pupitre.",
+  stripe_event_in_flight:
+    "Une autre livraison traite déjà cet événement Stripe.",
+  stripe_event_in_flight_fix:
+    "Rien à faire : Stripe relivre l'événement plus tard, et il n'est traité qu'une fois.",
   stripe_signature_invalid: "Signature Stripe invalide.",
   stripe_signature_invalid_fix:
     "Signez le corps brut avec le secret du webhook, dans les cinq minutes.",
@@ -577,7 +589,7 @@ const EN: Record<MessageKey, string> = {
   mail_thread_has_no_recipient: "This thread carries no address to answer.",
   mail_thread_has_no_recipient_fix:
     "Write a new message from the inbox, naming the recipient.",
-  mail_send_failed: "Sending failed: {reason}",
+  mail_send_failed: "The sending service refused the message.",
   mail_send_failed_fix:
     "The message is kept in the thread as failed; try again, it only leaves once.",
   mail_attachment_blocked:
@@ -635,6 +647,18 @@ const EN: Record<MessageKey, string> = {
   billing_customer_missing: "This organization has no Stripe customer yet.",
   billing_customer_missing_fix:
     "Go through checkout first: POST /orgs/{organization}/checkout.",
+  billing_already_subscribed:
+    "This organization already pays a live subscription: a second checkout would bill it twice.",
+  billing_already_subscribed_fix:
+    "Add seats to the live subscription (POST /orgs/{organization}/seats), or manage it from the portal (POST /orgs/{organization}/portal).",
+  launch_subscription_ended:
+    "This organization's launch subscription was stopped: it does not reopen.",
+  launch_subscription_ended_fix:
+    "Write to support@pupitre.studio to have the Pupitre team reopen it.",
+  stripe_event_in_flight:
+    "Another delivery is already processing this Stripe event.",
+  stripe_event_in_flight_fix:
+    "Nothing to do: Stripe delivers the event again later, and it is processed once.",
   stripe_signature_invalid: "Invalid Stripe signature.",
   stripe_signature_invalid_fix:
     "Sign the raw body with the webhook secret, within five minutes.",

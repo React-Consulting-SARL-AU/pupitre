@@ -2,22 +2,25 @@ import { ADMIN_PAGE_SIZE } from "@pupitre/shared/platform"
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
 import { Users } from "lucide-react"
-import { useState } from "react"
-import {
-  type AdminTeamRowMember,
-  adminTeamColumns,
-} from "@/components/admin/admin-team-columns"
+import { adminTeamColumns } from "@/components/admin/admin-team-columns"
 import { AsyncDataTable } from "@/components/ui/async-data-table"
 import { buttonClassName } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
 import { useTranslations } from "@/hooks/use-locale"
 import { adminTeamQueryOptions } from "@/lib/api/admin-queries"
+import type { ListSearchHandle } from "@/lib/domain/list-search"
 
-export function AdminTeam() {
+export interface AdminTeamSearch {
+  offset?: number
+}
+
+export type AdminTeamProps = ListSearchHandle<AdminTeamSearch>
+
+export function AdminTeam({ search, setSearch }: AdminTeamProps) {
   const t = useTranslations()
-  const [offset, setOffset] = useState(0)
+  const offset = search.offset ?? 0
   const team = useQuery(adminTeamQueryOptions())
-  const members: AdminTeamRowMember[] = team.data ?? []
+  const members = team.data ?? []
 
   return (
     <div className="flex flex-col gap-gutter">
@@ -44,7 +47,9 @@ export function AdminTeam() {
         isPending={team.isPending}
         limit={ADMIN_PAGE_SIZE}
         offset={offset}
-        onOffsetChange={setOffset}
+        onOffsetChange={(next) => {
+          setSearch({ offset: next })
+        }}
         refetch={() => {
           team.refetch()
         }}

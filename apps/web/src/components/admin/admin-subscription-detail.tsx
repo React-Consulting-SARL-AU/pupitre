@@ -51,6 +51,7 @@ export function AdminSubscriptionDetail({
   if (subscription.isError) {
     return (
       <AdminFailure
+        error={subscription.error}
         fetching={subscription.isFetching}
         onRetry={() => {
           subscription.refetch()
@@ -84,14 +85,7 @@ export function AdminSubscriptionDetail({
         {
           value: "log",
           label: t("admin.subscriptions.tab.log"),
-          panel: (
-            <AdminEventsCard
-              events={detail.events.map((event) => ({
-                ...event,
-                actor: event.actor?.email ?? null,
-              }))}
-            />
-          ),
+          panel: <AdminEventsCard events={detail.events} />,
         },
         ...(acts
           ? [

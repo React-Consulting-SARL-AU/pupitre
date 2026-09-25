@@ -1,5 +1,6 @@
 import { slugify } from "@pupitre/auth/organizations"
 import { isOrgRole, type OrgRole } from "@pupitre/shared/permissions"
+import { LIVE_SUBSCRIPTION_STATUSES } from "@pupitre/shared/plans"
 import {
   deletionDeadline,
   PLATFORM_ORGANIZATION_ID,
@@ -13,7 +14,6 @@ import { getPrisma, withOrganization } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import { cancelSubscriptionByAdmin } from "../billing/admin"
 import { applyOrganizationEntitlement } from "../billing/mirror"
-import { LIVE_SUBSCRIPTION_STATUSES } from "../billing/subscription"
 import { unassignServersOfMember } from "../servers/assign"
 import {
   type AdminOrganizationDetail,

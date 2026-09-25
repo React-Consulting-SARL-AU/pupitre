@@ -110,6 +110,11 @@ export function InboxThreadRow({
           <span className="shrink-0 rounded-sm bg-sunken px-1.5 py-px font-data text-ink-2">
             {mailbox?.display_name ?? thread.address}
           </span>
+          {thread.sender_authenticated ? null : (
+            <span className="shrink-0 text-warn">
+              {t("inbox.unverifiedSender")}
+            </span>
+          )}
           {tags.length > 0 ? (
             <span className="truncate">{tags.join(" · ")}</span>
           ) : null}

@@ -52,6 +52,7 @@ export function AdminUserDetail({
   if (user.isError) {
     return (
       <AdminFailure
+        error={user.error}
         fetching={user.isFetching}
         onRetry={() => {
           user.refetch()
@@ -101,14 +102,7 @@ export function AdminUserDetail({
         {
           value: "events",
           label: t("admin.users.tab.events"),
-          panel: (
-            <AdminEventsCard
-              events={detail.events.map((event) => ({
-                ...event,
-                actor: event.actor?.email ?? null,
-              }))}
-            />
-          ),
+          panel: <AdminEventsCard events={detail.events} />,
         },
         {
           value: "danger",

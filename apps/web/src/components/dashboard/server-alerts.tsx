@@ -21,7 +21,7 @@ export function ServerAlerts({ alerts }: ServerAlertsProps) {
     <Card data-testid="server-alerts">
       <CardHeader>
         <CardTitle>{t("servers.alerts.title")}</CardTitle>
-        <span className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
+        <span className="text-label">
           {alerts.length === 0
             ? t("servers.alerts.none")
             : t.plural("servers.alerts.count", alerts.length)}

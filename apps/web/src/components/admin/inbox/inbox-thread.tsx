@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
-import { ArrowLeft, RotateCw } from "lucide-react"
+import { ArrowLeft, RotateCw, ShieldAlert } from "lucide-react"
 import { useEffect, useRef } from "react"
 import { InboxReplyForm } from "@/components/admin/inbox/inbox-reply-form"
 import { InboxThreadActions } from "@/components/admin/inbox/inbox-thread-actions"
@@ -56,7 +56,7 @@ export function InboxThread({ threadId, search }: InboxThreadProps) {
     onError: () => {
       toasts.failed({
         title: t("inbox.changeFailed"),
-        fix: t("inbox.changeFailedFix"),
+        fix: t("common.retryLater"),
       })
     },
   })
@@ -149,6 +149,12 @@ export function InboxThread({ threadId, search }: InboxThreadProps) {
               {mailbox?.display_name ?? detail.address}
             </span>
             <StatusBadge look={threadStatusLook(detail.status)} />
+            {detail.sender_authenticated ? null : (
+              <span className="inline-flex items-center gap-1 text-[12px] text-warn">
+                <ShieldAlert className="size-3.5" strokeWidth={1.5} />
+                {t("inbox.unverifiedSender")}
+              </span>
+            )}
           </div>
 
           <InboxThreadMessages messages={detail.messages} />

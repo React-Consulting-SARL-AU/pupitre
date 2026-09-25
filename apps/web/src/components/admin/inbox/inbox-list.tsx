@@ -82,7 +82,7 @@ export function InboxList({
               <CardTitle>{t("inbox.threads")}</CardTitle>
             </div>
             <span className="font-data text-[12px] text-ink-3 tabular-nums">
-              {t("admin.range", {
+              {t("table.range", {
                 from: offset + 1,
                 to: offset + threads.length,
                 total,
@@ -138,11 +138,11 @@ export function InboxList({
 
       {failed ? null : (
         <Pagination
-          nextLabel={t("admin.next")}
+          nextLabel={t("table.next")}
           offset={offset}
           onOffsetChange={onOffsetChange}
           pageSize={INBOX_PAGE_SIZE}
-          previousLabel={t("admin.previous")}
+          previousLabel={t("table.previous")}
           total={total}
         />
       )}

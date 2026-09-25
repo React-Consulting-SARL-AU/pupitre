@@ -35,7 +35,7 @@ export function AdminUserDevices({
       done: (_data, { name }) => t("admin.users.revoked", { name }),
       failed: () => ({
         title: t("admin.users.revokeFailed"),
-        fix: t("admin.users.revokeFailedFix"),
+        fix: t("common.retryLater"),
       }),
     },
   })

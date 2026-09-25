@@ -74,7 +74,7 @@ export function StartChecklist({ compact = false }: StartChecklistProps) {
                   </p>
 
                   {step.state === "done" ? (
-                    <span className="shrink-0 text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
+                    <span className="shrink-0 text-label">
                       {t("onboarding.done")}
                     </span>
                   ) : null}

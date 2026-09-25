@@ -56,7 +56,7 @@ export function AdminAffiliateLinkSettings({
       done: (_data, values) => t("admin.links.applied", { name: values.name }),
       failed: () => ({
         title: t("admin.links.applyFailed"),
-        fix: t("admin.links.applyFailedFix"),
+        fix: t("common.retryLater"),
       }),
     },
   })

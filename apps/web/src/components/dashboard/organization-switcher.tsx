@@ -14,9 +14,10 @@ import {
 } from "@/components/ui/menu"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
+import { usePermission } from "@/hooks/use-permission"
 import { isOrganizationScoped, queryKeys } from "@/lib/api/queries"
 import { authClient } from "@/lib/auth/client"
-import { canManageOrganization, initialOf } from "@/lib/domain/organization"
+import { initialOf } from "@/lib/domain/organization"
 import { roleKey } from "@/lib/domain/roles"
 
 export interface OrganizationSwitcherProps {
@@ -27,6 +28,7 @@ export interface OrganizationSwitcherProps {
 export function OrganizationSwitcher({ trigger }: OrganizationSwitcherProps) {
   const t = useTranslations()
   const { organizations, activeOrganization, role } = useDashboardContext()
+  const canManage = usePermission("organizations:manage")
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [switching, setSwitching] = useState(false)
@@ -70,9 +72,7 @@ export function OrganizationSwitcher({ trigger }: OrganizationSwitcherProps) {
                 {name}
               </span>
               {roleLabel ? (
-                <span className="block truncate text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-                  {roleLabel}
-                </span>
+                <span className="block truncate text-label">{roleLabel}</span>
               ) : null}
             </span>
             <ChevronsUpDown
@@ -101,7 +101,7 @@ export function OrganizationSwitcher({ trigger }: OrganizationSwitcherProps) {
                   strokeWidth={1.5}
                 />
                 <span className="truncate">{organization.name}</span>
-                <span className="ml-auto text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
+                <span className="ml-auto text-label">
                   {t(roleKey(organization.role) ?? "role.member")}
                 </span>
               </MenuItem>
@@ -110,7 +110,7 @@ export function OrganizationSwitcher({ trigger }: OrganizationSwitcherProps) {
 
           <MenuSeparator />
 
-          {activeOrganization && canManageOrganization(role) ? (
+          {activeOrganization && canManage ? (
             <MenuItem render={<Link to="/dashboard/organization" />}>
               <Settings2 className="size-4 text-ink-3" strokeWidth={1.5} />
               {t("organization.manage")}

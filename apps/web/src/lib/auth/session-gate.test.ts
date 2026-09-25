@@ -1,7 +1,8 @@
 import { describe, expect, it } from "bun:test"
+import { ApiError } from "@pupitre/api/client"
 import type { QueryClient } from "@tanstack/react-query"
 import { isRedirect } from "@tanstack/react-router"
-import { requireSession } from "@/lib/auth/session-gate"
+import { readSessionOrSignIn, requireSession } from "@/lib/auth/session-gate"
 
 function gate(answer: () => Promise<unknown>) {
   return {
@@ -36,5 +37,34 @@ describe("requireSession", () => {
     await expect(
       requireSession(gate(() => Promise.resolve({ user: { id: "u1" } })))
     ).resolves.toBeUndefined()
+  })
+})
+
+describe("readSessionOrSignIn", () => {
+  it("sends an expired session to sign in, and back to the page it was on", async () => {
+    let thrown: unknown = null
+
+    try {
+      await readSessionOrSignIn(
+        gate(() => Promise.reject(new ApiError(401, {}, "401")))
+      )
+    } catch (error) {
+      thrown = error
+    }
+
+    expect(isRedirect(thrown)).toBe(true)
+    expect(
+      (thrown as { options: { search: { callbackURL: string } } }).options
+        .search.callbackURL
+    ).toBe("/auth/invitation/inv_1")
+  })
+
+  it("keeps a platform failure or a network cut on the page, to be retried", async () => {
+    await expect(
+      readSessionOrSignIn(gate(() => Promise.reject(new ApiError(500, {}, ""))))
+    ).resolves.toBeNull()
+    await expect(
+      readSessionOrSignIn(gate(() => Promise.reject(new TypeError("offline"))))
+    ).resolves.toBeNull()
   })
 })

@@ -46,10 +46,7 @@ export function MenuGroupLabel({
 }: ComponentProps<typeof BaseMenu.GroupLabel>) {
   return (
     <BaseMenu.GroupLabel
-      className={cn(
-        "px-2 py-2 text-[10.5px] text-ink-3 uppercase tracking-[0.08em]",
-        className
-      )}
+      className={cn("px-2 py-2 text-label", className)}
       {...props}
     />
   )

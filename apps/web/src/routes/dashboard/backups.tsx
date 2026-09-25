@@ -5,6 +5,7 @@ import { RouteError } from "@/components/ui/route-error"
 import { PageSkeleton } from "@/components/ui/skeleton"
 import { useTranslations } from "@/hooks/use-locale"
 import { backupsQueryOptions } from "@/lib/api/queries"
+import { listSearch, useListSearch } from "@/lib/domain/list-search"
 import { documentTitle, pageTitle } from "@/lib/domain/page-titles"
 
 const ROUTE_ID = "/dashboard/backups"
@@ -18,6 +19,7 @@ export const Route = createFileRoute("/dashboard/backups")({
   loader: ({ context }) =>
     context.queryClient.ensureQueryData(backupsQueryOptions()),
   pendingComponent: BackupsPending,
+  validateSearch: listSearch(),
 })
 
 function BackupsPending() {
@@ -30,11 +32,12 @@ function BackupsPending() {
 function BackupsPage() {
   const t = useTranslations()
   const { title, parents } = pageTitle(ROUTE_ID)
+  const list = useListSearch(Route)
 
   return (
     <>
       <PageHeader parents={parents} title={t(title)} />
-      <BackupList />
+      <BackupList {...list} />
     </>
   )
 }

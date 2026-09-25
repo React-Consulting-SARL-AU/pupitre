@@ -42,7 +42,7 @@ function intervalOf(value: string | null): BillingIntervalName | null {
   return isBillingIntervalName(value) ? value : null
 }
 
-const FACT = "text-[10.5px] text-ink-3 uppercase tracking-[0.08em]"
+const FACT = "text-label"
 
 function launchPeriod(
   t: Translate,

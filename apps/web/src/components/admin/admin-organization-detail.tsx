@@ -48,6 +48,7 @@ export function AdminOrganizationDetail({
   if (organization.isError) {
     return (
       <AdminFailure
+        error={organization.error}
         fetching={organization.isFetching}
         onRetry={() => {
           organization.refetch()
@@ -90,14 +91,7 @@ export function AdminOrganizationDetail({
         {
           value: "events",
           label: t("admin.organizations.tab.events"),
-          panel: (
-            <AdminEventsCard
-              events={detail.events.map((event) => ({
-                ...event,
-                actor: event.actor?.email ?? null,
-              }))}
-            />
-          ),
+          panel: <AdminEventsCard events={detail.events} />,
         },
         {
           value: "settings",

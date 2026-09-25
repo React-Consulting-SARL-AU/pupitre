@@ -1,13 +1,8 @@
-import { Dialog } from "@base-ui-components/react/dialog"
 import { useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { Trash2 } from "lucide-react"
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Callout } from "@/components/ui/callout"
-import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { ConfirmFormDialog } from "@/components/ui/confirm-form-dialog"
+import { DangerZone } from "@/components/ui/danger-zone"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
 import { useRequestCycle } from "@/hooks/use-request-cycle"
@@ -18,9 +13,7 @@ export function DeleteAccountCard() {
   const { user } = useDashboardContext()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [typed, setTyped] = useState("")
   const removal = useRequestCycle()
-  const confirmed = typed.trim().toLowerCase() === user.email.toLowerCase()
 
   function remove() {
     return removal.run(async () => {
@@ -36,83 +29,35 @@ export function DeleteAccountCard() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t("deleteAccount.title")}</CardTitle>
-      </CardHeader>
-      <CardBody className="flex flex-col gap-gutter">
-        <p className="text-[13px] text-ink-2">{t("deleteAccount.lead")}</p>
-        <p className="text-[13px] text-ink-2">
-          {t("deleteAccount.subscription")}
-        </p>
-
-        <Dialog.Root>
-          <Dialog.Trigger
-            render={
-              <Button className="self-start" variant="danger">
-                <Trash2 className="size-4" strokeWidth={1.5} />
-                {t("deleteAccount.trigger")}
-              </Button>
+    <DangerZone
+      action={
+        <ConfirmFormDialog
+          busy={removal.phase === "pending"}
+          busyLabel={t("deleteAccount.pending")}
+          confirmLabel={t("deleteAccount.confirm")}
+          description={t("deleteAccount.subscription")}
+          id="delete-account"
+          keyword={user.email}
+          onConfirm={() => {
+            remove()
+          }}
+          onOpenChange={(open) => {
+            if (!open) {
+              removal.reset()
             }
-          />
-          <Dialog.Portal>
-            <Dialog.Backdrop className="fixed inset-0 bg-base/70 backdrop-blur-[2px]" />
-            <Dialog.Popup className="fixed top-1/2 left-1/2 w-[min(460px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 rounded-lg bg-surface p-6 shadow-overlay outline-none">
-              <Dialog.Title className="font-bold font-display text-[16px] text-ink leading-[1.2]">
-                {t("deleteAccount.dialogTitle")}
-              </Dialog.Title>
-              <Dialog.Description className="mt-2 text-[13px] text-ink-2">
-                {t("deleteAccount.dialogDescription")}
-              </Dialog.Description>
-
-              <p className="mt-3 font-data text-[12px] text-ink">
-                {user.email}
-              </p>
-
-              <div className="mt-3 flex flex-col gap-2">
-                <Label htmlFor="confirm-email">
-                  {t("deleteAccount.confirmation")}
-                </Label>
-                <Input
-                  autoComplete="off"
-                  id="confirm-email"
-                  onChange={(event) => {
-                    setTyped(event.target.value)
-                  }}
-                  placeholder={user.email}
-                  value={typed}
-                />
-              </div>
-
-              <div className="mt-6 flex justify-end gap-2">
-                <Dialog.Close
-                  render={<Button variant="ghost">{t("common.cancel")}</Button>}
-                />
-                <Button
-                  disabled={!confirmed || removal.phase === "pending"}
-                  onClick={() => {
-                    remove()
-                  }}
-                  variant="danger"
-                >
-                  {removal.phase === "pending"
-                    ? t("deleteAccount.pending")
-                    : t("deleteAccount.confirm")}
-                </Button>
-              </div>
-
-              {removal.error ? (
-                <Callout
-                  className="mt-4"
-                  fix={t("deleteAccount.failedFix")}
-                  title={removal.error}
-                  tone="danger"
-                />
-              ) : null}
-            </Dialog.Popup>
-          </Dialog.Portal>
-        </Dialog.Root>
-      </CardBody>
-    </Card>
+          }}
+          refusal={
+            removal.error
+              ? { message: removal.error, fix: t("deleteAccount.failedFix") }
+              : null
+          }
+          title={t("deleteAccount.dialogTitle")}
+          triggerIcon={Trash2}
+          triggerLabel={t("deleteAccount.trigger")}
+        />
+      }
+      description={t("deleteAccount.lead")}
+      title={t("deleteAccount.title")}
+    />
   )
 }

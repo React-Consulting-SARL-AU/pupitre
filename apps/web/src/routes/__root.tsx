@@ -4,6 +4,7 @@ import {
   createRootRouteWithContext,
   HeadContent,
   Outlet,
+  ScriptOnce,
   Scripts,
   useRouterState,
 } from "@tanstack/react-router"
@@ -34,16 +35,6 @@ export const Route = createRootRouteWithContext<RouterContext>()({
       { href: "/favicon.svg", rel: "icon", type: "image/svg+xml" },
       { href: "/apple-touch-icon.png", rel: "apple-touch-icon" },
       { href: "/site.webmanifest", rel: "manifest" },
-      { href: "https://fonts.googleapis.com", rel: "preconnect" },
-      {
-        crossOrigin: "anonymous",
-        href: "https://fonts.gstatic.com",
-        rel: "preconnect",
-      },
-      {
-        href: "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=JetBrains+Mono:wght@400;500&display=swap",
-        rel: "stylesheet",
-      },
     ],
   }),
 })
@@ -65,8 +56,7 @@ function RootDocument({ children }: { children: ReactNode }) {
   return (
     <html lang={locale}>
       <head>
-        {/** biome-ignore lint/security/noDangerouslySetInnerHtml: the theme must be set before the first paint */}
-        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+        <ScriptOnce>{THEME_BOOT_SCRIPT}</ScriptOnce>
         <HeadContent />
       </head>
       <body className="flex min-h-dvh flex-col bg-base text-ink">

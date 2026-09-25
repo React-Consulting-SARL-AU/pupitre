@@ -1,3 +1,4 @@
+import { SERVER_STATUSES } from "@pupitre/shared/platform-api"
 import { createFileRoute } from "@tanstack/react-router"
 import {
   AdminServerList,
@@ -8,7 +9,6 @@ import { PageHeader } from "@/components/ui/page-header"
 import { useTranslations } from "@/hooks/use-locale"
 import { listSearch, useListSearch } from "@/lib/domain/list-search"
 import { documentTitle, pageTitle } from "@/lib/domain/page-titles"
-import { SERVER_STATUSES } from "@/lib/domain/server-status"
 
 const ROUTE_ID = "/dashboard/admin/servers"
 

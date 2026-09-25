@@ -66,7 +66,7 @@ export function InboxMailboxSettings() {
 
       toasts.failed({
         title: refusal?.message ?? t("inbox.mailboxFailed"),
-        fix: refusal?.fix ?? t("inbox.mailboxFailedFix"),
+        fix: refusal?.fix ?? t("common.retryLater"),
       })
     },
   })
@@ -82,6 +82,7 @@ export function InboxMailboxSettings() {
 
         {mailboxes.isError ? (
           <AdminFailure
+            error={mailboxes.error}
             fetching={mailboxes.isFetching}
             onRetry={() => {
               mailboxes.refetch()

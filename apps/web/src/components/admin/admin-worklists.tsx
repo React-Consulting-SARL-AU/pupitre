@@ -31,7 +31,8 @@ export function AdminWorklists({ worklists }: AdminWorklistsProps) {
             to: "/dashboard/admin/inbox/$threadId",
             params: { threadId: thread.id },
           },
-          primary: thread.subject,
+          primary:
+            thread.subject === "" ? t("inbox.noSubject") : thread.subject,
           secondary: `${thread.from.name ?? thread.from.email} · ${formatRelative(
             thread.last_inbound_at,
             t

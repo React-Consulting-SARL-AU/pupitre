@@ -5,7 +5,6 @@ import {
   approveDeviceCode,
   DeviceCodeError,
   denyDeviceCode,
-  deviceReturnPath,
   formatUserCode,
   lookupDeviceCode,
   needsFreshSignIn,
@@ -134,9 +133,6 @@ describe("the console page of the device flow", () => {
     expect(refusal).toBeInstanceOf(DeviceCodeError)
     expect((refusal as DeviceCodeError).code).toBe(SESSION_NOT_FRESH)
     expect(needsFreshSignIn(refusal)).toBe(true)
-    expect(deviceReturnPath(started.user_code)).toBe(
-      `/auth/device?user_code=${normalizeUserCode(started.user_code)}`
-    )
   })
 })
 
@@ -147,11 +143,5 @@ describe("the refusal of an old sign-in", () => {
     )
     expect(needsFreshSignIn(new DeviceCodeError("forbidden", 403))).toBe(false)
     expect(needsFreshSignIn(new Error(SESSION_NOT_FRESH))).toBe(false)
-  })
-
-  it("comes back to the device page with the code it was confirming", () => {
-    expect(deviceReturnPath(" abcd-efgh ")).toBe(
-      "/auth/device?user_code=ABCDEFGH"
-    )
   })
 })

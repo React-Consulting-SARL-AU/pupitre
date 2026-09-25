@@ -36,9 +36,7 @@ export function MetricsChart({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between gap-2">
-        <span className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-          {label}
-        </span>
+        <span className="text-label">{label}</span>
         <span className="font-data text-[12px] text-ink tabular-nums">
           {latest === null ? "—" : `${Math.round(latest)} %`}
         </span>
