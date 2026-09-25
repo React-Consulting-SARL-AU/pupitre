@@ -7,8 +7,10 @@ import {
   isBlockmap,
   isCompanion,
   isFeed,
+  isUpdateArchive,
   objectKey,
   signedAppMessage,
+  signedArtefactOf,
 } from "../../../scripts/release-artefacts";
 
 const BASE = "https://dl.pupitre.studio";
@@ -78,6 +80,27 @@ describe("artefactOf", () => {
     expect(isCompanion("Pupitre-1.4.0-x64.dmg")).toBe(false);
     expect(isCompanion("latest-mac.yml")).toBe(false);
     expect(isCompanion("notes.zip")).toBe(false);
+  });
+
+  it("signe ce que l'updater télécharge, sous le système et la puce de son installateur", () => {
+    expect(signedArtefactOf("Pupitre-1.4.0-arm64.zip")).toMatchObject({
+      arch: "arm64",
+      os: "macos",
+    });
+    expect(signedArtefactOf("Pupitre-Setup-1.4.0-x64.exe")).toMatchObject({
+      arch: "x64",
+      os: "windows",
+    });
+    expect(signedArtefactOf("Pupitre-1.4.0-x64.AppImage")).toMatchObject({
+      arch: "x64",
+      os: "linux",
+    });
+    expect(isUpdateArchive("Pupitre-1.4.0-arm64.zip")).toBe(true);
+    expect(isUpdateArchive("Pupitre-1.4.0-arm64.dmg")).toBe(false);
+    expect(isUpdateArchive("notes.zip")).toBe(false);
+    expect(signedArtefactOf("Pupitre-1.4.0-arm64.zip.blockmap")).toBeNull();
+    expect(signedArtefactOf("latest-mac.yml")).toBeNull();
+    expect(signedArtefactOf("notes.zip")).toBeNull();
   });
 });
 

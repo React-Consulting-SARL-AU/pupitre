@@ -78,18 +78,87 @@ export function publishable(
     .sort()
 }
 
+const STABLE_CHANNEL = "stable"
+
+const MAC_SIGNING = [
+  "APPLE_API_KEY_CONTENT",
+  "APPLE_API_KEY_ID",
+  "APPLE_API_ISSUER",
+  "APPLE_CERTIFICATE",
+  "APPLE_CERTIFICATE_PASSWORD",
+] as const
+
+/** The three names the build is given, the publisher electron-updater checks, and the Entra ID application Trusted Signing logs in with. */
+const WINDOWS_SIGNING = [
+  "AZURE_SIGNING_ENDPOINT",
+  "AZURE_SIGNING_ACCOUNT",
+  "AZURE_SIGNING_PROFILE",
+  "AZURE_SIGNING_PUBLISHER",
+  "AZURE_TENANT_ID",
+  "AZURE_CLIENT_ID",
+  "AZURE_CLIENT_SECRET",
+] as const
+
+/**
+ * What an installed app updates to is on the stable channel: it ships signed
+ * or not at all. A beta build may go out unsigned, and says so.
+ */
+export function signingRequired(channel: string): boolean {
+  return channel === STABLE_CHANNEL
+}
+
+/** Stopgap until Azure Trusted Signing exists: the release names it, and deleting that line restores the rule. */
+export function windowsSigningRequired(
+  channel: string,
+  env: NodeJS.ProcessEnv
+): boolean {
+  return signingRequired(channel) && env.PUPITRE_ALLOW_UNSIGNED_WINDOWS !== "1"
+}
+
+function refuseUnsigned(
+  env: NodeJS.ProcessEnv,
+  names: readonly string[],
+  system: string
+): void {
+  const missing = names.filter((name) => !env[name])
+
+  if (missing.length > 0) {
+    throw new Error(
+      `the stable channel ships a signed ${system} app: ${missing.join(", ")} not set.`
+    )
+  }
+}
+
+/**
+ * electron-builder skips signing with a word in its log when it finds no
+ * identity; on the stable channel that is a failed build, not an unsigned one.
+ */
+export function enforcedSigning(system: System, required: boolean): string[] {
+  if (!required || system === "linux") {
+    return []
+  }
+
+  return [`-c.${system === "macos" ? "mac" : "win"}.forceCodeSigning=true`]
+}
+
 /**
  * macOS signs with the Developer ID certificate it is given — a bare runner
  * imports it into a throwaway keychain — or, without one, with the identity
  * of this Mac's keychain; and notarizes with the App Store Connect key, given
- * as a file for as long as the build lasts. Without the key, the build is
- * neither signed nor notarized, and says so. Apple keeps a notarization
- * for minutes without a word: the debug output says where it stands.
+ * as a file for as long as the build lasts. Without the key, a beta build is
+ * neither signed nor notarized, and says so; a stable one stops. Apple keeps
+ * a notarization for minutes without a word: the debug output says where it
+ * stands.
  */
 export function macSigning(
   env: NodeJS.ProcessEnv,
-  keyFile: (content: string) => string
+  keyFile: (content: string) => string,
+  required: boolean
 ): NodeJS.ProcessEnv {
+  if (required) {
+    refuseUnsigned(env, MAC_SIGNING, "macOS")
+  }
+
   const keyContent = env.APPLE_API_KEY_CONTENT
   const keyId = env.APPLE_API_KEY_ID
   const issuer = env.APPLE_API_ISSUER
@@ -115,17 +184,33 @@ export function macSigning(
   return { CSC_IDENTITY_AUTO_DISCOVERY: "false" }
 }
 
-/** Windows signs through Azure Trusted Signing when its three names are given. */
-export function windowsSigning(env: NodeJS.ProcessEnv): string[] {
+/**
+ * Windows signs through Azure Trusted Signing when its three names are given.
+ * The publisher — the certificate's subject name, which Trusted Signing does
+ * not report — goes into `app-update.yml`, and an installed app then refuses
+ * an update whose Authenticode signer is anyone else.
+ */
+export function windowsSigning(
+  env: NodeJS.ProcessEnv,
+  required: boolean
+): string[] {
+  if (required) {
+    refuseUnsigned(env, WINDOWS_SIGNING, "Windows")
+  }
+
   const endpoint = env.AZURE_SIGNING_ENDPOINT
   const account = env.AZURE_SIGNING_ACCOUNT
   const profile = env.AZURE_SIGNING_PROFILE
+  const publisher = env.AZURE_SIGNING_PUBLISHER
 
   if (endpoint && account && profile) {
     return [
       `-c.win.azureSignOptions.endpoint=${endpoint}`,
       `-c.win.azureSignOptions.codeSigningAccountName=${account}`,
       `-c.win.azureSignOptions.certificateProfileName=${profile}`,
+      ...(publisher
+        ? [`-c.win.azureSignOptions.publisherName=${publisher}`]
+        : []),
     ]
   }
 
@@ -146,8 +231,10 @@ async function fetchAgent(version: string, vault: Bucket): Promise<void> {
 }
 
 function build(system: System, env: NodeJS.ProcessEnv, dryRun: boolean): void {
+  const channel = variable(env, "channel")
+  const required = signingRequired(channel)
   const shared: NodeJS.ProcessEnv = {
-    MAIN_VITE_UPDATE_CHANNEL: variable(env, "channel"),
+    MAIN_VITE_UPDATE_CHANNEL: channel,
     PUPITRE_AGENT_DIST: "../agent/dist/release",
     PUPITRE_DOWNLOADS_URL: variable(env, "downloadsUrl"),
   }
@@ -161,15 +248,19 @@ function build(system: System, env: NodeJS.ProcessEnv, dryRun: boolean): void {
     const temp = mkdtempSync(path.join(tmpdir(), "pupitre-notarize-"))
 
     try {
-      const signing = macSigning(env, (content) => {
-        const file = path.join(temp, "apple-api-key.p8")
+      const signing = macSigning(
+        env,
+        (content) => {
+          const file = path.join(temp, "apple-api-key.p8")
 
-        writeFileSync(file, Buffer.from(content, "base64"), { mode: 0o600 })
+          writeFileSync(file, Buffer.from(content, "base64"), { mode: 0o600 })
 
-        return file
-      })
+          return file
+        },
+        required
+      )
 
-      run(["bun", "run", "build:mac"], {
+      run(["bun", "run", "build:mac", ...enforcedSigning(system, required)], {
         cwd: DESKTOP_DIR,
         dryRun,
         env: { ...shared, ...signing },
@@ -182,11 +273,24 @@ function build(system: System, env: NodeJS.ProcessEnv, dryRun: boolean): void {
   }
 
   if (system === "windows") {
-    run(["bun", "run", "build:win", ...windowsSigning(env)], {
-      cwd: DESKTOP_DIR,
-      dryRun,
-      env: shared,
-    })
+    const windowsRequired = windowsSigningRequired(channel, env)
+
+    if (required && !windowsRequired) {
+      say(
+        "PUPITRE_ALLOW_UNSIGNED_WINDOWS is set: this stable Windows build may ship without Authenticode."
+      )
+    }
+
+    run(
+      [
+        "bun",
+        "run",
+        "build:win",
+        ...windowsSigning(env, windowsRequired),
+        ...enforcedSigning(system, windowsRequired),
+      ],
+      { cwd: DESKTOP_DIR, dryRun, env: shared }
+    )
 
     return
   }

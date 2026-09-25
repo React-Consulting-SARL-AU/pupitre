@@ -117,6 +117,20 @@ export function isCompanion(file: string): boolean {
   return file !== installerOf(file) && artefactOf(installerOf(file)) !== null;
 }
 
+/** The `.zip` electron-updater installs from on macOS: signed like an installer, a row nowhere. */
+export function isUpdateArchive(file: string): boolean {
+  return UPDATE_ARCHIVE_RE.test(file) && isCompanion(file);
+}
+
+/**
+ * The system and chip a release signature names for a file: its own for an
+ * installer, the `.dmg`'s for the update archive built beside it. A blockmap
+ * or a feed carries no signature.
+ */
+export function signedArtefactOf(file: string): Artefact | null {
+  return artefactOf(isUpdateArchive(file) ? installerOf(file) : file);
+}
+
 /** A version never moves once published: one folder per version, feeds alongside. */
 export function objectKey(version: string, file: string): string {
   return `app/${version}/${file}`;

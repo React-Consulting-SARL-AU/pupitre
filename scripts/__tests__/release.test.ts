@@ -10,12 +10,15 @@ import { releaseKey, signArtefact } from "../release/app"
 import { appVersion } from "../release/check"
 import { argumentOf, hasFlag, required, variable } from "../release/cli"
 import {
+  enforcedSigning,
   macSigning,
   publishable,
+  signingRequired,
   systemOfHost,
   windowsSigning,
+  windowsSigningRequired,
 } from "../release/desktop"
-import { pullRequestTitle } from "../release/merge"
+import { ciVerdict, pullRequestTitle } from "../release/merge"
 import { nextVersion, partOf, writeAppVersion } from "../release/next"
 import { keys } from "../release/r2"
 import {
@@ -67,6 +70,85 @@ describe("what a tag and a branch say", () => {
 
   it("names the pull request after the tag", () => {
     expect(pullRequestTitle("0.2.0")).toBe("release: v0.2.0")
+  })
+})
+
+describe("the checks a release merge waits for", () => {
+  const run = (
+    id: number,
+    name: string,
+    status: string,
+    conclusion: string | null = null
+  ) => ({ conclusion, id, name, status })
+
+  it("passes once the CI job called by the release succeeded", () => {
+    expect(ciVerdict([run(1, "CI / Quality", "completed", "success")])).toEqual(
+      { state: "passed" }
+    )
+  })
+
+  it("counts the CI job of a pull request run as well", () => {
+    expect(ciVerdict([run(1, "Quality", "completed", "success")])).toEqual({
+      state: "passed",
+    })
+  })
+
+  it("reports no check when the CI job never ran on the commit", () => {
+    expect(ciVerdict([])).toEqual({ state: "missing" })
+    expect(
+      ciVerdict([
+        run(1, "Agent", "completed", "success"),
+        run(2, "Merge into main", "in_progress"),
+      ])
+    ).toEqual({ state: "missing" })
+  })
+
+  it("waits while the CI job is queued or running", () => {
+    expect(ciVerdict([run(1, "CI / Quality", "in_progress")])).toEqual({
+      state: "pending",
+    })
+  })
+
+  it("fails on any conclusion other than success", () => {
+    for (const conclusion of [
+      "failure",
+      "cancelled",
+      "timed_out",
+      "action_required",
+      "skipped",
+      "neutral",
+    ]) {
+      expect(
+        ciVerdict([run(1, "CI / Quality", "completed", conclusion)])
+      ).toEqual({
+        reason: `CI / Quality: ${conclusion}`,
+        state: "failed",
+      })
+    }
+  })
+
+  it("judges each CI job by its latest attempt", () => {
+    expect(
+      ciVerdict([
+        run(1, "CI / Quality", "completed", "failure"),
+        run(2, "CI / Quality", "completed", "success"),
+      ])
+    ).toEqual({ state: "passed" })
+    expect(
+      ciVerdict([
+        run(2, "CI / Quality", "completed", "failure"),
+        run(1, "CI / Quality", "completed", "success"),
+      ])
+    ).toEqual({ reason: "CI / Quality: failure", state: "failed" })
+  })
+
+  it("fails when one CI job failed even if another passed", () => {
+    expect(
+      ciVerdict([
+        run(1, "CI / Quality", "completed", "success"),
+        run(2, "Quality", "completed", "failure"),
+      ])
+    ).toEqual({ reason: "Quality: failure", state: "failed" })
   })
 })
 
@@ -322,7 +404,7 @@ describe("the app on a system", () => {
       DEBUG: "electron-notarize*",
     }
 
-    expect(macSigning(notarizing, keyFile)).toEqual(notarized)
+    expect(macSigning(notarizing, keyFile, false)).toEqual(notarized)
     expect(written).toEqual(["cGVt"])
 
     expect(
@@ -332,29 +414,102 @@ describe("the app on a system", () => {
           APPLE_CERTIFICATE: "cDEy",
           APPLE_CERTIFICATE_PASSWORD: "secret",
         },
-        keyFile
+        keyFile,
+        false
       )
     ).toEqual({ ...notarized, CSC_KEY_PASSWORD: "secret", CSC_LINK: "cDEy" })
 
     expect(
-      macSigning({ ...notarizing, APPLE_API_ISSUER: "" }, keyFile)
+      macSigning({ ...notarizing, APPLE_API_ISSUER: "" }, keyFile, false)
     ).toEqual({ CSC_IDENTITY_AUTO_DISCOVERY: "false" })
     expect(written).toHaveLength(2)
   })
 
-  it("passes the three Azure names to electron-builder, or none", () => {
-    expect(
-      windowsSigning({
-        AZURE_SIGNING_ACCOUNT: "acct",
-        AZURE_SIGNING_ENDPOINT: "https://weu.codesigning.azure.net",
-        AZURE_SIGNING_PROFILE: "profile",
-      })
-    ).toEqual([
+  it("refuses to build a stable macOS app without the certificate and the notarization key", () => {
+    const keyFile = () => "/tmp/key.p8"
+    const complete = {
+      APPLE_API_ISSUER: "issuer",
+      APPLE_API_KEY_CONTENT: "cGVt",
+      APPLE_API_KEY_ID: "KEYID12345",
+      APPLE_CERTIFICATE: "cDEy",
+      APPLE_CERTIFICATE_PASSWORD: "secret",
+    }
+
+    expect(macSigning(complete, keyFile, true)).toMatchObject({
+      APPLE_API_KEY: "/tmp/key.p8",
+      CSC_LINK: "cDEy",
+    })
+    expect(() =>
+      macSigning({ ...complete, APPLE_CERTIFICATE: "" }, keyFile, true)
+    ).toThrow("APPLE_CERTIFICATE")
+    expect(() => macSigning({}, keyFile, true)).toThrow("APPLE_API_KEY_CONTENT")
+  })
+
+  it("passes the Azure names and the publisher to electron-builder, or none", () => {
+    const names = {
+      AZURE_SIGNING_ACCOUNT: "acct",
+      AZURE_SIGNING_ENDPOINT: "https://weu.codesigning.azure.net",
+      AZURE_SIGNING_PROFILE: "profile",
+    }
+
+    expect(windowsSigning(names, false)).toEqual([
       "-c.win.azureSignOptions.endpoint=https://weu.codesigning.azure.net",
       "-c.win.azureSignOptions.codeSigningAccountName=acct",
       "-c.win.azureSignOptions.certificateProfileName=profile",
     ])
-    expect(windowsSigning({ AZURE_SIGNING_ACCOUNT: "acct" })).toEqual([])
+    expect(
+      windowsSigning(
+        { ...names, AZURE_SIGNING_PUBLISHER: "Jordan Monier" },
+        false
+      )
+    ).toContain("-c.win.azureSignOptions.publisherName=Jordan Monier")
+    expect(windowsSigning({ AZURE_SIGNING_ACCOUNT: "acct" }, false)).toEqual([])
+  })
+
+  it("refuses to build a stable Windows app that electron-updater could not check", () => {
+    const complete = {
+      AZURE_CLIENT_ID: "client",
+      AZURE_CLIENT_SECRET: "secret",
+      AZURE_SIGNING_ACCOUNT: "acct",
+      AZURE_SIGNING_ENDPOINT: "https://weu.codesigning.azure.net",
+      AZURE_SIGNING_PROFILE: "profile",
+      AZURE_SIGNING_PUBLISHER: "Jordan Monier",
+      AZURE_TENANT_ID: "tenant",
+    }
+
+    expect(windowsSigning(complete, true)).toContain(
+      "-c.win.azureSignOptions.publisherName=Jordan Monier"
+    )
+    expect(() =>
+      windowsSigning({ ...complete, AZURE_SIGNING_PUBLISHER: "" }, true)
+    ).toThrow("AZURE_SIGNING_PUBLISHER")
+    expect(() => windowsSigning({}, true)).toThrow("AZURE_SIGNING_ENDPOINT")
+  })
+
+  it("holds the stable channel alone to a signed build, which electron-builder must not skip", () => {
+    expect(signingRequired("stable")).toBe(true)
+    expect(signingRequired("beta")).toBe(false)
+    expect(enforcedSigning("macos", true)).toEqual([
+      "-c.mac.forceCodeSigning=true",
+    ])
+    expect(enforcedSigning("windows", true)).toEqual([
+      "-c.win.forceCodeSigning=true",
+    ])
+    expect(enforcedSigning("linux", true)).toEqual([])
+    expect(enforcedSigning("macos", false)).toEqual([])
+  })
+
+  it("lets a stable Windows build go out unsigned only when the release says so", () => {
+    expect(windowsSigningRequired("stable", {})).toBe(true)
+    expect(
+      windowsSigningRequired("stable", { PUPITRE_ALLOW_UNSIGNED_WINDOWS: "1" })
+    ).toBe(false)
+    expect(
+      windowsSigningRequired("stable", {
+        PUPITRE_ALLOW_UNSIGNED_WINDOWS: "true",
+      })
+    ).toBe(true)
+    expect(windowsSigningRequired("beta", {})).toBe(false)
   })
 })
 

@@ -14,12 +14,12 @@ Le Mac du propriétaire écrit la version et les notes et pose le tag, par `scri
 | Fichier | Rôle | Existe ? |
 | --- | --- | --- |
 | `scripts/release.sh` | la part du Mac : `next`, `resolve`, `notes` — s'arrête là pour que les notes soient lues — puis `check` et `ship` quand on le relance | oui |
-| `.github/workflows/release.yml` | la part des runners, sur le tag : `agent build`, `agent publish`, puis `desktop` sur les runners Blacksmith `blacksmith-6vcpu-macos-15`, `blacksmith-4vcpu-windows-2025`, `blacksmith-4vcpu-ubuntu-2404`, puis `app publish`, `verify` et `merge` | oui |
+| `.github/workflows/release.yml` | la part des runners, sur le tag : `ci.yml` d'abord, puis `agent build`, `agent publish`, puis `desktop` sur les runners Blacksmith `blacksmith-6vcpu-macos-15`, `blacksmith-4vcpu-windows-2025`, `blacksmith-4vcpu-ubuntu-2404`, puis `app publish`, `verify` et `merge` | oui |
 | `.github/workflows/promote.yml` | à la main, `gh workflow run promote.yml -f version=X.Y.Z` : remet une version publiée dans un canal — le retour arrière | oui |
 | `scripts/release/release.env.tpl` | les références 1Password et les valeurs publiques — aucun secret dedans ; `release secrets` en fait les secrets du dépôt, le workflow y lit les valeurs en clair | oui |
 | `scripts/release/` | **la chaîne elle-même** : `next`, `resolve`, `notes`, `check`, `ship`, `agent build`, `agent publish`, `desktop`, `app publish`, `verify`, `merge`, `promote`, `secrets` — chaque étape est une commande `bun scripts/release/index.ts <étape>`, idempotente, pilotée par l'environnement, avec `--dry-run` ; R2 en S3 pour seul bus, avec une clé limitée aux deux seaux | oui |
 | `apps/desktop/package.json` | `version` de l'app, `build:mac`, `build:win`, `build:linux` | oui |
-| `apps/desktop/electron-builder.yml` | cibles, noms d'artefacts, `asarUnpack`, fusibles, signature, flux générique | oui |
+| `apps/desktop/electron-builder.yml` | cibles, noms d'artefacts, ce qui entre dans l'archive (`out/**` et `package.json`, plus les `dependencies` que le main charge à l'exécution — tout le reste est une `devDependency` regroupée par Vite), `asarUnpack`, fusibles, signature, flux générique | oui |
 | `apps/desktop/scripts/release-artefacts.ts` | ce qu'un fichier d'artefact est, sa clé dans le seau, le message que la clé de release signe, la réécriture des flux — partagé par la chaîne et par l'app qui vérifie | oui |
 | `apps/agent/package.json` | `release` (garble, `-X main.version`, signature) | oui |
 | `apps/agent/tools/release` | `keygen`, `public-key`, `sign` — la cryptographie de l'agent, rien d'autre | oui |
@@ -37,8 +37,8 @@ Le Mac du propriétaire écrit la version et les notes et pose le tag, par `scri
 
 | Brique | État |
 | --- | --- |
-| La signature Windows | Azure Trusted Signing n'existe que sur Windows, et la chaîne tourne sur macOS : l'installateur sort non signé, le changelog le dit. Revient avec une machine Windows dans la chaîne, ou jamais |
-| La protection de branche de `main` | refusée par GitHub Free sur un dépôt privé. Les hooks locaux et le merge par `release.yml` sont les seules barrières |
+| La signature Windows | le compte Azure Trusted Signing n'existe pas encore : tant que ses quatre variables `AZURE_SIGNING_*` et ses trois secrets `AZURE_*` manquent, une release `stable` refuserait de construire Windows ; en attendant, le job `desktop` de `release.yml` pose `PUPITRE_ALLOW_UNSIGNED_WINDOWS: "1"` et Windows sort non signé (SmartScreen avertit au premier lancement), macOS reste tenu. Voir `docs/tasks/windows-signing.md` |
+| La protection de branche de `main` | refusée par GitHub Free sur un dépôt privé d'organisation (GitHub Team la lève). Les barrières sont les hooks locaux, le job `ci` de `release.yml` dont dépend tout build, et `merge` qui refuse de fusionner sans CI verte sur le commit de tête ; une pull request fusionnée à la main n'est tenue par rien |
 
 ## Versionnage
 
@@ -77,16 +77,17 @@ Le second passage vérifie (`check`) puis `ship` : commit `chore(release): vX.Y.
 
 | Étape | Fait |
 | --- | --- |
+| `ci` | `ci.yml` appelé sur le commit tagué : gitleaks sur `origin/main..HEAD`, migrations, lint, typecheck, tests, build hors desktop. Rouge, rien d'autre ne part : ni signature, ni seau, ni déclaration |
 | `agent build` | garble, signature, épreuve du binaire — clé publique embarquée, moins de dix chaînes lisibles, `version` et `hello` sur la machine de chaque architecture — l'amd64 sur le runner qui construit, l'arm64 sur un runner arm64 (`agent smoke`), jamais sous émulation ; ou reprise depuis le seau si la version y est déjà, parce que garble ne reproduit pas un binaire et que la plateforme tient les empreintes de la première déclaration |
 | `agent publish` | `agent/<version>/` du seau **privé** — binaires, `release.json`, `publications.json` — puis `POST /admin/releases` à la plateforme |
-| `desktop` | un job par système : macOS signé et notarisé en arm64 et x64, Windows non signé, Linux ; l'agent repris du seau et embarqué ; installateurs, blockmaps et flux sous `work/<version>/<système>/` du seau privé |
-| `app publish` | chaque installateur signé avec la clé de release, fichiers et `.sig` sur le seau **public**, flux `latest*.yml` réécrits en URL absolues sous `app/<version>/` et `app/<canal>/`, `POST /admin/app-releases` par fichier — en envoyant sa **clé** dans le seau, jamais une adresse — et les lignes gardées en `app/<version>/publications.json` |
-| `verify` | de l'extérieur : la plateforme décrit la version, chaque fichier qu'elle nomme est servi entier par le seau public, les flux du canal la nomment — le rapport est le résumé du run |
-| `merge` | la pull request `staging` → `main`, corps = l'entrée de changelog anglaise, fusionnée par un merge commit (`gh pr merge --merge`) ; une pull request restée ouverte est reprise, un `main` qui tient déjà le tag n'a rien à faire. Le push de `main` reconstruit le site et la console par Cloudflare Builds ; fait avec `GITHUB_TOKEN`, il ne lance aucun workflow |
+| `desktop` | un job par système : macOS signé et notarisé en arm64 et x64, Windows signé par Azure Trusted Signing, Linux — en `stable`, une valeur de signature qui manque arrête le job, electron-builder reçoit `forceCodeSigning` ; l'agent repris du seau et embarqué ; installateurs, blockmaps et flux sous `work/<version>/<système>/` du seau privé |
+| `app publish` | chaque installateur et chaque `.zip` de mise à jour macOS signé avec la clé de release — l'app installée ne met rien en place sans ce `.sig`, sur les trois systèmes —, fichiers et `.sig` sur le seau **public**, flux `latest*.yml` réécrits en URL absolues sous `app/<version>/` et `app/<canal>/`, `POST /admin/app-releases` par fichier — en envoyant sa **clé** dans le seau, jamais une adresse — et les lignes gardées en `app/<version>/publications.json` |
+| `verify` | de l'extérieur : la plateforme décrit la version, chaque fichier qu'elle nomme est servi entier par le seau public, les flux du canal la nomment et chaque fichier qu'ils nomment a son `.sig` — le rapport est le résumé du run |
+| `merge` | la pull request `staging` → `main`, corps = l'entrée de changelog anglaise ; attend jusqu'à cinq minutes le check `CI / Quality` (ou `Quality`) sur son commit de tête et refuse s'il a échoué, tarde ou manque — ce qui arrive si `staging` a bougé après le tag —, puis la fusionne par un merge commit (`gh pr merge --merge --match-head-commit`) ; une pull request restée ouverte est reprise, un `main` qui tient déjà le tag n'a rien à faire. Le push de `main` reconstruit le site et la console par Cloudflare Builds ; fait avec `GITHUB_TOKEN`, il ne lance aucun workflow, et le run `pull_request` de la pull request, faute d'approbation, expire à la fusion en croix rouge sans job — ce n'est pas la CI |
 
 Si le protocole a changé, avant le second passage : une ligne de plus dans `packages/shared/src/compat`, puis `bun --cwd=packages/shared run contracts:export`, commités avant.
 
-Un job qui échoue se relance seul depuis GitHub (*Re-run failed jobs*) — ce qui est déjà dans le seau y est réécrit à l'identique, ce qui est déjà déclaré répond 200, et le merge arrive au bout. Une version à republier sans nouveau tag : `gh workflow run release.yml --ref vX.Y.Z`. Le job `merge` exige que le dépôt autorise GitHub Actions à ouvrir des pull requests (`docs/deploy.md`, étape 8).
+Un job qui échoue se relance seul depuis GitHub (*Re-run failed jobs*) — ce qui est déjà dans le seau y est réécrit à l'identique, ce qui est déjà déclaré répond 200, et le merge arrive au bout. Un `merge` qui refuse faute de check sur la tête de `staging` veut dire que des commits sont arrivés après le tag : la version est publiée, mais `main` attend — la pull request restée ouverte se vérifie à la main (approuver son run en attente, ou en ouvrir une nouvelle depuis le compte du propriétaire) puis se fusionne en merge commit au vert. Une version à republier sans nouveau tag : `gh workflow run release.yml --ref vX.Y.Z`. Le job `merge` exige que le dépôt autorise GitHub Actions à ouvrir des pull requests (`docs/deploy.md`, étape 8).
 
 ### 3 bis. La clé de release, une fois pour toutes
 
@@ -109,7 +110,7 @@ Les deux moitiés vont ensemble : une app qui embarque une clé publique et un a
 ### 3. Vérifier la release
 
 - macOS : le `.dmg` s'ouvre sur un Mac vierge sans avertissement Gatekeeper ; `spctl --assess --type open --context context:primary-signature Pupitre.dmg` accepte.
-- Windows : SmartScreen ne bloque pas l'installateur signé.
+- Windows : SmartScreen ne bloque pas l'installateur signé, et `resources/app-update.yml` de l'app installée porte `publisherName`.
 - Agent : `strings pupitred-linux-amd64 | grep -c pupitre` proche de zéro ; `GET /api/v1/releases/agent/X.Y.Z` répond 401 sans jeton, une redirection signée avec.
 - App : `GET /api/v1/releases/app/latest` répond sans session et nomme les cinq artefacts ; `curl -I https://dl.pupitre.studio/app/X.Y.Z/<fichier>` répond 200.
 - Sur un VPS réinstallé : l'app installe l'agent de la version, `hello` renvoie `agent_version: "X.Y.Z"`.

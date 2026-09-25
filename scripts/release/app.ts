@@ -2,6 +2,7 @@ import { createHash, createPrivateKey, type KeyObject, sign } from "node:crypto"
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import {
+  type Artefact,
   absoluteFeed,
   artefactOf,
   FEEDS,
@@ -9,6 +10,7 @@ import {
   isCompanion,
   objectKey,
   signedAppMessage,
+  signedArtefactOf,
 } from "../../apps/desktop/scripts/release-artefacts"
 import { NOTES_LOCALE, readEntry } from "../release-notes"
 import { hasFlag, say, VARIABLES, variable } from "./cli"
@@ -103,16 +105,18 @@ async function fetchWork(version: string, vault: Bucket): Promise<string[]> {
   return files.sort()
 }
 
-async function publishInstaller(
+interface Signed {
+  bytes: number
+  sha256: string
+  signature: string
+}
+
+/** A file and its `.sig` beside it, both public: what the app verifies before installing. */
+async function publishSigned(
   file: string,
+  artefact: Artefact,
   settings: Publish
-): Promise<AppPublication | null> {
-  const artefact = artefactOf(file)
-
-  if (!artefact) {
-    return null
-  }
-
+): Promise<Signed> {
   const local = path.join(WORK_DIR, file)
   const content = readFileSync(local)
   const sha256 = createHash("sha256").update(content).digest("hex")
@@ -134,9 +138,28 @@ async function publishInstaller(
     `${local}.sig`
   )
 
+  return { bytes: content.byteLength, sha256, signature }
+}
+
+async function publishInstaller(
+  file: string,
+  settings: Publish
+): Promise<AppPublication | null> {
+  const artefact = artefactOf(file)
+
+  if (!artefact) {
+    return null
+  }
+
+  const { bytes, sha256, signature } = await publishSigned(
+    file,
+    artefact,
+    settings
+  )
+
   return {
     arch: artefact.arch,
-    bytes: content.byteLength,
+    bytes,
     channel: settings.channel,
     format: artefact.format,
     notes: settings.notes,
@@ -195,11 +218,17 @@ export async function publishApp(
   }
 
   for (const file of files.filter(isCompanion)) {
-    await put(
-      settings.bucket,
-      objectKey(version, file),
-      path.join(WORK_DIR, file)
-    )
+    const signed = signedArtefactOf(file)
+
+    if (signed) {
+      await publishSigned(file, signed, settings)
+    } else {
+      await put(
+        settings.bucket,
+        objectKey(version, file),
+        path.join(WORK_DIR, file)
+      )
+    }
   }
 
   for (const file of files.filter((one) => FEEDS.includes(one))) {

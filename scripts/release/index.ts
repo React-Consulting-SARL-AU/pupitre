@@ -29,7 +29,7 @@ import { verifyCommand } from "./verify"
  *   desktop            build the app of this system into the private bucket
  *   app publish        sign every installer, the public bucket, the platform
  *   verify             what a customer can download, checked from outside
- *   merge              the pull request staging → main, merged by a merge commit
+ *   merge              the pull request staging → main, merged by a merge commit once CI passed on its head
  *   promote            move a published version to a channel — the way back
  *   secrets            the template's 1Password references, set as repository secrets
  *
@@ -72,7 +72,7 @@ async function main(argv: readonly string[]): Promise<void> {
       await verifyCommand()
       return
     case "merge":
-      mergeCommand(rest)
+      await mergeCommand(rest)
       return
     case "promote":
       await promoteCommand(rest)

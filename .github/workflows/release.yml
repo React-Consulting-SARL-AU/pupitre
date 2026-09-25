@@ -7,9 +7,11 @@ name: Release
 # buckets are the only thing the jobs share, and every step is idempotent, so
 # a failed job is re-run alone and the release resumes where it stood.
 #
-# The tag sits on `staging`. The version is built, declared to the platform
-# and checked from outside; then `staging` is merged into `main`, which is
-# what deploys the site and the console. `promote.yml` is the way back.
+# The tag sits on `staging`. `ci.yml` checks the tagged commit first, and
+# nothing is signed, published or declared unless it passes. The version is
+# then built, declared to the platform and checked from outside; `staging` is
+# merged into `main` last, which is what deploys the site and the console.
+# `promote.yml` is the way back.
 on:
   push:
     tags: ["v*"]
@@ -42,8 +44,16 @@ env:
   ELECTRON_BUILDER_CACHE: ${{ github.workspace }}/.cache/electron-builder
 
 jobs:
+  # `merge` in `scripts/release` waits for this job's check run by name.
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
   agent:
     name: Agent
+    needs: ci
     runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 30
     outputs:
@@ -242,8 +252,9 @@ jobs:
         run: grep -Ev '^\s*(#|$)|op://' scripts/release/release.env.tpl >> "$GITHUB_ENV"
 
       # The step reads the agent from the bucket, builds the app of this
-      # system, signs it where the system asks for it, and leaves the result
-      # in the bucket for the publish job.
+      # system, signs it where the system asks for it — a stable build stops
+      # when a signing value is missing — and leaves the result in the bucket
+      # for the publish job.
       - name: Build the app
         run: bun scripts/release/index.ts desktop
         env:
@@ -257,9 +268,12 @@ jobs:
           AZURE_SIGNING_ENDPOINT: ${{ vars.AZURE_SIGNING_ENDPOINT }}
           AZURE_SIGNING_ACCOUNT: ${{ vars.AZURE_SIGNING_ACCOUNT }}
           AZURE_SIGNING_PROFILE: ${{ vars.AZURE_SIGNING_PROFILE }}
+          AZURE_SIGNING_PUBLISHER: ${{ vars.AZURE_SIGNING_PUBLISHER }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          # Remove once Azure Trusted Signing is configured.
+          PUPITRE_ALLOW_UNSIGNED_WINDOWS: "1"
 
   publish:
     name: Publish the app
@@ -304,10 +318,11 @@ jobs:
 
   merge:
     name: Merge into main
-    needs: [agent, publish]
+    needs: [ci, agent, publish]
     runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 10
     permissions:
+      checks: read
       contents: write
       pull-requests: write
     env:
@@ -335,7 +350,9 @@ jobs:
 
       # Everything the version names is downloadable: `staging` goes into
       # `main` by a pull request, merged with a merge commit so the tagged
-      # commit stays in its history. The push of `main` is what deploys the
-      # site and the console; made with this token, it runs no other workflow.
+      # commit stays in its history, and only when its head is the tagged
+      # commit and the CI check run on it passed. The push of `main` is what
+      # deploys the site and the console; made with this token, it runs no
+      # other workflow.
       - name: Open the pull request and merge it
         run: bun scripts/release/index.ts merge
