@@ -38,6 +38,11 @@ func (s *Server) hello(ctx *Context, raw json.RawMessage) (any, error) {
 		return nil, s.mismatch(params.AppVersion, params.Protocol)
 	}
 
+	// The same protocol is not enough: an app below this agent's floor cannot open the session its gestures need.
+	if contract.Compatibility(params.AppVersion, s.options.AgentVersion) == contract.VerdictAppTooOld && contract.AppFloor(s.options.AgentVersion) != "" {
+		return nil, s.appTooOld(params.AppVersion)
+	}
+
 	if params.Locale != "" {
 		i18n.Use(params.Locale)
 	}
@@ -80,11 +85,7 @@ func (s *Server) mismatch(appVersion string, spoken int) error {
 
 	switch contract.Compatibility(appVersion, agentVersion) {
 	case contract.VerdictAppTooOld:
-		floor := contract.AppFloor(agentVersion)
-
-		return NewError(contract.ErrorProtocolMismatch,
-			i18n.T("protocol.app.too_old", appVersion, agentVersion, floor)).
-			WithFix(i18n.T("protocol.app.too_old.fix", floor))
+		return s.appTooOld(appVersion)
 	case contract.VerdictAgentTooOld:
 		floor := contract.AgentFloor(appVersion)
 
@@ -96,6 +97,15 @@ func (s *Server) mismatch(appVersion string, spoken int) error {
 			i18n.T("protocol.mismatch", spoken, contract.ProtocolVersion)).
 			WithFix(i18n.T("protocol.mismatch.fix", contract.ProtocolVersion))
 	}
+}
+
+func (s *Server) appTooOld(appVersion string) error {
+	agentVersion := s.options.AgentVersion
+	floor := contract.AppFloor(agentVersion)
+
+	return NewError(contract.ErrorProtocolMismatch,
+		i18n.T("protocol.app.too_old", appVersion, agentVersion, floor)).
+		WithFix(i18n.T("protocol.app.too_old.fix", floor))
 }
 
 func (s *Server) ping(_ *Context, _ json.RawMessage) (any, error) {

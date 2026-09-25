@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Usage: scripts/release.sh [--minor | --version=X.Y.Z], run again once the drafted notes are read.
+# Usage: scripts/release.sh [--minor | --major | --version=X.Y.Z], run again once the drafted notes are read.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."

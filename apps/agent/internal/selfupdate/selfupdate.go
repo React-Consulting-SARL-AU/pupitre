@@ -237,7 +237,7 @@ func (u *Upgrader) install(ctx sys.Context, version string, binary []byte) (Resu
 		return u.rollback(ctx, previous, before, restartFailed(version, err))
 	}
 
-	running, err := u.hello(ctx)
+	running, err := u.hello(ctx, version)
 	if err != nil {
 		return u.rollback(ctx, previous, before, silent(version, u.options.Version, err))
 	}
@@ -363,12 +363,12 @@ func (u *Upgrader) spoken(ctx sys.Context) int {
 	return identity.Protocol
 }
 
-// Asked in its own protocol: a new generation is an upgrade for the app to follow, not a binary to roll back.
-func (u *Upgrader) hello(ctx sys.Context) (string, error) {
+// Asked in its own protocol and as its own version: a new generation or a raised app floor is for the app to follow, not a binary to roll back.
+func (u *Upgrader) hello(ctx sys.Context, version string) (string, error) {
 	request, err := json.Marshal(map[string]any{
 		"id":     1,
 		"cmd":    "hello",
-		"params": map[string]any{"app_version": u.options.Version, "protocol": u.spoken(ctx)},
+		"params": map[string]any{"app_version": version, "protocol": u.spoken(ctx)},
 	})
 	if err != nil {
 		return "", err

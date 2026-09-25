@@ -19,9 +19,52 @@ func TestTheCompatibilitySheetIsOrdered(t *testing.T) {
 		}
 
 		previous := generations[index-1]
-		if generation.Protocol <= previous.Protocol {
+		if generation.Protocol < previous.Protocol {
 			t.Fatalf("generation %d does not follow %d", generation.Protocol, previous.Protocol)
 		}
+
+		if compareCores(mustCore(t, generation.App), previous.App) <= 0 || compareCores(mustCore(t, generation.Agent), previous.Agent) <= 0 {
+			t.Fatalf("generation %+v does not come after %+v", generation, previous)
+		}
+	}
+}
+
+func mustCore(t *testing.T, version string) [3]int {
+	t.Helper()
+
+	core, ok := coreOf(version)
+	if !ok {
+		t.Fatalf("%q is not a version", version)
+	}
+
+	return core
+}
+
+func TestTheOneZeroAppAndAgentOnlyPairWithEachOther(t *testing.T) {
+	cases := []struct {
+		app   string
+		agent string
+		want  Verdict
+	}{
+		{"1.0.0", "1.0.0", VerdictOK},
+		{"1.2.0", "1.0.3", VerdictOK},
+		{"0.9.1", "0.9.1", VerdictOK},
+		{"0.9.1", "1.0.0", VerdictAppTooOld},
+		{"1.0.0", "0.9.1", VerdictAgentTooOld},
+	}
+
+	for _, testCase := range cases {
+		if got := Compatibility(testCase.app, testCase.agent); got != testCase.want {
+			t.Errorf("Compatibility(%q, %q) = %q, want %q", testCase.app, testCase.agent, got, testCase.want)
+		}
+	}
+
+	if floor := AppFloor("1.0.0"); floor != "1.0.0" {
+		t.Errorf("AppFloor(1.0.0) = %q, want 1.0.0", floor)
+	}
+
+	if floor := AgentFloor("1.0.0"); floor != "1.0.0" {
+		t.Errorf("AgentFloor(1.0.0) = %q, want 1.0.0", floor)
 	}
 }
 

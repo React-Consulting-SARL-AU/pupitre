@@ -92,7 +92,7 @@ func spoken(t *testing.T, b *bench, granted func() entitlement.State, requests .
 	daemon.RegisterCommands(server, b.options())
 
 	var out strings.Builder
-	lines := append([]string{`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`}, requests...)
+	lines := append([]string{`{"id":1,"cmd":"hello","params":{"app_version":"1.2.3","protocol":2}}`}, requests...)
 	if err := server.Serve(strings.NewReader(strings.Join(lines, "\n")+"\n"), &out); err != nil {
 		t.Fatalf("Serve: %v", err)
 	}

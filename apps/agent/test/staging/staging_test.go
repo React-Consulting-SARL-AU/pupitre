@@ -135,7 +135,8 @@ func converseOn(t *testing.T, cmd *exec.Cmd, sudoPassword string, requests ...re
 		t.Fatal(err)
 	}
 
-	all := append([]request{{Cmd: "hello", Params: map[string]any{"app_version": "0.0.0-staging", "protocol": contract.ProtocolVersion}}}, requests...)
+	// Not semver, so no agent's app floor judges the bench.
+	all := append([]request{{Cmd: "hello", Params: map[string]any{"app_version": "staging", "protocol": contract.ProtocolVersion}}}, requests...)
 
 	go func() {
 		defer stdin.Close()

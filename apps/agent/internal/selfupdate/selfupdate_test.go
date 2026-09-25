@@ -230,6 +230,28 @@ func TestAnUpgradeToTheNextProtocolGenerationIsKept(t *testing.T) {
 	}
 }
 
+func TestTheNewBinaryIsGreetedAsItsOwnVersionSoARaisedAppFloorKeepsIt(t *testing.T) {
+	b := newBench(t)
+	b.fake.Observe = func(cmd sys.Command) {
+		if strings.Join(cmd.Argv, " ") != binaryPath+" serve" {
+			return
+		}
+
+		b.fake.Replies[binaryPath+" serve"] = hello(false, "", string(contract.ErrorProtocolMismatch))
+		if strings.Contains(string(cmd.Stdin), `"app_version":"`+nextAgent+`"`) {
+			b.fake.Replies[binaryPath+" serve"] = hello(true, nextAgent, "")
+		}
+	}
+
+	if _, err := b.upgrade(t, nextAgent); err != nil {
+		t.Fatalf("a successor whose app floor is above the current version must not be rolled back: %v", err)
+	}
+
+	if string(b.fake.Files[binaryPath]) != string(newBinary) {
+		t.Fatalf("binary %q", b.fake.Files[binaryPath])
+	}
+}
+
 func TestUpgradeRefusesABinaryWhoseSignatureDoesNotMatch(t *testing.T) {
 	b := newBench(t)
 	_, other, err := ed25519.GenerateKey(nil)

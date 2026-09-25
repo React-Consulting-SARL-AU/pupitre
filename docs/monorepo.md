@@ -319,9 +319,9 @@ Le `.deb` s'appelle `pupitre` et non `@pupitre/desktop` : le nom du workspace po
 
 ### La feuille de compatibilité
 
-`packages/shared/src/compat` porte la seule table qui dit quelle app pilote quel agent : une ligne par génération de protocole, avec la première version d'app et la première version d'agent de cette génération. Elle part dans `apps/agent/internal/contract/schema.json` par `bun run contracts:export`, donc l'agent la porte compilée en lui.
+`packages/shared/src/compat` porte la seule table qui dit quelle app pilote quel agent : une ligne par génération, avec son protocole, la première version d'app et la première version d'agent de cette génération. Elle part dans `apps/agent/internal/contract/schema.json` par `bun run contracts:export`, donc l'agent la porte compilée en lui.
 
-Tant qu'aucune ligne n'est ajoutée, toutes les versions d'app pilotent toutes les versions d'agent. Une ligne s'ajoute le jour où le protocole retire ou renomme un champ, dans la même passe que le changement de `PROTOCOL_VERSION` : le `hello` d'un agent d'une autre génération répond alors lequel des deux mettre à jour, et l'app le dit sur son bandeau.
+Entre deux lignes, toutes les versions d'app pilotent toutes les versions d'agent. Une ligne s'ajoute le jour où l'une ne peut plus piloter l'autre : le protocole retire ou renomme un champ, dans la même passe que le changement de `PROTOCOL_VERSION`, ou un geste change de chemin sans que le protocole change. C'est le cas de la 1.0 : `{ protocol: 2, app: "1.0.0", agent: "1.0.0" }`, parce qu'un agent 1.0 garde les commandes privilégiées pour `pupitred serve --privileged` (décision 0015), qu'une app 0.x n'ouvre jamais. Le `hello` d'un agent refuse alors l'app sous son plancher, même sur le même protocole, avec la version à atteindre ; l'app lit la même feuille et renvoie un agent sous le sien vers la réinstallation, qui pousse le binaire (`binary install`, ou `sh -c` sous la règle d'avant `NOPASSWD:ALL`) puis lance `agent.migrate`. `agent.upgrade` ne convient pas là : l'agent d'avant vérifie son successeur par un `hello` qui porte sa propre version, que le successeur refuse, et il revient en arrière. L'agent 1.0 s'annonce à son successeur sous la version qu'il installe, si bien qu'un plancher relevé plus tard ne défait plus une mise à jour.
 
 ### Ce que la mise à jour ne couvre pas
 

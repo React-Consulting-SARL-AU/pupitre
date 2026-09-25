@@ -6,10 +6,11 @@ export interface Generation {
   agent: string
 }
 
-// A row starts where the protocol changed shape: between two rows, every app version drives every agent version.
+// A row starts where one side can no longer drive the other, even on the same protocol: 0.x apps never open `serve --privileged`.
 export const GENERATIONS: readonly Generation[] = [
   { protocol: 1, app: "0.1.0", agent: "0.1.0" },
   { protocol: 2, app: "0.2.0", agent: "0.2.0" },
+  { protocol: 2, app: "1.0.0", agent: "1.0.0" },
 ]
 
 type Side = "app" | "agent"

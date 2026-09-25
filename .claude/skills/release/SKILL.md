@@ -44,7 +44,7 @@ Le Mac du propriétaire écrit la version et les notes et pose le tag, par `scri
 
 - Un tag `vX.Y.Z`, semver. `Z` pour un correctif, `Y` pour une fonctionnalité, `X` quand le protocole app ↔ agent retire ou renomme un champ.
 - La version est celle d'`apps/desktop/package.json`, que `next` écrit ; `check` refuse de continuer si le changelog ne la couvre pas dans les deux langues, et l'agent la reçoit au build par `-X main.version`.
-- L'entier `protocol` du contrat est indépendant de la version : il change seulement quand un champ est retiré ou renommé. Ce jour-là, une ligne s'ajoute à `packages/shared/src/compat` — l'entier, la première version d'app et la première version d'agent qui le parlent — et `bun run contracts:export` la porte jusqu'à l'agent.
+- L'entier `protocol` du contrat est indépendant de la version : il change seulement quand un champ est retiré ou renommé. Ce jour-là — ou le jour où une version ne peut plus piloter l'autre sans que le protocole change, comme la 1.0 et sa session privilégiée —, une ligne s'ajoute à `packages/shared/src/compat` — le protocole, la première version d'app et la première version d'agent de la génération — et `bun run contracts:export` la porte jusqu'à l'agent. La ligne de la 1.0 est `{ protocol: 2, app: "1.0.0", agent: "1.0.0" }` : elle suppose que la version taguée est bien `1.0.0`.
 - **Une version qui change la forme d'un fichier posé sur une machine emporte sa migration.** Un champ d'`install.json` renommé, une clé de `/etc/pupitre/env` déplacée, un champ de `servers.json` qui bouge : l'entrée est dans le registre correspondant avant que le tag soit posé, sinon la mise à jour laisse un agent qui lit de travers ce qu'il trouve. Voir le skill `config-migrations` et [`docs/contracts/config-migrations.md`](../../../docs/contracts/config-migrations.md). La révision de configuration a son propre compteur : elle ne suit ni la version ni l'entier `protocol`.
 - Le tag est annoté, posé par `ship` en dernier sur le Mac, jamais réécrit. Son annotation ne sert qu'à l'historique : **les notes de version sont l'entrée de changelog**, lue par `app publish`, enregistrée dans `AppRelease`, reprise en corps de la pull request et affichée partout ailleurs. Une release compte comme sortie quand son tag est sur `origin` — `next` ne lit que ceux-là ; une release arrêtée avant, y compris après le commit et le tag de `ship` quand le push a été refusé, se reprend telle quelle en relançant `scripts/release.sh` : `next` garde la version taguée sur `HEAD`, `ship` ne fait que les deux push. Chaque étape est idempotente.
 
@@ -73,7 +73,7 @@ Le corps de l'entrée anglaise **est** la note de version enregistrée dans `App
 
 ### 2. Taguer, puis laisser les runners construire, publier et fusionner
 
-Le second passage vérifie (`check`) puis `ship` : commit `chore(release): vX.Y.Z`, tag annoté, push de `staging` et du tag. Le push du tag lance `release.yml`, dont les jobs enchaînent — `gh run watch` le suit depuis le terminal :
+Le second passage se lance sans drapeau : `next` garde la version que le premier a écrite dans le manifeste dès qu'elle dépasse le dernier tag, et un `--version=` qui n'est pas au-dessus de ce tag est refusé avant d'écrire quoi que ce soit. Il vérifie (`check`) puis `ship` : commit `chore(release): vX.Y.Z`, tag annoté, push de `staging` et du tag. Le push du tag lance `release.yml`, dont les jobs enchaînent — `gh run watch` le suit depuis le terminal :
 
 | Étape | Fait |
 | --- | --- |

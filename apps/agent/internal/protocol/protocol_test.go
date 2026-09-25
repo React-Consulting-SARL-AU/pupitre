@@ -242,7 +242,7 @@ func TestHelloAnswersADirectCallWithoutASession(t *testing.T) {
 func TestHelloNamesTheServerOnceThePlatformHas(t *testing.T) {
 	named := ""
 	server := NewServer(Options{AgentVersion: "1.0.0", ServerID: func() string { return named }})
-	params := map[string]any{"app_version": "0.2.0", "protocol": contract.ProtocolVersion}
+	params := map[string]any{"app_version": "1.0.0", "protocol": contract.ProtocolVersion}
 
 	unnamed, err := server.Call("hello", params, nil)
 	if err != nil {
@@ -261,6 +261,35 @@ func TestHelloNamesTheServerOnceThePlatformHas(t *testing.T) {
 
 	if encoded, _ := json.Marshal(result); !strings.Contains(string(encoded), `"server_id":"srv_42"`) {
 		t.Fatalf("hello = %s", encoded)
+	}
+}
+
+func TestHelloRefusesAnAppBelowTheAgentsFloorOnTheSameProtocol(t *testing.T) {
+	server := NewServer(Options{AgentVersion: "1.0.0", Now: fixedNow})
+
+	_, err := server.Call("hello", map[string]any{"app_version": "0.9.1", "protocol": contract.ProtocolVersion, "locale": "en"}, nil)
+
+	var refused *Error
+	if !errors.As(err, &refused) || refused.Code != contract.ErrorProtocolMismatch {
+		t.Fatalf("hello from app 0.9.1 = %v, want protocol_mismatch", err)
+	}
+
+	if !strings.Contains(refused.Message, "0.9.1") || !strings.Contains(refused.Fix, "1.0.0") {
+		t.Fatalf("the refusal must name the app and the version to reach: %+v", refused)
+	}
+
+	for _, app := range []string{"1.0.0", "1.4.2", "1.0.0-rc.1", "dev"} {
+		if _, err := server.Call("hello", map[string]any{"app_version": app, "protocol": contract.ProtocolVersion}, nil); err != nil {
+			t.Errorf("hello from app %q: %v", app, err)
+		}
+	}
+}
+
+func TestHelloStillAnswersANewerAgentThanTheSheetKnows(t *testing.T) {
+	server := NewServer(Options{AgentVersion: "0.9.1", Now: fixedNow})
+
+	if _, err := server.Call("hello", map[string]any{"app_version": "1.0.0", "protocol": contract.ProtocolVersion}, nil); err != nil {
+		t.Fatalf("an older agent must keep answering a newer app, which upgrades it: %v", err)
 	}
 }
 

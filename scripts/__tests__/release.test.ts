@@ -235,6 +235,31 @@ describe("the next version", () => {
     expect(nextVersion(["--version=3.0.0"], "0.1.0", "0.0.0")).toBe("3.0.0")
   })
 
+  it("keeps the version the first pass wrote when the second pass names no part", () => {
+    expect(nextVersion([], "0.9.1", "1.0.0")).toBe("1.0.0")
+    expect(nextVersion(["--major"], "0.9.1", "1.0.0")).toBe("1.0.0")
+    expect(nextVersion([], "0.9.1", "0.10.0")).toBe("0.10.0")
+    expect(nextVersion(["--minor"], "0.9.1", "0.9.2")).toBe("0.10.0")
+    expect(nextVersion([], "0.9.1", "0.9.1")).toBe("0.9.2")
+    expect(nextVersion(["--major"], "0.9.1", "0.9.1")).toBe("1.0.0")
+  })
+
+  it("refuses a named version that is no version, or not above the last tag", () => {
+    expect(() => nextVersion(["--version=v1.0.0"], "0.9.1", "0.9.1")).toThrow(
+      "not a version"
+    )
+    expect(() => nextVersion(["--version=01.0.0"], "0.9.1", "0.9.1")).toThrow(
+      "not a version"
+    )
+    expect(() => nextVersion(["--version=0.9.1"], "0.9.1", "0.9.1")).toThrow(
+      "above 0.9.1"
+    )
+    expect(() => nextVersion(["--version=0.10.0"], "1.0.0", "1.0.0")).toThrow(
+      "above 1.0.0"
+    )
+    expect(nextVersion(["--version=0.10.0"], "0.9.1", "0.9.1")).toBe("0.10.0")
+  })
+
   it("keeps a version tagged here and not on origin, unless one is named", () => {
     expect(nextVersion([], "0.1.0", "0.1.1", "0.1.1")).toBe("0.1.1")
     expect(nextVersion(["--minor"], "0.1.0", "0.1.1", "0.1.1")).toBe("0.1.1")

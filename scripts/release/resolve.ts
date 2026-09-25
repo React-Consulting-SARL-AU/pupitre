@@ -13,7 +13,34 @@ export interface Release {
 
 const TAG_RE = /^v(\d+\.\d+\.\d+)$/
 
-const VERSION_RE = /^(\d+)\.(\d+)\.(\d+)$/
+const VERSION_RE = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/
+
+export function isReleaseVersion(version: string): boolean {
+  return VERSION_RE.test(version)
+}
+
+function partsOf(version: string): [number, number, number] {
+  const match = version.match(VERSION_RE)
+
+  if (!match) {
+    throw new Error(`${version} is not a semver version.`)
+  }
+
+  return match.slice(1).map(Number) as [number, number, number]
+}
+
+export function compareRelease(left: string, right: string): number {
+  const a = partsOf(left)
+  const b = partsOf(right)
+
+  for (const [index, part] of a.entries()) {
+    if (part !== b[index]) {
+      return part - (b[index] ?? 0)
+    }
+  }
+
+  return 0
+}
 
 export function versionOfTag(tag: string): string | null {
   return tag.match(TAG_RE)?.[1] ?? null
@@ -87,17 +114,7 @@ export function bump(
   version: string,
   part: "major" | "minor" | "patch"
 ): string {
-  const match = version.match(VERSION_RE)
-
-  if (!match) {
-    throw new Error(`${version} is not a semver version.`)
-  }
-
-  const [major, minor, patch] = match.slice(1).map(Number) as [
-    number,
-    number,
-    number,
-  ]
+  const [major, minor, patch] = partsOf(version)
 
   switch (part) {
     case "major":

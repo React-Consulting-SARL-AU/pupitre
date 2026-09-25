@@ -2,7 +2,14 @@ import { readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { appVersion } from "./check"
 import { argumentOf, say } from "./cli"
-import { bump, lastVersion, originTags, pendingVersion } from "./resolve"
+import {
+  bump,
+  compareRelease,
+  isReleaseVersion,
+  lastVersion,
+  originTags,
+  pendingVersion,
+} from "./resolve"
 
 const ROOT = path.resolve(import.meta.dir, "../..")
 
@@ -22,6 +29,22 @@ export function partOf(argv: readonly string[]): "major" | "minor" | "patch" {
   return "patch"
 }
 
+function named(requested: string, last: string | null): string {
+  if (!isReleaseVersion(requested)) {
+    throw new Error(`--version=${requested} is not a version: X.Y.Z, no v.`)
+  }
+
+  if (last && compareRelease(requested, last) <= 0) {
+    throw new Error(`--version=${requested} must be above ${last}.`)
+  }
+
+  return requested
+}
+
+function partNamed(argv: readonly string[]): boolean {
+  return argv.includes("--major") || argv.includes("--minor")
+}
+
 export function nextVersion(
   argv: readonly string[],
   last: string | null,
@@ -31,14 +54,27 @@ export function nextVersion(
   const requested = argumentOf(argv, "version")
 
   if (requested) {
-    return requested
+    return named(requested, last)
   }
 
   if (pending) {
     return pending
   }
 
-  return last ? bump(last, partOf(argv)) : declared
+  if (!last) {
+    return declared
+  }
+
+  // A manifest already above the last tag is the first pass's work, which the second pass resumes.
+  if (
+    !partNamed(argv) &&
+    isReleaseVersion(declared) &&
+    compareRelease(declared, last) > 0
+  ) {
+    return declared
+  }
+
+  return bump(last, partOf(argv))
 }
 
 // Rewritten in place so the manifest keeps its formatting and key order.
