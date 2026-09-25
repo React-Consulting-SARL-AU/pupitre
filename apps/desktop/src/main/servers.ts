@@ -7,6 +7,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
+import { isSshHost, isSshUser } from "@pupitre/shared/ssh";
 import type {
   HostKeyDecision,
   Server,
@@ -18,6 +19,7 @@ import type {
 } from "@shared/servers";
 import {
   alias,
+  isServerId,
   type SshShareState,
   sshNames,
   sshSlug,
@@ -156,10 +158,26 @@ function normaliseServer(raw: Server): Server {
   };
 }
 
+/** An entry written before these checks, or by hand, never reaches the SSH configuration. */
+function fitForSsh(server: Server): boolean {
+  const account =
+    (server.origin === "system" && server.user === "") ||
+    isSshUser(server.user);
+
+  return isServerId(server.id) && isSshHost(server.host) && account;
+}
+
 function normalise(raw: ServersConfig): Configuration {
-  const servers = raw.servers
+  const listed = raw.servers
     .filter((server) => server.id && server.name && server.host)
     .map(normaliseServer);
+  const servers = listed.filter(fitForSsh);
+
+  if (servers.length < listed.length) {
+    trace("servers", "unfit-dropped", {
+      count: listed.length - servers.length,
+    });
+  }
 
   const active = servers.some((server) => server.id === raw.active)
     ? raw.active

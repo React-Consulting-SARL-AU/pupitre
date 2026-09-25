@@ -1,3 +1,9 @@
+import {
+  isSshFingerprint,
+  isSshHost,
+  isSshPort,
+  isSshUser,
+} from "@pupitre/shared/ssh";
 import type {
   FleetServer,
   Server,
@@ -5,7 +11,7 @@ import type {
   ServersConfig,
 } from "@shared/servers";
 import { grantGone, grantWithdrawn } from "@shared/servers";
-import { sshNameFree, sshSlug } from "@shared/ssh-names";
+import { isServerId, sshNameFree, sshSlug } from "@shared/ssh-names";
 
 /**
  * What the platform grants, merged into the list the app keeps.
@@ -84,8 +90,24 @@ function grantOf(server: Server, granted: FleetServer): ServerGrant {
   };
 }
 
+/** What the platform hands over is written into the SSH configuration: it has to be fit for it. */
+function fitForSsh(granted: FleetServer): boolean {
+  return (
+    (granted.host === null || isSshHost(granted.host)) &&
+    isSshUser(granted.user) &&
+    isSshPort(granted.port) &&
+    (granted.hostFingerprint === null ||
+      isSshFingerprint(granted.hostFingerprint))
+  );
+}
+
 function follow(server: Server, granted: FleetServer): Server {
   const grant = grantOf(server, granted);
+
+  if (!fitForSsh(granted)) {
+    return { ...server, grant };
+  }
+
   const fingerprint = grant.adopted
     ? (granted.hostFingerprint ?? server.hostFingerprint)
     : (server.hostFingerprint ?? granted.hostFingerprint);
@@ -133,7 +155,7 @@ function adopt(
   deviceKeyPath: string,
   held: readonly Server[]
 ): Server | null {
-  if (!granted.host) {
+  if (!(granted.host && fitForSsh(granted))) {
     return null;
   }
 
@@ -210,10 +232,11 @@ function released(server: Server): boolean {
 export function mergeFleet({
   local,
   active,
-  granted,
+  granted: offered,
   dismissed,
   deviceKeyPath,
 }: FleetMergeInput): FleetMerge {
+  const granted = offered.filter((candidate) => isServerId(candidate.id));
   const claimed = new Set<string>();
   const carried = new Set(granted.map((candidate) => candidate.id));
   const declined = new Set(dismissed);

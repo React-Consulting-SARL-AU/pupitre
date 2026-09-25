@@ -1,4 +1,5 @@
 import { spawn as spawnChild } from "node:child_process";
+import { isSshHost, isSshUser } from "@pupitre/shared/ssh";
 import type {
   AddressReach,
   ServerAccess,
@@ -20,7 +21,6 @@ import {
 } from "./key-install";
 import { current, type Platform } from "./platform";
 import { reachFailure, reachSsh } from "./reach";
-import { isHost, isUser } from "./server-setup";
 import { argument, type SshPaths } from "./ssh-config";
 import { trace } from "./trace";
 
@@ -151,11 +151,11 @@ export async function knock(
 ): Promise<ServerReach> {
   const values = { host: target.host, port: target.port, user: target.user };
 
-  if (!isHost(target.host)) {
+  if (!isSshHost(target.host)) {
     return reachFailure("bad-host", values);
   }
 
-  if (!isUser(target.user)) {
+  if (!isSshUser(target.user)) {
     return reachFailure("bad-user", values);
   }
 

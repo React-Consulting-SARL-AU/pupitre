@@ -78,6 +78,19 @@ function reasonFor(
   return translate(locale, PLAIN_REASONS[type] ?? "reason_invalid")
 }
 
+export function describeMalformedBodyField(
+  path: string,
+  locale: Locale
+): ValidationDetail {
+  return {
+    message: translate(locale, "validation_field", {
+      path,
+      location: translate(locale, "location_body"),
+    }),
+    fix: translate(locale, "reason_pattern"),
+  }
+}
+
 export function describeValidationError(
   error: ValidationError,
   locale: Locale

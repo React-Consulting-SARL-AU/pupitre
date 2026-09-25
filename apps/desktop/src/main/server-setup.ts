@@ -1,3 +1,4 @@
+import { isSshHost, isSshPort, isSshUser } from "@pupitre/shared/ssh";
 import type { ErrorPhrase } from "@shared/agent";
 import type {
   KeyChoice,
@@ -26,20 +27,6 @@ import type { Address, SshPaths } from "./ssh-config";
  * anywhere — no block, no key, no known_hosts entry.
  */
 
-const HOST = /^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$/;
-const USER = /^[a-z_][a-z0-9_-]{0,31}\$?$/i;
-
-/** What may become an `ssh` argument: an address that cannot read as an option. */
-export function isHost(value: string): boolean {
-  return HOST.test(value);
-}
-
-export function isUser(value: string): boolean {
-  return USER.test(value);
-}
-
-const MIN_PORT = 1;
-const MAX_PORT = 65_535;
 const NAME_LIMIT = 60;
 
 export class SetupError extends Error {
@@ -150,14 +137,8 @@ export async function addServer(
   const user = draft.user.trim();
   const name = draft.name.trim().slice(0, NAME_LIMIT) || host;
 
-  refuse(isHost(host), "refusal.setup.host", { host });
-  refuse(
-    Number.isInteger(draft.port) &&
-      draft.port >= MIN_PORT &&
-      draft.port <= MAX_PORT,
-    "refusal.setup.port",
-    { port: draft.port }
-  );
+  refuse(isSshHost(host), "refusal.setup.host", { host });
+  refuse(isSshPort(draft.port), "refusal.setup.port", { port: draft.port });
 
   const id = freshId(servers);
 
@@ -179,7 +160,7 @@ export async function addServer(
     };
   }
 
-  refuse(isUser(user), "refusal.setup.user", { user });
+  refuse(isSshUser(user), "refusal.setup.user", { user });
 
   const slug = sshNameOf(draft.slug, name, servers, reserved);
   const pair = await keyFor(draft.key, id, paths);
@@ -309,13 +290,9 @@ export function changeServer(
   const port = changes.port ?? held.port;
   const user = (changes.user ?? held.user).trim();
 
-  refuse(isHost(host), "refusal.setup.host", { host });
-  refuse(
-    Number.isInteger(port) && port >= MIN_PORT && port <= MAX_PORT,
-    "refusal.setup.port",
-    { port }
-  );
-  refuse(isUser(user), "refusal.setup.user", { user });
+  refuse(isSshHost(host), "refusal.setup.host", { host });
+  refuse(isSshPort(port), "refusal.setup.port", { port });
+  refuse(isSshUser(user), "refusal.setup.user", { user });
 
   const slug =
     changes.slug === undefined

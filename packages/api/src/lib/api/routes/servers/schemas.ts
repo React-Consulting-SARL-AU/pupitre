@@ -4,6 +4,13 @@ import {
   ServerStatus,
 } from "@pupitre/db/cloudflare/enums"
 import { ARCHITECTURES } from "@pupitre/shared/catalog"
+import {
+  SSH_FINGERPRINT_PATTERN,
+  SSH_PORT_MAX,
+  SSH_PORT_MIN,
+  SSH_USER_MAX,
+  SSH_USER_PATTERN,
+} from "@pupitre/shared/ssh"
 import { t } from "elysia"
 import { dateTime } from "../../openapi-models"
 import { backupBeatSchema } from "../backups/schemas"
@@ -27,12 +34,19 @@ export const releaseChannelSchema = t.UnionEnum([...RELEASE_CHANNELS])
 
 export const architectureSchema = t.UnionEnum([...ARCHITECTURES])
 
+export const sshUserSchema = t.String({
+  maxLength: SSH_USER_MAX,
+  pattern: SSH_USER_PATTERN,
+})
+
 export const enrollBody = t.Object({
   device_id: t.String({ minLength: 1 }),
   host: t.String({ minLength: 1, maxLength: 253 }),
-  port: t.Optional(t.Integer({ minimum: 1, maximum: 65_535 })),
-  ssh_user: t.Optional(t.String({ minLength: 1, maxLength: 32 })),
-  fingerprint: t.Optional(t.String({ minLength: 1, maxLength: 200 })),
+  port: t.Optional(t.Integer({ minimum: SSH_PORT_MIN, maximum: SSH_PORT_MAX })),
+  ssh_user: t.Optional(sshUserSchema),
+  fingerprint: t.Optional(
+    t.String({ maxLength: 200, pattern: SSH_FINGERPRINT_PATTERN })
+  ),
   probe: t.Object(
     { arch: architectureSchema },
     { additionalProperties: true, $id: "EnrollmentProbe" }

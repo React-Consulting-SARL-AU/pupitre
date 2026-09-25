@@ -14,6 +14,12 @@ const NAME_LIMIT = 63;
 const ACCENTS = /\p{Mn}/gu;
 const UNFIT = /[^a-z0-9-]+/g;
 const EDGES = /^-+|-+$/g;
+const SERVER_ID = /^[A-Za-z0-9_-]{1,64}$/;
+
+/** The identifier names a `Host` line and a key file: nothing in it may leave either. */
+export function isServerId(id: unknown): id is string {
+  return typeof id === "string" && SERVER_ID.test(id);
+}
 
 /** A server of the app is named by its identifier: an address can move. */
 export function alias(server: Server): string {
