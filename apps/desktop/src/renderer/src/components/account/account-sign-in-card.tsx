@@ -7,7 +7,7 @@ import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { riseAt } from "@renderer/lib/motion";
 import type { SignInState } from "@renderer/stores/account";
-import { ExternalLink, LogIn, RotateCw } from "lucide-react";
+import { ExternalLink, LogIn, RotateCw, X } from "lucide-react";
 import { AccountCode } from "./account-code";
 
 /**
@@ -22,12 +22,15 @@ export function AccountSignInCard({
   signIn,
   consoleUrl,
   onConnect,
-  onOpenConsole,
+  onCancel,
+  onOpenUrl,
 }: {
   signIn: SignInState;
   consoleUrl: string;
   onConnect: () => void;
-  onOpenConsole: () => void;
+  /** Stops waiting on the browser and brings the card back to its first gesture. */
+  onCancel: () => void;
+  onOpenUrl: (url: string) => void;
 }) {
   const t = useTranslations();
 
@@ -40,7 +43,7 @@ export function AccountSignInCard({
           </Button>
           <Button
             icon={ExternalLink}
-            onClick={onOpenConsole}
+            onClick={() => onOpenUrl(consoleUrl)}
             variant="discreet"
           >
             {t("account.signIn.openConsole")}
@@ -99,9 +102,16 @@ export function AccountSignInCard({
         ))}
       </ol>
 
-      <div>
-        <Button icon={ExternalLink} onClick={onOpenConsole} size="sm">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          icon={ExternalLink}
+          onClick={() => onOpenUrl(signIn.verificationUri)}
+          size="sm"
+        >
           {t("account.signIn.reopenBrowser")}
+        </Button>
+        <Button icon={X} onClick={onCancel} size="sm" variant="discreet">
+          {t("account.signIn.cancel")}
         </Button>
       </div>
     </Panel>

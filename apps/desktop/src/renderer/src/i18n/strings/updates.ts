@@ -10,10 +10,13 @@ export const updates = {
     "updates.agent.staleDetail":
       "pupitred {installed} on the server, {floor} at the very least for this app",
     "updates.agent.staleBody":
-      "This agent no longer speaks the protocol of this app, so the app cannot ask it for its own update. Reinstall the agent on this server from the repair screen.",
+      "This agent is too old for this app. Reinstall it with the assistant: your services stay in place.",
+    "updates.agent.repair": "Reinstall the agent",
     "updates.agent.unsignedBody":
       "This app does not carry the signature of this version, and this server no longer reaches the console that serves it: the agent would refuse the update.",
     "updates.agent.unsignedFix":
+      "Check that this server reaches the internet, then try again; if it lasts, contact support.",
+    "updates.agent.unsignedFix.dev":
       "bun --cwd=apps/agent run release, then rebuild the app.",
     "updates.agent.upgraded": "Agent {previous} replaced by {version}.",
     "updates.agent.upgradedRestarted":
@@ -56,10 +59,13 @@ export const updates = {
     "updates.agent.staleDetail":
       "pupitred {installed} sur le serveur, {floor} au minimum pour cette app",
     "updates.agent.staleBody":
-      "Cet agent ne parle plus le protocole de cette app : elle ne peut pas lui demander sa propre mise à jour. Réinstallez l'agent sur ce serveur depuis l'écran de réparation.",
+      "Cet agent est trop ancien pour cette app. Réinstallez-le avec l'assistant : vos services restent en place.",
+    "updates.agent.repair": "Réinstaller l'agent",
     "updates.agent.unsignedBody":
       "Cette app ne porte pas la signature de cette version, et ce serveur n'atteint plus la console qui la sert : l'agent refuserait la mise à jour.",
     "updates.agent.unsignedFix":
+      "Vérifiez que ce serveur joint internet, puis réessayez ; si ça dure, contactez le support.",
+    "updates.agent.unsignedFix.dev":
       "bun --cwd=apps/agent run release, puis reconstruisez l'app.",
     "updates.agent.upgraded": "Agent {previous} remplacé par {version}.",
     "updates.agent.upgradedRestarted":

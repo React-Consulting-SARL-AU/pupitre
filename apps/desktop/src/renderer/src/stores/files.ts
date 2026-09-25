@@ -134,15 +134,20 @@ interface FilesStore {
   reread: (serverId: string) => Promise<void>;
   confirmLeave: () => void;
   stay: () => void;
-  rename: (serverId: string, path: string, name: string) => Promise<void>;
+  /** The refusal goes back to the field that asked, rather than to the head of the list. */
+  rename: (
+    serverId: string,
+    path: string,
+    name: string
+  ) => Promise<AgentError | null>;
   remove: (
     serverId: string,
     path: string,
     recursive?: boolean
   ) => Promise<void>;
-  makeFolder: (serverId: string, name: string) => Promise<void>;
+  makeFolder: (serverId: string, name: string) => Promise<AgentError | null>;
   /** Makes an empty file in the folder on screen and opens it as code to write, unless a buffer is being edited. */
-  makeFile: (serverId: string, name: string) => Promise<void>;
+  makeFile: (serverId: string, name: string) => Promise<AgentError | null>;
   setSort: (sort: FileSort) => void;
   setHidden: (hidden: boolean) => void;
   dismiss: () => void;
@@ -202,11 +207,54 @@ const EMPTY = {
   write: { status: "idle" } as WriteState,
 };
 
+type Parked = Pick<
+  FilesStore,
+  "draft" | "listing" | "preview" | "view" | "write"
+>;
+
+function parkingKey(serverId: string, root: string): string {
+  return `${serverId}\u0000${root}`;
+}
+
 export const useFiles = create<FilesStore>((set, get) => {
+  const parked = new Map<string, Parked>();
+
   function release(preview: PreviewState): void {
     if (preview.status === "image") {
       URL.revokeObjectURL(preview.url);
     }
+  }
+
+  /** An edited buffer outlives a move to another root or server, to be found again on return. */
+  function leave(state: FilesStore): void {
+    if (
+      state.draft === null ||
+      state.serverId === null ||
+      state.root === null
+    ) {
+      release(state.preview);
+
+      return;
+    }
+
+    const { draft, listing, preview, view, write } = state;
+
+    parked.set(parkingKey(state.serverId, state.root), {
+      draft,
+      listing,
+      preview,
+      view,
+      write: write.status === "writing" ? { status: "idle" } : write,
+    });
+  }
+
+  function unpark(serverId: string, root: string): Parked | null {
+    const key = parkingKey(serverId, root);
+    const kept = parked.get(key) ?? null;
+
+    parked.delete(key);
+
+    return kept;
   }
 
   /** A gesture that would drop an edited buffer waits for the reader's word. */
@@ -352,7 +400,7 @@ export const useFiles = create<FilesStore>((set, get) => {
       const current = get();
 
       if (current.serverId !== serverId) {
-        release(current.preview);
+        leave(current);
         set({ ...EMPTY, root: null, serverId, workRoot: null });
       }
 
@@ -374,8 +422,14 @@ export const useFiles = create<FilesStore>((set, get) => {
       }
 
       if (get().root !== root) {
-        release(get().preview);
-        set({ ...EMPTY, root });
+        leave(get());
+        set({ ...EMPTY, ...unpark(serverId, root), root });
+      }
+
+      if (get().draft !== null) {
+        await get().refresh();
+
+        return;
       }
 
       await get().browse(serverId, root);
@@ -553,9 +607,7 @@ export const useFiles = create<FilesStore>((set, get) => {
       });
 
       if (!answer.ok) {
-        set({ problem: answer.error });
-
-        return;
+        return answer.error;
       }
 
       const { preview } = get();
@@ -565,6 +617,8 @@ export const useFiles = create<FilesStore>((set, get) => {
       }
 
       await get().refresh();
+
+      return null;
     },
 
     async remove(serverId, path, recursive = false) {
@@ -603,7 +657,7 @@ export const useFiles = create<FilesStore>((set, get) => {
       const { listing } = get();
 
       if (listing.status === "idle") {
-        return;
+        return null;
       }
 
       set({ problem: null });
@@ -613,19 +667,19 @@ export const useFiles = create<FilesStore>((set, get) => {
       });
 
       if (!answer.ok) {
-        set({ problem: answer.error });
-
-        return;
+        return answer.error;
       }
 
       await get().refresh();
+
+      return null;
     },
 
     async makeFile(serverId, name) {
       const { listing } = get();
 
       if (listing.status === "idle") {
-        return;
+        return null;
       }
 
       set({ problem: null });
@@ -638,9 +692,7 @@ export const useFiles = create<FilesStore>((set, get) => {
       });
 
       if (!answer.ok) {
-        set({ problem: answer.error });
-
-        return;
+        return answer.error;
       }
 
       await get().refresh();
@@ -649,6 +701,8 @@ export const useFiles = create<FilesStore>((set, get) => {
         await get().show(serverId, path);
         set({ view: "source" });
       }
+
+      return null;
     },
 
     setSort(sort) {
@@ -667,6 +721,7 @@ export const useFiles = create<FilesStore>((set, get) => {
 
     forget() {
       release(get().preview);
+      parked.clear();
       set({ ...EMPTY, root: null, serverId: null, workRoot: null });
     },
   };

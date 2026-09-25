@@ -70,7 +70,7 @@ export function ProjectScreen({
   const terminalStates = useNavigation((s) => s.terminalStates);
   const ensureTerminal = useNavigation((s) => s.ensureTerminal);
   const openTerminal = useNavigation((s) => s.openTerminal);
-  const closeTerminal = useNavigation((s) => s.closeTerminal);
+  const closeTerminal = useNavigation((s) => s.askCloseTerminal);
   const activateTerminal = useNavigation((s) => s.activateTerminal);
   const renameTerminal = useNavigation((s) => s.renameTerminal);
 

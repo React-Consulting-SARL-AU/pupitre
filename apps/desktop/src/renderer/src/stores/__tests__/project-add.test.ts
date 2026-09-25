@@ -1919,4 +1919,35 @@ describe("le navigateur de dossiers", () => {
       params: { path: "projects/flymate/api" },
     });
   });
+
+  it("rend le refus d'un dossier au dialogue qui l'a demandé, et garde la liste", async () => {
+    browsing();
+
+    await useProjectAdd.getState().prepare("srv-1", null);
+    useProjectAdd.getState().setKind("dir");
+    await useProjectAdd.getState().browse("srv-1", "flymate");
+
+    const listed = window.pupitre.agentCall;
+
+    stubPupitre({
+      ...window.pupitre,
+      agentCall: (server, cmd, params) =>
+        cmd === "fs.mkdir"
+          ? Promise.resolve({
+              error: {
+                code: "bad_request",
+                message: "entrée déjà présente : projects/flymate/api",
+              },
+              ok: false,
+            })
+          : listed(server, cmd, params),
+    });
+
+    const refusal = await useProjectAdd.getState().makeFolder("srv-1", "api");
+
+    expect(refusal).toMatchObject({
+      message: "entrée déjà présente : projects/flymate/api",
+    });
+    expect(useProjectAdd.getState().folders.status).toBe("ready");
+  });
 });

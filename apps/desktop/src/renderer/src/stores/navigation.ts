@@ -270,6 +270,10 @@ interface NavigationStore {
   openTerminalHere: (kind?: TerminalKind) => void;
   /** A project's terminals open on a shell when none is there yet. */
   ensureTerminal: (project: string | null) => void;
+  /** The tab waiting for the reader to confirm that its session stops with it. */
+  closing: string | null;
+  askCloseTerminal: (id: string) => void;
+  keepTerminal: () => void;
   /** `ended` says the session is already gone: nothing is left to kill on the machine. */
   closeTerminal: (id: string, ended?: boolean) => void;
   /**
@@ -320,6 +324,7 @@ function move(
 
 export const useNavigation = create<NavigationStore>((set, get) => ({
   ...restoredTerminals(remembered),
+  closing: null,
   cursor: 0,
   history: [START],
   projectTabs: rememberedTabs(),
@@ -469,6 +474,25 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
     }
   },
 
+  askCloseTerminal(id) {
+    const leaving = get().terminals.find((t) => t.id === id);
+
+    if (!leaving) {
+      return;
+    }
+
+    if (closeStopsWork(leaving, get().terminalStates[id])) {
+      set({ closing: id });
+      return;
+    }
+
+    get().closeTerminal(id);
+  },
+
+  keepTerminal() {
+    set({ closing: null });
+  },
+
   // Closing a tab is the reader saying they are done with that session: the
   // session dies with it, where closing the window only lets go of the pipe.
   closeTerminal(id, ended = false) {
@@ -505,6 +529,7 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
           state.activeTerminal === id
             ? (remaining.filter((t) => t.project === null).at(-1)?.id ?? null)
             : state.activeTerminal,
+        closing: state.closing === id ? null : state.closing,
         terminals: remaining,
       };
     });
@@ -596,6 +621,7 @@ export const useNavigation = create<NavigationStore>((set, get) => ({
       ...HOME,
       activeTabs: {},
       activeTerminal: null,
+      closing: null,
       cursor: 0,
       history: [HOME],
       terminals: [],
@@ -643,6 +669,21 @@ function endOf(terminal: Terminal | undefined): TerminalEnd | null {
   return terminal?.session && serverId
     ? { serverId, session: terminal.session }
     : null;
+}
+
+/** An agent's session holds its conversation even at rest; a shell only while it prints. */
+export function closeStopsWork(
+  terminal: Terminal,
+  state: AgentState | undefined
+): boolean {
+  const ended =
+    useTerminals.getState().sessions[terminal.id]?.status === "ended";
+
+  if (!terminal.session || ended || state === "finished") {
+    return false;
+  }
+
+  return terminal.kind !== "shell" || state === "working";
 }
 
 function remember(terminal: Terminal): RememberedTerminal {

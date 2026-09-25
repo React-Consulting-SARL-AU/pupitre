@@ -5,6 +5,7 @@ import { StatePill } from "@renderer/components/ui/state-pill";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { memory, uptime } from "@renderer/lib/format";
 import { isRunning, PROCESS_LOOK } from "@renderer/lib/project-state";
+import type { Gesture } from "@renderer/lib/use-pending";
 import type { ProjectAction } from "@renderer/stores/snapshot";
 import { Play, RotateCw, Square } from "lucide-react";
 
@@ -24,7 +25,7 @@ export function ProjectProcessRow({
 }: {
   process: Process;
   busy: boolean;
-  onAct: (action: ProjectAction, process: string) => void;
+  onAct: Gesture<[ProjectAction, string]>;
 }) {
   const t = useTranslations();
 

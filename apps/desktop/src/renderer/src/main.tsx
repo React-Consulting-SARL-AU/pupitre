@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./app";
+import { GestureFailureNotice } from "./components/shell/gesture-failure-notice";
 import { LiveRegion } from "./components/ui/live-region";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { watchTrace } from "./lib/trace";
@@ -23,6 +24,7 @@ if (root) {
       <LiveRegion />
       <TooltipProvider>
         <App />
+        <GestureFailureNotice />
       </TooltipProvider>
     </StrictMode>
   );

@@ -1,3 +1,4 @@
+import type { HelpLink } from "@shared/help";
 import type { MenuItemConstructorOptions } from "electron";
 import { dialogTextIn } from "./dialogs";
 
@@ -20,11 +21,13 @@ export interface MenuActions {
   shortcuts: () => void;
   checkUpdates: () => void;
   signOut: () => void;
+  help: (link: HelpLink) => void;
 }
 
 const NOTHING: MenuActions = {
   checkUpdates: () => undefined,
   goToProject: () => undefined,
+  help: () => undefined,
   newAgent: () => undefined,
   newTerminal: () => undefined,
   preferences: () => undefined,
@@ -137,6 +140,22 @@ export function menuTemplate(
         click: actions.shortcuts,
         id: "shortcuts",
         label: text("shortcuts"),
+      },
+      { type: "separator" },
+      {
+        click: () => actions.help("docs"),
+        id: "help-docs",
+        label: text("helpDocs"),
+      },
+      {
+        click: () => actions.help("support"),
+        id: "help-support",
+        label: text("helpSupport"),
+      },
+      {
+        click: () => actions.help("legal"),
+        id: "help-legal",
+        label: text("helpLegal"),
       },
     ],
   };

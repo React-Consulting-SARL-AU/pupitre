@@ -1,7 +1,9 @@
 import type { DictionaryKey } from "@renderer/i18n/en";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import { type Gesture, usePending } from "@renderer/lib/use-pending";
 import type { Server } from "@shared/servers";
 import { ArrowRight } from "lucide-react";
+import { Spinner } from "../ui/spinner";
 
 /**
  * A machine already known, offered for the picking rather than for management.
@@ -16,9 +18,11 @@ export function OnboardingServerChoice({
   onPick,
 }: {
   server: Server;
-  onPick: () => void;
+  onPick: Gesture;
 }) {
   const t = useTranslations();
+
+  const [pick, pending] = usePending(onPick);
 
   const address =
     server.origin === "system"
@@ -27,9 +31,11 @@ export function OnboardingServerChoice({
 
   return (
     <button
-      className="elevation-raised clickable flex w-full items-center gap-3 rounded-md border border-line bg-surface p-4 text-left transition-soft hover:border-line-strong hover:bg-raised"
+      aria-busy={pending}
+      className={`elevation-raised clickable flex w-full items-center gap-3 rounded-md border border-line bg-surface p-4 text-left transition-soft hover:border-line-strong hover:bg-raised ${pending ? "cursor-progress" : ""}`}
       data-server={server.id}
-      onClick={onPick}
+      disabled={pending}
+      onClick={pick}
       type="button"
     >
       <div className="min-w-0 flex-1">
@@ -39,7 +45,15 @@ export function OnboardingServerChoice({
         </p>
       </div>
 
-      <ArrowRight className="shrink-0 text-ink-3" size={14} strokeWidth={1.5} />
+      {pending ? (
+        <Spinner size={14} />
+      ) : (
+        <ArrowRight
+          className="shrink-0 text-ink-3"
+          size={14}
+          strokeWidth={1.5}
+        />
+      )}
     </button>
   );
 }

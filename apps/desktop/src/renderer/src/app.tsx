@@ -33,12 +33,14 @@ import { ServerTerminalsScreen } from "./components/shell/server-terminals-scree
 import { ShortcutsDialog } from "./components/shell/shortcuts-dialog";
 import { SignOutDialog } from "./components/shell/sign-out-dialog";
 import { ShotsScreen } from "./components/shots/shots-screen";
+import { TerminalCloseDialog } from "./components/terminals/terminal-close-dialog";
 import { ErrorNotice } from "./components/ui/error-notice";
 import { WindowBand } from "./components/ui/window-band";
 import { AgentUpdateBanner } from "./components/updates/agent-update-banner";
 import { noteProjects } from "./lib/completion";
 import { agentModulesFrom } from "./lib/modules";
 import { unlessHeld } from "./lib/refusals";
+import { needsSecuring } from "./lib/server-security";
 import { attachedSessions } from "./lib/sessions";
 import { shellScreen } from "./lib/shell-screen";
 import { useHistoryShortcuts } from "./lib/use-history-shortcuts";
@@ -80,6 +82,7 @@ export function App() {
   const onboarding = useOnboarding((s) => s.step);
   const openOnboarding = useOnboarding((s) => s.open);
   const beginOnboarding = useOnboarding((s) => s.begin);
+  const secureServer = useOnboarding((s) => s.secure);
 
   const config = useServers((s) => s.config);
   const loadServers = useServers((s) => s.load);
@@ -104,7 +107,7 @@ export function App() {
   const settle = useNavigation((s) => s.settle);
   const openTerminal = useNavigation((s) => s.openTerminal);
   const openTerminalHere = useNavigation((s) => s.openTerminalHere);
-  const closeTerminal = useNavigation((s) => s.closeTerminal);
+  const askCloseTerminal = useNavigation((s) => s.askCloseTerminal);
   const activateTerminal = useNavigation((s) => s.activateTerminal);
   const renameTerminal = useNavigation((s) => s.renameTerminal);
   const noteStates = useNavigation((s) => s.noteStates);
@@ -418,6 +421,7 @@ export function App() {
         onClose={() => setShortcutsOpen(false)}
         open={shortcutsOpen}
       />
+      <TerminalCloseDialog />
       <SignOutDialog
         onCancel={() => setSigningOut(false)}
         onConfirm={async () => {
@@ -430,7 +434,7 @@ export function App() {
         activeTerminal={activeTerminal}
         allTerminals={terminals}
         onAddProject={() => goTo("project-add")}
-        onCloseTerminal={closeTerminal}
+        onCloseTerminal={askCloseTerminal}
         onNewTerminal={() => openTerminal(null, "shell")}
         onProject={select}
         onSwitchServer={switchServer}
@@ -470,6 +474,7 @@ export function App() {
               migration={migration}
               onHide={hideUpdate}
               onMigrate={() => migrateConfig(serverId)}
+              onRepair={() => beginOnboarding(serverId)}
               onUpgrade={() => upgradeAgent(serverId)}
               state={updateState}
               upgrade={upgrade}
@@ -509,7 +514,9 @@ export function App() {
                   onOpenService={openService}
                   onOpenTerminal={() => openTerminal(null, "shell")}
                   onReboot={() => reboot(serverId, serverName)}
+                  onSecure={() => secureServer(serverId)}
                   onStopSession={(pid) => stopProcess(serverId, pid)}
+                  securing={needsSecuring(server, snapshot.machine.sudo)}
                   serverName={server?.name}
                   snapshot={snapshot}
                 />
@@ -607,7 +614,7 @@ export function App() {
                 <ServerTerminalsScreen
                   active={activeTerminal}
                   onActivate={activateTerminal}
-                  onClose={closeTerminal}
+                  onClose={askCloseTerminal}
                   onNew={openTerminal}
                   onRename={renameTerminal}
                   serverName={serverName}

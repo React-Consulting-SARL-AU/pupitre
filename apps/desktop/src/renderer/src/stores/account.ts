@@ -54,6 +54,7 @@ interface AccountStore {
   refresh: () => Promise<void>;
   switchOrganization: (organizationId: string) => Promise<void>;
   connect: () => Promise<void>;
+  cancelSignIn: () => void;
   disconnect: () => Promise<void>;
   readDevices: () => Promise<void>;
   revokeDevice: (deviceId: string) => Promise<void>;
@@ -73,6 +74,9 @@ function unread(reason: unknown): AgentError {
     phrase: { id: "account.read.failed" },
   };
 }
+
+/** A sign-in answered after it was cancelled, or after a newer one began, lands nowhere. */
+let signInAttempt = 0;
 
 export const useAccount = create<AccountStore>((set, get) => ({
   bypassed: false,
@@ -112,9 +116,17 @@ export const useAccount = create<AccountStore>((set, get) => ({
       return;
     }
 
+    signInAttempt += 1;
+
+    const own = signInAttempt;
+
     set({ signIn: { status: "starting" } });
 
     const answer = await window.pupitre.signIn((progress) => {
+      if (own !== signInAttempt) {
+        return;
+      }
+
       const held = get().signIn;
 
       if (progress.kind === "code") {
@@ -132,6 +144,10 @@ export const useAccount = create<AccountStore>((set, get) => ({
       }
     });
 
+    if (own !== signInAttempt) {
+      return;
+    }
+
     set(
       answer.ok
         ? {
@@ -140,6 +156,12 @@ export const useAccount = create<AccountStore>((set, get) => ({
           }
         : { signIn: { error: answer.error, status: "failed" } }
     );
+  },
+
+  cancelSignIn() {
+    signInAttempt += 1;
+    window.pupitre.cancelSignIn();
+    set({ signIn: { status: "idle" } });
   },
 
   async disconnect() {

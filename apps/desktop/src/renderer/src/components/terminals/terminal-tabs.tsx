@@ -185,7 +185,8 @@ export function TerminalTabs({
         ) : null}
       </div>
 
-      <div className="relative min-h-0 flex-1">
+      {/* The panes stack by z-index; isolated, they never paint over a dialog. */}
+      <div className="relative isolate min-h-0 flex-1">
         {sessions.map((session) => (
           <div
             className="absolute inset-0"

@@ -1,4 +1,5 @@
 import { useTranslations } from "@renderer/i18n/use-translations";
+import type { AgentError } from "@shared/agent";
 import { useState } from "react";
 import { IconButton } from "../ui/icon-button";
 import {
@@ -24,7 +25,7 @@ export function EntryCreate({
   name: string;
   /** No folder is on screen yet, so nothing can be made in it. */
   disabled?: boolean;
-  onCreate: (entry: string) => Promise<void>;
+  onCreate: (entry: string) => Promise<AgentError | null>;
 }) {
   const t = useTranslations();
 

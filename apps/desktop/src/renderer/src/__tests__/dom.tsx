@@ -78,6 +78,24 @@ export async function mount(element: ReactElement): Promise<Mounted> {
   };
 }
 
+/** Types into a mounted field the way React hears it: through the native setter, then an input event. */
+export async function typeInto(
+  input: Element | null,
+  value: string
+): Promise<void> {
+  if (!(input instanceof HTMLInputElement)) {
+    throw new Error(`no input to type into in ${document.body.innerHTML}`);
+  }
+
+  await act(() => {
+    Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value"
+    )?.set?.call(input, value);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+}
+
 const POLL_MS = 20;
 
 export async function waitUntil(

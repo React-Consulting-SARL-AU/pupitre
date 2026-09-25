@@ -9,6 +9,7 @@ import type {
 import { Download, FileQuestion, RotateCw, X } from "lucide-react";
 import { Button } from "../ui/button";
 import { Callout } from "../ui/callout";
+import { ConfirmDialog } from "../ui/confirm-button";
 import { EmptyState } from "../ui/empty-state";
 import { ErrorNotice } from "../ui/error-notice";
 import { IconButton } from "../ui/icon-button";
@@ -126,24 +127,14 @@ export function FilePreview({
         />
       </header>
 
-      {leaving ? (
-        <div
-          aria-label={t("files.leave.question")}
-          className="flex flex-wrap items-center gap-2 rounded-md border border-line-strong bg-sunken px-3 py-2"
-          data-leaving="true"
-          role="alertdialog"
-        >
-          <span className="min-w-0 flex-1 text-[12px] text-ink-2">
-            {t("files.leave.question")}
-          </span>
-          <Button onClick={onConfirmLeave} size="sm" variant="destructive">
-            {t("files.leave.discard")}
-          </Button>
-          <Button onClick={onStay} size="sm" variant="discreet">
-            {t("files.leave.stay")}
-          </Button>
-        </div>
-      ) : null}
+      <ConfirmDialog
+        confirmLabel={t("files.leave.discard")}
+        onCancel={onStay}
+        onConfirm={onConfirmLeave}
+        open={leaving}
+        question={t("files.leave.question", { name })}
+        title={t("files.leave.title", { name })}
+      />
 
       {stale ? (
         <Callout

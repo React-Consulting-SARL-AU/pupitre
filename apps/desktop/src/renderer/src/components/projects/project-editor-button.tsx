@@ -23,7 +23,7 @@ export function ProjectEditorButton({
   root: string;
   share: string | null;
   onShare: () => Promise<void>;
-  onOpen: (editorId: RemoteEditor["id"], path: string) => void;
+  onOpen: (editorId: RemoteEditor["id"], path: string) => Promise<void>;
 }) {
   const t = useTranslations();
   const [asking, setAsking] = useState(false);
@@ -48,7 +48,7 @@ export function ProjectEditorButton({
 
     try {
       await onShare();
-      onOpen(editor.id, root);
+      await onOpen(editor.id, root);
       setAsking(false);
     } finally {
       setWorking(false);

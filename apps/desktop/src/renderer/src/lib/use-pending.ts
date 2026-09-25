@@ -1,5 +1,5 @@
 import { translate } from "@renderer/i18n/translate";
-import { announce } from "@renderer/stores/announcements";
+import { useGestureFailure } from "@renderer/stores/gesture-failure";
 import { useCallback, useState } from "react";
 
 /**
@@ -39,11 +39,13 @@ export function awaited(
   );
 }
 
-/** A gesture that threw is said out loud: the button stopped, and this is why. */
-function report(reason: unknown): void {
+/** A gesture that threw is shown at the foot of the window: the button stopped, and this is why. */
+export function reportFailure(reason: unknown): void {
   const said = reason instanceof Error ? reason.message : String(reason);
 
-  announce(translate()("ui.gesture.failed", { reason: said }), "assertive");
+  useGestureFailure
+    .getState()
+    .fail(translate()("ui.gesture.failed", { reason: said }));
 }
 
 /** Keeps the control that was clicked waiting until the work it started settles. */
@@ -54,7 +56,7 @@ export function usePending<A extends unknown[]>(
 
   const start = useCallback(
     (...args: A) => {
-      awaited(gesture?.(...args), setPending)?.catch(report);
+      awaited(gesture?.(...args), setPending)?.catch(reportFailure);
     },
     [gesture]
   );

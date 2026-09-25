@@ -218,9 +218,11 @@ test.describe("compte", () => {
       subscription.getByText("Choisissez une offre dans la console")
     ).toBeVisible();
 
-    // Signing out is asked twice: the question says the terminals close too.
+    // Signing out is asked twice: the question says what stays and what stops.
     await page.getByRole("button", { name: "Se déconnecter" }).click();
-    await expect(page.getByText("chaque terminal ouvert")).toBeVisible();
+    await expect(
+      page.getByText("l'app ne pilote plus aucun serveur")
+    ).toBeVisible();
     await page.getByRole("button", { name: "Se déconnecter" }).last().click();
 
     // Settings stay in front: it's where the account gets repaired.

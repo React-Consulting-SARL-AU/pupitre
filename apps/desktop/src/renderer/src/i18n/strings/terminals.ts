@@ -26,7 +26,13 @@ export const terminals = {
     "terminals.renameHint": "Double-click to rename",
     "terminals.renameLabel": "New name for {title}",
     "terminals.close": "Close {title}",
-    "terminals.closeTabHint": "Close the tab ({chord}W)",
+    "terminals.closeTabHint": "Close the tab and stop the session ({chord}W)",
+    "terminals.closeAsk.title": "Close the tab {title}",
+    "terminals.closeAsk.working":
+      "The session {title} is still working. Closing the tab stops this session on the server, and the work in progress with it.",
+    "terminals.closeAsk.agent":
+      "Closing the tab stops the session {title} on the server, and the agent's conversation with it.",
+    "terminals.closeAsk.confirm": "Stop the session",
     "terminals.newSession": "New session",
     "terminals.newSessionHint": "New session ({chord}T)",
     "terminals.tabs": "Sessions",
@@ -82,7 +88,14 @@ export const terminals = {
     "terminals.renameHint": "Double-cliquez pour renommer",
     "terminals.renameLabel": "Nouveau nom pour {title}",
     "terminals.close": "Fermer {title}",
-    "terminals.closeTabHint": "Fermer l'onglet ({chord}W)",
+    "terminals.closeTabHint":
+      "Fermer l'onglet et arrêter la session ({chord}W)",
+    "terminals.closeAsk.title": "Fermer l'onglet {title}",
+    "terminals.closeAsk.working":
+      "La session {title} travaille encore. Fermer l'onglet arrête cette session sur le serveur, et le travail en cours avec.",
+    "terminals.closeAsk.agent":
+      "Fermer l'onglet arrête la session {title} sur le serveur, et la conversation de l'agent avec.",
+    "terminals.closeAsk.confirm": "Arrêter la session",
     "terminals.newSession": "Nouvelle session",
     "terminals.newSessionHint": "Nouvelle session ({chord}T)",
     "terminals.tabs": "Sessions",

@@ -16,6 +16,8 @@ export const projectAdd = {
     "projectAdd.form.sourceReadProcesses": "Read from the source: {processes}.",
     "projectAdd.form.nameLabel": "Name",
     "projectAdd.form.nameHelp": "Inferred from the source.",
+    "projectAdd.form.nameProblem":
+      "Lowercase letters, digits, dots, hyphens and underscores, starting with a letter or a digit.",
     "projectAdd.form.folderHelp": "Folder: {dir}",
     "projectAdd.form.namePlaceholder": "my-site",
     "projectAdd.form.pkgmgrLabel": "Package manager",
@@ -183,6 +185,8 @@ export const projectAdd = {
     "projectAdd.form.sourceReadProcesses": "Lu dans la source : {processes}.",
     "projectAdd.form.nameLabel": "Nom",
     "projectAdd.form.nameHelp": "Déduit de la source.",
+    "projectAdd.form.nameProblem":
+      "Minuscules, chiffres, points, tirets et soulignés, en commençant par une lettre ou un chiffre.",
     "projectAdd.form.folderHelp": "Dossier : {dir}",
     "projectAdd.form.namePlaceholder": "mon-site",
     "projectAdd.form.pkgmgrLabel": "Gestionnaire de paquets",

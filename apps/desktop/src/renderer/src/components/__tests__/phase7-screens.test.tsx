@@ -207,7 +207,7 @@ describe("le changement de branche", () => {
     const html = renderToStaticMarkup(
       <ProjectBranches
         folder="/home/dev/projects/flymate"
-        onCheckout={NOOP}
+        onCheckout={RESOLVED}
         state={{ branches: { ...BRANCHES, dirty: true }, status: "read" }}
         switching={false}
       />
@@ -222,7 +222,7 @@ describe("le changement de branche", () => {
     const view = await mount(
       <ProjectBranches
         folder="/home/dev/projects/flymate"
-        onCheckout={NOOP}
+        onCheckout={RESOLVED}
         state={{ branches: { ...BRANCHES, dirty: false }, status: "read" }}
         switching={false}
       />

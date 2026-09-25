@@ -14,6 +14,7 @@ import { launchPupitre, type Running } from "./harness/launch";
 const FLYMATE_CARD = /^flymate-api/;
 const CLAUDE_CARD = /Claude/;
 const AGENTS_TAB = /^Agents/;
+const CLOSE_AND_STOP = /^Fermer l'onglet et arrêter la session/;
 
 test.describe("l'onglet Agents d'un projet", () => {
   let running: Running;
@@ -118,6 +119,43 @@ test.describe("l'onglet Agents d'un projet", () => {
       );
 
       expect(ended).toEqual([[id, null]]);
+    });
+
+    await test.step("fermer l'onglet d'un agent demande d'abord, puis arrête sa session", async () => {
+      await picker.getByRole("button", { name: CLAUDE_CARD }).click();
+
+      const sessions = page.getByRole("tablist", { name: "Sessions" });
+
+      await expect(sessions.getByRole("tab", { name: "Claude" })).toBeVisible();
+
+      const close = sessions.getByRole("button", {
+        name: CLOSE_AND_STOP,
+      });
+
+      await close.click();
+
+      const question = page.getByRole("alertdialog");
+
+      await expect(question).toContainText("la conversation de l'agent");
+      await page.keyboard.press("Escape");
+
+      await expect(question).toHaveCount(0);
+      await expect(sessions.getByRole("tab", { name: "Claude" })).toBeVisible();
+
+      await close.click();
+      await question
+        .getByRole("button", { name: "Arrêter la session" })
+        .click();
+
+      await expect(picker).toBeVisible();
+
+      const ended = await running.app.evaluate(
+        () => (globalThis as { ended?: unknown[][] }).ended ?? []
+      );
+
+      expect(ended.at(-1)?.[1]).toMatchObject({
+        session: "claude-flymate-api",
+      });
     });
   });
 });

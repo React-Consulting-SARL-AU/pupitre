@@ -48,7 +48,7 @@ export function FileRow({
   refusal: AgentError | null;
   onOpen: () => void;
   onAct: (action: FileAction) => void;
-  onRename: (to: string) => Promise<void>;
+  onRename: (to: string) => Promise<AgentError | null>;
   onRemove: (recursive: boolean) => Promise<void>;
   onCancel: () => void;
 }) {

@@ -470,6 +470,68 @@ describe("les onglets d'un lancement à l'autre", () => {
     useServers.setState({ config: null });
   });
 
+  it("ferme sans demander un shell au repos, et demande avant d'arrêter un agent ou un shell qui travaille", () => {
+    const shell = useNavigation.getState().openTerminal(null, "shell");
+    const busy = useNavigation.getState().openTerminal(null, "shell");
+    const claude = useNavigation
+      .getState()
+      .openTerminal("flymate-api", "claude");
+
+    for (const id of [shell, busy, claude]) {
+      useNavigation.getState().noteSession(id, `session-${id}`);
+    }
+
+    useNavigation.getState().noteStates({
+      [busy]: "working",
+      [claude]: "idle",
+      [shell]: "idle",
+    });
+
+    useNavigation.getState().askCloseTerminal(shell);
+
+    expect(useNavigation.getState().closing).toBeNull();
+    expect(
+      useNavigation.getState().terminals.map((terminal) => terminal.id)
+    ).toEqual([busy, claude]);
+
+    useNavigation.getState().askCloseTerminal(busy);
+
+    expect(useNavigation.getState().closing).toBe(busy);
+    expect(useNavigation.getState().terminals).toHaveLength(2);
+
+    useNavigation.getState().keepTerminal();
+
+    expect(useNavigation.getState().closing).toBeNull();
+    expect(useNavigation.getState().terminals).toHaveLength(2);
+
+    useNavigation.getState().askCloseTerminal(claude);
+
+    expect(useNavigation.getState().closing).toBe(claude);
+
+    useNavigation.getState().closeTerminal(claude);
+
+    expect(useNavigation.getState().closing).toBeNull();
+    expect(
+      useNavigation.getState().terminals.map((terminal) => terminal.id)
+    ).toEqual([busy]);
+  });
+
+  it("ferme sans demander un onglet dont la session est finie ou n'a jamais été nommée", () => {
+    const claude = useNavigation
+      .getState()
+      .openTerminal("flymate-api", "claude");
+    const codex = useNavigation.getState().openTerminal("flymate-api", "codex");
+
+    useNavigation.getState().noteSession(claude, "claude-flymate-api");
+    useNavigation.getState().noteStates({ [claude]: "finished" });
+
+    useNavigation.getState().askCloseTerminal(claude);
+    useNavigation.getState().askCloseTerminal(codex);
+
+    expect(useNavigation.getState().closing).toBeNull();
+    expect(useNavigation.getState().terminals).toHaveLength(0);
+  });
+
   it("garde l'onglet d'un shell qui a quitté, et celui d'un agent dont la liaison a rompu", () => {
     const shell = useNavigation.getState().openTerminal("flymate-api", "shell");
     const claude = useNavigation

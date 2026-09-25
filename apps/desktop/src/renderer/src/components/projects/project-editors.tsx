@@ -27,7 +27,7 @@ export function ProjectEditors({
   /** The system's file to name when asking, or nothing when it already resolves the server. */
   share: string | null;
   onShare: () => Promise<void>;
-  onOpen: (editorId: RemoteEditor["id"], path: string) => void;
+  onOpen: (editorId: RemoteEditor["id"], path: string) => Promise<void>;
 }) {
   const t = useTranslations();
 

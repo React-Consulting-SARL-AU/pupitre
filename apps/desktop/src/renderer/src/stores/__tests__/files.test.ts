@@ -47,6 +47,8 @@ interface Agent {
   held?: number;
   /** Delays each `fs.list` answer so a test can leave the folder meanwhile. */
   slowList?: () => Promise<void>;
+  /** What `fs.rename` answers, when the test decides it. */
+  rename?: () => unknown;
 }
 
 async function readAnswer(
@@ -140,8 +142,14 @@ function agentOf(agent: Agent): void {
             },
           }
         );
-      case "fs.mkdir":
       case "fs.rename":
+        return (
+          (agent.rename?.() as AgentResponse<unknown> | undefined) ?? {
+            ok: true,
+            result: { path: asked.to ?? asked.path },
+          }
+        );
+      case "fs.mkdir":
         return { ok: true, result: { path: asked.to ?? asked.path } };
       case "fs.remove":
         return agent.held !== undefined && !asked.recursive
@@ -494,6 +502,62 @@ describe("l'écriture d'un fichier", () => {
 
     expect(useFiles.getState().draft).toBeNull();
   });
+
+  it("garde le tampon modifié d'une racine quand on passe à une autre, et le rend au retour", async () => {
+    await opened();
+    await useFiles.getState().show(SERVER, "projects/atlas/.env");
+    useFiles.getState().edit("PORT=3100\n");
+
+    await useFiles.getState().open(SERVER, null);
+
+    expect(useFiles.getState().root).toBe("");
+    expect(useFiles.getState().draft).toBeNull();
+    expect(useFiles.getState().preview).toMatchObject({ status: "idle" });
+    expect(useFiles.getState().leaving).toBeNull();
+
+    await useFiles.getState().open(SERVER, "/home/dev/projects/atlas");
+
+    expect(useFiles.getState().draft).toBe("PORT=3100\n");
+    expect(useFiles.getState().preview).toMatchObject({
+      path: "projects/atlas/.env",
+      status: "text",
+    });
+    expect(useFiles.getState().listing).toMatchObject({
+      path: "projects/atlas",
+      status: "read",
+    });
+    expect(useFiles.getState().leaving).toBeNull();
+  });
+
+  it("garde le tampon modifié d'un serveur quand on en change, sans l'écrire sur l'autre", async () => {
+    const agent = await opened();
+    await useFiles.getState().show(SERVER, "projects/atlas/.env");
+    useFiles.getState().edit("PORT=3100\n");
+
+    await useFiles.getState().open("srv-2", "/home/dev/projects/atlas");
+
+    expect(useFiles.getState().serverId).toBe("srv-2");
+    expect(useFiles.getState().draft).toBeNull();
+
+    await useFiles.getState().save("srv-2");
+
+    expect(calls(agent, "fs.write")).toHaveLength(0);
+
+    await useFiles.getState().open(SERVER, "/home/dev/projects/atlas");
+
+    expect(useFiles.getState().draft).toBe("PORT=3100\n");
+  });
+
+  it("revient sur la même racine sans demander d'abandonner le tampon", async () => {
+    await opened();
+    await useFiles.getState().show(SERVER, "projects/atlas/.env");
+    useFiles.getState().edit("PORT=3100\n");
+
+    await useFiles.getState().open(SERVER, "/home/dev/projects/atlas");
+
+    expect(useFiles.getState().leaving).toBeNull();
+    expect(useFiles.getState().draft).toBe("PORT=3100\n");
+  });
 });
 
 describe("les gestes sur une entrée", () => {
@@ -508,6 +572,29 @@ describe("les gestes sur une entrée", () => {
       { path: "projects/atlas/.env", to: "projects/atlas/.env.local" },
     ]);
     expect(calls(agent, "fs.list")).toHaveLength(2);
+  });
+
+  it("rend le refus d'un renommage au geste qui l'a demandé, sans rien relire", async () => {
+    const agent = await opened({
+      calls: [],
+      rename: () => refused("entrée déjà présente : projects/atlas/src"),
+    });
+
+    const refusal = await useFiles
+      .getState()
+      .rename(SERVER, "projects/atlas/.env", "src");
+
+    expect(refusal).toMatchObject({
+      message: "entrée déjà présente : projects/atlas/src",
+    });
+    expect(useFiles.getState().problem).toBeNull();
+    expect(calls(agent, "fs.list")).toHaveLength(1);
+
+    agent.rename = undefined;
+
+    expect(
+      await useFiles.getState().rename(SERVER, "projects/atlas/.env", "env")
+    ).toBeNull();
   });
 
   it("suit un fichier ouvert qui vient d'être renommé", async () => {
@@ -591,11 +678,12 @@ describe("les gestes sur une entrée", () => {
     });
     await useFiles.getState().show(SERVER, "projects/atlas/.env");
 
-    await useFiles.getState().makeFile(SERVER, ".env");
+    const refusal = await useFiles.getState().makeFile(SERVER, ".env");
 
-    expect(useFiles.getState().problem).toMatchObject({
+    expect(refusal).toMatchObject({
       message: "projects/atlas/.env existe déjà",
     });
+    expect(useFiles.getState().problem).toBeNull();
     expect(useFiles.getState().preview).toMatchObject({
       path: "projects/atlas/.env",
       status: "text",

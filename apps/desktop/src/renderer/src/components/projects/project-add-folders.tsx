@@ -2,6 +2,7 @@ import { Tooltip } from "@renderer/components/ui/tooltip";
 import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { crumbsOf, under } from "@renderer/lib/files";
+import type { AgentError } from "@shared/agent";
 import { ChevronRight, Folder, RefreshCw } from "lucide-react";
 import type { FolderState } from "../../stores/project-add";
 import { EntryCreate } from "../files/entry-create";
@@ -30,7 +31,7 @@ export function ProjectAddFolders({
   picked: string;
   onBrowse: (path: string) => Promise<void> | void;
   onPick: (path: string) => void;
-  onCreate: (name: string) => Promise<void>;
+  onCreate: (name: string) => Promise<AgentError | null>;
 }) {
   const t = useTranslations();
 

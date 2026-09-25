@@ -1,4 +1,4 @@
-import { agentText } from "@renderer/i18n/agent-error";
+import { agentLine, agentText } from "@renderer/i18n/agent-error";
 import type { DictionaryKey } from "@renderer/i18n/en";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { AgentError } from "@shared/agent";
@@ -10,14 +10,16 @@ import {
   Server as ServerIcon,
 } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
+import { type RefusedField, refusedField } from "../../lib/server-add-refusal";
 import type { ButtonIcon } from "../ui/button";
 import { Button } from "../ui/button";
 import { Callout } from "../ui/callout";
-import { Field, fieldControlClass } from "../ui/field";
-import { Label } from "../ui/label";
+import { Field, fieldAria, fieldControlClass } from "../ui/field";
 import { ModeCard, ModeCards } from "../ui/mode-card";
 import { panelClass } from "../ui/panel";
 import { Select } from "../ui/select";
+import { ServerAddKeyFileField } from "./server-add-key-file-field";
+import { ServerAddPasswordField } from "./server-add-password-field";
 import { ServerAddPortField } from "./server-add-port-field";
 import { ServerReachNotice } from "./server-reach-notice";
 import { ServerSshNameField } from "./server-ssh-name-field";
@@ -29,6 +31,13 @@ const DEFAULT_PORT = "22";
 const PORT_MAX = 65_535;
 
 const DIGITS = /^\d+$/;
+
+const FIELD = {
+  address: "servers.add.address",
+  name: "servers.add.name",
+  systemHost: "servers.add.systemHost",
+  user: "servers.add.user",
+};
 
 /**
  * The port as a number, or null when what was typed is not one.
@@ -230,6 +239,8 @@ export function ServerAddForm({
 
   const { portNumber, portProblem } = portState(mode, port, t);
 
+  const refused = refusedField(error, mode, asksPassword);
+
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -324,8 +335,9 @@ export function ServerAddForm({
       </div>
 
       <div className="mt-5 grid gap-5 sm:grid-cols-2">
-        <Field label={t("servers.add.name.label")}>
+        <Field label={t("servers.add.name.label")} name={FIELD.name}>
           <input
+            {...fieldAria({ name: FIELD.name })}
             className={fieldControlClass}
             onChange={(e) => setName(e.target.value)}
             placeholder={t("servers.add.name.placeholder")}
@@ -350,9 +362,15 @@ export function ServerAddForm({
                 : t("servers.add.noHosts")
             }
             label={t("servers.add.systemHost.label")}
+            name={FIELD.systemHost}
+            required
           >
             <Select
-              aria-label={t("servers.add.systemHost.label")}
+              {...fieldAria({
+                help: true,
+                name: FIELD.systemHost,
+                required: true,
+              })}
               kind="data"
               onChange={setSystemHost}
               options={hosts.map((declared) => ({
@@ -366,8 +384,15 @@ export function ServerAddForm({
           <Field
             help={t("servers.add.address.help")}
             label={t("servers.field.address")}
+            name={FIELD.address}
+            required
           >
             <input
+              {...fieldAria({
+                help: true,
+                name: FIELD.address,
+                required: true,
+              })}
               className={fieldControlClass}
               onChange={(e) => retype(setHost)(e.target.value)}
               placeholder="203.0.113.10"
@@ -388,8 +413,11 @@ export function ServerAddForm({
             <Field
               help={t("servers.add.user.help")}
               label={t("servers.add.user.label")}
+              name={FIELD.user}
+              required
             >
               <input
+                {...fieldAria({ help: true, name: FIELD.user, required: true })}
                 className={fieldControlClass}
                 onChange={(e) => setUser(e.target.value)}
                 placeholder={t("servers.add.user.placeholder")}
@@ -402,23 +430,11 @@ export function ServerAddForm({
 
       {mode === "import" ? (
         <div className="mt-5">
-          <Label>{t("servers.add.keyFile.label")}</Label>
-          <div className="mt-1.5 flex items-center gap-2">
-            <Button icon={FileKey2} onClick={pickFile}>
-              {t("servers.add.pickFile")}
-            </Button>
-            <span className="min-w-0 truncate font-data text-[12px] text-ink-3">
-              {file || t("servers.add.noFile")}
-            </span>
-          </div>
-        </div>
-      ) : null}
-
-      {error ? (
-        <div className="mt-5">
-          <Callout bare fix={agentText(t, error).fix} tone="danger">
-            {agentText(t, error).message}
-          </Callout>
+          <ServerAddKeyFileField
+            file={file}
+            onPick={pickFile}
+            problem={refusalAt(t, error, refused, "keyFile")}
+          />
         </div>
       ) : null}
 
@@ -430,19 +446,19 @@ export function ServerAddForm({
 
       {asksPassword ? (
         <div className="fade-in mt-5 max-w-sm">
-          <Field
-            help={t("servers.add.password.help")}
-            label={t("servers.add.password.label")}
-          >
-            <input
-              autoComplete="off"
-              autoFocus
-              className={fieldControlClass}
-              onChange={(event) => setPassword(event.target.value)}
-              type="password"
-              value={password}
-            />
-          </Field>
+          <ServerAddPasswordField
+            onChange={setPassword}
+            problem={refusalAt(t, error, refused, "password")}
+            value={password}
+          />
+        </div>
+      ) : null}
+
+      {error && refused === null ? (
+        <div className="mt-5">
+          <Callout bare fix={agentText(t, error).fix} tone="danger">
+            {agentText(t, error).message}
+          </Callout>
         </div>
       ) : null}
 
@@ -481,6 +497,15 @@ export function ServerAddForm({
       </div>
     </form>
   );
+}
+
+function refusalAt(
+  t: ReturnType<typeof useTranslations>,
+  error: AgentError | null,
+  refused: RefusedField | null,
+  field: RefusedField
+): string | undefined {
+  return error && refused === field ? agentLine(t, error) : undefined;
 }
 
 function submitLabel(

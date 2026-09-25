@@ -1,7 +1,7 @@
 export const shell = {
   en: {
     "shell.sidebar.activity": "Processes and sessions",
-    "shell.sidebar.closeTerminal": "Close {title}",
+    "shell.sidebar.closeTerminal": "Close {title} and stop the session",
     "shell.sidebar.dashboard": "Dashboard",
     "shell.sidebar.gallery": "Gallery",
     "shell.sidebar.help": "Help",
@@ -18,8 +18,6 @@ export const shell = {
     "shell.sidebar.terminals": "Terminals",
     "shell.switch.label": "Driving {name}. Switch server",
     "shell.signOut.title": "Sign out of this account?",
-    "shell.signOut.detail":
-      "The servers stay on this computer; what needs the account waits for the next sign-in.",
     "shell.signOut.confirm": "Sign out",
     "palette.title": "Go to",
     "palette.search": "Search a view, a project, a terminal or a server",
@@ -109,7 +107,7 @@ export const shell = {
   },
   fr: {
     "shell.sidebar.activity": "Processus et sessions",
-    "shell.sidebar.closeTerminal": "Fermer {title}",
+    "shell.sidebar.closeTerminal": "Fermer {title} et arrêter la session",
     "shell.sidebar.dashboard": "Tableau de bord",
     "shell.sidebar.gallery": "Galerie",
     "shell.sidebar.help": "Aide",
@@ -126,8 +124,6 @@ export const shell = {
     "shell.sidebar.terminals": "Terminaux",
     "shell.switch.label": "{name} est piloté. Changer de serveur",
     "shell.signOut.title": "Se déconnecter de ce compte ?",
-    "shell.signOut.detail":
-      "Les serveurs restent sur cet ordinateur ; ce qui a besoin du compte attend la prochaine connexion.",
     "shell.signOut.confirm": "Se déconnecter",
     "palette.title": "Aller à",
     "palette.search": "Chercher une vue, un projet, un terminal ou un serveur",

@@ -31,6 +31,7 @@ export function AccountGateScreen({
 
   const signIn = useAccount((state) => state.signIn);
   const connect = useAccount((state) => state.connect);
+  const cancelSignIn = useAccount((state) => state.cancelSignIn);
   const refresh = useAccount((state) => state.refresh);
   const disconnect = useAccount((state) => state.disconnect);
   const bypass = useAccount((state) => state.bypass);
@@ -109,8 +110,9 @@ export function AccountGateScreen({
               <div className="rise" style={riseAt(3)}>
                 <AccountSignInCard
                   consoleUrl={account.consoleUrl}
+                  onCancel={cancelSignIn}
                   onConnect={connect}
-                  onOpenConsole={() => openConsole(account.consoleUrl)}
+                  onOpenUrl={openConsole}
                   signIn={signIn}
                 />
               </div>

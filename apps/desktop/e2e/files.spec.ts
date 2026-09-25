@@ -592,20 +592,25 @@ test.describe("les fichiers d'un projet", () => {
       });
     });
 
-    await test.step("un nom déjà pris est refusé sous l'en-tête, et le fichier ouvert reste", async () => {
+    await test.step("un nom déjà pris est refusé sous le champ, le dialogue reste, et le fichier ouvert aussi", async () => {
       await page.getByRole("button", { name: "Nouveau fichier" }).click();
-      await page
-        .getByRole("dialog", { name: "Nouveau fichier" })
-        .getByLabel("Nom")
-        .fill("index.ts");
+
+      const dialog = page.getByRole("dialog", { name: "Nouveau fichier" });
+
+      await dialog.getByLabel("Nom").fill("index.ts");
       await page.keyboard.press("Enter");
 
       await expect(
-        page.getByText("entrée déjà présente : projects/flymate/src/index.ts")
+        dialog.getByText("entrée déjà présente : projects/flymate/src/index.ts")
       ).toBeVisible();
+      await expect(dialog.getByLabel("Nom")).toHaveAttribute(
+        "aria-invalid",
+        "true"
+      );
       await expect(page.getByLabel("Fichier notes.md")).toBeVisible();
 
-      await page.getByRole("button", { name: "Masquer" }).click();
+      await dialog.getByRole("button", { name: "Annuler" }).click();
+      await expect(dialog).toHaveCount(0);
     });
 
     await test.step("l'écran tient la passe d'accessibilité et le texte sélectionné garde sa couleur, dans les deux thèmes", async () => {

@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { useServers } from "../../stores/servers";
 import { Button } from "../ui/button";
 import { Callout } from "../ui/callout";
-import { Field, fieldControlClass } from "../ui/field";
+import { controlClass, Field, fieldAria } from "../ui/field";
 import { Panel, panelClass } from "../ui/panel";
 import { StatusDot } from "../ui/status-dot";
 import { WaitingNotice } from "../ui/waiting-notice";
@@ -30,6 +30,8 @@ import { ServerKeyCard } from "./server-key-card";
  */
 
 const SETTLED_MS = 900;
+
+const PASSWORD = "servers.key.password";
 
 export function ServerKeyInstall({
   server,
@@ -132,6 +134,10 @@ export function ServerKeyInstall({
   }
 
   if (!byHand && keyInstall.status === "password") {
+    const refused = keyInstall.retry
+      ? t("servers.key.password.refused")
+      : undefined;
+
     return (
       <form
         className={`${panelClass("lg")} fade-in`}
@@ -150,23 +156,24 @@ export function ServerKeyInstall({
           })}
         </p>
 
-        {keyInstall.retry ? (
-          <div className="mt-5">
-            <Callout bare tone="warn">
-              {t("servers.key.password.refused")}
-            </Callout>
-          </div>
-        ) : null}
-
         <div className="mt-5 max-w-sm">
           <Field
             help={t("servers.key.password.help")}
             label={t("servers.key.password.label")}
+            name={PASSWORD}
+            problem={refused}
+            required
           >
             <input
+              {...fieldAria({
+                help: true,
+                name: PASSWORD,
+                problem: Boolean(refused),
+                required: true,
+              })}
               autoComplete="off"
               autoFocus
-              className={fieldControlClass}
+              className={controlClass("data", Boolean(refused))}
               onChange={(event) => setPassword(event.target.value)}
               type="password"
               value={password}

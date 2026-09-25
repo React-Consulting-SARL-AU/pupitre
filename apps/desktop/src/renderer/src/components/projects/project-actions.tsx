@@ -3,6 +3,7 @@ import { Button } from "@renderer/components/ui/button";
 import { ConfirmButton } from "@renderer/components/ui/confirm-button";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { isRunning } from "@renderer/lib/project-state";
+import type { Gesture } from "@renderer/lib/use-pending";
 import type { ProjectAction } from "@renderer/stores/snapshot";
 import { Play, RefreshCw, RotateCw, Square, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -23,7 +24,7 @@ export function ProjectActions({
   project: Project;
   busy: boolean;
   syncing: boolean;
-  onAct: (action: ProjectAction, name: string) => void;
+  onAct: Gesture<[ProjectAction, string]>;
   onSync: () => void;
   /** Answer with the promise of the removal and the button waits on it. */
   onRemove: () => Promise<void>;

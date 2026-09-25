@@ -30,7 +30,7 @@ export function ProjectBranches({
   state: BranchState;
   folder: string;
   switching: boolean;
-  onCheckout: (branch: string) => void;
+  onCheckout: (branch: string) => Promise<void>;
 }) {
   const t = useTranslations();
 
@@ -114,8 +114,8 @@ export function ProjectBranches({
           <Button
             icon={ArrowRightLeft}
             loading={switching}
-            onClick={() => {
-              onCheckout(chosen);
+            onClick={async () => {
+              await onCheckout(chosen);
               setPicked(null);
             }}
             size="sm"
@@ -143,8 +143,8 @@ export function ProjectBranches({
         <ProjectBranchCreate
           branches={branches}
           onCancel={() => setCreating(false)}
-          onCreate={(branch) => {
-            onCheckout(branch);
+          onCreate={async (branch) => {
+            await onCheckout(branch);
             setCreating(false);
           }}
           switching={switching}

@@ -3,17 +3,18 @@ import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { RowProblem } from "@renderer/lib/project-ports";
 import type { ProcessProblem } from "@renderer/lib/project-processes";
-import type {
-  AddStep,
-  DetectionState,
-  Draft,
-  Exposure,
-  FolderState,
-  ReposState,
+import {
+  type AddStep,
+  type DetectionState,
+  type Draft,
+  type Exposure,
+  type FolderState,
+  nameRefused,
+  type ReposState,
 } from "../../stores/project-add";
 import { Callout } from "../ui/callout";
 import { CheckLine } from "../ui/check-line";
-import { Field, fieldControlClass } from "../ui/field";
+import { controlClass, Field, fieldAria } from "../ui/field";
 import { Panel } from "../ui/panel";
 import { Section } from "../ui/section";
 import { ProjectAddDeclared } from "./project-add-declared";
@@ -22,6 +23,8 @@ import { ProjectAddSourceStatus } from "./project-add-source-status";
 import { ProjectAddSourceSummary } from "./project-add-source-summary";
 import type { ProcessEdits } from "./project-process-card";
 import { ProjectProcesses } from "./project-processes";
+
+const NAME_FIELD = "project.name";
 
 /**
  * What the agent needs to know about a project, asked in two pages.
@@ -86,6 +89,10 @@ export function ProjectAddForm({
 }) {
   const t = useTranslations();
 
+  const nameProblem = nameRefused(draft.name)
+    ? t("projectAdd.form.nameProblem")
+    : undefined;
+
   return (
     <form
       className="flex flex-col gap-section"
@@ -146,12 +153,18 @@ export function ProjectAddForm({
                     : t("projectAdd.form.nameHelp")
                 }
                 label={t("projectAdd.form.nameLabel")}
-                name="project.name"
+                name={NAME_FIELD}
+                problem={nameProblem}
                 required
               >
                 <input
-                  className={`${fieldControlClass} max-w-sm`}
-                  id="project.name"
+                  {...fieldAria({
+                    help: true,
+                    name: NAME_FIELD,
+                    problem: Boolean(nameProblem),
+                    required: true,
+                  })}
+                  className={`${controlClass("data", Boolean(nameProblem))} max-w-sm`}
                   onChange={(event) => edit.name(event.target.value)}
                   placeholder={t("projectAdd.form.namePlaceholder")}
                   value={draft.name}

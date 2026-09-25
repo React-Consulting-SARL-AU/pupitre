@@ -5,7 +5,6 @@ import {
   absoluteOf,
   crumbsOf,
   dirnameOf,
-  heldCount,
   isEntryName,
   nameOf,
   parentOf,
@@ -123,16 +122,6 @@ describe("le tri d'un dossier", () => {
     sortedEntries(given, "date", true);
 
     expect(given.map((e) => e.name)).toEqual(ENTRIES.map((e) => e.name));
-  });
-});
-
-describe("le refus d'un dossier non vide", () => {
-  it("lit le nombre d'entrées que le message nomme en dernier", () => {
-    expect(heldCount("the folder is not empty: v2/src holds 14 entries")).toBe(
-      14
-    );
-    expect(heldCount("dossier non vide : app contient 3 entrées")).toBe(3);
-    expect(heldCount("nothing to count here")).toBeNull();
   });
 });
 

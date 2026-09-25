@@ -5,6 +5,8 @@ import type {
   UsageRight,
 } from "@shared/account";
 import { renderToStaticMarkup } from "react-dom/server";
+import { mount } from "../../__tests__/dom";
+import type { SignInState } from "../../stores/account";
 import { AccountGateScreen } from "../account/account-gate-screen";
 import { AccountIdentityCard } from "../account/account-identity-card";
 import { AccountSignInCard } from "../account/account-sign-in-card";
@@ -163,33 +165,30 @@ describe("le droit d'usage", () => {
 });
 
 describe("la connexion", () => {
-  it("propose de se connecter et d'ouvrir la console", () => {
-    const html = renderToStaticMarkup(
+  const card = (signIn: SignInState): string =>
+    renderToStaticMarkup(
       <AccountSignInCard
         consoleUrl={CONSOLE_URL}
+        onCancel={NOOP}
         onConnect={NOOP}
-        onOpenConsole={NOOP}
-        signIn={{ status: "idle" }}
+        onOpenUrl={NOOP}
+        signIn={signIn}
       />
     );
+
+  it("propose de se connecter et d'ouvrir la console", () => {
+    const html = card({ status: "idle" });
 
     expect(text(html)).toContain("Se connecter");
     expect(text(html)).toContain("Ouvrir la console");
   });
 
   it("affiche le code et l'adresse à approuver pendant l'attente", () => {
-    const html = renderToStaticMarkup(
-      <AccountSignInCard
-        consoleUrl={CONSOLE_URL}
-        onConnect={NOOP}
-        onOpenConsole={NOOP}
-        signIn={{
-          status: "waiting",
-          userCode: "WDJB-MJHT",
-          verificationUri: `${CONSOLE_URL}/device`,
-        }}
-      />
-    );
+    const html = card({
+      status: "waiting",
+      userCode: "WDJB-MJHT",
+      verificationUri: `${CONSOLE_URL}/device`,
+    });
 
     expect(text(html)).toContain("WDJB-MJHT");
     expect(text(html)).toContain(CONSOLE_URL);
@@ -197,40 +196,56 @@ describe("la connexion", () => {
   });
 
   it("déroule les trois pas de l'approbation pendant l'attente", () => {
-    const html = renderToStaticMarkup(
-      <AccountSignInCard
-        consoleUrl={CONSOLE_URL}
-        onConnect={NOOP}
-        onOpenConsole={NOOP}
-        signIn={{
-          status: "code",
-          userCode: "WDJB-MJHT",
-          verificationUri: `${CONSOLE_URL}/device`,
-        }}
-      />
-    );
+    const html = card({
+      status: "code",
+      userCode: "WDJB-MJHT",
+      verificationUri: `${CONSOLE_URL}/device`,
+    });
 
     expect(text(html)).toContain("Le navigateur s'est ouvert");
     expect(text(html)).toContain("approuvez-le");
     expect(text(html)).toContain("dès que la console a confirmé");
   });
 
-  it("rend le refus et son remède tels quels", () => {
-    const html = renderToStaticMarkup(
+  it("rouvre le navigateur sur l'adresse du code, et laisse annuler l'attente", async () => {
+    const opened: string[] = [];
+    const cancelled: string[] = [];
+    const view = await mount(
       <AccountSignInCard
         consoleUrl={CONSOLE_URL}
+        onCancel={() => cancelled.push("cancel")}
         onConnect={NOOP}
-        onOpenConsole={NOOP}
+        onOpenUrl={(url) => opened.push(url)}
         signIn={{
-          error: {
-            code: "denied",
-            fix: "Relance la connexion et approuve le code affiché.",
-            message: "La demande a été refusée dans le navigateur.",
-          },
-          status: "failed",
+          status: "waiting",
+          userCode: "WDJB-MJHT",
+          verificationUri: `${CONSOLE_URL}/device?user_code=WDJB-MJHT`,
         }}
       />
     );
+    const button = (label: string) =>
+      [...view.container.querySelectorAll("button")].find(
+        (candidate) => candidate.textContent === label
+      ) ?? null;
+
+    await view.click(button("Rouvrir le navigateur"));
+    await view.click(button("Annuler la connexion"));
+
+    expect(opened).toEqual([`${CONSOLE_URL}/device?user_code=WDJB-MJHT`]);
+    expect(cancelled).toEqual(["cancel"]);
+
+    view.unmount();
+  });
+
+  it("rend le refus et son remède tels quels", () => {
+    const html = card({
+      error: {
+        code: "denied",
+        fix: "Relance la connexion et approuve le code affiché.",
+        message: "La demande a été refusée dans le navigateur.",
+      },
+      status: "failed",
+    });
 
     expect(text(html)).toContain(
       "La demande a été refusée dans le navigateur."
@@ -413,7 +428,8 @@ describe("l'identité", () => {
       />
     );
 
-    expect(text(html)).toContain("trousseau de cet ordinateur");
+    expect(text(html)).toContain("pas de trousseau système");
+    expect(text(html)).toContain("GNOME Keyring ou KWallet");
   });
 
   it("ne montre jamais autre chose que la moitié publique", () => {

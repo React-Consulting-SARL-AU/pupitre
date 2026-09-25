@@ -84,6 +84,11 @@ function delay(ms: number): Promise<void> {
 
 const PROJECT_NAME = /^[a-z0-9][a-z0-9._-]*$/;
 
+/** A name typed and not one the agent takes; an empty one is only still to come. */
+export function nameRefused(name: string): boolean {
+  return name !== "" && !PROJECT_NAME.test(name);
+}
+
 export const CLOUDFLARE = "exposure.cloudflare";
 
 export const CADDY = "exposure.caddy";
@@ -290,7 +295,8 @@ interface ProjectAddStore {
   pickRepo: (repo: GithubRepo) => void;
   /** Lists a folder of the server, relative to the projects root. */
   browse: (serverId: string, path: string) => Promise<void>;
-  makeFolder: (serverId: string, name: string) => Promise<void>;
+  /** The refusal goes back to the dialog that asked, and the list stays. */
+  makeFolder: (serverId: string, name: string) => Promise<AgentError | null>;
   pickFolder: (path: string) => void;
   /** Asks the agent what the source asks for, without declaring anything; what it read opens the configuration. */
   detect: (serverId: string) => Promise<void>;
@@ -1296,7 +1302,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       const wanted = under(path, name.trim());
 
       if (projectsFolder === null || name.trim().length === 0) {
-        return;
+        return null;
       }
 
       const answer = await agentCall<FsPathResult>(serverId, "fs.mkdir", {
@@ -1304,12 +1310,12 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       });
 
       if (!answer.ok) {
-        set({ folders: { error: answer.error, path, status: "failed" } });
-
-        return;
+        return answer.error;
       }
 
       await get().browse(serverId, path);
+
+      return null;
     },
 
     pickFolder(path) {

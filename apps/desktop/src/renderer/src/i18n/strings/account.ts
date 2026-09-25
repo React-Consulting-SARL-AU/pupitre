@@ -3,7 +3,7 @@ export const account = {
     "account.identity.refresh": "Refresh",
     "account.identity.disconnect": "Sign out",
     "account.identity.disconnectQuestion":
-      "The servers close for this computer and every open terminal with them; the sessions keep running on the machines.",
+      "The servers stay on this computer and their sessions keep running; the app drives no server until the next sign-in.",
     "account.devices.heading": "Devices",
     "account.devices.none": "No device is registered.",
     "account.devices.thisComputer": "this computer",
@@ -36,7 +36,7 @@ export const account = {
     "account.identity.organization": "Organisation",
     "account.identity.noOrganization": "No active organisation",
     "account.identity.unsealed":
-      "This computer's keychain would not keep the session: it will need doing again next time the app starts.",
+      "This computer has no system keychain the app can use: the session will need doing again next time the app starts. On Linux, install and unlock GNOME Keyring or KWallet, then restart Pupitre.",
 
     "account.reading.title": "Reading the account",
     "account.read.failed": "The account could not be read.",
@@ -72,6 +72,7 @@ export const account = {
     "account.signIn.codeLabel": "Waiting for your approval",
     "account.signIn.codeHelp": "Expires after thirty minutes.",
     "account.signIn.reopenBrowser": "Reopen the browser",
+    "account.signIn.cancel": "Cancel signing in",
 
     "account.usage.look.development": "Development build",
     "account.usage.look.valid": "Subscription active",
@@ -98,7 +99,7 @@ export const account = {
     "account.identity.refresh": "Actualiser",
     "account.identity.disconnect": "Se déconnecter",
     "account.identity.disconnectQuestion":
-      "Les serveurs se ferment pour cet ordinateur et chaque terminal ouvert avec eux ; les sessions continuent sur les machines.",
+      "Les serveurs restent sur cet ordinateur et leurs sessions continuent ; l'app ne pilote plus aucun serveur avant la prochaine connexion.",
     "account.devices.heading": "Appareils",
     "account.devices.none": "Aucun appareil n'est enregistré.",
     "account.devices.thisComputer": "cet ordinateur",
@@ -131,7 +132,7 @@ export const account = {
     "account.identity.organization": "Organisation",
     "account.identity.noOrganization": "Aucune organisation active",
     "account.identity.unsealed":
-      "Le trousseau de cet ordinateur n'a pas accepté de garder la session : elle sera à refaire au prochain démarrage.",
+      "Cet ordinateur n'a pas de trousseau système que l'app puisse utiliser : la session sera à refaire au prochain démarrage. Sous Linux, installez et déverrouillez GNOME Keyring ou KWallet, puis redémarrez Pupitre.",
 
     "account.reading.title": "Lecture du compte",
     "account.read.failed": "Le compte n'a pas pu être lu.",
@@ -168,6 +169,7 @@ export const account = {
     "account.signIn.codeLabel": "En attente de votre approbation",
     "account.signIn.codeHelp": "Expire au bout de trente minutes.",
     "account.signIn.reopenBrowser": "Rouvrir le navigateur",
+    "account.signIn.cancel": "Annuler la connexion",
 
     "account.usage.look.development": "Build de développement",
     "account.usage.look.valid": "Abonnement actif",

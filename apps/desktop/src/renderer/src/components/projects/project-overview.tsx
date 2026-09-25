@@ -2,6 +2,7 @@ import type { Project } from "@pupitre/shared/agent-protocol/state";
 import { Panel } from "@renderer/components/ui/panel";
 import { Section } from "@renderer/components/ui/section";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import type { Gesture } from "@renderer/lib/use-pending";
 import type { BranchState, EnvState, GitState } from "@renderer/stores/project";
 import type { ProjectAction } from "@renderer/stores/snapshot";
 import { useEffect } from "react";
@@ -44,8 +45,8 @@ export function ProjectOverview({
   /** A gesture on the project is in flight: the process buttons wait for it. */
   busy: boolean;
   /** Starts, stops or restarts one process of the project. */
-  onAct: (action: ProjectAction, process: string) => void;
-  onCheckout: (branch: string) => void;
+  onAct: Gesture<[ProjectAction, string]>;
+  onCheckout: (branch: string) => Promise<void>;
   onCheckGit: () => void;
   /** Pull, then reinstall: what the header's Sync does, offered where the lead is read. */
   onSync: () => void;

@@ -1,3 +1,4 @@
+import { accountOf, useAccount } from "@renderer/stores/account";
 import type { ErrorPhrase } from "@shared/agent";
 import type { DictionaryKey } from "./en";
 import type { Translate } from "./i18n";
@@ -32,8 +33,30 @@ export function agentText(
 
   const message = t(phrase.id as DictionaryKey, phrase.values);
   const fix = t.has(`${phrase.id}.fix`)
-    ? t(`${phrase.id}.fix` as DictionaryKey, phrase.values)
+    ? remedy(t, `${phrase.id}.fix` as DictionaryKey, phrase.values)
     : error.fix;
 
   return fix === undefined ? { message } : { message, fix };
+}
+
+/** The refusal and its remedy as the one line a field carries under it. */
+export function agentLine(t: Translate, error: Refusal): string {
+  const said = agentText(t, error);
+
+  return [said.message, said.fix].filter(Boolean).join(" ");
+}
+
+/** A remedy that names the repository or a release has a `.dev` twin, read only by a development build. */
+export function remedy(
+  t: Translate,
+  key: DictionaryKey,
+  values?: Record<string, string | number>
+): string {
+  const developer = `${key}.dev`;
+  const development =
+    accountOf(useAccount.getState().view)?.build === "development";
+
+  return development && t.has(developer)
+    ? t(developer as DictionaryKey, values)
+    : t(key, values);
 }

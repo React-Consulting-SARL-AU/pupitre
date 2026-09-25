@@ -44,7 +44,7 @@ export function SignOutDialog({
       title={t("shell.signOut.title")}
     >
       <p className="text-[13px] text-ink-2 leading-relaxed">
-        {t("shell.signOut.detail")}
+        {t("account.identity.disconnectQuestion")}
       </p>
     </Dialog>
   );

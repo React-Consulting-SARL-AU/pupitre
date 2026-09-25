@@ -2,6 +2,7 @@ import { InstallLog } from "@renderer/components/install/install-log";
 import { Button } from "@renderer/components/ui/button";
 import { Callout } from "@renderer/components/ui/callout";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
+import { remedy } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type {
   MigrationState,
@@ -9,7 +10,7 @@ import type {
   UpgradeState,
 } from "@renderer/stores/agent-update";
 import { owesMigration } from "@shared/agent-update";
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, Wrench } from "lucide-react";
 import { AgentUpdateFrame } from "./agent-update-frame";
 import { AgentUpdateNotes } from "./agent-update-notes";
 import { ConfigMigrationPanel } from "./config-migration-panel";
@@ -50,6 +51,7 @@ export function AgentUpdateBanner({
   journal,
   onUpgrade,
   onMigrate,
+  onRepair,
   onHide,
 }: {
   state: UpdateState;
@@ -58,6 +60,8 @@ export function AgentUpdateBanner({
   journal: readonly string[];
   onUpgrade: () => void;
   onMigrate: () => void;
+  /** Opens the assistant that reinstalls the agent on this server. */
+  onRepair: () => void;
   onHide: () => void;
 }) {
   const t = useTranslations();
@@ -91,7 +95,15 @@ export function AgentUpdateBanner({
         order="behind"
         title={t("updates.agent.staleTitle")}
       >
-        <Callout>{t("updates.agent.staleBody")}</Callout>
+        <Callout
+          action={
+            <Button icon={Wrench} onClick={onRepair} size="sm">
+              {t("updates.agent.repair")}
+            </Button>
+          }
+        >
+          {t("updates.agent.staleBody")}
+        </Callout>
       </AgentUpdateFrame>
     );
   }
@@ -129,7 +141,7 @@ export function AgentUpdateBanner({
       <AgentUpdateNotes notes={offer.notes} />
 
       {signable ? null : (
-        <Callout fix={t("updates.agent.unsignedFix")} tone="warn">
+        <Callout fix={remedy(t, "updates.agent.unsignedFix")} tone="warn">
           {t("updates.agent.unsignedBody")}
         </Callout>
       )}

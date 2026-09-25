@@ -1,5 +1,6 @@
 import type { DictionaryKey } from "@renderer/i18n/en";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import type { AgentError } from "@shared/agent";
 import type { GithubRepo } from "@shared/github";
 import { FolderGit2, HardDrive, Link2, Package } from "lucide-react";
 import type {
@@ -61,7 +62,7 @@ export interface SourceEdits {
   pickRepo: (repo: GithubRepo) => void;
   pickFolder: (path: string) => void;
   browse: (path: string) => Promise<void> | void;
-  createFolder: (name: string) => Promise<void>;
+  createFolder: (name: string) => Promise<AgentError | null>;
   loadRepos: (refresh?: boolean) => Promise<void>;
 }
 

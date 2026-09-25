@@ -98,15 +98,6 @@ export function sortedEntries(
     });
 }
 
-const LAST_COUNT = /(\d+)(?!.*\d)/;
-
-/** The last count an agent's refusal names, when it names one: how many entries a folder holds. */
-export function heldCount(message: string): number | null {
-  const found = message.match(LAST_COUNT);
-
-  return found ? Number(found[1]) : null;
-}
-
 export type RenderedForm = "markdown" | "svg";
 
 const RENDERED_FORMS: Record<string, RenderedForm> = {

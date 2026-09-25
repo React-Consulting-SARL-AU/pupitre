@@ -89,9 +89,9 @@ export function FileList({
   onSort: (sort: FileSort) => void;
   onHidden: (hidden: boolean) => void;
   onRefresh: () => Promise<void>;
-  onMakeFolder: (name: string) => Promise<void>;
-  onMakeFile: (name: string) => Promise<void>;
-  onRename: (path: string, to: string) => Promise<void>;
+  onMakeFolder: (name: string) => Promise<AgentError | null>;
+  onMakeFile: (name: string) => Promise<AgentError | null>;
+  onRename: (path: string, to: string) => Promise<AgentError | null>;
   onRemove: (path: string, recursive: boolean) => Promise<void>;
   /** A gesture the list does not answer itself: an editor, a terminal, the path copied. */
   onAct: (path: string, action: FileAction) => void;
@@ -132,9 +132,14 @@ export function FileList({
     }
   }
 
-  async function rename(full: string, to: string): Promise<void> {
-    await onRename(full, to);
-    setEditing(null);
+  async function rename(full: string, to: string): Promise<AgentError | null> {
+    const refusal = await onRename(full, to);
+
+    if (!refusal) {
+      setEditing(null);
+    }
+
+    return refusal;
   }
 
   function onDragOver(event: DragEvent<HTMLElement>): void {

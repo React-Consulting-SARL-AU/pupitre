@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import type { AccountState, SignInProgress } from "@shared/account";
+import type {
+  AccountResponse,
+  AccountState,
+  SignInProgress,
+} from "@shared/account";
 import { stubPupitre } from "../../__tests__/stub-pupitre";
 import { accountOf, useAccount } from "../account";
 
@@ -244,6 +248,58 @@ describe("la connexion", () => {
       status: "waiting",
       userCode: "WDJB-MJHT",
     });
+  });
+
+  it("annule l'attente : le main arrête d'attendre, l'écran revient au bouton, et une connexion suivante n'est pas effacée par l'ancienne", async () => {
+    let cancelled = 0;
+    const answers: ((value: AccountResponse<AccountState>) => void)[] = [];
+
+    stubPupitre({
+      cancelSignIn: () => {
+        cancelled += 1;
+      },
+      signIn: (onProgress: (progress: SignInProgress) => void) => {
+        onProgress({
+          kind: "code",
+          userCode: "WDJB-MJHT",
+          verificationUri: "https://app.pupitre.test/auth/device",
+          verificationUriComplete:
+            "https://app.pupitre.test/auth/device?user_code=WDJB-MJHT",
+        });
+        onProgress({ kind: "waiting" });
+
+        return new Promise((resolve) => answers.push(resolve));
+      },
+    });
+
+    const first = useAccount.getState().connect();
+
+    await Promise.resolve();
+    useAccount.getState().cancelSignIn();
+
+    expect(cancelled).toBe(1);
+    expect(useAccount.getState().signIn.status).toBe("idle");
+
+    const second = useAccount.getState().connect();
+
+    await Promise.resolve();
+    answers[0]?.({
+      error: { code: "cancelled", message: "refusal.signIn.cancelled" },
+      ok: false,
+    });
+    await first;
+
+    expect(useAccount.getState().signIn).toMatchObject({
+      status: "waiting",
+      verificationUri:
+        "https://app.pupitre.test/auth/device?user_code=WDJB-MJHT",
+    });
+
+    answers[1]?.({ ok: true, result: SIGNED_IN });
+    await second;
+
+    expect(useAccount.getState().signIn.status).toBe("idle");
+    expect(accountOf(useAccount.getState().view)?.identity?.name).toBe("Ada");
   });
 
   it("garde le refus de la console avec son remède", async () => {
