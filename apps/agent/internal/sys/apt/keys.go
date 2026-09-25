@@ -14,8 +14,8 @@ var Pins = map[string][]string{
 	"https://download.docker.com/linux/ubuntu/gpg":                  {"9DC858229FC7DD38854AE2D88D81803C0EBFCD88"},
 	"https://dl.cloudsmith.io/public/caddy/stable/gpg.key":          {"65760C51EDEA2017CEA2CA15155B6D79CA56EA34"},
 	"https://pkg.cloudflare.com/cloudflare-main.gpg":                {"CC94B39C77AE7342A68B89628A682D308D4E5E73", "FBA8C0EE63617C5EED695C43254B391D8CACCBF8"},
-	"https://pkgs.tailscale.com/stable/ubuntu/jammy.noarmor.gpg":    {tailscaleKey},
-	"https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg":    {tailscaleKey},
+	"https://pkgs.tailscale.com/stable/ubuntu/jammy.noarmor.gpg":    {tailscaleFingerprint},
+	"https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg":    {tailscaleFingerprint},
 	"https://www.postgresql.org/media/keys/ACCC4CF8.asc":            {"B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8"},
 	"https://www.mongodb.org/static/pgp/server-7.0.asc":             {"E58830201F7DD82CD808AA84160D26BB1785BA38"},
 	"https://www.mongodb.org/static/pgp/server-8.0.asc":             {"4B0752C1BCA238C0B4EE14DC41DE058A4E7DCA05"},
@@ -24,7 +24,7 @@ var Pins = map[string][]string{
 	"https://cli.github.com/packages/githubcli-archive-keyring.gpg": {"2C6106201985B60E6C7AC87323F3D4EA75716059", "7F38BBB59D064DBCB3D84D725612B36462313325"},
 }
 
-const tailscaleKey = "2596A99EAAB33821893C0A79458CA832957F5868"
+const tailscaleFingerprint = "2596A99EAAB33821893C0A79458CA832957F5868"
 
 func DownloadKey(ctx sys.Context, url, path string) error {
 	pinned, known := Pins[url]
