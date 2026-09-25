@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test"
+import { PUPITRE_ORIGINS } from "@pupitre/shared/legal"
 import { LAUNCH_ADMIN_SEATS } from "@pupitre/shared/plans"
 import {
   AppUrlNotConfiguredError,
@@ -68,6 +69,7 @@ describe("appUrlFromEnv", () => {
   })
 
   it("falls back to the local console only on a machine without an environment", () => {
+    expect(appUrlFromEnv({})).toBe(PUPITRE_ORIGINS.devConsole)
     expect(appUrlFromEnv({})).toBe("http://localhost:3000")
   })
 

@@ -60,7 +60,7 @@ const NOTES = "Première version signée : onboarding, catalogue, terminaux."
 
 const SIGNATURE = `${"c".repeat(86)}==`
 
-/** What a published address is composed from when no bucket is configured. */
+// Base of a published address when no downloads bucket is configured.
 const DOWNLOADS = "http://localhost/__downloads"
 
 function publication(overrides: Record<string, unknown> = {}) {

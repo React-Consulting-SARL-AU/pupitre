@@ -51,7 +51,7 @@ export interface IngestResult {
   newThread: boolean
 }
 
-/** One mail delivered to two of our addresses is two deliveries: the address is part of what is hashed. */
+// The address is hashed too: one mail delivered to two of our addresses is two deliveries.
 async function deliveryHash(
   address: string,
   raw: ArrayBuffer
@@ -69,7 +69,7 @@ async function deliveryHash(
   ).join("")
 }
 
-/** The raw `.eml` in the bucket holds the whole body; the column holds what D1 accepts. */
+// The raw `.eml` in the bucket keeps the whole body; the column holds what D1 accepts.
 function cappedText(text: string | null | undefined): string | null {
   if (!text) {
     return null
@@ -104,7 +104,7 @@ async function findDuplicate(
   }
 }
 
-/** A reply that names a message filed under two of our addresses joins the thread of the address it was written to. */
+// A message filed under two of our addresses resolves to the thread of the address written to.
 async function threadByReferences(
   address: string,
   parsed: ParsedEmail | null
@@ -140,6 +140,7 @@ async function threadBySubject(
   const since = new Date(
     now.getTime() - THREAD_WINDOW_DAYS * MILLISECONDS_PER_DAY
   )
+
   const candidates = await getPrisma().mailThread.findMany({
     where: { address, normalizedSubject, updatedAt: { gte: since } },
     orderBy: { updatedAt: "desc" },
@@ -149,6 +150,7 @@ async function threadBySubject(
       messages: { select: { fromEmail: true, toEmails: true } },
     },
   })
+
   const shares = candidates.find((thread) =>
     thread.messages.some(
       (message) =>
@@ -174,15 +176,7 @@ interface StoredObjects {
   attachments: StoredAttachment[]
 }
 
-/**
- * Everything reaches the bucket before a single row is written: a put that
- * fails leaves nothing behind, and the replay that follows lands on the same
- * keys rather than on a row whose body was lost.
- *
- * Past `MAIL_MAX_INBOUND_ATTACHMENTS`, a part stays in the raw `.eml` alone: a
- * mail of thousands of parts would otherwise outrun the Worker's subrequests
- * and be replayed forever.
- */
+// Objects land before any row: a failed put leaves nothing, and the replay reuses the same keys.
 async function storeObjects(
   rawHash: string,
   raw: ArrayBuffer,
@@ -206,6 +200,7 @@ async function storeObjects(
   }
 
   const attachments: StoredAttachment[] = []
+  // Parts past the cap stay in the raw `.eml`: thousands would outrun the Worker's subrequests.
   const filed = (parsed?.attachments ?? []).slice(
     0,
     MAIL_MAX_INBOUND_ATTACHMENTS
@@ -257,10 +252,7 @@ interface ResolvedThread {
   created: boolean
 }
 
-/**
- * A `From` nobody vouched for is only a claim: it joins a thread by the ids it
- * references, never by a subject and a sender it could have made up.
- */
+// An unauthenticated sender joins a thread only by referenced ids, never by a forgeable subject.
 async function resolveThread(
   target: ThreadTarget,
   parsed: ParsedEmail | null,
@@ -356,11 +348,7 @@ async function writeInboundMessage(
   }
 }
 
-/**
- * The raw bytes, with the address they were delivered to, are the identity of
- * a delivery: Cloudflare replays one that failed, and a replay must land on the
- * row already written rather than a second copy of the same mail.
- */
+/** Address plus raw bytes identify a delivery, so a Cloudflare replay lands on the row already written. */
 export async function ingestInboundEmail(
   input: InboundEmail
 ): Promise<IngestResult> {
@@ -393,6 +381,7 @@ export async function ingestInboundEmail(
   const contactUserId = authenticated
     ? await contactUserIdFor(parsed?.fromEmail ?? null)
     : null
+
   const thread = await resolveThread(
     {
       address,
@@ -408,6 +397,7 @@ export async function ingestInboundEmail(
     parsed,
     now
   )
+
   const message = await writeInboundMessage(
     { thread, address, sender, rawHash, now, stored },
     parsed
@@ -431,6 +421,7 @@ export async function ingestInboundEmail(
       snippet: snippetOf(parsed?.text),
     },
   })
+
   await recordMailActivity({ threadId: thread.id, action: "received" })
   await publishInboxEvent({
     type: "thread.received",
@@ -446,7 +437,7 @@ export async function ingestInboundEmail(
   }
 }
 
-/** What Email Routing hands the Worker, and all this path reads of it. */
+/** The subset of Email Routing's message that this path reads. */
 export interface InboundEmailMessage {
   from: string
   to: string
@@ -455,11 +446,7 @@ export interface InboundEmailMessage {
   setReject(reason: string): void
 }
 
-/**
- * The envelope announces the size before the bytes are read: a mail over the
- * cap is refused at the door, because buffering it kills the isolate and
- * Cloudflare replays a delivery that died, forever.
- */
+/** Oversized mail is refused before reading: buffering it kills the isolate, and Cloudflare replays that forever. */
 export async function handleInboundEmailMessage(
   message: InboundEmailMessage
 ): Promise<void> {

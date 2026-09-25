@@ -63,11 +63,7 @@ export function trustedOrigins(env: AuthEnv): string[] {
   return [...new Set(origins)]
 }
 
-/**
- * The relying party is the registrable domain, not the console host: a passkey
- * registered on `app.pupitre.studio` keeps working if the console ever moves to
- * another subdomain of `pupitre.studio`.
- */
+/** The registrable domain, not the console host, so passkeys survive a move to another subdomain. */
 export function passkeyRpId(env: AuthEnv): string {
   const { hostname } = new URL(env.BETTER_AUTH_URL)
 

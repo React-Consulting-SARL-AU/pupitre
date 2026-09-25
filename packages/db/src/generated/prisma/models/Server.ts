@@ -2900,8 +2900,7 @@ export type $ServerPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     revokedDevices: Prisma.$ServerRevokedDevicePayload<ExtArgs>[]
     alerts: Prisma.$AlertPayload<ExtArgs>[]
     /**
-     * One row per heartbeat reading, pruned past the seven-day window: the
-     * heartbeat writes its sample alone, never the window it belongs to.
+     * One row per heartbeat, pruned past seven days.
      */
     metricSamples: Prisma.$ServerMetricPayload<ExtArgs>[]
     backups: Prisma.$BackupPayload<ExtArgs>[]
@@ -2927,7 +2926,7 @@ export type $ServerPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     status: $Enums.ServerStatus
     suspendedReason: $Enums.SuspensionReason | null
     /**
-     * True for a server the suspension of its organization took down, and that the reopening gives back; a suspension the team laid on this machine alone stays.
+     * Reopening the organization only lifts suspensions it caused, not ones laid on this server alone.
      */
     suspendedByOrganization: boolean
     channel: $Enums.ReleaseChannel
@@ -2937,11 +2936,11 @@ export type $ServerPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     lastHeartbeatAt: Date | null
     lastUsage: runtime.JsonValue | null
     /**
-     * The heartbeat's last word on backups, a `BackupBeat`; a heartbeat without one keeps it.
+     * Last `BackupBeat`; a heartbeat without one keeps it.
      */
     backup: runtime.JsonValue | null
     /**
-     * The heartbeat's last `KeysBeat` and when it came, `{ signers, pending, reported_at }`; a heartbeat without one keeps it.
+     * Last `KeysBeat` as `{ signers, pending, reported_at }`; a heartbeat without one keeps it.
      */
     keyReport: runtime.JsonValue | null
     createdAt: Date

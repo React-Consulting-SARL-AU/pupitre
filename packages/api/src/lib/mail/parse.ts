@@ -119,11 +119,7 @@ function attachmentsOf(email: Email): ParsedAttachment[] {
   })
 }
 
-/**
- * `null` when the message cannot be read at all: the envelope still deserves a
- * row and the raw bytes still deserve a key, rather than a mail lost in a retry
- * loop over something no parser will ever accept.
- */
+/** `null` when unreadable, so the delivery is still stored instead of retried forever. */
 export async function parseEmail(
   raw: ArrayBuffer
 ): Promise<ParsedEmail | null> {

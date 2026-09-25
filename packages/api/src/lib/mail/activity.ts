@@ -40,6 +40,7 @@ export async function listMailActivities(
     where: { threadId },
     orderBy: { createdAt: "asc" },
   })
+
   const actorIds = [
     ...new Set(
       activities
@@ -47,6 +48,7 @@ export async function listMailActivities(
         .filter((id): id is string => Boolean(id))
     ),
   ]
+
   const actors =
     actorIds.length === 0
       ? []

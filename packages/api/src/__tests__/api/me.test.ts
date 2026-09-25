@@ -1,4 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
+import { joinPlatformOrganization } from "@pupitre/auth/testing"
 import { ApiError, createApiClient, unwrap } from "../../client"
 import { KEPT_LAUNCH_SEAT } from "../../lib/billing/subscription"
 import { bootApiTestServer, resetDb, TEST_BASE_URL } from "../../testing"
@@ -27,6 +28,7 @@ interface MeBody {
   } | null
   role: string | null
   platform_role: string | null
+  platform_can_act: boolean
   entitlement: string
   subscription: {
     status: string
@@ -110,6 +112,32 @@ describe("GET /me", () => {
 
     expect(asUser.json.platform_role).toBeNull()
     expect(asSupport.json.platform_role).toBe("owner")
+  })
+
+  it("says whether the caller may act on the platform, as the admin guards do", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { user } = await createUser({ email: "ada@test.local" })
+    const reader = await createUser({ email: "lecture@pupitre.studio" })
+    const operator = await createUser({ email: "ops@pupitre.studio" })
+    const support = await createUser({
+      email: "support@pupitre.studio",
+      role: "platform_admin",
+    })
+
+    await joinPlatformOrganization(prisma, reader.user.id, "member")
+    await joinPlatformOrganization(prisma, operator.user.id, "admin")
+
+    const acts = async (userId: string) =>
+      (
+        await apiRequest<MeBody>("/me", {
+          session: await createSession({ userId }),
+        })
+      ).json.platform_can_act
+
+    expect(await acts(user.id)).toBe(false)
+    expect(await acts(reader.user.id)).toBe(false)
+    expect(await acts(operator.user.id)).toBe(true)
+    expect(await acts(support.user.id)).toBe(true)
   })
 
   it("reports no active organization and no role for a bare session", async () => {
@@ -252,6 +280,41 @@ describe("GET /me", () => {
     const me = await apiRequest<MeBody>("/me", { session: owner })
 
     expect(me.json.subscription?.servers.limit).toBe(3)
+  })
+
+  it("describes the paid subscription, not the kept launch seat touched after it", async () => {
+    const periodEnd = new Date("2026-10-25T00:00:00.000Z")
+    const own = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: {
+        quantity: 2,
+        status: "past_due",
+        currentPeriodEnd: periodEnd,
+      },
+    })
+    const [owner] = own.members
+    const { prisma } = await bootApiTestServer()
+
+    await prisma.subscription.create({
+      data: {
+        organizationId: own.organization.id,
+        stripeSubscriptionId: "launch_kept_after_paid",
+        product: KEPT_LAUNCH_SEAT.product,
+        quantity: 1,
+        status: KEPT_LAUNCH_SEAT.status,
+        currentPeriodEnd: KEPT_LAUNCH_SEAT.currentPeriodEnd,
+        updatedAt: new Date(Date.now() + 60_000),
+      },
+    })
+
+    const me = await apiRequest<MeBody>("/me", { session: owner })
+
+    expect(me.json.subscription).toEqual({
+      status: "past_due",
+      trial_ends_at: null,
+      current_period_end: periodEnd.toISOString(),
+      servers: { used: 0, limit: 3 },
+    })
   })
 
   it("is reachable through the typed Eden client", async () => {

@@ -75,7 +75,7 @@ export const roles = {
 
 export const platformAc = createAccessControl(platformStatements)
 
-/** Every team gesture goes through the platform's audited routes, so the role grants nothing in Better Auth itself. */
+/** Team actions go through the platform's audited routes, so these roles grant nothing in Better Auth. */
 export const platformRoles = {
   user: platformAc.newRole(userAc.statements),
   platform_admin: platformAc.newRole({}),

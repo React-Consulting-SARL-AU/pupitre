@@ -61,13 +61,7 @@ function idsIn(header: string): string[] {
   return bracketed.length > 0 ? bracketed : header.trim().split(WHITESPACE_RE)
 }
 
-/**
- * The ids a References or In-Reply-To header names, oldest first. Angle
- * brackets are the rule but not the habit: a header without them still names
- * one id. Only the most recent `MAIL_MAX_REFERENCES` are kept, and an id named
- * again moves to the end: a chain a sender padded with thousands of ids is
- * neither looked up nor written back.
- */
+/** Keeps only the latest `MAIL_MAX_REFERENCES` ids, so a chain padded with thousands is never looked up nor written back. */
 export function referencedMessageIds(
   ...headers: (string | null | undefined)[]
 ): string[] {

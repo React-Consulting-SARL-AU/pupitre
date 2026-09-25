@@ -38,10 +38,7 @@ export class MailOrganizationUnknownError extends Error {
   }
 }
 
-/**
- * A thread is opened before its first message is written; when that write
- * fails, the thread goes too. One that received a message meanwhile stays.
- */
+/** Only deletes a thread still without messages, so one that received a message meanwhile stays. */
 export async function discardEmptyMailThread(threadId: string): Promise<void> {
   await getPrisma().mailThread.deleteMany({
     where: { id: threadId, messages: { none: {} } },
@@ -233,10 +230,7 @@ export async function updateMailThread(
   return await readMailThread(threadId)
 }
 
-/**
- * `updated` counts the threads the lot really changed: closing what is already
- * closed changes nothing, and a lot that changes nothing broadcasts nothing.
- */
+/** Counts only the threads really changed; a lot that changes nothing broadcasts nothing. */
 export async function bulkUpdateMailThreads(
   actor: Actor,
   threadIds: string[],

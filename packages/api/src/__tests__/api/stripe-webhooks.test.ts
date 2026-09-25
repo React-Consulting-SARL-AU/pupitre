@@ -50,7 +50,6 @@ function invoicePaymentFailed(id: string) {
   })
 }
 
-/** What Stripe answers once an invoice of `sub_test_1` failed. */
 function pastDue(organizationId: string) {
   return {
     remote: remoteSubscription({ organizationId, status: "past_due" }),
@@ -315,8 +314,7 @@ describe("POST /webhooks/stripe", () => {
       )
     )
 
-    // Stripe cancels a trial that ends without a card: the period end is the
-    // trial's, so already past — the tolerance window extends nothing here.
+    // A trial ending without a card cancels with an already past period end, so the grace window adds nothing.
     await postStripeWebhook<AckBody>(
       stripeEvent(
         "customer.subscription.deleted",

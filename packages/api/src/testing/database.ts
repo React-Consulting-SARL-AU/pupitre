@@ -5,12 +5,7 @@ import { createClient } from "@libsql/client"
 import { PrismaLibSql } from "@prisma/adapter-libsql"
 import { PrismaClient } from "@pupitre/db/client"
 
-/**
- * The database of a test run: a SQLite file of the moment, built from the
- * very files D1 applies, so a migration that fails here fails before it
- * reaches an environment. One per process, emptied between tests.
- */
-
+// The very SQL files D1 applies, so a broken migration fails here before any environment.
 const MIGRATIONS_DIR = join(import.meta.dir, "../../../db/migrations")
 
 const MIGRATION_FILE_RE = /^\d{4}_.*\.sql$/

@@ -58,7 +58,7 @@ export async function listDevices(userId: string): Promise<DeviceView[]> {
   return devices.map(toView)
 }
 
-/** A session opens only through the whole sign-in, second factor included, so its age is the age of that proof. */
+// A session opens only after the full sign-in, second factor included, so its age is that proof's age.
 function assertFreshSignIn(signedInAt: Date, now: Date): void {
   if (
     now.getTime() - signedInAt.getTime() >
@@ -104,7 +104,6 @@ export async function addDevice(
   return toView(device)
 }
 
-/** The team revokes on someone's behalf: the journal names the team member and keeps the reason. */
 export interface PlatformRevocation {
   actorUserId: string
   reason: string

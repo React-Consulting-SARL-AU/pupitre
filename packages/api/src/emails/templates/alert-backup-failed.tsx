@@ -14,7 +14,7 @@ export interface AlertBackupFailedEmailProps {
   url: string
   serverName: string
   lastError: string | null
-  /** The parts the last backup could not carry; above zero with no error, the backup exists and is incomplete. */
+  /** Above zero with no error: the backup exists but is incomplete. */
   missing: number
   lastRun: string
 }

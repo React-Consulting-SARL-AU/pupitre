@@ -68,7 +68,7 @@ function timeOf(value: string | undefined): number | null {
   return Number.isNaN(time) ? null : time
 }
 
-/** A backup that went through without some of its parts is a failure too: what it lacks is what a restore would lose. */
+/** A backup missing some parts counts as failed: a restore would lose them. */
 export function isBackupFailed(state: AlertState): boolean {
   const beat = state.backup
 
@@ -90,7 +90,7 @@ export function isBackupFailed(state: AlertState): boolean {
   return lastRun !== null && (lastOk === null || lastRun > lastOk)
 }
 
-/** A server that never succeeded has nothing to be late against: its failures are `backup_failed`. */
+/** A server that never succeeded is never stale: its failures are `backup_failed`. */
 export function isBackupStale(state: AlertState, now: Date): boolean {
   const beat = state.backup
   const staleAfter = beat ? backupStaleAfterHours(beat.interval_hours) : null

@@ -9,7 +9,7 @@ export const TWO_FACTOR_CHALLENGE_TTL_SECONDS = 600
 const TWO_FACTOR_COOKIE_NAME = "two_factor"
 const IDENTIFIER_LENGTH = 20
 
-/** The built-in plugin only guards password sign-ins, which Pupitre doesn't have; a passkey is already a second factor. */
+// The built-in plugin only guards password sign-ins, which Pupitre has none of; a passkey is already a second factor.
 const CHALLENGED_PATHS = new Set(["/magic-link/verify", "/callback/:id"])
 
 const DEFAULT_REDIRECT = "/dashboard/servers"

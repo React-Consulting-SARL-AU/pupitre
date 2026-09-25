@@ -26,10 +26,10 @@ export type MailSortDirection = "asc" | "desc"
 
 export type MailThreadStatus = "open" | "closed"
 
-/** The rail's own value for the threads no declared mailbox claims. */
+/** Filter value for the threads no declared mailbox claims. */
 export const MAILBOX_OTHERS = "others"
 
-/** `me`, `none`, or the identifier of the person the thread is assigned to. */
+/** `me`, `none`, or an assignee's user id. */
 export type MailAssignedFilter = string
 
 export interface MailThreadFilter {
@@ -81,14 +81,9 @@ function mailboxWhere(
 
 const SEARCH_WILDCARDS_RE = /[%_]/g
 
-/** Nothing has this identifier, so the reader who typed only wildcards gets nothing. */
 const NOTHING: Prisma.MailThreadWhereInput = { id: { in: [] } }
 
-/**
- * `contains` becomes a `LIKE` the search text is pasted into: `%` alone would
- * match every thread, `_` any single character. Both are read as themselves,
- * which here means read as nothing.
- */
+// `contains` becomes an unescaped `LIKE`, so `%` and `_` are stripped rather than matching everything.
 function searchWhere(q: string): Prisma.MailThreadWhereInput {
   const literal = q.replace(SEARCH_WILDCARDS_RE, "")
 
@@ -152,12 +147,13 @@ function orderOf(
   return { [column]: filter.direction ?? "desc" }
 }
 
-/** The list reads the thread rows alone: sender, snippet and counts live on them. */
+/** Reads thread rows alone: sender, snippet and counts are denormalised on them. */
 export async function listMailThreads(
   filter: MailThreadFilter
 ): Promise<MailThreadPage> {
   const prisma = getPrisma()
   const where = whereOf(filter, true)
+
   const [threads, total, unread] = await Promise.all([
     prisma.mailThread.findMany({
       where,
@@ -171,6 +167,7 @@ export async function listMailThreads(
       where: { ...whereOf(filter, false), unread: true },
     }),
   ])
+
   const people = await peopleNamed(
     threads.flatMap((thread) => [thread.assignedUserId, thread.contactUserId])
   )

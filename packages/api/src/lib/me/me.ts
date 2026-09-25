@@ -5,6 +5,7 @@ import { getPrisma, withOrganization } from "../api/prisma"
 import { entitlementForOrganization } from "../billing/entitlement"
 import { countSeatedServers, seatQuotaFor } from "../billing/seats"
 import { liveSubscriptionOf } from "../billing/subscription"
+import { actsOnPlatform } from "../platform/actor"
 import {
   organizationReasonOf,
   organizationStateOf,
@@ -24,12 +25,7 @@ export interface MeSubscriptionView {
   servers: { used: number; limit: number }
 }
 
-/**
- * The subscription the app shows under the account: the Stripe mirror as it
- * stands, and the seats it pays against the servers that hold one. Stripe ends
- * the first period with the trial, so that date is the trial's end while the
- * status says so.
- */
+// Stripe ends the first period with the trial, so while trialing the period end is the trial's end.
 export async function subscriptionForMe(
   organizationId: string
 ): Promise<MeSubscriptionView | null> {
@@ -85,6 +81,7 @@ export async function loadMe({
       select: { locale: true },
     }),
   ])
+
   const active =
     memberships.find(
       (membership) => membership.organizationId === organizationId
@@ -123,18 +120,13 @@ export async function loadMe({
       : null,
     role,
     platform_role: platformRole,
+    platform_can_act: actsOnPlatform(platformRole),
     entitlement,
     subscription,
   }
 }
 
-/**
- * The active organization of this session, and this session alone.
- *
- * The console next to it keeps its own: the switch only affects the device
- * that requested it. An organization the caller isn't a member of is refused
- * without saying whether it exists.
- */
+// Only this session switches, and a non-member is refused without learning whether the organization exists.
 export async function setActiveOrganization(
   userId: string,
   sessionId: string,

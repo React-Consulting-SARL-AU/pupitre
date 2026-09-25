@@ -21,7 +21,7 @@ import { restoreOrganizationServers } from "./grace"
 import { getBillingMode } from "./runtime"
 import { liveSubscriptionOf } from "./subscription"
 
-/** Launch rows per step: every organization of a batch is looked up in one `in` list. */
+/** Every organization of a batch is looked up in one `in` list. */
 export const LAUNCH_BATCH_SIZE = D1_BATCH_SIZE
 
 export interface LaunchActor {
@@ -31,7 +31,7 @@ export interface LaunchActor {
 
 export interface LaunchReconciliation {
   aligned: string[]
-  /** The launch rows turned into a seat for good: the organization enrolled a machine while it was free. */
+  /** Launch rows kept for good: the organization enrolled a machine while it was free. */
   kept: string[]
   canceled: string[]
 }
@@ -66,12 +66,7 @@ type LaunchRowData = Pick<
   "product" | "quantity" | "status" | "currentPeriodEnd"
 >
 
-/**
- * The row, when this call is the one that wrote it.
- *
- * Two grants racing each other must not both read the journal as a creation:
- * the unique constraint decides which one created, and the loser updates.
- */
+// Null when a racing grant won the unique constraint, so only one journals a creation.
 async function createLaunchRow(
   organizationId: string,
   stripeSubscriptionId: string,
@@ -90,12 +85,7 @@ async function createLaunchRow(
   }
 }
 
-/**
- * The subscription the platform grants itself while there is no company to
- * bill through: one machine per organization until the launch ends. A live
- * subscription, launch or not, is left alone, and a launch row that ended —
- * or that the team stopped — is never granted again from the console.
- */
+/** A launch row that ended or was stopped is never granted again from the console. */
 export async function grantLaunchSubscription(
   actor: LaunchActor,
   now: Date = new Date()
@@ -114,6 +104,7 @@ export async function grantLaunchSubscription(
     status: "trialing",
     currentPeriodEnd: launchEnd(),
   }
+
   const created = await createLaunchRow(
     organizationId,
     stripeSubscriptionId,
@@ -145,12 +136,12 @@ export async function grantLaunchSubscription(
       current_period_end: data.currentPeriodEnd.toISOString(),
     },
   })
+
   await restoreOrganizationServers(organizationId, now)
 
   return created
 }
 
-/** One statement moves a batch of running launch rows onto the configured end. */
 export async function alignLaunchBatch(): Promise<string[]> {
   const { mode, launchEndsAt } = getBillingMode()
 
@@ -189,12 +180,7 @@ function earliestByOrganization(
   return earliest
 }
 
-/**
- * When each organization first had a machine that exchanged its token: a live
- * one still holds its server token, a removed one left `server.exchanged` in
- * the journal, which outlives the row. An enrolment abandoned before the
- * exchange leaves neither.
- */
+// A removed server only survives as `server.exchanged` in the journal, which outlives the row.
 async function firstExchangeOf(
   organizationIds: string[]
 ): Promise<Map<string, Date>> {
@@ -218,6 +204,7 @@ async function firstExchangeOf(
       _min: { createdAt: true },
     }),
   ])
+
   const first = earliestByOrganization(servers)
 
   for (const [organizationId, at] of earliestByOrganization(journaled)) {
@@ -235,13 +222,7 @@ export interface LaunchSeatBatch extends CursorBatch {
   kept: string[]
 }
 
-/**
- * What the terms promise: an organization that enrolled a machine during the
- * free launch keeps one seat for as long as the service exists. Its launch
- * row becomes active without an end, so no expiry ever picks it up, and the
- * seat quota adds it to whatever the organization pays for. One that never
- * enrolled anything before the launch ended ends like any other.
- */
+/** The terms promise a seat for good to an organization that enrolled a machine during the launch. */
 export async function keepLaunchSeatsBatch(
   after: string | null,
   now: Date = new Date()
@@ -320,13 +301,7 @@ export function cancelEndedLaunchBatch(
   return cancelEndedSubscriptionsBatch(ENDED_LAUNCH_FILTER, now)
 }
 
-/**
- * Extending the launch is an environment change: every running launch
- * subscription follows the configured end. One that has passed it stays, for
- * good, with the organization that enrolled a machine, and is cancelled the
- * way any ended subscription of the platform's own is otherwise. Every seat
- * is kept before anything is cancelled.
- */
+/** Every seat is kept before anything is cancelled. */
 export async function reconcileLaunch(
   now: Date = new Date()
 ): Promise<LaunchReconciliation> {

@@ -1,7 +1,7 @@
 import type { ApiPrisma } from "../api/prisma"
 import { isBanned } from "../platform/lifecycle"
 
-/** A banned, closed or departing account keeps no key on any server, whatever it is assigned. */
+// Overrides assignment: a banned, closed or departing account holds no key anywhere.
 async function accountHoldsKeys(
   prisma: ApiPrisma,
   userId: string,
@@ -67,7 +67,6 @@ export async function revokedDeviceIdsForServer(
   return revocations.map((revocation) => revocation.deviceId)
 }
 
-/** The devices whose keys a server should hold: its assigned member's, less the ones this server revoked. */
 export async function heldDevicesForServer(
   prisma: ApiPrisma,
   serverId: string,
@@ -113,13 +112,7 @@ export async function authorizedKeysForServer(
   return devices.map((device) => device.publicKey)
 }
 
-/**
- * `key_ready` sits on each server, so it answers per server: an account owning
- * a key somewhere does not mean this machine will receive it. A server is ready
- * when its assigned member, neither banned nor closed, still belongs to its organization and keeps at least
- * one device this server has not revoked — the very keys
- * `authorizedKeysForServer` would hand it.
- */
+/** Per server, and must agree with the keys `authorizedKeysForServer` would hand each one. */
 export async function keyReadyByServer(
   prisma: ApiPrisma,
   userId: string,

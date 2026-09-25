@@ -87,8 +87,7 @@ describe("l'adresse d'un artefact", () => {
     expect(artefactUrl(KEY, {})).toBe(`http://localhost/__downloads/${KEY}`)
   })
 
-  // The pattern on `r2_key` is what keeps such a key out of the table; this
-  // says what composition does with one anyway, and it stays on our host.
+  // The `r2_key` pattern already rejects such keys; this guards composition if one slips through.
   it("ne quitte pas l'hôte, même sur une clé qui a échappé au motif", () => {
     const escaped = artefactUrl("//evil.example/x", {
       PUPITRE_DOWNLOADS_URL: "https://dl.pupitre.studio",

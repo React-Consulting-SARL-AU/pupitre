@@ -1,11 +1,7 @@
 import { spawnSync } from "node:child_process"
 import path from "node:path"
 
-/**
- * wrangler, against the console's configuration: that is where the D1
- * bindings live, and the migrations directory is named from there.
- */
-
+/** The D1 bindings and the migrations directory are configured in the console's wrangler config. */
 export const WEB_DIR = path.resolve(import.meta.dir, "../../../apps/web")
 
 export const DB_DIR = path.resolve(import.meta.dir, "..")

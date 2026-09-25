@@ -42,7 +42,7 @@ interface EmlInput {
 
 const SENDER_DOMAIN_RE = /@([^>\s]+)/
 
-/** What the Email Routing MX prepends once DMARC passed for the `From` domain. */
+// The header Email Routing's MX prepends once DMARC passed for the `From` domain.
 function cloudflareResults(from: string): string {
   const domain = from.match(SENDER_DOMAIN_RE)?.[1] ?? ""
 
@@ -203,6 +203,7 @@ describe("ingestInboundEmail", () => {
         "",
       ].join("\r\n")
     ).buffer as ArrayBuffer
+
     const result = await ingest(raw)
     const attachment = await getPrisma().mailAttachment.findFirstOrThrow({
       where: { messageId: result.messageId },
@@ -237,6 +238,7 @@ describe("ingestInboundEmail", () => {
       messageId: "deux-boites",
       to: "support@pupitre.studio, legal@pupitre.studio",
     })
+
     const toSupport = await ingest(raw)
     const toLegal = await ingestInboundEmail({
       envelopeFrom: "camille@exemple.fr",
@@ -248,6 +250,7 @@ describe("ingestInboundEmail", () => {
       envelopeTo: "legal@pupitre.studio",
       raw,
     })
+
     const prisma = getPrisma()
     const threads = await prisma.mailThread.findMany({
       orderBy: { address: "asc" },
@@ -486,6 +489,7 @@ describe("ingestInboundEmail", () => {
         "",
       ].join("\r\n")
     ).buffer as ArrayBuffer
+
     const result = await ingest(raw)
     const message = await getPrisma().mailMessage.findUniqueOrThrow({
       where: { id: result.messageId },
@@ -503,6 +507,7 @@ describe("ingestInboundEmail", () => {
       { length: 3000 },
       (_, index) => `<ancien-${index}@exemple.fr>`
     ).join(" ")
+
     const result = await ingest(eml({ references: chain }))
     const message = await getPrisma().mailMessage.findUniqueOrThrow({
       where: { id: result.messageId },

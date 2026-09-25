@@ -9,7 +9,6 @@ export function configurePrisma(client: ApiPrisma): void {
   configured = client
 }
 
-/** The test's client when one is configured; otherwise the request's, set by the Worker. */
 export function getPrisma(): ApiPrisma {
   return configured ?? scopedPrismaClient()
 }

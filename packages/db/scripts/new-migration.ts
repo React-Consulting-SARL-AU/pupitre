@@ -11,13 +11,6 @@ import { tmpdir } from "node:os"
 import path from "node:path"
 import { DB_DIR, fail, MIGRATIONS_DIR } from "./wrangler"
 
-/**
- * The next migration, as D1 will apply it: the migrations so far replayed on
- * a throwaway SQLite, then the schema diffed against it.
- *
- *   bun run db:migrate:new add-server-notes
- */
-
 const NAME_RE = /^[a-z0-9-]+$/
 
 const FILE_RE = /^(\d{4})_.*\.sql$/
@@ -33,14 +26,13 @@ export function nextFileName(existing: string[], name: string): string {
 
 const FOREIGN_KEYS_PRAGMA_RE = /^PRAGMA foreign_keys=(ON|OFF);\n/gm
 
-/** D1 refuses to switch foreign keys off and on; it defers them instead, which Prisma's script also asks for. */
+/** D1 refuses to toggle foreign keys; it defers them instead, as Prisma's script also asks. */
 export function forD1(script: string): string {
   return script.replace(FOREIGN_KEYS_PRAGMA_RE, "")
 }
 
 const DROP_TABLE_RE = /^DROP TABLE "([^"]+)";$/gm
 
-/** Every table a foreign key points at, with the tables that point at it. */
 export function referencingTables(database: Database): Map<string, string[]> {
   const rows = database
     .query<{ child: string; parent: string }, []>(
@@ -50,6 +42,7 @@ export function referencingTables(database: Database): Map<string, string[]> {
        ORDER BY "child"`
     )
     .all()
+
   const references = new Map<string, string[]>()
 
   for (const { child, parent } of rows) {
@@ -108,7 +101,6 @@ export function replayMigrations(
   }
 }
 
-/** What the schema asks of a database built by the migrations, or null when they agree. */
 export function schemaDiff(shadow: string): string | null {
   const diff = spawnSync(
     "bun",

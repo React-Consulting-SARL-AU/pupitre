@@ -65,7 +65,6 @@ function exchange(enrollmentToken: string, hostPublicKey = HOST_PUBLIC_KEY) {
   })
 }
 
-/** A server the owner installed, then handed to the organization's member. */
 async function installedFor() {
   const { prisma } = await bootApiTestServer()
   const { members } = await createOrganizationWithMembers({

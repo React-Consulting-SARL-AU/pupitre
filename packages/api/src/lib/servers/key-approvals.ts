@@ -12,6 +12,7 @@ import {
   readSshSignature,
 } from "@pupitre/shared/keys"
 import { isOrgRole, type OrgRole } from "@pupitre/shared/permissions"
+import type { KeyApprovalReceipt } from "@pupitre/shared/platform-api/account"
 import { type ApiPrisma, getPrisma } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import { type HeldDevice, heldDevicesForServer } from "./authorized-keys"
@@ -55,14 +56,6 @@ export class KeyApprovalInvalidError extends Error {
   }
 }
 
-export interface KeyApprovalReceipt {
-  server_id: string
-  device_id: string
-  signer: string
-  issued_at: string
-}
-
-/** The key as an approval names it: `type base64`, the comment dropped. */
 function approvedKeyOf(publicKey: string): string {
   const [type, body] = publicKey.trim().split(WHITESPACE_RE)
 
@@ -80,7 +73,6 @@ function readKeyReport(value: unknown): KeyReport | null {
   return { ...parsed.data, reported_at: reportedAt }
 }
 
-/** An owner or admin approves any key a server of theirs waits for; a member, only their own on the server they hold. */
 function mayApprove(
   callerId: string,
   role: OrgRole | null,
@@ -339,11 +331,7 @@ async function refusalOf(
   return null
 }
 
-/**
- * The platform relays the approval, it does not judge it: the agent alone
- * verifies the signature. What is refused here is what could never verify,
- * and a caller who has no say over this key on this server.
- */
+// The agent alone trusts the signature; this only refuses what could never verify there.
 export async function submitKeyApproval(
   userId: string,
   input: KeyApprovalSubmission,

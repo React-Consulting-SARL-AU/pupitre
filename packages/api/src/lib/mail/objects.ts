@@ -24,11 +24,7 @@ interface StoredAttachment {
 
 const DEFAULT_ATTACHMENT_TYPE = "application/octet-stream"
 
-/**
- * What a browser is told a downloaded attachment is. Anything else — SVG, XML,
- * HTML, a type a sender invented — is served as bytes to save, never as a
- * document.
- */
+// Anything outside this list (SVG, HTML, invented types) is served as bytes, never as a document.
 const SERVED_ATTACHMENT_TYPES = new Set([
   "application/msword",
   "application/pdf",
@@ -70,11 +66,7 @@ export function servedAttachmentType(mimeType: string): string {
     : DEFAULT_ATTACHMENT_TYPE
 }
 
-/**
- * `inline` only opens a raster image or a PDF, under its own type; anything
- * else is handed over as a file to save, under a type the browser will not
- * run. The bucket answers with what the signed address asks.
- */
+// Only a raster image or a PDF opens inline; anything else downloads under a type the browser will not run.
 function responseFor(
   attachment: StoredAttachment,
   disposition: MailAttachmentDisposition
@@ -150,7 +142,7 @@ function referencedContentIds(html: string): Set<string> {
   return ids
 }
 
-/** A `src="cid:…"` becomes the signed inline address of the part carrying that Content-ID; an unknown one is left as it came. */
+/** A `cid:` source with no matching part is left as it came. */
 export function rewriteInlineImages(
   html: string,
   urls: Map<string, string>

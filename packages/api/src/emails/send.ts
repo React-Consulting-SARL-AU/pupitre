@@ -38,11 +38,7 @@ function isBinding(value: unknown): value is CloudflareEmailBinding {
   )
 }
 
-/**
- * `cloudflare:workers` and `cloudflare:email` only exist inside the Worker
- * runtime: the import has to be dynamic, and its failure is the signal that we
- * are running under Bun instead.
- */
+/** Worker-only modules: a failed dynamic import means we run under Bun. */
 export async function workerEnv(): Promise<Record<string, unknown> | null> {
   try {
     const { env } = (await import("cloudflare:workers")) as unknown as {
@@ -90,11 +86,7 @@ async function cloudflareEmailRuntime(): Promise<EmailRuntime> {
   }
 }
 
-/**
- * Without the binding, the message goes to the log — which is what
- * development wants, and what production must never do quietly: a magic
- * link that only reaches the log locks the person out without a word.
- */
+/** Logs without the binding, but throws in production: a magic link lost to the log locks the person out. */
 export function createEmailSender(
   log?: EmailLogger,
   runtime: () => Promise<EmailRuntime> = cloudflareEmailRuntime

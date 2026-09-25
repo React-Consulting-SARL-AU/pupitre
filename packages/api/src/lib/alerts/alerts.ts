@@ -45,7 +45,6 @@ export interface AlertBatch extends CursorBatch {
 
 type PublishedVersions = (server: ServerRow) => string[]
 
-/** One read for the releases every server of the batch compares its agent with. */
 async function publishedVersionsFor(
   servers: ServerRow[]
 ): Promise<PublishedVersions> {
@@ -149,12 +148,7 @@ function openAlertsBy(alerts: Alert[]): Map<string, Alert[]> {
   return byServer
 }
 
-/**
- * One open row per kind and per server is the whole anti-spam rule: nothing
- * leaves while an episode is open, and the next email waits for the return to
- * normal that closes it. The emails themselves are sent apart, so a failed
- * one stays owed and is tried again at the next evaluation.
- */
+// One open row per kind and server is the anti-spam rule; emails go apart so a failed one stays owed.
 async function evaluateServers(
   servers: ServerRow[],
   now: Date
@@ -224,7 +218,6 @@ async function evaluateServers(
   return { runs, pending }
 }
 
-/** The email of one open alert, unless it already left or the episode closed since. */
 export async function notifyAlert(
   alertId: string,
   now: Date = new Date()
@@ -314,11 +307,7 @@ export async function evaluateAlerts(
   return batches.flatMap((batch) => batch.runs)
 }
 
-/**
- * Closing by hand is the stroke the hourly run makes on a return to normal. A
- * condition that still holds opens a new episode at the next run, and the
- * email that goes with it leaves again.
- */
+/** A condition that still holds reopens at the next run and emails again. */
 export async function closeOpenAlerts(
   serverId: string,
   now: Date = new Date()

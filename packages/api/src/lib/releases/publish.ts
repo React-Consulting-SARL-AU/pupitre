@@ -12,12 +12,7 @@ export interface PublishOnceResult<T> {
   created: boolean
 }
 
-/**
- * Publishing an artefact twice is the normal case: a rerun of the release
- * pipeline. The same fingerprint returns what is already published, a
- * different one is a conflict, and two simultaneous publications end up on
- * the same row rather than on a unique constraint.
- */
+/** Pipeline reruns republish: the same fingerprint returns the row, another one conflicts. */
 export async function publishOnce<T>({
   find,
   create,

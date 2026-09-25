@@ -14,7 +14,7 @@ export interface InboxEvent {
   type: InboxEventType
   thread_id?: string
   mailbox_id?: string | null
-  /** On `access.revoked`: whose open sockets the room closes instead of broadcasting. */
+  /** On `access.revoked`: whose sockets the room closes instead of broadcasting. */
   user_id?: string
 }
 
@@ -30,10 +30,7 @@ export function resetInboxRealtime(): void {
   publisher = null
 }
 
-/**
- * A broadcast that fails never fails the write that caused it: the console
- * falls back on its poll, and a lost frame costs a refresh, not an answer.
- */
+/** A failed broadcast never fails the write that caused it: the console falls back on its poll. */
 export async function publishInboxEvent(event: InboxEvent): Promise<void> {
   if (!publisher) {
     return

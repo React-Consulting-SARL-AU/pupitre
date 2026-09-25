@@ -97,11 +97,7 @@ function headersOf(value: unknown): Headers | null {
   return value instanceof Headers ? value : null
 }
 
-/**
- * Better Auth hands a `Request` to one plugin and its own endpoint context to
- * the other; both carry the caller's headers, one directly and one behind
- * `request`.
- */
+// Better Auth passes either a Request or an endpoint context holding headers behind `request`.
 function acceptLanguageOf(source: unknown): string | null {
   if (!(source && typeof source === "object")) {
     return null
@@ -131,22 +127,13 @@ function socialProviders(env: AuthEnv) {
   }
 }
 
-/**
- * Read back what `socialProviders` actually mounted, so nothing downstream has
- * to know again that a provider needs both of its variables.
- */
 export function mountedSocialProviders(instance: Auth): SocialProviderId[] {
   const mounted = instance.options.socialProviders ?? {}
 
   return SOCIAL_PROVIDER_IDS.filter((provider) => provider in mounted)
 }
 
-/**
- * D1 has no interactive transaction, and the adapter opens one around every
- * claim and increment — consuming a device code, counting a poll — whenever
- * the client offers `$transaction`. Without it, the same steps run one after
- * the other, which is what D1 can do.
- */
+/** D1 has no interactive transactions; hiding `$transaction` makes the adapter run its steps sequentially. */
 export function withoutInteractiveTransactions<T extends object>(prisma: T): T {
   return new Proxy(prisma, {
     get: (target, key) =>
@@ -209,8 +196,6 @@ export function createAuth({
     },
     rateLimit: {
       enabled: true,
-      // A configured storage wins over the library's per-isolate memory; the
-      // custom storage carries its own atomic consume.
       ...(rateLimitStorage ? { customStorage: rateLimitStorage } : {}),
     },
     emailVerification: {
@@ -234,9 +219,7 @@ export function createAuth({
           await refuseOrPurgeAccount(user.id, request)
         },
       },
-      // The address that signs you in only moves once the address that holds
-      // the account has said so: the link goes to the current one, never to
-      // the new one, so a stolen session cannot walk the account away.
+      // The link goes to the current address so a stolen session cannot move the account away.
       changeEmail: {
         enabled: true,
         sendChangeEmailVerification: async (
@@ -344,7 +327,7 @@ export function createAuth({
           )
         },
       }),
-      // Before `bearer`, which would otherwise issue a token for the session before the code above has secured it.
+      // Must precede `bearer`, which would otherwise issue a token before the second factor is checked.
       twoFactorChallenge(consoleUrl(env)),
       deviceAuthorization({
         expiresIn: DEVICE_CODE_EXPIRES_IN,
@@ -397,8 +380,7 @@ export function createAuth({
       }),
       twoFactor({
         issuer: RELYING_PARTY_NAME,
-        // Nobody here has a password, so the second factor is managed from a
-        // live session instead of being re-proven by one.
+        // Accounts have no password, so the second factor is managed from a live session.
         allowPasswordless: true,
         backupCodeOptions: { amount: BACKUP_CODE_COUNT },
       }),

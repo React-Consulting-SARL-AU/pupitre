@@ -40,7 +40,7 @@ export interface LaunchBillingInput {
   adminSeats?: number
 }
 
-/** The launch: the platform grants the subscription, and any call to the provider is a bug the fake records. */
+/** Launch mode: the platform grants the subscription, so any provider call is a bug the fake records. */
 export function useLaunchBilling({
   endsAt = TEST_LAUNCH_END,
   adminSeats,
@@ -147,7 +147,7 @@ export interface WebhookRequestInit {
   secret?: string
   signature?: string
   signedAt?: Date
-  /** What Stripe answers when the platform reads the subscription back; the event's own object unless the test says otherwise. */
+  /** What Stripe returns on read-back; defaults to the event's own object. */
   remote?: RemoteSubscription
 }
 
@@ -191,6 +191,7 @@ export async function postStripeWebhook<T = unknown>(
       init.secret ?? TEST_WEBHOOK_SECRET,
       init.signedAt ?? new Date()
     ))
+
   const { fetch } = await bootApiTestServer()
   const raw = await fetch(`${TEST_BASE_URL}/api/v1/webhooks/stripe`, {
     method: "POST",

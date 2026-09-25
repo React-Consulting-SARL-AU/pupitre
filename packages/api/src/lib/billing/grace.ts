@@ -6,10 +6,7 @@ import { D1_BATCH_SIZE, drainBatches } from "../api/batches"
 import { getPrisma } from "../api/prisma"
 import { entitlementWindow } from "./entitlement"
 
-/**
- * Only a server still in full use takes the deadline: one already in
- * tolerance keeps the day it was given, whatever Stripe retries in between.
- */
+/** A server already in grace keeps its deadline, whatever Stripe retries in between. */
 export async function graceOrganizationServers(
   organizationId: string,
   validUntil: Date
@@ -64,7 +61,6 @@ export interface SuspensionNotice {
   serverCount: number
 }
 
-/** One statement suspends a batch of servers whose tolerance has run out, and says which. */
 export function suspendExpiredGraceBatch(
   now: Date = new Date()
 ): Promise<SuspendedServer[]> {

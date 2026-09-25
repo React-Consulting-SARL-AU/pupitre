@@ -27,10 +27,9 @@ export interface AuthContext {
   session: SessionRecord | null
   organizationId: string | null
   role: OrgRole | null
-  /** The caller's role in the platform's own organization: membership there is what opens the platform pages. */
+  /** Role in the platform's own organization: membership there opens the platform pages. */
   platformRole: OrgRole | null
   isPlatformAdmin: boolean
-  /** A session the platform no longer honours, whatever it asks for: the account behind it is closed. */
   accountRefusal: SessionRefusal | null
   organizationState: OrganizationState | null
 }
@@ -92,7 +91,6 @@ interface Membership {
   state: OrganizationState | null
 }
 
-/** One read for every organization a request cares about: the active one and the platform's. */
 async function memberships(
   userId: string,
   organizationIds: string[]
@@ -119,7 +117,7 @@ async function memberships(
   return held
 }
 
-/** A closed account keeps no credential: the platform refuses the session it already holds, not only the next sign-in. */
+// A closed account's live session is refused too, not only its next sign-in.
 function refusalFor(user: {
   banned?: boolean | null
   banExpires?: Date | null

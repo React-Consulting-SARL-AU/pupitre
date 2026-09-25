@@ -28,7 +28,6 @@ export interface BackupView {
   server_name: string
   created_at: Date
   trigger: BackupTrigger
-  /** The name given to a manual backup; absent when none was. */
   name?: string
   bytes: number
   counts: BackupCounts
@@ -128,7 +127,7 @@ function rowOf(
   }
 }
 
-/** The daemon redeclares what a failure left pending: the same server gets its row back, not a refusal. */
+/** Idempotent: the daemon redeclares after a failure, and the same server gets its row back. */
 export async function declareBackup(
   server: ServerRow,
   input: BackupDeclaration

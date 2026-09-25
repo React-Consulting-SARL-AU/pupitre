@@ -200,7 +200,9 @@ describe("withoutInteractiveTransactions", () => {
 
     expect(client.$transaction).toBeUndefined()
     expect(typeof client.$transaction).toBe("undefined")
+
     client.user.findFirst()
+
     expect(calls).toEqual(["user.findFirst"])
   })
 })

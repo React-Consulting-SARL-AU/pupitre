@@ -1807,7 +1807,7 @@ export type $MailThreadPayload<ExtArgs extends runtime.Types.Extensions.Internal
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     /**
-     * The envelope's truth; the mailbox is what we declared, and may be missing.
+     * The envelope address; the declared mailbox may be missing.
      */
     address: string
     mailboxId: string | null
@@ -1820,22 +1820,21 @@ export type $MailThreadPayload<ExtArgs extends runtime.Types.Extensions.Internal
     linkedOrganizationId: string | null
     lastInboundAt: Date | null
     /**
-     * Whether the last mail that came in was a bounce, a blast or an auto-reply:
-     * the open view hides those, and no `some`/`none` filter can say "the last one".
+     * Denormalized because no `some`/`none` filter can target the last inbound mail.
      */
     lastInboundAutomated: boolean
     lastOutboundAt: Date | null
     /**
-     * Whom the list names: the last inbound sender, or whom a thread we opened was written to.
+     * Last inbound sender, or the recipient of a thread we started.
      */
     senderEmail: string | null
     senderName: string | null
     /**
-     * Whether that sender passed DMARC, or an aligned DKIM or SPF check, at the receiving MX.
+     * Passed DMARC, or an aligned DKIM or SPF check, at the receiving MX.
      */
     senderAuthenticated: boolean
     /**
-     * The last message's, so the list never reads the messages themselves.
+     * Copied from the last message so the list never reads messages.
      */
     snippet: string | null
     createdAt: Date

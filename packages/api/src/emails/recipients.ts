@@ -31,10 +31,7 @@ export async function userRecipient(
   return { email: user.email, locale: knownLocale(user.locale) }
 }
 
-/**
- * Only an `owner` touches billing, so only an owner is told about the money
- * and about what the money suspends.
- */
+/** Only owners touch billing, so only they hear about money and what it suspends. */
 export async function billingRecipients(
   organizationId: string
 ): Promise<Recipient[]> {
@@ -66,10 +63,6 @@ export interface ServerAddressee {
   organizationId: string
 }
 
-/**
- * The person who works on the machine is told first; without one, the owner
- * who pays for it is.
- */
 export async function serverRecipients(
   server: ServerAddressee
 ): Promise<Recipient[]> {

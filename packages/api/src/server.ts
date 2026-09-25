@@ -29,8 +29,7 @@ import { unassignServersOfMember } from "./lib/servers/assign"
 
 export type { ApiPrisma } from "./lib/api/prisma"
 
-// The Better Auth handler is served from its own route, which never imports
-// this module's exports: the port has to be filled at import time.
+// Filled at import time: the Better Auth route never imports this module's exports.
 configureAuthEmails({ renderer: authEmails, sendEmail: createEmailSender() })
 configureOrganizationHooks({
   onMemberRemoved: async ({ organizationId, userId }) => {
@@ -55,7 +54,7 @@ export function configureApi({ prisma, auth }: ApiRuntime): void {
 
 const LOGGED_MESSAGE_LENGTH = 200
 
-/** Name, code and a trimmed message: never the error itself, whose meta and arguments can carry what a row holds. */
+// Never the error itself: its meta and arguments can carry row data.
 function describeError(error: unknown): string {
   if (!(error instanceof Error)) {
     return typeof error
@@ -83,9 +82,7 @@ function reportInternalError(error: unknown, request: Request): string {
 }
 
 export function createApi<Routes extends AnyElysia>(apiRoutes: Routes) {
-  // Workers forbid `new Function`, which Elysia's ahead-of-time compiler and its
-  // exact-mirror normalizer both use: the typebox normalizer is the fallback
-  // Elysia would reach anyway, minus a warning per route.
+  // Workers forbid `new Function`, which Elysia's AOT compiler and exact-mirror normalizer use.
   return new Elysia({ aot: false, normalize: "typebox", prefix: "/api/v1" })
     .onError(({ code, error, request, set }) => {
       const locale = resolveLocale(request.headers)
@@ -98,8 +95,7 @@ export function createApi<Routes extends AnyElysia>(apiRoutes: Routes) {
         return apiError("validation", message, fix)
       }
 
-      // Without ahead-of-time compilation Elysia lets the JSON parse error
-      // through as a plain SyntaxError instead of its own PARSE code.
+      // Without AOT, Elysia surfaces a JSON parse error as a plain SyntaxError, not PARSE.
       if (code === "PARSE" || (error instanceof SyntaxError && request.body)) {
         set.status = 400
 
@@ -166,9 +162,7 @@ function tooManyRequests(
 }
 
 export async function handleApiRequest(request: Request): Promise<Response> {
-  // The edge sets this header on every custom domain; a request it did not
-  // sign still draws from a budget, a tight one shared by all such callers,
-  // rather than passing without a limit at all.
+  // Requests missing the edge's IP header share one tight budget instead of going unlimited.
   const clientIp = request.headers.get(CLIENT_IP_HEADER) ?? UNKNOWN_CLIENT
   const verdict = await globalRateLimiter.check(`global:${clientIp}`)
 

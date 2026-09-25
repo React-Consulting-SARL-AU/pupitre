@@ -36,11 +36,7 @@ export interface EmailVerificationEmailInput {
   acceptLanguage: string | null
 }
 
-/**
- * The templates live in `packages/api/src/emails`, which already depends on
- * this package: they reach Better Auth through this port rather than the other
- * way round, and `packages/api/src/server.ts` fills it in.
- */
+/** Injected by `@pupitre/api`, which depends on this package and owns the templates. */
 export interface AuthEmailRenderer {
   magicLink(input: MagicLinkEmailInput): Promise<EmailMessage>
   invitation(input: InvitationEmailInput): Promise<EmailMessage>

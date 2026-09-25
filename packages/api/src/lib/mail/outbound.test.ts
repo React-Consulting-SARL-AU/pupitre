@@ -274,6 +274,7 @@ describe("replyToMailThread", () => {
     await getPrisma().mailDraft.create({
       data: { threadId, body: "en cours", updatedByUserId: actor.userId },
     })
+
     await reply(threadId)
 
     expect(await getPrisma().mailDraft.count({ where: { threadId } })).toBe(0)

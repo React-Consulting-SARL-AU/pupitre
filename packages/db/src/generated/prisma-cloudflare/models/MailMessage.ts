@@ -1360,18 +1360,18 @@ export type $MailMessagePayload<ExtArgs extends runtime.Types.Extensions.Interna
     rawHash: string | null
     messageId: string | null
     /**
-     * The envelope address it reached, or the box it left from: one mail written to two of our addresses is two rows.
+     * One mail sent to two of our addresses is stored as two rows.
      */
     address: string | null
     inReplyTo: string | null
     references: string | null
     sentByUserId: string | null
     /**
-     * A bounce, a list blast or an auto-reply: it is filed, but the team never answers it.
+     * Bounce, list blast or auto-reply: filed but never answered.
      */
     automated: boolean
     /**
-     * Whether its `From` passed DMARC, or an aligned DKIM or SPF check, at the receiving MX.
+     * `From` passed DMARC, or an aligned DKIM or SPF check, at the receiving MX.
      */
     authenticated: boolean
     delivery: $Enums.MailDelivery

@@ -8,7 +8,6 @@ import { fromContract } from "../contract-schema"
 
 const localeSchema = t.UnionEnum([...LOCALES])
 
-/** The locale, the active organization, or both: what the caller leaves out does not move. */
 export const meInputBody = t.Object({
   locale: t.Optional(localeSchema),
   organization_id: t.Optional(t.String({ minLength: 1 })),

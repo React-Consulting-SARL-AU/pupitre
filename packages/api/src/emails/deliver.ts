@@ -11,10 +11,7 @@ function reportFailure(message: EmailMessage, error: unknown): void {
   console.error(`[api] email failed subject="${message.subject}"`, error)
 }
 
-/**
- * A business action never fails because an email did: the caller gets a
- * verdict, and the failure lands in the log without the message body.
- */
+/** Never throws: a business action must not fail because an email did. */
 export async function deliver(
   message: EmailMessage,
   options: DeliverOptions = {}

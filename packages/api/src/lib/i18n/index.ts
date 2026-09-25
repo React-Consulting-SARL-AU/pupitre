@@ -1,4 +1,5 @@
 import type { Locale } from "@pupitre/shared/i18n"
+import { LEGAL_CONTACTS } from "@pupitre/shared/legal"
 
 const FR = {
   unauthenticated: "Authentification requise.",
@@ -88,11 +89,9 @@ const FR = {
   platform_member_protected_fix:
     "Retirez-le d'abord de l'organisation Pupitre depuis sa page des membres.",
   account_deactivated: "Ce compte est fermé.",
-  account_deactivated_fix:
-    "Écrivez à support@pupitre.studio pour le faire rouvrir.",
+  account_deactivated_fix: `Écrivez à ${LEGAL_CONTACTS.support} pour le faire rouvrir.`,
   account_suspended: "Ce compte est suspendu jusqu'au {date}.",
-  account_suspended_fix:
-    "Le compte se rouvre de lui-même à cette date. Écrivez à support@pupitre.studio pour la faire avancer.",
+  account_suspended_fix: `Le compte se rouvre de lui-même à cette date. Écrivez à ${LEGAL_CONTACTS.support} pour la faire avancer.`,
   ban_until_not_future: "Le terme d'une suspension est à venir.",
   ban_until_not_future_fix:
     "Donnez une date postérieure à maintenant, ou omettez until pour une suspension sans terme.",
@@ -114,8 +113,7 @@ const FR = {
   email_verified_fix:
     "Il n'y a rien à renvoyer ; le compte se connecte par lien magique ou clé d'accès.",
   organization_closed: "Cette organisation est fermée.",
-  organization_closed_fix:
-    "Choisissez une autre organisation, ou écrivez à support@pupitre.studio pour la faire rouvrir.",
+  organization_closed_fix: `Choisissez une autre organisation, ou écrivez à ${LEGAL_CONTACTS.support} pour la faire rouvrir.`,
   organization_already_suspended: "Cette organisation est déjà suspendue.",
   organization_already_suspended_fix:
     "Levez d'abord la suspension : POST /admin/organizations/:id/restore.",
@@ -314,8 +312,7 @@ const FR = {
     "Ajoutez des sièges à l'abonnement en cours (POST /orgs/{organization}/seats), ou gérez-le depuis le portail (POST /orgs/{organization}/portal).",
   launch_subscription_ended:
     "L'abonnement du lancement de cette organisation est arrêté : il ne se rouvre pas.",
-  launch_subscription_ended_fix:
-    "Écrivez à support@pupitre.studio pour le faire rouvrir par l'équipe Pupitre.",
+  launch_subscription_ended_fix: `Écrivez à ${LEGAL_CONTACTS.support} pour le faire rouvrir par l'équipe Pupitre.`,
   stripe_event_in_flight:
     "Une autre livraison traite déjà cet événement Stripe.",
   stripe_event_in_flight_fix:
@@ -443,11 +440,9 @@ const EN: Record<MessageKey, string> = {
   platform_member_protected_fix:
     "Remove them from the Pupitre organization first, on its members page.",
   account_deactivated: "This account is closed.",
-  account_deactivated_fix:
-    "Write to support@pupitre.studio to have it reopened.",
+  account_deactivated_fix: `Write to ${LEGAL_CONTACTS.support} to have it reopened.`,
   account_suspended: "This account is suspended until {date}.",
-  account_suspended_fix:
-    "The account reopens on its own on that date. Write to support@pupitre.studio to bring it forward.",
+  account_suspended_fix: `The account reopens on its own on that date. Write to ${LEGAL_CONTACTS.support} to bring it forward.`,
   ban_until_not_future: "A suspension deadline lies ahead.",
   ban_until_not_future_fix:
     "Give a date later than now, or leave until out for a suspension with no deadline.",
@@ -469,8 +464,7 @@ const EN: Record<MessageKey, string> = {
   email_verified_fix:
     "There is nothing to send again; the account signs in with a magic link or a passkey.",
   organization_closed: "This organization is closed.",
-  organization_closed_fix:
-    "Pick another organization, or write to support@pupitre.studio to have it reopened.",
+  organization_closed_fix: `Pick another organization, or write to ${LEGAL_CONTACTS.support} to have it reopened.`,
   organization_already_suspended: "This organization is already suspended.",
   organization_already_suspended_fix:
     "Lift the suspension first: POST /admin/organizations/:id/restore.",
@@ -653,8 +647,7 @@ const EN: Record<MessageKey, string> = {
     "Add seats to the live subscription (POST /orgs/{organization}/seats), or manage it from the portal (POST /orgs/{organization}/portal).",
   launch_subscription_ended:
     "This organization's launch subscription was stopped: it does not reopen.",
-  launch_subscription_ended_fix:
-    "Write to support@pupitre.studio to have the Pupitre team reopen it.",
+  launch_subscription_ended_fix: `Write to ${LEGAL_CONTACTS.support} to have the Pupitre team reopen it.`,
   stripe_event_in_flight:
     "Another delivery is already processing this Stripe event.",
   stripe_event_in_flight_fix:

@@ -116,7 +116,6 @@ function isOurs(address: string): boolean {
   return address.endsWith(OWN_DOMAIN_SUFFIX)
 }
 
-/** What the recipient reads above the address: the first name of whoever answered, then the product. */
 function senderNameOf(name: string | null | undefined): string {
   const first = name?.trim().split(WHITESPACE_RE)[0] ?? ""
 
@@ -164,7 +163,7 @@ interface FiledAttachment {
   size: number
 }
 
-/** Each upload is copied under the message before anything leaves: the row it will hang from never lacks its bytes. */
+// Uploads are copied under the message before sending, so the row never lacks its bytes.
 async function fileAttachments(
   threadId: string,
   messageId: string,
@@ -198,6 +197,7 @@ async function deliver(delivery: Delivery): Promise<string> {
   const now = new Date()
   const messageId = generateMessageId(MAIL_DOMAIN)
   const { uploads } = delivery
+
   const raw = buildMimeMessage({
     from: formatAddress(delivery.fromName, delivery.from),
     to: delivery.to,
@@ -275,6 +275,7 @@ async function deliver(delivery: Delivery): Promise<string> {
       ...(failure ? {} : { lastOutboundAt: now, unread: false }),
     },
   })
+
   await deleteMailUploads(uploads.map((upload) => upload.key))
 
   if (failure) {
@@ -321,10 +322,7 @@ const ANSWERED_SELECT = {
   references: true,
 } as const
 
-/**
- * A bounce or a list blast is never answered: the reply goes to the last
- * person who wrote, and failing that back to whoever we wrote to ourselves.
- */
+// Automated mail (bounces, list blasts) is never answered; without a human, fall back to our last outbound.
 async function messageToAnswer(
   threadId: string
 ): Promise<AnsweredMessage | null> {
@@ -345,11 +343,7 @@ async function messageToAnswer(
   )
 }
 
-/**
- * An address of ours is never a recipient — the inbox does not write to
- * itself, and a sender claiming `support@pupitre.studio` does not turn a reply
- * into a loop.
- */
+// Our own addresses are never recipients, so a spoofed From cannot turn a reply into a loop.
 function recipientsOf(answered: AnsweredMessage): {
   to: string[]
   cc: string[]
@@ -509,6 +503,7 @@ export async function composeMailThread(
     where: { email: { in: recipients } },
     select: { id: true },
   })
+
   const thread = await prisma.mailThread.create({
     data: {
       address: mailbox.address,

@@ -9,14 +9,7 @@ import {
   UNKNOWN_CLIENT,
 } from "../rate-limit"
 
-/**
- * A budget of its own, for a group of routes that answers without a session.
- *
- * The global limiter already caps a client; this one caps what an anonymous
- * caller may take from one surface, so that hammering the download list never
- * eats the budget the same address needs for the console.
- */
-
+// A budget per anonymous surface, so hammering one never eats the address's console budget.
 export function rateLimit(name: string, options: RateLimitOptions) {
   const limiter = createRateLimiter(options)
 

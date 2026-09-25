@@ -5,13 +5,6 @@ import {
 } from "../src/migration-guard"
 import { BINDING, fail, wrangler } from "./wrangler"
 
-/**
- * Every migration the target has not applied yet, in order, through wrangler:
- *
- *   bun run db:migrate local
- *   PUPITRE_ALLOW_MIGRATE_ON=production bun run db:migrate production
- */
-
 try {
   const target = targetOf(process.argv[2])
 

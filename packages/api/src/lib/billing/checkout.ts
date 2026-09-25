@@ -79,10 +79,6 @@ function returnUrl(destination: CheckoutReturn, query: string): string {
   return appUrl(`${RETURN_PATHS[destination]}${query}`)
 }
 
-/**
- * One trial per organization: the first checkout opens it, on one machine or
- * on what the affiliate link promised; every later checkout is a paid one.
- */
 async function trialTermsFor(
   organizationId: string,
   requested: number
@@ -134,6 +130,7 @@ export async function startCheckout(
     readBilling(organizationId),
     trialTermsFor(organizationId, input.quantity),
   ])
+
   const session = await getBillingProvider().createCheckoutSession({
     organizationId,
     customerId: billing?.stripeCustomerId ?? null,

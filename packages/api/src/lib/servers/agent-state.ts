@@ -69,6 +69,7 @@ export async function readAgentState(input: ServerRow): Promise<AgentState> {
   const moved =
     targetVersion !== server.targetVersion ||
     horizonMoved(server.entitlementValidUntil, entitlement.valid_until)
+
   const [held] = await Promise.all([
     heldDevicesForServer(prisma, server.id),
     moved
@@ -81,6 +82,7 @@ export async function readAgentState(input: ServerRow): Promise<AgentState> {
         })
       : Promise.resolve(),
   ])
+
   const keys = await keysForServer(prisma, server.id, held)
 
   return {
@@ -117,8 +119,7 @@ export async function recordHeartbeat(
     ram_used_mb: input.ram_used_mb ?? null,
   }
 
-  // The heartbeat writes its sample alone: the window it belongs to is the
-  // table, not a column the row rewrites whole every five minutes.
+  // One row per sample, so a heartbeat never rewrites the whole window.
   await prisma.serverMetric.create({
     data: { serverId: server.id, at: now, sample: toStoredSample(sample) },
   })
@@ -146,10 +147,6 @@ export async function recordHeartbeat(
   })
 }
 
-/**
- * The window as the console reads it: every row the seven days hold, reduced
- * to what a chart draws.
- */
 export async function metricsForServer(
   serverId: string,
   now: Date = new Date()

@@ -9,14 +9,12 @@ export const ENROLLMENT_EXPIRY_BATCH_SIZE = D1_BATCH_SIZE
 /** A server brings a week of metric samples down with it: a few per step keep each step short. */
 export const DECOMMISSION_BATCH_SIZE = 5
 
-/** Metric samples one statement deletes before the server itself goes. */
 export const METRIC_DELETE_CHUNK = 500
 
 export function decommissionDeadline(from: Date = new Date()): Date {
   return new Date(from.getTime() + DECOMMISSION_DELAY_MS)
 }
 
-/** One statement revokes a batch of enrolments nobody exchanged in time, and says which. */
 export async function expireEnrollmentsBatch(
   now: Date = new Date()
 ): Promise<string[]> {
@@ -46,7 +44,7 @@ export function expireEnrollments(now: Date = new Date()): Promise<string[]> {
   )
 }
 
-/** The samples go in chunks first: the cascade of one server delete would carry thousands of rows in one statement. */
+// Chunked first: a cascading server delete would carry thousands of rows in one statement.
 async function deleteMetricsOf(serverId: string): Promise<void> {
   const prisma = getPrisma()
 
@@ -67,6 +65,7 @@ export async function decommissionDueServersBatch(
 ): Promise<string[]> {
   const prisma = getPrisma()
   const where = { decommissionAt: { lte: now } }
+
   const due = await prisma.server.findMany({
     where,
     orderBy: { decommissionAt: "asc" },

@@ -191,15 +191,7 @@ async function createServer(
   })
 }
 
-/**
- * A new enrollment granted to a server the organization already holds.
- *
- * Its server token and status don't move: the machine keeps the access it
- * has until the exchange gives it another. Clearing them here would leave,
- * at the slightest failure between the grant and the exchange, a machine
- * whose token no longer works and a row stuck in `enrolling` — which
- * `ExpireEnrollments` revokes an hour later.
- */
+// Keeps the server token and status: clearing them would strand the machine if the exchange never comes.
 async function repairServer(
   prisma: OrganizationPrisma,
   actor: EnrollActor,
@@ -216,6 +208,7 @@ async function repairServer(
       select: { role: true },
     }),
   ])
+
   const repairs =
     server?.assignedUserId === actor.userId ||
     membership?.role === "owner" ||
@@ -353,12 +346,7 @@ export async function enrollServer(
   }
 }
 
-/**
- * What the exchange leaves the server in: the organization's entitlement,
- * never a fresh `active`. A machine suspended after a tolerance stays so
- * while the invoice stays unpaid, and one enrolled during a tolerance opens
- * in it; only a valid subscription hands out a full window.
- */
+// Never a fresh `active`: only a valid subscription hands out a full window.
 function standingAfterExchange(server: ServerRow, held: Entitlement) {
   if (held.state === "valid") {
     return {
@@ -386,15 +374,7 @@ function standingAfterExchange(server: ServerRow, held: Entitlement) {
   }
 }
 
-/**
- * The enrollment token, exchanged once for a server token.
- *
- * What's only valid once is the token, and its expiry is what says so: it
- * drops at the moment of the exchange, under the same conditional write, so
- * two concurrent exchanges collapse into one. The server itself may well
- * already carry a token — a machine being re-enrolled keeps a valid one
- * until this exchange replaces it.
- */
+/** Single use: the expiry drops under a conditional write, so concurrent exchanges collapse into one. */
 export async function exchangeEnrollmentToken(
   input: ExchangeInput,
   acceptLanguage: string | null = null
@@ -427,6 +407,7 @@ export async function exchangeEnrollmentToken(
 
   const serverToken = generateServerToken()
   const held = await entitlementForOrganization(server.organizationId)
+
   const burnt = await prisma.server.updateMany({
     where: { id: server.id, enrollmentExpiresAt: grantedUntil },
     data: {

@@ -10,11 +10,6 @@ export interface OrganizationHooks {
 
 let configured: OrganizationHooks = {}
 
-/**
- * What the platform does when the organization changes shape, filled by the
- * API at import time: Better Auth removes the member, the servers they held
- * are the API's to release.
- */
 export function configureOrganizationHooks(hooks: OrganizationHooks): void {
   configured = { ...configured, ...hooks }
 }
@@ -42,7 +37,7 @@ export interface AccountHooks {
 
 let accountConfigured: AccountHooks | null = null
 
-/** Better Auth only drops the user row: the API refuses or runs the platform's own purge before it does. */
+/** Better Auth only drops the user row; the API must refuse or purge platform data first. */
 export function configureAccountHooks(hooks: AccountHooks): void {
   accountConfigured = hooks
 }

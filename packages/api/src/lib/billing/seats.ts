@@ -33,10 +33,6 @@ export interface SeatQuota {
   source: SeatQuotaSource
 }
 
-/**
- * The platform's own organization holds the team's seats without any
- * subscription: nobody bills Pupitre for Pupitre.
- */
 export async function seatQuotaFor(
   prisma: OrganizationPrisma,
   organizationId: string
@@ -115,7 +111,7 @@ function billedSubscriptions(page?: SeatUsagePage) {
 
 export interface SeatUsage {
   subscription: Awaited<ReturnType<typeof billedSubscriptions>>[number]
-  /** The servers the subscription pays for: the seat kept from the launch is never billed. */
+  /** Excludes the seat kept from the launch, which is never billed. */
   seated: number
 }
 
@@ -142,10 +138,6 @@ async function seatedServersOf(
   return seated
 }
 
-/**
- * What billed organisations pay for and what they actually seat, all of them
- * or one page: the reconciliation writes from it, the overview only reads it.
- */
 export async function readSeatUsage(
   page?: SeatUsagePage
 ): Promise<SeatUsage[]> {
@@ -160,6 +152,7 @@ export async function readSeatUsage(
       subscriptions.map((subscription) => subscription.organizationId)
     ),
   ]
+
   const [seated, kept] = await Promise.all([
     seatedServersOf(organizationIds),
     keptLaunchSeatsOf(organizationIds),
@@ -223,6 +216,7 @@ export async function assertSeatsCoverUsage(
     }),
     keptLaunchSeatsOf([organizationId]),
   ])
+
   const billable = seated - (kept.get(organizationId) ?? 0)
 
   if (quantity < billable) {

@@ -20,7 +20,6 @@ import {
   threadViewOf,
 } from "./thread-view"
 
-/** The thread opened: what the list only counts — messages and notes — is carried here. */
 export type MailThreadDetail = Omit<MailThreadView, "messages" | "notes"> & {
   mailbox: MailMailboxRef | null
   messages: MailMessageView[]
@@ -52,6 +51,7 @@ export async function readMailThread(
     listMailActivities(threadId),
     readMailDraft(threadId),
   ])
+
   const people = await peopleNamed([
     thread.assignedUserId,
     thread.contactUserId,
@@ -102,13 +102,7 @@ async function readAlreadyJournalled(
   return previous !== null
 }
 
-/**
- * Opening a sensitive box is itself an act: who read a report sent to
- * `security@`, and when. An ordinary box records nothing.
- *
- * One line per reader and per window: the console refetches the open thread
- * on every frame it receives, and each refetch is the same reading.
- */
+/** Audits reads of sensitive mailboxes once per reader and window: the console refetches on every frame. */
 export async function noteSensitiveThreadRead(
   actor: Actor,
   thread: MailThreadDetail

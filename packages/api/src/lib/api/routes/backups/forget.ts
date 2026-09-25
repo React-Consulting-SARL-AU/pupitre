@@ -18,6 +18,7 @@ export const backupsForgetRoutes = new Elysia({ name: "backups-forget-routes" })
 
       if (!forgotten) {
         set.status = 404
+
         return apiError(
           "not_found",
           translate(resolveLocale(request.headers), "backup_not_found")

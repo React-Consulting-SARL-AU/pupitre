@@ -11,7 +11,7 @@ export function inBatches<T>(items: readonly T[]): T[][] {
   return batches
 }
 
-/** Batch after batch until one comes back short: every batch leaves the filter it was drawn from. */
+/** Runs until a batch comes back short, so each run must move its rows out of its own filter. */
 export async function drainBatches<T>(
   size: number,
   run: () => Promise<T[]>
@@ -30,11 +30,10 @@ export async function drainBatches<T>(
 }
 
 export interface CursorBatch {
-  /** Where the next batch starts, or null once every row has been seen. */
   next: string | null
 }
 
-/** Batch after batch from a cursor, for rows a batch may leave where they are. */
+/** Cursor-based, for batches that leave their rows in place. */
 export async function walkBatches<B extends CursorBatch>(
   run: (after: string | null) => Promise<B>
 ): Promise<B[]> {

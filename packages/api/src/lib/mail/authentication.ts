@@ -68,7 +68,7 @@ function methodResultOf(clause: string): MethodResult | null {
   return { method, result, properties }
 }
 
-/** RFC 8601, and the ARC form of it that opens on its instance `i=N`. */
+// RFC 8601, plus the ARC form that opens on its instance `i=N`.
 function parseResults(value: string): AuthenticationResults {
   const clauses = withoutComments(value)
     .split(";")
@@ -93,7 +93,7 @@ function domainOf(address: string | undefined): string {
   return (address?.split("@").pop() ?? "").toLowerCase()
 }
 
-/** Relaxed alignment: one domain is the other, or sits under it. */
+// DMARC relaxed alignment: one domain equals the other or sits under it.
 function aligned(one: string, other: string): boolean {
   return (
     one !== "" &&
@@ -119,12 +119,7 @@ function vouchesFor(result: MethodResult, domain: string): boolean {
   }
 }
 
-/**
- * The receiving MX prepends its own results, so only the topmost header of
- * each name can be its: one copied lower by the sender, even under our
- * authserv-id, never counts. Every topmost header our MX wrote must vouch for
- * the `From` domain through DMARC, or an aligned DKIM or SPF pass.
- */
+/** Only the topmost header of each name is our MX's (lower ones may be forged), and each must vouch for the From domain. */
 export function isAuthenticatedSender(
   headers: MailHeader[],
   fromEmail: string | null

@@ -49,12 +49,12 @@ async function alreadyAnnounced(
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     select: { payload: true },
   })
+
   const payload = last?.payload as DriftPayload | null | undefined
 
   return payload?.paid === subscription.quantity && payload.seated === seated
 }
 
-/** More servers seated than seats paid: the journal keeps it, the owner hears it, once per new count. */
 async function announceDrift(
   subscription: DriftingSubscription,
   seated: number
@@ -75,6 +75,7 @@ async function announceDrift(
       drift: seated - subscription.quantity,
     },
   })
+
   await sendSeatsDriftEmail({
     organizationId: subscription.organizationId,
     paid: subscription.quantity,
@@ -102,6 +103,7 @@ export async function reconcileSeatsBatch(
         subscription.stripeSubscriptionId,
         seated
       )
+
       await prisma.subscription.update({
         where: { id: subscription.id },
         data: { quantity: seated },

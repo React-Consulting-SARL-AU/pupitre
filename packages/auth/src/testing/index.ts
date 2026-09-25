@@ -57,7 +57,7 @@ export async function createTestUser(
   return { user, organization }
 }
 
-/** The platform's own organization, as the seed writes it: membership in it is what opens the platform pages. */
+/** Membership in the platform organization is what opens the platform pages. */
 export async function joinPlatformOrganization(
   prisma: AuthPrisma,
   userId: string,
@@ -109,6 +109,7 @@ export async function createTestSession(
     input.activeOrganizationId === undefined
       ? await firstOrganizationIdOf(prisma, input.userId)
       : input.activeOrganizationId
+
   const session = await prisma.session.create({
     data: {
       id: crypto.randomUUID(),

@@ -53,7 +53,7 @@ export interface AdminOrganizationView {
 export interface AdminServerView extends ServerView {
   suspended_reason: SuspensionReason | null
   channel: ReleaseChannel
-  /** Whether the row takes one of its organisation's seats, as `ReconcileSeats` counts them. */
+  /** Counted the same way as `ReconcileSeats`. */
   seated: boolean
   organization: AdminOrganizationView
 }
@@ -97,7 +97,7 @@ function toAdminView(
   }
 }
 
-/** The reading `isStale` makes, written as SQL: a machine enrolling or revoked is never stale. */
+// Must match `isStale`: a machine enrolling or revoked is never stale.
 function staleWhere(now: Date): Prisma.ServerWhereInput {
   const threshold = new Date(now.getTime() - STALE_AFTER_MS)
 
@@ -153,6 +153,7 @@ export async function listServersForPlatform(
   const prisma = getPrisma()
   const now = new Date()
   const where = whereOf(filter, now)
+
   const [servers, total] = await Promise.all([
     prisma.server.findMany({
       where,
@@ -163,6 +164,7 @@ export async function listServersForPlatform(
     }),
     prisma.server.count({ where }),
   ])
+
   const alerts = await activeAlertsFor(servers.map((server) => server.id))
 
   return {
@@ -177,12 +179,7 @@ export interface AdminActor {
   userId: string
 }
 
-/**
- * The team takes a machine out of use: its keys stop reaching it and the
- * agent reads `suspended` at its next poll. The reason is for the owner and
- * the journal; the row only remembers who suspended, so that a subscription
- * coming back restores nothing the team took away.
- */
+/** The row records the team as suspender so a returning subscription does not lift it. */
 export async function suspendServerByAdmin(
   actor: AdminActor,
   serverId: string,
@@ -210,6 +207,7 @@ export async function suspendServerByAdmin(
       suspendedByOrganization: false,
     },
   })
+
   await recordEvent({
     action: "server.suspended",
     actorUserId: actor.userId,
@@ -296,7 +294,7 @@ function toDeviceView(device: NonNullable<DeviceRow>): AdminServerDevice {
   }
 }
 
-/** `ServerRevokedDevice` names its actor by identifier alone: the journal shows a person. */
+// `ServerRevokedDevice` stores only the actor id; the console shows a person.
 async function revocationActorsOf(
   revocations: ServerDetailRow["revokedDevices"]
 ): Promise<Map<string, AdminServerAssignee>> {
@@ -356,10 +354,6 @@ export async function readServerForPlatform(
   return server ? await detailOf(server) : null
 }
 
-/**
- * The channel a machine follows for its agent updates. A revoked machine has
- * nothing left to update.
- */
 export async function setServerChannel(
   actor: AdminActor,
   serverId: string,
@@ -406,10 +400,7 @@ export async function setServerChannel(
   return await readServerForPlatform(server.id)
 }
 
-/**
- * The team closes what a machine has open: an episode that is over keeps
- * nobody's attention. A condition that still holds reopens at the next run.
- */
+/** A condition that still holds reopens its alert at the next run. */
 export async function clearServerAlertsByAdmin(
   actor: AdminActor,
   serverId: string,
@@ -447,13 +438,7 @@ export async function clearServerAlertsByAdmin(
   return closed.length
 }
 
-/**
- * The team gives a machine back.
- *
- * Only a suspension the team itself laid down lifts here, and what it lifts
- * into is whatever the organization is entitled to now: a subscription that
- * lapsed meanwhile leaves the server in tolerance rather than open.
- */
+/** Lifts only a team suspension, into what the organization is entitled to now. */
 export async function restoreServerByAdmin(
   actor: AdminActor,
   serverId: string,
@@ -484,6 +469,7 @@ export async function restoreServerByAdmin(
     where: { id: server.id },
     data: standingAfterRestore(held, now),
   })
+
   await recordEvent({
     action: "server.restored",
     actorUserId: actor.userId,
@@ -500,10 +486,6 @@ export type AdminServerDeletion =
   | { deletion: "revoked"; server: AdminServerDetail }
   | { deletion: "purged" }
 
-/**
- * The same two steps as the owner's deletion — revoke and schedule, then
- * purge — signed by the team, with the reason in the journal.
- */
 export async function deleteServerByAdmin(
   actor: AdminActor,
   serverId: string,

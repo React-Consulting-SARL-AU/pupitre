@@ -369,9 +369,7 @@ describe("POST /servers/enroll", () => {
     const first = await enroll(owner, deviceId, "vps.test")
     const held = await exchange(first.json.enrollment_token)
 
-    // The second enrollment isn't followed by an exchange: sending the binary
-    // failed, the machine keeps the token it has, and the row stays standing —
-    // otherwise ExpireEnrollments would revoke it an hour later.
+    // No exchange follows (the binary upload failed): the held token must survive ExpireEnrollments.
     const again = await enroll(owner, deviceId, "vps.test")
     const still = await apiRequest("/agent/state", {
       bearer: held.json.server_token,
@@ -1069,8 +1067,7 @@ describe("DELETE /servers/:id", () => {
       await prisma.server.findUnique({ where: { id: serverId } })
     ).toBeNull()
 
-    // The second click erases, it doesn't push back the deadline: no row
-    // survives with a later deadline than the first.
+    // The second DELETE purges rather than pushing back the first deadline.
     expect(deadline).toBeGreaterThan(0)
 
     const purged = await prisma.event.findFirstOrThrow({

@@ -73,6 +73,7 @@ const me = {
   active_organization: null,
   role: null,
   platform_role: null,
+  platform_can_act: false,
   entitlement: "none",
   subscription: {
     status: "trialing",
@@ -145,6 +146,8 @@ const cases: [string, ContractSchema, unknown[]][] = [
       me,
       { ...me, role: "superuser" },
       { ...me, entitlement: "valid", role: "owner", platform_role: "member" },
+      { ...me, platform_role: "admin", platform_can_act: true },
+      { ...me, platform_can_act: undefined },
       { ...me, user: { ...me.user, locale: "de" } },
       {
         ...me,

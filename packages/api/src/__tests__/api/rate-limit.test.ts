@@ -54,6 +54,7 @@ describe("global rate limit", () => {
 describe("rate limiter stores", () => {
   it("counts against a configured shared store, keyed and windowed as asked", async () => {
     const hits: { key: string; windowMs: number }[] = []
+
     configureRateLimitStore({
       hit: async (key, windowMs) => {
         hits.push({ key, windowMs })

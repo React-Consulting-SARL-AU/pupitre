@@ -22,18 +22,6 @@ import {
   latestAppReleaseQuery,
 } from "./app-release-schemas"
 
-/**
- * The app's versions, readable without a session.
- *
- * The artefacts are public: they live in the download bucket, the site's
- * page lists them and the app updates from there without asking the
- * platform for anything. What stays private is the agent binary — a
- * different family of routes, with a token.
- *
- * Being open to anyone, they answer any origin, stay cacheable for five
- * minutes, and carry a budget of their own on top of the global one.
- */
-
 const PUBLIC_CACHE = "public, max-age=300"
 
 const appReleaseEnvelope = dataResponse(appReleaseSchema)
@@ -43,6 +31,7 @@ const appReleaseListEnvelope = t.Object(
   { $id: "AppReleaseList" }
 )
 
+/** Public like the bucket they point at, so any origin, a five-minute cache and their own rate budget. */
 export const appReleasesRoutes = new Elysia({
   name: "app-releases-routes",
   tags: ["Releases"],
@@ -130,13 +119,7 @@ export const appReleasesRoutes = new Elysia({
       },
     }
   )
-  /**
-   * The stable link to an artefact.
-   *
-   * The site and the help pages point here rather than at the bucket URL:
-   * the platform knows where the file was dropped, and the day the storage
-   * changes, links already written elsewhere keep working.
-   */
+  // Links point here rather than at the bucket, so they survive a storage change.
   .get(
     "/releases/app/:version/:os/:arch",
     async ({ params, query, request, set }) => {

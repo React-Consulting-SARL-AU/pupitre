@@ -13,18 +13,6 @@ import {
 } from "../src/migration-guard"
 import { BINDING, fail, wrangler } from "./wrangler"
 
-/**
- * Pupitre's own organization, and the owner's account as its owner and the
- * platform's administrator, under identifiers that never move:
- *
- *   bun run db:seed local owner@example.com
- *   PUPITRE_ALLOW_MIGRATE_ON=production bun run db:seed production owner@example.com
- *
- * D1 has neither transactions nor bound parameters: every statement stands on
- * its own, is idempotent on its own, and carries its values inline — which is
- * why the address is validated before anything is written.
- */
-
 const EMAIL_RE =
   /^[a-z0-9](?:[a-z0-9._%+-]*[a-z0-9])?@[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/i
 
@@ -32,6 +20,7 @@ const EMAIL_MAX = 254
 
 const OWNER_ROLE = "owner"
 
+/** D1 has no bound parameters here, so the address is validated before it is inlined into SQL. */
 export function emailOf(value: string | undefined): string {
   const email = value?.trim() ?? ""
 
@@ -51,7 +40,7 @@ function quote(value: string): string {
   return `'${value.replaceAll("'", "''")}'`
 }
 
-/** Prisma reads SQLite dates back in this shape, offset spelled out. */
+/** The shape Prisma reads SQLite dates back in, offset spelled out. */
 export function stamp(date: Date): string {
   return date.toISOString().replace("Z", "+00:00")
 }
@@ -70,6 +59,7 @@ export interface TSeedInput {
   now: Date
 }
 
+/** D1 runs these without a transaction, so each statement is idempotent on its own. */
 export function seedStatements({ email, now }: TSeedInput): string[] {
   const address = quote(email)
   const at = quote(stamp(now))

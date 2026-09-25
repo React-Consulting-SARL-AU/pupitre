@@ -36,6 +36,7 @@ export const agentStateRoutes = new Elysia({ name: "agent-state-routes" })
         )
 
         set.status = 422
+
         return apiError("validation", message, fix)
       }
 

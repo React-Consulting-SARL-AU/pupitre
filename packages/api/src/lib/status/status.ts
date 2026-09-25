@@ -35,7 +35,7 @@ export interface ServiceStatus {
   billing: BillingStatus
 }
 
-/** A misconfigured `BILLING_MODE` degrades this line; it never takes the public status down with it. */
+// A misconfigured `BILLING_MODE` degrades this line, never the whole public status.
 function billingStatus(): BillingStatus {
   try {
     const { mode, launchEndsAt } = getBillingMode()
@@ -66,10 +66,7 @@ function newest(releases: ReleaseRow[]): PublishedRelease | null {
     : null
 }
 
-/**
- * The public face of the platform: whether the service answers, never who uses
- * it. Nothing here may name an organisation, a person or a machine.
- */
+/** Public: nothing here may name an organisation, a person or a machine. */
 export async function readServiceStatus(
   now: Date = new Date()
 ): Promise<ServiceStatus> {

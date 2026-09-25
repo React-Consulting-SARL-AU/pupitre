@@ -198,7 +198,6 @@ function stillThere(database: Database, seeded: SeededChild): boolean {
   return (found?.count ?? 0) > 0
 }
 
-/** Replays the migrations as D1 does, foreign keys on, and names every child row a table rebuild took away. */
 function lostChildren(chain: Migration[]): string[] {
   const database = new Database(":memory:")
   const insert = rowFiller(database)

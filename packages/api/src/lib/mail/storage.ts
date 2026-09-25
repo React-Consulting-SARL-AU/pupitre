@@ -26,9 +26,7 @@ export type MailSignedMethod = "GET" | "PUT"
 
 export interface MailSignedUrlOptions {
   ttlSeconds: number
-  /** The `Content-Disposition` the bucket answers with, signed into the address. */
   disposition?: string
-  /** The `Content-Type` the bucket answers with, signed into the address. */
   contentType?: string
 }
 
@@ -109,7 +107,7 @@ export function outboundAttachmentKey(
   return `${mailPrefix(threadId, messageId)}/attachments/${rank}/${safeFilename(filename)}`
 }
 
-/** A pending upload is filed under whoever asked for it: the send checks the prefix against the caller. */
+/** Uploads are filed per user: the send checks the prefix against the caller. */
 export function mailUploadPrefix(userId: string): string {
   return `${MAIL_UPLOADS_PREFIX}${userId}/`
 }
@@ -118,11 +116,7 @@ export function mailUploadKey(userId: string, filename: string): string {
   return `${mailUploadPrefix(userId)}${crypto.randomUUID()}/${safeFilename(filename)}`
 }
 
-/**
- * An inbound object is named after the bytes it holds, so the key is known
- * before any row is: a replay of the same delivery writes over itself instead
- * of leaving the first attempt behind.
- */
+// Keyed by content hash, so a replayed delivery writes over itself instead of leaving the first attempt behind.
 function inboundPrefix(rawHash: string): string {
   return `mail/inbound/${rawHash}`
 }
@@ -154,7 +148,6 @@ function responseQuery(options: MailSignedUrlOptions): Record<string, string> {
   }
 }
 
-/** Without R2 credentials the address is local and says so, like the release storage. */
 export function createMailUrlSigner(
   config: R2StorageConfig | null,
   now: () => Date = () => new Date()

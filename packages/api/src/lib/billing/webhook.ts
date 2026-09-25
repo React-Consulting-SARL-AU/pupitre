@@ -71,11 +71,7 @@ function idOf(value: unknown): string | null {
   return null
 }
 
-/**
- * Which subscription an invoice belongs to: Stripe moved the field under
- * `parent.subscription_details` in the 2025 API and kept the older shapes
- * alive, so a delivery can carry any of the three.
- */
+// Stripe's 2025 API moved the field under `parent.subscription_details` but older shapes still arrive.
 function invoiceSubscriptionOf(object: Record<string, unknown>): string | null {
   const parent = object.parent as Record<string, unknown> | undefined
   const details = parent?.subscription_details as
@@ -210,6 +206,7 @@ async function onCheckoutCompleted(
   const action = await mirrorSubscription(organizationId, remote)
 
   await auditSubscription(action, organizationId, remote)
+
   await applyOrganizationEntitlement(organizationId, now)
 
   return true
@@ -225,7 +222,7 @@ async function organizationOf(
   )
 }
 
-/** Whatever the delivery said, the mirror takes what Stripe answers now: a late event never revives nor overrides a newer state. */
+// The mirror takes Stripe's current answer, so a late event never revives or overrides a newer state.
 async function followSubscription(
   organizationId: string,
   subscriptionId: string,
@@ -242,6 +239,7 @@ async function followSubscription(
     organizationId,
     remote
   )
+
   await applyOrganizationEntitlement(organizationId, now)
 }
 
@@ -284,10 +282,7 @@ async function onInvoicePaymentFailed(
   return true
 }
 
-/**
- * Which subscription the delivery talks about, read off the envelope: what a
- * later reader filters on, since the row keeps no payload.
- */
+// The event row keeps no payload, so this is what a later reader filters on.
 function announcedSubscriptionOf(
   type: string,
   object: Record<string, unknown>
@@ -321,13 +316,7 @@ function dispatch(
 
 type Claim = "claimed" | "processed" | "in_flight"
 
-/**
- * The event is claimed before anything runs: two deliveries racing on two
- * isolates collapse on the primary key, and only one of them handles it. A
- * claim left `failed`, or held past its lease by an isolate that died, is
- * taken again on Stripe's retry; one still in flight is refused, so Stripe
- * keeps retrying until it has been processed.
- */
+// Racing deliveries collapse on the primary key; a failed or lease-expired claim is retaken on Stripe's retry.
 async function claimEvent(
   id: string,
   type: string,
@@ -351,6 +340,7 @@ async function claimEvent(
   const leaseExpiredBefore = new Date(
     now.getTime() - stripeEventLeaseMsFromEnv()
   )
+
   const retried = await prisma.stripeEvent.updateMany({
     where: {
       id,
@@ -412,6 +402,7 @@ export async function handleStripeWebhook({
   }
 
   const object = envelope.data?.object ?? {}
+
   const claim = await claimEvent(
     id,
     type,

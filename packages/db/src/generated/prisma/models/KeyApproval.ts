@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace"
 
 /**
  * Model KeyApproval
- * A device key admitted on a server by the signature of a key the agent trusts (decision 0014); `issuedAt` keeps the signed spelling.
+ * 
  */
 export type KeyApprovalModel = runtime.Types.Result.DefaultSelection<Prisma.$KeyApprovalPayload>
 
@@ -919,6 +919,9 @@ export type $KeyApprovalPayload<ExtArgs extends runtime.Types.Extensions.Interna
     deviceId: string
     userId: string
     signer: string
+    /**
+     * A string to keep the exact signed spelling (decision 0014).
+     */
     issuedAt: string
     signature: string
     approvedByUserId: string | null

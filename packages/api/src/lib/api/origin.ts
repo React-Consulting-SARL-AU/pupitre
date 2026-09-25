@@ -19,7 +19,6 @@ function isLoopback(url: string): boolean {
   return URL.canParse(url) && LOOPBACK_HOSTS.has(new URL(url).hostname)
 }
 
-/** A request a browser sent from a page that is neither this origin nor one of Pupitre's own. */
 export function isForeignOrigin(request: Request): boolean {
   const origin = request.headers.get("origin")
 

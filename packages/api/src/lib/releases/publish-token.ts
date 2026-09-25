@@ -1,18 +1,8 @@
-/**
- * The credential the release pipeline presents.
- *
- * It is not a session: a session belongs to a person, expires, and carries the
- * whole platform with it. This one is a machine credential of its own, declared
- * on the Worker and in GitHub Actions, and it opens the release routes only.
- *
- * Two values are accepted so a rotation leaves no window: the new token is
- * added here, GitHub switches to it, and the old one is dropped afterwards.
- */
-
 export const PUBLISH_TOKEN_PREFIX = "pupitre_pub_"
 
 export const PUBLISH_TOKEN_VARIABLE = "PUPITRE_PUBLISH_TOKEN"
 
+/** A second accepted token lets a rotation leave no window. */
 export const PREVIOUS_PUBLISH_TOKEN_VARIABLE = "PUPITRE_PUBLISH_TOKEN_PREVIOUS"
 
 export type PublishTokenEnv = Record<string, string | undefined>
@@ -38,13 +28,7 @@ async function digest(value: string): Promise<Uint8Array> {
   return new Uint8Array(bytes)
 }
 
-/**
- * Compared on digests, and to the end.
- *
- * The digest is what defeats a timing attack: a caller cannot choose what it
- * hashes to, so learning how far two digests agree teaches nothing about the
- * token. Running to the end anyway costs thirty-two subtractions.
- */
+// Comparing digests defeats timing attacks: a caller cannot choose what its token hashes to.
 function sameDigest(left: Uint8Array, right: Uint8Array): boolean {
   if (left.length !== right.length) {
     return false

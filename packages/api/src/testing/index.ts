@@ -65,12 +65,7 @@ function createTestFetch(auth: Auth): TestFetch {
   }
 }
 
-/**
- * What the platform reads from the ambient environment, dropped before the
- * first request: a workstation's `.env.local` carries the real bucket and the
- * real publication token, and a test that saw them would assert on the
- * machine it runs on. A test that needs one of these sets it itself.
- */
+// Dropped at boot: a workstation's `.env.local` would make tests assert on the machine they run on.
 const AMBIENT_VARIABLES = [
   "BILLING_MODE",
   "LAUNCH_ENDS_AT",

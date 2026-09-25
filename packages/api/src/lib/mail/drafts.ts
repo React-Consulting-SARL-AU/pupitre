@@ -87,6 +87,7 @@ export async function saveMailDraft(
     attachments: (input.attachments ?? []) as unknown as Prisma.InputJsonValue,
     updatedByUserId: actor.userId,
   }
+
   const draft = await prisma.mailDraft.upsert({
     where: { threadId },
     update: data,

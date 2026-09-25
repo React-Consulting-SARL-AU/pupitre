@@ -109,7 +109,7 @@ function typeBoxOf(node: JsonSchema): TSchema {
   return typedOf(node.type, node)
 }
 
-/** A shared zod contract as TypeBox: the route keeps its localized validation messages and its OpenAPI, the shape lives once. */
+/** Zod contract as TypeBox, so routes keep their localized validation messages and OpenAPI. */
 export function fromContract<Schema extends ContractSchema>(
   schema: Schema,
   options: { $id?: string } = {}

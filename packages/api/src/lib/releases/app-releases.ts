@@ -13,18 +13,7 @@ const DOWNLOADS_URL_VARIABLE = "PUPITRE_DOWNLOADS_URL"
 
 const TRAILING_SLASHES_RE = /\/+$/
 
-/**
- * The address of an artefact.
- *
- * Composed here, from the bucket the platform owns, and never taken from the
- * publisher: a version cannot send a reader to a host that is not ours. The
- * key is concatenated rather than resolved — `new URL` would follow a key
- * beginning with `//` to another host, which is the escape the pattern on
- * `r2_key` and this line close together.
- *
- * Without the variable — in development — the address says plainly that
- * nothing will be downloaded, the way the private bucket does.
- */
+/** Never the publisher's URL, and concatenated since `new URL` would follow a `//` key to another host. */
 export function artefactUrl(
   r2Key: string,
   env: Record<string, string | undefined> = process.env
@@ -194,12 +183,6 @@ export async function latestAppRelease(
   )
 }
 
-/**
- * The published versions, most recent first.
- *
- * The site's download page reads this list at build time: it names the
- * artefacts, their size and their checksum, and nothing that requires a session.
- */
 export async function listAppReleases(
   channel: ReleaseChannel,
   limit = 10
@@ -219,7 +202,7 @@ export async function listAppReleases(
     .filter((release) => release !== null)
 }
 
-/** The stable versions newer than the promoted one step down, so the download page rolls back with the agent. */
+// Newer stable versions step down, so the download page rolls back with the agent.
 async function demoteNewerStable(version: string): Promise<string[]> {
   const prisma = getPrisma()
   const stable = await prisma.appRelease.findMany({

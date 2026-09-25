@@ -165,11 +165,7 @@ export async function publishRelease(
   return { release: toReleaseView(row), created }
 }
 
-/**
- * A promotion to stable is also the way back: the stable releases newer than
- * the promoted one, on the architectures it covers, step down to beta so the
- * channel's latest is the version just promoted.
- */
+// Promoting to stable is also the rollback: newer stable releases on those arches step down to beta.
 async function demoteNewerStable(
   version: string,
   arches: string[]
@@ -237,7 +233,7 @@ function newest(left: string | null, right: string | null): string | null {
   return isNewer(right, left) ? right : left
 }
 
-/** A version the channel once carried and no longer does: promoted away, so a rollback can reach the server. */
+// A version promoted away from the channel, so a rollback can reach the server.
 async function withdrawnFrom(
   version: string,
   arch: string,
@@ -248,12 +244,7 @@ async function withdrawnFrom(
   return release !== null && !CHANNEL_SOURCES[channel].includes(release.channel)
 }
 
-/**
- * The version the platform wants on the server: the channel's latest, never
- * older than what the server already targets or runs — unless that version
- * was withdrawn from the channel, in which case the target moves down to the
- * channel's latest.
- */
+/** Never older than what the server targets or runs, unless that version was withdrawn from the channel. */
 export async function resolveTargetVersion(
   server: ServerRow
 ): Promise<string | null> {

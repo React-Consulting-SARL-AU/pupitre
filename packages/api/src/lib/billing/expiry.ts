@@ -12,10 +12,6 @@ export interface EndedSubscriptionsFilter {
   status: string
 }
 
-/**
- * The organizations of these rows that another live subscription still
- * covers: it has already paid for their servers.
- */
 async function organizationsCoveredElsewhere(
   ended: { id: string; organizationId: string }[]
 ): Promise<Set<string>> {
@@ -33,12 +29,7 @@ async function organizationsCoveredElsewhere(
   return new Set(others.map((row) => row.organizationId))
 }
 
-/**
- * One batch of the rows of this product and status whose end has passed. Their
- * servers take that past date first, so the suspension that runs next closes
- * them the same day, and the rows are cancelled last: a retry after a failure
- * finds them again rather than leaving servers running on a dead subscription.
- */
+/** Rows are cancelled last, so a retry after a failure finds them again instead of leaving servers running. */
 export async function cancelEndedSubscriptionsBatch(
   filter: EndedSubscriptionsFilter,
   now: Date = new Date()

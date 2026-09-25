@@ -78,8 +78,6 @@ export class AppUrlNotConfiguredError extends Error {
   }
 }
 
-const DEVELOPMENT_APP_URL = "http://localhost:3000"
-
 const TRAILING_SLASHES_RE = /\/+$/
 
 function originOf(url: string): string {
@@ -90,11 +88,7 @@ function originOf(url: string): string {
   }
 }
 
-/**
- * The console's origin, which Stripe returns to and every email links to. Only
- * a machine that declares no environment falls back to the local one: a
- * deployed platform without it would send its customers to localhost.
- */
+// A deployed platform without a configured origin would send its customers to localhost.
 export function appUrlFromEnv(env: BillingEnv = process.env): string {
   const configured = env.VITE_APP_URL?.trim() || env.BETTER_AUTH_URL?.trim()
 
@@ -106,14 +100,13 @@ export function appUrlFromEnv(env: BillingEnv = process.env): string {
     throw new AppUrlNotConfiguredError()
   }
 
-  return DEVELOPMENT_APP_URL
+  return PUPITRE_ORIGINS.devConsole
 }
 
 const DEFAULT_STRIPE_EVENT_LEASE_MINUTES = 5
 
 const MINUTE_MS = 60_000
 
-/** How long a delivery holds its event before a later delivery may take it over. */
 export function stripeEventLeaseMsFromEnv(
   env: BillingEnv = process.env
 ): number {
@@ -140,6 +133,7 @@ export function stripeConfigFromEnv(): StripeConfig {
   const missing: string[] = []
   const secretKey = readEnv("STRIPE_SECRET_KEY", missing)
   const appUrl = appUrlFromEnv()
+
   const prices = Object.fromEntries(
     Object.entries(PRICE_VARIABLES).map(([key, variable]) => [
       key,
@@ -158,10 +152,6 @@ const STRIPE_DASHBOARD_LIVE = "https://dashboard.stripe.com"
 
 const STRIPE_TEST_KEY_MARKER = "_test_"
 
-/**
- * Where the team reads a subscription at Stripe. The configured key says which
- * of the two dashboards holds it; `STRIPE_DASHBOARD_URL` overrides that reading.
- */
 export function stripeDashboardUrl(env: BillingEnv = process.env): string {
   const configured = env.STRIPE_DASHBOARD_URL?.replace(TRAILING_SLASHES_RE, "")
 

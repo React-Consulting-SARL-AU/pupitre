@@ -43,11 +43,7 @@ export function subscriptionStateOf(status: string): EntitlementState {
   return GRACE_SUBSCRIPTION_STATUSES.has(status) ? "grace" : "suspended"
 }
 
-/**
- * The horizon of a tolerance is written on the servers the day it opens, and
- * never pushed back: the organization reads it there, so `/me` and
- * `/agent/state` name the same day.
- */
+// Read off the servers, where it is written once and never pushed back, so `/me` and `/agent/state` agree.
 async function graceHorizonOf(
   subscription: SubscriptionMirror,
   now: Date
@@ -89,16 +85,11 @@ async function entitlementOf(
   return { state, valid_until: subscription.currentPeriodEnd ?? now }
 }
 
-/** The platform's own organization is entitled by what it is, not by a subscription. */
 function isPlatform(organizationId: string): boolean {
   return organizationId === PLATFORM_ORGANIZATION_ID
 }
 
-/**
- * A standing the team laid down outranks the money: as long as the
- * organization is suspended or closed, nothing it pays gives its machines
- * back.
- */
+// A suspension or closure by the team outranks any payment.
 async function isHeldByPlatform(organizationId: string): Promise<boolean> {
   const organization = await getPrisma().organization.findUnique({
     where: { id: organizationId },
