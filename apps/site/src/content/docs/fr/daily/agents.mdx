@@ -7,11 +7,11 @@ sectionOrder: 2
 order: 6
 ---
 
-Pupitre installe les agents ; vous apportez les abonnements. Rien n’est revendu, et aucun de vos jetons n’est stocké sur la plateforme.
+Pupitre installe les agents ; vous apportez les abonnements. Rien n’est revendu, et aucun de vos tokens n’est stocké sur la plateforme.
 
 ## Ce qui est installé
 
-`ai.claude` pose le binaire natif publié par Anthropic, pour cette architecture, et le refuse si sa somme de contrôle ne correspond pas à celle qu’annonce le manifeste de la version. `ai.codex` passe par `mise`, qui épingle et met à jour Codex comme un runtime et le dépose sur le PATH de tous les shells. `ai.cursor` pose le paquet du CLI de Cursor tel que l’installeur de Cursor le fait — sous sa version dans `~/.local/share/cursor-agent`, les commandes `agent` et `cursor-agent` liées depuis `~/.local/bin` — sans exécuter l’installeur. `ai.gemini` et `ai.copilot` passent par `mise` comme Codex, pour Gemini CLI et le CLI de GitHub Copilot. `ai.opencode` pose le binaire statique de la release GitHub d’OpenCode et le refuse si sa somme n’est pas celle que GitHub publie pour l’artefact. `ai.hermes` fait tourner l’agent de Nous Research sur le runtime Python, avec les fournisseurs de modèles que vous configurez.
+`ai.claude` pose le binaire natif publié par Anthropic, pour cette architecture, et le refuse si son checksum ne correspond pas à celui qu’annonce le manifeste de la version. `ai.codex` passe par `mise`, qui épingle et met à jour Codex comme un runtime et le dépose sur le PATH de tous les shells. `ai.cursor` pose le paquet du CLI de Cursor tel que l’installeur de Cursor le fait — sous sa version dans `~/.local/share/cursor-agent`, les commandes `agent` et `cursor-agent` liées depuis `~/.local/bin` — sans exécuter l’installeur. `ai.gemini` et `ai.copilot` passent par `mise` comme Codex, pour Gemini CLI et le CLI de GitHub Copilot. `ai.opencode` pose le binaire statique de la release GitHub d’OpenCode et le refuse si son checksum n’est pas celui que GitHub publie pour l’artefact. `ai.hermes` fait tourner l’agent de Nous Research sur le runtime Python, avec les fournisseurs de modèles que vous configurez.
 
 Les sept s’installent dans le compte `dev`, sur la même machine, et peuvent cohabiter.
 
@@ -31,7 +31,7 @@ Chaque module d’agent écrit le même contexte machine, sous le nom que son ou
 
 - `server-dev` — enregistrer, démarrer et diagnostiquer un projet avec `dev` ;
 - `capture` — prendre une capture et répondre par une URL que quelqu’un d’autre peut ouvrir, pas par un chemin local ;
-- `branch`, `pr`, `ship` — commiter, pousser, ouvrir une pull request, dans la convention du dépôt.
+- `branch`, `pr`, `ship` — commiter, faire un push, ouvrir une pull request, dans la convention du dépôt.
 
 Claude Code reçoit en plus le sous-agent `git-shipper`. Mettre à jour un module réécrit le contexte et les skills ; le désinstaller reprend ce que le module a écrit et laisse vos conversations, vos identifiants et les skills que vous avez ajoutés.
 
@@ -45,7 +45,7 @@ L’app ouvre un agent dans le dossier du projet, pas dans un répertoire person
 
 ## Les captures
 
-Avec `ai.browser` installé, un agent pilote Chrome sans interface, range l’image sous `~/shots` et rend une URL servie sur la boucle locale. C’est ce qui lui permet de regarder la page qu’il vient de modifier au lieu de décrire ce qu’il croit avoir fait. Voir [galerie](/fr/docs/daily/gallery/).
+Avec `ai.browser` installé, un agent pilote Chrome en headless, range l’image sous `~/shots` et rend une URL servie sur localhost. C’est ce qui lui permet de regarder la page qu’il vient de modifier au lieu de décrire ce qu’il croit avoir fait. Voir [galerie](/fr/docs/daily/gallery/).
 
 ## Travailler la nuit
 

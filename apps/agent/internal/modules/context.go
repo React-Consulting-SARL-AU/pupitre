@@ -17,18 +17,17 @@ type Context struct {
 	manifest contract.Manifest
 	values   map[string]any
 	secrets  map[string]string
-	// What the server already applied for this module, when it is installed.
+	// What install.json says the installed module already runs on.
 	held map[string]any
 	run  *run
 
 	steps  []contract.ReportStep
 	failed bool
 	warned bool
-	// What the module had to say since the last step closed: it rides on that step.
+	// Rides on the next step to close.
 	warning string
-	// The step under way, which the report in progress shows as started.
-	open string
-	// The command that replays a failed step, when it is not the module's install.
+	open    string
+	// Empty means the module's install replays a failed step.
 	replay string
 }
 
@@ -38,15 +37,12 @@ type ContextOptions struct {
 	Manifest contract.Manifest
 	Values   map[string]any
 	Secrets  map[string]string
-	// Held is what the machine already runs on for this module, as install.json remembers it.
-	Held    map[string]any
-	Emit    func(contract.StepEvent)
-	LogPath string
-	// InstallPath names the install.json to read the module's values and
-	// secrets from, for a reader that holds no engine: a module is read on what
-	// the machine remembers of it, never on the manifest defaults.
+	Held     map[string]any
+	Emit     func(contract.StepEvent)
+	LogPath  string
+	// For a reader without an engine: the module is read on what the machine remembers, never on manifest defaults.
 	InstallPath string
-	// ProjectsLockPath is the lock the project registry is rewritten under; empty is no lock.
+	// Empty means no lock.
 	ProjectsLockPath string
 }
 
@@ -100,12 +96,10 @@ func (c *Context) Once(key string, fn func() error) error {
 	return c.run.once(key, fn)
 }
 
-// ProjectsLock is the path the project registry is held under while a step rewrites it.
 func (c *Context) ProjectsLock() string {
 	return c.run.projectsLock
 }
 
-// Replay is the command that runs a failed step again: the module's install, unless the caller named another one.
 func (c *Context) Replay() string {
 	if c.replay != "" {
 		return c.replay
@@ -114,12 +108,11 @@ func (c *Context) Replay() string {
 	return Replay(c.manifest.ID)
 }
 
-// Replaying names the command that replays the steps to come, for a command whose steps are not an install.
 func (c *Context) Replaying(command string) {
 	c.replay = command
 }
 
-// Hide keeps secrets the context did not start with — a key read from a secret line — out of the journal and the events.
+// For secrets learnt mid-run, such as a key read from a secret line.
 func (c *Context) Hide(secrets ...string) {
 	for _, secret := range secrets {
 		if strings.TrimSpace(secret) != "" {
@@ -128,7 +121,7 @@ func (c *Context) Hide(secrets ...string) {
 	}
 }
 
-// Sibling is another module read through the same engine run, on what install.json remembers; a module's own steps never reach for one.
+// Only a command run carries a registry: a module's own install steps never reach for a sibling.
 func (c *Context) Sibling(id string) (*Context, bool) {
 	if c.run.registry == nil {
 		return nil, false
@@ -169,7 +162,6 @@ func (c *Context) Int(key string) int {
 	return asInt(c.Value(key))
 }
 
-// Held answers the value the installed module runs on, or nil when the server never applied one.
 func (c *Context) Held(key string) any {
 	return c.held[key]
 }
@@ -204,7 +196,6 @@ func (c *Context) Bool(key string) bool {
 	return false
 }
 
-// A list field of text arrives as the JSON array of the config line, one value per entry.
 func (c *Context) StringList(key string) []string {
 	switch value := c.Value(key).(type) {
 	case []string:
@@ -231,7 +222,7 @@ func (c *Context) Secret(key string) string {
 	return c.secrets[key]
 }
 
-// A list field of secrets arrives as one entry per rank, "<key>.0", "<key>.1", the secret line being a flat map of strings.
+// The secret line is a flat map of strings, so a list arrives as "<key>.0", "<key>.1"…
 func (c *Context) SecretList(key string) []string {
 	var values []string
 
@@ -336,8 +327,6 @@ func (c *Context) emit(step string, status contract.StepStatus, ms int64, replay
 	}
 }
 
-// The module as it stands, the step under way included: what the report says
-// of it while it is still at work.
 func (c *Context) snapshot() contract.ModuleReport {
 	steps := append([]contract.ReportStep{}, c.steps...)
 	if c.open != "" {
@@ -347,7 +336,6 @@ func (c *Context) snapshot() contract.ModuleReport {
 	return contract.ModuleReport{ID: c.manifest.ID, Status: c.status(), Steps: steps}
 }
 
-// A warning said after the last step still reaches the report: on that step, or on one of its own.
 func (c *Context) report() contract.ModuleReport {
 	if warning := c.takeWarning(); warning != "" {
 		if last := len(c.steps) - 1; last >= 0 && c.steps[last].Message == "" {
@@ -416,13 +404,11 @@ type run struct {
 	warned       []string
 	projectsLock string
 
-	// What a command's siblings are read from: the catalogue, and install.json as the run found it.
+	// Set for command runs only, for reading siblings.
 	registry   *Registry
 	remembered Request
 
-	// The report as the modules already settled left it, the one at work, and
-	// how the two reach the disk: before every step event, so the report is
-	// never behind what the channel was told.
+	// Persisted before every step event so the report is never behind what the channel was told.
 	written contract.Report
 	current *Context
 	persist func(contract.Report)
@@ -449,7 +435,6 @@ func (r *run) progress(ctx *Context) {
 	r.persist(r.inProgress())
 }
 
-// FinishedAt stays empty: this report is the one of a run still under way.
 func (r *run) inProgress() contract.Report {
 	report := r.written
 	report.Modules = append([]contract.ModuleReport{}, report.Modules...)
@@ -491,6 +476,7 @@ func newRun(options runOptions) *run {
 }
 
 func (r *run) context(manifest contract.Manifest, values map[string]any, secrets map[string]string) *Context {
+	values = contract.NormalizeValues(manifest, values)
 	if values == nil {
 		values = map[string]any{}
 	}
@@ -502,8 +488,6 @@ func (r *run) context(manifest contract.Manifest, values map[string]any, secrets
 	return &Context{manifest: manifest, values: values, secrets: secrets, run: r}
 }
 
-// recalled builds the context a module is read through: the values and secrets
-// the machine remembers for it, which are also what it holds.
 func (r *run) recalled(manifest contract.Manifest, remembered Request) *Context {
 	ctx := r.context(manifest, remembered.Config[manifest.ID], remembered.Secrets[manifest.ID])
 	ctx.held = remembered.Config[manifest.ID]

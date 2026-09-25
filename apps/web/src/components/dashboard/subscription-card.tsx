@@ -32,9 +32,7 @@ export interface SubscriptionCardProps {
   organizationId: string
   subscription: SubscriptionCardSubscription
   seatsInUse: number
-  /** The platform's own launch subscription: nothing to pay, no portal, no seats to change. */
   launch: boolean
-  /** A trial holds one machine: the seat form waits for the first payment. */
   seatsLocked: boolean
 }
 
@@ -42,7 +40,7 @@ function intervalOf(value: string | null): BillingIntervalName | null {
   return isBillingIntervalName(value) ? value : null
 }
 
-const FACT = "text-[10.5px] text-ink-3 uppercase tracking-[0.08em]"
+const FACT = "text-label"
 
 function launchPeriod(
   t: Translate,

@@ -33,7 +33,7 @@ func newContext(t *testing.T, fake *modtest.FakeSys) *modules.Context {
 func newFakeSys() *modtest.FakeSys {
 	fake := modtest.NewFakeSys()
 	fake.Files["/proc/meminfo"] = []byte("MemTotal:       4015000 kB\n")
-	fake.Files[osReleasePath] = []byte("ID=ubuntu\nVERSION_CODENAME=noble\n")
+	fake.Files["/etc/os-release"] = []byte("ID=ubuntu\nVERSION_CODENAME=noble\n")
 	fake.Answer("FROM pg_roles", "2\n")
 	fake.Answer("FROM pg_extension", "3\n")
 	fake.Answer("FROM pg_database", "1\n")
@@ -70,6 +70,7 @@ func install(t *testing.T, ctx *modules.Context) {
 
 func statuses(ctx *modules.Context) map[string]contract.StepStatus {
 	steps := map[string]contract.StepStatus{}
+
 	for _, event := range ctx.Events() {
 		steps[event.Step] = event.Status
 	}
@@ -79,6 +80,7 @@ func statuses(ctx *modules.Context) map[string]contract.StepStatus {
 
 func stdin(fake *modtest.FakeSys) string {
 	var sql string
+
 	for _, call := range fake.Calls {
 		if len(call.Stdin) > 0 {
 			sql += string(call.Stdin)
@@ -146,6 +148,7 @@ func TestPostgres17ComesFromItsOwnRepository(t *testing.T) {
 	}
 
 	var fetched string
+
 	for _, call := range fake.Commands() {
 		if strings.HasPrefix(call, "curl") {
 			fetched = call
@@ -202,6 +205,7 @@ func TestRolesAreCreatedForTheAppAndForTheLaptop(t *testing.T) {
 	install(t, ctx)
 
 	sql := stdin(fake)
+
 	for _, want := range []string{
 		`CREATE ROLE "app" LOGIN CREATEDB`,
 		`CREATE ROLE "dev" LOGIN CREATEDB`,
@@ -238,6 +242,7 @@ func TestCommonExtensionsAreInstalledOnce(t *testing.T) {
 	install(t, ctx)
 
 	joined := strings.Join(fake.Commands(), "\n")
+
 	for _, extension := range extensions {
 		if !strings.Contains(joined, `CREATE EXTENSION IF NOT EXISTS "`+extension+`"`) {
 			t.Errorf("%s must be created in template1:\n%s", extension, joined)
@@ -259,7 +264,7 @@ func TestDumpsLeftBeforeTheInstallAreImportedAndNamedInTheReport(t *testing.T) {
 	fake := newFakeSys()
 	fake.Dirs[dumps.Dir] = true
 	fake.Answer("FROM pg_database", "\n")
-	fake.Replies["find"] = dumps.Dir + "/fulldump_shop_20260101.sql\n" + dumps.Dir + "/intranet.dump\n"
+	fake.Replies["find"] = dumps.Dir + "/fulldump_shop_20260101.sql\x00" + dumps.Dir + "/intranet.dump\x00"
 	ctx := newContext(t, fake)
 
 	install(t, ctx)
@@ -269,8 +274,8 @@ func TestDumpsLeftBeforeTheInstallAreImportedAndNamedInTheReport(t *testing.T) {
 		t.Fatalf("the report must name each imported database: %+v", ctx.Events())
 	}
 
-	// ~dev is 0750: the postgres account cannot open the dump itself, so root opens it on the standard input.
 	joined := strings.Join(fake.Commands(), "\n")
+
 	for _, want := range []string{
 		"createdb --owner=app shop",
 		"(postgres) psql -v ON_ERROR_STOP=1 --dbname=shop < " + dumps.Dir + "/fulldump_shop_20260101.sql",
@@ -320,31 +325,36 @@ func TestShellAndDumpStayOnTheSocketAccount(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if command != "sudo -u postgres psql shop" {
 		t.Fatalf("shell = %q", command)
 	}
 
-	fake.Answer("stat", "8192\n")
 	path, size, err := Dump(ctx, "shop")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if path != dumps.Dir+"/shop_20260904-1200.dump" || size != 8192 {
+	if path != dumps.Dir+"/shop_20260904-1200.dump" || size != int64(len("dump")) || string(fake.Files[path]) != "dump" {
 		t.Fatalf("dump = %q, %d", path, size)
 	}
 
 	var dumped string
+
 	for _, call := range fake.Calls {
 		if call.Argv[0] == "pg_dump" {
 			dumped = strings.Join(call.Argv, " ")
 		}
 	}
 
-	for _, want := range []string{"--format=custom", "--file=" + path, "--username=app", "--host=127.0.0.1", "shop"} {
+	for _, want := range []string{"--format=custom", "--username=app", "--host=127.0.0.1", "shop"} {
 		if !strings.Contains(dumped, want) {
 			t.Errorf("pg_dump lacks %q: %q", want, dumped)
 		}
+	}
+
+	if strings.Contains(dumped, "--file") {
+		t.Fatalf("pg_dump prints the dump, root writes it where no link of dev's leads: %q", dumped)
 	}
 
 	if strings.Contains(dumped, appPassword) {
@@ -425,12 +435,11 @@ func newContextWith(t *testing.T, fake *modtest.FakeSys, values modtest.Values) 
 	})
 }
 
-// The version, the port and the two role names are the client's call; the cluster the module writes into follows.
 func TestTheChosenVersionPortAndRolesReachTheCluster(t *testing.T) {
 	fake := newFakeSys()
 	fake.Answer("FROM pg_roles", "0\n")
 	ctx := newContextWith(t, fake, modtest.Values{
-		"version": "16", "port": 5433, "app_role": "flymate", "remote_role": "laptop",
+		"version": "16", "port": 5433, "app_role": "flyleaf", "remote_role": "laptop",
 	})
 
 	install(t, ctx)
@@ -455,7 +464,6 @@ func TestTheChosenVersionPortAndRolesReachTheCluster(t *testing.T) {
 	}
 }
 
-// Buffers left empty follow the machine; a size given follows the client, whose database may be the whole point of the server.
 func TestTheChosenSharedBuffersOverrideTheMemorySizing(t *testing.T) {
 	fake := newFakeSys()
 	fake.Answer("FROM pg_roles", "0\n")
@@ -469,7 +477,6 @@ func TestTheChosenSharedBuffersOverrideTheMemorySizing(t *testing.T) {
 	}
 }
 
-// A role name reaches SQL as an identifier: what does not look like one is refused before it gets there.
 func TestARoleNameThatIsNotAnIdentifierFallsBackOnTheDefault(t *testing.T) {
 	fake := newFakeSys()
 	ctx := newContextWith(t, fake, modtest.Values{"app_role": `dev"; DROP DATABASE postgres; --`})
@@ -479,7 +486,6 @@ func TestARoleNameThatIsNotAnIdentifierFallsBackOnTheDefault(t *testing.T) {
 	}
 }
 
-// A second major installed beside the first is a second cluster fighting for the port, with the data left on the old one.
 func TestPreflightRefusesAVersionChangeWhileAnotherMajorIsInstalled(t *testing.T) {
 	fake := installedSys(t)
 	ctx := modtest.NewContext(t, fake, modtest.Options{
@@ -503,7 +509,6 @@ func TestPreflightRefusesAVersionChangeWhileAnotherMajorIsInstalled(t *testing.T
 	}
 }
 
-// A password written to /etc/pupitre/env before the roles hold it is a password the replay believes applied.
 func TestPasswordsAreStoredOnlyOnceTheRolesHoldThem(t *testing.T) {
 	fake := installedSys(t)
 	fake.Files[env.Path] = []byte(appPasswordKey + "=former-app\n" + remotePasswordKey + "=former-remote\n")
@@ -525,6 +530,7 @@ func TestPasswordsAreStoredOnlyOnceTheRolesHoldThem(t *testing.T) {
 	if statuses(again)["create-roles"] != contract.StepOK || statuses(again)["store-passwords"] != contract.StepOK {
 		t.Fatalf("the replay must alter the roles then store: %v", statuses(again))
 	}
+
 	if !strings.Contains(stdin(fake), `PASSWORD '`+appPassword+`'`) || fake.EnvValue(appPasswordKey) != appPassword {
 		t.Fatalf("roles or env missed the new password: env %s", fake.Files[env.Path])
 	}

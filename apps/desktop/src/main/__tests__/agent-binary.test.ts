@@ -18,13 +18,14 @@ import { PassThrough } from "node:stream";
 import { agentFileName, embedAgent } from "../../../scripts/embed-agent";
 import {
   AGENT_INSTALL_COMMAND,
+  AGENT_REMOTE_PATH,
   agentPayload,
   agentSshArgs,
   carriedRelease,
   installCommandAs,
-  type ShellSpawn,
   sendAgentBinary,
 } from "../agent-binary";
+import type { ShellSpawn } from "../ssh-run";
 
 const AMD64 = "le binaire linux-amd64, en faux";
 const ARM64 = "le binaire linux-arm64, en faux";
@@ -35,6 +36,7 @@ const made: string[] = [];
 
 function tempDir(): string {
   const dir = mkdtempSync(join(tmpdir(), "pupitre-agent-"));
+
   made.push(dir);
 
   return dir;
@@ -42,6 +44,7 @@ function tempDir(): string {
 
 function builtAgent(): string {
   const dist = tempDir();
+
   writeFileSync(join(dist, agentFileName("amd64")), AMD64);
   writeFileSync(join(dist, agentFileName("arm64")), ARM64);
 
@@ -50,6 +53,7 @@ function builtAgent(): string {
 
 function publishedAgent(): string {
   const dist = builtAgent();
+
   writeFileSync(
     join(dist, "release.json"),
     JSON.stringify({
@@ -64,6 +68,7 @@ function publishedAgent(): string {
 
 function embedded(from: string): string {
   const resources = join(tempDir(), "agent");
+
   mkdirSync(resources, { recursive: true });
   embedAgent({ from, to: resources });
 
@@ -101,6 +106,7 @@ function recorder(
     child.kill = () => undefined;
 
     const call: Call = { args, command, ended: false, stdin: Buffer.alloc(0) };
+
     calls.push(call);
 
     child.stdin.on("data", (chunk: Buffer) => {
@@ -110,6 +116,7 @@ function recorder(
       call.ended = true;
 
       const answer = reply(call);
+
       setTimeout(() => {
         child.stdout.write(answer.out ?? "");
         child.stderr.write(answer.err ?? "");
@@ -242,27 +249,31 @@ describe("l'envoi du binaire par le canal SSH", () => {
     });
     expect(calls).toHaveLength(1);
     expect(calls[0].command).toBe("ssh");
-    expect(calls[0].args).toEqual(agentSshArgs(SSH_ARGS, "root"));
+    expect(calls[0].args).toEqual(
+      agentSshArgs(SSH_ARGS, AGENT_INSTALL_COMMAND)
+    );
     expect(calls[0].args.at(-1)).toBe(AGENT_INSTALL_COMMAND);
     expect(calls[0].stdin.toString()).toBe(AMD64);
     expect(calls[0].ended).toBe(true);
   });
 
-  /**
-   * A hardened server is reached as `dev`, who owns neither `/usr/local/bin`
-   * nor the unit: the same line goes through the sudo the hardening granted.
-   */
-  it("passe par sudo quand le compte de connexion n'est pas root", async () => {
+  // A hardened server lets `dev` sudo `pupitred` and nothing else, so no shell ever runs as root.
+  it("passe par pupitred, qui vérifie la signature, quand le compte de connexion n'est pas root", async () => {
     const resources = tempDir();
-    embedAgent({ from: builtAgent(), to: resources });
+    embedAgent({ from: publishedAgent(), to: resources });
     const payload = agentPayload(resources, "amd64");
 
     if (!payload.ok) {
       throw new Error("le binaire embarqué manque");
     }
 
+    expect(payload.result).toMatchObject({
+      signature: "c2lnbmF0dXJlLWFtZDY0",
+      version: "0.4.0",
+    });
+
     const { calls, spawn } = recorder(() => ({
-      out: `${digest(AMD64)}  /usr/local/bin/.pupitred.new\n`,
+      out: `${digest(AMD64)}  /usr/local/bin/pupitred\n`,
     }));
 
     const answer = await sendAgentBinary({
@@ -272,12 +283,108 @@ describe("l'envoi du binaire par le canal SSH", () => {
       user: "dev",
     });
 
+    const line = calls[0]?.args.at(-1) ?? "";
+
     expect(answer.ok).toBe(true);
-    expect(calls[0].args.at(-1)).toBe(
-      `sudo -n sh -c '${AGENT_INSTALL_COMMAND}'`
+    expect(calls[0]?.stdin.toString()).toBe(
+      `${JSON.stringify({ signature: "c2lnbmF0dXJlLWFtZDY0", version: "0.4.0" })}\n${AMD64}`
     );
-    expect(installCommandAs("root")).toBe(AGENT_INSTALL_COMMAND);
+    expect(line).toContain(
+      `sudo -n ${AGENT_REMOTE_PATH} binary install < "$t"`
+    );
+    expect(line).not.toContain("--version");
+    expect(line).not.toContain("c2lnbmF0dXJlLWFtZDY0");
+    expect(installCommandAs("root", payload.result)).toBe(
+      AGENT_INSTALL_COMMAND
+    );
     expect(AGENT_INSTALL_COMMAND).not.toContain("'");
+  });
+
+  // An agent older than the command exits 2 with its usage; there dev still holds NOPASSWD:ALL.
+  it("ne retombe sur l'installation d'avant que devant un agent qui ne connaît pas la commande", () => {
+    const line =
+      installCommandAs("dev", {
+        signature: "c2lnbmF0dXJl",
+        version: "0.4.0",
+      }) ?? "";
+
+    expect(line).toContain('[ "$s" -eq 2 ] || exit "$s"');
+    expect(
+      line.endsWith(
+        `tail -n +2 "$t" | sudo -n sh -c '${AGENT_INSTALL_COMMAND}'`
+      )
+    ).toBe(true);
+  });
+
+  // An unsigned dev build is only placed behind the sudo password, which rides stdin, never the command line.
+  it("pose un agent de développement sur la ligne que le mot de passe ouvre", async () => {
+    const { calls, spawn } = recorder(() => ({
+      out: `${digest("elf")}  /usr/local/bin/pupitred\n`,
+    }));
+
+    const answer = await sendAgentBinary({
+      args: SSH_ARGS,
+      password: "k7mp-q2xw",
+      payload: {
+        arch: "amd64",
+        bytes: 3,
+        content: Buffer.from("elf"),
+        path: "pupitred",
+        sha256: digest("elf"),
+        signature: null,
+        version: "0.0.0-unreleased",
+      },
+      spawn,
+      user: "dev",
+    });
+
+    const line = calls[0]?.args.at(-1) ?? "";
+
+    expect(answer.ok).toBe(true);
+    expect(calls[0]?.stdin.toString()).toBe(
+      `k7mp-q2xw\n${JSON.stringify({ version: "0.0.0-unreleased" })}\nelf`
+    );
+    expect(line).toContain("IFS= read -r p");
+    expect(line).toContain("if sudo -n true 2>/dev/null");
+    expect(line).toContain(
+      `sudo -n ${AGENT_REMOTE_PATH} binary install --privileged < "$t"`
+    );
+    expect(line).toContain(
+      `{ printf '%s\\n' "$p"; cat "$t"; } | sudo -S -p '' ${AGENT_REMOTE_PATH} binary install --privileged`
+    );
+    expect(line).not.toContain("k7mp");
+  });
+
+  it("refuse une version ou une signature qui sortirait de ses guillemets", async () => {
+    expect(
+      installCommandAs("dev", {
+        signature: null,
+        version: "0.4.0'; rm -rf ~; '",
+      })
+    ).toBeNull();
+    expect(
+      installCommandAs("dev", { signature: "c2ln'bmF0", version: "0.4.0" })
+    ).toBeNull();
+
+    const { calls, spawn } = recorder(() => ({}));
+
+    const answer = await sendAgentBinary({
+      args: SSH_ARGS,
+      payload: {
+        arch: "amd64",
+        bytes: 3,
+        content: Buffer.from("elf"),
+        path: "pupitred",
+        sha256: digest("elf"),
+        signature: null,
+        version: "$(reboot)",
+      },
+      spawn,
+      user: "dev",
+    });
+
+    expect(answer.ok).toBe(false);
+    expect(calls.length).toBe(0);
   });
 
   it("refuse un serveur qui n'a pas reçu les mêmes octets", async () => {

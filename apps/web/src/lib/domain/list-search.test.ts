@@ -110,4 +110,23 @@ describe("nextListSearch", () => {
   it("revient à la première page dès qu'un filtre ou la recherche change", () => {
     expect(nextListSearch(previous, { q: "leo" })).toEqual({ q: "leo" })
   })
+
+  it("tourne la page d'une seconde liste sans ramener la première au début", () => {
+    const two: { offset?: number; app_offset?: number } = { offset: 50 }
+
+    expect(nextListSearch(two, { app_offset: 25 })).toEqual({
+      offset: 50,
+      app_offset: 25,
+    })
+  })
+})
+
+describe("un décalage nommé", () => {
+  const pages = listSearch({ filters: { app_offset: { kind: "offset" } } })
+
+  it("porte la page d'une seconde liste, et la quitte à la première", () => {
+    expect(pages({ app_offset: "25" })).toEqual({ app_offset: 25 })
+    expect(pages({ app_offset: 0 })).toEqual({})
+    expect(pages({ app_offset: -3 })).toEqual({})
+  })
 })

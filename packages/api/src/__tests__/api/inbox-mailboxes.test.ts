@@ -448,6 +448,7 @@ describe("/admin/inbox — boîtes, notes, brouillons et lots", () => {
       "/admin/inbox/threads/bulk",
       { body: { ids, status: "open" }, session: owner.session }
     )
+
     const { prisma } = await bootApiTestServer()
     const actions = await prisma.event.findMany({
       where: { action: { startsWith: "mail.bulk_" } },

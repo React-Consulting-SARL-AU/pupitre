@@ -15,7 +15,7 @@ var values = modtest.Values{"java_versions": []string{"21"}}
 
 func machine(totalKB string) *modtest.FakeSys {
 	fake := modtest.NewFakeSys()
-	fake.Files[meminfoPath] = []byte("MemTotal:       " + totalKB + " kB\nMemFree:          200000 kB\n")
+	fake.Files["/proc/meminfo"] = []byte("MemTotal:       " + totalKB + " kB\nMemFree:          200000 kB\n")
 
 	return fake
 }
@@ -39,6 +39,7 @@ func run(t *testing.T, ctx *modules.Context) {
 
 func statuses(ctx *modules.Context) map[string]contract.StepStatus {
 	result := map[string]contract.StepStatus{}
+
 	for _, event := range ctx.Events() {
 		result[event.Step] = event.Status
 	}
@@ -53,6 +54,7 @@ func TestInstallTemurinAndSizeTheDaemon(t *testing.T) {
 	run(t, ctx)
 
 	commands := strings.Join(fake.Commands(), "\n")
+
 	for _, want := range []string{
 		"(dev) mise use -g -y java@temurin-21",
 		"(dev) mise where java",
@@ -63,6 +65,7 @@ func TestInstallTemurinAndSizeTheDaemon(t *testing.T) {
 	}
 
 	env := string(fake.Files[shell.EnvPath])
+
 	for _, want := range []string{
 		"# >>> pupitre runtime.java >>>",
 		`export PATH="$HOME/.local/share/mise/shims:$PATH"`,
@@ -74,6 +77,7 @@ func TestInstallTemurinAndSizeTheDaemon(t *testing.T) {
 	}
 
 	gradle := string(fake.Files[gradlePath])
+
 	for _, want := range []string{
 		"# >>> pupitre runtime.java >>>",
 		"org.gradle.daemon=true",

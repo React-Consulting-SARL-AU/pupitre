@@ -55,7 +55,7 @@ func (Module) Install(ctx *modules.Context) error {
 	return installCLI(ctx)
 }
 
-// Nothing to sign in — OpenCode starts on its free models — but ~/.local/bin reaches the path only through a runtime module, so this one says so itself for a machine that has none.
+// ~/.local/bin reaches PATH only through a runtime module, so this one adds it for a machine without any.
 func (Module) Configure(ctx *modules.Context) error {
 	if err := shell.EnsureBlock(ctx, "write-shell-env", ID, []byte(shell.PathLines(shell.LocalBin))); err != nil {
 		return err
@@ -72,7 +72,7 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// The credentials and the sessions under ~/.local/share/opencode stay, as does what the client put in ~/.config/opencode: only the binary and the context this module wrote go.
+// Credentials, sessions and the client's own ~/.config/opencode files stay; only the binary and our context go.
 func (Module) Uninstall(ctx *modules.Context) error {
 	if err := removeCLI(ctx); err != nil {
 		return err
@@ -99,7 +99,7 @@ func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
 	return status, nil
 }
 
-// opencode auth list prints one line per provider it holds a credential for and how many there are; it never reaches a provider. Signed in is any provider at all, named by their list.
+// opencode auth list never reaches a provider; any credential it lists counts as signed in.
 func (Module) Login(ctx *modules.Context) (contract.Login, bool) {
 	out, _ := login.Ask(ctx, nil, Program, "auth", "list")
 
@@ -134,7 +134,7 @@ func readCredentials(output string) (providers []string, count int, counted bool
 	return providers, count, counted
 }
 
-// A line without its colours and without the box the prompt draws around it.
+// Strips the ANSI colours and the box-drawing prefix opencode prints around each line.
 func plain(line string) string {
 	stripped := strings.TrimSpace(ansi.ReplaceAllString(line, ""))
 

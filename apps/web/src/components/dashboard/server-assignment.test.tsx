@@ -46,6 +46,7 @@ function card(
           role,
           entitlement: "valid",
           platformRole: null,
+          platformCanAct: false,
         }}
       >
         <ServerAssignment

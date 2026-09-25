@@ -1,0 +1,42 @@
+---
+title: "Third-party software"
+description: "The open-source components the desktop app and the agent are built on, their licences, and what those licences let you do."
+locale: en
+updated: 2026-09-25
+order: 10
+---
+
+The desktop app and the agent are closed software, under Pupitre's [licence](/legal/licence/). They are built on open-source components, each of which keeps its licence and its authors' copyright notice. For those components, their licence prevails over Pupitre's: nothing in Pupitre's licence takes away what they grant you.
+
+## The desktop app
+
+| Component | Role | Licence |
+| --- | --- | --- |
+| Electron, with Chromium and Node.js | the app's window and process | MIT; Chromium under a BSD licence and the licences of its own components |
+| React and React DOM | the interface | MIT |
+| Base UI | the interface controls | MIT |
+| CodeMirror and Lezer | the file editor | MIT |
+| xterm.js | the terminals | MIT |
+| node-pty | the terminals' processes | MIT |
+| electron-updater | updates | MIT |
+| Zustand | the interface state | MIT |
+| react-markdown and remark-gfm | Markdown rendering | MIT |
+| Lucide | the icons | ISC |
+| Bricolage Grotesque | the heading font | SIL Open Font License 1.1 |
+| JetBrains Mono | the font of paths, commands and figures | SIL Open Font License 1.1 |
+
+## The agent
+
+The `pupitred` agent is written in Go and embeds only the language's standard library, under the three-clause BSD licence, copyright The Go Authors.
+
+## The site and the console
+
+The site and the console display Bricolage Grotesque and JetBrains Mono, under the SIL Open Font License 1.1, served by our own servers.
+
+## The software the agent installs
+
+The catalogue's services — runtimes, databases, coding agents, tools — are not part of Pupitre. The agent installs them on your machine from their official sources, each under its publisher's licence, which you accept by installing it.
+
+## Getting the texts
+
+The complete list of the components of each version, with the text of each licence and each author's copyright notice, is sent to you on request at `legal@pupitre.studio`.

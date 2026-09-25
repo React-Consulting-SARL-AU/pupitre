@@ -10,15 +10,6 @@ import type { ModulesState } from "@renderer/stores/agent-update";
 import { RefreshCw } from "lucide-react";
 import type { ReactNode } from "react";
 
-/**
- * `upgrade` on the modules already installed, on the machine's own list.
- *
- * The section frames that list: the gesture that replays the install of
- * everything on it stands on its caption, and what the replay says lands under
- * the rows. The agent replays the install steps of what it put there; the app
- * names none of them itself — the list comes from the snapshot, and the report
- * comes back in the same shape an installation does.
- */
 export function ModuleUpgradePanel({
   modules,
   state,
@@ -27,13 +18,11 @@ export function ModuleUpgradePanel({
   onUpgrade,
   children,
 }: {
-  /** The installed module ids, as the snapshot listed them. */
   modules: readonly string[];
   state: ModulesState;
   steps: readonly ModuleProgress[];
   nameOf: (moduleId: string) => string;
   onUpgrade: () => void;
-  /** The rows of the installed modules. */
   children?: ReactNode;
 }) {
   const t = useTranslations();
@@ -56,7 +45,7 @@ export function ModuleUpgradePanel({
       }
       aside={
         modules.length > 0 ? (
-          <span className="font-data text-[12px] text-ink-3">
+          <span className="font-data text-ink-3 text-small">
             {t.plural("updates.modules.count", modules.length)}
           </span>
         ) : null

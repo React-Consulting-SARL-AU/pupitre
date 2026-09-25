@@ -1,9 +1,13 @@
 import type { AffiliateLink, Prisma } from "@pupitre/db/cloudflare/client"
 import { PUPITRE_ORIGINS } from "@pupitre/shared/legal"
-import { AFFILIATE_CODE_LENGTH, AFFILIATE_CODE_RE } from "@pupitre/shared/plans"
+import {
+  AFFILIATE_CODE_LENGTH,
+  AFFILIATE_CODE_RE,
+  LIVE_SUBSCRIPTION_STATUSES,
+} from "@pupitre/shared/plans"
 import { getPrisma, isUniqueViolation } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
-import { LIVE_SUBSCRIPTION_STATUSES, liveAmong } from "../billing/subscription"
+import { type LiveCandidate, liveAmong } from "../billing/subscription"
 import { type AffiliateClicks, clicksInWindow, clicksOf } from "./clicks"
 
 export interface AffiliateLinkView {
@@ -135,8 +139,7 @@ export interface AffiliateLinkDetail extends AffiliateLinkView {
   organizations: AffiliateReferredOrganization[]
 }
 
-interface CountingSubscription {
-  status: string
+interface CountingSubscription extends LiveCandidate {
   quantity: number
 }
 
@@ -148,10 +151,7 @@ function isCounted(status: string): status is CountedStatus {
   return (COUNTED_STATUSES as readonly string[]).includes(status)
 }
 
-/**
- * What the link brought: one subscription per organization, the one that
- * counts, so an old row that still receives events never speaks for the new.
- */
+// One counting subscription per organization, so a stale row never speaks for the live one.
 function conversionOf(
   counting: (CountingSubscription | null)[]
 ): AffiliateConversion {
@@ -219,7 +219,13 @@ export async function readAffiliateLink(
       },
     },
     orderBy: { updatedAt: "desc" },
-    select: { organizationId: true, status: true, quantity: true },
+    select: {
+      organizationId: true,
+      status: true,
+      quantity: true,
+      product: true,
+      currentPeriodEnd: true,
+    },
   })
   const byOrganization = new Map<string, CountingSubscription[]>()
 
@@ -485,12 +491,7 @@ export async function referralLinkOf(
   return referral?.link ?? null
 }
 
-/**
- * Where a sign-up came from, written once: an unknown, disabled or malformed
- * code is not a refusal, the checkout goes on without it. Two checkouts
- * submitted at once collide on the primary key, and only the one that wrote
- * the row writes the journal line.
- */
+/** A bad code never blocks the checkout; of two concurrent writes, only the winner logs. */
 export async function recordReferral(
   actor: ReferralActor,
   code: string

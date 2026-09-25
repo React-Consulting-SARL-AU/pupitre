@@ -9,13 +9,7 @@ const SERVER_DIR = path.join(CONSOLE_ROOT, "dist", "server")
 const BUILD_TIMEOUT_MS = 300_000
 const CHUNKS_AT_LEAST = 10
 
-/**
- * What a server module leaves behind once the bundler has had its way with
- * names: an import specifier, or a string literal only the server branch
- * spells out. `locale.ts` imports `getCookie` and `getRequestHeader` at the
- * top level and trusts `createIsomorphicFn` to drop them — that trust is what
- * this file checks, on the real output rather than on the source.
- */
+// Checks on the built output that `createIsomorphicFn` really drops server-only imports.
 const SERVER_ONLY = [
   { tell: "a Node builtin", re: /["'`]node:[a-z_/]+["'`]/ },
   { tell: "the Workers runtime", re: /["'`]cloudflare:[a-z]+["'`]/ },

@@ -35,7 +35,7 @@ func TestOneHolderAtATime(t *testing.T) {
 	again()
 }
 
-// No path is no lock: the tests take it, and nothing else does.
+// Only the tests pass an empty path.
 func TestNoPathIsNoLock(t *testing.T) {
 	release, held, err := lock.Acquire("")
 	if err != nil || !held {
@@ -45,7 +45,6 @@ func TestNoPathIsNoLock(t *testing.T) {
 	release()
 }
 
-// Hold waits its turn for a short while, which is what a read-then-write on a small file needs, and gives up past that.
 func TestHoldWaitsForTheHolderThenGivesUp(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "projects.lock")
 

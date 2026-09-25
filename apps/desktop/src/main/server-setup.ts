@@ -1,3 +1,4 @@
+import { isSshHost, isSshPort, isSshUser } from "@pupitre/shared/ssh";
 import type { ErrorPhrase } from "@shared/agent";
 import type {
   KeyChoice,
@@ -16,30 +17,6 @@ import {
 } from "./keys";
 import type { Address, SshPaths } from "./ssh-config";
 
-/**
- * Adding, pinning and removing a server, without ever leaving the app's folder.
- *
- * Three ways to give a key, and the difference between them is only who owns
- * the file: the app generates one, the app copies one in, or the app uses none
- * at all because the host already lives in the user's own configuration. That
- * last case is the only one where the app writes nothing, and it writes nothing
- * anywhere — no block, no key, no known_hosts entry.
- */
-
-const HOST = /^[a-zA-Z0-9]([a-zA-Z0-9._-]*[a-zA-Z0-9])?$/;
-const USER = /^[a-z_][a-z0-9_-]{0,31}\$?$/i;
-
-/** What may become an `ssh` argument: an address that cannot read as an option. */
-export function isHost(value: string): boolean {
-  return HOST.test(value);
-}
-
-export function isUser(value: string): boolean {
-  return USER.test(value);
-}
-
-const MIN_PORT = 1;
-const MAX_PORT = 65_535;
 const NAME_LIMIT = 60;
 
 export class SetupError extends Error {
@@ -59,12 +36,7 @@ export interface ServerCreation {
   copyId: string | null;
 }
 
-/**
- * The SSH name a server gets: what was typed, made fit for a `Host` line, or
- * the name itself when nothing was typed. A word that already names another
- * machine is refused when typed; drawn from the name, it is simply not given,
- * and the server answers to its identifier alone.
- */
+/** A taken name is refused when typed, but silently skipped when drawn from the display name. */
 function sshNameOf(
   typed: string | undefined,
   name: string,
@@ -133,6 +105,7 @@ async function keyFor(
     if (cause instanceof KeyError) {
       throw new SetupError(cause.phrase.id, cause.phrase.values);
     }
+
     throw cause;
   }
 }
@@ -150,17 +123,12 @@ export async function addServer(
   const user = draft.user.trim();
   const name = draft.name.trim().slice(0, NAME_LIMIT) || host;
 
-  refuse(isHost(host), "refusal.setup.host", { host });
-  refuse(
-    Number.isInteger(draft.port) &&
-      draft.port >= MIN_PORT &&
-      draft.port <= MAX_PORT,
-    "refusal.setup.port",
-    { port: draft.port }
-  );
+  refuse(isSshHost(host), "refusal.setup.host", { host });
+  refuse(isSshPort(draft.port), "refusal.setup.port", { port: draft.port });
 
   const id = freshId(servers);
 
+  // A host of the user's own SSH config: the app writes nothing for it, no block, key or known_hosts entry.
   if (fromSystem) {
     const server: Server = {
       host,
@@ -179,7 +147,7 @@ export async function addServer(
     };
   }
 
-  refuse(isUser(user), "refusal.setup.user", { user });
+  refuse(isSshUser(user), "refusal.setup.user", { user });
 
   const slug = sshNameOf(draft.slug, name, servers, reserved);
   const pair = await keyFor(draft.key, id, paths);
@@ -214,15 +182,7 @@ export function pinFingerprint(
 
 const ACCOUNT = /^[a-z_][a-z0-9_-]{0,31}$/;
 
-/**
- * The account the app connects with, moved to the one the hardening opened.
- *
- * The name comes from the agent, so it is checked against what a Unix account
- * can be called before it becomes a `User` line: the app's SSH configuration is
- * a file `ssh` reads, and a name with a space in it would be two words there.
- * A host taken from the system configuration is refused outright — the app owns
- * no block for it, and promised to write none.
- */
+/** The agent's account name becomes a `User` line: checked so it cannot read as two words there. */
 export function withAccount(
   servers: Server[],
   id: string,
@@ -239,14 +199,7 @@ export function withAccount(
   );
 }
 
-/**
- * Whether another server of the app answers at the same address and port.
- *
- * A pinned host key belongs to the servers that reach it: the day the last one
- * leaves the list, the pin is nobody's, and a machine rebuilt behind that
- * address would otherwise be refused on its way back in, with no one to say
- * "reinstalled" for it.
- */
+/** A pin nobody reaches any more must go, or a machine rebuilt there is refused with no one to trust it. */
 export function sharesAddress(
   servers: Server[],
   address: Address,
@@ -261,7 +214,6 @@ export function sharesAddress(
   );
 }
 
-/** Forgetting a server takes the key the app made for it, and nothing else. */
 export function removeServer(
   servers: Server[],
   id: string,
@@ -282,15 +234,7 @@ export function untrustHost(server: Server, paths: SshPaths): Promise<void> {
     : forgetHostKey(server, paths);
 }
 
-/**
- * A server's address, port or account, changed in place.
- *
- * Only a server the app reaches can change: a host of the system configuration
- * is that file's, and the app writes nothing for it. The same checks as an
- * addition apply — what becomes a `HostName`, a `Port` or a `User` line of the
- * app's SSH file cannot read as an option or as two words. The pinned key goes
- * when the address does: it belonged to the machine that answered there.
- */
+/** The pinned key goes with the address: it belonged to the machine that answered there. */
 export function changeServer(
   servers: Server[],
   id: string,
@@ -309,13 +253,9 @@ export function changeServer(
   const port = changes.port ?? held.port;
   const user = (changes.user ?? held.user).trim();
 
-  refuse(isHost(host), "refusal.setup.host", { host });
-  refuse(
-    Number.isInteger(port) && port >= MIN_PORT && port <= MAX_PORT,
-    "refusal.setup.port",
-    { port }
-  );
-  refuse(isUser(user), "refusal.setup.user", { user });
+  refuse(isSshHost(host), "refusal.setup.host", { host });
+  refuse(isSshPort(port), "refusal.setup.port", { port });
+  refuse(isSshUser(user), "refusal.setup.user", { user });
 
   const slug =
     changes.slug === undefined

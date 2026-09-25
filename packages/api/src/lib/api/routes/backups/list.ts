@@ -41,6 +41,7 @@ export const backupsListRoutes = new Elysia({ name: "backups-list-routes" })
 
       if (!backups) {
         set.status = 404
+
         return apiError(
           "not_found",
           translate(resolveLocale(request.headers), "server_not_found")
@@ -72,6 +73,7 @@ export const backupsListRoutes = new Elysia({ name: "backups-list-routes" })
 
       if (!recorded) {
         set.status = 404
+
         return apiError(
           "not_found",
           translate(resolveLocale(request.headers), "backup_not_found")

@@ -2,13 +2,13 @@ package backup
 
 import (
 	"errors"
+	"syscall"
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
 	module "pupitre.studio/agent/internal/modules/core/backup"
 	"pupitre.studio/agent/internal/protocol"
-	"pupitre.studio/agent/internal/sys/lock"
 )
 
 const (
@@ -16,9 +16,10 @@ const (
 	maxBeatText = 500
 )
 
-// Next is an interval after the last attempt, on the configured hour for a day or more; a date already past is a missed backup, run once.
+// Daily-or-longer intervals land on the configured hour; a date already past is a missed backup, run once.
 func Next(settings module.Settings, last, now time.Time, location *time.Location) time.Time {
 	base := now
+
 	if !last.IsZero() {
 		base = last.Add(time.Duration(settings.IntervalHours) * time.Hour)
 	}
@@ -32,7 +33,7 @@ func Next(settings module.Settings, last, now time.Time, location *time.Location
 	return time.Date(local.Year(), local.Month(), local.Day(), settings.Hour, 0, 0, 0, location)
 }
 
-// Status says where the backups of this server stand, without waiting on anything: a backup under way is read as one.
+// Never waits on the run lock: a backup under way reads as running.
 func (s *Service) Status() (contract.BackupStatusResult, error) {
 	var status contract.BackupStatusResult
 
@@ -44,7 +45,7 @@ func (s *Service) Status() (contract.BackupStatusResult, error) {
 			Configured:    settings.Configured(),
 			IntervalHours: settings.IntervalHours,
 			Keep:          settings.Keep,
-			Running:       record.RunningSince != "" && s.lockHeld(),
+			Running:       s.running.Load() > 0 || (record.RunningSince != "" && alive(record.RunningPID)),
 			Last:          lastRun(record),
 		}
 
@@ -64,6 +65,7 @@ func lastRun(record Record) *contract.BackupLastRun {
 	}
 
 	last := &contract.BackupLastRun{At: record.LastRunAt, OK: record.LastError == "" && record.LastOKAt == record.LastRunAt}
+
 	if !last.OK {
 		last.Error = record.LastError
 
@@ -79,7 +81,6 @@ func lastRun(record Record) *contract.BackupLastRun {
 	return last
 }
 
-// lastWarnings counts what the last backup could not carry, when that backup is the last run.
 func lastWarnings(record Record) int {
 	if record.Last == nil || record.LastOKAt != record.LastRunAt {
 		return 0
@@ -88,22 +89,17 @@ func lastWarnings(record Record) int {
 	return len(record.Last.Warnings)
 }
 
-func (s *Service) lockHeld() bool {
-	release, acquired, err := lock.Acquire(s.options.Engine.LockPath)
-	if err != nil {
+// Probed without the run lock: an install asking for it in that instant would be told busy.
+func alive(pid int) bool {
+	if pid <= 0 {
 		return false
 	}
 
-	if !acquired {
-		return true
-	}
+	err := syscall.Kill(pid, 0)
 
-	release()
-
-	return false
+	return err == nil || errors.Is(err, syscall.EPERM)
 }
 
-// Beat is the heartbeat's word on backups, nothing when the module is not there.
 func (s *Service) Beat() *contract.BackupBeat {
 	var beat *contract.BackupBeat
 
@@ -114,6 +110,7 @@ func (s *Service) Beat() *contract.BackupBeat {
 		}
 
 		record := s.record(ctx)
+
 		beat = &contract.BackupBeat{
 			IntervalHours: settings.IntervalHours,
 			LastRunAt:     record.LastRunAt,
@@ -128,7 +125,7 @@ func (s *Service) Beat() *contract.BackupBeat {
 	return beat
 }
 
-// Turn runs apart from the daemon's loop, one at a time; a held lock or restricted mode waits for a later turn.
+// Runs apart from the daemon's loop, one at a time; a held lock or restricted mode just waits for a later turn.
 func (s *Service) Turn() {
 	if !s.turning.CompareAndSwap(false, true) {
 		return
@@ -141,7 +138,6 @@ func (s *Service) Turn() {
 	}()
 }
 
-// Tend is one turn, waited for.
 func (s *Service) Tend() {
 	s.tell()
 
@@ -172,7 +168,6 @@ func (s *Service) due() bool {
 	return due
 }
 
-// What says to try again later rather than that something went wrong.
 func waiting(err error) bool {
 	var refusal *protocol.Error
 	if !errors.As(err, &refusal) {

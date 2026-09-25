@@ -7,15 +7,6 @@ import { ConfigSecretField } from "./config-secret-field";
 import { ConfigValueControl } from "./config-value-control";
 import { ConfigVersionsField } from "./config-versions-field";
 
-/**
- * One field of a manifest, drawn according to its kind and nothing else.
- *
- * Every kind of the contract has a control; a manifest that declares a kind
- * this build does not know renders its caption and no input, which is what a
- * new kind's task will come to fill. What is refused is said under the field
- * that carries it, never in a list at the top of the page.
- */
-
 export interface FieldHandlers {
   onValue?: (key: string, value: unknown) => void;
   onSecret?: (key: string, value: string) => void;
@@ -28,15 +19,13 @@ interface ControlProps {
   field: Field;
   value: unknown;
   marks?: Record<string, SecretMark>;
-  /** The secrets the server already holds, when the module is installed. */
   held?: readonly string[];
-  /** Why the value is refused, in the words of whoever refused it. */
   problem?: string;
   handlers: FieldHandlers;
 }
 
-/** A version always has one, a runtime one at the least, a checkbox never; the rest say so themselves. */
-function isRequired(field: Field): boolean {
+// A version always has a value (the runtime's at least) and a checkbox never needs one.
+export function isRequired(field: Field): boolean {
   if (field.kind === "version" || field.kind === "versions") {
     return true;
   }

@@ -7,7 +7,7 @@ import type {
 } from "@pupitre/shared/agent-protocol/install";
 import type { AgentResponse } from "@shared/agent";
 import type { AgentSendPhase } from "@shared/install";
-import { app, ipcMain } from "electron";
+import { app } from "electron";
 import { account } from "./account";
 import { agentClient } from "./agent";
 import {
@@ -20,6 +20,7 @@ import { restoring } from "./backups";
 import { declaredModules } from "./catalog";
 import { managedValues, weighedValues } from "./connections";
 import { prepareAgent } from "./enrollment-run";
+import { ed25519Fingerprint } from "./host-keys";
 import { inspect } from "./inspection";
 import {
   type EnrollmentGrant,
@@ -29,21 +30,15 @@ import {
   runInstall,
 } from "./install-run";
 import { forgetSecrets, readSecrets } from "./install-secrets";
+import { handle } from "./ipc";
+import { anything, isString, shape } from "./ipc-guard";
 import { agentPlatformUrl, buildKind } from "./platform-url";
 import { refuseWith } from "./refusal";
 import { relayTo } from "./relay";
 import { byId, noteGrant, paths } from "./servers";
 import { sshArgs } from "./ssh-config";
+import { sudoPasswordFor } from "./sudo-held";
 import { usageRefusal } from "./usage-guard";
-
-/**
- * The installation screen, seen from the main process.
- *
- * The renderer names a server and modules; nothing else of what it says is
- * trusted. The module names are checked against the catalogue this server's own
- * agent declared, and the secrets never make the trip: they are taken from the
- * vault here, on the way out.
- */
 
 const AGENT_DIR = "agent";
 
@@ -57,11 +52,7 @@ function refuse(id: string): AgentResponse<never> {
   return refuseWith("bad_request", id);
 }
 
-/**
- * The server is enrolled before its binary leaves: the platform gives it a seat
- * and names the release to push, and the app checks that release before it
- * touches the machine.
- */
+// Enrolled first: the platform names the release to push, and the app checks it before touching the machine.
 async function deliver(
   serverId: string,
   arch: string,
@@ -80,6 +71,7 @@ async function deliver(
     bind: noteGrant,
     build: buildKind(),
     embedded: (wanted) => agentPayload(agentResourcesDir(), wanted),
+    hostFingerprint: (held) => ed25519Fingerprint(held, paths()),
     releaseKey: AGENT_RELEASE_PUBLIC_KEY,
   });
 
@@ -91,6 +83,7 @@ async function deliver(
 
   const sent = await sendAgentBinary({
     args: sshArgs(server, paths()),
+    password: sudoPasswordFor(serverId),
     payload: prepared.result.payload,
     user: server.user,
   });
@@ -103,6 +96,10 @@ async function deliver(
     : sent;
 }
 
+export function accountDeviceKey(): string | null {
+  return account.state().device?.publicKey ?? null;
+}
+
 export function enrollmentGrant(
   platformServerId: string
 ): EnrollmentGrant | null {
@@ -111,10 +108,14 @@ export function enrollmentGrant(
   return token ? { platformUrl: agentPlatformUrl(), token } : null;
 }
 
-/**
- * The shape of what the renderer said, before anything is done with it. What
- * the names mean is checked further on, against the agent's own catalogue.
- */
+function isNames(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(isString);
+}
+
+function isModuleConfig(value: unknown): value is ModuleConfig {
+  return typeof value === "object" && value !== null;
+}
+
 function checked(
   serverId: unknown,
   modules: unknown
@@ -123,31 +124,14 @@ function checked(
     return refuse("refusal.server.unknown");
   }
 
-  if (!Array.isArray(modules) || modules.some((id) => typeof id !== "string")) {
+  if (!isNames(modules)) {
     return refuse("refusal.selection.unreadable");
   }
 
-  return { modules: modules as string[], serverId };
+  return { modules, serverId };
 }
 
-function configOf(value: unknown): ModuleConfig {
-  return value && typeof value === "object" ? (value as ModuleConfig) : {};
-}
-
-/** The modules the window asked to leave unconfigured, taken as names and nothing else. */
-function deferredOf(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.filter((one): one is string => typeof one === "string")
-    : [];
-}
-
-/**
- * The binary, put on the machine before anything is asked of it.
- *
- * A bare server has no catalogue to answer with, so the send comes first and
- * the architecture is read from the probe here rather than taken from the
- * interface: the renderer names a server, and nothing else about the machine.
- */
+// A bare server has no catalogue yet: the binary goes first, its architecture read from the probe, not the interface.
 async function sendAgent(
   serverId: unknown,
   onPhase: (phase: AgentSendPhase) => void = () => undefined
@@ -180,6 +164,7 @@ async function sendAgent(
 
   const enrolled = await enrolAgent(serverId, sent.result.enrollment, {
     client: agentClient,
+    deviceKey: accountDeviceKey,
     enrollment: enrollmentGrant,
     identity: (id) => agentClient.session(id)?.server_id ?? null,
   });
@@ -188,15 +173,16 @@ async function sendAgent(
 }
 
 export function registerInstall(): void {
-  ipcMain.handle(
+  handle(
     "install:start",
+    shape(isString, anything, anything, isModuleConfig, isNames),
     async (
       event,
-      token: unknown,
-      serverId: unknown,
-      modules: unknown,
-      config: unknown,
-      defer: unknown
+      token,
+      serverId,
+      modules,
+      config,
+      defer
     ): Promise<AgentResponse<InstallResult>> => {
       const call = checked(serverId, modules);
 
@@ -220,10 +206,11 @@ export function registerInstall(): void {
       return await runInstall(
         call.serverId,
         call.modules,
-        configOf(config),
+        config,
         update,
         {
           client: agentClient,
+          deviceKey: accountDeviceKey,
           identity: (id) => agentClient.session(id)?.server_id ?? null,
           declared: declaredModules,
           deliver,
@@ -233,24 +220,21 @@ export function registerInstall(): void {
           probe: inspect,
           secrets: readSecrets,
         },
-        deferredOf(defer)
+        defer
       );
     }
   );
 
-  /*
-    Weighing touches nothing, so it passes no usage guard: the right to install
-    is opposed once, to the install itself, and a reader without one still gets
-    told what their form gets wrong.
-  */
-  ipcMain.handle(
+  // Weighing touches nothing, so no usage guard: a reader without the right still learns what the form gets wrong.
+  handle(
     "install:check",
+    shape(anything, anything, isModuleConfig, isNames),
     async (
       _event,
-      serverId: unknown,
-      modules: unknown,
-      config: unknown,
-      defer: unknown
+      serverId,
+      modules,
+      config,
+      defer
     ): Promise<AgentResponse<InstallCheckResult>> => {
       const call = checked(serverId, modules);
 
@@ -261,20 +245,21 @@ export function registerInstall(): void {
       return await runCheck(
         call.serverId,
         call.modules,
-        configOf(config),
+        config,
         {
           client: agentClient,
           declared: declaredModules,
           weighed: weighedValues,
         },
-        deferredOf(defer)
+        defer
       );
     }
   );
 
-  ipcMain.handle(
+  handle(
     "install:agent-send",
-    (event, token: unknown, serverId: unknown) =>
+    shape(isString, anything),
+    (event, token, serverId) =>
       sendAgent(
         serverId,
         relayTo<AgentSendPhase>(
@@ -286,12 +271,10 @@ export function registerInstall(): void {
       )
   );
 
-  ipcMain.handle(
+  handle(
     "install:report",
-    async (
-      _event,
-      serverId: unknown
-    ): Promise<AgentResponse<InstallReport>> => {
+    shape(anything),
+    async (_event, serverId): Promise<AgentResponse<InstallReport>> => {
       if (typeof serverId !== "string" || !byId(serverId)) {
         return refuse("refusal.server.unknown");
       }

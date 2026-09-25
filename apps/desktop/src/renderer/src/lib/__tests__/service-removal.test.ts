@@ -64,7 +64,7 @@ describe("ce que retirer un module fait perdre", () => {
 
     expect(removal.allowed).toBe(true);
     expect(removal.losses).toEqual([
-      "ClickHouse et ce que ce module a posé sur la machine.",
+      "ClickHouse et ce que ce service a posé sur le serveur.",
     ]);
   });
 });

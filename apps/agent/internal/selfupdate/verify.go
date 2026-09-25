@@ -8,7 +8,7 @@ import (
 	"errors"
 )
 
-// The signed message binds the fingerprint to the version and the architecture it was published for, so a binary that is genuinely ours but not the one asked for is refused too.
+// Binding version and arch refuses a genuine binary that is not the one asked for.
 func SignedMessage(version, arch, fingerprint string) []byte {
 	return []byte("pupitred\n" + version + "\n" + arch + "\n" + fingerprint + "\n")
 }

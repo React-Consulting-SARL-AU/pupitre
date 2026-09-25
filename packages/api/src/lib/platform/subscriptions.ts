@@ -4,9 +4,13 @@ import type {
   Subscription,
 } from "@pupitre/db/cloudflare/client"
 import {
+  GRANTED_PRODUCT,
+  isLiveSubscriptionStatus,
   isPlatformProduct,
   PLATFORM_PRODUCTS,
   STRIPE_PRODUCT,
+  SUBSCRIPTION_ACTIONS,
+  type SubscriptionAction,
 } from "@pupitre/shared/plans"
 import { getPrisma } from "../api/prisma"
 import { stripeSubscriptionUrl } from "../billing/config"
@@ -42,8 +46,9 @@ export interface AdminSubscriptionView
   organization: AdminSubscriptionOrganization
   live: boolean
   seats: AdminSubscriptionSeats
-  /** The row that counts pays for fewer servers than the organisation seats: the reading of `ReconcileSeats`. */
+  // Read the way `ReconcileSeats` reads it.
   drifted: boolean
+  allowed_actions: SubscriptionAction[]
 }
 
 export interface AdminStripeEventView {
@@ -136,10 +141,7 @@ function orderOf(
   return { createdAt: direction }
 }
 
-/**
- * Which of these rows is the one that counts for its organization: the same
- * choice as `/me`, read once for the whole page rather than once per row.
- */
+// The same choice as `/me`, read once for the page rather than once per row.
 async function liveIdsAmong(organizationIds: string[]): Promise<Set<string>> {
   if (organizationIds.length === 0) {
     return new Set()
@@ -171,7 +173,6 @@ async function liveIdsAmong(organizationIds: string[]): Promise<Set<string>> {
   return live
 }
 
-/** How many servers each of these organisations has seated, counted once for the page. */
 async function seatsUsedAmong(
   organizationIds: string[]
 ): Promise<Map<string, number>> {
@@ -191,7 +192,7 @@ async function seatsUsedAmong(
   return new Map(rows.map((row) => [row.organizationId, row._count._all]))
 }
 
-/** Only the row an organisation is billed on can be short of seats; a closed one owes nothing. */
+// Only the row an organisation is billed on can be short of seats.
 function isDrifted(
   subscription: { id: string; organizationId: string; quantity: number },
   live: Set<string>,
@@ -203,10 +204,33 @@ function isDrifted(
   )
 }
 
+// A Stripe row is removable only once Stripe let go of it; only Stripe holds a trial.
+export function allowedSubscriptionActions({
+  product,
+  status,
+  cancelAtPeriodEnd,
+}: Pick<
+  Subscription,
+  "product" | "status" | "cancelAtPeriodEnd"
+>): SubscriptionAction[] {
+  const platform = isPlatformProduct(product)
+  const billed = isLiveSubscriptionStatus(status)
+  const allowed: Record<SubscriptionAction, boolean> = {
+    resize: product === GRANTED_PRODUCT,
+    extend_trial: !platform && status === "trialing",
+    resume: !platform && billed && cancelAtPeriodEnd,
+    cancel: status !== "canceled",
+    delete: platform || !billed,
+  }
+
+  return SUBSCRIPTION_ACTIONS.filter((action) => allowed[action])
+}
+
 function toView(
   subscription: SubscriptionWithOrganization,
   live: Set<string>,
-  used: Map<string, number>
+  used: Map<string, number>,
+  acts: boolean
 ): AdminSubscriptionView {
   return {
     ...toSubscriptionRow(subscription),
@@ -217,14 +241,11 @@ function toView(
       used: used.get(subscription.organizationId) ?? 0,
     },
     drifted: isDrifted(subscription, live, used),
+    allowed_actions: acts ? allowedSubscriptionActions(subscription) : [],
   }
 }
 
-/**
- * Which row counts, and which is short of seats, are choices made across an
- * organization and not columns: they are resolved over everything the other
- * filters keep, then narrowed by identifier, so the count and the page agree.
- */
+// `live` and `drifted` are not columns: resolved over the other filters, then narrowed by id so count and page agree.
 async function narrowBeyondColumns(
   where: Prisma.SubscriptionWhereInput,
   filter: AdminSubscriptionFilter
@@ -255,7 +276,8 @@ async function narrowBeyondColumns(
 }
 
 export async function listSubscriptionsForPlatform(
-  filter: AdminSubscriptionFilter
+  filter: AdminSubscriptionFilter,
+  acts: boolean
 ): Promise<AdminSubscriptionPage> {
   const prisma = getPrisma()
   const filtered = whereOf(filter)
@@ -284,35 +306,36 @@ export async function listSubscriptionsForPlatform(
   ])
 
   return {
-    data: subscriptions.map((subscription) => toView(subscription, live, used)),
+    data: subscriptions.map((subscription) =>
+      toView(subscription, live, used, acts)
+    ),
     total,
   }
 }
 
 async function viewOf(
-  subscription: SubscriptionWithOrganization
+  subscription: SubscriptionWithOrganization,
+  acts: boolean
 ): Promise<AdminSubscriptionView> {
   const [live, used] = await Promise.all([
     liveIdsAmong([subscription.organizationId]),
     seatsUsedAmong([subscription.organizationId]),
   ])
 
-  return toView(subscription, live, used)
+  return toView(subscription, live, used, acts)
 }
 
-/** The row a write just left: what the console shows back after a gesture. */
 export async function viewWrittenSubscription(
   subscriptionId: string
 ): Promise<AdminSubscriptionView> {
-  return await viewOf(
-    await getPrisma().subscription.findUniqueOrThrow({
-      where: { id: subscriptionId },
-      include: ORGANIZATION_INCLUDE,
-    })
-  )
+  const written = await getPrisma().subscription.findUniqueOrThrow({
+    where: { id: subscriptionId },
+    include: ORGANIZATION_INCLUDE,
+  })
+
+  return await viewOf(written, true)
 }
 
-/** The deliveries that named this subscription, as the webhook filed them. */
 function stripeEventsOf(
   stripeSubscriptionId: string
 ): Promise<AdminStripeEventView[]> {
@@ -334,7 +357,8 @@ function stripeEventsOf(
 }
 
 export async function readSubscriptionForPlatform(
-  subscriptionId: string
+  subscriptionId: string,
+  acts: boolean
 ): Promise<AdminSubscriptionDetail | null> {
   const subscription = await getPrisma().subscription.findUnique({
     where: { id: subscriptionId },
@@ -347,7 +371,7 @@ export async function readSubscriptionForPlatform(
 
   const platform = isPlatformProduct(subscription.product)
   const [view, events, stripeEvents] = await Promise.all([
-    viewOf(subscription),
+    viewOf(subscription, acts),
     recentEvents({
       targetType: "subscription",
       targetId: subscription.stripeSubscriptionId,

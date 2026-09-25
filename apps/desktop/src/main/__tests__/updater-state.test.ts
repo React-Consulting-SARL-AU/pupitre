@@ -44,10 +44,32 @@ describe("l'état de la mise à jour de l'app", () => {
     );
     expect(state).toEqual({
       checkedAt: NOW(),
+      status: "verifying",
+      updates: true,
+      version: "0.2.0",
+    });
+
+    state = nextUpdateState(state, { kind: "verified", version: "0.2.0" }, NOW);
+    expect(state).toEqual({
+      checkedAt: NOW(),
       status: "ready",
       updates: true,
       version: "0.2.0",
     });
+  });
+
+  it("n'est jamais prête sur un téléchargement dont la signature n'a pas été vérifiée", () => {
+    const downloaded = nextUpdateState(
+      initialUpdateState(true),
+      { kind: "downloaded", version: "0.2.0" },
+      NOW
+    );
+
+    expect(downloaded.status).toBe("verifying");
+    expect(
+      nextUpdateState(downloaded, { kind: "refused", version: "0.2.0" }, NOW)
+        .status
+    ).toBe("error");
   });
 
   it("revient au repos quand rien n'est publié, en gardant la date", () => {
@@ -60,10 +82,10 @@ describe("l'état de la mise à jour de l'app", () => {
     expect(state).toEqual({ checkedAt: NOW(), status: "idle", updates: true });
   });
 
-  it("garde l'erreur dans les mots de l'updater, et une signature refusée", () => {
+  it("nomme la raison d'un échec plutôt que les mots de l'updater", () => {
     const failed = nextUpdateState(
       initialUpdateState(true),
-      { kind: "error", message: "net::ERR_INTERNET_DISCONNECTED" },
+      { kind: "error" },
       NOW
     );
     const refused = nextUpdateState(
@@ -71,13 +93,33 @@ describe("l'état de la mise à jour de l'app", () => {
       { kind: "refused", version: "0.2.0" },
       NOW
     );
+    const ready = nextUpdateState(
+      nextUpdateState(
+        initialUpdateState(true),
+        { kind: "downloaded", version: "0.2.0" },
+        NOW
+      ),
+      { kind: "verified", version: "0.2.0" },
+      NOW
+    );
+    const changed = nextUpdateState(ready, { kind: "changed" }, NOW);
 
     expect(failed).toEqual({
-      error: "net::ERR_INTERNET_DISCONNECTED",
+      failure: "failed",
       status: "error",
       updates: true,
     });
-    expect(refused.status).toBe("error");
-    expect(refused.version).toBe("0.2.0");
+    expect(refused).toEqual({
+      failure: "refused",
+      status: "error",
+      updates: true,
+      version: "0.2.0",
+    });
+    expect(changed).toEqual({
+      failure: "changed",
+      status: "error",
+      updates: true,
+      version: "0.2.0",
+    });
   });
 });

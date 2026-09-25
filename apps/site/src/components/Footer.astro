@@ -6,9 +6,15 @@ import Brand from "./Brand.astro"
 import LocaleSwitch from "./LocaleSwitch.astro"
 import ThemeToggle from "./ThemeToggle.astro"
 
+interface Props {
+  translation?: string
+}
+
+const { translation } = Astro.props
 const locale = localeFromPath(Astro.url.pathname)
 const t = translator(locale)
 const year = new Date().getFullYear()
+const measured = Boolean(import.meta.env.PUBLIC_POSTHOG_KEY)
 
 const groups = [
   {
@@ -32,9 +38,9 @@ const groups = [
     links: [
       { href: "/legal/terms/", label: t("footer.terms") },
       { href: "/legal/privacy/", label: t("footer.privacy") },
-      { href: "/legal/licence/", label: t("footer.licence") },
-      { href: "/legal/acceptable-use/", label: t("footer.acceptableUse") },
-      { href: "/legal/data-processing/", label: t("footer.dpa") },
+      { href: "/legal/cookies/", label: t("footer.cookies") },
+      { href: "/legal/legal-notice/", label: t("footer.legalNotice") },
+      { href: "/legal/", label: t("footer.allLegal") },
     ],
   },
 ]
@@ -78,9 +84,20 @@ const groups = [
       class="shell flex flex-wrap items-center gap-x-6 gap-y-4 py-6 text-ink-3"
     >
       <p class="data">© {year} {copyrightHolder()}</p>
+      {
+        measured && (
+          <button
+            type="button"
+            data-consent-reopen
+            class="data -mx-2 rounded-sm px-2 py-1.5 hover:text-ink"
+          >
+            {t("footer.consent")}
+          </button>
+        )
+      }
       <div class="ms-auto flex items-center gap-2">
         <ThemeToggle placement="up" />
-        <LocaleSwitch />
+        <LocaleSwitch href={translation} />
       </div>
     </div>
   </div>

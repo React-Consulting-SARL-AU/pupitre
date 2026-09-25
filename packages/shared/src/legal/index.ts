@@ -1,16 +1,13 @@
 import { z } from "zod"
 
-export const ENTITY_STATUSES = ["individual", "incorporated"] as const
+const ENTITY_STATUSES = ["individual", "incorporated"] as const
 
-export const EntityStatusSchema = z.enum(ENTITY_STATUSES)
-
-export type EntityStatus = z.infer<typeof EntityStatusSchema>
+const EntityStatusSchema = z.enum(ENTITY_STATUSES)
 
 export const LegalEntitySchema = z.object({
   status: EntityStatusSchema,
   tradingName: z.string().min(1),
   owner: z.string().min(1),
-  /** The country whose law governs the terms, and whose courts hear a dispute. */
   jurisdiction: z.string().min(1),
   publicationDirector: z.string().min(1),
   legalName: z.string().min(1).nullable(),
@@ -23,10 +20,7 @@ export const LegalEntitySchema = z.object({
 
 export type LegalEntity = z.infer<typeof LegalEntitySchema>
 
-/**
- * The publisher is a person until a company exists to take the project over:
- * the terms say so, and say that the responsible party may change.
- */
+// A person until a company exists to take the project over; the terms say the responsible party may change.
 export const LEGAL_ENTITY: LegalEntity = {
   status: "individual",
   tradingName: "Pupitre",
@@ -41,10 +35,7 @@ export const LEGAL_ENTITY: LegalEntity = {
   registeredAddress: null,
 }
 
-/**
- * The company whose certificates sign the desktop app builds, so macOS and
- * Windows accept them. It signs, and does nothing else: it is not the publisher.
- */
+// It signs the desktop builds and does nothing else: it is not the publisher.
 export const CODE_SIGNING_ENTITY = {
   name: "React Consulting SARL AU",
   jurisdiction: "Morocco",
@@ -60,21 +51,30 @@ export const LEGAL_CONTACTS = {
 export const PUPITRE_ORIGINS = {
   site: "https://pupitre.studio",
   app: "https://app.pupitre.studio",
+  downloads: "https://dl.pupitre.studio",
+  // The named tunnel `bun dev` publishes the local console under, for a remote agent to reach.
+  devTunnel: "https://dev.pupitre.studio",
+  devConsole: "http://localhost:3000",
 } as const
 
-/** Every address under this domain reaches the platform inbox, catch-all. */
+// Catch-all: every address under this domain reaches the platform inbox.
 export const MAIL_DOMAIN = new URL(PUPITRE_ORIGINS.site).hostname
 
-/**
- * Above this, a mail is refused at the edge. Buffering it kills the isolate,
- * and Cloudflare replays a delivery that died forever.
- */
+// Refused at the edge: buffering more kills the isolate, and Cloudflare replays a dead delivery forever.
 export const MAIL_MAX_BYTES = 20 * 1024 * 1024
 
-/** D1 refuses a row past a megabyte; the raw `.eml` in the bucket keeps the whole body. */
+// D1 refuses a row past a megabyte; the raw `.eml` in the bucket keeps the whole body.
 export const MAIL_MAX_TEXT_CHARS = 200_000
 
-export const MAIL_LOCAL_PART_MAX_LENGTH = 64
+// Past this, parts stay in the raw `.eml` only: each one is a bucket write the Worker pays for.
+export const MAIL_MAX_INBOUND_ATTACHMENTS = 20
+
+export const MAIL_MAX_REFERENCES = 20
+
+// The Email Routing MX that received the mail: no other `Authentication-Results` is trusted.
+export const MAIL_TRUSTED_AUTHSERV_ID = "mx.cloudflare.net"
+
+const MAIL_LOCAL_PART_MAX_LENGTH = 64
 
 export const MAIL_DISPLAY_NAME_MAX_LENGTH = 80
 
@@ -82,10 +82,7 @@ export const MAIL_SIGNATURE_MAX_LENGTH = 2000
 
 const MAIL_LOCAL_PART_RE = /^[a-z0-9]([a-z0-9._+-]*[a-z0-9])?$/
 
-/**
- * A mailbox is a local part on our own domain: the catch-all brings everything
- * here, so a box declared elsewhere would be a box nobody ever reads.
- */
+// Only our own domain: a box declared elsewhere would be a box nobody ever reads.
 export function mailboxAddressOf(input: string): string | null {
   const value = input.trim().toLowerCase()
   const at = value.indexOf("@")
@@ -103,18 +100,14 @@ export function mailboxAddressOf(input: string): string | null {
   return MAIL_LOCAL_PART_RE.test(local) ? `${local}@${MAIL_DOMAIN}` : null
 }
 
-/** What a reply or a new mail may carry, all attachments together. */
+// All attachments together.
 export const MAIL_MAX_OUTBOUND_ATTACHMENT_BYTES = 5 * 1024 * 1024
 
 export const MAIL_MAX_OUTBOUND_ATTACHMENTS = 10
 
-/** How long a signed bucket address, to read an attachment or to upload one, stays valid. */
 export const MAIL_SIGNED_URL_TTL_SECONDS = 600
 
-/**
- * One journal line per reader and per sensitive thread inside this window: a
- * console that refetches the open thread is still the same reading.
- */
+// A console that refetches the open thread inside this window is still the same reading.
 export const MAIL_READ_AUDIT_WINDOW_MS = 10 * 60 * 1000
 
 export const MAIL_BLOCKED_ATTACHMENT_EXTENSIONS = [
@@ -142,7 +135,7 @@ const PDF_TYPE = "application/pdf"
 
 const IMAGE_TYPE_PREFIX = "image/"
 
-/** An SVG is an image that can carry a script: it is saved, never shown. */
+// An SVG can carry a script: it is saved, never shown.
 const SVG_TYPE = "image/svg+xml"
 
 export function isBlockedAttachment(filename: string): boolean {
@@ -151,7 +144,6 @@ export function isBlockedAttachment(filename: string): boolean {
   return BLOCKED_EXTENSIONS.has(extension)
 }
 
-/** Only a raster image or a PDF opens in the console; anything else is handed over to save. */
 export function isPreviewableMailType(
   mimeType: string | null | undefined
 ): boolean {
@@ -169,11 +161,16 @@ export const LEGAL_DOCUMENT_SLUGS = [
   "acceptable-use",
   "privacy",
   "data-processing",
+  "billing",
+  "cookies",
+  "sub-processors",
+  "security",
+  "third-party",
+  "legal-notice",
+  "changes",
 ] as const
 
-export const LegalDocumentSlugSchema = z.enum(LEGAL_DOCUMENT_SLUGS)
-
-export type LegalDocumentSlug = z.infer<typeof LegalDocumentSlugSchema>
+const LegalDocumentSlugSchema = z.enum(LEGAL_DOCUMENT_SLUGS)
 
 export const LegalDocumentSchema = z.object({
   slug: LegalDocumentSlugSchema,
@@ -181,14 +178,21 @@ export const LegalDocumentSchema = z.object({
   updated: z.iso.date(),
 })
 
-export type LegalDocument = z.infer<typeof LegalDocumentSchema>
+type LegalDocument = z.infer<typeof LegalDocumentSchema>
 
 export const LEGAL_DOCUMENTS: readonly LegalDocument[] = [
-  { slug: "terms", order: 1, updated: "2026-09-24" },
-  { slug: "licence", order: 2, updated: "2026-09-20" },
-  { slug: "acceptable-use", order: 3, updated: "2026-09-20" },
-  { slug: "privacy", order: 4, updated: "2026-09-24" },
-  { slug: "data-processing", order: 5, updated: "2026-09-20" },
+  { slug: "terms", order: 1, updated: "2026-09-25" },
+  { slug: "licence", order: 2, updated: "2026-09-24" },
+  { slug: "acceptable-use", order: 3, updated: "2026-09-24" },
+  { slug: "privacy", order: 4, updated: "2026-09-25" },
+  { slug: "data-processing", order: 5, updated: "2026-09-25" },
+  { slug: "billing", order: 6, updated: "2026-09-24" },
+  { slug: "cookies", order: 7, updated: "2026-09-25" },
+  { slug: "sub-processors", order: 8, updated: "2026-09-25" },
+  { slug: "security", order: 9, updated: "2026-09-24" },
+  { slug: "third-party", order: 10, updated: "2026-09-25" },
+  { slug: "legal-notice", order: 11, updated: "2026-09-24" },
+  { slug: "changes", order: 12, updated: "2026-09-25" },
 ]
 
 export const SubProcessorSchema = z.object({
@@ -197,9 +201,9 @@ export const SubProcessorSchema = z.object({
   region: z.object({ fr: z.string().min(1), en: z.string().min(1) }),
 })
 
-export type SubProcessor = z.infer<typeof SubProcessorSchema>
+type SubProcessor = z.infer<typeof SubProcessorSchema>
 
-/** Who processes personal data for the platform. Stripe is listed now so nobody discovers it the day billing opens. */
+// Stripe is listed now so nobody discovers it the day billing opens.
 export const SUB_PROCESSORS: readonly SubProcessor[] = [
   {
     name: "Cloudflare, Inc.",
@@ -237,7 +241,6 @@ export function isIncorporated(entity: LegalEntity = LEGAL_ENTITY): boolean {
   return entity.status === "incorporated"
 }
 
-/** Who holds the rights today: the person, until the company exists to receive them. */
 export function copyrightHolder(entity: LegalEntity = LEGAL_ENTITY): string {
   if (isIncorporated(entity) && entity.legalName) {
     return entity.legalName

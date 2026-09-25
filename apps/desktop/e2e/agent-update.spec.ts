@@ -8,16 +8,6 @@ import type { AgentUpdateState } from "@shared/agent-update";
 import { assertAccessible } from "./harness/accessible";
 import { launchPupitre, type Running } from "./harness/launch";
 
-/**
- * The banner, on the two servers that have something to say.
- *
- * The comparison is the main process's answer, so the scenario replaces that
- * one channel and leaves everything else — the window, the bridge, the stores —
- * as it ships. Nothing here talks to a machine.
- */
-
-// The state the main process answers, taken from the contract rather than
-// written out here: a field renamed there has to fail the typecheck, not the run.
 const AHEAD: AgentUpdateState = {
   config: null,
   floor: null,

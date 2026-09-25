@@ -1,7 +1,6 @@
 import { Link } from "@tanstack/react-router"
 import type { LucideIcon } from "lucide-react"
 
-/** Every line of the sidebar sits the same, whether it leads somewhere or acts. */
 export const SIDEBAR_ITEM_CLASS =
   "group flex h-9 items-center gap-2.5 rounded-md px-2.5 text-[13px] text-ink-2 transition-fast hover:bg-raised hover:text-ink focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2"
 
@@ -12,9 +11,7 @@ export interface SidebarLinkProps {
   to: string
   label: string
   icon: LucideIcon
-  /** A parent page lights up under its children unless it says it stands alone. */
   exact?: boolean
-  /** What the page is waiting on; nothing is drawn at zero. */
   badge?: number
 }
 

@@ -4,33 +4,13 @@ import { promisify } from "node:util";
 import type { HostKeyAction, HostKeyDecision } from "@shared/servers";
 import { type Address, knownHostsKey, type SshPaths } from "./ssh-config";
 
-/**
- * The host key, pinned on first contact.
- *
- * The first connection accepts whatever the server presents and records its
- * fingerprint. Every one after that has to present the same: a key that changed
- * means either the machine was reinstalled, or someone is answering in its
- * place, and the app cannot tell which. So it refuses, says what it expected
- * and what it got, and leaves the choice to the person who knows.
- *
- * The comparison is made against the machine as it answers today, not only
- * against the app's own file: a server rebuilt at the same address leaves the
- * file and the pin agreeing with each other and both wrong, and `ssh` alone
- * would refuse without offering the way out.
- */
-
 const run = promisify(execFile);
 
 export const REINSTALLED_ACTION: HostKeyAction = "reinstalled";
 
-const CHANGED_MARKS = [
-  "REMOTE HOST IDENTIFICATION HAS CHANGED",
-  "HOST KEY HAS CHANGED",
-  "Host key verification failed",
-];
-
 const FINGERPRINT = /SHA256:[A-Za-z0-9+/=]+/;
 const FINGERPRINTS = /SHA256:[A-Za-z0-9+/=]+/g;
+const ED25519_LISTED = /\sED25519\s+SHA256:/;
 const SCAN_TIMEOUT_S = 3;
 const FILE_MODE = 0o600;
 
@@ -44,10 +24,7 @@ function changed(pinned: string, observed: string | null): HostKeyDecision {
   };
 }
 
-/**
- * `observed` is what the app's file holds, `live` what the machine presents
- * now — every key type it offers, or nothing when it could not be asked.
- */
+/** `live` wins over the file: a server rebuilt at the same address leaves file and pin agreeing and both wrong. */
 export function hostKeyDecision(
   pinned: string | undefined,
   observed: string | null,
@@ -100,13 +77,11 @@ function fingerprintsOf(keys: string): Promise<string[]> {
   });
 }
 
-/** One key the machine presents: its fingerprint, and the line known_hosts would hold for it. */
 export interface LiveKey {
   fingerprint: string;
   line: string;
 }
 
-/** What `ssh-keyscan` prints for a machine: one key per line, comments aside. */
 export function keyLines(scanned: string): string[] {
   return scanned
     .split("\n")
@@ -114,12 +89,7 @@ export function keyLines(scanned: string): string[] {
     .filter((line) => line !== "" && !line.startsWith("#"));
 }
 
-/**
- * The keys the machine presents right now, read from its banner and nothing
- * more: no session is opened and nothing of ours is sent. `ssh-keygen` names
- * the fingerprints in the order of the lines it was given, which is what pairs
- * each with its line.
- */
+/** `ssh-keygen` prints fingerprints in the order of the lines it was given, which pairs each with its line. */
 export async function liveKeys(
   server: Address,
   scan: Scan = keyscan
@@ -144,14 +114,7 @@ export async function liveKeys(
   }
 }
 
-/**
- * The pinned key, written into the app's file from the machine's own answer.
- *
- * A server granted by the organisation comes with its fingerprint and nothing
- * else: the platform pinned it, the app's known_hosts has never met the
- * machine, and `ssh`, told to be strict, would refuse a host it has no key
- * for. The pin is what the app trusts; the file only has to agree with it.
- */
+/** A granted server comes with only a fingerprint; strict `ssh` would refuse a host its known_hosts never met. */
 export function recordHostKey(line: string, paths: SshPaths): void {
   const held = existsSync(paths.knownHostsPath)
     ? readFileSync(paths.knownHostsPath, "utf8")
@@ -163,17 +126,7 @@ export function recordHostKey(line: string, paths: SshPaths): void {
   });
 }
 
-/** What ssh says when it refuses for that reason, and not for another. */
-export function looksLikeHostKeyChange(output: string): boolean {
-  return CHANGED_MARKS.some((mark) => output.includes(mark));
-}
-
-/**
- * The fingerprint the app's own known_hosts currently holds for that server.
- *
- * The system file is never consulted: what the app trusts is what the app
- * recorded, and nothing a tool elsewhere added.
- */
+/** The system known_hosts is never consulted: the app trusts only what it recorded itself. */
 export async function observedFingerprint(
   server: Address,
   paths: SshPaths
@@ -197,7 +150,42 @@ export async function observedFingerprint(
   }
 }
 
-/** Forgets the recorded key, so the next contact pins whatever answers. */
+/** Ed25519 is the one key the agent declares when it trades its token; other types are left to the platform. */
+export async function ed25519Fingerprint(
+  server: Address,
+  paths: SshPaths
+): Promise<string | null> {
+  if (!existsSync(paths.knownHostsPath)) {
+    return null;
+  }
+
+  try {
+    const { stdout } = await run("ssh-keygen", [
+      "-l",
+      "-F",
+      knownHostsKey(server),
+      "-f",
+      paths.knownHostsPath,
+    ]);
+
+    return ed25519Of(stdout);
+  } catch {
+    return null;
+  }
+}
+
+export function ed25519Of(listing: string): string | null {
+  for (const line of listing.split("\n")) {
+    if (line.startsWith("#") || !ED25519_LISTED.test(line)) {
+      continue;
+    }
+
+    return FINGERPRINT.exec(line)?.[0] ?? null;
+  }
+
+  return null;
+}
+
 export async function forgetHostKey(
   server: Address,
   paths: SshPaths
@@ -214,6 +202,6 @@ export async function forgetHostKey(
       paths.knownHostsPath,
     ]);
   } catch {
-    // Nothing recorded for that host: there is nothing to forget.
+    // Nothing recorded for that host.
   }
 }

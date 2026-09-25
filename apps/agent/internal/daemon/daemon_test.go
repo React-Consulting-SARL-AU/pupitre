@@ -1,12 +1,15 @@
 package daemon_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -22,18 +25,17 @@ import (
 
 const (
 	laptop  = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILykUfO8a7qKBQHbW/KSfnaTtl1nAJxVpOzifJBri1Hl jordan@laptop"
-	desktop = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGb1YbGvDgQBGNPCsjkPu1FdQBcyRZY0ubmZmvUKpH+E jordan@desktop"
 	own     = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFYbYqYFCzS+wnaB9G7NkFuFRPlBRbxJqcVJ0m8OvXKp secours"
 	hostKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINPmg2sJ7wUW1eUeGGiuIYbYVWH8ihu5xMt/M39EO4Bd root@vps"
 )
 
 var noon = time.Date(2026, time.September, 4, 12, 0, 0, 0, time.UTC)
 
-// A platform that answers /agent/state, /agent/exchange and /agent/heartbeat, and nothing that ever leaves this test.
 type fakePlatform struct {
 	mu sync.Mutex
 
-	authorized []string
+	legacy     []string
+	keys       *[]contract.AgentStateKey
 	state      string
 	validUntil time.Time
 	target     string
@@ -44,13 +46,14 @@ type fakePlatform struct {
 	echo     bool
 	serverID string
 
-	states int
-	beats  []platform.Heartbeat
-	traded []platform.Enrollment
+	states   int
+	beats    []platform.Heartbeat
+	rawBeats [][]byte
+	traded   []platform.Enrollment
 }
 
 func newPlatform() *fakePlatform {
-	return &fakePlatform{state: "valid", validUntil: noon.Add(24 * time.Hour), target: "1.4.0"}
+	return &fakePlatform{state: "valid", validUntil: noon.Add(24 * time.Hour), target: "1.4.0", serverID: serverID}
 }
 
 func (p *fakePlatform) serve() *httptest.Server {
@@ -72,18 +75,24 @@ func (p *fakePlatform) serve() *httptest.Server {
 		switch r.URL.Path {
 		case "/agent/state":
 			p.states++
-			json.NewEncoder(w).Encode(map[string]any{
+			answer := map[string]any{
 				"entitlement":     p.state,
 				"valid_until":     p.validUntil,
-				"authorized_keys": p.authorized,
+				"authorized_keys": p.legacy,
 				"target_version":  p.target,
 				"hostname":        "vps",
 				"server_id":       p.serverID,
-			})
+			}
+			if p.keys != nil {
+				answer["keys"] = *p.keys
+			}
+			json.NewEncoder(w).Encode(answer)
 		case "/agent/heartbeat":
+			raw, _ := io.ReadAll(r.Body)
 			var beat platform.Heartbeat
-			json.NewDecoder(r.Body).Decode(&beat)
+			json.Unmarshal(raw, &beat)
 			p.beats = append(p.beats, beat)
+			p.rawBeats = append(p.rawBeats, raw)
 			w.WriteHeader(http.StatusNoContent)
 		case "/agent/exchange":
 			var enrollment platform.Enrollment
@@ -106,11 +115,23 @@ func (p *fakePlatform) serve() *httptest.Server {
 	}))
 }
 
+func (p *fakePlatform) want(entries ...contract.AgentStateKey) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if entries == nil {
+		entries = []contract.AgentStateKey{}
+	}
+	p.keys = &entries
+}
+
+// A platform older than approvals: bare lines the agent no longer reads.
 func (p *fakePlatform) allow(lines ...string) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	p.authorized = lines
+	p.legacy = lines
+	p.keys = nil
 }
 
 func (p *fakePlatform) suspend(status int) {
@@ -125,7 +146,6 @@ func (p *fakePlatform) refuseWith(status int, code string) {
 	p.refuseCode = code
 }
 
-// A platform that hands the token it just received back in its refusal: the worst case the redaction exists for.
 func (p *fakePlatform) echoRefusals() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -138,6 +158,13 @@ func (p *fakePlatform) count() int {
 	defer p.mu.Unlock()
 
 	return p.states
+}
+
+func (p *fakePlatform) heartbeats() []platform.Heartbeat {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	return slices.Clone(p.beats)
 }
 
 type bench struct {
@@ -182,22 +209,34 @@ func (b *bench) authorized() string {
 	return string(b.fake.Files[daemon.DefaultKeysPath])
 }
 
-// A key added in the console opens the server on the very next read, thirty seconds later at worst.
-func TestAKeyAddedInTheConsoleOpensTheServer(t *testing.T) {
-	b := newBench(t, true)
-	b.platform.allow(laptop)
+func (b *bench) sync(t *testing.T, agent *daemon.Daemon) daemon.Sync {
+	t.Helper()
 
-	synced, err := b.agent().Sync(context.Background())
+	synced, err := agent.Sync(context.Background())
 	if err != nil {
 		t.Fatalf("Sync: %v", err)
 	}
 
-	if !synced.KeysChanged || len(synced.Keys) != 1 || synced.TargetVersion != "1.4.0" {
+	return synced
+}
+
+func TestAKeyApprovedByATrustedDeviceOpensTheServer(t *testing.T) {
+	b := newBench(t, true)
+	b.trusting(t, laptopDevice)
+	b.platform.want(asked(laptopDevice), asked(desktopDevice, laptopDevice.approves(t, desktopDevice, b.now.Add(-time.Minute))))
+
+	synced := b.sync(t, b.agent())
+	if !synced.KeysChanged || len(synced.Keys) != 2 || len(synced.Pending) != 0 || synced.TargetVersion != "1.4.0" {
 		t.Fatalf("synced = %+v", synced)
 	}
 
-	if !strings.Contains(b.authorized(), laptop) || !strings.Contains(b.authorized(), own) {
-		t.Fatalf("authorized_keys :\n%s", b.authorized())
+	if !b.opens(desktopDevice) || !b.opens(laptopDevice) || !strings.Contains(b.authorized(), own) {
+		t.Fatalf("authorized_keys:\n%s", b.authorized())
+	}
+
+	trust := b.trust(t)
+	if !trust.Trusts(desktopDevice.fingerprint(t)) || trust.Signers[1].Via != keys.ViaApproval {
+		t.Fatalf("an admitted key becomes a signer: %+v", trust)
 	}
 
 	if synced.Entitlement == contract.EntitlementRestricted {
@@ -205,58 +244,268 @@ func TestAKeyAddedInTheConsoleOpensTheServer(t *testing.T) {
 	}
 }
 
-// Withdrawn in the console, it stops opening it on the next read; nothing the client wrote himself moves.
-func TestAKeyWithdrawnInTheConsoleClosesTheServer(t *testing.T) {
+func TestAKeyWithoutApprovalWaitsAndThePlatformHearsItAtOnce(t *testing.T) {
 	b := newBench(t, true)
-	agent := b.agent()
+	b.trusting(t, laptopDevice)
+	b.platform.want(asked(laptopDevice), asked(desktopDevice))
 
-	b.platform.allow(laptop, desktop)
-	agent.Sync(context.Background())
-
-	b.platform.allow(laptop)
-	synced, err := agent.Sync(context.Background())
-	if err != nil || !synced.KeysChanged {
-		t.Fatalf("synced = %+v, err = %v", synced, err)
+	synced := b.sync(t, b.agent())
+	if b.opens(desktopDevice) || !b.opens(laptopDevice) {
+		t.Fatalf("authorized_keys:\n%s", b.authorized())
 	}
 
-	if strings.Contains(b.authorized(), desktop) {
-		t.Fatalf("the removed key still opens:\n%s", b.authorized())
+	if len(synced.Pending) != 1 || synced.Pending[0] != desktopDevice.fingerprint(t) {
+		t.Fatalf("pending = %v", synced.Pending)
 	}
 
-	if !strings.Contains(b.authorized(), own) || !strings.Contains(b.authorized(), laptop) {
-		t.Fatalf("authorized_keys :\n%s", b.authorized())
+	beats := b.platform.heartbeats()
+	if len(beats) != 1 || beats[0].Keys == nil {
+		t.Fatalf("heartbeats = %+v", beats)
+	}
+
+	if !slices.Equal(beats[0].Keys.Pending, synced.Pending) || !slices.Equal(beats[0].Keys.Signers, []string{laptopDevice.fingerprint(t)}) {
+		t.Fatalf("keys beat = %+v", beats[0].Keys)
+	}
+
+	if err := contract.ValidateValue("KeysBeat", beats[0].Keys); err != nil {
+		t.Fatal(err)
 	}
 }
 
-func TestSyncIgnoresAKeyItCannotRead(t *testing.T) {
+func TestTheSamePendingSetDoesNotBeatAgain(t *testing.T) {
 	b := newBench(t, true)
-	b.platform.allow(laptop, "ssh-ed25519 broken")
+	b.trusting(t, laptopDevice)
+	b.platform.want(asked(laptopDevice), asked(desktopDevice))
 
-	synced, err := b.agent().Sync(context.Background())
-	if err != nil || len(synced.Keys) != 1 {
-		t.Fatalf("synced = %+v, err = %v", synced, err)
+	agent := b.agent()
+	b.sync(t, agent)
+	b.sync(t, agent)
+
+	if beats := b.platform.heartbeats(); len(beats) != 1 {
+		t.Fatalf("%d heartbeat(s), want one", len(beats))
 	}
 
-	if strings.Contains(b.authorized(), "broken") {
-		t.Fatalf("authorized_keys :\n%s", b.authorized())
+	b.platform.want(asked(laptopDevice), asked(desktopDevice, laptopDevice.approves(t, desktopDevice, b.now)))
+	b.sync(t, agent)
+
+	beats := b.platform.heartbeats()
+	if len(beats) != 2 || len(beats[1].Keys.Pending) != 0 || len(beats[1].Keys.Signers) != 2 {
+		t.Fatalf("heartbeats = %+v", beats)
+	}
+
+	b.platform.mu.Lock()
+	raw := b.platform.rawBeats[1]
+	b.platform.mu.Unlock()
+
+	if !bytes.Contains(raw, []byte(`"pending":[]`)) {
+		t.Fatalf("an empty pending set must travel as a list, the platform refuses null: %s", raw)
+	}
+}
+
+func TestAChainOfApprovalsOpensInOneRead(t *testing.T) {
+	b := newBench(t, true)
+	b.trusting(t, laptopDevice)
+	b.platform.want(
+		asked(phoneDevice, desktopDevice.approves(t, phoneDevice, b.now)),
+		asked(desktopDevice, laptopDevice.approves(t, desktopDevice, b.now)),
+		asked(laptopDevice),
+	)
+
+	synced := b.sync(t, b.agent())
+	if len(synced.Keys) != 3 || len(synced.Pending) != 0 || !b.opens(phoneDevice) {
+		t.Fatalf("synced = %+v\n%s", synced, b.authorized())
+	}
+}
+
+func TestAnApprovalThatDoesNotHoldLeavesTheKeyPending(t *testing.T) {
+	stranger := newDevice(9)
+
+	cases := map[string]func(t *testing.T, b *bench) contract.AgentStateKey{
+		"for another server": func(t *testing.T, b *bench) contract.AgentStateKey {
+			return asked(desktopDevice, laptopDevice.approvesOn(t, otherServer, desktopDevice, b.now))
+		},
+		"for another user": func(t *testing.T, b *bench) contract.AgentStateKey {
+			entry := asked(desktopDevice, laptopDevice.approves(t, desktopDevice, b.now))
+			entry.UserID = "someone-else"
+
+			return entry
+		},
+		"signed by a key the server does not trust": func(t *testing.T, b *bench) contract.AgentStateKey {
+			return asked(desktopDevice, stranger.approves(t, desktopDevice, b.now))
+		},
+		"too old": func(t *testing.T, b *bench) contract.AgentStateKey {
+			return asked(desktopDevice, laptopDevice.approves(t, desktopDevice, b.now.Add(-8*24*time.Hour)))
+		},
+		"from the future": func(t *testing.T, b *bench) contract.AgentStateKey {
+			return asked(desktopDevice, laptopDevice.approves(t, desktopDevice, b.now.Add(10*time.Minute)))
+		},
+		"for another key": func(t *testing.T, b *bench) contract.AgentStateKey {
+			return asked(desktopDevice, laptopDevice.approves(t, phoneDevice, b.now))
+		},
+	}
+
+	for name, entry := range cases {
+		t.Run(name, func(t *testing.T) {
+			b := newBench(t, true)
+			b.trusting(t, laptopDevice)
+			b.platform.want(asked(laptopDevice), entry(t, b))
+
+			synced := b.sync(t, b.agent())
+			if b.opens(desktopDevice) || len(synced.Pending) != 1 || b.trust(t).Trusts(desktopDevice.fingerprint(t)) {
+				t.Fatalf("synced = %+v\n%s", synced, b.authorized())
+			}
+		})
+	}
+}
+
+func TestApprovalsAreCheckedAgainstTheStoredServerID(t *testing.T) {
+	b := newBench(t, true)
+	b.trusting(t, laptopDevice)
+	platform.SaveServerID(b.fake, "", otherServer)
+
+	b.platform.want(asked(laptopDevice), asked(desktopDevice, laptopDevice.approves(t, desktopDevice, b.now)))
+
+	synced := b.sync(t, b.agent())
+	if b.opens(desktopDevice) || len(synced.Pending) != 1 {
+		t.Fatalf("synced = %+v", synced)
+	}
+
+	if platform.LoadServerID(b.fake, "") != otherServer || !strings.Contains(b.journal(), "otherwise") {
+		t.Fatalf("the stored id moved:\n%s", b.journal())
+	}
+}
+
+func TestAKeyThePlatformStopsAskingForLeavesTheServer(t *testing.T) {
+	b := newBench(t, true)
+	b.trusting(t, laptopDevice, desktopDevice)
+	agent := b.agent()
+
+	b.platform.want(asked(laptopDevice))
+	synced := b.sync(t, agent)
+	if !synced.KeysChanged || b.opens(desktopDevice) || !b.opens(laptopDevice) || !strings.Contains(b.authorized(), own) {
+		t.Fatalf("authorized_keys:\n%s", b.authorized())
+	}
+
+	trust := b.trust(t)
+	if trust.Trusts(desktopDevice.fingerprint(t)) {
+		t.Fatal("a removed key is still trusted")
+	}
+
+	if at, gone := trust.RemovedAt(desktopDevice.fingerprint(t)); !gone || !at.Equal(b.now) {
+		t.Fatalf("removal %s, %v", at, gone)
+	}
+
+	b.platform.want(asked(laptopDevice), asked(desktopDevice, laptopDevice.approves(t, desktopDevice, b.now.Add(-time.Minute))))
+	if b.sync(t, agent); b.opens(desktopDevice) {
+		t.Fatal("an approval older than the removal brought the key back")
+	}
+
+	b.now = b.now.Add(time.Hour)
+	b.platform.want(asked(laptopDevice), asked(desktopDevice, laptopDevice.approves(t, desktopDevice, b.now)))
+	if b.sync(t, agent); !b.opens(desktopDevice) {
+		t.Fatal("an approval issued after the removal is refused")
+	}
+}
+
+func TestTheLastKeyIsNeverRemoved(t *testing.T) {
+	b := newBench(t, true)
+	b.trusting(t, laptopDevice)
+	before, signersBefore := b.authorized(), string(b.fake.Files[keys.DefaultSignersPath])
+	agent := b.agent()
+
+	for _, entries := range [][]contract.AgentStateKey{nil, {asked(desktopDevice)}} {
+		b.platform.want(entries...)
+
+		synced := b.sync(t, agent)
+		if synced.KeysChanged || b.authorized() != before || string(b.fake.Files[keys.DefaultSignersPath]) != signersBefore {
+			t.Fatalf("with %d key(s) asked for:\n%s", len(entries), b.authorized())
+		}
+	}
+
+	if !strings.Contains(b.journal(), "last key is never removed") {
+		t.Fatalf("the journal must say why:\n%s", b.journal())
+	}
+}
+
+func TestAPlatformThatNamesNoKeysMovesNothing(t *testing.T) {
+	b := newBench(t, true)
+	b.trusting(t, laptopDevice)
+	before := b.authorized()
+	b.platform.allow(desktopDevice.line)
+
+	agent := b.agent()
+	b.sync(t, agent)
+	b.sync(t, agent)
+
+	if b.authorized() != before {
+		t.Fatalf("authorized_keys:\n%s", b.authorized())
+	}
+
+	if strings.Count(b.journal(), "names no keys") != 1 {
+		t.Fatalf("said once, not every thirty seconds:\n%s", b.journal())
+	}
+
+	if err := agent.Beat(context.Background()); err != nil || b.platform.heartbeats()[0].Keys != nil {
+		t.Fatal("a heartbeat speaks of keys no state has named")
+	}
+}
+
+func TestAKeyWithOptionsOrOfAnotherTypeIsIgnored(t *testing.T) {
+	b := newBench(t, true)
+	b.trusting(t, laptopDevice)
+
+	withOptions := asked(desktopDevice, laptopDevice.approves(t, desktopDevice, b.now))
+	withOptions.PublicKey = `command="/bin/sh" ` + desktopDevice.line
+	rsa := asked(desktopDevice)
+	rsa.PublicKey = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7"
+	commented := asked(desktopDevice)
+	commented.PublicKey = desktopDevice.line + " jordan@desktop"
+
+	b.platform.want(asked(laptopDevice), withOptions, rsa, commented)
+
+	synced := b.sync(t, b.agent())
+	if len(synced.Keys) != 1 || len(synced.Pending) != 0 || strings.Contains(b.authorized(), "command=") || b.opens(desktopDevice) {
+		t.Fatalf("synced = %+v\n%s", synced, b.authorized())
+	}
+
+	if strings.Count(b.journal(), "key ignored") != 3 {
+		t.Fatalf("journal:\n%s", b.journal())
+	}
+}
+
+func TestAKeptKeyKeepsItsCommentAndLosesItsOptions(t *testing.T) {
+	b := newBench(t, true)
+	b.trusting(t, laptopDevice, desktopDevice)
+	ctx := modtest.NewSysContext(b.fake)
+	keys.Sync(ctx, keys.Target{Path: keys.DefaultPath}, []keys.Key{
+		{Type: "ssh-ed25519", Blob: laptopDevice.key(t).Blob, Comment: "jordan@laptop"},
+		{Options: `command="true"`, Type: "ssh-ed25519", Blob: desktopDevice.key(t).Blob},
+	})
+
+	b.platform.want(asked(laptopDevice), asked(desktopDevice))
+	b.sync(t, b.agent())
+
+	if !strings.Contains(b.authorized(), laptopDevice.line+" jordan@laptop") || strings.Contains(b.authorized(), "command=") || !b.opens(desktopDevice) {
+		t.Fatalf("authorized_keys:\n%s", b.authorized())
 	}
 }
 
 func TestKeysListReadsTheBlockWithItsFingerprints(t *testing.T) {
 	b := newBench(t, true)
-	b.platform.allow(laptop, desktop)
+	b.trusting(t, laptopDevice, desktopDevice)
+	b.platform.want(asked(laptopDevice), asked(desktopDevice))
 
 	agent := b.agent()
-	agent.Sync(context.Background())
+	b.sync(t, agent)
 
 	listed := agent.Keys()
 	if len(listed) != 2 {
-		t.Fatalf("bloc = %v", listed)
+		t.Fatalf("block = %v", listed)
 	}
 
 	for _, key := range listed {
 		if !strings.HasPrefix(key.Fingerprint(), "SHA256:") {
-			t.Errorf("empreinte = %q", key.Fingerprint())
+			t.Errorf("fingerprint = %q", key.Fingerprint())
 		}
 	}
 
@@ -269,7 +518,7 @@ func TestSyncRefusesWithoutAServerToken(t *testing.T) {
 	b := newBench(t, false)
 
 	if _, err := b.agent().Sync(context.Background()); err != platform.ErrNoToken {
-		t.Fatalf("erreur = %v", err)
+		t.Fatalf("err = %v", err)
 	}
 
 	if strings.Contains(b.authorized(), "pupitre") {
@@ -277,12 +526,12 @@ func TestSyncRefusesWithoutAServerToken(t *testing.T) {
 	}
 }
 
-// A server the platform no longer knows — revoked, purged — loses its keys at once and its entitlement with them: the console said so, and the keys fall on the spot.
-func TestARevokedServerTokenClosesTheKeysAndSuspendsTheEntitlement(t *testing.T) {
+func TestARevokedServerTokenSuspendsTheEntitlementAndKeepsTheKeys(t *testing.T) {
 	b := newBench(t, true)
-	b.platform.allow(laptop)
+	b.trusting(t, laptopDevice)
+	b.platform.want(asked(laptopDevice))
 	agent := b.agent()
-	agent.Sync(context.Background())
+	b.sync(t, agent)
 
 	b.platform.suspend(http.StatusUnauthorized)
 
@@ -290,11 +539,11 @@ func TestARevokedServerTokenClosesTheKeysAndSuspendsTheEntitlement(t *testing.T)
 		t.Fatal("a refused token should surface")
 	}
 
-	if strings.Contains(b.authorized(), laptop) || !strings.Contains(b.authorized(), own) {
-		t.Fatalf("the platform's keys must be withdrawn, and the client's own kept:\n%s", b.authorized())
+	if !b.opens(laptopDevice) || !strings.Contains(b.authorized(), own) {
+		t.Fatalf("the keys must stay:\n%s", b.authorized())
 	}
 
-	if got := agent.Entitlement(); got != contract.EntitlementRestricted {
+	if got := b.recorded(); got != contract.EntitlementRestricted {
 		t.Fatalf("the entitlement must be suspended on the spot, got %s", got)
 	}
 
@@ -303,12 +552,12 @@ func TestARevokedServerTokenClosesTheKeysAndSuspendsTheEntitlement(t *testing.T)
 	}
 }
 
-// A platform out of reach is a silence, not a revocation: the keys stay, and the tolerance is what closes the agent.
 func TestANetworkFailureLeavesTheKeysAndTheEntitlementInPlace(t *testing.T) {
 	b := newBench(t, true)
-	b.platform.allow(laptop)
+	b.trusting(t, laptopDevice)
+	b.platform.want(asked(laptopDevice))
 	agent := b.agent()
-	agent.Sync(context.Background())
+	b.sync(t, agent)
 
 	b.server.Close()
 
@@ -316,21 +565,20 @@ func TestANetworkFailureLeavesTheKeysAndTheEntitlementInPlace(t *testing.T) {
 		t.Fatal("a platform out of reach should surface")
 	}
 
-	if !strings.Contains(b.authorized(), laptop) {
+	if !b.opens(laptopDevice) {
 		t.Fatalf("the keys were dropped on a silence:\n%s", b.authorized())
 	}
 
-	if got := agent.Entitlement(); got != contract.EntitlementValid {
+	if got := b.recorded(); got != contract.EntitlementValid {
 		t.Fatalf("the last answer of the platform still holds, got %s", got)
 	}
 }
 
-// A 401 that does not name the token — a proxy, a platform mid-deploy — is a silence too.
-func TestARefusalWithoutTheTokenCodeLeavesTheKeysInPlace(t *testing.T) {
+func TestARefusalWithoutTheTokenCodeIsNotARevocation(t *testing.T) {
 	b := newBench(t, true)
-	b.platform.allow(laptop)
+	b.platform.want()
 	agent := b.agent()
-	agent.Sync(context.Background())
+	b.sync(t, agent)
 
 	b.platform.refuseWith(http.StatusUnauthorized, "unauthenticated")
 
@@ -338,17 +586,16 @@ func TestARefusalWithoutTheTokenCodeLeavesTheKeysInPlace(t *testing.T) {
 		t.Fatal("a refusal should surface")
 	}
 
-	if !strings.Contains(b.authorized(), laptop) {
-		t.Fatalf("the keys were dropped on a refusal that names no token:\n%s", b.authorized())
+	if got := b.recorded(); got != contract.EntitlementValid {
+		t.Fatalf("the entitlement moved on a refusal that names no token, got %s", got)
 	}
 }
 
-// A token traded for a fresh one while the read was in flight is not a revocation: the refusal was for the token that just left the disk.
 func TestARefusalOnATokenThatWasJustRotatedIsNotARevocation(t *testing.T) {
 	b := newBench(t, true)
-	b.platform.allow(laptop)
+	b.platform.want()
 	agent := b.agent()
-	agent.Sync(context.Background())
+	b.sync(t, agent)
 
 	b.platform.refused = func() { b.fake.Files[platform.DefaultTokenPath] = []byte("jeton-tout-neuf\n") }
 	b.platform.suspend(http.StatusUnauthorized)
@@ -357,11 +604,7 @@ func TestARefusalOnATokenThatWasJustRotatedIsNotARevocation(t *testing.T) {
 		t.Fatal("a refusal should surface")
 	}
 
-	if !strings.Contains(b.authorized(), laptop) {
-		t.Fatalf("the keys were dropped during a rotation:\n%s", b.authorized())
-	}
-
-	if got := agent.Entitlement(); got != contract.EntitlementValid {
+	if got := b.recorded(); got != contract.EntitlementValid {
 		t.Fatalf("the entitlement must not move during a rotation, got %s", got)
 	}
 }
@@ -373,11 +616,12 @@ func TestBeatSendsWhatTheMachineIs(t *testing.T) {
 		t.Fatalf("Beat: %v", err)
 	}
 
-	if len(b.platform.beats) != 1 {
-		t.Fatalf("%d heartbeat(s)", len(b.platform.beats))
+	beats := b.platform.heartbeats()
+	if len(beats) != 1 {
+		t.Fatalf("%d heartbeat(s)", len(beats))
 	}
 
-	beat := b.platform.beats[0]
+	beat := beats[0]
 	if beat.AgentVersion != "1.2.3" || beat.StackVersion != "1.2.3" {
 		t.Fatalf("beat = %+v", beat)
 	}
@@ -404,13 +648,31 @@ func TestEnrollTradesTheTokenAndWritesTheServerToken(t *testing.T) {
 
 	token, err := platform.LoadToken(b.fake, platform.DefaultTokenPath)
 	if err != nil || token != "jeton-de-serveur" {
-		t.Fatalf("jeton = %q, err = %v", token, err)
+		t.Fatalf("token = %q, err = %v", token, err)
 	}
 }
 
-// The heartbeat and the entitlement run without the app: the only thing that
-// can tell them which platform to answer is what the enrolment wrote down, so
-// it lands before the token does.
+func TestEnrollLetsTheNextReadNameTheServerAnew(t *testing.T) {
+	b := newBench(t, true)
+	platform.SaveServerID(b.fake, "", otherServer)
+	agent := b.agent()
+
+	if err := agent.Enroll(context.Background(), "jeton-d-enrolement", b.server.URL); err != nil {
+		t.Fatalf("Enroll: %v", err)
+	}
+
+	if stored := platform.LoadServerID(b.fake, ""); stored != "" {
+		t.Fatalf("the id of before is kept: %q", stored)
+	}
+
+	b.platform.want()
+	b.sync(t, agent)
+
+	if stored := platform.LoadServerID(b.fake, ""); stored != serverID {
+		t.Fatalf("stored = %q", stored)
+	}
+}
+
 func TestEnrollWritesThePlatformItTradedWithBeforeTheToken(t *testing.T) {
 	b := newBench(t, false)
 	console := b.server.URL
@@ -467,14 +729,14 @@ func TestEnrollRefusesAnEmptyTokenAndAnUnreadableHostKey(t *testing.T) {
 
 	delete(b.fake.Files, daemon.DefaultHostKeyPath)
 	if err := b.agent().Enroll(context.Background(), "jeton", ""); err == nil || !strings.Contains(err.Error(), "host key") {
-		t.Fatalf("erreur = %v", err)
+		t.Fatalf("err = %v", err)
 	}
 }
 
-// The loop reads the state and beats on its own; a platform out of reach never stops it.
 func TestRunPollsUntilItIsStopped(t *testing.T) {
 	b := newBench(t, true)
-	b.platform.allow(laptop)
+	b.trusting(t, laptopDevice)
+	b.platform.want(asked(laptopDevice))
 
 	ctx, stop := context.WithCancel(context.Background())
 	defer stop()
@@ -510,8 +772,8 @@ func TestRunPollsUntilItIsStopped(t *testing.T) {
 		t.Fatalf("Run: %v", err)
 	}
 
-	if strings.Contains(b.authorized(), laptop) || !strings.Contains(b.authorized(), own) {
-		t.Fatalf("a revoked server loses the platform's keys and keeps its own:\n%s", b.authorized())
+	if !b.opens(laptopDevice) || !strings.Contains(b.authorized(), own) {
+		t.Fatalf("a revoked server keeps its keys:\n%s", b.authorized())
 	}
 }
 

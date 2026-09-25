@@ -7,12 +7,6 @@ import {
 } from "./history-shortcuts";
 import { isMac } from "./platform";
 
-/**
- * The keyboard and the mouse walk the history the way the arrows do.
- *
- * A terminal keeps its own keys: inside one, and on its row of tabs, the same
- * chord moves between its tabs, and the shell must not answer it a second time.
- */
 export function useHistoryShortcuts(): void {
   useEffect(() => {
     const walk = (step: "back" | "forward") =>

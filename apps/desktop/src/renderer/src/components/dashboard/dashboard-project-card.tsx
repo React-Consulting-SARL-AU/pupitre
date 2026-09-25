@@ -6,26 +6,19 @@ import { StatePill } from "@renderer/components/ui/state-pill";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { memory, uptime } from "@renderer/lib/format";
 import { runtimeModuleOf } from "@renderer/lib/modules";
+import { liveAddresses } from "@renderer/lib/project-addresses";
 import { memoryOf } from "@renderer/lib/project-ports";
 import {
   isRunning,
   PROCESS_LOOK,
   PROJECT_LOOK,
 } from "@renderer/lib/project-state";
-import { publicUrl } from "@renderer/lib/public-url";
+import type { Gesture } from "@renderer/lib/use-pending";
 import type { ProjectAction } from "@renderer/stores/snapshot";
-import { ExternalLink, Package, Play, RotateCw, Square } from "lucide-react";
+import { Package, Play, RotateCw, Square } from "lucide-react";
+import { DashboardProjectOpen } from "./dashboard-project-open";
 
-/**
- * One project, and the three things you do to it from here.
- *
- * Everything shown comes from the snapshot: the state, the ports, the branch,
- * the memory. A project of several processes shows one pill per process, so
- * a server up and a client down read as what they are. The gap with the
- * remote repository does not — it costs a network round trip per project —
- * and lives on the project's own page.
- */
-
+// The gap with the remote lives on the project page: it costs a network round trip per project.
 export function DashboardProjectCard({
   project,
   busy,
@@ -35,18 +28,21 @@ export function DashboardProjectCard({
   project: Project;
   busy: boolean;
   onOpen: (name: string) => void;
-  onAct: (action: ProjectAction, name: string) => void;
+  onAct: Gesture<[ProjectAction, string]>;
 }) {
   const t = useTranslations();
-  const address = publicUrl(project.url);
 
   const running = isRunning(project.state);
   const main = project.processes[0];
   const several = project.processes.length > 1;
+  const published = main?.routes.find((route) => route.hostname)?.hostname;
   const ram = memoryOf(project);
   const age = Math.max(
     ...project.processes.map((process) => process.uptime_s ?? 0)
   );
+  const usage = [age ? uptime(age) : null, ram ? memory(ram) : null]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <Panel as="article" className="transition-soft">
@@ -66,22 +62,23 @@ export function DashboardProjectCard({
           <p className="truncate font-semibold text-ink hover:underline">
             {project.name}
           </p>
-          <p className="mt-0.5 truncate font-data text-[11px] text-ink-3">
+          <p className="mt-0.5 truncate font-data text-caption text-ink-3">
             {several
               ? project.processes
                   .map((process) => `${process.id}:${process.port}`)
                   .join(" · ")
-              : `${main?.host}:${main?.port}`}
+              : (published ?? `${main?.host}:${main?.port}`)}
             {project.branch ? ` · ${project.branch}` : ""}
           </p>
         </button>
 
         <div className="flex shrink-0 flex-col items-end gap-1">
           <StatePill look={PROJECT_LOOK[project.state]} name={project.state} />
-          <span className="font-data text-[11px] text-ink-3 tabular-nums">
-            {uptime(age || undefined)}
-            {ram ? ` · ${memory(ram)}` : ""}
-          </span>
+          {usage ? (
+            <span className="font-data text-caption text-ink-3 tabular-nums">
+              {usage}
+            </span>
+          ) : null}
         </div>
       </div>
 
@@ -89,7 +86,7 @@ export function DashboardProjectCard({
         <ul className="mt-3 flex flex-wrap gap-1.5" data-processes>
           {project.processes.map((process) => (
             <li
-              className="flex items-center gap-1.5 rounded-full border border-line px-2 py-0.5 font-data text-[11px] text-ink-3"
+              className="flex items-center gap-1.5 rounded-full border border-line px-2 py-0.5 font-data text-caption text-ink-3"
               data-process={process.id}
               key={process.id}
             >
@@ -124,15 +121,7 @@ export function DashboardProjectCard({
             {t("dashboard.card.stop")}
           </Button>
         ) : null}
-        {address ? (
-          <Button
-            icon={ExternalLink}
-            onClick={() => window.pupitre.openUrl(address)}
-            size="sm"
-          >
-            {t("dashboard.card.open")}
-          </Button>
-        ) : null}
+        <DashboardProjectOpen addresses={liveAddresses(project)} />
       </div>
     </Panel>
   );

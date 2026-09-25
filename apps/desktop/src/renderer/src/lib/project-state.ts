@@ -10,14 +10,7 @@ import type {
 } from "@renderer/components/ui/status-dot";
 import type { DictionaryKey } from "@renderer/i18n/en";
 
-/**
- * What each state of the protocol looks like, and what it is called here.
- *
- * The shape carries the meaning and the tone only confirms it, so the screen
- * survives being read in pure greys. The label is a dictionary key — the agent
- * sends an identifier, not a sentence, and the word is the app's to translate.
- */
-
+/** The shape carries the meaning and the tone only confirms it, so the screen reads in pure greys. */
 export interface StateLook {
   label: DictionaryKey;
   shape: StatusShape;
@@ -72,7 +65,6 @@ export const PROCESS_LOOK: Record<ProcessState, StateLook> = {
   },
 };
 
-/** A project's states are its processes' and one more: some of them run, the others do not. */
 export const PROJECT_LOOK: Record<ProjectState, StateLook> = {
   ...PROCESS_LOOK,
   partial: {
@@ -83,12 +75,7 @@ export const PROJECT_LOOK: Record<ProjectState, StateLook> = {
   },
 };
 
-/**
- * A module put on the machine and left unconfigured.
- *
- * It is not a failure and not a service that stopped: nobody has answered its
- * questions yet, and the shape has to say that rather than borrow an alarm.
- */
+/** Not a failure: nobody has answered the module's questions yet, so no alarm shape. */
 export const UNCONFIGURED_LOOK: StateLook = {
   frame: "border-warn/40",
   label: "state.service.unconfigured",
@@ -123,13 +110,7 @@ export const SERVICE_LOOK: Record<ServiceState, StateLook> = {
   },
 };
 
-/**
- * What a CLI says of its own account.
- *
- * Not signed in is the ringed dot of something waiting for the reader, never
- * an alarm: the CLI works, it just has nobody to work as. No answer is the
- * hollow dot of a state nobody could read.
- */
+/** Signed out waits for the reader rather than alarms: the CLI still works, as nobody. */
 export const LOGIN_LOOK: Record<LoginState, StateLook> = {
   signed_in: {
     frame: "border-ok/40",
@@ -158,7 +139,7 @@ const RUNNING: readonly ProjectState[] = [
   "partial",
 ];
 
-/** Whether something of it runs: a partial project has processes to stop, and a restart to offer. */
+/** A partial project counts: it has processes to stop and a restart to offer. */
 export function isRunning(state: ProjectState): boolean {
   return RUNNING.includes(state);
 }

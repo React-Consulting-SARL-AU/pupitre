@@ -1,33 +1,21 @@
-import { copyFileSync, existsSync, readdirSync, rmSync } from "node:fs";
+import {
+  chmodSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { basename, dirname, join } from "node:path";
-
-/**
- * The app's own configuration, brought to the shape this version reads.
- *
- * The same ledger the agent keeps for /etc/pupitre, on the files the app writes
- * in its data folder. The app updates itself too, and a reader who came back
- * after three releases has a `servers.json` written by the version they left.
- * Reading it as if it were today's shape is how a list of servers turns into an
- * empty screen.
- *
- * The rules are the agent's, and for the same reasons:
- *
- * - The revision is a counter, never a version number. Shapes change far less
- *   often than the app ships.
- * - An identifier is fixed for good: it is what the file remembers.
- * - A migration takes plain JSON and returns plain JSON. Decoding into a type
- *   from today's code would drop, on the way through, every field that type no
- *   longer names — which is what the migration exists to carry over.
- * - A migration is idempotent, and a no-op on what it does not recognise.
- * - The file it changes is copied first, once per batch: a reader who has to go
- *   back to the previous version of the app finds their servers there.
- */
 
 export type JsonObject = Record<string, unknown>;
 
 export interface StoreMigration {
+  /** A counter fixed for good, never a version number: it is what the file remembers. */
   id: number;
   slug: string;
+  /** Plain JSON in and out, idempotent: decoding into today's type would drop the fields it carries over. */
   apply: (document: JsonObject) => JsonObject;
 }
 
@@ -53,13 +41,7 @@ function revisionOf(document: JsonObject): number {
     : 0;
 }
 
-/**
- * A file written by a newer version of the app is left exactly as it is.
- *
- * Running today's migrations over tomorrow's shape would not repair it, and
- * rewriting it would take from the reader the version that does read it. The
- * caller sees a revision it did not ask for and says so.
- */
+/** A file from a newer version is returned untouched: today's migrations cannot repair tomorrow's shape. */
 export function migrate(
   document: JsonObject,
   migrations: readonly StoreMigration[]
@@ -90,30 +72,212 @@ export function migrate(
   };
 }
 
-/**
- * The file as it was, kept beside itself under the revision it held.
- *
- * One copy per revision, never overwritten: the first migration away from a
- * shape is the one worth keeping, and a batch replayed on a repaired file must
- * not erase what the reader would go back to.
- */
-export function keepCopy(path: string, revision: number): string | null {
-  const copy = `${path}.r${revision}`;
+export interface StoreIo {
+  read: (path: string) => string | null;
+  write: (path: string, text: string) => void;
+}
 
-  if (!existsSync(path) || existsSync(copy)) {
-    return existsSync(copy) ? copy : null;
+export interface FileModes {
+  file?: number;
+  dir?: number;
+}
+
+function missing(failure: unknown): boolean {
+  return (failure as NodeJS.ErrnoException | null)?.code === "ENOENT";
+}
+
+/** Written aside and renamed over: a crash leaves the previous file or the new one, never a truncated one. */
+export function writeAtomically(
+  path: string,
+  text: string,
+  modes: FileModes = {}
+): void {
+  const dir = dirname(path);
+  const staging = `${path}.tmp`;
+
+  mkdirSync(dir, {
+    recursive: true,
+    ...(modes.dir ? { mode: modes.dir } : {}),
+  });
+
+  if (modes.dir) {
+    chmodSync(dir, modes.dir);
   }
 
-  copyFileSync(path, copy);
+  writeFileSync(staging, text, {
+    encoding: "utf8",
+    ...(modes.file ? { mode: modes.file } : {}),
+  });
+
+  if (modes.file) {
+    chmodSync(staging, modes.file);
+  }
+
+  renameSync(staging, path);
+}
+
+export function diskIo(modes: FileModes = {}): StoreIo {
+  return {
+    read: (path) => {
+      try {
+        return readFileSync(path, "utf8");
+      } catch (failure) {
+        if (missing(failure)) {
+          return null;
+        }
+
+        throw failure;
+      }
+    },
+    write: (path, text) => writeAtomically(path, text, modes),
+  };
+}
+
+/** Never overwritten: a batch replayed on a repaired file must not erase what a rollback would go back to. */
+export function keepCopy(
+  path: string,
+  revision: number,
+  io: StoreIo = diskIo()
+): string | null {
+  const copy = `${path}.r${revision}`;
+
+  if (io.read(copy) !== null) {
+    return copy;
+  }
+
+  const text = io.read(path);
+
+  if (text === null) {
+    return null;
+  }
+
+  io.write(copy, text);
 
   return copy;
 }
 
-/**
- * The copies go when the file goes. A sign-out that left the previous shape of
- * an account record beside itself would keep on disk exactly what the reader
- * asked to be rid of.
- */
+export type VersionedRead =
+  | { status: "absent" }
+  | { status: "corrupt"; copy: string }
+  | {
+      status: "read";
+      document: JsonObject;
+      revision: number;
+      /** Migrations ran: the caller writes the document back, once. */
+      migrated: boolean;
+    };
+
+export interface VersionedFile {
+  readonly path: string;
+  readonly version: number;
+  read: () => VersionedRead;
+  /** Written by a newer version of the app: read, never written, so a rollback finds it whole. */
+  frozen: () => boolean;
+  write: (document: JsonObject) => boolean;
+  corruptPath: () => string;
+}
+
+export interface VersionedFileOptions {
+  path: string;
+  migrations: readonly StoreMigration[];
+  /** The revision the file was stamped with before its first migration. */
+  baseline?: number;
+  valid?: (document: JsonObject) => boolean;
+  modes?: FileModes;
+  io?: StoreIo;
+}
+
+function isObject(value: unknown): value is JsonObject {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+export function versionedFile(options: VersionedFileOptions): VersionedFile {
+  const { path, migrations } = options;
+  const io = options.io ?? diskIo(options.modes);
+  const version = Math.max(options.baseline ?? 0, expectedRevision(migrations));
+  const corruptPath = () => `${path}.corrupt`;
+
+  let loaded = false;
+  let frozen = false;
+
+  function corrupt(text: string): VersionedRead {
+    io.write(corruptPath(), text);
+
+    return { copy: corruptPath(), status: "corrupt" };
+  }
+
+  function read(): VersionedRead {
+    loaded = true;
+    frozen = false;
+
+    const text = io.read(path);
+
+    if (text === null) {
+      return { status: "absent" };
+    }
+
+    let raw: unknown;
+
+    try {
+      raw = JSON.parse(text);
+    } catch (failure) {
+      if (failure instanceof SyntaxError) {
+        return corrupt(text);
+      }
+
+      throw failure;
+    }
+
+    if (!isObject(raw) || (options.valid && !options.valid(raw))) {
+      return corrupt(text);
+    }
+
+    const from = revisionOf(raw);
+    const migrated = migrate(raw, migrations);
+
+    frozen = migrated.revision > version;
+
+    if (migrated.applied.length > 0) {
+      keepCopy(path, from, io);
+    }
+
+    return {
+      document: migrated.document,
+      migrated: migrated.applied.length > 0,
+      revision: migrated.revision,
+      status: "read",
+    };
+  }
+
+  return {
+    corruptPath,
+    frozen: () => frozen,
+    path,
+    read,
+    version,
+
+    write(document) {
+      if (!loaded) {
+        read();
+      }
+
+      if (frozen) {
+        return false;
+      }
+
+      const { [REVISION_KEY]: _held, ...rest } = document;
+
+      io.write(
+        path,
+        `${JSON.stringify({ [REVISION_KEY]: version, ...rest }, null, 2)}\n`
+      );
+
+      return true;
+    },
+  };
+}
+
+/** A sign-out that left an older copy of the account record behind would keep what the reader asked to erase. */
 export function forgetCopies(path: string): void {
   const dir = dirname(path);
   const prefix = `${basename(path)}.r`;
@@ -125,6 +289,6 @@ export function forgetCopies(path: string): void {
       }
     }
   } catch {
-    // The folder is not there, so neither is any copy of anything.
+    // No folder, no copy.
   }
 }

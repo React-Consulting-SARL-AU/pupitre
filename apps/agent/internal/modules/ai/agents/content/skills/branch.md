@@ -9,6 +9,8 @@ Move the work in progress onto a fresh branch and push it.
 
 ## Usage
 
+What the request may carry; `branch` is this skill, not a shell command.
+
     branch                       the name is derived from the change
     branch <name>                this name
     branch <name> <message>      and this commit subject

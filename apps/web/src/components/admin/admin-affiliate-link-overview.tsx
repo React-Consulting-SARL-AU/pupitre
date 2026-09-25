@@ -1,7 +1,7 @@
-import { AdminFacts } from "@/components/admin/admin-facts"
 import { AdminFigure } from "@/components/admin/admin-figure"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
 import { CopyButton } from "@/components/ui/copy-button"
+import { Facts } from "@/components/ui/facts"
 import { useTranslations } from "@/hooks/use-locale"
 import type { AffiliateLinkDetail } from "@/lib/api/admin-queries"
 import { affiliateConversionFigures } from "@/lib/domain/affiliate"
@@ -40,7 +40,7 @@ export function AdminAffiliateLinkOverview({
           <CardTitle>{t("admin.links.terms")}</CardTitle>
         </CardHeader>
 
-        <AdminFacts
+        <Facts
           facts={[
             { label: t("admin.links.code"), value: link.code },
             {

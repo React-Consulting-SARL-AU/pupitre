@@ -1,8 +1,17 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import type { HelloResult } from "@pupitre/shared/agent-protocol/session";
 import type { AccountIdentity } from "@shared/account";
 import type { Server, ServerReach } from "@shared/servers";
 import { Trash2 } from "lucide-react";
+import { act } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { mount, waitUntil } from "../../__tests__/dom";
+import { BARE, MANAGED } from "../../__tests__/probe-fixtures";
+import { stubPupitre } from "../../__tests__/stub-pupitre";
+import { useChannel } from "../../stores/channel";
+import { useInspection } from "../../stores/inspection";
+import { useOnboarding } from "../../stores/onboarding";
+import { OnboardingEntry } from "../onboarding/onboarding-entry";
 import { OnboardingOrganizationNote } from "../onboarding/onboarding-organization-note";
 import { OnboardingServerChoice } from "../onboarding/onboarding-server-choice";
 import { serverStage } from "../onboarding/onboarding-server-screen";
@@ -320,7 +329,7 @@ describe("l'organisation de l'enrôlement", () => {
     const html = note(identity);
 
     expect(html).toContain('data-enrolling-for="org-1"');
-    expect(text(html)).toContain("Enrôlé pour Atelier Ada");
+    expect(text(html)).toContain("Rattaché à Atelier Ada");
     expect(text(html)).toContain("Administrateur");
     expect(text(html)).not.toContain("admin");
   });
@@ -342,5 +351,100 @@ describe("l'organisation de l'enrôlement", () => {
     const html = note({ ...identity, organization: null, role: null });
 
     expect(text(html)).toContain("Aucune organisation active");
+  });
+});
+
+describe("l'offre d'installer sur la fiche d'un serveur", () => {
+  const HELLO: HelloResult = {
+    agent_version: "1.0.0",
+    capabilities: [],
+    entitlement: "valid",
+    protocol: 2,
+  };
+
+  const offered = () =>
+    document.querySelector("[data-onboarding-entry]") !== null;
+
+  function agentGreets(session: HelloResult | null): void {
+    stubPupitre({ agentSession: () => Promise.resolve(session) });
+  }
+
+  async function noteChannel(state: "open" | "lost"): Promise<void> {
+    await act(() => {
+      useChannel.getState().note(SERVER.id, state);
+    });
+  }
+
+  beforeEach(() => {
+    useOnboarding.getState().reset();
+    useChannel.setState({ states: {} });
+    useInspection.getState().forget();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("se retire quand l'agent répond après l'ouverture de la fiche, comme au relancement", async () => {
+    agentGreets(null);
+
+    const view = await mount(<OnboardingEntry server={SERVER} />);
+
+    await waitUntil(offered);
+
+    await noteChannel("open");
+
+    expect(offered()).toBe(false);
+    expect(view.text()).not.toContain("Installer Pupitre");
+    view.unmount();
+  });
+
+  it("ne revient pas quand le canal d'un agent qui a répondu se coupe", async () => {
+    agentGreets(null);
+
+    const view = await mount(<OnboardingEntry server={SERVER} />);
+
+    await noteChannel("open");
+    await noteChannel("lost");
+
+    expect(offered()).toBe(false);
+    view.unmount();
+  });
+
+  it("se retire quand une inspection trouve l'agent", async () => {
+    agentGreets(null);
+
+    const view = await mount(<OnboardingEntry server={SERVER} />);
+
+    await waitUntil(offered);
+
+    await act(() => {
+      useInspection.setState({ probes: { [SERVER.id]: MANAGED } });
+    });
+
+    expect(offered()).toBe(false);
+    view.unmount();
+  });
+
+  it("n'offre rien sur un serveur dont l'agent a déjà répondu", async () => {
+    agentGreets(HELLO);
+
+    const view = await mount(<OnboardingEntry server={SERVER} />);
+
+    expect(offered()).toBe(false);
+    view.unmount();
+  });
+
+  it("offre d'installer sur un serveur nu", async () => {
+    agentGreets(null);
+    useInspection.setState({ probes: { [SERVER.id]: BARE } });
+
+    const view = await mount(<OnboardingEntry server={SERVER} />);
+
+    await waitUntil(offered);
+
+    expect(view.text()).toContain("Pas encore installé.");
+    expect(view.text()).toContain("Installer Pupitre");
+    view.unmount();
   });
 });

@@ -18,7 +18,6 @@ export interface RowAction {
 }
 
 export interface RowActionsMenuProps {
-  /** What the menu acts on, for the screen reader that never sees the row. */
   label: string
   actions: RowAction[]
 }

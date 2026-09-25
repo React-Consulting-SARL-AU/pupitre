@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Link } from "@tanstack/react-router"
-import { ArrowLeft, RotateCw } from "lucide-react"
+import { ArrowLeft, RotateCw, ShieldAlert } from "lucide-react"
 import { useEffect, useRef } from "react"
 import { InboxReplyForm } from "@/components/admin/inbox/inbox-reply-form"
 import { InboxThreadActions } from "@/components/admin/inbox/inbox-thread-actions"
@@ -19,7 +19,6 @@ import {
   inboxThreadQueryOptions,
   patchThread,
 } from "@/lib/api/inbox-queries"
-import { canActOnPlatform } from "@/lib/domain/admin"
 import {
   INBOX_SHORTCUTS,
   shortcutTitle,
@@ -38,7 +37,7 @@ export interface InboxThreadProps {
 export function InboxThread({ threadId, search }: InboxThreadProps) {
   const t = useTranslations()
   const toasts = useToast()
-  const { platformRole } = useDashboardContext()
+  const { platformCanAct: canAct } = useDashboardContext()
   const queryClient = useQueryClient()
   const { parents } = pageTitle(INBOX_THREAD_ROUTE_ID)
   const thread = useQuery(inboxThreadQueryOptions(threadId))
@@ -56,7 +55,7 @@ export function InboxThread({ threadId, search }: InboxThreadProps) {
     onError: () => {
       toasts.failed({
         title: t("inbox.changeFailed"),
-        fix: t("inbox.changeFailedFix"),
+        fix: t("common.retryLater"),
       })
     },
   })
@@ -110,7 +109,6 @@ export function InboxThread({ threadId, search }: InboxThreadProps) {
   }
 
   const detail = thread.data
-  const canAct = canActOnPlatform(platformRole)
   const mailbox = detail.mailbox
   const canReply = Boolean(canAct && mailbox?.can_reply && mailbox.enabled)
   const lastInbound = [...detail.messages]
@@ -149,6 +147,12 @@ export function InboxThread({ threadId, search }: InboxThreadProps) {
               {mailbox?.display_name ?? detail.address}
             </span>
             <StatusBadge look={threadStatusLook(detail.status)} />
+            {detail.sender_authenticated ? null : (
+              <span className="inline-flex items-center gap-1 text-[12px] text-warn">
+                <ShieldAlert className="size-3.5" strokeWidth={1.5} />
+                {t("inbox.unverifiedSender")}
+              </span>
+            )}
           </div>
 
           <InboxThreadMessages messages={detail.messages} />

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -49,25 +50,36 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return 2
 	}
 
-	// A terminal states its language through its shell; a protocol session states it in hello.
+	// A protocol session states its language in hello; a terminal states it through its shell.
 	if args[0] != "serve" {
 		i18n.FromEnv(os.Getenv)
 	}
 
 	switch args[0] {
 	case "version":
+		if len(args) > 1 && args[1] == "--json" {
+			return printIdentity(stdout)
+		}
+
 		fmt.Fprintln(stdout, "pupitred "+version)
 		return 0
 	case migrate.Command:
 		return runMigrate(newMigrator(newEngine()), args[1:], stdout, stderr)
 	case "serve":
-		// A channel that drops takes the session, not the command: the write
-		// fails, the work goes on, and the report says where it got to.
+		limited, known := serveMode(args[1:])
+		if !known {
+			usage(stderr)
+			return 2
+		}
+
+		// A dropped channel ends the session, not the command: the write fails and the work goes on.
 		signal.Ignore(syscall.SIGPIPE, syscall.SIGHUP)
-		if err := newServer(newEngine()).Serve(stdin, stdout); err != nil {
+
+		if err := newServer(newEngine(), limited).Serve(stdin, stdout); err != nil {
 			fmt.Fprintln(stderr, err)
 			return 1
 		}
+
 		return 0
 	case "daemon":
 		return runDaemon(newDaemon(newEngine()), stderr)
@@ -76,6 +88,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	case "install":
 		engine := newEngine()
 		migrator := newMigrator(engine)
+
 		brought(migrator, engine)
 		return runInstall(engine, migrator.State(), args[1:], stderr)
 	case "report":
@@ -89,12 +102,20 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	case "resume":
 		engine := newEngine()
 		migrator := newMigrator(engine)
+
 		brought(migrator, engine)
 		return runResume(state.FromEngine(engine, stateOptions()), migrator.State(), stdout)
 	case "gallery":
 		return runGallery(args[1:], stderr)
 	case "backup":
 		return runBackup(args[1:], stdin, stdout, stderr)
+	case "binary":
+		engine := newEngine()
+		options := upgradeOptions(engine, newMigrator(engine))
+
+		return runBinary(selfupdate.New(options), options.BinaryPath, args[1:], stdin, stdout, stderr)
+	case keysCommand:
+		return runKeys(newEngine(), args[1:], stdout, stderr)
 	}
 
 	usage(stderr)
@@ -102,14 +123,35 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 }
 
 func usage(stderr io.Writer) {
-	fmt.Fprintln(stderr, "usage: pupitred <serve|daemon|enroll|install [--only=id,id] [--skip=id,id]|migrate [--status] [--restore=NAME]|probe [--script] [--projects=DIR]|report|resume|dev|shot|gallery|backup open [--salt=B64|--private-key] FILE|version>")
+	fmt.Fprintln(stderr, "usage: pupitred <serve [--privileged]|daemon|enroll|install [--only=id,id] [--skip=id,id]|migrate [--status] [--restore=NAME]|probe [--script] [--projects=DIR]|report|resume|dev|shot|gallery|backup open [--salt=B64|--private-key] FILE|keys reset --key KEY|FILE.pub|binary install [--privileged] [--allow-downgrade] < HEADER+FILE|version [--json]>")
 }
 
-// The configuration is brought to this binary's shape before the binary reads
-// any of it. Nothing waits on a lock for it: a machine already at the revision
-// answers on one read of a small file, which is what every second channel of an
-// install under way does.
-func newServer(engine *modules.Engine) *protocol.Server {
+// The agent that upgrades to this binary asks it which protocol to greet it in.
+func printIdentity(stdout io.Writer) int {
+	encoded, err := json.Marshal(selfupdate.Identity{Version: version, Protocol: contract.ProtocolVersion})
+	if err != nil {
+		return 1
+	}
+
+	fmt.Fprintln(stdout, string(encoded))
+
+	return 0
+}
+
+// sudo runs exactly `pupitred serve` without a password (decision 0015): that line is the limited session, any other is refused.
+func serveMode(args []string) (limited, known bool) {
+	switch {
+	case len(args) == 0:
+		return true, true
+	case len(args) == 1 && args[0] == "--privileged":
+		return false, true
+	}
+
+	return false, false
+}
+
+// Migrates before any read; a machine already at the revision answers without a lock, as every extra channel does.
+func newServer(engine *modules.Engine, limited bool) *protocol.Server {
 	migrator := newMigrator(engine)
 	brought(migrator, engine)
 
@@ -121,14 +163,16 @@ func newServer(engine *modules.Engine) *protocol.Server {
 		Config:       migrator.State,
 		Entitlement:  newResolver(engine).State,
 		ServerID:     backups.ServerID,
+		Limited:      limited,
 	})
+
 	modules.RegisterCommands(server, engine)
 	core.RegisterCommands(server, engine)
 	db.RegisterCommands(server, engine)
 	exposure.RegisterCommands(server, engine)
 	tool.RegisterCommands(server, engine)
 	probe.RegisterCommands(server, probeOptions(engine))
-	selfupdate.RegisterCommands(server, upgradeOptions(engine))
+	selfupdate.RegisterCommands(server, upgradeOptions(engine, migrator))
 	migrate.RegisterCommands(server, migrator)
 	daemon.RegisterCommands(server, daemonOptions(engine))
 	state.RegisterCommands(server, reader)
@@ -137,7 +181,6 @@ func newServer(engine *modules.Engine) *protocol.Server {
 	return server
 }
 
-// The backups read the machine the way the state reader does and write where the configuration lives; every path follows the one the agent was told.
 func newBackups(engine *modules.Engine, reader *state.Reader) *backup.Service {
 	projects := stateOptions().Paths.Resolved()
 	ledger := pathFromEnv("PUPITRE_LEDGER_PATH", migrate.DefaultLedger)
@@ -169,7 +212,7 @@ func serverIDPath() string {
 	return pathFromEnv("PUPITRE_SERVER_ID_PATH", platform.DefaultServerIDPath)
 }
 
-// The pause between the C-c and the kill leaves a dev server the time to close its port; nothing else waits.
+// The grace between C-c and the kill lets a dev server close its port.
 func stateOptions() state.Options {
 	return state.Options{
 		Tmux: tmux.Options{Grace: 400 * time.Millisecond},
@@ -181,7 +224,7 @@ func stateOptions() state.Options {
 	}
 }
 
-// One lock for the registry, whoever rewrites it: the state reader on a project.add, the exposure module on a domain move.
+// One lock for every writer of the registry: project.add in the state reader, a domain move in the exposure module.
 func projectsLockPath() string {
 	return pathFromEnv("PUPITRE_PROJECTS_LOCK_PATH", registry.DefaultLock)
 }
@@ -203,7 +246,10 @@ func daemonOptions(engine *modules.Engine) daemon.Options {
 		AgentVersion: version,
 		TokenPath:    tokenPath(),
 		ServerIDPath: serverIDPath(),
-		KeysPath:     pathFromEnv("PUPITRE_KEYS_PATH", daemon.DefaultKeysPath),
+		KeysPath:     keysPath(),
+		SignersPath:  signersPath(),
+		KeysLock:     keysLockPath(),
+		Euid:         effectiveUID,
 		HostKeyPath:  pathFromEnv("PUPITRE_HOST_KEY_PATH", daemon.DefaultHostKeyPath),
 		LogPath:      engine.LogPath,
 		Platform:     platform.Client{BaseURL: os.Getenv("PUPITRE_PLATFORM_URL"), Version: version},
@@ -218,7 +264,6 @@ func newResolver(engine *modules.Engine) *entitlement.Resolver {
 	})
 }
 
-// What the entitlement is resolved from, and what an account that cannot read it has to become root for.
 func tokenPath() string {
 	return pathFromEnv("PUPITRE_TOKEN_PATH", platform.DefaultTokenPath)
 }
@@ -227,14 +272,17 @@ func entitlementPath() string {
 	return pathFromEnv("PUPITRE_ENTITLEMENT_PATH", entitlement.DefaultCachePath)
 }
 
-func upgradeOptions(engine *modules.Engine) selfupdate.Options {
+func upgradeOptions(engine *modules.Engine, migrator *migrate.Runner) selfupdate.Options {
 	return selfupdate.Options{
-		Sys:        engine.Sys,
-		Version:    version,
-		BinaryPath: pathFromEnv("PUPITRE_BINARY_PATH", selfupdate.DefaultBinaryPath),
-		TokenPath:  tokenPath(),
-		LogPath:    engine.LogPath,
-		Platform:   platform.Client{BaseURL: os.Getenv("PUPITRE_PLATFORM_URL"), Version: version},
+		Sys:         engine.Sys,
+		Version:     version,
+		BinaryPath:  pathFromEnv("PUPITRE_BINARY_PATH", selfupdate.DefaultBinaryPath),
+		TokenPath:   tokenPath(),
+		LogPath:     engine.LogPath,
+		Platform:    platform.Client{BaseURL: os.Getenv("PUPITRE_PLATFORM_URL"), Version: version},
+		Migrator:    migrator,
+		UpgradeLock: pathFromEnv("PUPITRE_UPGRADE_LOCK_PATH", selfupdate.DefaultLockPath),
+		InstallLock: engine.LockPath,
 	}
 }
 
@@ -271,15 +319,14 @@ func migrateOptions(engine *modules.Engine) migrate.Options {
 			Ledger:  pathFromEnv("PUPITRE_LEDGER_PATH", migrate.DefaultLedger),
 			Backups: pathFromEnv("PUPITRE_BACKUPS_PATH", migrate.DefaultBackups),
 			Lock:    engine.LockPath,
+			Keys:    keysPath(),
+			Signers: signersPath(),
 		},
 		Sys: engine.Sys,
 	}
 }
 
-// A migration that refuses does not stop the agent from starting: a server
-// nobody can look at is a server nobody can repair. It stops every command that
-// would read a shape this binary does not understand, which the protocol says
-// on its own.
+// A refused migration never stops the agent, or nobody could repair the server; the protocol refuses per command.
 func brought(migrator *migrate.Runner, engine *modules.Engine) {
 	result, err := migrator.Run()
 	if err != nil {

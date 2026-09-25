@@ -1,6 +1,5 @@
 package i18n
 
-// The probe: what it found on the machine, and what should be done about it.
 var probeCatalog = map[string]Message{
 	"probe.label.unknown": {
 		FR: "inconnue",

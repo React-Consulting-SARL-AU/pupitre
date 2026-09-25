@@ -16,11 +16,6 @@ import type { ConnectionDescriptor } from "./connection-descriptors";
 
 const PROVIDER_ICONS = { aws: CloudCog, other: Server, r2: Cloud } as const;
 
-/**
- * Where backups go: the provider first, then only what it cannot derive —
- * R2's account ID, AWS's region, another service's endpoint — the bucket,
- * and the key that writes in it.
- */
 export function BackupStorageFields({
   connection,
   provider,

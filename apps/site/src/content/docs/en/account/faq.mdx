@@ -25,11 +25,11 @@ The desktop app runs on macOS, Windows 11 and Ubuntu desktop. The server is alwa
 
 ## Do I need an account?
 
-Not to try. The app runs without one on a development licence. An account is what gives you a subscription, the servers the platform knows about, and team features.
+Yes. The app asks you to sign in at its first launch, and it enrols a server only under a subscription: the free launch while it runs, then the trial or a paid one. The account holds your organisation, its servers and its members. See [install the app](/docs/start/install/) and [billing](/docs/account/billing/).
 
 ## What happens if I lose my laptop?
 
-Revoke the device in the console. Its key is removed from every server it was on at the agent's next check-in. Your other devices keep working; nothing else has to be rotated.
+Revoke the device in the console. Its key is removed from every server it was on at the agent's next check-in. Your other devices keep working; nothing else has to be rotated. The agent never removes the last key of a server: if that laptop was the only one opening it, take it back from your host's console, see [your key](/docs/start/keys/).
 
 ## Can two people share a server?
 
@@ -37,7 +37,7 @@ A server is assigned to one person. Two people who need the same machine share i
 
 ## Where is my data?
 
-On your server. The platform stores your account, your organisation, your servers' existence and their public keys. It stores no code, no secrets, no logs, and no content from your machines.
+On your server. When an agent works, what it reads goes from the server to the model provider you chose, on your account, never through Pupitre. The platform stores your account, your organisation and the public keys of your devices; of each server, its name, address, architecture and agent version, the services and terminal sessions it runs, its health readings over seven days, and the status of its backups. It stores no code, no secrets, no logs, and no contents from your machines.
 
 ## Can I read the agent's source?
 

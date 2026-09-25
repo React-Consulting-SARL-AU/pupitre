@@ -10,12 +10,6 @@ import {
 } from "../../__tests__/probe-fixtures";
 import { OnboardingInspectionResult } from "../onboarding/onboarding-inspection-result";
 
-/**
- * Four probe reports, four screens. The harness is `react-dom/server`: these
- * components hold no state and touch no DOM API, so a static render says
- * everything a browser would.
- */
-
 function screen(probe: ProbeResult): string {
   return renderToStaticMarkup(
     <OnboardingInspectionResult probe={probe} serverName="staging" />
@@ -43,7 +37,7 @@ describe("machine nue", () => {
 
   it("porte le verdict bare et le résumé de la machine", () => {
     expect(html).toContain('data-kind="bare"');
-    expect(text(html)).toContain("Prête à être installée");
+    expect(text(html)).toContain("Prêt à être installé");
     expect(text(html)).toContain("Distribution ubuntu 24.04");
     expect(text(html)).toContain("Architecture amd64");
     expect(text(html)).toContain("Mémoire 8,0 Go");
@@ -99,6 +93,7 @@ describe("serveur occupé", () => {
 
     for (const reason of OCCUPIED.verdict.reasons) {
       const at = rendered.indexOf(text(reason).trim());
+
       expect(at).toBeGreaterThan(cursor);
       cursor = at;
     }

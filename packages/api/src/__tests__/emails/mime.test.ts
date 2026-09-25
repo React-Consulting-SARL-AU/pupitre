@@ -123,6 +123,22 @@ describe("buildMimeMessage", () => {
     expect(raw).toContain('filename="a.pdfBcc: attaquant@exemple.fr"')
   })
 
+  it("ne laisse pas un type de pièce jointe hostile ajouter un en-tête", () => {
+    const raw = buildMimeMessage({
+      ...base(),
+      attachments: [
+        {
+          filename: "a.pdf",
+          contentType: "application/pdf\r\nBcc: attaquant@exemple.fr",
+          content: new ArrayBuffer(0),
+        },
+      ],
+    })
+
+    expect(raw).not.toContain("\r\nBcc:")
+    expect(raw).toContain("Content-Type: application/pdfBcc:")
+  })
+
   it("garde un en-tête légitime tel quel", () => {
     const raw = buildMimeMessage({
       ...base(),

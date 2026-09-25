@@ -11,16 +11,19 @@ import (
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/i18n"
+	"pupitre.studio/agent/internal/migrate"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/platform"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/sys"
+	"pupitre.studio/agent/internal/sys/lock"
 	"pupitre.studio/agent/internal/sys/systemd"
 )
 
 const (
 	DefaultBinaryPath = "/usr/local/bin/pupitred"
 	DefaultUnit       = "pupitred"
+	DefaultLockPath   = "/var/lib/pupitre/upgrade.lock"
 	binaryMode        = 0o755
 	healthTimeout     = 30 * time.Second
 )
@@ -36,6 +39,22 @@ type Options struct {
 	LogPath    string
 	Platform   platform.Client
 	PublicKey  ed25519.PublicKey
+	// What a rollback puts back when the new binary migrated before failing.
+	Migrator Migrator
+	// InstallLock is held by installs, backups and restores, which a restart would cut short; empty takes no lock.
+	UpgradeLock string
+	InstallLock string
+}
+
+type Migrator interface {
+	Ledger() migrate.Ledger
+	Backups() []migrate.Backup
+	Restore(name string) (migrate.Result, error)
+}
+
+type configBefore struct {
+	revision int
+	batches  map[string]bool
 }
 
 type Request struct {
@@ -44,7 +63,6 @@ type Request struct {
 	AllowDowngrade bool
 }
 
-// What the agent verifies against, once the platform has said it: the expected fingerprint and the signature that binds it to a version and an architecture.
 type published struct {
 	Fingerprint string
 	Signature   []byte
@@ -77,6 +95,12 @@ func (u *Upgrader) Upgrade(request Request) (Result, error) {
 		return Result{}, protocol.NewError(contract.ErrorBadRequest, err.Error()).
 			WithFix(i18n.T("selfupdate.token.missing.fix"))
 	}
+
+	unlock, err := hold(u.options.UpgradeLock, upgradeBusy)
+	if err != nil {
+		return Result{}, err
+	}
+	defer unlock()
 
 	client := u.options.Platform
 	client.Token = token
@@ -116,7 +140,7 @@ func (u *Upgrader) Upgrade(request Request) (Result, error) {
 	return u.install(ctx, version, binary)
 }
 
-// The platform's own word beats what the caller hands over; the parameter is the way back for an agent whose platform is out of reach.
+// The platform's word beats the caller's; the parameter is the way back when the platform is out of reach.
 func (u *Upgrader) published(ctx sys.Context, client platform.Client, version, offered string) (published, error) {
 	info, err := client.ReleaseMetadata(context.Background(), version)
 	if err == nil {
@@ -142,7 +166,7 @@ func (u *Upgrader) published(ctx sys.Context, client platform.Client, version, o
 	return published{Signature: signature}, nil
 }
 
-// A signature never expires, so nothing but this refusal stops an old and faulty version from being installed again.
+// A signature never expires, so only this floor stops an old faulty version from coming back.
 func (u *Upgrader) holdTheFloor(ctx sys.Context, request Request, version string, state platform.State, stateErr error) error {
 	floor := u.floor(state, stateErr)
 
@@ -159,7 +183,7 @@ func (u *Upgrader) holdTheFloor(ctx sys.Context, request Request, version string
 	return refusedDowngrade(version, floor)
 }
 
-// The running version is known without asking anyone, which is what makes it the floor that holds when the platform is out of reach; what the platform remembers can only raise it. A build that is not a version — dev — is no floor at all.
+// The running version holds offline; the platform can only raise it, and a dev build is no floor.
 func (u *Upgrader) floor(state platform.State, stateErr error) string {
 	floor := ""
 	if _, semver := parseVersion(u.options.Version); semver {
@@ -177,7 +201,7 @@ func (u *Upgrader) floor(state platform.State, stateErr error) string {
 	return floor
 }
 
-// Nothing has touched the disk before this point: a binary that failed verification is never written anywhere.
+// Nothing touched the disk before this point: an unverified binary is never written.
 func (u *Upgrader) install(ctx sys.Context, version string, binary []byte) (Result, error) {
 	previous, err := ctx.Sys().ReadFile(u.binaryPath())
 	if err != nil {
@@ -191,19 +215,31 @@ func (u *Upgrader) install(ctx sys.Context, version string, binary []byte) (Resu
 		return Result{PreviousVersion: u.options.Version, Version: version, Restarting: false}, nil
 	}
 
+	// A restart kills whatever the daemon runs; released once the new unit is up so the new binary can migrate.
+	release, err := hold(u.options.InstallLock, installBusy)
+	if err != nil {
+		return Result{}, err
+	}
+
+	before := u.configBefore()
+
 	if err := ctx.Sys().WriteFile(u.binaryPath(), binary, binaryMode); err != nil {
+		release()
+
 		return Result{}, protocol.NewError(contract.ErrorInternal, i18n.T("selfupdate.replace.failed", u.binaryPath(), err)).
 			WithFix(i18n.T("selfupdate.replace.failed.fix"))
 	}
 
 	restarting, err := u.restart(ctx)
+	release()
+
 	if err != nil {
-		return u.rollback(ctx, previous, restartFailed(version, err))
+		return u.rollback(ctx, previous, before, restartFailed(version, err))
 	}
 
-	running, err := u.hello(ctx)
+	running, err := u.hello(ctx, version)
 	if err != nil {
-		return u.rollback(ctx, previous, silent(version, u.options.Version, err))
+		return u.rollback(ctx, previous, before, silent(version, u.options.Version, err))
 	}
 
 	ctx.Logf("agent %s installed, unit %s restarted", running, u.unit())
@@ -211,13 +247,16 @@ func (u *Upgrader) install(ctx sys.Context, version string, binary []byte) (Resu
 	return Result{PreviousVersion: u.options.Version, Version: running, Restarting: restarting}, nil
 }
 
-// The previous binary never left memory, so putting it back needs nothing from the disk that the failed upgrade could have spoiled.
-func (u *Upgrader) rollback(ctx sys.Context, previous []byte, cause error) (Result, error) {
+// The previous binary never left memory, so nothing the failed upgrade spoiled on disk is needed.
+func (u *Upgrader) rollback(ctx sys.Context, previous []byte, before configBefore, cause error) (Result, error) {
 	if err := ctx.Sys().WriteFile(u.binaryPath(), previous, binaryMode); err != nil {
 		return Result{}, protocol.NewError(contract.ErrorInternal,
 			i18n.T("selfupdate.rollback.failed", cause, err)).
 			WithFix(i18n.T("selfupdate.rollback.failed.fix"))
 	}
+
+	// Before the restart: the previous binary refuses a configuration ahead of its revision.
+	unrestored := u.restoreConfig(ctx, before)
 
 	if _, err := u.restart(ctx); err != nil {
 		ctx.Logf("unit %s not restarted after the rollback: %s", u.unit(), err)
@@ -225,7 +264,61 @@ func (u *Upgrader) rollback(ctx sys.Context, previous []byte, cause error) (Resu
 
 	ctx.Logf("rolled back to agent %s", u.options.Version)
 
+	if unrestored != nil {
+		return Result{}, protocol.NewError(contract.ErrorInternal, i18n.T("selfupdate.config.unrestored", cause, unrestored)).
+			WithFix(i18n.T("selfupdate.config.unrestored.fix"))
+	}
+
 	return Result{}, cause
+}
+
+func (u *Upgrader) configBefore() configBefore {
+	if u.options.Migrator == nil {
+		return configBefore{}
+	}
+
+	before := configBefore{revision: u.options.Migrator.Ledger().Revision, batches: map[string]bool{}}
+	for _, batch := range u.options.Migrator.Backups() {
+		before.batches[batch.Name] = true
+	}
+
+	return before
+}
+
+// Only the batch the new binary took since the upgrade began, from the revision this binary reads.
+func (u *Upgrader) restoreConfig(ctx sys.Context, before configBefore) error {
+	if u.options.Migrator == nil || u.options.Migrator.Ledger().Revision == before.revision {
+		return nil
+	}
+
+	for _, batch := range u.options.Migrator.Backups() {
+		if before.batches[batch.Name] || batch.From != before.revision {
+			continue
+		}
+
+		if _, err := u.options.Migrator.Restore(batch.Name); err != nil {
+			return err
+		}
+
+		ctx.Logf("configuration put back to revision %d from %s", before.revision, batch.Name)
+
+		return nil
+	}
+
+	return errors.New(i18n.T("selfupdate.config.batch.missing", before.revision))
+}
+
+func hold(path string, busy func() *protocol.Error) (func(), error) {
+	release, held, err := lock.Acquire(path)
+	if err != nil {
+		return nil, err
+	}
+
+	if !held {
+		return nil, busy()
+	}
+
+	return release, nil
 }
 
 func (u *Upgrader) restart(ctx sys.Context) (bool, error) {
@@ -250,12 +343,32 @@ type helloAnswer struct {
 	Error *protocol.Error `json:"error"`
 }
 
-// The new binary is asked the one question the app asks first, on its own protocol channel: an agent that cannot answer hello has not been installed, it has been lost.
-func (u *Upgrader) hello(ctx sys.Context) (string, error) {
+type Identity struct {
+	Version  string `json:"version"`
+	Protocol int    `json:"protocol"`
+}
+
+// A binary too old to say is asked in this binary's protocol.
+func (u *Upgrader) spoken(ctx sys.Context) int {
+	out, err := sys.Exec(ctx, sys.Command{Argv: []string{u.binaryPath(), "version", "--json"}, Timeout: healthTimeout})
+	if err != nil {
+		return contract.ProtocolVersion
+	}
+
+	var identity Identity
+	if err := json.Unmarshal([]byte(firstLine(out.Stdout)), &identity); err != nil || identity.Protocol <= 0 {
+		return contract.ProtocolVersion
+	}
+
+	return identity.Protocol
+}
+
+// Asked in its own protocol and as its own version: a new generation or a raised app floor is for the app to follow, not a binary to roll back.
+func (u *Upgrader) hello(ctx sys.Context, version string) (string, error) {
 	request, err := json.Marshal(map[string]any{
 		"id":     1,
 		"cmd":    "hello",
-		"params": map[string]any{"app_version": u.options.Version, "protocol": contract.ProtocolVersion},
+		"params": map[string]any{"app_version": version, "protocol": u.spoken(ctx)},
 	})
 	if err != nil {
 		return "", err

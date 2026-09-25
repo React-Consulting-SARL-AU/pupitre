@@ -56,10 +56,7 @@ function unauthenticated(request: Request) {
   })
 }
 
-/**
- * A session the platform no longer honours answers what it refuses, not that
- * nobody is signed in: the app shows the `fix` as it stands.
- */
+// A closed account gets its own refusal, not a 401, so the app can show the `fix` as is.
 function refuseSession(request: Request, auth: AuthContext) {
   const refusal = auth.accountRefusal
 
@@ -212,11 +209,7 @@ export const requirePlatformAdmin = new Elysia({
   return { ...auth, user: auth.user, session: auth.session }
 })
 
-/**
- * A member of the platform organization reads the platform pages; acting on
- * them — suspending, creating a link, answering a mail — takes `admin` or
- * `owner` there, the roles the owner hands out on the platform's members page.
- */
+/** Any platform member reads the platform pages; acting on them takes `admin` or `owner`. */
 export function requirePlatformRole(minimum: OrgRole) {
   return new Elysia({ name: `requirePlatformRole:${minimum}` }).resolve(
     { as: "scoped" },
@@ -255,14 +248,7 @@ export function requirePlatformRole(minimum: OrgRole) {
   )
 }
 
-/**
- * Who may publish a version: the release pipeline, or a member of the team.
- *
- * The pipeline presents a token of its own, declared on the Worker and in
- * GitHub Actions, which opens these routes and nothing else. The console keeps
- * its session, so a version can still be promoted by hand the day the pipeline
- * cannot. Both end up as an actor the journal can name.
- */
+/** The pipeline's token or a platform admin session, so a version can still be promoted by hand. */
 export const requirePublisher = new Elysia({
   name: "requirePublisher",
 }).resolve({ as: "scoped" }, async ({ request }) => {

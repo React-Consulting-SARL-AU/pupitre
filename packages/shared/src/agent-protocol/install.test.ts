@@ -3,6 +3,9 @@ import {
   CatalogResultSchema,
   HardenParamsSchema,
   HardenResultSchema,
+  HardenSudoParamsSchema,
+  HardenSudoResultSchema,
+  HardenSudoSecretsSchema,
   InstallParamsSchema,
   InstallReportSchema,
   InstallResultSchema,
@@ -232,6 +235,65 @@ describe("HardenParamsSchema and HardenResultSchema", () => {
     expect(
       HardenResultSchema.safeParse({ root_closed: false, next_user: "dev" })
         .success
+    ).toBe(false)
+  })
+})
+
+describe("HardenSudoParamsSchema, HardenSudoSecretsSchema and HardenSudoResultSchema", () => {
+  const sha512 =
+    "$6$rounds=100000$Wq3vX8zYk1pL0sQe$PrJH1rPtYcXhyW28FJS0rQ7sq5jLB9mY/GZ8GL1MQMXesQF1UBBe.X8g.Z1cutPJzEeignRlhLB1GHAcUHivm."
+  const yescrypt =
+    "$y$j9T$PaFEMV0mbpeadmHDv0Lp31$G/LliR3MqgdjEBcFC1E.s/3vlRofsZ0Wn5JyZHXAol5"
+
+  it("sets the password of dev alone, its hash on the secret line", () => {
+    expect(
+      HardenSudoParamsSchema.safeParse({ user: "dev", secrets_stdin: true })
+        .success
+    ).toBe(true)
+    expect(
+      HardenSudoParamsSchema.safeParse({ user: "root", secrets_stdin: true })
+        .success
+    ).toBe(false)
+    expect(
+      HardenSudoParamsSchema.safeParse({
+        user: "dev",
+        secrets_stdin: true,
+        password_hash: sha512,
+      }).success
+    ).toBe(false)
+  })
+
+  it("takes a SHA-512 or yescrypt crypt hash and nothing that could be a password", () => {
+    for (const hash of [
+      sha512,
+      yescrypt,
+      "$6$saltstring$svn8UoSVapNtMuq1ukKS4tPQd8iKwSMHWjl/O817G3uBnIFNjnQJuesI68u4OTLiBFdcbYEdFCoEOfaS35inz1",
+    ]) {
+      expect(
+        HardenSudoSecretsSchema.safeParse({ password_hash: hash }).success
+      ).toBe(true)
+    }
+
+    for (const refused of [
+      "k7mp-q2xw-9hdt-3vzc-u8fa-6rne",
+      "$1$salt$qJH7.N4xYta3aEG/dfqo/0",
+      `${sha512}\n`,
+      "$6$salt$short",
+      "!",
+      "",
+    ]) {
+      expect(
+        HardenSudoSecretsSchema.safeParse({ password_hash: refused }).success
+      ).toBe(false)
+    }
+  })
+
+  it("answers that sudo now asks for the password", () => {
+    expect(HardenSudoResultSchema.safeParse({ sudo: "password" }).success).toBe(
+      true
+    )
+    expect(
+      HardenSudoResultSchema.safeParse({ sudo: "nopasswd_all" }).success
     ).toBe(false)
   })
 })

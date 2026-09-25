@@ -12,18 +12,6 @@ import type { FieldHandlers } from "./config-field-control";
 import { ConfigIndex } from "./config-index";
 import { ConfigModuleGroup } from "./config-module-group";
 
-/**
- * The questions the chosen services ask, one service at a time.
- *
- * Ordinary values stay in the store, where the install will read them. Secrets
- * never land there: each keystroke goes to the main process, which keeps it
- * until the install writes it on the protocol's secret line.
- *
- * The index says which service is open and which ones still wait; the panel
- * asks what that service needs and keeps its other settings folded; the bar at
- * the bottom says what stands in the way of the button next to it, and a
- * refused field anywhere brings its service back on screen.
- */
 export function ConfigScreen({
   serverName,
   notice,
@@ -35,13 +23,9 @@ export function ConfigScreen({
   onInstall,
 }: {
   serverName?: string;
-  /** What the header offers on the whole sequence: a way out of it. */
   actions?: ReactNode;
-  /** The header sits on the page, as the onboarding's steps read theirs. */
   plain?: boolean;
-  /** Said above the questions when something explains why they are asked. */
   notice?: ReactNode;
-  /** The services to ask about, when the screen is opened for some of them. */
   only?: readonly string[];
   submitLabel?: string;
   onBack?: () => void;
@@ -82,6 +66,7 @@ export function ConfigScreen({
     return list.filter((one) => !only || only.includes(one.module));
   }
 
+  // Secrets never land in the store: the main process keeps them until the install sends them.
   function handlersFor(moduleId: string): FieldHandlers {
     return {
       onValue: (key, value) => setValue(moduleId, key, value),
@@ -100,7 +85,7 @@ export function ConfigScreen({
     setMoved(true);
   }
 
-  /** The refused field takes the focus once its service is on screen. */
+  // The refused field can only take focus once its service is on screen.
   useEffect(() => {
     if (!wanted || wanted.module !== current?.module.id) {
       return;
@@ -126,10 +111,6 @@ export function ConfigScreen({
   const marked = mine(shown());
   const last = index >= asked.length - 1;
 
-  /**
-   * The gesture answers where it was made. A refusal stops the screen and puts
-   * the reader on the first field it names; anything else goes on to install.
-   */
   async function submit(): Promise<void> {
     if (left.length > 0) {
       attempt();

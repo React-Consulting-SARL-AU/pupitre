@@ -18,15 +18,6 @@ import {
   X,
 } from "lucide-react";
 
-/**
- * What outlives whatever started it.
- *
- * An agent or a remote IDE backend keeps living when its terminal disappears —
- * app closed, IntelliJ window shut — and holds its memory for nobody. A
- * JetBrains backend alone weighs several gigabytes. An agent that still has a
- * project can be taken back: its tab reopens on the tmux session it runs in.
- */
-
 const HEAVY_MB = 1024;
 
 const HEAVY_TOTAL_MB = 2048;
@@ -54,11 +45,10 @@ export function ActivitySessions({
   onReattach,
 }: {
   sessions: readonly Session[];
-  /** The sessions the app still has a tab on: the others are the strays. */
   attached: readonly string[];
   onStop: (pid: number) => void;
   onClean: () => void;
-  /** Opens a tab on the session's project and kind: the agent reattaches to it. */
+  /** The new tab reattaches to the session's tmux session. */
   onReattach?: (project: string, kind: TerminalAgent) => void;
 }) {
   const t = useTranslations();
@@ -82,7 +72,7 @@ export function ActivitySessions({
       }
       aside={
         sessions.length > 0 ? (
-          <span className="font-data text-[12px] text-ink-3">
+          <span className="font-data text-ink-3 text-small">
             {t.plural("activity.session", sessions.length)} ·{" "}
             <span className={total > HEAVY_TOTAL_MB ? "text-warn" : ""}>
               {memory(total)}
@@ -116,8 +106,8 @@ export function ActivitySessions({
                 />
 
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[13px]">{session.command}</p>
-                  <p className="font-data text-[11px] text-ink-3">
+                  <p className="truncate text-control">{session.command}</p>
+                  <p className="font-data text-caption text-ink-3">
                     {t(kind.label)} · pid {session.pid} ·{" "}
                     {uptime(session.seconds)}
                     {session.project ? ` · ${session.project}` : ""}
@@ -128,7 +118,7 @@ export function ActivitySessions({
                 </div>
 
                 <span
-                  className={`shrink-0 font-data text-[12px] tabular-nums ${
+                  className={`shrink-0 font-data text-small tabular-nums ${
                     session.ram_mb > HEAVY_MB ? "text-warn" : "text-ink-3"
                   }`}
                 >

@@ -55,7 +55,7 @@ function noticeFiles(): string[] {
   return [...listed].map((match) => match[1]).sort()
 }
 
-/** Well-formedness, not validation: balanced tags, and how many roots there are. */
+// Well-formedness, not validation: balanced tags and the number of roots.
 function xmlRoots(markup: string): string[] {
   const stack: string[] = []
   const roots: string[] = []

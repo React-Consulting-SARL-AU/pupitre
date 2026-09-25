@@ -7,7 +7,7 @@ const TODO_MARKER = "TODO"
 
 const DRAFT_FRONTMATTER = /^draft:\s*true\s*$/m
 
-/** A bracket that doesn't open a Markdown link: information still missing. */
+// A bracket that opens no Markdown link marks information still missing.
 const PLACEHOLDER = /\[[^\]\n]+\](?!\()/
 
 export interface LegalFinding {
@@ -58,7 +58,6 @@ export function checkLegalPages(root: string): LegalFinding[] {
   return findings
 }
 
-/** The legal pages bind people: a page that is not finished never reaches production. */
 export function legalGuard() {
   return {
     name: "pupitre:legal-guard",

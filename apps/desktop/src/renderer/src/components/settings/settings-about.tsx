@@ -5,15 +5,9 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { useAppUpdate } from "@renderer/stores/app-update";
 import { useEffect } from "react";
 import { SettingsAboutBuild } from "./settings-about-build";
+import { SettingsAboutHelp } from "./settings-about-help";
 import { SettingsAboutUpdate } from "./settings-about-update";
 
-/**
- * The build this is, and where its next one stands.
- *
- * The version and the channel say what the reader runs; the updater's state
- * says what it is doing about the next one, and follows the main process's
- * broadcasts for as long as the section is open.
- */
 export function SettingsAbout() {
   const t = useTranslations();
 
@@ -31,22 +25,26 @@ export function SettingsAbout() {
   }, [read, listen]);
 
   return (
-    <Section name="about" title={t("settings.section.about")}>
-      {about && state ? (
-        <Panel inset="lg">
-          <SettingsAboutBuild about={about} />
+    <>
+      <Section name="about" title={t("settings.section.about")}>
+        {about && state ? (
+          <Panel inset="lg">
+            <SettingsAboutBuild about={about} />
 
-          <div className="mt-6 border-line border-t pt-5">
-            <SettingsAboutUpdate
-              onCheck={check}
-              onInstall={install}
-              state={state}
-            />
-          </div>
-        </Panel>
-      ) : (
-        <WaitingLine>{t("settings.about.reading")}</WaitingLine>
-      )}
-    </Section>
+            <div className="mt-6 border-line border-t pt-5">
+              <SettingsAboutUpdate
+                onCheck={check}
+                onInstall={install}
+                state={state}
+              />
+            </div>
+          </Panel>
+        ) : (
+          <WaitingLine>{t("settings.about.reading")}</WaitingLine>
+        )}
+      </Section>
+
+      <SettingsAboutHelp />
+    </>
   );
 }

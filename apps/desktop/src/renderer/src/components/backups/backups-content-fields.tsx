@@ -11,11 +11,6 @@ import { BackupsContentProjects } from "./backups-content-projects";
 
 const NONE_HELD: readonly string[] = [];
 
-/**
- * What backups carry, as the server holds it: the databases and the projects
- * one by one, the dev account, and any other folder. Everything goes by
- * default; unticking an item puts it in the module's exclusion list.
- */
 export function BackupsContentFields({
   manifest,
   contents,

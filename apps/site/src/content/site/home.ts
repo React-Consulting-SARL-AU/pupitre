@@ -21,13 +21,10 @@ export interface FaqItem {
 export interface StepItem {
   title: string
   detail: string
+  duringLaunch?: { title: string; detail: string }
 }
 
-/**
- * A brand shown on the home page. `module` names a catalogue module and takes
- * its logo; `mark` names a product a module installs under another name, such
- * as Bun inside `runtime.node`.
- */
+// `mark` names a product a module installs under another name, such as Bun inside `runtime.node`.
 export interface StackItem {
   name: string
   module?: ModuleId
@@ -86,6 +83,7 @@ export interface HomeContent {
     perServer: string
     annual: string
     trial: string
+    launch: string
     hosted: string
     link: string
   }

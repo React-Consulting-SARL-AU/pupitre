@@ -31,6 +31,7 @@ func TestASmallObjectGoesInOnePut(t *testing.T) {
 		}
 
 		content := []byte("a small part")
+
 		uploaded, err := client.Upload(context.Background(), "pupitre/srv/one.pupitre", bytes.NewReader(content))
 		if err != nil {
 			t.Fatal(err)
@@ -52,6 +53,7 @@ func TestALargeStreamGoesInEqualPartsAndComesBackWhole(t *testing.T) {
 	client.PartBytes = 1024
 
 	content := bytes.Repeat([]byte("0123456789"), 350)
+
 	uploaded, err := client.Upload(context.Background(), "k/big.pupitre", io.MultiReader(bytes.NewReader(content[:7]), bytes.NewReader(content[7:])))
 	if err != nil {
 		t.Fatal(err)
@@ -81,6 +83,7 @@ func TestAPartIsRetriedThenTheUploadAbortedWhenItKeepsFailing(t *testing.T) {
 	fake.Refuse("UploadPart", http.StatusServiceUnavailable, "SlowDown")
 
 	content := bytes.Repeat([]byte("x"), 2500)
+
 	if _, err := client.Upload(context.Background(), "k/retried.pupitre", bytes.NewReader(content)); err != nil {
 		t.Fatalf("one refusal must be retried: %v", err)
 	}
@@ -103,12 +106,50 @@ func TestAPartIsRetriedThenTheUploadAbortedWhenItKeepsFailing(t *testing.T) {
 	}
 }
 
+func TestACompletionWhoseAnswerWasLostIsFoundInPlace(t *testing.T) {
+	fake := s3test.New(t, "backups")
+	client := fake.Client(true)
+	client.PartBytes = 1024
+
+	fake.Lose("CompleteMultipartUpload")
+
+	content := bytes.Repeat([]byte("x"), 2500)
+
+	uploaded, err := client.Upload(context.Background(), "k/landed.pupitre", bytes.NewReader(content))
+	if err != nil {
+		t.Fatalf("the object is whole in the bucket, the upload went through: %v", err)
+	}
+
+	if stored, found := fake.Object("k/landed.pupitre"); !found || !bytes.Equal(stored, content) || uploaded.Bytes != int64(len(content)) {
+		t.Fatalf("stored %d bytes, uploaded %+v", len(stored), uploaded)
+	}
+
+	if fake.Calls("CompleteMultipartUpload") != 2 || fake.Calls("HeadObject") != 1 || fake.Calls("AbortMultipartUpload") != 0 {
+		t.Fatalf("complete %d, head %d, abort %d", fake.Calls("CompleteMultipartUpload"), fake.Calls("HeadObject"), fake.Calls("AbortMultipartUpload"))
+	}
+}
+
+func TestAnUploadTheBucketNoLongerKnowsStillFails(t *testing.T) {
+	fake := s3test.New(t, "backups")
+	client := fake.Client(true)
+	client.PartBytes = 1024
+
+	fake.Refuse("CompleteMultipartUpload", http.StatusNotFound, "NoSuchUpload")
+
+	content := bytes.Repeat([]byte("x"), 2500)
+
+	if _, err := client.Upload(context.Background(), "k/gone.pupitre", bytes.NewReader(content)); s3.KindOf(err) != s3.KindNoKey {
+		t.Fatalf("an upload with nothing in place is a failure: %v", err)
+	}
+}
+
 func TestAStreamThatBreaksLeavesNothingBehind(t *testing.T) {
 	fake := s3test.New(t, "backups")
 	client := fake.Client(true)
 	client.PartBytes = 1024
 
 	broken := io.MultiReader(bytes.NewReader(bytes.Repeat([]byte("y"), 3000)), failing{})
+
 	if _, err := client.Upload(context.Background(), "k/broken.pupitre", broken); err == nil || !errors.Is(err, errBroken) {
 		t.Fatalf("got %v, want the producer's error", err)
 	}
@@ -205,17 +246,20 @@ func TestRefusalsAreReadForWhatTheyMean(t *testing.T) {
 
 	wrongSecret := s3test.New(t, "backups").Client(true)
 	wrongSecret.SecretAccessKey = "not the secret"
+
 	if err := wrongSecret.HeadBucket(context.Background()); s3.KindOf(err) != s3.KindDenied {
 		t.Fatalf("a HEAD refused for its signature reads as denied: %v", err)
 	}
 
 	elsewhere := s3test.New(t, "backups").Client(true)
 	elsewhere.Bucket = "another"
+
 	if err := elsewhere.HeadBucket(context.Background()); s3.KindOf(err) != s3.KindNoBucket {
 		t.Fatalf("an unknown bucket: %v", err)
 	}
 
 	unreachable := s3.Client{Endpoint: "http://127.0.0.1:1", Bucket: "b", Backoff: func(int) time.Duration { return 0 }}
+
 	if err := unreachable.HeadBucket(context.Background()); s3.KindOf(err) != s3.KindUnreachable {
 		t.Fatalf("a closed port: %v", err)
 	}

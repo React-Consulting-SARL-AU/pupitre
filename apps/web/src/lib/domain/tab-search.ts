@@ -6,10 +6,7 @@ export interface TabSearch<Tab extends string> {
   tab?: Tab
 }
 
-/**
- * The tab the reader opened lives in the address, so a reload and a shared link
- * land on it; the first tab is the default and leaves the address empty.
- */
+// The first tab is the default and leaves the address empty.
 export function tabSearch<Tab extends string>(
   tabs: readonly Tab[]
 ): (raw: Record<string, unknown>) => TabSearch<Tab> {
@@ -33,12 +30,7 @@ export interface TabSearchHandle<Tab extends string> {
   onTabChange: (tab: Tab) => void
 }
 
-/**
- * What the address becomes when a tab is picked, or nothing at all when it
- * already names that tab: a replacing navigation that changes nothing still
- * re-renders the page under the reader's hand, and swallows the click that
- * follows it.
- */
+// Null when the address already names the tab: a no-op navigation re-renders and swallows the next click.
 export function tabNavigation<Tab extends string>(
   current: Tab,
   next: Tab,

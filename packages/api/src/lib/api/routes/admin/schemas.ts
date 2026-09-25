@@ -13,7 +13,6 @@ export const adminDirectionSchema = t.Optional(
   t.Union([t.Literal("asc"), t.Literal("desc")])
 )
 
-/** Every gesture the team takes against someone carries its reason into the journal. */
 export const adminReasonBody = t.Object({
   reason: t.String({ minLength: 1, maxLength: 500 }),
 })

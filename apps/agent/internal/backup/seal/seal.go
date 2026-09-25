@@ -36,7 +36,7 @@ var (
 	notFinal = []byte{0}
 )
 
-// Options fix what a real seal draws at random; only the fixtures set them.
+// Fix what a real seal draws at random; only the fixtures set them.
 type Options struct {
 	EphemeralPrivateKey []byte
 	NoncePrefix         []byte
@@ -53,7 +53,6 @@ type writer struct {
 	closed  bool
 }
 
-// NewWriter seals what is written to it for recipient, chunk after chunk; Close seals the last one as final.
 func NewWriter(out io.Writer, recipient []byte, options Options) (io.WriteCloser, error) {
 	chunk := options.ChunkBytes
 	if chunk == 0 {
@@ -169,7 +168,7 @@ type reader struct {
 	done    bool
 }
 
-// Only the last chunk is sealed as final and it is always there: a file cut at a chunk boundary does not open.
+// Only the last chunk is sealed as final and it is always present, so a file cut at a chunk boundary does not open.
 func NewReader(in io.Reader, private []byte) (io.Reader, error) {
 	buffered := bufio.NewReader(in)
 
@@ -229,7 +228,7 @@ func (r *reader) Read(out []byte) (int, error) {
 	return copied, nil
 }
 
-// The last chunk is the one the file ends on: a full-sized one there was sealed as not final, and does not open as final.
+// A full-sized chunk at the end of the file was sealed as not final, so it does not open as final.
 func (r *reader) next() error {
 	read, err := io.ReadFull(r.in, r.sealed)
 

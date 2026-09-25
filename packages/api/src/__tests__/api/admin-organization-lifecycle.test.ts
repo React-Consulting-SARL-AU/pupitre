@@ -254,7 +254,7 @@ describe("le cycle de vie d'une organisation", () => {
     expect(allowed.status).toBe(200)
   })
 
-  it("efface l'organisation au second appel, et garde son nom au journal", async () => {
+  it("efface l'organisation et son journal au second appel, et n'en garde que l'identifiant", async () => {
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
@@ -287,14 +287,18 @@ describe("le cycle de vie d'une organisation", () => {
       })
     ).toBe(0)
 
-    const event = await harness.prisma.event.findFirstOrThrow({
-      where: { action: "organization.purged", targetId: organization.id },
+    const events = await harness.prisma.event.findMany({
+      where: {
+        OR: [
+          { organizationId: organization.id },
+          { targetType: "organization", targetId: organization.id },
+        ],
+      },
     })
 
-    expect(event.payload).toEqual({
-      name: organization.name,
-      slug: organization.slug,
-    })
+    expect(events.map((event) => [event.action, event.payload])).toEqual([
+      ["organization.purged", null],
+    ])
   })
 
   it("renomme, refuse un slug déjà pris, et garde l'avant et l'après au journal", async () => {

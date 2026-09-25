@@ -7,15 +7,7 @@ import type { MigrationState } from "@renderer/stores/agent-update";
 import { ArrowUp } from "lucide-react";
 import { AgentUpdateFrame } from "./agent-update-frame";
 
-/**
- * The configuration on the server, against the agent that reads it.
- *
- * The agent migrates itself when it starts, so this panel is what a reader sees
- * when that did not go through. Nothing can be driven on the server meanwhile —
- * the agent refuses on its own — so there is no way to put this away, only a
- * second attempt and, when the refusal keeps coming, the sentence the agent
- * wrote about it.
- */
+/** Not hideable: the agent refuses every command until its configuration migrates. */
 export function ConfigMigrationPanel({
   config,
   agentVersion,

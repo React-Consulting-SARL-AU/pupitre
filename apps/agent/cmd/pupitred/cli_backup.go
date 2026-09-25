@@ -38,6 +38,7 @@ func runBackup(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 
 				return 2
 			}
+
 			iterations = parsed
 		case arg == "--private-key":
 			byKey = true
@@ -79,6 +80,7 @@ func openPart(path, secret, salt string, iterations int, byKey bool, out io.Writ
 		identity, err = seal.Derive(secret, salt, iterations)
 		private = identity.PrivateKey
 	}
+
 	if err != nil {
 		return err
 	}

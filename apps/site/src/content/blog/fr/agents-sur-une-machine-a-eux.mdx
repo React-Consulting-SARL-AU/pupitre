@@ -4,7 +4,7 @@ description: Pourquoi le laptop est le mauvais hôte pour un travail qu’on ne 
 locale: fr
 date: 2026-08-29
 author: Jordan Monier
-reading: 8 min
+translation: agents-on-a-machine-of-their-own
 order: 2
 ---
 
@@ -16,7 +16,7 @@ Il s’endort. Les ventilateurs veulent dire quelque chose. Et un processus qui 
 
 **Le travail s’arrête quand vous vous arrêtez.** Vous fermez le laptop pour déjeuner et la branche en cours de build s’arrête avec. Pas en pause — tuée, au milieu d’un `npm install`, laissant un `node_modules` que vous supprimerez plus tard.
 
-**La machine devient inutilisable pendant qu’elle travaille.** Trois worktrees, un navigateur headless et un lanceur de tests, c’est une charge. Une petite charge pour un serveur, une charge bruyante pour un laptop. Vous finissez par ne pas lancer ce que vous vouliez lancer, parce que vous voulez aussi lire vos mails.
+**La machine devient inutilisable pendant qu’elle travaille.** Trois worktrees, un navigateur headless et un test runner, c’est une charge. Une petite charge pour un serveur, une charge bruyante pour un laptop. Vous finissez par ne pas lancer ce que vous vouliez lancer, parce que vous voulez aussi lire vos mails.
 
 **Rien ne persiste.** La base dont l’agent avait besoin vivait dans un conteneur qui a disparu. La capture qu’il a prise est dans `/tmp`. Le service qu’il avait démarré pour le test d’intégration ne tourne plus, et il ne peut pas vous dire pourquoi le test échoue maintenant.
 
@@ -42,11 +42,11 @@ Cela ne marche que si le serveur a été préparé pour : les runtimes doivent �
 
 Un serveur est une chose à administrer, et c’est là le coût réel. Quelqu’un doit créer l’utilisateur, dimensionner le swap, activer les runtimes dans les shells non interactifs, lier la base à localhost, poser `ufw`, et fermer root dans le bon ordre. Puis recommencer sur la machine suivante, dans le même ordre, en se rappelant lesquelles des douze étapes comptaient.
 
-C’est tout l’écart entre « un VPS est évidemment la bonne réponse » et « j’ai un VPS correctement installé ». Ça m’a pris un après-midi la première fois et quarante minutes la quatrième, et je me suis quand même trompé une fois dans l’ordre du durcissement, ce qui m’a coûté une réinstallation.
+C’est tout l’écart entre « un VPS est évidemment la bonne réponse » et « j’ai un VPS correctement installé ». Ça m’a pris un après-midi la première fois et quarante minutes la quatrième, et je me suis quand même trompé une fois dans l’ordre de la sécurisation, ce qui m’a coûté une réinstallation.
 
 ## Ce qu’on a construit à la place
 
-Pupitre, c’est cet après-midi, fait par un programme qui ne s’ennuie pas. Il inspecte la machine, dit ce qu’il ne gérera pas, installe ce que vous choisissez, durcit dans un ordre qui ne peut pas vous enfermer dehors, puis reste la fenêtre sur cette machine : projets, terminaux, agents, services.
+Pupitre, c’est cet après-midi, fait par un programme qui ne s’ennuie pas. Il inspecte la machine, dit ce qu’il ne gérera pas, installe ce que vous choisissez, sécurise dans un ordre qui ne peut pas vous enfermer dehors, puis reste la fenêtre sur cette machine : projets, terminaux, agents, services.
 
 La machine reste la vôtre. Rien ne s’y connecte vers l’intérieur, aucune clé privée ne quitte votre laptop, et si vous arrêtez de payer vous gardez un serveur Ubuntu ordinaire avec tout dessus.
 

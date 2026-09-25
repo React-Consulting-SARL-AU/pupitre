@@ -2,6 +2,7 @@
 import { formatUsd, type Plan, yearlyPriceUsd } from "@pupitre/shared/plans"
 import { pricingContent } from "../content/site/pricing"
 import { fill, localeFromPath, planName } from "../lib/i18n"
+import { isLaunchOpen } from "../lib/launch"
 import { SIGNUP_URL } from "../lib/urls"
 
 interface Props {
@@ -10,8 +11,9 @@ interface Props {
 
 const { plan } = Astro.props
 const locale = localeFromPath(Astro.url.pathname)
-const { plans } = pricingContent(locale)
+const { plans, launch } = pricingContent(locale)
 const copy = plans.items[plan.id]
+const cta = copy.cta && isLaunchOpen() ? launch.cta : copy.cta
 const later = plan.availability === "later"
 const perServer = plan.billedPer === "server"
 const servers =
@@ -47,7 +49,7 @@ const lines = perServer ? [servers, ...copy.includes] : copy.includes
             data-interval="month"
             class="group-has-[#billing-year:checked]/plans:hidden"
           >
-            <span class="figure text-[44px]">
+            <span class="figure figure-lg">
               {formatUsd(plan.monthlyPriceUsd)}
             </span>
             <span class="mt-2 block text-ink-3">{plans.perServerMonth}</span>
@@ -56,7 +58,7 @@ const lines = perServer ? [servers, ...copy.includes] : copy.includes
             data-interval="year"
             class="hidden group-has-[#billing-year:checked]/plans:block"
           >
-            <span class="figure text-[44px]">
+            <span class="figure figure-lg">
               {formatUsd(yearlyPriceUsd(plan))}
             </span>
             <span class="mt-2 block text-ink-3">{plans.perServerYear}</span>
@@ -67,7 +69,7 @@ const lines = perServer ? [servers, ...copy.includes] : copy.includes
           {plan.startingAt && (
             <span class="label mb-2 block text-ink-3">{plans.from}</span>
           )}
-          <span class="figure text-[44px] text-ink-2">
+          <span class="figure figure-lg text-ink-2">
             {formatUsd(plan.monthlyPriceUsd)}
           </span>
           <span class="mt-2 block text-ink-3">{plans.perMonth}</span>
@@ -81,10 +83,10 @@ const lines = perServer ? [servers, ...copy.includes] : copy.includes
   </ul>
 
   {
-    copy.cta && (
+    cta && (
       <div class="mt-8">
         <a data-emphasis="main" href={SIGNUP_URL} class="btn btn-primary w-full">
-          {copy.cta}
+          {cta}
         </a>
       </div>
     )

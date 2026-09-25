@@ -1,11 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { devDefaultsFrom } from "../dev-defaults-run";
 
-/**
- * What the developer's environment fills in, and where it stops: a build that
- * talks to a hosted platform answers nothing, whatever the environment says —
- * the throwaway machine belongs to the local console.
- */
 const ENV = {
   PUPITRE_DEV_GIT_EMAIL: "ada@pupitre.studio",
   PUPITRE_DEV_GIT_NAME: "Ada Lovelace",

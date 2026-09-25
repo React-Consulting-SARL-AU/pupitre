@@ -6,10 +6,6 @@ import type { VersionOrder } from "@shared/agent-update";
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
 
-/**
- * The shell both sides of the banner share: what the gap is, the two versions
- * in the app's data face, and the way to put it away until the next release.
- */
 export function AgentUpdateFrame({
   order,
   title,
@@ -37,7 +33,7 @@ export function AgentUpdateFrame({
 
         <div className="min-w-0 flex-1">
           <p className="font-medium text-ink">{title}</p>
-          <p className="mt-0.5 font-data text-[12px] text-ink-3">{detail}</p>
+          <p className="mt-0.5 font-data text-ink-3 text-small">{detail}</p>
         </div>
 
         {onHide ? (

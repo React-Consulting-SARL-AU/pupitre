@@ -18,23 +18,10 @@ import (
 	_ "pupitre.studio/agent/internal/modules/tool"
 )
 
-/*
-What this file proves: the catalogue holds the rule that makes it usable twice.
-A module installed then reinstalled on the same machine no longer touches it —
-every step turns to `skip` — because that is exactly what the app does when it
-adds a service to a server already running, when it replays a failed module, or
-when it resumes an interrupted installation.
-
-The fake machine is not a machine: it has no service to query, no archive to
-extract, no API to reach. Modules that read their state through one of those
-three means cannot be played here — their second pass would find a machine that
-retained nothing — and the staging tests, against a real VPS, are what cover
-them. Each is named below with what it lacks, never dropped in silence.
-*/
-
 const secret = "s3cret-de-test"
 
-var elsewhere = map[string]string{
+// The fake machine has no service, archive or API to read state back from, so these are proven by test/staging.
+var provenOnStaging = map[string]string{
 	"core.backup":         "its bucket is proven over the S3 API",
 	"ai.hermes":           "its providers are a list of secrets that only the form composes",
 	"ai.openclaw":         "its providers are a list of secrets that only the form composes",
@@ -51,13 +38,13 @@ var elsewhere = map[string]string{
 	"tool.github":         "its key is born of ssh-keygen and registered with GitHub",
 }
 
-// A module that reads a release index answers it here, as the network would.
-var served = map[string]func(fake *modtest.FakeSys){
+var upstreamAnswers = map[string]func(fake *modtest.FakeSys){
 	"db.mongodb": func(fake *modtest.FakeSys) {
 		fake.Answer("mongosh", "pupitre-user-ready\n")
 	},
 	"ai.claude": func(fake *modtest.FakeSys) {
 		checksum := modtest.Digest(modtest.Downloaded)
+
 		fake.Answer("claude-code-releases/latest", "2.1.263\n")
 		fake.Answer("/2.1.263/manifest.json", `{"platforms":{"linux-x64":{"checksum":"`+checksum+`"},"linux-arm64":{"checksum":"`+checksum+`"}}}`)
 	},
@@ -67,23 +54,27 @@ var served = map[string]func(fake *modtest.FakeSys){
 	},
 	"db.mailpit": func(fake *modtest.FakeSys) {
 		asset := "mailpit-linux-" + arch("amd64", "arm64") + ".tar.gz"
+
 		fake.Answer("-w %{redirect_url} https://github.com/axllent/mailpit/releases/latest/download/"+asset, "https://github.com/axllent/mailpit/releases/download/v1.31.1/"+asset)
 		fake.Answer("api.github.com/repos/axllent/mailpit/releases/tags/v1.31.1", `{"assets":[{"name":"`+asset+`","digest":"sha256:`+modtest.Digest(modtest.Downloaded)+`"}]}`)
 		fake.Archives[download.Dir+"/"+asset] = []string{"mailpit"}
 	},
 	"tool.neon": func(fake *modtest.FakeSys) {
 		asset := "neonctl-linux-" + arch("x64", "arm64")
+
 		fake.Answer("-w %{redirect_url} https://github.com/neondatabase/neonctl/releases/latest/download/"+asset, "https://github.com/neondatabase/neonctl/releases/download/v2.27.0/"+asset)
 		fake.Answer("api.github.com/repos/neondatabase/neonctl/releases/tags/v2.27.0", `{"assets":[{"name":"`+asset+`","digest":"sha256:`+modtest.Digest(modtest.Downloaded)+`"}]}`)
 	},
 	"tool.supabase": func(fake *modtest.FakeSys) {
 		asset := "supabase_2.117.0_linux_" + arch("amd64", "arm64") + ".tar.gz"
+
 		fake.Answer("-w %{redirect_url} https://github.com/supabase/cli/releases/latest/download/checksums.txt", "https://github.com/supabase/cli/releases/download/v2.117.0/checksums.txt")
 		fake.Answer("releases/download/v2.117.0/checksums.txt", modtest.Digest(modtest.Downloaded)+"  "+asset+"\n")
 		fake.Archives[download.Dir+"/"+asset] = []string{"supabase"}
 	},
 	"tool.stripe": func(fake *modtest.FakeSys) {
 		asset := "stripe_1.50.11_linux_" + arch("x86_64", "arm64") + ".tar.gz"
+
 		fake.Answer("-w %{redirect_url} https://github.com/stripe/stripe-cli/releases/latest/download/stripe-linux-checksums.txt", "https://github.com/stripe/stripe-cli/releases/download/v1.50.11/stripe-linux-checksums.txt")
 		fake.Answer("releases/download/v1.50.11/stripe-linux-checksums.txt", modtest.Digest(modtest.Downloaded)+"  "+asset+"\n")
 		fake.Archives[download.Dir+"/"+asset] = []string{"stripe"}
@@ -91,16 +82,17 @@ var served = map[string]func(fake *modtest.FakeSys){
 	"ai.opencode": func(fake *modtest.FakeSys) {
 		checksum := modtest.Digest(modtest.Downloaded)
 		assets := ""
+
 		for _, name := range []string{"opencode-linux-x64.tar.gz", "opencode-linux-x64-baseline.tar.gz", "opencode-linux-arm64.tar.gz"} {
 			assets += `{"name":"` + name + `","digest":"sha256:` + checksum + `","browser_download_url":"https://github.com/anomalyco/opencode/releases/download/v1.18.30/` + name + `"},`
 		}
+
 		fake.Files["/proc/cpuinfo"] = []byte("flags : avx2\n")
 		fake.Answer("releases/latest", `{"tag_name":"v1.18.30","assets":[`+strings.TrimSuffix(assets, ",")+`]}`)
 		fake.Archives[download.Dir+"/opencode-1.18.30.tar.gz"] = []string{"opencode"}
 	},
 }
 
-// The asset name of this machine, as each vendor spells the architecture.
 func arch(amd64, arm64 string) string {
 	if runtime.GOARCH == "arm64" {
 		return arm64
@@ -109,7 +101,6 @@ func arch(amd64, arm64 string) string {
 	return amd64
 }
 
-// answers fills in what the form would have: the manifest defaults, plus a value for whatever it declares required.
 func answers(manifest contract.Manifest) (modtest.Values, modtest.Secrets) {
 	values := modtest.Values{}
 	secrets := modtest.Secrets{}
@@ -165,13 +156,14 @@ func TestASecondInstallLeavesTheMachineAlone(t *testing.T) {
 	for _, module := range modules.Default().All() {
 		id := module.Manifest().ID
 
-		if _, staged := elsewhere[id]; staged {
+		if _, staged := provenOnStaging[id]; staged {
 			continue
 		}
 
 		t.Run(id, func(t *testing.T) {
 			fake := modtest.NewFakeSys()
-			if serve, listed := served[id]; listed {
+
+			if serve, listed := upstreamAnswers[id]; listed {
 				serve(fake)
 			}
 
@@ -193,14 +185,14 @@ func TestASecondInstallLeavesTheMachineAlone(t *testing.T) {
 	}
 }
 
-// TestNothingIsSkippedWithoutAReason: a module excluded elsewhere that becomes runnable here must come back into this list — it names what the fake machine is missing, not what we tolerate.
 func TestNothingIsSkippedWithoutAReason(t *testing.T) {
 	known := map[string]bool{}
+
 	for _, module := range modules.Default().All() {
 		known[module.Manifest().ID] = true
 	}
 
-	for id, reason := range elsewhere {
+	for id, reason := range provenOnStaging {
 		if !known[id] {
 			t.Errorf("%s is no longer in the catalogue: remove it from the list", id)
 		}

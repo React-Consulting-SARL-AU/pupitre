@@ -8,15 +8,6 @@ import { ConnectionCard } from "../connections/connection-card";
 import { descriptorOf } from "../connections/connection-descriptors";
 import { ConfigZoneField } from "./config-zone-field";
 
-/**
- * The account a module publishes through, asked where the module is configured.
- *
- * A connection used to live in the preferences, three screens away, and its
- * absence surfaced as an install that refused everything at the last moment.
- * It is asked here instead, above the questions it makes answerable, and the
- * zone it opens fills in the domain rather than asking for an identifier
- * nobody should have to copy.
- */
 export function ConfigConnectionBlock({ module }: { module: Manifest }) {
   const t = useTranslations();
 
@@ -38,20 +29,18 @@ export function ConfigConnectionBlock({ module }: { module: Manifest }) {
     }
   }, [picksZone, loadZones]);
 
-  // A module naming a connection this app has never heard of comes from an
-  // agent that is ahead of it: nothing is drawn rather than a block that would
-  // ask for a token it could not place.
+  // An unknown connection kind comes from a newer agent; draw nothing rather than ask for a token.
   if (!connection) {
     return null;
   }
 
   return (
     <div
-      className="flex flex-col gap-3 rounded-md border border-line bg-sunken p-4"
+      className="flex flex-col gap-3 rounded-md bg-sunken p-4"
       data-connection-block={module.connection}
     >
       {connected ? null : (
-        <p className="text-[12px] text-ink-2 leading-relaxed">
+        <p className="text-ink-2 text-small leading-relaxed">
           {t("connections.required")}
         </p>
       )}
@@ -72,7 +61,7 @@ export function ConfigConnectionBlock({ module }: { module: Manifest }) {
       ) : null}
 
       {picksZone && zones.length === 0 ? (
-        <p className="text-[12px] text-warn">{t("connections.zone.none")}</p>
+        <p className="text-small text-warn">{t("connections.zone.none")}</p>
       ) : null}
     </div>
   );

@@ -21,7 +21,7 @@ describe("RequestSchema", () => {
       RequestSchema.safeParse({
         id: 12,
         cmd: "project.up",
-        params: { name: "flymate-api" },
+        params: { name: "flyleaf-api" },
       }).success
     ).toBe(true)
     expect(RequestSchema.safeParse({ id: 1, cmd: "ping" }).success).toBe(true)
@@ -115,8 +115,8 @@ describe("ResponseSchema", () => {
         ok: false,
         error: {
           code: "project_not_found",
-          message: "No project named flymate",
-          fix: "dev project add flymate …",
+          message: "No project named flyleaf",
+          fix: "dev project add flyleaf …",
         },
       }).success
     ).toBe(true)

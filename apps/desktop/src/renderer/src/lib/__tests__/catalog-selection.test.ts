@@ -15,6 +15,7 @@ import {
   byCategory,
   carriesSecret,
   deselect,
+  droppedBy,
   fieldsOf,
   fromPreset,
   mandatory,
@@ -26,6 +27,7 @@ import {
   select,
   splitFields,
   totals,
+  withChoice,
 } from "../catalog-selection";
 
 const MODULES = CATALOG.modules;
@@ -107,6 +109,27 @@ describe("un préréglage contre la machine qui le reçoit", () => {
   const FULL = CATALOG.presets.find((p) => p.id === "full") as Preset;
   const WEB = CATALOG.presets.find((p) => p.id === "web-js") as Preset;
 
+  it("porte le module exclusif choisi, et aucun autre", () => {
+    expect(withChoice(FULL, "exposure.caddy").modules).toContain(
+      "exposure.caddy"
+    );
+    expect(withChoice(FULL, "exposure.caddy").modules).not.toContain(
+      "exposure.cloudflare"
+    );
+    expect(withChoice(FULL, "tool.legacy")).toBe(FULL);
+  });
+
+  it("nomme ce qu'appliquer un préréglage retirerait de la sélection", () => {
+    const chosen = fromPreset(MODULES, FULL, [], LARGE_MACHINE);
+
+    expect(
+      droppedBy(MODULES, WEB, chosen, [], LARGE_MACHINE).map(
+        (module) => module.id
+      )
+    ).toContain("db.postgres");
+    expect(droppedBy(MODULES, FULL, chosen, [], LARGE_MACHINE)).toEqual([]);
+  });
+
   it("laisse de côté ce que l'architecture ne porte pas", () => {
     const wide: Preset = { ...FULL, modules: [...FULL.modules, "tool.legacy"] };
 
@@ -130,7 +153,6 @@ describe("un préréglage contre la machine qui le reçoit", () => {
     ).not.toContain("exposure.cloudflare");
   });
 
-  /** Half of a choice is a module installed without what it needs. */
   it("refuse un module entier quand ce qu'il exige est hors de portée", () => {
     const dashboard: Manifest = {
       arch: ["amd64", "arm64"],
@@ -424,11 +446,7 @@ describe("une sélection reprise après coup", () => {
 });
 
 describe("ce que la sélection refuse", () => {
-  /**
-   * A field nobody filled in is one the manifest gives no default for. The
-   * agent reads a default the same way, so a value neither side was sent is
-   * refused by neither.
-   */
+  // Like the agent, a field with a manifest default is never missing.
   it("nomme le module et le champ qu'aucune valeur ne remplit", () => {
     const problems = problemsOf(
       MODULES,
@@ -479,7 +497,7 @@ describe("ce que la sélection refuse", () => {
     expect(after).toEqual([]);
   });
 
-  /** The same rules as the agent's, so a shape it refuses is one this refuses too. */
+  // Same format rules as the agent, so both refuse the same shapes.
   it("refuse une valeur qui n'a pas la forme que le manifeste déclare", () => {
     const problems = problemsOf(
       MODULES,
@@ -501,7 +519,7 @@ describe("ce que la sélection refuse", () => {
     ]);
   });
 
-  /** A module that needs an account says so before it asks for a domain. */
+  // A missing connection is reported alone, before any field it would unlock.
   it("réclame la connexion d'un module qui en déclare une", () => {
     const problems = problemsOf(
       MODULES,

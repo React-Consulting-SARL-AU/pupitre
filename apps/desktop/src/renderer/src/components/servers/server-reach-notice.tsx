@@ -2,22 +2,13 @@ import { StatusDot } from "@renderer/components/ui/status-dot";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { ServerAccess, ServerReach } from "@shared/servers";
 
-/**
- * What the address answered, told by a shape.
- *
- * A full dot for an SSH server that introduced itself and an account the app
- * will open, a hollow one for an account the app will not open by itself, a
- * struck one for an address that refused, stayed silent, or answered something
- * else. The failure carries the main process's own words and its remedy,
- * unchanged.
- */
 export function ServerReachNotice({ reach }: { reach: ServerReach }) {
   const t = useTranslations();
 
   if (!reach.reached) {
     return (
       <div
-        className="flex items-start gap-2.5 rounded-sm border border-danger/40 bg-danger/10 px-3 py-2.5"
+        className="flex items-start gap-2.5 rounded-sm bg-sunken px-3 py-2.5"
         data-reach={reach.code}
       >
         <span className="mt-0.5">
@@ -27,7 +18,7 @@ export function ServerReachNotice({ reach }: { reach: ServerReach }) {
           <p className="text-ink">
             {t(reach.phrase.id as never, reach.phrase.values)}
           </p>
-          <p className="mt-0.5 font-data text-[12px] text-ink-3 leading-relaxed">
+          <p className="mt-0.5 font-data text-ink-3 text-small leading-relaxed">
             {t(`${reach.phrase.id}.fix` as never, reach.phrase.values)}
           </p>
         </div>
@@ -40,9 +31,7 @@ export function ServerReachNotice({ reach }: { reach: ServerReach }) {
 
   return (
     <div
-      className={`flex items-start gap-2.5 rounded-sm border px-3 py-2.5 ${
-        manual ? "border-warn/40 bg-warn/10" : "border-line bg-base"
-      }`}
+      className="flex items-start gap-2.5 rounded-sm bg-sunken px-3 py-2.5"
       data-access={access.access}
       data-reach="ok"
     >
@@ -57,11 +46,11 @@ export function ServerReachNotice({ reach }: { reach: ServerReach }) {
         <p className="text-ink">
           {t("servers.add.reached", { ms: reach.ms, software: reach.software })}
         </p>
-        <p className="mt-0.5 text-[12px] text-ink-3 leading-relaxed">
+        <p className="mt-0.5 text-ink-3 text-small leading-relaxed">
           {accessText(t, access)}
         </p>
         {manual ? (
-          <p className="mt-0.5 text-[12px] text-ink-3 leading-relaxed">
+          <p className="mt-0.5 text-ink-3 text-small leading-relaxed">
             {t("servers.add.access.manualHelp")}
           </p>
         ) : null}

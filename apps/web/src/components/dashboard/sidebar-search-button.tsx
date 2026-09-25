@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils/cn"
 
 const SHORTCUT_LETTER = "K"
 
-/** The same dialog as the keyboard shortcut, for whoever reaches for the mouse. */
 export function SidebarSearchButton() {
   const t = useTranslations()
   // The server knows no keyboard: the modifier lands once the browser has it.

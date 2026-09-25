@@ -6,13 +6,6 @@ import { RefreshCw } from "lucide-react";
 import { Button } from "../ui/button";
 import { Callout } from "../ui/callout";
 
-/**
- * Why nothing on the screen is moving, said above it.
- *
- * A link that dropped comes back on its own, and a dashboard whose last read
- * failed still shows the machine as it was: both are true, and both have to be
- * said, or a dead server keeps looking like a healthy one.
- */
 export function ServerLinkNotice({
   channel,
   stale,

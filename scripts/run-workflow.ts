@@ -2,18 +2,7 @@ import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { parse } from "./bootstrap-local"
 
-/**
- * Un workflow lancé à la main, sur la console de cet ordinateur.
- *
- * En production les cinq workflows partent de Cron Triggers, qui ne se
- * déclenchent que sur un Worker déployé : en local, rien ne les appelle jamais.
- * Une ligne révoquée n'y est donc jamais décommissionnée, et tout ce qui dépend
- * d'une échéance reste intestable. Ce script frappe le même déclencheur interne
- * que la CI, avec le secret que `dev:prepare` a écrit.
- *
- * Les noms sont ceux de `apps/web/src/workflows/registry.ts` ; c'est le Worker
- * qui refuse un nom inconnu, pas ce script, pour qu'il n'y ait qu'une liste.
- */
+// Cron Triggers never fire locally; unknown names are refused by the Worker, which holds the only list.
 
 const ROOT = join(import.meta.dir, "..")
 const ENV_FILE = join(ROOT, ".env.local")

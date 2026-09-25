@@ -1,14 +1,8 @@
+import type {
+  AccountEntitlement,
+  ServerStatus,
+} from "@pupitre/shared/platform-api"
 import type { DictionaryKey } from "@/lib/i18n/en"
-
-export const SERVER_STATUSES = [
-  "enrolling",
-  "active",
-  "grace",
-  "suspended",
-  "revoked",
-] as const
-
-export type ServerStatus = (typeof SERVER_STATUSES)[number]
 
 export type StatusShape = "filled" | "hollow" | "barred" | "breathing"
 
@@ -42,7 +36,7 @@ export function statusLook(status: string, stale = false): StatusLook {
   return LOOKS[status as ServerStatus] ?? LOOKS.revoked
 }
 
-const ENTITLEMENT_LOOKS: Record<string, StatusLook> = {
+const ENTITLEMENT_LOOKS: Record<AccountEntitlement, StatusLook> = {
   none: { shape: "hollow", tone: "warn", label: "entitlement.none" },
   valid: { shape: "filled", tone: "ok", label: "entitlement.valid" },
   grace: { shape: "hollow", tone: "warn", label: "entitlement.grace" },
@@ -54,5 +48,5 @@ const ENTITLEMENT_LOOKS: Record<string, StatusLook> = {
 }
 
 export function entitlementLook(entitlement: string): StatusLook | null {
-  return ENTITLEMENT_LOOKS[entitlement] ?? null
+  return ENTITLEMENT_LOOKS[entitlement as AccountEntitlement] ?? null
 }

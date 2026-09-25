@@ -13,11 +13,7 @@ export interface PageTitle {
   parents: Crumb[]
 }
 
-/**
- * A breadcrumb only lists pages you can go back to. `/dashboard` isn't one:
- * it redirects to servers. So it never appears, and a page with no parent
- * shows no breadcrumb.
- */
+// `/dashboard` only redirects to servers, so it never appears as a crumb.
 const SERVERS: Crumb = { title: "nav.servers", to: "/dashboard/servers" }
 
 const ADMIN: Crumb = { title: "nav.admin", to: "/dashboard/admin" }
@@ -126,14 +122,13 @@ export function pageTitle(routeId: string): PageTitle {
   return TITLES[routeId] ?? FALLBACK
 }
 
-/** Runs in a route's `head`, outside React, so it takes the locale of the match. */
+// Runs in a route's `head`, outside React, so it takes the locale of the match.
 export function documentTitle(routeId: string, locale: Locale): string {
   const t = translator(locale)
 
   return `${t(pageTitle(routeId).title)} · ${t("app.name")}`
 }
 
-/** A server titles its tab with its own name; before the loader answers, with the generic one. */
 export function serverDocumentTitle(
   name: string | null | undefined,
   locale: Locale

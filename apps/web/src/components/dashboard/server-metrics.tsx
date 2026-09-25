@@ -26,8 +26,7 @@ export function ServerMetrics({ samples }: ServerMetricsProps) {
   const t = useTranslations()
   const last = samples.at(-1) ?? null
 
-  // The disk is reported as what it holds and what is left; what is taken is the
-  // difference, and it is the figure a reader is looking for.
+  // The agent reports total and free disk; used is the figure a reader wants.
   const diskTotal = gigabytesToBytes(last?.disk_total_gb ?? null)
   const diskFree = gigabytesToBytes(last?.disk_free_gb ?? null)
   const diskUsed =

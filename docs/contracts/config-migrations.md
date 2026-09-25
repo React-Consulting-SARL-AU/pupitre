@@ -9,11 +9,12 @@ Une mise à jour ne réinstalle rien. Le binaire de l'agent est remplacé, l'app
 | Côté | Fichiers | Registre | Sauvegardes |
 | --- | --- | --- | --- |
 | Agent, sur le VPS | `/etc/pupitre/install.json`, `/etc/pupitre/env`, `/etc/pupitre/projects.local.json`, et tout autre fichier de `/etc/pupitre` qu'une migration nomme | `/etc/pupitre/migrations.json` | `/var/lib/pupitre/config-backups/<horodatage>-r<révision>/`, les cinq derniers lots |
-| App, sur le laptop | `servers.json`, `account.json`, `transfers.json` dans le dossier de données | le champ `version` du fichier lui-même | `<fichier>.r<révision>`, à côté |
+| App, sur le laptop | `servers.json`, `account.json`, `transfers.json`, `forwards.json`, `preferences.json`, `connections/<fournisseur>.json` dans le dossier de données | le champ `version` du fichier lui-même | `<fichier>.r<révision>`, à côté ; `<fichier>.corrupt` pour un fichier qui ne se lit pas |
 
 Ce que le registre **ne** possède pas :
 
 - **Les fichiers qu'un module écrit** — la configuration de Caddy, une unité systemd, un fichier de service. Ils appartiennent au module, et c'est son `Upgrade` qui les porte à la forme d'aujourd'hui. Le registre ne s'en mêle pas : un module réécrit les siens depuis ses valeurs à chaque montée de version, alors que le registre, lui, porte les valeurs.
+- **La règle sudo de `dev`** (`/etc/sudoers.d/90-dev`, [décision 0015](../decisions/0015-sudo-par-mot-de-passe.md)). Elle appartient à `core.system`, qui pose l'ancienne sur un serveur neuf et ne réécrit jamais la nouvelle ; et aucune migration ne passe de l'une à l'autre, parce que la nouvelle exige un mot de passe que seul le client peut accepter. C'est `harden.sudo`, appelé par l'app, qui la pose. Voir [le mot de passe sudo](./agent-protocol.md#le-mot-de-passe-sudo).
 - **La base de la plateforme.** D1 a ses migrations SQL (`packages/db/migrations`), qui n'ont rien à voir avec celles-ci et ne se croisent jamais.
 - **Le code du client.** Les projets, les dépôts, les données des bases installées ne sont pas de la configuration Pupitre.
 
@@ -73,7 +74,7 @@ Ce qui reste ouvert, c'est la vue de la machine et les portes de sortie : `hello
 
 C'est l'app qui met l'agent à jour, donc c'est elle qui enchaîne. `runAgentUpgrade` fait, dans cet ordre :
 
-1. **`agent.upgrade`** — le binaire est vérifié, remplacé, l'unité redémarrée.
+1. **`agent.upgrade`** — le binaire est vérifié, remplacé, l'unité redémarrée. Une seule mise à jour à la fois (`busy` sinon), et jamais pendant une installation, une sauvegarde ou une restauration : le redémarrage la couperait. Si le nouveau binaire ne répond pas à `hello`, l'ancien revient, et avec lui la configuration : le lot que le nouveau binaire a sauvegardé avant de migrer est remis, révision comprise, avant que l'ancien ne redémarre — sinon il trouverait une configuration `ahead` et refuserait presque tout. C'est la seule restauration que l'agent fait de lui-même : ce lot a quelques secondes, rien n'a été configuré depuis.
 2. **Le canal est fermé.** Le `pupitred serve` qui nous répond tient encore le fichier qu'il a ouvert : le remplacement se fait par un `rename`, donc seule une nouvelle session atteint la version qui vient d'être installée. Sans cette fermeture, tout ce qui suit interroge l'ancien binaire.
 3. **`agent.migrate`** — sur le canal rouvert. Le nouveau binaire a déjà migré en démarrant ; l'appel confirme et rapporte. `unknown_command` est un agent antérieur au registre : il n'y avait rien à porter.
 4. **`upgrade { modules }`** — les modules déjà installés rejouent leurs étapes. Si la migration a échoué, l'agent refuse cette commande lui-même : l'app n'a pas de garde à écrire, elle a une phrase à afficher.
@@ -95,6 +96,8 @@ Cinq règles. Elles ne se négocient pas ; le reste est du goût.
 Avant la première migration en attente, l'agent copie tous les fichiers déclarés par le lot **et le registre lui-même** dans un dossier de sauvegarde.
 
 Le registre est réécrit **après chaque migration**, pas après le lot : une machine qui perd le courant au milieu revient d'accord avec elle-même et ne rejoue que ce qu'elle doit. Un refus, lui, remet tout le lot — les fichiers et le registre, qui sont dans la même sauvegarde — parce qu'un demi-lot est une forme qu'aucun binaire n'a jamais été écrit pour lire.
+
+Un registre absent vaut la révision zéro : une machine configurée avant qu'il existe doit toutes les migrations, et elles sont idempotentes. Un registre présent qui ne se lit pas est refusé en `migration_required`, l'état passe à `failed`, et rien n'est rejoué : il peut venir d'un agent plus récent, dont un rejeu depuis zéro prendrait les formes pour les plus anciennes. Le `fix` dit de le remettre par `--restore`, ou de le supprimer pour tout rejouer. De même, un fichier que la sauvegarde du lot n'a pas pu lire — autre chose qu'une absence — arrête le lot avant la première migration : noté absent, une remise en l'état le supprimerait.
 
 ## Revenir en arrière
 
@@ -128,7 +131,7 @@ func All() []Migration {
 }
 ```
 
-Côté app — `apps/desktop/src/main/servers-migrations.ts`, `account-migrations.ts` ou `transfers-migrations.ts` :
+Côté app — `apps/desktop/src/main/servers-migrations.ts`, `account-migrations.ts`, `transfers-migrations.ts`, `forwards-migrations.ts`, `preferences-migrations.ts` ou `connections-migrations.ts`, lus et écrits par `versionedFile()` de `store-migrations.ts` (écriture à côté puis renommée, fichier d'une version plus récente jamais réécrit) :
 
 ```ts
 export const SERVERS_MIGRATIONS: readonly StoreMigration[] = [
@@ -142,6 +145,14 @@ Un test par migration : la forme d'avant en entrée, la forme d'après en sortie
 
 Une machine neuve se voit **estampillée à la révision courante sans que rien ne tourne** — il n'y a pas de forme d'hier à porter, et le registre le dit à qui le lira plus tard.
 
+## Le registre des connexions de l'app
+
+`connections-migrations.ts`, pour `connections/<fournisseur>.json`.
+
+| N° | Slug | Ce qui change |
+| --- | --- | --- |
+| 1 | `account-id-name` | Cloudflare nommait son compte `accountId` et `accountName` avant qu'il y ait une seconde connexion ; toute connexion le nomme `id` et `name`. Les deux clés sont renommées quand elles sont là, sans écraser un `id` ou un `name` déjà présent ; une fiche sans compte n'est pas touchée. Le code ne lit plus que `id` et `name`. |
+
 ## Le registre de l'agent
 
 | N° | Slug | Ce qui change |
@@ -151,3 +162,4 @@ Une machine neuve se voit **estampillée à la révision courante sans que rien 
 | 3 | `projects-boot` | Chaque ligne de `projects.local.json` porte `boot`, vrai quand le projet démarre avec le serveur ; les lignes d'avant ne le demandaient pas et reçoivent `false`. Une ligne qui répond déjà est laissée telle quelle. |
 | 4 | `runtime-versions` | Un runtime demandait une version, `node_version: "22"` dans `install.json` ; il en demande plusieurs, `node_versions: ["22"]`. Pour `node`, `java`, `python`, `go`, `php`, `ruby` et `rust`, la valeur d'`<outil>_version` devient la liste d'un élément `<outil>_versions`, sauf si la liste est déjà là ; l'ancienne clé part dans tous les cas. Un module absent d'`install.json` n'est pas touché. |
 | 5 | `projects-runtimes` | Chaque ligne de `projects.local.json` porte `runtimes`, la version épinglée par outil ; les lignes d'avant n'en nomment aucune et reçoivent `{}`. Une ligne qui répond déjà est laissée telle quelle. |
+| 6 | `key-signers` | Les clés approuvées par un appareil ([décision 0014](../decisions/0014-cles-approuvees-par-un-appareil.md)) : l'agent ne pose plus une clé que si elle est déjà signataire ou qu'une approbation signée l'admet. Chaque clé du bloc géré de `/home/dev/.ssh/authorized_keys` qui peut signer — ed25519 ou ecdsa sur une courbe NIST, sans option — devient signataire dans `/etc/pupitre/signers.json`, `via: "migration"`, pour que la mise à jour n'enferme personne dehors. Une clé RSA ou tenue par des options n'est pas reprise. Un `signers.json` déjà là, un fichier absent, illisible ou lié hors de `.ssh`, un bloc vide : rien n'est écrit. |

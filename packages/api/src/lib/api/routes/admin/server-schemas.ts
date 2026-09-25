@@ -1,11 +1,14 @@
 import { SuspensionReason } from "@pupitre/db/cloudflare/enums"
+import {
+  ADMIN_SERVER_ACTIONS,
+  SERVER_STATUSES,
+} from "@pupitre/shared/platform-api"
 import { t } from "elysia"
 import { ADMIN_SERVER_SORTS } from "../../../servers/admin"
 import { dateTime } from "../../openapi-models"
 import {
   metricSampleSchema,
   releaseChannelSchema,
-  SERVER_STATUSES,
   serverFields,
 } from "../servers/schemas"
 import {
@@ -32,12 +35,21 @@ const adminServerFields = {
   }),
 }
 
+const allowedServerActionsSchema = t.Array(
+  t.UnionEnum([...ADMIN_SERVER_ACTIONS])
+)
+
 export const adminServerSchema = t.Object(adminServerFields, {
   $id: "AdminServer",
 })
 
+export const adminServerRowSchema = t.Object(
+  { ...adminServerFields, allowed_actions: allowedServerActionsSchema },
+  { $id: "AdminServerRow" }
+)
+
 export const adminServerListSchema = t.Object(
-  { data: t.Array(adminServerSchema), total: t.Integer() },
+  { data: t.Array(adminServerRowSchema), total: t.Integer() },
   { $id: "AdminServerList" }
 )
 
@@ -69,6 +81,7 @@ export const adminServerDetailSchema = t.Object(
     ),
     metrics: t.Array(metricSampleSchema),
     events: t.Array(adminEventSchema),
+    allowed_actions: allowedServerActionsSchema,
   },
   { $id: "AdminServerDetail" }
 )

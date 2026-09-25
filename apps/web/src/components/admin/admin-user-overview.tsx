@@ -1,10 +1,10 @@
+import { isLiveSubscriptionStatus } from "@pupitre/shared/plans"
 import { Link } from "@tanstack/react-router"
 import { MailCheck } from "lucide-react"
-import type { AdminFact } from "@/components/admin/admin-facts"
-import { AdminFacts } from "@/components/admin/admin-facts"
 import { AdminGrantDialog } from "@/components/admin/admin-grant-dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
+import { type Fact, Facts } from "@/components/ui/facts"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { useConfirmMutation } from "@/hooks/use-confirm-mutation"
 import { useTranslations } from "@/hooks/use-locale"
@@ -13,7 +13,7 @@ import {
   resendUserVerification,
 } from "@/lib/api/admin-queries"
 import { queryKeys } from "@/lib/api/queries"
-import { accountLook, subscriptionIsLive } from "@/lib/domain/admin"
+import { accountLook } from "@/lib/domain/admin"
 import { subscriptionStatusLook } from "@/lib/domain/billing"
 import { roleKey } from "@/lib/domain/roles"
 import { formatDateTime, formatRelative } from "@/lib/utils/format"
@@ -48,7 +48,7 @@ export function AdminUserOverview({
     return key ? t(key) : role
   }
 
-  const facts: AdminFact[] = [
+  const facts: Fact[] = [
     { label: t("admin.users.email"), value: detail.email },
     { label: t("admin.users.name"), value: detail.name || t("format.none") },
     {
@@ -130,7 +130,7 @@ export function AdminUserOverview({
           <StatusBadge look={accountLook(detail.state)} />
         </CardHeader>
 
-        <AdminFacts facts={facts} />
+        <Facts facts={facts} />
       </Card>
 
       <Card>
@@ -187,7 +187,9 @@ export function AdminUserOverview({
                     <AdminGrantDialog
                       blocked={
                         organization.subscription_status
-                          ? subscriptionIsLive(organization.subscription_status)
+                          ? isLiveSubscriptionStatus(
+                              organization.subscription_status
+                            )
                           : false
                       }
                       onGranted={onGranted}

@@ -12,11 +12,6 @@ const INSTALL = /^Installer$/;
 const CONFIGURE = /^Continuer avec/;
 const ADOPTED = /Votre organisation a déjà des sauvegardes/;
 
-/**
- * A new server started from the organization's backup, on a computer that
- * has never configured backups: the bucket is given, the organization's key is
- * taken without the passphrase, and the passphrase is asked once, to restore.
- */
 test.describe("onboarding depuis une sauvegarde", () => {
   let running: Running;
 
@@ -38,7 +33,7 @@ test.describe("onboarding depuis une sauvegarde", () => {
     await page.getByRole("tab", { name: "Serveurs" }).click();
     await page.getByRole("button", { name: "Installer Pupitre" }).click();
 
-    await expect(page.getByText("Prête à être installée")).toBeVisible();
+    await expect(page.getByText("Prêt à être installé")).toBeVisible();
     await page.getByRole("button", { name: INSTALL }).first().click();
     await expect(page.getByText("Agent en place")).toBeVisible();
     await page.getByRole("button", { name: "Choisir les services" }).click();
@@ -73,7 +68,7 @@ test.describe("onboarding depuis une sauvegarde", () => {
       await expect(page.locator("#backup-endpoint")).toHaveCount(0);
       await expect(
         page.getByText(
-          "Tapez la phrase de passe des sauvegardes pour repartir d'une sauvegarde."
+          "Tapez la passphrase des sauvegardes pour repartir d'une sauvegarde."
         )
       ).toBeVisible();
     });
@@ -115,7 +110,7 @@ test.describe("onboarding depuis une sauvegarde", () => {
         page.locator('[data-step="data"] [data-current]')
       ).toHaveCount(1);
       await expect(
-        page.getByRole("checkbox", { name: "Base PostgreSQL · flymate" })
+        page.getByRole("checkbox", { name: "Base PostgreSQL · flyleaf" })
       ).toBeChecked();
       await assertAccessible(page, "onboarding/data");
     });

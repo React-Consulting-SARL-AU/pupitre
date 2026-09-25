@@ -10,14 +10,20 @@ import {
   promoteRelease,
 } from "@/lib/api/admin-queries"
 import { queryKeys } from "@/lib/api/queries"
-import { canActOnPlatform } from "@/lib/domain/admin"
+import type { ListSearchHandle } from "@/lib/domain/list-search"
 
-export function AdminReleases() {
+export interface AdminReleasesSearch {
+  offset?: number
+  app_offset?: number
+}
+
+export type AdminReleasesProps = ListSearchHandle<AdminReleasesSearch>
+
+export function AdminReleases({ search, setSearch }: AdminReleasesProps) {
   const t = useTranslations()
-  const { platformRole } = useDashboardContext()
+  const { platformCanAct: canPromote } = useDashboardContext()
   const agent = useQuery(adminReleasesQueryOptions())
   const app = useQuery(adminAppReleasesQueryOptions())
-  const canPromote = canActOnPlatform(platformRole)
 
   const promoteAgent = useOptimisticMutation<string>({
     mutationFn: promoteRelease,
@@ -26,7 +32,7 @@ export function AdminReleases() {
       done: (_data, version) => t("admin.releases.promoted", { version }),
       failed: () => ({
         title: t("admin.releases.promoteFailed"),
-        fix: t("admin.releases.promoteFailedFix"),
+        fix: t("common.retryLater"),
       }),
     },
   })
@@ -37,7 +43,7 @@ export function AdminReleases() {
       done: (_data, version) => t("admin.releases.promoted", { version }),
       failed: () => ({
         title: t("admin.releases.promoteFailed"),
-        fix: t("admin.releases.promoteFailedFix"),
+        fix: t("common.retryLater"),
       }),
     },
   })
@@ -47,6 +53,10 @@ export function AdminReleases() {
       <AdminReleaseList
         builds={agent}
         canPromote={canPromote}
+        offset={search.offset ?? 0}
+        onOffsetChange={(offset) => {
+          setSearch({ offset })
+        }}
         onPromote={(version) => {
           promoteAgent.mutate(version)
         }}
@@ -58,6 +68,10 @@ export function AdminReleases() {
       <AdminReleaseList
         builds={app}
         canPromote={canPromote}
+        offset={search.app_offset ?? 0}
+        onOffsetChange={(offset) => {
+          setSearch({ app_offset: offset })
+        }}
         onPromote={(version) => {
           promoteApp.mutate(version)
         }}

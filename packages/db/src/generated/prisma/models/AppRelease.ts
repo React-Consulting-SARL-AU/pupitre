@@ -562,8 +562,7 @@ export type $AppReleasePayload<ExtArgs extends runtime.Types.Extensions.Internal
     arch: string
     format: string
     /**
-     * Where the artefact sits in the downloads bucket. The platform composes the
-     * address from it: a publication never names a host.
+     * Key in the downloads bucket; the platform builds the URL, so a release never names a host.
      */
     r2Key: string
     bytes: number

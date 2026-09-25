@@ -13,7 +13,7 @@ export interface OrganizationStanding {
   deletionAt: Date | null
 }
 
-/** A ban whose end has passed no longer holds: the account is active again without anybody lifting it. */
+// A ban past its end no longer holds: nobody has to lift it.
 export function isBanned(
   account: Pick<AccountStanding, "banned" | "banExpires">,
   now: Date = new Date()
@@ -56,7 +56,6 @@ export function organizationStateOf(
   return organization.suspendedAt ? "suspended" : "active"
 }
 
-/** The reason that belongs to the state the account holds now, never an older one. */
 export function accountReasonOf(
   account: AccountStanding & {
     banReason: string | null
@@ -78,7 +77,6 @@ export function accountReasonOf(
   return state === "suspended" ? account.banReason : null
 }
 
-/** What the member reads on a state the platform laid down, and nothing else. */
 export function organizationReasonOf(
   organization: OrganizationStanding & {
     suspendedReason: string | null

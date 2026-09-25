@@ -14,7 +14,6 @@ import { type ProfileInput, profileSchema } from "@/lib/schemas/profile"
 
 const SETTINGS_PATH = "/dashboard/settings"
 
-/** What the save actually did, so the confirmation names the right thing. */
 interface Saved {
   addressAsked: boolean
 }
@@ -60,7 +59,7 @@ export function ProfileForm() {
         saved.addressAsked ? t("profile.emailAsked") : t("profile.saved"),
       failed: () => ({
         title: t("profile.failed"),
-        fix: t("profile.failedFix"),
+        fix: t("common.retryLater"),
       }),
     },
   })

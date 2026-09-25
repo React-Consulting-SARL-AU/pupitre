@@ -25,9 +25,7 @@ func (r *Reader) RestartService(id string) (contract.ServiceStatus, error) {
 	return r.drive(id, systemd.Restart)
 }
 
-// The answer is the state the unit is in once systemd has had its say, read
-// again after the action: never the intention. The credentials stay with
-// service.status alone, which is the one command a store never holds.
+// Answers the unit's state re-read after the action; credentials stay with service.status, which no store holds.
 func (r *Reader) drive(id string, act func(sys.Context, string) error) (contract.ServiceStatus, error) {
 	service, err := r.unitOf(id)
 	if err != nil {
@@ -65,7 +63,6 @@ func (r *Reader) ServiceLogs(id string, lines int) ([]string, error) {
 	return logs, nil
 }
 
-// With follow every line travels as an event, the tail included, for as long as a project's follow lasts — or as long as the channel reading it does.
 func (r *Reader) FollowService(channel context.Context, id string, lines int, emit func(string)) error {
 	service, err := r.unitOf(id)
 	if err != nil {
@@ -79,7 +76,7 @@ func (r *Reader) FollowService(channel context.Context, id string, lines int, em
 	return nil
 }
 
-// A module without a unit — core.*, a tool — has nothing to start and nothing to read: the refusal says so, rather than driving an empty name.
+// A module without a unit (core.*, a tool) is refused rather than driving an empty unit name.
 func (r *Reader) unitOf(id string) (contract.ServiceStatus, error) {
 	service, err := r.ServiceStatus(id)
 	if err != nil {

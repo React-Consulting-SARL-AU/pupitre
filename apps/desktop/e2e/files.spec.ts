@@ -4,28 +4,17 @@ import { pickOption } from "./harness/controls";
 import { ANSWERS, FILES } from "./harness/fixtures";
 import { launchPupitre, type Running } from "./harness/launch";
 
-/**
- * The files of a project, walked and edited from its page.
- *
- * The scenario opens the Files tab of a declared project, walks into a
- * folder, opens a text file, changes it and saves it, against a fake tree
- * the harness serves the way the agent would: a listing per folder, a stat
- * per entry, the bytes on `file` events with their receipt, and a write that
- * refuses when the digest is not the one it last gave.
- */
-const FLYMATE_CARD = /^flymate-api/;
+const FLYLEAF_CARD = /^flyleaf-api/;
 const SAVED = /^Enregistré /;
 const DIGEST = /^[0-9a-f]{64}$/;
 const BLOB_URL = /^blob:/;
 
-/** What the harness kept of the writes the window sent. */
 interface Written {
   path: string;
   sha256?: string;
   text: string;
 }
 
-/** What the harness kept of the folders the window asked for. */
 type Made = string[];
 
 async function themed(page: Page, theme: "light" | "dark"): Promise<void> {
@@ -42,9 +31,9 @@ async function themed(page: Page, theme: "light" | "dark"): Promise<void> {
 
 async function openFiles(page: Page): Promise<void> {
   await page.getByRole("button", { name: "Tableau de bord" }).click();
-  await page.getByRole("button", { name: FLYMATE_CARD }).first().click();
+  await page.getByRole("button", { name: FLYLEAF_CARD }).first().click();
   await expect(
-    page.getByRole("heading", { name: "flymate-api" })
+    page.getByRole("heading", { name: "flyleaf-api" })
   ).toBeVisible();
 
   await page.getByRole("tab", { exact: true, name: "Fichiers" }).click();
@@ -68,6 +57,7 @@ test.describe("les fichiers d'un projet", () => {
           snapshotReads?: number;
           written?: Written[];
         };
+
         kept.made = [];
         kept.written = [];
 
@@ -149,7 +139,7 @@ test.describe("les fichiers d'un projet", () => {
             command: "dev",
             path: "",
             paths: [],
-            projects: ["flymate-api"],
+            projects: ["flyleaf-api"],
             root: tree.root,
             sub: [],
           },
@@ -339,7 +329,7 @@ test.describe("les fichiers d'un projet", () => {
 
       await expect(page.locator("[data-files-root]")).toHaveAttribute(
         "data-files-root",
-        "projects/flymate"
+        "projects/flyleaf"
       );
       await expect(page.locator('[data-entry="src"]')).toBeVisible();
       await expect(page.locator('[data-entry="README.md"]')).toBeVisible();
@@ -373,14 +363,16 @@ test.describe("les fichiers d'un projet", () => {
       await page.locator('[data-entry="README.md"] button').first().click();
 
       const rendered = page.locator('[data-rendered="markdown"]');
+
       await expect(rendered).toBeVisible();
       await expect(
-        rendered.getByRole("heading", { name: "Flymate" })
+        rendered.getByRole("heading", { name: "Flyleaf" })
       ).toBeVisible();
       await expect(rendered.getByRole("cell", { name: "3000" })).toBeVisible();
       await expect(page.locator(".cm-content")).toHaveCount(0);
 
       const views = page.getByRole("group", { name: "Vue" });
+
       await expect(
         views.getByRole("button", { name: "Rendu" })
       ).toHaveAttribute("aria-pressed", "true");
@@ -389,7 +381,7 @@ test.describe("les fichiers d'un projet", () => {
 
       await views.getByRole("button", { name: "Code" }).click();
       await expect(rendered).toHaveCount(0);
-      await expect(page.locator(".cm-content")).toContainText("# Flymate");
+      await expect(page.locator(".cm-content")).toContainText("# Flyleaf");
 
       await page.locator(".cm-content").click();
       await page.keyboard.press("ControlOrMeta+End");
@@ -413,6 +405,7 @@ test.describe("les fichiers d'un projet", () => {
       await page.locator('[data-entry="logo.svg"] button').first().click();
 
       const image = page.getByRole("img", { name: "Image logo.svg" });
+
       await expect(image).toBeVisible();
       await expect(image).toHaveAttribute("src", BLOB_URL);
       await expect
@@ -436,6 +429,7 @@ test.describe("les fichiers d'un projet", () => {
       await page.getByRole("button", { name: "Nouveau dossier" }).click();
 
       const dialog = page.getByRole("dialog", { name: "Nouveau dossier" });
+
       await expect(dialog).toBeVisible();
       await expect(dialog.getByLabel("Nom")).toBeFocused();
 
@@ -451,7 +445,7 @@ test.describe("les fichiers d'un projet", () => {
         () => (globalThis as { made?: Made }).made ?? []
       );
 
-      expect(made).toEqual(["projects/flymate/docs"]);
+      expect(made).toEqual(["projects/flyleaf/docs"]);
     });
 
     await test.step("descendre dans un dossier suit le fil d'Ariane", async () => {
@@ -484,6 +478,7 @@ test.describe("les fichiers d'un projet", () => {
       const panel = page.getByRole("search", { name: "Rechercher" });
       const field = panel.getByRole("textbox", { name: "Rechercher" });
       const count = panel.getByRole("status");
+
       await expect(field).toBeFocused();
 
       await field.fill("export");
@@ -540,7 +535,7 @@ test.describe("les fichiers d'un projet", () => {
       );
 
       expect(written).toHaveLength(1);
-      expect(written[0]?.path).toBe("projects/flymate/src/index.ts");
+      expect(written[0]?.path).toBe("projects/flyleaf/src/index.ts");
       expect(written[0]?.sha256).toMatch(DIGEST);
       expect(written[0]?.text).toContain("export const debug = true;");
       expect(written[0]?.text).toContain("export const host = 'y';");
@@ -567,6 +562,7 @@ test.describe("les fichiers d'un projet", () => {
       await page.getByRole("button", { name: "Nouveau fichier" }).click();
 
       const dialog = page.getByRole("dialog", { name: "Nouveau fichier" });
+
       await expect(dialog).toBeVisible();
       await expect(dialog.getByLabel("Nom")).toBeFocused();
 
@@ -586,26 +582,31 @@ test.describe("les fichiers d'un projet", () => {
 
       expect(written).toHaveLength(3);
       expect(written[2]).toEqual({
-        path: "projects/flymate/src/notes.md",
+        path: "projects/flyleaf/src/notes.md",
         sha256: undefined,
         text: "",
       });
     });
 
-    await test.step("un nom déjà pris est refusé sous l'en-tête, et le fichier ouvert reste", async () => {
+    await test.step("un nom déjà pris est refusé sous le champ, le dialogue reste, et le fichier ouvert aussi", async () => {
       await page.getByRole("button", { name: "Nouveau fichier" }).click();
-      await page
-        .getByRole("dialog", { name: "Nouveau fichier" })
-        .getByLabel("Nom")
-        .fill("index.ts");
+
+      const dialog = page.getByRole("dialog", { name: "Nouveau fichier" });
+
+      await dialog.getByLabel("Nom").fill("index.ts");
       await page.keyboard.press("Enter");
 
       await expect(
-        page.getByText("entrée déjà présente : projects/flymate/src/index.ts")
+        dialog.getByText("entrée déjà présente : projects/flyleaf/src/index.ts")
       ).toBeVisible();
+      await expect(dialog.getByLabel("Nom")).toHaveAttribute(
+        "aria-invalid",
+        "true"
+      );
       await expect(page.getByLabel("Fichier notes.md")).toBeVisible();
 
-      await page.getByRole("button", { name: "Masquer" }).click();
+      await dialog.getByRole("button", { name: "Annuler" }).click();
+      await expect(dialog).toHaveCount(0);
     });
 
     await test.step("l'écran tient la passe d'accessibilité et le texte sélectionné garde sa couleur, dans les deux thèmes", async () => {

@@ -1,6 +1,6 @@
 export interface SpinnerProps {
   size?: number
-  /** Absent means the wait is already written next to it. */
+  // Omit when a visible label already describes the wait.
   label?: string
 }
 

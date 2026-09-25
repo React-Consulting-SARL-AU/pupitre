@@ -1,21 +1,11 @@
 import { useSyncExternalStore } from "react";
 
-/**
- * What a living terminal says about itself, for the bar under it.
- *
- * xterm is outside React, and so is this: the registry writes here as the
- * session resizes, scrolls and announces its folder, and the bar reads it
- * through a subscription rather than through a store that would be rewritten
- * on every keystroke.
- */
+/** Kept outside React like xterm itself, so keystroke-rate updates never rewrite a store. */
 export interface TerminalStatus {
   cols: number;
   rows: number;
-  /** The last line is in view: nothing has scrolled out of sight below. */
   atBottom: boolean;
-  /** The folder the shell announced, when it announces one. */
   dir: string | null;
-  /** Where the open search stands, when one is open. */
   matches: { index: number; count: number } | null;
 }
 

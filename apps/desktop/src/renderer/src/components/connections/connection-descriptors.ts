@@ -1,24 +1,17 @@
 import type { ConnectionKind } from "@shared/connections";
 import type { DictionaryKey } from "../../i18n/en";
 
-/**
- * What each account needs said, and where the client goes to get its token.
- *
- * The wording lives in the dictionary like every other phrase; this only names
- * which entry belongs to which provider, and the one page that issues a token.
- * A provider the laptop cannot ask carries `named: false`: the screen then says
- * the token is held rather than naming an account it never learnt.
- */
 export interface ConnectionDescriptor {
   kind: ConnectionKind;
-  /** The module whose brand this account wears, for the logo the row shows. */
+  /** The module id whose logo stands for this account. */
   logo: string;
   title: DictionaryKey;
-  intro: DictionaryKey;
+  intro?: DictionaryKey;
   label: DictionaryKey;
   help: DictionaryKey;
   hint: DictionaryKey;
   url: string;
+  /** False when the provider cannot be asked who the token belongs to. */
   named: boolean;
 }
 
@@ -68,7 +61,6 @@ export const CONNECTIONS: readonly ConnectionDescriptor[] = [
     url: "https://developer.1password.com/docs/service-accounts/get-started",
   },
   {
-    intro: "connections.neon.intro",
     kind: "neon",
     logo: "tool.neon",
     named: true,
@@ -79,7 +71,6 @@ export const CONNECTIONS: readonly ConnectionDescriptor[] = [
     url: "https://console.neon.tech/app/settings/api-keys",
   },
   {
-    intro: "connections.vercel.intro",
     kind: "vercel",
     logo: "tool.vercel",
     named: true,
@@ -90,7 +81,6 @@ export const CONNECTIONS: readonly ConnectionDescriptor[] = [
     url: "https://vercel.com/account/settings/tokens",
   },
   {
-    intro: "connections.supabase.intro",
     kind: "supabase",
     logo: "tool.supabase",
     named: true,
@@ -101,7 +91,6 @@ export const CONNECTIONS: readonly ConnectionDescriptor[] = [
     url: "https://supabase.com/dashboard/account/tokens",
   },
   {
-    intro: "connections.stripe.intro",
     kind: "stripe",
     logo: "tool.stripe",
     named: true,

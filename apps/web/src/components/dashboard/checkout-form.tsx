@@ -1,4 +1,9 @@
-import { formatUsd, TRIAL_DAYS, TRIAL_SEATS } from "@pupitre/shared/plans"
+import {
+  BILLING_INTERVALS,
+  formatUsd,
+  TRIAL_DAYS,
+  TRIAL_SEATS,
+} from "@pupitre/shared/plans"
 import { useMutation } from "@tanstack/react-query"
 import { ShoppingCart } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -14,7 +19,6 @@ import { startCheckout } from "@/lib/api/queries"
 import { leaveFor } from "@/lib/config/urls"
 import {
   amountUsd,
-  BILLING_INTERVALS,
   type BillingIntervalName,
   INTERVAL_KEYS,
   SEAT_PRICE_USD_PER_MONTH,
@@ -31,7 +35,7 @@ export interface CheckoutFormProps {
   organizationId: string
   defaultQuantity: number
   defaultInterval?: BillingIntervalName
-  /** An organization that never subscribed gets the trial: one machine, and the count is not its to choose. */
+  // A first checkout is the trial: one machine, no quantity to choose.
   firstCheckout?: boolean
 }
 
@@ -119,9 +123,7 @@ export function CheckoutForm({
             </div>
 
             <p className="flex flex-col gap-1">
-              <span className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-                {t("checkout.total")}
-              </span>
+              <span className="text-label">{t("checkout.total")}</span>
               <span className="font-data text-[12px] text-ink tabular-nums">
                 {formatUsd(amountUsd(total, interval))}
                 <span className="text-ink-3">

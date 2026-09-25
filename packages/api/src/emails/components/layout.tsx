@@ -13,12 +13,7 @@ import { consoleUrl, EMAIL_DOMAIN } from "../config"
 import type { EmailTranslator } from "../i18n"
 import { theme } from "../theme"
 
-/**
- * Gmail drops a whole `style` attribute at the first declaration it cannot
- * parse, so nothing here goes beyond what every client reads: no shadow, no
- * modern colour syntax. The width is both an attribute, for the clients that
- * ignore `max-width`, and a style, for the ones that shrink on a phone.
- */
+// Gmail drops a whole `style` at its first unknown declaration; width is also an attribute for clients ignoring `max-width`.
 const OUTER: React.CSSProperties = {
   maxWidth: `${theme.width}px`,
   width: "100%",

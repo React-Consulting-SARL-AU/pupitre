@@ -7,6 +7,7 @@
     "./alerts/evaluate": "./src/lib/alerts/alerts.ts",
     "./auth-context": "./src/lib/api/plugins/auth.ts",
     "./billing/admin": "./src/lib/billing/admin.ts",
+    "./billing/expiry": "./src/lib/billing/expiry.ts",
     "./billing/grace": "./src/lib/billing/grace.ts",
     "./billing/launch": "./src/lib/billing/launch.ts",
     "./billing/reconcile": "./src/lib/billing/reconcile.ts",
@@ -15,7 +16,9 @@
     "./mail/mailboxes": "./src/lib/mail/mailboxes.ts",
     "./mail/realtime": "./src/lib/mail/realtime.ts",
     "./mail/uploads": "./src/lib/mail/uploads.ts",
+    "./origin": "./src/lib/api/origin.ts",
     "./platform/purge": "./src/lib/platform/purge.ts",
+    "./platform/retention": "./src/lib/platform/retention.ts",
     "./rate-limit": "./src/lib/api/rate-limit.ts",
     "./server": "./src/server.ts",
     "./servers/expire": "./src/lib/servers/expire.ts",
@@ -42,19 +45,18 @@
     "@sinclair/typebox": "^0.34.50",
     "elysia": "^1.4.29",
     "postal-mime": "^3.0.0",
-    "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react": "catalog:",
+    "react-dom": "catalog:"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "5.20260708.1",
+    "@cloudflare/workers-types": "catalog:",
     "@libsql/client": "^0.15.15",
     "@prisma/adapter-libsql": "^7.9.1",
-    "@types/bun": "^1.4.0",
-    "@types/node": "^26.2.0",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.7",
-    "@typescript/native-preview": "^7.0.0-dev.20260707.2",
-    "typescript": "^6.0.3",
-    "ultracite": "7.8.3"
+    "@types/bun": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@typescript/native-preview": "catalog:",
+    "typescript": "catalog:",
+    "ultracite": "catalog:"
   }
 }

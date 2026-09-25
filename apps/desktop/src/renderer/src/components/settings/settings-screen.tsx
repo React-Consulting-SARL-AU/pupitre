@@ -38,33 +38,21 @@ const SECTIONS: readonly SettingsSection[] = [
   "about",
 ];
 
-/**
- * The settings, reachable from inside the app and from in front of it.
- *
- * The panes stand in a column on the left, the one open on the right: nine
- * words in a row read as a menu bar, nine in a column read as a table of
- * contents. In the shell the sidebar is the way back, and there is nothing
- * to add. Opened on its own — from the sign-in, or from a server that does
- * not answer — it is the whole window, and then it carries its own way out:
- * without one the reader repairs their account and stays stuck on the screen
- * that repaired it.
- */
 export function SettingsScreen({
   onChanged,
   onBack,
   openAt = "servers",
 }: {
   onChanged: () => void;
+  /** Only when opened outside the shell, which has no sidebar to leave by. */
   onBack?: () => void;
-  /** The pane to land on, for a screen that sent the reader here to repair something. */
   openAt?: SettingsSection;
 }) {
   const t = useTranslations();
 
   const [section, setSection] = useState<SettingsSection>(openAt);
 
-  // Below the band rather than in it: the band's two corners belong to the
-  // window's own buttons, and this screen reaches both of them.
+  // Not in the band: its corners belong to the window's own buttons.
   const back = onBack ? (
     <Button icon={ArrowLeft} onClick={onBack} variant="discreet">
       {t("settings.back")}
@@ -112,11 +100,7 @@ export function SettingsScreen({
 
               {section === "about" ? <SettingsAbout /> : null}
 
-              {/*
-              The servers panel keeps its state while another pane is up: it
-              holds a key being generated and a line to paste, and unmounting
-              it would ask for both again.
-            */}
+              {/* Hidden, not unmounted: it holds a key being generated and a line to paste. */}
               <div hidden={section !== "servers"}>
                 <ServersPanel onChanged={onChanged} />
               </div>

@@ -1,22 +1,12 @@
 import { expect, test } from "@playwright/test";
 import { launchPupitre, type Running } from "./harness/launch";
 
-/**
- * The mouse in a session.
- *
- * tmux asks for the mouse on every session, and the agents under it do too:
- * a press must reach them, otherwise no pane can be picked and nothing in
- * Claude Code answers a click. Option on macOS, Shift elsewhere, keeps a drag
- * for the terminal's own selection. And what tmux copies, announced with
- * OSC 52, must land in the clipboard here. `terminal-open` is answered by the
- * harness; what the terminal would send the PTY is caught on `terminal-write`.
- */
-const FLYMATE_CARD = /^flymate-api/;
+const FLYLEAF_CARD = /^flyleaf-api/;
 const SELECT_MODIFIER = process.platform === "darwin" ? "Alt" : "Shift";
 const ESC = "\x1b";
 const MOUSE_ON = `${ESC}[?1000h${ESC}[?1006h`;
 const COPIED_BY_TMUX = "copié dans tmux";
-/** An SGR press then its release, ESC written `^[` the way a terminal shows it. */
+// An SGR press then its release, with ESC shown as `^[` by written().
 const CLICK_REPORTED = /\^\[\[<0;\d+;\d+M\^\[\[<0;\d+;\d+m/;
 const ANY_REPORT = /\^\[\[</;
 
@@ -33,7 +23,7 @@ test.describe("la souris dans une session", () => {
       ipcMain.removeHandler("terminal-open");
       ipcMain.handle("terminal-open", () => ({
         ok: true,
-        result: { session: "flymate-api" },
+        result: { session: "flyleaf-api" },
       }));
       ipcMain.on("terminal-write", (_event, _id: unknown, data: unknown) => {
         if (typeof data === "string") {
@@ -69,9 +59,9 @@ test.describe("la souris dans une session", () => {
   test("un clic part au programme, une touche le garde pour la sélection, une copie de tmux arrive", async () => {
     const { page } = running;
 
-    await page.getByRole("button", { name: FLYMATE_CARD }).first().click();
+    await page.getByRole("button", { name: FLYLEAF_CARD }).first().click();
     await expect(
-      page.getByRole("heading", { name: "flymate-api" })
+      page.getByRole("heading", { name: "flyleaf-api" })
     ).toBeVisible();
     await running.app.evaluate(({ BrowserWindow }) => {
       for (const window of BrowserWindow.getAllWindows()) {

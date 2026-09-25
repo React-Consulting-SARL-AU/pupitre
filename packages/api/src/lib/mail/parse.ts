@@ -1,4 +1,5 @@
 import PostalMime, { type Address, type Email } from "postal-mime"
+import { isAuthenticatedSender } from "./authentication"
 import { stripAngles } from "./normalize"
 
 export interface ParsedAttachment {
@@ -20,6 +21,7 @@ export interface ParsedEmail {
   inReplyTo: string | null
   references: string | null
   automated: boolean
+  authenticated: boolean
   attachments: ParsedAttachment[]
 }
 
@@ -33,7 +35,7 @@ const PATH_SEPARATOR_RE = /[/\\]/
 
 const EDGE_UNDERSCORES_RE = /^_+|_+$/g
 
-const DEFAULT_ATTACHMENT_NAME = "piece-jointe"
+const DEFAULT_ATTACHMENT_NAME = "attachment"
 
 const DEFAULT_MIME_TYPE = "application/octet-stream"
 
@@ -117,11 +119,7 @@ function attachmentsOf(email: Email): ParsedAttachment[] {
   })
 }
 
-/**
- * `null` when the message cannot be read at all: the envelope still deserves a
- * row and the raw bytes still deserve a key, rather than a mail lost in a retry
- * loop over something no parser will ever accept.
- */
+/** `null` when unreadable, so the delivery is still stored instead of retried forever. */
 export async function parseEmail(
   raw: ArrayBuffer
 ): Promise<ParsedEmail | null> {
@@ -134,10 +132,11 @@ export async function parseEmail(
   }
 
   const from = mailboxes(email.from ? [email.from] : undefined)[0]
+  const fromEmail = from?.address?.trim().toLowerCase() || null
 
   return {
     subject: email.subject?.trim() || null,
-    fromEmail: from?.address?.trim().toLowerCase() ?? null,
+    fromEmail,
     fromName: from?.name?.trim() || null,
     to: emailsOf(email.to),
     cc: emailsOf(email.cc),
@@ -147,6 +146,7 @@ export async function parseEmail(
     inReplyTo: email.inReplyTo ? stripAngles(email.inReplyTo) : null,
     references: email.references?.trim() || null,
     automated: isAutomated(email),
+    authenticated: isAuthenticatedSender(email.headers, fromEmail),
     attachments: attachmentsOf(email),
   }
 }

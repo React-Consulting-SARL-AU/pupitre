@@ -7,13 +7,6 @@ import { controlClass } from "../ui/field";
 import { IconButton } from "../ui/icon-button";
 import { ConfigSecretField } from "./config-secret-field";
 
-/**
- * A list of values of one kind, within the bounds the manifest set.
- *
- * A list of `secret` items is a list of secret fields: each element goes to the
- * main process under `<key>.<index>` and never comes back, exactly like a lone
- * secret.
- */
 export function ConfigListField({
   moduleId,
   field,
@@ -26,7 +19,6 @@ export function ConfigListField({
   moduleId: string;
   field: ListField;
   values: readonly string[];
-  /** Whether the list is refused: its rows are bordered and said to be invalid. */
   wrong?: boolean;
   marks?: Record<string, SecretMark>;
   onChange?: (next: string[]) => void;
@@ -42,12 +34,14 @@ export function ConfigListField({
   function replace(index: number, value: string) {
     const next = [...items];
     next[index] = value;
+
     onChange?.(next);
   }
 
   return (
     <div className="flex flex-col gap-2">
       {items.map((value, index) => {
+        // A secret item goes to the main process under `<key>.<index>` and never comes back.
         const key = itemKey(field.key, index);
         const name = `${moduleId}.${key}`;
 
@@ -103,7 +97,7 @@ export function ConfigListField({
           </Button>
         ) : null}
 
-        <span className="font-data text-[11px] text-ink-3 tabular-nums">
+        <span className="font-data text-caption text-ink-3 tabular-nums">
           {least > 0
             ? t("config.list.between", { min: least, max: field.max ?? "n" })
             : t("config.list.upTo", { max: field.max ?? "n" })}

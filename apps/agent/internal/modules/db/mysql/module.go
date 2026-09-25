@@ -3,6 +3,7 @@ package mysql
 import (
 	"errors"
 	"fmt"
+	"io"
 	"regexp"
 	"strconv"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	"pupitre.studio/agent/internal/sys/apt"
 	"pupitre.studio/agent/internal/sys/env"
 	"pupitre.studio/agent/internal/sys/file"
+	"pupitre.studio/agent/internal/sys/host"
 	"pupitre.studio/agent/internal/sys/systemd"
 )
 
@@ -41,13 +43,13 @@ const (
 	loopback        = "127.0.0.1"
 	defaultDatabase = "mysql"
 
-	meminfoPath   = "/proc/meminfo"
 	poolDivisor   = 4
 	minPoolMB     = 128
 	maxPoolMB     = 8192
 	fallbackRAMKB = 2 * 1024 * 1024
 )
 
+// skip_name_resolve: a TCP connection from 127.0.0.1 resolved to "localhost" would land on the socket-only account.
 const configTemplate = `[mysqld]
 bind-address                   = 127.0.0.1
 port                           = %d
@@ -62,7 +64,6 @@ skip_name_resolve              = ON
 
 var accountPattern = regexp.MustCompile(`^[a-z][a-z0-9_]{0,31}$`)
 
-// A TCP connection from 127.0.0.1 resolved to "localhost" would land on the socket-only account; skip_name_resolve keeps the two apart.
 const mysqlxOff = "mysqlx                         = 0\n"
 
 type Module struct{}
@@ -75,14 +76,11 @@ func (Module) Manifest() contract.Manifest {
 	return manifest()
 }
 
-// A port another program already holds, and an engine other than the one
-// running, are what this configuration cannot know from the manifest alone.
 func (Module) Preflight(ctx *modules.Context) []contract.FieldProblem {
 	return modules.Problems(modules.PortTaken(ctx, "port"), engineChanged(ctx))
 }
 
-// The engine installed decides the configuration whatever the form says: a
-// switch that would be ignored in silence is refused where the form can read it.
+// The installed engine wins whatever the form says, so a switch is refused rather than silently ignored.
 func engineChanged(ctx *modules.Context) *contract.FieldProblem {
 	installed := installedPackage(ctx)
 	if ctx.Held("engine") == nil || installed == "" {
@@ -152,8 +150,7 @@ func (m Module) Configure(ctx *modules.Context) error {
 		return err
 	}
 
-	// The accounts hold the new passwords before the env does: a replay after a
-	// crash in between finds them rotated and alters the accounts again.
+	// The accounts take the new passwords before the env does, so a replay after a crash alters them again.
 	if err := createAccounts(ctx, passwordsChanged(ctx)); err != nil {
 		return err
 	}
@@ -219,6 +216,7 @@ func passwordsChanged(ctx *modules.Context) bool {
 func storePasswords(ctx *modules.Context) error {
 	return ctx.Step("store-passwords", func() (modules.Outcome, error) {
 		stored := false
+
 		for key, secret := range passwordKeys {
 			changed, err := env.Set(ctx, key, ctx.Secret(secret))
 			if err != nil {
@@ -236,7 +234,7 @@ func storePasswords(ctx *modules.Context) error {
 	})
 }
 
-// The passwords travel on the standard input: an argv would show them in ps, and the journal only ever sees "mysql".
+// The passwords go on stdin: an argv would show them in ps and in the journal.
 func createAccounts(ctx *modules.Context, rotated bool) error {
 	return ctx.Step("create-accounts", func() (modules.Outcome, error) {
 		if !rotated && accountsExist(ctx) {
@@ -301,7 +299,7 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// The data directory and the dumps belong to the client: uninstalling gives back the package, the configuration and the two keys.
+// The data directory and the dumps belong to the client, and stay.
 func (Module) Uninstall(ctx *modules.Context) error {
 	unit := unitOf(ctx)
 
@@ -343,6 +341,7 @@ func (Module) Uninstall(ctx *modules.Context) error {
 
 	return ctx.Step("forget-passwords", func() (modules.Outcome, error) {
 		forgotten := false
+
 		for _, key := range []string{appPasswordKey, remotePasswordKey} {
 			removed, err := env.Unset(ctx, key)
 			if err != nil {
@@ -398,22 +397,16 @@ func Dump(ctx *modules.Context, name string) (string, int64, error) {
 		return "", 0, err
 	}
 
-	path, err := dumps.Target(ctx, database(name), ".sql")
-	if err != nil {
-		return "", 0, err
-	}
-
 	argv := []string{
 		"mysqldump", "--protocol=socket", "--single-transaction", "--routines", "--events",
-		"--default-character-set=utf8mb4", "--result-file=" + path, database(name),
-	}
-	if _, err := sys.Exec(ctx, sys.Command{Argv: argv}); err != nil {
-		return "", 0, err
+		"--default-character-set=utf8mb4", database(name),
 	}
 
-	size, err := dumps.Written(ctx, path)
+	return dumps.Write(ctx, database(name), ".sql", func(out io.Writer) error {
+		_, err := sys.Exec(ctx, sys.Command{Argv: argv, Output: out})
 
-	return path, size, err
+		return err
+	})
 }
 
 func Import(ctx *modules.Context, name string) ([]string, error) {
@@ -448,7 +441,7 @@ func remoteAccount(ctx *modules.Context) string {
 	return accountOr(ctx, "remote_user", defaultRemoteAccount)
 }
 
-// An account name reaches SQL as an identifier, so it is held to what MySQL accepts and nothing else.
+// An account name reaches SQL as an identifier, hence the strict pattern.
 func accountOr(ctx *modules.Context, key, fallback string) string {
 	chosen := strings.TrimSpace(ctx.String(key))
 	if chosen == "" || !accountPattern.MatchString(chosen) {
@@ -458,7 +451,7 @@ func accountOr(ctx *modules.Context, key, fallback string) string {
 	return chosen
 }
 
-// A pool sized above the machine gets the engine killed by the memory guard, which reads as a database that will not start.
+// A pool above the machine's RAM gets the engine killed by the memory guard, which reads as a database that won't start.
 func bufferPool(ctx *modules.Context) string {
 	if chosen := strings.TrimSpace(ctx.String("buffer_pool")); chosen != "" {
 		return chosen
@@ -477,20 +470,8 @@ func bufferPool(ctx *modules.Context) string {
 }
 
 func totalKB(ctx *modules.Context) int {
-	raw, err := file.Read(ctx, meminfoPath)
-	if err != nil {
-		return fallbackRAMKB
-	}
-
-	for _, line := range strings.Split(string(raw), "\n") {
-		fields := strings.Fields(line)
-		if len(fields) < 2 || fields[0] != "MemTotal:" {
-			continue
-		}
-
-		if kb, err := strconv.Atoi(fields[1]); err == nil {
-			return kb
-		}
+	if kb, known := host.MemTotalKB(ctx); known {
+		return kb
 	}
 
 	return fallbackRAMKB
@@ -548,6 +529,7 @@ func packages(engine string) (chosen, fallback string) {
 
 func accountsExist(ctx *modules.Context) bool {
 	query := fmt.Sprintf("SELECT COUNT(*) FROM mysql.user WHERE host = '%s' AND user IN ('%s', '%s')", loopback, appAccount(ctx), remoteAccount(ctx))
+
 	out, err := sys.Exec(ctx, sys.Command{Argv: []string{"mysql", "--protocol=socket", "-N", "-B", "-e", query}})
 
 	return err == nil && strings.TrimSpace(out.Stdout) == "2"
@@ -562,10 +544,11 @@ func renderConfig(engine string, port int, pool string) []byte {
 	return []byte(content)
 }
 
-// root@localhost stays on socket authentication: that is what makes `sudo mysql`, db.shell and the dump imports work without a password.
-// MariaDB has no IDENTIFIED WITH … BY: its IDENTIFIED BY is the native plugin, which is what the application account needs.
+// root@localhost stays on socket auth, which is what lets `sudo mysql`, db.shell and dump imports skip the password.
 func renderAccounts(engine, appAccount, remoteAccount, app, remote string) string {
 	identified := "IDENTIFIED WITH caching_sha2_password BY"
+
+	// MariaDB has no IDENTIFIED WITH … BY; its IDENTIFIED BY is the native plugin the app account needs.
 	if engine == mariadbEngine {
 		identified = "IDENTIFIED BY"
 	}

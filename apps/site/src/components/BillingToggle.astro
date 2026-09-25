@@ -22,7 +22,7 @@ const { billing } = pricingContent(locale)
         />
         <span>{billing[interval]}</span>
         {interval === "year" && (
-          <span class="text-ink-4 group-has-checked:text-inverse-ink/70">
+          <span class="text-ink-3 group-has-checked:text-inverse-ink/70">
             {fill(billing.yearNote, { months: ANNUAL_FREE_MONTHS })}
           </span>
         )}

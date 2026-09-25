@@ -25,7 +25,7 @@ func newContext(t *testing.T, fake *modtest.FakeSys) *modules.Context {
 	})
 }
 
-// Every fake machine holds the same binary at the same date, so what one test learnt of it must not serve the next.
+// Every fake machine has the same binary stamp, so the version cache must not carry over between tests.
 func machine() *modtest.FakeSys {
 	known.Lock()
 	known.stamp = ""
@@ -45,6 +45,7 @@ func run(t *testing.T, ctx *modules.Context) {
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -52,6 +53,7 @@ func run(t *testing.T, ctx *modules.Context) {
 
 func statuses(ctx *modules.Context) map[string]contract.StepStatus {
 	result := map[string]contract.StepStatus{}
+
 	for _, event := range ctx.Events() {
 		result[event.Step] = event.Status
 	}
@@ -94,6 +96,7 @@ func TestTheCliLandsAndTheKeyIsStored(t *testing.T) {
 
 func versionAsked(fake *modtest.FakeSys) int {
 	asked := 0
+
 	for _, command := range fake.Commands() {
 		if command == BinaryPath+" --version" {
 			asked++
@@ -128,12 +131,12 @@ func TestTheVersionIsAskedOncePerBinary(t *testing.T) {
 	}
 }
 
-// The module poses a CLI and authenticates it; what the client does with his account is not its business.
 func TestNoStepTalksToTheNeonConsole(t *testing.T) {
 	fake := machine()
 	ctx := newContext(t, fake)
 
 	run(t, ctx)
+
 	if err := (Module{}).Upgrade(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -145,7 +148,6 @@ func TestNoStepTalksToTheNeonConsole(t *testing.T) {
 	}
 }
 
-// The CLI runs in the dev shell, so the key must reach that shell: root's env file alone leaves `neon me` asking for a browser login.
 func TestTheKeyReachesTheDevShell(t *testing.T) {
 	fake := machine()
 	ctx := newContext(t, fake)
@@ -192,7 +194,6 @@ func TestReplayOnAnEquippedMachineChangesNothing(t *testing.T) {
 	}
 }
 
-// A server equipped by an earlier version carries connection strings the module no longer writes: they go too.
 func TestUninstallForgetsEveryNeonKey(t *testing.T) {
 	fake := machine()
 	ctx := newContext(t, fake)
@@ -230,8 +231,6 @@ func TestUninstallForgetsEveryNeonKey(t *testing.T) {
 	}
 }
 
-// The engine refuses a configuration before the first step, so the module never
-// sees a missing secret. What this module owes is the declaration it is refused on.
 func TestTheSecretIsRequiredByTheContract(t *testing.T) {
 	held := func(string, string) []string { return nil }
 
@@ -257,7 +256,6 @@ func TestTheSecretIsRequiredByTheContract(t *testing.T) {
 
 var _ modules.Module = Module{}
 
-// Without a key neonctl opens a sign-in in a browser and waits for it: the check never runs the CLI on such a machine.
 func TestLoginNeverAsksNeonctlWithoutAKey(t *testing.T) {
 	fake := machine()
 
@@ -273,7 +271,6 @@ func TestLoginNeverAsksNeonctlWithoutAKey(t *testing.T) {
 	}
 }
 
-// The key travels in the CLI's environment, never on its command line, and the account is what neonctl answers.
 func TestLoginAsksNeonctlWithTheKeyTheMachineHolds(t *testing.T) {
 	cases := map[string]struct {
 		answer  string
@@ -295,6 +292,7 @@ func TestLoginAsksNeonctlWithTheKeyTheMachineHolds(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			fake := machine()
 			fake.Files[env.Path] = []byte(keyKey + "=" + key + "\n")
+
 			if tc.refused {
 				fake.Refuse("neon me", tc.answer)
 			} else {
@@ -318,7 +316,6 @@ func TestLoginAsksNeonctlWithTheKeyTheMachineHolds(t *testing.T) {
 	}
 }
 
-// GitHub computes a digest for every asset of a release: a binary that does not match it never reaches /usr/local/bin.
 func TestABinaryWhoseDigestDiffersIsRefused(t *testing.T) {
 	fake := machine()
 	fake.Answer("api.github.com/repos/neondatabase/neonctl/releases/tags/v2.27.0", `{"assets":[{"name":"neonctl-linux-`+nodeArch()+`","digest":"sha256:`+strings.Repeat("0", 64)+`"}]}`)
@@ -333,7 +330,6 @@ func TestABinaryWhoseDigestDiffersIsRefused(t *testing.T) {
 	}
 }
 
-// The upgrade asks the release index for the version, not the network for the whole binary, and fetches only a newer one.
 func TestUpgradeFetchesOnlyANewerRelease(t *testing.T) {
 	fake := machine()
 	run(t, newContext(t, fake))

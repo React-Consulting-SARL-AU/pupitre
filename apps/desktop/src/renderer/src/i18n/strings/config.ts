@@ -33,7 +33,7 @@ export const config = {
     "config.problem.format.hostname":
       "A hostname is expected, with no space and no slash.",
     "config.problem.format.domain":
-      "A domain is expected, like flymate.dev, with no scheme and no slash.",
+      "A domain is expected, like flyleaf.dev, with no scheme and no slash.",
     "config.problem.format.email": "An email address is expected.",
     "config.problem.format.identifier":
       "An identifier is expected: lower case, digits and underscores, starting with a letter.",
@@ -46,17 +46,18 @@ export const config = {
     "config.index.label": "The chosen services",
     "config.remaining.one": "One field is still waiting.",
     "config.remaining.other": "{count} fields are still waiting.",
-    "config.remaining.goTo": "Go to the first",
+    "config.remaining.goTo": "Go to the first field to fill",
     "config.checking": "Checking with the server…",
     "config.ready": "Everything is answered.",
     "config.title": "Configuration",
     "config.thisServer": "This server",
     "config.secretsNotice": "Passwords are never stored on this computer.",
     "config.secret.generated":
-      "Generated for this machine, sent at install time.",
+      "Generated for this server, sent at install time.",
     "config.secret.showOnce": "Show once",
     "config.secret.regenerate": "Regenerate",
-    "config.secret.shown": "Already shown once; it will not be shown again.",
+    "config.secret.shown":
+      "Already shown once; the secret will not be shown again.",
     "config.secret.saved": "Saved",
     "config.secret.paste": "Paste the value",
     "config.secret.kept": "Kept by the server — leave empty",
@@ -95,9 +96,9 @@ export const config = {
     "config.problem.connection": "Ce compte n'est pas encore connecté.",
     "config.problem.format.port": "Un port entre 1 et 65535 est attendu.",
     "config.problem.format.hostname":
-      "Un nom d'hôte est attendu, sans espace ni barre oblique.",
+      "Un nom d'hôte est attendu, sans espace ni slash.",
     "config.problem.format.domain":
-      "Un domaine est attendu, comme flymate.dev, sans schéma ni barre oblique.",
+      "Un domaine est attendu, comme flyleaf.dev, sans schéma ni slash.",
     "config.problem.format.email": "Une adresse électronique est attendue.",
     "config.problem.format.identifier":
       "Un identifiant est attendu : minuscules, chiffres et tirets bas, commençant par une lettre.",
@@ -110,7 +111,7 @@ export const config = {
     "config.index.label": "Les services choisis",
     "config.remaining.one": "Un champ attend encore.",
     "config.remaining.other": "{count} champs attendent encore.",
-    "config.remaining.goTo": "Aller au premier",
+    "config.remaining.goTo": "Aller au premier champ à remplir",
     "config.checking": "Vérification avec le serveur…",
     "config.ready": "Tout est renseigné.",
     "config.title": "Configuration",
@@ -118,10 +119,11 @@ export const config = {
     "config.secretsNotice":
       "Les mots de passe ne sont jamais enregistrés sur cet ordinateur.",
     "config.secret.generated":
-      "Généré pour cette machine, envoyé à l'installation.",
+      "Généré pour ce serveur, envoyé à l'installation.",
     "config.secret.showOnce": "Montrer une fois",
-    "config.secret.regenerate": "Regénérer",
-    "config.secret.shown": "Déjà montré une fois ; il ne sera plus affiché.",
+    "config.secret.regenerate": "Régénérer",
+    "config.secret.shown":
+      "Déjà montré une fois ; le secret ne sera plus affiché.",
     "config.secret.saved": "Enregistré",
     "config.secret.paste": "Collez la valeur",
     "config.secret.kept": "Gardé par le serveur — laissez vide",

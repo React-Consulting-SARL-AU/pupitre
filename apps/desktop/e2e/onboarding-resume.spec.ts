@@ -2,13 +2,6 @@ import { expect, test } from "@playwright/test";
 import { launchPupitre, type Running } from "./harness/launch";
 import { answerOnboarding } from "./harness/onboarding";
 
-/**
- * An onboarding left half-way and taken up again after a relaunch.
- *
- * The shelf remembers the step; the trail is put back as the earlier run must
- * have walked it, so the way back still stands: a resume on the catalogue goes
- * back to the inspection, and the rail counts the steps this machine walks.
- */
 test.describe("la reprise d'un onboarding", () => {
   let running: Running;
 
@@ -16,8 +9,7 @@ test.describe("la reprise d'un onboarding", () => {
     running = await launchPupitre();
     await answerOnboarding(running.app);
 
-    // A machine that already runs the agent: the resumed sequence has no
-    // agent step to walk, which is what the rail has to say.
+    // The agent already runs, so the resumed sequence has no agent step.
     await running.app.evaluate(({ ipcMain }) => {
       ipcMain.removeHandler("inspection:probe");
       ipcMain.handle("inspection:probe", () => ({
@@ -45,8 +37,6 @@ test.describe("la reprise d'un onboarding", () => {
       }));
     });
 
-    // What the earlier run had written down: the catalogue step, on the
-    // harness's server, nothing installed yet.
     await running.page.evaluate(() => {
       window.localStorage.setItem(
         "pupitre.onboarding",

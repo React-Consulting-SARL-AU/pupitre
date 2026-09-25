@@ -36,7 +36,7 @@ export class DeviceFlowError extends Error {
   }
 }
 
-/** The device grant answers OAuth's `error`; a sign-in Better Auth refuses answers its own `code` and `message`. */
+// OAuth device errors carry `error`; Better Auth refusals carry `code` and `message`.
 interface ErrorPayload {
   error?: string
   error_description?: string

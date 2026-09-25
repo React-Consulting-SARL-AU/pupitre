@@ -113,6 +113,25 @@ describe("replyToMailThread", () => {
     expect(mail.sent[0].to).toEqual(["camille@exemple.fr"])
   })
 
+  it("porte la réponse partie comme dernier extrait du fil, rangée sous la boîte", async () => {
+    const threadId = await thread()
+
+    await message(threadId, { fromEmail: "camille@exemple.fr" })
+
+    const sent = await reply(threadId)
+    const prisma = getPrisma()
+    const row = await prisma.mailThread.findUniqueOrThrow({
+      where: { id: threadId },
+    })
+    const stored = await prisma.mailMessage.findUniqueOrThrow({
+      where: { id: sent?.id ?? "" },
+    })
+
+    expect(sent?.authenticated).toBe(true)
+    expect(row.snippet).toBe("Bonjour, on regarde.")
+    expect(stored.address).toBe(LEGAL_CONTACTS.support)
+  })
+
   it("refuse quand le seul entrant se fait passer pour une de nos adresses", async () => {
     const threadId = await thread()
 
@@ -255,6 +274,7 @@ describe("replyToMailThread", () => {
     await getPrisma().mailDraft.create({
       data: { threadId, body: "en cours", updatedByUserId: actor.userId },
     })
+
     await reply(threadId)
 
     expect(await getPrisma().mailDraft.count({ where: { threadId } })).toBe(0)

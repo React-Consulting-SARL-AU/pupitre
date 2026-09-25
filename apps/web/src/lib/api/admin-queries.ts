@@ -85,7 +85,7 @@ export function reactivateUser(id: string): Promise<void> {
     })
 }
 
-/** The first call schedules the purge and answers the account; the second erases it and answers nothing. */
+// The first call schedules the purge; a second one erases and answers nothing.
 export function deleteUser(id: string, reason: string): Promise<void> {
   return api()
     .api.v1.admin.users({ id })
@@ -205,7 +205,7 @@ export function reopenOrganization(
     .then((response) => unwrap(response).data)
 }
 
-/** The first call schedules the purge and answers the organisation; the second erases it and answers nothing. */
+// The first call schedules the purge; a second one erases and answers nothing.
 export function deleteOrganization(id: string, reason: string): Promise<void> {
   return api()
     .api.v1.admin.organizations({ id })
@@ -340,7 +340,6 @@ export function cancelSubscription(
     .then((response) => unwrap(response).data)
 }
 
-/** Stripe holds the trial: the mirror shows back what Stripe answered. */
 export function extendSubscriptionTrial(
   id: string,
   endsAt: string
@@ -351,7 +350,6 @@ export function extendSubscriptionTrial(
     .then((response) => unwrap(response).data)
 }
 
-/** Takes back a cancellation still billed to the end of the period. */
 export function resumeSubscription(id: string): Promise<AdminSubscription> {
   return api()
     .api.v1.admin.subscriptions({ id })
@@ -399,8 +397,6 @@ async function readReleases() {
   return unwrap(await api().api.v1.admin.releases.get()).data
 }
 
-export type AdminRelease = Awaited<ReturnType<typeof readReleases>>[number]
-
 export function adminReleasesQueryOptions() {
   return queryOptions({
     queryKey: queryKeys.admin.releases,
@@ -416,10 +412,7 @@ async function readAppReleasesOn(channel: "stable" | "beta") {
   ).data
 }
 
-/**
- * The app has no admin listing: its versions come from the public one, which
- * answers a channel at a time, and a version lives in exactly one channel.
- */
+// Read a channel at a time from the public listing: a version lives in exactly one.
 async function readAppReleases(): Promise<ReleaseBuild[]> {
   const channels = await Promise.all([
     readAppReleasesOn("stable"),
@@ -511,7 +504,7 @@ export function setServerChannel(
     .then((response) => unwrap(response).data)
 }
 
-/** A condition that still holds opens a new alert at the next hourly run. */
+// A condition that still holds reopens an alert at the next hourly run.
 export function clearServerAlerts(id: string): Promise<void> {
   return api()
     .api.v1.admin.servers({ id })
@@ -521,7 +514,6 @@ export function clearServerAlerts(id: string): Promise<void> {
     })
 }
 
-/** Only the team lifts the suspension the team laid; a returning subscription never does. */
 export function restoreServer(id: string): Promise<AdminServer> {
   return api()
     .api.v1.admin.servers({ id })
@@ -529,7 +521,7 @@ export function restoreServer(id: string): Promise<AdminServer> {
     .then((response) => unwrap(response).data)
 }
 
-/** The first call revokes and answers the server; the second purges it and answers nothing. */
+// The first call revokes; a second one purges and answers nothing.
 export function deleteServer(id: string, reason: string): Promise<void> {
   return api()
     .api.v1.admin.servers({ id })
@@ -577,7 +569,6 @@ export interface AffiliateLinkInput {
   notes?: string | null
 }
 
-/** The list is what shows the link once it exists: the answer only has to be a success. */
 export function createAffiliateLink(input: AffiliateLinkInput): Promise<void> {
   return api()
     .api.v1.admin["affiliate-links"].post(input)

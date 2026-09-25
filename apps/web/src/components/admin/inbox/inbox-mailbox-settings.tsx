@@ -19,7 +19,6 @@ import {
   inboxKeys,
   inboxMailboxesQueryOptions,
 } from "@/lib/api/inbox-queries"
-import { canActOnPlatform } from "@/lib/domain/admin"
 import { pageTitle } from "@/lib/domain/page-titles"
 
 export const INBOX_MAILBOXES_ROUTE_ID = "/dashboard/admin/inbox/mailboxes"
@@ -34,11 +33,10 @@ export function InboxMailboxSettings() {
   const t = useTranslations()
   const toasts = useToast()
   const queryClient = useQueryClient()
-  const { platformRole } = useDashboardContext()
+  const { platformCanAct: canAct } = useDashboardContext()
   const { title, parents } = pageTitle(INBOX_MAILBOXES_ROUTE_ID)
   const mailboxes = useQuery(inboxMailboxesQueryOptions())
   const [flags, setFlags] = useState<MailboxFlags>(NEW_FLAGS)
-  const canAct = canActOnPlatform(platformRole)
 
   const open = useMutation({
     mutationFn: (values: {
@@ -66,7 +64,7 @@ export function InboxMailboxSettings() {
 
       toasts.failed({
         title: refusal?.message ?? t("inbox.mailboxFailed"),
-        fix: refusal?.fix ?? t("inbox.mailboxFailedFix"),
+        fix: refusal?.fix ?? t("common.retryLater"),
       })
     },
   })
@@ -82,6 +80,7 @@ export function InboxMailboxSettings() {
 
         {mailboxes.isError ? (
           <AdminFailure
+            error={mailboxes.error}
             fetching={mailboxes.isFetching}
             onRetry={() => {
               mailboxes.refetch()

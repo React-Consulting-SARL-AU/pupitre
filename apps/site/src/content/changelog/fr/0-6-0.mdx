@@ -1,6 +1,6 @@
 ---
 title: La souris atteint de nouveau tmux et les agents, un serveur répond au nom SSH que vous choisissez, et une vue Aide dit comment chaque client le joint
-description: Un clic dans un terminal va au programme qui a demandé la souris et ce qu’il copie arrive dans le presse-papiers ; chaque serveur porte un nom SSH choisi à côté de son nom ; un serveur accordé par l’organisation reçoit sa clé d’hôte ; JetBrains Gateway lit le fichier SSH de l’app à travers un lien sans espace ; une vue Aide au bas de la barre latérale montre comment ssh, Claude Code, Codex et les éditeurs joignent le serveur ; un dépôt sans gabarit d’environnement n’est plus refusé.
+description: Un clic dans un terminal va au programme qui a demandé la souris et ce qu’il copie arrive dans le presse-papiers ; chaque serveur porte un nom SSH choisi à côté de son nom ; un serveur accordé par l’organisation reçoit sa clé d’hôte ; JetBrains Gateway lit le fichier SSH de l’app à travers un lien sans espace ; une vue Aide au bas de la barre latérale montre comment ssh, Claude Code, Codex et les éditeurs joignent le serveur ; un dépôt sans template d’environnement n’est plus refusé.
 locale: fr
 version: 0.6.0
 channel: stable
@@ -17,11 +17,11 @@ App et agent tous deux à mettre à jour : l’app propose la mise à jour de l�
 - Un serveur accordé par l’organisation — le second ordinateur d’une même personne — arrivait avec son empreinte épinglée et aucune clé d’hôte inscrite, si bien que les clients qui lisent le fichier SSH de l’app ne pouvaient pas le vérifier. La clé que la machine présente y est désormais écrite quand c’est celle du pin.
 - Le fichier SSH de l’app nomme la clé et le `known_hosts` à travers `~/.pupitre/<dossier>`, un lien gardé pointé sur le dossier de données de l’app et remis en place à chaque démarrage. JetBrains Gateway lit ce fichier avec son propre analyseur et coupe un chemin sur l’espace d’`Application Support`, guillemets ou non, puis refuse la clé d’hôte sans rien demander ; le lien retire l’espace du chemin.
 - Une entrée Aide se tient au bas de la barre latérale, et dans la palette de commande : comment ssh, Claude Code, Codex et les éditeurs joignent le serveur affiché, avec la commande, le compte et la clé lus dans le fichier SSH de l’app, si chaque outil est installé sur ce serveur, les pannes courantes et ce qui les répare, et un lien vers le guide complet.
-- Un dépôt qui ne versionne ni `.env.example` ni `.env.1password.tpl` n’est plus refusé : le projet n’a simplement pas d’environnement, son panneau le dit en une ligne, et Régénérer n’est proposé que quand un gabarit existe. Un `.env.local` posé à la main sur le serveur est lu tel quel. Ceci demande l’agent 0.6.0.
+- Un dépôt qui ne versionne ni `.env.example` ni `.env.1password.tpl` n’est plus refusé : le projet n’a simplement pas d’environnement, son panneau le dit en une ligne, et Régénérer n’est proposé que quand un template existe. Un `.env.local` posé à la main sur le serveur est lu tel quel. Ceci demande l’agent 0.6.0.
 
 ## L’agent
 
-- `project.env` dit si le dépôt versionne un gabarit. Sans gabarit, il répond sans aucune clé et n’écrit rien. Le seul refus qui reste est un gabarit 1Password sur une machine où `tool.1password` n’est pas installé, et il nomme le remède : installer l’outil, ou versionner un `.env.example` à côté pour un démarrage sans coffre.
+- `project.env` dit si le dépôt versionne un template. Sans template, il répond sans aucune clé et n’écrit rien. Le seul refus qui reste est un template 1Password sur une machine où `tool.1password` n’est pas installé, et il nomme le remède : installer l’outil, ou versionner un `.env.example` à côté pour un démarrage sans coffre.
 
 ## Limites connues
 

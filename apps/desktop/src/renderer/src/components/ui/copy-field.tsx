@@ -1,17 +1,12 @@
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { Check, Copy } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { IconButton } from "./icon-button";
 import { Label } from "./label";
 
 const FEEDBACK_MS = 1600;
 
-/**
- * A line meant to leave the app: a public key, a command to paste.
- *
- * It wraps rather than scrolls, because what matters is being able to read the
- * whole thing before trusting it to a server.
- */
+// Wraps rather than scrolls, so the whole value can be read before it is trusted to a server.
 export function CopyField({
   label,
   value,
@@ -21,21 +16,38 @@ export function CopyField({
   label: string;
   value: string;
   help?: string;
-  /** Several commands, one per line: the breaks are kept as typed. */
   lines?: boolean;
 }) {
   const t = useTranslations();
 
   const [copied, setCopied] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (timer.current) {
+        clearTimeout(timer.current);
+      }
+    },
+    []
+  );
 
   async function copy() {
     try {
       await navigator.clipboard.writeText(value);
-      setCopied(true);
-      setTimeout(() => setCopied(false), FEEDBACK_MS);
     } catch {
       setCopied(false);
+
+      return;
     }
+
+    setCopied(true);
+
+    if (timer.current) {
+      clearTimeout(timer.current);
+    }
+
+    timer.current = setTimeout(() => setCopied(false), FEEDBACK_MS);
   }
 
   return (
@@ -44,7 +56,7 @@ export function CopyField({
 
       <div className="mt-1.5 flex items-start gap-2 rounded-md border border-line-strong bg-sunken px-3 py-2">
         <code
-          className={`min-w-0 flex-1 break-all font-data text-[12px] text-ink-2 leading-relaxed ${lines ? "whitespace-pre-line" : ""}`}
+          className={`min-w-0 flex-1 break-all font-data text-ink-2 text-small leading-relaxed ${lines ? "whitespace-pre-line" : ""}`}
         >
           {value}
         </code>
@@ -56,7 +68,7 @@ export function CopyField({
         />
       </div>
 
-      {help ? <p className="mt-1.5 text-[12px] text-ink-3">{help}</p> : null}
+      {help ? <p className="mt-1.5 text-ink-3 text-small">{help}</p> : null}
     </div>
   );
 }

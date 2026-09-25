@@ -18,7 +18,7 @@ Dès qu'un changement touche la **forme** de ce qui est déjà écrit sur une ma
 - une valeur par défaut qui change de sens (pas qui change de valeur : un défaut est appliqué à la lecture, il ne se migre pas) ;
 - une clé de `/etc/pupitre/env` renommée ;
 - un champ ajouté, retiré ou déplacé dans `projects.local.json` ;
-- un champ de `servers.json` ou d'`account.json` côté app.
+- un champ de `servers.json`, `account.json`, `transfers.json`, `forwards.json` ou `preferences.json` côté app.
 
 Ce skill **ne** s'applique **pas** à :
 
@@ -41,7 +41,7 @@ Un changement peut appeler les deux : renommer un champ dans le manifeste **et**
 | `apps/agent/internal/migrate/migrate_test.go` | les tests du moteur ; un test par migration s'y ajoute |
 | `apps/agent/internal/i18n/catalog_migrate.go` | toutes les phrases de la migration, FR et EN |
 | `apps/desktop/src/main/store-migrations.ts` | le moteur côté app |
-| `apps/desktop/src/main/servers-migrations.ts`, `account-migrations.ts` | les listes, un fichier par store |
+| `apps/desktop/src/main/servers-migrations.ts`, `account-migrations.ts`, `transfers-migrations.ts`, `forwards-migrations.ts`, `preferences-migrations.ts`, `connections-migrations.ts` | les listes, un fichier par store ; un store nouveau ajoute le sien ici |
 | `packages/shared/src/agent-protocol/migrate.ts` | `ConfigRevision`, `AgentMigrateResult` |
 | `docs/contracts/config-migrations.md` | le contrat |
 
@@ -195,4 +195,4 @@ Elle doit dire la révision, ce qui a été appliqué, ce qui reste dû et les s
 - Renuméroter, réordonner ou supprimer une entrée existante.
 - Décoder `install.json` dans `modules.Request` à l'intérieur d'une migration.
 - Migrer depuis l'app en écrivant des fichiers sur le VPS : l'agent porte ses migrations, l'app les déclenche.
-- Restaurer une sauvegarde automatiquement. C'est un geste du propriétaire, et ce qui a été configuré depuis part avec.
+- Restaurer une sauvegarde automatiquement, hors de l'unique exception du contrat : quand `agent.upgrade` remet l'ancien binaire parce que le nouveau ne répond pas à `hello`, le lot que le nouveau venait de sauvegarder avant de migrer est remis, révision comprise — il a quelques secondes, rien n'a été configuré depuis. Toute autre restauration (`pupitred migrate --restore`) est un geste du propriétaire, et ce qui a été configuré depuis part avec.

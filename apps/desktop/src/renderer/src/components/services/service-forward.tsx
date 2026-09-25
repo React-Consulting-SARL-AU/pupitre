@@ -6,20 +6,13 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import type { PortForward } from "@shared/services";
 import { Cable, X } from "lucide-react";
 
-/**
- * The service's port, brought to this computer for as long as it is wanted.
- *
- * Nothing changes on the server: the database stays on its loopback, and what
- * opens is an `ssh -L` of the app. It is how a desktop client reaches a service
- * that must never be exposed.
- */
+/** An `ssh -L` of the app: the service stays on the server's loopback. */
 export function ServiceForward({
   port,
   forwards,
   onOpen,
   onClose,
 }: {
-  /** The port the agent reported for this service, if it reported one. */
   port?: number;
   forwards: readonly PortForward[];
   onOpen: () => void;
@@ -44,7 +37,7 @@ export function ServiceForward({
       title={t("services.forward.title")}
     >
       {open.length === 0 ? (
-        <p className="text-[12px] text-ink-3">
+        <p className="text-ink-3 text-small">
           {t("services.forward.empty", { port })}
         </p>
       ) : (

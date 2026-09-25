@@ -29,6 +29,7 @@ func run(t *testing.T, ctx *modules.Context) {
 
 func statuses(ctx *modules.Context) map[string]contract.StepStatus {
 	result := map[string]contract.StepStatus{}
+
 	for _, event := range ctx.Events() {
 		result[event.Step] = event.Status
 	}
@@ -47,6 +48,7 @@ func TestInstallPutsGoAndItsBinariesOnPath(t *testing.T) {
 	}
 
 	env := string(fake.Files[shell.EnvPath])
+
 	for _, want := range []string{
 		`export GOPATH="$HOME/go"`,
 		`export PATH="$HOME/go/bin:$PATH"`,

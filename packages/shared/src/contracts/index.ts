@@ -2,6 +2,7 @@ import { z } from "zod"
 import {
   COMMAND_NAMES,
   COMMANDS,
+  LIMITED_COMMANDS,
   MIGRATION_COMMANDS,
   RESTRICTED_COMMANDS,
   UNENROLLED_COMMANDS,
@@ -20,7 +21,10 @@ import {
   ProtocolErrorSchema,
 } from "../agent-protocol/errors"
 import { FileEventSchema } from "../agent-protocol/files"
-import { InstallSecretsSchema } from "../agent-protocol/install"
+import {
+  HardenSudoSecretsSchema,
+  InstallSecretsSchema,
+} from "../agent-protocol/install"
 import { ConfigRevisionSchema } from "../agent-protocol/migrate"
 import { ShotEventSchema } from "../agent-protocol/processes"
 import { SecretEventSchema } from "../agent-protocol/secrets"
@@ -61,8 +65,27 @@ import {
 import { FORMAT_PATTERNS } from "../catalog/formats"
 import { FieldProblemSchema } from "../catalog/validate"
 import { GENERATIONS, type Generation } from "../compat"
+import {
+  AgentStateKeySchema,
+  APPROVED_KEY_PATTERN,
+  APPROVED_KEY_TYPES,
+  KEY_APPROVAL_FUTURE_SKEW_SECONDS,
+  KEY_APPROVAL_HASHES,
+  KEY_APPROVAL_MAX_AGE_SECONDS,
+  KEY_FINGERPRINT_PATTERN,
+  KeyApprovalSchema,
+  KeysBeatSchema,
+  SERVER_ID_PATTERN,
+} from "../keys"
+import { InstantSchema } from "../platform-api"
+import {
+  AgentExchangeSchema,
+  AgentStateSchema,
+  HeartbeatSchema,
+  ServerTokenSchema,
+} from "../platform-api/agent"
 
-export const CONTRACT_ID = "https://pupitre.studio/contracts/agent/schema.json"
+const CONTRACT_ID = "https://pupitre.studio/contracts/agent/schema.json"
 
 const COMMAND_SEPARATOR_RE = /[._]/
 
@@ -73,7 +96,6 @@ export interface ContractSchema {
   $id: string
   title: string
   protocol: number
-  /** The compatibility sheet, as the agent will read it compiled into itself. */
   compatibility: readonly Generation[]
   $defs: Record<string, JsonObject | undefined>
 }
@@ -112,20 +134,29 @@ export const CONTRACT_DEFINITIONS: Readonly<Record<string, z.ZodType>> = {
   RestrictedCommands: z.enum(RESTRICTED_COMMANDS),
   UnenrolledCommands: z.enum(UNENROLLED_COMMANDS),
   MigrationCommands: z.enum(MIGRATION_COMMANDS),
+  LimitedCommands: z.enum(LIMITED_COMMANDS),
   ConfigRevision: ConfigRevisionSchema,
   Project: ProjectSchema,
   ...commandDefinitions(),
   InstallSecrets: InstallSecretsSchema,
   EnrollSecrets: EnrollSecretsSchema,
+  HardenSudoSecrets: HardenSudoSecretsSchema,
   BackupSecrets: BackupSecretsSchema,
   BackupManifest: BackupManifestSchema,
   BackupDeclaration: BackupDeclarationSchema,
   BackupBeat: BackupBeatSchema,
-  // Declared once and referenced: inlined, it repeats in every result that
-  // carries parts, and the schema is embedded in the agent unobfuscated.
+  // Referenced, not inlined: each repeat would spill the product name into the agent binary.
   BackupPart: BackupPartSchema,
   BackupPartKey: BackupPartKeySchema,
   BackupLocation: BackupLocationSchema,
+  KeyApproval: KeyApprovalSchema,
+  AgentStateKey: AgentStateKeySchema,
+  KeysBeat: KeysBeatSchema,
+  Instant: InstantSchema,
+  AgentExchange: AgentExchangeSchema,
+  ServerToken: ServerTokenSchema,
+  AgentState: AgentStateSchema,
+  Heartbeat: HeartbeatSchema,
   Manifest: ManifestSchema,
   Field: FieldSchema,
   FieldProblem: FieldProblemSchema,
@@ -133,7 +164,6 @@ export const CONTRACT_DEFINITIONS: Readonly<Record<string, z.ZodType>> = {
 }
 
 export const CONTRACT_CONSTANTS: Readonly<Record<string, JsonObject>> = {
-  /** The whole catalogue, so the agent's registry can be held to it. */
   ModuleIds: {
     type: "array",
     items: { type: "string" },
@@ -144,7 +174,6 @@ export const CONTRACT_CONSTANTS: Readonly<Record<string, JsonObject>> = {
     items: { type: "string" },
     const: MANDATORY_MODULE_IDS,
   },
-  /** The runtimes a project pins a version of, so the agent holds a pin to the same names. */
   RuntimeTools: {
     type: "array",
     items: { type: "string" },
@@ -155,12 +184,10 @@ export const CONTRACT_CONSTANTS: Readonly<Record<string, JsonObject>> = {
     items: { $ref: "#/$defs/Preset" },
     const: PRESETS,
   },
-  /** The regular expressions the agent holds a formatted field to, ours verbatim. */
   FieldFormats: {
     type: "object",
     const: FORMAT_PATTERNS,
   },
-  /** The backup format: container, key derivation, identifiers and what a project archive leaves out. */
   Backup: {
     type: "object",
     const: {
@@ -179,6 +206,19 @@ export const CONTRACT_CONSTANTS: Readonly<Record<string, JsonObject>> = {
       excluded_dirs: BACKUP_EXCLUDED_DIRS,
       home_paths: BACKUP_HOME_PATHS,
       home_excluded: BACKUP_HOME_EXCLUDED,
+    },
+  },
+  // No namespace nor header: they name the product, so the agent holds them itself, checked against the fixtures.
+  KeyApprovalRules: {
+    type: "object",
+    const: {
+      hashes: KEY_APPROVAL_HASHES,
+      max_age_seconds: KEY_APPROVAL_MAX_AGE_SECONDS,
+      future_skew_seconds: KEY_APPROVAL_FUTURE_SKEW_SECONDS,
+      key_types: APPROVED_KEY_TYPES,
+      key_pattern: APPROVED_KEY_PATTERN,
+      fingerprint_pattern: KEY_FINGERPRINT_PATTERN,
+      server_id_pattern: SERVER_ID_PATTERN,
     },
   },
 }

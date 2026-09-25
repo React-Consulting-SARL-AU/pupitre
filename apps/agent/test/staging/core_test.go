@@ -50,6 +50,32 @@ func TestInstallCoreOpensDevWithSudo(t *testing.T) {
 	}
 }
 
+const reloadSSHD = "systemctl daemon-reload && if systemctl is-active --quiet ssh.socket; then systemctl restart ssh.socket ssh.service; else systemctl reload ssh; fi"
+
+func TestHardeningAllowsEveryPortSSHDListensOn(t *testing.T) {
+	host := stagingHost(t)
+	dropIn := "/etc/ssh/sshd_config.d/20-staging-port.conf"
+
+	ssh(t, host, "printf 'Port 22\\nPort 2200\\n' > "+dropIn+" && "+reloadSSHD)
+	defer ssh(t, host, "rm -f "+dropIn+" && "+reloadSSHD+" && ufw delete allow 2200/tcp")
+
+	if failed := decode[contract.InstallResult](t, agent(t, host, coreInstall)[0].Result).Failed; len(failed) != 0 {
+		t.Fatalf("install failed: %v", failed)
+	}
+
+	if out := ssh(t, host, "ufw", "status"); !strings.Contains(out, "Status: active") || !strings.Contains(out, "22/tcp") || !strings.Contains(out, "2200/tcp") {
+		t.Fatalf("ufw must allow every port sshd listens on:\n%s", out)
+	}
+
+	if out := ssh(t, host, "cat", "/etc/fail2ban/jail.d/pupitre.local"); !strings.Contains(out, "port = 22,2200") {
+		t.Fatalf("the jail must watch every port sshd listens on:\n%s", out)
+	}
+
+	if !reachable(host) {
+		t.Fatal("the machine must stay reachable once the firewall is up")
+	}
+}
+
 func TestHardenWithoutKeyKeepsRoot(t *testing.T) {
 	host := stagingHost(t)
 
@@ -85,7 +111,7 @@ var coreInstallKeepingRoot = request{Cmd: "install", Params: map[string]any{
 	},
 }}
 
-// Runs before the test that closes root for good, and puts the default configuration back so that one still has root to close.
+// Must run before TestHardenClosesRootAndReplaysWithoutWriting, and restores the default config so root is still there to close.
 func TestHardenKeepsRootWhenTheConfigurationAsksForIt(t *testing.T) {
 	host := stagingHost(t)
 	dev := "dev@" + address(host)
@@ -142,6 +168,10 @@ func TestHardenClosesRootAndReplaysWithoutWriting(t *testing.T) {
 	replay := agent(t, dev, request{Cmd: "harden", Params: map[string]any{"user": "dev"}})[0]
 	if written := steps(replay, contract.StepOK); len(written) != 1 || written[0] != "core.hardening·check-authorized-keys" {
 		t.Fatalf("harden replay rewrote something: %v", written)
+	}
+
+	if out := ssh(t, dev, "cat", "/etc/sysctl.d/60-pupitre-links.conf"); !strings.Contains(out, "fs.protected_hardlinks = 1\nfs.protected_symlinks = 1\n") {
+		t.Fatalf("harden must pin the link protections:\n%s", out)
 	}
 
 	if out := ssh(t, dev, "sudo", "-n", "ufw", "status"); !strings.Contains(out, "Status: active") || !strings.Contains(out, "22/tcp") {

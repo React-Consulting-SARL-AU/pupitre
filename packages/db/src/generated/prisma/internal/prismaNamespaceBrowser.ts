@@ -67,6 +67,7 @@ export const ModelName = {
   Alert: 'Alert',
   Backup: 'Backup',
   ServerRevokedDevice: 'ServerRevokedDevice',
+  KeyApproval: 'KeyApproval',
   Subscription: 'Subscription',
   OrganizationBilling: 'OrganizationBilling',
   AffiliateLink: 'AffiliateLink',
@@ -303,6 +304,7 @@ export const ServerScalarFieldEnum = {
   lastHeartbeatAt: 'lastHeartbeatAt',
   lastUsage: 'lastUsage',
   backup: 'backup',
+  keyReport: 'keyReport',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -368,6 +370,21 @@ export const ServerRevokedDeviceScalarFieldEnum = {
 } as const
 
 export type ServerRevokedDeviceScalarFieldEnum = (typeof ServerRevokedDeviceScalarFieldEnum)[keyof typeof ServerRevokedDeviceScalarFieldEnum]
+
+
+export const KeyApprovalScalarFieldEnum = {
+  id: 'id',
+  serverId: 'serverId',
+  deviceId: 'deviceId',
+  userId: 'userId',
+  signer: 'signer',
+  issuedAt: 'issuedAt',
+  signature: 'signature',
+  approvedByUserId: 'approvedByUserId',
+  createdAt: 'createdAt'
+} as const
+
+export type KeyApprovalScalarFieldEnum = (typeof KeyApprovalScalarFieldEnum)[keyof typeof KeyApprovalScalarFieldEnum]
 
 
 export const SubscriptionScalarFieldEnum = {
@@ -465,6 +482,10 @@ export const MailThreadScalarFieldEnum = {
   lastInboundAt: 'lastInboundAt',
   lastInboundAutomated: 'lastInboundAutomated',
   lastOutboundAt: 'lastOutboundAt',
+  senderEmail: 'senderEmail',
+  senderName: 'senderName',
+  senderAuthenticated: 'senderAuthenticated',
+  snippet: 'snippet',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -538,10 +559,12 @@ export const MailMessageScalarFieldEnum = {
   rawKey: 'rawKey',
   rawHash: 'rawHash',
   messageId: 'messageId',
+  address: 'address',
   inReplyTo: 'inReplyTo',
   references: 'references',
   sentByUserId: 'sentByUserId',
   automated: 'automated',
+  authenticated: 'authenticated',
   delivery: 'delivery',
   error: 'error',
   receivedAt: 'receivedAt',

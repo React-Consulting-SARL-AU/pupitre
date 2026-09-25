@@ -13,11 +13,6 @@ import { ServerLinkNotice } from "../shell/server-link-notice";
 import { ServerRestrictedNotice } from "../shell/server-restricted-notice";
 import { ServerUnreadyScreen } from "../shell/server-unready-screen";
 
-/**
- * The shell around the screens: the sidebar, the two states of a server, and
- * the two pages that hang off the menu rather than off a project.
- */
-
 const NOOP = () => undefined;
 
 const SERVER: Server = {
@@ -43,7 +38,7 @@ describe("la barre latérale", () => {
         onTerminal={NOOP}
         onView={NOOP}
         projects={SNAPSHOT.projects}
-        selection="flymate-api"
+        selection="flyleaf-api"
         server={SERVER}
         servers={[SERVER]}
         states={{}}
@@ -121,7 +116,7 @@ describe("la barre latérale", () => {
       />
     );
 
-    expect(html).toContain("flymate-api");
+    expect(html).toContain("flyleaf-api");
     expect(html).toContain("412 Mo");
     expect(html).toContain('data-shape="filled"');
     expect(html).toContain('data-shape="empty"');
@@ -159,9 +154,9 @@ describe("l'app sans la moindre machine", () => {
     );
 
     expect(html).toContain("Prenez une machine en main");
-    expect(html).toContain("Il inspecte la machine");
-    expect(html).toContain("Il installe ce que vous choisissez");
-    expect(html).toContain("Il referme la porte derrière lui");
+    expect(html).toContain("Pupitre inspecte la machine");
+    expect(html).toContain("Pupitre installe ce que vous choisissez");
+    expect(html).toContain("Pupitre ferme l&#x27;accès root");
     expect(html).toContain("Ajouter un serveur");
   });
 
@@ -179,7 +174,7 @@ describe("processus et sessions", () => {
   it("rend ce qui pèse et ce qui survit, depuis le snapshot", () => {
     const html = renderToStaticMarkup(
       <ActivityPanel
-        attached={["claude:flymate-api"]}
+        attached={["claude:flyleaf-api"]}
         lingering={[]}
         onCleanSessions={NOOP}
         onReattach={NOOP}
@@ -203,7 +198,7 @@ describe("processus et sessions", () => {
   it("distingue la session qu'un onglet de l'app tient encore", () => {
     const attached = renderToStaticMarkup(
       <ActivityPanel
-        attached={["claude:flymate-api"]}
+        attached={["claude:flyleaf-api"]}
         lingering={[]}
         onCleanSessions={NOOP}
         onReattach={NOOP}
@@ -270,11 +265,10 @@ describe("le mode restreint de l'agent", () => {
     }
   });
 
-  /** The account is valid, the server isn't: the repair is offered. */
   it("offre le ré-enrôlement à côté de la console", () => {
     const html = restricted();
 
-    expect(html).toContain("Ré-enrôler ce serveur");
+    expect(html).toContain("Rattacher à nouveau ce serveur");
     expect(html).toContain("Ouvrir la console");
   });
 
@@ -287,14 +281,11 @@ describe("le mode restreint de l'agent", () => {
     expect(html).toContain("disabled");
   });
 
-  /**
-   * Without an entitlement the platform would refuse the token, so the app does
-   * not offer a gesture that would repair nothing. The console stays available.
-   */
+  // Without an entitlement the platform would refuse the token, so a repair would fix nothing.
   it("n'offre pas la réparation quand le compte n'a pas de droit d'usage", () => {
     const html = restricted({ repairable: false });
 
-    expect(html).not.toContain("Ré-enrôler ce serveur");
+    expect(html).not.toContain("Rattacher à nouveau ce serveur");
     expect(html).toContain("Ouvrir la console");
     expect(html).toContain("se laisse lire");
   });
@@ -362,7 +353,6 @@ describe("qui peut réparer un serveur restreint", () => {
     }
   });
 
-  /** A development build with no known device: nothing to sign, nothing to repair. */
   it("ne laisse pas réparer sans appareil connu de la console", () => {
     expect(
       repairable(
@@ -451,7 +441,7 @@ describe("ce qui se dit au-dessus des écrans", () => {
 
     expect(html).toContain("Atelier ne répond plus.");
     expect(html).toContain("Vérifie que la machine répond.");
-    expect(html).toContain("Relire");
+    expect(html).toContain("Actualiser");
   });
 
   it("ne dit rien quand le lien tient et que le relevé est frais", () => {

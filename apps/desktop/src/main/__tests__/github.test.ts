@@ -2,14 +2,6 @@ import { describe, expect, it } from "bun:test";
 import { checkedCall, isRefusal } from "../agent-bridge";
 import { GithubError, githubApi } from "../github-api";
 
-/**
- * The repositories of the connected account, read from the laptop.
- *
- * What is watched here: the list comes back named and paginated, the token
- * travels in the header and nowhere else, a refusal carries GitHub's own words,
- * and a path the renderer could have invented never becomes an `fs` command.
- */
-
 function answering(
   pages: unknown[][],
   status = 200
@@ -126,7 +118,7 @@ describe("un chemin que le renderer aurait inventé", () => {
       params: { path: "projects" },
       serverId: "srv-1",
     });
-    expect(refused("fs.mkdir", { path: "projects/flymate" })).toBeNull();
+    expect(refused("fs.mkdir", { path: "projects/flyleaf" })).toBeNull();
   });
 
   it("refuse ce que le contrat de la commande ne lit pas", () => {

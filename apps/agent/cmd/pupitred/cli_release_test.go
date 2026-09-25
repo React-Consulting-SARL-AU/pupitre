@@ -10,7 +10,6 @@ import (
 	"pupitre.studio/agent/internal/contract"
 )
 
-// What an enrolled server, read from the platform an instant ago, answers to hello.
 const buildEntitlement = contract.EntitlementValid
 
 func TestInstallRefusesOnAServerWithoutAToken(t *testing.T) {
@@ -28,6 +27,7 @@ func TestInstallRefusesOnAServerWithoutAToken(t *testing.T) {
 			t.Fatalf("the machine was touched without entitlement: %v", fake.Mutations)
 		}
 	}
+
 	if len(fake.Calls) != 0 {
 		t.Fatalf("the machine was touched without entitlement: %v", fake.Commands())
 	}
@@ -35,7 +35,6 @@ func TestInstallRefusesOnAServerWithoutAToken(t *testing.T) {
 	t.Logf("pupitred install (release build):\n%s", stderr)
 }
 
-// A binary copied onto another server carries no token: it says who it is, answers a ping, hands out a diagnostic, and nothing more.
 func TestACopiedBinaryAnswersHelloPingAndDiagAlone(t *testing.T) {
 	fake, _ := setupCLI(t)
 	unenrol(fake)

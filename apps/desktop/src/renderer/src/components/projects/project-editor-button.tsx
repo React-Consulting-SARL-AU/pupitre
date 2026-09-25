@@ -6,12 +6,7 @@ import type { RemoteEditor } from "@shared/editors";
 import { FolderCode } from "lucide-react";
 import { useState } from "react";
 
-/**
- * One editor, as its mark: the name and the folder live in the bubble.
- *
- * On a server of the app whose line the system's SSH file does not carry yet,
- * the mark opens the question first, and the editor only once the line is in.
- */
+// Until the system SSH file carries the server's line, the mark asks to share it before opening.
 export function ProjectEditorButton({
   editor,
   root,
@@ -23,9 +18,10 @@ export function ProjectEditorButton({
   root: string;
   share: string | null;
   onShare: () => Promise<void>;
-  onOpen: (editorId: RemoteEditor["id"], path: string) => void;
+  onOpen: (editorId: RemoteEditor["id"], path: string) => Promise<void>;
 }) {
   const t = useTranslations();
+
   const [asking, setAsking] = useState(false);
   const [working, setWorking] = useState(false);
 
@@ -48,7 +44,7 @@ export function ProjectEditorButton({
 
     try {
       await onShare();
-      onOpen(editor.id, root);
+      await onOpen(editor.id, root);
       setAsking(false);
     } finally {
       setWorking(false);

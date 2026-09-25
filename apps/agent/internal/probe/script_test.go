@@ -13,13 +13,12 @@ import (
 	"pupitre.studio/agent/internal/contract"
 )
 
-// busybox is not a shell but a dispatcher: its shell is the `sh` applet, and
-// `busybox -n probe.sh` is an applet it does not know. Hence an argv per shell
-// rather than a path — Linux carries /bin/busybox, macOS does not.
+// An argv per shell, not a path: busybox is a dispatcher whose shell is the `sh` applet.
 func shells(t *testing.T) [][]string {
 	t.Helper()
 
 	found := [][]string{{"/bin/sh"}}
+
 	for _, candidate := range [][]string{{"/bin/dash"}, {"/usr/bin/dash"}, {"/bin/busybox", "sh"}} {
 		if info, err := os.Stat(candidate[0]); err == nil && !info.IsDir() {
 			found = append(found, candidate)
@@ -29,13 +28,12 @@ func shells(t *testing.T) [][]string {
 	return found
 }
 
-// busybox's standalone shell answers uname, df, free, ss and id from its own applets
-// before it looks at PATH: the fake programs the fixture puts there are never reached,
-// and it reports the machine it actually runs on. Parsing the script under it still counts.
+// busybox answers uname, df, free, ss and id from its own applets, so the fixture's fake PATH is never reached.
 func shellsThatObeyPath(t *testing.T) [][]string {
 	t.Helper()
 
 	var found [][]string
+
 	for _, shell := range shells(t) {
 		if !strings.HasSuffix(shell[0], "busybox") {
 			found = append(found, shell)
@@ -81,7 +79,6 @@ func TestScriptPassesShellcheck(t *testing.T) {
 	}
 }
 
-// probe.sh reaches a bare machine over `ssh host 'sh -s'`: it declares no interpreter of its own and stays in memory.
 func TestScriptRunsFromStandardInputAndTouchesNothing(t *testing.T) {
 	root := t.TempDir()
 	f := bareUbuntu()
@@ -99,6 +96,7 @@ func TestBothProbesProduceTheSameJSON(t *testing.T) {
 	cases := map[string]fixture{
 		"bare":         bareUbuntu(),
 		"managed":      managedFixture(),
+		"secured":      securedFixture(),
 		"occupied":     occupiedFixture(),
 		"incompatible": debianFixture(),
 		"netstat":      netstatFixture(),
@@ -212,6 +210,7 @@ func tree(t *testing.T, root string) []string {
 	t.Helper()
 
 	var entries []string
+
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -224,6 +223,7 @@ func tree(t *testing.T, root string) []string {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	sort.Strings(entries)
 
 	return entries

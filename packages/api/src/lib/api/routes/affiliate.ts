@@ -5,12 +5,7 @@ import { errorResponse } from "../openapi-models"
 import { rateLimit } from "../plugins/rate-limit"
 import { AFFILIATE_HIT_RATE_LIMIT } from "../rate-limit"
 
-/**
- * The visit counter of the affiliate links, called by the site from the
- * browser. It answers the same 204 to a code that exists, to one that was
- * disabled and to one that was never issued: a caller learns nothing about
- * which links the platform carries.
- */
+/** Always 204, whatever the code, so a caller learns nothing about which links exist. */
 export const affiliateRoutes = new Elysia({
   name: "affiliate-routes",
   tags: ["Affiliation"],

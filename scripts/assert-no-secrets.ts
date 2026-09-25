@@ -90,9 +90,7 @@ export function findSecrets(content: string, file: string): TSecretFinding[] {
     return []
   }
 
-  // A test needs a credential-shaped fixture. The patterns that recognise a real
-  // provider's key by its prefix still apply there; only the shape-based guesses
-  // are lifted, since every fake password would otherwise be a finding.
+  // Fixtures skip only shape-based guesses; provider prefixes still apply.
   const fixture = FIXTURE_FILE_RE.test(file)
 
   const findings: TSecretFinding[] = []

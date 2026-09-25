@@ -11,7 +11,6 @@ import type {
 import type { StatusLook } from "@/lib/domain/server-status"
 
 export interface StartChecklistProps {
-  /** On the download page, what is already done has no reason to take room. */
   compact?: boolean
 }
 
@@ -74,7 +73,7 @@ export function StartChecklist({ compact = false }: StartChecklistProps) {
                   </p>
 
                   {step.state === "done" ? (
-                    <span className="shrink-0 text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
+                    <span className="shrink-0 text-label">
                       {t("onboarding.done")}
                     </span>
                   ) : null}

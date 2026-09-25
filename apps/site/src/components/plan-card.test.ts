@@ -1,11 +1,34 @@
 import { formatUsd, getPlan, yearlyPriceUsd } from "@pupitre/shared/plans"
-import { describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { SIGNUP_URL } from "../lib/urls"
 import { actionTo } from "../test/actions"
+import { AFTER_LAUNCH, buildAt, buildNow, DURING_LAUNCH } from "../test/launch"
 import { render } from "../test/render"
 import PlanCard from "./PlanCard.astro"
 
+describe("PlanCard during the launch", () => {
+  beforeEach(() => buildAt(DURING_LAUNCH))
+  afterEach(buildNow)
+
+  it("starts for free rather than a trial", async () => {
+    const solo = await render(PlanCard, {
+      props: { plan: getPlan("solo") },
+      path: "/",
+    })
+    const team = await render(PlanCard, {
+      props: { plan: getPlan("team") },
+      path: "/fr/pricing/",
+    })
+
+    expect(actionTo(solo, SIGNUP_URL)?.label).toBe("Start for free")
+    expect(team).toContain(">Commencer gratuitement</a>")
+  })
+})
+
 describe("PlanCard", () => {
+  beforeEach(() => buildAt(AFTER_LAUNCH))
+  afterEach(buildNow)
+
   it("prints Solo with both intervals, its server cap and a trial button", async () => {
     const solo = getPlan("solo")
     const html = await render(PlanCard, { props: { plan: solo }, path: "/" })

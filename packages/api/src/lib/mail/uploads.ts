@@ -81,7 +81,7 @@ export async function createMailUpload(
   }
 }
 
-/** What the body declares is checked before the bucket is touched: count, total, names, and whose keys they are. */
+/** Checks what the body declares before the bucket is touched: count, total, names, and key ownership. */
 export function assertMailAttachments(
   userId: string,
   attachments: MailAttachmentInput[]
@@ -159,7 +159,7 @@ export async function deleteMailUploads(keys: string[]): Promise<void> {
   }
 }
 
-/** An upload nobody sent within a day is abandoned: the console asked for the address and never came back. */
+/** An upload not sent within a day was abandoned by the console. */
 export async function purgeStaleMailUploads(
   now: Date = new Date()
 ): Promise<string[]> {

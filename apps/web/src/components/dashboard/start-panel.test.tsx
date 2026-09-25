@@ -113,6 +113,8 @@ describe("StartPanel", () => {
 
     expect(container.textContent).toContain("Free until")
     expect(container.textContent).toContain("1 machine")
+    expect(container.textContent).toContain("stays free for good")
+    expect(container.textContent).not.toContain("servers stop")
     expect(container.textContent).not.toContain("Monthly")
     expect(container.textContent).not.toContain("$")
     expect(container.textContent).not.toContain("Start the trial")

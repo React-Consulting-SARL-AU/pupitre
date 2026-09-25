@@ -31,7 +31,7 @@ var (
 // A configuration file is kilobytes; a setup archive over this is not one this agent wrote.
 const setupLimit = 16 << 20
 
-// setup is the part a backup cannot do without: when it fails, the backup stops there.
+// The one part a backup cannot do without: its failure stops the backup.
 func (j *job) setup() error {
 	files, fingerprint, err := j.service.setupFiles(j.ctx)
 	if err != nil {
@@ -48,7 +48,6 @@ func (j *job) setup() error {
 	})
 }
 
-// setupFiles reads the configuration that exists, under its name in the archive; its fingerprint is its content.
 func (s *Service) setupFiles(ctx sys.Context) ([]archive.File, string, error) {
 	var files []archive.File
 	digest := sha256.New()
@@ -58,6 +57,7 @@ func (s *Service) setupFiles(ctx sys.Context) ([]archive.File, string, error) {
 		if errors.Is(err, fs.ErrNotExist) {
 			continue
 		}
+
 		if err != nil {
 			return nil, "", err
 		}
@@ -71,11 +71,12 @@ func (s *Service) setupFiles(ctx sys.Context) ([]archive.File, string, error) {
 	return files, hex.EncodeToString(digest.Sum(nil)), nil
 }
 
-// home carries the keys and sessions of the dev account that exist, never authorized_keys: the platform writes that one.
+// Never authorized_keys: the platform writes that one.
 func (j *job) home() {
 	root := j.service.paths.Home
 
 	var present []string
+
 	for _, entry := range contract.Backup.HomePaths {
 		if _, err := os.Lstat(filepath.Join(root, entry)); err == nil {
 			present = append(present, entry)
@@ -90,7 +91,7 @@ func (j *job) home() {
 	j.tree(contract.BackupPartHome, contract.BackupPart{Kind: contract.BackupPartHome, Paths: present}, tree)
 }
 
-// tree carries a folder: its fingerprint is read first, and a fingerprint that does not read only costs the copy.
+// A fingerprint that fails to read only costs a full upload instead of a copy.
 func (j *job) tree(step string, part contract.BackupPart, tree archive.Source) {
 	fingerprint, err := archive.Fingerprint(tree, step)
 	if err != nil {
@@ -106,7 +107,6 @@ func (j *job) tree(step string, part contract.BackupPart, tree archive.Source) {
 	})
 }
 
-// databases carries every database the settings do not leave out, engine after engine.
 func (j *job) databases() {
 	for _, held := range j.service.holdings(j.ctx) {
 		if held.err != nil {
@@ -119,7 +119,7 @@ func (j *job) databases() {
 	}
 }
 
-// With the category switched off every database is left out, and recorded so; an engine that does not answer cannot say what it holds.
+// An engine that does not answer cannot list what it holds, so it warns rather than records exclusions.
 func (j *job) leaveOutDatabases() {
 	for _, held := range j.service.holdings(j.ctx) {
 		if held.err != nil {
@@ -134,11 +134,12 @@ func (j *job) leaveOutDatabases() {
 	}
 }
 
-// An engine's whole-server part — roles, accounts — goes first, and only with one of its databases: a restored database needs its owners, and nothing else does.
+// The whole-server part (roles, accounts) goes first, and only with a database: a restored database needs its owners.
 func (j *job) engine(held holding) {
 	engine, sibling := held.engine, held.sibling
 
 	var going []string
+
 	for _, name := range held.names {
 		item := contract.DatabaseItem(engine.name, name)
 
@@ -177,12 +178,11 @@ func (j *job) engine(held holding) {
 	}
 }
 
-// A database name reaches an argv and a statement as it is: one that could be read as an option, or break out of a quote, is left out and said.
+// A name reaches an argv and a statement as is: one read as an option, or breaking a quote, is left out.
 func carriable(name string) bool {
-	return dumps.SafeName(name) && !strings.HasPrefix(name, "-")
+	return dumps.SafeName(name)
 }
 
-// installed is a database module's own context, when the module says it is on the machine.
 func (s *Service) installed(ctx *modules.Context, id string) (*modules.Context, bool) {
 	sibling, known := ctx.Sibling(id)
 	if !known {
@@ -199,8 +199,7 @@ func (s *Service) installed(ctx *modules.Context, id string) (*modules.Context, 
 	return sibling, err == nil && status.Installed
 }
 
-// projects carries each declared project as the mode says: its folder, or its ignored .env files; a project without a repository is always carried whole.
-// With the category switched off every project is left out, and recorded so: a restore then treats each as if it had been unticked.
+// Left-out projects are recorded so a restore treats each as if it had been unticked.
 func (j *job) projects(mode string) {
 	declared, err := j.service.options.Reader.Declared()
 	if err != nil {
@@ -229,16 +228,25 @@ func (j *job) project(project contract.Project, mode string) {
 		return
 	}
 
+	home := j.service.paths.Home
+	if _, err := archive.Resolve(project.Path, home); err != nil {
+		j.warnings = append(j.warnings, i18n.T("backup.project.unfollowed", project.Name, project.Path, unfollowed(err)))
+
+		return
+	}
+
 	if project.Repo == "" {
 		mode = contract.BackupProjectsFull
 	}
 
 	part := contract.BackupPart{Kind: contract.BackupPartProject, Name: project.Name, Mode: mode}
+
 	if held, found := j.service.options.Reader.Held(project.Name); found {
 		part.Git = &held
 	}
 
-	tree := archive.Source{Root: project.Path, Entries: []string{archive.Whole}, Skip: archive.ExcludingDirs(contract.Backup.ExcludedDirs)}
+	tree := archive.Source{Root: project.Path, Entries: []string{archive.Whole}, Skip: archive.ExcludingDirs(contract.Backup.ExcludedDirs), Area: home}
+
 	if mode == contract.BackupProjectsEnv {
 		files, err := j.envFiles(project)
 		if err != nil {
@@ -247,15 +255,16 @@ func (j *job) project(project contract.Project, mode string) {
 			return
 		}
 
-		tree = archive.Source{Root: project.Path, Entries: files}
+		tree = archive.Source{Root: project.Path, Entries: files, Area: home}
 	}
 
 	j.tree(step, part, tree)
 }
 
-// envFiles are the .env files at the root and in each process folder that git ignores: what a clone does not bring back.
+// Only the .env files git ignores: what a clone does not bring back.
 func (j *job) envFiles(project contract.Project) ([]string, error) {
 	folders := []string{project.Path}
+
 	for _, process := range project.Processes {
 		if !slices.Contains(folders, process.Path) {
 			folders = append(folders, process.Path)
@@ -263,6 +272,7 @@ func (j *job) envFiles(project contract.Project) ([]string, error) {
 	}
 
 	var candidates []string
+
 	for _, folder := range folders {
 		entries, err := os.ReadDir(folder)
 		if err != nil {
@@ -290,11 +300,13 @@ func (j *job) envFiles(project contract.Project) ([]string, error) {
 	if errors.As(err, &exit) && exit.Code == 1 {
 		return nil, nil
 	}
+
 	if err != nil {
 		return nil, err
 	}
 
 	var ignored []string
+
 	for _, line := range strings.Split(out, "\n") {
 		if name := strings.TrimSpace(line); slices.Contains(candidates, name) {
 			ignored = append(ignored, name)
@@ -304,7 +316,6 @@ func (j *job) envFiles(project contract.Project) ([]string, error) {
 	return ignored, nil
 }
 
-// paths carries each extra folder of the dev account, relative to its home.
 func (j *job) paths() {
 	root := j.service.paths.Home
 
@@ -324,17 +335,32 @@ func (j *job) paths() {
 			continue
 		}
 
-		j.tree(step, contract.BackupPart{Kind: contract.BackupPartPath, Path: wanted}, archive.Source{Root: root, Entries: []string{rel}})
+		if _, err := archive.Resolve(filepath.Join(root, rel), root); err != nil {
+			j.warnings = append(j.warnings, i18n.T("backup.path.unfollowed", wanted, unfollowed(err)))
+
+			continue
+		}
+
+		j.tree(step, contract.BackupPart{Kind: contract.BackupPartPath, Path: wanted}, archive.Source{Root: root, Entries: []string{rel}, Area: root})
 	}
 }
 
-// keyFor names a part's object after what it holds, once in a backup.
+func unfollowed(err error) string {
+	var outside *archive.OutsideError
+	if errors.As(err, &outside) {
+		return outside.Target
+	}
+
+	return err.Error()
+}
+
 func (j *job) keyFor(part contract.BackupPart) string {
 	var base string
 
 	switch part.Kind {
 	case contract.BackupPartDatabase:
 		base = "db-" + part.Engine + "-" + part.Name
+
 		switch part.Format {
 		case contract.BackupDumpPgRoles:
 			base = "db-" + part.Engine + "-roles"
@@ -354,6 +380,7 @@ func (j *job) keyFor(part contract.BackupPart) string {
 	base = strings.Trim(unsafeKey.ReplaceAllString(base, "-"), "-.")
 
 	key := base
+
 	for rank := 2; j.taken[key]; rank++ {
 		key = base + "-" + strconv.Itoa(rank)
 	}
@@ -363,7 +390,7 @@ func (j *job) keyFor(part contract.BackupPart) string {
 	return key + partSuffix
 }
 
-// stepOf is the step a part was made under, which is also what the next backup recognises it by.
+// Also what the next backup recognises the part by.
 func stepOf(part contract.BackupPart) string {
 	switch part.Kind {
 	case contract.BackupPartDatabase:

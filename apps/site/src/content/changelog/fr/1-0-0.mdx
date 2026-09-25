@@ -1,0 +1,81 @@
+---
+title: Un serveur ne s'ouvre que depuis votre ordinateur, et sudo demande un mot de passe
+description: La plateforme ne peut plus accorder l'accès à un serveur — une clé n'est posée qu'avec une approbation signée par un appareil que le serveur tient déjà pour sûr —, le compte dev perd sudo sans mot de passe, Docker ne publie plus à travers le pare-feu, une restauration ne détruit plus la base en place, et une mise à jour ne s'installe qu'une fois sa signature vérifiée.
+locale: fr
+version: 1.0.0
+channel: stable
+date: 2026-09-25
+order: 19
+---
+
+Cette version est une marche : une app 1.0 ne pilote qu'un agent 1.0, et un agent 1.0 refuse une app plus ancienne en disant quoi faire. Mettez d'abord l'app à jour, puis réinstallez l'agent de chaque serveur depuis son bandeau ; l'app propose ensuite le mot de passe sudo.
+
+## L'accès à un serveur
+
+- **La plateforme ne peut plus ouvrir un serveur.** Elle transmet les clés publiques des appareils, mais l'agent n'en écrit une dans le bloc `authorized_keys` géré que si elle arrive avec une approbation signée par une clé qu'il tient déjà pour sûre. Retirer une clé reste possible sans signature : le sens qui ferme l'accès n'est jamais celui qui l'ouvre.
+- Une approbation est une signature SSH faite par un appareil autorisé, dont la clé privée ne quitte jamais son ordinateur. Un nouvel appareil — le vôtre, ou celui d'un membre à qui le serveur est attribué — apparaît dans l'app de tout appareil déjà autorisé : un clic signe. Seul avec un seul ordinateur, rien ne change.
+- L'agent ne retire jamais la dernière clé du bloc. Tous les appareils perdus, `sudo pupitred keys reset` depuis la console de l'hébergeur repose une clé fournie localement, et l'onboarding la reprend.
+- Ajouter un appareil au compte demande de repasser la passkey ou le second facteur. Réparer un serveur est réservé à la personne à qui il est attribué ou à un admin, et une clé d'hôte qui change est refusée.
+- Un compte banni, désactivé ou en suppression n'a plus de clé sur aucun serveur.
+
+## sudo demande un mot de passe
+
+- Le compte `dev` ne tient plus sudo sans mot de passe. Deux lignes exactes restent sans mot de passe — `pupitred serve` et `pupitred binary install` — et tout le reste demande le mot de passe de `dev`. `pupitred serve` est une session limitée ; l'app ouvre `pupitred serve --privileged` avec le mot de passe pour ce qui configure la machine, révèle un secret ou change la confiance.
+- Le mot de passe est tiré par l'app sur votre ordinateur : seule son empreinte part vers le serveur, et le mot de passe est gardé au trousseau de cet ordinateur. La fiche du serveur l'affiche et le copie, en entier.
+- La sécurisation le pose sur un serveur neuf. Un serveur existant se le voit proposer par l'app ; tant qu'il ne l'a pas accepté, il garde l'ancienne règle et l'app le signale.
+- Poser un binaire d'agent passe par `pupitred`, qui vérifie sa signature Ed25519 avant de l'installer, et non plus par un shell lancé en root.
+
+## Le serveur
+
+- **Docker ne publie plus à travers le pare-feu.** Les ports sont liés sur `127.0.0.1` par défaut, sur les réseaux qu'il crée et sous compose ; une vérification nomme ce qui reste ouvert et redémarre Docker quand rien ne tourne.
+- Le Caddyfile est validé avant de remplacer celui qui sert.
+- Les clés apt sont épinglées par empreinte, et un dépôt dont la première mise à jour échoue est retiré.
+- **Une restauration ne détruit plus la base en place.** Redis écrit à côté puis renomme, PostgreSQL met la base de côté et la rend si la restauration échoue, MySQL et MongoDB vérifient la place disque avant de supprimer, et chaque partie est lue en entier avant toute suppression. Une restauration exige l'empreinte de son manifeste.
+- Les logs ont une fin : `/var/log/pupitre.log` tourne par logrotate, le journal en mémoire est borné, les logs de processus tournent à 4 Mio.
+- Le pare-feu et fail2ban suivent les ports réels de sshd ; un retour arrière de mise à jour remet la configuration ; un projet derrière un lien se sauvegarde vraiment.
+- Les agents IA d'un serveur lisent maintenant des commandes dev qui existent — `status`, `logs`, `up`/`down`/`restart`, `sync`, `branch`, `attach`, `db`, `backup`, `doctor` — sans sudo, le bloc de clés géré intouchable, et dump, import et sauvegarde derrière le mot de passe.
+
+## L'app
+
+- Le tableau de bord range les projets avant les services. **Ouvrir** propose toutes les adresses publiées d'un projet, en menu quand il y en a plusieurs, et disparaît tant que rien ne les sert ; la page projet suit la même règle. **Tout démarrer** et **Tout arrêter** se grisent quand il n'y a rien à faire.
+- Un serveur géré ne montre plus *Pas encore installé* au relancement de l'app sur Réglages : sa fiche suit le canal de l'agent et la sonde en direct.
+- Un retour à une sauvegarde se déroule dans un dialogue verrouillé — ni Échap ni le voile ne le ferment avant la fin — et se termine par un succès, puis un seul avertissement qui nomme, avec sa raison, chaque partie qui n'est pas revenue.
+- Fermer un onglet où un agent tourne demande confirmation. Un brouillon de fichier est gardé par serveur et par racine. La sécurisation se relance, et un agent trop ancien se réinstalle, depuis leur bandeau. Documentation, support et conditions sont dans le menu et dans Réglages › À propos.
+- **Une mise à jour ne s'installe qu'une fois sa signature vérifiée** : un état *vérification* précède *prête* sur les trois systèmes, et l'installation relit le fichier vérifié et refuse tout autre octet. Sur Linux sans trousseau, rien n'est gardé en clair.
+- L'app installée est bien plus légère : le paquet n'embarque que l'app, et `app.asar` tombe de 2 061 Mo à 11,3 Mo.
+- L'app ferme ce qu'elle ouvre, au Cmd+Q comme à la fermeture ; elle ne réécrit jamais un fichier écrit par une version plus récente ; elle garde un journal de ses pannes dans son dossier de données, sans secrets.
+- `.claude/remote` sort des sauvegardes : les binaires qui y sont téléchargés reviennent seuls, et celui qui tourne n'est pas réécrit par une restauration.
+
+## Les mots, les cibles, le français
+
+- Un mot par notion : cet ordinateur et serveur, service, Actualiser, Réglages, console. Plus de pronoms ni de remplissage, et une suppression dit qu'elle est sans retour possible. Les étapes d'installation sont traduites, et des remèdes ajoutés.
+- Des cibles de 28 px, un nom accessible par ligne, le diff et les onglets au clavier, une échelle typographique partagée avec le site.
+- Le français garde les termes que les développeurs disent en anglais : bucket, token, passphrase, endpoint, snapshot, template, gateway, logs, pull/push, checksum.
+
+## La plateforme et la console
+
+- Stripe ne perd ni ne ressuscite rien : un événement bloqué en traitement est repris, un doublon en cours est refusé, un paiement en échec relit l'abonnement chez Stripe, un second abonnement payé est refusé, et une ligne de lancement annulée ne se relance pas.
+- **Le siège du lancement reste gratuit même à qui paie** : il s'ajoute à la quantité payée et n'est jamais facturé, comme les conditions le promettent.
+- Supprimer son compte passe par la purge, qui efface aussi le journal de l'organisation, et est refusé tant qu'une organisation resterait à personne avec un abonnement Stripe ou un serveur. Les métriques de plus de sept jours, les sessions, vérifications et codes d'appareil expirés sont balayés chaque jour.
+- `/api/auth/admin/*` est fermé : ni usurpation, ni changement de mot de passe ou d'adresse depuis la plateforme.
+- Le retour après la connexion reste sur la console : une adresse de la bonne origine est désormais relue avant d'être suivie.
+- Un `ssh_user` ou un hôte envoyé par un heartbeat ou un rattachement n'atteint plus la config SSH de cet ordinateur : hôte, compte, empreinte et port sont validés, l'API refuse avant toute écriture, et l'app refuse de nouveau à l'écriture de la config.
+- Chaque canal entre la fenêtre de l'app et son processus principal vérifie son appelant et valide ses arguments ; un `serverId` mal formé pouvait effacer les identifiants de tous les serveurs.
+- Une migration avait vidé par cascade les appareils révoqués et les alertes ; vérifié en production, aucune révocation n'était à rendre, et une migration ne peut plus supprimer une table que d'autres lignes désignent.
+- La console sert ses propres polices, porte une CSP à nonce par requête, refuse une écriture venue par cookie d'une origine étrangère, et ferme les sockets d'un membre retiré.
+
+## Le site
+
+- Les pages légales sont publiées : mentions légales, conditions d'abonnement, cookies, sous-traitants, sécurité et `security.txt`, logiciels tiers, historique ; les cinq qui existaient déjà sont complètes.
+- La documentation correspond au code : essai de trente jours sur une machine, compte obligatoire, les ports réellement ouverts, ce que la plateforme connaît, 38 modules, l'onboarding en dix étapes, et les pages Installer, Dépannage et Désinstaller.
+- Le lancement gratuit est affiché depuis la date de fin annoncée, et le site sert ses propres polices — plus rien n'est chargé depuis Google.
+
+## Limites connues
+
+- Un serveur qui n'a pas encore accepté le mot de passe sudo garde l'ancienne règle, sans mot de passe, tant qu'il n'est pas appliqué.
+- Tous les appareils autorisés perdus, l'accès ne se repose que depuis la console de l'hébergeur, par `sudo pupitred keys reset`.
+- Les volumes Docker ne sont pas sauvegardés ; l'app le dit quand le runtime Docker est installé.
+- Qui lit le bucket lit les manifestes, en clair : le nom du serveur, les noms des projets, des bases et des dossiers, l'adresse et la branche des dépôts. Jamais un contenu, jamais un secret — ceux-là sont scellés.
+- Qui tient la clé S3 peut effacer les sauvegardes : le versionnage ou le verrouillage d'objets du bucket sont la parade, et le guide le dit.
+- Perdue, la passphrase rend les sauvegardes illisibles — personne ne peut la recouvrer.
+- L'installateur Windows n'est toujours pas signé : SmartScreen avertit au premier lancement.

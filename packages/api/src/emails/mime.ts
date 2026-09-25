@@ -8,6 +8,8 @@ const ASCII_RE = /^[\t\x20-\x7e]*$/
 
 const FILENAME_NOISE_RE = /["\r\n]/g
 
+const LINE_BREAKS_RE = /[\r\n]/g
+
 function base64Bytes(bytes: Uint8Array): string {
   let binary = ""
 
@@ -41,10 +43,7 @@ function encodeHeader(value: string): string {
   return ASCII_RE.test(clean) ? clean : `=?UTF-8?B?${base64(clean)}?=`
 }
 
-/**
- * A display name travels RFC 2047 encoded, which is ASCII again: the bare
- * address beside it stays a shape every client parses.
- */
+/** Only the display name is RFC 2047 encoded: the bare address must stay parseable by every client. */
 export function formatAddress(
   name: string | null | undefined,
   address: string
@@ -104,10 +103,11 @@ function attachmentPart(
   attachment: MimeAttachment
 ): string {
   const filename = attachment.filename.replace(FILENAME_NOISE_RE, "")
+  const contentType = attachment.contentType.replace(LINE_BREAKS_RE, "")
 
   return [
     `--${boundaryName}`,
-    `Content-Type: ${attachment.contentType}; name="${filename}"`,
+    `Content-Type: ${contentType}; name="${filename}"`,
     `Content-Disposition: attachment; filename="${filename}"`,
     "Content-Transfer-Encoding: base64",
     "",
@@ -135,7 +135,6 @@ function alternativeBody(
   }
 }
 
-/** The text and HTML alternative becomes the first part of a mixed body, each attachment following it. */
 function mixedBody(
   text: string,
   html: string,

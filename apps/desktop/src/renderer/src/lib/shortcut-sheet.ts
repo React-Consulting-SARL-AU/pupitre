@@ -6,7 +6,7 @@ import { chordLabel } from "./terminal-shortcuts";
 export type ShortcutGroupName = "navigation" | "project" | "terminal" | "files";
 
 export interface ShortcutLine {
-  /** The dictionary key of the gesture, under `shortcuts.<group>.` */
+  /** Dictionary key under `shortcuts.<group>.` */
   name: string;
   /** One chord, or the two ends of a range: `⌘⌥1` to `⌘⌥7`. */
   keys: string[];
@@ -17,12 +17,7 @@ export interface ShortcutGroup {
   shortcuts: ShortcutLine[];
 }
 
-/**
- * Every shortcut the app answers, written for this keyboard.
- *
- * One list, drawn from the same labels the tooltips print, so the sheet
- * never says a chord the control itself does not.
- */
+/** Built from the labels the tooltips print, so the sheet never disagrees with a control. */
 export function shortcutSheet(mac: boolean): ShortcutGroup[] {
   const cmd = mac ? "⌘" : "Ctrl+";
   const project = projectChordLabel(mac);

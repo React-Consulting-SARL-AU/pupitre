@@ -1,8 +1,10 @@
 import type { CompletionsResult } from "@pupitre/shared/agent-protocol/state";
+import type { Translate } from "@renderer/i18n/i18n";
+import { translate } from "@renderer/i18n/translate";
 import type { Candidate } from "@shared/completion";
 import type { IMarker, Terminal as XTerm } from "@xterm/xterm";
 import { useSyncExternalStore } from "react";
-import { readHistory, writeHistory } from "./memory";
+import { dropStoredHistory } from "./memory";
 import { noteStatus } from "./terminal-status";
 
 export const TERMINAL_FONT = '"JetBrains Mono", ui-monospace, Menlo, monospace';
@@ -19,11 +21,10 @@ export interface CompletionState {
   token: string;
   candidates: Candidate[];
   selection: number;
-  /** The rest of the most recent history entry that starts like the line. */
+  /** Inline suggestion: the rest of the latest history entry starting like the line. */
   ghost: string;
-  /** Where the cursor is in the window, to place the list. */
   cursor: Cursor | null;
-  /** True after Escape: nothing shows until the line changes. */
+  /** Set by Escape; nothing shows until the line changes. */
   closed: boolean;
 }
 
@@ -40,7 +41,6 @@ export const NOTHING: CompletionState = {
 interface Sources {
   catalog: CompletionsResult | null;
   projects: string[];
-  /** The processes of each project, by project name: what `$process` stands for once a project is typed. */
   processes?: Record<string, readonly string[]>;
   history: string[];
   paths: string[];
@@ -72,12 +72,7 @@ const SPACES = /\s+/;
 const TRAILING_SPACE = /\s$/;
 const MAXIMUM = 10;
 
-/**
- * What is being typed, in the last command of the line.
- *
- * A `cd x && dev up` completes `dev up`, not `cd`: we only look at the segment
- * after the last separator. A line ending in a space starts a new, empty token.
- */
+/** Only the segment after the last `&&`, `||`, `|` or `;` is completed. */
 export function split(line: string): {
   tokens: string[];
   token: string;
@@ -102,8 +97,12 @@ interface Line {
   position: number;
 }
 
-/** The first word of the line: the agent's command, or one already typed. */
-function proposeCommands(where: Line, sources: Sources, add: Offer): void {
+function proposeCommands(
+  where: Line,
+  sources: Sources,
+  add: Offer,
+  t: Translate
+): void {
   const { token } = where;
 
   if (token.length === 0) {
@@ -112,7 +111,7 @@ function proposeCommands(where: Line, sources: Sources, add: Offer): void {
 
   if (sources.catalog?.command.startsWith(token)) {
     add({
-      help: "la commande de l'agent",
+      help: t("terminals.completion.agentCommand"),
       kind: "command",
       text: sources.catalog.command,
     });
@@ -127,19 +126,23 @@ function proposeCommands(where: Line, sources: Sources, add: Offer): void {
   }
 }
 
-/** The values one argument accepts: the projects for `$project`, the processes of the project typed before for `$process`, the rest as written. */
 function proposeValues(
   values: readonly string[],
   token: string,
   project: string,
   sources: Sources,
-  add: Offer
+  add: Offer,
+  t: Translate
 ): void {
   for (const value of values) {
     if (value === "$project") {
       for (const name of sources.projects) {
         if (name.startsWith(token)) {
-          add({ help: "projet", kind: "argument", text: name });
+          add({
+            help: t("terminals.completion.project"),
+            kind: "argument",
+            text: name,
+          });
         }
       }
 
@@ -149,7 +152,11 @@ function proposeValues(
     if (value === "$process") {
       for (const id of sources.processes?.[project] ?? []) {
         if (id.startsWith(token)) {
-          add({ help: "processus", kind: "argument", text: id });
+          add({
+            help: t("terminals.completion.process"),
+            kind: "argument",
+            text: id,
+          });
         }
       }
 
@@ -162,8 +169,12 @@ function proposeValues(
   }
 }
 
-/** What the agent's own grammar allows at this position, and nothing else. */
-function proposeGrammar(where: Line, sources: Sources, add: Offer): void {
+function proposeGrammar(
+  where: Line,
+  sources: Sources,
+  add: Offer,
+  t: Translate
+): void {
   const grammar = sources.catalog;
   const { tokens, token, position } = where;
 
@@ -188,7 +199,8 @@ function proposeGrammar(where: Line, sources: Sources, add: Offer): void {
     token,
     tokens[2] ?? "",
     sources,
-    add
+    add,
+    t
   );
 }
 
@@ -208,7 +220,6 @@ function proposePaths(where: Line, sources: Sources, add: Offer): void {
   }
 }
 
-/** The rest of the most recent entry that starts like the line, plus its twins. */
 function proposeHistory(line: string, sources: Sources, add: Offer): string {
   let ghost = "";
 
@@ -225,18 +236,12 @@ function proposeHistory(line: string, sources: Sources, add: Offer): string {
   return ghost;
 }
 
-/**
- * The candidates for a line, from what we know.
- *
- * The agent's grammar first — it is the most reliable — then paths when the
- * command takes them, then history. An empty line offers nothing: we do not
- * want a list opening at every prompt and stealing the arrow keys from the
- * shell's own history.
- */
 export function propose(
   line: string,
-  sources: Sources
+  sources: Sources,
+  t: Translate
 ): { candidates: Candidate[]; ghost: string } {
+  // A list at every empty prompt would steal the arrow keys from the shell's history.
   if (line.trim().length === 0) {
     return { candidates: [], ghost: "" };
   }
@@ -259,9 +264,9 @@ export function propose(
   };
 
   if (where.position === 0) {
-    proposeCommands(where, sources, add);
+    proposeCommands(where, sources, add, t);
   } else {
-    proposeGrammar(where, sources, add);
+    proposeGrammar(where, sources, add, t);
   }
 
   proposePaths(where, sources, add);
@@ -271,7 +276,6 @@ export function propose(
   return { candidates, ghost };
 }
 
-/** What has to be sent to the shell for the line to become the candidate. */
 export function insertion(
   candidate: Candidate,
   line: string,
@@ -280,16 +284,13 @@ export function insertion(
   if (candidate.kind === "history") {
     return candidate.text.slice(line.length);
   }
+
   const rest = candidate.text.slice(token.length).replaceAll(" ", "\\ ");
   const isDir = candidate.kind === "path" && candidate.text.endsWith("/");
 
   return isDir ? rest : `${rest} `;
 }
 
-/**
- * The path the token designates, if it designates one — and its parent folder,
- * which is what we will list.
- */
 function pathBase(
   token: string,
   position: number,
@@ -298,12 +299,13 @@ function pathBase(
   if (position === 0 || !(token.includes("/") || PATH_COMMANDS.has(command))) {
     return null;
   }
+
   const cut = token.lastIndexOf("/");
 
   return cut === -1 ? "" : token.slice(0, cut + 1);
 }
 
-/** `completions` reads under the projects root: elsewhere, no path is offered. */
+/** The agent's `completions` only reads under the projects root. */
 export function underRoot(
   root: string,
   dir: string,
@@ -357,6 +359,9 @@ let history: string[] = [];
 let projects: string[] = [];
 let processes: Record<string, readonly string[]> = {};
 
+// Memory only: a typed line can carry a token, so history never touches disk.
+const histories = new Map<string, string[]>();
+
 const HISTORY_KEPT = 200;
 
 function loadCatalog(): void {
@@ -364,14 +369,29 @@ function loadCatalog(): void {
     return;
   }
 
-  catalogRequest = window.pupitre.completions(serverId).then((answer) => {
-    if (answer.ok) {
-      catalog = answer.result;
+  const asked = serverId;
+  const request = window.pupitre.completions(asked).then(
+    (answer) => {
+      if (serverId !== asked) {
+        return;
+      }
+
+      if (answer.ok) {
+        catalog = answer.result;
+      } else if (catalogRequest === request) {
+        catalogRequest = null;
+      }
+    },
+    () => {
+      if (catalogRequest === request) {
+        catalogRequest = null;
+      }
     }
-  });
+  );
+
+  catalogRequest = request;
 }
 
-/** OSC 133 says where a command starts and ends: the app needs no history file. */
 function rememberCommand(line: string): void {
   const command = line.trim();
 
@@ -383,10 +403,9 @@ function rememberCommand(line: string): void {
     0,
     HISTORY_KEPT
   );
-  writeHistory(serverId, history);
+  histories.set(serverId, history);
 }
 
-/** The projects the server announced, and the processes of each: the app is what holds them. */
 export function noteProjects(
   declared: readonly { name: string; processes: readonly { id: string }[] }[]
 ): void {
@@ -399,22 +418,22 @@ export function noteProjects(
   );
 }
 
-/** The server every source is read from. Another one, and they all go stale. */
 export function noteServer(id: string | null): void {
   if (id !== serverId) {
     serverId = id;
     forgetSources();
-    history = id ? readHistory(id) : [];
+    dropStoredHistory();
+    history = id ? (histories.get(id) ?? []) : [];
   }
 }
 
-/** On switching to another server: its grammar and its folders no longer apply. */
 export function forgetSources(): void {
   catalog = null;
   catalogRequest = null;
   history = [];
   projects = [];
   processes = {};
+
   for (const item of tracked.values()) {
     item.paths.clear();
   }
@@ -430,40 +449,43 @@ function publish(id: string, item: Tracked, state: CompletionState): void {
     before.candidates === state.candidates &&
     before.cursor?.x === state.cursor?.x &&
     before.cursor?.y === state.cursor?.y;
+
   if (same) {
     return;
   }
+
   item.state = state;
+
   for (const callback of subscribers.get(id) ?? []) {
     callback();
   }
 }
 
-/**
- * The line being typed, read from the terminal buffer.
- *
- * The shell said where input starts (OSC 133;B); everything from there to the
- * cursor is what the user typed — keystrokes, deletions and history recalls
- * included, since we read the screen and not the keys.
- */
+// Reads the screen from the OSC 133;B mark, not the keys, so deletions and history recalls count.
 function readLine(item: Tracked): string | null {
   const { xterm, marker } = item;
+
   if (!marker || marker.isDisposed) {
     return null;
   }
+
   const buffer = xterm.buffer.active;
   const start = marker.line;
   const end = buffer.baseY + buffer.cursorY;
+
   if (end < start) {
     return null;
   }
 
   let text = "";
+
   for (let y = start; y <= end; y++) {
     const row = buffer.getLine(y);
+
     if (!row) {
       return null;
     }
+
     const from = y === start ? item.column : 0;
     const to = y === end ? buffer.cursorX : row.length;
     text += row.translateToString(false, from, to);
@@ -472,7 +494,6 @@ function readLine(item: Tracked): string | null {
   return text;
 }
 
-/** Nothing after the cursor: the grey suggestion has room. */
 function atEndOfLine(xterm: XTerm): boolean {
   const buffer = xterm.buffer.active;
   const row = buffer.getLine(buffer.baseY + buffer.cursorY);
@@ -484,20 +505,18 @@ function atEndOfLine(xterm: XTerm): boolean {
   );
 }
 
-/**
- * Where the cursor is, in window pixels.
- *
- * xterm places its invisible input area on the cursor cell — which is what lets
- * input methods attach to it — and that is exactly the spot we are looking for.
- */
+// xterm parks its hidden input textarea on the cursor cell so input methods can attach to it.
 function cursorPosition(xterm: XTerm): Cursor | null {
   const area = xterm.textarea;
   const frame = xterm.element;
+
   if (!(area && frame)) {
     return null;
   }
+
   const r = area.getBoundingClientRect();
   const f = frame.getBoundingClientRect();
+
   if (f.width === 0 || f.height === 0) {
     return null;
   }
@@ -510,17 +529,20 @@ function cursorPosition(xterm: XTerm): Cursor | null {
   };
 }
 
-/** Filed under the folder asked for: walking back up a path costs nothing. */
 function requestPaths(id: string, item: Tracked, asked: string): void {
   if (item.paths.has(asked) || !serverId) {
     return;
   }
+
   if (item.timer) {
     clearTimeout(item.timer);
   }
+
   item.timer = setTimeout(async () => {
     item.timer = null;
+
     const answer = await window.pupitre.completions(serverId as string, asked);
+
     item.paths.set(asked, answer.ok ? answer.result.paths : []);
     recompute(id);
   }, 120);
@@ -528,16 +550,20 @@ function requestPaths(id: string, item: Tracked, asked: string): void {
 
 export function recompute(id: string): void {
   const item = tracked.get(id);
+
   if (!item) {
     return;
   }
+
   const { xterm } = item;
+
   if (!item.typing || xterm.buffer.active.type !== "normal") {
     publish(id, item, NOTHING);
     return;
   }
 
   const line = readLine(item);
+
   if (line === null) {
     publish(id, item, NOTHING);
     return;
@@ -554,13 +580,18 @@ export function recompute(id: string): void {
     requestPaths(id, item, asked);
   }
 
-  const { candidates, ghost } = propose(line, {
-    catalog,
-    projects: projects.length > 0 ? projects : (catalog?.projects ?? []),
-    processes,
-    history,
-    paths,
-  });
+  const { candidates, ghost } = propose(
+    line,
+    {
+      catalog,
+      projects: projects.length > 0 ? projects : (catalog?.projects ?? []),
+      processes,
+      history,
+      paths,
+    },
+    translate()
+  );
+
   const sameLine = line === item.state.line;
   const selection = sameLine
     ? Math.min(item.state.selection, Math.max(0, candidates.length - 1))
@@ -595,9 +626,11 @@ function sendToTerminal(id: string, text: string): void {
 
 export function accept(id: string, candidate: Candidate): void {
   const item = tracked.get(id);
+
   if (!item) {
     return;
   }
+
   sendToTerminal(id, insertion(candidate, item.state.line, item.state.token));
   item.xterm.focus();
 }
@@ -605,9 +638,11 @@ export function accept(id: string, candidate: Candidate): void {
 function navigate(id: string, item: Tracked, step: number): void {
   const { state } = item;
   const total = state.candidates.length;
+
   if (total === 0) {
     return;
   }
+
   publish(id, item, {
     ...state,
     selection: (state.selection + step + total) % total,
@@ -619,15 +654,12 @@ function dismiss(id: string, item: Tracked): void {
   publish(id, item, { ...item.state, closed: true });
 }
 
-/**
- * The keys completion takes for itself, and only when it has something to show:
- * a closed list leaves Tab, Up and Down to the shell, which already puts them to
- * good use.
- */
+// Keys are only taken while something shows; otherwise Tab and the arrows stay the shell's.
 function handleKey(id: string, item: Tracked, ev: KeyboardEvent): boolean {
   if (ev.type !== "keydown") {
     return true;
   }
+
   const { state } = item;
   const list = !state.closed && state.candidates.length > 0;
   const ghost = !state.closed && state.ghost.length > 0;
@@ -680,13 +712,7 @@ function handleKey(id: string, item: Tracked, ev: KeyboardEvent): boolean {
   }
 }
 
-/**
- * Wires completion onto a terminal.
- *
- * The shell announces the prompt and the input via OSC 133, its folder via
- * OSC 7 — that is `pupitre.zsh`, on the server side, that emits them. Without
- * those sequences nothing ever shows: we do not guess a prompt from its drawing.
- */
+/** Needs OSC 133 and OSC 7 from the `.zshrc` block the agent writes; a prompt is never guessed from its drawing. */
 export function attach(id: string, xterm: XTerm): () => void {
   const item: Tracked = {
     xterm,
@@ -699,11 +725,13 @@ export function attach(id: string, xterm: XTerm): () => void {
     paths: new Map(),
     timer: null,
   };
+
   tracked.set(id, item);
   loadCatalog();
 
   const osc133 = xterm.parser.registerOscHandler(133, (data) => {
     const code = data.split(";")[0];
+
     if (code === "B") {
       item.marker?.dispose();
       item.marker = xterm.registerMarker(0) ?? null;
@@ -717,6 +745,7 @@ export function attach(id: string, xterm: XTerm): () => void {
     } else if (code === "D") {
       item.typing = false;
     }
+
     return true;
   });
 
@@ -725,8 +754,9 @@ export function attach(id: string, xterm: XTerm): () => void {
       item.dir = decodeURIComponent(new URL(data).pathname);
       noteStatus(id, { dir: item.dir });
     } catch {
-      // A malformed URL: we keep the previous folder.
+      // Malformed URL: keep the previous folder.
     }
+
     return true;
   });
 
@@ -737,23 +767,28 @@ export function attach(id: string, xterm: XTerm): () => void {
     osc7.dispose();
     scroll.dispose();
     item.marker?.dispose();
+
     if (item.timer) {
       clearTimeout(item.timer);
     }
+
     tracked.delete(id);
   };
 }
 
 function subscribe(id: string, callback: () => void): () => void {
   let list = subscribers.get(id);
+
   if (!list) {
     list = new Set();
     subscribers.set(id, list);
   }
+
   list.add(callback);
 
   return () => {
     list.delete(callback);
+
     if (list.size === 0) {
       subscribers.delete(id);
     }
@@ -767,7 +802,6 @@ export function useCompletion(id: string): CompletionState {
   );
 }
 
-/** The keys completion answers for a terminal, when it is wired on it. */
 export function completionKey(id: string, event: KeyboardEvent): boolean {
   const item = tracked.get(id);
 

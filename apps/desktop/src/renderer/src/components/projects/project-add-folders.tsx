@@ -2,6 +2,7 @@ import { Tooltip } from "@renderer/components/ui/tooltip";
 import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { crumbsOf, under } from "@renderer/lib/files";
+import type { AgentError } from "@shared/agent";
 import { ChevronRight, Folder, RefreshCw } from "lucide-react";
 import type { FolderState } from "../../stores/project-add";
 import { EntryCreate } from "../files/entry-create";
@@ -11,13 +12,6 @@ import { Callout } from "../ui/callout";
 import { EmptyState } from "../ui/empty-state";
 import { WaitingNotice } from "../ui/waiting-notice";
 
-/**
- * The folders of the server, walked rather than typed.
- *
- * Only folders are listed: what is being chosen is where a project lives, and
- * a file is never that. The trail and the new-folder dialog are the file
- * browser's own, so the two screens walk the server the same way.
- */
 export function ProjectAddFolders({
   state,
   picked,
@@ -26,11 +20,11 @@ export function ProjectAddFolders({
   onCreate,
 }: {
   state: FolderState;
-  /** The folder chosen so far, relative to the projects root. */
+  /** Relative to the projects root. */
   picked: string;
   onBrowse: (path: string) => Promise<void> | void;
   onPick: (path: string) => void;
-  onCreate: (name: string) => Promise<void>;
+  onCreate: (name: string) => Promise<AgentError | null>;
 }) {
   const t = useTranslations();
 
@@ -105,7 +99,7 @@ export function ProjectAddFolders({
                         size={12}
                         strokeWidth={1.5}
                       />
-                      <span className="truncate font-data text-[12px] text-ink">
+                      <span className="truncate font-data text-ink text-small">
                         {folder}
                       </span>
                     </button>

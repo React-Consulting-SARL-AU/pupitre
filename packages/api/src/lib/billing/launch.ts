@@ -1,12 +1,28 @@
 import type { Subscription } from "@pupitre/db/cloudflare/client"
-import { LAUNCH_PRODUCT, LAUNCH_SEATS } from "@pupitre/shared/plans"
+import {
+  LAUNCH_PRODUCT,
+  LAUNCH_SEATS,
+  LIVE_SUBSCRIPTION_STATUSES,
+} from "@pupitre/shared/plans"
+import {
+  type CursorBatch,
+  D1_BATCH_SIZE,
+  drainBatches,
+  walkBatches,
+} from "../api/batches"
 import { getPrisma, isUniqueViolation } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import { LaunchNotConfiguredError } from "./config"
-import { cancelEndedSubscriptions } from "./expiry"
+import {
+  cancelEndedSubscriptions,
+  cancelEndedSubscriptionsBatch,
+} from "./expiry"
 import { restoreOrganizationServers } from "./grace"
 import { getBillingMode } from "./runtime"
-import { LIVE_SUBSCRIPTION_STATUSES, liveSubscriptionOf } from "./subscription"
+import { liveSubscriptionOf } from "./subscription"
+
+/** Every organization of a batch is looked up in one `in` list. */
+export const LAUNCH_BATCH_SIZE = D1_BATCH_SIZE
 
 export interface LaunchActor {
   organizationId: string
@@ -15,9 +31,16 @@ export interface LaunchActor {
 
 export interface LaunchReconciliation {
   aligned: string[]
-  /** The launch rows turned into a seat for good: the organization enrolled a machine while it was free. */
+  /** Launch rows kept for good: the organization enrolled a machine while it was free. */
   kept: string[]
   canceled: string[]
+}
+
+export class LaunchSubscriptionEndedError extends Error {
+  constructor() {
+    super("this organization's launch subscription has ended")
+    this.name = "LaunchSubscriptionEndedError"
+  }
 }
 
 export function launchSubscriptionId(organizationId: string): string {
@@ -43,12 +66,7 @@ type LaunchRowData = Pick<
   "product" | "quantity" | "status" | "currentPeriodEnd"
 >
 
-/**
- * The row, when this call is the one that wrote it.
- *
- * Two grants racing each other must not both read the journal as a creation:
- * the unique constraint decides which one created, and the loser updates.
- */
+// Null when a racing grant won the unique constraint, so only one journals a creation.
 async function createLaunchRow(
   organizationId: string,
   stripeSubscriptionId: string,
@@ -67,11 +85,7 @@ async function createLaunchRow(
   }
 }
 
-/**
- * The subscription the platform grants itself while there is no company to
- * bill through: one machine per organization until the launch ends. A live
- * subscription, launch or not, is left alone.
- */
+/** A launch row that ended or was stopped is never granted again from the console. */
 export async function grantLaunchSubscription(
   actor: LaunchActor,
   now: Date = new Date()
@@ -83,7 +97,6 @@ export async function grantLaunchSubscription(
     return live
   }
 
-  const prisma = getPrisma()
   const stripeSubscriptionId = launchSubscriptionId(organizationId)
   const data = {
     product: LAUNCH_PRODUCT,
@@ -91,20 +104,27 @@ export async function grantLaunchSubscription(
     status: "trialing",
     currentPeriodEnd: launchEnd(),
   }
+
   const created = await createLaunchRow(
     organizationId,
     stripeSubscriptionId,
     data
   )
-  const subscription =
-    created ??
-    (await prisma.subscription.update({
+
+  if (!created) {
+    const existing = await getPrisma().subscription.findUniqueOrThrow({
       where: { stripeSubscriptionId },
-      data,
-    }))
+    })
+
+    if (!LIVE_SUBSCRIPTION_STATUSES.includes(existing.status)) {
+      throw new LaunchSubscriptionEndedError()
+    }
+
+    return existing
+  }
 
   await recordEvent({
-    action: created ? "subscription.created" : "subscription.updated",
+    action: "subscription.created",
     actorUserId: actor.userId,
     organizationId,
     targetType: "subscription",
@@ -116,20 +136,20 @@ export async function grantLaunchSubscription(
       current_period_end: data.currentPeriodEnd.toISOString(),
     },
   })
+
   await restoreOrganizationServers(organizationId, now)
 
-  return subscription
+  return created
 }
 
-async function alignWithLaunchEnd(): Promise<string[]> {
+export async function alignLaunchBatch(): Promise<string[]> {
   const { mode, launchEndsAt } = getBillingMode()
 
   if (mode !== "launch" || !launchEndsAt) {
     return []
   }
 
-  const prisma = getPrisma()
-  const drifted = await prisma.subscription.findMany({
+  const aligned = await getPrisma().subscription.updateManyAndReturn({
     where: {
       product: LAUNCH_PRODUCT,
       status: "trialing",
@@ -138,85 +158,122 @@ async function alignWithLaunchEnd(): Promise<string[]> {
         { currentPeriodEnd: { not: launchEndsAt } },
       ],
     },
+    data: { currentPeriodEnd: launchEndsAt },
+    limit: LAUNCH_BATCH_SIZE,
     select: { id: true },
   })
 
-  if (drifted.length === 0) {
-    return []
-  }
-
-  const ids = drifted.map((subscription) => subscription.id)
-
-  await prisma.subscription.updateMany({
-    where: { id: { in: ids } },
-    data: { currentPeriodEnd: launchEndsAt },
-  })
-
-  return ids
+  return aligned.map((subscription) => subscription.id)
 }
 
-/** A machine that exchanged its token, or did once before being removed: the journal outlives the row. */
-async function enrolledAMachine(organizationId: string): Promise<boolean> {
+function earliestByOrganization(
+  rows: { organizationId: string | null; _min: { createdAt: Date | null } }[]
+): Map<string, Date> {
+  const earliest = new Map<string, Date>()
+
+  for (const row of rows) {
+    if (row.organizationId && row._min.createdAt) {
+      earliest.set(row.organizationId, row._min.createdAt)
+    }
+  }
+
+  return earliest
+}
+
+// A removed server only survives as `server.exchanged` in the journal, which outlives the row.
+async function firstExchangeOf(
+  organizationIds: string[]
+): Promise<Map<string, Date>> {
   const prisma = getPrisma()
-  const exchanged = await prisma.server.count({
-    where: { organizationId, status: { not: "enrolling" } },
-  })
+  const [servers, journaled] = await Promise.all([
+    prisma.server.groupBy({
+      by: ["organizationId"],
+      where: {
+        organizationId: { in: organizationIds },
+        serverTokenHash: { not: null },
+        status: { not: "enrolling" },
+      },
+      _min: { createdAt: true },
+    }),
+    prisma.event.groupBy({
+      by: ["organizationId"],
+      where: {
+        organizationId: { in: organizationIds },
+        action: "server.exchanged",
+      },
+      _min: { createdAt: true },
+    }),
+  ])
 
-  if (exchanged > 0) {
-    return true
+  const first = earliestByOrganization(servers)
+
+  for (const [organizationId, at] of earliestByOrganization(journaled)) {
+    const known = first.get(organizationId)
+
+    if (!known || at < known) {
+      first.set(organizationId, at)
+    }
   }
 
-  const journaled = await prisma.event.count({
-    where: { organizationId, action: "server.exchanged" },
-  })
-
-  return journaled > 0
+  return first
 }
 
-/**
- * What the terms promise: an organization that enrolled a machine during the
- * free launch keeps one seat for as long as the service exists. Its launch
- * row becomes active without an end, so no expiry ever picks it up. An
- * organization that pays elsewhere keeps that subscription instead, and one
- * that never enrolled anything ends like any other.
- */
-async function keepLaunchSeats(now: Date): Promise<string[]> {
+export interface LaunchSeatBatch extends CursorBatch {
+  kept: string[]
+}
+
+/** The terms promise a seat for good to an organization that enrolled a machine during the launch. */
+export async function keepLaunchSeatsBatch(
+  after: string | null,
+  now: Date = new Date()
+): Promise<LaunchSeatBatch> {
   const prisma = getPrisma()
   const ended = await prisma.subscription.findMany({
     where: {
       product: LAUNCH_PRODUCT,
       status: "trialing",
       currentPeriodEnd: { lte: now },
+      ...(after === null ? {} : { id: { gt: after } }),
     },
-    orderBy: { currentPeriodEnd: "asc" },
+    orderBy: { id: "asc" },
+    take: LAUNCH_BATCH_SIZE,
   })
-  const kept: string[] = []
 
-  for (const subscription of ended) {
-    const { organizationId } = subscription
+  if (ended.length === 0) {
+    return { kept: [], next: null }
+  }
 
-    if (!(await enrolledAMachine(organizationId))) {
-      continue
-    }
+  const organizationIds = [...new Set(ended.map((row) => row.organizationId))]
+  const firstExchange = await firstExchangeOf(organizationIds)
+  const keeping = ended.filter((subscription) => {
+    const exchangedAt = firstExchange.get(subscription.organizationId)
 
-    const live = await liveSubscriptionOf(organizationId)
+    return (
+      exchangedAt !== undefined &&
+      subscription.currentPeriodEnd !== null &&
+      exchangedAt <= subscription.currentPeriodEnd
+    )
+  })
+  const next =
+    ended.length < LAUNCH_BATCH_SIZE ? null : (ended.at(-1)?.id ?? null)
 
-    if (
-      live &&
-      live.id !== subscription.id &&
-      LIVE_SUBSCRIPTION_STATUSES.includes(live.status)
-    ) {
-      continue
-    }
+  if (keeping.length === 0) {
+    return { kept: [], next }
+  }
 
-    await prisma.subscription.update({
-      where: { id: subscription.id },
-      data: { status: "active", currentPeriodEnd: null },
-    })
+  await prisma.subscription.updateMany({
+    where: {
+      id: { in: keeping.map((subscription) => subscription.id) },
+      status: "trialing",
+    },
+    data: { status: "active", currentPeriodEnd: null },
+  })
+
+  for (const subscription of keeping) {
     await recordEvent({
       action: "subscription.updated",
       actorUserId: null,
-      organizationId,
+      organizationId: subscription.organizationId,
       targetType: "subscription",
       targetId: subscription.stripeSubscriptionId,
       payload: {
@@ -228,27 +285,29 @@ async function keepLaunchSeats(now: Date): Promise<string[]> {
         launch_seat_kept: true,
       },
     })
-    kept.push(subscription.id)
   }
 
-  return kept
+  return { kept: keeping.map((subscription) => subscription.id), next }
 }
 
-/**
- * Extending the launch is an environment change: every running launch
- * subscription follows the configured end. One that has passed it stays, for
- * good, with the organization that enrolled a machine, and is cancelled the
- * way any ended subscription of the platform's own is otherwise.
- */
+export const ENDED_LAUNCH_FILTER = {
+  product: LAUNCH_PRODUCT,
+  status: "trialing",
+} as const
+
+export function cancelEndedLaunchBatch(
+  now: Date = new Date()
+): Promise<string[]> {
+  return cancelEndedSubscriptionsBatch(ENDED_LAUNCH_FILTER, now)
+}
+
+/** Every seat is kept before anything is cancelled. */
 export async function reconcileLaunch(
   now: Date = new Date()
 ): Promise<LaunchReconciliation> {
-  const aligned = await alignWithLaunchEnd()
-  const kept = await keepLaunchSeats(now)
-  const canceled = await cancelEndedSubscriptions(
-    { product: LAUNCH_PRODUCT, status: "trialing" },
-    now
-  )
+  const aligned = await drainBatches(LAUNCH_BATCH_SIZE, alignLaunchBatch)
+  const seats = await walkBatches((after) => keepLaunchSeatsBatch(after, now))
+  const canceled = await cancelEndedSubscriptions(ENDED_LAUNCH_FILTER, now)
 
-  return { aligned, kept, canceled }
+  return { aligned, kept: seats.flatMap((batch) => batch.kept), canceled }
 }

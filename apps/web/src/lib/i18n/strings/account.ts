@@ -34,7 +34,6 @@ export const account = {
     "profile.emailAsked":
       "A confirmation link has been sent to your current address.",
     "profile.failed": "The name could not be saved.",
-    "profile.failedFix": "Try again in a moment.",
 
     "deleteAccount.title": "Delete the account",
     "deleteAccount.lead":
@@ -43,9 +42,6 @@ export const account = {
       "A running subscription must be cancelled first, from the billing area, and a server still assigned must be released.",
     "deleteAccount.trigger": "Delete my account",
     "deleteAccount.dialogTitle": "Delete this account for good?",
-    "deleteAccount.dialogDescription":
-      "To confirm, write your email address exactly as it appears below.",
-    "deleteAccount.confirmation": "Confirmation",
     "deleteAccount.pending": "Deleting…",
     "deleteAccount.confirm": "Delete for good",
     "deleteAccount.failed":
@@ -79,7 +75,7 @@ export const account = {
       "Réduisez le nombre de serveurs dans l'abonnement ci-dessus : vous payez des sièges que personne n'utilise.",
     "seats.fullTitle": "Tous les sièges sont occupés.",
     "seats.fullFix":
-      "Augmentez le nombre de serveurs dans l'abonnement ci-dessus pour en enrôler un de plus.",
+      "Augmentez le nombre de serveurs dans l'abonnement ci-dessus pour en rattacher un de plus.",
 
     "profile.title": "Profil",
     "profile.name": "Nom",
@@ -90,7 +86,6 @@ export const account = {
     "profile.emailAsked":
       "Un lien de confirmation est parti vers votre adresse actuelle.",
     "profile.failed": "Le nom n'a pas pu être enregistré.",
-    "profile.failedFix": "Réessayez dans un instant.",
 
     "deleteAccount.title": "Supprimer le compte",
     "deleteAccount.lead":
@@ -99,9 +94,6 @@ export const account = {
       "Un abonnement en cours doit être résilié avant, depuis l'espace de facturation, et un serveur encore attribué doit être retiré.",
     "deleteAccount.trigger": "Supprimer mon compte",
     "deleteAccount.dialogTitle": "Supprimer définitivement ce compte ?",
-    "deleteAccount.dialogDescription":
-      "Pour confirmer, écrivez votre adresse email exactement telle qu'elle est ci-dessous.",
-    "deleteAccount.confirmation": "Confirmation",
     "deleteAccount.pending": "Suppression…",
     "deleteAccount.confirm": "Supprimer définitivement",
     "deleteAccount.failed":

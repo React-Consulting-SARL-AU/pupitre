@@ -8,12 +8,6 @@ import { useProjectConfig } from "../project-config";
 import { useSnapshot } from "../snapshot";
 import { useTunnel } from "../tunnel";
 
-/**
- * The configuration of a declared project, reopened and sent back. The agent
- * is a stub: what is under test is the patch the store builds, what it says
- * before sending it, and what it does with the answer.
- */
-
 const SHOP: Project = {
   boot: false,
   dir: "shop",
@@ -39,7 +33,6 @@ const SHOP: Project = {
   state: "online",
 };
 
-/** The one process of SHOP as `project.update` carries it, before any edit. */
 const SHOP_PROCESS = {
   cmd: "bunx turbo run dev",
   dir: ".",
@@ -115,7 +108,6 @@ describe("la configuration d'un projet rouverte", () => {
     expect(useProjectConfig.getState().dropped()).toEqual([]);
   });
 
-  /** Starting with the server is a choice of the project, changed alone: the patch carries it without the processes moving. */
   it("envoie le démarrage avec le serveur quand il change, et lui seul", () => {
     useProjectConfig.getState().open(SHOP, SNAPSHOT.projects, true);
 
@@ -134,7 +126,7 @@ describe("la configuration d'un projet rouverte", () => {
     expect(useProjectConfig.getState().changed()).toBe(false);
   });
 
-  /** A runtime version is pinned by tool and sent whole: the map replaces the project's, and a tool set back to the default leaves it. */
+  // The sent map replaces the project's, so it always goes whole.
   it("envoie les versions de runtime épinglées quand elles changent, la carte entière", () => {
     useProjectConfig
       .getState()

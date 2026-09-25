@@ -2,13 +2,7 @@ import { readFileSync } from "node:fs"
 import path from "node:path"
 import satori from "satori"
 
-/**
- * The word "Pupitre" as outlines.
- *
- * Satori is used for one thing only: it turns text into `<path>` elements, so
- * the lockups carry no live text and render the same on Stripe's invoices, in
- * Illustrator, and on a machine that has never heard of Bricolage Grotesque.
- */
+// Outlines, not live text: the lockups render the same on a machine without Bricolage Grotesque.
 const FONT = path.join(import.meta.dir, "fonts/bricolage-grotesque-700.ttf")
 const WORD = "Pupitre"
 // Big enough that rounding the outlines to three decimals costs nothing.
@@ -28,11 +22,10 @@ export interface Box {
   height: number
 }
 
-export interface Wordmark {
+interface Wordmark {
   paths: string[]
-  /** Baseline to cap height: what a lockup aligns on, descenders excluded. */
+  // Baseline to cap height, descenders excluded: what a lockup aligns on.
   cap: Box
-  /** Everything the outlines actually ink, descender of the `p` included. */
   ink: Box
 }
 
@@ -52,8 +45,7 @@ async function outlines(word: string): Promise<string[]> {
     },
   }
 
-  // Satori takes a React element; this is the plain object it actually reads,
-  // and there is no JSX runtime in this package to build one.
+  // The plain object Satori reads from a React element: this package has no JSX runtime.
   const svg = await satori(node as never, {
     width: EM * 8,
     height: EM * 2,
@@ -155,8 +147,7 @@ let cached: Wordmark | undefined
 export async function wordmark(): Promise<Wordmark> {
   if (!cached) {
     const word = await outlines(WORD)
-    // The capital P alone gives the two lines the word itself cannot: its ink
-    // starts at the cap height and ends on the baseline, no descender in the way.
+    // The capital P alone spans cap height to baseline, with no descender in the way.
     const capital = box(await outlines("P"))
     const ink = box(word)
 

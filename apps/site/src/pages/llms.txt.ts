@@ -1,6 +1,6 @@
 import { getCollection } from "astro:content"
 import { CATALOG_ENTRIES } from "../content/site/catalog"
-import { MODULE_LABELS } from "../content/site/docs"
+import { MODULE_LABELS, servicesOverviewLead } from "../content/site/docs"
 import { LLMS } from "../content/site/llms"
 import { docSlug, moduleSlug } from "../lib/docs"
 import { fill, LOCALES, localizePath, translator } from "../lib/i18n"
@@ -73,7 +73,7 @@ export async function GET() {
       {
         title: MODULE_LABELS.overviewTitle.en,
         href: link(localizePath("/docs/services/", "en")),
-        note: MODULE_LABELS.overviewLead.en,
+        note: servicesOverviewLead("en"),
       },
       ...CATALOG_ENTRIES.map((entry) => ({
         title: `${entry.name.en} (${entry.id})`,

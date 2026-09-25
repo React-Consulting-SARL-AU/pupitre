@@ -2,6 +2,7 @@ package daemon_test
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -9,6 +10,8 @@ import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/daemon"
 	"pupitre.studio/agent/internal/entitlement"
+	"pupitre.studio/agent/internal/keys"
+	"pupitre.studio/agent/internal/modules/modtest"
 	"pupitre.studio/agent/internal/platform"
 	"pupitre.studio/agent/internal/protocol"
 )
@@ -30,6 +33,7 @@ func (b *bench) options() daemon.Options {
 		AgentVersion: "1.2.3",
 		Arch:         "amd64",
 		LogPath:      b.logPath,
+		Euid:         func() int { return 0 },
 	}
 }
 
@@ -39,7 +43,16 @@ func serve(t *testing.T, b *bench, granted contract.Entitlement, requests ...str
 	return session(t, b, entitlement.Fixed(granted), requests...)
 }
 
-// The same session, with the entitlement the machine itself resolves: that is what tells an unenrolled binary apart.
+// Resolved as a release build would: a dev build answers its own entitlement whatever the cache holds.
+func (b *bench) recorded() contract.Entitlement {
+	cache, err := entitlement.ReadCache(b.fake, entitlement.DefaultCachePath)
+	if err != nil {
+		return contract.EntitlementRestricted
+	}
+
+	return cache.Resolve(b.now, entitlement.DefaultTolerance)
+}
+
 func serveResolved(t *testing.T, b *bench, requests ...string) []response {
 	t.Helper()
 
@@ -64,7 +77,6 @@ func session(t *testing.T, b *bench, granted func() entitlement.State, requests 
 	return answers[1:]
 }
 
-// Everything the agent writes back, envelopes and events alike, as raw lines.
 func serveLines(t *testing.T, b *bench, requests ...string) []string {
 	t.Helper()
 
@@ -80,7 +92,7 @@ func spoken(t *testing.T, b *bench, granted func() entitlement.State, requests .
 	daemon.RegisterCommands(server, b.options())
 
 	var out strings.Builder
-	lines := append([]string{`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`}, requests...)
+	lines := append([]string{`{"id":1,"cmd":"hello","params":{"app_version":"1.2.3","protocol":2}}`}, requests...)
 	if err := server.Serve(strings.NewReader(strings.Join(lines, "\n")+"\n"), &out); err != nil {
 		t.Fatalf("Serve: %v", err)
 	}
@@ -132,7 +144,8 @@ func decode(t *testing.T, raw json.RawMessage) any {
 
 func TestKeysSyncThenKeysListAnswerTheContract(t *testing.T) {
 	b := newBench(t, true)
-	b.platform.allow(laptop, desktop)
+	b.trusting(t, laptopDevice)
+	b.platform.want(asked(laptopDevice), asked(desktopDevice, laptopDevice.approves(t, desktopDevice, b.now)), asked(phoneDevice))
 
 	answers := serve(t, b, contract.EntitlementValid,
 		`{"id":2,"cmd":"keys.sync","params":{}}`,
@@ -143,16 +156,147 @@ func TestKeysSyncThenKeysListAnswerTheContract(t *testing.T) {
 	assertKeysResult(t, answers[1], 2)
 
 	var listed struct {
-		SyncedAt string `json:"synced_at"`
+		Keys []struct {
+			Fingerprint string `json:"fingerprint"`
+			Signer      bool   `json:"signer"`
+		} `json:"keys"`
+		Pending  []string `json:"pending"`
+		SyncedAt string   `json:"synced_at"`
 	}
 	json.Unmarshal(answers[1].Result, &listed)
 
 	if listed.SyncedAt != noon.Format(time.RFC3339) {
 		t.Fatalf("synced_at = %q", listed.SyncedAt)
 	}
+
+	if len(listed.Pending) != 1 || listed.Pending[0] != phoneDevice.fingerprint(t) {
+		t.Fatalf("pending = %v", listed.Pending)
+	}
+
+	for _, key := range listed.Keys {
+		if !key.Signer {
+			t.Fatalf("every key the agent kept is a signer: %+v", listed.Keys)
+		}
+	}
 }
 
-// Nothing has been read yet: the block is empty, and keys.list says so rather than failing.
+func TestKeysListSaysWhichKeysSign(t *testing.T) {
+	b := newBench(t, true)
+	b.trusting(t, laptopDevice)
+	keys.Sync(modtest.NewSysContext(b.fake), keys.Target{Path: keys.DefaultPath}, []keys.Key{laptopDevice.key(t), desktopDevice.key(t)})
+
+	answer := serve(t, b, contract.EntitlementValid, `{"id":2,"cmd":"keys.list","params":{}}`)[0]
+	assertKeysResult(t, answer, 2)
+
+	var listed struct {
+		Keys []struct {
+			Fingerprint string `json:"fingerprint"`
+			Signer      bool   `json:"signer"`
+		} `json:"keys"`
+		Pending []string `json:"pending"`
+	}
+	json.Unmarshal(answer.Result, &listed)
+
+	for _, key := range listed.Keys {
+		if key.Signer != (key.Fingerprint == laptopDevice.fingerprint(t)) {
+			t.Fatalf("keys = %+v", listed.Keys)
+		}
+	}
+
+	if listed.Pending != nil {
+		t.Fatalf("no state was read, nothing is pending: %v", listed.Pending)
+	}
+}
+
+func TestKeysTrustLaysTheDeviceKey(t *testing.T) {
+	b := newBench(t, true)
+	b.trusting(t, laptopDevice)
+
+	answers := serve(t, b, contract.EntitlementValid,
+		`{"id":2,"cmd":"keys.trust","params":{"public_key":"`+desktopDevice.line+`"}}`,
+		`{"id":3,"cmd":"keys.trust","params":{"public_key":"`+desktopDevice.line+`"}}`,
+	)
+
+	assertKeysResult(t, answers[0], 2)
+	assertKeysResult(t, answers[1], 2)
+
+	if err := contract.Validate("KeysTrustResult", decode(t, answers[0].Result)); err != nil {
+		t.Fatal(err)
+	}
+
+	trust := b.trust(t)
+	if !trust.Trusts(desktopDevice.fingerprint(t)) || len(trust.Signers) != 2 || trust.Signers[1].Via != keys.ViaOnboarding {
+		t.Fatalf("trust = %+v", trust)
+	}
+
+	if !b.opens(desktopDevice) || !b.opens(laptopDevice) || !strings.Contains(b.authorized(), own) {
+		t.Fatalf("authorized_keys:\n%s", b.authorized())
+	}
+
+	if b.fake.Modes[keys.DefaultSignersPath] != 0o600 {
+		t.Fatalf("signers mode = %o", b.fake.Modes[keys.DefaultSignersPath])
+	}
+}
+
+func TestKeysTrustClearsAnEarlierRemoval(t *testing.T) {
+	b := newBench(t, true)
+	b.trusting(t, laptopDevice, desktopDevice)
+	b.platform.want(asked(laptopDevice))
+	b.sync(t, b.agent())
+
+	if _, gone := b.trust(t).RemovedAt(desktopDevice.fingerprint(t)); !gone {
+		t.Fatal("no removal to clear")
+	}
+
+	answer := serve(t, b, contract.EntitlementValid, `{"id":2,"cmd":"keys.trust","params":{"public_key":"`+desktopDevice.line+`"}}`)[0]
+	assertKeysResult(t, answer, 2)
+
+	if _, gone := b.trust(t).RemovedAt(desktopDevice.fingerprint(t)); gone {
+		t.Fatal("the removal outlives the gesture")
+	}
+}
+
+func TestKeysTrustRefusesWhatCannotSign(t *testing.T) {
+	b := newBench(t, true)
+	ecdsaBody := "AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBNH5F8J50Xgsj+WzK4rJlQktX5PrBNTPY3qWAXqzpfdCVu0jyBMPMYXiiNXEKaKpAhcqV3CKKAS1HTNag6sqX9s="
+
+	for _, key := range []string{
+		"ssh-ed25519 " + ecdsaBody,
+		"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7",
+		desktopDevice.line + " jordan@desktop",
+		`command=\"true\" ` + desktopDevice.line,
+	} {
+		answer := serve(t, b, contract.EntitlementValid, `{"id":2,"cmd":"keys.trust","params":{"public_key":"`+key+`"}}`)[0]
+		if answer.OK || answer.Error.Code != contract.ErrorBadRequest {
+			t.Fatalf("%s: answer = %+v", key, answer)
+		}
+	}
+
+	if _, written := b.fake.Files[keys.DefaultSignersPath]; written || b.opens(desktopDevice) {
+		t.Fatal("a refused key was laid")
+	}
+}
+
+func TestKeysTrustNeedsARootServe(t *testing.T) {
+	b := newBench(t, true)
+	options := b.options()
+	options.Euid = func() int { return 1000 }
+
+	server := protocol.NewServer(protocol.Options{AgentVersion: "1.2.3", Entitlement: entitlement.Fixed(contract.EntitlementValid)})
+	daemon.RegisterCommands(server, options)
+
+	_, err := server.Call("keys.trust", map[string]any{"public_key": desktopDevice.line}, nil)
+
+	var refusal *protocol.Error
+	if !errors.As(err, &refusal) || refusal.Code != contract.ErrorBadRequest || !strings.Contains(refusal.Fix, "sudo pupitred serve --privileged") {
+		t.Fatalf("err = %v", err)
+	}
+
+	if b.opens(desktopDevice) {
+		t.Fatal("a key was laid by a serve that is not root")
+	}
+}
+
 func TestKeysListAnswersAnEmptyBlock(t *testing.T) {
 	b := newBench(t, true)
 
@@ -164,8 +308,12 @@ func TestKeysSyncSaysWhenThePlatformRefusesTheToken(t *testing.T) {
 	b.platform.suspend(401)
 
 	answer := serve(t, b, contract.EntitlementValid, `{"id":2,"cmd":"keys.sync","params":{}}`)[0]
-	if answer.OK || answer.Error.Code != contract.ErrorEntitlementRequired || answer.Error.Fix == "" {
+	if answer.OK || answer.Error.Code != contract.ErrorEntitlementRequired {
 		t.Fatalf("answer = %+v", answer)
+	}
+
+	if !strings.Contains(answer.Error.Fix, b.server.URL) {
+		t.Fatalf("the fix must send the client to the platform that refused, %s: %q", b.server.URL, answer.Error.Fix)
 	}
 }
 
@@ -178,7 +326,6 @@ func TestKeysSyncSaysWhenTheServerIsNotEnrolled(t *testing.T) {
 	}
 }
 
-// In restricted mode, keys.* is among what the contract closes.
 func TestTheKeysCommandsCloseInRestrictedMode(t *testing.T) {
 	b := newBench(t, true)
 
@@ -201,10 +348,9 @@ func enrollRequests(b *bench) []string {
 	}
 }
 
-// The app hands the token on the secret line, the agent trades it, and nothing of it stays anywhere it could be read.
 func TestEnrollTradesTheTokenTakenFromTheSecretLine(t *testing.T) {
 	b := newBench(t, false)
-	b.platform.allow(laptop)
+	b.platform.want()
 
 	answers := serveResolved(t, b, enrollRequests(b)...)
 	if len(answers) != 1 {
@@ -227,8 +373,13 @@ func TestEnrollTradesTheTokenTakenFromTheSecretLine(t *testing.T) {
 	}
 	json.Unmarshal(answer.Result, &result)
 
-	if !result.Enrolled || result.Entitlement != string(contract.EntitlementValid) || result.SyncedAt == "" {
-		t.Fatalf("result = %+v", result)
+	resolved := entitlement.New(entitlement.Options{Sys: b.fake, Now: func() time.Time { return b.now }}).Current()
+	if !result.Enrolled || result.Entitlement != string(resolved) || result.SyncedAt == "" {
+		t.Fatalf("result = %+v, the machine now resolves %s", result, resolved)
+	}
+
+	if recorded := b.recorded(); recorded != contract.EntitlementValid {
+		t.Fatalf("the first state read must be written down valid, got %s", recorded)
 	}
 
 	if len(b.platform.traded) != 1 || b.platform.traded[0].Token != enrollmentToken {
@@ -244,12 +395,11 @@ func TestEnrollTradesTheTokenTakenFromTheSecretLine(t *testing.T) {
 		t.Fatalf("jeton = %q, err = %v", token, err)
 	}
 
-	if !strings.Contains(b.authorized(), laptop) {
-		t.Fatalf("the first state was not read:\n%s", b.authorized())
+	if platform.LoadServerID(b.fake, "") != serverID {
+		t.Fatalf("the first state was not read: server id %q", platform.LoadServerID(b.fake, ""))
 	}
 }
 
-// Criterion of the task: neither the journal nor a line the agent writes back carries the enrolment token.
 func TestEnrollNeverWritesTheTokenDownAnywhere(t *testing.T) {
 	b := newBench(t, false)
 
@@ -270,7 +420,6 @@ func TestEnrollNeverWritesTheTokenDownAnywhere(t *testing.T) {
 	}
 }
 
-// A platform that echoes the token back in its refusal: the message the app displays says [secret], and so does the journal.
 func TestARefusalThatCarriesTheTokenIsRedacted(t *testing.T) {
 	b := newBench(t, false)
 	b.platform.echoRefusals()
@@ -297,7 +446,6 @@ func TestARefusalThatCarriesTheTokenIsRedacted(t *testing.T) {
 	}
 }
 
-// A server whose token was lost or revoked answers restricted, and enrolling again is the gesture that repairs it: the console is not the only way back.
 func TestARestrictedServerEnrolsAgainWithoutTheConsole(t *testing.T) {
 	b := newBench(t, true)
 	b.platform.allow(laptop)
@@ -328,16 +476,17 @@ func TestARestrictedServerEnrolsAgainWithoutTheConsole(t *testing.T) {
 	}
 }
 
-// The one command a binary without a server token opens beyond hello, ping and diag.
+// The release build's unenrolled state is named explicitly: a dev build resolves its own whatever the disk holds.
 func TestOnlyEnrollOpensOnABinaryWithoutAServerToken(t *testing.T) {
 	b := newBench(t, false)
+	unenrolled := func() entitlement.State { return entitlement.State{Entitlement: contract.EntitlementRestricted} }
 
-	refused := serveResolved(t, b, `{"id":2,"cmd":"keys.sync","params":{}}`)[0]
+	refused := session(t, b, unenrolled, `{"id":2,"cmd":"keys.sync","params":{}}`)[0]
 	if refused.OK || refused.Error.Code != contract.ErrorEntitlementRequired {
 		t.Fatalf("keys.sync = %+v", refused)
 	}
 
-	if answer := serveResolved(t, b, enrollRequests(b)...)[0]; !answer.OK {
+	if answer := session(t, b, unenrolled, enrollRequests(b)...)[0]; !answer.OK {
 		t.Fatalf("enroll refused on an unenrolled binary: %v", answer.Error)
 	}
 }
@@ -361,8 +510,6 @@ func TestEnrollRefusesASecretLineThatIsNotOne(t *testing.T) {
 	}
 }
 
-// The console shows the modules at the end of an installation rather than at
-// the daemon's next turn, five minutes later.
 func TestPlatformSyncReadsTheStateAndBeatsAtOnce(t *testing.T) {
 	b := newBench(t, true)
 	b.platform.allow(laptop)
@@ -389,8 +536,6 @@ func TestPlatformSyncReadsTheStateAndBeatsAtOnce(t *testing.T) {
 	}
 }
 
-// A server whose usage right the platform has not confirmed is exactly the one
-// that needs to ask again: the contract leaves this command open for it.
 func TestPlatformSyncStaysOpenInRestrictedMode(t *testing.T) {
 	b := newBench(t, true)
 	b.platform.allow(laptop)

@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-// An upload that failed is aborted on a context of its own: the one that failed may be the reason.
+// A failed upload is aborted on its own context: the one it failed on may be the reason.
 const abortTimeout = time.Minute
 
 type completedPart struct {
@@ -29,7 +29,6 @@ type multipart struct {
 	parts  []completedPart
 }
 
-// Upload holds one part in memory at most, and aborts a multipart upload that fails on the way.
 func (c Client) Upload(ctx context.Context, key string, r io.Reader) (Uploaded, error) {
 	digest := sha256.New()
 	buffer := make([]byte, c.partBytes())
@@ -44,6 +43,7 @@ func (c Client) Upload(ctx context.Context, key string, r io.Reader) (Uploaded, 
 
 		return Uploaded{Bytes: int64(read), SHA256: hex.EncodeToString(digest.Sum(nil))}, nil
 	}
+
 	if err != nil {
 		return Uploaded{}, err
 	}
@@ -60,7 +60,7 @@ func (c Client) Upload(ctx context.Context, key string, r io.Reader) (Uploaded, 
 		return Uploaded{}, err
 	}
 
-	if err := upload.complete(ctx); err != nil {
+	if err := upload.complete(ctx, total); err != nil {
 		upload.abort()
 
 		return Uploaded{}, err
@@ -85,7 +85,6 @@ func (c Client) begin(ctx context.Context, key string) (*multipart, error) {
 	return &multipart{client: c, key: key, id: created.UploadID}, nil
 }
 
-// send uploads the part already read, then every part after it; only the last may be shorter.
 func (m *multipart) send(ctx context.Context, r io.Reader, buffer []byte, read int, digest io.Writer) (int64, error) {
 	var total int64
 
@@ -126,7 +125,7 @@ func (m *multipart) part(ctx context.Context, number int, body []byte) error {
 	return nil
 }
 
-func (m *multipart) complete(ctx context.Context) error {
+func (m *multipart) complete(ctx context.Context, total int64) error {
 	body, err := xml.Marshal(struct {
 		XMLName xml.Name        `xml:"CompleteMultipartUpload"`
 		Parts   []completedPart `xml:"Part"`
@@ -136,7 +135,20 @@ func (m *multipart) complete(ctx context.Context) error {
 	}
 
 	header := http.Header{"Content-Type": {"application/xml"}}
-	answer, err := m.client.exchange(ctx, call{op: "CompleteMultipartUpload", method: http.MethodPost, key: m.key, query: url.Values{"uploadId": {m.id}}, header: header, body: body, payload: hashHex(body)})
+
+	answer, err := m.client.exchange(ctx, call{
+		op:      "CompleteMultipartUpload",
+		method:  http.MethodPost,
+		key:     m.key,
+		query:   url.Values{"uploadId": {m.id}},
+		header:  header,
+		body:    body,
+		payload: hashHex(body),
+	})
+	if m.landed(ctx, err, total) {
+		return nil
+	}
+
 	if err != nil {
 		return err
 	}
@@ -148,6 +160,18 @@ func (m *multipart) complete(ctx context.Context) error {
 	return nil
 }
 
+// A retried completion whose first answer was lost finds NoSuchUpload, yet the whole object is under its key.
+func (m *multipart) landed(ctx context.Context, err error, total int64) bool {
+	var failure *Error
+	if !errors.As(err, &failure) || failure.Code != "NoSuchUpload" {
+		return false
+	}
+
+	size, headErr := m.client.Size(ctx, m.key)
+
+	return headErr == nil && size == total
+}
+
 func (m *multipart) abort() {
 	ctx, cancel := context.WithTimeout(context.Background(), abortTimeout)
 	defer cancel()
@@ -155,7 +179,6 @@ func (m *multipart) abort() {
 	_ = m.client.Abort(ctx, m.key, m.id)
 }
 
-// Copy puts an object of the bucket under another key without a byte leaving the server: one call up to 5 GiB, ranges of a multipart upload beyond.
 func (c Client) Copy(ctx context.Context, source, destination string, size int64) error {
 	header := http.Header{"X-Amz-Copy-Source": {c.copySource(source)}}
 
@@ -183,7 +206,7 @@ func (c Client) Copy(ctx context.Context, source, destination string, size int64
 		return err
 	}
 
-	if err := upload.complete(ctx); err != nil {
+	if err := upload.complete(ctx, size); err != nil {
 		upload.abort()
 
 		return err
@@ -200,6 +223,7 @@ func (m *multipart) copyRanges(ctx context.Context, header http.Header, size int
 		ranged.Set("X-Amz-Copy-Source-Range", "bytes="+strconv.FormatInt(start, 10)+"-"+strconv.FormatInt(end, 10))
 
 		query := url.Values{"partNumber": {strconv.Itoa(number)}, "uploadId": {m.id}}
+
 		answer, err := m.client.exchange(ctx, call{op: "UploadPartCopy", method: http.MethodPut, key: m.key, query: query, header: ranged})
 		if err != nil {
 			return err
@@ -208,9 +232,11 @@ func (m *multipart) copyRanges(ctx context.Context, header http.Header, size int
 		var copied struct {
 			ETag string `xml:"ETag"`
 		}
+
 		if failure := embeddedError("UploadPartCopy", answer.body); failure != nil {
 			return failure
 		}
+
 		if err := xml.Unmarshal(answer.body, &copied); err != nil {
 			return &Error{Op: "UploadPartCopy", Status: http.StatusOK, Cause: err}
 		}

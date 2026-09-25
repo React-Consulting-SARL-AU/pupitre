@@ -3,16 +3,8 @@ import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 import { assertAccessible } from "./harness/accessible";
 import { toggle } from "./harness/controls";
+import { SERVERS } from "./harness/fixtures";
 import { launchPupitre, type Running } from "./harness/launch";
-
-/**
- * The three sections the seventh phase adds to the settings, against the real
- * bridge: the version the build carries, the updater's state as the main
- * process broadcasts it, and the two preferences it keeps in its own file. The
- * harness registers nothing with the system: a login item written here would
- * outlive the suite, and so would a line in the reader's own SSH file — the
- * one the SSH section writes lands in the folder the harness throws away.
- */
 
 const VERSION = (
   JSON.parse(
@@ -41,13 +33,12 @@ test.describe("les réglages de l'app", () => {
       "data-app-version",
       VERSION
     );
-    // Built from the working tree, this copy follows no channel.
+    // Built from the working tree, this copy follows no update channel.
     await expect(page.getByText("Pas mise à jour par l'app")).toBeVisible();
     await expect(page.locator('[data-app-update="off"]')).toBeVisible();
 
     await assertAccessible(page, "reglages/a-propos");
 
-    // What the updater would say once a download has landed.
     await app.evaluate(({ BrowserWindow }) => {
       for (const window of BrowserWindow.getAllWindows()) {
         window.webContents.send("app-update:changed", {
@@ -68,18 +59,19 @@ test.describe("les réglages de l'app", () => {
     await app.evaluate(({ BrowserWindow }) => {
       for (const window of BrowserWindow.getAllWindows()) {
         window.webContents.send("app-update:changed", {
-          error: "ENOTFOUND dl.pupitre.studio",
+          failure: "refused",
           status: "error",
           updates: true,
+          version: "0.9.0",
         });
       }
     });
 
     await expect(page.locator('[data-callout="app-update"]')).toContainText(
-      "ENOTFOUND dl.pupitre.studio"
+      "La version 0.9.0 ne porte pas la signature de release de Pupitre"
     );
     await expect(
-      page.getByText("Vérifiez la connexion et réessayez")
+      page.getByText("téléchargez Pupitre depuis pupitre.studio")
     ).toBeVisible();
   });
 
@@ -123,6 +115,29 @@ test.describe("les réglages de l'app", () => {
     });
   });
 
+  test("un serveur dont l'agent répond après l'ouverture des réglages cesse d'offrir l'installation", async () => {
+    const { app, page } = running;
+
+    await page.getByRole("button", { name: "Réglages" }).click();
+    await page.getByRole("tab", { name: "Serveurs" }).click();
+
+    const entry = page.locator("[data-onboarding-entry]");
+
+    // The harness answers agent:call itself, so no channel greets until one is announced.
+    await expect(entry).toBeVisible();
+
+    await app.evaluate(({ BrowserWindow }, serverId) => {
+      for (const window of BrowserWindow.getAllWindows()) {
+        window.webContents.send("agent:channel", { serverId, state: "open" });
+      }
+    }, SERVERS.servers[0].id);
+
+    await expect(entry).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Installer Pupitre" })
+    ).toHaveCount(0);
+  });
+
   test("la section SSH écrit une ligne Include en tête du fichier du système, et la retire", async () => {
     const { app, page } = running;
 
@@ -140,6 +155,7 @@ test.describe("les réglages de l'app", () => {
     const userData = await app.evaluate(({ app: electron }) =>
       electron.getPath("userData")
     );
+    // The harness keeps the system SSH file inside the throwaway user folder.
     const file = join(userData, "home", ".ssh", "config");
     const line = await page.locator("[data-ssh-include]").innerText();
 

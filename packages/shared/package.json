@@ -23,17 +23,21 @@
     "./backup": "./src/backup/index.ts",
     "./backup/crypto": "./src/backup/crypto.ts",
     "./catalog": "./src/catalog/index.ts",
-    "./catalog/formats": "./src/catalog/formats.ts",
     "./catalog/validate": "./src/catalog/validate.ts",
     "./compat": "./src/compat/index.ts",
-    "./contracts": "./src/contracts/index.ts",
+    "./contracts/json-schema": "./src/contracts/json-schema.ts",
     "./i18n": "./src/i18n/locale.ts",
+    "./keys": "./src/keys/index.ts",
     "./legal": "./src/legal/index.ts",
     "./permissions": "./src/permissions/index.ts",
     "./plans": "./src/plans/index.ts",
     "./platform": "./src/platform/index.ts",
+    "./platform-api": "./src/platform-api/index.ts",
+    "./platform-api/account": "./src/platform-api/account.ts",
+    "./platform-api/agent": "./src/platform-api/agent.ts",
     "./releases": "./src/releases/index.ts",
     "./semver": "./src/semver/index.ts",
+    "./ssh": "./src/ssh/index.ts",
     "./status": "./src/status/index.ts"
   },
   "scripts": {
@@ -45,12 +49,12 @@
     "contracts:check": "bun scripts/export-contracts.ts --check"
   },
   "dependencies": {
-    "zod": "^4.4.3"
+    "zod": "catalog:"
   },
   "devDependencies": {
-    "@types/bun": "^1.4.0",
-    "@typescript/native-preview": "^7.0.0-dev.20260707.2",
-    "typescript": "^6.0.3",
-    "ultracite": "7.8.3"
+    "@types/bun": "catalog:",
+    "@typescript/native-preview": "catalog:",
+    "typescript": "catalog:",
+    "ultracite": "catalog:"
   }
 }

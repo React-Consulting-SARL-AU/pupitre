@@ -490,7 +490,6 @@ func TestUpgradeOnlyTouchesInstalledModulesAndKeepsTheirValues(t *testing.T) {
 const openReport = `{"started_at":"2026-09-17T10:00:00Z","agent_version":"0.0.0-test","modules":[{"id":"core.system","status":"ok","steps":[{"step":"install-package","status":"ok","ms":3}]},{"id":"tool.demo","status":"ok","steps":[{"step":"install-package","status":"ok","ms":2},{"step":"write-config","status":"start"}]}],"failed":[],"warned":[],"report_path":"%s"}
 `
 
-// A report left open by a process that died reads as finished, its open step failed: the lock the kernel released is what tells the two apart.
 func TestAnOpenReportWithNoLockHolderIsAnsweredInterrupted(t *testing.T) {
 	engine := newEngine(t, modtest.NewFakeSys(), newRegistry(), entitled(contract.EntitlementValid))
 	engine.LockPath = filepath.Join(t.TempDir(), "install.lock")
@@ -540,6 +539,26 @@ func TestAnOpenReportWhileTheLockIsHeldStaysOpen(t *testing.T) {
 
 	if report.FinishedAt != "" || report.Modules[1].Steps[1].Status != contract.StepStart {
 		t.Fatalf("a run under way must read as under way: %+v", report)
+	}
+}
+
+func TestTheReportIsRootsAlone(t *testing.T) {
+	engine := newEngine(t, modtest.NewFakeSys(), demoRegistry(modtest.Passing{ID: "tool.demo"}), entitled(contract.EntitlementDev))
+	if err := os.WriteFile(engine.ReportPath, []byte("{}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := engine.Install(modules.Request{Modules: []string{"tool.demo"}}, nil); err != nil {
+		t.Fatal(err)
+	}
+
+	info, err := os.Stat(engine.ReportPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if info.Mode().Perm() != 0o600 {
+		t.Fatalf("report mode = %o, want 0600 even over one an older agent left readable", info.Mode().Perm())
 	}
 }
 
@@ -637,9 +656,6 @@ func demoEngine(t *testing.T) (*modules.Engine, *modtest.FakeSys) {
 	return newEngine(t, fake, registry, entitled(contract.EntitlementDev)), fake
 }
 
-// A configuration that would not hold is refused before the first step: the
-// machine is left as it was, and every field is named at once rather than one
-// per attempt.
 func TestAnInvalidConfigurationIsRefusedBeforeAnythingIsTouched(t *testing.T) {
 	engine, fake := demoEngine(t)
 
@@ -688,8 +704,6 @@ func TestCheckNamesEveryProblemAndChangesNothing(t *testing.T) {
 	}
 }
 
-// The app holds the vault and writes the secret line at install time; a server
-// that called every secret it cannot see missing would be wrong every time.
 func TestCheckNeverCallsASecretMissing(t *testing.T) {
 	engine, _ := demoEngine(t)
 
@@ -742,7 +756,6 @@ func TestADeferredModuleWaitsForTheRequestThatAnswersForIt(t *testing.T) {
 		t.Fatalf("the engine must remember what it left unconfigured, got %v", engine.Deferred())
 	}
 
-	// Its requirement was answered for by the same request: it is not deferred.
 	fake.Upgrades["tool-demo"] = "2.0"
 	events = nil
 	if _, err := engine.Upgrade(modules.Request{}, collect(&events)); err != nil {
@@ -766,7 +779,6 @@ func TestADeferredModuleWaitsForTheRequestThatAnswersForIt(t *testing.T) {
 		t.Fatalf("a refused request must not change what is deferred, got %v", engine.Deferred())
 	}
 
-	// The request that names it with its answers is the one that configures it.
 	request := modules.Request{Modules: []string{"tool.demo"}, Secrets: map[string]map[string]string{"tool.demo": {"password": secret}}, Persist: true}
 	if _, err := engine.Install(request, nil); err != nil {
 		t.Fatal(err)
@@ -814,8 +826,6 @@ func TestUninstallForgetsThatAModuleWasDeferred(t *testing.T) {
 	}
 }
 
-// A real core module asks a name nobody types twice: adding a service later
-// names that service alone, and the machine's own answers must not be asked again.
 func TestAddingAModuleKeepsWhatItsRequirementWasToldBefore(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	identity := contract.Field{Key: "git_name", Kind: contract.FieldText, Label: "Nom git", Required: true, MinLength: 2}
@@ -859,7 +869,6 @@ func TestAddingAModuleKeepsWhatItsRequirementWasToldBefore(t *testing.T) {
 	}
 }
 
-// A module put off for later stays put off when another module merely requires it.
 func TestARequirementLeftForLaterStaysForLater(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	registry := demoRegistry(
@@ -1140,7 +1149,34 @@ func TestConfigureAndPreflightSeeWhatTheMachineHolds(t *testing.T) {
 	}
 }
 
-// heldRecorder is a demo module that notes what Held answers in each phase.
+func TestAModuleIsConfiguredWithTheValueThatWasJudged(t *testing.T) {
+	recorder := &domainRecorder{Passing: modtest.Passing{
+		ID:   "tool.domain",
+		Asks: []contract.Field{{Key: "domain", Kind: contract.FieldText, Label: "Domaine", Format: contract.FormatDomain, Required: true}},
+	}}
+	engine := newEngine(t, modtest.NewFakeSys(), demoRegistry(recorder), entitled(contract.EntitlementValid))
+
+	request := modules.Request{Modules: []string{"tool.domain"}, Config: map[string]map[string]any{"tool.domain": {"domain": "  Flyleaf.DEV\n"}}, Persist: true}
+	if result, err := engine.Install(request, nil); err != nil || len(result.Failed) != 0 {
+		t.Fatalf("install = %+v, %v", result, err)
+	}
+
+	if recorder.configured != "flyleaf.dev" {
+		t.Fatalf("configure read %q, the value judged was flyleaf.dev", recorder.configured)
+	}
+}
+
+type domainRecorder struct {
+	modtest.Passing
+	configured string
+}
+
+func (m *domainRecorder) Configure(ctx *modules.Context) error {
+	m.configured = ctx.String("domain")
+
+	return m.Passing.Configure(ctx)
+}
+
 type heldRecorder struct {
 	modtest.Passing
 	configured, preflighted, upgraded any

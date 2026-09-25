@@ -29,6 +29,7 @@ func registry(t *testing.T) *modules.Registry {
 
 	registry := modules.NewRegistry()
 	registry.Register(modtest.Passing{ID: "core.system"})
+
 	for _, runtime := range runtimeModules {
 		registry.Register(runtime.module)
 	}
@@ -73,6 +74,7 @@ func TestEachRuntimeKeepsItsOwnBlock(t *testing.T) {
 	}
 
 	env := string(fake.Files[shell.EnvPath])
+
 	for _, id := range []string{"runtime.node", "runtime.java", "runtime.python"} {
 		if strings.Count(env, "# >>> pupitre "+id+" >>>") != 1 || strings.Count(env, "# <<< pupitre "+id+" <<<") != 1 {
 			t.Fatalf("%s must appear exactly once in .zshenv:\n%s", id, env)
@@ -94,6 +96,7 @@ func TestReinstallingOneRuntimeLeavesTheOthersAlone(t *testing.T) {
 	fake.Files["/proc/meminfo"] = []byte("MemTotal:       4015000 kB\n")
 
 	installAll(t, fake)
+
 	before := string(fake.Files[shell.EnvPath])
 
 	ctx := modtest.NewContext(t, fake, modtest.Options{Manifest: node.Module{}.Manifest(), Values: modtest.Values{"node_versions": []string{"24"}, "bun": false, "pnpm": false}})

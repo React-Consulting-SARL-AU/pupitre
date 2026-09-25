@@ -72,6 +72,7 @@ describe("le menu de l'application", () => {
     const menu = menuTemplate("linux", true, "fr-FR", {
       checkUpdates: () => called.push("updates"),
       goToProject: () => called.push("palette"),
+      help: (link) => called.push(`help:${link}`),
       newAgent: () => called.push("agent"),
       newTerminal: () => called.push("terminal"),
       preferences: () => called.push("preferences"),
@@ -87,6 +88,9 @@ describe("le menu de l'application", () => {
       "shortcuts",
       "check-updates",
       "sign-out",
+      "help-docs",
+      "help-support",
+      "help-legal",
     ]) {
       (byId(menu, id)?.click as (() => void) | undefined)?.();
     }
@@ -99,6 +103,27 @@ describe("le menu de l'application", () => {
       "shortcuts",
       "updates",
       "sign-out",
+      "help:docs",
+      "help:support",
+      "help:legal",
+    ]);
+  });
+
+  it("mène de l'aide à la documentation, au support et aux conditions, dans la langue du système", () => {
+    const labels = (locale: string) =>
+      ["help-docs", "help-support", "help-legal"].map(
+        (id) => byId(menuTemplate("darwin", true, locale), id)?.label
+      );
+
+    expect(labels("fr-FR")).toEqual([
+      "Documentation",
+      "Contacter le support",
+      "Conditions et confidentialité",
+    ]);
+    expect(labels("en-US")).toEqual([
+      "Documentation",
+      "Contact Support",
+      "Terms and Privacy",
     ]);
   });
 
@@ -118,7 +143,7 @@ describe("le menu de l'application", () => {
   it("libelle ses entrées dans la langue du système", () => {
     expect(
       byId(menuTemplate("darwin", true, "fr-FR"), "preferences")?.label
-    ).toBe("Préférences…");
+    ).toBe("Réglages…");
     expect(byId(menuTemplate("darwin", true, "en-US"), "sign-out")?.label).toBe(
       "Sign Out…"
     );

@@ -16,24 +16,24 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@astrojs/mdx": "^4",
+    "@astrojs/mdx": "^4.3.14",
     "@astrojs/rss": "^4.0.19",
     "@astrojs/sitemap": "^3.7.4",
     "@pupitre/design": "workspace:*",
     "@pupitre/shared": "workspace:*",
-    "@resvg/resvg-js": "^2.6.2",
+    "@resvg/resvg-js": "catalog:",
     "astro": "^5.18.2",
     "posthog-js": "^1.427.2",
-    "satori": "^0.33.4"
+    "satori": "catalog:"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
-    "@tailwindcss/vite": "^4.3.3",
-    "@types/bun": "^1.4.0",
-    "tailwindcss": "^4.3.3",
-    "typescript": "^6.0.3",
-    "ultracite": "7.8.3",
+    "@tailwindcss/vite": "catalog:",
+    "@types/bun": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "ultracite": "catalog:",
     "vitest": "^3.2.7",
-    "wrangler": "^4.131.1"
+    "wrangler": "catalog:"
   }
 }

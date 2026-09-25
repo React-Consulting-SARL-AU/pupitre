@@ -1,22 +1,6 @@
 import { spawn, spawnSync } from "node:child_process"
 
-/**
- * The tunnel that publishes the local console under a stable name.
- *
- * A client's VPS has no way to reach `localhost:3000`: that is its own machine's
- * loopback. This tunnel gives the console served here an address the remote
- * server can join, and one that does not change from a launch to the next.
- *
- * The tunnel is managed from the Cloudflare dashboard, and runs from its token:
- * the hostname, the `^/api/v1/agent/` path it serves and the origin it forwards
- * to live there, and nothing else of the console is exposed. A token names one
- * tunnel and nothing more, where `cloudflared tunnel login` binds the whole
- * machine to one account — unusable with several projects on several tunnels.
- *
- * Nothing here exits in failure: a tunnel that cannot start says why and stops
- * alone. It has no business taking the development server down with it.
- */
-
+// A token names one dashboard-managed tunnel; `cloudflared tunnel login` would bind the whole machine.
 const TOKEN = process.env.PUPITRE_TUNNEL_TOKEN
 const HOSTNAME = process.env.PUPITRE_TUNNEL_HOSTNAME ?? "dev.pupitre.studio"
 
@@ -24,10 +8,7 @@ function say(message: string): void {
   process.stdout.write(`tunnel: ${message}\n`)
 }
 
-/**
- * What is missing asks for an action, not a build failure: the message stays in
- * the tunnel's pane, and both Vite and Astro keep running.
- */
+// Exits cleanly so a missing tunnel never takes the dev servers down with it.
 function give(message: string, fix?: string): never {
   say(message)
 

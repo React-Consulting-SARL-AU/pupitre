@@ -17,6 +17,8 @@ interface Visit {
 interface VisitOptions {
   marks?: Map<string, string>
   storageThrows?: boolean
+  protocol?: string
+  cookie?: string
 }
 
 function visit(
@@ -25,11 +27,13 @@ function visit(
   {
     marks = new Map<string, string>(),
     storageThrows = false,
+    protocol = "http:",
+    cookie = "",
   }: VisitOptions = {}
 ): Visit {
   const beacons: string[] = []
-  const location = { search, hostname }
-  const document = { cookie: "" }
+  const location = { search, hostname, protocol }
+  const document = { cookie }
   const navigator = {
     sendBeacon: (url: string) => {
       beacons.push(url)
@@ -72,6 +76,22 @@ describe("AFFILIATE_BOOT_SCRIPT", () => {
     expect(run(`?${AFFILIATE_QUERY}=launch-2026`, "pupitre.studio")).toBe(
       `${AFFILIATE_COOKIE}=launch-2026;Path=/;Max-Age=${AFFILIATE_COOKIE_MAX_AGE};SameSite=Lax;Domain=.pupitre.studio`
     )
+  })
+
+  it("marks the cookie Secure over https", () => {
+    expect(
+      visit("?ref=launch-2026", "pupitre.studio", { protocol: "https:" }).cookie
+    ).toBe(
+      `${AFFILIATE_COOKIE}=launch-2026;Path=/;Max-Age=${AFFILIATE_COOKIE_MAX_AGE};SameSite=Lax;Secure;Domain=.pupitre.studio`
+    )
+  })
+
+  it("keeps the first link a visitor came through", () => {
+    const first = `theme=dark; ${AFFILIATE_COOKIE}=first-link`
+
+    expect(
+      visit("?ref=second-link", "pupitre.studio", { cookie: first }).cookie
+    ).toBe(first)
   })
 
   it("keeps the cookie on the host alone elsewhere", () => {

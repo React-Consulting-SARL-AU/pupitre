@@ -25,11 +25,11 @@ L’app desktop tourne sur macOS, Windows 11 et Ubuntu desktop. Le serveur est t
 
 ## Faut-il un compte ?
 
-Pas pour essayer. L’app tourne sans compte avec un droit d’usage de développement. Le compte donne l’abonnement, les serveurs que la plateforme connaît, et les fonctions d’équipe.
+Oui. L’app demande de vous connecter à son premier lancement, et elle n’enrôle un serveur que sous un abonnement : le lancement gratuit tant qu’il dure, puis l’essai ou un abonnement payant. Le compte porte votre organisation, ses serveurs et ses membres. Voir [installer l’app](/fr/docs/start/install/) et la [facturation](/fr/docs/account/billing/).
 
 ## Que se passe-t-il si je perds mon laptop ?
 
-Révoquez l’appareil dans la console. Sa clé est retirée de tous les serveurs où il était à la prochaine remontée de l’agent. Vos autres appareils continuent ; rien d’autre n’a besoin d’être changé.
+Révoquez l’appareil dans la console. Sa clé est retirée de tous les serveurs où il était à la prochaine remontée de l’agent. Vos autres appareils continuent ; rien d’autre n’a besoin d’être changé. L’agent ne retire jamais la dernière clé d’un serveur : si ce laptop était le seul à l’ouvrir, reprenez-le depuis la console de votre hébergeur, voir [votre clé](/fr/docs/start/keys/).
 
 ## Deux personnes peuvent-elles partager un serveur ?
 
@@ -37,7 +37,7 @@ Un serveur est attribué à une personne. Deux personnes qui ont besoin de la m�
 
 ## Où sont mes données ?
 
-Sur votre serveur. La plateforme stocke votre compte, votre organisation, l’existence de vos serveurs et leurs clés publiques. Elle ne stocke aucun code, aucun secret, aucun log, et aucun contenu venu de vos machines.
+Sur votre serveur. Quand un agent travaille, ce qu’il lit part du serveur vers le fournisseur de modèle que vous avez choisi, sur votre compte, jamais par Pupitre. La plateforme stocke votre compte, votre organisation et les clés publiques de vos appareils ; de chaque serveur, son nom, son adresse, son architecture et la version de l’agent, les services et les sessions de terminal qu’il fait tourner, ses relevés de santé sur sept jours, et l’état de ses sauvegardes. Elle ne stocke aucun code, aucun secret, aucun log, et aucun contenu venu de vos machines.
 
 ## Puis-je lire le code de l’agent ?
 

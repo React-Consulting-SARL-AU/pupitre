@@ -77,12 +77,12 @@ func (Module) Install(ctx *modules.Context) error {
 func (Module) Configure(ctx *modules.Context) error {
 	found := providers.Parse(ctx.SecretList("providers"))
 
-	rewritten, err := writeProviders(ctx, found)
+	rewritten, err := providers.WriteStep(ctx, providers.Render(found, envPrefix), configDir, envPath, agents.User)
 	if err != nil {
 		return err
 	}
 
-	if err := storeProviders(ctx, found); err != nil {
+	if err := providers.StoreStep(ctx, envPrefix, found); err != nil {
 		return err
 	}
 
@@ -93,51 +93,6 @@ func (Module) Configure(ctx *modules.Context) error {
 	return service(ctx, ctx.Bool("always_on"), rewritten)
 }
 
-func writeProviders(ctx *modules.Context, found []providers.Provider) (bool, error) {
-	rewritten := false
-
-	err := ctx.Step("write-providers", func() (modules.Outcome, error) {
-		content := providers.Render(found, envPrefix)
-		if file.Same(ctx, envPath, content) {
-			return modules.Skipped, nil
-		}
-
-		rewritten = true
-
-		if err := ctx.Sys().MkdirAll(configDir, 0o700); err != nil {
-			return modules.Failed, err
-		}
-
-		if err := file.Chown(ctx, configDir, agents.User, agents.User); err != nil {
-			return modules.Failed, err
-		}
-
-		if err := file.WriteAtomic(ctx, envPath, content, 0o600); err != nil {
-			return modules.Failed, err
-		}
-
-		return modules.Done, file.Chown(ctx, envPath, agents.User, agents.User)
-	})
-
-	return rewritten, err
-}
-
-func storeProviders(ctx *modules.Context, found []providers.Provider) error {
-	return ctx.Step("store-providers", func() (modules.Outcome, error) {
-		stored, err := providers.Store(ctx, envPrefix, found)
-		if err != nil {
-			return modules.Failed, err
-		}
-
-		if !stored {
-			return modules.Skipped, nil
-		}
-
-		return modules.Done, nil
-	})
-}
-
-// Without "always on" Hermes is a command a session starts; the unit is what keeps it running between two of them.
 func service(ctx *modules.Context, alwaysOn, providersChanged bool) error {
 	if !alwaysOn {
 		return ctx.Step("disable-service", func() (modules.Outcome, error) {
@@ -237,6 +192,7 @@ func forgetProviders(ctx *modules.Context) error {
 		}
 
 		forgotten := false
+
 		for _, key := range keys {
 			if len(key) <= len(envPrefix) || key[:len(envPrefix)] != envPrefix {
 				continue
@@ -279,7 +235,7 @@ func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
 	return status, nil
 }
 
-// The keys of /etc/pupitre/env, one per provider; a value never travels in a status.
+// Names only: a secret value never travels in a status.
 func credentials(ctx *modules.Context) map[string]string {
 	keys, err := env.Keys(ctx)
 	if err != nil {
@@ -287,6 +243,7 @@ func credentials(ctx *modules.Context) map[string]string {
 	}
 
 	named := map[string]string{}
+
 	for _, key := range keys {
 		if len(key) > len(envPrefix) && key[:len(envPrefix)] == envPrefix {
 			named[key] = key

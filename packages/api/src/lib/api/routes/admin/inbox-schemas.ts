@@ -103,6 +103,7 @@ const mailThreadFields = {
   ),
   linked_organization: mailLinkedOrganization,
   from: mailSender,
+  sender_authenticated: t.Boolean(),
   snippet: t.Nullable(t.String()),
   has_draft: t.Boolean(),
   automated: t.Boolean(),
@@ -128,6 +129,7 @@ export const mailMessageSchema = t.Object(
     text: t.Nullable(t.String()),
     has_html: t.Boolean(),
     automated: t.Boolean(),
+    authenticated: t.Boolean(),
     delivery: t.String(),
     error: t.Nullable(t.String()),
     sent_by: t.Nullable(t.Object({ id: t.String(), name: t.String() })),
@@ -198,7 +200,6 @@ export const mailTemplateSchema = t.Object(
   { $id: "MailTemplate" }
 )
 
-/** `messages` and `notes` count in the list and carry here: the detail is the thread opened. */
 export const mailThreadDetailSchema = t.Object(
   {
     ...mailThreadFields,
@@ -328,6 +329,7 @@ const mailFilename = t.String({
 const mailMimeType = t.String({
   minLength: 1,
   maxLength: MAIL_MIME_TYPE_MAX_LENGTH,
+  pattern: "^[\\w.+-]+/[\\w.+-]+$",
 })
 
 const mailAttachmentSize = t.Integer({
@@ -361,7 +363,6 @@ export const mailAttachmentUrlSchema = t.Object(
   { $id: "MailAttachmentUrl" }
 )
 
-/** What a reply or a new message carries: uploads already in the bucket, named by their key. */
 const mailOutboundAttachments = t.Optional(
   t.Array(
     t.Object({

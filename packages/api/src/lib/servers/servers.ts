@@ -26,7 +26,6 @@ export interface ServerForUser {
   host_fingerprint: string | null
   status: ServerStatus
   key_ready: boolean
-  /** The organization the server belongs to: a member of several knows where each comes from. */
   organization: { id: string; name: string }
 }
 
@@ -46,7 +45,6 @@ export interface ServerView {
   pending_assignment_email: string | null
   last_heartbeat_at: Date | null
   entitlement_valid_until: Date | null
-  /** When the row disappears for good. Null as long as nothing has revoked it. */
   decommission_at: Date | null
   usage: ServerUsage | null
   backup: BackupBeat | null
@@ -170,6 +168,7 @@ export async function listServersForOrganization(
   const visible = seesEveryServer(viewer)
     ? servers
     : servers.filter((server) => server.assignedUserId === viewer.userId)
+
   const alerts = await activeAlertsFor(visible.map((server) => server.id))
 
   return visible.map((server) =>
@@ -177,7 +176,6 @@ export async function listServersForOrganization(
   )
 }
 
-/** A server of the organization the viewer may open: every one for an admin, their own for a member. */
 export async function findVisibleServer(
   organizationId: string,
   serverId: string,
@@ -234,18 +232,9 @@ export async function getServerForOrganization(
   }
 }
 
-/**
- * What a deletion did to the server.
- *
- * The first revokes access and schedules the decommission; the second, on a
- * server already revoked, erases the row. A deletion that only knew how to
- * wait would leave the server sitting in the list forever, and a second
- * click that merely pushed the deadline back would delay the very thing it
- * claims to hasten.
- */
+/** A second deletion purges a revoked server rather than pushing its deadline back. */
 export type ServerDeletion = "revoked" | "purged"
 
-/** The team deletes with a reason the journal keeps; the owner deletes as themself. */
 export type DeletionOrigin = { by_platform: true; reason: string } | null
 
 export async function deleteServer(

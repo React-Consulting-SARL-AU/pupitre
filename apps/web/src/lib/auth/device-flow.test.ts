@@ -3,10 +3,13 @@ import { bootApiTestServer, resetDb, TEST_BASE_URL } from "@pupitre/api/testing"
 import { pollDeviceFlow, startDeviceFlow } from "@pupitre/auth/client/desktop"
 import {
   approveDeviceCode,
+  DeviceCodeError,
   denyDeviceCode,
   formatUserCode,
   lookupDeviceCode,
+  needsFreshSignIn,
   normalizeUserCode,
+  SESSION_NOT_FRESH,
 } from "@/lib/auth/device-flow"
 import { apiJson, createConsoleUser, withHeaders } from "@/testing/harness"
 
@@ -105,5 +108,40 @@ describe("the console page of the device flow", () => {
     })
 
     expect(polled.status).toBe("denied")
+  })
+
+  it("sends a browser whose sign-in grew old back through sign-in, on the same code", async () => {
+    const server = await bootApiTestServer()
+    const started = await startDeviceFlow(TEST_BASE_URL, {
+      fetch: server.fetch,
+    })
+    const { user, headers } = await createConsoleUser({
+      email: "hedy@test.local",
+    })
+    const asUser = withHeaders(server, headers)
+
+    await server.prisma.session.updateMany({
+      where: { userId: user.id },
+      data: { createdAt: new Date(Date.now() - 11 * 60_000) },
+    })
+    await lookupDeviceCode(TEST_BASE_URL, started.user_code, { fetch: asUser })
+
+    const refusal = await approveDeviceCode(TEST_BASE_URL, started.user_code, {
+      fetch: asUser,
+    }).catch((error: unknown) => error)
+
+    expect(refusal).toBeInstanceOf(DeviceCodeError)
+    expect((refusal as DeviceCodeError).code).toBe(SESSION_NOT_FRESH)
+    expect(needsFreshSignIn(refusal)).toBe(true)
+  })
+})
+
+describe("the refusal of an old sign-in", () => {
+  it("is told apart from every other refusal", () => {
+    expect(needsFreshSignIn(new DeviceCodeError(SESSION_NOT_FRESH, 403))).toBe(
+      true
+    )
+    expect(needsFreshSignIn(new DeviceCodeError("forbidden", 403))).toBe(false)
+    expect(needsFreshSignIn(new Error(SESSION_NOT_FRESH))).toBe(false)
   })
 })

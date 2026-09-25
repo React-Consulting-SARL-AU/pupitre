@@ -6,12 +6,6 @@ import { useFingerprint } from "@renderer/lib/use-fingerprint";
 import type { BackupConnectionView } from "@shared/backups";
 import { Pencil, Unplug } from "lucide-react";
 
-/**
- * The bucket this computer hands its servers, as it holds it: where backups
- * go, and a short fingerprint of the key they are sealed to — the same on
- * every computer of the organization, which is how two of them are compared.
- * Nothing of the secret key or the passphrase is here to show.
- */
 export function BackupConnectionHeld({
   view,
   unsealed,
@@ -47,7 +41,7 @@ export function BackupConnectionHeld({
       </FactList>
 
       {unsealed ? (
-        <p className="text-[12px] text-warn">{t("connections.unsealed")}</p>
+        <p className="text-small text-warn">{t("connections.unsealed")}</p>
       ) : null}
 
       <div className="flex flex-wrap items-center gap-2">

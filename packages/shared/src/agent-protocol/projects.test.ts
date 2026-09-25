@@ -56,7 +56,7 @@ const registration = {
 
 describe("ProjectParamsSchema, ProcessParamsSchema and ProjectTargetParamsSchema", () => {
   it("name a project, a process of it, and accept all only as a target", () => {
-    expect(ProjectParamsSchema.safeParse({ name: "flymate-api" }).success).toBe(
+    expect(ProjectParamsSchema.safeParse({ name: "flyleaf-api" }).success).toBe(
       true
     )
     expect(ProjectParamsSchema.safeParse({ name: "" }).success).toBe(false)
@@ -360,8 +360,8 @@ describe("project results", () => {
     )
     expect(
       ProjectRemoveResultSchema.safeParse({
-        name: "flymate-api",
-        dir: "/home/dev/projects/flymate/api",
+        name: "flyleaf-api",
+        dir: "/home/dev/projects/flyleaf/api",
       }).success
     ).toBe(true)
     expect(
@@ -370,7 +370,7 @@ describe("project results", () => {
     expect(
       ProjectActionResultSchema.safeParse({
         state: "online",
-        projects: [{ name: "flymate-api", state: "online" }],
+        projects: [{ name: "flyleaf-api", state: "online" }],
       }).success
     ).toBe(true)
     expect(
@@ -395,7 +395,7 @@ describe("project results", () => {
     ).toBe(true)
     expect(
       ProjectEnvResultSchema.safeParse({
-        path: "/home/dev/projects/flymate/api/.env.local",
+        path: "/home/dev/projects/flyleaf/api/.env.local",
         written: true,
         keys: ["DATABASE_URL"],
         template: true,
@@ -403,7 +403,7 @@ describe("project results", () => {
     ).toBe(true)
     expect(
       ProjectEnvResultSchema.safeParse({
-        path: "/home/dev/projects/flymate/.env.local",
+        path: "/home/dev/projects/flyleaf/.env.local",
         written: false,
         keys: [],
         template: false,
@@ -412,7 +412,7 @@ describe("project results", () => {
     expect(
       ProjectBranchesResultSchema.safeParse({
         repo: true,
-        root: "flymate",
+        root: "flyleaf",
         current: "main",
         dirty: false,
         local: ["main"],
@@ -422,7 +422,7 @@ describe("project results", () => {
     expect(
       ProjectGitStatusResultSchema.safeParse({
         repo: true,
-        root: "flymate",
+        root: "flyleaf",
         current: "main",
         upstream: "origin/main",
         behind: 3,
@@ -437,7 +437,7 @@ describe("project results", () => {
     expect(
       ProjectWorkingTreeResultSchema.safeParse({
         repo: true,
-        root: "flymate",
+        root: "flyleaf",
         branch: "main",
         upstream: "origin/main",
         ahead: 0,
@@ -463,7 +463,7 @@ describe("project results", () => {
       }).success
     ).toBe(true)
     expect(
-      ProjectUrlResultSchema.safeParse({ url: "https://flymate.acme.dev" })
+      ProjectUrlResultSchema.safeParse({ url: "https://flyleaf.acme.dev" })
         .success
     ).toBe(true)
     expect(
@@ -497,7 +497,7 @@ describe("project results", () => {
     expect(
       ProjectWorkingTreeResultSchema.safeParse({
         repo: true,
-        root: "flymate",
+        root: "flyleaf",
         branch: "main",
         upstream: "",
         ahead: 0,
@@ -541,18 +541,18 @@ describe("project params with options", () => {
       }).success
     ).toBe(true)
     expect(
-      ProjectEnvParamsSchema.safeParse({ name: "flymate-api", force: true })
+      ProjectEnvParamsSchema.safeParse({ name: "flyleaf-api", force: true })
         .success
     ).toBe(true)
     expect(
       ProjectCheckoutParamsSchema.safeParse({
-        name: "flymate-api",
+        name: "flyleaf-api",
         branch: "feat/x",
       }).success
     ).toBe(true)
     expect(
       ProjectDiffParamsSchema.safeParse({
-        name: "flymate-api",
+        name: "flyleaf-api",
         path: "src/index.ts",
       }).success
     ).toBe(true)
@@ -560,14 +560,14 @@ describe("project params with options", () => {
 
   it("reject negative lines, a missing branch and a missing path", () => {
     expect(
-      ProjectLogsParamsSchema.safeParse({ name: "flymate-api", lines: -1 })
+      ProjectLogsParamsSchema.safeParse({ name: "flyleaf-api", lines: -1 })
         .success
     ).toBe(false)
     expect(
-      ProjectCheckoutParamsSchema.safeParse({ name: "flymate-api" }).success
+      ProjectCheckoutParamsSchema.safeParse({ name: "flyleaf-api" }).success
     ).toBe(false)
     expect(
-      ProjectDiffParamsSchema.safeParse({ name: "flymate-api" }).success
+      ProjectDiffParamsSchema.safeParse({ name: "flyleaf-api" }).success
     ).toBe(false)
   })
 })
@@ -576,11 +576,11 @@ describe("ProjectDetectParamsSchema", () => {
   it("takes a repository or a folder, one of the two", () => {
     expect(
       ProjectDetectParamsSchema.safeParse({
-        repo: "https://github.com/acme/flymate.git",
+        repo: "https://github.com/acme/flyleaf.git",
       }).success
     ).toBe(true)
     expect(
-      ProjectDetectParamsSchema.safeParse({ dir: "flymate/api" }).success
+      ProjectDetectParamsSchema.safeParse({ dir: "flyleaf/api" }).success
     ).toBe(true)
     expect(
       ProjectDetectParamsSchema.safeParse({ repo: "x", dir: "y" }).success
@@ -591,19 +591,19 @@ describe("ProjectDetectParamsSchema", () => {
   it("takes a branch with a repository, and never with a folder", () => {
     expect(
       ProjectDetectParamsSchema.safeParse({
-        repo: "https://github.com/acme/flymate.git",
+        repo: "https://github.com/acme/flyleaf.git",
         branch: "release/2.0",
       }).success
     ).toBe(true)
     expect(
       ProjectDetectParamsSchema.safeParse({
-        dir: "flymate/api",
+        dir: "flyleaf/api",
         branch: "main",
       }).success
     ).toBe(false)
     expect(
       ProjectDetectParamsSchema.safeParse({
-        repo: "https://github.com/acme/flymate.git",
+        repo: "https://github.com/acme/flyleaf.git",
         branch: "-wat",
       }).success
     ).toBe(false)
@@ -616,7 +616,7 @@ describe("ProjectDetectResultSchema", () => {
       ProjectDetectResultSchema.safeParse({
         processes: [
           {
-            id: "flymate",
+            id: "flyleaf",
             dir: ".",
             pkgmgr: "bun",
             install: "bun install",

@@ -22,17 +22,15 @@ const (
 	DefaultLocal = "/etc/pupitre/projects.local.json"
 	ProjectsDir  = "/home/dev/projects"
 
-	// The windows that were up, kept for the boot that follows: state of the machine, not configuration, so it lives with the report.
+	// Machine state rather than configuration, hence /var/lib and not /etc.
 	DefaultRunning = "/var/lib/pupitre/projects.running.json"
 
-	// The lock every session takes around a read-then-write of the registry, the running record and /etc/hosts.
 	DefaultLock = "/var/lib/pupitre/projects.lock"
 
 	FirstPort = 3000
 	LastPort  = 65535
 )
 
-// A subdomain is a DNS name under the server's domain: one label, or several separated by dots when the client's own certificate covers them.
 const (
 	subLabel = `[a-z0-9](?:[a-z0-9-]*[a-z0-9])?`
 
@@ -40,7 +38,6 @@ const (
 	HostnameMax  = 253
 	LabelMax     = 63
 
-	// Loopback is the host a project has unless its repository freezes a .localhost name.
 	Loopback = "127.0.0.1"
 )
 
@@ -50,17 +47,14 @@ var (
 	labelPattern = regexp.MustCompile(`^` + subLabel + `$`)
 	hostPattern  = regexp.MustCompile(`^` + subLabel + `(?:\.` + subLabel + `)+$`)
 
-	// BranchPattern is what git will take on a clone or a checkout, and the app refuses the rest before asking.
 	BranchPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._/-]{0,199}$`)
 
-	// LocalhostPattern is a name under .localhost: the one kind of host, besides the loopback, the agent makes the machine answer to.
 	LocalhostPattern = regexp.MustCompile(`^(?:` + subLabel + `\.)+localhost$`)
 
 	notLabel = regexp.MustCompile(`[^a-z0-9-]+`)
 	dashes   = regexp.MustCompile(`-{2,}`)
 )
 
-// LabelFrom folds a project name into the one DNS label a route's label has to be: my.site becomes my-site.
 func LabelFrom(name string) string {
 	label := strings.Trim(dashes.ReplaceAllString(notLabel.ReplaceAllString(strings.ToLower(name), "-"), "-"), "-")
 	if label == "" {
@@ -70,20 +64,15 @@ func LabelFrom(name string) string {
 	return label
 }
 
-// A Route is one port a project listens on, and the whole name it answers to on the web when it has one.
-//
-// The hostname is stored as resolved: a name on the web does not move because the
-// server's domain did, and nothing here ever puts a subdomain and a domain back together.
+// Hostname is stored resolved: nothing ever recomposes it from a subdomain and the current domain.
 type Route struct {
 	Label    string `json:"label"`
 	Port     int    `json:"port"`
 	Hostname string `json:"hostname,omitempty"`
 }
 
-// RootDir is the folder a process runs from when it runs from its project's own.
 const RootDir = "."
 
-// A Process is what runs in a project: one command, from one folder of it, on one main port, in one tmux window.
 type Process struct {
 	ID      string  `json:"id"`
 	Dir     string  `json:"dir"`
@@ -95,16 +84,14 @@ type Process struct {
 	Install string  `json:"install,omitempty"`
 }
 
-// A Project is a repository, or a folder, and the processes that run in it — one at the least.
 type Project struct {
 	Name      string    `json:"name"`
 	Dir       string    `json:"dir"`
 	Repo      string    `json:"repo,omitempty"`
 	Branch    string    `json:"branch,omitempty"`
 	Processes []Process `json:"processes"`
-	// Boot says the project starts with the server, whatever ran when it went down.
-	Boot bool `json:"boot"`
-	// Runtimes is the version each runtime runs at in this project, by mise tool; a tool absent runs at the machine's default.
+	Boot      bool      `json:"boot"`
+	// By mise tool; an absent tool runs at the machine's default version.
 	Runtimes map[string]string `json:"runtimes"`
 	Local    bool              `json:"-"`
 }
@@ -113,7 +100,6 @@ func (p Process) IsService() bool {
 	return p.PkgMgr == "service"
 }
 
-// Primary is the route of the main port that carries a name on the web, and it is where the process's address comes from.
 func (p Process) Primary() (Route, bool) {
 	for _, route := range p.Routes {
 		if route.Port == p.Port && route.Hostname != "" {
@@ -126,6 +112,7 @@ func (p Process) Primary() (Route, bool) {
 
 func (p Process) Hostnames() []string {
 	var names []string
+
 	for _, route := range p.Routes {
 		if route.Hostname != "" {
 			names = append(names, route.Hostname)
@@ -135,9 +122,9 @@ func (p Process) Hostnames() []string {
 	return names
 }
 
-// Ports is every port the process holds on the machine: the main one, and the ones its routes name.
 func (p Process) Ports() []int {
 	ports := []int{p.Port}
+
 	for _, route := range p.Routes {
 		if route.Port != p.Port {
 			ports = append(ports, route.Port)
@@ -147,7 +134,6 @@ func (p Process) Ports() []int {
 	return ports
 }
 
-// The install column when it carries something, the package manager's own command otherwise — and we say which, never guess.
 func (p Process) InstallCommand() string {
 	if explicit := value(p.Install); explicit != "" {
 		return explicit
@@ -173,7 +159,6 @@ func InstallCommandOf(pkgmgr string) string {
 	return ""
 }
 
-// Path is the folder the process runs from, under its project's.
 func (p Process) Path(projectPath string) string {
 	if p.Dir == "" || p.Dir == RootDir {
 		return projectPath
@@ -182,12 +167,11 @@ func (p Process) Path(projectPath string) string {
 	return Under(projectPath, p.Dir)
 }
 
-// Window is the tmux window the process runs in, and the log it writes: neither a project name nor a process id admits a slash.
+// Unambiguous because neither a project name nor a process id admits a slash.
 func Window(project, process string) string {
 	return project + "/" + process
 }
 
-// SplitWindow reads a window name back into its project and its process; a window that is not one of ours answers nothing.
 func SplitWindow(window string) (string, string, bool) {
 	project, process, found := strings.Cut(window, "/")
 	if !found || project == "" || process == "" {
@@ -201,7 +185,6 @@ func (p Project) Window(process string) string {
 	return Window(p.Name, process)
 }
 
-// A project is a service when every process of it is systemd's: it shows in the state, and "all" never starts or stops it.
 func (p Project) IsService() bool {
 	for _, process := range p.Processes {
 		if !process.IsService() {
@@ -226,12 +209,10 @@ func (p Project) Path(projects string) string {
 	return Under(projects, p.Dir)
 }
 
-// RootPath is where the repository lives: the project's own folder, since a project is a repository.
 func (p Project) RootPath(projects string) string {
 	return p.Path(projects)
 }
 
-// Primary is the first process whose main port carries a name on the web: the project's address is that process's.
 func (p Project) Primary() (Process, Route, bool) {
 	for _, process := range p.Processes {
 		if route, published := process.Primary(); published {
@@ -244,6 +225,7 @@ func (p Project) Primary() (Process, Route, bool) {
 
 func (p Project) Hostnames() []string {
 	var names []string
+
 	for _, process := range p.Processes {
 		names = append(names, process.Hostnames()...)
 	}
@@ -253,6 +235,7 @@ func (p Project) Hostnames() []string {
 
 func (p Project) Ports() []int {
 	var ports []int
+
 	for _, process := range p.Processes {
 		ports = append(ports, process.Ports()...)
 	}
@@ -262,6 +245,7 @@ func (p Project) Ports() []int {
 
 func (p Project) Hosts() []string {
 	var hosts []string
+
 	for _, process := range p.Processes {
 		hosts = append(hosts, process.Host)
 	}
@@ -271,6 +255,7 @@ func (p Project) Hosts() []string {
 
 func (p Process) Contract(projectPath string) contract.ProjectProcess {
 	routes := make([]contract.Route, 0, len(p.Routes))
+
 	for _, route := range p.Routes {
 		routes = append(routes, contract.Route{Label: route.Label, Port: route.Port, Hostname: route.Hostname})
 	}
@@ -292,6 +277,7 @@ func (p Project) Contract(projects string) contract.Project {
 	path := p.Path(projects)
 
 	processes := make([]contract.ProjectProcess, 0, len(p.Processes))
+
 	for _, process := range p.Processes {
 		processes = append(processes, process.Contract(path))
 	}
@@ -313,7 +299,6 @@ func (p Project) Contract(projects string) contract.Project {
 	}
 }
 
-// The first segment of a legacy row's dir: the repository folder, which the following segments point into.
 func rootOf(dir string) (string, string) {
 	root, rest, _ := strings.Cut(dir, "/")
 	if root == "" || root == RootDir {
@@ -327,7 +312,7 @@ func rootOf(dir string) (string, string) {
 	return root, rest
 }
 
-// Under: the on-disk registry file is hand-edited, so a row that aims outside the projects root returns no path rather than a path elsewhere.
+// Returns "" for a path escaping root: the registry file is hand-edited.
 func Under(root, relative string) string {
 	base := path.Clean(root)
 	full := path.Clean(base + "/" + relative)
@@ -344,9 +329,8 @@ type Paths struct {
 	Local    string
 	Projects string
 	Running  string
-	// Backups is where the configuration migrations keep the last batches, named in the refusal of a registry that no longer reads.
-	Backups string
-	// Lock guards the read-then-write of the registry, the running record and /etc/hosts across sessions; empty is no lock, which the tests take.
+	Backups  string
+	// Empty means no lock, which the tests rely on.
 	Lock string
 }
 
@@ -370,22 +354,20 @@ func (p Paths) Resolved() Paths {
 type File struct {
 	Paths    Paths
 	Projects []Project
-	// Domain is what the machine publishes under, read once with the registry: a route is resolved and refused against it.
-	Domain string
+	Domain   string
 
-	// A local row the agent could not read as a project is not a row it may
-	// lose: it is carried through every write as it was.
+	// Local rows that do not read as projects, carried through every write untouched rather than lost.
 	kept []json.RawMessage
-	// A local file that does not parse is a problem every write refuses on, never an empty registry.
+	// An unparseable local file refuses every write instead of reading as an empty registry.
 	problem error
 }
 
-// The repository's file, then the local one: on equal names the local row wins, and the order stays that of the first appearance.
+// On equal names the local row wins, while the order stays that of first appearance.
 func Load(ctx sys.Context, paths Paths) *File {
 	paths = paths.Resolved()
 	loaded := &File{Paths: paths, Domain: domainOf(ctx)}
-
 	index := map[string]int{}
+
 	for _, source := range []struct {
 		path  string
 		local bool
@@ -435,7 +417,7 @@ func Load(ctx sys.Context, paths Paths) *File {
 	return loaded
 }
 
-// The registry is read at every snapshot: what is wrong with it is said once a session, not once every three seconds.
+// The registry is read at every snapshot, so a problem is logged once per session rather than every few seconds.
 func said(ctx sys.Context, key, format string, args ...any) {
 	_ = ctx.Once("registry: "+key, func() error {
 		ctx.Logf(format, args...)
@@ -444,7 +426,6 @@ func said(ctx sys.Context, key, format string, args ...any) {
 	})
 }
 
-// Problem is the refusal every write answers while the local file does not parse.
 func (f *File) Problem() error {
 	return f.problem
 }
@@ -462,6 +443,7 @@ func summary(raw json.RawMessage) string {
 	var named struct {
 		Name string `json:"name"`
 	}
+
 	if err := json.Unmarshal(raw, &named); err == nil && named.Name != "" {
 		return strconv.Quote(named.Name)
 	}
@@ -483,7 +465,7 @@ func domainOf(ctx sys.Context) string {
 	return domain
 }
 
-// A Row is one line of the repository's own file, or one entry of the local file as the agent wrote it before processes existed: one command, one port, one folder.
+// The legacy one-process shape: a projects.conf line, or a local entry written before processes existed.
 type Row struct {
 	Name    string  `json:"name"`
 	Dir     string  `json:"dir"`
@@ -497,7 +479,7 @@ type Row struct {
 	Branch  string  `json:"branch,omitempty"`
 }
 
-// ParseConf reads the repository's own file, whose seventh column is a subdomain by its own specification: it becomes the one route of the row, under the domain the machine has today.
+// The seventh column is a subdomain: it becomes the row's single route, under the machine's current domain.
 func ParseConf(raw []byte, domain string) []Project {
 	var rows []Row
 
@@ -527,6 +509,7 @@ func ParseConf(raw []byte, domain string) []Project {
 			Routes: []Route{},
 			Cmd:    columns[7],
 		}
+
 		if sub := value(columns[6]); sub != "" {
 			row.Routes = append(row.Routes, Route{Label: LabelFrom(row.Name), Port: port, Hostname: compose(sub, domain)})
 		}
@@ -545,16 +528,15 @@ func ParseConf(raw []byte, domain string) []Project {
 	return projects
 }
 
-// Group turns rows into projects: the rows that share the first segment of their dir share one repository, and that is what the old format meant by it. The second value says which window each row became, by the row's name.
-//
-// The project is named by the row that sits at the root of the repository; without one, by the folder itself when it makes a valid name nobody else holds, and by the first row otherwise. A row alone keeps its name: nothing is renamed that did not have to be.
+// Rows sharing the first segment of their dir share a repository; the map gives, by row name, the window each became.
 func Group(rows []Row) ([]Project, map[string]string) {
 	var order []string
 	byRoot := map[string][]Row{}
 	shared := map[string]bool{}
+
 	for _, row := range rows {
 		root, _ := rootOf(row.Dir)
-		// A folder that leaves the root is nobody's repository: the row stays alone, and Load drops it.
+		// A dir escaping the root groups with nothing, so Load drops the row alone.
 		key := root
 		if root == RootDir || !validDir(row.Dir) {
 			key = row.Name
@@ -569,6 +551,7 @@ func Group(rows []Row) ([]Project, map[string]string) {
 
 	windows := map[string]string{}
 	var projects []Project
+
 	for _, key := range order {
 		group := byRoot[key]
 		project := Project{Dir: group[0].Dir, Name: group[0].Name}
@@ -590,6 +573,7 @@ func Group(rows []Row) ([]Project, map[string]string) {
 			if shared[key] {
 				_, rest = rootOf(row.Dir)
 			}
+
 			id := uniqueID(LabelFrom(row.Name), ids)
 			windows[row.Name] = Window(project.Name, id)
 
@@ -611,7 +595,6 @@ func Group(rows []Row) ([]Project, map[string]string) {
 	return projects, windows
 }
 
-// The folder of the repository names the project, unless a row of another repository already holds that name; then the row at the root of the repository, then the first row.
 func nameFor(root string, group []Row, rows []Row) string {
 	if len(group) == 1 {
 		return group[0].Name
@@ -659,14 +642,13 @@ type document struct {
 	Projects []json.RawMessage `json:"projects"`
 }
 
-// A localRow is one entry of the local file: the project it reads as, or the bytes it was when it does not.
 type localRow struct {
 	raw     json.RawMessage
 	project Project
 	ok      bool
 }
 
-// ParseLocal reads the file this agent writes: one JSON document, one shape. A row that is not a project is left out here and kept by Load.
+// Rows that are not projects are dropped here; Load keeps them for the next write.
 func ParseLocal(raw []byte) ([]Project, error) {
 	rows, err := parseRows(raw)
 	if err != nil {
@@ -674,6 +656,7 @@ func ParseLocal(raw []byte) ([]Project, error) {
 	}
 
 	projects := make([]Project, 0, len(rows))
+
 	for _, row := range rows {
 		if row.ok {
 			projects = append(projects, row.project)
@@ -690,6 +673,7 @@ func parseRows(raw []byte) ([]localRow, error) {
 	}
 
 	rows := make([]localRow, 0, len(parsed.Projects))
+
 	for _, entry := range parsed.Projects {
 		row := localRow{raw: entry}
 
@@ -731,6 +715,7 @@ func (f *File) Get(name string) (Project, bool) {
 
 func (f *File) Ports() map[int]bool {
 	ports := map[int]bool{}
+
 	for _, project := range f.Projects {
 		for _, port := range project.Ports() {
 			ports[port] = true
@@ -740,7 +725,6 @@ func (f *File) Ports() map[int]bool {
 	return ports
 }
 
-// FreePort is the first port nobody declared and nothing listens on: busy is what the machine's sockets say, and the registry only knows its own rows.
 func (f *File) FreePort(from int, busy map[int]bool) int {
 	taken := f.Ports()
 
@@ -772,7 +756,7 @@ func (f *File) Add(ctx sys.Context, project Project) error {
 	return nil
 }
 
-// A Patch is what project.update may change; a nil field is a field left as it was, and a list of processes replaces the whole of the last one.
+// A nil field is left unchanged; Processes replaces the whole list.
 type Patch struct {
 	Branch    *string
 	Boot      *bool
@@ -780,7 +764,6 @@ type Patch struct {
 	Processes *[]Process
 }
 
-// Update rewrites one local row, and nothing else: the repository's rows belong to the repository.
 func (f *File) Update(ctx sys.Context, name string, patch Patch) (Project, error) {
 	current, known := f.Get(name)
 	if !known {
@@ -804,6 +787,7 @@ func (f *File) Update(ctx sys.Context, name string, patch Patch) (Project, error
 	if patch.Processes != nil {
 		updated.Processes = append([]Process{}, (*patch.Processes)...)
 	}
+
 	updated = cleaned(updated)
 
 	if err := f.validate(ctx, updated, name); err != nil {
@@ -811,6 +795,7 @@ func (f *File) Update(ctx sys.Context, name string, patch Patch) (Project, error
 	}
 
 	var rows []Project
+
 	for _, project := range f.locals() {
 		if project.Name == name {
 			rows = append(rows, updated)
@@ -833,7 +818,7 @@ func (f *File) Update(ctx sys.Context, name string, patch Patch) (Project, error
 	return updated, nil
 }
 
-// Rehost moves every route named under `from` to `to`, and answers the names that moved, sorted: the rows of the repository follow the domain on their own, the local rows are rewritten here.
+// Only local rows are rewritten: the repository's rows are composed from the domain at every load.
 func (f *File) Rehost(ctx sys.Context, from, to string) ([]string, error) {
 	moved := []string{}
 	if from == "" || from == to {
@@ -841,6 +826,7 @@ func (f *File) Rehost(ctx sys.Context, from, to string) ([]string, error) {
 	}
 
 	var rows []Project
+
 	for _, project := range f.locals() {
 		for _, process := range project.Processes {
 			for at, route := range process.Routes {
@@ -868,7 +854,6 @@ func (f *File) Rehost(ctx sys.Context, from, to string) ([]string, error) {
 	return moved, nil
 }
 
-// Removable says whether the row may go, before anything is stopped for it: the repository's rows never do.
 func (f *File) Removable(name string) error {
 	project, known := f.Get(name)
 	if !known {
@@ -890,6 +875,7 @@ func (f *File) Remove(ctx sys.Context, name string) (Project, error) {
 	project, _ := f.Get(name)
 
 	var kept []Project
+
 	for _, row := range f.locals() {
 		if row.Name != name {
 			kept = append(kept, row)
@@ -905,6 +891,7 @@ func (f *File) Remove(ctx sys.Context, name string) (Project, error) {
 
 func (f *File) locals() []Project {
 	var rows []Project
+
 	for _, project := range f.Projects {
 		if project.Local {
 			rows = append(rows, project)
@@ -914,13 +901,13 @@ func (f *File) locals() []Project {
 	return rows
 }
 
-// The rows set aside at the load follow the projects into the file, as they were.
 func (f *File) write(ctx sys.Context, rows []Project) error {
 	if f.problem != nil {
 		return f.problem
 	}
 
 	entries := make([]json.RawMessage, 0, len(rows)+len(f.kept))
+
 	for _, row := range rows {
 		encoded, err := json.Marshal(row)
 		if err != nil {
@@ -929,6 +916,7 @@ func (f *File) write(ctx sys.Context, rows []Project) error {
 
 		entries = append(entries, encoded)
 	}
+
 	entries = append(entries, f.kept...)
 
 	encoded, err := json.MarshalIndent(document{Projects: entries}, "", "  ")
@@ -939,7 +927,7 @@ func (f *File) write(ctx sys.Context, rows []Project) error {
 	return file.WriteAtomic(ctx, f.Paths.Resolved().Local, append(encoded, '\n'), 0o600)
 }
 
-// The local file holds values, never the dashes of the repository's format.
+// The local file stores plain values, never the "-" placeholders of the repository's format.
 func cleaned(project Project) Project {
 	project.Repo = value(project.Repo)
 	project.Branch = value(project.Branch)
@@ -948,6 +936,7 @@ func cleaned(project Project) Project {
 	}
 
 	processes := make([]Process, 0, len(project.Processes))
+
 	for _, process := range project.Processes {
 		process.Install = value(process.Install)
 		if process.Dir == "" {
@@ -962,14 +951,15 @@ func cleaned(project Project) Project {
 
 		processes = append(processes, process)
 	}
+
 	project.Processes = processes
 
 	return project
 }
 
-// Every process path stays under the project's: a row that aims elsewhere is not a project.
 func contained(project Project, projects string) bool {
 	path := project.Path(projects)
+
 	for _, process := range project.Processes {
 		if process.Path(path) == "" {
 			return false
@@ -979,9 +969,7 @@ func contained(project Project, projects string) bool {
 	return true
 }
 
-// ResolveRoutes turns what the app declared into what the registry stores: a subdomain becomes a whole name under the machine's domain, once, here.
-//
-// A hostname handed whole is taken as it is, provided it sits under that domain: the tunnel and the DNS of this server carry nothing else.
+// A whole hostname is taken as is here; validateRoutes still requires it under the machine's domain.
 func ResolveRoutes(domain string, requests []RouteRequest) ([]Route, error) {
 	routes := make([]Route, 0, len(requests))
 
@@ -1007,7 +995,6 @@ func ResolveRoutes(domain string, requests []RouteRequest) ([]Route, error) {
 	return routes, nil
 }
 
-// A RouteRequest is a route as project.add and project.update receive it, before its name on the web is resolved.
 type RouteRequest struct {
 	Label     string
 	Port      int
@@ -1015,7 +1002,7 @@ type RouteRequest struct {
 	Hostname  string
 }
 
-func (f *File) validate(ctx sys.Context, project Project, self string) error {
+func (f *File) validate(ctx sys.Context, project Project, rewritten string) error {
 	if !namePattern.MatchString(project.Name) {
 		return bad(i18n.T("registry.name.invalid", project.Name), i18n.T("registry.name.invalid.fix"))
 	}
@@ -1034,6 +1021,7 @@ func (f *File) validate(ctx sys.Context, project Project, self string) error {
 
 	ids := map[string]bool{}
 	held := map[int]string{}
+
 	for _, process := range project.Processes {
 		if err := f.validateProcess(ctx, process); err != nil {
 			return err
@@ -1052,7 +1040,7 @@ func (f *File) validate(ctx sys.Context, project Project, self string) error {
 		}
 	}
 
-	return f.checkUnique(ctx, project, self)
+	return f.checkUnique(ctx, project, rewritten)
 }
 
 func (f *File) validateProcess(ctx sys.Context, process Process) error {
@@ -1128,10 +1116,9 @@ func (f *File) validateRoutes(routes []Route) error {
 	return nil
 }
 
-// Every port and every name on the web is unique on the machine; self names the row being rewritten, which does not compete with itself.
-func (f *File) checkUnique(ctx sys.Context, project Project, self string) error {
+func (f *File) checkUnique(ctx sys.Context, project Project, rewritten string) error {
 	for _, existing := range f.Projects {
-		if existing.Name == self {
+		if existing.Name == rewritten {
 			continue
 		}
 
@@ -1147,6 +1134,7 @@ func (f *File) checkUnique(ctx sys.Context, project Project, self string) error 
 		for _, port := range existing.Ports() {
 			held[port] = true
 		}
+
 		for _, port := range project.Ports() {
 			if held[port] {
 				return f.portTaken(ctx, project, port, existing)
@@ -1157,6 +1145,7 @@ func (f *File) checkUnique(ctx sys.Context, project Project, self string) error 
 		for _, name := range existing.Hostnames() {
 			names[name] = true
 		}
+
 		for _, name := range project.Hostnames() {
 			if names[name] {
 				return bad(i18n.T("registry.hostname.taken", name, existing.Name), i18n.T("registry.hostname.taken.fix"))
@@ -1167,7 +1156,6 @@ func (f *File) checkUnique(ctx sys.Context, project Project, self string) error 
 	return nil
 }
 
-// The free port travels twice: in the sentence a human reads, and in the remedy the app applies without parsing it.
 func (f *File) portTaken(ctx sys.Context, project Project, port int, existing Project) error {
 	free := f.FreePort(port, net.Listening(ctx))
 

@@ -62,6 +62,7 @@ func command(runner *modules.Engine, run func(engine, *modules.Context, string) 
 			Engine string `json:"engine"`
 			Name   string `json:"name"`
 		}
+
 		if err := json.Unmarshal(raw, &params); err != nil {
 			return nil, protocol.NewError(contract.ErrorBadRequest, i18n.T("command.params.unreadable", err.Error()))
 		}

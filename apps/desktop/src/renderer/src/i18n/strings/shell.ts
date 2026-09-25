@@ -1,7 +1,7 @@
 export const shell = {
   en: {
     "shell.sidebar.activity": "Processes and sessions",
-    "shell.sidebar.closeTerminal": "Close {title}",
+    "shell.sidebar.closeTerminal": "Close {title} and stop the session",
     "shell.sidebar.dashboard": "Dashboard",
     "shell.sidebar.gallery": "Gallery",
     "shell.sidebar.help": "Help",
@@ -18,8 +18,6 @@ export const shell = {
     "shell.sidebar.terminals": "Terminals",
     "shell.switch.label": "Driving {name}. Switch server",
     "shell.signOut.title": "Sign out of this account?",
-    "shell.signOut.detail":
-      "The servers stay on this computer; what needs the account waits for the next sign-in.",
     "shell.signOut.confirm": "Sign out",
     "palette.title": "Go to",
     "palette.search": "Search a view, a project, a terminal or a server",
@@ -42,7 +40,7 @@ export const shell = {
     "shortcuts.navigation.palette": "Go to a view, a project, a terminal",
     "shortcuts.navigation.back": "Back",
     "shortcuts.navigation.forward": "Forward",
-    "shortcuts.navigation.preferences": "Preferences",
+    "shortcuts.navigation.preferences": "Settings",
     "shortcuts.navigation.sheet": "This sheet",
     "shortcuts.project.shell": "New terminal in the project on screen",
     "shortcuts.project.agent": "New agent session in the project on screen",
@@ -69,7 +67,7 @@ export const shell = {
     "shell.history.forward": "Forward ({shortcut})",
     "shell.failure.message":
       "This screen could not be drawn. Nothing on the server changed.",
-    "shell.failure.retry": "Draw it again",
+    "shell.failure.retry": "Show the screen again",
     "shell.restricted.console": "Open the console",
     "shell.restricted.repair": "Re-enrol this server",
     "shell.restricted.message":
@@ -80,13 +78,13 @@ export const shell = {
     "shell.firstRun.title": "Take a machine in hand",
     "shell.firstRun.body":
       "Give Pupitre the address of a server you own and an account on it.",
-    "shell.firstRun.step.inspect.title": "It inspects the machine",
+    "shell.firstRun.step.inspect.title": "Pupitre inspects the machine",
     "shell.firstRun.step.inspect.detail":
       "Distribution, memory, disk, listening ports, existing accounts. Nothing is written on the server.",
-    "shell.firstRun.step.install.title": "It installs what you choose",
+    "shell.firstRun.step.install.title": "Pupitre installs what you choose",
     "shell.firstRun.step.install.detail":
       "Databases, runtimes, editors, AI agents, each replayable if it fails.",
-    "shell.firstRun.step.harden.title": "It closes the door behind it",
+    "shell.firstRun.step.harden.title": "Pupitre closes root access",
     "shell.firstRun.step.harden.detail":
       "A dev account, a firewall, then root and passwords closed once a key opens the machine.",
     "shell.firstRun.addServer": "Add a server",
@@ -99,17 +97,15 @@ export const shell = {
     "shell.unready.eyebrow": "Connection",
     "shell.unready.installAgent": "Install the agent",
     "shell.unready.manageServers": "Manage servers",
-    "shell.unready.notRespondingBody":
-      "The agent did not answer. Here is what the connection returned.",
     "shell.unready.notRespondingTitle": "{name} isn't responding yet",
     "shell.unready.reachingTitle": "Reaching {name}",
     "shell.stale.message":
       "{name} has stopped answering. What is shown is the last reading that came through.",
-    "shell.stale.retry": "Read again",
+    "shell.stale.retry": "Refresh",
   },
   fr: {
     "shell.sidebar.activity": "Processus et sessions",
-    "shell.sidebar.closeTerminal": "Fermer {title}",
+    "shell.sidebar.closeTerminal": "Fermer {title} et arrêter la session",
     "shell.sidebar.dashboard": "Tableau de bord",
     "shell.sidebar.gallery": "Galerie",
     "shell.sidebar.help": "Aide",
@@ -126,8 +122,6 @@ export const shell = {
     "shell.sidebar.terminals": "Terminaux",
     "shell.switch.label": "{name} est piloté. Changer de serveur",
     "shell.signOut.title": "Se déconnecter de ce compte ?",
-    "shell.signOut.detail":
-      "Les serveurs restent sur cet ordinateur ; ce qui a besoin du compte attend la prochaine connexion.",
     "shell.signOut.confirm": "Se déconnecter",
     "palette.title": "Aller à",
     "palette.search": "Chercher une vue, un projet, un terminal ou un serveur",
@@ -151,7 +145,7 @@ export const shell = {
     "shortcuts.navigation.palette": "Aller à une vue, un projet, un terminal",
     "shortcuts.navigation.back": "Retour",
     "shortcuts.navigation.forward": "Avancer",
-    "shortcuts.navigation.preferences": "Préférences",
+    "shortcuts.navigation.preferences": "Réglages",
     "shortcuts.navigation.sheet": "Cette fiche",
     "shortcuts.project.shell": "Nouveau terminal dans le projet affiché",
     "shortcuts.project.agent":
@@ -179,9 +173,9 @@ export const shell = {
     "shell.history.forward": "Avancer ({shortcut})",
     "shell.failure.message":
       "Cet écran n'a pas pu être dessiné. Rien n'a changé sur le serveur.",
-    "shell.failure.retry": "Le dessiner à nouveau",
+    "shell.failure.retry": "Réafficher l'écran",
     "shell.restricted.console": "Ouvrir la console",
-    "shell.restricted.repair": "Ré-enrôler ce serveur",
+    "shell.restricted.repair": "Rattacher à nouveau ce serveur",
     "shell.restricted.message":
       "Ce serveur n'a plus de droit d'usage valide : il se laisse lire, et refuse tout le reste. Rien de ce qui tournait dessus ne s'est arrêté.",
     "shell.restricted.fix":
@@ -190,13 +184,14 @@ export const shell = {
     "shell.firstRun.title": "Prenez une machine en main",
     "shell.firstRun.body":
       "Donnez à Pupitre l'adresse d'un serveur qui est à vous et un compte dessus.",
-    "shell.firstRun.step.inspect.title": "Il inspecte la machine",
+    "shell.firstRun.step.inspect.title": "Pupitre inspecte la machine",
     "shell.firstRun.step.inspect.detail":
       "Distribution, mémoire, disque, ports écoutés, comptes existants. Rien n'est écrit sur le serveur.",
-    "shell.firstRun.step.install.title": "Il installe ce que vous choisissez",
+    "shell.firstRun.step.install.title":
+      "Pupitre installe ce que vous choisissez",
     "shell.firstRun.step.install.detail":
-      "Bases de données, runtimes, éditeurs, agents IA, chacun rejouable s'il échoue.",
-    "shell.firstRun.step.harden.title": "Il referme la porte derrière lui",
+      "Bases de données, runtimes, éditeurs, agents IA, chacun relançable s'il échoue.",
+    "shell.firstRun.step.harden.title": "Pupitre ferme l'accès root",
     "shell.firstRun.step.harden.detail":
       "Un compte dev, un pare-feu, puis root et les mots de passe fermés une fois qu'une clé ouvre la machine.",
     "shell.firstRun.addServer": "Ajouter un serveur",
@@ -209,12 +204,10 @@ export const shell = {
     "shell.unready.eyebrow": "Connexion",
     "shell.unready.installAgent": "Installer l'agent",
     "shell.unready.manageServers": "Gérer les serveurs",
-    "shell.unready.notRespondingBody":
-      "L'agent n'a pas répondu. Voici ce que la connexion a renvoyé.",
     "shell.unready.notRespondingTitle": "{name} ne répond pas encore",
     "shell.unready.reachingTitle": "Connexion à {name}",
     "shell.stale.message":
       "{name} ne répond plus. Ce qui est affiché est le dernier relevé reçu.",
-    "shell.stale.retry": "Relire",
+    "shell.stale.retry": "Actualiser",
   },
 } as const;

@@ -60,10 +60,6 @@ export function replySchema(t: Translate) {
   })
 }
 
-export type ReplyInput = z.input<ReturnType<typeof replySchema>>
-
-export type ReplyValues = z.output<ReturnType<typeof replySchema>>
-
 export function mailboxSchema(t: Translate) {
   return z.object({
     address: z
@@ -127,7 +123,3 @@ export function noteSchema(t: Translate) {
       .max(MAX_NOTE_LENGTH, t("inbox.noteTooLong", { max: MAX_NOTE_LENGTH })),
   })
 }
-
-export type NoteFormInput = z.input<ReturnType<typeof noteSchema>>
-
-export type NoteFormValues = z.output<ReturnType<typeof noteSchema>>

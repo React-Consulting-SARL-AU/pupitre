@@ -14,15 +14,6 @@ import {
 } from "./harness/backups";
 import { launchPupitre, type Running } from "./harness/launch";
 
-/**
- * Backups, from the connection to a server taken back to one of them.
- *
- * The bucket's connection is kept by the real main process — the passphrase
- * derived there and dropped — so what this scenario reads back from the disk
- * is what the app actually left on it. The agent and the platform are the
- * harness's.
- */
-
 const SECRET_KEY = "fake-secret-access-key-of-the-harness";
 
 const BACKUP_DONE = /Sauvegarde terminée/;
@@ -36,9 +27,9 @@ const REVERTED = /Le serveur est revenu à la sauvegarde/;
 
 const WEEKS_KEPT = /Environ 14 semaines d'historique/;
 
-const DRIFT = /Ce serveur sauvegarde avec un autre seau ou une autre clé/;
+const DRIFT = /Ce serveur sauvegarde avec un autre bucket ou une autre clé/;
 
-/** Every file the app wrote, the link it keeps back to its own folder aside. */
+// lstat, so the link the app keeps back to its own folder is not followed.
 function filesUnder(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
     const path = join(dir, name);
@@ -107,7 +98,7 @@ test.describe("sauvegardes", () => {
 
       await expect(
         page.getByText(
-          "Cette clé n'a pas le droit d'écrire dans ce seau, ou aucun seau ne porte ce nom."
+          "Cette clé n'a pas le droit d'écrire dans ce bucket, ou aucun bucket ne porte ce nom."
         )
       ).toBeVisible();
       await answerBucket(app);
@@ -120,7 +111,9 @@ test.describe("sauvegardes", () => {
         .locator("#backup-passphrase-confirm")
         .fill("autre chose encore");
 
-      await expect(page.getByText("Les deux phrases diffèrent.")).toBeVisible();
+      await expect(
+        page.getByText("Les deux passphrases diffèrent.")
+      ).toBeVisible();
       await page.locator("#backup-passphrase-confirm").fill(PASSPHRASE);
       await next.click();
     });
@@ -147,7 +140,7 @@ test.describe("sauvegardes", () => {
     await next.click();
     await setup
       .locator('[data-setup="content"]')
-      .getByRole("checkbox", { name: "PostgreSQL · flymate" })
+      .getByRole("checkbox", { name: "PostgreSQL · flyleaf" })
       .click();
     await setup
       .getByRole("button", { name: "Activer les sauvegardes" })
@@ -159,7 +152,7 @@ test.describe("sauvegardes", () => {
 
     expect(sent?.config["core.backup"]?.interval_hours).toBe(168);
     expect(sent?.config["core.backup"]?.exclude_databases).toEqual([
-      "postgres:flymate",
+      "postgres:flyleaf",
     ]);
     await expect(page.getByText(BACKUP_DONE)).toBeVisible();
     await expect(setup).toHaveCount(0);
@@ -177,7 +170,7 @@ test.describe("sauvegardes", () => {
 
     await test.step("le tableau de bord montre ce qui tourne, la dernière et la prochaine", async () => {
       await expect(
-        page.getByRole("tab", { name: "Tableau de bord" })
+        page.getByRole("tab", { name: "Vue d'ensemble" })
       ).toHaveAttribute("aria-selected", "true");
       await expect(
         page.getByText("Une sauvegarde de ce serveur est en cours.")
@@ -205,7 +198,7 @@ test.describe("sauvegardes", () => {
         content.getByRole("checkbox", { name: "PostgreSQL · shop" })
       ).toBeChecked();
       await expect(
-        content.getByRole("checkbox", { name: "Redis · instantané" })
+        content.getByRole("checkbox", { name: "Redis · snapshot" })
       ).not.toBeChecked();
       await expect(
         content.getByRole("checkbox", { name: "MySQL · archives" })
@@ -218,7 +211,7 @@ test.describe("sauvegardes", () => {
       await assertAccessible(page, "backups/content");
 
       await content
-        .getByRole("checkbox", { name: "PostgreSQL · flymate" })
+        .getByRole("checkbox", { name: "PostgreSQL · flyleaf" })
         .click();
       await content.getByRole("button", { name: "Appliquer" }).click();
 
@@ -232,7 +225,7 @@ test.describe("sauvegardes", () => {
       expect(sent?.config["core.backup"]?.exclude_databases).toEqual([
         "redis:*",
         "mysql:archives",
-        "postgres:flymate",
+        "postgres:flyleaf",
       ]);
       expect(sent?.config["core.backup"]?.projects).toBe(true);
     });
@@ -285,7 +278,7 @@ test.describe("sauvegardes", () => {
         .click();
 
       await expect(
-        dialog.getByText("Cette phrase de passe n'ouvre pas cette sauvegarde.")
+        dialog.getByText("Cette passphrase n'ouvre pas cette sauvegarde.")
       ).toBeVisible();
     });
 
@@ -302,12 +295,23 @@ test.describe("sauvegardes", () => {
     ).toBeVisible();
     await expect(page.getByRole("checkbox", { name: "GitHub" })).toBeChecked();
 
+    const progress = page.locator('[data-dialog="backup-revert-progress"]');
+
+    await test.step("le retour tient la fenêtre : Échap ne le ferme pas", async () => {
+      await page.keyboard.press("Escape");
+
+      await expect(progress).toBeVisible();
+    });
+
     await page
       .getByRole("button", { name: "Désinstaller 1 service et continuer" })
       .click();
 
-    await expect(page.getByText(REVERTED)).toBeVisible();
-    await expect(page.getByText("intranet", { exact: true })).toBeVisible();
+    await expect(progress.getByText(REVERTED)).toBeVisible();
+    await expect(progress.getByText("intranet", { exact: true })).toBeVisible();
+    await assertAccessible(page, "backups/revert-done");
+    await progress.getByRole("button", { name: "Fermer" }).click();
+    await expect(progress).toBeHidden();
   });
 
   test("la destination dit ce que tient le serveur, l'aligne, et tout peut recommencer", async () => {

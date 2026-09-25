@@ -6,25 +6,30 @@ import (
 	"io/fs"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"pupitre.studio/agent/internal/sys"
 )
 
-// What a migration is handed: the files it may touch, and nothing else.
-//
-// It reads and writes plain JSON and plain lines on purpose. A migration
-// transforms yesterday's shape into today's, and decoding into a type from
-// today's code would drop, on the way through, every field that type no longer
-// names — which is exactly what the migration exists to carry over.
+// Raw JSON and lines on purpose: decoding into today's types would drop the old fields a migration must carry over.
 type Context struct {
 	Paths Paths
 
 	machine sys.Sys
 	logf    func(string, ...any)
+	now     func() time.Time
 }
 
 func (c *Context) Sys() sys.Sys {
 	return c.machine
+}
+
+func (c *Context) Now() time.Time {
+	if c.now == nil {
+		return time.Now()
+	}
+
+	return c.now()
 }
 
 func (c *Context) Logf(format string, args ...any) {
@@ -43,9 +48,6 @@ func (c *Context) Exists(target Target) bool {
 	return err == nil && exists
 }
 
-// JSON reads a target as the object it is on the disk. The second value says
-// whether the file was there at all: a migration has nothing to do on a machine
-// that never held the file, and says so by leaving it alone.
 func (c *Context) JSON(target Target) (map[string]any, bool, error) {
 	raw, present, err := c.Read(target)
 	if err != nil || !present {
@@ -53,6 +55,7 @@ func (c *Context) JSON(target Target) (map[string]any, bool, error) {
 	}
 
 	document := map[string]any{}
+
 	if err := json.Unmarshal(raw, &document); err != nil {
 		return nil, true, err
 	}
@@ -69,8 +72,6 @@ func (c *Context) SetJSON(target Target, document map[string]any) error {
 	return c.Write(target, append(encoded, '\n'))
 }
 
-// Lines reads a target written as lines — the projects registry, the
-// environment file — keeping blanks and comments where they are.
 func (c *Context) Lines(target Target) ([]string, bool, error) {
 	raw, present, err := c.Read(target)
 	if err != nil || !present {

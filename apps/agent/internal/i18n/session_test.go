@@ -18,7 +18,6 @@ import (
 
 const accents = "éèêëàâçùûîïôœÉÈÊÀÇÙÔ"
 
-// TestTheCatalogueAnswersInTheLanguageOfTheSession: the catalogue the app receives is the session's own — nothing stays written in French when it asks for English.
 func TestTheCatalogueAnswersInTheLanguageOfTheSession(t *testing.T) {
 	defer i18n.Use(string(i18n.Default))
 
@@ -39,7 +38,6 @@ func TestTheCatalogueAnswersInTheLanguageOfTheSession(t *testing.T) {
 	}
 }
 
-// TestTheProbeVerdictFollowsTheSession: the probe says the same thing in both languages, and the French stays what it was.
 func TestTheProbeVerdictFollowsTheSession(t *testing.T) {
 	defer i18n.Use(string(i18n.Default))
 

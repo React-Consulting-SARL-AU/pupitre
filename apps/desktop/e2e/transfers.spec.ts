@@ -3,16 +3,6 @@ import { assertAccessible } from "./harness/accessible";
 import { ANSWERS, FILES } from "./harness/fixtures";
 import { launchPupitre, type Running } from "./harness/launch";
 
-/**
- * The transfers panel, from the gesture that starts one to the three that
- * end it.
- *
- * The harness plays the main process's queue: the Send button opens no
- * dialog — the picker answers a path on its own — and the transfer it starts
- * advances on `transfer:changed` events the way rsync's progress would. The
- * window is never shown, and no native dialog opens under it.
- */
-
 interface FakeTransfer {
   id: string;
   serverId: string;
@@ -33,12 +23,10 @@ interface FakeTransfer {
   endedAt: number | null;
 }
 
-/** What the harness kept of the gestures the window sent. */
 interface Gestures {
   uploads: unknown[];
   downloads: unknown[];
   gestures: string[];
-  /** How many times each folder was listed. */
   listed: Record<string, number>;
 }
 
@@ -55,6 +43,7 @@ test.describe("les transferts", () => {
       ) => {
         const files = fixtures.files;
         const kept = globalThis as Partial<Gestures>;
+
         kept.uploads = [];
         kept.downloads = [];
         kept.gestures = [];
@@ -134,7 +123,7 @@ test.describe("les transferts", () => {
             command: "dev",
             path: "",
             paths: [],
-            projects: ["flymate-api"],
+            projects: ["flyleaf-api"],
             root: files.root,
             sub: [],
           },
@@ -223,8 +212,6 @@ test.describe("les transferts", () => {
           return list();
         });
 
-        // The window asks for it by name: a scenario step drives the queue
-        // from here, the way rsync's exit would.
         (globalThis as { finish?: (id: string) => void }).finish = (id) => {
           const transfer = transfers.find((one) => one.id === id);
 
@@ -261,7 +248,7 @@ test.describe("les transferts", () => {
       await page.getByRole("button", { exact: true, name: "Fichiers" }).click();
       await expect(page.locator("[data-files-root]")).toBeVisible();
       await page.locator('[data-entry="projects"] button').first().click();
-      await expect(page.locator('[data-entry="flymate"]')).toBeVisible();
+      await expect(page.locator('[data-entry="flyleaf"]')).toBeVisible();
 
       await page.getByRole("button", { name: "Envoyer…" }).click();
 
@@ -338,7 +325,7 @@ test.describe("les transferts", () => {
     });
 
     await test.step("Télécharger, depuis le menu d'une entrée, demande où enregistrer", async () => {
-      await page.getByRole("button", { name: "Actions sur flymate" }).click();
+      await page.getByRole("button", { name: "Actions sur flyleaf" }).click();
       await page
         .getByRole("menuitem", { name: "Télécharger sur cet ordinateur" })
         .click();
@@ -348,7 +335,7 @@ test.describe("les transferts", () => {
       );
 
       expect(downloads).toEqual([
-        ["e2e-atelier", "projects/flymate", "/Users/e2e/Downloads"],
+        ["e2e-atelier", "projects/flyleaf", "/Users/e2e/Downloads"],
       ]);
 
       const row = page.locator('[data-transfer="t2"]');
@@ -359,7 +346,7 @@ test.describe("les transferts", () => {
     await test.step("annuler retire le transfert de ce qui bouge", async () => {
       const row = page.locator('[data-transfer="t2"]');
 
-      await row.getByRole("button", { name: "Annuler flymate" }).click();
+      await row.getByRole("button", { name: "Annuler flyleaf" }).click();
 
       await expect(row).toHaveAttribute("data-status", "cancelled");
       await expect(

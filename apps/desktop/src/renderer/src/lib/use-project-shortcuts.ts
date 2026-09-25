@@ -2,13 +2,7 @@ import { useEffect } from "react";
 import { isMac } from "./platform";
 import { projectShortcutOf, tabAfter } from "./project-shortcuts";
 
-/**
- * The keyboard walks the tabs of a project page.
- *
- * Caught on the way down rather than on the way up: a session's own key
- * handler sits between the shell and the window, and the chord must reach
- * the page before it reaches the shell.
- */
+/** Captured on the way down, or a session's own key handler would hand the chord to the shell first. */
 export function useProjectShortcuts<T>(
   tabs: readonly T[],
   active: T,

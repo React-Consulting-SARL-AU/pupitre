@@ -2,18 +2,10 @@ import { expect, test } from "@playwright/test";
 import { assertAccessible } from "./harness/accessible";
 import { launchPupitre, type Running } from "./harness/launch";
 
-/**
- * The agents tab of a project.
- *
- * Nothing starts on arrival: the tab offers one card per agent the snapshot's
- * modules hold — `ai.claude` in the fixtures — and the shells stay on their
- * own tab. Pressing a card opens the session; `terminal-open` is answered here
- * rather than by a real `ssh`, and the exit of the agent is pushed the way the
- * main process pushes it, so the tab is seen closing itself.
- */
-const FLYMATE_CARD = /^flymate-api/;
+const FLYLEAF_CARD = /^flyleaf-api/;
 const CLAUDE_CARD = /Claude/;
 const AGENTS_TAB = /^Agents/;
+const CLOSE_AND_STOP = /^Fermer l'onglet et arrêter la session/;
 
 test.describe("l'onglet Agents d'un projet", () => {
   let running: Running;
@@ -30,7 +22,7 @@ test.describe("l'onglet Agents d'un projet", () => {
       ipcMain.handle("terminal-open", (_event, ...args: unknown[]) => {
         kept.opened?.push(args);
 
-        return { ok: true, result: { session: "claude-flymate-api" } };
+        return { ok: true, result: { session: "claude-flyleaf-api" } };
       });
       ipcMain.removeAllListeners("terminal-close");
       ipcMain.on("terminal-close", (_event, ...args: unknown[]) => {
@@ -46,10 +38,10 @@ test.describe("l'onglet Agents d'un projet", () => {
   test("propose les agents de la machine, lance celui qu'on presse, et ferme son onglet quand il quitte", async () => {
     const { page } = running;
 
-    await page.getByRole("button", { name: FLYMATE_CARD }).first().click();
+    await page.getByRole("button", { name: FLYLEAF_CARD }).first().click();
 
     await expect(
-      page.getByRole("heading", { name: "flymate-api" })
+      page.getByRole("heading", { name: "flyleaf-api" })
     ).toBeVisible();
 
     const tabs = page.getByRole("tablist", { name: "Les pages du projet" });
@@ -93,7 +85,7 @@ test.describe("l'onglet Agents d'un projet", () => {
 
       expect(opened).toHaveLength(1);
       expect(opened[0]?.[2]).toBe("claude");
-      expect(opened[0]?.[3]).toBe("flymate-api");
+      expect(opened[0]?.[3]).toBe("flyleaf-api");
     });
 
     await test.step("l'agent qui quitte emporte son onglet, sans rien tuer", async () => {
@@ -118,6 +110,41 @@ test.describe("l'onglet Agents d'un projet", () => {
       );
 
       expect(ended).toEqual([[id, null]]);
+    });
+
+    await test.step("fermer l'onglet d'un agent demande d'abord, puis arrête sa session", async () => {
+      await picker.getByRole("button", { name: CLAUDE_CARD }).click();
+
+      const sessions = page.getByRole("tablist", { name: "Sessions" });
+
+      await expect(sessions.getByRole("tab", { name: "Claude" })).toBeVisible();
+
+      const close = page.getByRole("button", { name: CLOSE_AND_STOP });
+
+      await close.click();
+
+      const question = page.getByRole("alertdialog");
+
+      await expect(question).toContainText("la conversation de l'agent");
+      await page.keyboard.press("Escape");
+
+      await expect(question).toHaveCount(0);
+      await expect(sessions.getByRole("tab", { name: "Claude" })).toBeVisible();
+
+      await close.click();
+      await question
+        .getByRole("button", { name: "Arrêter la session" })
+        .click();
+
+      await expect(picker).toBeVisible();
+
+      const ended = await running.app.evaluate(
+        () => (globalThis as { ended?: unknown[][] }).ended ?? []
+      );
+
+      expect(ended.at(-1)?.[1]).toMatchObject({
+        session: "claude-flyleaf-api",
+      });
     });
   });
 });

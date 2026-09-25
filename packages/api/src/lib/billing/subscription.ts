@@ -2,44 +2,88 @@ import type {
   BillingInterval,
   Subscription,
 } from "@pupitre/db/cloudflare/client"
+import {
+  LAUNCH_PRODUCT,
+  LIVE_SUBSCRIPTION_STATUSES,
+  PLATFORM_PRODUCTS,
+} from "@pupitre/shared/plans"
 import { getPrisma } from "../api/prisma"
 
-export const LIVE_SUBSCRIPTION_STATUSES = ["active", "trialing", "past_due"]
+/** Kept for good from the free launch: never billed, on top of whatever the organization pays. */
+export const KEPT_LAUNCH_SEAT = {
+  product: LAUNCH_PRODUCT,
+  status: "active",
+  currentPeriodEnd: null,
+} as const
 
-/** The same choice as `liveSubscriptionOf`, over rows already sorted by last touch. */
-export function liveAmong<T extends { status: string }>(
+export interface LiveCandidate {
+  status: string
+  product: string
+  currentPeriodEnd: Date | null
+}
+
+export function isKeptLaunchSeat({
+  product,
+  status,
+  currentPeriodEnd,
+}: LiveCandidate): boolean {
+  return (
+    product === KEPT_LAUNCH_SEAT.product &&
+    status === KEPT_LAUNCH_SEAT.status &&
+    currentPeriodEnd === KEPT_LAUNCH_SEAT.currentPeriodEnd
+  )
+}
+
+export function liveAmong<T extends LiveCandidate>(
   sortedByLastTouch: T[]
 ): T | null {
+  const live = sortedByLastTouch.filter((subscription) =>
+    LIVE_SUBSCRIPTION_STATUSES.includes(subscription.status)
+  )
+
   return (
-    sortedByLastTouch.find((subscription) =>
-      LIVE_SUBSCRIPTION_STATUSES.includes(subscription.status)
-    ) ??
+    live.find((subscription) => !isKeptLaunchSeat(subscription)) ??
+    live[0] ??
     sortedByLastTouch[0] ??
     null
   )
 }
 
-/**
- * The subscription that counts for an organization: the one Stripe still
- * bills, before any other. An old subscription keeps receiving events after a
- * new one opened, and the last one touched is not the one that pays.
- */
+// An old subscription keeps receiving events after a new one opened, so the last one touched is not the one that pays.
 export async function liveSubscriptionOf(
   organizationId: string
 ): Promise<Subscription | null> {
   const prisma = getPrisma()
-  const live = await prisma.subscription.findFirst({
-    where: { organizationId, status: { in: LIVE_SUBSCRIPTION_STATUSES } },
-    orderBy: { updatedAt: "desc" },
-  })
+  const live = { organizationId, status: { in: LIVE_SUBSCRIPTION_STATUSES } }
+  const lastTouchedFirst = { updatedAt: "desc" } as const
 
   return (
-    live ??
+    (await prisma.subscription.findFirst({
+      where: { ...live, NOT: KEPT_LAUNCH_SEAT },
+      orderBy: lastTouchedFirst,
+    })) ??
+    (await prisma.subscription.findFirst({
+      where: live,
+      orderBy: lastTouchedFirst,
+    })) ??
     (await prisma.subscription.findFirst({
       where: { organizationId },
-      orderBy: { updatedAt: "desc" },
+      orderBy: lastTouchedFirst,
     }))
   )
+}
+
+export function billedSubscriptionOf(
+  organizationId: string
+): Promise<Subscription | null> {
+  return getPrisma().subscription.findFirst({
+    where: {
+      organizationId,
+      status: { in: LIVE_SUBSCRIPTION_STATUSES },
+      product: { notIn: [...PLATFORM_PRODUCTS] },
+    },
+    orderBy: { updatedAt: "desc" },
+  })
 }
 
 export interface SubscriptionView {

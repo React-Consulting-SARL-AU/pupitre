@@ -29,7 +29,6 @@ import { usePermission } from "@/hooks/use-permission"
 import { inboxCountsQueryOptions } from "@/lib/api/inbox-queries"
 import { isPlatformOrganization, platformOpen } from "@/lib/domain/admin"
 import { ADMIN_ROUTE, opensWhileSuspended } from "@/lib/domain/entitlement-gate"
-import { canManageOrganization } from "@/lib/domain/organization"
 import type { DictionaryKey } from "@/lib/i18n/en"
 
 interface SidebarEntry {
@@ -114,13 +113,13 @@ const PLATFORM_LINKS: SidebarEntry[] = [
   { to: `${ADMIN_ROUTE}/team`, label: "nav.adminTeam", icon: Users },
 ]
 
-/** The console's navigation, declared once: the column holds it, the panel borrows it. */
 export function SidebarContent() {
   const t = useTranslations()
-  const { role, entitlement, platformRole, activeOrganization } =
+  const { entitlement, platformRole, activeOrganization } =
     useDashboardContext()
   const canManageBilling = usePermission("billing:manage")
   const canReadAudit = usePermission("audit:view")
+  const canManageOrganization = usePermission("organizations:manage")
   const platform = isPlatformOrganization(activeOrganization?.id)
   const onPlatform = platformOpen(activeOrganization?.id, platformRole)
   const inboxCounts = useQuery({
@@ -138,7 +137,7 @@ export function SidebarContent() {
         MEMBERS_LINK,
         ...(canReadAudit ? [AUDIT_LINK] : []),
         ...(canManageBilling && !platform ? [BILLING_LINK] : []),
-        ...(canManageOrganization(role) ? [ORGANIZATION_LINK] : []),
+        ...(canManageOrganization ? [ORGANIZATION_LINK] : []),
       ].filter(open),
     },
     {
@@ -170,9 +169,7 @@ export function SidebarContent() {
 
         {groups.map((group) => (
           <div key={group.label}>
-            <p className="px-2.5 pb-1.5 text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-              {group.label}
-            </p>
+            <p className="px-2.5 pb-1.5 text-label">{group.label}</p>
             <div className="flex flex-col gap-[2px]">
               {group.search ? <SidebarSearchButton /> : null}
               {group.links.map((link) => (

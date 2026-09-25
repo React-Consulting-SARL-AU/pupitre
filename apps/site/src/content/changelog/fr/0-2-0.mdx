@@ -8,23 +8,23 @@ date: 2026-09-14
 order: 4
 ---
 
-Un projet est un dépôt ou un dossier, et il tient désormais ce qui y tourne : un processus ou plusieurs, chacun dans sa propre fenêtre avec son port et son journal. Autour, douze modules rejoignent le catalogue, l’app sait à quel compte chaque CLI est connecté, et rejouer la configuration d’un service change ce qui a changé et rien d’autre. Le protocole entre l’app et l’agent change de forme avec cette version : voir les limites connues.
+Un projet est un dépôt ou un dossier, et il tient désormais ce qui y tourne : un processus ou plusieurs, chacun dans sa propre fenêtre avec son port et ses logs. Autour, douze modules rejoignent le catalogue, l’app sait à quel compte chaque CLI est connecté, et relancer la configuration d’un service change ce qui a changé et rien d’autre. Le protocole entre l’app et l’agent change de forme avec cette version : voir les limites connues.
 
 ## L’app
 
 ### Projets
 
-- La fiche d’un projet montre ses processus, chacun avec son état, son port, son adresse, son journal, et démarrer, arrêter, redémarrer. Un dépôt qui tient un serveur Grails et un client React est un projet à deux processus ; le projet est `partial` quand certains seulement tournent.
+- La fiche d’un projet montre ses processus, chacun avec son état, son port, son adresse, ses logs, et démarrer, arrêter, redémarrer. Un dépôt qui tient un serveur Grails et un client React est un projet à deux processus ; le projet est `partial` quand certains seulement tournent.
 - L’ajout d’un projet déclare une liste de processus, et la détection en propose un par dossier qui porte son propre manifeste — un `package.json`, un `pyproject.toml`, un `gradlew` — les serveurs d’un build Gradle compris. Un Turborepo reste un seul processus avec une route par workspace. Configurer un projet plus tard édite la même liste ; un processus qui quitte la liste est arrêté, un qui la rejoint est déclaré, pas démarré.
-- Lire un dépôt à l’ajout ne le télécharge plus en entier : seuls les fichiers que la détection lit sont récupérés, et un dépôt lourd d’images ou d’historique coûte ce que coûte un dépôt vide. Les sources sont tirées d’abord, les dépendances installées ensuite, et l’écran dit laquelle des deux phases est en cours.
+- Lire un dépôt à l’ajout ne le télécharge plus en entier : seuls les fichiers que la détection lit sont récupérés, et un dépôt lourd d’images ou d’historique coûte ce que coûte un dépôt vide. Les sources sont pullées d’abord, les dépendances installées ensuite, et l’écran dit laquelle des deux phases est en cours.
 - Un script de démarrage qui fige un nom en `.localhost` dans son `--host` est lu comme tel, et le serveur fait répondre ce nom : un serveur de développement qui s’y lie n’attend plus un nom que rien ne résout.
-- Un journal suivi tient son propre canal. Appliquer le formulaire d’un service pendant que son journal est ouvert à côté n’attend plus que le journal se ferme.
+- Des logs suivis tiennent leur propre canal. Appliquer le formulaire d’un service pendant que ses logs sont ouverts à côté n’attend plus qu’ils se ferment.
 
 ### Comptes et connexions
 
 - Sous chaque service dont le CLI se connecte à un compte — Claude Code, Codex, `gh`, `op`, `neonctl`, Wrangler, le tunnel de VS Code — l’app dit s’il est connecté et en tant que qui, demandé au CLI lui-même. Quand il ne l’est pas, la marche à suivre est montrée telle que le CLI l’a donnée.
-- Un jeton Cloudflare qui ouvre plusieurs comptes demande sur lequel agir ; le domaine d’une exposition se choisit parmi les zones de ce compte au lieu d’être tapé. Le jeton demande désormais une troisième permission, Account · Account Settings · Read, pour que l’app lise quel compte il ouvre ; un jeton sans elle est refusé avec la permission nommée.
-- Wrangler a sa propre connexion Cloudflare : un second jeton du même compte, avec les droits de déploiement et aucun sur vos tunnels ni votre domaine, parce que celui-ci part sur le serveur.
+- Un token Cloudflare qui ouvre plusieurs comptes demande sur lequel agir ; le domaine d’une exposition se choisit parmi les zones de ce compte au lieu d’être tapé. Le token demande désormais une troisième permission, Account · Account Settings · Read, pour que l’app lise quel compte il ouvre ; un token sans elle est refusé avec la permission nommée.
+- Wrangler a sa propre connexion Cloudflare : un second token du même compte, avec les droits de déploiement et aucun sur vos tunnels ni votre domaine, parce que celui-ci part sur le serveur.
 - Trois connexions de plus — Vercel, Supabase et Stripe — vérifiées auprès du fournisseur à la saisie, et remises au CLI de leur module sur le serveur.
 - Changer le domaine d’une exposition déplace chaque nom publié avec lui : les routes des projets sont réécrites sous le nouveau domaine, et l’app ne retire que les enregistrements DNS qu’elle a écrits. Un nom déjà tenu par un enregistrement que Pupitre n’a pas écrit est refusé, l’enregistrement nommé.
 - Sans abonnement, l’app le dit sur son premier écran et renvoie à la console pour choisir une offre, au lieu d’échouer plus tard à l’installation.
@@ -40,10 +40,10 @@ Un projet est un dépôt ou un dossier, et il tient désormais ce qui y tourne :
 
 ## L’agent
 
-- Douze modules rejoignent le catalogue, qui en compte trente-sept. Agents : Cursor CLI, OpenCode, Gemini CLI, GitHub Copilot CLI et OpenClaw, chacun ouvert dans le dossier du projet avec le contexte de la machine et les skills Pupitre. Outils : Wrangler, Vercel, Supabase et Stripe, chacun lisant son jeton dans la connexion. Tailscale joint la machine à votre tailnet par une clé que vous tapez, et cohabite avec Caddy ou le tunnel ; le preset « tout » le porte. Rust par mise, avec `~/.cargo/bin` sur le `PATH`. Mailpit en service sous `dev`, SMTP et interface sur la boucle locale.
+- Douze modules rejoignent le catalogue, qui en compte trente-sept. Agents : Cursor CLI, OpenCode, Gemini CLI, GitHub Copilot CLI et OpenClaw, chacun ouvert dans le dossier du projet avec le contexte de la machine et les skills Pupitre. Outils : Wrangler, Vercel, Supabase et Stripe, chacun lisant son token dans la connexion. Tailscale joint la machine à votre tailnet par une clé que vous tapez, et cohabite avec Caddy ou le tunnel ; le preset « tout » le porte. Rust par mise, avec `~/.cargo/bin` sur le `PATH`. Mailpit en service sous `dev`, SMTP et interface sur la boucle locale.
 - Node 24, la LTS active, est le défaut du module Node.js ; une machine réglée sur 22 garde son choix. OpenClaw exige la 24 et le dit avant de rien installer.
-- Rejouer la configuration d’un module ne le réinstalle plus. Redis prend les nouvelles valeurs par `CONFIG SET` sans redémarrer, et un cache garde ce qu’il tient ; VS Code et Zed gardent leur serveur distant jusqu’à une mise à niveau ; Caddy ferme la règle de pare-feu d’un port déplacé ; Tailscale change le nom d’hôte et le réglage SSH d’un nœud déjà joint sans seconde clé ; un jeton GitHub tourné reconnecte `gh` ; 1Password ne revérifie les coffres qu’à un jeton neuf ; Hermes et OpenClaw redémarrent quand une clé change. Docker garde ses conteneurs en marche quand son démon redémarre.
-- Chaque processus tourne dans sa propre fenêtre tmux, `<projet>/<processus>`, et écrit son propre journal. La commande `dev` nomme le processus après le projet — `dev up intranet server`, `dev logs intranet client` — et un projet d’un seul processus s’en passe.
+- Relancer la configuration d’un module ne le réinstalle plus. Redis prend les nouvelles valeurs par `CONFIG SET` sans redémarrer, et un cache garde ce qu’il tient ; VS Code et Zed gardent leur serveur distant jusqu’à une mise à niveau ; Caddy ferme la règle de pare-feu d’un port déplacé ; Tailscale change le nom d’hôte et le réglage SSH d’un nœud déjà joint sans seconde clé ; un token GitHub tourné reconnecte `gh` ; 1Password ne revérifie les coffres qu’à un token neuf ; Hermes et OpenClaw redémarrent quand une clé change. Docker garde ses conteneurs en marche quand son démon redémarre.
+- Chaque processus tourne dans sa propre fenêtre tmux, `<projet>/<processus>`, et écrit ses propres logs. La commande `dev` nomme le processus après le projet — `dev up intranet server`, `dev logs intranet client` — et un projet d’un seul processus s’en passe.
 - Les projets existants sont mis à cette forme par la migration numérotée de l’agent, ports de débogage compris ; rien n’est réinstallé.
 
 ## La plateforme
@@ -58,6 +58,6 @@ Un projet est un dépôt ou un dossier, et il tient désormais ce qui y tourne :
 ## Limites connues
 
 - Le protocole entre l’app et l’agent change avec cette version : l’app 0.2.0 pilote les agents 0.2.0 et suivants. Un serveur encore en 0.1.x refuse l’app tant que son agent n’est pas mis à jour depuis le bandeau, qui migre ses projets dans le même geste.
-- Une connexion Cloudflare faite avant cette version porte un jeton sans Account · Account Settings · Read : ajoutez la permission au jeton sur le tableau de bord Cloudflare, puis reconnectez-le.
+- Une connexion Cloudflare faite avant cette version porte un token sans Account · Account Settings · Read : ajoutez la permission au token sur le tableau de bord Cloudflare, puis reconnectez-le.
 - Gemini CLI et GitHub Copilot CLI n’ont pas de commande qui dise qui tient la session sans dépenser une requête : l’app ne montre aucun compte pour eux.
 - L’installateur Windows n’est toujours pas signé : SmartScreen avertit au premier lancement.

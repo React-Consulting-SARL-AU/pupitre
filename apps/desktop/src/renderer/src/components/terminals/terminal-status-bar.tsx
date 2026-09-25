@@ -9,13 +9,6 @@ import { useEffect, useRef, useState } from "react";
 
 const FEEDBACK_MS = 1600;
 
-/**
- * The line under a session: what it is, where it stands, how big it is.
- *
- * The folder is the one the shell announced through OSC 7 — an agent announces
- * none, and the bar says nothing rather than guessing. The size is the PTY's
- * own, so a program that draws to the width can be trusted to fit.
- */
 export function TerminalStatusBar({
   id,
   kind,
@@ -57,7 +50,7 @@ export function TerminalStatusBar({
 
   return (
     <div
-      className="flex shrink-0 items-center gap-3 border-line border-t bg-surface px-3 py-1 font-data text-[11px] text-ink-3"
+      className="flex shrink-0 items-center gap-3 border-line border-t bg-surface px-3 py-1 font-data text-caption text-ink-3"
       data-status-bar={id}
     >
       <span className="flex min-w-0 items-center gap-1.5">

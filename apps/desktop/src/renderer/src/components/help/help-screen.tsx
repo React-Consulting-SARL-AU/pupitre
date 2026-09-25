@@ -14,20 +14,9 @@ import { HelpEditorsSection } from "./help-editors-section";
 import { HelpReachSection } from "./help-reach-section";
 import { HelpTroublesSection } from "./help-troubles-section";
 
-/**
- * How another client reaches the server: the word the driven server answers
- * to, what the Claude app, the ChatGPT app, a terminal and an editor each ask
- * for, and what to do when the door stays shut. Every value on the page is
- * the driven server's own, read from the app's SSH file: what is shown is
- * what is typed.
- */
-
-/** What the page says about the driven server, and how a client reaches it. */
 export interface HelpTarget {
   server: SshShareServer;
-  /** What `ssh` and an editor are given: the SSH name once the file is shared, the account and address otherwise. */
   host: string;
-  /** The folder a session opens in: the first project's, or a placeholder. */
   projectPath: string;
 }
 
@@ -58,11 +47,8 @@ export function HelpScreen({
   onSettings,
   onServices,
 }: {
-  /** The driven server, whose values the page carries. */
   activeId: string | null;
-  /** What the driven server runs, for the tools that have to be there. */
   services: readonly Service[];
-  /** The driven server's projects; the first one's folder is where the examples open. */
   projects: readonly Project[];
   onSettings: () => void;
   onServices: () => void;
@@ -84,6 +70,7 @@ export function HelpScreen({
         t("help.project.placeholder")
       )
     : null;
+
   const installed = (id: string) =>
     services.some((service) => service.id === id);
 

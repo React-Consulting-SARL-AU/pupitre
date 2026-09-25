@@ -35,6 +35,7 @@ func assertValidation(t *testing.T, err error, wantErr string) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
+
 		return
 	}
 
@@ -69,9 +70,9 @@ func TestValidateAgainstDefinitions(t *testing.T) {
 		{"pattern ok", "ServiceSecretParams", `{"id":"tool.github","key":"API_KEY"}`, ""},
 		{"pattern rejected", "ServiceSecretParams", `{"id":"tool.github","key":"api_key"}`, "/key"},
 		{"const rejected", "EnrollParams", `{"platform_url":"https://app.pupitre.studio","secrets_stdin":false}`, "/secrets_stdin"},
-		{"anyOf name", "ProjectUpParams", `{"name":"flymate-api"}`, ""},
+		{"anyOf name", "ProjectUpParams", `{"name":"flyleaf-api"}`, ""},
 		{"anyOf all", "ProjectUpParams", `{"name":"all"}`, ""},
-		{"anyOf none", "ProjectUpParams", `{"name":"Flymate"}`, "/name"},
+		{"anyOf none", "ProjectUpParams", `{"name":"Flyleaf"}`, "/name"},
 		{"items ok", "InstallParams", `{"modules":["core.system"],"config":{"core.system":{"tz":"UTC"}},"secrets_stdin":false}`, ""},
 		{"items empty", "InstallParams", `{"modules":[],"config":{},"secrets_stdin":false}`, "/modules"},
 		{"items wrong type", "InstallParams", `{"modules":[1],"config":{},"secrets_stdin":false}`, "/modules/0"},
@@ -162,7 +163,7 @@ func TestResponseOneOfMessageIsExact(t *testing.T) {
 		t.Fatal("expected an error, got nil")
 	}
 
-	if got, want := err.Error(), "/error/code: must be one of hello_required, protocol_mismatch, bad_request, invalid_config, unknown_command, entitlement_required, project_not_found, module_not_found, no_report, service_not_found, bad_signature, downgrade_refused, migration_required, busy, storage_refused, backup_missing, backup_unsupported, backup_corrupt, internal"; got != want {
+	if got, want := err.Error(), "/error/code: must be one of hello_required, protocol_mismatch, bad_request, invalid_config, unknown_command, entitlement_required, project_not_found, module_not_found, no_report, service_not_found, bad_signature, downgrade_refused, migration_required, busy, storage_refused, backup_missing, backup_unsupported, backup_corrupt, privilege_required, internal"; got != want {
 		t.Fatalf("message = %q, want %q", got, want)
 	}
 }

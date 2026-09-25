@@ -2,17 +2,19 @@ import { Link, useRouterState } from "@tanstack/react-router"
 import { type ReactNode, useEffect, useRef } from "react"
 import { useTranslations } from "@/hooks/use-locale"
 import type { Crumb } from "@/lib/domain/page-titles"
+import { cn } from "@/lib/utils/cn"
 
 export interface PageHeaderProps {
   title: string
   parents?: Crumb[]
   description?: string
   actions?: ReactNode
-  /** A skeleton stands in for a page: the focus waits for the page itself. */
+  // Focus waits for the real page, not its skeleton.
   pending?: boolean
+  mark?: ReactNode
 }
 
-/** Each page mounts its own header, so the page it replaces is remembered outside it. */
+// Module-level: each page mounts its own header, so the previous path must live outside it.
 let lastPathname: string | null = null
 
 export function PageHeader({
@@ -21,6 +23,7 @@ export function PageHeader({
   description,
   actions,
   pending = false,
+  mark,
 }: PageHeaderProps) {
   const t = useTranslations()
   const pathname = useRouterState({
@@ -28,8 +31,7 @@ export function PageHeader({
   })
   const settled = useRouterState({ select: (state) => state.status === "idle" })
   const heading = useRef<HTMLHeadingElement>(null)
-  // The page being left reads the new pathname too: only the header mounted on
-  // it, once the navigation has settled, is the one the reader has arrived at.
+  // The page being left also sees the new pathname: only the header mounted on it takes focus.
   const mountedOn = useRef(pathname)
 
   useEffect(() => {
@@ -47,11 +49,17 @@ export function PageHeader({
   }, [pathname, pending, settled])
 
   return (
-    <header className="flex flex-wrap items-end justify-between gap-4 pb-gutter">
+    <header
+      className={cn(
+        "flex flex-wrap gap-4 pb-gutter",
+        mark ? "flex-col items-center text-center" : "items-end justify-between"
+      )}
+    >
+      {mark}
       <div className="space-y-1">
         {parents.length > 0 ? (
           <nav aria-label={t("nav.breadcrumb")}>
-            <ol className="flex flex-wrap items-center gap-1.5 text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
+            <ol className="flex flex-wrap items-center gap-1.5 text-label">
               {parents.map((crumb, index) => (
                 <li className="flex items-center gap-1.5" key={crumb.to}>
                   {index === 0 ? null : (

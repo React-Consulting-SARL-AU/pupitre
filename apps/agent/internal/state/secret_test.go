@@ -92,6 +92,7 @@ func TestServiceSecretRevealsTheRealValueOnASecretEvent(t *testing.T) {
 	)
 
 	var event, response map[string]any
+
 	for _, line := range lines {
 		if line["event"] == "secret" {
 			event = line

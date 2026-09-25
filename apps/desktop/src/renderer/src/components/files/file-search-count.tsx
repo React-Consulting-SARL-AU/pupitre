@@ -2,7 +2,6 @@ import type { SearchQuery } from "@codemirror/search";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { Matches } from "@renderer/lib/editor-search";
 
-/** How many matches the query has, and which one the cursor is on. */
 export function FileSearchCount({
   matches,
   query,
@@ -37,7 +36,7 @@ export function FileSearchCount({
 
   return (
     <span
-      className={`shrink-0 whitespace-nowrap font-data text-[11px] ${tone}`}
+      className={`shrink-0 whitespace-nowrap font-data text-caption ${tone}`}
       data-search-count={matches.total}
       role="status"
     >

@@ -28,11 +28,6 @@ const BYTES_PER_GB = 1024 ** 3
 
 const BYTES_PER_MB = 1024 ** 2
 
-/**
- * What a machine holds and how much of it is taken, in the unit that suits the
- * figure — a percentage says the disk is at 94 %, this says how many gigabytes
- * are left to work with. Null for a server whose agent measured neither.
- */
 export function formatUsed(
   used: number | null,
   total: number | null,
@@ -59,7 +54,6 @@ export function formatRatio(ratio: number, t: Translate): string {
   return `${Math.round(ratio * 100)}${space}%`
 }
 
-/** A day, for what ends on one: a launch, a period, never a moment. */
 export function formatDate(value: string | Date, t: Translate): string {
   return new Intl.DateTimeFormat(t.locale, { dateStyle: "long" }).format(
     new Date(value)
@@ -99,7 +93,7 @@ export function formatRelative(
   return t("format.daysAgo", { count: Math.floor(elapsed / DAY_MS) })
 }
 
-/** What a backup carries, by kind and count: the platform never learns the names. */
+// Counts only: the platform never learns the names.
 export function formatBackupContents(
   counts: BackupCounts,
   t: Translate

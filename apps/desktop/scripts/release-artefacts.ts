@@ -3,14 +3,6 @@ import type {
   DesktopSystem,
 } from "@pupitre/shared/releases";
 
-/**
- * What a release build leaves in `dist/`, read file by file.
- *
- * Nothing here touches disk or network: naming an artefact, saying where it
- * goes, and writing the message the release key signs. The publish script
- * does the rest, and these functions can be tested without it.
- */
-
 export interface Artefact {
   file: string;
   os: DesktopSystem;
@@ -18,7 +10,6 @@ export interface Artefact {
   format: string;
 }
 
-/** The feeds electron-updater reads: one per OS, written by electron-builder. */
 export const FEEDS = ["latest.yml", "latest-mac.yml", "latest-linux.yml"];
 
 const FORMATS: Record<string, DesktopSystem> = {
@@ -28,11 +19,7 @@ const FORMATS: Record<string, DesktopSystem> = {
   deb: "linux",
 };
 
-/**
- * Architecture names as they appear across the pipeline. `amd64` is Debian's,
- * carried in `.deb` filenames; `x64` is Electron's, and the one the platform
- * keeps.
- */
+/** `.deb` filenames carry Debian's `amd64`; the platform keeps Electron's `x64`. */
 const ARCHITECTURES: Record<string, DesktopArchitecture> = {
   x64: "x64",
   amd64: "x64",
@@ -66,14 +53,7 @@ function archOf(file: string): DesktopArchitecture | null {
   return null;
 }
 
-/**
- * A publishable artefact, or nothing.
- *
- * A `.blockmap` accompanies an installer for differential updates, a `.yml`
- * is a feed: both go into the bucket, neither is a row in the version table.
- * A file whose name doesn't state its architecture is not published either —
- * the download page must be able to say which machine it targets.
- */
+/** A file whose name does not state its architecture is not published: the download page must name its machine. */
 export function artefactOf(file: string): Artefact | null {
   if (!NAME_RE.test(file)) {
     return null;
@@ -99,25 +79,26 @@ export function isBlockmap(file: string): boolean {
 
 const UPDATE_ARCHIVE_RE = /\.zip$/;
 
-/**
- * The installer a file accompanies: itself for an installer, the installer
- * a `.blockmap` maps, the `.dmg` of the same build for the `.zip` that
- * electron-updater downloads on macOS — it never updates from a dmg, and a
- * person never installs from the zip, so the zip goes to the bucket beside
- * the dmg and is a row nowhere.
- */
+/** electron-updater updates macOS from the `.zip`, never the dmg, so the zip belongs to the dmg of its build. */
 export function installerOf(file: string): string {
   const mapped = isBlockmap(file) ? file.slice(0, -".blockmap".length) : file;
 
   return mapped.replace(UPDATE_ARCHIVE_RE, ".dmg");
 }
 
-/** A file the updater fetches beside an installer, kept in the bucket without a row of its own. */
 export function isCompanion(file: string): boolean {
   return file !== installerOf(file) && artefactOf(installerOf(file)) !== null;
 }
 
-/** A version never moves once published: one folder per version, feeds alongside. */
+export function isUpdateArchive(file: string): boolean {
+  return UPDATE_ARCHIVE_RE.test(file) && isCompanion(file);
+}
+
+export function signedArtefactOf(file: string): Artefact | null {
+  return artefactOf(isUpdateArchive(file) ? installerOf(file) : file);
+}
+
+/** A published version never moves: one folder per version. */
 export function objectKey(version: string, file: string): string {
   return `app/${version}/${file}`;
 }
@@ -134,13 +115,7 @@ export function downloadUrl(
   return `${base.replace(TRAILING_SLASH_RE, "")}/${objectKey(version, file)}`;
 }
 
-/**
- * What the release key signs for an app artefact.
- *
- * The same gesture as for the agent — `apps/agent/internal/release` — with a
- * different preamble, so an agent signature can never pass for an app one, or
- * the reverse.
- */
+/** The preamble differs from the agent's so an agent signature can never pass for an app one, or the reverse. */
 export function signedAppMessage(
   version: string,
   os: string,
@@ -150,13 +125,7 @@ export function signedAppMessage(
   return Buffer.from(`pupitre-app\n${version}\n${os}\n${arch}\n${sha256}\n`);
 }
 
-/**
- * Feeds name their files relatively, resolved against the feed URL.
- *
- * Artefacts live in their version's folder and feeds in their channel's:
- * without this rewrite an app would look for its installer in the channel
- * folder, where it is not.
- */
+/** Feeds live in the channel folder but installers in the version folder, so relative entries would miss. */
 export function absoluteFeed(
   yaml: string,
   base: string,

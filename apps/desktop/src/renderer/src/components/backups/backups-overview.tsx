@@ -12,11 +12,6 @@ import { BackupsRevertProgress } from "./backups-revert-progress";
 import { BackupsRunOutcome } from "./backups-run-outcome";
 import { BackupsStatus } from "./backups-status";
 
-/**
- * The backups at a glance: a revert or a backup under way, where the last one
- * stands and when the next one runs, then every backup the server can be taken
- * back to.
- */
 export function BackupsOverview({
   serverId,
   docker,
@@ -28,7 +23,6 @@ export function BackupsOverview({
 }: {
   serverId: string;
   docker: boolean;
-  /** A server whose backups are not in place yet has no state to show. */
   withStatus: boolean;
   withList: boolean;
   busy: boolean;

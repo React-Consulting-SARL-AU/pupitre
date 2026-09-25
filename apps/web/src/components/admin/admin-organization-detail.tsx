@@ -12,7 +12,6 @@ import { SkeletonCards } from "@/components/ui/skeleton"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
 import { adminOrganizationQueryOptions } from "@/lib/api/admin-queries"
-import { canActOnPlatform } from "@/lib/domain/admin"
 
 export const ADMIN_ORGANIZATION_TABS = [
   "overview",
@@ -38,7 +37,7 @@ export function AdminOrganizationDetail({
   onTabChange,
 }: AdminOrganizationDetailProps) {
   const t = useTranslations()
-  const { platformRole } = useDashboardContext()
+  const { platformCanAct: acts } = useDashboardContext()
   const organization = useQuery(adminOrganizationQueryOptions(id))
 
   if (organization.isPending) {
@@ -48,6 +47,7 @@ export function AdminOrganizationDetail({
   if (organization.isError) {
     return (
       <AdminFailure
+        error={organization.error}
         fetching={organization.isFetching}
         onRetry={() => {
           organization.refetch()
@@ -57,7 +57,6 @@ export function AdminOrganizationDetail({
   }
 
   const detail = organization.data
-  const acts = canActOnPlatform(platformRole)
   const refusedTitle = acts ? undefined : t("admin.organizations.roleRequired")
 
   return (
@@ -90,14 +89,7 @@ export function AdminOrganizationDetail({
         {
           value: "events",
           label: t("admin.organizations.tab.events"),
-          panel: (
-            <AdminEventsCard
-              events={detail.events.map((event) => ({
-                ...event,
-                actor: event.actor?.email ?? null,
-              }))}
-            />
-          ),
+          panel: <AdminEventsCard events={detail.events} />,
         },
         {
           value: "settings",

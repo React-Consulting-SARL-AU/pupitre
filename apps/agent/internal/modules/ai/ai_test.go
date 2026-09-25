@@ -58,6 +58,7 @@ func TestTheFourManifestsMatchTheCatalog(t *testing.T) {
 		}
 
 		keys := make([]string, 0, len(manifest.Fields))
+
 		for _, field := range manifest.Fields {
 			keys = append(keys, field.Key)
 		}

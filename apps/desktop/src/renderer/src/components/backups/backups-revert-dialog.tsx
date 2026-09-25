@@ -10,13 +10,6 @@ import type { PlatformBackup } from "@shared/backups";
 import { History } from "lucide-react";
 import { useState } from "react";
 
-/**
- * Taking a server back to one of its backups, asked with what it costs.
- *
- * The passphrase is checked on this computer against the backup's public key
- * before anything leaves; a save of the machine as it stands comes first unless
- * the reader says otherwise — it is what lets a revert be undone.
- */
 export function BackupsRevertDialog({
   backup,
   checking,
@@ -25,9 +18,7 @@ export function BackupsRevertDialog({
   onClose,
 }: {
   backup: PlatformBackup | null;
-  /** The passphrase is on its way to be checked. */
   checking: boolean;
-  /** Why the passphrase or the backup was refused, before anything was sent. */
   refusal: AgentError | null;
   onConfirm: (passphrase: string, saveFirst: boolean) => Promise<void>;
   onClose: () => void;
@@ -35,6 +26,7 @@ export function BackupsRevertDialog({
   const t = useTranslations();
 
   const [passphrase, setPassphrase] = useState("");
+  // Saving the machine first is what lets a revert be undone, hence on by default.
   const [saveFirst, setSaveFirst] = useState(true);
 
   function close(): void {
@@ -69,7 +61,7 @@ export function BackupsRevertDialog({
       })}
       width="wide"
     >
-      <p className="text-[13px] text-ink-2 leading-relaxed">
+      <p className="text-control text-ink-2 leading-relaxed">
         {t("backups.revert.consequence")}
       </p>
 

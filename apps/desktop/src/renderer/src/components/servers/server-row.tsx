@@ -18,20 +18,8 @@ import { StatusDot, type StatusShape } from "../ui/status-dot";
 import { ServerGrantDetail } from "./server-grant-detail";
 import { ServerGrantOpen } from "./server-grant-open";
 import { ServerRowEditing } from "./server-row-editing";
+import { ServerSudoFact } from "./server-sudo-fact";
 
-/**
- * One server, and everything that can be done to it from a list.
- *
- * A machine the platform grants is the same row as one typed here: the
- * console's word is one of its facts, and its first opening one of its
- * gestures. Deleting asks first, and says what goes with it: the key the app
- * made for this machine leaves with the server, and no other copy of it
- * exists. A server the platform grants offers the two gestures apart — removed
- * from here it stays granted; erased everywhere it does not come back.
- *
- * Either deletion holds the confirmation open while it runs: the spinner turns
- * on the button that was clicked, and its neighbour cannot be pressed meanwhile.
- */
 export function ServerRow({
   server,
   active,
@@ -51,19 +39,14 @@ export function ServerRow({
   active: boolean;
   onActivate: Gesture;
   onRename: (name: string) => void;
-  /** The address, the port or the account, changed in place. */
   onUpdate?: (changes: ServerChanges) => Promise<void>;
   onForgetEdit?: () => void;
-  /** Where the last change stands, for whichever row asked for it. */
   edit?: EditState;
   onRemove: Gesture;
   onForget: Gesture;
-  /** What the platform objected to the removal with, in its own words. */
   refusal?: ReactNode;
-  /** The first opening of a granted server in flight, when it is this one's. */
   opening?: FleetOpening | null;
   onOpen?: () => void;
-  /** What the row ends on: the way into the install, when the machine has none. */
   footer?: ReactNode;
 }) {
   const t = useTranslations();
@@ -91,6 +74,7 @@ export function ServerRow({
   const deleting = removing || forgetting;
 
   let activeShape: StatusShape = active ? "filled" : "empty";
+
   if (activating) {
     activeShape = "breathing";
   }
@@ -113,7 +97,7 @@ export function ServerRow({
             aria-busy={activating}
             aria-current={active}
             aria-label={t("servers.row.activate", { name: server.name })}
-            className="clickable shrink-0 rounded-sm p-0.5 text-ink disabled:opacity-40"
+            className="clickable inline-flex size-7 shrink-0 items-center justify-center rounded-sm text-ink transition-soft hover:bg-raised disabled:opacity-40"
             disabled={activating}
             onClick={activate}
             type="button"
@@ -168,6 +152,9 @@ export function ServerRow({
           {server.hostFingerprint ?? t("servers.row.notPinned")}
         </Fact>
         {grant ? <ServerGrantDetail grant={grant} /> : null}
+        {server.origin === "app" ? (
+          <ServerSudoFact serverId={server.id} />
+        ) : null}
       </FactList>
 
       {grant && onOpen ? (
@@ -254,13 +241,6 @@ function configLabel(server: Server): DictionaryKey {
     : "servers.row.configSystem";
 }
 
-/**
- * What the button promises, and it promises only what it can keep.
- *
- * What decides is not who created the entry but whether the platform still
- * grants the machine: only the platform can delete it. Removing it here hides
- * it on this computer, and the list offers the way back below its rows.
- */
 function liveGrant(server: Server): ServerGrant | null {
   return server.grant && !grantGone(server.grant) ? server.grant : null;
 }
@@ -269,6 +249,7 @@ function granted(server: Server): boolean {
   return liveGrant(server) !== null;
 }
 
+// Only the platform deletes a granted machine: removing it here only hides it.
 function removeLabel(server: Server): DictionaryKey {
   return granted(server)
     ? "servers.row.confirmRemoveGranted"

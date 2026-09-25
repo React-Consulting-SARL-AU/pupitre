@@ -1,5 +1,6 @@
 import { slugify } from "@pupitre/auth/organizations"
 import { isOrgRole, type OrgRole } from "@pupitre/shared/permissions"
+import { LIVE_SUBSCRIPTION_STATUSES } from "@pupitre/shared/plans"
 import {
   deletionDeadline,
   PLATFORM_ORGANIZATION_ID,
@@ -9,11 +10,10 @@ import {
   sendOrganizationRestoredEmail,
   sendOrganizationSuspendedEmail,
 } from "../../emails/notifications"
-import { getPrisma } from "../api/prisma"
+import { getPrisma, withOrganization } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import { cancelSubscriptionByAdmin } from "../billing/admin"
 import { applyOrganizationEntitlement } from "../billing/mirror"
-import { LIVE_SUBSCRIPTION_STATUSES } from "../billing/subscription"
 import { unassignServersOfMember } from "../servers/assign"
 import {
   type AdminOrganizationDetail,
@@ -125,7 +125,7 @@ function assertNotPlatform(organizationId: string): void {
   }
 }
 
-/** Only a machine in use goes down, so a reopening never hands back more than it took: an enrolment stays an enrolment. */
+// Only machines in use go down, so a reopening never turns an enrolment into an active server.
 async function suspendOrganizationServers(
   actor: PlatformOrganizationActor,
   organizationId: string,
@@ -171,7 +171,7 @@ async function suspendOrganizationServers(
   return servers.length
 }
 
-/** What comes back comes back to what the subscription now allows: a lapsed one leaves the machine in tolerance. */
+// Servers come back to what the subscription now allows: a lapsed one leaves them in grace.
 async function releaseOrganizationServers(
   organizationId: string,
   now: Date
@@ -281,7 +281,7 @@ export async function restoreOrganizationFromPlatform(
   return await readOrganizationForPlatform(organizationId)
 }
 
-/** The money stops before the machines: the cancellation reads the servers it is about to take down. */
+// Runs before the servers go down: the cancellation reads the servers it is about to take down.
 async function stopLiveSubscription(
   actor: PlatformOrganizationActor,
   organizationId: string,
@@ -436,7 +436,7 @@ export async function deleteOrganizationFromPlatform(
   assertNotPlatform(organizationId)
 
   if (organization.deletionAt) {
-    await purgeOrganization(organization, actor.userId)
+    await purgeOrganization(organization.id, actor.userId)
 
     return { deletion: "purged" }
   }
@@ -468,25 +468,25 @@ export async function deleteOrganizationFromPlatform(
   return scheduled ? { deletion: "scheduled", organization: scheduled } : null
 }
 
-export interface PurgedOrganization {
-  id: string
-  name: string
-  slug: string
-}
-
+// The journal holds personal data (hosts, reasons, addresses): it goes too, only the identifier stays.
 export async function purgeOrganization(
-  organization: PurgedOrganization,
+  organizationId: string,
   actorUserId: string | null
 ): Promise<void> {
   const prisma = getPrisma()
 
-  await prisma.organization.delete({ where: { id: organization.id } })
+  await withOrganization(prisma, organizationId).event.deleteMany({
+    where: {},
+  })
+  await prisma.event.deleteMany({
+    where: { targetType: "organization", targetId: organizationId },
+  })
+  await prisma.organization.delete({ where: { id: organizationId } })
   await recordEvent({
     action: "organization.purged",
     actorUserId,
     targetType: "organization",
-    targetId: organization.id,
-    payload: { name: organization.name, slug: organization.slug },
+    targetId: organizationId,
   })
 }
 

@@ -2,17 +2,14 @@ import { readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { appVersion } from "./check"
 import { argumentOf, say } from "./cli"
-import { bump, lastVersion, originTags, pendingVersion } from "./resolve"
-
-/**
- * The next version, written where the app declares it.
- *
- * It follows the last tag origin holds: a patch for a fix, a minor for a
- * feature, a major when the protocol between the app and the agent drops or
- * renames a field. A tag on HEAD that origin has not seen is a release stopped
- * before its push, and its version is kept for `ship` to resume, not bumped.
- * Nothing else changes here — the changelog is `notes`, the tag is `ship`.
- */
+import {
+  bump,
+  compareRelease,
+  isReleaseVersion,
+  lastVersion,
+  originTags,
+  pendingVersion,
+} from "./resolve"
 
 const ROOT = path.resolve(import.meta.dir, "../..")
 
@@ -32,6 +29,22 @@ export function partOf(argv: readonly string[]): "major" | "minor" | "patch" {
   return "patch"
 }
 
+function named(requested: string, last: string | null): string {
+  if (!isReleaseVersion(requested)) {
+    throw new Error(`--version=${requested} is not a version: X.Y.Z, no v.`)
+  }
+
+  if (last && compareRelease(requested, last) <= 0) {
+    throw new Error(`--version=${requested} must be above ${last}.`)
+  }
+
+  return requested
+}
+
+function partNamed(argv: readonly string[]): boolean {
+  return argv.includes("--major") || argv.includes("--minor")
+}
+
 export function nextVersion(
   argv: readonly string[],
   last: string | null,
@@ -41,17 +54,30 @@ export function nextVersion(
   const requested = argumentOf(argv, "version")
 
   if (requested) {
-    return requested
+    return named(requested, last)
   }
 
   if (pending) {
     return pending
   }
 
-  return last ? bump(last, partOf(argv)) : declared
+  if (!last) {
+    return declared
+  }
+
+  // A manifest already above the last tag is the first pass's work, which the second pass resumes.
+  if (
+    !partNamed(argv) &&
+    isReleaseVersion(declared) &&
+    compareRelease(declared, last) > 0
+  ) {
+    return declared
+  }
+
+  return bump(last, partOf(argv))
 }
 
-/** The line is rewritten in place: the file keeps its formatting and its key order. */
+// Rewritten in place so the manifest keeps its formatting and key order.
 export function writeAppVersion(version: string, manifest = MANIFEST): void {
   const source = readFileSync(manifest, "utf8")
 

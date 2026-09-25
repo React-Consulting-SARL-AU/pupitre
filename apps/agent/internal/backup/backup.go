@@ -1,4 +1,3 @@
-// Package backup makes and restores a server's backups; docs/contracts/backups.md is the contract.
 package backup
 
 import (
@@ -23,19 +22,17 @@ const (
 
 	partSuffix = ".pupitre"
 
-	// The replay a failed part of a backup names: the whole backup again, which copies what did not change.
+	// A failed part replays the whole backup, which only copies what did not change.
 	replayRun = "sudo pupitred dev backup now"
 )
 
 var idPattern = regexp.MustCompile(contract.Backup.IDPattern)
 
-// SetupFile is one file of the configuration: its name in the setup archive, and where it lives on this machine.
 type SetupFile struct {
 	Name string
 	Path string
 }
 
-// Setup lists the configuration a backup carries, under the names the contract gives them.
 func Setup(install, local, conf, ledger, env, running string) []SetupFile {
 	return []SetupFile{
 		{Name: "etc/pupitre/install.json", Path: install},
@@ -60,15 +57,19 @@ func (p Paths) resolved() Paths {
 	if p.State == "" {
 		p.State = DefaultStatePath
 	}
+
 	if p.Marker == "" {
 		p.Marker = DefaultMarkerPath
 	}
+
 	if p.Staging == "" {
 		p.Staging = DefaultStagingPath
 	}
+
 	if p.ServerID == "" {
 		p.ServerID = platform.DefaultServerIDPath
 	}
+
 	if p.Home == "" {
 		p.Home = DefaultHome
 	}
@@ -86,24 +87,27 @@ type Options struct {
 	Owner        string
 	Now          func() time.Time
 	Location     *time.Location
-	// Reach adjusts the client of a bucket before it is used: the tests aim it at their fake one.
-	Reach func(s3.Client) s3.Client
+	Reach        func(s3.Client) s3.Client
 }
 
 type Service struct {
 	options Options
 	paths   Paths
-	// A scheduled backup runs apart from the daemon's loop, one at a time.
+	// Scheduled backups run apart from the daemon's loop, one at a time.
 	turning atomic.Bool
+	// Status trusts this process's count before any record another process may have left.
+	running atomic.Int32
 }
 
 func New(options Options) *Service {
 	if options.Now == nil {
 		options.Now = time.Now
 	}
+
 	if options.Location == nil {
 		options.Location = time.Local
 	}
+
 	if options.Owner == "" {
 		options.Owner = DefaultOwner
 	}
@@ -123,7 +127,6 @@ func (s *Service) bucket(client s3.Client) s3.Client {
 	return client
 }
 
-// ServerID is what the platform names this server by, once a read of /agent/state has said it: hello answers it, and it names the server's prefix in the bucket.
 func (s *Service) ServerID() string {
 	return platform.LoadServerID(s.options.Engine.Sys, s.paths.ServerID)
 }

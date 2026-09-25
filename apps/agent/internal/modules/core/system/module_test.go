@@ -9,6 +9,7 @@ import (
 	"pupitre.studio/agent/internal/devcli"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/sudo"
 )
 
 const (
@@ -42,6 +43,7 @@ func run(t *testing.T, ctx *modules.Context) {
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -49,6 +51,7 @@ func run(t *testing.T, ctx *modules.Context) {
 
 func statuses(ctx *modules.Context) map[string]contract.StepStatus {
 	result := map[string]contract.StepStatus{}
+
 	for _, event := range ctx.Events() {
 		result[event.Step] = event.Status
 	}
@@ -69,6 +72,7 @@ func TestInstallOnABareMachine(t *testing.T) {
 	}
 
 	commands := strings.Join(fake.Commands(), "\n")
+
 	for _, want := range []string{
 		"fallocate -l 2G /swapfile",
 		"mkswap /swapfile",
@@ -91,13 +95,15 @@ func TestInstallOnABareMachine(t *testing.T) {
 	}
 
 	files := map[string]string{
-		sudoersPath:        sudoers,
+		sudoersPath:        sudo.Open,
 		sysctlPath:         sysctl,
 		aptPeriodicPath:    aptPeriodic,
+		logRotationPath:    agentLogRotation,
 		timezonePath:       "Europe/Paris\n",
 		tmuxPath:           tmuxConf,
 		authorizedKeysPath: rootKey + "\n",
 	}
+
 	for path, want := range files {
 		if string(fake.Files[path]) != want {
 			t.Errorf("%s = %q", path, fake.Files[path])
@@ -115,7 +121,12 @@ func TestInstallOnABareMachine(t *testing.T) {
 	}
 
 	zshrc := string(fake.Files[zshrcPath])
-	for _, want := range []string{zshrcBase, "# >>> pupitre core.system >>>", `export PROJECTS_DIR='/home/dev/projects'`, `\e]133;A\a`, `\e]133;B\a`, `\e]133;C\a`, `\e]133;D;%s\a`, `\e]7;file://`, `mise" activate zsh`, "# <<< pupitre core.system <<<"} {
+
+	for _, want := range []string{
+		zshrcBase, "# >>> pupitre core.system >>>", `export PROJECTS_DIR='/home/dev/projects'`,
+		`\e]133;A\a`, `\e]133;B\a`, `\e]133;C\a`, `\e]133;D;%s\a`, `\e]7;file://`,
+		`mise" activate zsh`, "# <<< pupitre core.system <<<",
+	} {
 		if !strings.Contains(zshrc, want) {
 			t.Errorf(".zshrc lacks %q:\n%s", want, zshrc)
 		}
@@ -163,7 +174,27 @@ func TestReplayOnAnInstalledMachineChangesNothing(t *testing.T) {
 	t.Logf("first run: %d calls, %d mutations; replay: %d calls, 0 mutations", calls, mutations, len(fake.Calls)-calls)
 }
 
-// A machine installed before rsync joined the list still reads as installed, and the next upgrade is what brings the package: once, then never again.
+func TestUpgradeLeavesTheSudoPasswordRuleInPlace(t *testing.T) {
+	fake := bareMachine()
+	run(t, newContext(t, fake))
+	fake.Files[passwdPath] = []byte("root:x:0:0:root:/root:/bin/bash\ndev:x:1000:1000::/home/dev:/usr/bin/zsh\n")
+	fake.Files[sudoersPath] = []byte(sudo.Restricted)
+
+	status, err := (Module{}).Check(newContext(t, fake))
+	if err != nil || !status.Configured {
+		t.Fatalf("a machine under the password rule must read as configured: %+v, %v", status, err)
+	}
+
+	ctx := newContext(t, fake)
+	if err := (Module{}).Upgrade(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if string(fake.Files[sudoersPath]) != sudo.Restricted || statuses(ctx)["grant-sudo"] != contract.StepSkip {
+		t.Fatalf("sudoers = %q, steps %v", fake.Files[sudoersPath], statuses(ctx))
+	}
+}
+
 func TestUpgradeBringsAPackageAddedSinceTheInstall(t *testing.T) {
 	fake := bareMachine()
 	run(t, newContext(t, fake))
@@ -284,6 +315,30 @@ func TestSeedingSkipsRestrictedKeysAndKeepsDevKeys(t *testing.T) {
 	}
 }
 
+// Root writes dev's authorized_keys, so a link dev plants there must not pull another file in.
+func TestSeedingRefusesAnAuthorizedKeysLinkOutOfTheHome(t *testing.T) {
+	fake := bareMachine()
+	fake.Files["/etc/shadow"] = []byte("root:$6$secret:20000:0:99999:7:::\n")
+	fake.Links[authorizedKeysPath] = "/etc/shadow"
+	ctx := newContext(t, fake)
+
+	if err := (Module{}).Install(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := (Module{}).Configure(ctx); err == nil {
+		t.Fatal("a link out of the home was read as dev's keys")
+	}
+
+	if statuses(ctx)["seed-authorized-keys"] != contract.StepFail {
+		t.Fatalf("steps = %v", statuses(ctx))
+	}
+
+	if strings.Contains(string(fake.Files[authorizedKeysPath]), "secret") {
+		t.Fatal("the linked file reached dev's authorized_keys")
+	}
+}
+
 func TestExistingUserGetsZshAndSudo(t *testing.T) {
 	fake := bareMachine()
 	fake.Users["dev"] = "/home/dev"
@@ -298,7 +353,6 @@ func TestExistingUserGetsZshAndSudo(t *testing.T) {
 	}
 }
 
-// A swap file allocated but never enabled must not survive the failure: left there, the next run would take it for a swap.
 func TestAHalfMadeSwapFileIsRemovedAndTheNextRunTriesAgain(t *testing.T) {
 	fake := bareMachine()
 	fake.FailProgram("mkswap", "mkswap: /swapfile: insecure permissions 0644")
@@ -334,7 +388,7 @@ func TestUninstallRemovesOnlyWhatTheModuleWrote(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, path := range []string{sudoersPath, sysctlPath, aptPeriodicPath} {
+	for _, path := range []string{sudoersPath, sysctlPath, aptPeriodicPath, logRotationPath} {
 		if _, present := fake.Files[path]; present {
 			t.Errorf("%s still present", path)
 		}
@@ -362,6 +416,7 @@ func TestShellMarkersAreLaidDownForZshAndBash(t *testing.T) {
 		bashrcPath: {`mise" activate bash`, "PROMPT_COMMAND=", "trap '_pupitre_preexec' DEBUG"},
 	} {
 		content := string(fake.Files[path])
+
 		for _, want := range append(markers, extra...) {
 			if !strings.Contains(content, want) {
 				t.Errorf("%s lacks %q:\n%s", path, want, content)
@@ -426,7 +481,6 @@ func TestDevCommandIsLinkedToTheBinaryAndRemovedOnUninstall(t *testing.T) {
 	}
 }
 
-// Nothing reads the platform on a server where the service is missing: the module that lays the machine down lays it down too.
 func TestConfigureInstallsAndEnablesTheAgentService(t *testing.T) {
 	fake := bareMachine()
 	ctx := newContext(t, fake)
@@ -467,7 +521,6 @@ func TestUninstallTakesTheAgentServiceAway(t *testing.T) {
 	}
 }
 
-// A folder root made under ~/.local on an earlier run locks dev out of mise, node and every agent CLI.
 func TestPrepareHomeGivesLocalBackToDev(t *testing.T) {
 	fake := bareMachine()
 	fake.Users["dev"] = Home
@@ -507,7 +560,6 @@ func TestPrepareHomeGivesLocalBackToDev(t *testing.T) {
 	}
 }
 
-// A /home/dev that predates the user — a previous install, an image with the folder — stays root's after useradd, and dev owns nothing of their own home.
 func TestPrepareHomeGivesAPreexistingHomeBackToDev(t *testing.T) {
 	fake := bareMachine()
 	fake.Dirs[Home] = true
@@ -528,7 +580,6 @@ func TestPrepareHomeGivesAPreexistingHomeBackToDev(t *testing.T) {
 	}
 }
 
-// enable --now on a unit already active is a no-op: a changed unit only applies once the daemon restarts on it.
 func TestInstallAgentUnitRestartsTheDaemonOnAChangedUnit(t *testing.T) {
 	fake := bareMachine()
 	run(t, newContext(t, fake))
@@ -583,6 +634,7 @@ func TestUpgradeTakesEveryPackageInOneAptCall(t *testing.T) {
 	}
 
 	installs := 0
+
 	for _, call := range fake.Calls[before:] {
 		if call.Argv[0] == "apt-get" && strings.Contains(strings.Join(call.Argv, " "), " install ") {
 			installs++
@@ -600,5 +652,20 @@ func TestUpgradeTakesEveryPackageInOneAptCall(t *testing.T) {
 
 	if statuses(again)["upgrade-packages"] != contract.StepSkip {
 		t.Fatalf("replay = %v", statuses(again))
+	}
+}
+
+func TestAGitNameWithAControlCharacterIsRefusedBeforeItReachesGitconfig(t *testing.T) {
+	none := func(string, string) []string { return nil }
+
+	for _, name := range []string{"Jordan\n[core]\n\tsshCommand = evil", "Jordan\rMonier", "Jordan\x00", "Jordan\x7f"} {
+		problems := contract.ValidateModule(manifest(), map[string]any{"git_name": name, "git_email": "jordan@example.org"}, none)
+		if len(problems) != 1 || problems[0].Field != "git_name" || problems[0].Code != contract.ProblemPattern {
+			t.Errorf("git_name %q: problems = %+v", name, problems)
+		}
+	}
+
+	if problems := contract.ValidateModule(manifest(), map[string]any{"git_name": "Jordan Monier-Éloi", "git_email": "jordan@example.org"}, none); len(problems) != 0 {
+		t.Fatalf("an ordinary name must pass: %+v", problems)
 	}
 }

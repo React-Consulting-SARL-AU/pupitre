@@ -6,14 +6,19 @@ import {
   translator,
 } from "../lib/i18n"
 
+interface Props {
+  href?: string
+}
+
 const pathname = Astro.url.pathname
 const locale = localeFromPath(pathname)
 const target = alternateLocale(locale)
 const t = translator(locale)
+const { href = localizePath(pathname, target) } = Astro.props
 ---
 
 <a
-  href={localizePath(pathname, target)}
+  href={href}
   hreflang={target}
   lang={target}
   aria-label={t("locale.alternateName")}

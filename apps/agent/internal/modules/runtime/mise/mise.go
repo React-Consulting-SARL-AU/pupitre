@@ -21,7 +21,6 @@ const (
 	DataDir  = shell.Home + "/.local/share/mise"
 	ShimsDir = DataDir + "/shims"
 
-	// Where mise use -g writes the default of every tool.
 	GlobalConfig = shell.Home + "/.config/mise/config.toml"
 
 	Latest = "latest"
@@ -38,7 +37,7 @@ func Present(ctx *modules.Context) bool {
 	return file.Exists(ctx, Path)
 }
 
-// mise publishes one static binary per release and the SHA-256 of each beside it, the way its own installer reads them: the binary is refused unless the two agree.
+// The binary is refused unless it matches the SHA-256 mise publishes beside it, as its own installer checks.
 func Ensure(ctx *modules.Context) error {
 	return ctx.Step("install-mise", func() (modules.Outcome, error) {
 		if Present(ctx) {
@@ -114,10 +113,7 @@ func asset(version string) string {
 	return "mise-v" + version + "-linux-x64"
 }
 
-// What the machine really carries, read back from mise rather than from what
-// the app asked for: one version per tool, the first mise lists. A runtime held
-// at several reads them through Versions. A reader takes a listing mise refused
-// as empty; a step asks installedTools and stops on it.
+// A refused listing reads as empty here; a step calls installedTools and stops on the error.
 func Installed(ctx sys.Context) map[string]string {
 	tools, _ := installedTools(ctx)
 
@@ -131,6 +127,7 @@ func installedTools(ctx sys.Context) (map[string]string, error) {
 	}
 
 	tools := map[string]string{}
+
 	for _, entry := range entries {
 		if _, seen := tools[entry.tool]; !seen {
 			tools[entry.tool] = entry.version
@@ -140,7 +137,6 @@ func installedTools(ctx sys.Context) (map[string]string, error) {
 	return tools, nil
 }
 
-// Versions lists every version mise holds of one tool, in the order mise prints them: ascending.
 func Versions(ctx sys.Context, tool string) []string {
 	versions, _ := versionsOf(ctx, tool)
 
@@ -154,6 +150,7 @@ func versionsOf(ctx sys.Context, tool string) ([]string, error) {
 	}
 
 	var versions []string
+
 	for _, entry := range entries {
 		if entry.tool == tool {
 			versions = append(versions, entry.version)
@@ -174,6 +171,7 @@ func listed(ctx sys.Context) ([]entry, error) {
 	}
 
 	var entries []entry
+
 	for _, line := range strings.Split(out, "\n") {
 		fields := strings.Fields(line)
 		if len(fields) >= 2 {
@@ -184,7 +182,7 @@ func listed(ctx sys.Context) ([]entry, error) {
 	return entries, nil
 }
 
-// Global reads the defaults mise use -g wrote, tool by requested version, from the configuration file rather than from a shell whose folder would decide the answer.
+// Read from the config file, not from a shell whose working folder would decide the answer.
 func Global(ctx sys.Context) map[string]string {
 	raw, err := ctx.Sys().ReadFile(GlobalConfig)
 	if err != nil {
@@ -193,6 +191,7 @@ func Global(ctx sys.Context) map[string]string {
 
 	tools := map[string]string{}
 	inTools := false
+
 	for _, line := range strings.Split(string(raw), "\n") {
 		line = strings.TrimSpace(line)
 		if strings.HasPrefix(line, "[") {
@@ -211,7 +210,6 @@ func Global(ctx sys.Context) map[string]string {
 	return tools
 }
 
-// Default is the installed version the machine's default request resolves to — the newest under it, or the newest of all when no request was written.
 func Default(ctx sys.Context, tool string) string {
 	installed := Versions(ctx, tool)
 	if len(installed) == 0 {
@@ -219,6 +217,7 @@ func Default(ctx sys.Context, tool string) string {
 	}
 
 	requested := Global(ctx)[tool]
+
 	for i := len(installed) - 1; i >= 0; i-- {
 		if requested == "" || Matches(installed[i], requested) {
 			return installed[i]
@@ -234,7 +233,7 @@ func Use(ctx sys.Context, tool, version string) error {
 	return err
 }
 
-// install puts a version beside the others without making it the default.
+// Unlike Use, never makes the version the default.
 func install(ctx sys.Context, tool, version string) error {
 	_, err := user.Run(ctx, shell.User, program, "install", "-y", tool+"@"+version)
 
@@ -253,7 +252,6 @@ func Uninstall(ctx sys.Context, tool, version string) error {
 	return err
 }
 
-// Exec runs a program under one version of a tool, whatever the default is: gem under the ruby that was just put.
 func Exec(ctx sys.Context, tool, version string, argv ...string) error {
 	_, err := user.Run(ctx, shell.User, append([]string{program, "x", tool + "@" + version, "--"}, argv...)...)
 
@@ -287,7 +285,7 @@ func Matches(installed, wanted string) bool {
 	return installed == wanted || strings.HasPrefix(installed, wanted+".")
 }
 
-// Add installs a tool and checks mise really put it there; mise exiting 0 is not proof.
+// mise exiting 0 is no proof: the tool is read back after the install.
 func Add(ctx *modules.Context, step, tool, wanted string) (bool, error) {
 	added := false
 

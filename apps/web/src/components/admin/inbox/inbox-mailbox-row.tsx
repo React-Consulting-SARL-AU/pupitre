@@ -43,7 +43,7 @@ export function InboxMailboxRow({ mailbox, canAct }: InboxMailboxRowProps) {
 
     toasts.failed({
       title: refusal?.message ?? t("inbox.mailboxFailed"),
-      fix: refusal?.fix ?? t("inbox.mailboxFailedFix"),
+      fix: refusal?.fix ?? t("common.retryLater"),
     })
   }
 

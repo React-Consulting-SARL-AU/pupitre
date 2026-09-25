@@ -52,9 +52,9 @@ const SETUP: BackupRestoreSetupResult = {
       bytes: 48_213_990,
       engine: "postgres",
       format: "pg_custom",
-      key: "db-postgres-flymate.pupitre",
+      key: "db-postgres-flyleaf.pupitre",
       kind: "database",
-      name: "flymate",
+      name: "flyleaf",
       sha256: "b".repeat(64),
     },
   ],
@@ -307,7 +307,7 @@ describe("revenir à une sauvegarde", () => {
       cmd: "uninstall",
       params: { modules: ["tool.github"] },
     });
-    expect(calls.data).toEqual([["db-postgres-flymate.pupitre"]]);
+    expect(calls.data).toEqual([["db-postgres-flyleaf.pupitre"]]);
     expect(useBackups.getState().revert).toMatchObject({
       result: { started: ["intranet"] },
       status: "done",

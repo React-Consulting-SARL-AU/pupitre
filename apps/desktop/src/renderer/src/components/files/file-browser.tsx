@@ -9,20 +9,6 @@ import { useEffect } from "react";
 import { FileList } from "./file-list";
 import { FilePreview } from "./file-preview";
 
-/**
- * Two panes over one folder of the server: the list on the left, the file
- * on the right.
- *
- * The browser is bound to a root — a project's folder, or the server's own —
- * and the store keeps every path relative to the agent's root. What leaves
- * this component leaves it composed: an editor gets the absolute path, from
- * the root the agent named; a terminal gets a folder relative to the one the
- * browser is bound to, and the main process puts it back under a folder it
- * already trusts. A transfer names the path as the agent sees it, and the
- * folder on screen is read again once something lands in it.
- */
-
-/** The uploads that just finished, between two lists the transfers store gave. */
 function landed(now: Transfer[], before: Transfer[]): Transfer[] {
   const earlier = new Map(before.map((one) => [one.id, one.status]));
 
@@ -42,11 +28,9 @@ export function FileBrowser({
   onTerminal,
 }: {
   serverId: string;
-  /** The absolute folder the browser is bound to; nothing for the server's root. */
   root: string | null;
   rootLabel: string;
   editors: readonly RemoteEditor[];
-  /** A shell asked for in a folder, relative to the browser's root. */
   onTerminal: (dir: string) => void;
 }) {
   const t = useTranslations();
@@ -84,6 +68,7 @@ export function FileBrowser({
   const preview = store.preview;
   const selected = preview.status === "idle" ? null : preview.path;
 
+  // Store paths are relative to the agent's root: editors get them absolute, terminals within the browser's root.
   function act(path: string, action: FileAction): void {
     if (action.id === "copy" && store.workRoot !== null) {
       navigator.clipboard.writeText(absoluteOf(store.workRoot, path));

@@ -6,27 +6,16 @@ import type { PortForward } from "@shared/services";
 import type { ForwardMemory } from "./forwards-memory";
 import { refuseWith } from "./refusal";
 
-/**
- * A port of the server, brought to this computer by `ssh -L`.
- *
- * Nothing new listens on the server: the database stays bound to its loopback,
- * and the forward is the app's own process, on this side, for as long as the
- * reader keeps it open. It is the one way a desktop client reaches a service
- * that the whole architecture forbids exposing.
- */
-
 const MAX_PORT = 65_535;
 const LISTEN_TIMEOUT_MS = 8000;
 const LISTEN_RETRY_MS = 150;
 
 export interface ForwardDeps {
-  /** The `ssh` arguments that name a server, or nothing if it is unknown. */
   resolve: (serverId: string) => string[] | null;
   spawn?: (args: string[]) => ChildProcess;
   freePort?: () => Promise<number | null>;
-  /** Whether a given local port can still be bound. */
   portFree?: (port: number) => Promise<boolean>;
-  /** The local port each forward took last time, so a saved client still opens. */
+  /** Reusing last time's local port keeps a desktop client's saved connection working. */
   memory?: ForwardMemory;
 }
 
@@ -43,7 +32,6 @@ type Watcher = (forwards: PortForward[]) => void;
 
 const watchers = new Set<Watcher>();
 
-/** Told every time the list changes, including when a forward dies on its own. */
 export function watchForwards(watcher: Watcher): () => void {
   watchers.add(watcher);
 
@@ -67,11 +55,6 @@ function refuse(
   return refuseWith("bad_request", id, values);
 }
 
-/**
- * A local port nobody holds, asked of the system rather than guessed: binding
- * on 0 and letting go is the only way to be told one that is actually free.
- * The system answering nothing, or refusing to bind, is `null`.
- */
 function borrowedPort(): Promise<number | null> {
   return new Promise((resolve) => {
     const probe = createServer();
@@ -87,7 +70,6 @@ function borrowedPort(): Promise<number | null> {
   });
 }
 
-/** Whether this port can be bound now: the only answer the system gives is to try. */
 function bindable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
     const probe = createServer();
@@ -143,7 +125,6 @@ export function closeForwards(serverId?: string): void {
   }
 }
 
-/** The one already open on that port, so a second click reuses it. */
 function existing(
   serverId: string,
   remotePort: number,
@@ -170,12 +151,7 @@ function attempt(port: number): Promise<boolean> {
   });
 }
 
-/**
- * Resolves once something answers on the local port, or gives up.
- *
- * `ssh -L` listens only after it has authenticated: a browser sent there a
- * moment too early would find nothing and show its own error page.
- */
+/** `ssh -L` listens only after it authenticated: a browser sent there too early gets its own error page. */
 export async function awaitListening(
   port: number,
   timeoutMs = LISTEN_TIMEOUT_MS
@@ -193,11 +169,6 @@ export async function awaitListening(
   return false;
 }
 
-/**
- * The local port to bind: the one imposed, else the one this forward took last
- * time when it is still free, else one borrowed from the system. `movedFrom`
- * says which remembered port could not be taken, so the screen can say so.
- */
 async function localPortFor(
   serverId: string,
   remotePort: number,
@@ -221,10 +192,7 @@ async function localPortFor(
     : { localPort: borrowed, movedFrom: recalled };
 }
 
-/**
- * The local port is borrowed from the system, unless the caller needs a given
- * one: a sign-in that comes back to `localhost:54545` only works on 54545.
- */
+/** `localPort` is imposed when needed: a sign-in that calls back `localhost:54545` only works on 54545. */
 export async function openForward(
   serverId: unknown,
   remotePort: unknown,
@@ -280,11 +248,16 @@ export async function openForward(
     ...(movedFrom === undefined ? {} : { movedFrom }),
   };
 
+  // Through the master a forward would live in the master, and survive the kill.
   const child = (deps.spawn ?? sshForward)([
     "-o",
     "BatchMode=yes",
     "-o",
     "ExitOnForwardFailure=yes",
+    "-o",
+    "ControlMaster=no",
+    "-o",
+    "ControlPath=none",
     "-N",
     "-L",
     `${localPort}:127.0.0.1:${remotePort}`,

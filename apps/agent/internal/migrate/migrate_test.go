@@ -4,13 +4,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/migrate"
 	"pupitre.studio/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/protocol"
 )
 
 const (
@@ -226,7 +229,6 @@ func TestARefusalPutsTheWholeBatchBack(t *testing.T) {
 	}
 }
 
-// A migration that panics is a refusal like the others: the batch goes back, the ledger stays, and serve starts rather than crashing at every reconnection with the lock held.
 func TestAPanicInAMigrationIsARefusalThatPutsTheBatchBack(t *testing.T) {
 	machine := newSys()
 	configured(machine)
@@ -307,6 +309,7 @@ func TestTheMachineKeepsOnlyTheLastBackups(t *testing.T) {
 
 func upTo(revision int) []migrate.Migration {
 	var migrations []migrate.Migration
+
 	for id := 1; id <= revision; id++ {
 		migrations = append(migrations, writing(id, migrate.TargetProjects, "revision\n"))
 	}
@@ -346,10 +349,32 @@ func TestAnUnknownBackupIsRefusedByName(t *testing.T) {
 	}
 }
 
-func TestAnUnreadableLedgerReplaysEverything(t *testing.T) {
+func TestAnUnreadableLedgerIsRefusedAndNothingReplayed(t *testing.T) {
 	machine := newSys()
 	configured(machine)
 	machine.Files[ledgerPath] = []byte("{not json")
+
+	migrator := runner(machine, writing(1, migrate.TargetProjects, "first\n"))
+
+	_, err := migrator.Run()
+
+	var refusal *protocol.Error
+	if !errors.As(err, &refusal) || refusal.Code != contract.ErrorMigrationRequired || !strings.Contains(refusal.Fix, ledgerPath) {
+		t.Fatalf("got %v, want a refusal that says how to put the ledger back", err)
+	}
+
+	if _, written := machine.Files[projectsPath]; written || string(machine.Files[ledgerPath]) != "{not json" {
+		t.Fatal("a ledger that does not read replays nothing and is left as it is")
+	}
+
+	if state := migrator.State(); state.State != contract.ConfigFailed {
+		t.Fatalf("state = %+v, want failed: every command that reads the configuration waits", state)
+	}
+}
+
+func TestAMissingLedgerStillReplaysEverything(t *testing.T) {
+	machine := newSys()
+	configured(machine)
 
 	result, err := runner(machine, writing(1, migrate.TargetProjects, "first\n")).Run()
 	if err != nil {
@@ -358,6 +383,40 @@ func TestAnUnreadableLedgerReplaysEverything(t *testing.T) {
 
 	if result.State != contract.ConfigCurrent || len(result.Applied) != 1 {
 		t.Fatalf("result = %+v, want the migration replayed", result)
+	}
+}
+
+type unreadable struct {
+	*modtest.FakeSys
+	path string
+}
+
+func (u unreadable) ReadFile(path string) ([]byte, error) {
+	if path == u.path {
+		return nil, &fs.PathError{Op: "open", Path: path, Err: syscall.EIO}
+	}
+
+	return u.FakeSys.ReadFile(path)
+}
+
+func TestAFileThatFailsToReadIsNeverBackedUpAsAbsent(t *testing.T) {
+	machine := newSys()
+	configured(machine)
+	machine.Files[projectsPath] = []byte("held\n")
+
+	migrator := migrate.New(migrate.Options{
+		Migrations: []migrate.Migration{writing(1, migrate.TargetProjects, "first\n")},
+		Now:        func() time.Time { return machine.Now },
+		Paths:      migrate.Paths{Backups: backupsPath, Install: installPath, Ledger: ledgerPath, Projects: projectsPath},
+		Sys:        unreadable{FakeSys: machine, path: projectsPath},
+	})
+
+	if _, err := migrator.Run(); err == nil {
+		t.Fatal("a batch whose backup could not read a file must not run")
+	}
+
+	if string(machine.Files[projectsPath]) != "held\n" {
+		t.Fatal("the file is left as it is: a restore of that backup would have removed it")
 	}
 }
 
@@ -413,7 +472,6 @@ func TestAMigrationReadsAndWritesPlainJSON(t *testing.T) {
 		t.Fatalf("values = %+v, want the renamed field", values)
 	}
 
-	// A field today's code does not name is a field the migration must not eat.
 	if document["unknown"] == nil {
 		t.Fatal("a field the agent no longer names was dropped on the way through")
 	}
@@ -433,8 +491,6 @@ func TestTheProcessThatSawARefusalKeepsSayingSo(t *testing.T) {
 		t.Fatalf("state = %+v, want failed rather than merely behind", state)
 	}
 
-	// Another process reads the ledger and nothing else: it has not tried yet,
-	// so all it can say is that the machine is behind.
 	if state := runner(machine, refusing(1, migrate.TargetProjects)).State(); state.State != contract.ConfigPending {
 		t.Fatalf("state = %+v, want pending for a process that has not tried", state)
 	}
@@ -466,7 +522,6 @@ type migratedProcess struct {
 	Routes  []migratedRoute `json:"routes"`
 }
 
-// The registry as both migrations leave it: a project is a repository and holds its processes.
 type migratedProject struct {
 	Name      string            `json:"name"`
 	Dir       string            `json:"dir"`
@@ -477,7 +532,6 @@ type migratedProject struct {
 	Processes []migratedProcess `json:"processes"`
 }
 
-// The one process of a project migrated from one row.
 func (p migratedProject) only(t *testing.T) migratedProcess {
 	t.Helper()
 
@@ -499,6 +553,7 @@ func migratedProjects(t *testing.T, machine *modtest.FakeSys) []migratedProject 
 	var document struct {
 		Projects []migratedProject `json:"projects"`
 	}
+
 	if err := json.Unmarshal(raw, &document); err != nil {
 		t.Fatalf("registry unreadable: %v", err)
 	}
@@ -510,15 +565,15 @@ func TestMigrationOneCarriesTheRowsOfEightNineAndTenColumnsToJSON(t *testing.T) 
 	machine := newSys()
 	configured(machine)
 	machine.Files[legacyPath] = []byte(legacyRegistry)
-	machine.Files[envPath] = []byte("PUPITRE_DOMAIN=flymate.dev\n")
+	machine.Files[envPath] = []byte("PUPITRE_DOMAIN=flyleaf.dev\n")
 
 	result, err := runner(machine, migrate.All()...).Run()
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
 
-	if result.State != contract.ConfigCurrent || result.Revision != 5 || len(result.Applied) != 5 {
-		t.Fatalf("result = %+v, want current at 5 after one run", result)
+	if result.State != contract.ConfigCurrent || result.Revision != 6 || len(result.Applied) != 6 {
+		t.Fatalf("result = %+v, want current at 6 after one run", result)
 	}
 
 	projects := migratedProjects(t, machine)
@@ -530,10 +585,12 @@ func TestMigrationOneCarriesTheRowsOfEightNineAndTenColumnsToJSON(t *testing.T) 
 	if eight.Name != "eight" || eight.Dir != "eight" || eight.Repo != "" || eight.Branch != "" {
 		t.Fatalf("unexpected eight-column row: %+v", eight)
 	}
+
 	if process := eight.only(t); process.ID != "eight" || process.Dir != "." || process.Port != 3000 || process.Install != "" {
 		t.Fatalf("a row becomes one process at the root of its project: %+v", process)
 	}
-	if routes := eight.only(t).Routes; len(routes) != 1 || routes[0].Label != "eight" || routes[0].Port != 3000 || routes[0].Hostname != "eight.flymate.dev" {
+
+	if routes := eight.only(t).Routes; len(routes) != 1 || routes[0].Label != "eight" || routes[0].Port != 3000 || routes[0].Hostname != "eight.flyleaf.dev" {
 		t.Fatalf("the subdomain must become the hostname of one route: %+v", routes)
 	}
 
@@ -541,12 +598,13 @@ func TestMigrationOneCarriesTheRowsOfEightNineAndTenColumnsToJSON(t *testing.T) 
 	if nine.Name != "nine" || nine.Dir != "apps" || nine.Repo != "https://github.com/me/nine" {
 		t.Fatalf("the first segment of the folder is the repository: %+v", nine)
 	}
+
 	if process := nine.only(t); process.Dir != "nine" || process.Port != 3001 || process.Install != "pnpm install --frozen-lockfile" || len(process.Routes) != 0 {
 		t.Fatalf("unexpected nine-column row: %+v", process)
 	}
 
 	ten := projects[2]
-	if ten.Branch != "release/2.0" || ten.only(t).Install != "" || len(ten.only(t).Routes) != 1 || ten.only(t).Routes[0].Hostname != "api.ten.flymate.dev" {
+	if ten.Branch != "release/2.0" || ten.only(t).Install != "" || len(ten.only(t).Routes) != 1 || ten.only(t).Routes[0].Hostname != "api.ten.flyleaf.dev" {
 		t.Fatalf("unexpected ten-column row: %+v", ten)
 	}
 
@@ -565,10 +623,12 @@ func TestMigrationOneCarriesTheRowsOfEightNineAndTenColumnsToJSON(t *testing.T) 
 	}
 
 	before := string(machine.Files[projectsPath])
+
 	again, err := runner(machine, migrate.All()...).Run()
 	if err != nil {
 		t.Fatalf("second Run: %v", err)
 	}
+
 	if len(again.Applied) != 0 || string(machine.Files[projectsPath]) != before {
 		t.Fatal("a second pass must change nothing")
 	}
@@ -580,6 +640,7 @@ func TestMigrationOneKeepsARouteWithoutAHostnameWhenTheMachineHasNoDomain(t *tes
 	machine.Files[legacyPath] = []byte("web|web|-|bun|127.0.0.1|3000|shop|bun run dev\n")
 
 	var journal []string
+
 	runner := migrate.New(migrate.Options{
 		AgentVersion: "0.4.0",
 		Logf:         func(format string, args ...any) { journal = append(journal, fmt.Sprintf(format, args...)) },
@@ -619,38 +680,38 @@ func TestMigrationOneLeavesAMachineWithoutTheOldFileAlone(t *testing.T) {
 func TestMigrationOneKeepsWhatAnInterruptedRunAlreadyWrote(t *testing.T) {
 	machine := newSys()
 	configured(machine)
-	machine.Files[projectsPath] = []byte(`{"projects":[{"name":"web","dir":"web","pkgmgr":"bun","host":"127.0.0.1","port":3000,"routes":[{"label":"web","port":3000,"hostname":"kept.flymate.dev"}],"cmd":"bun run dev"}]}` + "\n")
+	machine.Files[projectsPath] = []byte(`{"projects":[{"name":"web","dir":"web","pkgmgr":"bun","host":"127.0.0.1","port":3000,"routes":[{"label":"web","port":3000,"hostname":"kept.flyleaf.dev"}],"cmd":"bun run dev"}]}` + "\n")
 	machine.Files[legacyPath] = []byte("web|web|-|bun|127.0.0.1|3000|web|bun run dev\napi|api|-|bun|127.0.0.1|3001|-|bun run api\n")
-	machine.Files[envPath] = []byte("PUPITRE_DOMAIN=flymate.dev\n")
+	machine.Files[envPath] = []byte("PUPITRE_DOMAIN=flyleaf.dev\n")
 
 	if _, err := runner(machine, migrate.All()...).Run(); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
 
 	projects := migratedProjects(t, machine)
-	if len(projects) != 2 || projects[0].only(t).Routes[0].Hostname != "kept.flymate.dev" || projects[1].Name != "api" {
+	if len(projects) != 2 || projects[0].only(t).Routes[0].Hostname != "kept.flyleaf.dev" || projects[1].Name != "api" {
 		t.Fatalf("the JSON rows win and the old file only fills what they lack: %+v", projects)
 	}
 }
 
-// Rows that shared the first segment of their folder shared one repository: they become one project, named after that folder, one process per row, and the debug ports follow them.
 func TestMigrationTwoGathersTheRowsOfOneRepositoryIntoOneProject(t *testing.T) {
 	machine := newSys()
 	configured(machine)
 	machine.Files[ledgerPath] = []byte(`{"revision":1,"applied":[]}`)
 	machine.Files[projectsPath] = []byte(`{"projects":[` +
-		`{"name":"api","dir":"api-server/server","repo":"https://github.com/me/api-server","pkgmgr":"gradle","host":"127.0.0.1","port":8080,"routes":[{"label":"api","port":8080,"hostname":"api.flymate.dev"}],"cmd":"SERVER_PORT=8080 ./gradlew bootRun"},` +
+		`{"name":"api","dir":"api-server/server","repo":"https://github.com/me/api-server","pkgmgr":"gradle","host":"127.0.0.1","port":8080,"routes":[{"label":"api","port":8080,"hostname":"api.flyleaf.dev"}],"cmd":"SERVER_PORT=8080 ./gradlew bootRun"},` +
 		`{"name":"web","dir":"web","pkgmgr":"bun","host":"127.0.0.1","port":3000,"routes":[],"cmd":"bun run dev"},` +
-		`{"name":"api-web","dir":"api-server/client","pkgmgr":"pnpm","host":"127.0.0.1","port":5180,"routes":[{"label":"api-web","port":5180,"hostname":"api-web.flymate.dev"}],"cmd":"pnpm run dev --port 5180","install":"pnpm install --frozen-lockfile","branch":"release/2.0"}` +
+		`{"name":"api-web","dir":"api-server/client","pkgmgr":"pnpm","host":"127.0.0.1","port":5180,"routes":[{"label":"api-web","port":5180,"hostname":"api-web.flyleaf.dev"}],"cmd":"pnpm run dev --port 5180","install":"pnpm install --frozen-lockfile","branch":"release/2.0"}` +
 		`]}` + "\n")
-	machine.Files[envPath] = []byte("PUPITRE_DOMAIN=flymate.dev\nPUPITRE_DEBUG_PORTS=\"api:5005 web:5006 ghost:5007\"\n")
+	machine.Files[envPath] = []byte("PUPITRE_DOMAIN=flyleaf.dev\nPUPITRE_DEBUG_PORTS=\"api:5005 web:5006 ghost:5007\"\n")
 
 	result, err := runner(machine, migrate.All()...).Run()
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	if result.Revision != 5 || len(result.Applied) != 4 || result.Applied[0].ID != 2 || result.Applied[3].ID != 5 {
-		t.Fatalf("result = %+v, want the second to fifth migrations on a machine already at one", result)
+
+	if result.Revision != 6 || len(result.Applied) != 5 || result.Applied[0].ID != 2 || result.Applied[3].ID != 5 {
+		t.Fatalf("result = %+v, want the second to sixth migrations on a machine already at one", result)
 	}
 
 	projects := migratedProjects(t, machine)
@@ -662,22 +723,26 @@ func TestMigrationTwoGathersTheRowsOfOneRepositoryIntoOneProject(t *testing.T) {
 	if server.Dir != "api-server" || server.Repo != "https://github.com/me/api-server" || server.Branch != "release/2.0" || len(server.Processes) != 2 {
 		t.Fatalf("unexpected project: %+v", server)
 	}
-	if api := server.Processes[0]; api.ID != "api" || api.Dir != "server" || api.Port != 8080 || api.Routes[0].Hostname != "api.flymate.dev" {
+
+	if api := server.Processes[0]; api.ID != "api" || api.Dir != "server" || api.Port != 8080 || api.Routes[0].Hostname != "api.flyleaf.dev" {
 		t.Fatalf("unexpected process: %+v", api)
 	}
+
 	if client := server.Processes[1]; client.ID != "api-web" || client.Dir != "client" || client.Install != "pnpm install --frozen-lockfile" {
 		t.Fatalf("unexpected process: %+v", client)
 	}
+
 	if web := projects[1].only(t); web.Dir != "." || web.ID != "web" {
 		t.Fatalf("a row alone keeps its name and runs from its root: %+v", web)
 	}
 
 	env := string(machine.Files[envPath])
-	if !strings.Contains(env, `PUPITRE_DEBUG_PORTS="api-server/api:5005 web/web:5006 ghost:5007"`) || !strings.Contains(env, "PUPITRE_DOMAIN=flymate.dev") {
+	if !strings.Contains(env, `PUPITRE_DEBUG_PORTS="api-server/api:5005 web/web:5006 ghost:5007"`) || !strings.Contains(env, "PUPITRE_DOMAIN=flyleaf.dev") {
 		t.Fatalf("the debug ports must name the windows, and the rest of the file stay:\n%s", env)
 	}
 
 	before := string(machine.Files[projectsPath])
+
 	again, err := runner(machine, migrate.All()...).Run()
 	if err != nil || len(again.Applied) != 0 || string(machine.Files[projectsPath]) != before {
 		t.Fatalf("a second pass must change nothing: %+v, %v", again, err)
@@ -686,6 +751,7 @@ func TestMigrationTwoGathersTheRowsOfOneRepositoryIntoOneProject(t *testing.T) {
 
 func keys(machine *modtest.FakeSys) []string {
 	var names []string
+
 	for name := range machine.Files {
 		names = append(names, name)
 	}
@@ -693,7 +759,6 @@ func keys(machine *modtest.FakeSys) []string {
 	return names
 }
 
-// A project row says whether it starts with the server; the rows written before the column existed say no, in so many words.
 func TestMigrationThreeWritesTheBootColumnOnEveryRow(t *testing.T) {
 	machine := newSys()
 	configured(machine)
@@ -707,7 +772,8 @@ func TestMigrationThreeWritesTheBootColumnOnEveryRow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	if result.Revision != 5 || len(result.Applied) != 3 || result.Applied[0].ID != 3 {
+
+	if result.Revision != 6 || len(result.Applied) != 4 || result.Applied[0].ID != 3 {
 		t.Fatalf("result = %+v, want the third migration first on a machine already at two", result)
 	}
 
@@ -717,6 +783,7 @@ func TestMigrationThreeWritesTheBootColumnOnEveryRow(t *testing.T) {
 	}
 
 	before := string(machine.Files[projectsPath])
+
 	if again, err := runner(machine, migrate.All()...).Run(); err != nil || len(again.Applied) != 0 || string(machine.Files[projectsPath]) != before {
 		t.Fatal("a second pass must change nothing")
 	}
@@ -730,12 +797,12 @@ func TestMigrationThreeLeavesAMachineWithoutARegistryAlone(t *testing.T) {
 	if _, err := runner(machine, migrate.All()...).Run(); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
+
 	if _, written := machine.Files[projectsPath]; written {
 		t.Fatal("no registry, nothing to carry")
 	}
 }
 
-// A runtime that held one version holds a list of one now; a module already answering in the new form, or holding none, is left alone.
 func TestMigrationFourTurnsEachRuntimeVersionIntoAListOfOne(t *testing.T) {
 	machine := newSys()
 	machine.Files[ledgerPath] = []byte(`{"revision":3,"applied":[]}`)
@@ -751,13 +818,15 @@ func TestMigrationFourTurnsEachRuntimeVersionIntoAListOfOne(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	if result.Revision != 5 || len(result.Applied) != 2 || result.Applied[0].ID != 4 {
-		t.Fatalf("result = %+v, want the fourth and fifth migrations on a machine already at three", result)
+
+	if result.Revision != 6 || len(result.Applied) != 3 || result.Applied[0].ID != 4 {
+		t.Fatalf("result = %+v, want the fourth to sixth migrations on a machine already at three", result)
 	}
 
 	var document struct {
 		Config map[string]map[string]any `json:"config"`
 	}
+
 	if err := json.Unmarshal(machine.Files[installPath], &document); err != nil {
 		t.Fatal(err)
 	}
@@ -776,12 +845,12 @@ func TestMigrationFourTurnsEachRuntimeVersionIntoAListOfOne(t *testing.T) {
 	}
 
 	before := string(machine.Files[installPath])
+
 	if again, err := runner(machine, migrate.All()...).Run(); err != nil || len(again.Applied) != 0 || string(machine.Files[installPath]) != before {
 		t.Fatal("a second pass must change nothing")
 	}
 }
 
-// A project row names the runtime versions it runs on; the rows written before the column existed name none.
 func TestMigrationFiveWritesTheRuntimesColumnOnEveryRow(t *testing.T) {
 	machine := newSys()
 	configured(machine)
@@ -795,8 +864,9 @@ func TestMigrationFiveWritesTheRuntimesColumnOnEveryRow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Run: %v", err)
 	}
-	if result.Revision != 5 || len(result.Applied) != 1 || result.Applied[0].ID != 5 {
-		t.Fatalf("result = %+v, want the fifth migration alone on a machine already at four", result)
+
+	if result.Revision != 6 || len(result.Applied) != 2 || result.Applied[0].ID != 5 {
+		t.Fatalf("result = %+v, want the fifth and sixth migrations on a machine already at four", result)
 	}
 
 	projects := migratedProjects(t, machine)
@@ -805,6 +875,7 @@ func TestMigrationFiveWritesTheRuntimesColumnOnEveryRow(t *testing.T) {
 	}
 
 	before := string(machine.Files[projectsPath])
+
 	if again, err := runner(machine, migrate.All()...).Run(); err != nil || len(again.Applied) != 0 || string(machine.Files[projectsPath]) != before {
 		t.Fatal("a second pass must change nothing")
 	}

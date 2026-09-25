@@ -12,40 +12,34 @@ import { Section } from "@renderer/components/ui/section";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { memoryOf } from "@renderer/lib/project-ports";
 import { isRunning } from "@renderer/lib/project-state";
+import type { SecuringNeed } from "@renderer/lib/server-security";
+import type { Gesture } from "@renderer/lib/use-pending";
 import type { ProjectAction } from "@renderer/stores/snapshot";
 import { FolderPlus, Package, Play, Power, Square } from "lucide-react";
 import { useRef } from "react";
 import { DashboardMachine } from "./dashboard-machine";
 import { DashboardProjectCard } from "./dashboard-project-card";
+import { DashboardRootNotice } from "./dashboard-root-notice";
 import { DashboardServices } from "./dashboard-services";
-
-/**
- * The state of the machine in one page: services, projects, memory, disk,
- * sessions.
- *
- * Everything drawn here comes from a single `snapshot`, so the page costs one
- * command however many projects the machine holds. It takes it as a prop rather
- * than reading the store, which is what lets it be rendered from a fixture.
- */
 
 interface Props {
   snapshot: SnapshotResult;
-  /** The name the app gives the server; the machine's own when it has none. */
   serverName?: string;
   busy: string | null;
-  /** The sessions the app still has a tab on. */
   attached: readonly string[];
-  /** Whose account each service works as, for those that work as somebody. */
   accounts?: Readonly<Record<string, LoginState>>;
   onOpenProject: (name: string) => void;
   onAddProject: () => void;
-  onAct: (action: ProjectAction, name: string) => void;
+  onAct: Gesture<[ProjectAction, string]>;
   onStopSession: (pid: number) => void;
-  /** Answer with the promise of the cleaning and the button waits on it. */
+  /** Return the cleaning's promise so the button stays pending on it. */
   onCleanSessions: () => unknown;
   onReboot: () => void;
   onOpenService?: (moduleId: string) => void;
+  onAddService?: () => void;
   onOpenTerminal?: () => void;
+  securing?: SecuringNeed | null;
+  onSecure?: () => void;
 }
 
 export function DashboardPanel({
@@ -61,11 +55,16 @@ export function DashboardPanel({
   onCleanSessions,
   onReboot,
   onOpenService,
+  onAddService,
   onOpenTerminal,
+  securing = null,
+  onSecure,
 }: Props) {
   const t = useTranslations();
 
   const projectsHeading = useRef<HTMLHeadingElement | null>(null);
+
+  const machineName = serverName ?? snapshot.machine.hostname;
 
   const projects = snapshot.projects;
   const up = projects.filter((project) => isRunning(project.state));
@@ -97,41 +96,55 @@ export function DashboardPanel({
           <Button icon={FolderPlus} onClick={onAddProject} variant="inverse">
             {t("dashboard.panel.newProject")}
           </Button>
-          <Button
-            disabled={busy !== null}
-            icon={Play}
-            onClick={() => onAct("project.up", "all")}
-          >
-            {t("dashboard.panel.startAll")}
-          </Button>
-          <ConfirmButton
-            confirmLabel={t("dashboard.panel.stopAll")}
-            disabled={busy !== null}
-            icon={Square}
-            onConfirm={() => onAct("project.down", "all")}
-            question={t("dashboard.panel.stopAllQuestion")}
-          >
-            {t("dashboard.panel.stopAll")}
-          </ConfirmButton>
+          {projects.length > 0 ? (
+            <>
+              <Button
+                disabled={busy !== null || up.length === projects.length}
+                icon={Play}
+                onClick={() => onAct("project.up", "all")}
+              >
+                {t("dashboard.panel.startAll")}
+              </Button>
+              <ConfirmButton
+                confirmLabel={t("dashboard.panel.stopAll")}
+                disabled={busy !== null || up.length === 0}
+                icon={Square}
+                onConfirm={() => onAct("project.down", "all")}
+                question={t("dashboard.panel.stopAllQuestion")}
+              >
+                {t("dashboard.panel.stopAll")}
+              </ConfirmButton>
+            </>
+          ) : null}
+          <span aria-hidden="true" className="mx-1 h-5 w-px bg-line" />
           <ConfirmButton
             confirmLabel={t("dashboard.panel.reboot")}
             icon={Power}
             onConfirm={onReboot}
-            question={t("dashboard.panel.rebootQuestion")}
+            question={t("dashboard.panel.rebootQuestion", {
+              name: machineName,
+            })}
           >
             {t("dashboard.panel.rebootServer")}
           </ConfirmButton>
         </>
       }
       description={projects.length > 0 ? description : undefined}
-      eyebrow={serverName ?? snapshot.machine.hostname}
+      eyebrow={machineName}
       title={t("dashboard.panel.title")}
     >
+      {securing && onSecure ? (
+        <DashboardRootNotice need={securing} onSecure={onSecure} />
+      ) : null}
+
       <Section
         aside={
-          <span className="font-data text-[12px] text-ink-3">
+          <span className="font-data text-ink-3 text-small">
             {snapshot.machine.os} {snapshot.machine.version} ·{" "}
-            {snapshot.machine.arch} · pupitred {snapshot.machine.agent_version}
+            {snapshot.machine.arch} ·{" "}
+            {t("dashboard.agentVersion", {
+              version: snapshot.machine.agent_version,
+            })}
           </span>
         }
         name="machine"
@@ -148,14 +161,6 @@ export function DashboardPanel({
           projectCount={projects.length}
           projectsRam={projectsRam}
           runningProjects={up.length}
-        />
-      </Section>
-
-      <Section name="services" title={t("dashboard.panel.services")}>
-        <DashboardServices
-          accounts={accounts}
-          onOpen={onOpenService}
-          services={snapshot.services}
         />
       </Section>
 
@@ -189,6 +194,15 @@ export function DashboardPanel({
             ))}
           </div>
         )}
+      </Section>
+
+      <Section name="services" title={t("dashboard.panel.services")}>
+        <DashboardServices
+          accounts={accounts}
+          onAdd={onAddService}
+          onOpen={onOpenService}
+          services={snapshot.services}
+        />
       </Section>
 
       <ActivitySessions

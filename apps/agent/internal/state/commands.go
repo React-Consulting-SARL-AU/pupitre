@@ -22,6 +22,7 @@ type routeRequest struct {
 
 func requested(routes []routeRequest) []registry.RouteRequest {
 	requests := make([]registry.RouteRequest, 0, len(routes))
+
 	for _, route := range routes {
 		requests = append(requests, registry.RouteRequest{Label: route.Label, Port: route.Port, Subdomain: route.Subdomain, Hostname: route.Hostname})
 	}
@@ -40,14 +41,15 @@ type processRequest struct {
 	Routes  []routeRequest `json:"routes"`
 }
 
-// An absent folder is the project's own, an absent host the loopback: the contract's defaults, applied where the JSON is read.
 func processes(requests []processRequest) []ProcessRequest {
 	list := make([]ProcessRequest, 0, len(requests))
+
 	for _, request := range requests {
 		process := ProcessRequest{
 			ID: request.ID, Dir: request.Dir, PkgMgr: request.PkgMgr, Host: request.Host,
 			Port: request.Port, Cmd: request.Cmd, Install: request.Install, Routes: requested(request.Routes),
 		}
+
 		if process.Dir == "" {
 			process.Dir = registry.RootDir
 		}
@@ -61,7 +63,6 @@ func processes(requests []processRequest) []ProcessRequest {
 	return list
 }
 
-// A project and, when the params name one, one of its processes.
 func scoped(run func(name, process string) (any, error)) protocol.Handler {
 	return func(_ *protocol.Context, raw json.RawMessage) (any, error) {
 		params, err := decode[struct {
@@ -338,6 +339,7 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 	server.Register("project.debug", scoped(func(name, process string) (any, error) { return reader.Debug(name, process) }))
 
 	server.Register("project.pull", named(func(name string) (any, error) { return reader.Pull(name) }))
+
 	server.Register("project.sync", func(ctx *protocol.Context, raw json.RawMessage) (any, error) {
 		params, err := decode[struct {
 			Name string `json:"name"`
@@ -348,6 +350,7 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 
 		return reader.Sync(ctx.Channel(), params.Name, logEmitter(ctx))
 	})
+
 	server.Register("project.branches", named(func(name string) (any, error) { return reader.Branches(name) }))
 	server.Register("project.git_status", named(func(name string) (any, error) { return reader.GitStatus(name) }))
 	server.Register("project.working_tree", named(func(name string) (any, error) { return reader.WorkingTree(name) }))
@@ -448,6 +451,7 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 		}
 
 		chunks := ChunkShot(shot.Bytes)
+
 		for seq, encoded := range chunks {
 			ctx.Emit("shot", map[string]any{"seq": seq, "bytes": encoded})
 		}
@@ -517,6 +521,7 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 		}
 
 		chunks := ChunkFile(content.Bytes)
+
 		for seq, encoded := range chunks {
 			ctx.Emit("file", map[string]any{"seq": seq, "bytes": encoded})
 		}
@@ -595,7 +600,6 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 	})
 }
 
-// What a command prints travels on log events, the shape of project.logs: the contract admits events before a response.
 func logEmitter(ctx *protocol.Context) func(string) {
 	return func(line string) { ctx.Emit("log", map[string]any{"line": line}) }
 }

@@ -18,6 +18,7 @@ export const backupsForgetRoutes = new Elysia({ name: "backups-forget-routes" })
 
       if (!forgotten) {
         set.status = 404
+
         return apiError(
           "not_found",
           translate(resolveLocale(request.headers), "backup_not_found")
@@ -28,7 +29,7 @@ export const backupsForgetRoutes = new Elysia({ name: "backups-forget-routes" })
     },
     {
       params: t.Object({ id: t.String() }),
-      detail: { summary: "Oublier une sauvegarde sans toucher au seau" },
+      detail: { summary: "Oublier une sauvegarde sans toucher au bucket" },
       response: {
         204: t.Void(),
         401: errorResponse,

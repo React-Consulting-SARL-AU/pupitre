@@ -7,7 +7,6 @@ import {
 } from "@pupitre/shared/permissions"
 import { createAccessControl } from "better-auth/plugins/access"
 import {
-  adminAc as platformAdminAc,
   defaultStatements as platformStatements,
   userAc,
 } from "better-auth/plugins/admin/access"
@@ -76,7 +75,8 @@ export const roles = {
 
 export const platformAc = createAccessControl(platformStatements)
 
+/** Team actions go through the platform's audited routes, so these roles grant nothing in Better Auth. */
 export const platformRoles = {
   user: platformAc.newRole(userAc.statements),
-  platform_admin: platformAc.newRole(platformAdminAc.statements),
+  platform_admin: platformAc.newRole({}),
 }

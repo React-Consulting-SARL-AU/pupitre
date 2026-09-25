@@ -23,11 +23,10 @@ const (
 	headerDate    = "X-Amz-Date"
 	headerPayload = "X-Amz-Content-Sha256"
 
-	// UnsignedPayload leaves a part's body out of the signature: hashing 8 MiB twice buys nothing TLS does not already.
+	// Leaves a part's body out of the signature: hashing 8 MiB twice buys nothing TLS does not already.
 	UnsignedPayload = "UNSIGNED-PAYLOAD"
 )
 
-// EmptyPayload is the digest of no body at all.
 var EmptyPayload = hashHex(nil)
 
 var ErrUnsigned = errors.New("the request carries no signature this client would have made")
@@ -38,7 +37,7 @@ type credentials struct {
 	region    string
 }
 
-// sign adds the date, the payload digest and the Authorization header; every header already set on the request is signed with them.
+// Every header already set on the request gets signed, so set them all before calling.
 func (c credentials) sign(request *http.Request, payload string, now time.Time) {
 	stamp := now.UTC().Format(amzDateFormat)
 
@@ -75,10 +74,10 @@ func (c credentials) signature(request *http.Request, names []string, payload, s
 	return hex.EncodeToString(mac(key, toSign))
 }
 
-// Verify recomputes the signature of a request as a server would, from what the request itself carries.
 func Verify(request *http.Request, accessKey, secret, region string) error {
 	authorization := request.Header.Get("Authorization")
 	prefix := algorithm + " Credential=" + accessKey + "/"
+
 	if !strings.HasPrefix(authorization, prefix) {
 		return ErrUnsigned
 	}
@@ -95,6 +94,7 @@ func Verify(request *http.Request, accessKey, secret, region string) error {
 
 	holder := credentials{accessKey: accessKey, secret: secret, region: region}
 	stamp := request.Header.Get(headerDate)
+
 	if len(stamp) != len(amzDateFormat) {
 		return ErrUnsigned
 	}
@@ -109,6 +109,7 @@ func Verify(request *http.Request, accessKey, secret, region string) error {
 
 func signedNames(request *http.Request) []string {
 	names := []string{"host"}
+
 	for name := range request.Header {
 		lower := strings.ToLower(name)
 		if lower == "authorization" || lower == "user-agent" || lower == "accept-encoding" {
@@ -152,7 +153,7 @@ func canonicalQuery(values url.Values) string {
 	return strings.Join(pairs, "&")
 }
 
-// escape is the URI encoding of SigV4: every byte but the unreserved ones, and the slash kept in a path.
+// SigV4 URI encoding: every byte but the unreserved ones; slash=false keeps '/' as in a path.
 func escape(value string, slash bool) string {
 	var encoded strings.Builder
 

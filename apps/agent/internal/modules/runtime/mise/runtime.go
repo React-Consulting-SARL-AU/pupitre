@@ -12,17 +12,7 @@ import (
 	"pupitre.studio/agent/internal/sys"
 )
 
-// A Runtime is a tool mise holds at several majors at once. Options run newest
-// first, as the manifest lists them: the newest of the majors chosen is the
-// machine's default — what a shell outside any project runs, and what a
-// project that names no version gets. Prefix is the distribution mise names
-// before the version, temurin- for Java.
-//
-// The options reach back as far as the machine can still build or fetch the
-// major: every Node and Temurin build is prebuilt, Python comes from
-// python-build-standalone, which starts at 3.9, and PHP and Ruby compile
-// against the OpenSSL 3 of Ubuntu 24.04, which PHP 8.0 and Ruby 3.1 are the
-// oldest to accept.
+// Options run newest first: the newest major chosen becomes the machine's default.
 type Runtime struct {
 	Tool    string
 	Options []string
@@ -30,6 +20,7 @@ type Runtime struct {
 	Prefix  string
 }
 
+// Floors: python-build-standalone starts at 3.9; PHP 8.0 and Ruby 3.1 are the oldest to build on Ubuntu 24.04's OpenSSL 3.
 var (
 	Node = Runtime{
 		Tool:    "node",
@@ -69,7 +60,7 @@ var (
 	}
 )
 
-// Runtimes lists them in the order the contract names them, which is the order the projects screen shows them.
+// The contract's order, which is the order the projects screen shows.
 func Runtimes() []Runtime {
 	return []Runtime{Node, Java, Python, Go, PHP, Ruby, Rust}
 }
@@ -92,16 +83,15 @@ func (r Runtime) Field(label, help string) contract.Field {
 	return contract.Field{Key: r.Key(), Kind: contract.FieldVersions, Label: label, Help: help, Options: r.Options, Default: []string{r.Default}}
 }
 
-// Spec is what mise is asked for: the major behind the distribution, when there is one.
 func (r Runtime) Spec(major string) string {
 	return r.Prefix + major
 }
 
-// Wanted is the majors the configuration asks for, newest first whatever order they were sent in, one copy each.
 func (r Runtime) Wanted(ctx *modules.Context) []string {
 	sent := ctx.StringList(r.Key())
 
 	var wanted []string
+
 	for _, option := range r.Options {
 		if slices.Contains(sent, option) {
 			wanted = append(wanted, option)
@@ -111,11 +101,11 @@ func (r Runtime) Wanted(ctx *modules.Context) []string {
 	return wanted
 }
 
-// Held is the majors the machine really carries, newest first, read back from mise rather than from what was asked.
 func (r Runtime) Held(ctx sys.Context) []string {
 	installed := Versions(ctx, r.Tool)
 
 	var held []string
+
 	for _, option := range r.Options {
 		if r.matched(installed, option) != "" {
 			held = append(held, option)
@@ -134,7 +124,6 @@ func (r Runtime) Describe(ctx sys.Context) string {
 	return r.Tool + " " + strings.Join(installed, " · ")
 }
 
-// Install puts every wanted major, makes the newest the default and drops the majors no longer asked for. It answers the majors it added.
 func (r Runtime) Install(ctx *modules.Context) ([]string, error) {
 	wanted := r.Wanted(ctx)
 
@@ -145,6 +134,7 @@ func (r Runtime) Install(ctx *modules.Context) ([]string, error) {
 	}
 
 	var added []string
+
 	for _, major := range wanted {
 		put, err := r.put(ctx, major)
 		if err != nil {
@@ -202,9 +192,7 @@ func (r Runtime) use(ctx *modules.Context, major string) error {
 	})
 }
 
-// A major unchecked goes, unless a project still pins it or the module never
-// put it there: what a project runs on and what the client installed by hand
-// are theirs, and the step says what it left.
+// A major a project pins, or one the module never put there, is the client's: it stays, and the step says so.
 func (r Runtime) prune(ctx *modules.Context, wanted []string) error {
 	return ctx.Step("prune-"+r.Tool, func() (modules.Outcome, error) {
 		installed, err := versionsOf(ctx, r.Tool)
@@ -218,8 +206,10 @@ func (r Runtime) prune(ctx *modules.Context, wanted []string) error {
 		}
 
 		pinned := pins(ctx, r.Tool)
+
 		for _, version := range stale {
 			major := r.majorOf(version)
+
 			switch {
 			case major == "":
 				ctx.Warn(i18n.T("warn.mise.prune.foreign", r.Tool, version))
@@ -236,11 +226,7 @@ func (r Runtime) prune(ctx *modules.Context, wanted []string) error {
 	})
 }
 
-// Upgrade takes each wanted major to its latest patch, which mise resolves on
-// install, and drops the patch it replaces. The virtual environments, gem homes
-// and global packages built on that patch go with it: the projects pinned on
-// the major are named, for their next sync to build them again. It answers the
-// majors whose patch moved.
+// The replaced patch takes its venvs, gem homes and global packages with it, so pinned projects are named for a rebuild.
 func (r Runtime) Upgrade(ctx *modules.Context) ([]string, error) {
 	var moved []string
 
@@ -290,7 +276,7 @@ func (r Runtime) Upgrade(ctx *modules.Context) ([]string, error) {
 	return moved, err
 }
 
-// Uninstall drops every version of the tool; mise itself stays, the other runtimes share it.
+// mise itself stays: the other runtimes share it.
 func (r Runtime) Uninstall(ctx *modules.Context) error {
 	return ctx.Step("remove-"+r.Tool, func() (modules.Outcome, error) {
 		installed, err := versionsOf(ctx, r.Tool)
@@ -312,7 +298,7 @@ func (r Runtime) Uninstall(ctx *modules.Context) error {
 	})
 }
 
-// The installed version a major resolves to: the newest under it, as mise lists them ascending.
+// mise lists versions ascending, so the last one under the major is the newest.
 func (r Runtime) matched(installed []string, major string) string {
 	under := r.under(installed, major)
 	if len(under) == 0 {
@@ -324,6 +310,7 @@ func (r Runtime) matched(installed []string, major string) string {
 
 func (r Runtime) under(installed []string, major string) []string {
 	var under []string
+
 	for _, version := range installed {
 		if Matches(version, r.Spec(major)) {
 			under = append(under, version)
@@ -333,7 +320,6 @@ func (r Runtime) under(installed []string, major string) []string {
 	return under
 }
 
-// majorOf names the option an installed version falls under, or nothing for a version outside the module's options.
 func (r Runtime) majorOf(version string) string {
 	for _, option := range r.Options {
 		if Matches(version, r.Spec(option)) {
@@ -344,9 +330,9 @@ func (r Runtime) majorOf(version string) string {
 	return ""
 }
 
-// pins reads, from the project registry, which projects run this tool at which major.
 func pins(ctx sys.Context, tool string) map[string][]string {
 	pinned := map[string][]string{}
+
 	for _, project := range registry.Load(ctx, registry.Paths{}).Projects {
 		if major := project.Runtimes[tool]; major != "" {
 			pinned[major] = append(pinned[major], project.Name)
@@ -366,8 +352,10 @@ func projectsOr(names []string) string {
 
 func (r Runtime) stale(installed, wanted []string) []string {
 	var stale []string
+
 	for _, version := range installed {
 		kept := false
+
 		for _, major := range wanted {
 			if Matches(version, r.Spec(major)) {
 				kept = true

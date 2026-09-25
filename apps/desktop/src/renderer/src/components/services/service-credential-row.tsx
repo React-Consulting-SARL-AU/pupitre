@@ -8,14 +8,7 @@ const MASK = "••••••••••••";
 
 const FEEDBACK_MS = 1600;
 
-/**
- * One credential of a service, hidden until it is asked for.
- *
- * The value is not a prop and never was: it lives in the main process, comes
- * across for the one reveal the reader asked for, and is dropped when the panel
- * closes. Copying does not even go that far — the clipboard is written on the
- * other side of the bridge, and nothing of the value reaches this component.
- */
+/** The value lives in the main process: copying never brings it across the bridge. */
 export function ServiceCredentialRow({
   label,
   onReveal,
@@ -31,7 +24,6 @@ export function ServiceCredentialRow({
   const [copied, setCopied] = useState(false);
   const [asking, setAsking] = useState(false);
 
-  // The value is on the server: revealing it is a round trip, not a toggle.
   async function reveal() {
     setAsking(true);
     setShown(await onReveal());
@@ -51,13 +43,13 @@ export function ServiceCredentialRow({
       data-credential={label}
     >
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[13px] text-ink">
+        <span className="block truncate text-control text-ink">
           {label === CONNECTION_LABEL
             ? t("services.credentials.connectionLabel")
             : label}
         </span>
         <code
-          className="mt-0.5 block break-all font-data text-[12px] text-ink-3"
+          className="mt-0.5 block break-all font-data text-ink-3 text-small"
           data-revealed={shown === null ? "false" : "true"}
         >
           {shown ?? MASK}

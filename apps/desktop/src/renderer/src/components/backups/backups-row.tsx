@@ -6,7 +6,6 @@ import { dated, weight } from "@renderer/lib/format";
 import type { PlatformBackup } from "@shared/backups";
 import { History, Trash2 } from "lucide-react";
 
-/** One backup of the server: when, what it holds, and the two things to do with it. */
 export function BackupsRow({
   backup,
   busy,
@@ -14,7 +13,6 @@ export function BackupsRow({
   onRemove,
 }: {
   backup: PlatformBackup;
-  /** A revert or a removal is under way: no other gesture starts beside it. */
   busy: boolean;
   onRevert: () => void;
   onRemove: () => Promise<void>;
@@ -22,6 +20,7 @@ export function BackupsRow({
   const t = useTranslations();
 
   const when = dated(backup.created_at);
+  const named = backupLabel(t, backup);
 
   return (
     <li
@@ -29,12 +28,12 @@ export function BackupsRow({
       data-backup={backup.id}
     >
       <div className="min-w-0 flex-1">
-        <p className="text-[13px] text-ink">
+        <p className="text-control text-ink">
           {backup.name ? (
             <span className="mr-2 font-medium">{backup.name}</span>
           ) : null}
           {when}
-          <span className="ml-2 text-[12px] text-ink-3">
+          <span className="ml-2 text-ink-3 text-small">
             {t(
               backup.trigger === "manual"
                 ? "backups.trigger.manual"
@@ -42,23 +41,28 @@ export function BackupsRow({
             )}
           </span>
         </p>
-        <p className="mt-0.5 font-data text-[12px] text-ink-3">
+        <p className="mt-0.5 font-data text-ink-3 text-small">
           {weight(backup.bytes)} · {countsLabel(t, backup.counts)}
         </p>
       </div>
 
       <div className="flex shrink-0 flex-wrap items-center gap-2">
-        <Button disabled={busy} icon={History} onClick={onRevert} size="sm">
+        <Button
+          ariaLabel={t("backups.revert.named", { backup: named })}
+          disabled={busy}
+          icon={History}
+          onClick={onRevert}
+          size="sm"
+        >
           {t("backups.revert.open")}
         </Button>
         <ConfirmButton
+          ariaLabel={t("backups.remove.named", { backup: named })}
           confirmLabel={t("backups.remove.confirm")}
           disabled={busy}
           icon={Trash2}
           onConfirm={onRemove}
-          question={t("backups.remove.question", {
-            backup: backupLabel(t, backup),
-          })}
+          question={t("backups.remove.question", { backup: named })}
           size="sm"
           variant="danger"
         >

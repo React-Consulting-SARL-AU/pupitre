@@ -51,6 +51,7 @@ describe("une clé générée", () => {
     const dir = keysDir();
 
     await generateKey(dir, "srv-a");
+
     const published = readPublicKey(dir, "srv-a");
 
     expect(published).toContain("ssh-ed25519 ");
@@ -79,6 +80,7 @@ describe("une clé importée", () => {
     const dir = keysDir();
     const source = join(mkdtempSync(join(tmpdir(), "pupitre-src-")), "id");
     const generated = await generateKey(keysDir(), "elsewhere");
+
     writeFileSync(source, readFileSync(generated.keyPath, "utf8"), {
       mode: 0o600,
     });
@@ -104,6 +106,7 @@ describe("une clé importée", () => {
   it("refuse ce qui n'est pas une clé privée, et dit quoi choisir", async () => {
     const dir = keysDir();
     const source = join(mkdtempSync(join(tmpdir(), "pupitre-src-")), "id.pub");
+
     writeFileSync(source, "ssh-ed25519 AAAAC3Nz nobody@nowhere\n");
 
     expect(importKey(dir, "srv-a", source)).rejects.toThrow(

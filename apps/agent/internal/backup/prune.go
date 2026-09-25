@@ -24,14 +24,13 @@ const (
 	manifestDeadline = 2 * time.Minute
 )
 
-// held is one backup found in the bucket: its manifest's word on why it was made, or nothing for an upload that never finished.
 type held struct {
 	id       string
 	trigger  string
 	manifest bool
 }
 
-// prune answers the backups that left the bucket, and those of them the platform still has to hear about.
+// Returns the pruned IDs, and those of them the platform could not be told about.
 func (j *job) prune(current string, now time.Time) ([]string, []string) {
 	var pruned, unknown []string
 
@@ -72,7 +71,7 @@ func (j *job) prune(current string, now time.Time) ([]string, []string) {
 	return pruned, unknown
 }
 
-// expired names what goes: the scheduled backups beyond the keep, the newest first, and the uploads that never wrote a manifest and are a day old.
+// Only scheduled backups count against keep; manual ones stay, and day-old manifestless uploads go.
 func expired(found []held, current string, keep int, now time.Time) []held {
 	sort.Slice(found, func(a, b int) bool { return found[a].id > found[b].id })
 
@@ -96,7 +95,6 @@ func expired(found []held, current string, keep int, now time.Time) []held {
 	return going
 }
 
-// listBackups reads the prefix of every backup of this server and its manifest's trigger.
 func (s *Service) listBackups(client s3.Client, prefix string) ([]held, error) {
 	_, prefixes, err := client.List(context.Background(), prefix, "/")
 	if err != nil {
@@ -104,6 +102,7 @@ func (s *Service) listBackups(client s3.Client, prefix string) ([]held, error) {
 	}
 
 	var found []held
+
 	for _, entry := range prefixes {
 		id := strings.TrimSuffix(strings.TrimPrefix(entry, prefix), "/")
 		if !idPattern.MatchString(id) {
@@ -124,7 +123,7 @@ func (s *Service) listBackups(client s3.Client, prefix string) ([]held, error) {
 	return found, nil
 }
 
-// triggerOf is why a backup was made, as its manifest says; a manifest that does not read says nothing, and nothing is pruned on it.
+// An unreadable manifest yields no trigger, so nothing is pruned on it.
 func triggerOf(client s3.Client, key string) (string, error) {
 	raw, err := fetchManifest(client, key)
 	if err != nil {
@@ -134,6 +133,7 @@ func triggerOf(client s3.Client, key string) (string, error) {
 	var head struct {
 		Trigger string `json:"trigger"`
 	}
+
 	if json.Unmarshal(raw, &head) != nil {
 		return "", nil
 	}
@@ -165,7 +165,6 @@ func fetchManifest(client s3.Client, key string) ([]byte, error) {
 
 var errManifestTooLarge = errors.New("the manifest is larger than any this agent writes")
 
-// remove deletes every object under a backup's prefix, one after the other, and counts them.
 func (s *Service) remove(client s3.Client, prefix string) (int, error) {
 	objects, _, err := client.List(context.Background(), prefix, "")
 	if err != nil {
@@ -198,7 +197,6 @@ func (s *Service) abortAbandoned(client s3.Client, prefix string, now time.Time)
 	return nil
 }
 
-// forget tells the platform the backups that left the bucket, and answers the ones it could not tell.
 func (s *Service) forget(ids []string) []string {
 	var unknown []string
 
@@ -223,7 +221,7 @@ func (s *Service) forgetOne(id string) error {
 	return client.ForgetBackup(ctx, id)
 }
 
-// The platform is asked with no lock held, the lock is taken for the write alone: a platform that does not answer never makes an install wait.
+// The platform is asked with no lock held, so one that does not answer never makes an install wait.
 func (s *Service) tell() {
 	var owed Record
 
@@ -234,6 +232,7 @@ func (s *Service) tell() {
 	})
 
 	var declared []string
+
 	for _, declaration := range owed.Pending {
 		if s.declare(declaration) == nil {
 			declared = append(declared, declaration.ID)

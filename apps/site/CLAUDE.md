@@ -4,7 +4,7 @@
 
 ## Stack imposée
 
-Astro 5 statique, servi par un Worker Cloudflare à assets statiques (`wrangler.jsonc`, un Worker par environnement, `worker/index.ts` ne fait que renvoyer `www` vers l'apex) · Tailwind 4 sur `@pupitre/design` · MDX pour docs, blog, légal · i18n par dossier, anglais en `/`, français en `/fr` · pas de framework client hors îlots ciblés · images AVIF et WebP à quatre largeurs avec dimensions intrinsèques.
+Astro 5 statique, servi par un Worker Cloudflare à assets statiques (`wrangler.jsonc`, un Worker par environnement, `worker/index.ts` ne fait que renvoyer `www` vers l'apex et répondre 404 à une page 404 demandée par son nom) · Tailwind 4 sur `@pupitre/design` · MDX pour docs, blog, légal · i18n par dossier, anglais en `/`, français en `/fr` · pas de framework client hors îlots ciblés · images AVIF et WebP à quatre largeurs avec dimensions intrinsèques.
 
 **Banned** : bibliothèques de composants, animations de fond, illustrations, icônes décoratives, couleurs en dur, toute chaîne en dur hors `src/content`.
 
@@ -21,14 +21,14 @@ Astro 5 statique, servi par un Worker Cloudflare à assets statiques (`wrangler.
 ## Architecture
 
 ```
-src/pages/       index · pricing · download · integrations · docs/** · blog/** · legal/** · og/[...slug].png · llms.txt · 404 · fr/**
+src/pages/       index · pricing · download · integrations · docs/** · blog/** · legal/** · og/[...slug].png · llms.txt · .well-known/security.txt · 404 · fr/**
 src/content/     docs/{en,fr} · blog/ · legal/ (MDX) · changelog/ (MDX, notes de version lues par la chaîne de release, jamais rendues) · site/ (accueil, tarifs, téléchargement, intégrations, catalogue, doc des modules) · ui/ (chaînes d'interface)
 src/layouts/     Base · Docs · Post
 src/components/  Nav · Footer · Hero · Steps · Section · PageHeader · Card·like (Feature, Claim) · Pricing · Download · Integrations · Docs* · Callout · ProductShot · StatusMark · Analytics
-src/lib/         releases.ts · docs.ts · docs-entries.ts · og.ts · og-pages.ts · feeds.ts · platform.ts · analytics.ts · affiliate.ts (cookie `?ref=` pour la console) · i18n.ts · theme.ts · seo.ts · structured-data.ts
-src/assets/fonts Bricolage et JetBrains Mono, lues au build pour les images Open Graph seulement
-scripts/         check-content.ts (parité, mots interdits) · legal.ts (garde des pages légales, intégration Astro) · redirects.ts (chaque page de premier niveau a sa redirection)
-worker/          index.ts — `www` → apex, puis les assets ; rien d'autre
+src/lib/         releases.ts · docs.ts · docs-entries.ts · og.ts · og-pages.ts · feeds.ts · platform.ts · analytics.ts · affiliate.ts (cookie `?ref=` pour la console) · i18n.ts · theme.ts · seo.ts · structured-data.ts · security-txt.ts (contact de `LEGAL_CONTACTS.security`, expiration renouvelée à chaque build) · launch.ts (fin du lancement, lue dans `ANNOUNCED_LAUNCH_ENDS_AT` de `@pupitre/shared/plans`)
+src/assets/fonts Bricolage et JetBrains Mono, lues au build pour les images Open Graph seulement ; les pages servent les woff2 de `@pupitre/design/fonts.css`, jamais Google Fonts
+scripts/         check-content.ts (parité, mots interdits, traductions du blog) · legal.ts (garde des pages légales, intégration Astro) · redirects.ts (chaque page de premier niveau a sa redirection) · not-found.ts (`fr/404/index.html` → `fr/404.html`, là où la couche d'assets le cherche)
+worker/          index.ts — `www` → apex, une page 404 demandée par son nom répond 404, puis les assets ; rien d'autre
 public/          robots.txt · _headers · _redirects · favicons et manifeste, copiés du kit `bun --cwd=packages/design run brand`
 ```
 
@@ -42,7 +42,7 @@ Deux variables de build, absentes en local : `PUBLIC_RELEASES_URL` (liste des re
 
 ## Tests
 
-Tests de rendu Astro, script de parité fr/en, test des mots interdits sur `src/content`, Lighthouse en CI sur l'accueil et une page de doc.
+Tests de rendu Astro sous Vitest (`bun run test`, jamais `bun test`, qui échoue à tort sur les composants Astro), et `check:content`, lancé par `lint` : parité fr/en des routes, mots interdits sur `src/content` et `src/pages`, pages légales complètes. Aucun Lighthouse ne tourne, ni en CI ni ailleurs : la performance se mesure à la main.
 
 Les collections de contenu ne se chargent pas dans le conteneur Astro de Vitest : on teste les pages adossées à une collection par leur **modèle** (frontmatter sur le disque, parité des dossiers `en` et `fr`) plutôt que par leur rendu, et on garde le rendu pour ce qui est adossé à des données statiques.
 

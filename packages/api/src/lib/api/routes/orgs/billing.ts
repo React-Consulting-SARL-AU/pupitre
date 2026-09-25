@@ -1,12 +1,14 @@
 import { type Locale, resolveLocale } from "@pupitre/shared/i18n"
 import { Elysia } from "elysia"
 import {
+  BillingAlreadySubscribedError,
   BillingCustomerMissingError,
   BillingGrantedError,
   BillingLaunchError,
   startCheckout,
   startPortal,
 } from "../../../billing/checkout"
+import { LaunchSubscriptionEndedError } from "../../../billing/launch"
 import {
   NoPayingSubscriptionError,
   resizeSeats,
@@ -44,10 +46,36 @@ export const orgsBillingRoutes = new Elysia({ name: "orgs-billing-routes" })
         return organizationNotFound(locale)
       }
 
-      return await startCheckout(
-        { organizationId, userId: user.id, email: user.email },
-        body
-      )
+      try {
+        return await startCheckout(
+          { organizationId, userId: user.id, email: user.email },
+          body
+        )
+      } catch (error) {
+        if (error instanceof BillingAlreadySubscribedError) {
+          set.status = 409
+
+          return apiError(
+            "conflict",
+            translate(locale, "billing_already_subscribed"),
+            translate(locale, "billing_already_subscribed_fix", {
+              organization: organizationId,
+            })
+          )
+        }
+
+        if (error instanceof LaunchSubscriptionEndedError) {
+          set.status = 409
+
+          return apiError(
+            "conflict",
+            translate(locale, "launch_subscription_ended"),
+            translate(locale, "launch_subscription_ended_fix")
+          )
+        }
+
+        throw error
+      }
     },
     {
       params: organizationParams,
@@ -61,6 +89,7 @@ export const orgsBillingRoutes = new Elysia({ name: "orgs-billing-routes" })
         401: errorResponse,
         403: errorResponse,
         404: errorResponse,
+        409: errorResponse,
         422: errorResponse,
       },
     }

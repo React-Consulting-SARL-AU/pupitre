@@ -1,13 +1,6 @@
 import type { DictionaryKey } from "@renderer/i18n/en";
 import type { HardenState } from "@renderer/stores/harden";
 
-/**
- * The one gesture the hardening step ends on, and whether it is open yet.
- *
- * Root closed or kept: the sequence is over. Refused or stopped: the machine is
- * installed all the same, and the reader may go on with root open. While the
- * agent still works, the button is there but waits, and the note says on what.
- */
 export function hardenAction(harden: HardenState): {
   label: DictionaryKey;
   enabled: boolean;
@@ -26,6 +19,7 @@ export function hardenAction(harden: HardenState): {
         note: null,
       };
     }
+    // The machine is installed even when hardening fails, so the reader may go on with root open.
     case "failed":
       return {
         enabled: true,

@@ -6,13 +6,6 @@ import type {
 import type { Translate } from "@renderer/i18n/i18n";
 import { dated } from "./format";
 
-/**
- * A backup in words: what it holds, counted, and each part named the way a
- * reader would look for it — a database by its engine and name, a project by
- * its name. The platform never names them; a restored manifest does.
- */
-
-/** A backup as the sentences name it: its name when it was given one, and its date. */
 export function backupLabel(
   t: Translate,
   backup: { created_at: string; name?: string }
@@ -39,7 +32,6 @@ export function countsLabel(t: Translate, counts: BackupCounts): string {
   return said.length > 0 ? said.join(" · ") : t("backups.counts.setupOnly");
 }
 
-/** The engines by the names their makers give them. */
 export const ENGINE_NAMES: Record<BackupDatabaseEngine, string> = {
   mongodb: "MongoDB",
   mysql: "MySQL",
@@ -47,10 +39,7 @@ export const ENGINE_NAMES: Record<BackupDatabaseEngine, string> = {
   redis: "Redis",
 };
 
-/**
- * A database as the reader knows it: `PostgreSQL · shop`. The `*` of a whole
- * engine names what it is — the roles, the accounts, the snapshot.
- */
+/** A `*` name stands for the whole engine: its roles, accounts or snapshot. */
 export function databaseLabel(
   t: Translate,
   engine: BackupDatabaseEngine,
@@ -82,15 +71,12 @@ const FINGERPRINT_HEX = 16;
 
 const FINGERPRINT_GROUP = /.{4}/g;
 
-/**
- * The public key backups are sealed to, short enough to compare aloud: the
- * first sixteen hex digits of the SHA-256 of its base64 text, in four groups.
- */
 export async function recipientFingerprint(recipient: string): Promise<string> {
   const digest = await crypto.subtle.digest(
     "SHA-256",
     new TextEncoder().encode(recipient)
   );
+
   const hex = [...new Uint8Array(digest)]
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("")
@@ -99,7 +85,6 @@ export async function recipientFingerprint(recipient: string): Promise<string> {
   return hex.match(FINGERPRINT_GROUP)?.join(" ") ?? hex;
 }
 
-/** An exclusion list with one item carried again, or left out. */
 export function excluding(
   excluded: readonly string[],
   item: string,
@@ -110,7 +95,6 @@ export function excluding(
   return carried ? others : [...others, item];
 }
 
-/** The draft's list of text, or none when the value is not one. */
 export function listOf(value: unknown): string[] {
   return Array.isArray(value)
     ? value.filter((one): one is string => typeof one === "string")

@@ -10,7 +10,6 @@ import (
 	"pupitre.studio/agent/internal/tmux"
 )
 
-// The record of what should be up: every window a start opened and no stop has closed since.
 type running struct {
 	Windows []string `json:"windows"`
 }
@@ -29,7 +28,6 @@ func (r *Reader) recorded() []string {
 	return record.Windows
 }
 
-// Wanted names the projects with a window the reader wants up, in the record's order: what a backup calls running.
 func (r *Reader) Wanted() []string {
 	names := []string{}
 
@@ -45,9 +43,11 @@ func (r *Reader) Wanted() []string {
 
 func (r *Reader) record(windows map[string]bool) error {
 	names := make([]string, 0, len(windows))
+
 	for window := range windows {
 		names = append(names, window)
 	}
+
 	sort.Strings(names)
 
 	encoded, err := json.MarshalIndent(running{Windows: names}, "", "  ")
@@ -58,7 +58,7 @@ func (r *Reader) record(windows map[string]bool) error {
 	return file.WriteAtomic(r.ctx(), r.options.Paths.Resolved().Running, append(encoded, '\n'), 0o600)
 }
 
-// A start records its window and a stop forgets it, whether or not tmux held one: the record says what the reader wants up, not what the machine happens to run.
+// The record holds what the reader wants up, whether or not tmux currently runs it.
 func (r *Reader) note(window string, up bool) error {
 	release, err := r.hold()
 	if err != nil {
@@ -67,6 +67,7 @@ func (r *Reader) note(window string, up bool) error {
 	defer release()
 
 	windows := map[string]bool{}
+
 	for _, name := range r.recorded() {
 		windows[name] = true
 	}
@@ -80,13 +81,7 @@ func (r *Reader) note(window string, up bool) error {
 	return r.record(windows)
 }
 
-// Resume brings back what was up before the machine went down, and the projects that start with the server anyway; it answers the windows it started.
-//
-// A boot is the one moment the tmux session is gone: a daemon restarted for an
-// upgrade finds the session alive with everything in it, and touches nothing.
-// A window whose project or process is no longer declared, or is a service
-// row systemd owns, is dropped from the record; a start that fails is logged
-// and stays recorded, since the wish to run it has not changed.
+// Only a boot finds the tmux session gone; a daemon restarted for an upgrade finds it alive and touches nothing.
 func (r *Reader) Resume() []string {
 	ctx := r.ctx()
 
@@ -94,7 +89,7 @@ func (r *Reader) Resume() []string {
 		return nil
 	}
 
-	// A registry that does not read leaves the record as it is: a boot is not the moment to lose what was up.
+	// An unreadable registry leaves the record untouched: a boot must not lose what was up.
 	file, err := r.declared()
 	if err != nil {
 		ctx.Logf("resume: %v", err)

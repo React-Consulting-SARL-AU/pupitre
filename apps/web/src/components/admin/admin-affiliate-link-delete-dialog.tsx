@@ -15,7 +15,7 @@ export interface AdminAffiliateLinkDeleteTarget {
 
 export interface AdminAffiliateLinkDeleteDialogProps {
   link: AdminAffiliateLinkDeleteTarget
-  /** Held outside when a row menu opens it; left out, the dialog carries its own button. */
+  // Controlled by a row menu; when absent, the dialog renders its own trigger.
   open?: boolean
   onOpenChange?: (open: boolean) => void
   onDeleted?: () => void
@@ -45,7 +45,7 @@ export function AdminAffiliateLinkDeleteDialog({
   const refusal = remove.isError
     ? {
         message: said?.message ?? t("admin.links.deleteFailed"),
-        fix: said?.fix ?? t("admin.links.deleteFailedFix"),
+        fix: said?.fix ?? t("common.retryLater"),
       }
     : null
 

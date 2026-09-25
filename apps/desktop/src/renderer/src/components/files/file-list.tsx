@@ -26,7 +26,6 @@ import { EntryCreate } from "./entry-create";
 import { FileRow, type RowMode } from "./file-row";
 import { FileTrail } from "./file-trail";
 
-/** The one row that is being renamed or asked about, by its path. */
 interface Editing {
   path: string;
   mode: Exclude<RowMode, "view">;
@@ -37,20 +36,10 @@ const SORT_KEY: Record<FileSort, "files.sort.name" | "files.sort.date"> = {
   name: "files.sort.name",
 };
 
-/**
- * The folder on screen: its trail, its order, its rows.
- *
- * The list is bound to the folder the store names and draws it as the agent
- * gave it — folders first, then files, hidden ones only on request. A row's
- * gestures are answered here, where the path of the entry is known, and the
- * store does the work. Files dropped from the desktop land in the folder on
- * screen; the zone that takes them is drawn by its dashed frame, never by a
- * colour alone.
- */
-
 function carriesFiles(event: DragEvent<HTMLElement>): boolean {
   return [...event.dataTransfer.types].includes("Files");
 }
+
 export function FileList({
   listing,
   rootLabel,
@@ -78,10 +67,8 @@ export function FileList({
   rootLabel: string;
   sort: FileSort;
   hidden: boolean;
-  /** The path of the file shown on the right, when one is. */
   selected: string | null;
   editors: readonly RemoteEditor[];
-  /** The refusal of the last rename, deletion or creation. */
   problem: AgentError | null;
   removal: Removal | null;
   onBrowse: (path: string) => Promise<void>;
@@ -89,16 +76,13 @@ export function FileList({
   onSort: (sort: FileSort) => void;
   onHidden: (hidden: boolean) => void;
   onRefresh: () => Promise<void>;
-  onMakeFolder: (name: string) => Promise<void>;
-  onMakeFile: (name: string) => Promise<void>;
-  onRename: (path: string, to: string) => Promise<void>;
+  onMakeFolder: (name: string) => Promise<AgentError | null>;
+  onMakeFile: (name: string) => Promise<AgentError | null>;
+  onRename: (path: string, to: string) => Promise<AgentError | null>;
   onRemove: (path: string, recursive: boolean) => Promise<void>;
-  /** A gesture the list does not answer itself: an editor, a terminal, the path copied. */
   onAct: (path: string, action: FileAction) => void;
   onDismiss: () => void;
-  /** Opens the dialog and sends what was chosen into the folder on screen. */
   onUpload: (dir: string) => Promise<void>;
-  /** Sends what was dropped on the list into the folder on screen. */
   onDrop: (dir: string, files: FileList) => Promise<void>;
 }) {
   const t = useTranslations();
@@ -132,9 +116,14 @@ export function FileList({
     }
   }
 
-  async function rename(full: string, to: string): Promise<void> {
-    await onRename(full, to);
-    setEditing(null);
+  async function rename(full: string, to: string): Promise<AgentError | null> {
+    const refusal = await onRename(full, to);
+
+    if (!refusal) {
+      setEditing(null);
+    }
+
+    return refusal;
   }
 
   function onDragOver(event: DragEvent<HTMLElement>): void {
@@ -255,7 +244,7 @@ export function FileList({
       >
         {dropping ? (
           <p
-            className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-surface/90 p-6 text-center text-[13px] text-ink"
+            className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-surface/90 p-6 text-center text-control text-ink"
             role="status"
           >
             {t("transfers.drop", {
@@ -266,7 +255,7 @@ export function FileList({
 
         {listing.status === "idle" || listing.status === "reading" ? (
           <div className="flex flex-col gap-3 p-3">
-            <WaitingLine className="font-data text-[12px]">
+            <WaitingLine className="font-data text-small">
               {t("files.list.reading")}
             </WaitingLine>
             <SkeletonRows framed={false} rows={4} />
@@ -327,7 +316,7 @@ export function FileList({
       </section>
 
       {listing.status === "read" ? (
-        <p className="font-data text-[11px] text-ink-3 tabular-nums">
+        <p className="font-data text-caption text-ink-3 tabular-nums">
           {listing.truncated
             ? t("files.list.truncated", { limit: FILE_LIST_LIMIT })
             : t.plural("files.list.count", entries.length)}

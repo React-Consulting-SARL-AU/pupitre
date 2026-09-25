@@ -6,12 +6,6 @@ import { stubPupitre } from "../../__tests__/stub-pupitre";
 import { useSshShare } from "../../stores/ssh-share";
 import { HelpScreen } from "../help/help-screen";
 
-/**
- * The help page, drawn on what the SSH file says: every value a client is
- * told to type is the driven server's own, and the page changes its word
- * when the file is not shared, when a tool is missing, when no server is.
- */
-
 const noop = () => undefined;
 
 const SHARED: SshShareState = {

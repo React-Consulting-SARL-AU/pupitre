@@ -18,9 +18,7 @@ type Module interface {
 	Status(ctx *Context) (Status, error)
 }
 
-// Account is implemented by a module whose CLI signs in to an account.
-// Asking the CLI can cost a round trip to its provider, so only service.status asks — never a snapshot read every few seconds.
-// False says there is nothing to sign in to on this machine: a tunnel the client did not ask for.
+// Only service.status asks, never a snapshot: the CLI may call its provider. False means nothing to sign in to here.
 type Account interface {
 	Login(ctx *Context) (contract.Login, bool)
 }

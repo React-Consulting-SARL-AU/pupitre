@@ -162,6 +162,7 @@ func (t *typeSet) UnmarshalJSON(data []byte) error {
 	}
 
 	*t = typeSet(many)
+
 	return nil
 }
 
@@ -436,8 +437,7 @@ func checkOneOf(branches []*schema, value any, path string) error {
 	}
 }
 
-// A discriminated oneOf carries a const field per branch; the branch whose const
-// matches the value names the real mistake, whatever its path length.
+// In a discriminated oneOf, the branch whose const matches names the real mistake, whatever its path length.
 func discriminatorMatches(s *schema, value any) bool {
 	object, ok := value.(map[string]any)
 	if !ok {
@@ -467,7 +467,6 @@ func discriminatorMatches(s *schema, value any) bool {
 	return matched
 }
 
-// The branch that got past its type check usually names the real mistake.
 func mostRelevant(failures []error) error {
 	var best *ValidationError
 
@@ -477,12 +476,21 @@ func mostRelevant(failures []error) error {
 			return failure
 		}
 
-		if best == nil || len(candidate.Path) > len(best.Path) || (len(candidate.Path) == len(best.Path) && best.typeMismatch && !candidate.typeMismatch) {
+		if best == nil || moreRelevant(candidate, best) {
 			best = candidate
 		}
 	}
 
 	return best
+}
+
+// At equal depth, the branch that got past its type check usually names the real mistake.
+func moreRelevant(candidate, best *ValidationError) bool {
+	if len(candidate.Path) != len(best.Path) {
+		return len(candidate.Path) > len(best.Path)
+	}
+
+	return best.typeMismatch && !candidate.typeMismatch
 }
 
 func validateObject(s *schema, object map[string]any, path string) error {

@@ -2,18 +2,14 @@ package migrate
 
 import (
 	"encoding/json"
+	"errors"
+	"io/fs"
 
 	"pupitre.studio/agent/internal/sys"
 )
 
-// The ledger, as the machine remembers it.
-//
-// One line per migration, ever: it is the audit trail a diagnostic needs, and
-// it stays small because shapes change far less often than versions do.
 type Ledger struct {
-	Revision int `json:"revision"`
-	// The agent that last wrote the ledger, for a reader looking at a machine
-	// nobody has touched in a year. Nothing is decided on it.
+	Revision     int       `json:"revision"`
 	AgentVersion string    `json:"agent_version,omitempty"`
 	Applied      []Applied `json:"applied"`
 }
@@ -26,21 +22,24 @@ type Applied struct {
 	Ms           int64  `json:"ms"`
 }
 
-// An unreadable ledger reads as revision zero, and revision zero runs every
-// migration. That is the safe direction: migrations are idempotent, so running
-// one twice changes nothing, while skipping one leaves a shape nobody reads.
-func readLedger(machine sys.Sys, path string) (Ledger, bool) {
+// Missing reads as revision 0 (migrations are idempotent); unreadable is refused, as it may be a newer agent's.
+func readLedger(machine sys.Sys, path string) (Ledger, error) {
 	raw, err := machine.ReadFile(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		return Ledger{}, nil
+	}
+
 	if err != nil {
-		return Ledger{}, false
+		return Ledger{}, unreadableLedger(path, err)
 	}
 
 	var ledger Ledger
+
 	if err := json.Unmarshal(raw, &ledger); err != nil {
-		return Ledger{}, false
+		return Ledger{}, unreadableLedger(path, err)
 	}
 
-	return ledger, true
+	return ledger, nil
 }
 
 func writeLedger(ctx *Context, path string, ledger Ledger) error {

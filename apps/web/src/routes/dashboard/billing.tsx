@@ -7,7 +7,7 @@ import { isPlatformOrganization } from "@/lib/domain/admin"
 import { documentTitle, pageTitle } from "@/lib/domain/page-titles"
 
 export const Route = createFileRoute("/dashboard/billing")({
-  /** Nobody bills Pupitre for Pupitre: the platform organisation has no billing page. */
+  // The platform organisation is never billed.
   beforeLoad: ({ context }) => {
     const me = context.queryClient.getQueryData<Me>(queryKeys.me)
 

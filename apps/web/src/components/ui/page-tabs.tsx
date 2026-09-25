@@ -5,12 +5,11 @@ import { cn } from "@/lib/utils/cn"
 export interface PageTab {
   value: string
   label: string
-  /** What the tab holds; rendered only once the tab is the current one. */
+  // Rendered only while its tab is current.
   panel: ReactNode
 }
 
 export interface PageTabsProps {
-  /** What the row of tabs names, for the screen reader. */
   label: string
   tabs: PageTab[]
   value: string
@@ -18,7 +17,6 @@ export interface PageTabsProps {
   className?: string
 }
 
-/** The current tab lives in the address, so a reload and a shared link land on it. */
 export function PageTabs({
   label,
   tabs,

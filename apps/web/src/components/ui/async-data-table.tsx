@@ -29,9 +29,8 @@ export interface DataColumn<Row> {
   width?: string
   align?: ColumnAlign
   sortable?: boolean
-  /** The column leaves the table under this width: a phone reads the first two. */
   hideBelow?: ColumnBreakpoint
-  /** The cell holds its own link or button, which has to stay above the row's link. */
+  // The cell holds its own control, which must stay above the row's covering link.
   interactive?: boolean
 }
 
@@ -39,7 +38,6 @@ export interface DataTableSearch {
   id: string
   value: string
   placeholder: string
-  /** What the field narrows the list by, when it is not a plain search. */
   label?: string
   onChange: (value: string) => void
 }
@@ -51,12 +49,10 @@ export interface DataTableSort {
 }
 
 export interface DataTableSelection {
-  /** What a bulk action does with the rows ticked on this page. */
   bulkActions: (ids: string[]) => ReactNode
 }
 
 export interface AsyncDataTableProps<Row> {
-  /** What the table lists, written above it and read by the screen reader. */
   title: string
   columns: DataColumn<Row>[]
   data: Row[]
@@ -67,7 +63,7 @@ export interface AsyncDataTableProps<Row> {
   refetch: () => void
   rowKey: (row: Row) => string
   rowLink?: (row: Row) => LinkProps
-  /** What the row link is called: the first cell shows more than the thing's name. */
+  // Accessible name of the row link: the first cell shows more than the name.
   rowLabel?: (row: Row) => string
   rowActions?: (row: Row) => RowAction[]
   search?: DataTableSearch
@@ -79,7 +75,6 @@ export interface AsyncDataTableProps<Row> {
   emptyTitle: string
   emptyIcon?: LucideIcon
   selectable?: DataTableSelection
-  /** What the failure says instead of the generic refusal. */
   errorTitle?: string
   errorFix?: string
 }
@@ -184,7 +179,7 @@ export function AsyncDataTable<Row>({
   }, [pageKeys])
 
   if (isPending) {
-    return <SkeletonRows label={t("admin.reading")} />
+    return <SkeletonRows label={t("table.reading")} />
   }
 
   if (isError) {
@@ -200,8 +195,8 @@ export function AsyncDataTable<Row>({
             {t("common.retry")}
           </Button>
         }
-        fix={errorFix ?? t("admin.failedFix")}
-        title={errorTitle ?? t("admin.failed")}
+        fix={errorFix ?? t("common.retryLater")}
+        title={errorTitle ?? t("table.failed")}
         tone="danger"
       />
     )
@@ -255,7 +250,7 @@ export function AsyncDataTable<Row>({
           <CardHeader>
             <CardTitle>{title}</CardTitle>
             <span className="font-data text-[12px] text-ink-3 tabular-nums">
-              {t("admin.range", {
+              {t("table.range", {
                 from: offset + 1,
                 to: offset + data.length,
                 total,
@@ -291,7 +286,7 @@ export function AsyncDataTable<Row>({
                           sorted ? ARIA_SORT[sort.direction] : undefined
                         }
                         className={cn(
-                          "px-4 py-2 font-medium text-[10.5px] text-ink-3 uppercase tracking-[0.08em]",
+                          "px-4 py-2 font-medium text-label",
                           column.align === "end" && "text-right",
                           column.hideBelow && HIDDEN_BELOW[column.hideBelow],
                           column.width
@@ -365,8 +360,6 @@ export function AsyncDataTable<Row>({
                             "px-4 py-3 align-middle text-[13px] text-ink-2",
                             column.align === "end" && "text-right tabular-nums",
                             column.hideBelow && HIDDEN_BELOW[column.hideBelow],
-                            // The row's link covers the row; only a cell holding
-                            // its own control rises above it, the rest follow it.
                             column.interactive && "relative"
                           )}
                           key={column.key}
@@ -409,11 +402,11 @@ export function AsyncDataTable<Row>({
       )}
 
       <Pagination
-        nextLabel={t("admin.next")}
+        nextLabel={t("table.next")}
         offset={offset}
         onOffsetChange={onOffsetChange}
         pageSize={limit}
-        previousLabel={t("admin.previous")}
+        previousLabel={t("table.previous")}
         total={total}
       />
     </div>

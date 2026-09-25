@@ -12,6 +12,7 @@ describe("l'inspection", () => {
 
   it("dit qui elle inspecte pendant qu'elle attend", async () => {
     const waiting: ((answer: AgentResponse<ProbeResult>) => void)[] = [];
+
     stubPupitre({
       inspect: () =>
         new Promise((resolve) => {
@@ -113,6 +114,7 @@ describe("l'inspection", () => {
 
   it("ne rouvre pas une inspection oubliée sur une réponse tardive", async () => {
     let settle: (answer: AgentResponse<ProbeResult>) => void = () => undefined;
+
     stubPupitre({
       inspect: () =>
         new Promise((resolve) => {

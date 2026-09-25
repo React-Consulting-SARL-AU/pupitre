@@ -3,9 +3,11 @@ package hardening
 import (
 	"errors"
 	"fmt"
+	"io/fs"
+	"maps"
 	"slices"
+	"strconv"
 	"strings"
-	"time"
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/i18n"
@@ -14,6 +16,7 @@ import (
 	"pupitre.studio/agent/internal/sys/apt"
 	"pupitre.studio/agent/internal/sys/file"
 	"pupitre.studio/agent/internal/sys/systemd"
+	"pupitre.studio/agent/internal/sys/ufw"
 )
 
 const (
@@ -23,14 +26,13 @@ const (
 	preparedDir  = "/etc/pupitre"
 	jailPath     = "/etc/fail2ban/jail.d/pupitre.local"
 	jailUnit     = "fail2ban"
-	sshPort      = "22/tcp"
-	altPort      = "443/tcp"
+	sshSocket    = "ssh.socket"
+	sshPort      = 22
+	altPort      = 443
 	comment      = "ssh"
 )
 
 var Packages = []string{"ufw", "fail2ban", "python3-systemd"}
-
-const ufwTimeout = time.Minute
 
 const fragmentTemplate = `PermitRootLogin %s
 PasswordAuthentication no
@@ -51,7 +53,6 @@ findtime = 10m
 bantime = 1h
 `
 
-// What the owner chose for SSH: the alternate port, and whether root keeps a way in.
 type Options struct {
 	SSH443   bool
 	KeepRoot bool
@@ -98,12 +99,13 @@ func (Module) Install(ctx *modules.Context) error {
 func (Module) Configure(ctx *modules.Context) error {
 	jailChanged := false
 
-	if err := configureFirewall(ctx); err != nil {
+	ports, err := configureFirewall(ctx)
+	if err != nil {
 		return err
 	}
 
 	if err := ctx.Step("write-fail2ban-jail", func() (modules.Outcome, error) {
-		content := jail(ctx.Bool("ssh_443"))
+		content := jail(ports)
 		if file.Same(ctx, jailPath, content) {
 			return modules.Skipped, nil
 		}
@@ -129,6 +131,10 @@ func (Module) Configure(ctx *modules.Context) error {
 		return err
 	}
 
+	if err := protectLinks(ctx); err != nil {
+		return err
+	}
+
 	if err := ctx.Step("prepare-sshd-fragment", func() (modules.Outcome, error) {
 		content := Fragment(options(ctx))
 		if file.Same(ctx, PreparedPath, content) {
@@ -147,12 +153,7 @@ func (Module) Configure(ctx *modules.Context) error {
 	return applyFragment(ctx)
 }
 
-// A machine already hardened runs on the live fragment: a form applied after
-// harden reaches sshd through the same gate — write, validate, reload, confirm,
-// or put the previous fragment back. Before harden, sshd is left alone, and
-// root is never closed here: a live fragment that lets root in keeps letting
-// it in until the harden command, the only one that checks a key opens dev
-// before closing the door.
+// Only on a hardened machine, and never closes root: only harden checks dev's key works before shutting it.
 func applyFragment(ctx *modules.Context) error {
 	if !file.Exists(ctx, FragmentPath) || file.Same(ctx, FragmentPath, Fragment(options(ctx))) {
 		return nil
@@ -166,7 +167,7 @@ func applyFragment(ctx *modules.Context) error {
 		})
 	}
 
-	if result := Harden(ctx, User); result.Reason != "" {
+	if result := Harden(ctx); result.Reason != "" {
 		return errors.New(result.Reason)
 	}
 
@@ -191,6 +192,7 @@ func rootOpenIn(ctx *modules.Context) bool {
 func (m Module) Upgrade(ctx *modules.Context) error {
 	if err := ctx.Step("upgrade-packages", func() (modules.Outcome, error) {
 		outcome := modules.Skipped
+
 		for _, pkg := range Packages {
 			upgraded, err := apt.Upgrade(ctx, pkg)
 			if err != nil {
@@ -212,20 +214,27 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 
 func (Module) Uninstall(ctx *modules.Context) error {
 	if err := ctx.Step("reopen-sshd", func() (modules.Outcome, error) {
-		removed, err := file.Remove(ctx, FragmentPath)
+		previous, err := file.Read(ctx, FragmentPath)
+		if errors.Is(err, fs.ErrNotExist) {
+			return modules.Skipped, nil
+		}
 		if err != nil {
 			return modules.Failed, err
 		}
 
-		if !removed {
-			return modules.Skipped, nil
-		}
-
-		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"sshd", "-t"}}); err != nil {
+		if _, err := file.Remove(ctx, FragmentPath); err != nil {
 			return modules.Failed, err
 		}
 
-		return modules.Done, reloadSSHD(ctx)
+		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"sshd", "-t"}}); err != nil {
+			return modules.Failed, errors.Join(err, file.WriteAtomic(ctx, FragmentPath, previous, 0o644))
+		}
+
+		if err := reloadSSHD(ctx); err != nil {
+			return modules.Failed, errors.Join(err, file.WriteAtomic(ctx, FragmentPath, previous, 0o644))
+		}
+
+		return modules.Done, nil
 	}); err != nil {
 		return err
 	}
@@ -264,12 +273,16 @@ func (Module) Uninstall(ctx *modules.Context) error {
 		return err
 	}
 
+	if err := removeLinksSysctl(ctx); err != nil {
+		return err
+	}
+
 	return ctx.Step("disable-firewall", func() (modules.Outcome, error) {
 		if !firewallStatus(ctx).active {
 			return modules.Skipped, nil
 		}
 
-		_, err := ufw(ctx, "--force", "disable")
+		_, err := ufw.Run(ctx, "--force", "disable")
 
 		return modules.Done, err
 	})
@@ -283,7 +296,7 @@ func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
 
 	status.State = systemd.State(ctx, jailUnit)
 	status.Unit = jailUnit
-	status.Port = 22
+	status.Port = sshPort
 
 	return status, nil
 }
@@ -302,53 +315,148 @@ func Fragment(o Options) []byte {
 	return []byte(content)
 }
 
-func jail(ssh443 bool) []byte {
-	ports := "22"
-	if ssh443 {
-		ports = "22,443"
+func jail(ports []int) []byte {
+	listed := make([]string, 0, len(ports))
+
+	for _, port := range ports {
+		listed = append(listed, strconv.Itoa(port))
 	}
 
-	return []byte(fmt.Sprintf(jailTemplate, ports))
+	return []byte(fmt.Sprintf(jailTemplate, strings.Join(listed, ",")))
 }
 
-func wantedPorts(ssh443 bool) []string {
-	if ssh443 {
-		return []string{sshPort, altPort}
-	}
-
-	return []string{sshPort}
+func rule(port int) string {
+	return strconv.Itoa(port) + "/tcp"
 }
 
-func configureFirewall(ctx *modules.Context) error {
-	return ctx.Step("configure-firewall", func() (modules.Outcome, error) {
-		wanted := wantedPorts(ctx.Bool("ssh_443"))
+// Ports are allowed before the default turns to deny and ufw comes up last, so sshd is never cut off.
+func configureFirewall(ctx *modules.Context) ([]int, error) {
+	var wanted []int
+
+	err := ctx.Step("configure-firewall", func() (modules.Outcome, error) {
+		ports, err := wantedPorts(ctx)
+		if err != nil {
+			return modules.Failed, errors.New(i18n.T("harden.ports.unreadable", message(err)))
+		}
+
+		wanted = ports
+
 		status := firewallStatus(ctx)
 		if status.matches(wanted) {
 			return modules.Skipped, nil
 		}
 
-		commands := [][]string{
-			{"--force", "default", "deny", "incoming"},
-			{"--force", "default", "allow", "outgoing"},
-		}
+		var commands [][]string
+
 		for _, port := range wanted {
-			commands = append(commands, []string{"allow", port, "comment", comment})
+			commands = append(commands, []string{"allow", rule(port), "comment", comment})
 		}
-		if !ctx.Bool("ssh_443") && status.owns(altPort) {
-			commands = append(commands, []string{"delete", "allow", altPort})
+
+		commands = append(commands,
+			[]string{"--force", "default", "deny", "incoming"},
+			[]string{"--force", "default", "allow", "outgoing"},
+		)
+
+		if status.stale(wanted) {
+			commands = append(commands, []string{"delete", "allow", rule(altPort)})
 		}
+
 		if !status.active {
 			commands = append(commands, []string{"--force", "enable"})
 		}
 
 		for _, argv := range commands {
-			if _, err := ufw(ctx, argv...); err != nil {
+			if _, err := ufw.Run(ctx, argv...); err != nil {
 				return modules.Failed, err
 			}
 		}
 
 		return modules.Done, nil
 	})
+
+	return wanted, err
+}
+
+// 443 that only the live fragment gave sshd goes with that fragment later in this same configure.
+func wantedPorts(ctx *modules.Context) ([]int, error) {
+	listened, err := listenedPorts(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	ssh443 := ctx.Bool("ssh_443")
+	if !ssh443 && liveFragmentOpens(ctx, altPort) {
+		delete(listened, altPort)
+	}
+
+	if ssh443 {
+		listened[sshPort], listened[altPort] = true, true
+	}
+
+	if len(listened) == 0 {
+		listened[sshPort] = true
+	}
+
+	return slices.Sorted(maps.Keys(listened)), nil
+}
+
+// A ListenAddress may carry its own port, and from Ubuntu 22.10 ssh.socket may listen where sshd_config never said.
+func listenedPorts(ctx *modules.Context) (map[int]bool, error) {
+	out, err := ctx.Sys().Run(sys.Command{Argv: []string{"sshd", "-T"}})
+	if err != nil {
+		return nil, err
+	}
+
+	effective := effectiveConfig(out.Stdout)
+	ports := map[int]bool{}
+
+	for _, value := range append(effective["port"], effective["listenaddress"]...) {
+		if port, ok := portOf(value); ok {
+			ports[port] = true
+		}
+	}
+
+	if systemd.Active(ctx, sshSocket) {
+		listen, err := ctx.Sys().Run(sys.Command{Argv: []string{"systemctl", "show", sshSocket, "--property=Listen", "--value"}})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, value := range strings.Fields(listen.Stdout) {
+			if port, ok := portOf(value); ok {
+				ports[port] = true
+			}
+		}
+	}
+
+	ctx.Logf("sshd listens on %v", slices.Sorted(maps.Keys(ports)))
+
+	return ports, nil
+}
+
+func portOf(value string) (int, bool) {
+	if colon := strings.LastIndex(value, ":"); colon >= 0 {
+		value = value[colon+1:]
+	}
+
+	port, err := strconv.Atoi(value)
+
+	return port, err == nil && port > 0 && port < 65536
+}
+
+func liveFragmentOpens(ctx *modules.Context, port int) bool {
+	live, err := file.Read(ctx, FragmentPath)
+	if err != nil {
+		return false
+	}
+
+	for _, line := range strings.Split(string(live), "\n") {
+		if directive, value, found := strings.Cut(strings.TrimSpace(line), " "); found && strings.EqualFold(directive, "Port") && strings.TrimSpace(value) == strconv.Itoa(port) {
+			return true
+		}
+	}
+
+	return false
 }
 
 type firewall struct {
@@ -356,18 +464,18 @@ type firewall struct {
 	incoming string
 	outgoing string
 	rules    []string
-	// The rules the hardening added itself, read back by their comment: 443 is
-	// also Caddy's, and Caddy's rule is Caddy's to close.
+	// Our own rules, read back by their comment: 443 is also Caddy's, and Caddy's rule is Caddy's to close.
 	owned []string
 }
 
 func firewallStatus(ctx *modules.Context) firewall {
-	out, err := ctx.Sys().Run(sys.Command{Argv: []string{"ufw", "status", "verbose"}, Timeout: ufwTimeout})
+	out, err := ctx.Sys().Run(sys.Command{Argv: []string{"ufw", "status", "verbose"}, Timeout: ufw.Timeout})
 	if err != nil {
 		return firewall{}
 	}
 
 	var status firewall
+
 	for _, line := range strings.Split(out.Stdout, "\n") {
 		fields := strings.Fields(line)
 		switch {
@@ -380,27 +488,9 @@ func firewallStatus(ctx *modules.Context) firewall {
 		}
 	}
 
-	status.owned = ownedRules(ctx)
+	status.owned = ufw.Commented(ctx, comment)
 
 	return status
-}
-
-// ufw show added lists the rules as they were given, comment included, whether the firewall is up or not.
-func ownedRules(ctx *modules.Context) []string {
-	out, err := ctx.Sys().Run(sys.Command{Argv: []string{"ufw", "show", "added"}, Timeout: ufwTimeout})
-	if err != nil {
-		return nil
-	}
-
-	var owned []string
-	for _, line := range strings.Split(out.Stdout, "\n") {
-		fields := strings.Fields(line)
-		if len(fields) == 5 && fields[0] == "ufw" && fields[1] == "allow" && fields[3] == "comment" && fields[4] == "'"+comment+"'" {
-			owned = append(owned, fields[2])
-		}
-	}
-
-	return owned
 }
 
 func defaultPolicies(line string) (incoming, outgoing string) {
@@ -421,15 +511,16 @@ func defaultPolicies(line string) (incoming, outgoing string) {
 	return incoming, outgoing
 }
 
-func (f firewall) allows(port string) bool {
-	return slices.Contains(f.rules, port)
+func (f firewall) allows(port int) bool {
+	return slices.Contains(f.rules, rule(port))
 }
 
-func (f firewall) owns(port string) bool {
-	return slices.Contains(f.owned, port)
+// Only 443 is ever closed here, and only the rule the hardening added: a port sshd may still listen on stays open.
+func (f firewall) stale(wanted []int) bool {
+	return slices.Contains(f.owned, rule(altPort)) && !slices.Contains(wanted, altPort)
 }
 
-func (f firewall) matches(wanted []string) bool {
+func (f firewall) matches(wanted []int) bool {
 	if !f.active || f.incoming != "deny" || f.outgoing != "allow" {
 		return false
 	}
@@ -440,12 +531,5 @@ func (f firewall) matches(wanted []string) bool {
 		}
 	}
 
-	return len(wanted) > 1 || !f.owns(altPort)
-}
-
-// ufw rewrites the whole rule set through iptables; on a machine whose kernel
-// refuses it, the command can sit there for ever. A minute is more than it ever
-// needs, and past that the step says so instead of holding the install.
-func ufw(ctx *modules.Context, args ...string) (sys.Output, error) {
-	return sys.Exec(ctx, sys.Command{Argv: append([]string{"ufw"}, args...), Timeout: ufwTimeout})
+	return !f.stale(wanted)
 }

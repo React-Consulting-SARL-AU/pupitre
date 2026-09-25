@@ -11,12 +11,11 @@ import (
 	"pupitre.studio/agent/internal/state"
 )
 
-// gh's own check reaches GitHub: service.status pays for it once, for the module the reader opened; the snapshot read every few seconds never does.
 func TestServiceStatusAsksTheCliWhoIsSignedInAndTheSnapshotDoesNot(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Packages["gh"] = "2.80.0"
 	fake.Files["/etc/pupitre/env"] = []byte("GITHUB_TOKEN=s3cret\n")
-	fake.Answer("gh auth status", `{"hosts":{"github.com":[{"state":"success","active":true,"host":"github.com","login":"flymate"}]}}`)
+	fake.Answer("gh auth status", `{"hosts":{"github.com":[{"state":"success","active":true,"host":"github.com","login":"flyleaf"}]}}`)
 
 	registry := modules.NewRegistry()
 	registry.Register(github.Module{})
@@ -26,6 +25,7 @@ func TestServiceStatusAsksTheCliWhoIsSignedInAndTheSnapshotDoesNot(t *testing.T)
 	reader := state.New(state.Options{Sys: fake, Registry: registry})
 
 	snapshot := reader.Snapshot()
+
 	for _, service := range snapshot.Services {
 		if service.Login != nil {
 			t.Fatalf("%s carries a login in the snapshot", service.ID)
@@ -41,7 +41,7 @@ func TestServiceStatusAsksTheCliWhoIsSignedInAndTheSnapshotDoesNot(t *testing.T)
 		t.Fatal(err)
 	}
 
-	if status.Login == nil || *status.Login != (contract.Login{State: contract.LoginSignedIn, Account: "flymate"}) {
+	if status.Login == nil || *status.Login != (contract.Login{State: contract.LoginSignedIn, Account: "flyleaf"}) {
 		t.Fatalf("login = %+v", status.Login)
 	}
 

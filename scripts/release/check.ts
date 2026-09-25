@@ -3,13 +3,6 @@ import path from "node:path"
 import { checkEntries, locales } from "../release-notes"
 import { say, variable } from "./cli"
 
-/**
- * What must be true before anything is built: the changelog covers the
- * version in every locale the site serves — the notes of a release are its
- * entry, no entry means no release — and the app declares the number the tag
- * says, so the artefacts can be paired with the version they belong to.
- */
-
 const ROOT = path.resolve(import.meta.dir, "../..")
 
 export function appVersion(root = ROOT): string {

@@ -2,14 +2,6 @@ import { expect, test } from "@playwright/test";
 import { assertAccessible } from "./harness/accessible";
 import { launchPupitre, type Running } from "./harness/launch";
 
-/**
- * The two arrows of the band, and the keys that stand in for them.
- *
- * The app has no window history to lean on: the scenario walks three views
- * through the sidebar, comes back through the arrows, goes forward again
- * through the keyboard, checks that an arrow with nowhere to go says so, and
- * that a service's own page is a step of its own behind the list.
- */
 const DASHBOARD = "Tableau de bord";
 const SERVICES = "Services";
 

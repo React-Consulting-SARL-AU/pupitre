@@ -1,12 +1,6 @@
 import type { ReactNode } from "react";
 import type { ButtonIcon } from "./button";
 
-/**
- * Nothing to show, and why.
- *
- * `detail` says what would put something here, so an empty panel never leaves
- * the reader guessing whether it is empty or broken.
- */
 export function EmptyState({
   icon: Icon,
   title,
@@ -24,9 +18,9 @@ export function EmptyState({
         {Icon ? (
           <Icon className="text-ink-3" size={18} strokeWidth={1.5} />
         ) : null}
-        <p className="text-[13px] text-ink-3">{title}</p>
+        <p className="text-control text-ink-3">{title}</p>
         {detail ? (
-          <p className="max-w-md text-[12px] text-ink-3 leading-relaxed">
+          <p className="max-w-md text-ink-3 text-small leading-relaxed">
             {detail}
           </p>
         ) : null}

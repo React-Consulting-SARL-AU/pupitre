@@ -1,21 +1,11 @@
 import type { LoginAddress } from "./terminal-links";
 import { loopbackRedirect } from "./terminal-links";
 
-/**
- * A sign-in printed by a terminal opens in the reader's own browser.
- *
- * An in-app page cannot do it: the providers refuse an embedded browser, and
- * the reader's sessions and password manager live in the real one. When the
- * flow ends on a port of the machine, that port is brought here first, so the
- * browser's return lands on the CLI that is waiting for it.
- */
-
 export interface LoginDeps {
   pending: (id: string) => LoginAddress | null;
   serverOf: (id: string) => string | null;
-  /** Whether an address the terminal printed may leave for the browser at all. */
   openable: (url: string) => boolean;
-  /** Brings a port of the server to the same port here; resolves once it listens. */
+  /** Resolves once the local port listens. */
   forward: (id: string, serverId: string, port: number) => Promise<boolean>;
   openExternal: (url: string) => void;
 }
@@ -27,6 +17,7 @@ function whole(id: string, clicked: string, deps: LoginDeps): string {
   return printed?.url.startsWith(clicked) ? printed.url : clicked;
 }
 
+/** Providers refuse embedded browsers; a loopback redirect port is forwarded first so the return reaches the CLI. */
 export async function openFromTerminal(
   id: string,
   clicked: string,
@@ -68,7 +59,6 @@ export function rememberForward(id: string, forwardId: string): void {
   held.set(id, [...(held.get(id) ?? []), forwardId]);
 }
 
-/** The session is gone: what it borrowed from the server goes with it. */
 export function releaseForwards(
   id: string,
   close: (forwardId: string) => void

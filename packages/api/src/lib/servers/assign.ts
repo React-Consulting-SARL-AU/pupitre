@@ -53,6 +53,7 @@ async function writeAssignment(
   const prisma = withOrganization(getPrisma(), actor.organizationId)
 
   await prisma.server.updateMany({ where: { id: server.id }, data })
+
   await recordEvent({
     action: "server.assigned",
     actorUserId: actor.userId,
@@ -142,6 +143,7 @@ export async function unassignServer(
     where: { id: server.id },
     data: { assignedUserId: null, pendingAssignmentEmail: null },
   })
+
   await recordEvent({
     action: "server.unassigned",
     actorUserId: actor.userId,
@@ -158,16 +160,12 @@ export async function unassignServer(
   return await reloadServer(prisma, server.id)
 }
 
-/**
- * A member gone from the organization takes their assignments with them:
- * the console would otherwise show a name that cannot open the machine, and
- * a later invitation would hand the keys back without anyone asking.
- */
 export interface PlatformUnassignment {
   actorUserId: string
   reason: string
 }
 
+/** Otherwise a later invitation would hand the keys back without anyone asking. */
 export async function unassignServersOfMember(
   organizationId: string,
   userId: string,
@@ -236,6 +234,7 @@ export async function revokeDeviceOnServer(
     },
     update: { revokedByUserId: actor.userId, revokedAt: new Date() },
   })
+
   await recordEvent({
     action: "server.device_revoked",
     actorUserId: actor.userId,
@@ -246,11 +245,7 @@ export async function revokeDeviceOnServer(
   })
 }
 
-/**
- * Read by every list and every agent poll, so several readers can find the
- * same invitation accepted at once: the conditional write decides which one
- * of them writes the journal and sends the email.
- */
+// Concurrent polls can settle the same invitation; the conditional write picks the one that journals and emails.
 async function claimAssignment(
   prisma: ReturnType<typeof withOrganization>,
   server: ServerRow,
@@ -310,13 +305,7 @@ export async function settleAssignment(server: ServerRow): Promise<ServerRow> {
   )
 }
 
-/**
- * Every email the list is waiting on, read in one pass instead of one per
- * server: a roster the poll settles costs one query, not one per invitation.
- *
- * The servers share an organization — every caller reads one organization's
- * list — and the scoped client below is that organization's.
- */
+// Callers pass one organization's servers, so one scoped query covers every pending email.
 async function memberUserIdsByEmail(
   prisma: ReturnType<typeof withOrganization>,
   emails: string[]
@@ -353,6 +342,7 @@ export async function settleAssignments(
       waiting.map((server) => server.pendingAssignmentEmail.toLowerCase())
     ),
   ]
+
   const prisma = withOrganization(getPrisma(), first.organizationId)
   const userIds = await memberUserIdsByEmail(prisma, emails)
 

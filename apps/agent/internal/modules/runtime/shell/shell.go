@@ -12,7 +12,7 @@ const (
 	User = "dev"
 	Home = "/home/dev"
 
-	// zsh reads .zshenv for every shell; .zshrc is skipped by `ssh host 'node -v'`, so a runtime activated only there stays invisible.
+	// zsh reads .zshenv for every shell; `ssh host 'node -v'` skips .zshrc, hiding a runtime activated only there.
 	EnvPath = Home + "/.zshenv"
 
 	LocalBin  = "$HOME/.local/bin"
@@ -57,6 +57,7 @@ func HasBlock(ctx *modules.Context, name string) bool {
 // Guarded so three runtime blocks in the same file never stack the same directory twice.
 func PathLines(dirs ...string) string {
 	var lines []string
+
 	for i := len(dirs) - 1; i >= 0; i-- {
 		lines = append(lines, fmt.Sprintf(`[[ ":$PATH:" == *":%s:"* ]] || export PATH="%s:$PATH"`, dirs[i], dirs[i]))
 	}

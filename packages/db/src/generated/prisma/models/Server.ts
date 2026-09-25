@@ -119,6 +119,7 @@ export type ServerCountAggregateOutputType = {
   lastHeartbeatAt: number
   lastUsage: number
   backup: number
+  keyReport: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -218,6 +219,7 @@ export type ServerCountAggregateInputType = {
   lastHeartbeatAt?: true
   lastUsage?: true
   backup?: true
+  keyReport?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -336,6 +338,7 @@ export type ServerGroupByOutputType = {
   lastHeartbeatAt: Date | null
   lastUsage: runtime.JsonValue | null
   backup: runtime.JsonValue | null
+  keyReport: runtime.JsonValue | null
   createdAt: Date
   updatedAt: Date
   _count: ServerCountAggregateOutputType | null
@@ -390,6 +393,7 @@ export type ServerWhereInput = {
   lastHeartbeatAt?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
   lastUsage?: Prisma.JsonNullableFilter<"Server">
   backup?: Prisma.JsonNullableFilter<"Server">
+  keyReport?: Prisma.JsonNullableFilter<"Server">
   createdAt?: Prisma.DateTimeFilter<"Server"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Server"> | Date | string
   organization?: Prisma.XOR<Prisma.OrganizationScalarRelationFilter, Prisma.OrganizationWhereInput>
@@ -399,6 +403,7 @@ export type ServerWhereInput = {
   alerts?: Prisma.AlertListRelationFilter
   metricSamples?: Prisma.ServerMetricListRelationFilter
   backups?: Prisma.BackupListRelationFilter
+  keyApprovals?: Prisma.KeyApprovalListRelationFilter
 }
 
 export type ServerOrderByWithRelationInput = {
@@ -428,6 +433,7 @@ export type ServerOrderByWithRelationInput = {
   lastHeartbeatAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastUsage?: Prisma.SortOrderInput | Prisma.SortOrder
   backup?: Prisma.SortOrderInput | Prisma.SortOrder
+  keyReport?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   organization?: Prisma.OrganizationOrderByWithRelationInput
@@ -437,6 +443,7 @@ export type ServerOrderByWithRelationInput = {
   alerts?: Prisma.AlertOrderByRelationAggregateInput
   metricSamples?: Prisma.ServerMetricOrderByRelationAggregateInput
   backups?: Prisma.BackupOrderByRelationAggregateInput
+  keyApprovals?: Prisma.KeyApprovalOrderByRelationAggregateInput
 }
 
 export type ServerWhereUniqueInput = Prisma.AtLeast<{
@@ -469,6 +476,7 @@ export type ServerWhereUniqueInput = Prisma.AtLeast<{
   lastHeartbeatAt?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
   lastUsage?: Prisma.JsonNullableFilter<"Server">
   backup?: Prisma.JsonNullableFilter<"Server">
+  keyReport?: Prisma.JsonNullableFilter<"Server">
   createdAt?: Prisma.DateTimeFilter<"Server"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Server"> | Date | string
   organization?: Prisma.XOR<Prisma.OrganizationScalarRelationFilter, Prisma.OrganizationWhereInput>
@@ -478,6 +486,7 @@ export type ServerWhereUniqueInput = Prisma.AtLeast<{
   alerts?: Prisma.AlertListRelationFilter
   metricSamples?: Prisma.ServerMetricListRelationFilter
   backups?: Prisma.BackupListRelationFilter
+  keyApprovals?: Prisma.KeyApprovalListRelationFilter
 }, "id" | "serverTokenHash" | "enrollmentTokenHash" | "enrollmentKey">
 
 export type ServerOrderByWithAggregationInput = {
@@ -507,6 +516,7 @@ export type ServerOrderByWithAggregationInput = {
   lastHeartbeatAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastUsage?: Prisma.SortOrderInput | Prisma.SortOrder
   backup?: Prisma.SortOrderInput | Prisma.SortOrder
+  keyReport?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.ServerCountOrderByAggregateInput
@@ -546,6 +556,7 @@ export type ServerScalarWhereWithAggregatesInput = {
   lastHeartbeatAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Server"> | Date | string | null
   lastUsage?: Prisma.JsonNullableWithAggregatesFilter<"Server">
   backup?: Prisma.JsonNullableWithAggregatesFilter<"Server">
+  keyReport?: Prisma.JsonNullableWithAggregatesFilter<"Server">
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Server"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Server"> | Date | string
 }
@@ -574,6 +585,7 @@ export type ServerCreateInput = {
   lastHeartbeatAt?: Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   organization: Prisma.OrganizationCreateNestedOneWithoutServersInput
@@ -583,6 +595,7 @@ export type ServerCreateInput = {
   alerts?: Prisma.AlertCreateNestedManyWithoutServerInput
   metricSamples?: Prisma.ServerMetricCreateNestedManyWithoutServerInput
   backups?: Prisma.BackupCreateNestedManyWithoutServerInput
+  keyApprovals?: Prisma.KeyApprovalCreateNestedManyWithoutServerInput
 }
 
 export type ServerUncheckedCreateInput = {
@@ -612,12 +625,14 @@ export type ServerUncheckedCreateInput = {
   lastHeartbeatAt?: Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   revokedDevices?: Prisma.ServerRevokedDeviceUncheckedCreateNestedManyWithoutServerInput
   alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutServerInput
   metricSamples?: Prisma.ServerMetricUncheckedCreateNestedManyWithoutServerInput
   backups?: Prisma.BackupUncheckedCreateNestedManyWithoutServerInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedCreateNestedManyWithoutServerInput
 }
 
 export type ServerUpdateInput = {
@@ -644,6 +659,7 @@ export type ServerUpdateInput = {
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   organization?: Prisma.OrganizationUpdateOneRequiredWithoutServersNestedInput
@@ -653,6 +669,7 @@ export type ServerUpdateInput = {
   alerts?: Prisma.AlertUpdateManyWithoutServerNestedInput
   metricSamples?: Prisma.ServerMetricUpdateManyWithoutServerNestedInput
   backups?: Prisma.BackupUpdateManyWithoutServerNestedInput
+  keyApprovals?: Prisma.KeyApprovalUpdateManyWithoutServerNestedInput
 }
 
 export type ServerUncheckedUpdateInput = {
@@ -682,12 +699,14 @@ export type ServerUncheckedUpdateInput = {
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   revokedDevices?: Prisma.ServerRevokedDeviceUncheckedUpdateManyWithoutServerNestedInput
   alerts?: Prisma.AlertUncheckedUpdateManyWithoutServerNestedInput
   metricSamples?: Prisma.ServerMetricUncheckedUpdateManyWithoutServerNestedInput
   backups?: Prisma.BackupUncheckedUpdateManyWithoutServerNestedInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedUpdateManyWithoutServerNestedInput
 }
 
 export type ServerCreateManyInput = {
@@ -717,6 +736,7 @@ export type ServerCreateManyInput = {
   lastHeartbeatAt?: Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -745,6 +765,7 @@ export type ServerUpdateManyMutationInput = {
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -776,6 +797,7 @@ export type ServerUncheckedUpdateManyInput = {
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -817,6 +839,7 @@ export type ServerCountOrderByAggregateInput = {
   lastHeartbeatAt?: Prisma.SortOrder
   lastUsage?: Prisma.SortOrder
   backup?: Prisma.SortOrder
+  keyReport?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -1093,6 +1116,20 @@ export type ServerUpdateOneRequiredWithoutRevokedDevicesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.ServerUpdateToOneWithWhereWithoutRevokedDevicesInput, Prisma.ServerUpdateWithoutRevokedDevicesInput>, Prisma.ServerUncheckedUpdateWithoutRevokedDevicesInput>
 }
 
+export type ServerCreateNestedOneWithoutKeyApprovalsInput = {
+  create?: Prisma.XOR<Prisma.ServerCreateWithoutKeyApprovalsInput, Prisma.ServerUncheckedCreateWithoutKeyApprovalsInput>
+  connectOrCreate?: Prisma.ServerCreateOrConnectWithoutKeyApprovalsInput
+  connect?: Prisma.ServerWhereUniqueInput
+}
+
+export type ServerUpdateOneRequiredWithoutKeyApprovalsNestedInput = {
+  create?: Prisma.XOR<Prisma.ServerCreateWithoutKeyApprovalsInput, Prisma.ServerUncheckedCreateWithoutKeyApprovalsInput>
+  connectOrCreate?: Prisma.ServerCreateOrConnectWithoutKeyApprovalsInput
+  upsert?: Prisma.ServerUpsertWithoutKeyApprovalsInput
+  connect?: Prisma.ServerWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ServerUpdateToOneWithWhereWithoutKeyApprovalsInput, Prisma.ServerUpdateWithoutKeyApprovalsInput>, Prisma.ServerUncheckedUpdateWithoutKeyApprovalsInput>
+}
+
 export type ServerCreateWithoutAssignedUserInput = {
   id?: string
   name: string
@@ -1117,6 +1154,7 @@ export type ServerCreateWithoutAssignedUserInput = {
   lastHeartbeatAt?: Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   organization: Prisma.OrganizationCreateNestedOneWithoutServersInput
@@ -1125,6 +1163,7 @@ export type ServerCreateWithoutAssignedUserInput = {
   alerts?: Prisma.AlertCreateNestedManyWithoutServerInput
   metricSamples?: Prisma.ServerMetricCreateNestedManyWithoutServerInput
   backups?: Prisma.BackupCreateNestedManyWithoutServerInput
+  keyApprovals?: Prisma.KeyApprovalCreateNestedManyWithoutServerInput
 }
 
 export type ServerUncheckedCreateWithoutAssignedUserInput = {
@@ -1153,12 +1192,14 @@ export type ServerUncheckedCreateWithoutAssignedUserInput = {
   lastHeartbeatAt?: Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   revokedDevices?: Prisma.ServerRevokedDeviceUncheckedCreateNestedManyWithoutServerInput
   alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutServerInput
   metricSamples?: Prisma.ServerMetricUncheckedCreateNestedManyWithoutServerInput
   backups?: Prisma.BackupUncheckedCreateNestedManyWithoutServerInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedCreateNestedManyWithoutServerInput
 }
 
 export type ServerCreateOrConnectWithoutAssignedUserInput = {
@@ -1216,6 +1257,7 @@ export type ServerScalarWhereInput = {
   lastHeartbeatAt?: Prisma.DateTimeNullableFilter<"Server"> | Date | string | null
   lastUsage?: Prisma.JsonNullableFilter<"Server">
   backup?: Prisma.JsonNullableFilter<"Server">
+  keyReport?: Prisma.JsonNullableFilter<"Server">
   createdAt?: Prisma.DateTimeFilter<"Server"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Server"> | Date | string
 }
@@ -1244,6 +1286,7 @@ export type ServerCreateWithoutOrganizationInput = {
   lastHeartbeatAt?: Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   device?: Prisma.DeviceCreateNestedOneWithoutEnrolledServersInput
@@ -1252,6 +1295,7 @@ export type ServerCreateWithoutOrganizationInput = {
   alerts?: Prisma.AlertCreateNestedManyWithoutServerInput
   metricSamples?: Prisma.ServerMetricCreateNestedManyWithoutServerInput
   backups?: Prisma.BackupCreateNestedManyWithoutServerInput
+  keyApprovals?: Prisma.KeyApprovalCreateNestedManyWithoutServerInput
 }
 
 export type ServerUncheckedCreateWithoutOrganizationInput = {
@@ -1280,12 +1324,14 @@ export type ServerUncheckedCreateWithoutOrganizationInput = {
   lastHeartbeatAt?: Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   revokedDevices?: Prisma.ServerRevokedDeviceUncheckedCreateNestedManyWithoutServerInput
   alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutServerInput
   metricSamples?: Prisma.ServerMetricUncheckedCreateNestedManyWithoutServerInput
   backups?: Prisma.BackupUncheckedCreateNestedManyWithoutServerInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedCreateNestedManyWithoutServerInput
 }
 
 export type ServerCreateOrConnectWithoutOrganizationInput = {
@@ -1337,6 +1383,7 @@ export type ServerCreateWithoutDeviceInput = {
   lastHeartbeatAt?: Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   organization: Prisma.OrganizationCreateNestedOneWithoutServersInput
@@ -1345,6 +1392,7 @@ export type ServerCreateWithoutDeviceInput = {
   alerts?: Prisma.AlertCreateNestedManyWithoutServerInput
   metricSamples?: Prisma.ServerMetricCreateNestedManyWithoutServerInput
   backups?: Prisma.BackupCreateNestedManyWithoutServerInput
+  keyApprovals?: Prisma.KeyApprovalCreateNestedManyWithoutServerInput
 }
 
 export type ServerUncheckedCreateWithoutDeviceInput = {
@@ -1373,12 +1421,14 @@ export type ServerUncheckedCreateWithoutDeviceInput = {
   lastHeartbeatAt?: Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   revokedDevices?: Prisma.ServerRevokedDeviceUncheckedCreateNestedManyWithoutServerInput
   alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutServerInput
   metricSamples?: Prisma.ServerMetricUncheckedCreateNestedManyWithoutServerInput
   backups?: Prisma.BackupUncheckedCreateNestedManyWithoutServerInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedCreateNestedManyWithoutServerInput
 }
 
 export type ServerCreateOrConnectWithoutDeviceInput = {
@@ -1430,6 +1480,7 @@ export type ServerCreateWithoutMetricSamplesInput = {
   lastHeartbeatAt?: Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   organization: Prisma.OrganizationCreateNestedOneWithoutServersInput
@@ -1438,6 +1489,7 @@ export type ServerCreateWithoutMetricSamplesInput = {
   revokedDevices?: Prisma.ServerRevokedDeviceCreateNestedManyWithoutServerInput
   alerts?: Prisma.AlertCreateNestedManyWithoutServerInput
   backups?: Prisma.BackupCreateNestedManyWithoutServerInput
+  keyApprovals?: Prisma.KeyApprovalCreateNestedManyWithoutServerInput
 }
 
 export type ServerUncheckedCreateWithoutMetricSamplesInput = {
@@ -1467,11 +1519,13 @@ export type ServerUncheckedCreateWithoutMetricSamplesInput = {
   lastHeartbeatAt?: Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   revokedDevices?: Prisma.ServerRevokedDeviceUncheckedCreateNestedManyWithoutServerInput
   alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutServerInput
   backups?: Prisma.BackupUncheckedCreateNestedManyWithoutServerInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedCreateNestedManyWithoutServerInput
 }
 
 export type ServerCreateOrConnectWithoutMetricSamplesInput = {
@@ -1514,6 +1568,7 @@ export type ServerUpdateWithoutMetricSamplesInput = {
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   organization?: Prisma.OrganizationUpdateOneRequiredWithoutServersNestedInput
@@ -1522,6 +1577,7 @@ export type ServerUpdateWithoutMetricSamplesInput = {
   revokedDevices?: Prisma.ServerRevokedDeviceUpdateManyWithoutServerNestedInput
   alerts?: Prisma.AlertUpdateManyWithoutServerNestedInput
   backups?: Prisma.BackupUpdateManyWithoutServerNestedInput
+  keyApprovals?: Prisma.KeyApprovalUpdateManyWithoutServerNestedInput
 }
 
 export type ServerUncheckedUpdateWithoutMetricSamplesInput = {
@@ -1551,11 +1607,13 @@ export type ServerUncheckedUpdateWithoutMetricSamplesInput = {
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   revokedDevices?: Prisma.ServerRevokedDeviceUncheckedUpdateManyWithoutServerNestedInput
   alerts?: Prisma.AlertUncheckedUpdateManyWithoutServerNestedInput
   backups?: Prisma.BackupUncheckedUpdateManyWithoutServerNestedInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedUpdateManyWithoutServerNestedInput
 }
 
 export type ServerCreateWithoutAlertsInput = {
@@ -1582,6 +1640,7 @@ export type ServerCreateWithoutAlertsInput = {
   lastHeartbeatAt?: Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   organization: Prisma.OrganizationCreateNestedOneWithoutServersInput
@@ -1590,6 +1649,7 @@ export type ServerCreateWithoutAlertsInput = {
   revokedDevices?: Prisma.ServerRevokedDeviceCreateNestedManyWithoutServerInput
   metricSamples?: Prisma.ServerMetricCreateNestedManyWithoutServerInput
   backups?: Prisma.BackupCreateNestedManyWithoutServerInput
+  keyApprovals?: Prisma.KeyApprovalCreateNestedManyWithoutServerInput
 }
 
 export type ServerUncheckedCreateWithoutAlertsInput = {
@@ -1619,11 +1679,13 @@ export type ServerUncheckedCreateWithoutAlertsInput = {
   lastHeartbeatAt?: Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   revokedDevices?: Prisma.ServerRevokedDeviceUncheckedCreateNestedManyWithoutServerInput
   metricSamples?: Prisma.ServerMetricUncheckedCreateNestedManyWithoutServerInput
   backups?: Prisma.BackupUncheckedCreateNestedManyWithoutServerInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedCreateNestedManyWithoutServerInput
 }
 
 export type ServerCreateOrConnectWithoutAlertsInput = {
@@ -1666,6 +1728,7 @@ export type ServerUpdateWithoutAlertsInput = {
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   organization?: Prisma.OrganizationUpdateOneRequiredWithoutServersNestedInput
@@ -1674,6 +1737,7 @@ export type ServerUpdateWithoutAlertsInput = {
   revokedDevices?: Prisma.ServerRevokedDeviceUpdateManyWithoutServerNestedInput
   metricSamples?: Prisma.ServerMetricUpdateManyWithoutServerNestedInput
   backups?: Prisma.BackupUpdateManyWithoutServerNestedInput
+  keyApprovals?: Prisma.KeyApprovalUpdateManyWithoutServerNestedInput
 }
 
 export type ServerUncheckedUpdateWithoutAlertsInput = {
@@ -1703,11 +1767,13 @@ export type ServerUncheckedUpdateWithoutAlertsInput = {
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   revokedDevices?: Prisma.ServerRevokedDeviceUncheckedUpdateManyWithoutServerNestedInput
   metricSamples?: Prisma.ServerMetricUncheckedUpdateManyWithoutServerNestedInput
   backups?: Prisma.BackupUncheckedUpdateManyWithoutServerNestedInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedUpdateManyWithoutServerNestedInput
 }
 
 export type ServerCreateWithoutBackupsInput = {
@@ -1734,6 +1800,7 @@ export type ServerCreateWithoutBackupsInput = {
   lastHeartbeatAt?: Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   organization: Prisma.OrganizationCreateNestedOneWithoutServersInput
@@ -1742,6 +1809,7 @@ export type ServerCreateWithoutBackupsInput = {
   revokedDevices?: Prisma.ServerRevokedDeviceCreateNestedManyWithoutServerInput
   alerts?: Prisma.AlertCreateNestedManyWithoutServerInput
   metricSamples?: Prisma.ServerMetricCreateNestedManyWithoutServerInput
+  keyApprovals?: Prisma.KeyApprovalCreateNestedManyWithoutServerInput
 }
 
 export type ServerUncheckedCreateWithoutBackupsInput = {
@@ -1771,11 +1839,13 @@ export type ServerUncheckedCreateWithoutBackupsInput = {
   lastHeartbeatAt?: Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   revokedDevices?: Prisma.ServerRevokedDeviceUncheckedCreateNestedManyWithoutServerInput
   alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutServerInput
   metricSamples?: Prisma.ServerMetricUncheckedCreateNestedManyWithoutServerInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedCreateNestedManyWithoutServerInput
 }
 
 export type ServerCreateOrConnectWithoutBackupsInput = {
@@ -1818,6 +1888,7 @@ export type ServerUpdateWithoutBackupsInput = {
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   organization?: Prisma.OrganizationUpdateOneRequiredWithoutServersNestedInput
@@ -1826,6 +1897,7 @@ export type ServerUpdateWithoutBackupsInput = {
   revokedDevices?: Prisma.ServerRevokedDeviceUpdateManyWithoutServerNestedInput
   alerts?: Prisma.AlertUpdateManyWithoutServerNestedInput
   metricSamples?: Prisma.ServerMetricUpdateManyWithoutServerNestedInput
+  keyApprovals?: Prisma.KeyApprovalUpdateManyWithoutServerNestedInput
 }
 
 export type ServerUncheckedUpdateWithoutBackupsInput = {
@@ -1855,11 +1927,13 @@ export type ServerUncheckedUpdateWithoutBackupsInput = {
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   revokedDevices?: Prisma.ServerRevokedDeviceUncheckedUpdateManyWithoutServerNestedInput
   alerts?: Prisma.AlertUncheckedUpdateManyWithoutServerNestedInput
   metricSamples?: Prisma.ServerMetricUncheckedUpdateManyWithoutServerNestedInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedUpdateManyWithoutServerNestedInput
 }
 
 export type ServerCreateWithoutRevokedDevicesInput = {
@@ -1886,6 +1960,7 @@ export type ServerCreateWithoutRevokedDevicesInput = {
   lastHeartbeatAt?: Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   organization: Prisma.OrganizationCreateNestedOneWithoutServersInput
@@ -1894,6 +1969,7 @@ export type ServerCreateWithoutRevokedDevicesInput = {
   alerts?: Prisma.AlertCreateNestedManyWithoutServerInput
   metricSamples?: Prisma.ServerMetricCreateNestedManyWithoutServerInput
   backups?: Prisma.BackupCreateNestedManyWithoutServerInput
+  keyApprovals?: Prisma.KeyApprovalCreateNestedManyWithoutServerInput
 }
 
 export type ServerUncheckedCreateWithoutRevokedDevicesInput = {
@@ -1923,11 +1999,13 @@ export type ServerUncheckedCreateWithoutRevokedDevicesInput = {
   lastHeartbeatAt?: Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
   alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutServerInput
   metricSamples?: Prisma.ServerMetricUncheckedCreateNestedManyWithoutServerInput
   backups?: Prisma.BackupUncheckedCreateNestedManyWithoutServerInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedCreateNestedManyWithoutServerInput
 }
 
 export type ServerCreateOrConnectWithoutRevokedDevicesInput = {
@@ -1970,6 +2048,7 @@ export type ServerUpdateWithoutRevokedDevicesInput = {
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   organization?: Prisma.OrganizationUpdateOneRequiredWithoutServersNestedInput
@@ -1978,6 +2057,7 @@ export type ServerUpdateWithoutRevokedDevicesInput = {
   alerts?: Prisma.AlertUpdateManyWithoutServerNestedInput
   metricSamples?: Prisma.ServerMetricUpdateManyWithoutServerNestedInput
   backups?: Prisma.BackupUpdateManyWithoutServerNestedInput
+  keyApprovals?: Prisma.KeyApprovalUpdateManyWithoutServerNestedInput
 }
 
 export type ServerUncheckedUpdateWithoutRevokedDevicesInput = {
@@ -2007,8 +2087,170 @@ export type ServerUncheckedUpdateWithoutRevokedDevicesInput = {
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  alerts?: Prisma.AlertUncheckedUpdateManyWithoutServerNestedInput
+  metricSamples?: Prisma.ServerMetricUncheckedUpdateManyWithoutServerNestedInput
+  backups?: Prisma.BackupUncheckedUpdateManyWithoutServerNestedInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedUpdateManyWithoutServerNestedInput
+}
+
+export type ServerCreateWithoutKeyApprovalsInput = {
+  id?: string
+  name: string
+  host?: string | null
+  port?: number
+  sshUser?: string
+  hostFingerprint?: string | null
+  arch: string
+  agentVersion?: string | null
+  targetVersion?: string | null
+  serverTokenHash?: string | null
+  enrollmentTokenHash?: string | null
+  enrollmentKey?: string | null
+  enrollmentExpiresAt?: Date | string | null
+  entitlementValidUntil?: Date | string | null
+  decommissionAt?: Date | string | null
+  status?: $Enums.ServerStatus
+  suspendedReason?: $Enums.SuspensionReason | null
+  suspendedByOrganization?: boolean
+  channel?: $Enums.ReleaseChannel
+  pendingAssignmentEmail?: string | null
+  lastHeartbeatAt?: Date | string | null
+  lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  organization: Prisma.OrganizationCreateNestedOneWithoutServersInput
+  device?: Prisma.DeviceCreateNestedOneWithoutEnrolledServersInput
+  assignedUser?: Prisma.UserCreateNestedOneWithoutAssignedServersInput
+  revokedDevices?: Prisma.ServerRevokedDeviceCreateNestedManyWithoutServerInput
+  alerts?: Prisma.AlertCreateNestedManyWithoutServerInput
+  metricSamples?: Prisma.ServerMetricCreateNestedManyWithoutServerInput
+  backups?: Prisma.BackupCreateNestedManyWithoutServerInput
+}
+
+export type ServerUncheckedCreateWithoutKeyApprovalsInput = {
+  id?: string
+  organizationId: string
+  name: string
+  host?: string | null
+  port?: number
+  sshUser?: string
+  hostFingerprint?: string | null
+  arch: string
+  agentVersion?: string | null
+  targetVersion?: string | null
+  serverTokenHash?: string | null
+  enrollmentTokenHash?: string | null
+  enrollmentKey?: string | null
+  enrollmentExpiresAt?: Date | string | null
+  entitlementValidUntil?: Date | string | null
+  decommissionAt?: Date | string | null
+  status?: $Enums.ServerStatus
+  suspendedReason?: $Enums.SuspensionReason | null
+  suspendedByOrganization?: boolean
+  channel?: $Enums.ReleaseChannel
+  deviceId?: string | null
+  assignedUserId?: string | null
+  pendingAssignmentEmail?: string | null
+  lastHeartbeatAt?: Date | string | null
+  lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  revokedDevices?: Prisma.ServerRevokedDeviceUncheckedCreateNestedManyWithoutServerInput
+  alerts?: Prisma.AlertUncheckedCreateNestedManyWithoutServerInput
+  metricSamples?: Prisma.ServerMetricUncheckedCreateNestedManyWithoutServerInput
+  backups?: Prisma.BackupUncheckedCreateNestedManyWithoutServerInput
+}
+
+export type ServerCreateOrConnectWithoutKeyApprovalsInput = {
+  where: Prisma.ServerWhereUniqueInput
+  create: Prisma.XOR<Prisma.ServerCreateWithoutKeyApprovalsInput, Prisma.ServerUncheckedCreateWithoutKeyApprovalsInput>
+}
+
+export type ServerUpsertWithoutKeyApprovalsInput = {
+  update: Prisma.XOR<Prisma.ServerUpdateWithoutKeyApprovalsInput, Prisma.ServerUncheckedUpdateWithoutKeyApprovalsInput>
+  create: Prisma.XOR<Prisma.ServerCreateWithoutKeyApprovalsInput, Prisma.ServerUncheckedCreateWithoutKeyApprovalsInput>
+  where?: Prisma.ServerWhereInput
+}
+
+export type ServerUpdateToOneWithWhereWithoutKeyApprovalsInput = {
+  where?: Prisma.ServerWhereInput
+  data: Prisma.XOR<Prisma.ServerUpdateWithoutKeyApprovalsInput, Prisma.ServerUncheckedUpdateWithoutKeyApprovalsInput>
+}
+
+export type ServerUpdateWithoutKeyApprovalsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  host?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  port?: Prisma.IntFieldUpdateOperationsInput | number
+  sshUser?: Prisma.StringFieldUpdateOperationsInput | string
+  hostFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  arch?: Prisma.StringFieldUpdateOperationsInput | string
+  agentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  serverTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
+  suspendedReason?: Prisma.NullableEnumSuspensionReasonFieldUpdateOperationsInput | $Enums.SuspensionReason | null
+  suspendedByOrganization?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
+  pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  organization?: Prisma.OrganizationUpdateOneRequiredWithoutServersNestedInput
+  device?: Prisma.DeviceUpdateOneWithoutEnrolledServersNestedInput
+  assignedUser?: Prisma.UserUpdateOneWithoutAssignedServersNestedInput
+  revokedDevices?: Prisma.ServerRevokedDeviceUpdateManyWithoutServerNestedInput
+  alerts?: Prisma.AlertUpdateManyWithoutServerNestedInput
+  metricSamples?: Prisma.ServerMetricUpdateManyWithoutServerNestedInput
+  backups?: Prisma.BackupUpdateManyWithoutServerNestedInput
+}
+
+export type ServerUncheckedUpdateWithoutKeyApprovalsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  host?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  port?: Prisma.IntFieldUpdateOperationsInput | number
+  sshUser?: Prisma.StringFieldUpdateOperationsInput | string
+  hostFingerprint?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  arch?: Prisma.StringFieldUpdateOperationsInput | string
+  agentVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  targetVersion?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  serverTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentTokenHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  enrollmentExpiresAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  entitlementValidUntil?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  decommissionAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  status?: Prisma.EnumServerStatusFieldUpdateOperationsInput | $Enums.ServerStatus
+  suspendedReason?: Prisma.NullableEnumSuspensionReasonFieldUpdateOperationsInput | $Enums.SuspensionReason | null
+  suspendedByOrganization?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  channel?: Prisma.EnumReleaseChannelFieldUpdateOperationsInput | $Enums.ReleaseChannel
+  deviceId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  assignedUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  pendingAssignmentEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  revokedDevices?: Prisma.ServerRevokedDeviceUncheckedUpdateManyWithoutServerNestedInput
   alerts?: Prisma.AlertUncheckedUpdateManyWithoutServerNestedInput
   metricSamples?: Prisma.ServerMetricUncheckedUpdateManyWithoutServerNestedInput
   backups?: Prisma.BackupUncheckedUpdateManyWithoutServerNestedInput
@@ -2040,6 +2282,7 @@ export type ServerCreateManyAssignedUserInput = {
   lastHeartbeatAt?: Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -2068,6 +2311,7 @@ export type ServerUpdateWithoutAssignedUserInput = {
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   organization?: Prisma.OrganizationUpdateOneRequiredWithoutServersNestedInput
@@ -2076,6 +2320,7 @@ export type ServerUpdateWithoutAssignedUserInput = {
   alerts?: Prisma.AlertUpdateManyWithoutServerNestedInput
   metricSamples?: Prisma.ServerMetricUpdateManyWithoutServerNestedInput
   backups?: Prisma.BackupUpdateManyWithoutServerNestedInput
+  keyApprovals?: Prisma.KeyApprovalUpdateManyWithoutServerNestedInput
 }
 
 export type ServerUncheckedUpdateWithoutAssignedUserInput = {
@@ -2104,12 +2349,14 @@ export type ServerUncheckedUpdateWithoutAssignedUserInput = {
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   revokedDevices?: Prisma.ServerRevokedDeviceUncheckedUpdateManyWithoutServerNestedInput
   alerts?: Prisma.AlertUncheckedUpdateManyWithoutServerNestedInput
   metricSamples?: Prisma.ServerMetricUncheckedUpdateManyWithoutServerNestedInput
   backups?: Prisma.BackupUncheckedUpdateManyWithoutServerNestedInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedUpdateManyWithoutServerNestedInput
 }
 
 export type ServerUncheckedUpdateManyWithoutAssignedUserInput = {
@@ -2138,6 +2385,7 @@ export type ServerUncheckedUpdateManyWithoutAssignedUserInput = {
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -2168,6 +2416,7 @@ export type ServerCreateManyOrganizationInput = {
   lastHeartbeatAt?: Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -2196,6 +2445,7 @@ export type ServerUpdateWithoutOrganizationInput = {
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   device?: Prisma.DeviceUpdateOneWithoutEnrolledServersNestedInput
@@ -2204,6 +2454,7 @@ export type ServerUpdateWithoutOrganizationInput = {
   alerts?: Prisma.AlertUpdateManyWithoutServerNestedInput
   metricSamples?: Prisma.ServerMetricUpdateManyWithoutServerNestedInput
   backups?: Prisma.BackupUpdateManyWithoutServerNestedInput
+  keyApprovals?: Prisma.KeyApprovalUpdateManyWithoutServerNestedInput
 }
 
 export type ServerUncheckedUpdateWithoutOrganizationInput = {
@@ -2232,12 +2483,14 @@ export type ServerUncheckedUpdateWithoutOrganizationInput = {
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   revokedDevices?: Prisma.ServerRevokedDeviceUncheckedUpdateManyWithoutServerNestedInput
   alerts?: Prisma.AlertUncheckedUpdateManyWithoutServerNestedInput
   metricSamples?: Prisma.ServerMetricUncheckedUpdateManyWithoutServerNestedInput
   backups?: Prisma.BackupUncheckedUpdateManyWithoutServerNestedInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedUpdateManyWithoutServerNestedInput
 }
 
 export type ServerUncheckedUpdateManyWithoutOrganizationInput = {
@@ -2266,6 +2519,7 @@ export type ServerUncheckedUpdateManyWithoutOrganizationInput = {
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -2296,6 +2550,7 @@ export type ServerCreateManyDeviceInput = {
   lastHeartbeatAt?: Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -2324,6 +2579,7 @@ export type ServerUpdateWithoutDeviceInput = {
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   organization?: Prisma.OrganizationUpdateOneRequiredWithoutServersNestedInput
@@ -2332,6 +2588,7 @@ export type ServerUpdateWithoutDeviceInput = {
   alerts?: Prisma.AlertUpdateManyWithoutServerNestedInput
   metricSamples?: Prisma.ServerMetricUpdateManyWithoutServerNestedInput
   backups?: Prisma.BackupUpdateManyWithoutServerNestedInput
+  keyApprovals?: Prisma.KeyApprovalUpdateManyWithoutServerNestedInput
 }
 
 export type ServerUncheckedUpdateWithoutDeviceInput = {
@@ -2360,12 +2617,14 @@ export type ServerUncheckedUpdateWithoutDeviceInput = {
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   revokedDevices?: Prisma.ServerRevokedDeviceUncheckedUpdateManyWithoutServerNestedInput
   alerts?: Prisma.AlertUncheckedUpdateManyWithoutServerNestedInput
   metricSamples?: Prisma.ServerMetricUncheckedUpdateManyWithoutServerNestedInput
   backups?: Prisma.BackupUncheckedUpdateManyWithoutServerNestedInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedUpdateManyWithoutServerNestedInput
 }
 
 export type ServerUncheckedUpdateManyWithoutDeviceInput = {
@@ -2394,6 +2653,7 @@ export type ServerUncheckedUpdateManyWithoutDeviceInput = {
   lastHeartbeatAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastUsage?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   backup?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  keyReport?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -2408,6 +2668,7 @@ export type ServerCountOutputType = {
   alerts: number
   metricSamples: number
   backups: number
+  keyApprovals: number
 }
 
 export type ServerCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2415,6 +2676,7 @@ export type ServerCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions
   alerts?: boolean | ServerCountOutputTypeCountAlertsArgs
   metricSamples?: boolean | ServerCountOutputTypeCountMetricSamplesArgs
   backups?: boolean | ServerCountOutputTypeCountBackupsArgs
+  keyApprovals?: boolean | ServerCountOutputTypeCountKeyApprovalsArgs
 }
 
 /**
@@ -2455,6 +2717,13 @@ export type ServerCountOutputTypeCountBackupsArgs<ExtArgs extends runtime.Types.
   where?: Prisma.BackupWhereInput
 }
 
+/**
+ * ServerCountOutputType without action
+ */
+export type ServerCountOutputTypeCountKeyApprovalsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.KeyApprovalWhereInput
+}
+
 
 export type ServerSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -2483,6 +2752,7 @@ export type ServerSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   lastHeartbeatAt?: boolean
   lastUsage?: boolean
   backup?: boolean
+  keyReport?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
@@ -2492,6 +2762,7 @@ export type ServerSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   alerts?: boolean | Prisma.Server$alertsArgs<ExtArgs>
   metricSamples?: boolean | Prisma.Server$metricSamplesArgs<ExtArgs>
   backups?: boolean | Prisma.Server$backupsArgs<ExtArgs>
+  keyApprovals?: boolean | Prisma.Server$keyApprovalsArgs<ExtArgs>
   _count?: boolean | Prisma.ServerCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["server"]>
 
@@ -2522,6 +2793,7 @@ export type ServerSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   lastHeartbeatAt?: boolean
   lastUsage?: boolean
   backup?: boolean
+  keyReport?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
@@ -2556,6 +2828,7 @@ export type ServerSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   lastHeartbeatAt?: boolean
   lastUsage?: boolean
   backup?: boolean
+  keyReport?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
@@ -2590,11 +2863,12 @@ export type ServerSelectScalar = {
   lastHeartbeatAt?: boolean
   lastUsage?: boolean
   backup?: boolean
+  keyReport?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type ServerOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "name" | "host" | "port" | "sshUser" | "hostFingerprint" | "arch" | "agentVersion" | "targetVersion" | "serverTokenHash" | "enrollmentTokenHash" | "enrollmentKey" | "enrollmentExpiresAt" | "entitlementValidUntil" | "decommissionAt" | "status" | "suspendedReason" | "suspendedByOrganization" | "channel" | "deviceId" | "assignedUserId" | "pendingAssignmentEmail" | "lastHeartbeatAt" | "lastUsage" | "backup" | "createdAt" | "updatedAt", ExtArgs["result"]["server"]>
+export type ServerOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "name" | "host" | "port" | "sshUser" | "hostFingerprint" | "arch" | "agentVersion" | "targetVersion" | "serverTokenHash" | "enrollmentTokenHash" | "enrollmentKey" | "enrollmentExpiresAt" | "entitlementValidUntil" | "decommissionAt" | "status" | "suspendedReason" | "suspendedByOrganization" | "channel" | "deviceId" | "assignedUserId" | "pendingAssignmentEmail" | "lastHeartbeatAt" | "lastUsage" | "backup" | "keyReport" | "createdAt" | "updatedAt", ExtArgs["result"]["server"]>
 export type ServerInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   organization?: boolean | Prisma.OrganizationDefaultArgs<ExtArgs>
   device?: boolean | Prisma.Server$deviceArgs<ExtArgs>
@@ -2603,6 +2877,7 @@ export type ServerInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   alerts?: boolean | Prisma.Server$alertsArgs<ExtArgs>
   metricSamples?: boolean | Prisma.Server$metricSamplesArgs<ExtArgs>
   backups?: boolean | Prisma.Server$backupsArgs<ExtArgs>
+  keyApprovals?: boolean | Prisma.Server$keyApprovalsArgs<ExtArgs>
   _count?: boolean | Prisma.ServerCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ServerIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -2625,11 +2900,11 @@ export type $ServerPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     revokedDevices: Prisma.$ServerRevokedDevicePayload<ExtArgs>[]
     alerts: Prisma.$AlertPayload<ExtArgs>[]
     /**
-     * One row per heartbeat reading, pruned past the seven-day window: the
-     * heartbeat writes its sample alone, never the window it belongs to.
+     * One row per heartbeat, pruned past seven days.
      */
     metricSamples: Prisma.$ServerMetricPayload<ExtArgs>[]
     backups: Prisma.$BackupPayload<ExtArgs>[]
+    keyApprovals: Prisma.$KeyApprovalPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -2651,7 +2926,7 @@ export type $ServerPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     status: $Enums.ServerStatus
     suspendedReason: $Enums.SuspensionReason | null
     /**
-     * True for a server the suspension of its organization took down, and that the reopening gives back; a suspension the team laid on this machine alone stays.
+     * Reopening the organization only lifts suspensions it caused, not ones laid on this server alone.
      */
     suspendedByOrganization: boolean
     channel: $Enums.ReleaseChannel
@@ -2661,9 +2936,13 @@ export type $ServerPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     lastHeartbeatAt: Date | null
     lastUsage: runtime.JsonValue | null
     /**
-     * The heartbeat's last word on backups, a `BackupBeat`; a heartbeat without one keeps it.
+     * Last `BackupBeat`; a heartbeat without one keeps it.
      */
     backup: runtime.JsonValue | null
+    /**
+     * Last `KeysBeat` as `{ signers, pending, reported_at }`; a heartbeat without one keeps it.
+     */
+    keyReport: runtime.JsonValue | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["server"]>
@@ -3067,6 +3346,7 @@ export interface Prisma__ServerClient<T, Null = never, ExtArgs extends runtime.T
   alerts<T extends Prisma.Server$alertsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Server$alertsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$AlertPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   metricSamples<T extends Prisma.Server$metricSamplesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Server$metricSamplesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ServerMetricPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   backups<T extends Prisma.Server$backupsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Server$backupsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$BackupPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  keyApprovals<T extends Prisma.Server$keyApprovalsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Server$keyApprovalsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$KeyApprovalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -3122,6 +3402,7 @@ export interface ServerFieldRefs {
   readonly lastHeartbeatAt: Prisma.FieldRef<"Server", 'DateTime'>
   readonly lastUsage: Prisma.FieldRef<"Server", 'Json'>
   readonly backup: Prisma.FieldRef<"Server", 'Json'>
+  readonly keyReport: Prisma.FieldRef<"Server", 'Json'>
   readonly createdAt: Prisma.FieldRef<"Server", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Server", 'DateTime'>
 }
@@ -3654,6 +3935,30 @@ export type Server$backupsArgs<ExtArgs extends runtime.Types.Extensions.Internal
   take?: number
   skip?: number
   distinct?: Prisma.BackupScalarFieldEnum | Prisma.BackupScalarFieldEnum[]
+}
+
+/**
+ * Server.keyApprovals
+ */
+export type Server$keyApprovalsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the KeyApproval
+   */
+  select?: Prisma.KeyApprovalSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the KeyApproval
+   */
+  omit?: Prisma.KeyApprovalOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.KeyApprovalInclude<ExtArgs> | null
+  where?: Prisma.KeyApprovalWhereInput
+  orderBy?: Prisma.KeyApprovalOrderByWithRelationInput | Prisma.KeyApprovalOrderByWithRelationInput[]
+  cursor?: Prisma.KeyApprovalWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.KeyApprovalScalarFieldEnum | Prisma.KeyApprovalScalarFieldEnum[]
 }
 
 /**

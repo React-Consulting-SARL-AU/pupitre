@@ -5,11 +5,6 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { ArrowRight } from "lucide-react";
 import { useState } from "react";
 
-/**
- * The modules this server runs and the backup does not hold: the reader says
- * which go before the data comes back. All are ticked — the backup is the state
- * being returned to.
- */
 export function BackupsExtraChoice({
   extra,
   nameOf,
@@ -21,6 +16,7 @@ export function BackupsExtraChoice({
 }) {
   const t = useTranslations();
 
+  // All ticked by default: the backup is the state being returned to.
   const [chosen, setChosen] = useState<readonly string[]>(extra);
 
   function toggle(moduleId: string, next: boolean): void {
@@ -31,7 +27,7 @@ export function BackupsExtraChoice({
 
   return (
     <Panel className="flex flex-col gap-4" inset="lg">
-      <p className="text-[13px] text-ink-2">{t("backups.extra.question")}</p>
+      <p className="text-control text-ink-2">{t("backups.extra.question")}</p>
 
       <div className="flex flex-col gap-2">
         {extra.map((moduleId) => (

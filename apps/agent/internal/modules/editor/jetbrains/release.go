@@ -22,7 +22,7 @@ type ide struct {
 	product string
 }
 
-// The product code is what the release index answers to; the product name is what the launcher and its .vmoptions are called inside the archive.
+// code keys the release index; product names the launcher and its .vmoptions inside the archive.
 var ides = map[string]ide{
 	"idea":     {code: "IIU", product: "idea"},
 	"webstorm": {code: "WS", product: "webstorm"},
@@ -47,7 +47,7 @@ type indexEntry struct {
 	} `json:"downloads"`
 }
 
-// The engine holds the field to the manifest's options before the first step, so the key is always one of the five.
+// The engine validates the field against the manifest's options first, so the key is always known.
 func chosen(ctx *modules.Context) ide {
 	return ides[ctx.String("ide")]
 }
@@ -91,7 +91,7 @@ func resolve(ctx *modules.Context) (release, error) {
 	return release{}, errors.New(i18n.T("modules.jetbrains.version_missing", wanted, selected.code))
 }
 
-// JetBrains publishes a .sha256 beside every archive; an entry without one is refused rather than trusted on the transport alone.
+// An entry without its published .sha256 is refused rather than trusted on the transport alone.
 func publishedDigest(ctx *modules.Context, found release) (string, error) {
 	if found.checksum == "" {
 		return "", errors.New(i18n.T("modules.download.checksum_unpublished", path.Base(found.link), releasesURL))
@@ -112,6 +112,7 @@ func publishedDigest(ctx *modules.Context, found release) (string, error) {
 
 func indexURL(selected ide, wanted string) string {
 	url := releasesURL + "?code=" + selected.code + "&type=release"
+
 	if wanted == latest {
 		return url + "&latest=true"
 	}

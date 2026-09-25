@@ -1,9 +1,3 @@
-/**
- * What the main process refuses, in the language of whoever is looking.
- *
- * A refusal coming from the app names one of these entries; a refusal coming
- * from the agent is shown as is, in the language the server answered in.
- */
 export const refusals = {
   en: {
     "refusal.project.command.unknown": "Unknown project command: {cmd}.",
@@ -30,6 +24,8 @@ export const refusals = {
       "The server did not answer within {seconds} s ({cmd}).",
     "refusal.platform.silent": "The console did not answer: {reason}.",
     "refusal.platform.refused": "The console refused the request ({status}).",
+    "refusal.platform.unreadable":
+      "The console answered {path} in a shape this app does not read.",
     "refusal.release.unpublished":
       "The console has no downloadable agent for {version}.",
     "refusal.release.storage":
@@ -67,6 +63,8 @@ export const refusals = {
       "Check your connection. Pupitre stays usable for seven days offline.",
     "refusal.platform.refused.fix":
       "Sign in again from the settings, then try again.",
+    "refusal.platform.unreadable.fix":
+      "Update Pupitre from the settings, then try again.",
     "refusal.account.signedOut": "No account is signed in on this computer.",
     "refusal.account.signedOut.fix":
       "Sign in from the account screen, then try again.",
@@ -162,17 +160,21 @@ export const refusals = {
     "refusal.release.unsigned":
       "The console did not sign agent version {version}.",
     "refusal.release.unsigned.fix":
+      "Try again later; if it lasts, contact support.",
+    "refusal.release.unsigned.fix.dev":
       "Publish a signed agent version before installing it on a server.",
     "refusal.release.key":
       "This app carries no public key to validate the agent's binaries.",
     "refusal.release.key.fix":
+      "Reinstall the app from pupitre.studio; if it lasts, contact support.",
+    "refusal.release.key.fix.dev":
       "Build the app again with the release signing key.",
     "refusal.release.signature":
       "The signature of agent version {version} is invalid.",
     "refusal.release.signature.fix":
       "Do not install this binary: report it, then try again from the console.",
     "refusal.fleet.unknown.fix":
-      "Reload your organization's servers from the settings.",
+      "Refresh your organization's servers from the settings.",
     "refusal.fleet.withdrawn": "This server is no longer granted to you.",
     "refusal.fleet.withdrawn.fix":
       "Ask an administrator of your organization to grant it to you again.",
@@ -192,6 +194,10 @@ export const refusals = {
     "refusal.database.command.fix":
       "Open a terminal on the server and run the shell of the database yourself.",
     "refusal.params.invalid": "Invalid parameters for {cmd}.",
+    "refusal.agent.shape":
+      "The server answered {cmd} in a form this app does not read.",
+    "refusal.agent.shape.fix":
+      "Bring the app and the server's agent to the same version.",
     "refusal.bridge.credential": "{cmd} cannot be called from here.",
     "refusal.bridge.secret": "{cmd} cannot be called from here.",
     "refusal.agent.project": "An agent opens on a project.",
@@ -199,6 +205,19 @@ export const refusals = {
     "refusal.channel.closed": "The connection to the server was closed.",
     "refusal.channel.closed.fix":
       "Open the server again, or run the command once more.",
+    "refusal.sudo.absent":
+      "This computer does not hold the sudo password of dev for this server.",
+    "refusal.sudo.absent.fix":
+      "Enter it in Settings › Servers: the app of a computer that keeps it shows it there. Lost everywhere: set a new one from the hosting console with passwd dev, then enter it.",
+    "refusal.sudo.refused":
+      "sudo refused the sudo password of dev this computer holds.",
+    "refusal.sudo.refused.fix":
+      "Enter the current one in Settings › Servers: the app of a computer that keeps it shows it there, or set a new one from the hosting console with passwd dev.",
+    "refusal.sudo.open":
+      "This server does not ask dev for a sudo password yet.",
+    "refusal.sudo.open.fix":
+      "Run the securing again: it gives dev a sudo password, kept on this computer.",
+    "refusal.sudo.empty": "The sudo password of dev is empty.",
     "refusal.port.range": "This port does not exist.",
     "refusal.port.range.fix":
       "A port runs from 1 to 65535; the service's own is on its card.",
@@ -254,7 +273,7 @@ export const refusals = {
     "refusal.modules.none.fix": "Pick at least one service.",
     "refusal.modules.unreadable": "The list of services cannot be read.",
     "refusal.modules.unreadable.fix":
-      "Reload the list of services, then make your selection again.",
+      "Refresh the list of services, then make your selection again.",
     "refusal.selection.unreadable": "The list of services cannot be read.",
     "refusal.selection.unreadable.fix":
       "Go back to the services and make your selection again.",
@@ -269,6 +288,7 @@ export const refusals = {
     "refusal.signIn.denied": "The request was denied in the browser.",
     "refusal.signIn.denied.fix":
       "Start signing in again and approve the code shown.",
+    "refusal.signIn.cancelled": "Signing in was cancelled.",
     "refusal.signIn.expired": "The code shown expired before it was approved.",
     "refusal.signIn.expired.fix": "Start signing in again for a fresh code.",
     "refusal.device.none": "This computer is signed in to no Pupitre account.",
@@ -283,6 +303,16 @@ export const refusals = {
       "Sign out instead: the servers close for this computer, and the terminals with them.",
     "refusal.device.unknown": "No device was named.",
     "refusal.device.unknown.fix": "Pick a device in the list.",
+    "refusal.probe.timeout.fix":
+      "Check that the server is on and answers over SSH, then run the inspection again.",
+    "refusal.probe.failed.fix":
+      "Check that the server answers over SSH with this account, then run the inspection again.",
+    "refusal.probe.failed.detail.fix":
+      "Check that the server answers over SSH with this account, then run the inspection again.",
+    "refusal.binary.arch.fix":
+      "Update Pupitre on this computer; if the architecture is still refused, choose a server with an amd64 or arm64 processor.",
+    "refusal.enrollment.none.fix":
+      "Try again; if it repeats, sign out and back in from the settings, then try again.",
     "refusal.probe.unreadable":
       "The server sent back no readable inspection report.",
     "refusal.probe.unreadable.fix":
@@ -291,8 +321,11 @@ export const refusals = {
       "Build the agent with bun --cwd=apps/agent run build, then build the app again.",
     "refusal.binary.mismatch.fix":
       "Run the installation again; if the gap stays, check the server's disk space.",
-    "refusal.release.none": "No agent version is published for this machine.",
+    "refusal.release.none":
+      "No agent version is available for this machine yet.",
     "refusal.release.none.fix":
+      "Try again later; if it lasts, contact support.",
+    "refusal.release.none.fix.dev":
       "Publish an agent version from the console before installing a server.",
     "refusal.binary.missing": "This app carries no agent binary.",
     "refusal.server.added": "This server could not be added.",
@@ -301,6 +334,8 @@ export const refusals = {
     "refusal.terminal.unknown": "This terminal has no identifier.",
     "refusal.terminal.unknown.fix": "Close this tab and open another one.",
     "refusal.release.unpublished.fix":
+      "Try again later; if it lasts, contact support.",
+    "refusal.release.unpublished.fix.dev":
       "Publish an agent version, or stay on a development build.",
     "refusal.release.storage.fix":
       "Nothing is wrong on your server: the platform signs the download address with its storage credentials. Try again later; if it lasts, tell Pupitre.",
@@ -320,7 +355,7 @@ export const refusals = {
     "refusal.project.unreadable": "The project's description is incomplete.",
     "refusal.project.unreadable.fix": "Go back over the form.",
     "refusal.project.unknown.fix":
-      "Reload the list of projects, then start again.",
+      "Refresh the list of projects, then start again.",
     "refusal.project.action.unknown.fix": "Pick start, stop or restart.",
     "refusal.project.process.unknown.fix":
       "Pick a process from the list the server gave.",
@@ -333,7 +368,7 @@ export const refusals = {
       "The value is empty or spans several lines.",
     "refusal.secret.value.invalid.fix": "Give a value on a single line.",
     "refusal.secrets.stale.fix":
-      "Reload the list of secrets, then start again.",
+      "Refresh the list of secrets, then start again.",
     "refusal.channel.unopened": "The connection to the server is not open.",
     "refusal.channel.unopened.fix":
       "Run the command again: the app reopens the connection on its own.",
@@ -364,10 +399,14 @@ export const refusals = {
     "refusal.agentUpdate.binary":
       "This app carries no agent for the {arch} architecture, and the console publishes none for this server.",
     "refusal.agentUpdate.binary.fix":
+      "Try again later; if it lasts, contact support.",
+    "refusal.agentUpdate.binary.fix.dev":
       "Build the agent with bun --cwd=apps/agent run build, then rebuild the app.",
     "refusal.agentUpdate.signature":
       "This app carries no signature for the agent {version} on {arch}, and this server no longer reaches the console that serves it.",
     "refusal.agentUpdate.signature.fix":
+      "Check that this server reaches the internet, then try again; if it lasts, contact support.",
+    "refusal.agentUpdate.signature.fix.dev":
       "Publish this version with bun --cwd=apps/agent run release, then rebuild the app.",
     "refusal.tunnel.route.foreign":
       "{hostname} is not under {domain}, the domain this server publishes.",
@@ -399,6 +438,8 @@ export const refusals = {
       "Le serveur n'a pas répondu en {seconds} s ({cmd}).",
     "refusal.platform.silent": "La console n'a pas répondu : {reason}.",
     "refusal.platform.refused": "La console a refusé la demande ({status}).",
+    "refusal.platform.unreadable":
+      "La console a répondu à {path} sous une forme que cette app ne lit pas.",
     "refusal.release.unpublished":
       "La console n'a pas d'agent téléchargeable pour {version}.",
     "refusal.release.storage":
@@ -422,7 +463,7 @@ export const refusals = {
     "refusal.account.unsubscribed.fix":
       "Choisissez une offre dans la console : {console}",
     "refusal.account.stale.fix":
-      "Reconnectez cet appareil, ou vérifiez l'état du compte : {console}",
+      "Reconnectez cet ordinateur, ou vérifiez l'état du compte : {console}",
     "refusal.account.required.fix":
       "Connectez-vous depuis les réglages, ou ouvrez la console : {console}",
     "refusal.agent.dropped": "La connexion au serveur s'est interrompue.",
@@ -434,19 +475,21 @@ export const refusals = {
       "Relancez la commande, ou lancez un diagnostic.",
     "refusal.platform.silent.local": "La console n'a pas répondu : {reason}.",
     "refusal.platform.silent.local.fix":
-      "Aucune console ne répond sur {baseUrl} : lance `bun run dev:web`.",
+      "Aucune console ne répond sur {baseUrl} : lancez `bun run dev:web`.",
     "refusal.platform.silent.fix":
       "Vérifiez votre connexion. Pupitre reste utilisable sept jours sans connexion.",
     "refusal.platform.refused.fix":
       "Reconnectez-vous depuis les réglages, puis réessayez.",
+    "refusal.platform.unreadable.fix":
+      "Mettez Pupitre à jour depuis les réglages, puis réessayez.",
     "refusal.account.signedOut":
-      "Aucun compte n'est connecté sur cet appareil.",
+      "Aucun compte n'est connecté sur cet ordinateur.",
     "refusal.account.signedOut.fix":
       "Connectez-vous depuis l'écran de compte, puis réessayez.",
     "refusal.account.stale":
       "La console n'a pas répondu depuis plus de sept jours : l'abonnement doit être vérifié à nouveau.",
     "refusal.enrollment.none":
-      "La console n'a remis aucun jeton pour ce serveur.",
+      "La console n'a remis aucun token pour ce serveur.",
     "refusal.binary.mismatch":
       "L'agent reçu par le serveur ne correspond pas à celui envoyé.",
     "refusal.setup.host":
@@ -458,7 +501,7 @@ export const refusals = {
       "Un port entre 1 et 65535 : 22 pour un serveur SSH ordinaire.",
     "refusal.setup.user": "« {user} » n'est pas un nom d'utilisateur.",
     "refusal.setup.user.fix":
-      "Le compte à ouvrir sur le serveur : « root » au premier contact, « dev » une fois la machine durcie.",
+      "Le compte à ouvrir sur le serveur : « root » au premier contact, « dev » une fois la machine sécurisée.",
     "refusal.setup.sshName": "Rien de « {name} » ne tient dans un nom SSH.",
     "refusal.setup.sshName.fix":
       "Des lettres, des chiffres et des tirets — « atelier » ou « vps-2 » — et pas « pupitre- », que l'app garde pour elle.",
@@ -480,7 +523,7 @@ export const refusals = {
       "Installez OpenSSH sur cet ordinateur, ou importez une clé que vous avez déjà.",
     "refusal.key.unreadable": "Cette clé privée n'a pas pu être lue.",
     "refusal.key.unreadable.fix":
-      "Une clé protégée par une phrase de passe ne convient pas ici : importez-en une sans phrase de passe, ou laissez l'app en générer une.",
+      "Une clé protégée par une passphrase ne convient pas ici : importez-en une sans passphrase, ou laissez l'app en générer une.",
     "refusal.key.missing": "Le fichier {source} est introuvable.",
     "refusal.key.missing.fix":
       "Choisissez le fichier de la clé, celui qui ne porte pas l'extension .pub.",
@@ -532,30 +575,34 @@ export const refusals = {
     "refusal.keyInstall.windows.fix":
       "Collez la ligne ci-dessous dans un terminal : elle demande le mot de passe elle-même.",
     "refusal.release.checksum":
-      "Le binaire téléchargé ne correspond pas à la somme annoncée pour {version}.",
+      "Le binaire téléchargé ne correspond pas au checksum annoncé pour {version}.",
     "refusal.release.checksum.fix":
       "Relancez l'installation : la console a peut-être servi un fichier tronqué.",
     "refusal.release.unsigned":
       "La console n'a pas signé la version {version} de l'agent.",
     "refusal.release.unsigned.fix":
+      "Réessayez plus tard ; si ça dure, contactez le support.",
+    "refusal.release.unsigned.fix.dev":
       "Publiez une version signée de l'agent avant de l'installer sur un serveur.",
     "refusal.release.key":
       "Cette app ne porte pas la clé publique qui valide les binaires de l'agent.",
     "refusal.release.key.fix":
+      "Réinstallez l'app depuis pupitre.studio ; si ça dure, contactez le support.",
+    "refusal.release.key.fix.dev":
       "Reconstruisez l'app avec la clé de signature des releases.",
     "refusal.release.signature":
       "La signature de la version {version} de l'agent est invalide.",
     "refusal.release.signature.fix":
       "N'installez pas ce binaire : signalez-le, puis réessayez depuis la console.",
     "refusal.fleet.unknown.fix":
-      "Rechargez les serveurs de votre organisation depuis les réglages.",
+      "Actualisez les serveurs de votre organisation depuis les réglages.",
     "refusal.fleet.withdrawn": "Ce serveur ne vous est plus attribué.",
     "refusal.fleet.withdrawn.fix":
       "Demandez à un administrateur de votre organisation de vous l'attribuer à nouveau.",
     "refusal.fleet.pending":
       "La console n'a pas encore posé votre clé sur ce serveur.",
     "refusal.fleet.pending.fix":
-      "Laissez la fenêtre ouverte : l'app réessayez toute seule.",
+      "Laissez la fenêtre ouverte : l'app réessaie toute seule.",
     "refusal.module.none": "Ce service n'a pas de nom.",
     "refusal.module.none.fix": "Choisissez un service dans la liste.",
     "refusal.module.notDatabase": "{module} n'est pas une base de données.",
@@ -569,6 +616,10 @@ export const refusals = {
     "refusal.database.command.fix":
       "Ouvrez un terminal sur le serveur et lancez vous-même le shell de la base.",
     "refusal.params.invalid": "Paramètres invalides pour {cmd}.",
+    "refusal.agent.shape":
+      "Le serveur a répondu à {cmd} sous une forme que l'app ne lit pas.",
+    "refusal.agent.shape.fix":
+      "Mettez l'app et l'agent du serveur à la même version.",
     "refusal.bridge.credential": "{cmd} ne peut pas être appelé d'ici.",
     "refusal.bridge.secret": "{cmd} ne peut pas être appelé d'ici.",
     "refusal.agent.project": "Un agent s'ouvre sur un projet.",
@@ -576,6 +627,19 @@ export const refusals = {
     "refusal.channel.closed": "La connexion au serveur a été fermée.",
     "refusal.channel.closed.fix":
       "Rouvrez le serveur, ou relancez la commande.",
+    "refusal.sudo.absent":
+      "Cet ordinateur ne tient pas le mot de passe sudo de dev pour ce serveur.",
+    "refusal.sudo.absent.fix":
+      "Saisissez-le dans Réglages › Serveurs : l'app d'un ordinateur qui le garde l'y montre. Perdu partout : posez-en un nouveau depuis la console de l'hébergeur avec passwd dev, puis saisissez-le.",
+    "refusal.sudo.refused":
+      "sudo a refusé le mot de passe sudo de dev que cet ordinateur tient.",
+    "refusal.sudo.refused.fix":
+      "Saisissez l'actuel dans Réglages › Serveurs : l'app d'un ordinateur qui le garde l'y montre, ou posez-en un nouveau depuis la console de l'hébergeur avec passwd dev.",
+    "refusal.sudo.open":
+      "Ce serveur ne demande pas encore de mot de passe sudo à dev.",
+    "refusal.sudo.open.fix":
+      "Relancez la sécurisation : elle donne à dev un mot de passe sudo, gardé sur cet ordinateur.",
+    "refusal.sudo.empty": "Le mot de passe sudo de dev est vide.",
     "refusal.port.range": "Ce port n'existe pas.",
     "refusal.port.range.fix":
       "Un port va de 1 à 65535 ; celui du service est dans sa fiche.",
@@ -595,22 +659,22 @@ export const refusals = {
       "Connectez le compte dans les réglages : un service qui en a besoin ne s'installe pas sans lui.",
     "refusal.connection.call": "{kind} a refusé : {reason}.",
     "refusal.connection.revoked":
-      "{kind} ne répond plus à ce jeton : {reason}.",
+      "{kind} ne répond plus à ce token : {reason}.",
     "refusal.connection.revoked.fix":
-      "Créez un nouveau jeton chez le fournisseur et reconnectez-le ici ; chaque serveur qui l'utilise prend le nouveau à sa prochaine installation.",
+      "Créez un nouveau token chez le fournisseur et reconnectez-le ici ; chaque serveur qui l'utilise prend le nouveau à sa prochaine installation.",
     "refusal.connection.call.fix":
-      "Vérifiez que le jeton est toujours valide et porte toujours les droits que le service demande.",
+      "Vérifiez que le token est toujours valide et porte toujours les droits que le service demande.",
     "refusal.connection.cloudflare.unlisted":
-      "Cloudflare accepte ce jeton mais ne lui nomme aucun compte.",
+      "Cloudflare accepte ce token mais ne lui nomme aucun compte.",
     "refusal.connection.cloudflare.unlisted.fix":
-      "Ajoutez au jeton la permission Account · Account Settings · Read : c'est elle qui laisse Pupitre lire quel compte le jeton ouvre. Gardez les autres.",
+      "Ajoutez au token la permission Account · Account Settings · Read : c'est elle qui laisse Pupitre lire quel compte le token ouvre. Gardez les autres.",
     "refusal.connection.account.gone":
-      "Ce jeton n'ouvre plus le compte {account}.",
+      "Ce token n'ouvre plus le compte {account}.",
     "refusal.connection.account.gone.fix":
-      "Déconnectez ce compte et reconnectez le jeton : vous choisirez parmi les comptes qu'il ouvre aujourd'hui.",
-    "refusal.connection.token.none": "Ce jeton est vide.",
+      "Déconnectez ce compte et reconnectez le token : vous choisirez parmi les comptes qu'il ouvre aujourd'hui.",
+    "refusal.connection.token.none": "Ce token est vide.",
     "refusal.connection.token.none.fix":
-      "Collez le jeton du compte, avec les droits que le service demande.",
+      "Collez le token du compte, avec les droits que le service demande.",
     "refusal.connection.kind": "Compte inconnu : {kind}.",
     "refusal.connection.kind.fix":
       "Connectez l'un des comptes que les réglages listent.",
@@ -632,13 +696,13 @@ export const refusals = {
     "refusal.modules.none.fix": "Choisissez au moins un service.",
     "refusal.modules.unreadable": "La liste des services est illisible.",
     "refusal.modules.unreadable.fix":
-      "Rechargez la liste des services, puis refaites votre sélection.",
+      "Actualisez la liste des services, puis refaites votre sélection.",
     "refusal.selection.unreadable": "La liste des services est illisible.",
     "refusal.selection.unreadable.fix":
       "Revenez aux services et refaites votre sélection.",
     "refusal.command.unknown": "Commande inconnue : {cmd}.",
     "refusal.harden.account.fix":
-      "Ouvrez les réglages et corrigez le compte de ce serveur, puis reconnectezz-vous.",
+      "Ouvrez les réglages et corrigez le compte de ce serveur, puis reconnectez-vous.",
     "refusal.account.suspended":
       "L'abonnement de cette organisation est suspendu.",
     "refusal.account.unsubscribed": "Cette organisation n'a pas d'abonnement.",
@@ -647,15 +711,16 @@ export const refusals = {
     "refusal.signIn.denied": "La demande a été refusée dans le navigateur.",
     "refusal.signIn.denied.fix":
       "Relancez la connexion et approuvez le code affiché.",
+    "refusal.signIn.cancelled": "La connexion a été annulée.",
     "refusal.signIn.expired": "Le code affiché a expiré avant d'être approuvé.",
     "refusal.signIn.expired.fix":
       "Relancez la connexion pour obtenir un nouveau code.",
     "refusal.device.none":
-      "Cet appareil n'est connecté à aucun compte Pupitre.",
+      "Cet ordinateur n'est connecté à aucun compte Pupitre.",
     "refusal.device.none.fix":
       "Connectez-vous depuis les réglages, puis relancez la réparation.",
     "refusal.device.none.console":
-      "Cet appareil n'est connecté à aucun compte Pupitre.",
+      "Cet ordinateur n'est connecté à aucun compte Pupitre.",
     "refusal.device.none.console.fix":
       "Connectez-vous depuis les réglages, ou ouvrez la console : {console}",
     "refusal.device.self": "Cet ordinateur ne peut pas se révoquer lui-même.",
@@ -663,25 +728,39 @@ export const refusals = {
       "Déconnectez-vous plutôt : les serveurs se ferment pour cet ordinateur, et les terminaux avec eux.",
     "refusal.device.unknown": "Aucun appareil n'a été nommé.",
     "refusal.device.unknown.fix": "Choisissez un appareil dans la liste.",
+    "refusal.probe.timeout.fix":
+      "Vérifiez que le serveur est allumé et répond en SSH, puis relancez l'inspection.",
+    "refusal.probe.failed.fix":
+      "Vérifiez que le serveur répond en SSH avec ce compte, puis relancez l'inspection.",
+    "refusal.probe.failed.detail.fix":
+      "Vérifiez que le serveur répond en SSH avec ce compte, puis relancez l'inspection.",
+    "refusal.binary.arch.fix":
+      "Mettez Pupitre à jour sur cet ordinateur ; si l'architecture est toujours refusée, choisissez un serveur à processeur amd64 ou arm64.",
+    "refusal.enrollment.none.fix":
+      "Réessayez ; si cela recommence, déconnectez-vous puis reconnectez-vous depuis les réglages, et réessayez.",
     "refusal.probe.unreadable":
       "Le serveur n'a pas renvoyé de rapport d'inspection lisible.",
     "refusal.probe.unreadable.fix":
       "Relancez l'inspection ; si le serveur affiche un message d'accueil à la connexion, retirez-le.",
     "refusal.binary.missing.fix":
-      "Construisez l'agent avec bun --cwd=apps/agent run build, puis reconstruis l'app.",
+      "Construisez l'agent avec bun --cwd=apps/agent run build, puis reconstruisez l'app.",
     "refusal.binary.mismatch.fix":
       "Relancez l'installation ; si l'écart persiste, vérifiez l'espace disque du serveur.",
     "refusal.release.none":
-      "Aucune version de l'agent n'est publiée pour cette machine.",
+      "Aucune version de l'agent n'est encore disponible pour cette machine.",
     "refusal.release.none.fix":
+      "Réessayez plus tard ; si ça dure, contactez le support.",
+    "refusal.release.none.fix.dev":
       "Publiez une version de l'agent depuis la console avant d'installer un serveur.",
     "refusal.binary.missing": "Cette app ne porte pas de binaire d'agent.",
     "refusal.server.added": "Ce serveur n'a pas pu être ajouté.",
     "refusal.server.added.fix":
       "Réessayez ; si cela recommence, générez la clé plutôt que de l'importer.",
     "refusal.terminal.unknown": "Ce terminal n'a pas d'identifiant.",
-    "refusal.terminal.unknown.fix": "Fermez cet onglet et ouvre-en un autre.",
+    "refusal.terminal.unknown.fix": "Fermez cet onglet et ouvrez-en un autre.",
     "refusal.release.unpublished.fix":
+      "Réessayez plus tard ; si ça dure, contactez le support.",
+    "refusal.release.unpublished.fix.dev":
       "Publiez une version de l'agent, ou restez sur un build de développement.",
     "refusal.release.storage.fix":
       "Rien n'est en cause sur votre serveur : la plateforme signe l'adresse de téléchargement avec ses accès au stockage. Réessayez plus tard ; si ça dure, prévenez Pupitre.",
@@ -701,7 +780,7 @@ export const refusals = {
     "refusal.project.unreadable": "La description du projet est incomplète.",
     "refusal.project.unreadable.fix": "Reprenez le formulaire.",
     "refusal.project.unknown.fix":
-      "Rechargez la liste des projets, puis reprenez.",
+      "Actualisez la liste des projets, puis reprenez.",
     "refusal.project.action.unknown.fix":
       "Choisissez démarrer, arrêter ou redémarrer.",
     "refusal.project.process.unknown.fix":
@@ -717,7 +796,7 @@ export const refusals = {
     "refusal.secret.value.invalid.fix":
       "Donnez une valeur sur une seule ligne.",
     "refusal.secrets.stale.fix":
-      "Rechargez la liste des secrets, puis reprenez.",
+      "Actualisez la liste des secrets, puis reprenez.",
     "refusal.channel.unopened": "La connexion au serveur n'est pas ouverte.",
     "refusal.channel.unopened.fix":
       "Relancez la commande : l'app rouvre la connexion toute seule.",
@@ -749,10 +828,14 @@ export const refusals = {
     "refusal.agentUpdate.binary":
       "Cette app ne porte pas d'agent pour l'architecture {arch}, et la console n'en publie pas pour ce serveur.",
     "refusal.agentUpdate.binary.fix":
+      "Réessayez plus tard ; si ça dure, contactez le support.",
+    "refusal.agentUpdate.binary.fix.dev":
       "Construisez l'agent avec bun --cwd=apps/agent run build, puis reconstruisez l'app.",
     "refusal.agentUpdate.signature":
       "Cette app ne porte pas la signature de l'agent {version} pour {arch}, et ce serveur n'atteint plus la console qui la sert.",
     "refusal.agentUpdate.signature.fix":
+      "Vérifiez que ce serveur joint internet, puis réessayez ; si ça dure, contactez le support.",
+    "refusal.agentUpdate.signature.fix.dev":
       "Publiez cette version avec bun --cwd=apps/agent run release, puis reconstruisez l'app.",
     "refusal.tunnel.route.foreign":
       "{hostname} n'est pas sous {domain}, le domaine que ce serveur publie.",

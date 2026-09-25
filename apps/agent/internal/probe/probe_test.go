@@ -166,7 +166,6 @@ func TestPanelsAreDetectedByTheirDirectory(t *testing.T) {
 	}
 }
 
-// A machine that answers nothing must still produce a readable verdict rather than an empty result.
 func TestUnreadableMachineStillAnswers(t *testing.T) {
 	result := probeFixture(t, fixture{Absent: fakePrograms, Current: "0.2.0"})
 
@@ -193,4 +192,32 @@ func managedFixture() fixture {
 	f.Files["/var/lib/pupitre/report.json"] = `{"modules":[{"id":"core.system","status":"ok","steps":[]}],"failed":[],"warned":[]}`
 
 	return f
+}
+
+// Decision 0015: sudo wants dev's password for everything but `pupitred serve` and `pupitred binary install`.
+func securedFixture() fixture {
+	f := managedFixture()
+	f.FailingLines = []string{"sudo -n true", "sudo -n " + agentPlaceholder + " version"}
+
+	return f
+}
+
+func TestADevWhomSudoLetsRunPupitredAloneStillDrivesTheMachine(t *testing.T) {
+	result := probeFixture(t, securedFixture())
+
+	if !result.Sudo || result.Verdict.Kind != KindManaged {
+		t.Fatalf("sudo = %v, verdict = %+v", result.Sudo, result.Verdict)
+	}
+}
+
+// Without an agent there is nothing sudo lets through: a password-only account cannot install one.
+func TestAPasswordOnlySudoWithoutAnAgentIsBlocked(t *testing.T) {
+	f := bareUbuntu()
+	f.FailingLines = []string{"sudo -n true"}
+
+	result := probeFixture(t, f)
+
+	if result.Sudo || result.Verdict.Kind != KindIncompatible {
+		t.Fatalf("sudo = %v, verdict = %+v", result.Sudo, result.Verdict)
+	}
 }

@@ -18,6 +18,7 @@ import { appReleasesRoutes } from "./app-releases"
 import { backupsRoutes } from "./backups"
 import { devicesRoutes } from "./devices"
 import { healthRoutes } from "./health"
+import { keyApprovalsRoutes } from "./key-approvals"
 import { meRoutes } from "./me"
 import { orgsRoutes } from "./orgs"
 import { releasesRoutes } from "./releases"
@@ -51,6 +52,7 @@ export const routes = new Elysia({ name: "routes" })
   .use(statusRoutes)
   .use(meRoutes)
   .use(devicesRoutes)
+  .use(keyApprovalsRoutes)
   .use(serversRoutes)
   .use(backupsRoutes)
   .use(orgsRoutes)

@@ -1,24 +1,27 @@
-// Package dumps imports the dumps the client leaves in ~/dumps/, once each, whatever the engine.
 package dumps
 
 import (
+	"io"
 	"path"
-	"pupitre.studio/agent/internal/i18n"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/runtime/shell"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/file"
 )
 
 const (
-	Dir        = "/home/dev/dumps"
-	Owner      = "dev"
-	markerDir  = "/var/lib/pupitre/dumps"
-	tempPrefix = ".pupitre-import-"
+	home        = shell.Home
+	dumpsFolder = "dumps"
+	Dir         = home + "/" + dumpsFolder
+	Owner       = shell.User
+	markerDir   = "/var/lib/pupitre/dumps"
+	tempPrefix  = ".pupitre-import-"
 )
 
 type File struct {
@@ -39,47 +42,46 @@ var namedDump = regexp.MustCompile(`^(?:fulldump|dump)_([A-Za-z0-9_]+)_[0-9]+\.`
 
 var unsafeInStep = regexp.MustCompile(`[^a-z0-9]+`)
 
-// The name reaches an SQL identifier and a shell-free argv; anything else is left alone rather than quoted into a surprise.
-var safeName = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
+// Never a leading dash, which mysql, pg_dump and mongodump would read as an option.
+var safeName = regexp.MustCompile(`^[A-Za-z0-9_][A-Za-z0-9_-]{0,63}$`)
 
-// SafeName says whether a database name can reach an identifier, a path under ~/dumps and an argv as it is.
 func SafeName(name string) bool {
 	return safeName.MatchString(name)
 }
 
-// Target is where a dump of this database lands, stamped with the moment: ~/dumps is dev's, the doc says to drop dumps there and the folder must let them.
-func Target(ctx *modules.Context, name, suffix string) (string, error) {
-	if err := file.MkdirOwned(ctx, Dir, Owner, Owner, 0o755); err != nil {
-		return "", err
+// Root streams into a file it creates for dev: a dump tool given a path would follow a link dev planted in ~/dumps.
+func Write(ctx *modules.Context, name, suffix string, dump func(out io.Writer) error) (string, int64, error) {
+	if err := ctx.Sys().MkdirIn(home, dumpsFolder, Owner); err != nil {
+		return "", 0, err
 	}
 
-	return Dir + "/" + name + "_" + ctx.Now().Format("20060102-1504") + suffix, nil
-}
+	rel := dumpsFolder + "/" + name + "_" + ctx.Now().Format("20060102-1504") + suffix
 
-// Written hands a dump root just wrote to dev and measures it.
-func Written(ctx *modules.Context, path string) (int64, error) {
-	if err := file.Chown(ctx, path, Owner, Owner); err != nil {
-		return 0, err
-	}
-
-	return size(ctx, path), nil
-}
-
-func size(ctx *modules.Context, path string) int64 {
-	out, err := sys.Exec(ctx, sys.Command{Argv: []string{"stat", "-c", "%s", path}})
+	out, err := ctx.Sys().CreateIn(home, rel, Owner)
 	if err != nil {
-		return 0
+		return "", 0, err
 	}
 
-	bytes, err := strconv.ParseInt(strings.TrimSpace(out.Stdout), 10, 64)
+	dumped := dump(out)
+	if closed := out.Close(); dumped == nil {
+		dumped = closed
+	}
+
+	if dumped != nil {
+		ctx.Sys().RemoveIn(home, rel, false)
+
+		return "", 0, dumped
+	}
+
+	written, err := ctx.Sys().StatIn(home, rel)
 	if err != nil {
-		return 0
+		return "", 0, err
 	}
 
-	return bytes
+	return home + "/" + rel, written.SizeBytes, nil
 }
 
-// One step per dump, named after its database: the report says what was imported without naming a single secret.
+// Steps are named after the database, not the file, so the report never names a secret.
 func Import(ctx *modules.Context, options Options) ([]string, error) {
 	pending := waiting(ctx, options)
 	if len(pending) == 0 {
@@ -93,6 +95,7 @@ func Import(ctx *modules.Context, options Options) ([]string, error) {
 	}
 
 	var imported []string
+
 	for _, dump := range pending {
 		if load(ctx, dump, options) {
 			imported = append(imported, dump.Database)
@@ -122,31 +125,34 @@ func load(ctx *modules.Context, dump File, options Options) (done bool) {
 	return err == nil && done
 }
 
-// gunzip -c … | mysql would need a shell; decompressing beside the archive
-// keeps every command to an argv. The archive is decompressed under a name of
-// its own, through a hard link gzip consumes: a plain x.sql the client left
-// beside x.sql.gz is neither overwritten nor taken away with the copy.
+// Decompressing to a private copy keeps every command an argv, refuses planted links, and spares the client's own x.sql.
 func prepare(ctx *modules.Context, dump File, native bool) (File, func(), error) {
 	if !dump.Gzip || native {
 		return dump, func() {}, nil
 	}
 
-	linked := path.Dir(dump.Path) + "/" + tempPrefix + path.Base(dump.Path)
-	plain := strings.TrimSuffix(linked, ".gz")
+	rel := dumpsFolder + "/" + tempPrefix + strings.TrimSuffix(path.Base(dump.Path), ".gz")
+	cleanup := func() { ctx.Sys().RemoveIn(home, rel, false) }
 
-	if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"ln", "--force", dump.Path, linked}}); err != nil {
+	out, err := ctx.Sys().CreateIn(home, rel, "")
+	if err != nil {
 		return File{}, func() {}, err
 	}
 
-	if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"gzip", "--decompress", "--force", linked}}); err != nil {
-		file.Remove(ctx, linked)
+	_, err = sys.Exec(ctx, sys.Command{Argv: []string{"gzip", "--decompress", "--stdout"}, StdinPath: dump.Path, Output: out})
+	if closed := out.Close(); err == nil {
+		err = closed
+	}
+
+	if err != nil {
+		cleanup()
 
 		return File{}, func() {}, err
 	}
 
-	dump.Path, dump.Gzip = plain, false
+	dump.Path, dump.Gzip = home+"/"+rel, false
 
-	return dump, func() { file.Remove(ctx, plain) }, nil
+	return dump, cleanup, nil
 }
 
 func mark(ctx *modules.Context, dump File) error {
@@ -155,6 +161,7 @@ func mark(ctx *modules.Context, dump File) error {
 
 func waiting(ctx *modules.Context, options Options) []File {
 	var pending []File
+
 	for _, dump := range discover(ctx, options.Patterns) {
 		if options.Only != "" && dump.Database != options.Only {
 			continue
@@ -183,20 +190,21 @@ func discover(ctx *modules.Context, patterns []string) []File {
 	}
 
 	var found []File
-	for _, line := range strings.Split(out.Stdout, "\n") {
-		trimmed := strings.TrimSpace(line)
-		if trimmed == "" {
+
+	// A file name may hold a newline, never a NUL: only a -print0 listing cannot be split in the wrong place.
+	for _, listed := range strings.Split(out.Stdout, "\x00") {
+		if listed == "" {
 			continue
 		}
 
-		name := database(path.Base(trimmed))
+		name := database(path.Base(listed))
 		if !safeName.MatchString(name) {
-			ctx.Warn(i18n.T("warn.dumps.name.refused", path.Base(trimmed)))
+			ctx.Warn(i18n.T("warn.dumps.name.refused", strconv.Quote(path.Base(listed))))
 
 			continue
 		}
 
-		found = append(found, File{Path: trimmed, Database: name, Gzip: strings.HasSuffix(trimmed, ".gz")})
+		found = append(found, File{Path: listed, Database: name, Gzip: strings.HasSuffix(listed, ".gz")})
 	}
 
 	sort.SliceStable(found, func(i, j int) bool { return found[i].Path < found[j].Path })
@@ -206,6 +214,7 @@ func discover(ctx *modules.Context, patterns []string) []File {
 
 func find(patterns []string) []string {
 	argv := []string{"find", Dir, "-maxdepth", "1", "-type", "f", "("}
+
 	for i, pattern := range patterns {
 		if i > 0 {
 			argv = append(argv, "-o")
@@ -213,7 +222,7 @@ func find(patterns []string) []string {
 		argv = append(argv, "-name", pattern)
 	}
 
-	return append(argv, ")")
+	return append(argv, ")", "-print0")
 }
 
 func marker(dumpPath string) string {

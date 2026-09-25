@@ -18,14 +18,6 @@ import { ServerSwitch } from "../shell/server-switch";
 import { ShortcutsDialog } from "../shell/shortcuts-dialog";
 import { SignOutDialog } from "../shell/sign-out-dialog";
 
-/**
- * The screens of the second half of phase seven, drawn once each.
- *
- * What is checked is what a reader gets without a gesture: the gesture the
- * state calls for, the shape of each state, the roles a keyboard needs, and
- * the fact that nothing here ever prints a command or a secret.
- */
-
 const later = () => Promise.resolve();
 
 function text(html: string): string {
@@ -344,9 +336,9 @@ describe("la palette", () => {
     { id: "dashboard", kind: "view", label: "Tableau de bord" },
     {
       hint: "online",
-      id: "flymate-api",
+      id: "flyleaf-api",
       kind: "project",
-      label: "flymate-api",
+      label: "flyleaf-api",
     },
   ];
 
@@ -365,7 +357,7 @@ describe("la palette", () => {
     expect(html).toContain('role="listbox"');
     expect(html).toContain('role="combobox"');
     expect(html).toContain('data-palette-entry="view:dashboard"');
-    expect(html).toContain('data-palette-entry="project:flymate-api"');
+    expect(html).toContain('data-palette-entry="project:flyleaf-api"');
     expect(html.match(/aria-selected="true"/g)).toHaveLength(1);
     expect(text(html)).toContain("2 résultats");
     expect(document.activeElement?.getAttribute("role")).toBe("combobox");

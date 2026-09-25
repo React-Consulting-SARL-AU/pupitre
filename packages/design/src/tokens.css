@@ -30,6 +30,11 @@
   --font-display: "Bricolage Grotesque", -apple-system, sans-serif;
   --font-display-weight: 700;
   --font-display-letter-spacing: -0.01em;
+  --font-caption-size: 11px;
+  --font-small-size: 12px;
+  --font-control-size: 13px;
+  --font-heading-size: 15px;
+  --font-title-size: 16px;
 
   --radius-xs: 4px;
   --radius-sm: 8px;

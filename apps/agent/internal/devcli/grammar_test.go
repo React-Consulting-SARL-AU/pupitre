@@ -8,13 +8,13 @@ import (
 	"pupitre.studio/agent/internal/i18n"
 )
 
-// The usage is the grammar read aloud: a verb the app completes and the terminal never names would be a verb nobody can type.
 func TestUsageNamesEveryVerbInBothLanguages(t *testing.T) {
 	held := i18n.Current()
 	t.Cleanup(func() { i18n.Use(string(held)) })
 
 	for locale, first := range map[i18n.Locale]string{i18n.EN: "usage: pupitred dev", i18n.FR: "usage : pupitred dev"} {
 		i18n.Use(string(locale))
+
 		usage := devcli.Usage()
 
 		if !strings.HasPrefix(usage, first) {

@@ -5,18 +5,12 @@ import { StatePill } from "@renderer/components/ui/state-pill";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { memory, uptime } from "@renderer/lib/format";
 import { isRunning, PROCESS_LOOK } from "@renderer/lib/project-state";
+import type { Gesture } from "@renderer/lib/use-pending";
 import type { ProjectAction } from "@renderer/stores/snapshot";
 import { Play, RotateCw, Square } from "lucide-react";
 
 const HEAVY_MB = 2048;
 
-/**
- * One process of the project, and the three things you do to it.
- *
- * Everything shown comes from the snapshot: the state, the port, the folder,
- * the commands, what it weighs. A field the agent left empty shows as empty
- * rather than as a guess.
- */
 export function ProjectProcessRow({
   process,
   busy,
@@ -24,7 +18,7 @@ export function ProjectProcessRow({
 }: {
   process: Process;
   busy: boolean;
-  onAct: (action: ProjectAction, process: string) => void;
+  onAct: Gesture<[ProjectAction, string]>;
 }) {
   const t = useTranslations();
 
@@ -37,11 +31,11 @@ export function ProjectProcessRow({
       data-state={process.state}
     >
       <div className="flex flex-wrap items-center gap-3">
-        <span className="font-data font-semibold text-[13px] text-ink">
+        <span className="font-data font-semibold text-control text-ink">
           {process.id}
         </span>
         <StatePill look={PROCESS_LOOK[process.state]} name={process.state} />
-        <span className="font-data text-[12px] text-ink-3 tabular-nums">
+        <span className="font-data text-ink-3 text-small tabular-nums">
           {process.host}:{process.port}
           {process.dir === "." ? "" : ` · ${process.dir}`}
         </span>
@@ -77,7 +71,7 @@ export function ProjectProcessRow({
         </Fact>
       </FactList>
 
-      <p className="font-data text-[12px] text-ink-3 tabular-nums">
+      <p className="font-data text-ink-3 text-small tabular-nums">
         {uptime(process.uptime_s)}
         {process.pid ? ` · pid ${process.pid}` : ""}
         {process.ram_mb ? (

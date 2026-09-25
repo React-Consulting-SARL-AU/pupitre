@@ -19,7 +19,7 @@ import {
 import type { OrgRole } from "@pupitre/shared/permissions"
 import { type QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { BillingPanel } from "@/components/dashboard/billing-panel"
-import { queryKeys } from "@/lib/api/queries"
+import { type Me, queryKeys } from "@/lib/api/queries"
 import {
   type DashboardActiveOrganization,
   DashboardContext,
@@ -42,7 +42,7 @@ type Billing = ReturnType<typeof useFakeBilling>
 
 const mounted: (() => void)[] = []
 
-/** The checkout reads the affiliate code off the browser, so the test has to leave one there. */
+// The checkout reads the affiliate code off `document.cookie`.
 function writeCookie(value: string): void {
   // biome-ignore lint/suspicious/noDocumentCookie: the console reads document.cookie, and the test writes what it reads
   document.cookie = value
@@ -69,6 +69,7 @@ function panel(
           role,
           entitlement: "valid",
           platformRole: null,
+          platformCanAct: false,
         }}
       >
         <BillingPanel />
@@ -216,6 +217,8 @@ describe("BillingPanel", () => {
     )
 
     expect(container.textContent).toContain("One machine during the launch")
+    expect(container.textContent).toContain("stays free for good")
+    expect(container.textContent).not.toContain("suspended")
     expect(container.textContent).toContain("1 server")
     expect(container.textContent).not.toContain("Manage the subscription")
     expect(container.textContent).not.toContain("Trial running")
@@ -239,6 +242,21 @@ describe("BillingPanel", () => {
     expect(container.textContent).not.toContain("When the launch ends")
     expect(container.textContent).not.toContain("Manage the subscription")
     expect(container.querySelector("#seats")).toBeNull()
+  })
+
+  it("counts the launch seat kept for good in the seat quota next to the paid ones", async () => {
+    await grantLaunch(organization.id, null)
+    await payFor(billing, organization.id, 3)
+
+    const { container, unmount } = await render(panel(organization, "owner"))
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("Seats and servers") === true
+    )
+
+    expect(container.textContent).toContain("0 / 4")
   })
 
   it("locks the seats of a running trial to its one machine", async () => {
@@ -316,7 +334,9 @@ describe("BillingPanel", () => {
     await fill(seats, "2")
     await click(trigger(container, "Update"))
     await waitUntil(
-      () => queryClient.getQueryState(queryKeys.me)?.isInvalidated === true
+      () =>
+        queryClient.getQueryData<Me>(queryKeys.me)?.subscription?.servers
+          .limit === 2
     )
 
     expect(billing.quantities).toEqual([

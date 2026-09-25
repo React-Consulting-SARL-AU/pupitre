@@ -5,17 +5,10 @@ declare global {
   var IS_REACT_ACT_ENVIRONMENT: boolean | undefined;
 }
 
-/**
- * A document for the components that only exist once mounted.
- *
- * What floats — a dialog, a list of options, a menu — is drawn through a
- * portal, and a string render has no body to portal into: it renders them as
- * nothing. These are mounted in the document `dom-register` set up for the
- * whole run instead, and read back from it.
- */
+// A string render draws portals as nothing, so floating components are mounted in the shared document instead.
 export interface Mounted {
   container: HTMLElement;
-  /** The whole document: what the component drew where it stands and what it portalled out. */
+  /** The whole document, so portalled content is included. */
   html: () => string;
   text: () => string;
   click: (target: Element | null) => Promise<void>;
@@ -78,6 +71,24 @@ export async function mount(element: ReactElement): Promise<Mounted> {
   };
 }
 
+// React only hears a value set through the native setter followed by an input event.
+export async function typeInto(
+  input: Element | null,
+  value: string
+): Promise<void> {
+  if (!(input instanceof HTMLInputElement)) {
+    throw new Error(`no input to type into in ${document.body.innerHTML}`);
+  }
+
+  await act(() => {
+    Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "value"
+    )?.set?.call(input, value);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+}
+
 const POLL_MS = 20;
 
 export async function waitUntil(
@@ -105,7 +116,6 @@ function labelsOf(role: string): string[] {
   );
 }
 
-/** What a `Select` offers, read by opening it the way a click opens it: its options, and the captions of its groups. */
 export async function optionsOf(
   view: Mounted,
   trigger: Element | null

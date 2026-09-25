@@ -5,14 +5,6 @@ import { useState } from "react";
 import { Button } from "../ui/button";
 import { controlClass } from "../ui/field";
 
-/**
- * A secret, on its way out of the app and never back.
- *
- * What is typed here goes to the main process on every keystroke and is not
- * kept in this component, in a store, or in the value of the input. A generated
- * one can be shown exactly once — the button is gone afterwards, and the value
- * lives in this component's own state until the screen closes.
- */
 export function ConfigSecretField({
   wrong = false,
   name,
@@ -28,9 +20,7 @@ export function ConfigSecretField({
   label: string;
   mark?: SecretMark;
   required: boolean;
-  /** Whether the value is refused: the field is bordered and said to be invalid. */
   wrong?: boolean;
-  /** The server already holds this value: typing nothing leaves it in place. */
   held?: boolean;
   onChange?: (value: string) => void;
   onGenerate?: () => void;
@@ -58,7 +48,7 @@ export function ConfigSecretField({
     return (
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-data text-[12px] text-ink-3">
+          <span className="font-data text-ink-3 text-small">
             {t("config.secret.generated")}
           </span>
 
@@ -79,13 +69,13 @@ export function ConfigSecretField({
         </div>
 
         {shown ? (
-          <code className="block break-all rounded-sm border border-line-strong bg-sunken px-2.5 py-2 font-data text-[12px] text-ink">
+          <code className="block break-all rounded-sm border border-line-strong bg-sunken px-2.5 py-2 font-data text-ink text-small">
             {shown}
           </code>
         ) : null}
 
         {revealed && !shown ? (
-          <span className="text-[12px] text-ink-3">
+          <span className="text-ink-3 text-small">
             {t("config.secret.shown")}
           </span>
         ) : null}
@@ -93,6 +83,7 @@ export function ConfigSecretField({
     );
   }
 
+  // Uncontrolled on purpose: a typed secret is never kept here, not even as the input's value.
   return (
     <div className="flex flex-col gap-2">
       <input

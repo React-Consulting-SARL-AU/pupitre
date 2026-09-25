@@ -4,7 +4,6 @@ import { FoldingSection } from "@renderer/components/ui/section";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { HelpTarget } from "./help-screen";
 
-/** The three ways a door stays shut, each with what opens it. */
 export function HelpTroublesSection({ target }: { target: HelpTarget }) {
   const t = useTranslations();
 

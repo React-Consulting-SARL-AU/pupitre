@@ -9,11 +9,14 @@ import {
   type AgentClientOptions,
   createAgentClient,
   defaultTimeout,
+  privilegedServeAs,
   reportOfRun,
+  SUDO_PROMPT,
   serveAs,
   sshSpawn,
 } from "../agent-client";
 import { enableTrace, type TraceEntry, tracesTo } from "../trace";
+import { type EchoAgent, echoAgent } from "./fixtures/echo-agent";
 import { type FakeAgent, fakeAgent } from "./fixtures/fake-agent";
 
 const SERVER = "staging";
@@ -262,8 +265,9 @@ describe("le canal", () => {
       "id=2 cmd=install",
       "id=3 cmd=hello",
       "id=4 cmd=report",
-      "id=5 cmd=hello",
-      "id=6 cmd=report",
+      "id=5 cmd=report",
+      "id=6 cmd=hello",
+      "id=7 cmd=report",
     ]);
 
     agent.closeAll();
@@ -326,11 +330,7 @@ describe("le canal", () => {
     agent.closeAll();
   });
 
-  /**
-   * The agent writes its report once the configuration is validated, so the
-   * previous run's finished report stays on the machine while this one is
-   * being weighed: a cut then must not hand that report over as this one's.
-   */
+  // The previous run's report stays on the machine until this run's configuration is validated.
   it("refuse un rapport fini quelques minutes avant la demande", async () => {
     const { agent, fake } = client([
       "install-cut.jsonl",
@@ -401,12 +401,7 @@ describe("le canal", () => {
     agent.closeAll();
   });
 
-  /**
-   * The agent handles one request at a time: a command it is still on would
-   * hold the next one behind it, and the next one would time out in turn. The
-   * session is cut with the timeout, and the following command opens a fresh
-   * one — the agent finishes the old command on its own.
-   */
+  // The agent handles one request at a time: a command still running would make the next one time out too.
   it("coupe la session sur un timeout, et la suivante repart sur une session neuve", async () => {
     const { agent, fake } = client(
       ["snapshot-timeout.jsonl", "snapshot-loop.jsonl"],
@@ -518,12 +513,7 @@ describe("le canal", () => {
   });
 });
 
-/**
- * A followed journal holds its channel until the reader leaves, not until the
- * agent answers: the service panel shows the journal and the configuration
- * form side by side, and applying the form must not wait for the reader to
- * close the panel.
- */
+// A followed journal holds its channel until the reader leaves, while the form beside it must still apply.
 describe("un journal suivi", () => {
   it("laisse partir un install sans attendre que le lecteur s'en aille", async () => {
     const { agent, fake } = client([
@@ -566,12 +556,7 @@ describe("un journal suivi", () => {
   });
 });
 
-/**
- * A follow the reader lets go of is killed with its channel — the agent has no
- * other way to hear it yet. The cost of that has to stay on the follow channel:
- * a gesture must not wait behind the reopening, and the killed process must
- * not be spoken to again.
- */
+// The agent has no cancel yet: a dropped follow is killed with its channel, and only that channel pays.
 describe("un suivi annulé", () => {
   it("repart sur un processus neuf, sans que le canal de contrôle paie la reconnexion", async () => {
     const { agent, fake } = client([
@@ -710,10 +695,7 @@ describe("la détection d'un projet", () => {
   });
 });
 
-/**
- * The dashboard reads the machine on a timer, and that read holds a channel
- * for most of a second: a folder clicked meanwhile must not sit behind it.
- */
+// A timer read holds its channel for most of a second: a gesture meanwhile must not sit behind it.
 describe("une lecture sur minuterie", () => {
   it("passe par le canal du battement, laissant un geste partir tout de suite", async () => {
     const { agent, fake } = client([
@@ -759,11 +741,6 @@ describe("une lecture sur minuterie", () => {
   });
 });
 
-/**
- * A channel carries one command at a time. A screen that shows nothing while a
- * request waits its turn is the difference between a machine at work and a
- * request that never left, and the caller is the only one who can say it.
- */
 describe("une commande qui attend son tour", () => {
   it("le dit à qui l'a demandée, et pas à celle qui part tout de suite", async () => {
     const { agent } = client("snapshot-loop.jsonl");
@@ -935,12 +912,7 @@ describe("un canal qui refuse de s'ouvrir", () => {
 });
 
 describe("la commande serve selon le compte", () => {
-  /**
-   * `pupitred serve` is a root process. Once hardening has closed root, the app
-   * logs in as dev, where a bare serve reads neither the token nor the
-   * entitlement cache — both 0600 root — and answers entitlement_required for
-   * every command. dev holds passwordless sudo, so the channel asks for it.
-   */
+  // As dev, a bare serve cannot read the 0600 root token and answers entitlement_required to everything.
   it("passe par sudo pour un compte non-root", () => {
     expect(serveAs("dev")).toBe("sudo -n pupitred serve");
     expect(serveAs("deploy")).toBe("sudo -n pupitred serve");
@@ -949,16 +921,228 @@ describe("la commande serve selon le compte", () => {
   it("n'ajoute pas sudo pour root, qui n'en a pas besoin", () => {
     expect(serveAs("root")).toBe("pupitred serve");
   });
+
+  it("ouvre la session privilégiée directement en root", () => {
+    expect(privilegedServeAs("root")).toBe("pupitred serve --privileged");
+  });
+
+  // Under a passwordless sudo rule the password line would reach pupitred as a request.
+  it("fait lire le mot de passe par sudo, et par le shell quand sudo n'en veut pas", () => {
+    const command = privilegedServeAs("dev");
+
+    expect(command).toContain("sudo -n true");
+    expect(command).toContain("sudo -n pupitred serve --privileged");
+    expect(command).toContain(
+      `sudo -S -p '${SUDO_PROMPT}' pupitred serve --privileged`
+    );
+    expect(command.indexOf("read -r")).toBeLessThan(
+      command.indexOf("sudo -n pupitred serve --privileged")
+    );
+  });
+});
+
+describe("le canal privilégié", () => {
+  function echoClient(options: Partial<AgentClientOptions> = {}): {
+    agent: AgentClient;
+    echo: EchoAgent;
+  } {
+    const echo = echoAgent();
+    const agent = createAgentClient({
+      spawn: echo.spawn,
+      backoff: { firstMs: 1, maxMs: 2, attempts: 1 },
+      connectMs: 200,
+      ...options,
+    });
+
+    return { agent, echo };
+  }
+
+  it("porte ce que le contrat garde pour --privileged, et le reste sur les canaux sans mot de passe", async () => {
+    const { agent, echo } = echoClient();
+
+    await agent.call(SERVER, "snapshot", undefined, { polled: true });
+    await agent.call(SERVER, "project.up", { name: "web" });
+    await agent.call(SERVER, "service.secret", {
+      id: "db.mysql",
+      key: "MYSQL_APP_PASSWORD",
+    });
+    await agent.call(SERVER, "install", {
+      config: {},
+      modules: ["db.mysql"],
+      secrets_stdin: true,
+    });
+    await agent.call(SERVER, "agent.upgrade", { version: "1.2.0" });
+    await agent.call(SERVER, "agent.upgrade", {
+      allow_downgrade: true,
+      version: "1.1.0",
+    });
+
+    expect(echo.routed().filter((line) => !line.endsWith(" hello"))).toEqual([
+      "beat snapshot",
+      "control project.up",
+      "privileged service.secret",
+      "privileged install",
+      "work agent.upgrade",
+      "privileged agent.upgrade",
+    ]);
+
+    agent.closeAll();
+  });
+
+  it("mène un geste de lecture sur le canal privilégié quand l'appelant le demande", async () => {
+    const { agent, echo } = echoClient();
+
+    await agent.call(SERVER, "ping", undefined, { privileged: true });
+
+    expect(echo.routed()).toEqual(["privileged hello", "privileged ping"]);
+
+    agent.closeAll();
+  });
+
+  it("se ferme une fois oisif, sans annoncer une coupure, et se rouvre au geste suivant", async () => {
+    const changes: string[] = [];
+    const { agent, echo } = echoClient({
+      idleMs: 20,
+      onChannel: (_server, state) => changes.push(state),
+    });
+
+    await agent.call(SERVER, "reboot");
+    expect(await until(() => echo.killed() === 1)).toBe(true);
+
+    await agent.call(SERVER, "reboot");
+
+    expect(echo.started()).toBe(2);
+    expect(changes).toEqual(["open", "open"]);
+
+    agent.closeAll();
+  });
+
+  it("ne se ferme pas tant que la session sans mot de passe reste ouverte à côté", async () => {
+    const { agent, echo } = echoClient({ idleMs: 20 });
+
+    await agent.call(SERVER, "snapshot");
+    await delay(60);
+
+    expect(echo.killed()).toBe(0);
+
+    agent.closeAll();
+  });
+
+  // A second sudo prompt means the password was refused and the hello is being read as the next attempt.
+  it("coupe au second prompt de sudo et le dit, sans rejouer le même mot de passe", async () => {
+    const opened: ReturnType<typeof scripted>[] = [];
+    const agent = createAgentClient({
+      spawn: () => {
+        const ssh = scripted();
+        opened.push(ssh);
+
+        return ssh.child;
+      },
+      backoff: { firstMs: 1, maxMs: 2, attempts: 3 },
+      connectMs: 500,
+      sudoHeld: () => true,
+    });
+
+    const answer = agent.request(SERVER, "reboot");
+
+    expect(await until(() => opened.length === 1)).toBe(true);
+    const [ssh] = opened;
+    ssh?.child.stderr?.emit("data", SUDO_PROMPT);
+    ssh?.child.stderr?.emit("data", `Sorry, try again.\n${SUDO_PROMPT}`);
+
+    expect(await answer).toMatchObject({
+      ok: false,
+      error: {
+        code: "privilege_required",
+        phrase: { id: "refusal.sudo.refused" },
+      },
+    });
+    expect(ssh?.killed()).toBe(true);
+
+    expect(await agent.request(SERVER, "reboot")).toMatchObject({
+      ok: false,
+      error: { phrase: { id: "refusal.sudo.refused" } },
+    });
+    expect(opened.length).toBe(1);
+
+    agent.resetPrivileged(SERVER);
+    agent.request(SERVER, "reboot");
+    expect(await until(() => opened.length === 2)).toBe(true);
+
+    agent.closeAll();
+  });
+
+  it("dit que cet ordinateur ne tient pas le mot de passe quand il n'en avait aucun", async () => {
+    const { agent, ssh } = scriptedClient({ sudoHeld: () => false });
+
+    const answer = agent.request(SERVER, "reboot");
+
+    await until(() => ssh.written.length > 0);
+    ssh.child.stderr?.emit("data", `${SUDO_PROMPT}${SUDO_PROMPT}`);
+
+    expect(await answer).toMatchObject({
+      ok: false,
+      error: {
+        code: "privilege_required",
+        phrase: { id: "refusal.sudo.absent" },
+      },
+    });
+
+    agent.closeAll();
+  });
+
+  it("n'écoute pas le prompt de sudo sur un canal sans mot de passe", async () => {
+    const { agent, ssh } = scriptedClient();
+
+    const answer = agent.request(SERVER, "ping");
+
+    await untilWritten(ssh, 1);
+    ssh.child.stderr?.emit("data", `${SUDO_PROMPT}${SUDO_PROMPT}`);
+    ssh.say(GREETING);
+    await untilWritten(ssh, 2);
+    ssh.say(JSON.stringify({ id: 2, ok: true, result: { ts: "now" } }));
+
+    expect(await answer).toMatchObject({ ok: true });
+
+    agent.closeAll();
+  });
+});
+
+describe("le mot de passe d'un canal ssh privilégié", () => {
+  it("part sur la première ligne, avant hello", async () => {
+    const written: string[] = [];
+    const spawn = sshSpawn(
+      (_serverId, purpose) =>
+        purpose === "privileged"
+          ? {
+              args: ["-F", "/tmp/config", "pupitre-x"],
+              serveCommand: privilegedServeAs("dev"),
+              preamble: "k7mp-q2xw",
+            }
+          : { args: ["-F", "/tmp/config", "pupitre-x"] },
+      () => {
+        const ssh = scripted();
+        Object.assign(ssh.stdin, {
+          write: (chunk: string) => {
+            written.push(chunk);
+
+            return true;
+          },
+        });
+
+        return ssh.child;
+      }
+    );
+
+    spawn({ purpose: "privileged", serverId: "x" });
+    spawn({ purpose: "control", serverId: "x" });
+
+    expect(written).toEqual(["k7mp-q2xw\n"]);
+  });
 });
 
 describe("le serveur d'un canal", () => {
-  /**
-   * A channel belongs to its machine and no other.
-   *
-   * Falling back to another one — the active machine, say — would run on it
-   * what was meant for the one that disappeared. No convenience buys back that
-   * kind of substitution.
-   */
+  // Falling back to the active machine would run on it what was meant for the one that disappeared.
   it("ne se rabat sur aucune autre quand elle est inconnue", async () => {
     const agent = createAgentClient({
       spawn: sshSpawn((serverId) => {
@@ -986,14 +1170,7 @@ describe("le serveur d'un canal", () => {
 });
 
 describe("un ssh qui meurt vite", () => {
-  /**
-   * `exit` arrives before stderr is handed over.
-   *
-   * Node reports the process ending as soon as it stops, but the streams are
-   * only flushed at `close`. Keying on `exit` lost `ssh`'s complaint when it
-   * arrived a few milliseconds too late — and the screen had nothing but an
-   * exit code to show.
-   */
+  // Node emits `exit` before the streams are flushed at `close`: keying on `exit` lost ssh's complaint.
   function dyingProcess(): { child: EventEmitter; stderr: EventEmitter } {
     const stderr = new EventEmitter() as EventEmitter & {
       setEncoding: () => void;
@@ -1053,13 +1230,7 @@ describe("un ssh qui meurt vite", () => {
   });
 });
 
-/**
- * A process standing in for `ssh`: the test decides what it writes and when.
- *
- * `written` is what the app sent it, line by line; `say` answers on its output,
- * `die` ends it. Nothing here is a transcript, which is the point — these are
- * the shapes no transcript can replay: silence, floods, a broken pipe.
- */
+/** A stand-in for `ssh` for the shapes no transcript can replay: silence, floods, a broken pipe. */
 function scripted(): {
   child: ChildProcess;
   written: string[];
@@ -1430,6 +1601,50 @@ describe("la forme des réponses, en développement", () => {
       enableTrace(false);
       tracesTo(null);
     }
+
+    agent.closeAll();
+  });
+});
+
+describe("la forme des réponses qui deviennent une ligne de commande", () => {
+  it("refuse, dans tous les builds, un résultat hors contrat avant qu'il n'atteigne le pty", async () => {
+    const { agent, ssh } = scriptedClient({
+      enforcedResults: new Set(["snapshot"]),
+    });
+
+    const asked = agent.request(SERVER, "snapshot");
+
+    await untilWritten(ssh, 1);
+    ssh.say(GREETING);
+    await untilWritten(ssh, 2);
+    ssh.say(
+      JSON.stringify({ id: 2, ok: true, result: { command: ["sh", "-c"] } })
+    );
+
+    const answer = await asked;
+
+    expect(answer.ok).toBe(false);
+    expect(answer.ok ? null : answer.error.phrase).toEqual({
+      id: "refusal.agent.shape",
+      values: { cmd: "snapshot" },
+    });
+
+    agent.closeAll();
+  });
+
+  it("laisse passer ce qui a la forme du contrat", async () => {
+    const { agent } = client("db-shell-control.jsonl", {
+      enforcedResults: new Set(["db.shell"]),
+    });
+
+    const answer = await agent.request(SERVER, "db.shell", {
+      engine: "postgres",
+    });
+
+    expect(answer).toEqual({
+      ok: true,
+      result: { command: "sudo -u postgres psql app" },
+    });
 
     agent.closeAll();
   });

@@ -3,23 +3,15 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Server } from "@shared/servers";
-
-/**
- * What this file proves: a `servers.json` the app cannot read is not an empty
- * list to be written over at the next change. It is kept aside, the app shows
- * no server, and nothing is written until the file reads again.
- */
+import { electronStub } from "./electron-stub";
 
 const root = mkdtempSync(join(tmpdir(), "pupitre-servers-corrupt-"));
 
-mock.module("electron", () => ({
-  app: { getPath: () => root },
-}));
+mock.module("electron", () => electronStub(root));
 
 const { corruptPath, read, reload, write } = await import("../servers");
 
-// The module is shared with the other server tests of the run, and so is the
-// folder it was first pointed at: the file is the one it will really read.
+// The module, and the folder it first pointed at, are shared with the run's other server tests.
 const FILE = corruptPath().replace(/\.corrupt$/, "");
 
 writeFileSync(FILE, '{"servers": [ {"id": "srv-1", "name": "x", ');

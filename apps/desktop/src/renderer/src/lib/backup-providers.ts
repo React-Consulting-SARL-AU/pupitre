@@ -5,11 +5,6 @@ import {
   backupStorageProblems,
 } from "@shared/backups";
 
-/**
- * The providers a bucket is set up for, each asked only what it does not
- * derive: R2 an account ID, AWS a region, any other one its endpoint.
- */
-
 export const BACKUP_PROVIDERS = ["r2", "aws", "other"] as const;
 
 export type BackupProvider = (typeof BACKUP_PROVIDERS)[number];
@@ -34,7 +29,7 @@ export function r2AccountOf(endpoint: string): string {
   return R2_ENDPOINT.exec(endpoint.trim())?.[1] ?? "";
 }
 
-/** A pasted S3 API address is taken for the account it names. */
+/** Takes either an account ID or a pasted S3 API address. */
 export function r2Endpoint(typed: string): string {
   const account = r2AccountOf(typed) || typed.trim().toLowerCase();
 
@@ -51,7 +46,6 @@ export function awsEndpoint(region: string): string {
   return trimmed ? `https://s3.${trimmed}.amazonaws.com` : "";
 }
 
-/** What changing provider resets: the address and how it is reached, never the bucket or the key. */
 export function switchedTo(
   provider: BackupProvider,
   storage: BackupStorage
@@ -63,7 +57,6 @@ export function switchedTo(
 
 export type StorageProblem = BackupFieldProblem | "r2Account";
 
-/** The rules the main process refuses on, and an R2 account ID that could not be one. */
 export function storageProblems(
   provider: BackupProvider,
   storage: BackupStorage
@@ -91,7 +84,6 @@ const BLANK_STORAGE: BackupStorage = {
   region: "auto",
 };
 
-/** The bucket of a held connection, without its identity; a blank R2 bucket otherwise. */
 export function storageOf(view: BackupConnectionView | null): BackupStorage {
   return view
     ? {
@@ -116,7 +108,6 @@ const CONNECTION_KEYS = [
   "kdf_salt",
 ] as const;
 
-/** Whether the server's values name another bucket or key than this computer's connection. */
 export function driftsFrom(
   view: BackupConnectionView,
   values: Record<string, unknown>

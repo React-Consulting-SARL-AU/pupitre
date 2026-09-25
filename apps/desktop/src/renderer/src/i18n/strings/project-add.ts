@@ -16,6 +16,8 @@ export const projectAdd = {
     "projectAdd.form.sourceReadProcesses": "Read from the source: {processes}.",
     "projectAdd.form.nameLabel": "Name",
     "projectAdd.form.nameHelp": "Inferred from the source.",
+    "projectAdd.form.nameProblem":
+      "Lowercase letters, digits, dots, hyphens and underscores, starting with a letter or a digit.",
     "projectAdd.form.folderHelp": "Folder: {dir}",
     "projectAdd.form.namePlaceholder": "my-site",
     "projectAdd.form.pkgmgrLabel": "Package manager",
@@ -100,11 +102,10 @@ export const projectAdd = {
     "projectAdd.github.filterPlaceholder.other": "Search {count} repositories",
     "projectAdd.github.change": "Change repository",
     "projectAdd.github.listLabel": "Repositories of the account",
-    "projectAdd.github.refresh": "Read again",
+    "projectAdd.github.refresh": "Refresh",
     "projectAdd.github.private": "Private repository",
     "projectAdd.github.empty": "No repository under that name",
-    "projectAdd.github.emptyDetail":
-      "Try fewer letters, or read the list again.",
+    "projectAdd.github.emptyDetail": "Try fewer letters, or refresh the list.",
     "projectAdd.github.absent": "No GitHub account is connected.",
     "projectAdd.github.absentFix": "Connect one in Settings, Connections.",
     "projectAdd.github.connect": "Open the settings",
@@ -132,7 +133,7 @@ export const projectAdd = {
     "projectAdd.form.subdomain.taken":
       "Another port, on this server, already answers to this name.",
 
-    "projectAdd.panel.title": "New project",
+    "projectAdd.panel.title": "Add a project",
     "projectAdd.panel.cancel": "Cancel",
     "projectAdd.phase.warning": "With one reservation: {warning}",
     "projectAdd.panel.edit": "Edit the form",
@@ -183,6 +184,8 @@ export const projectAdd = {
     "projectAdd.form.sourceReadProcesses": "Lu dans la source : {processes}.",
     "projectAdd.form.nameLabel": "Nom",
     "projectAdd.form.nameHelp": "Déduit de la source.",
+    "projectAdd.form.nameProblem":
+      "Minuscules, chiffres, points, tirets et soulignés, en commençant par une lettre ou un chiffre.",
     "projectAdd.form.folderHelp": "Dossier : {dir}",
     "projectAdd.form.namePlaceholder": "mon-site",
     "projectAdd.form.pkgmgrLabel": "Gestionnaire de paquets",
@@ -198,7 +201,7 @@ export const projectAdd = {
     "projectAdd.form.bootDetail":
       "Le projet revient de lui-même après un redémarrage du serveur.",
     "projectAdd.processes.idLabel": "Processus",
-    "projectAdd.processes.idHelp": "Nomme la fenêtre et le journal.",
+    "projectAdd.processes.idHelp": "Nomme la fenêtre et les logs.",
     "projectAdd.processes.idPlaceholder": "server",
     "projectAdd.processes.dirLabel": "Dossier",
     "projectAdd.processes.dirHelp": "Relatif au projet ; vide pour sa racine.",
@@ -208,7 +211,7 @@ export const projectAdd = {
     "projectAdd.processes.idTaken":
       "Un autre processus de ce projet porte cet identifiant.",
     "projectAdd.processes.dir":
-      "Un dossier dans le projet : pas de barre oblique en tête, pas de « .. ».",
+      "Un dossier dans le projet : pas de slash en tête, pas de « .. ».",
     "projectAdd.processes.cmd": "Il faut une commande de démarrage.",
     "projectAdd.processes.main": "principal",
     "projectAdd.processes.unnamed": "Processus sans nom",
@@ -267,11 +270,11 @@ export const projectAdd = {
       "Chercher parmi {count} dépôts",
     "projectAdd.github.change": "Changer de dépôt",
     "projectAdd.github.listLabel": "Dépôts du compte",
-    "projectAdd.github.refresh": "Relire",
+    "projectAdd.github.refresh": "Actualiser",
     "projectAdd.github.private": "Dépôt privé",
     "projectAdd.github.empty": "Aucun dépôt sous ce nom",
     "projectAdd.github.emptyDetail":
-      "Essayez moins de lettres, ou relisez la liste.",
+      "Essayez moins de lettres, ou actualisez la liste.",
     "projectAdd.github.absent": "Aucun compte GitHub n'est connecté.",
     "projectAdd.github.absentFix": "Connectez-en un dans Réglages, Connexions.",
     "projectAdd.github.connect": "Ouvrir les réglages",
@@ -299,7 +302,7 @@ export const projectAdd = {
     "projectAdd.form.subdomain.taken":
       "Un autre port, sur ce serveur, répond déjà à ce nom.",
 
-    "projectAdd.panel.title": "Nouveau projet",
+    "projectAdd.panel.title": "Ajouter un projet",
     "projectAdd.panel.cancel": "Annuler",
     "projectAdd.phase.warning": "Avec une réserve : {warning}",
     "projectAdd.panel.edit": "Modifier le formulaire",
@@ -311,7 +314,7 @@ export const projectAdd = {
     "projectAdd.phase.install.title": "Installation des dépendances",
     "projectAdd.phase.up.title": "Démarrage",
     "projectAdd.phase.publish.title": "Nom sur le web",
-    "projectAdd.phase.logs.title": "Adresse et journal",
+    "projectAdd.phase.logs.title": "Adresse et logs",
     "projectAdd.phaseStatus.pending": "en attente",
     "projectAdd.phaseStatus.running": "en cours",
     "projectAdd.phaseStatus.ok": "faite",
@@ -326,11 +329,11 @@ export const projectAdd = {
     "projectAdd.form.startNowLabel": "Démarrer le projet une fois prêt",
     "projectAdd.form.bootLabel": "Démarrer le projet avec le serveur",
     "projectAdd.up.notRunningFix":
-      "Lisez le journal ci-dessous, corrigez la commande de démarrage, puis réessayez.",
+      "Lisez les logs ci-dessous, corrigez la commande de démarrage, puis réessayez.",
     "projectAdd.up.notRunningMessage":
       "{name} ne tourne pas : l'agent le donne {state}.",
 
-    "projectAdd.journal.title": "Journal du projet",
+    "projectAdd.journal.title": "Logs du projet",
     "projectAdd.journal.lines": "{count} lignes",
     "projectAdd.outcome.unknownAddress": "adresse inconnue",
     "projectAdd.outcome.open": "Ouvrir",

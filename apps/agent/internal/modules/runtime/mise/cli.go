@@ -2,7 +2,7 @@ package mise
 
 import "pupitre.studio/agent/internal/modules"
 
-// mise carries the npm and pypi backends, so a CLI installs, pins and upgrades the same way a runtime does, and lands on a shim every shell already has on PATH.
+// mise's npm and pypi backends let a CLI install, pin and upgrade like a runtime, onto a shim already on PATH.
 type CLI struct {
 	Tool    string
 	Program string

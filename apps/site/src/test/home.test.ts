@@ -1,7 +1,8 @@
 import { MODULE_IDS } from "@pupitre/shared/catalog"
 import { TRIAL_DAYS } from "@pupitre/shared/plans"
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it } from "vitest"
 import { homeContent, STACK } from "../content/site/home"
+import { LAUNCH_ENDS_AT, launchEndDate } from "../lib/launch"
 import { SIGNUP_URL } from "../lib/urls"
 import Fr from "../pages/fr/index.astro"
 import En from "../pages/index.astro"
@@ -10,6 +11,7 @@ import {
   offersDownloadAsMainAction,
   undeclaredButtons,
 } from "./actions"
+import { AFTER_LAUNCH, buildAt, buildNow, DURING_LAUNCH } from "./launch"
 import { render } from "./render"
 import { undeclaredVectors } from "./vectors"
 
@@ -29,6 +31,8 @@ function structuredData(html: string): Record<string, unknown>[] {
 }
 
 describe("home", () => {
+  afterEach(buildNow)
+
   it("carries the headline and two buttons in English", async () => {
     const html = await render(En, { path: "/" })
 
@@ -79,6 +83,8 @@ describe("home", () => {
   })
 
   it("tells the six steps from the site to the installed server", async () => {
+    buildAt(AFTER_LAUNCH)
+
     for (const [page, path, locale] of [
       [En, "/", "en"],
       [Fr, "/fr/", "fr"],
@@ -91,9 +97,37 @@ describe("home", () => {
       expect(html).toContain('<p class="step-number">6</p>')
       expect(html, locale).not.toContain("{days}")
       expect(html, locale).toContain(`${TRIAL_DAYS}`)
+      expect(html, locale).not.toContain("data-launch")
       for (const item of steps.items) {
         expect(html, `${locale} ${item.title}`).toContain(`>${item.title}</h3>`)
       }
+    }
+  })
+
+  it("starts for free during the launch, and prices the app at zero until its last day", async () => {
+    buildAt(DURING_LAUNCH)
+
+    for (const [page, path, locale] of [
+      [En, "/", "en"],
+      [Fr, "/fr/", "fr"],
+    ] as const) {
+      const html = await render(page, { path })
+      const launched = homeContent(locale).steps.items.flatMap((item) =>
+        item.duringLaunch ? [item.duringLaunch] : []
+      )
+      const application = structuredData(html).find(
+        (entry) => entry["@type"] === "SoftwareApplication"
+      )
+
+      expect(launched, locale).toHaveLength(1)
+      expect(html, locale).toContain(`>${launched[0].title}</h3>`)
+      expect(html, locale).toContain(launchEndDate(locale))
+      expect(html, locale).toContain("data-launch")
+      expect(html, locale).not.toContain("{date}")
+      expect(application?.offers, locale).toMatchObject({
+        price: "0",
+        priceValidUntil: LAUNCH_ENDS_AT.toISOString().slice(0, 10),
+      })
     }
   })
 

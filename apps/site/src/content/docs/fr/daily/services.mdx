@@ -21,9 +21,9 @@ L’écran des services affiche ce que l’agent rapporte : le module, sa versio
 
 Ouvrir un service montre ce que l’agent en a répondu : son état, sa version, le port sur lequel il écoute et l’unité `systemd` derrière lui.
 
-**Identifiants.** Un module qui a créé un compte en montre les libellés, et laisse révéler ou copier une valeur. Les valeurs restent dans le processus principal de l’app — jamais stockées, jamais journalisées — et le presse-papiers est écrit de ce côté-là.
+**Identifiants.** Un module qui a créé un compte en montre les libellés, et laisse révéler ou copier une valeur. Les valeurs restent dans le processus principal de l’app — jamais stockées, jamais loggées — et le presse-papiers est écrit de ce côté-là.
 
-**Configuration.** Les valeurs que l’agent a gardées de la dernière installation, dans le même formulaire que la première fois. Appliquer rejoue le module avec elles ; un secret laissé vide reste celui que le serveur détient. C’est ainsi qu’on change proprement un mot de passe de base : des deux côtés à la fois.
+**Configuration.** Les valeurs que l’agent a gardées de la dernière installation, dans le même formulaire que la première fois. Appliquer relance le module avec elles ; un secret laissé vide reste celui que le serveur détient. C’est ainsi qu’on change proprement un mot de passe de base : des deux côtés à la fois.
 
 **Un tunnel vers le port.** Un clic ouvre un tunnel local par la session SSH que l’app tient, pour que le port du serveur réponde sur votre propre machine. C’est ainsi qu’une base sur `127.0.0.1` rejoint le client posé sur votre bureau sans qu’un port s’ouvre sur le serveur.
 

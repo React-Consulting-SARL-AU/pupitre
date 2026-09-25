@@ -3,13 +3,9 @@ import { CheckBox } from "../ui/check-box";
 import { controlClass, fieldAria } from "../ui/field";
 import { Select } from "../ui/select";
 
-/** A git identity is a sentence; a port, a path and a version are values. */
+// A git identity is prose; ports, paths and versions are data.
 const PROSE_KEYS = new Set(["git_name"]);
 
-/**
- * The plain kinds — text, number, select, version, boolean — where the value
- * lives in the store and comes straight back to the control.
- */
 export function ConfigValueControl({
   name,
   field,
@@ -20,7 +16,6 @@ export function ConfigValueControl({
   name: string;
   field: Field;
   value: unknown;
-  /** Whether the value is refused: the field is bordered and said to be invalid. */
   wrong?: boolean;
   onValue?: (value: unknown) => void;
 }) {

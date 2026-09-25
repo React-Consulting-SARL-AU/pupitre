@@ -11,7 +11,7 @@ Ajouter un serveur tient sur un écran : une adresse, un port s’il n’est pas
 
 ## La première connexion
 
-L’app ouvre une session SSH avec le compte que vous avez donné — root, ou un utilisateur avec sudo. Elle ne s’en sert qu’une fois, pour poser la clé qu’elle a générée pour ce serveur et lancer la sonde. Ensuite elle se connecte en `dev` avec cette clé, et n’a plus jamais besoin du premier compte. C’est la même clé que vous pourrez donner à vos propres outils : voir [votre clé](/fr/docs/start/keys/).
+L’app ouvre une session SSH avec le compte que vous avez donné — root, ou un utilisateur avec sudo. Elle s’en sert pour poser la clé qu’elle a générée pour ce serveur, lancer la sonde et installer. Une fois que la sécurisation a créé `dev` et vérifié que la clé l’ouvre, l’app se connecte en `dev` et n’a plus jamais besoin du premier compte. C’est la même clé que vous pourrez donner à vos propres outils : voir [votre clé](/fr/docs/start/keys/).
 
 ## La sonde
 
@@ -37,4 +37,6 @@ Chaque refus nomme la raison et, quand elle existe, la commande qui répare.
 
 ## Rien ne se connecte vers l’intérieur
 
-Une fois l’app connectée, le seul port ouvert sur le serveur est SSH, pour vous. Ni la plateforme ni le support ne se connectent à votre machine. L’agent sort en HTTPS pour son droit d’usage, les clés publiques et ses propres mises à jour ; rien n’entre.
+Ni la plateforme ni le support ne se connectent jamais à votre machine. L’agent sort en HTTPS pour son droit d’usage, les clés publiques et ses propres mises à jour ; l’app joint le serveur en SSH depuis votre ordinateur.
+
+Une fois le serveur sécurisé, le pare-feu laisse entrer SSH, sur 22 et aussi sur 443 si vous choisissez SSH sur 443. Installer `exposure.caddy` ouvre 80 et 443 pour le web, et `exposure.tailscale` laisse entrer votre propre tailnet. Rien d’autre n’est ouvert. Voir la [sécurité](/fr/docs/account/security/).

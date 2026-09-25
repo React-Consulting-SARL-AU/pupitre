@@ -42,10 +42,7 @@ function addressOf(server: ServerRow): string {
     : server.name
 }
 
-/**
- * Each recipient is written to in the language they registered; a scheduled
- * task has no request header to read, so this is the only thing that decides.
- */
+// A scheduled task has no request header, so each recipient's registered locale decides.
 async function deliverTo(
   recipients: Recipient[],
   input: Addressed,

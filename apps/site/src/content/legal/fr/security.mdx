@@ -1,0 +1,46 @@
+---
+title: "Sécurité"
+description: "Comment nous signaler une faille dans Pupitre, ce que vous pouvez tester, ce que nous nous engageons à faire, et ce que nous ne vous reprocherons pas."
+locale: fr
+updated: 2026-09-24
+order: 9
+---
+
+Pupitre installe un agent qui tourne en root sur la machine de ses clients : une faille chez nous peut devenir une faille chez eux. Si vous en trouvez une, nous voulons l’apprendre de vous avant tout le monde.
+
+## Signaler une faille
+
+Écrivez à `security@pupitre.studio`, en français ou en anglais. Dites ce que vous avez trouvé, comment le reproduire, ce qu’un attaquant pourrait en faire, et la version de l’app, de l’agent ou l’adresse concernée. N’envoyez que les données personnelles ou les secrets strictement nécessaires pour le montrer. Le fichier [`security.txt`](/.well-known/security.txt) du site donne la même adresse.
+
+## Ce que vous pouvez tester
+
+- l’app desktop Pupitre et ses mises à jour ;
+- l’agent `pupitred`, sur une machine qui vous appartient ;
+- la console et l’API sur `app.pupitre.studio`, avec votre propre compte ;
+- le site `pupitre.studio` et les téléchargements de `dl.pupitre.studio`, signatures comprises.
+
+Ne testez pas une machine qui n’est pas la vôtre, même gérée par Pupitre : elle appartient à un client, pas à nous. Les failles de Cloudflare, de Stripe, de PostHog, de GitHub ou d’un logiciel du catalogue se signalent à leurs éditeurs ; dites-nous si elles touchent Pupitre.
+
+## Les règles
+
+- Utilisez vos propres comptes, vos propres organisations et vos propres machines. Si vous atteignez la donnée de quelqu’un d’autre, arrêtez, n’en gardez rien et dites-le-nous.
+- Pas de déni de service, pas de saturation, pas d’ingénierie sociale envers nous ou nos clients, pas de courrier indésirable, pas d’accès physique.
+- Laissez-nous le temps de corriger avant de publier : nous convenons ensemble d’une date, quatre-vingt-dix jours au plus tard après votre signalement sauf accord contraire.
+
+## Ce que nous ne vous reprocherons pas
+
+Tant que vous suivez ces règles de bonne foi, nous ne vous poursuivrons pas et ne porterons pas plainte contre vous pour votre recherche, et analyser l’app ou l’agent pour y chercher une faille n’est pas un manquement à la [licence](/fr/legal/licence/). Si un tiers vous poursuit pour une recherche conforme à cette politique, nous dirons publiquement qu’elle l’était. Cet engagement ne vaut que pour nous : il ne peut pas autoriser à votre place ce qui touche la machine d’un client ou le service d’un tiers.
+
+## Ce que nous nous engageons à faire
+
+- accuser réception de votre signalement sous cinq jours ouvrés ;
+- vous dire si nous reproduisons la faille, et vous tenir informé jusqu’à sa correction ;
+- corriger en priorité ce qui menace les machines de nos clients, et publier la correction par une mise à jour signée ;
+- prévenir les clients concernés quand une faille exige un geste de leur part ;
+- vous remercier par votre nom dans les notes de version, si vous le souhaitez.
+
+Pupitre n’offre pas de récompense financière pour les signalements aujourd’hui.
+
+## Ce qui protège déjà vos machines
+
+La plateforme ne peut ni ouvrir une connexion vers une machine, ni y exécuter une commande, ni y lire un fichier ; aucune clé privée SSH ne quitte l’ordinateur de son propriétaire ; chaque binaire de l’agent est signé et vérifié avant d’être installé ; les sauvegardes quittent la machine chiffrées pour une clé que la plateforme n’a pas. Les [conditions](/fr/legal/terms/) décrivent ces garanties en détail, et la [politique de confidentialité](/fr/legal/privacy/) dit comment une violation de données vous est annoncée.

@@ -1,9 +1,6 @@
 import type { FileEntry } from "@pupitre/shared/agent-protocol/files";
 
-/**
- * Paths as the file commands take them: relative to the one root the agent
- * holds, the empty string naming that root. Nothing here reads the disk.
- */
+// Paths are relative to the agent's root, and the empty string names the root itself.
 
 export type FileSort = "name" | "date";
 
@@ -13,7 +10,6 @@ export function isFileSort(value: unknown): value is FileSort {
   return typeof value === "string" && FILE_SORTS.includes(value as FileSort);
 }
 
-/** Two path pieces joined, either of which may be the root and name nothing. */
 export function under(path: string, name: string): string {
   return [path, name].filter(Boolean).join("/");
 }
@@ -30,12 +26,6 @@ export function nameOf(path: string): string {
   return crumbsOf(path).at(-1) ?? "";
 }
 
-/**
- * A path under a root, as the root sees it: `projects/atlas/src` under
- * `projects/atlas` is `src`, and the root itself is the empty string. It reads
- * an absolute path under an absolute root the same way. A path that is not
- * under the root answers nothing rather than a guess.
- */
 export function within(root: string, path: string): string | null {
   if (root.length === 0) {
     return path;
@@ -48,12 +38,10 @@ export function within(root: string, path: string): string | null {
   return path.startsWith(`${root}/`) ? path.slice(root.length + 1) : null;
 }
 
-/** The absolute place of a relative path, from the root the agent named. */
 export function absoluteOf(root: string, path: string): string {
   return path.length === 0 ? root : `${root}/${path}`;
 }
 
-/** What lies above the folder the agent names, or nothing for a bare name. */
 export function dirnameOf(absolute: string): string {
   const at = absolute.lastIndexOf("/");
 
@@ -81,7 +69,6 @@ function byDate(left: FileEntry, right: FileEntry): number {
   );
 }
 
-/** Folders first, then files, each in the order asked; hidden ones only on request. */
 export function sortedEntries(
   entries: readonly FileEntry[],
   sort: FileSort,
@@ -98,15 +85,6 @@ export function sortedEntries(
     });
 }
 
-const LAST_COUNT = /(\d+)(?!.*\d)/;
-
-/** The last count an agent's refusal names, when it names one: how many entries a folder holds. */
-export function heldCount(message: string): number | null {
-  const found = message.match(LAST_COUNT);
-
-  return found ? Number(found[1]) : null;
-}
-
 export type RenderedForm = "markdown" | "svg";
 
 const RENDERED_FORMS: Record<string, RenderedForm> = {
@@ -115,7 +93,6 @@ const RENDERED_FORMS: Record<string, RenderedForm> = {
   svg: "svg",
 };
 
-/** The drawn form a text file also has, when the app knows how to draw it. */
 export function renderedFormOf(path: string): RenderedForm | null {
   const name = nameOf(path);
   const dot = name.lastIndexOf(".");
@@ -129,7 +106,6 @@ export function renderedFormOf(path: string): RenderedForm | null {
 
 const NAME_OK = /^[^/\0]+$/;
 
-/** One entry name: never empty, never a path, never the folder itself or the one above. */
 export function isEntryName(value: string): boolean {
   return NAME_OK.test(value) && value !== "." && value !== "..";
 }

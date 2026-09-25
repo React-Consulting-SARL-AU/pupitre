@@ -19,7 +19,6 @@ func releaseDocument(digest string) string {
 	return `{"assets":[{"name":"` + release.Asset("") + `","digest":"sha256:` + digest + `"}]}`
 }
 
-// A machine whose GitHub answers version as the latest release and publishes the digest of what curl serves beside the asset.
 func machine(published string) *modtest.FakeSys {
 	fake := modtest.NewFakeSys()
 	fake.Users["dev"] = "/home/dev"
@@ -61,6 +60,7 @@ func TestFirstInstallLaysDownTheBinaryAndTheServiceOnTheLoopback(t *testing.T) {
 	}
 
 	unit := string(fake.Files[unitPath])
+
 	for _, want := range []string{"--smtp 127.0.0.1:1025", "--listen 127.0.0.1:8025", "User=dev", "--database " + database} {
 		if !strings.Contains(unit, want) {
 			t.Errorf("the unit lacks %q:\n%s", want, unit)

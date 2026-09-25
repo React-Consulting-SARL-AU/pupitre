@@ -86,7 +86,7 @@ func addRepository(ctx *modules.Context) error {
 		}
 	}
 
-	return apt.Refresh(ctx)
+	return apt.RefreshAdded(ctx, sourcePath, keyringPath)
 }
 
 func (Module) Configure(ctx *modules.Context) error {
@@ -112,6 +112,7 @@ func storeToken(ctx *modules.Context) (bool, error) {
 		}
 
 		rotated = stored
+
 		if !stored {
 			return modules.Skipped, nil
 		}
@@ -122,7 +123,7 @@ func storeToken(ctx *modules.Context) (bool, error) {
 	return rotated, err
 }
 
-// op reads OP_SERVICE_ACCOUNT_TOKEN and nothing else: without it in the dev shell, `op whoami` in a terminal finds no account.
+// op reads only OP_SERVICE_ACCOUNT_TOKEN: without it in the dev shell, `op whoami` in a terminal finds no account.
 func exportToken(ctx *modules.Context) error {
 	return ctx.Step("export-token", func() (modules.Outcome, error) {
 		exported, err := shell.SetUserEnv(ctx, envKey, ctx.Secret("service_account_token"))
@@ -138,8 +139,7 @@ func exportToken(ctx *modules.Context) error {
 	})
 }
 
-// Installed is not enough: a token that does not open the vaults makes project.env fail much later, far from its cause.
-// A token already verified is not asked again: the round trip to 1Password is only worth a token the machine has not seen.
+// A token that opens no vault would fail project.env much later, far from its cause; only a new token is worth the round trip.
 func verifyAccount(ctx *modules.Context, rotated bool) error {
 	return ctx.Step("verify-service-account", func() (modules.Outcome, error) {
 		if !rotated {
@@ -174,7 +174,7 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// The .env.local files produced belong to the projects: uninstalling takes back the CLI and the token, never a project's environment.
+// The .env.local files produced belong to the projects and stay.
 func (Module) Uninstall(ctx *modules.Context) error {
 	if err := ctx.Step("remove-op", func() (modules.Outcome, error) {
 		if !apt.Installed(ctx, pkg) {
@@ -245,7 +245,7 @@ func environment(token string) []string {
 	return []string{envKey + "=" + token}
 }
 
-// op whoami answers for the service account the token names; a service account carries no email, so the account it belongs to stands for it.
+// A service account carries no email, so the account URL stands for it.
 func (Module) Login(ctx *modules.Context) (contract.Login, bool) {
 	token := serviceToken(ctx)
 	if token == "" {

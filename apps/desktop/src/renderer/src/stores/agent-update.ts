@@ -15,16 +15,6 @@ import {
   stepOf,
 } from "../lib/module-progress";
 
-/**
- * What separates the agent this app can offer from the one the server runs.
- *
- * The comparison is the main process's — it reads the platform and holds the
- * embedded release — and this store keeps its answer as it came. An app behind
- * the server is a fact to show, not a state to be in: nothing here gates a
- * screen, so a reader on an older app goes on driving everything the agent
- * still understands.
- */
-
 export type UpdateState =
   | { status: "idle" }
   | { status: "reading"; serverId: string }
@@ -37,13 +27,7 @@ export type UpgradeState =
   | { status: "done"; serverId: string; result: AgentUpgradeOutcome }
   | { status: "failed"; serverId: string; error: AgentError };
 
-/**
- * The configuration on the server, brought to the shape the agent now reads.
- *
- * `upgradeAgent` already asks for it: this is what the reader sees of that
- * answer, and what a second attempt writes back after a migration refused.
- * `result` is null for an agent from before the ledger.
- */
+// `result` is null for an agent older than the migration ledger.
 export type MigrationState =
   | { status: "idle" }
   | { status: "running"; serverId: string }
@@ -56,10 +40,8 @@ export type ModulesState =
   | { status: "done"; serverId: string; result: InstallResult }
   | { status: "failed"; serverId: string; error: AgentError };
 
-/** Every piece of state here names its machine, or is nothing. */
 type Keyed = { status: "idle" } | { status: string; serverId: string };
 
-/** What the named machine's screens may show of a state: another machine's is nothing. */
 export function ofServer<T extends Keyed>(
   state: T,
   serverId: string | null
@@ -74,18 +56,12 @@ interface AgentUpdateStore {
   upgrade: UpgradeState;
   migration: MigrationState;
   modules: ModulesState;
-  /** The agent's own lines while it replaces itself, in order. */
   journal: string[];
   steps: ModuleProgress[];
-  /** Set by the reader who closed the banner; a new version reopens it. */
+  // The dismissed offer's version, so a newer release reopens the banner.
   hidden: string | null;
 
   read: (serverId: string) => Promise<void>;
-  /**
-   * The same read on a beat: a server upgraded from another computer, or a
-   * release published since, reaches the banner without a relaunch. It steps
-   * aside while an upgrade or a migration of this app's own is under way.
-   */
   refresh: (serverId: string) => Promise<void>;
   upgradeAgent: (serverId: string) => Promise<void>;
   migrateConfig: (serverId: string) => Promise<void>;
@@ -103,13 +79,12 @@ function lineOf(event: Event): string | null {
 }
 
 export const useAgentUpdate = create<AgentUpdateStore>((set, get) => {
-  /** Which machine the banner is on: an answer from an earlier one is dropped. */
+  // Bumped when the banner changes machine, so an earlier machine's answer is dropped.
   let turn = 0;
 
-  /** The read under way, so the beat, a focus and a visibility change share one. */
+  // Shared so the beat, a focus and a visibility change trigger a single read.
   let reading: { serverId: string; answer: Promise<void> } | null = null;
 
-  /** Whether the banner is still on this machine: a gesture made on another one reads nothing back. */
   function stillOn(serverId: string): boolean {
     const { state } = get();
 
@@ -176,6 +151,7 @@ export const useAgentUpdate = create<AgentUpdateStore>((set, get) => {
             reading = null;
           }
         });
+
       reading = { answer, serverId };
 
       return answer;
@@ -191,11 +167,7 @@ export const useAgentUpdate = create<AgentUpdateStore>((set, get) => {
       await get().read(serverId);
     },
 
-    /**
-     * The channel drops when the agent restarts, and a dropped channel is not a
-     * failure here: the answer arrives before the restart, and the next read is
-     * what confirms which version came back up.
-     */
+    // The channel drops as the agent restarts; the next read confirms which version came back.
     async upgradeAgent(serverId) {
       set({
         journal: [],
@@ -219,10 +191,7 @@ export const useAgentUpdate = create<AgentUpdateStore>((set, get) => {
       }
     },
 
-    /**
-     * The second attempt, after a migration refused. The first one went with
-     * the upgrade, and the agent had already run it when it started.
-     */
+    // Only a retry: the first migration already ran when the upgraded agent started.
     async migrateConfig(serverId) {
       set({ migration: { serverId, status: "running" } });
 
@@ -270,6 +239,7 @@ export const useAgentUpdate = create<AgentUpdateStore>((set, get) => {
     forget() {
       turn += 1;
       reading = null;
+
       set({
         journal: [],
         migration: { status: "idle" },
@@ -282,14 +252,6 @@ export const useAgentUpdate = create<AgentUpdateStore>((set, get) => {
   };
 });
 
-/**
- * Whether the banner has anything to say: a server whose configuration is not
- * the shape its agent reads is always said — nothing can be driven on it until
- * that is settled, and it is never something the reader can put away — a server
- * the sheet says this app can no longer drive is always said, an app ahead of
- * the server has an update to offer, an app behind it has one to ask for. The
- * rest is silence.
- */
 export function announces(state: UpdateState, hidden: string | null): boolean {
   if (state.status !== "ready") {
     return false;

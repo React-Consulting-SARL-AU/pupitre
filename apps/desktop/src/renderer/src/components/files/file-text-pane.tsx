@@ -10,12 +10,6 @@ import { FileEditor } from "./file-editor";
 import { FileMarkdownView } from "./file-markdown-view";
 import { FileSvgView } from "./file-svg-view";
 
-/**
- * A text file in the right pane: drawn when it has a drawn form and the
- * reader asked for it, in the editor otherwise, with Save at its foot either
- * way. The drawing takes the buffer as edited, so a change is seen before it
- * is saved.
- */
 export function FileTextPane({
   path,
   text,
@@ -27,10 +21,8 @@ export function FileTextPane({
   onSave,
 }: {
   path: string;
-  /** What the file reads as on the server, as of the last read or write. */
   text: string;
   stat: FsStatResult;
-  /** The buffer as the reader left it, when it differs from the file. */
   draft: string | null;
   view: PreviewView;
   write: WriteState;
@@ -65,7 +57,7 @@ export function FileTextPane({
 
       <footer className="flex items-center justify-between gap-3">
         <span
-          className="flex items-center gap-2 font-data text-[11px] text-ink-3"
+          className="flex items-center gap-2 font-data text-caption text-ink-3"
           role="status"
         >
           {write.status === "written" ? (

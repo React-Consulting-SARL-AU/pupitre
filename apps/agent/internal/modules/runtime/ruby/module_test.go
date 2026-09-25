@@ -31,6 +31,7 @@ func run(t *testing.T, ctx *modules.Context) {
 
 func statuses(ctx *modules.Context) map[string]contract.StepStatus {
 	result := map[string]contract.StepStatus{}
+
 	for _, event := range ctx.Events() {
 		result[event.Step] = event.Status
 	}
@@ -45,6 +46,7 @@ func TestInstallBringsTheHeadersThenRubyAndBundler(t *testing.T) {
 	run(t, ctx)
 
 	commands := strings.Join(fake.Commands(), "\n")
+
 	for _, want := range []string{"libyaml-dev", "(dev) mise use -g -y ruby@3.4", "(dev) gem install bundler --no-document"} {
 		if !strings.Contains(commands, want) {
 			t.Errorf("command %q not run:\n%s", want, commands)
@@ -77,7 +79,6 @@ func TestBundlerIsSkippedWhenNotAskedFor(t *testing.T) {
 	}
 }
 
-// gem is the client's business once Ruby is there: a bundler that refuses to install warns, it does not stop the install.
 func TestBundlerFailureOnlyWarns(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.FailProgram("gem", "ERROR: While executing gem ... (Gem::FilePermissionError)")
@@ -128,7 +129,6 @@ func TestFailedStepReportsItsReplayCommand(t *testing.T) {
 
 var _ modules.Module = Module{}
 
-// A new patch is a new interpreter with its own gem home: the bundler the client relies on has to be put under it again.
 func TestUpgradeRefreshesBundlerUnderTheNewPatch(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	run(t, newContext(t, fake, values))

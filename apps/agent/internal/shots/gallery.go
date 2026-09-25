@@ -40,12 +40,11 @@ var mediaTypes = map[string]string{
 	".svg":  "image/svg+xml",
 }
 
-// Empty for anything the gallery does not consider a capture.
 func MediaType(name string) string {
 	return mediaTypes[strings.ToLower(path.Ext(name))]
 }
 
-// Read-only, on the loopback alone: the gallery is reached through the SSH session the app already holds, never from outside.
+// Loopback only: reached through the app's SSH session, never from outside.
 func Serve(dir string, port int) error {
 	handler, err := Handler(dir)
 	if err != nil {
@@ -61,7 +60,7 @@ func Serve(dir string, port int) error {
 	return server.ListenAndServe()
 }
 
-// The gallery never leaves its folder: a symlink dropped there points nowhere a browser can follow.
+// os.Root keeps a symlink dropped in the folder from leading anywhere a browser can follow.
 func Handler(dir string) (http.Handler, error) {
 	root, err := os.OpenRoot(dir)
 	if err != nil {

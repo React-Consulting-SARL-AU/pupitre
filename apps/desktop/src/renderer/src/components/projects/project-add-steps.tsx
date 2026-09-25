@@ -5,12 +5,6 @@ import { Panel } from "../ui/panel";
 import { StatusDot } from "../ui/status-dot";
 import { PHASE_LOOK, PHASE_TITLES } from "./project-add-phases";
 
-/**
- * The phases, and where the project got to: a finished one keeps the detail
- * the agent gave — the folder, the port, the address. The one at work counts
- * its wait: a clone and an install can hold a phase for minutes, and a screen
- * that does not move over that time reads as a screen that stopped.
- */
 export function ProjectAddSteps({ phases }: { phases: readonly Phase[] }) {
   const t = useTranslations();
 
@@ -43,13 +37,13 @@ export function ProjectAddSteps({ phases }: { phases: readonly Phase[] }) {
                 {t(PHASE_TITLES[phase.id])}
               </p>
               {phase.detail ? (
-                <p className="mt-0.5 font-data text-[12px] text-ink-3 leading-relaxed">
+                <p className="mt-0.5 font-data text-ink-3 text-small leading-relaxed">
                   {phase.detail}
                 </p>
               ) : null}
               {phase.warnings?.map((warning) => (
                 <p
-                  className="mt-1 text-[12px] text-warn leading-relaxed"
+                  className="mt-1 text-small text-warn leading-relaxed"
                   data-warning=""
                   key={warning}
                 >
@@ -60,7 +54,7 @@ export function ProjectAddSteps({ phases }: { phases: readonly Phase[] }) {
 
             <span className="flex shrink-0 translate-y-0.5 items-baseline gap-2 text-ink-3">
               {phase.status === "running" ? (
-                <LiveDuration className="font-data text-[12px] tabular-nums" />
+                <LiveDuration className="font-data text-small tabular-nums" />
               ) : null}
               <span className="label">{t(look.label)}</span>
             </span>

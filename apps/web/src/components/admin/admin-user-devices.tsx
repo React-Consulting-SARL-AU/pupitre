@@ -11,7 +11,6 @@ import { formatRelative } from "@/lib/utils/format"
 export interface AdminUserDevicesProps {
   detail: AdminUserDetail
   acts: boolean
-  /** Why the revocation is dead for this reader, on the control itself. */
   refusedTitle: string | undefined
 }
 
@@ -35,7 +34,7 @@ export function AdminUserDevices({
       done: (_data, { name }) => t("admin.users.revoked", { name }),
       failed: () => ({
         title: t("admin.users.revokeFailed"),
-        fix: t("admin.users.revokeFailedFix"),
+        fix: t("common.retryLater"),
       }),
     },
   })

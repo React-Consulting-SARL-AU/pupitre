@@ -15,19 +15,6 @@ import { Section } from "../ui/section";
 import { OnboardingOrganizationNote } from "./onboarding-organization-note";
 import { OnboardingServerChoice } from "./onboarding-server-choice";
 
-/**
- * The first step: the machine to drive, and the key that opens it.
- *
- * A sequence, not a list. You pick a machine already known, or describe one,
- * and the key that follows installs itself: each screen leads to the next where
- * you have just acted. Nothing asks you to scroll back up to continue, and
- * nothing leaves you waiting in front of an empty card — a computer that knows
- * no machine yet opens the form.
- *
- * Granted servers stay above throughout: a grant lands while you are typing,
- * and it beats what you are entering.
- */
-
 type Stage = "pick" | "add" | "key";
 
 export function OnboardingServerScreen({
@@ -35,7 +22,6 @@ export function OnboardingServerScreen({
   onStage,
 }: {
   onContinue: (serverId: string) => void;
-  /** Where this step is within itself, so the rail shows it rather than hiding it. */
   onStage?: (stage: ServerStage) => void;
 }) {
   const t = useTranslations();
@@ -73,8 +59,6 @@ export function OnboardingServerScreen({
     }
   }, [active, checkHostKey]);
 
-  // A machine that was just added is waiting on its key: that's the next
-  // screen, and nobody has to ask to go there.
   const added = addition.status === "added" ? addition : null;
   const here: Stage | null = added?.publicKey
     ? "key"
@@ -94,14 +78,12 @@ export function OnboardingServerScreen({
 
     const state = useServers.getState().addition;
 
-    // A refusal keeps the form open with its remedy: closing it would carry
-    // away the explanation along with what was typed.
+    // A refusal keeps the form open so its remedy and the typed values stay.
     if (state.status !== "added") {
       return;
     }
 
-    // A system host already opens the machine: there's nothing to install
-    // and nothing to wait for. Otherwise the key just made takes the next screen.
+    // A system host has no key to lay; otherwise the new key takes the next screen.
     if (!state.publicKey) {
       forgetAddition();
       onContinue(state.server.id);
@@ -195,12 +177,6 @@ export function OnboardingServerScreen({
   );
 }
 
-/**
- * The step to show: the one asked for, otherwise the one the list imposes.
- *
- * With no known machine there is nothing to pick, and the form is the step;
- * with one, the choice is. Before the list has been read, neither.
- */
 export function serverStage(
   asked: Stage | null,
   status: "idle" | "loading" | "ready",

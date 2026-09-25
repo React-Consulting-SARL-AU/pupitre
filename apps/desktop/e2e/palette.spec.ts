@@ -2,13 +2,6 @@ import { expect, test } from "@playwright/test";
 import { assertAccessible } from "./harness/accessible";
 import { launchPupitre, type Running } from "./harness/launch";
 
-/**
- * The command palette: one chord, a few letters, Return.
- *
- * What is proved here is the whole loop — the chord opens it, typing narrows
- * it, the arrows and Return land where the click would have — and that the
- * dialog reads as one to a keyboard and a screen reader.
- */
 const CHORD = process.platform === "darwin" ? "Meta+k" : "Control+k";
 
 const DASHBOARD = "Tableau de bord";
@@ -41,7 +34,7 @@ test.describe("palette", () => {
         palette.locator('[data-palette-entry="view:dashboard"]')
       ).toBeVisible();
       await expect(
-        palette.locator('[data-palette-entry="project:flymate-api"]')
+        palette.locator('[data-palette-entry="project:flyleaf-api"]')
       ).toBeVisible();
     });
 

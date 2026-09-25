@@ -1,6 +1,6 @@
 ---
 name: agent-modules
-description: "Écrire un module Go de `pupitred` dans `apps/agent/internal/modules/<catégorie>/<nom>` — `manifest.go`, `module.go`, `module_test.go`, interface `Module`, étapes idempotentes courtes et nommées, helpers `internal/sys`, événements `step`, comptabilité `failed`/`warned` et commande de rejeu, lecture de la spécification dans `server/bootstrap.sh`, test unitaire et test de staging. À utiliser dès qu'on ajoute ou modifie un module du catalogue."
+description: "Écrire un module Go de `pupitred` dans `apps/agent/internal/modules/<catégorie>/<nom>` — `manifest.go`, `module.go`, `module_test.go`, interface `Module`, étapes idempotentes courtes et nommées, helpers `internal/sys`, événements `step`, comptabilité `failed`/`warned` et commande de rejeu, lecture du module voisin le plus proche avant d'écrire, test unitaire et test de staging. À utiliser dès qu'on ajoute ou modifie un module du catalogue."
 ---
 
 # Modules de l'agent
@@ -16,18 +16,19 @@ Un service du catalogue est un **module** : une unité Go qui sait se vérifier,
 | `apps/agent/internal/modules/<catégorie>/<nom>/module_test.go` | le test unitaire sur un système factice |
 | `apps/agent/internal/modules/` | l'interface `Module`, le `Context`, le registre, le moteur, le journal |
 | `apps/agent/internal/modules/modtest/` | `FakeSys`, `NewContext`, les modules de démonstration `Passing` et `Failing` |
-| `apps/agent/internal/sys/{apt,systemd,file,user,env}/` | les helpers système, tous sur `sys.Context` |
+| `apps/agent/internal/sys/{apt,systemd,file,user,env,net}/` | les helpers système, tous sur `sys.Context` ; `net` dit ce qui écoute déjà |
+| `apps/agent/internal/sys/lock/` | les verrous de fichier de la machine : installation, migration, clés, sauvegardes, mise à jour |
 | `apps/agent/internal/contract/schema.json` | le JSON Schema exporté de `packages/shared` ; les types Go en dérivent |
 | `apps/agent/test/staging/<catégorie>_test.go` | les tests d'intégration contre le VPS de staging |
-| `apps/agent/package.json` | `build`, `test`, `lint` |
-| `server/bootstrap.sh`, `server/bin/dev`, `docs/SETUP.md` | la spécification des étapes, en bash ; jamais une dépendance |
+| `apps/agent/package.json` | `build`, `build:dev`, `test`, `lint`, `lint:fix`, `check:types` ; `test`, `lint` et `check:types` passent une seconde fois avec `-tags dev` |
+| `apps/agent/internal/modules/<catégorie>/*/` | les modules livrés : la référence de ce qu'un module fait et de la façon de l'écrire |
 | `docs/contracts/service-catalog.md` | manifeste, catégories, champs, préréglages |
 | `docs/contracts/agent-protocol.md` | `install`, `uninstall`, `upgrade`, `report`, événements `step`, flux secret |
 | `docs/contracts/config-migrations.md` | ce que coûte le renommage d'un champ déjà répondu sur une machine |
 
 ## État du dépôt
 
-Le catalogue est complet : les trente-huit modules de `docs/contracts/service-catalog.md` existent sous `internal/modules/`, `internal/sys` porte les cinq helpers, `modtest` le système factice, et `test/staging/` le harnais d'intégration, derrière le tag de build `staging`. Un module nouveau s'ajoute désormais à côté des autres : on lit le voisin le plus proche avant d'écrire — un runtime par mise ressemble à `runtime/python`, une base à `db/postgres`, un outil qui parle à une API à `tool/neon`.
+Le catalogue est complet : les trente-huit modules de `docs/contracts/service-catalog.md` existent sous `internal/modules/`, `internal/sys` porte les six helpers sur `sys.Context` et le verrou, `modtest` le système factice, et `test/staging/` le harnais d'intégration, derrière le tag de build `staging`. Un module nouveau s'ajoute désormais à côté des autres : on lit le voisin le plus proche avant d'écrire — un runtime par mise ressemble à `runtime/python`, une base à `db/postgres`, un outil qui parle à une API à `tool/neon`.
 
 Ce que le client choisit fait partie du module : la **version** quand plusieurs sont posables, le **port** quand un service écoute, les **noms des comptes** que le module crée. Chaque champ porte le `default` qui reproduit le comportement d'avant, et un nom qui traverse une requête SQL ou un fichier de configuration est tenu à un motif d'identifiant, avec retour au défaut plutôt qu'une valeur non reconnue.
 
@@ -108,7 +109,7 @@ func (Module) Install(ctx *modules.Context) error {
 }
 ```
 
-`ctx.Step` émet l'événement `step` du protocole avec `status: "start"`, puis `"ok"`, `"skip"` ou `"fail"`, et la durée `ms`. Une étape qui échoue (`Failed`, une erreur, ou une panique) arrête **ce module**, le note dans `failed[]` avec sa commande de rejeu `sudo pupitred install --only=db.redis`, et renvoie une `*modules.StepError` ; les modules suivants continuent. Un problème non bloquant se signale par `ctx.Warn("…")`, qui alimente `warned[]` et passe le module en `warn`. C'est la comptabilité de `server/bootstrap.sh` (`fail`, `soft`, lignes 140 à 157), transposée.
+`ctx.Step` émet l'événement `step` du protocole avec `status: "start"`, puis `"ok"`, `"skip"` ou `"fail"`, et la durée `ms`. Une étape qui échoue (`Failed`, une erreur, ou une panique) arrête **ce module**, le note dans `failed[]` avec sa commande de rejeu `sudo pupitred install --only=db.redis`, et renvoie une `*modules.StepError` ; les modules suivants continuent. La commande de rejeu vient de `modules.Replay(id)` ; un geste qui ne se rejoue pas par `install` la remplace par `ctx.Replaying("…")`, comme les sauvegardes (`sudo pupitred dev backup now`). Un problème non bloquant se signale par `ctx.Warn("…")`, qui alimente `warned[]`, s'attache comme message à l'étape en cours et passe le module en `warn`. Le moteur (`internal/modules/engine.go`) ne lance `Configure` que si `Install` n'a pas échoué, et écrit le tout dans `/var/lib/pupitre/report.json` ; `internal/modules/context.go` tient la comptabilité.
 
 Noms d'étapes en kebab-case, un verbe et un objet : `install-package`, `write-config`, `create-app-user`, `enable-service`, `import-dumps`. Une étape qui dépasse une vingtaine de lignes se découpe.
 
@@ -134,36 +135,29 @@ Tous prennent `ctx` en premier argument : un `sys.Context` (`Sys()`, `Logf`, `On
 
 | Package | Fonctions | Ce qu'il garantit |
 | --- | --- | --- |
-| `apt` | `Installed(ctx, pkg) bool`, `Version(ctx, pkg) (string, error)`, `Update(ctx) error`, `Install(ctx, pkgs...) error`, `Remove(ctx, pkgs...) error`, `Upgrade(ctx, pkg) (bool, error)` | `-o DPkg::Lock::Timeout=600 -o Dpkg::Use-Pty=0`, `DEBIAN_FRONTEND=noninteractive`, `-y -qq` ; attend le verrou d'`unattended-upgrades` au lieu d'échouer (`bootstrap.sh` ligne 80) ; `Upgrade` dit si une nouvelle version a été posée |
+| `apt` | `Installed(ctx, pkg) bool`, `Missing(ctx, pkgs...) []string`, `Version(ctx, pkg) (string, error)`, `Update(ctx) error`, `Refresh(ctx) error`, `RefreshAdded(ctx, source, keyrings...) error`, `Install(ctx, pkgs...) error`, `Fix(ctx) error`, `Remove(ctx, pkgs...) error`, `Upgrade(ctx, pkg) (bool, error)` | `apt-get -o DPkg::Lock::Timeout=600 -o Dpkg::Use-Pty=0`, `DEBIAN_FRONTEND=noninteractive`, `-y -qq` ; le délai de verrou fait attendre jusqu'à dix minutes qu'`unattended-upgrades` rende la main au lieu d'échouer ; `Update` ne passe qu'une fois par installation, `Refresh` à chaque appel (après l'ajout d'un dépôt), et `RefreshAdded` retire le dépôt ajouté si apt ne sait pas le lire ; `Fix` rejoue `dpkg --configure -a` puis `apt-get install -f` ; `Upgrade` dit si une nouvelle version a été posée |
 | `systemd` | `Enable(ctx, unit)`, `Disable(ctx, unit)`, `Restart(ctx, unit)`, `Reload(ctx, unit)`, `Active(ctx, unit) bool`, `State(ctx, unit) contract.ServiceState`, `WriteUnit(ctx, name, content []byte) error` | `enable --now`, `daemon-reload` après `WriteUnit`, état lu par `is-active` |
 | `file` | `Read(ctx, path) ([]byte, error)`, `Exists(ctx, path) bool`, `Same(ctx, path, content []byte) bool`, `WriteAtomic(ctx, path, content []byte, mode) error`, `EnsureLine(ctx, path, line) (bool, error)`, `Chown(ctx, path, owner, group) error`, `Remove(ctx, path) (bool, error)` | écriture dans un temporaire du même dossier puis `rename` ; `Same` compare le contenu pour rendre l'étape idempotente ; `EnsureLine` et `Remove` disent s'ils ont changé quelque chose |
-| `user` | `Home(name) string`, `Run(ctx, name, argv...) (string, error)`, `Exists(ctx, name) bool`, `Create(ctx, name, shell) error`, `Groups(ctx, name) ([]string, error)` | `Run` exécute avec l'environnement complet de l'utilisateur (`HOME`, `PATH` de mise et de bun, `MISE_YES=1`, `COREPACK_ENABLE_DOWNLOAD_PROMPT=0`), `argv` seulement, renvoie la sortie standard ; la commande et sa sortie sont journalisées, secrets masqués |
+| `user` | `Home(name) string`, `Run(ctx, name, argv...) (string, error)`, `RunIn(ctx, name, dir, argv...)`, `RunWith(ctx, name, user.Input{Dir, Stdin, Env}, argv...)`, `Environment(name) []string`, `Exists(ctx, name) bool`, `Create(ctx, name, shell) error`, `Groups(ctx, name) ([]string, error)` | `Run` exécute dans le dossier personnel de l'utilisateur, avec l'environnement de `user.Environment` (`HOME`, `USER`, `LOGNAME`, `PATH` de `~/.local/bin`, des shims de mise et de `~/.bun/bin`, `MISE_YES=1`, `MISE_NPM_PACKAGE_MANAGER=npm`, `COREPACK_ENABLE_DOWNLOAD_PROMPT=0`, et `SHELL=/usr/bin/zsh` hors root), `argv` seulement, renvoie la sortie standard ; la commande et sa sortie sont journalisées, secrets masqués ; ce qui passe par `Input.Stdin` n'atteint jamais le journal |
 | `env` | `Get(ctx, key) (string, bool, error)`, `Keys(ctx) ([]string, error)`, `Set(ctx, key, value) (bool, error)`, `Unset(ctx, key) (bool, error)` | `/etc/pupitre/env` en 0600 root, clés `^[A-Z][A-Z0-9_]*$`, valeurs jamais journalisées ; `Set` et `Unset` disent si le fichier a changé |
+| `net` | `Listening(ctx) Ports`, `Ports.Has(port) bool` | les ports TCP en écoute, lus dans `/proc/net/tcp` et `tcp6` plutôt que par `ss` : ce qu'un `Preflight` oppose à un port déjà pris |
+| `lock` | `Acquire(path) (release, held, error)`, `Hold(path, wait) (release, error)` | un `flock` exclusif ; `Acquire` n'attend pas et dit `held=false`, `Hold` attend jusqu'à l'échéance puis rend `ErrHeld`. Ne prend pas de `sys.Context` : le moteur, les migrations, les clés, les sauvegardes et la mise à jour le tiennent, jamais un module |
 
-`bootstrap.sh` lignes 286 à 295 (`as_dev`) est la spécification de `user.Run` : `cd $HOME`, `PATH` étendu, `MISE_YES=1`, `COREPACK_ENABLE_DOWNLOAD_PROMPT=0`.
+## Lire les modules livrés
 
-## Lire la spécification
+Les modules sous `internal/modules/` sont la référence : ordre des étapes, pièges d'apt, fichiers écrits et leurs chemins, marqueurs d'idempotence. Avant d'écrire, on lit celui qui fait déjà la chose la plus proche :
 
-`server/bootstrap.sh` (1772 lignes) et `server/bin/dev` décrivent ce que chaque module reproduit : ordre, options apt, pièges, rapport. On les lit, on ne les appelle pas. Numéros de ligne approximatifs au 2026-09-04 :
+| Ce qu'on écrit | Module à lire |
+| --- | --- |
+| la base de la machine : dpkg réparé, paquets, swap, garde-fou mémoire, limites système, fuseau, utilisateur `dev`, `.zshrc` avec les marqueurs OSC 133 et OSC 7, lien `dev` → `pupitred dev`, unités de l'agent | `core/system` |
+| ce qui touche à SSH ou au pare-feu : ufw, fail2ban, fragment `sshd` validé par `sshd -t` avant le rechargement, root fermé **seulement si** `authorized_keys` de `dev` n'est pas vide, sudo restreint | `core/hardening` |
+| un runtime posé par mise | `runtime/python`, `runtime/node`, avec `runtime/mise` |
+| une base locale : liaison `127.0.0.1`, comptes, port choisi, `Preflight` | `db/postgres`, `db/redis` ; l'import des dumps dans `db/dumps` |
+| un outil qui parle à une API ou garde un jeton | `tool/neon`, `tool/github` ; les `.env.local` des projets dans `tool/onepassword/env.go` |
+| une exposition : tunnel, routes, DNS | `exposure/cloudflare`, `exposure/routes` |
+| un agent IA et ses skills | `ai/claude`, `ai/codex`, `ai/agents` (skills, sous-agent et préférences embarqués) |
 
-| Phase bash | Lignes | Module cible |
-| --- | --- | --- |
-| Préflight (`preflight`) | 337–500 | la sonde |
-| `system` | 505–604 | `core.system` : dpkg réparé, apt, paquets de base, fuseau, swap, garde-fou mémoire, `sysctl` pour les watchers |
-| `user` | 608–663 | `core.system` : utilisateur `dev`, sudo sans mot de passe, zsh, `authorized_keys` |
-| `runtimes` | 668–760 | `runtime.node`, `runtime.java`, `runtime.python` via mise ; `.zshenv` lu par les shells non interactifs |
-| `database` | 765–903 | `db.mysql` ; modèle pour `db.postgres`, `db.mongodb`, `db.redis` : liaison `127.0.0.1`, comptes, import des dumps (`import_dumps`, 870) |
-| `secrets` | 912–1008 | `tool.1password`, `tool.github`, `tool.neon` |
-| `tunnel` | 1017–1215 | `exposure.cloudflare` : tunnel, `write_ingress` (1177), DNS |
-| `gallery` | 1220–1308 | `ai.browser` : Chrome headless, `shot`, serveur de galerie |
-| `agents` | 1313–1368 | `ai.claude`, `ai.codex` : installation, contexte machine |
-| `skills` | 1378–1445 | `ai.*` : skills Pupitre dans `~/.agents/skills`, liens pour Claude Code |
-| `projects` | 1450–1535 | registre et `project.env` |
-| `tooling` | 1540–1637 | `core.system` : `.zshrc` de `dev`, marqueurs OSC 133 (`server/bin/pupitre.zsh`), commande `dev` → `pupitred dev` |
-| `harden` | 1642–1686 | `core.hardening` : ufw, fail2ban, root fermé **seulement si** `authorized_keys` de `dev` est non vide, `sshd -t` avant `reload` |
-| Rapport (`report`) | 1691–1750 | le rapport JSON du moteur : `failed[]` avec rejeu, `warned[]`, adresses |
-
-Ce qu'on garde de la spec : l'ordre des étapes, les options apt, les fichiers écrits et leurs chemins, la condition de fermeture de root, les marqueurs d'idempotence. Ce qu'on ne garde pas : les variables `STACK_*`, `/etc/dev-stack.env`, `/var/lib/dev-stack` — le module lit ses valeurs du manifeste et écrit sous `/etc/pupitre/` et `/var/lib/pupitre/`.
+Un module lit ses valeurs du manifeste et écrit sous `/etc/pupitre/` et `/var/lib/pupitre/`, rien d'autre.
 
 ## Exemple complet : `db.redis`
 
@@ -577,5 +571,5 @@ func TestRedisListensLocallyWithPassword(t *testing.T) {
 3. Aucun `sh -c`, aucun script écrit sur le disque, aucun secret dans `ctx.Output()`, le rapport ou une erreur.
 4. `Uninstall` ne retire que ce que le module a installé.
 5. Trois tests unitaires sur `modtest`, un test de staging par comportement attendu.
-6. `bun --cwd=apps/agent run lint` (`gofmt`, `go vet`), `go test ./...` et `go test -tags staging ./test/staging/...` verts.
-7. Le module lit `server/bootstrap.sh` comme une spécification et n'en importe rien.
+6. `bun --cwd=apps/agent run lint` (`gofmt`, `go vet`, `staticcheck`, `govulncheck`), `bun --cwd=apps/agent run test` (`go test` avec et sans `-tags dev`) et `go test -tags staging ./test/staging/...` verts.
+7. Le module suit la forme de ses voisins sous `internal/modules/` : mêmes helpers, mêmes noms d'étapes pour les mêmes gestes.

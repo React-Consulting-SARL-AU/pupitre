@@ -2,15 +2,6 @@ import { expect, test } from "@playwright/test";
 import { launchPupitre, type Running } from "./harness/launch";
 import { answerOnboarding, reachConfig } from "./harness/onboarding";
 
-/**
- * The link drops while the machine is being installed, and comes back.
- *
- * An SSH session over a laptop's wifi drops; that is its ordinary life. What is
- * watched here is that the step does not fail for it: the shell says the link
- * is gone, the install goes on underneath, and the reader is told when it is
- * back instead of being left in front of a page that stopped for no reason.
- */
-
 const HELD_MS = 1200;
 
 const LOST = "Connexion à atelier perdue.";
@@ -19,13 +10,6 @@ const RETRYING = "Nouvelle tentative…";
 
 const INSTALL = /^Installer$/;
 
-/**
- * The install answers late, and cuts the link on its way.
- *
- * The event is the one the main process broadcasts when a channel closes, sent
- * with the identifier the call itself carried: nothing here has to guess which
- * server the app is talking to.
- */
 function cutDuringInstall(app: Running["app"]): Promise<void> {
   return app.evaluate(({ BrowserWindow, ipcMain }, ms) => {
     const tell = (serverId: unknown, state: string) => {

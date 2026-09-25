@@ -28,7 +28,6 @@ import {
   setAffiliateLinkDisabled,
 } from "@/lib/api/admin-queries"
 import { queryKeys } from "@/lib/api/queries"
-import { canActOnPlatform } from "@/lib/domain/admin"
 import { filterAffiliateLinks } from "@/lib/domain/affiliate"
 import type { ListSearchHandle } from "@/lib/domain/list-search"
 
@@ -69,11 +68,10 @@ export function AdminAffiliateLinkList({
 }: AdminAffiliateLinkListProps) {
   const t = useTranslations()
   const navigate = useNavigate()
-  const { platformRole } = useDashboardContext()
+  const { platformCanAct: acts } = useDashboardContext()
   const links = useQuery(affiliateLinksQueryOptions())
   const [removing, setRemoving] =
     useState<AdminAffiliateLinkDeleteTarget | null>(null)
-  const acts = canActOnPlatform(platformRole)
   const offset = search.offset ?? 0
   const query = search.q ?? ""
 
@@ -101,7 +99,7 @@ export function AdminAffiliateLinkList({
         ),
       failed: () => ({
         title: t("admin.links.toggleFailed"),
-        fix: t("admin.links.toggleFailedFix"),
+        fix: t("common.retryLater"),
       }),
     },
   })

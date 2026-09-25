@@ -7,6 +7,7 @@ import {
 import {
   createTestSession,
   createTestUser,
+  joinPlatformOrganization,
   setTestSession,
   type TestUserInput,
 } from "@pupitre/auth/testing"
@@ -45,8 +46,7 @@ export async function createConsoleUser(input: TestUserInput = {}) {
   }
 }
 
-/** The subscription the platform grants itself during the launch, as `packages/api/src/lib/billing/launch.ts` writes it. */
-/** The launch row as the platform grants it, or — without an end — as it keeps it for good once the launch is over. */
+// As `billing/launch.ts` writes it; without an end, the seat kept for good.
 export async function grantLaunch(organizationId: string, endsAt: Date | null) {
   const { prisma } = await bootApiTestServer()
 
@@ -63,7 +63,6 @@ export async function grantLaunch(organizationId: string, endsAt: Date | null) {
 }
 
 export interface SessionApiClientOptions {
-  /** A request the network never carries: the client throws instead of answering. */
   cut?: (url: string, init?: RequestInit) => boolean
 }
 
@@ -84,7 +83,19 @@ export async function useSessionApiClient(
   )
 }
 
-/** A client whose writes never reach the API: what a gesture sees when the network drops. */
+export async function usePlatformReaderClient(): Promise<void> {
+  const server = await bootApiTestServer()
+  const { user } = await createTestUser(server.prisma, {
+    email: "reader@test.local",
+  })
+
+  await joinPlatformOrganization(server.prisma, user.id, "member")
+
+  const { token } = await createTestSession(server.prisma, { userId: user.id })
+
+  await useSessionApiClient(token)
+}
+
 export async function useSeveredApiClient(
   token: string,
   severed: (url: string, method: string) => boolean

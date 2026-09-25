@@ -1,17 +1,23 @@
 ---
 title: Facturation
-description: Ce que vous payez, comment marche l’essai, et ce qui arrive quand un abonnement s’arrête.
+description: Le lancement gratuit, l’essai, ce qui compte comme un serveur, et ce qui arrive quand un abonnement s’arrête.
 locale: fr
 section: account
 sectionOrder: 3
 order: 3
 ---
 
-Vous payez par serveur et par mois. L’app et l’agent viennent avec, sur tous les appareils que vous utilisez.
+Vous payez par serveur et par mois. L’app et l’agent viennent avec, sur tous les appareils que vous utilisez. Les chiffres sont sur la page des [tarifs](/fr/pricing/).
+
+Le compte est obligatoire, et l’app n’enrôle un serveur que sous un abonnement : le lancement gratuit, l’essai, ou un abonnement payant.
+
+## Le lancement
+
+Tant que la facturation n’est pas ouverte, Pupitre est gratuit : **Commencer**, dans la console, ouvre un abonnement de lancement pour une machine par organisation, sans carte. La page des tarifs donne la date de fin du lancement. Une organisation qui a enrôlé une machine pendant le lancement garde ce siège gratuit pour de bon. L’ouverture de la facturation sera annoncée par email trente jours avant, et rien n’est jamais prélevé sans un geste de votre part.
 
 ## L’essai
 
-Quatorze jours, sans carte. Vous installez l’app, connectez un serveur, et utilisez tout. À la fin de l’essai rien n’est supprimé : le serveur continue, et vous vous abonnez quand vous voulez retrouver l’app.
+Une fois la facturation ouverte : trente jours, sur une machine, sans carte. Une organisation n’a qu’un essai. À sa fin rien n’est supprimé : le serveur continue, et vous vous abonnez quand vous voulez retrouver l’app.
 
 ## À l’année
 
@@ -19,14 +25,20 @@ Deux mois sont offerts sur l’abonnement annuel. Le passage se fait dans la con
 
 ## Ce qui compte comme un serveur
 
-Une machine enrôlée auprès de la plateforme. Retirer un serveur de la console arrête de le compter à la fin de la période. Une machine que vous n’enrôlez jamais — une app qui tourne sans compte — ne compte pas du tout.
+Une machine enrôlée auprès de la plateforme, dans votre organisation. Supprimer un serveur dans la console libère son siège tout de suite ; l’agent retire alors du serveur les clés de la plateforme et passe en mode restreint. Voir [désinstaller](/fr/docs/account/uninstall/).
 
 ## Paiements
 
-Le paiement et le portail client sont pris en charge par Stripe en marchand officiel. Le site ne vend pas : le bouton de commande ouvre la console, et aucune carte ne touche `pupitre.studio`.
+Le paiement et le portail client seront pris en charge par Stripe en tant que merchant of record. Le site ne vend pas : le bouton de commande ouvre la console, et aucune carte ne touche `pupitre.studio`.
 
 ## Quand ça s’arrête
 
-Le serveur continue comme un serveur ordinaire. Projets, bases, services et tunnels restent en place, et vous vous y connectez en SSH comme avant. L’agent bascule en mode restreint après sept jours sans droit d’usage — il n’accepte plus de nouvelle installation, et ne casse rien de ce qui tourne.
+Le serveur continue comme un serveur ordinaire. Projets, bases, services et tunnels restent en place, et vous vous y connectez en SSH comme avant.
 
-Réabonnez-vous et l’app reprend là où elle s’était arrêtée.
+- **Un paiement refusé** ouvre sept jours de tolérance : tout continue, et la console comme l’email disent jusqu’à quand. Ensuite, les serveurs sont suspendus.
+- **Un abonnement résilié ou arrivé à terme** suspend les serveurs à leur prochaine remontée vers la plateforme.
+- **Un serveur qui ne joint plus la plateforme** garde sa dernière réponse sept jours, puis se suspend lui-même.
+
+Un serveur suspendu met l’agent en mode restreint : l’app lit toujours son état et peut mettre l’agent à jour, mais les installations et les changements attendent. Rien de ce qui tourne n’est arrêté. Voir le [dépannage](/fr/docs/account/troubleshooting/).
+
+Réabonnez-vous et l’app reprend là où elle s’était arrêtée, à la prochaine remontée du serveur.

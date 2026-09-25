@@ -17,7 +17,7 @@ import { withPrismaClient } from "@pupitre/db/scope"
 import { MAIL_MAX_BYTES } from "@pupitre/shared/legal"
 import serverEntry from "@tanstack/react-start/server-entry"
 import { API_PREFIX } from "./lib/config/urls"
-import { withSecurityHeaders } from "./lib/security-headers"
+import { createCspNonce, withSecurityHeaders } from "./lib/security-headers"
 import {
   configureRateLimits,
   handleRateLimitRequest,
@@ -47,13 +47,11 @@ type CronEvent = Readonly<WorkflowEvent<unknown>>
 
 const INTERNAL_EMAIL_PATH = "/internal/email"
 
-/** Everything below reads the database of the request: a client on the D1 binding, for the span of one run. */
 function withDatabase<T>(env: CloudflareEnv, run: () => T | Promise<T>) {
   return withPrismaClient(createD1PrismaClient(env.DB), run)
 }
 
-// Cloudflare resolves a workflow binding against a class exported by the
-// worker entry: these shells cannot move into `workflows/`.
+// A workflow binding resolves against a class exported by the worker entry: these shells cannot move.
 export class ExpireEnrollments extends WorkflowEntrypoint<CloudflareEnv> {
   override run(_event: CronEvent, step: WorkflowStep) {
     return withDatabase(this.env, () => runExpireEnrollments(step))
@@ -90,8 +88,7 @@ export class PurgeDeletions extends WorkflowEntrypoint<CloudflareEnv> {
   }
 }
 
-// A durable object binding resolves against a class exported by the worker
-// entry too: this shell cannot move into `realtime/`.
+// Durable Object bindings also resolve against classes exported by the worker entry.
 export class InboxRealtime extends DurableObject<CloudflareEnv> {
   override fetch(request: Request) {
     return handleInboxRealtimeRequest(this.ctx, this.env, request)
@@ -106,7 +103,6 @@ export class InboxRealtime extends DurableObject<CloudflareEnv> {
   }
 }
 
-// Same as the room above: the counter's shell stays beside the entry.
 export class RateLimit extends DurableObject<CloudflareEnv> {
   override fetch(request: Request) {
     return handleRateLimitRequest(this.ctx, request)
@@ -117,10 +113,7 @@ export class RateLimit extends DurableObject<CloudflareEnv> {
   }
 }
 
-/**
- * The same mail path as Email Routing, reachable with the internal secret so a
- * message can be injected by curl on a machine no domain points at.
- */
+// Lets curl inject a mail where no domain points, behind the internal secret.
 async function handleInternalEmail(
   request: Request,
   env: CloudflareEnv
@@ -175,8 +168,8 @@ async function handleInternalEmail(
 
 interface Routed {
   response: Response
-  /** A document the console renders, rather than an answer of the API's. */
-  document: boolean
+  // Only set on a document the console renders, never on an API answer.
+  nonce: string | null
 }
 
 function route(
@@ -201,16 +194,15 @@ function route(
     return handleInternalWorkflowTrigger(request, env).then(answered)
   }
 
-  return Promise.resolve(serverEntry.fetch(request)).then(
-    (response: Response) => ({
-      response,
-      document: true,
-    })
-  )
+  const nonce = createCspNonce()
+
+  return Promise.resolve(
+    serverEntry.fetch(request, { context: { nonce } })
+  ).then((response: Response) => ({ response, nonce }))
 }
 
 function answered(response: Response): Routed {
-  return { response, document: false }
+  return { response, nonce: null }
 }
 
 export default {
@@ -220,15 +212,14 @@ export default {
     configureInboxPublisher(env)
     configureRateLimits(env)
 
-    const { response, document } = await withDatabase(env, () =>
+    const { response, nonce } = await withDatabase(env, () =>
       route(request, env, pathname)
     )
 
-    return withSecurityHeaders(response, env, { document })
+    return withSecurityHeaders(response, env, { nonce })
   },
 
-  // A throw here is a temporary failure: Cloudflare keeps the message and
-  // delivers it again, rather than the platform accepting a mail it lost.
+  // A throw is a temporary failure: Cloudflare keeps the message and delivers it again.
   email(message: ForwardableEmailMessage, env: CloudflareEnv) {
     configureInboxPublisher(env)
 
@@ -236,6 +227,6 @@ export default {
   },
 
   async scheduled(controller: ScheduledController, env: CloudflareEnv) {
-    await runScheduledWorkflows(controller.cron, env)
+    await runScheduledWorkflows(controller.cron, controller.scheduledTime, env)
   },
 } satisfies ExportedHandler<CloudflareEnv>

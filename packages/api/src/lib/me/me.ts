@@ -3,8 +3,9 @@ import type { OrgRole } from "@pupitre/shared/permissions"
 import type { SessionUser } from "../api/plugins/auth"
 import { getPrisma, withOrganization } from "../api/prisma"
 import { entitlementForOrganization } from "../billing/entitlement"
-import { countSeatedServers } from "../billing/seats"
+import { countSeatedServers, seatQuotaFor } from "../billing/seats"
 import { liveSubscriptionOf } from "../billing/subscription"
+import { actsOnPlatform } from "../platform/actor"
 import {
   organizationReasonOf,
   organizationStateOf,
@@ -24,18 +25,15 @@ export interface MeSubscriptionView {
   servers: { used: number; limit: number }
 }
 
-/**
- * The subscription the app shows under the account: the Stripe mirror as it
- * stands, and the seats it pays against the servers that hold one. Stripe ends
- * the first period with the trial, so that date is the trial's end while the
- * status says so.
- */
+// Stripe ends the first period with the trial, so while trialing the period end is the trial's end.
 export async function subscriptionForMe(
   organizationId: string
 ): Promise<MeSubscriptionView | null> {
-  const [subscription, used] = await Promise.all([
+  const scoped = withOrganization(getPrisma(), organizationId)
+  const [subscription, used, { quota }] = await Promise.all([
     liveSubscriptionOf(organizationId),
-    countSeatedServers(withOrganization(getPrisma(), organizationId)),
+    countSeatedServers(scoped),
+    seatQuotaFor(scoped, organizationId),
   ])
 
   if (!subscription) {
@@ -47,7 +45,7 @@ export async function subscriptionForMe(
     trial_ends_at:
       subscription.status === "trialing" ? subscription.currentPeriodEnd : null,
     current_period_end: subscription.currentPeriodEnd,
-    servers: { used, limit: subscription.quantity },
+    servers: { used, limit: quota },
   }
 }
 
@@ -83,6 +81,7 @@ export async function loadMe({
       select: { locale: true },
     }),
   ])
+
   const active =
     memberships.find(
       (membership) => membership.organizationId === organizationId
@@ -121,18 +120,13 @@ export async function loadMe({
       : null,
     role,
     platform_role: platformRole,
+    platform_can_act: actsOnPlatform(platformRole),
     entitlement,
     subscription,
   }
 }
 
-/**
- * The active organization of this session, and this session alone.
- *
- * The console next to it keeps its own: the switch only affects the device
- * that requested it. An organization the caller isn't a member of is refused
- * without saying whether it exists.
- */
+// Only this session switches, and a non-member is refused without learning whether the organization exists.
 export async function setActiveOrganization(
   userId: string,
   sessionId: string,

@@ -5,14 +5,6 @@ import { useSnapshot } from "@renderer/stores/snapshot";
 import { useEffect } from "react";
 import { ProjectConfigPanel } from "./project-config-panel";
 
-/**
- * The configuration tab, bound to its store.
- *
- * The draft opens from the project the snapshot lists and from the other
- * projects of the server, which say which ports and which names are already
- * held. It opens once per project: a snapshot re-read on its timer must not
- * wipe what the reader is typing.
- */
 export function ProjectConfigScreen({
   serverId,
   project,
@@ -22,7 +14,7 @@ export function ProjectConfigScreen({
   serverId: string;
   project: Project;
   services: readonly Service[];
-  /** The server's address, which a Caddy exposure asks the reader to point their DNS at. */
+  /** Where a Caddy exposure asks the reader to point their DNS. */
   host: string | undefined;
 }) {
   const state = useSnapshot((s) => s.state);

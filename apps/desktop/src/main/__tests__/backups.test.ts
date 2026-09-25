@@ -26,19 +26,13 @@ import {
 } from "../backups-run";
 import { fakeAgent } from "./fixtures/fake-agent";
 
-/**
- * Backups, from the laptop's side: the bucket handed to the servers, the
- * passphrase that is derived and never kept, and the restore that sends the key
- * on the secret line and nowhere else.
- */
-
 const SERVER = "atelier";
 
 const PASSPHRASE = "pupitre sauvegarde de test";
 
 const SALT = "AAECAwQFBgcICQoLDA0ODw==";
 
-/** A thousand rounds: the derivation is the contract's, the count is the test's. */
+/** A thousand rounds keep the test fast; the derivation itself is the contract's. */
 const derive = (passphrase: string, salt: string) =>
   deriveBackupIdentity(passphrase, salt, 1000);
 
@@ -411,7 +405,7 @@ describe("revenir à une sauvegarde", () => {
     const data = await restoreData(
       SERVER,
       listed.id,
-      ["db-postgres-flymate.pupitre"],
+      ["db-postgres-flyleaf.pupitre"],
       null,
       (event) => events.push(event),
       deps
@@ -444,7 +438,7 @@ describe("revenir à une sauvegarde", () => {
     const answer = await restoreData(
       SERVER,
       listed.id,
-      ["db-postgres-flymate.pupitre"],
+      ["db-postgres-flyleaf.pupitre"],
       null,
       () => undefined,
       {
@@ -467,7 +461,7 @@ describe("revenir à une sauvegarde", () => {
     const withBucket = await restoreData(
       SERVER,
       listed.id,
-      ["db-postgres-flymate.pupitre"],
+      ["db-postgres-flyleaf.pupitre"],
       null,
       () => undefined,
       {

@@ -4,16 +4,7 @@ import path from "node:path"
 import { hasFlag, say } from "./cli"
 import { run } from "./shell"
 
-/**
- * The runners' secrets, from the template the chain declares: every 1Password
- * reference in it is read once and set as a repository secret, under the
- * name the workflow gives back to the steps. The plain lines are
- * not copied anywhere — the workflow reads them from the template itself, so
- * an address changes in one file.
- *
- * Run it after a value is rotated in the note. Nothing is printed but names.
- */
-
+// Only 1Password references become secrets; the workflow reads plain lines from the template itself.
 export const TEMPLATE = path.resolve(import.meta.dir, "release.env.tpl")
 
 const LINE_RE = /^([A-Z][A-Z0-9_]*)=(.*)$/

@@ -6,6 +6,7 @@ import {
   EXPIRE_ENROLLMENTS_STEP,
   runExpireEnrollments,
 } from "./expire-enrollments"
+import { batchStep } from "./steps"
 
 const HOUR_MS = 3_600_000
 
@@ -44,7 +45,7 @@ describe("le workflow ExpireEnrollments", () => {
     const expired = await runExpireEnrollments(recorder.step)
 
     expect(expired).toEqual([serverId])
-    expect(recorder.names).toEqual([EXPIRE_ENROLLMENTS_STEP])
+    expect(recorder.names).toEqual([batchStep(EXPIRE_ENROLLMENTS_STEP, 0)])
 
     const { prisma } = await bootApiTestServer()
 

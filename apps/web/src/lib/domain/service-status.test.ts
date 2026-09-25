@@ -4,7 +4,9 @@ import {
   activeServersLabel,
   activeServersValue,
   freshnessNotice,
+  healthLook,
   observationLabel,
+  releaseLook,
 } from "@/lib/domain/service-status"
 import { translator } from "@/lib/i18n/i18n"
 
@@ -13,6 +15,20 @@ const t = translator("fr")
 const NOW = new Date("2026-09-04T12:00:00.000Z")
 
 const STALE_AT = new Date(NOW.getTime() - STATUS_STALE_AFTER_MS - 3_600_000)
+
+describe("les lignes de la page d'état", () => {
+  it("dit d'un service qu'il répond ou non, et tient un état inconnu pour une panne", () => {
+    expect(healthLook("ok").label).toBe("service.responds")
+    expect(healthLook("down").label).toBe("service.doesNotRespond")
+    expect(healthLook("brouillé").tone).toBe("danger")
+  })
+
+  it("dit d'une version qu'elle est publiée, pas qu'elle répond", () => {
+    expect(releaseLook(true).label).toBe("statusPage.releasePublished")
+    expect(releaseLook(false).label).toBe("statusPage.noRelease")
+    expect(releaseLook(false).tone).toBe("muted")
+  })
+})
 
 describe("freshnessNotice", () => {
   it("ne dit rien quand l'observation est fraîche", () => {

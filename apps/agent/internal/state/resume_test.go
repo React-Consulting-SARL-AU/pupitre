@@ -106,7 +106,6 @@ func TestResumeLeavesALiveSessionAlone(t *testing.T) {
 	}
 }
 
-// A project that starts with the server comes up at the boot whether or not it ran before it, and a patch is what says so.
 func TestResumeStartsTheProjectsThatStartWithTheServer(t *testing.T) {
 	fake, reader := fixture(t)
 	fake.Dirs["/home/dev/projects/api"] = true

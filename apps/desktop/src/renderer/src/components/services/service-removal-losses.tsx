@@ -4,14 +4,6 @@ import { StatusDot } from "@renderer/components/ui/status-dot";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { Trash2 } from "lucide-react";
 
-/**
- * The bill of a removal, read before it is paid.
- *
- * Each line is something this machine will not have any more, drawn from the
- * manifest of the module itself. The question is never "are you sure": it is
- * the list. It floats over the page because the gesture that opens it stands
- * in the header, and the answer has to be given before anything else is read.
- */
 export function ServiceRemovalLosses({
   open,
   name,
@@ -56,12 +48,12 @@ export function ServiceRemovalLosses({
               <span className="pt-1">
                 <StatusDot shape="struck" size={9} tone="danger" />
               </span>
-              <span className="text-[13px] leading-relaxed">{loss}</span>
+              <span className="text-control leading-relaxed">{loss}</span>
             </li>
           ))}
         </ul>
 
-        <p className="text-[12px] text-ink-3 leading-relaxed">
+        <p className="text-ink-3 text-small leading-relaxed">
           {t("services.removal.losses.note")}
         </p>
       </div>

@@ -1,19 +1,10 @@
 import { create } from "zustand";
 
-/**
- * What a reader who does not watch the screen is told.
- *
- * A step crossed, a module installed, a channel lost and found: each is written
- * here, and the shell's live regions read it out. `polite` waits for a gap in
- * what is being read; `assertive` interrupts, and is kept for what stops the
- * work. The counter is what makes the same sentence twice a second
- * announcement rather than a silence.
- */
-
 export type Urgency = "polite" | "assertive";
 
 interface Announcement {
   text: string;
+  // Bumped on every say, so the same sentence twice is announced twice.
   count: number;
 }
 
@@ -41,7 +32,6 @@ export const useAnnouncements = create<AnnouncementStore>((set) => ({
   },
 }));
 
-/** Said from anywhere, including a store that has no hook to hand. */
 export function announce(text: string, urgency: Urgency = "polite"): void {
   useAnnouncements.getState().say(text, urgency);
 }

@@ -41,6 +41,7 @@ func fixture(t *testing.T) (*modtest.FakeSys, func(...string) run) {
 	catalog.Register(postgres.Module{})
 
 	dir := t.TempDir()
+
 	engine := &modules.Engine{
 		Registry:     catalog,
 		Sys:          fake,
@@ -53,6 +54,7 @@ func fixture(t *testing.T) (*modtest.FakeSys, func(...string) run) {
 	}
 
 	server := protocol.NewServer(protocol.Options{AgentVersion: "0.0.0-test", Entitlement: entitlement.Fixed(contract.EntitlementDev)})
+
 	db.RegisterCommands(server, engine)
 	state.RegisterCommands(server, state.FromEngine(engine, state.Options{
 		Follow: state.FollowOptions{Interval: time.Millisecond, Limit: -1, Sleep: func(time.Duration) {}},
@@ -116,7 +118,7 @@ func TestDevSyncAndDoctorReportWhatHappened(t *testing.T) {
 		t.Fatalf("code = %d, stdout = %q, stderr = %q", synced.code, synced.stdout, synced.stderr)
 	}
 
-	// A machine where nothing is installed has points to fix, and doctor says so with a non-zero exit.
+	// Nothing is installed, so doctor has points to fix and exits non-zero.
 	checked := dev("doctor")
 	if checked.code != 1 || !strings.Contains(checked.stdout, "KO") {
 		t.Fatalf("code = %d, stdout = %q", checked.code, checked.stdout)

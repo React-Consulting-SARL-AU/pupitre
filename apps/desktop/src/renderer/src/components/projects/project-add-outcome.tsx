@@ -15,12 +15,6 @@ const LOOK: Partial<
   starting: { label: "state.project.starting", shape: "breathing" },
 };
 
-/**
- * The project as the agent leaves it: its state and its address.
- *
- * The address is the agent's own — a tunnel gives a public one, a bare machine
- * gives the port — so nothing here builds a URL of its own.
- */
 export function ProjectAddOutcome({
   name,
   state,
@@ -59,7 +53,7 @@ export function ProjectAddOutcome({
           <p className="font-medium text-ink">
             <code className="font-data">{name}</code> {t(look.label)}
           </p>
-          <p className="mt-1 font-data text-[12px] text-ink-3">
+          <p className="mt-1 font-data text-ink-3 text-small">
             {url ?? t("projectAdd.outcome.unknownAddress")}
           </p>
         </div>

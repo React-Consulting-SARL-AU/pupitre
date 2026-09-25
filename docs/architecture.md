@@ -6,7 +6,7 @@ Pupitre est un monorepo Bun. Trois surfaces et un agent : l'app desktop qui pilo
 
 | Workspace | Runtime | Responsabilité |
 | --- | --- | --- |
-| `apps/desktop` | Electron 42, React 19, node-pty, `ssh` système | Onboarding d'un serveur, catalogue de services, projets, terminaux, agents, compte |
+| `apps/desktop` | Electron 44, React 19, node-pty, `ssh` système | Onboarding d'un serveur, catalogue de services, projets, terminaux, agents, compte |
 | `apps/agent` | Go, binaire statique, systemd | Sonde, modules d'installation, registre des projets, pilotage tmux, clés, heartbeat, mise à jour |
 | `apps/web` | TanStack Start sur Cloudflare Workers | Console `app.pupitre.studio`, montage de `/api/v1` (Elysia) et `/api/auth` (Better Auth), emails, Workflows |
 | `apps/site` | Astro sur un Worker Cloudflare à assets statiques | `pupitre.studio` : marketing, docs publiques, blog, légal, téléchargement |
@@ -27,7 +27,7 @@ Pupitre Desktop ──── ssh, clé du client ────▶ pupitred (VPS d
 ## Les règles qui ne bougent pas
 
 1. **Le serveur du client est la source de vérité** pour ses projets, ses services, ses secrets. L'app affiche ce que l'agent renvoie. La plateforme ne stocke ni code, ni secrets, ni contenu.
-2. **Aucune clé privée hors du laptop du client.** L'app génère ses clés ed25519 dans son dossier, une par appareil et une par serveur qu'elle installe ; seules les moitiés publiques remontent à la plateforme, qui les transmet à l'agent.
+2. **Aucune clé privée hors du laptop du client.** L'app génère ses clés ed25519 dans son dossier, une par appareil et une par serveur qu'elle installe ; seules les moitiés publiques remontent à la plateforme, qui les transmet à l'agent. Et donc aucun accès sans un laptop du client : l'agent ne pose une clé transmise que si un appareil qu'il tient déjà pour sûr l'a approuvée ([décision 0014](./decisions/0014-cles-approuvees-par-un-appareil.md)).
 3. **Aucune connexion entrante vers le serveur du client**, ni de la plateforme, ni du support. L'agent tire ce dont il a besoin par HTTPS sortant. Le seul port ouvert est SSH, pour le client.
 4. **Rien de lisible n'est déposé sur le serveur.** Un binaire, des unités systemd générées, des fichiers de configuration. Pas de script.
 5. **L'app exige une première connexion réussie, puis reste utilisable sans la plateforme pendant sept jours** : le droit d'usage est mis en cache, puis l'agent passe en mode restreint sans rien casser de ce qui tourne. L'exposition ne dépend pas d'elle du tout : le tunnel est sur le compte Cloudflare du client, monté par l'app depuis son laptop, et rien de la plateforme n'est sur le chemin.
@@ -48,15 +48,13 @@ Le compte est requis. L'app demande une connexion au premier lancement, puis lit
 
 Il porte aussi le registre de migrations de sa propre configuration : `pupitred migrate` sur la machine, `agent.migrate` sur le protocole.
 
-Deux interfaces : le protocole JSON sur SSH pour l'app (un processus `pupitred serve` par session), et l'API de la plateforme en HTTPS sortant pour le droit d'usage, les clés et les mises à jour. La sous-commande `pupitred dev` — aussi appelable `dev`, un lien vers le binaire — donne les mêmes commandes à un humain dans un terminal SSH : elle passe par les mêmes gestionnaires, avec les mêmes refus. Le durcissement ferme root en dernier, après avoir vérifié que `dev` accepte une clé.
-
-La stack bash sous `server/` est la spécification des modules : ordre des étapes, pièges d'apt, rapport de fin, commandes de pilotage. Elle disparaît module par module.
+Deux interfaces : le protocole JSON sur SSH pour l'app (un processus `pupitred serve` par session, limité, ou `pupitred serve --privileged` que sudo n'ouvre qu'avec le mot de passe de `dev`), et l'API de la plateforme en HTTPS sortant pour le droit d'usage, les clés et les mises à jour. La sous-commande `pupitred dev` — aussi appelable `dev`, un lien vers le binaire — donne les mêmes commandes à un humain dans un terminal SSH : elle passe par les mêmes gestionnaires, avec les mêmes refus. Le durcissement ferme root en dernier, après avoir vérifié que `dev` accepte une clé.
 
 ## Plateforme
 
-`apps/web` combine TanStack Start, React 19, Vite et le plugin Cloudflare. Les routes de la console vivent dans `src/routes/` ; `src/routes/api/v1/$.ts` délègue à `@pupitre/api/server`, `src/routes/api/auth/$.ts` à `@pupitre/auth/server`. Le Worker sert `/api/v1/*` directement ; la route TanStack Start reste le chemin de dev.
+`apps/web` combine TanStack Start, React 19, Vite et le plugin Cloudflare. Les routes de la console vivent dans `src/routes/` ; `src/routes/api/auth/$.ts` délègue à `@pupitre/auth/server`. `/api/v1/*` n'a pas de route TanStack : l'entrée du Worker, `src/worker.ts`, le passe à `@pupitre/api/server` avant Start, en développement comme en production, avec `/internal/*`, le handler `email` d'Email Routing, les Workflows et les Durable Objects.
 
-Elysia est montée sur `/api/v1` dans `packages/api/src/server.ts` et reste le contrat unique pour la console et l'app desktop, consommé via Eden Treaty (`@pupitre/api/client`). Les tests d'intégration démarrent la même API sur PGlite via `@pupitre/api/testing`.
+Elysia est montée sur `/api/v1` dans `packages/api/src/server.ts` et reste le contrat unique pour la console et l'app desktop, consommé via Eden Treaty (`@pupitre/api/client`). Les tests d'intégration démarrent la même API sur un fichier SQLite construit par les migrations de D1, via `@pupitre/api/testing`.
 
 Better Auth vit dans `packages/auth` avec l'adaptateur Prisma : lien magique, GitHub, `deviceAuthorization` et `bearer` pour l'app desktop, `organization` avec les rôles `owner`, `admin`, `member`, `admin` pour le support, `openAPI`. Passkeys, `twoFactor` et `sso` s'ajoutent sans migration. Une organisation personnelle est créée à l'inscription : tout appartient à une organisation.
 
@@ -80,4 +78,4 @@ Variables publiques du web en `VITE_*` ; secrets en variables runtime ou secrets
 
 ## Déploiement
 
-`apps/web` : un seul environnement Wrangler en ligne, `production`, déployé par Cloudflare Builds sur un push de `main` — `build:production` (migrations D1 puis build) puis `deploy:production` (vérification des secrets requis puis `wrangler deploy --keep-vars`). Il n'y a pas de staging en ligne : tout s'essaie en local. `main` n'avance que par une release, dont le dernier job fusionne `staging` dans `main` une fois l'app et l'agent publiés. Runbook dans [deploy.md](./deploy.md), noms exacts dans [monorepo.md](./monorepo.md). `apps/site` : un Worker à assets statiques, Cloudflare Builds sur le même push de `main`. `apps/desktop` : GitHub Actions par tag, builds signés et notarisés, publication sur un bucket R2 public — `dl.pupitre.studio` — et déclaration à la plateforme, qui sert la page de téléchargement du site. `apps/agent` : le même tag, garble, signature, publication sur le bucket R2 privé via l'API de la plateforme.
+`apps/web` : un seul environnement Wrangler en ligne, `production`, déployé par Cloudflare Builds sur un push de `main` — `build:production` (migrations D1 puis build) puis `deploy:production` (vérification des secrets requis puis `wrangler deploy --keep-vars`). Il n'y a pas de staging en ligne : tout s'essaie en local. `main` ne change que par la pull request `staging` → `main`, fusionnée par un merge commit : celle que le dernier job d'une release ouvre et fusionne une fois l'app et l'agent publiés, ou une ouverte à la main quand ni l'app ni l'agent ne changent. Runbook dans [deploy.md](./deploy.md), noms exacts dans [monorepo.md](./monorepo.md). `apps/site` : un Worker à assets statiques, Cloudflare Builds sur le même push de `main`. `apps/desktop` : GitHub Actions par tag, builds signés et notarisés, publication sur un bucket R2 public — `dl.pupitre.studio` — et déclaration à la plateforme, qui sert la page de téléchargement du site. `apps/agent` : le même tag, garble, signature, publication sur le bucket R2 privé via l'API de la plateforme.

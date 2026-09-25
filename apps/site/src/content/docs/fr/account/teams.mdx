@@ -19,7 +19,9 @@ Tout appartient à une organisation. À l’inscription, une organisation person
 
 ## Attribuer un serveur
 
-Un serveur appartient à l’organisation et est attribué à une personne. Les appareils de cette personne voient leurs clés publiques poussées sur la machine ; ceux des autres, non. Réattribuer un serveur retire les anciennes clés et ajoute les nouvelles à la prochaine remontée de l’agent.
+Un serveur appartient à l’organisation et est attribué à une personne. La plateforme transmet à la machine les clés publiques des appareils de cette personne ; ceux des autres, non. Chaque clé n’y entre qu’autorisée depuis un appareil que le serveur tient déjà pour sûr : par la personne elle-même pour ses propres appareils, par un owner ou un admin pour ceux d’un membre. Voir [votre clé](/fr/docs/start/keys/).
+
+Réattribuer un serveur fait apparaître les appareils de la nouvelle personne dans **Appareils à autoriser**, dans l’app d’un owner ou d’un admin dont un appareil ouvre déjà ce serveur. Les anciennes clés restent jusque-là, et partent dès qu’une nouvelle est entrée. Si aucun appareil d’un owner ou d’un admin n’ouvre ce serveur, reprenez-le depuis la console de l’hébergeur avec `sudo pupitred keys reset`.
 
 ## Inviter
 
@@ -27,7 +29,7 @@ Une invitation est un email avec un lien. La personne accepte, se connecte, inst
 
 ## Révoquer
 
-Retirer un membre retire les clés de ses appareils de tous les serveurs où il était. La révocation atteint une machine à la prochaine remontée sortante de l’agent — ce n’est pas une connexion que la plateforme ouvre.
+Retirer un membre retire les clés de ses appareils de tous les serveurs où il était. La révocation atteint une machine à la prochaine remontée sortante de l’agent — ce n’est pas une connexion que la plateforme ouvre. Mais l’agent ne retire jamais la dernière clé d’un serveur : sur un serveur qui était attribué à ce membre, ses clés sont en général les seules, et elles restent jusqu’à ce qu’une autre y soit autorisée.
 
 ## Le journal d’audit
 

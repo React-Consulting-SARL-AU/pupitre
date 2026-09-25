@@ -1,14 +1,5 @@
 import { type ElectronApplication, expect, type Page } from "@playwright/test";
 
-/**
- * A machine to install, answered by the harness rather than by a server.
- *
- * The onboarding is the one sequence that touches every channel of the bridge,
- * so its scenario needs them all. Nothing here pretends to be an agent: each
- * channel answers the shape the contract declares, which is exactly what the
- * screens are allowed to depend on.
- */
-
 const PROBE = {
   agent_version: null,
   arch: "amd64",
@@ -113,7 +104,6 @@ const CATALOG = {
 };
 
 export interface Harnessed {
-  /** What `install.check` answers: empty unless a scenario wants a refusal. */
   problems?: unknown[];
 }
 
@@ -141,6 +131,7 @@ export function answerOnboarding(
 
       const mark = (moduleId: unknown, key: unknown, generated: boolean) => {
         const held = marks[String(moduleId)] ?? {};
+
         held[String(key)] = { filled: true, generated, revealed: false };
         marks[String(moduleId)] = held;
 
@@ -188,10 +179,15 @@ export function answerOnboarding(
             root_closed: true,
             root_kept: false,
           },
+          sudo: { kept: true, ok: true },
           switched: true,
           user: "dev",
         },
       }));
+
+      answer("sudo:state", () => ({ held: true, kept: true }));
+      answer("sudo:reveal", () => "k7mp-q2xw-9hdt-3vzc-u8fa-6rne");
+      answer("sudo:enter", () => ({ kept: true, ok: true }));
 
       answer("platform:sync", () => ({
         ok: true,
@@ -221,13 +217,6 @@ export function answerOnboarding(
 const INSTALL = /^Installer$/;
 const CONFIGURE = /^Continuer avec/;
 
-/**
- * The walk from the servers screen to the configuration.
- *
- * Server, inspection, agent, catalogue: the sequence a reader goes through, in
- * the words the screens use, so a label that changes fails here rather than in
- * five scenarios at once.
- */
 export async function reachConfig(
   page: Page,
   options: { pick?: readonly string[] } = {}
@@ -236,7 +225,7 @@ export async function reachConfig(
   await page.getByRole("tab", { name: "Serveurs" }).click();
   await page.getByRole("button", { name: "Installer Pupitre" }).click();
 
-  await expect(page.getByText("Prête à être installée")).toBeVisible();
+  await expect(page.getByText("Prêt à être installé")).toBeVisible();
   await page.getByRole("button", { name: INSTALL }).first().click();
 
   await expect(page.getByText("Agent en place")).toBeVisible();
@@ -244,7 +233,6 @@ export async function reachConfig(
 
   await expect(page.getByText("Socle système").first()).toBeVisible();
 
-  // The services the scenario adds to the core, ticked on their own card.
   for (const name of options.pick ?? []) {
     await page.getByLabel(name, { exact: true }).check();
   }

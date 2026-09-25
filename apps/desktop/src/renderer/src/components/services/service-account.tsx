@@ -11,16 +11,6 @@ import { accountStateOf } from "@renderer/lib/account-state";
 import { LOGIN_LOOK } from "@renderer/lib/project-state";
 import { useConnections } from "@renderer/stores/connections";
 
-/**
- * Whose account the module works as, and the gestures on that account.
- *
- * Two answers meet here. The agent's, when the module's CLI has one: asked on
- * this read alone, shown as it came — the state, the account it named, the
- * way to sign in when it named none. And the app's: the token this computer
- * holds for the module's connection, with its check and its way out. When the
- * agent answered, its state is the one shown; the app's only says what the
- * computer holds. A module with neither never reaches this section.
- */
 export function ServiceAccount({
   login,
   manifest,
@@ -29,7 +19,6 @@ export function ServiceAccount({
 }: {
   login?: Login;
   manifest: Manifest | null;
-  /** The manifests of the modules this server runs, from the same catalogue as `manifest`. */
   installed: readonly Manifest[];
   serverName: string | null;
 }) {
@@ -57,7 +46,7 @@ export function ServiceAccount({
 
       {account ? (
         <span
-          className="min-w-0 break-all font-data text-[13px] text-ink"
+          className="min-w-0 break-all font-data text-control text-ink"
           data-login-account=""
         >
           {account}

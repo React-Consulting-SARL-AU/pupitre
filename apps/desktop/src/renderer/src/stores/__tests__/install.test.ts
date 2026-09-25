@@ -512,7 +512,6 @@ describe("ce que l'agent renvoie en échec", () => {
     });
   });
 
-  /** A refused configuration names its fields: the form marks them, as `install.check` would have. */
   it("pose sur les champs du catalogue ce que l'installation a refusé", async () => {
     useCatalog.setState({
       attempted: false,
@@ -827,6 +826,7 @@ describe("un rapport que la machine écrit encore", () => {
     useInstall.setState({ pollMs: 1 });
 
     const reading = useInstall.getState().reload(SERVER);
+
     await Promise.resolve();
 
     expect(useInstall.getState().install.status).toBe("running");
@@ -894,6 +894,7 @@ describe("un rapport que la machine écrit encore", () => {
     useInstall.setState({ pollMs: 1 });
 
     const reading = useInstall.getState().reload(SERVER);
+
     await Promise.resolve();
     useInstall.getState().reset();
     await reading;
@@ -906,6 +907,7 @@ describe("un rapport que la machine écrit encore", () => {
 describe("l'installation de ce que le catalogue a choisi", () => {
   it("part avec la sélection, sa configuration et ce qui est remis à plus tard", async () => {
     const { sent } = agent([], { failed: [], warned: [], report_path: REPORT });
+
     useCatalog.setState({
       deferred: ["db.postgres", "ai.claude"],
       selected: ["core.system", "db.postgres"],

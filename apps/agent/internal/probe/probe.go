@@ -36,7 +36,6 @@ type Options struct {
 	Version     string
 }
 
-// Reads the machine and says what installing on it would mean. Writes nothing, changes nothing.
 func Run(options Options) Result {
 	reader := prober{sys: options.Sys, root: options.Root, projects: options.ProjectsDir, current: options.Version}
 	if reader.projects == "" {
@@ -121,7 +120,16 @@ func (p prober) sudo() bool {
 		return true
 	}
 
-	_, err := p.sys.Run(sys.Command{Argv: []string{"sudo", "-n", "true"}})
+	if _, err := p.sys.Run(sys.Command{Argv: []string{"sudo", "-n", "true"}}); err == nil {
+		return true
+	}
+
+	// Decision 0015: a secured dev runs only `pupitred serve` without a password; -l checks that rule without running it.
+	if !p.exists(agentPath) {
+		return false
+	}
+
+	_, err := p.sys.Run(sys.Command{Argv: []string{"sudo", "-n", "-l", p.root + agentPath, "serve"}})
 
 	return err == nil
 }

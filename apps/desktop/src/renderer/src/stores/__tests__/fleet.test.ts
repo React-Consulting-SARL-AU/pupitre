@@ -12,21 +12,13 @@ import { grantedServers, useFleet } from "../fleet";
 import { useOnboarding } from "../onboarding";
 import { useServers } from "../servers";
 
-/**
- * The servers the platform granted, as the screen reads them.
- *
- * The store never builds an address and never names a key: it shows what the
- * main process merged, and the one gesture it offers is opening a server by
- * its local identifier.
- */
-
 const GRANTED: FleetServer = {
   host: "203.0.113.10",
   hostFingerprint: "SHA256:atelier",
   id: "srv-platform-1",
   keyReady: true,
   name: "vps-atelier",
-  organization: { id: "org-1", name: "Flymate" },
+  organization: { id: "org-1", name: "Flyleaf" },
   port: 22,
   status: "active",
   user: "dev",

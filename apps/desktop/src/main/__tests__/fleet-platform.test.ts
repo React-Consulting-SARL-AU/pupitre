@@ -26,16 +26,6 @@ import {
 } from "../ssh-config";
 import { memorySealer } from "./fixtures/fake-platform";
 
-/**
- * The invited member, against the platform's own API booted on SQLite.
- *
- * The shared fleet, played end to end: an admin is
- * given a server, assigns it to someone else, and that someone opens it from
- * this computer without ever typing an address or making a key. Nothing here
- * reaches a deployed service — `@pupitre/api/testing` is the Elysia app the
- * console mounts.
- */
-
 const DEVICE_PUBLIC_KEY =
   "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJggxfUKhpYOKRen6E6lpoh//viuSJtxOQ8hVlFZb+/t ada@macbook";
 
@@ -57,7 +47,6 @@ async function rewindPolls(): Promise<void> {
   });
 }
 
-/** The invited member's own browser, signed into the console. */
 async function browserOf(userId: string) {
   const { prisma, fetch } = await bootApiTestServer();
   const { token } = await createTestSession(prisma, { userId });
@@ -78,7 +67,6 @@ async function browserOf(userId: string) {
   };
 }
 
-/** This computer, holding one device key and no server at all. */
 async function laptopOf(userId: string) {
   const { fetch } = await bootApiTestServer();
   const approve = await browserOf(userId);
@@ -118,7 +106,6 @@ async function laptopOf(userId: string) {
   return { account, dir, paths: pathsIn(dir) };
 }
 
-/** An organization whose admin has a server, and a member it is given to. */
 async function assignedServer(host: string | null = HOST) {
   const { prisma } = await bootApiTestServer();
   const { organization, members } = await createOrganizationWithMembers({

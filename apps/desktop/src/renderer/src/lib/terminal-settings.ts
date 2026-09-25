@@ -1,13 +1,4 @@
-/**
- * What a reader may change about every terminal at once, and its bounds.
- *
- * The family is picked from a short list rather than typed: a name xterm
- * cannot measure draws every cell at the wrong width, and the app would rather
- * offer four faces it knows than a field that breaks the grid. The values are
- * validated on the way in — they come off a disk another version may have
- * written — and anything out of bounds falls back to the design's own.
- */
-
+// A closed list: a face xterm cannot measure draws every cell at the wrong width.
 export const TERMINAL_FONT_FAMILIES = [
   "jetbrains",
   "menlo",
@@ -17,7 +8,6 @@ export const TERMINAL_FONT_FAMILIES = [
 
 export type TerminalFontFamily = (typeof TERMINAL_FONT_FAMILIES)[number];
 
-/** Each face with the fallbacks that keep the grid when it is missing. */
 export const FONT_STACKS: Record<TerminalFontFamily, string> = {
   consolas: 'Consolas, "Cascadia Mono", "Liberation Mono", monospace',
   jetbrains: '"JetBrains Mono", ui-monospace, Menlo, monospace',
@@ -64,7 +54,7 @@ function bounded(value: unknown, min: number, max: number): number | null {
     : null;
 }
 
-/** The settings as read back from the disk: what is not valid is the default. */
+/** Another app version may have written the disk, so anything invalid falls back to the default. */
 export function terminalSettingsOf(raw: unknown): TerminalSettings {
   const read = (raw ?? {}) as Partial<Record<keyof TerminalSettings, unknown>>;
 
@@ -85,7 +75,6 @@ export function terminalSettingsOf(raw: unknown): TerminalSettings {
   };
 }
 
-/** One step of the type size, within its bounds; zero puts it back where the design put it. */
 export function steppedFontSize(current: number, step: -1 | 0 | 1): number {
   if (step === 0) {
     return DEFAULT_TERMINAL_SETTINGS.fontSize;

@@ -1,18 +1,13 @@
 import { describe, expect, it } from "bun:test";
+import type { Project } from "@pupitre/shared/agent-protocol/state";
 import { renderToStaticMarkup } from "react-dom/server";
+import { mount } from "../../__tests__/dom";
 import { SNAPSHOT } from "../../__tests__/snapshot-fixtures";
 import { DashboardMachine } from "../dashboard/dashboard-machine";
 import { DashboardPanel } from "../dashboard/dashboard-panel";
+import { DashboardProjectCard } from "../dashboard/dashboard-project-card";
 import { DashboardServices } from "../dashboard/dashboard-services";
 import { ServerRebootingScreen } from "../shell/server-rebooting-screen";
-
-/**
- * The dashboard, rendered from one `snapshot` fixture.
- *
- * The harness is `react-dom/server`: the panel takes everything it draws as a
- * prop, so a static render says what a browser would without pulling a DOM into
- * `bun test`.
- */
 
 const NOOP = () => undefined;
 
@@ -57,17 +52,113 @@ describe("le tableau de bord", () => {
 
     expect(html).toContain("atelier");
     expect(html).toContain("PostgreSQL");
-    expect(html).toContain("flymate-api");
+    expect(html).toContain("flyleaf-api");
     expect(html).toContain("atlas-web");
     expect(html).toContain("billing");
     expect(html).toContain("idea-backend");
   });
 
-  /** atlas-web answers on the machine alone, flymate-api under a name on the web: only the second opens from here. */
+  it("offre de relancer la sécurisation tant que l'accès root reste ouvert, et seulement alors", () => {
+    const open = text(
+      renderToStaticMarkup(
+        <DashboardPanel
+          attached={[]}
+          busy={null}
+          onAct={NOOP}
+          onAddProject={NOOP}
+          onCleanSessions={NOOP}
+          onOpenProject={NOOP}
+          onReboot={NOOP}
+          onSecure={NOOP}
+          onStopSession={NOOP}
+          securing="root"
+          snapshot={SNAPSHOT}
+        />
+      )
+    );
+
+    expect(open).toContain("L'accès root de ce serveur est resté ouvert.");
+    expect(open).toContain("Relancer la sécurisation");
+    expect(text(panel())).not.toContain("Relancer la sécurisation");
+  });
+
+  it("offre de relancer la sécurisation tant que dev devient root sans mot de passe", () => {
+    const open = text(
+      renderToStaticMarkup(
+        <DashboardPanel
+          attached={[]}
+          busy={null}
+          onAct={NOOP}
+          onAddProject={NOOP}
+          onCleanSessions={NOOP}
+          onOpenProject={NOOP}
+          onReboot={NOOP}
+          onSecure={NOOP}
+          onStopSession={NOOP}
+          securing="sudo"
+          snapshot={SNAPSHOT}
+        />
+      )
+    );
+
+    expect(open).toContain(
+      "Sur ce serveur, dev devient encore root sans mot de passe."
+    );
+    expect(open).toContain("Relancer la sécurisation");
+    expect(open).not.toContain("L'accès root de ce serveur est resté ouvert.");
+  });
+
+  it("range les projets avant les services", () => {
+    const html = panel();
+
+    expect(html.indexOf('data-section="projects"')).toBeGreaterThan(-1);
+    expect(html.indexOf('data-section="projects"')).toBeLessThan(
+      html.indexOf('data-section="services"')
+    );
+  });
+
+  // In the fixture only flyleaf-api has a public hostname; atlas-web is local only.
   it("n'offre d'ouvrir que les projets qui ont un nom sur le web", () => {
     const html = panel();
 
     expect(html.split("Ouvrir<").length - 1).toBe(1);
+  });
+
+  it("n'offre de tout démarrer ou tout arrêter que ce qui peut l'être", () => {
+    const halted = SNAPSHOT.projects.map((project) => ({
+      ...project,
+      processes: project.processes.map((process) => ({
+        ...process,
+        state: "stopped" as const,
+      })),
+      state: "stopped" as const,
+    }));
+
+    function withProjects(projects: Project[]): string {
+      return renderToStaticMarkup(
+        <DashboardPanel
+          attached={[]}
+          busy={null}
+          onAct={NOOP}
+          onAddProject={NOOP}
+          onCleanSessions={NOOP}
+          onOpenProject={NOOP}
+          onReboot={NOOP}
+          onStopSession={NOOP}
+          snapshot={{ ...SNAPSHOT, projects }}
+        />
+      );
+    }
+
+    const disabled = (label: string) =>
+      new RegExp(`<button[^>]*disabled=""[^>]*>(?:(?!</button>).)*${label}`);
+
+    expect(panel()).not.toMatch(disabled("Tout démarrer"));
+    expect(panel()).not.toMatch(disabled("Tout arrêter"));
+    expect(withProjects(halted)).toMatch(disabled("Tout arrêter"));
+    expect(withProjects(halted)).not.toMatch(disabled("Tout démarrer"));
+    expect(text(withProjects([]))).not.toContain("Tout démarrer");
+    expect(text(withProjects([]))).not.toContain("Tout arrêter");
   });
 
   it("compte les projets en ligne et ceux en échec", () => {
@@ -118,7 +209,18 @@ describe("le tableau de bord", () => {
       />
     );
 
-    expect(html).toContain("Rien en marche");
+    expect(html).toContain("Aucun service ne tourne en continu sur ce serveur");
+  });
+
+  it("propose d'ajouter un service quand aucun ne tourne", () => {
+    const idle = SNAPSHOT.services.filter((service) => !service.runs);
+
+    expect(
+      renderToStaticMarkup(<DashboardServices onAdd={NOOP} services={idle} />)
+    ).toContain("Ajouter un service");
+    expect(
+      renderToStaticMarkup(<DashboardServices services={idle} />)
+    ).not.toContain("Ajouter un service");
   });
 
   it("n'invente rien pour un serveur sans service ni projet", () => {
@@ -136,7 +238,7 @@ describe("le tableau de bord", () => {
       />
     );
 
-    expect(html).toContain("Rien en marche");
+    expect(html).toContain("Aucun service ne tourne en continu sur ce serveur");
     expect(html).toContain("aucun projet");
     expect(html).toContain("Aucune session en arrière-plan");
   });
@@ -229,6 +331,79 @@ describe("la carte d'un service", () => {
     expect(html).toContain('data-service="db.postgres"');
     expect(html).toContain('data-tooltip="Ouvrir PostgreSQL"');
     expect(html).toMatch(/<button[^>]*data-service="db.postgres"/);
+  });
+});
+
+describe("la carte d'un projet", () => {
+  const FLYLEAF = SNAPSHOT.projects[0] as Project;
+  const MAIN = FLYLEAF.processes[0] as Project["processes"][number];
+
+  function card(project: Project): string {
+    return renderToStaticMarkup(
+      <DashboardProjectCard
+        busy={false}
+        onAct={NOOP}
+        onOpen={NOOP}
+        project={project}
+      />
+    );
+  }
+
+  it("offre chacune des adresses d'un projet qui en publie plusieurs", async () => {
+    const view = await mount(
+      <DashboardProjectCard
+        busy={false}
+        onAct={NOOP}
+        onOpen={NOOP}
+        project={FLYLEAF}
+      />
+    );
+
+    await view.click(view.container.querySelector('[data-open="menu"]'));
+
+    const entries = [...document.querySelectorAll("[role=menuitem]")].map(
+      (entry) => entry.textContent
+    );
+
+    view.unmount();
+
+    expect(entries).toEqual([
+      "webflyleaf.example.org",
+      "apiapi-flyleaf.example.org",
+    ]);
+  });
+
+  it("ouvre d'un geste l'adresse d'un projet qui n'en publie qu'une", () => {
+    const html = card({
+      ...FLYLEAF,
+      processes: [{ ...MAIN, routes: MAIN.routes.slice(0, 1) }],
+    });
+
+    expect(html.split("Ouvrir</button>").length - 1).toBe(1);
+    expect(html).not.toContain('data-open="menu"');
+  });
+
+  it("n'offre pas d'ouvrir un projet arrêté", () => {
+    const html = card({
+      ...FLYLEAF,
+      processes: [{ ...MAIN, state: "stopped" }],
+      state: "stopped",
+    });
+
+    expect(text(html)).not.toContain("Ouvrir");
+  });
+
+  it("montre le nom sur le web du projet plutôt que son adresse sur la machine", () => {
+    const html = card(FLYLEAF);
+
+    expect(text(html)).toContain("flyleaf.example.org · main");
+    expect(text(html)).not.toContain("127.0.0.1:3000");
+  });
+
+  it("ne remplit pas de tiret ce qu'un projet arrêté ne mesure pas", () => {
+    const html = card(SNAPSHOT.projects[1] as Project);
+
+    expect(text(html)).not.toContain("—");
   });
 });
 

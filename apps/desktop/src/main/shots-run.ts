@@ -1,18 +1,9 @@
 import type { AgentResponse } from "@shared/agent";
 import { refuseWith } from "./refusal";
 
-/**
- * A capture saved on this computer.
- *
- * The bytes are already in the window — it read them over the channel to
- * show them — so nothing goes back to the server. What the window may not do
- * is name a place on the disk: it opens the save dialog, is handed a path,
- * and hands the same path back here with the bytes. A path the dialog never
- * returned is refused, whatever it names.
- */
-
 const MAX_SHOT_BYTES = 64 * 1024 * 1024;
 
+/** The window may not name a place on disk: only a path the save dialog returned is written. */
 export async function saveShot(
   path: unknown,
   bytes: unknown,

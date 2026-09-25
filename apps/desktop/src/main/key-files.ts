@@ -1,13 +1,6 @@
 import { isAbsolute } from "node:path";
 
-/**
- * The key files the reader pointed at, and no other.
- *
- * A path the renderer names for a key reaches `ssh -i` and a copy into the
- * app's folder: it has to be one the file picker handed out in this session,
- * exactly as a transfer's local path is. What was not picked is not a key.
- */
-
+/** A renderer-named key reaches `ssh -i`, so only paths the file picker handed out this session count. */
 const designated = new Set<string>();
 
 export function designateKeyFile(path: unknown): string | null {

@@ -50,9 +50,7 @@ export function InvitationRow({
         </div>
       </div>
       <div className="flex items-center gap-4">
-        <span className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-          {role ? t(role) : invitation.role}
-        </span>
+        <span className="text-label">{role ? t(role) : invitation.role}</span>
         {cancellable ? (
           <ConfirmDialog
             busy={cancelling}

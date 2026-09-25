@@ -1,9 +1,3 @@
-// Package golden records what a transcript run actually produced, instead of failing on it.
-//
-// A harness asks Updating whether a divergence is a failure or a recording, and
-// calls Rewrite to put the run's own output back into the file. Only the "< "
-// lines are touched: requests, secret lines, directives, comments and blank
-// lines are copied as they stand, in the order the file holds them.
 package golden
 
 import (

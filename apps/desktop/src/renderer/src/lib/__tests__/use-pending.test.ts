@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { awaited } from "../use-pending";
+import { useGestureFailure } from "../../stores/gesture-failure";
+import { awaited, reportFailure } from "../use-pending";
 
 describe("le travail qu'un geste a lancé", () => {
   it("n'attend rien d'un geste qui a déjà tout fait", () => {
@@ -28,5 +29,24 @@ describe("le travail qu'un geste a lancé", () => {
 
     await expect(outcome).rejects.toBe(failure);
     expect(seen).toEqual([true, false]);
+  });
+
+  it("montre l'échec qu'aucun écran n'a rattrapé, au lieu de le laisser au seul lecteur d'écran", () => {
+    useGestureFailure.getState().dismiss();
+
+    reportFailure(new Error("the bridge did not answer"));
+
+    expect(useGestureFailure.getState().failure).toEqual({
+      count: 1,
+      text: "L'action s'est arrêtée sur une erreur : the bridge did not answer",
+    });
+
+    reportFailure("again");
+
+    expect(useGestureFailure.getState().failure?.count).toBe(2);
+
+    useGestureFailure.getState().dismiss();
+
+    expect(useGestureFailure.getState().failure).toBeNull();
   });
 });

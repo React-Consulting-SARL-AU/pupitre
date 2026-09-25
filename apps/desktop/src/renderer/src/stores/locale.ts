@@ -25,7 +25,7 @@ function paint(resolved: Locale): void {
     // No document (tests): the choice still lives in the store.
   }
 
-  // The server replies in whatever language it's told: it goes out on the next hello.
+  // Sent with the next hello, so the agent replies in this language.
   window.pupitre?.setLocale?.(resolved);
 }
 

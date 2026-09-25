@@ -4,10 +4,7 @@ import type { ReactNode } from "react"
 import { Card, CardHeader, CardTitle } from "@/components/ui/card"
 import { useTranslations } from "@/hooks/use-locale"
 
-/**
- * A destination named by the card rather than written in place: the router
- * cannot resolve one search shape for five different lists, so the card holds it.
- */
+// The router cannot type one search shape across five lists, so the link travels as data.
 export interface WorklistLink {
   to: string
   params?: Record<string, string>
@@ -16,7 +13,6 @@ export interface WorklistLink {
 
 export interface WorklistEntry {
   id: string
-  /** Where the line takes the reader; the whole line is that link. */
   to: WorklistLink
   primary: string
   secondary?: string

@@ -23,7 +23,7 @@ class InvitationRefusedError extends Error {
 }
 
 export const Route = createFileRoute("/auth/invitation/$id")({
-  /** The link lands in whatever browser the person uses: the session is read there, and sign-in comes back here. */
+  // The session lives in whatever browser the link opens in, so it is read client-side.
   ssr: false,
   beforeLoad: requireSession,
   component: InvitationPage,

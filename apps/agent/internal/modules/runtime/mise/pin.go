@@ -12,13 +12,13 @@ import (
 )
 
 const (
-	// The file mise reads first in a folder, which it means to be kept out of git: what a project runs on, whatever the repository declares.
+	// Read first by mise and meant to stay out of git: what a project runs on, whatever the repository declares.
 	LocalConfig = "mise.local.toml"
 
 	excludeBlock = "runtimes"
 )
 
-// Pin writes the project's runtime versions where mise reads them, and takes the file back when it names none. The file is the agent's alone: git is told to overlook it, mise to trust it.
+// The file is the agent's alone: git is told to ignore it, mise to trust it.
 func Pin(ctx sys.Context, root string, runtimes map[string]string) (bool, error) {
 	path := root + "/" + LocalConfig
 
@@ -54,13 +54,16 @@ func Pin(ctx sys.Context, root string, runtimes map[string]string) (bool, error)
 
 func localConfig(runtimes map[string]string) ([]byte, error) {
 	tools := make([]string, 0, len(runtimes))
+
 	for tool := range runtimes {
 		tools = append(tools, tool)
 	}
+
 	sort.Strings(tools)
 
 	var out strings.Builder
 	out.WriteString("[tools]\n")
+
 	for _, tool := range tools {
 		runtime, known := RuntimeOf(tool)
 		if !known {
@@ -73,7 +76,7 @@ func localConfig(runtimes map[string]string) ([]byte, error) {
 	return []byte(out.String()), nil
 }
 
-// .git/info/exclude ignores the file for this clone alone, so the project's diff never shows it and the repository never learns of it.
+// .git/info/exclude hides the file for this clone alone, so the repository never learns of it.
 func exclude(ctx sys.Context, root string) error {
 	if !file.Exists(ctx, root+"/.git") {
 		return nil

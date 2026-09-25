@@ -20,7 +20,6 @@ import (
 
 const beforeFolder = "before"
 
-// RestoreSetup lays a backup's configuration down, migrated to this binary's revision; an installed machine only takes it with revert.
 func (s *Service) RestoreSetup(sink modules.Sink, location contract.BackupLocation, secrets contract.BackupSecrets, revert bool) (contract.BackupRestoreSetupResult, error) {
 	var result contract.BackupRestoreSetupResult
 
@@ -57,6 +56,7 @@ func (s *Service) restoreSetup(ctx *modules.Context, location contract.BackupLoc
 	if err != nil {
 		return contract.BackupRestoreSetupResult{}, err
 	}
+	defer clear(private)
 
 	files, err := s.setupOf(backup, private)
 	if err != nil {
@@ -64,11 +64,13 @@ func (s *Service) restoreSetup(ctx *modules.Context, location contract.BackupLoc
 	}
 
 	var warnings []string
+
 	if revert {
 		warnings = append(warnings, s.stopAll(ctx)...)
 	}
 
 	previous := projectNames(s.options.Reader)
+	earlier := marker
 
 	// A second restore before the install keeps what the machine held before the first.
 	if !restoring {
@@ -84,13 +86,22 @@ func (s *Service) restoreSetup(ctx *modules.Context, location contract.BackupLoc
 	marker.Location = contract.BackupLocation{Endpoint: location.Endpoint, Region: location.Region, Bucket: location.Bucket, Key: backup.key, PathStyle: location.PathStyle, SHA256: location.SHA256}
 	marker.Revert = marker.Revert || revert
 
+	// The marker lands before the files: a restore cut short is still one, and the next never takes its files as the machine's.
+	marker.Installed = ""
+
+	if err := writeJSON(ctx, s.paths.Marker, marker); err != nil {
+		return contract.BackupRestoreSetupResult{}, err
+	}
+
 	if err := s.putSetup(ctx, files, runner); err != nil {
 		s.putBack(ctx, marker)
+		s.forgetAttempt(ctx, earlier, restoring)
 
 		return contract.BackupRestoreSetupResult{}, err
 	}
 
 	marker.Installed = s.installDigest(ctx)
+
 	if err := writeJSON(ctx, s.paths.Marker, marker); err != nil {
 		return contract.BackupRestoreSetupResult{}, err
 	}
@@ -114,7 +125,7 @@ func (s *Service) restoreSetup(ctx *modules.Context, location contract.BackupLoc
 	}, nil
 }
 
-// The restore holds the run lock already: the configuration it lays down is migrated under it, not under a second one it would wait for.
+// The restore already holds the run lock; migrating under a second lock would wait on itself.
 func (s *Service) migrator() *migrate.Runner {
 	options := s.options.Migrate
 	options.Paths.Lock = ""
@@ -133,11 +144,16 @@ func (s *Service) setupOf(backup opened, private []byte) (map[string][]byte, err
 		return nil, corrupt(i18n.T("backup.corrupt.setup"))
 	}
 
-	reader, err := s.part(backup, backup.manifest.Parts[index], private)
+	staged, err := s.part(backup, backup.manifest.Parts[index], private)
 	if err != nil {
 		return nil, err
 	}
-	defer reader.Close()
+	defer staged.Close()
+
+	reader, err := staged.open()
+	if err != nil {
+		return nil, err
+	}
 
 	files, err := archive.ReadFiles(reader, setupLimit)
 	if err != nil {
@@ -147,7 +163,7 @@ func (s *Service) setupOf(backup opened, private []byte) (map[string][]byte, err
 	return files, nil
 }
 
-// Nothing of a project the backup does not know is deleted: it leaves the registry, its folder stays where it is.
+// A project the backup does not know only leaves the registry: its folder stays.
 func (s *Service) stopAll(ctx *modules.Context) []string {
 	if _, err := s.options.Reader.Down(state.All, ""); err != nil {
 		ctx.Logf("projects not all stopped: %s", err)
@@ -158,7 +174,7 @@ func (s *Service) stopAll(ctx *modules.Context) []string {
 	return nil
 }
 
-// keepBefore copies aside the configuration the machine holds now, and names what it held: an abort before the install puts it back.
+// An abort before the install puts this configuration back.
 func (s *Service) keepBefore(ctx *modules.Context) ([]string, error) {
 	if err := ctx.Sys().RemoveIn(s.paths.Staging, beforeFolder, true); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return nil, err
@@ -171,6 +187,7 @@ func (s *Service) keepBefore(ctx *modules.Context) ([]string, error) {
 		if errors.Is(err, fs.ErrNotExist) {
 			continue
 		}
+
 		if err != nil {
 			return nil, err
 		}
@@ -198,7 +215,6 @@ func lay(ctx sys.Context, target string, content []byte) error {
 	return file.WriteAtomic(ctx, target, content, 0o600)
 }
 
-// putSetup lays the backup's files where this machine keeps them — a file the backup does not hold goes — then migrates them to this binary's revision.
 func (s *Service) putSetup(ctx *modules.Context, files map[string][]byte, runner *migrate.Runner) error {
 	for _, entry := range s.paths.Setup {
 		content, held := files[entry.Name]
@@ -234,7 +250,6 @@ func (s *Service) putSetup(ctx *modules.Context, files map[string][]byte, runner
 	return nil
 }
 
-// putBack lays the configuration of before the restore back where it was, and removes what it did not hold.
 func (s *Service) putBack(ctx sys.Context, marker Marker) {
 	for _, entry := range s.paths.Setup {
 		if !slices.Contains(marker.Before, entry.Name) {
@@ -249,6 +264,7 @@ func (s *Service) putBack(ctx sys.Context, marker Marker) {
 		if err == nil {
 			err = lay(ctx, entry.Path, content)
 		}
+
 		if err != nil {
 			ctx.Logf("%s not put back: %s", entry.Path, err)
 		}
@@ -264,7 +280,22 @@ func (s *Service) installDigest(ctx sys.Context) string {
 	return sha256Hex(content)
 }
 
-// Abort puts back the configuration of before the restore, unless an install has run on the restored one since.
+// Leaves the marker as the failed setup found it: an earlier restore's, or none.
+func (s *Service) forgetAttempt(ctx sys.Context, earlier Marker, restoring bool) {
+	var err error
+
+	if restoring {
+		err = writeJSON(ctx, s.paths.Marker, earlier)
+	} else {
+		err = s.clearMarker(ctx)
+	}
+
+	if err != nil {
+		ctx.Logf("restore marker not put back: %s", err)
+	}
+}
+
+// Skipped once an install ran on the restored config; a marker without a digest is a cut-short setup, undone whole.
 func (s *Service) Abort() error {
 	return s.options.Engine.Command(module.ID, nil, func(ctx *modules.Context) error {
 		marker, restoring := s.marker(ctx)
@@ -272,7 +303,7 @@ func (s *Service) Abort() error {
 			return nil
 		}
 
-		if s.installDigest(ctx) == marker.Installed {
+		if marker.Installed == "" || s.installDigest(ctx) == marker.Installed {
 			s.putBack(ctx, marker)
 		}
 

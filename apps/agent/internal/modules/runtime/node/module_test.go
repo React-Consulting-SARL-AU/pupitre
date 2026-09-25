@@ -9,6 +9,7 @@ import (
 	"pupitre.studio/agent/internal/modules/modtest"
 	"pupitre.studio/agent/internal/modules/runtime/mise"
 	"pupitre.studio/agent/internal/modules/runtime/shell"
+	"pupitre.studio/agent/internal/sys"
 )
 
 var everything = modtest.Values{"node_versions": []string{"22", "24"}, "bun": true, "pnpm": true, "yarn": true}
@@ -32,6 +33,7 @@ func run(t *testing.T, ctx *modules.Context) {
 
 func statuses(ctx *modules.Context) map[string]contract.StepStatus {
 	result := map[string]contract.StepStatus{}
+
 	for _, event := range ctx.Events() {
 		result[event.Step] = event.Status
 	}
@@ -46,10 +48,11 @@ func TestInstallOnAMachineWithoutMise(t *testing.T) {
 	run(t, ctx)
 
 	commands := strings.Join(fake.Commands(), "\n")
+
 	for _, want := range []string{
-		"curl -fsSL --proto =https --tlsv1.2 https://mise.jdx.dev/VERSION",
-		"curl -fsSL --proto =https --tlsv1.2 https://github.com/jdx/mise/releases/download/v" + modtest.MiseVersion + "/SHASUMS256.txt",
-		"curl -fsSL --proto =https --tlsv1.2 -o /var/lib/pupitre/downloads/mise https://github.com/jdx/mise/releases/download/v" + modtest.MiseVersion + "/mise-v" + modtest.MiseVersion + "-linux-",
+		strings.Join(sys.CurlText("https://mise.jdx.dev/VERSION"), " "),
+		strings.Join(sys.CurlText("https://github.com/jdx/mise/releases/download/v"+modtest.MiseVersion+"/SHASUMS256.txt"), " "),
+		strings.Join(sys.CurlFile("/var/lib/pupitre/downloads/mise", "https://github.com/jdx/mise/releases/download/v"+modtest.MiseVersion+"/mise-v"+modtest.MiseVersion+"-linux-"), " "),
 		"sha256sum /var/lib/pupitre/downloads/mise",
 		"(dev) mise install -y node@24",
 		"(dev) mise install -y node@22",
@@ -77,6 +80,7 @@ func TestInstallOnAMachineWithoutMise(t *testing.T) {
 	}
 
 	env := string(fake.Files[shell.EnvPath])
+
 	for _, want := range []string{
 		"# >>> pupitre runtime.node >>>",
 		`export PATH="$HOME/.local/bin:$PATH"`,
@@ -145,6 +149,7 @@ func TestTheOptionalManagersDisabledInstallNothing(t *testing.T) {
 	}
 
 	commands := strings.Join(fake.Commands(), "\n")
+
 	for _, forbidden := range []string{"bun@", "pnpm@", "yarn@", "corepack"} {
 		if strings.Contains(commands, forbidden) {
 			t.Errorf("command mentioning %q was run:\n%s", forbidden, commands)
@@ -152,6 +157,7 @@ func TestTheOptionalManagersDisabledInstallNothing(t *testing.T) {
 	}
 
 	steps := statuses(ctx)
+
 	for _, step := range []string{"install-bun", "install-pnpm", "install-yarn", "enable-corepack"} {
 		if steps[step] != contract.StepSkip {
 			t.Errorf("%s = %s, want skip", step, steps[step])
@@ -162,12 +168,12 @@ func TestTheOptionalManagersDisabledInstallNothing(t *testing.T) {
 	if strings.Contains(env, ".bun/bin") {
 		t.Errorf(".zshenv must not carry the bun path when bun is off:\n%s", env)
 	}
+
 	if !strings.Contains(env, "mise/shims") || !strings.Contains(env, "COREPACK_ENABLE_DOWNLOAD_PROMPT") {
 		t.Errorf(".zshenv block is incoherent:\n%s", env)
 	}
 }
 
-// Yarn is off by default: whoever turns it on gets corepack enabled for it and for nothing they left off.
 func TestYarnAloneEnablesCorepackForYarnAlone(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	ctx := newContext(t, fake, modtest.Values{"node_versions": []string{"22"}, "bun": false, "pnpm": false, "yarn": true})
@@ -279,7 +285,6 @@ func TestUninstallLeavesMiseAndTheOtherBlocks(t *testing.T) {
 
 var _ modules.Module = Module{}
 
-// mise runs as dev and writes under ~/.local: nothing the module creates there may belong to root.
 func TestInstallLeavesNoRootFolderInHome(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Users[shell.User] = shell.Home
@@ -296,7 +301,6 @@ func TestInstallLeavesNoRootFolderInHome(t *testing.T) {
 	}
 }
 
-// mise upgrade with no tool named takes every tool on the machine with it: without a manager, there is nothing for this module to upgrade.
 func TestUpgradeWithoutManagersNeverRunsABareMiseUpgrade(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	none := modtest.Values{"node_versions": []string{"24"}, "bun": false, "pnpm": false, "yarn": false}
@@ -320,7 +324,6 @@ func TestUpgradeWithoutManagersNeverRunsABareMiseUpgrade(t *testing.T) {
 	}
 }
 
-// corepack links pnpm and yarn under the node that is the default: a default moved to another major leaves them behind.
 func TestANewDefaultNodeRefreshesTheCorepackLinks(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	run(t, newContext(t, fake, everything))

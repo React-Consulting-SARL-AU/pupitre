@@ -10,10 +10,10 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  ed25519Of,
   hostKeyDecision,
   keyLines,
   liveKeys,
-  looksLikeHostKeyChange,
   REINSTALLED_ACTION,
   recordHostKey,
 } from "../host-keys";
@@ -43,9 +43,11 @@ describe("la décision sur la clé d'hôte", () => {
     const decision = hostKeyDecision(PINNED, OTHER);
 
     expect(decision.status).toBe("changed");
+
     if (decision.status !== "changed") {
       return;
     }
+
     expect(decision.expected).toBe(PINNED);
     expect(decision.observed).toBe(OTHER);
     expect(decision.phrase.id).toBe("refusal.hostKey.changed");
@@ -82,24 +84,27 @@ describe("la décision sur la clé d'hôte", () => {
     if (decision.status !== "changed") {
       throw new Error("attendu : changed");
     }
+
     expect(decision.actions).toEqual([REINSTALLED_ACTION, "cancel"]);
   });
 });
 
-describe("le refus que ssh renvoie", () => {
-  it("se reconnaît à l'avertissement d'OpenSSH", () => {
+describe("l'empreinte Ed25519 que l'enrôlement épingle", () => {
+  it("prend la ligne Ed25519 de known_hosts, quelle que soit sa place", () => {
     expect(
-      looksLikeHostKeyChange(
-        "@@@ WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED! @@@"
+      ed25519Of(
+        [
+          "# Host [vps.test]:2222 found: line 1 ",
+          `[vps.test]:2222 ECDSA ${OTHER}`,
+          "# Host [vps.test]:2222 found: line 2 ",
+          `[vps.test]:2222 ED25519 ${PINNED}`,
+        ].join("\n")
       )
-    ).toBe(true);
-    expect(looksLikeHostKeyChange("Host key verification failed.")).toBe(true);
+    ).toBe(PINNED);
   });
 
-  it("ne confond pas un refus de mot de passe avec un changement de clé", () => {
-    expect(looksLikeHostKeyChange("Permission denied (publickey).")).toBe(
-      false
-    );
+  it("ne rend rien quand ssh s'est entendu sur un autre type", () => {
+    expect(ed25519Of(`vps.test ECDSA ${OTHER}\n`)).toBeNull();
   });
 });
 

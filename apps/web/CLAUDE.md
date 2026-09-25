@@ -20,11 +20,11 @@ TanStack Start (React 19) sur Cloudflare Workers via le plugin Vite · TS strict
 ## Architecture
 
 ```
-src/routes/      api/v1/$ · api/auth/$ · auth/ (sign-in, device, invitation) · dashboard/ · dashboard/admin/ (membres de l'organisation plateforme) · download
+src/routes/      api/auth/$ · auth/ (sign-in, device, invitation) · dashboard/ · dashboard/admin/ (membres de l'organisation plateforme) · download
 src/components/  ui/ (Base UI + shadcn, 1 composant/fichier) · dashboard/ · admin/ (pages plateforme, admin/inbox/ pour les mails) · auth/
 src/lib/         api/ (client Eden) · auth/ · query/ · schemas/ (Zod) · domain/ · config/
-src/workflows/   étapes de ReconcileSeats · DecommissionServer · ExpireEnrollments · EvaluateAlerts · SuspendExpiredGrace, cron triggers, déclencheur interne
-src/worker.ts    sert /api/v1 et /internal/workflows, porte les classes Workflow et le handler cron, délègue le reste à Start
+src/workflows/   étapes de ReconcileSeats · DecommissionServer · ExpireEnrollments · EvaluateAlerts · SuspendExpiredGrace · PurgeDeletions, cron triggers, déclencheur interne
+src/worker.ts    sert /api/v1, /internal/email et /internal/workflows, reçoit les mails d'Email Routing, porte les classes Workflow, les Durable Objects (InboxRealtime, RateLimit) et le handler cron, délègue le reste à Start
 packages/api/    app Elysia, client Eden, harnais de test — skill `elysia-api-routes`
 packages/auth/   createAuth, plugins, clients web et desktop
 ```
@@ -56,6 +56,6 @@ bun run dev
 bun run build:cloudflare
 bun run test
 bun run test:e2e
-bun run db:migrate local
-bun run openapi:export
 ```
+
+Depuis la racine, `bun run db:migrate local` applique les migrations à la D1 que miniflare tient sous `.wrangler/state`. Le document OpenAPI se lit sur `/api/v1/openapi/json`, servi par l'API elle-même.

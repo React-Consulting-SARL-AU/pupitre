@@ -50,7 +50,12 @@ export const homeEn: HomeContent = {
       {
         title: "Start your trial",
         detail:
-          "{days} days, and no card is asked for. The trial opens the whole catalogue and everything the app knows how to do.",
+          "{days} days on one machine, and no card is asked for. The trial opens the whole catalogue and everything the app knows how to do.",
+        duringLaunch: {
+          title: "Start for free",
+          detail:
+            "Free during the launch, until {date}, on one machine per organisation, and no card is asked for. A machine enrolled during the launch stays free for good.",
+        },
       },
       {
         title: "Download the app",
@@ -91,7 +96,7 @@ export const homeEn: HomeContent = {
         title: "Your accounts stay yours",
         lines: [
           "Claude Code and Codex are installed on the server and sign in to your own subscriptions.",
-          "Nothing passes through us: your code and your conversations stay between you and your server.",
+          "Your code and your conversations go from your server to the model provider you chose, on your account, never through Pupitre.",
         ],
       },
     ],
@@ -135,9 +140,9 @@ export const homeEn: HomeContent = {
     title: "Four things you can check",
     items: [
       {
-        statement: "Nobody can get in.",
+        statement: "We never connect to your server.",
         proof:
-          "Your server accepts no connection coming from us. Your computer is the one that talks to it, never the other way round — not even our support, which cannot connect to it.",
+          "Your computer is the one that talks to it, never the other way round: neither the platform nor our support ever opens a connection to it. Its firewall lets in your own connection, and the web ports 80 and 443 only once you install Caddy to publish your projects.",
       },
       {
         statement: "Your keys never leave your computer.",
@@ -178,7 +183,7 @@ export const homeEn: HomeContent = {
       {
         question: "Does my code stay private?",
         answer:
-          "Your code, your data and your conversations with the agents live on your server and do not leave it. We do not see them, we keep no copy of them and nothing passes through our servers. We only know that a server is attached to your account and which version it runs, so we can tell you when an update is waiting for it.",
+          "Your code, your data and your conversations with the agents live on your server. When an agent works, what it reads goes from your server to the model provider you chose — Anthropic for Claude, OpenAI for Codex — on your own account, never through Pupitre, and we keep no copy of it. The platform knows your server’s name and address, its architecture, the agent version, the services and terminal sessions it runs, its health readings and the status of its backups — never the contents of your files, databases or conversations. That is how it tells you when an update is waiting or a backup failed.",
       },
       {
         question: "Is the server only good for Pupitre?",
@@ -203,14 +208,16 @@ export const homeEn: HomeContent = {
     perServer:
       "{price} per server per month, excluding tax, on {solo} as on {team}.",
     annual: "Yearly, {months} months are free: {yearly} per server per year.",
-    trial: "{days}-day trial, no card.",
+    trial: "{days}-day trial on one machine, no card.",
+    launch:
+      "Free during the launch, until {date}, on one machine per organisation. A machine enrolled during the launch stays free for good. These prices apply once billing opens.",
     hosted:
       "{hosted}, a server provided by Pupitre, from {price} per month. Later.",
     link: "See the pricing",
   },
   cta: {
     title: "Give your agents a machine.",
-    lead: "Create your account, start the trial, then download the app and point it at the server you have just rented. Nothing else is installed on your computer but the app itself.",
+    lead: "Create your account, then download the app and point it at the server you have just rented. Nothing else is installed on your computer but the app itself.",
     signUp: "Create an account",
     docs: "Read the docs",
   },

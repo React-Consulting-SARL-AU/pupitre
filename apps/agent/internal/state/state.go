@@ -24,7 +24,7 @@ type FollowOptions struct {
 	Sleep    func(time.Duration)
 }
 
-// Sleep stays nil unless a test sets it: a real follow waits on a timer it can leave the moment the channel is cut.
+// Sleep stays nil outside tests: a real follow waits on a timer it can leave the moment the channel is cut.
 func (f FollowOptions) resolved() FollowOptions {
 	if f.Interval == 0 {
 		f.Interval = 250 * time.Millisecond
@@ -36,12 +36,10 @@ func (f FollowOptions) resolved() FollowOptions {
 	return f
 }
 
-// How long a command waits its turn on the registry, the running record and /etc/hosts: their holders are gone in milliseconds.
+// Holders of the registry lock release it within milliseconds.
 const registryWait = 5 * time.Second
 
-// DefaultInstallLock is the one lock an install, a sync or a pull takes: the
-// second run on the same machine answers busy instead of racing the first in
-// the same directories.
+// A second install, sync or pull answers busy instead of racing the first in the same directories.
 const DefaultInstallLock = "/var/lib/pupitre/project-install.lock"
 
 type Options struct {
@@ -52,26 +50,23 @@ type Options struct {
 	AgentVersion string
 	Paths        registry.Paths
 	Tmux         tmux.Options
-	// InstallLock guards a running install, sync or pull across sessions —
-	// each channel is its own process, so only a file lock spans them; empty is
-	// no lock, which the tests take.
+	// Each channel is its own process, so only a file lock spans them; empty means no lock, which the tests rely on.
 	InstallLock string
-	// InstallPath is the install.json the modules are read on, the one the engine writes; empty is the default path.
 	InstallPath string
-	// Deferred names the modules put on the machine without their settings: what
-	// the contract calls unconfigured, and the one thing a module cannot tell of itself.
+	// Modules installed without their settings: the one thing a module cannot tell of itself.
 	Deferred func() []string
-	// Command runs one action on a module under the run lock and the right of
-	// use, as the engine runs install: what drives a unit takes the same door.
-	Command func(id string, sink modules.Sink, fn func(*modules.Context) error) error
-	Follow  FollowOptions
-	Shots   ShotOptions
-	Detect  DetectOptions
-	Self    func() int
-	Sleep   func(time.Duration)
+	// Runs a module action under the run lock and entitlement, the same door the engine's install takes.
+	Command    func(id string, sink modules.Sink, fn func(*modules.Context) error) error
+	Follow     FollowOptions
+	Shots      ShotOptions
+	Detect     DetectOptions
+	Self       func() int
+	Sleep      func(time.Duration)
+	GitTimeout time.Duration
 }
 
-// The reader of the machine's state: the project registry, the tmux session and the installed modules, and nothing that writes on its own.
+const DefaultGitTimeout = 30 * time.Second
+
 type Reader struct {
 	options Options
 	journal *modules.Context
@@ -81,6 +76,9 @@ func New(options Options) *Reader {
 	options.Follow = options.Follow.resolved()
 	if options.Now == nil {
 		options.Now = time.Now
+	}
+	if options.GitTimeout == 0 {
+		options.GitTimeout = DefaultGitTimeout
 	}
 	if options.Tmux.Now == nil {
 		options.Tmux.Now = options.Now
@@ -98,7 +96,7 @@ func New(options Options) *Reader {
 	return &Reader{options: options}
 }
 
-// One journal for the whole session: pupitred serve is long-lived, and reopening /var/log/pupitre.log on every snapshot would leak a descriptor a second.
+// One journal per session: serve is long-lived, and reopening the log on every snapshot would leak a descriptor a second.
 func (r *Reader) WithJournal(logPath string) *Reader {
 	r.journal = modules.NewContext(modules.ContextOptions{
 		Sys:      r.options.Sys,
@@ -126,7 +124,6 @@ func (r *Reader) ctx() sys.Context {
 	return silent{sys: r.options.Sys}
 }
 
-// The shot command runs through the agent's own journal, where every other command already writes.
 func (r *Reader) Context() sys.Context {
 	return r.ctx()
 }
@@ -139,7 +136,6 @@ func (r *Reader) registry() *registry.File {
 	return registry.Load(r.ctx(), r.options.Paths)
 }
 
-// The lock the registry, the running record and /etc/hosts are read and written under, across every session of this machine.
 func (r *Reader) hold() (func(), error) {
 	release, err := lock.Hold(r.options.Paths.Lock, registryWait)
 	if errors.Is(err, lock.ErrHeld) {

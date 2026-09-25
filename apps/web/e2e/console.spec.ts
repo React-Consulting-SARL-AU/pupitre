@@ -36,7 +36,6 @@ interface DeviceCodes {
   user_code: string
 }
 
-/** The app registers the public half of its key; the console counts it as linked. */
 function openSshEd25519Key(): string {
   const type = new TextEncoder().encode("ssh-ed25519")
   const key = crypto.getRandomValues(new Uint8Array(32))
@@ -150,9 +149,7 @@ test.describe("console", () => {
         })
         .toEqual([expect.objectContaining({ quantity: 1, interval: "year" })])
 
-      // The click sends the page to the payment provider. Waiting for it to
-      // land is what keeps the next step from racing it — the harness answers
-      // that domain with an empty page, so it does land.
+      // Waiting for the provider's page keeps the next step from racing it; the harness answers it empty.
       await page.waitForURL(CHECKOUT_URL_RE)
     })
 
@@ -292,8 +289,11 @@ test.describe("console", () => {
         tab.getByRole("heading", { level: 1, name: "Confirmer un appareil" })
       ).toBeVisible()
       await expect(tab.getByLabel("Code affiché par l'appareil")).toHaveValue(
-        `${codes.user_code.slice(0, 4)}-${codes.user_code.slice(4)}`
+        ""
       )
+      await tab
+        .getByLabel("Code affiché par l'appareil")
+        .fill(`${codes.user_code.slice(0, 4)}-${codes.user_code.slice(4)}`)
 
       await tab.getByRole("button", { name: "Vérifier le code" }).click()
       await tab.getByRole("button", { name: "Confirmer cet appareil" }).click()

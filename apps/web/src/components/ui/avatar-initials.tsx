@@ -6,7 +6,6 @@ export interface AvatarInitialsProps {
   className?: string
 }
 
-/** Two letters where a face would be: nobody uploads one, and a blank circle says nothing. */
 export function AvatarInitials({
   initials,
   label,

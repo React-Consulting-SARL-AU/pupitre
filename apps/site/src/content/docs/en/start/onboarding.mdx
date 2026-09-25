@@ -1,58 +1,60 @@
 ---
-title: The eight steps
-description: The whole onboarding, step by step, with what changes on the machine at each one.
+title: The onboarding, step by step
+description: Every step the app walks a server through, from the address to a machine ready to work, with what changes on the machine at each one.
 locale: en
 section: start
 sectionOrder: 0
 order: 4
 ---
 
-The app walks a fresh machine from empty to working in eight steps. You can stop after any of them; nothing is left half-applied.
+The app walks a server from its address to a working machine. Some steps only show up when they apply: the agent step when the agent is missing or behind, the backup and data steps when your organisation has backups. The rail at the top counts the steps this server will actually walk. You can go back until something is installed; after that, the way back is the way through, and an interrupted onboarding picks up where it stopped.
 
-## 1. Add the server
+The app has to be [installed and linked to your account](/docs/start/install/) first, under a subscription: the free launch, the trial or a paid one. Without it, every step holds where it is and says why.
 
-Its address and a root or sudo account. The app generates an ed25519 key for this device and keeps the private half on your disk.
+## 1. Server
 
-## 2. Inspect
+Choose a server the app already knows, or add one: its address, a port if it is not 22, and a root or sudo account for the first connection. Then the key: the app generates an ed25519 key for this server, keeps the private half on your disk, and writes the public half into the server's `authorized_keys` — with the account's password if you give it, or with a command you paste yourself. It then signs in with that key alone before going on. See [your key](/docs/start/keys/) and [connect the app](/docs/start/connect/).
 
-The probe reads the distribution, the RAM, the disk, the architecture and what is already installed. You see what works, what is missing, and what Pupitre will not manage.
+## 2. Inspection
 
-## 3. Put the agent in place
+The probe reads the distribution, the architecture, the memory, the free disk and what is already installed, and gives a verdict: ready to be installed, already managed by Pupitre, already in use by other software — which Pupitre leaves alone — or incompatible, with the reasons and what would let it go on. It writes nothing.
 
-The server is enrolled with the platform, then the signed binary goes over the already-open SSH session. The checksum of what the server received is compared with the app's before going on. The services catalogue is the agent's own: it does not exist until the agent does.
+## 3. Agent
 
-A machine already carrying its identity is not enrolled twice: a connection cut between the exchange and its answer is taken up again, not replayed.
+Only when the agent is missing or behind. The app declares the server to your organisation, copies the signed agent over the open SSH session, checks what the server received against the release's checksum, and starts it. A machine that already carries its identity is not declared twice: a connection cut between the exchange and its answer is taken up again, not replayed.
 
-## 4. Choose the services
+## 4. Backup
 
-The catalogue, grouped by category. `core.system` and `core.hardening` are always included. Each module states what it installs and what it will ask you for. Presets exist for the common shapes.
+Only when your organisation has backups. Start from one, or from an empty server. Starting from a backup takes the bucket connected in the app and the backup passphrase, checked on your computer before the server is asked anything; the server then takes that backup's configuration, and the next two steps open on what it held. The data itself comes back at the end. See [backups](/docs/daily/backups/).
 
-## 5. Configure
+## 5. Services
 
-Versions, ports, accounts, secrets. Every field says what it expects and refuses what does not have the right shape, at its own height, as you fill it in — never a list of complaints at the top of the page. A bubble beside the caption says where to find a value: the exact permissions a token needs, the page that issues it, what it costs to get it wrong. The action sits at the bottom, where your reading stops.
+The catalogue, grouped by category. `core.system` and `core.hardening` are always included. Each module states what it installs and what it will ask you for, and presets cover the common shapes.
 
-A secret goes through the standard input of the SSH session; it is never written to a file you did not ask for, and never shown again after you type it.
+## 6. Configuration
 
-A module that goes through an account of yours — Cloudflare, GitHub, 1Password, Neon, Vercel, Supabase, Stripe — asks for that account here, above its own questions, not three screens away. You give each token once, for every server, and the app checks it as you paste it: it reads which account the token opens rather than asking you to copy an identifier. The token stays in your computer's keychain; what a server needs of it is written on the install's secret line, and nowhere else. What remains a per-server choice is what is genuinely per server — the domain this machine publishes under, for instance.
+Versions, ports, accounts, secrets. Every field says what it expects and refuses what does not have the right shape, at its own height, as you fill it in. A bubble beside the caption says where to find a value: the exact permissions a token needs, the page that issues it, what it costs to get it wrong. The action sits at the bottom.
 
-Before it runs, the app asks the server to weigh the configuration: a port something already listens on, a directory that turns out to be a file, a time zone this machine has never heard of. What it refuses comes back on the field it belongs to.
+A module that goes through an account of yours — Cloudflare, GitHub, 1Password, Neon, Vercel, Supabase, Stripe — asks for that account here, above its own questions. You give each token once, for every server, and the app checks which account it opens as you paste it. The token stays in your computer's keychain; what a server needs of it travels on the install's secret line, over the SSH session's standard input, and is never shown again.
 
-## 6. Install
+Before it runs, the app asks the server to weigh the configuration: a port something already listens on, a directory that turns out to be a file, a time zone the machine does not know. What it refuses comes back on the field it belongs to.
 
-Step by step, live: the module, the step, the counter, the duration. A configuration that would not hold is refused **before the first step**, machine untouched and fields named. A step that fails does not stop the other modules — it is noted with the command that replays it. Every step is idempotent: the whole install can be run again without damage.
+## 7. Installation
 
-At the end the app tells the platform straight away: the console shows the modules at once, instead of an empty server for five minutes.
+Step by step, live: the module, the step, the counter, the duration. A configuration that would not hold is refused before the first step, machine untouched and fields named. A step that fails does not stop the other modules: it is noted, and the app offers to replay that module. Every step is idempotent, so running the install again does no damage. See [troubleshooting](/docs/account/troubleshooting/).
 
-## 7. Harden and switch to dev
+## 8. Security
 
-`ufw` on SSH only, `fail2ban`, passwords off, `AllowUsers dev`. Root is closed **last**, and only after the app has verified that your key actually opens `dev`. If that check fails, nothing is closed.
+The hardening creates the working account `dev`, copies your keys to it, checks that your key opens it, then turns passwords off, sets `AllowUsers`, starts `ufw` and `fail2ban`, and closes root **last**. If the check fails, root is not closed and the app keeps using the first account. The “Keep root access” option leaves root reachable by SSH key — never by password — and applies all the rest. The app then reconnects as `dev`.
 
-At configuration time, the “Keep root access” option leaves root reachable by SSH key — never by password — and applies all the rest of the hardening. For those who want to keep a hand on their own server.
+## 9. Data
 
-## 8. First project
+Only when the server started from a backup. Choose the parts to bring back — databases, projects, the `dev` account, extra folders — and the app restores them, then starts the projects. Or leave the data in the bucket.
 
-A git URL or a folder on the machine. The agent clones, installs dependencies, starts the project in `tmux`, and reports the port, the URL and the logs.
+## 10. Ready
 
-## After the eighth step
+The app says which account it connects with and whether root is closed. The onboarding is done and does not come back.
 
-The onboarding is done and does not come back. From there the app is a window onto that machine: the dashboard, projects, terminals, agents, services. Adding a module later is the same catalogue screen, without the rest of the walkthrough.
+## After the onboarding
+
+The app is now the window onto that machine: the dashboard, projects, terminals, agents, services. Your first project is a git URL or a folder on the machine: the agent clones it, installs its dependencies, starts it in `tmux`, and reports the port, the URL and the logs. See [projects](/docs/daily/projects/). Adding a module later is the same catalogue screen, without the rest of the walkthrough.

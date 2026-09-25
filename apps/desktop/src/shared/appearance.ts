@@ -1,14 +1,5 @@
 import { DARK, LIGHT } from "@pupitre/design/tokens";
 
-/**
- * The theme, on both sides of the bridge.
- *
- * The renderer owns the choice — it is remembered with the navigation — and the
- * main process owns the window frame. What crosses is the preference, which
- * `nativeTheme` needs to keep following the system, and the theme the renderer
- * actually resolved, which is the colour the edges have to paint.
- */
-
 export type ThemePreference = "system" | "light" | "dark";
 
 export type ResolvedTheme = "light" | "dark";
@@ -19,6 +10,7 @@ export const THEME_PREFERENCES: readonly ThemePreference[] = [
   "dark",
 ];
 
+/** `preference` keeps `nativeTheme` following the system; `resolved` is the colour the frame paints. */
 export interface Appearance {
   preference: ThemePreference;
   resolved: ResolvedTheme;

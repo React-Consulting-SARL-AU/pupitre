@@ -2,10 +2,6 @@ export const admin = {
   en: {
     "admin.reading": "Reading…",
     "admin.failed": "The platform did not answer.",
-    "admin.failedFix": "Try again in a moment.",
-    "admin.range": "{from}–{to} of {total}",
-    "admin.previous": "Previous",
-    "admin.next": "Next",
     "admin.search": "Search",
     "admin.searchAction": "Search",
     "admin.search.title": "Search the platform",
@@ -166,7 +162,6 @@ export const admin = {
       "Give the reason: it is logged with the revocation.",
     "admin.users.revoked": "“{name}” is revoked.",
     "admin.users.revokeFailed": "The device was not revoked.",
-    "admin.users.revokeFailedFix": "Try again in a moment.",
 
     "admin.servers.status": "Status",
     "admin.servers.allStatuses": "Every status",
@@ -215,7 +210,6 @@ export const admin = {
     "admin.servers.deleted": "“{name}” is revoked.",
     "admin.servers.purged": "“{name}” is purged.",
     "admin.servers.deleteFailed": "The deletion failed.",
-    "admin.servers.deleteFailedFix": "Try again in a moment.",
 
     "admin.servers.tabs": "Server sections",
     "admin.servers.tab.overview": "Overview",
@@ -256,7 +250,6 @@ export const admin = {
       "The open alerts of “{name}” close now. A condition that still holds opens an alert again at the next hourly run, and the email goes back out.",
     "admin.servers.alertsCleared": "The alerts of “{name}” are closed.",
     "admin.servers.clearAlertsFailed": "The alerts were not closed.",
-    "admin.servers.clearAlertsFailedFix": "Try again in a moment.",
 
     "admin.servers.revokedDevices": "Revoked devices",
     "admin.servers.noRevokedDevice": "No device revoked on this server.",
@@ -465,7 +458,6 @@ export const admin = {
     "admin.subscriptions.granting": "Granting…",
     "admin.subscriptions.granted": "{organization} has its subscription.",
     "admin.subscriptions.grantFailed": "The subscription was not granted.",
-    "admin.subscriptions.grantFailedFix": "Try again in a moment.",
     "admin.subscriptions.grantBlocked":
       "A subscription is live: stop it before granting another.",
 
@@ -550,7 +542,6 @@ export const admin = {
       "{version} becomes the target of {target}. Newer stable versions drop back to beta, which is how a promotion rolls a release back.",
     "admin.releases.promoted": "{version} is stable.",
     "admin.releases.promoteFailed": "The promotion failed.",
-    "admin.releases.promoteFailedFix": "Try again in a moment.",
 
     "admin.team.title": "Team",
     "admin.team.empty": "No member in the Pupitre organisation.",
@@ -578,7 +569,6 @@ export const admin = {
     "admin.links.enable": "Enable",
     "admin.links.toggling": "Updating…",
     "admin.links.toggleFailed": "The link could not be changed.",
-    "admin.links.toggleFailedFix": "Try again in a moment.",
     "admin.links.disabledDone": "“{name}” no longer refers anyone.",
     "admin.links.enabledDone": "“{name}” refers again.",
     "admin.links.create": "New affiliate link",
@@ -641,7 +631,6 @@ export const admin = {
     "admin.links.applying": "Applying…",
     "admin.links.applied": "“{name}” is updated.",
     "admin.links.applyFailed": "The link could not be changed.",
-    "admin.links.applyFailedFix": "Try again in a moment.",
     "admin.links.disableTitle": "Disable the link",
     "admin.links.disableConsequence":
       "A disabled link records no referral any more; the organisations that already arrived keep theirs.",
@@ -657,15 +646,10 @@ export const admin = {
     "admin.links.deleting": "Deleting…",
     "admin.links.deleted": "“{name}” is deleted.",
     "admin.links.deleteFailed": "The link could not be deleted.",
-    "admin.links.deleteFailedFix": "Try again in a moment.",
   },
   fr: {
     "admin.reading": "Lecture…",
     "admin.failed": "La plateforme n'a pas répondu.",
-    "admin.failedFix": "Réessayez dans un instant.",
-    "admin.range": "{from}–{to} sur {total}",
-    "admin.previous": "Précédent",
-    "admin.next": "Suivant",
     "admin.search": "Recherche",
     "admin.searchAction": "Chercher",
     "admin.search.title": "Chercher dans la plateforme",
@@ -827,7 +811,6 @@ export const admin = {
       "Indiquez le motif : il est journalisé avec la révocation.",
     "admin.users.revoked": "« {name} » est révoqué.",
     "admin.users.revokeFailed": "L'appareil n'a pas été révoqué.",
-    "admin.users.revokeFailedFix": "Réessayez dans un instant.",
 
     "admin.servers.status": "Statut",
     "admin.servers.allStatuses": "Tous les statuts",
@@ -877,7 +860,6 @@ export const admin = {
     "admin.servers.deleted": "« {name} » est révoqué.",
     "admin.servers.purged": "« {name} » est effacé.",
     "admin.servers.deleteFailed": "La suppression a échoué.",
-    "admin.servers.deleteFailedFix": "Réessayez dans un instant.",
 
     "admin.servers.tabs": "Sections du serveur",
     "admin.servers.tab.overview": "Aperçu",
@@ -888,13 +870,14 @@ export const admin = {
     "admin.servers.tab.danger": "Danger",
 
     "admin.servers.pendingAssignment": "Attribution en attente d'acceptation",
-    "admin.servers.enrollmentExpiresAt": "Jeton d'enrôlement valable jusqu'au",
+    "admin.servers.enrollmentExpiresAt":
+      "Token de rattachement valable jusqu'au",
     "admin.servers.deviceOwner": "Compte de l'appareil",
-    "admin.servers.heartbeat": "Dernier battement",
-    "admin.servers.createdAt": "Enrôlé",
+    "admin.servers.heartbeat": "Dernier heartbeat",
+    "admin.servers.createdAt": "Rattaché",
     "admin.servers.freshness": "Fraîcheur",
     "admin.servers.anyFreshness": "À jour et sans nouvelles",
-    "admin.servers.fresh": "Battement dans les 24 h",
+    "admin.servers.fresh": "Heartbeat dans les 24 h",
     "admin.servers.seat": "Siège",
     "admin.servers.seatTaken": "Occupé",
     "admin.servers.seatFree": "Libre",
@@ -919,7 +902,6 @@ export const admin = {
       "Les alertes ouvertes de « {name} » se ferment maintenant. Une condition qui tient encore rouvre une alerte au prochain passage horaire, et l'email repart.",
     "admin.servers.alertsCleared": "Les alertes de « {name} » sont fermées.",
     "admin.servers.clearAlertsFailed": "Les alertes n'ont pas été fermées.",
-    "admin.servers.clearAlertsFailedFix": "Réessayez dans un instant.",
 
     "admin.servers.revokedDevices": "Appareils révoqués",
     "admin.servers.noRevokedDevice": "Aucun appareil révoqué sur ce serveur.",
@@ -1132,7 +1114,6 @@ export const admin = {
     "admin.subscriptions.granting": "Attribution…",
     "admin.subscriptions.granted": "{organization} a son abonnement.",
     "admin.subscriptions.grantFailed": "L'abonnement n'a pas été offert.",
-    "admin.subscriptions.grantFailedFix": "Réessayez dans un instant.",
     "admin.subscriptions.grantBlocked":
       "Un abonnement est en cours : arrêtez-le avant d'en offrir un autre.",
 
@@ -1217,7 +1198,6 @@ export const admin = {
       "{version} devient la cible de {target}. Les versions stables plus récentes redescendent en bêta : c'est ainsi qu'une promotion ramène une release en arrière.",
     "admin.releases.promoted": "{version} est stable.",
     "admin.releases.promoteFailed": "La promotion a échoué.",
-    "admin.releases.promoteFailedFix": "Réessayez dans un instant.",
 
     "admin.team.title": "Équipe",
     "admin.team.empty": "Aucun membre dans l'organisation Pupitre.",
@@ -1245,7 +1225,6 @@ export const admin = {
     "admin.links.enable": "Activer",
     "admin.links.toggling": "Mise à jour…",
     "admin.links.toggleFailed": "Le lien n'a pas pu être changé.",
-    "admin.links.toggleFailedFix": "Réessayez dans un instant.",
     "admin.links.disabledDone": "« {name} » ne parraine plus personne.",
     "admin.links.enabledDone": "« {name} » parraine à nouveau.",
     "admin.links.create": "Nouveau lien d'affiliation",
@@ -1308,7 +1287,6 @@ export const admin = {
     "admin.links.applying": "Application…",
     "admin.links.applied": "« {name} » est à jour.",
     "admin.links.applyFailed": "Le lien n'a pas pu être changé.",
-    "admin.links.applyFailedFix": "Réessayez dans un instant.",
     "admin.links.disableTitle": "Désactiver le lien",
     "admin.links.disableConsequence":
       "Un lien désactivé n'enregistre plus aucune provenance ; les organisations déjà venues gardent la leur.",
@@ -1324,6 +1302,5 @@ export const admin = {
     "admin.links.deleting": "Suppression…",
     "admin.links.deleted": "« {name} » est supprimé.",
     "admin.links.deleteFailed": "Le lien n'a pas pu être supprimé.",
-    "admin.links.deleteFailedFix": "Réessayez dans un instant.",
   },
 }

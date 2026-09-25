@@ -19,10 +19,9 @@ const NOTES =
 
 const KEY_PREFIX = "app/1.4.0"
 
-/** The address the platform composes when no downloads bucket is declared. */
 const DOWNLOADS = `http://localhost/__downloads/${KEY_PREFIX}`
 
-/** The offer rows alone: the checklist above them carries links of its own. */
+// Only the offer rows: the checklist above carries links of its own.
 function offerLinks(container: HTMLElement): (string | null)[] {
   return [...container.querySelectorAll("ul a")].map((link) =>
     link.getAttribute("href")

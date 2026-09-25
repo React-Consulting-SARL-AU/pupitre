@@ -7,13 +7,6 @@ import { useState } from "react";
 
 const FEEDBACK_MS = 1600;
 
-/**
- * The device code, given the size of the one thing left to do.
- *
- * It is read off this screen and typed into a browser, so it is set wide and
- * large in the data face, where a zero cannot be an O. The breathing dot beside
- * it says the app is still waiting on it.
- */
 export function AccountCode({
   label,
   value,
@@ -45,6 +38,7 @@ export function AccountCode({
       </div>
 
       <div className="mt-2 flex items-center gap-3 rounded-md border border-line-strong bg-sunken px-4 py-3.5">
+        {/* Typed by hand into a browser: the data face keeps 0 and O apart. */}
         <code className="min-w-0 flex-1 break-all font-data text-ink text-xl leading-snug tracking-[0.28em]">
           {value}
         </code>
@@ -56,7 +50,7 @@ export function AccountCode({
       </div>
 
       {help ? (
-        <p className="mt-2 text-[12px] text-ink-3 leading-relaxed">{help}</p>
+        <p className="mt-2 text-ink-3 text-small leading-relaxed">{help}</p>
       ) : null}
     </div>
   );

@@ -1,12 +1,5 @@
-import {
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  renameSync,
-  writeFileSync,
-} from "node:fs";
-import { dirname, join } from "node:path";
+import { join } from "node:path";
+import { isSshHost, isSshUser } from "@pupitre/shared/ssh";
 import type {
   HostKeyDecision,
   Server,
@@ -18,6 +11,7 @@ import type {
 } from "@shared/servers";
 import {
   alias,
+  isServerId,
   type SshShareState,
   sshNames,
   sshSlug,
@@ -56,34 +50,17 @@ import {
 import { includeLine, shareAt, sharedAt } from "./ssh-share";
 import {
   expectedRevision,
-  type JsonObject,
-  keepCopy,
-  migrate,
+  type VersionedFile,
+  versionedFile,
 } from "./store-migrations";
 import { trace } from "./trace";
 
-/**
- * The known servers, and which one is active.
- *
- * The file lives in the app's data folder, not in the repository: these are the
- * machines of whoever uses it. Every write to it is followed by a rewrite of
- * the app's SSH configuration, so the two never drift apart — and neither of
- * them is ever the user's own ~/.ssh.
- */
 type Configuration = Required<
   Pick<ServersConfig, "servers" | "active" | "dismissed">
 > & {
   version: number;
 };
 
-/**
- * Version 3 makes the app the owner of the connection: a server carries its
- * address, its port, its account and its key rather than pointing at a block of
- * the system configuration. An older entry did point at one, so it is read back
- * as what it was — a system host — and nothing of the user's is touched.
- *
- * From there on the ledger carries the shapes, one entry per change.
- */
 const VERSION = Math.max(
   SERVERS_BASELINE,
   expectedRevision(SERVERS_MIGRATIONS)
@@ -101,22 +78,14 @@ const EMPTY: Configuration = {
 
 let cache: Configuration | null = null;
 
-/**
- * A file that exists and cannot be read is not an empty list: the app shows
- * none of its servers, and writes nothing over the file until it reads again.
- */
+/** A file that exists but cannot be read is not an empty list: nothing is written over it until re-read. */
 let unreadable = false;
 
 function userData(): string {
   return app.getPath("userData");
 }
 
-/**
- * The home the app's link and the system's SSH file hang from.
- *
- * A scenario run gets one inside the folder it throws away: a suite that left
- * a line in the reader's real file, or a link beside it, would outlive itself.
- */
+/** A scenario run gets a throwaway home, so no suite leaves a line or a link beside the real ~/.ssh/config. */
 function home(): string {
   return HARNESSED ? join(userData(), "home") : app.getPath("home");
 }
@@ -129,12 +98,12 @@ function path(): string {
   return join(userData(), "servers.json");
 }
 
-/** Where a file the app could not read is kept aside, for whoever has to look. */
 export function corruptPath(): string {
   return `${path()}.corrupt`;
 }
 
 function normaliseServer(raw: Server): Server {
+  // Before version 3 an entry pointed at a block of the system SSH config, so no origin reads as "system".
   const origin = raw.origin === "app" ? "app" : "system";
   const port =
     Number.isInteger(raw.port) && raw.port > 0 ? raw.port : DEFAULT_PORT;
@@ -156,10 +125,26 @@ function normaliseServer(raw: Server): Server {
   };
 }
 
+/** An entry written before these checks, or by hand, must never reach the SSH configuration. */
+function fitForSsh(server: Server): boolean {
+  const account =
+    (server.origin === "system" && server.user === "") ||
+    isSshUser(server.user);
+
+  return isServerId(server.id) && isSshHost(server.host) && account;
+}
+
 function normalise(raw: ServersConfig): Configuration {
-  const servers = raw.servers
+  const listed = raw.servers
     .filter((server) => server.id && server.name && server.host)
     .map(normaliseServer);
+  const servers = listed.filter(fitForSsh);
+
+  if (servers.length < listed.length) {
+    trace("servers", "unfit-dropped", {
+      count: listed.length - servers.length,
+    });
+  }
 
   const active = servers.some((server) => server.id === raw.active)
     ? raw.active
@@ -172,31 +157,23 @@ function normalise(raw: ServersConfig): Configuration {
   return { active, dismissed, servers, version: VERSION };
 }
 
-function parsed(): Configuration | null {
-  const raw = JSON.parse(readFileSync(path(), "utf8")) as JsonObject;
-  const held = raw as unknown as ServersConfig;
+let file: VersionedFile | null = null;
 
-  if (!Array.isArray(held.servers)) {
-    return null;
+function serversFile(): VersionedFile {
+  if (file?.path === path()) {
+    return file;
   }
 
-  const from = typeof raw.version === "number" ? raw.version : 1;
-  const migrated = migrate(raw, SERVERS_MIGRATIONS);
-  const clean = normalise(migrated.document as unknown as ServersConfig);
+  file = versionedFile({
+    baseline: SERVERS_BASELINE,
+    migrations: SERVERS_MIGRATIONS,
+    path: path(),
+    valid: (document) => Array.isArray(document.servers),
+  });
 
-  // An older configuration goes back to disk completed, once: otherwise
-  // every launch would complete it in memory, and the day the defaults
-  // changed it would change with them. The file as it was stays beside it,
-  // for a reader who has to go back to the version they came from.
-  if (from < VERSION) {
-    keepCopy(path(), from);
-    save(clean);
-  }
-
-  return clean;
+  return file;
 }
 
-/** The file read again, whatever was held: what a write does before touching a file it could not read. */
 export function reload(): Configuration {
   cache = null;
 
@@ -208,55 +185,43 @@ export function read(): Configuration {
     return cache;
   }
 
-  if (!existsSync(path())) {
-    unreadable = false;
+  const held = serversFile().read();
+
+  unreadable = held.status === "corrupt";
+
+  if (held.status === "corrupt") {
+    trace("servers", "unreadable", { copy: held.copy });
+  }
+
+  if (held.status !== "read") {
     cache = EMPTY;
 
     return EMPTY;
   }
 
-  let clean: Configuration | null = null;
-
-  try {
-    clean = parsed();
-  } catch {
-    clean = null;
+  if (serversFile().frozen()) {
+    trace("servers", "newer", { revision: held.revision });
   }
 
-  if (!clean) {
-    copyFileSync(path(), corruptPath());
-    trace("servers", "unreadable", { copy: corruptPath() });
+  const clean = normalise(held.document as unknown as ServersConfig);
+
+  // Written back once: completed only in memory, an old file would silently follow any later change of defaults.
+  if (held.migrated) {
+    save(clean);
   }
 
-  unreadable = clean === null;
-  cache = clean ?? EMPTY;
+  cache = clean;
 
-  return cache;
+  return clean;
 }
 
-/**
- * Written aside and renamed over: a crash in the middle leaves either the
- * previous file or the new one, never a truncated list of servers.
- */
+/** A file from a newer version is left whole for a rollback; the change still holds for this run and its SSH file. */
 function save(config: Configuration): void {
-  const target = path();
-  const staging = `${target}.tmp`;
-
-  mkdirSync(dirname(target), { recursive: true });
-  writeFileSync(staging, JSON.stringify(config, null, 2), "utf8");
-  renameSync(staging, target);
+  serversFile().write({ ...config });
   writeSshConfig(config.servers, paths(), sshHosts());
 }
 
-/**
- * The change, applied to what the file holds now.
- *
- * A caller that read the list, waited on something — a key to install, a
- * host to untrust — and wrote back what it had read would erase whatever was
- * written meanwhile: the patch reads again at the moment of writing. A file
- * that could not be read is read once more first, and refused if it still
- * cannot be: nothing overwrites a list the app has not seen.
- */
+/** The patch reads again at write time, so a caller that awaited in between never erases a newer write. */
 export function write(
   patch: (current: Configuration) => ServersConfig
 ): Configuration {
@@ -276,45 +241,23 @@ export function write(
   return clean;
 }
 
-/** No server yet is a state the app has to show, not one it can guess around. */
-export function active(): Server | null {
-  const config = read();
-
-  return config.servers.find((s) => s.id === config.active) ?? null;
-}
-
 export function byId(id: string): Server | null {
   return read().servers.find((server) => server.id === id) ?? null;
 }
 
-/** The ssh arguments of one server, for what opens its own link: a terminal. */
 export function targetOf(serverId: string): string[] {
   const server = byId(serverId);
 
   return server ? sshArgs(server, paths()) : [];
 }
 
-/** What to write when naming the server: the alias, never a bare address. */
-export function activeHost(): string {
-  const server = active();
-
-  return server ? alias(server) : "";
-}
-
-/**
- * The app's SSH files, made to exist before a first server does.
- *
- * A knock on an account passes `-F` to `ssh`, which refuses a file it cannot
- * open, and pins the host key into a known_hosts that has to be there: on a
- * first launch neither is until something is saved.
- */
+/** `ssh -F` refuses a missing file and a pin needs known_hosts: both must exist before a first server. */
 export function sshPathsWritten(): SshPaths {
   writeSshConfig(read().servers, paths(), sshHosts());
 
   return paths();
 }
 
-/** The system's own file, read for its hosts and written for one line. */
 export function userSshConfigPath(): string {
   return join(home(), ".ssh", "config");
 }
@@ -323,7 +266,6 @@ export function sshHosts(): string[] {
   return readSystemHosts(userSshConfigPath());
 }
 
-/** The word that names one server after `ssh`, or in an editor's link. */
 export function sshNameOf(serverId: string): string | null {
   return sshNames(read().servers, sshHosts()).get(serverId) ?? null;
 }
@@ -352,7 +294,6 @@ export function sshShareState(): SshShareState {
   };
 }
 
-/** The system's file with or without the app's line, and what it says after. */
 export function setSshShare(shared: boolean): SshShareState {
   shareAt(userSshConfigPath(), sshPathsWritten().configPath, shared);
 
@@ -394,14 +335,7 @@ export function rename(id: string, name: string): Configuration {
   }));
 }
 
-/**
- * The address, the port or the account of a server, changed by the reader.
- *
- * The configuration is written before anything else: `save` rewrites the SSH
- * file, so the next `ssh -F` reaches the new address. A pin left for the old
- * address is dropped from the app's known_hosts too, unless another server of
- * the list still answers there — it is theirs as much as it was this one's.
- */
+/** The old address's pin stays when another listed server still answers there: it is that server's too. */
 export async function update(
   id: string,
   changes: ServerChanges
@@ -437,12 +371,6 @@ export async function update(
   };
 }
 
-/**
- * The account this server is reached with, after the hardening opened another.
- *
- * Writing the configuration is what makes the switch real: `save` rewrites the
- * app's SSH file, so the next `ssh -F` logs in as the account the agent named.
- */
 export function switchAccount(id: string, user: string): string | null {
   if (!withAccount(read().servers, id, user)) {
     return null;
@@ -458,15 +386,7 @@ export function switchAccount(id: string, user: string): string | null {
   return user;
 }
 
-/**
- * The identity the platform gives a server the moment it enrols it.
- *
- * Written before the binary leaves rather than at the next reading of the
- * fleet: what the platform manages for that server — a tunnel, a hostname — is
- * asked for by this identifier, and the installation that follows asks for it
- * straight away. A grant already bound to the same identifier is left alone: it
- * carries what the platform last said, and that is fresher than an enrolment.
- */
+/** Written at enrolment, not at the next fleet read: the installation right after asks the platform by this id. */
 export function noteGrant(id: string, platformServerId: string): Configuration {
   const config = read();
   const server = config.servers.find((candidate) => candidate.id === id);
@@ -492,12 +412,7 @@ export function noteGrant(id: string, platformServerId: string): Configuration {
   }));
 }
 
-/**
- * The first opening of a server the platform granted.
- *
- * Written down rather than kept in memory: the customisation the app offers on
- * that first opening is offered once, and a relaunch is not a first opening.
- */
+/** Persisted rather than held in memory: the first-opening customisation is offered once, across relaunches. */
 export function noteOpened(id: string): Configuration {
   const config = read();
 
@@ -524,13 +439,7 @@ export function activate(id: string): Configuration {
     : config;
 }
 
-/**
- * Remove a server from this computer, and have it stay removed.
- *
- * A server the platform grants would come back on the next read — the merge has
- * no way to tell a removal from a first encounter — so its platform id is
- * recorded. `restore` is the way back, and the only one.
- */
+/** The merge cannot tell a removal from a first encounter, so a granted server's platform id is dismissed. */
 export async function remove(id: string): Promise<Configuration> {
   const going = read().servers.find((server) => server.id === id);
   const left = removeServer(read().servers, id, paths());
@@ -553,21 +462,14 @@ export async function remove(id: string): Promise<Configuration> {
   });
 }
 
-/** Returns to the list every granted server that had been removed from here. */
 export function restore(): Configuration {
   return write((current) => ({ ...current, dismissed: [] }));
 }
 
-/**
- * What the app's known_hosts says about a server, compared to what it pinned.
- *
- * A first contact is pinned here rather than left to the next connection: the
- * fingerprint `ssh` has just accepted is the one to compare against from now on.
- * A pin the file has never met — a server granted with its fingerprint — is
- * written there from the machine's own answer, when that answer is the pin.
- */
+/** A first contact is pinned now: the fingerprint `ssh` just accepted is the one compared against from here on. */
 export async function hostKey(id: string): Promise<HostKeyDecision> {
   const server = byId(id);
+
   if (!server || server.origin === "system") {
     return { status: "first_contact" };
   }
@@ -601,12 +503,9 @@ export async function hostKey(id: string): Promise<HostKeyDecision> {
   return decision;
 }
 
-/**
- * The one way out of a refused connection: the machine was reinstalled, so the
- * old fingerprint is dropped and the next contact pins whatever answers.
- */
 export async function trustReinstalled(id: string): Promise<Configuration> {
   const server = byId(id);
+
   if (!server) {
     return read();
   }
@@ -621,10 +520,6 @@ export async function trustReinstalled(id: string): Promise<Configuration> {
   }));
 }
 
-/**
- * A pin at an address no listed server reaches is a leftover: the machine that
- * earned it left the list, or was rebuilt before this version cleared it.
- */
 export async function forgetOrphanPin(address: Address): Promise<boolean> {
   if (sharesAddress(read().servers, address)) {
     return false;

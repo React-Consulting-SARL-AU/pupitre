@@ -15,7 +15,7 @@ export interface MailboxSeed {
   sortOrder: number
 }
 
-/** The four boxes the migration writes, repeated here for a database emptied between tests. */
+/** Mirrors the migration's seed, for a database emptied between tests. */
 export const PLATFORM_MAILBOXES: readonly MailboxSeed[] = [
   {
     id: PLATFORM_MAILBOX_IDS.support,
@@ -62,7 +62,7 @@ export interface MailboxView {
 
 export interface MailboxCounts {
   mailboxes: { id: string; unread: number; open: number }[]
-  /** `threads` and not only `open`: « Autres » appears as soon as one thread lands there, closed or not. */
+  /** `threads` too: the Others entry shows as soon as one thread lands there, closed or not. */
   others: { unread: number; open: number; threads: number }
   total_unread: number
 }
@@ -243,6 +243,7 @@ export async function countMailboxes(): Promise<MailboxCounts> {
     }),
     prisma.mailThread.count({ where: { mailboxId: null } }),
   ])
+
   const unreadBy = new Map(
     unread.map((row) => [row.mailboxId ?? "", row._count._all] as const)
   )
@@ -289,6 +290,7 @@ export async function createMailbox(
     orderBy: { sortOrder: "desc" },
     select: { sortOrder: true },
   })
+
   const mailbox = await prisma.mailMailbox.create({
     data: {
       address,
@@ -347,6 +349,7 @@ export async function updateMailbox(
         : { sortOrder: patch.sort_order }),
     },
   })
+
   await recordEvent({
     action: "mail.mailbox_updated",
     actorUserId: actor.userId,
@@ -396,7 +399,7 @@ export async function deleteMailbox(
   return true
 }
 
-/** The migration writes these; a database emptied row by row needs them back. */
+/** The migration seeds these; a database emptied row by row needs them back. */
 export async function ensurePlatformMailboxes(): Promise<void> {
   const prisma = getPrisma()
 

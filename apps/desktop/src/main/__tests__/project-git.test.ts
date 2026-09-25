@@ -12,14 +12,6 @@ import {
 } from "../projects-run";
 import { type FakeAgent, fakeAgent } from "./fixtures/fake-agent";
 
-/**
- * The git and driving commands of an open project, replayed against the fake
- * agent.
- *
- * What these pin down is the guard: the renderer names a project, and a name
- * the agent never declared becomes a refusal rather than a request.
- */
-
 const SERVER = "srv-1";
 
 let fake: FakeAgent | null = null;
@@ -74,22 +66,22 @@ describe("les commandes d'un projet ouvert", () => {
     const branches = await onProject(
       "project.branches",
       SERVER,
-      "flymate-api",
+      "flyleaf-api",
       shared
     );
     const git = await onProject(
       "project.git_status",
       SERVER,
-      "flymate-api",
+      "flyleaf-api",
       shared
     );
     const tree = await onProject(
       "project.working_tree",
       SERVER,
-      "flymate-api",
+      "flyleaf-api",
       shared
     );
-    const diff = await diffProject(SERVER, "flymate-api", "src/tva.ts", shared);
+    const diff = await diffProject(SERVER, "flyleaf-api", "src/tva.ts", shared);
 
     expect(branches).toMatchObject({ ok: true, result: { current: "main" } });
     expect(git).toMatchObject({ ok: true, result: { behind: 3 } });
@@ -102,17 +94,16 @@ describe("les commandes d'un projet ouvert", () => {
 
     await listProjects(SERVER, shared);
 
-    // The registry folder is what the list gives, and it is enough to open a
-    // terminal; the repository sits one level above it.
-    expect(projectFolder(SERVER, "flymate-api")).toBe(
-      "/home/dev/projects/flymate/api"
+    // In this fixture the repository sits one level above the registry folder.
+    expect(projectFolder(SERVER, "flyleaf-api")).toBe(
+      "/home/dev/projects/flyleaf/api"
     );
 
-    await onProject("project.branches", SERVER, "flymate-api", shared);
-    await onProject("project.git_status", SERVER, "flymate-api", shared);
+    await onProject("project.branches", SERVER, "flyleaf-api", shared);
+    await onProject("project.git_status", SERVER, "flyleaf-api", shared);
 
-    expect(projectFolder(SERVER, "flymate-api")).toBe(
-      "/home/dev/projects/flymate"
+    expect(projectFolder(SERVER, "flyleaf-api")).toBe(
+      "/home/dev/projects/flyleaf"
     );
   });
 
@@ -120,14 +111,14 @@ describe("les commandes d'un projet ouvert", () => {
     const shared = deps();
 
     await listProjects(SERVER, shared);
-    await onProject("project.branches", SERVER, "flymate-api", shared);
-    await onProject("project.git_status", SERVER, "flymate-api", shared);
-    await onProject("project.working_tree", SERVER, "flymate-api", shared);
-    await diffProject(SERVER, "flymate-api", "src/tva.ts", shared);
+    await onProject("project.branches", SERVER, "flyleaf-api", shared);
+    await onProject("project.git_status", SERVER, "flyleaf-api", shared);
+    await onProject("project.working_tree", SERVER, "flyleaf-api", shared);
+    await diffProject(SERVER, "flyleaf-api", "src/tva.ts", shared);
 
     const answer = await checkoutProject(
       SERVER,
-      "flymate-api",
+      "flyleaf-api",
       "feat/tarifs",
       shared
     );
@@ -148,7 +139,7 @@ describe("les commandes d'un projet ouvert", () => {
 
     const answer = await checkoutProject(
       SERVER,
-      "flymate-api",
+      "flyleaf-api",
       "main; rm -rf /",
       shared
     );
@@ -167,7 +158,7 @@ describe("les commandes d'un projet ouvert", () => {
     const answer = await actOnProject(
       "project.destroy",
       SERVER,
-      "flymate-api",
+      "flyleaf-api",
       null,
       shared
     );

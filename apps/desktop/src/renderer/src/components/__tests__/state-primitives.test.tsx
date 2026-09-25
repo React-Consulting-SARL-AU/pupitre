@@ -7,11 +7,6 @@ import { ErrorNotice } from "../ui/error-notice";
 import { SkeletonCards, SkeletonRows } from "../ui/skeleton";
 import { WaitingLine } from "../ui/waiting-line";
 
-/**
- * The three things a panel says while it has nothing to show: it is coming,
- * it did not come, or something happened — each in one shape.
- */
-
 const NOOP = () => undefined;
 
 describe("un squelette", () => {

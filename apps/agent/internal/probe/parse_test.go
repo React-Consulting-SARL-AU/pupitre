@@ -170,7 +170,6 @@ func TestParseNetstat(t *testing.T) {
 	}
 }
 
-// The same port shows up once per address family; the process name is kept wherever it was readable.
 func TestMergePortsDeduplicatesAndSorts(t *testing.T) {
 	got := mergePorts([]Port{{Port: 443}, {Port: 80, Process: "nginx"}, {Port: 443, Process: "haproxy"}, {Port: 80}})
 	want := []Port{{Port: 80, Process: "nginx"}, {Port: 443, Process: "haproxy"}}

@@ -3,21 +3,12 @@ import { Search, X } from "lucide-react";
 import { proseControlClass } from "../ui/field";
 import { IconButton } from "../ui/icon-button";
 
-/**
- * Finding one service among the twenty-odd the agent declares.
- *
- * The phrase narrows the catalogue in place — categories keep their order and
- * their names — so the reader never loses where a card sits. What it found is
- * counted beside the field, because a filter that silently hides half the
- * catalogue is how a reader concludes a service does not exist.
- */
 export function CatalogSearch({
   query,
   found,
   onQuery,
 }: {
   query: string;
-  /** How many modules the phrase leaves, said only while one is typed. */
   found: number;
   onQuery?: (query: string) => void;
 }) {
@@ -55,7 +46,7 @@ export function CatalogSearch({
         <>
           <span
             aria-live="polite"
-            className="whitespace-nowrap text-[12px] text-ink-3"
+            className="whitespace-nowrap text-ink-3 text-small"
             data-search-found={found}
           >
             {t.plural("catalog.search.found", found)}

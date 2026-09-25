@@ -37,12 +37,9 @@ type Engine struct {
 	ReportPath   string
 	LogPath      string
 	InstallPath  string
-	// LockPath is held for the length of a run, across processes: the serve a
-	// dropped channel left behind is still installing, and the serve that
-	// replaces it must be told so rather than start over on top of it.
+	// Held across processes: a serve left behind by a dropped channel may still be installing.
 	LockPath string
-	// ProjectsLockPath guards the project registry the way the state reader
-	// guards it, for the step that rewrites it; empty is no lock, which the tests take.
+	// Empty means no lock, which the tests rely on.
 	ProjectsLockPath string
 
 	mu sync.Mutex
@@ -51,33 +48,23 @@ type Engine struct {
 type Request struct {
 	Modules []string                  `json:"modules"`
 	Config  map[string]map[string]any `json:"config"`
-	// Defer names the modules to install without configuring: their fields are
-	// not weighed, their Configure step does not run, and they report themselves
-	// installed and not configured until a request names them without deferring
-	// them — that request is the one that configures them.
+	// Installed without validation or Configure until a later request names them without deferring.
 	Defer   []string                     `json:"defer,omitempty"`
 	Secrets map[string]map[string]string `json:"secrets,omitempty"`
 	Persist bool                         `json:"-"`
 }
 
-// Deferred says whether this module is one the caller asked to leave unconfigured.
 func (r Request) Deferred(id string) bool {
 	return slices.Contains(r.Defer, id)
 }
 
-// completedBy fills in what the request does not say from what the machine
-// remembers. A module the request names is the request's alone: its
-// configuration is replaced whole, and naming it without deferring it is what
-// configures it. A module it does not name — a requirement another module
-// pulled in — keeps the configuration it was given, stays deferred if it was,
-// and a secret the app does not send back is a secret left unchanged:
-// reconfiguring a port must not clear a password, and adding a service must
-// not ask the machine's own questions again.
+// Unnamed modules keep their config and deferral, and unsent secrets stay: a reconfigure must not clear a password.
 func (r Request) completedBy(kept Request) Request {
 	config := map[string]map[string]any{}
 	for id, values := range kept.Config {
 		config[id] = values
 	}
+
 	for id, values := range r.Config {
 		config[id] = values
 	}
@@ -129,8 +116,7 @@ func (e *Engine) Install(request Request, sink Sink) (contract.InstallResult, er
 		return contract.InstallResult{}, err
 	}
 
-	// Nothing is touched on a configuration that would not hold: a module used to
-	// find its own missing field halfway through, and left the machine there.
+	// Validated before the first step so a missing field never leaves the machine half-installed.
 	if problems := fieldProblems(modules, request); len(problems) > 0 {
 		return contract.InstallResult{}, invalidConfig(problems)
 	}
@@ -142,6 +128,7 @@ func (e *Engine) Install(request Request, sink Sink) (contract.InstallResult, er
 	}
 
 	report := e.start(r, "install", modules)
+
 	for _, module := range modules {
 		ctx := r.context(module.Manifest(), request.Config[module.Manifest().ID], request.Secrets[module.Manifest().ID])
 		ctx.held = kept.Config[module.Manifest().ID]
@@ -149,8 +136,6 @@ func (e *Engine) Install(request Request, sink Sink) (contract.InstallResult, er
 
 		execute(ctx, "install", func() error { return module.Install(ctx) })
 
-		// A module left for later is put on the machine and no further: nothing
-		// of it is configured, so nothing of it can be half-configured.
 		if !(ctx.failed || request.Deferred(module.Manifest().ID)) {
 			execute(ctx, "configure", func() error { return module.Configure(ctx) })
 		}
@@ -196,8 +181,7 @@ func (e *Engine) Upgrade(request Request, sink Sink) (contract.InstallResult, er
 		r.redactAll(request.Secrets)
 	}
 
-	// A module nobody has configured has nothing to be upgraded into: its
-	// Configure step would run on no answer at all, so it waits for one.
+	// A deferred module's Configure would run on no answer at all, so it waits for one.
 	modules := withoutDeferred(e.installedAmong(r, candidates, recalled), recalled.Defer)
 	report := e.start(r, "upgrade", modules)
 
@@ -205,6 +189,7 @@ func (e *Engine) Upgrade(request Request, sink Sink) (contract.InstallResult, er
 		ctx := r.context(module.Manifest(), request.Config[module.Manifest().ID], request.Secrets[module.Manifest().ID])
 		ctx.held = recalled.Config[module.Manifest().ID]
 		r.following(ctx)
+
 		execute(ctx, "upgrade", func() error { return module.Upgrade(ctx) })
 
 		report.Modules = append(report.Modules, ctx.report())
@@ -250,6 +235,7 @@ func (e *Engine) Uninstall(ids []string, sink Sink) (contract.UninstallResult, e
 
 	result := contract.UninstallResult{Failed: []string{}}
 	var removed []string
+
 	r.journal.logf("pupitred", "uninstall : %s", idsOf(modules))
 
 	for i := len(modules) - 1; i >= 0; i-- {
@@ -257,6 +243,7 @@ func (e *Engine) Uninstall(ids []string, sink Sink) (contract.UninstallResult, e
 		ctx := r.recalled(module.Manifest(), recalled)
 
 		execute(ctx, "uninstall", func() error { return module.Uninstall(ctx) })
+
 		if ctx.failed {
 			result.Failed = append(result.Failed, ctx.manifest.ID)
 		}
@@ -272,7 +259,6 @@ func (e *Engine) Uninstall(ids []string, sink Sink) (contract.UninstallResult, e
 	return result, nil
 }
 
-// A command of a module (harden, db.dump…) runs under the same entitlement, lock, journal and remembered values as install.
 func (e *Engine) Command(id string, sink Sink, fn func(ctx *Context) error) error {
 	unlock, err := e.acquire()
 	if err != nil {
@@ -296,9 +282,7 @@ func (e *Engine) Command(id string, sink Sink, fn func(ctx *Context) error) erro
 	return fn(r.recalled(module.Manifest(), recalled))
 }
 
-// Inspect reads through a module without the lock or the right of use: a status
-// asked while an install runs is still a status, and answering absent instead
-// would send the app looking for an exposure the machine holds.
+// No lock nor entitlement: a status asked mid-install must answer, not report absent an exposure the machine holds.
 func (e *Engine) Inspect(id string, fn func(ctx *Context) error) error {
 	module, ok := e.Registry.Get(id)
 	if !ok {
@@ -316,7 +300,6 @@ func (e *Engine) Inspect(id string, fn func(ctx *Context) error) error {
 	return fn(r.recalled(module.Manifest(), recalled))
 }
 
-// Deferred names the modules put on the machine without being configured, as the requests so far left them.
 func (e *Engine) Deferred() []string {
 	kept, err := e.remembered()
 	if err != nil {
@@ -326,7 +309,6 @@ func (e *Engine) Deferred() []string {
 	return kept.Defer
 }
 
-// Config returns what should be put back into the form for an already-installed module.
 func (e *Engine) Config(id string) (contract.ModuleConfig, error) {
 	if _, ok := e.Registry.Get(id); !ok {
 		return contract.ModuleConfig{}, moduleNotFound(id)
@@ -368,8 +350,7 @@ func (e *Engine) Report() (contract.Report, error) {
 		return contract.Report{}, errors.New(i18n.T("engine.report.unreadable", e.reportPath(), err.Error()))
 	}
 
-	// A report still open with nobody holding the run lock is the report of a
-	// process that died: the kernel released the lock, the file never learnt.
+	// Still open with the run lock free: the process died, the kernel released the lock, the file never learnt.
 	if report.FinishedAt == "" && e.lockFree() {
 		return report.Interrupted(e.now()), nil
 	}
@@ -444,9 +425,7 @@ func (e *Engine) newRun(request Request, sink Sink) *run {
 	return r
 }
 
-// The report is on disk from the first line: an app whose channel drops reads
-// it back to find where the machine is, and an install nobody watches any more
-// still leaves the same trace as one that was watched to the end.
+// On disk from the first line: an app whose channel drops reads it back to find where the machine is.
 func (e *Engine) start(r *run, action string, modules []Module) contract.Report {
 	r.journal.logf("pupitred", "%s : %s", action, idsOf(modules))
 
@@ -463,6 +442,7 @@ func (e *Engine) start(r *run, action string, modules []Module) contract.Report 
 			r.journal.logf("pupitred", "report not written: %s", err)
 		}
 	}
+
 	r.settled(report)
 
 	return report
@@ -491,10 +471,11 @@ func (e *Engine) writeReport(report contract.Report) error {
 		return err
 	}
 
-	return sys.Real{}.WriteFile(e.reportPath(), append(encoded, '\n'), 0o644)
+	// The run's own record, not a change to the machine: it bypasses e.Sys like the journal, root-only.
+	return sys.Real{}.WriteFile(e.reportPath(), append(encoded, '\n'), 0o600)
 }
 
-// install.json accumulates what the app asked for, so a replay from the CLI has every module, value and secret.
+// Accumulated so a replay from the CLI has every module, value and secret.
 func (e *Engine) remember(r *run, request Request, resolved []string) error {
 	kept := e.recall(r)
 	kept.Modules = union(kept.Modules, request.Modules)
@@ -505,12 +486,9 @@ func (e *Engine) remember(r *run, request Request, resolved []string) error {
 	return e.store(r, kept)
 }
 
-// A module stays deferred until a request names it without deferring it. That
-// request is the one that configures it, and it is judged like any other: a
-// replay from the machine with nothing to answer is refused before its first
-// step rather than run on empty values.
 func deferredAfter(before []string, request Request, resolved []string) []string {
 	var later, answered []string
+
 	for _, id := range resolved {
 		if request.Deferred(id) {
 			later = append(later, id)
@@ -522,8 +500,6 @@ func deferredAfter(before []string, request Request, resolved []string) []string
 	return union(without(before, answered), later)
 }
 
-// The machine cannot do without a mandatory module: the app never offers to put
-// its questions off, and the engine refuses should anyone else ask.
 func refuseDeferringMandatory(modules []Module, request Request) error {
 	for _, module := range modules {
 		manifest := module.Manifest()
@@ -555,6 +531,7 @@ func (e *Engine) forget(r *run, ids []string) error {
 	kept := e.recall(r)
 	kept.Modules = without(kept.Modules, ids)
 	kept.Defer = without(kept.Defer, ids)
+
 	for _, id := range ids {
 		delete(kept.Config, id)
 		delete(kept.Secrets, id)
@@ -576,8 +553,7 @@ func (e *Engine) remembered() (Request, error) {
 	return Remembered(e.Sys, e.installPath())
 }
 
-// Remembered reads what install.json holds: modules, values and secrets. A
-// file that is not there is an empty request, not an error.
+// An unreadable or missing file is an empty request; only malformed JSON is an error.
 func Remembered(s sys.Sys, path string) (Request, error) {
 	empty := Request{Config: map[string]map[string]any{}, Secrets: map[string]map[string]string{}}
 
@@ -646,7 +622,6 @@ func (e *Engine) refuseInstalledConflicts(r *run, selected []Module, recalled Re
 	return nil
 }
 
-// A module another installed module still names in its requires stays put: removing it alone would leave the other standing on nothing.
 func (e *Engine) refuseStillRequired(r *run, leaving []Module, recalled Request) error {
 	going := map[string]bool{}
 	for _, module := range leaving {
@@ -679,12 +654,12 @@ func (e *Engine) refuseStillRequired(r *run, leaving []Module, recalled Request)
 	return nil
 }
 
-// A package the client put on the machine themselves is theirs: only what
-// install.json remembers, and what those modules required, is read as ours.
+// A package the client installed themselves is theirs: only what install.json remembers is ours.
 func (e *Engine) installedAmong(r *run, candidates []Module, recalled Request) []Module {
 	ours := e.remembersInstalling(recalled)
 
 	var installed []Module
+
 	for _, module := range candidates {
 		if !ours[module.Manifest().ID] {
 			continue
@@ -711,9 +686,7 @@ func (e *Engine) installedAmong(r *run, candidates []Module, recalled Request) [
 	return ordered
 }
 
-// remembersInstalling names the modules the engine put on the machine: the
-// ones a request asked for, and the requirements it pulled in with them, which
-// install.json only carries through the modules that named them.
+// install.json only carries pulled-in requirements through the modules that named them, hence the resolve.
 func (e *Engine) remembersInstalling(recalled Request) map[string]bool {
 	ours := map[string]bool{}
 
@@ -733,9 +706,7 @@ func (e *Engine) remembersInstalling(recalled Request) map[string]bool {
 	return ours
 }
 
-// A module on the machine that install.json never remembered is the client's
-// own; one that is neither there nor remembered is an uninstall already done,
-// which replays to nothing.
+// Installed but never remembered is the client's own; absent and unremembered is an uninstall already done.
 func (e *Engine) refuseForeign(r *run, leaving []Module, recalled Request) error {
 	ours := e.remembersInstalling(recalled)
 
@@ -835,7 +806,7 @@ func without(ids, excluded []string) []string {
 	return result
 }
 
-// mergeSecrets merges key by key: a module carries several secrets, and only one changes at a time.
+// Key by key: a module carries several secrets, and only one changes at a time.
 func mergeSecrets(base, extra map[string]map[string]string) map[string]map[string]string {
 	if base == nil {
 		base = map[string]map[string]string{}

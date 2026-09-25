@@ -1,23 +1,14 @@
 import { AgentDot } from "@renderer/components/ui/agent-dot";
 import { KIND_ICONS } from "@renderer/components/ui/agent-icons";
 import { fieldControlClass } from "@renderer/components/ui/field";
-import { IconButton } from "@renderer/components/ui/icon-button";
 import { Tooltip } from "@renderer/components/ui/tooltip";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { AgentState, Terminal as TerminalInfo } from "@shared/terminals";
 import { X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const MIDDLE_BUTTON = 1;
 
-/**
- * One tab of a row of sessions.
- *
- * The dot says what the session is doing before the name does, and the mark
- * says what kind it is once the reader has renamed it; the close button shows
- * on the tab in front and on the one under the mouse, and a middle click
- * closes without looking for it. A double click opens the name.
- */
 export function TerminalTab({
   session,
   active,
@@ -30,7 +21,6 @@ export function TerminalTab({
   session: TerminalInfo;
   active: boolean;
   state: AgentState | undefined;
-  /** What the tooltip prints before the key of a shortcut. */
   chord: string;
   onActivate: () => void;
   onClose: () => void;
@@ -39,15 +29,29 @@ export function TerminalTab({
   const t = useTranslations();
 
   const [renaming, setRenaming] = useState(false);
+  const tab = useRef<HTMLButtonElement | null>(null);
+  const backToTab = useRef(false);
 
   const Mark = KIND_ICONS[session.kind];
+
+  useEffect(() => {
+    if (!renaming && backToTab.current) {
+      backToTab.current = false;
+      tab.current?.focus();
+    }
+  }, [renaming]);
+
+  function leaveRename(): void {
+    backToTab.current = true;
+    setRenaming(false);
+  }
 
   if (renaming) {
     return (
       <input
         aria-label={t("terminals.renameLabel", { title: session.title })}
         autoFocus
-        className={`w-36 ${fieldControlClass} py-0.5 text-[12px]`}
+        className={`w-36 ${fieldControlClass} py-0.5 text-small`}
         defaultValue={session.title}
         onBlur={(event) => {
           onRename(event.target.value);
@@ -56,11 +60,12 @@ export function TerminalTab({
         onFocus={(event) => event.target.select()}
         onKeyDown={(event) => {
           if (event.key === "Enter") {
-            event.currentTarget.blur();
+            onRename(event.currentTarget.value);
+            leaveRename();
           }
 
           if (event.key === "Escape") {
-            setRenaming(false);
+            leaveRename();
           }
         }}
       />
@@ -77,11 +82,12 @@ export function TerminalTab({
       data-active={active}
       data-terminal-kind={session.kind}
       data-terminal-tab={session.id}
+      role="presentation"
     >
       <Tooltip label={t("terminals.renameHint")}>
         <button
           aria-selected={active}
-          className="flex max-w-[12rem] items-center gap-1.5 py-1 pr-1 text-[12px]"
+          className="flex max-w-[12rem] items-center gap-1.5 py-1 pr-1 text-small"
           onAuxClick={(event) => {
             if (event.button === MIDDLE_BUTTON) {
               onClose();
@@ -89,6 +95,13 @@ export function TerminalTab({
           }}
           onClick={onActivate}
           onDoubleClick={() => setRenaming(true)}
+          onKeyDown={(event) => {
+            if (event.key === "F2" || event.key === "Enter") {
+              event.preventDefault();
+              setRenaming(true);
+            }
+          }}
+          ref={tab}
           role="tab"
           tabIndex={active ? 0 : -1}
           type="button"
@@ -99,18 +112,20 @@ export function TerminalTab({
         </button>
       </Tooltip>
 
-      <IconButton
-        className={
-          active
-            ? ""
-            : "opacity-0 focus-visible:opacity-100 group-hover:opacity-100"
-        }
-        icon={X}
-        label={t("terminals.closeTabHint", { chord })}
-        onClick={onClose}
-        size={11}
-        variant="discreet"
-      />
+      {/* Pointer-only shortcut: the keyboard closes from the bar's own button. */}
+      <Tooltip label={t("terminals.closeTabHint", { chord })}>
+        <button
+          aria-hidden="true"
+          className={`clickable inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-ink-4 transition-soft hover:bg-raised hover:text-ink ${
+            active ? "" : "opacity-0 group-hover:opacity-100"
+          }`}
+          onClick={onClose}
+          tabIndex={-1}
+          type="button"
+        >
+          <X size={11} strokeWidth={1.5} />
+        </button>
+      </Tooltip>
     </div>
   );
 }

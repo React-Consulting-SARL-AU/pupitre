@@ -1,13 +1,5 @@
 import { MARK } from "@pupitre/design/brand";
 
-/**
- * The app's mark: the prompt glyph in a square with `md` corners, inverted.
- *
- * The geometry comes from `@pupitre/design/brand`, which the app icon, the
- * favicon and the brand kit are drawn from too. Black on white in the light
- * theme, white on black in the dark one — the tokens swap on their own, so the
- * mark follows the window without a second asset.
- */
 export function Logo({ size = 24 }: { size?: number }) {
   return (
     <svg

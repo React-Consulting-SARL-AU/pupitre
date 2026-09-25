@@ -35,7 +35,6 @@ func RegisterCommands(server *protocol.Server, runner *modules.Engine) {
 
 		return onepassword.Env(ctx, params.Name, params.Process, params.Force)
 	}))
-
 }
 
 func command(runner *modules.Engine, run func(*modules.Context, json.RawMessage) (any, error)) protocol.Handler {

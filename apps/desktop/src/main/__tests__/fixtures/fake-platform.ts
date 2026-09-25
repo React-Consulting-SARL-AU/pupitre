@@ -1,21 +1,18 @@
+import type {
+  KeyApprovalSubmission,
+  PendingKeyApproval,
+} from "@pupitre/shared/keys";
 import type { MeSubscription } from "@pupitre/shared/plans";
-import type { AccountDevice, AccountIdentity } from "@shared/account";
+import type { ServerEnrollment } from "@pupitre/shared/platform-api/account";
+import type {
+  AccountDevice,
+  AccountError,
+  AccountIdentity,
+} from "@shared/account";
 import type { PlatformBackup } from "@shared/backups";
 import type { FleetServer } from "@shared/servers";
 import type { Sealer } from "../../account-vault";
-import type {
-  EnrollBody,
-  EnrollInput,
-  PlatformClient,
-} from "../../platform-client";
-
-/**
- * A platform that answers from memory.
- *
- * It replays the shapes the contract fixes — a device code, a session, a
- * device, an enrolment — so the account can be exercised without a network and
- * without the API's own harness, which the integration test uses instead.
- */
+import type { EnrollInput, PlatformClient } from "../../platform-client";
 
 const MASK = 0x5a;
 
@@ -33,7 +30,7 @@ export const IDENTITY: AccountIdentity = {
   subscription: null,
 };
 
-/** The mirror of a plan that stopped: what tells a suspension from a plan never chosen. */
+/** What tells a suspension from a plan never chosen. */
 export const CANCELED_SUBSCRIPTION: MeSubscription = {
   current_period_end: "2026-08-31T00:00:00.000Z",
   servers: { limit: 1, used: 1 },
@@ -65,11 +62,13 @@ export interface FakePlatformOptions {
     | "denied"
     | "expired"
   )[];
-  release?: EnrollBody["release"];
+  release?: ServerEnrollment["release"];
   latest?: { version: string; sha256: string; signature: string };
   binary?: Uint8Array;
   servers?: FleetServer[];
   backups?: PlatformBackup[];
+  keyApprovals?: PendingKeyApproval[];
+  addDeviceRefusal?: AccountError;
 }
 
 export interface FakePlatform extends PlatformClient {
@@ -79,13 +78,13 @@ export interface FakePlatform extends PlatformClient {
   switched: string[];
   /** One call per stage of deletion: the first revokes, the second erases. */
   deletions: string[];
-  /** The devices revoked, in order. */
   revokedDevices: string[];
-  /** The restorations noted, as `<backup> on <server>`. */
+  /** As `<backup> on <server>`. */
   restored: string[];
+  approvals: KeyApprovalSubmission[];
 }
 
-const READY_RELEASE: EnrollBody["release"] = {
+const READY_RELEASE: ServerEnrollment["release"] = {
   channel: "stable",
   sha256: "",
   signature: "",
@@ -103,6 +102,7 @@ export function fakePlatform(options: FakePlatformOptions = {}): FakePlatform {
   const deletions: string[] = [];
   const revokedDevices: string[] = [];
   const restored: string[] = [];
+  const approvals: KeyApprovalSubmission[] = [];
 
   function seen<T>(token: string, result: T) {
     seenTokens.push(token);
@@ -112,6 +112,7 @@ export function fakePlatform(options: FakePlatformOptions = {}): FakePlatform {
 
   return {
     added,
+    approvals,
     baseUrl: "https://app.pupitre.test",
     deletions,
     enrolled,
@@ -207,6 +208,15 @@ export function fakePlatform(options: FakePlatformOptions = {}): FakePlatform {
     servers: (token) => Promise.resolve(seen(token, options.servers ?? [])),
 
     addDevice: (token, name, publicKey) => {
+      if (options.addDeviceRefusal) {
+        seenTokens.push(token);
+
+        return Promise.resolve({
+          error: options.addDeviceRefusal,
+          ok: false as const,
+        });
+      }
+
       added.push({ name, publicKey });
       devices.push({ ...DEVICE, name, publicKey });
 
@@ -248,5 +258,21 @@ export function fakePlatform(options: FakePlatformOptions = {}): FakePlatform {
           version: options.latest?.version ?? "0.0.0-dev",
         })
       ),
+
+    keyApprovals: (token) =>
+      Promise.resolve(seen(token, options.keyApprovals ?? [])),
+
+    approveKey: (token, approval) => {
+      approvals.push(approval);
+
+      return Promise.resolve(
+        seen(token, {
+          device_id: approval.device_id,
+          issued_at: approval.issued_at,
+          server_id: approval.server_id,
+          signer: approval.signer,
+        })
+      );
+    },
   };
 }

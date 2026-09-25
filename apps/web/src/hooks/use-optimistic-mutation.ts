@@ -17,11 +17,7 @@ export interface QueryPatch<TVariables> {
   apply: (previous: unknown, variables: TVariables) => unknown
 }
 
-/**
- * What a cache looks like once the action is done, written before the
- * server responds. The typing gets lost at the cache boundary, never for
- * the caller.
- */
+// Typing is lost at the cache boundary, never for the caller.
 export function patchQuery<TData, TVariables = void>(
   queryKey: QueryKey,
   apply: (previous: TData, variables: TVariables) => TData
@@ -33,30 +29,21 @@ export function patchQuery<TData, TVariables = void>(
 }
 
 export interface MutationToast<TVariables, TData> {
-  /** The sentence that says it is done, once the server agrees. */
   done?: (data: TData, variables: TVariables) => string
-  /** What to say when the API says nothing usable; its own message and fix win when they exist. */
+  // Fallback only: the API's own message and fix win when they exist.
   failed: (variables: TVariables) => ToastFailure
 }
 
 export interface OptimisticMutation<TVariables, TData> {
   mutationFn: (variables: TVariables) => Promise<TData>
-  /** What the screen shows right away; restored if the call fails. */
+  // Applied at once, rolled back if the call fails.
   patch?: QueryPatch<TVariables>[]
-  /** What becomes true again from the server once the call completes. */
   invalidate?: QueryKey[]
-  /** What happens at the click besides the patches — leaving the page the resource occupied. */
   onStart?: (variables: TVariables) => void
-  /** The action that follows success, once the server agrees. */
   onDone?: (data: TData, variables: TVariables) => void | Promise<void>
   toast?: MutationToast<TVariables, TData>
 }
 
-/**
- * A mutation that keeps the screen honest: the list moves on click, rolls
- * back if the call fails, says so either way, and only the queries the
- * action touched are refetched.
- */
 export function useOptimisticMutation<TVariables = void, TData = unknown>({
   mutationFn,
   patch = [],

@@ -3,20 +3,11 @@ import { assertAccessible } from "./harness/accessible";
 import { launchPupitre, type Running, snapshotReads } from "./harness/launch";
 import { answerOnboarding } from "./harness/onboarding";
 
-/**
- * The catalogue, on a bare machine and on one that already runs services.
- *
- * It is the same screen in both places, and both are where a preset is worth
- * something: the shortcuts have to promise what they would really install
- * here, and the choice has to survive the snapshot the app polls underneath.
- */
-
 const BOTH = ["amd64", "arm64"];
 
-/** How many turns of the snapshot poll the choice has to survive. */
 const POLLS = 2;
 
-/** Comfortably more than those turns take, on a runner that is slow to draw. */
+// Comfortably more than two snapshot polls take on a runner slow to draw.
 const POLLS_TIMEOUT_MS = 20_000;
 
 const INSTALL = /^Installer$/;
@@ -159,7 +150,7 @@ test.describe("catalogue", () => {
     await page.getByRole("button", { name: "Réglages" }).click();
     await page.getByRole("tab", { name: "Serveurs" }).click();
     await page.getByRole("button", { name: "Installer Pupitre" }).click();
-    await expect(page.getByText("Prête à être installée")).toBeVisible();
+    await expect(page.getByText("Prêt à être installé")).toBeVisible();
     await page.getByRole("button", { name: INSTALL }).first().click();
     await expect(page.getByText("Agent en place")).toBeVisible();
     await page.getByRole("button", { name: "Choisir les services" }).click();
@@ -285,7 +276,7 @@ test.describe("catalogue sur une machine arm64", () => {
     await page.getByRole("button", { name: "Réglages" }).click();
     await page.getByRole("tab", { name: "Serveurs" }).click();
     await page.getByRole("button", { name: "Installer Pupitre" }).click();
-    await expect(page.getByText("Prête à être installée")).toBeVisible();
+    await expect(page.getByText("Prêt à être installé")).toBeVisible();
     await page.getByRole("button", { name: INSTALL }).first().click();
     await expect(page.getByText("Agent en place")).toBeVisible();
     await page.getByRole("button", { name: "Choisir les services" }).click();
@@ -361,7 +352,9 @@ test.describe("le catalogue sur un serveur déjà installé", () => {
       await expect(
         page.locator('[data-module="runtime.node"]')
       ).toHaveAttribute("data-selected", "true");
-      await expect(page.getByText("3 services choisis")).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Continuer avec 3 services" })
+      ).toBeVisible();
     });
 
     await test.step("la recherche est là aussi", async () => {

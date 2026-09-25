@@ -20,11 +20,10 @@ const (
 
 	BinPath = "/usr/local/bin/" + Program
 
-	// The variable the CLI reads on its own: no supabase login is needed once it is in the shell.
+	// The CLI reads it on its own, so no supabase login is needed once it is in the shell.
 	tokenKey = "SUPABASE_ACCESS_TOKEN"
 )
 
-// Supabase publishes its CLI as a Go binary per platform, with the checksums beside it.
 var release = download.GitHubRelease{
 	Repo:      "supabase/cli",
 	Program:   Program,
@@ -85,7 +84,6 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// The Supabase account belongs to the client: uninstalling gives back the machine and its variable, never a project.
 func (Module) Uninstall(ctx *modules.Context) error {
 	if err := release.RemoveStep(ctx, ID, BinPath); err != nil {
 		return err
@@ -110,7 +108,7 @@ func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
 	return status, nil
 }
 
-// supabase orgs list is asked with the token the machine holds; the organisations it opens stand for the account, which the CLI never names.
+// The CLI never names the account, so the organisations the token opens stand for it.
 func (Module) Login(ctx *modules.Context) (contract.Login, bool) {
 	held, _, _ := env.Get(ctx, tokenKey)
 	if held == "" {
@@ -127,6 +125,7 @@ func (Module) Login(ctx *modules.Context) (contract.Login, bool) {
 	}
 
 	names := make([]string, 0, len(orgs))
+
 	for _, org := range orgs {
 		if org.Name != "" {
 			names = append(names, org.Name)

@@ -1,4 +1,5 @@
 import type { BackupBeat } from "@pupitre/shared/backup"
+import type { AgentStateKey, KeysBeat } from "@pupitre/shared/keys"
 import { getPrisma } from "../api/prisma"
 import {
   type EntitlementState,
@@ -6,7 +7,8 @@ import {
 } from "../billing/entitlement"
 import { resolveTargetVersion } from "../releases/releases"
 import { settleAssignment } from "./assign"
-import { authorizedKeysForServer } from "./authorized-keys"
+import { heldDevicesForServer } from "./authorized-keys"
+import { keysForServer } from "./key-approvals"
 import {
   decimateSamples,
   METRICS_WINDOW_MS,
@@ -17,6 +19,7 @@ import {
   toUsage,
 } from "./metrics"
 import type { ServerRow } from "./server-row"
+import { assertSshAddress } from "./ssh-address"
 
 export type AgentEntitlement = EntitlementState
 
@@ -27,6 +30,7 @@ export interface AgentState {
   entitlement: AgentEntitlement
   valid_until: Date
   authorized_keys: string[]
+  keys: AgentStateKey[]
   target_version: string | null
   minimum_version: string | null
   hostname: string
@@ -47,6 +51,7 @@ export interface HeartbeatInput {
   ram_total_mb?: number
   ram_used_mb?: number
   backup?: BackupBeat
+  keys?: KeysBeat
 }
 
 function horizonMoved(stored: Date | null, computed: Date): boolean {
@@ -64,8 +69,9 @@ export async function readAgentState(input: ServerRow): Promise<AgentState> {
   const moved =
     targetVersion !== server.targetVersion ||
     horizonMoved(server.entitlementValidUntil, entitlement.valid_until)
-  const [authorizedKeys] = await Promise.all([
-    authorizedKeysForServer(prisma, server.id),
+
+  const [held] = await Promise.all([
+    heldDevicesForServer(prisma, server.id),
     moved
       ? prisma.server.update({
           where: { id: server.id },
@@ -77,10 +83,13 @@ export async function readAgentState(input: ServerRow): Promise<AgentState> {
       : Promise.resolve(),
   ])
 
+  const keys = await keysForServer(prisma, server.id, held)
+
   return {
     entitlement: entitlement.state,
     valid_until: entitlement.valid_until,
-    authorized_keys: authorizedKeys,
+    authorized_keys: held.map((device) => device.publicKey),
+    keys,
     target_version: targetVersion,
     minimum_version: server.agentVersion,
     hostname: server.host ?? server.name,
@@ -92,6 +101,8 @@ export async function recordHeartbeat(
   server: ServerRow,
   input: HeartbeatInput
 ): Promise<void> {
+  assertSshAddress({ ssh_user: input.ssh_user })
+
   const prisma = getPrisma()
   const now = new Date()
   const sample: MetricSample = {
@@ -108,8 +119,7 @@ export async function recordHeartbeat(
     ram_used_mb: input.ram_used_mb ?? null,
   }
 
-  // The heartbeat writes its sample alone: the window it belongs to is the
-  // table, not a column the row rewrites whole every five minutes.
+  // One row per sample, so a heartbeat never rewrites the whole window.
   await prisma.serverMetric.create({
     data: { serverId: server.id, at: now, sample: toStoredSample(sample) },
   })
@@ -122,6 +132,10 @@ export async function recordHeartbeat(
       sshUser: input.ssh_user ?? server.sshUser,
       lastUsage: toStoredUsage(toUsage(sample)),
       backup: input.backup,
+      keyReport: input.keys && {
+        ...input.keys,
+        reported_at: now.toISOString(),
+      },
     },
   })
 
@@ -133,10 +147,6 @@ export async function recordHeartbeat(
   })
 }
 
-/**
- * The window as the console reads it: every row the seven days hold, reduced
- * to what a chart draws.
- */
 export async function metricsForServer(
   serverId: string,
   now: Date = new Date()

@@ -27,10 +27,6 @@ const THEME_ICONS: Record<Theme, LucideIcon> = {
 const TRIGGER =
   "flex items-center gap-2 rounded-full px-3 py-1.5 text-[12px] text-ink-3 transition-fast hover:bg-raised hover:text-ink focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2"
 
-/**
- * On every page, signed in or not: the theme, the language, and the legal
- * pages. The auth screens need them as much as the console does.
- */
 export function ConsoleFooter() {
   const t = useTranslations()
   const { locale, choose, pending, error } = useLocaleChoice()

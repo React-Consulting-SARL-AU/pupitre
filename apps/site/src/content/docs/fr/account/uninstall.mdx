@@ -1,0 +1,109 @@
+---
+title: Désinstaller
+description: Retirer un serveur de la console, l’agent du serveur, la ligne de l’app dans ~/.ssh/config, et l’app avec son dossier de données.
+locale: fr
+section: account
+sectionOrder: 3
+order: 7
+---
+
+Quatre morceaux, chacun se retire seul. Pour tout retirer, prenez-les dans cet ordre : le serveur dans la console, l’agent sur le serveur, la ligne de `~/.ssh/config`, puis l’app.
+
+## Garder une porte sur le serveur
+
+Le dossier de données de l’app porte la seule copie de la clé privée qu’elle a faite pour chaque serveur que vous avez ajouté. Supprimez le dossier et cette clé est perdue pour de bon. Avant de retirer l’app, assurez-vous qu’autre chose ouvre `dev` sur chaque serveur que vous gardez — une clé à vous dans `/home/dev/.ssh/authorized_keys`, ou la console de votre hébergeur — ou finissez d’abord avec le serveur.
+
+## Le serveur dans la console
+
+**Serveurs**, le serveur, puis **Supprimer le serveur** ; il faut être admin ou propriétaire de l’organisation. Le serveur passe en révoqué :
+
+- son siège est libéré tout de suite, et son attribution tombe ;
+- à sa prochaine lecture de la plateforme, sous trente secondes, l’agent passe en [mode restreint](/fr/docs/account/troubleshooting/) ; il laisse tel qu’il est le bloc des clés d’appareil, dans le `authorized_keys` de `dev` entre `# >>> pupitre keys >>>` et `# <<< pupitre keys <<<`, car il ne retire jamais la dernière clé d’un serveur ;
+- les lignes hors de ce bloc restent : la clé que l’app a posée pour un serveur que vous avez ajouté vous-même, et vos propres clés.
+
+La ligne quitte la console sept jours plus tard, ou tout de suite avec **Supprimer définitivement**. La machine garde tout ce qui est installé dessus.
+
+Depuis l’app, **Réglages › Serveurs**, puis la corbeille sur la ligne du serveur : quand la console vous attribue ce serveur, la boîte de dialogue propose **Supprimer partout**, qui fait les deux étapes de la console d’un coup et le retire de cet ordinateur. **Retirer de cet ordinateur**, à côté, ne fait que le masquer ici.
+
+## Cet ordinateur
+
+Désinstaller l’app ne révoque pas l’ordinateur, pas plus que **Se déconnecter**, qui oublie seulement la session ici : sa clé continue d’ouvrir les serveurs de votre organisation jusqu’à ce que vous la révoquiez. Dans la console, **Appareils**, puis **Révoquer** sur cet ordinateur — ou depuis l’app d’un autre ordinateur, sous **Réglages › Compte**. Sa clé quitte vos serveurs dans la minute, sauf là où c’est la dernière.
+
+## L’agent sur le serveur
+
+`pupitred` n’a pas de commande de désinstallation. Sur le serveur, par `sudo` :
+
+```bash
+sudo systemctl disable --now pupitred
+sudo systemctl disable pupitre-resume
+sudo rm /etc/systemd/system/pupitred.service /etc/systemd/system/pupitre-resume.service
+sudo systemctl daemon-reload
+sudo rm /usr/local/bin/pupitred /usr/local/bin/dev
+sudo rm /var/log/pupitre.log
+sudo rm -r /var/lib/pupitre
+```
+
+`pupitre-resume` relance les projets après un redémarrage, et les projets qu’il a lancés vivent dans son serveur `tmux` : désactivez-le sans `--now`, et ils continuent de tourner jusqu’au prochain redémarrage, après quoi plus rien ne les lance. `pupitred` est le service propre de l’agent — les lectures de la plateforme, les clés, les sauvegardes programmées ; elles s’arrêtent avec lui. `/var/lib/pupitre` porte son état : le droit d’usage en cache, le rapport de la dernière installation, où en sont les sauvegardes, les copies prises avant une migration de configuration.
+
+`/etc/pupitre` porte la configuration de l’agent, et dans `/etc/pupitre/env` les mots de passe et tokens de vos services — mots de passe des bases, token du tunnel, clés d’API. Copiez ce dont vous avez encore besoin en lieu sûr avant de supprimer le dossier.
+
+```bash
+sudo cat /etc/pupitre/env
+sudo rm -r /etc/pupitre
+```
+
+## Ce qui reste sur le serveur
+
+Tout ce que Pupitre a installé est de l’Ubuntu ordinaire, et continue de tourner sans l’agent :
+
+- les paquets et leurs services `systemd` — PostgreSQL, Redis, Caddy, `cloudflared`, et les services `pupitre-…` qu’ajoutent certains modules, comme `pupitre-mailpit` ;
+- l’utilisateur `dev`, sa règle sudo dans `/etc/sudoers.d/90-dev` — le mot de passe que la sécurisation lui a donné, ou le sudo sans mot de passe d’un serveur sécurisé avant —, son shell, et vos projets sous `/home/dev` ;
+- les bases de données et leurs données ;
+- les noms `.localhost` de vos projets, dans un bloc `# >>> pupitre projects >>>` de `/etc/hosts` ;
+- les réglages système : `/etc/sysctl.d/99-pupitre.conf`, et les mises à jour de sécurité automatiques de `/etc/apt/apt.conf.d/52pupitre`.
+
+La sécurisation reste aussi : `ufw`, la jail fail2ban de `/etc/fail2ban/jail.d/pupitre.local`, et les réglages SSH de `/etc/ssh/sshd_config.d/10-pupitre.conf` :
+
+```
+PermitRootLogin no
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PubkeyAuthentication yes
+AllowUsers dev
+ClientAliveInterval 30
+ClientAliveCountMax 6
+```
+
+`Port 22` et `Port 443` suivent quand vous avez demandé SSH sur 443 aussi. Pour rouvrir root par clé, passez deux lignes à ce qu’écrit l’option « Garder l’accès root » — `PermitRootLogin prohibit-password` et `AllowUsers dev root` —, puis vérifiez le fichier et rechargez SSH, en gardant votre session ouverte jusqu’à ce qu’une nouvelle marche :
+
+```bash
+sudo sshd -t
+sudo systemctl reload ssh
+```
+
+## La ligne de ~/.ssh/config
+
+Si vous avez activé **Laisser ssh, mes éditeurs et mes agents de code joindre mes serveurs par leur nom** sous **Réglages › SSH**, votre `~/.ssh/config` commence par une ligne de l’app. Éteignez l’option avant de retirer l’app : l’app reprend la ligne elle-même. Sinon, supprimez-la à la main. Elle pointe dans le dossier de données de l’app :
+
+```
+Include "/Users/vous/Library/Application Support/@pupitre/desktop/ssh/config"
+```
+
+Sous Linux, `Include /home/vous/.config/@pupitre/desktop/ssh/config` ; sous Windows, `Include C:\Users\vous\AppData\Roaming\@pupitre\desktop\ssh\config`, entre guillemets quand le chemin contient une espace. Voir [votre propre client](/fr/docs/daily/clients/) pour ce que fait la ligne.
+
+## L’app
+
+Éteignez d’abord **Ouvrir Pupitre à la connexion** sous **Réglages › Démarrage**, puis quittez l’app.
+
+| Système | Retirer l’app | Dossier de données | Cache des mises à jour |
+| --- | --- | --- | --- |
+| macOS | glissez `Pupitre.app` d’Applications à la Corbeille | `~/Library/Application Support/@pupitre/desktop` | `~/Library/Caches/@pupitredesktop-updater` |
+| Windows | Paramètres › Applications › Applications installées, Pupitre, **Désinstaller** | `%APPDATA%\@pupitre\desktop` | `%LOCALAPPDATA%\@pupitredesktop-updater` |
+| Linux | `sudo apt remove pupitre` pour le `.deb` ; supprimez le fichier pour l’AppImage | `~/.config/@pupitre/desktop` | `~/.cache/@pupitredesktop-updater` |
+
+Retirer l’app laisse son dossier de données en place. Il porte les clés privées sous `keys/`, la configuration SSH et les clés d’hôte épinglées sous `ssh/`, la session et les tokens des comptes que vous avez connectés (Cloudflare, GitHub…), chiffrés par une clé que garde le trousseau du système, et vos préférences. Supprimez-le quand vous n’avez plus besoin des clés — voir [le haut de cette page](#garder-une-porte-sur-le-serveur).
+
+Deux choses encore, que l’app laisse :
+
+- `~/.pupitre/desktop`, un lien vers le dossier de données, par lequel la configuration SSH nomme les clés — une jonction sous `%USERPROFILE%\.pupitre` sous Windows. Supprimer le lien ne touche à rien d’autre.
+- sous macOS, l’entrée de trousseau `@pupitre/desktop Safe Storage`, qui porte la clé de chiffrement ; supprimez-la dans Trousseaux d’accès. Sous macOS aussi, `~/Library/Caches/dev.pupitre.app` et `~/Library/Caches/dev.pupitre.app.ShipIt`.

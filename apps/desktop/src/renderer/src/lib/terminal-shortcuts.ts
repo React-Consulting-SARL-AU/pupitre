@@ -12,7 +12,6 @@ export type TerminalShortcut =
   | { kind: "zoomOut" }
   | { kind: "zoomReset" };
 
-/** The part of a keyboard event the shortcuts read, so a test needs no DOM. */
 export interface KeyChord {
   type: string;
   key: string;
@@ -28,20 +27,11 @@ const ZOOM_IN = new Set(["=", "+"]);
 const ZOOM_OUT = new Set(["-", "_"]);
 const DIGIT = /^[1-9]$/;
 
-/** The label a tooltip prints before the key, on this platform. */
 export function chordLabel(mac: boolean): string {
   return mac ? "⌘" : "Ctrl+Shift+";
 }
 
-/**
- * The keys the app takes for itself before the shell sees them.
- *
- * On macOS the command key is the one a terminal never uses, so every
- * shortcut lives there. Elsewhere control belongs to the shell — ^C, ^D, ^L —
- * and the same shortcuts move to control+shift, the convention of every
- * terminal on Linux and Windows. Copy and paste are only claimed there:
- * macOS already has both on the command key, through the system itself.
- */
+/** Off macOS control belongs to the shell (^C, ^D), so shortcuts move to control+shift; macOS copies and pastes itself. */
 export function shortcutOf(
   event: KeyChord,
   mac: boolean

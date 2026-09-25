@@ -1,3 +1,4 @@
+import { isEntitled } from "@pupitre/shared/platform-api"
 import { entitlementLook, type StatusLook } from "@/lib/domain/server-status"
 import type { DictionaryKey } from "@/lib/i18n/en"
 
@@ -45,9 +46,7 @@ const COPY: Record<OnboardingStepId, StepCopy> = {
   server: { title: "onboarding.server.title", lead: "onboarding.server.lead" },
 }
 
-const ENTITLED = new Set(["valid", "grace"])
-
-/** A server that has been online once: enrolling never was, revoked no longer counts. */
+// Enrolling was never online; revoked no longer counts.
 const EVER_ONLINE = new Set(["active", "grace", "suspended"])
 
 export function onboardingComplete(
@@ -56,7 +55,7 @@ export function onboardingComplete(
   return servers?.some((server) => EVER_ONLINE.has(server.status)) ?? false
 }
 
-/** `null` where the answer has not landed: the step is neither done nor current. */
+// `null` until the answer lands: the step is then neither done nor current.
 type Known = boolean | null
 
 function doneFlags({
@@ -66,7 +65,7 @@ function doneFlags({
 }: OnboardingInput): Known[] {
   return [
     true,
-    ENTITLED.has(entitlement),
+    isEntitled(entitlement),
     devices === null ? null : devices > 0,
     servers === null ? null : onboardingComplete(servers),
   ]
@@ -125,10 +124,9 @@ export interface LaunchNotice {
 
 export interface EntitlementNoticeInput {
   entitlement: string
-  /** `unknown` while nothing has been read, `none` for an organisation Stripe ignores. */
+  // `unknown` while nothing has been read, `none` for an organisation Stripe ignores.
   subscription: string
   canManageBilling: boolean
-  /** The running launch subscription, when the platform granted one; the pill names it rather than a trial. */
   launch?: LaunchNotice | null
 }
 

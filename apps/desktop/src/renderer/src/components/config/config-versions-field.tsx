@@ -2,13 +2,6 @@ import { defaultVersionOf, type VersionsField } from "@pupitre/shared/catalog";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { CheckLine } from "../ui/check-line";
 
-/**
- * The majors a runtime is installed at, one line each, in the order the
- * manifest runs them: newest first. The newest checked is named the default,
- * because that is what the machine does with it. Unchecking the last one is
- * refused by the contract, not by the control: the field is then said to be
- * required under it.
- */
 export function ConfigVersionsField({
   name,
   field,
@@ -19,13 +12,14 @@ export function ConfigVersionsField({
   name: string;
   field: VersionsField;
   chosen: readonly string[];
-  /** Whether the choice is refused: the group is said to be invalid. */
   wrong?: boolean;
   onChange?: (next: string[]) => void;
 }) {
   const t = useTranslations();
+
   const fallback = defaultVersionOf(field, chosen);
 
+  // Unchecking the last version is refused by the contract, not by the control.
   function toggle(version: string, checked: boolean) {
     const next = field.options.filter((option) =>
       option === version ? checked : chosen.includes(option)

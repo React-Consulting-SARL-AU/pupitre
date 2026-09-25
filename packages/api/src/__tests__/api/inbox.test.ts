@@ -3,6 +3,7 @@ import { joinPlatformOrganization } from "@pupitre/auth/testing"
 import { LEGAL_CONTACTS } from "@pupitre/shared/legal"
 import { PLATFORM_MAILBOX_IDS } from "@pupitre/shared/platform"
 import { ingestInboundEmail } from "../../lib/mail/ingest"
+import { configureMailStorage } from "../../lib/mail/storage"
 import { bootApiTestServer, resetDb } from "../../testing"
 import {
   resetFakeMail,
@@ -24,6 +25,7 @@ interface ThreadRow {
   status: string
   unread: boolean
   from: { email: string; name: string | null }
+  sender_authenticated: boolean
   snippet: string | null
   messages: number
   assigned_user: { id: string } | null
@@ -37,6 +39,7 @@ interface MessageRow {
   cc: string[]
   subject: string | null
   has_html: boolean
+  authenticated: boolean
   delivery: string
   sent_by: { id: string; name: string } | null
   attachments: { id: string; filename: string; size: number }[]
@@ -191,6 +194,21 @@ describe("/admin/inbox", () => {
     expect(response.json.data[0].address).toBe("support@pupitre.studio")
     expect(response.json.data[0].from.email).toBe("camille@exemple.fr")
     expect(response.json.data[0].messages).toBe(1)
+  })
+
+  it("dit d'un fil et de son message que l'expéditeur n'a pas été vérifié", async () => {
+    const stored = await ingest({})
+    const list = await apiRequest<{ data: ThreadRow[] }>(
+      "/admin/inbox/threads",
+      { session: owner.session }
+    )
+    const detail = await apiRequest<{
+      data: ThreadRow & { messages: MessageRow[] }
+    }>(`/admin/inbox/threads/${stored.threadId}`, { session: owner.session })
+
+    expect(list.json.data[0].sender_authenticated).toBe(false)
+    expect(detail.json.data.sender_authenticated).toBe(false)
+    expect(detail.json.data.messages[0].authenticated).toBe(false)
   })
 
   it("filtre par statut, adresse et recherche", async () => {
@@ -640,18 +658,77 @@ describe("/admin/inbox", () => {
 
     useFailingMailTransport(new Error("binding absent"))
 
-    const response = await apiRequest<{ error: { code: string } }>(
-      `/admin/inbox/threads/${stored.threadId}/reply`,
-      { body: { text: "Bonjour" }, session: owner.session }
-    )
+    const response = await apiRequest<{
+      error: { code: string; message: string }
+    }>(`/admin/inbox/threads/${stored.threadId}/reply`, {
+      body: { text: "Bonjour" },
+      session: owner.session,
+    })
     const { prisma } = await bootApiTestServer()
     const failed = await prisma.mailMessage.findFirst({
       where: { threadId: stored.threadId, direction: "outbound" },
     })
 
     expect(response.status).toBe(502)
+    expect(response.json.error.message).not.toContain("binding absent")
     expect(failed?.delivery).toBe("failed")
     expect(failed?.error).toContain("binding absent")
+  })
+
+  it("n'écrit pas un nouveau message à nos seules adresses, et n'ouvre aucun fil", async () => {
+    const response = await apiRequest<{ error: { code: string } }>(
+      "/admin/inbox/compose",
+      {
+        body: {
+          mailbox_id: PLATFORM_MAILBOX_IDS.legal,
+          to: ["support@pupitre.studio"],
+          subject: "Boucle",
+          text: "Bonjour",
+        },
+        session: owner.session,
+      }
+    )
+    const { prisma } = await bootApiTestServer()
+
+    expect(response.status).toBe(409)
+    expect(response.json.error.code).toBe("conflict")
+    expect(mail.sent).toHaveLength(0)
+    expect(await prisma.mailThread.count()).toBe(0)
+  })
+
+  it("n'ouvre aucun fil quand le seau refuse le message à écrire", async () => {
+    configureMailStorage({
+      ...mail.storage,
+      put: () => Promise.reject(new Error("seau injoignable")),
+    })
+
+    const response = await apiRequest("/admin/inbox/compose", {
+      body: {
+        mailbox_id: PLATFORM_MAILBOX_IDS.legal,
+        to: ["client@exemple.fr"],
+        subject: "Conditions",
+        text: "Bonjour",
+      },
+      session: owner.session,
+    })
+    const { prisma } = await bootApiTestServer()
+
+    expect(response.status).toBe(500)
+    expect(mail.sent).toHaveLength(0)
+    expect(await prisma.mailThread.count()).toBe(0)
+  })
+
+  it("refuse un type de pièce jointe qui n'en est pas un", async () => {
+    const response = await apiRequest("/admin/inbox/uploads", {
+      body: {
+        filename: "a.pdf",
+        mime_type: "application/pdf\r\nBcc: attaquant@exemple.fr",
+        size: 10,
+      },
+      session: owner.session,
+    })
+
+    expect(response.status).toBe(422)
   })
 
   it("écrit un nouveau message depuis une adresse vérifiée", async () => {
@@ -671,6 +748,9 @@ describe("/admin/inbox", () => {
     expect(response.json.data.address).toBe(LEGAL_CONTACTS.legal)
     expect(response.json.data.unread).toBe(false)
     expect(response.json.data.messages[0].direction).toBe("outbound")
+    expect(response.json.data.from.email).toBe("client@exemple.fr")
+    expect(response.json.data.sender_authenticated).toBe(true)
+    expect(response.json.data.snippet).toContain("Bonjour")
     expect(mail.sent[0].to).toEqual(["client@exemple.fr"])
   })
 

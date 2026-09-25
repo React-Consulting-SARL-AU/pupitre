@@ -5,26 +5,22 @@ import { Check, Layers } from "lucide-react";
 import { useState } from "react";
 import {
   bringsNothing,
+  droppedBy,
   type Installed,
   type PresetOffer,
   presetOffers,
+  withChoice,
 } from "../../lib/catalog-selection";
+import { ConfirmDialog } from "../ui/confirm-button";
 import { Section } from "../ui/section";
 import { CatalogPresetChoice } from "./catalog-preset-choice";
 
-/**
- * The shortcuts, ahead of the twenty-odd modules.
- *
- * A preset says what it brings by name, not by count: the reader picks between
- * « Node.js, MySQL, Claude Code » and « everything », not between 7 and 23.
- * Those names are what it brings *here* — a module the server already runs, or
- * one this architecture has nothing to run, is not promised twice.
- *
- * A preset that carries `choose_one` names modules that contradict each other —
- * the exposures, the agents — and asks which one before it is applied.
- * Applying it silently would either install none of them or install two that
- * refuse to stand together.
- */
+interface Replacing {
+  preset: Preset;
+  chosen?: string;
+  lost: readonly Manifest[];
+}
+
 export function CatalogPresets({
   presets,
   modules,
@@ -34,9 +30,7 @@ export function CatalogPresets({
   onPick,
 }: {
   presets: readonly Preset[];
-  /** The catalogue, so a choice shows the names the agent gave rather than ids. */
   modules: readonly Manifest[];
-  /** What is ticked right now, so an applied preset says so. */
   selected: readonly string[];
   installed?: Installed;
   probe?: ProbeResult | null;
@@ -45,6 +39,7 @@ export function CatalogPresets({
   const t = useTranslations();
 
   const [asking, setAsking] = useState<PresetOffer | null>(null);
+  const [replacing, setReplacing] = useState<Replacing | null>(null);
 
   const offers = presetOffers(modules, presets, selected, installed, probe);
 
@@ -59,10 +54,27 @@ export function CatalogPresets({
       return;
     }
 
-    onPick?.(offer.preset.id);
+    apply(offer.preset);
   }
 
-  /** What the preset adds to the core here, in the catalogue's own words. */
+  function apply(preset: Preset, chosen?: string): void {
+    const lost = droppedBy(
+      modules,
+      withChoice(preset, chosen),
+      selected,
+      installed,
+      probe
+    );
+
+    if (lost.length > 0) {
+      setReplacing({ chosen, lost, preset });
+
+      return;
+    }
+
+    onPick?.(preset.id, chosen);
+  }
+
   function brings(offer: PresetOffer): string {
     if (bringsNothing(offer)) {
       return t("catalog.presets.nothing");
@@ -106,7 +118,7 @@ export function CatalogPresets({
                 )}
                 {offer.preset.name}
               </span>
-              <span className="text-[12px] text-ink-3 leading-relaxed">
+              <span className="text-ink-3 text-small leading-relaxed">
                 {brings(offer)}
               </span>
             </button>
@@ -119,12 +131,44 @@ export function CatalogPresets({
           choices={asking.choices}
           onCancel={() => setAsking(null)}
           onChoose={(chosen) => {
-            onPick?.(asking.preset.id, chosen);
             setAsking(null);
+            apply(asking.preset, chosen);
           }}
           preset={asking.preset}
         />
       ) : null}
+
+      <ConfirmDialog
+        confirmLabel={t("catalog.presets.apply")}
+        confirmVariant="inverse"
+        onCancel={() => setReplacing(null)}
+        onConfirm={() => {
+          if (replacing) {
+            onPick?.(replacing.preset.id, replacing.chosen);
+          }
+
+          setReplacing(null);
+        }}
+        open={replacing !== null}
+        question={
+          replacing
+            ? t.plural(
+                "catalog.presets.replaceQuestion",
+                replacing.lost.length,
+                {
+                  names: replacing.lost.map((module) => module.name).join(", "),
+                }
+              )
+            : ""
+        }
+        title={
+          replacing
+            ? t("catalog.presets.replaceTitle", {
+                preset: replacing.preset.name,
+              })
+            : ""
+        }
+      />
     </Section>
   );
 }

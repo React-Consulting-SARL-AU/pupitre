@@ -16,7 +16,7 @@ import (
 	"pupitre.studio/agent/internal/sys/env"
 )
 
-const domain = "flymate.dev"
+const domain = "flyleaf.dev"
 
 func shop() registry.Project {
 	return registry.Project{
@@ -38,7 +38,6 @@ func shop() registry.Project {
 	}
 }
 
-// One route per port that carries a name on the web, each pointing at its own port of its own process.
 func TestForEmitsOneRoutePerPublishedPort(t *testing.T) {
 	plain := registry.Project{Name: "plain", Dir: "plain", Processes: []registry.Process{{ID: "plain", Port: 4000, Host: "127.0.0.1"}}}
 	list := routes.For(domain, []registry.Project{shop(), plain})
@@ -48,9 +47,11 @@ func TestForEmitsOneRoutePerPublishedPort(t *testing.T) {
 		{Hostname: "api-shop." + domain, Service: "http://127.0.0.1:3101", Project: "shop"},
 		{Hostname: "mail-shop." + domain, Service: "http://mail.localhost:3105", Project: "shop"},
 	}
+
 	if len(list) != len(want) {
 		t.Fatalf("routes = %+v, want %+v", list, want)
 	}
+
 	for at := range want {
 		if list[at] != want[at] {
 			t.Fatalf("route %d = %+v, want %+v", at, list[at], want[at])
@@ -58,7 +59,6 @@ func TestForEmitsOneRoutePerPublishedPort(t *testing.T) {
 	}
 }
 
-// A name stored under a domain the machine no longer publishes is not handed to the tunnel: it would never answer there.
 func TestForKeepsToTheDomainOfTheMachine(t *testing.T) {
 	if list := routes.For("", []registry.Project{shop()}); len(list) != 0 {
 		t.Fatalf("without a domain there is nothing to route: %+v", list)
@@ -69,7 +69,6 @@ func TestForKeepsToTheDomainOfTheMachine(t *testing.T) {
 	}
 }
 
-// The registry is rewritten under the lock every session takes for it: a session holding it makes the move wait, then refuses busy.
 func TestMoveDomainTakesTheProjectsLock(t *testing.T) {
 	lockPath := filepath.Join(t.TempDir(), "projects.lock")
 	fake := modtest.NewFakeSys()
@@ -81,11 +80,13 @@ func TestMoveDomainTakesTheProjectsLock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if err := syscall.Flock(int(held.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
 		t.Fatal(err)
 	}
 
 	released := make(chan struct{})
+
 	go func() {
 		time.Sleep(200 * time.Millisecond)
 		syscall.Flock(int(held.Fd()), syscall.LOCK_UN)

@@ -6,7 +6,6 @@ import { platformOpen } from "@/lib/domain/admin"
 import { PLATFORM_SEARCH_EVENT } from "@/lib/domain/admin-search"
 
 export const Route = createFileRoute("/dashboard/admin")({
-  /** The dashboard already read the session; these pages open on the platform organisation, for its members, and nowhere else. */
   beforeLoad: ({ context }) => {
     const me = context.queryClient.getQueryData<Me>(queryKeys.me)
 
@@ -17,7 +16,6 @@ export const Route = createFileRoute("/dashboard/admin")({
   component: AdminLayout,
 })
 
-/** The shortcut is registered once, here, and serves every page under the platform. */
 function AdminLayout() {
   const [searching, setSearching] = useState(false)
 

@@ -1,0 +1,7 @@
+# Le serveur SSH prend encore les mots de passe : rien n'est posé, l'ancien mot de passe reste le bon.
+> {"id":1,"cmd":"hello","params":{"app_version":"0.1.0","locale":"en","protocol":2}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["hello","ping","harden","harden.sudo"]}}
+> {"id":2,"cmd":"harden.sudo","params":{"user":"dev","secrets_stdin":true}}
+$ *
+< {"id":2,"event":"step","module":"core.hardening","step":"check-sshd-passwords","status":"fail","ms":40,"message":"the SSH server still takes passwords for dev (passwordauthentication): a password would open SSH"}
+< {"id":2,"ok":false,"error":{"code":"bad_request","message":"the SSH server still takes passwords for dev (passwordauthentication): a password would open SSH","fix":"Run the securing again from the app: it closes SSH to passwords before it sets the one sudo asks for."}}

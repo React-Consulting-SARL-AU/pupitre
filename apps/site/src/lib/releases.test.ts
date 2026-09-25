@@ -45,6 +45,7 @@ const served = (over: Record<string, unknown> = {}) => ({
       format: "dmg",
       bytes: 120_000_000,
       sha256: DIGEST,
+      signature: null,
       url: "https://example.test/mac",
     },
   ],
@@ -199,6 +200,51 @@ describe("loadReleases", () => {
 
     expect(releases).toEqual(FALLBACK_RELEASES)
     expect(warn.mock.calls[0][0]).toContain("expected shape")
+  })
+})
+
+describe("loadReleases in a production build", () => {
+  it("stops the build rather than publish the fallback's links", async () => {
+    const warn = vi.fn()
+    const offline = vi.fn(async () => {
+      throw new Error("offline")
+    }) as unknown as typeof fetch
+
+    await expect(
+      loadReleases({
+        fetcher: offline,
+        warn,
+        endpoint: "https://example.test/releases",
+        strict: true,
+      })
+    ).rejects.toThrow("publishes no download link")
+    await expect(
+      loadReleases({
+        fetcher: offline,
+        warn,
+        endpoint: undefined,
+        strict: true,
+      })
+    ).rejects.toThrow(ENDPOINT_VARIABLE)
+    await expect(
+      loadReleases({
+        fetcher: respondWith({}, false),
+        warn,
+        endpoint: "https://example.test/releases",
+        strict: true,
+      })
+    ).rejects.toThrow("503")
+    expect(warn).not.toHaveBeenCalled()
+  })
+
+  it("reads the platform as usual when it answers", async () => {
+    const releases = await loadReleases({
+      fetcher: respondWith({ data: [served()] }),
+      endpoint: "https://example.test/releases",
+      strict: true,
+    })
+
+    expect(releases[0].version).toBe("1.2.0")
   })
 })
 

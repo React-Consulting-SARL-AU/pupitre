@@ -4,13 +4,7 @@ import { Button } from "../ui/button";
 import { CopyField } from "../ui/copy-field";
 import { Panel } from "../ui/panel";
 
-/**
- * What is left to do on the server, and it is one line.
- *
- * The private half never appears here nor anywhere else in the interface: what
- * the user carries to their machine is the public half, and the command that
- * installs it.
- */
+/** Only the public half: the private key never appears in the interface. */
 export function ServerKeyCard({
   server,
   publicKey,
@@ -22,7 +16,6 @@ export function ServerKeyCard({
   publicKey: string;
   copyId: string | null;
   onDone: () => void;
-  /** What the way on is called when there is a next step to go to. */
   doneLabel?: string;
 }) {
   const t = useTranslations();

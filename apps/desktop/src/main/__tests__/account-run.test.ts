@@ -141,6 +141,36 @@ describe("la connexion", () => {
       error: { code: "expired" },
     });
   });
+
+  it("s'arrête quand on l'annule, sans garder de jeton, et la suivante repart", async () => {
+    const { deps } = harness({
+      polls: ["authorization_pending", "authorization_pending", "authorized"],
+    });
+    const { report } = progressOf();
+    let cancelling = true;
+    const account = createAccount({
+      ...deps,
+      wait: () => {
+        if (cancelling) {
+          account.cancelSignIn();
+        }
+
+        return Promise.resolve();
+      },
+    });
+
+    const answer = await account.signIn(report);
+
+    expect(answer).toMatchObject({
+      ok: false,
+      error: { code: "cancelled", phrase: { id: "refusal.signIn.cancelled" } },
+    });
+    expect(account.state().identity).toBeNull();
+
+    cancelling = false;
+
+    expect((await account.signIn(report)).ok).toBe(true);
+  });
 });
 
 describe("le jeton", () => {
@@ -338,11 +368,6 @@ describe("le droit d'usage", () => {
     expect(account.guard().ok).toBe(true);
   });
 
-  /**
-   * The account screen does not word its own refusal: it renders the guard's,
-   * message and fix included, so a refused channel and the screen say the same
-   * thing.
-   */
   it("porte dans son état le refus que le garde oppose aux canaux", async () => {
     let clock = Date.parse("2026-09-04T10:00:00.000Z");
     const { account } = harness({ build: "production", now: () => clock });

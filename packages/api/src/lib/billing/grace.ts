@@ -2,13 +2,11 @@ import {
   sendEntitlementGraceEmail,
   sendServerSuspendedEmail,
 } from "../../emails/notifications"
+import { D1_BATCH_SIZE, drainBatches } from "../api/batches"
 import { getPrisma } from "../api/prisma"
 import { entitlementWindow } from "./entitlement"
 
-/**
- * Only a server still in full use takes the deadline: one already in
- * tolerance keeps the day it was given, whatever Stripe retries in between.
- */
+/** A server already in grace keeps its deadline, whatever Stripe retries in between. */
 export async function graceOrganizationServers(
   organizationId: string,
   validUntil: Date
@@ -51,38 +49,32 @@ export function restoreOrganizationServers(
     .then((result) => result.count)
 }
 
-export async function suspendExpiredGrace(
-  now: Date = new Date()
-): Promise<string[]> {
-  const prisma = getPrisma()
-  const expired = await prisma.server.findMany({
-    where: {
-      status: "grace",
-      entitlementValidUntil: { lte: now },
-    },
-    orderBy: { entitlementValidUntil: "asc" },
-    select: { id: true, organizationId: true },
-  })
+export const SUSPENSION_BATCH_SIZE = D1_BATCH_SIZE
 
-  if (expired.length === 0) {
-    return []
-  }
-
-  const ids = expired.map((server) => server.id)
-
-  await prisma.server.updateMany({
-    where: { id: { in: ids } },
-    data: { status: "suspended", suspendedReason: "billing" },
-  })
-
-  await announceSuspensions(expired)
-
-  return ids
+export interface SuspendedServer {
+  id: string
+  organizationId: string
 }
 
-async function announceSuspensions(
-  suspended: { organizationId: string }[]
-): Promise<void> {
+export interface SuspensionNotice {
+  organizationId: string
+  serverCount: number
+}
+
+export function suspendExpiredGraceBatch(
+  now: Date = new Date()
+): Promise<SuspendedServer[]> {
+  return getPrisma().server.updateManyAndReturn({
+    where: { status: "grace", entitlementValidUntil: { lte: now } },
+    data: { status: "suspended", suspendedReason: "billing" },
+    limit: SUSPENSION_BATCH_SIZE,
+    select: { id: true, organizationId: true },
+  })
+}
+
+export function suspensionNotices(
+  suspended: SuspendedServer[]
+): SuspensionNotice[] {
   const counts = new Map<string, number>()
 
   for (const server of suspended) {
@@ -92,7 +84,26 @@ async function announceSuspensions(
     )
   }
 
-  for (const [organizationId, serverCount] of counts) {
-    await sendServerSuspendedEmail({ organizationId, serverCount })
+  return [...counts].map(([organizationId, serverCount]) => ({
+    organizationId,
+    serverCount,
+  }))
+}
+
+export function announceSuspension(notice: SuspensionNotice): Promise<void> {
+  return sendServerSuspendedEmail(notice)
+}
+
+export async function suspendExpiredGrace(
+  now: Date = new Date()
+): Promise<string[]> {
+  const suspended = await drainBatches(SUSPENSION_BATCH_SIZE, () =>
+    suspendExpiredGraceBatch(now)
+  )
+
+  for (const notice of suspensionNotices(suspended)) {
+    await announceSuspension(notice)
   }
+
+  return suspended.map((server) => server.id)
 }

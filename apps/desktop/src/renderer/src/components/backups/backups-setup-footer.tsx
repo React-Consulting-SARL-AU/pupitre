@@ -2,10 +2,6 @@ import { Button } from "@renderer/components/ui/button";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { ArrowLeft, ArrowRight, ShieldCheck } from "lucide-react";
 
-/**
- * The foot of the setup: what the agent refused that no field carries, the
- * way back, and the way on — Continue, then Turn on backups on the last step.
- */
 export function BackupsSetupFooter({
   stray,
   last,
@@ -15,7 +11,6 @@ export function BackupsSetupFooter({
   stray: readonly string[];
   last: boolean;
   busy: boolean;
-  /** Absent on the first step. */
   onBack?: () => void;
 }) {
   const t = useTranslations();
@@ -25,7 +20,7 @@ export function BackupsSetupFooter({
       {stray.length > 0 ? (
         <ul className="flex min-w-0 flex-1 flex-col gap-1" data-config-stray="">
           {stray.map((line) => (
-            <li className="text-[12px] text-danger" key={line}>
+            <li className="text-danger text-small" key={line}>
               {line}
             </li>
           ))}

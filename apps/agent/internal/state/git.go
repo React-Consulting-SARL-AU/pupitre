@@ -1,7 +1,9 @@
 package state
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"regexp"
 	"sort"
 	"strconv"
@@ -18,7 +20,7 @@ import (
 )
 
 const (
-	// Past that size nobody reads a patch line by line, and the app would freeze rendering it.
+	// Past this nobody reads a patch line by line, and the app would freeze rendering it.
 	patchLimit = 400_000
 
 	problemLimit = 160
@@ -38,7 +40,7 @@ func (r *Reader) gitCommand(dir string, argv []string) sys.Command {
 	}
 }
 
-// A fetch that goes past this has a remote that is not answering, and the channel behind it is waiting.
+// Past this the remote is not answering, and the channel behind the fetch is waiting.
 const fetchTimeout = 30 * time.Second
 
 func (r *Reader) fetchCommand(dir string, argv ...string) sys.Command {
@@ -48,14 +50,12 @@ func (r *Reader) fetchCommand(dir string, argv ...string) sys.Command {
 	return command
 }
 
-// A remote that answers the handshake and then trickles holds the channel as
-// surely as one that never answers: the connection and the transfer are both
-// bounded, through the environment so the command line stays git's own.
+// A trickling remote holds the channel like a silent one: connection and transfer are bounded, through env not argv.
 func gitEnv(owner string) []string {
 	return []string{
 		"HOME=" + user.Home(owner),
 		"LC_ALL=C",
-		// A repository whose remote asks for a password would hang for ever behind a protocol call.
+		// A remote asking for a password would hang the protocol call for ever.
 		"GIT_TERMINAL_PROMPT=0",
 		"GIT_SSH_COMMAND=ssh -o BatchMode=yes -o ConnectTimeout=10",
 		"GIT_OPTIONAL_LOCKS=0",
@@ -67,15 +67,50 @@ func gitEnv(owner string) []string {
 	}
 }
 
-// Read-only, and unlogged: a patch of four hundred kilobytes has nothing to do in /var/log/pupitre.log.
+// Unlogged: a 400 KB patch has nothing to do in /var/log/pupitre.log.
 func (r *Reader) git(dir string, argv ...string) (string, error) {
-	out, err := r.ctx().Sys().Run(r.gitCommand(dir, argv))
+	out, err := r.ctx().Sys().Run(r.readCommand(dir, argv))
 
 	return strings.TrimRight(out.Stdout, "\n"), err
 }
 
-func (r *Reader) gitRaw(dir string, argv ...string) (sys.Output, error) {
-	return r.ctx().Sys().Run(r.gitCommand(dir, argv))
+// Bounded by the reader's own timeout, not the half hour a clone or a pull may take.
+func (r *Reader) readCommand(dir string, argv []string) sys.Command {
+	command := r.gitCommand(dir, argv)
+	command.Timeout = r.options.GitTimeout
+
+	return command
+}
+
+// git is stopped at the cap rather than read to its end.
+func (r *Reader) gitCapped(dir string, limit int, argv ...string) (string, bool) {
+	capped := &cappedWriter{limit: limit}
+	command := r.readCommand(dir, argv)
+	command.Output = capped
+
+	_, _ = r.ctx().Sys().Run(command)
+
+	return capped.buffer.String(), capped.cut
+}
+
+var errCapped = errors.New("output past its cap")
+
+type cappedWriter struct {
+	buffer bytes.Buffer
+	limit  int
+	cut    bool
+}
+
+func (c *cappedWriter) Write(p []byte) (int, error) {
+	room := c.limit - c.buffer.Len()
+	if len(p) <= room {
+		return c.buffer.Write(p)
+	}
+
+	c.buffer.Write(p[:room])
+	c.cut = true
+
+	return room, errCapped
 }
 
 func (r *Reader) gitWrite(dir string, argv ...string) (sys.Output, error) {
@@ -91,7 +126,7 @@ func (r *Reader) repo(name string) (registry.Project, string, error) {
 	return project, project.RootPath(r.options.Paths.Resolved().Projects), nil
 }
 
-// The declared folder, then what git says of it: several projects often share one repository, and only git knows where its root really is.
+// Projects often share one repository, and only git knows where its root really is.
 func (r *Reader) top(name string) (registry.Project, string, error) {
 	project, root, err := r.repo(name)
 	if err != nil {
@@ -112,7 +147,7 @@ func (r *Reader) top(name string) (registry.Project, string, error) {
 		return project, "", nil
 	}
 
-	// git names a folder by its physical path, the registry by its declared one: the two are never compared, git itself says whether the name we kept leads to the repository it named.
+	// Physical and declared paths are never compared: git itself confirms the kept name leads to the same root.
 	if confirmed, _, err := r.toplevel(top); err != nil || confirmed != physical {
 		return project, "", nil
 	}
@@ -120,7 +155,7 @@ func (r *Reader) top(name string) (registry.Project, string, error) {
 	return project, top, nil
 }
 
-// The root of the working tree and the climb that leads there from dir, in one call: the first is git's own path, the second is what lets us name that root without leaving the projects root.
+// cdup, unlike git's physical toplevel, lets the root be named without leaving the projects root.
 func (r *Reader) toplevel(dir string) (string, string, error) {
 	out, err := r.git(dir, "rev-parse", "--show-toplevel", "--show-cdup")
 	if err != nil {
@@ -158,6 +193,7 @@ func (r *Reader) refs(top, namespace, prefix string) []string {
 	}
 
 	names := []string{}
+
 	for _, line := range strings.Split(out, "\n") {
 		name := strings.TrimPrefix(strings.TrimSpace(line), prefix)
 		if name == "" || name == "origin" || name == "HEAD" {
@@ -184,15 +220,16 @@ func (r *Reader) Checkout(name, branch string) (string, error) {
 		return "", notARepo(name)
 	}
 
-	// git would refuse on its own, and say it less clearly: a switch never carries uncommitted work away.
+	// git would refuse too, less clearly: a switch never carries uncommitted work away.
 	if r.dirty(top) {
 		return "", bad(i18n.T("state.tree.dirty", name), i18n.T("state.tree.dirty.fix"))
 	}
 
 	sys.Exec(r.ctx(), r.fetchCommand(top, "fetch", "--quiet", "origin"))
 
-	// A branch known nowhere is created out of HEAD: the app's branch form names one on purpose, after checking the lists.
+	// A branch known nowhere is created from HEAD: the app's branch form names one on purpose.
 	argv := []string{"checkout", "--quiet", branch}
+
 	switch {
 	case r.hasRef(top, "refs/heads/"+branch):
 	case r.hasRef(top, "refs/remotes/origin/"+branch):
@@ -233,13 +270,13 @@ func (r *Reader) GitStatus(name string) (contract.ProjectGitStatus, error) {
 	}
 
 	status.Dirty = r.dirty(top)
-	// Untracked files count as changes for the badge but not for dirty: they never stand in the way of a fast-forward.
+	// Untracked files count for the badge, not for dirty: they never block a fast-forward.
 	status.Changed = len(r.porcelain(top, "--untracked-files=all"))
 
 	return status, nil
 }
 
-// Held is what a working tree holds that its remote may not; it never fetches, a backup reads the machine and not the network.
+// Never fetches: a backup reads the machine, not the network.
 func (r *Reader) Held(name string) (contract.BackupGitState, bool) {
 	project, top, err := r.top(name)
 	if err != nil || top == "" {
@@ -289,6 +326,7 @@ func (r *Reader) WorkingTree(name string) (contract.ProjectWorkingTree, error) {
 	}
 
 	files := map[string]*contract.FileChange{}
+
 	for _, line := range r.porcelain(top, "--untracked-files=all") {
 		change := parseStatusLine(line)
 		if change.Path != "" {
@@ -325,7 +363,7 @@ func parseStatusLine(line string) contract.FileChange {
 	return change
 }
 
-// The first letter is the index, the second the working tree. A file can be both; it shows as staged, since that is what a commit would take.
+// A file changed in both index and working tree shows as staged, since that is what a commit would take.
 func stageOf(code string) contract.FileStage {
 	switch {
 	case code == "??":
@@ -352,7 +390,7 @@ func (r *Reader) countLines(top string, files map[string]*contract.FileChange) {
 		}
 	}
 
-	// An untracked file has no HEAD version to compare against; --no-index against /dev/null gives it the same numbers as the others.
+	// An untracked file has no HEAD version; --no-index against /dev/null gives it comparable numbers.
 	for path, change := range files {
 		if change.Stage != contract.StageUntracked {
 			continue
@@ -360,6 +398,7 @@ func (r *Reader) countLines(top string, files map[string]*contract.FileChange) {
 
 		out, _ := r.git(top, "diff", "--numstat", "--no-index", "--", "/dev/null", "./"+path)
 		added, _, counted := strings.Cut(out, "\t")
+
 		switch {
 		case !counted:
 		case added == "-":
@@ -396,11 +435,11 @@ func applyNumstat(files map[string]*contract.FileChange, line string) {
 	change.Removed += number(columns[1])
 }
 
-// Staged first, then unstaged, then untracked, alphabetical inside each: the order you would read them in, and stable between two refreshes.
 func ordered(files map[string]*contract.FileChange) []contract.FileChange {
 	rank := map[contract.FileStage]int{contract.StageStaged: 0, contract.StageUnstaged: 1, contract.StageUntracked: 2}
 
 	changes := make([]contract.FileChange, 0, len(files))
+
 	for _, change := range files {
 		changes = append(changes, *change)
 	}
@@ -438,12 +477,11 @@ func (r *Reader) Diff(name, path string) (contract.ProjectDiff, error) {
 
 	argv := []string{"diff", "--no-color", "--unified=3", "HEAD", "--", "./" + path}
 	if _, err := r.git(top, "ls-files", "--error-unmatch", "--", path); err != nil {
-		// git diff --no-index exits 1 when the files differ, which is the normal case here: only the output says anything.
+		// git diff --no-index exits 1 when the files differ, the normal case here: only the output matters.
 		argv = []string{"diff", "--no-color", "--no-index", "--", "/dev/null", "./" + path}
 	}
 
-	out, _ := r.gitRaw(top, argv...)
-	patch := out.Stdout
+	patch, cut := r.gitCapped(top, patchLimit, argv...)
 
 	if binaryPatch(patch) {
 		diff.Binary = true
@@ -451,14 +489,11 @@ func (r *Reader) Diff(name, path string) (contract.ProjectDiff, error) {
 		return diff, nil
 	}
 
-	if len(patch) > patchLimit {
-		diff.Patch = patch[:patchLimit]
-		diff.Problem = i18n.T("state.diff.truncated")
-
-		return diff, nil
-	}
-
 	diff.Patch = patch
+
+	if cut {
+		diff.Problem = i18n.T("state.diff.truncated")
+	}
 
 	return diff, nil
 }
@@ -495,8 +530,6 @@ func (r *Reader) pullOf(name string) (contract.ProjectPull, error) {
 	return contract.ProjectPull{Pulled: pulled, State: current.State}, nil
 }
 
-// Sync is the pull then the install, one command: what the install prints
-// travels on emit, and the whole of it ends with the channel that asked.
 func (r *Reader) Sync(channel context.Context, name string, emit func(string)) (contract.ProjectSync, error) {
 	var synced contract.ProjectSync
 
@@ -543,6 +576,7 @@ func (r *Reader) pull(project registry.Project, root string) (bool, error) {
 		if project.Branch != "" {
 			argv = append(argv, "--branch", project.Branch)
 		}
+
 		argv = append(argv, "--", project.Repo, root)
 
 		if out, err := r.gitWrite(projects, argv...); err != nil {
@@ -566,7 +600,7 @@ func (r *Reader) pull(project registry.Project, root string) (bool, error) {
 	return true, nil
 }
 
-// A folder kept from an earlier project may hold a clone of something else: what its origin names is read before anything is pulled into it. A row without a repository, or a folder without an origin, has nothing to compare.
+// A folder kept from an earlier project may hold a clone of something else.
 func (r *Reader) otherRepository(project registry.Project, root string) (string, bool) {
 	if project.Repo == "" || project.Repo == "-" {
 		return "", false
@@ -584,7 +618,7 @@ func (r *Reader) otherRepository(project registry.Project, root string) (string,
 
 var repositoryScheme = regexp.MustCompile(`^(?:[a-z][a-z0-9+.-]*://)?(?:[^@/]+@)?`)
 
-// SameRepository says whether two addresses name one repository: the scheme, the account, the case of the host, a trailing slash and a .git suffix are how the same one is written twice.
+// Scheme, account, host case, trailing slash and .git suffix are ways to write the same repository twice.
 func SameRepository(a, b string) bool {
 	return repositoryKey(a) == repositoryKey(b)
 }
@@ -603,7 +637,7 @@ func repositoryKey(address string) string {
 	return strings.ToLower(host) + "/" + path
 }
 
-// The last thing git said is why the clone failed; the SSH hint only stands when git said nothing at all.
+// The SSH hint only stands when git said nothing at all.
 func cloneFix(out sys.Output) string {
 	if said := lastSaid(out); said != "" {
 		return i18n.T("state.git.said", said)
@@ -612,7 +646,6 @@ func cloneFix(out sys.Output) string {
 	return i18n.T("state.repo.unreadable.fix")
 }
 
-// A pull fails on a conflict, on a branch with no upstream, on a remote that went away: git's own last line tells them apart.
 func pullFix(out sys.Output, root string) string {
 	if said := lastSaid(out); said != "" {
 		return i18n.T("state.git.said", said)
@@ -638,6 +671,7 @@ func (r *Reader) porcelain(top, untracked string) []string {
 	}
 
 	lines := []string{}
+
 	for _, line := range strings.Split(out, "\n") {
 		if strings.TrimSpace(line) != "" {
 			lines = append(lines, line)
@@ -678,7 +712,7 @@ func binaryPatch(patch string) bool {
 	return false
 }
 
-// The path comes back from the app, which got it from a list we produced — but it did leave the machine, so git sees it re-checked, never trusted.
+// The path came from a list we produced, but it left the machine, so it is re-checked, never trusted.
 func validRepoPath(path string) bool {
 	return repoPathOK.MatchString(path) &&
 		!strings.Contains(path, "..") &&

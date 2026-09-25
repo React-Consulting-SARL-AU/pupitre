@@ -16,7 +16,6 @@ import { useEffect } from "react";
 import { ShotTile } from "./shot-tile";
 import { ShotViewer } from "./shot-viewer";
 
-/** The day a group is filed under, said in the reader's language. */
 function dayLabel(day: string): string {
   const parsed = Date.parse(`${day}T12:00:00Z`);
 
@@ -31,15 +30,6 @@ function dayLabel(day: string): string {
       }).format(parsed);
 }
 
-/**
- * The gallery of a server, listed and read from here.
- *
- * The files stay where the agent put them: what the app brings over is the
- * bytes of the captures on screen, checked against the fingerprint that came
- * with them, grouped by the day folder the agent filed them under. The
- * server's own gallery address is still there for a browser, but the app no
- * longer needs it to show an image.
- */
 export function ShotsScreen({
   serverId,
   serverName,
@@ -106,7 +96,7 @@ export function ShotsScreen({
 
         {state.status === "read" ? (
           <section className="flex flex-col gap-6">
-            <p className="font-data text-[12px] text-ink-3">
+            <p className="font-data text-ink-3 text-small">
               {shots.length === 0
                 ? t("shots.none")
                 : `${t.plural("shots.capture", shots.length)} · ${weight(total)}`}
@@ -124,7 +114,7 @@ export function ShotsScreen({
             {days.map((group) => (
               <Section
                 aside={
-                  <span className="font-data text-[12px] text-ink-3 tabular-nums">
+                  <span className="font-data text-ink-3 text-small tabular-nums">
                     {t.plural("shots.capture", group.shots.length)}
                   </span>
                 }

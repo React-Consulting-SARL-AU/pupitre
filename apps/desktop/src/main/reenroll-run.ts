@@ -9,28 +9,11 @@ import { asAgentError } from "./enrollment-run";
 import { type EnrollmentGrant, sendEnrolment } from "./install-run";
 import { refusalOf } from "./refusal";
 
-/**
- * Repairing a server the platform no longer vouches for.
- *
- * A token lost or revoked leaves a machine that reads and refuses to act. The
- * repair is the gesture the installation already knows — a fresh enrolment
- * token, asked of the platform and handed to the agent on the secret line —
- * offered here to a server that is already installed, so a right is mended
- * without a detour through the console.
- *
- * Nothing that runs on the machine is touched: one `snapshot` to learn which
- * binary it runs, one `enroll` to repair the right. No binary is pushed, no
- * module replayed, no service restarted.
- */
-
 export interface ReenrollDeps {
   client: Pick<AgentClient, "request">;
-  /** The account's own right, asked before the platform is: it is what the platform would refuse on. */
   guard: () => AccountResponse<UsageRight>;
   enroll: (arch: string) => Promise<AccountResponse<Enrollment>>;
-  /** The token the platform just granted, taken once and burnt. */
   grant: (platformServerId: string) => EnrollmentGrant | null;
-  /** The last resort when the agent answers nothing at all: the shell probe. */
   probe: (serverId: string) => Promise<AgentResponse<ProbeResult>>;
 }
 
@@ -49,9 +32,7 @@ export async function runReenroll(
 ): Promise<AgentResponse<EnrollResult>> {
   const allowed = deps.guard();
 
-  // The account's refusal comes first and in its own words: an account without
-  // a usage right would be refused by the platform, and this way it is refused
-  // before the server is asked anything at all.
+  // The platform would refuse anyway: refusing first spares the server and keeps the account's wording.
   if (!allowed.ok) {
     return { ok: false, error: asAgentError(allowed.error) };
   }

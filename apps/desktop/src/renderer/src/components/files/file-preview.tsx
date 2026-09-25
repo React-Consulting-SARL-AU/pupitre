@@ -9,6 +9,7 @@ import type {
 import { Download, FileQuestion, RotateCw, X } from "lucide-react";
 import { Button } from "../ui/button";
 import { Callout } from "../ui/callout";
+import { ConfirmDialog } from "../ui/confirm-button";
 import { EmptyState } from "../ui/empty-state";
 import { ErrorNotice } from "../ui/error-notice";
 import { IconButton } from "../ui/icon-button";
@@ -29,18 +30,6 @@ const VIEW_KEY: Record<
   source: "files.view.source",
 };
 
-/**
- * The right pane: the file the reader picked, in whatever form it takes.
- *
- * Text is edited and saved from here, an image is shown, and a file the
- * channel does not carry shows its sheet and offers the one way to open it:
- * a transfer to this computer, on its own channel. A text that also has a
- * drawn form — Markdown, SVG — opens drawn, and a word in the header turns it
- * into the code it is; the drawing follows the buffer, so an edit is seen
- * before it is saved. A write the agent refused because the file changed is
- * said as such, with the one way out: reading it again, which drops the
- * buffer, and says so.
- */
 export function FilePreview({
   preview,
   view,
@@ -61,7 +50,6 @@ export function FilePreview({
   view: PreviewView;
   write: WriteState;
   draft: string | null;
-  /** True while a gesture that would drop the buffer waits for the reader's word. */
   leaving: boolean;
   onShow: (path: string) => Promise<void>;
   onView: (view: PreviewView) => void;
@@ -71,7 +59,6 @@ export function FilePreview({
   onEdit: (text: string) => void;
   onConfirmLeave: () => void;
   onStay: () => void;
-  /** Brings the shown file to this computer; answers once the transfer is queued. */
   onDownload: () => Promise<void>;
 }) {
   const t = useTranslations();
@@ -93,7 +80,7 @@ export function FilePreview({
     >
       <header className="flex items-center gap-3">
         <span className="flex min-w-0 flex-1 items-center gap-2">
-          <span className="truncate font-data text-[13px] text-ink">
+          <span className="truncate font-data text-control text-ink">
             {name}
           </span>
           {edited ? (
@@ -126,24 +113,14 @@ export function FilePreview({
         />
       </header>
 
-      {leaving ? (
-        <div
-          aria-label={t("files.leave.question")}
-          className="flex flex-wrap items-center gap-2 rounded-md border border-line-strong bg-sunken px-3 py-2"
-          data-leaving="true"
-          role="alertdialog"
-        >
-          <span className="min-w-0 flex-1 text-[12px] text-ink-2">
-            {t("files.leave.question")}
-          </span>
-          <Button onClick={onConfirmLeave} size="sm" variant="destructive">
-            {t("files.leave.discard")}
-          </Button>
-          <Button onClick={onStay} size="sm" variant="discreet">
-            {t("files.leave.stay")}
-          </Button>
-        </div>
-      ) : null}
+      <ConfirmDialog
+        confirmLabel={t("files.leave.discard")}
+        onCancel={onStay}
+        onConfirm={onConfirmLeave}
+        open={leaving}
+        question={t("files.leave.question", { name })}
+        title={t("files.leave.title", { name })}
+      />
 
       {stale ? (
         <Callout
@@ -170,7 +147,7 @@ export function FilePreview({
 
       {preview.status === "reading" ? (
         <div className="flex flex-col gap-3">
-          <WaitingLine className="font-data text-[12px]">
+          <WaitingLine className="font-data text-small">
             {t("files.preview.reading")}
           </WaitingLine>
           <Skeleton className="h-40 w-full" />

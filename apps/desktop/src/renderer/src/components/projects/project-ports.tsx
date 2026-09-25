@@ -7,15 +7,6 @@ import { Label } from "../ui/label";
 import { type PortEdits, ProjectPortRow } from "./project-port-row";
 import { portsColumns, portsHead } from "./project-ports-columns";
 
-/**
- * The ports of a process, as a table: one line each, what the machine runs
- * on the left, what the web reaches on the right.
- *
- * Without an exposure module the table is a plain reading of ports. Behind a
- * Cloudflare tunnel the app writes the records itself; behind Caddy the reader
- * points their own DNS at the server, and the address to write is said here,
- * once, rather than discovered when a name fails to answer.
- */
 export function ProjectPorts({
   scope,
   rows,
@@ -24,13 +15,10 @@ export function ProjectPorts({
   placeholder,
   edit,
 }: {
-  /** What the ids of this table start with: one process's table is not another's. */
   scope: string;
   rows: readonly PortRow[];
-  /** Why each row would be refused, in the order of the rows. */
   problems: readonly (RowProblem | null)[];
   exposure: Exposure | null;
-  /** The project's name, which each name on the web is proposed from. */
   placeholder: string;
   edit: PortEdits;
 }) {
@@ -44,7 +32,7 @@ export function ProjectPorts({
     <fieldset className="flex min-w-0 flex-col gap-3" data-ports={rows.length}>
       <legend className="flex flex-col gap-1">
         <Label>{t("projectAdd.ports.title")}</Label>
-        <span className="text-[12px] text-ink-3 leading-relaxed">
+        <span className="text-ink-3 text-small leading-relaxed">
           {exposed
             ? t("projectAdd.ports.help.published")
             : t("projectAdd.ports.help.local")}
@@ -87,7 +75,7 @@ export function ProjectPorts({
       </div>
 
       {exposure?.provider === "caddy" && published ? (
-        <p className="text-[12px] text-ink-3 leading-relaxed">
+        <p className="text-ink-3 text-small leading-relaxed">
           {t("projectAdd.ports.caddyDns", { host: exposure.host })}
         </p>
       ) : null}

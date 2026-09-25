@@ -1,8 +1,15 @@
 import { describe, expect, it } from "bun:test";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ACCOUNT_MIGRATIONS } from "../account-migrations";
+import { CONNECTIONS_MIGRATIONS } from "../connections-migrations";
 import { SERVERS_MIGRATIONS } from "../servers-migrations";
 import {
   expectedRevision,
@@ -11,6 +18,7 @@ import {
   keepCopy,
   migrate,
   type StoreMigration,
+  versionedFile,
 } from "../store-migrations";
 
 const RENAME: StoreMigration = {
@@ -77,6 +85,7 @@ describe("la copie d'avant la migration", () => {
   it("garde le fichier sous la révision qu'il portait", () => {
     const dir = folder();
     const path = join(dir, "servers.json");
+
     writeFileSync(path, `{"version":2}`);
 
     const copy = keepCopy(path, 2);
@@ -88,6 +97,7 @@ describe("la copie d'avant la migration", () => {
   it("n'écrase pas une copie déjà prise de cette révision", () => {
     const dir = folder();
     const path = join(dir, "servers.json");
+
     writeFileSync(path, `{"version":2}`);
     keepCopy(path, 2);
 
@@ -100,12 +110,93 @@ describe("la copie d'avant la migration", () => {
   it("s'en va avec le fichier qu'elle double", () => {
     const dir = folder();
     const path = join(dir, "account.json");
+
     writeFileSync(path, "{}");
     keepCopy(path, 0);
 
     forgetCopies(path);
 
     expect(existsSync(`${path}.r0`)).toBe(false);
+  });
+});
+
+describe("un fichier versionné", () => {
+  function file(dir = folder()) {
+    const path = join(dir, "store.json");
+
+    return {
+      path,
+      store: versionedFile({ baseline: 1, migrations: [ADD], path }),
+    };
+  }
+
+  it("migre à la lecture, garde la forme d'avant et s'écrit estampillé", () => {
+    const { path, store } = file();
+
+    writeFileSync(path, JSON.stringify({ tz: "UTC", version: 1 }));
+
+    const held = store.read();
+
+    expect(held).toMatchObject({
+      document: { theme: "system", tz: "UTC", version: 2 },
+      migrated: true,
+      revision: 2,
+      status: "read",
+    });
+    expect(readFileSync(`${path}.r1`, "utf8")).toContain('"tz":"UTC"');
+    expect(store.write({ theme: "dark", version: 0 })).toBe(true);
+    expect(JSON.parse(readFileSync(path, "utf8"))).toEqual({
+      theme: "dark",
+      version: 2,
+    });
+  });
+
+  it("ne réécrit jamais un fichier d'une version plus récente", () => {
+    const { path, store } = file();
+    const newer = JSON.stringify({ later: true, version: 9 });
+
+    writeFileSync(path, newer);
+
+    expect(store.read()).toMatchObject({ revision: 9, status: "read" });
+    expect(store.frozen()).toBe(true);
+    expect(store.write({ theme: "dark" })).toBe(false);
+    expect(readFileSync(path, "utf8")).toBe(newer);
+  });
+
+  it("se sait gelé même quand on l'écrit sans l'avoir lu", () => {
+    const { path, store } = file();
+    const newer = JSON.stringify({ version: 9 });
+
+    writeFileSync(path, newer);
+
+    expect(store.write({ theme: "dark" })).toBe(false);
+    expect(readFileSync(path, "utf8")).toBe(newer);
+  });
+
+  it("met de côté un fichier illisible avant que quoi que ce soit ne l'écrase", () => {
+    const { path, store } = file();
+
+    writeFileSync(path, "{ pas du json");
+
+    expect(store.read()).toEqual({
+      copy: `${path}.corrupt`,
+      status: "corrupt",
+    });
+    expect(readFileSync(`${path}.corrupt`, "utf8")).toBe("{ pas du json");
+  });
+
+  it("écrit à côté puis renomme, sans laisser de fichier temporaire", () => {
+    const dir = folder();
+    const { path, store } = file(dir);
+
+    store.write({ theme: "light" });
+
+    expect(readdirSync(dir)).toEqual(["store.json"]);
+    expect(JSON.parse(readFileSync(path, "utf8")).theme).toBe("light");
+  });
+
+  it("dit qu'il n'y a rien quand le fichier n'existe pas", () => {
+    expect(file().store.read()).toEqual({ status: "absent" });
   });
 });
 
@@ -248,5 +339,40 @@ describe("le registre de servers.json", () => {
     const migrated = migrate({ active: null }, SERVERS_MIGRATIONS);
 
     expect(migrated.document).toEqual({ active: null, version: 4 });
+  });
+});
+
+describe("le registre des connexions", () => {
+  it("nomme id et name le compte que Cloudflare écrivait accountId et accountName", () => {
+    const migrated = migrate(
+      {
+        connection: { accountId: "acc-1", accountName: "Atelier", legacy: 1 },
+        settings: { zone: "z" },
+      },
+      CONNECTIONS_MIGRATIONS
+    );
+
+    expect(migrated.document).toEqual({
+      connection: { id: "acc-1", legacy: 1, name: "Atelier" },
+      settings: { zone: "z" },
+      version: 1,
+    });
+
+    const again = migrate(
+      { ...migrated.document, version: 0 },
+      CONNECTIONS_MIGRATIONS
+    );
+
+    expect(again.document).toEqual(migrated.document);
+  });
+
+  it("laisse une fiche sans compte, ou qui le nomme déjà", () => {
+    expect(
+      migrate({ connection: null }, CONNECTIONS_MIGRATIONS).document
+    ).toEqual({ connection: null, version: 1 });
+    expect(
+      migrate({ connection: { id: "42", name: "ada" } }, CONNECTIONS_MIGRATIONS)
+        .document
+    ).toEqual({ connection: { id: "42", name: "ada" }, version: 1 });
   });
 });

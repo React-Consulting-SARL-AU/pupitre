@@ -24,7 +24,6 @@ import (
 
 const idStamp = "20060102T150405Z"
 
-// Overrides depart from the module's settings for one backup, and name it when the reader did.
 type Overrides struct {
 	Name      string
 	Databases *bool
@@ -47,7 +46,6 @@ func (o Overrides) projects(settings module.Settings) string {
 	return settings.Projects
 }
 
-// job is one backup under way: where it goes, whom it seals for, what the last one left to copy, and what it has gathered.
 type job struct {
 	service   *Service
 	ctx       *modules.Context
@@ -64,7 +62,6 @@ type job struct {
 	excluded  contract.BackupExcluded
 }
 
-// source is one part before it leaves: its step, what the manifest says of it, and how its bytes are made.
 type source struct {
 	step        string
 	part        contract.BackupPart
@@ -72,7 +69,7 @@ type source struct {
 	produce     func(w io.Writer) error
 }
 
-// Run makes a backup now, under the run lock; sink carries its steps, nil when nobody watches.
+// sink may be nil when nobody watches.
 func (s *Service) Run(sink modules.Sink, trigger string, overrides Overrides) (contract.BackupRunResult, error) {
 	var result contract.BackupRunResult
 
@@ -92,26 +89,33 @@ func (s *Service) run(ctx *modules.Context, trigger string, overrides Overrides)
 		return contract.BackupRunResult{}, unconfigured()
 	}
 
+	started := s.now()
+
 	serverID := s.ServerID()
 	if serverID == "" {
-		return contract.BackupRunResult{}, unnamed()
+		return contract.BackupRunResult{}, s.unstarted(ctx, started, unnamed())
 	}
 
 	recipient, err := seal.DecodeKey(settings.Recipient)
 	if err != nil {
-		return contract.BackupRunResult{}, unconfigured()
+		return contract.BackupRunResult{}, s.unstarted(ctx, started, unconfigured())
 	}
 
 	ctx.Replaying(replayRun)
-	started := s.now()
+
+	s.running.Add(1)
+	defer s.running.Add(-1)
 
 	record := s.record(ctx)
 	record.RunningSince = stamp(started)
+	record.RunningPID = os.Getpid()
+
 	if err := s.keep(ctx, record); err != nil {
 		return contract.BackupRunResult{}, err
 	}
 
 	id := newID(started)
+
 	j := &job{
 		service:   s,
 		ctx:       ctx,
@@ -129,10 +133,12 @@ func (s *Service) run(ctx *modules.Context, trigger string, overrides Overrides)
 	made, err := j.make(trigger, overrides, started)
 
 	record.RunningSince = ""
+	record.RunningPID = 0
 	record.LastRunAt = stamp(started)
 
 	if err != nil {
 		record.LastError = describe(err)
+
 		if kept := s.keep(ctx, record); kept != nil {
 			ctx.Logf("%s not written: %s", s.paths.State, kept)
 		}
@@ -142,7 +148,16 @@ func (s *Service) run(ctx *modules.Context, trigger string, overrides Overrides)
 
 	record.LastOKAt = record.LastRunAt
 	record.LastError = ""
-	record.Last = &Last{ID: made.result.ID, Key: made.result.Key, Bytes: made.result.Bytes, Recipient: settings.Recipient, Endpoint: settings.Endpoint, Bucket: settings.Bucket, Parts: made.result.Parts, Warnings: made.result.Warnings}
+	record.Last = &Last{
+		ID:        made.result.ID,
+		Key:       made.result.Key,
+		Bytes:     made.result.Bytes,
+		Recipient: settings.Recipient,
+		Endpoint:  settings.Endpoint,
+		Bucket:    settings.Bucket,
+		Parts:     made.result.Parts,
+		Warnings:  made.result.Warnings,
+	}
 	record = made.settle(record)
 
 	if err := s.keep(ctx, record); err != nil {
@@ -152,7 +167,19 @@ func (s *Service) run(ctx *modules.Context, trigger string, overrides Overrides)
 	return made.result, nil
 }
 
-// made is what a backup leaves beside its result: the declaration still owed, and what pruning did.
+// Recorded so the schedule waits an interval after a failed start, not just the daemon's next turn.
+func (s *Service) unstarted(ctx *modules.Context, started time.Time, err error) error {
+	record := s.record(ctx)
+	record.LastRunAt = stamp(started)
+	record.LastError = describe(err)
+
+	if kept := s.keep(ctx, record); kept != nil {
+		ctx.Logf("%s not written: %s", s.paths.State, kept)
+	}
+
+	return err
+}
+
 type made struct {
 	result  contract.BackupRunResult
 	pending *contract.BackupDeclaration
@@ -221,7 +248,7 @@ func (j *job) make(trigger string, overrides Overrides, started time.Time) (made
 	return result, nil
 }
 
-// carry sends one part under its step. A part that fails becomes a warning and the backup goes on without it; the caller learns it failed.
+// A failed part becomes a warning and the backup goes on without it; the caller still learns it failed.
 func (j *job) carry(from source) error {
 	var failure error
 
@@ -234,6 +261,7 @@ func (j *job) carry(from source) error {
 		}
 
 		j.parts = append(j.parts, part)
+
 		if copied {
 			return modules.Skipped, nil
 		}
@@ -253,7 +281,6 @@ func (j *job) warn(step string, err error) {
 	j.warnings = append(j.warnings, i18n.T("backup.part.failed", step, describe(err)))
 }
 
-// send copies the part the last backup made when nothing changed since, for the same key and bucket; it streams the part otherwise.
 func (j *job) send(from source) (contract.BackupPart, bool, error) {
 	part := from.part
 	part.Key = j.keyFor(part)
@@ -298,7 +325,7 @@ func (j *job) reusable(from source) (contract.BackupPart, bool) {
 	return contract.BackupPart{}, false
 }
 
-// stream runs the part's producer into gzip, the seal and a multipart upload, with no byte on the server's disk. The producer's own failure is the one told.
+// No byte touches the server's disk; the producer's own failure is the one reported.
 func (j *job) stream(key string, produce func(io.Writer) error) (s3.Uploaded, error) {
 	reader, writer := io.Pipe()
 	produced := make(chan error, 1)
@@ -329,6 +356,7 @@ func seals(out io.Writer, recipient []byte, produce func(io.Writer) error) error
 	}
 
 	zipped := gzip.NewWriter(sealer)
+
 	if err := produce(zipped); err != nil {
 		return err
 	}
@@ -371,7 +399,7 @@ func (j *job) manifest(trigger, name string, started time.Time) contract.BackupM
 	}
 }
 
-// The manifest goes last and binds every part by its digest: a prefix without one is an upload that never finished.
+// Written last, binding every part by digest: a prefix without a manifest is an upload that never finished.
 func (j *job) writeManifest(manifest contract.BackupManifest) (string, int64, error) {
 	var digest string
 	var total int64
@@ -399,6 +427,7 @@ func (j *job) writeManifest(manifest contract.BackupManifest) (string, int64, er
 
 		digest = sha256Hex(encoded)
 		total = int64(len(encoded))
+
 		for _, part := range manifest.Parts {
 			total += part.Bytes
 		}
@@ -435,7 +464,7 @@ func (j *job) declaration(manifest contract.BackupManifest, digest string, bytes
 	}
 }
 
-// A platform that does not answer does not undo the backup: declared says so, and the daemon declares it again at its next turn.
+// An unreachable platform does not undo the backup: the daemon declares it again at its next turn.
 func (j *job) declare(declaration contract.BackupDeclaration) bool {
 	err := j.ctx.Step("declare", func() (modules.Outcome, error) {
 		return modules.Done, j.service.declare(declaration)
@@ -486,7 +515,6 @@ func encode(manifest contract.BackupManifest) ([]byte, error) {
 	return append(encoded, '\n'), nil
 }
 
-// refused is a failure as the protocol answers it: a bucket's refusal says what to do about it.
 func refused(err error) error {
 	var failure *s3.Error
 	if errors.As(err, &failure) {
@@ -506,7 +534,6 @@ func unnamed() error {
 		WithFix(i18n.T("backup.server_id.unknown.fix"))
 }
 
-// describe is what a failure says to a reader: a bucket's refusal in its own words, a protocol refusal by its message, anything else as it came.
 func describe(err error) string {
 	var refusal *protocol.Error
 	if errors.As(err, &refusal) {

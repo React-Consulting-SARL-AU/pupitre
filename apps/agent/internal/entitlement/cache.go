@@ -19,7 +19,6 @@ const (
 	platformSuspended = "suspended"
 )
 
-// The last answer of the platform, as the agent may replay it while the platform is out of reach.
 type Cache struct {
 	State      string    `json:"state"`
 	ValidUntil time.Time `json:"valid_until"`
@@ -65,7 +64,7 @@ func WriteCache(machine sys.Sys, filePath string, cache Cache) error {
 	return machine.WriteFile(filePath, append(raw, '\n'), cacheMode)
 }
 
-// Seven days of silence close the agent; between the twenty-four hours the platform grants and that deadline, the tolerance keeps everything running.
+// Past the platform's 24-hour grant, the tolerance keeps everything running until seven days of silence.
 func (c Cache) Resolve(now time.Time, tolerance time.Duration) contract.Entitlement {
 	if now.Sub(c.CheckedAt) > tolerance {
 		return contract.EntitlementRestricted

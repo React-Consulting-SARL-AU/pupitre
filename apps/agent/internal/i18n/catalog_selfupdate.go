@@ -1,6 +1,5 @@
 package i18n
 
-// The agent's self-update: what a refusal says, and the fix that comes with it.
 var selfupdateCatalog = map[string]Message{
 	"selfupdate.signature.bad": {
 		FR: "le binaire de la version %s ne correspond pas à sa signature : rien n'a été installé",
@@ -51,12 +50,12 @@ var selfupdateCatalog = map[string]Message{
 		EN: "Pick a published version, or let the app ask for the latest.",
 	},
 	"selfupdate.token.refused": {
-		FR: "la plateforme refuse le jeton de ce serveur : %s",
+		FR: "la plateforme refuse le token de ce serveur : %s",
 		EN: "the platform refuses this server's token: %s",
 	},
 	"selfupdate.token.refused.fix": {
-		FR: "Ouvrez https://app.pupitre.studio pour rétablir l'abonnement de ce serveur.",
-		EN: "Open https://app.pupitre.studio to restore this server's usage right.",
+		FR: "Ouvrez %s pour rétablir l'abonnement de ce serveur.",
+		EN: "Open %s to restore this server's usage right.",
 	},
 	"selfupdate.download.failed": {
 		FR: "téléchargement impossible : %s",
@@ -87,7 +86,7 @@ var selfupdateCatalog = map[string]Message{
 		EN: "Stay on this version; report the incident so the published one gets fixed.",
 	},
 	"selfupdate.token.missing.fix": {
-		FR: "Réinstallez ce serveur depuis l'app pour lui rendre un jeton de serveur.",
+		FR: "Réinstallez ce serveur depuis l'app pour lui rendre un token de serveur.",
 		EN: "Reinstall this server from the app to give it a server token back.",
 	},
 	"selfupdate.root.required.fix": {
@@ -109,6 +108,34 @@ var selfupdateCatalog = map[string]Message{
 	"selfupdate.rollback.failed.fix": {
 		FR: "Poussez le binaire de l'agent depuis l'app pour rétablir le serveur.",
 		EN: "Push the agent's binary from the app to bring the server back.",
+	},
+	"selfupdate.busy": {
+		FR: "une mise à jour de l'agent est déjà en cours sur ce serveur",
+		EN: "an agent upgrade is already running on this server",
+	},
+	"selfupdate.busy.fix": {
+		FR: "Attendez la fin de la mise à jour en cours.",
+		EN: "Wait for the running upgrade to finish.",
+	},
+	"selfupdate.install.busy": {
+		FR: "une installation, une sauvegarde ou une restauration est en cours : redémarrer l'agent l'interromprait",
+		EN: "an installation, a backup or a restore is running: restarting the agent would cut it short",
+	},
+	"selfupdate.install.busy.fix": {
+		FR: "Relancez la mise à jour une fois l'opération terminée.",
+		EN: "Run the upgrade again once it is over.",
+	},
+	"selfupdate.config.unrestored": {
+		FR: "%s ; la configuration migrée par la nouvelle version n'a pas pu être remise : %s",
+		EN: "%s; the configuration the new version migrated could not be put back: %s",
+	},
+	"selfupdate.config.unrestored.fix": {
+		FR: "Sur le serveur, sudo pupitred migrate --status liste les sauvegardes ; sudo pupitred migrate --restore=<sauvegarde> remet la plus récente.",
+		EN: "On the server, sudo pupitred migrate --status lists the backups; sudo pupitred migrate --restore=<backup> puts the latest one back.",
+	},
+	"selfupdate.config.batch.missing": {
+		FR: "aucune sauvegarde prise depuis la révision %d",
+		EN: "no backup taken from revision %d",
 	},
 	"selfupdate.binary.unreadable": {
 		FR: "%s illisible : %s",

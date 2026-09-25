@@ -26,16 +26,16 @@ describe("la phrase de passe tirée", () => {
 
     expect(html).toContain(DRAWN);
     expect(html).toContain(
-      "J&#x27;ai noté cette phrase ailleurs que sur cet ordinateur"
+      "J&#x27;ai noté cette passphrase ailleurs que sur cet ordinateur"
     );
   });
 
   it("dit ce qui manque quand on enregistre sans l'avoir cochée", () => {
     expect(render(DRAWN, false, true)).toContain(
-      "Cochez cette case une fois la phrase notée"
+      "Cochez cette case une fois la passphrase notée"
     );
     expect(render(DRAWN, true, true)).not.toContain(
-      "Cochez cette case une fois la phrase notée"
+      "Cochez cette case une fois la passphrase notée"
     );
   });
 

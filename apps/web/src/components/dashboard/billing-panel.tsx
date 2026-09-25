@@ -13,6 +13,7 @@ import { useTranslations } from "@/hooks/use-locale"
 import { usePermission } from "@/hooks/use-permission"
 import {
   isLiveSubscription,
+  meQueryOptions,
   serversQueryOptions,
   statusQueryOptions,
   subscriptionQueryOptions,
@@ -59,7 +60,6 @@ interface LaunchNotice {
   fix: string | null
 }
 
-/** The launch row's callout: a seat kept for good warns of nothing; a running launch says when it ends. */
 function launchNotice(
   t: Translate,
   live: {
@@ -94,6 +94,7 @@ export function BillingPanel() {
   })
   const servers = useQuery({ ...serversQueryOptions(), enabled })
   const status = useQuery(statusQueryOptions())
+  const me = useQuery(meQueryOptions())
 
   if (!canManage) {
     return (
@@ -115,7 +116,12 @@ export function BillingPanel() {
     )
   }
 
-  if (subscription.isPending || servers.isPending || status.isPending) {
+  if (
+    subscription.isPending ||
+    servers.isPending ||
+    status.isPending ||
+    me.isPending
+  ) {
     return <SkeletonCards label={t("billingPanel.reading")} />
   }
 
@@ -146,7 +152,7 @@ export function BillingPanel() {
     subscription.data && isLiveSubscription(subscription.data)
       ? subscription.data
       : null
-  const paid = live?.quantity ?? 0
+  const quota = me.data?.subscription?.servers.limit ?? 0
   const launch = live !== null && isLaunchSubscription(live)
   const trialing = live !== null && !launch && live.status === "trialing"
   const daysLeft = trialing
@@ -188,7 +194,7 @@ export function BillingPanel() {
       ) : null}
 
       <SeatBalanceCard
-        balance={seatBalance(paid, used)}
+        balance={seatBalance(quota, used)}
         paidSeats={live !== null && !launch}
       />
     </div>

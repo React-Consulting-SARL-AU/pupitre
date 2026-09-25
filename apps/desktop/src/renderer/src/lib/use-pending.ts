@@ -1,24 +1,11 @@
 import { translate } from "@renderer/i18n/translate";
-import { announce } from "@renderer/stores/announcements";
+import { useGestureFailure } from "@renderer/stores/gesture-failure";
 import { useCallback, useState } from "react";
 
-/**
- * A gesture that hands back whatever it started.
- *
- * The return is untyped on purpose: a handler that does work answers with its
- * promise, one that only moves the screen answers with nothing, and both are
- * written the same way at the call site.
- */
+/** Untyped return on purpose: a handler doing work returns its promise, one that only moves the screen returns nothing. */
 export type Gesture<A extends unknown[] = []> = (...args: A) => unknown;
 
-/**
- * Follows the work a gesture started, when it started any.
- *
- * A handler that answers with a promise is work worth showing; anything else
- * had already happened by the time the click returned, and a spinner that turns
- * for one frame says less than nothing. The wait ends however the work ends,
- * and what it failed on is handed back rather than dropped on the floor.
- */
+/** Only a promise is worth a spinner; anything else was done before the click returned. */
 export function awaited(
   work: unknown,
   onPending: (pending: boolean) => void
@@ -39,14 +26,14 @@ export function awaited(
   );
 }
 
-/** A gesture that threw is said out loud: the button stopped, and this is why. */
-function report(reason: unknown): void {
+export function reportFailure(reason: unknown): void {
   const said = reason instanceof Error ? reason.message : String(reason);
 
-  announce(translate()("ui.gesture.failed", { reason: said }), "assertive");
+  useGestureFailure
+    .getState()
+    .fail(translate()("ui.gesture.failed", { reason: said }));
 }
 
-/** Keeps the control that was clicked waiting until the work it started settles. */
 export function usePending<A extends unknown[]>(
   gesture: Gesture<A> | undefined
 ): [(...args: A) => void, boolean] {
@@ -54,7 +41,7 @@ export function usePending<A extends unknown[]>(
 
   const start = useCallback(
     (...args: A) => {
-      awaited(gesture?.(...args), setPending)?.catch(report);
+      awaited(gesture?.(...args), setPending)?.catch(reportFailure);
     },
     [gesture]
   );

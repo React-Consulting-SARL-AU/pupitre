@@ -12,7 +12,7 @@ import { formatDateTime } from "@/lib/utils/format"
 const SHELL =
   "flex items-center gap-2 rounded-md bg-sunken px-2.5 py-2 text-[12px] text-ink-2"
 
-/** Nothing read yet — a disabled query, a pending one — is not the same as no subscription. */
+// Not read yet (disabled or pending) is not the same as no subscription.
 function subscriptionStateOf(data: Subscription | null | undefined): string {
   if (data === undefined) {
     return "unknown"

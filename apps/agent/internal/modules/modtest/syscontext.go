@@ -6,7 +6,6 @@ import (
 	"pupitre.studio/agent/internal/sys"
 )
 
-// The plain sys.Context the helpers of internal/sys ask for, without a module, a manifest or a journal on disk.
 type SysContext struct {
 	fake  *FakeSys
 	done  map[string]bool

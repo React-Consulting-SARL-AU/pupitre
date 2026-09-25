@@ -15,7 +15,6 @@ export interface AdminWorklistsProps {
   worklists: AdminOverviewData["worklists"]
 }
 
-/** What waits for the team, five lines at a time, each one a way into the thing itself. */
 export function AdminWorklists({ worklists }: AdminWorklistsProps) {
   const t = useTranslations()
   const empty = t("admin.worklists.empty")
@@ -31,7 +30,8 @@ export function AdminWorklists({ worklists }: AdminWorklistsProps) {
             to: "/dashboard/admin/inbox/$threadId",
             params: { threadId: thread.id },
           },
-          primary: thread.subject,
+          primary:
+            thread.subject === "" ? t("inbox.noSubject") : thread.subject,
           secondary: `${thread.from.name ?? thread.from.email} · ${formatRelative(
             thread.last_inbound_at,
             t

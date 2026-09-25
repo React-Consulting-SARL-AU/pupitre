@@ -1,4 +1,3 @@
-// Package token holds a connection's token where a CLI reads it: /etc/pupitre/env for root, and the dev shell for the tool itself.
 package token
 
 import (
@@ -37,7 +36,6 @@ func Export(ctx *modules.Context, step, key, value string) error {
 	})
 }
 
-// Forget takes the keys out of both places; the step is skipped when none of them was there.
 func Forget(ctx *modules.Context, step string, keys ...string) error {
 	return ctx.Step(step, func() (modules.Outcome, error) {
 		forgotten := false

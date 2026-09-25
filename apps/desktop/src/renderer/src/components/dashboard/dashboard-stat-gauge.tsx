@@ -1,4 +1,3 @@
-/** A horizontal gauge. The tone says nothing the bar does not say already. */
 export function DashboardStatGauge({
   share,
   alert,

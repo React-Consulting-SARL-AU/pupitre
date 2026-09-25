@@ -6,7 +6,7 @@ import {
   TRIAL_DAYS,
 } from "@pupitre/shared/plans"
 import { CATALOG_ENTRIES } from "../content/site/catalog"
-import { MODULE_LABELS } from "../content/site/docs"
+import { MODULE_LABELS, servicesOverviewLead } from "../content/site/docs"
 import { downloadContent } from "../content/site/download"
 import { homeContent } from "../content/site/home"
 import { integrationsContent } from "../content/site/integrations"
@@ -86,7 +86,7 @@ async function pagesFor(locale: Locale): Promise<OgPage[]> {
     page(at("/docs/services/"), {
       eyebrow: t("docs.label"),
       title: MODULE_LABELS.overviewTitle[locale],
-      description: MODULE_LABELS.overviewLead[locale],
+      description: servicesOverviewLead(locale),
     }),
     page(at("/blog/"), {
       eyebrow: t("blog.label"),

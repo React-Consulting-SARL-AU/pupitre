@@ -4,12 +4,6 @@ import { PageHeader } from "../ui/page-header";
 import { Screen } from "../ui/screen";
 import { Tab, TabBar } from "../ui/tab-bar";
 
-/**
- * The frame every page of the shell shares: a header on its own band, one
- * title, the controls at one place, and the whole width whatever the page
- * says.
- */
-
 const NOOP = () => undefined;
 
 describe("le cadre d'une page", () => {
@@ -31,7 +25,6 @@ describe("le cadre d'une page", () => {
     );
   });
 
-  /** A step of a sequence keeps its column, in the band as under it, and ends on its bar. */
   it("tient une étape sur sa colonne, et pose sa barre sous elle", () => {
     const html = renderToStaticMarkup(
       <Screen
@@ -55,7 +48,7 @@ describe("le cadre d'une page", () => {
     );
   });
 
-  /** The onboarding's rail already says where the reader is: its steps carry no band. */
+  // The onboarding rail already says where the reader is, so its steps carry no band.
   it("lit l'en-tête d'une étape de l'onboarding sur la page, sans bandeau", () => {
     const html = renderToStaticMarkup(
       <Screen column plain step="inspection" title="atelier">

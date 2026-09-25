@@ -4,14 +4,6 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { ExternalLink, Info } from "lucide-react";
 import { Tooltip } from "./tooltip";
 
-/**
- * The long form of a field's help, behind a bubble.
- *
- * What decides is read without a gesture — a caption, a reason, an error. This
- * carries the rest: where a value is found, which permissions a token needs,
- * what it costs to get it wrong. It opens on a click and on a key, never on a
- * hover alone, and its target is the twenty-eight pixels around the glyph.
- */
 export function Hint({ hint, label }: { hint: FieldHint; label: string }) {
   const t = useTranslations();
 
@@ -31,7 +23,7 @@ export function Hint({ hint, label }: { hint: FieldHint; label: string }) {
 
       <Popover.Portal>
         <Popover.Positioner align="start" side="top" sideOffset={6}>
-          <Popover.Popup className="elevation-raised z-50 max-w-xs rounded-md border border-line bg-surface p-3.5 text-[12px] text-ink-2 leading-relaxed outline-none">
+          <Popover.Popup className="elevation-raised z-50 max-w-xs rounded-md border border-line bg-surface p-3.5 text-ink-2 text-small leading-relaxed outline-none">
             <p className="break-words">{hint.text}</p>
 
             {hint.url ? (

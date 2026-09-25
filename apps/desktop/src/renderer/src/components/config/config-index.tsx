@@ -5,15 +5,6 @@ import type {
 } from "@renderer/lib/catalog-selection";
 import { StatusDot } from "../ui/status-dot";
 
-/**
- * The chosen services, in the order they are asked about, and which one is
- * open.
- *
- * The shape carries the state, as it does everywhere else: a full dot for a
- * service with nothing left to answer, a struck one for a service that is
- * refused, a hollow one for what is still empty. Beside a rail on a wide
- * window, above the questions on a narrow one.
- */
 export function ConfigIndex({
   groups,
   current,
@@ -22,16 +13,14 @@ export function ConfigIndex({
   onPick,
 }: {
   groups: readonly FieldGroup[];
-  /** The service whose questions are open. */
   current: string | null;
-  /** Everything wrong, so a service reads as complete only when it really is. */
   problems: readonly FieldProblemView[];
-  /** What may be shown, so a service is only struck once it has been answered. */
   shown: readonly FieldProblemView[];
   onPick?: (moduleId: string) => void;
 }) {
   const t = useTranslations();
 
+  // Completeness counts every problem; a strike only counts problems already shown.
   const left = new Set(problems.map((one) => one.module));
   const refused = new Set(shown.map((one) => one.module));
 
@@ -46,6 +35,7 @@ export function ConfigIndex({
         const open = group.module.id === current;
 
         let shape: "filled" | "struck" | "empty" = "empty";
+
         if (wrong) {
           shape = "struck";
         } else if (done) {
@@ -55,7 +45,7 @@ export function ConfigIndex({
         return (
           <button
             aria-current={open ? "true" : undefined}
-            className={`clickable flex shrink-0 items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-[12px] transition-fast hover:bg-raised hover:text-ink ${
+            className={`clickable flex shrink-0 items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-small transition-fast hover:bg-raised hover:text-ink ${
               open ? "bg-raised font-medium text-ink" : "text-ink-3"
             }`}
             data-index={group.module.id}

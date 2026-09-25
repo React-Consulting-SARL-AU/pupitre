@@ -12,7 +12,6 @@ import (
 	"pupitre.studio/agent/internal/protocol"
 )
 
-// The terminal reaches the handlers the app calls: here, two that answer as the backups would.
 func backups(t *testing.T) func(...string) run {
 	t.Helper()
 

@@ -15,7 +15,7 @@ type doneResult struct {
 	Done bool `json:"done"`
 }
 
-// The parameters of the commands that read a bucket; the credentials are never among them.
+// Credentials are never among the parameters: they arrive on the secret line.
 type bucketParams struct {
 	Location contract.BackupLocation `json:"location"`
 	Revert   bool                    `json:"revert"`
@@ -38,6 +38,7 @@ func RegisterCommands(server *protocol.Server, service *Service) {
 			Databases *bool  `json:"databases"`
 			Projects  string `json:"projects"`
 		}
+
 		if err := json.Unmarshal(raw, &params); err != nil {
 			return nil, unreadable(err)
 		}
@@ -53,6 +54,7 @@ func RegisterCommands(server *protocol.Server, service *Service) {
 		var params struct {
 			ID string `json:"id"`
 		}
+
 		if err := json.Unmarshal(raw, &params); err != nil {
 			return nil, unreadable(err)
 		}
@@ -98,7 +100,6 @@ func RegisterCommands(server *protocol.Server, service *Service) {
 	})
 }
 
-// bucketRequest reads the parameters and the secret line of a command that reads a bucket, BackupSecrets by the contract.
 func bucketRequest(ctx *protocol.Context, raw json.RawMessage) (bucketParams, contract.BackupSecrets, error) {
 	var params bucketParams
 	if err := json.Unmarshal(raw, &params); err != nil {
@@ -109,6 +110,7 @@ func bucketRequest(ctx *protocol.Context, raw json.RawMessage) (bucketParams, co
 	if err == nil {
 		err = contract.Validate("BackupSecrets", value)
 	}
+
 	if err != nil {
 		return bucketParams{}, contract.BackupSecrets{}, protocol.NewError(contract.ErrorBadRequest, i18n.T("secrets.invalid", err.Error())).
 			WithFix(i18n.T("backup.secrets.fix"))
@@ -124,7 +126,7 @@ func bucketRequest(ctx *protocol.Context, raw json.RawMessage) (bucketParams, co
 
 var namePattern = regexp.MustCompile(contract.Backup.NamePattern)
 
-// Nameable holds a backup's name to the contract's rules: its pattern, and a length counted in UTF-16 units, as the platform counts it before taking the declaration.
+// Length counts UTF-16 units, as the platform does before taking the declaration.
 func Nameable(name string) bool {
 	return namePattern.MatchString(name) && len(utf16.Encode([]rune(name))) <= contract.Backup.NameMax
 }

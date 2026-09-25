@@ -1,17 +1,10 @@
 import type { FIELD_FORMATS } from "./index"
 
-/**
- * The expression each format holds a value to.
- *
- * Every pattern here is written in the subset both JavaScript and Go's RE2
- * accept — no lookaround, no backreference — because the agent runs the same
- * rules on the same values and the two must never disagree.
- */
-
 export type FieldFormat = (typeof FIELD_FORMATS)[number]
 
 const LABEL = "[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?"
 
+// RE2 subset (no lookaround, no backreference): the agent runs the same patterns.
 export const FORMAT_PATTERNS: Record<FieldFormat, string> = {
   domain: `^${LABEL}(\\.${LABEL})+$`,
   email: `^[a-z0-9._%+-]+@${LABEL}(\\.${LABEL})+$`,
@@ -27,8 +20,7 @@ export const FORMAT_PATTERNS: Record<FieldFormat, string> = {
 const PORT_MIN = 1
 const PORT_MAX = 65_535
 
-/** A hostname or a domain is compared in lower case: a zone is not two zones. */
-export function normalized(format: FieldFormat, value: string): string {
+function normalized(format: FieldFormat, value: string): string {
   if (format === "domain" || format === "hostname" || format === "email") {
     return value.trim().toLowerCase()
   }

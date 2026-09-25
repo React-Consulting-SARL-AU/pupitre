@@ -3,12 +3,7 @@ import { TERMINAL_FONT } from "@renderer/lib/completion";
 import { type PatchRow, parsePatch } from "@renderer/lib/patch";
 import { useMemo } from "react";
 
-/**
- * A patch row reads by its sign first.
- *
- * The tint is `ok` or `danger` at a tenth of an opacity — enough to group the
- * lines at a glance, never enough to be the only thing saying what they are.
- */
+// The sign carries the meaning; the faint tint only groups the lines.
 const ROW: Record<
   PatchRow["kind"],
   { sign: string; background: string; text: string }
@@ -31,10 +26,10 @@ export function ProjectDiffPatchRows({
 
   const rows = useMemo(() => parsePatch(patch), [patch]);
 
-  // A problem is said once, above the patch, by whoever holds the header.
+  // The header already shows the problem above the patch.
   if (rows.length === 0) {
     return problem ? null : (
-      <p className="p-6 text-center text-[13px] text-ink-3">
+      <p className="p-6 text-center text-control text-ink-3">
         {t("project.diff.noTextChange")}
       </p>
     );
@@ -53,10 +48,10 @@ export function ProjectDiffPatchRows({
             return (
               // biome-ignore lint/suspicious/noArrayIndexKey: a patch is a sequence, its position IS its identity
               <tr className={look.background} data-kind={row.kind} key={index}>
-                <td className="w-10 select-none border-line border-r px-1.5 text-right align-top text-[11px] text-ink-3 tabular-nums">
+                <td className="w-10 select-none border-line border-r px-1.5 text-right align-top text-caption text-ink-3 tabular-nums">
                   {row.before ?? ""}
                 </td>
-                <td className="w-10 select-none border-line border-r px-1.5 text-right align-top text-[11px] text-ink-3 tabular-nums">
+                <td className="w-10 select-none border-line border-r px-1.5 text-right align-top text-caption text-ink-3 tabular-nums">
                   {row.after ?? ""}
                 </td>
                 <td

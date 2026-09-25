@@ -9,19 +9,7 @@ import type { GitState } from "@renderer/stores/project";
 import { Download, RotateCw } from "lucide-react";
 import { ProjectGitSummary } from "./project-git-summary";
 
-/**
- * The gap with the remote repository, and when it was last measured.
- *
- * This is the one read in the app that leaves the machine, so it is never in a
- * refresh loop: it runs when the project opens, when a branch is taken, and
- * when the reader presses the button. The timestamp is there so nobody mistakes
- * a ten-minute-old answer for a live one.
- *
- * Commits to pull come with the gesture that pulls them: `project.sync`, which
- * pulls and then reinstalls the dependencies — the button says both, because
- * the second half is what takes the time.
- */
-
+// The only read that leaves the machine: never on a timer, and stamped so an old answer is not taken as live.
 export function ProjectGitState({
   state,
   onCheck,
@@ -37,7 +25,7 @@ export function ProjectGitState({
 
   if (state.status === "idle" || state.status === "reading") {
     return (
-      <WaitingLine className="font-data text-[12px]">
+      <WaitingLine className="font-data text-small">
         {t("project.git.querying")}
       </WaitingLine>
     );
@@ -53,7 +41,7 @@ export function ProjectGitState({
 
   if (!state.git.repo) {
     return (
-      <p className="font-data text-[12px] text-ink-3">
+      <p className="font-data text-ink-3 text-small">
         {t("project.git.notRepo")}
       </p>
     );
@@ -64,7 +52,7 @@ export function ProjectGitState({
       <div className="flex flex-wrap items-center gap-2">
         <div className="min-w-0 flex-1">
           <ProjectGitSummary git={state.git} />
-          <p className="mt-1 truncate font-data text-[11px] text-ink-3">
+          <p className="mt-1 truncate font-data text-caption text-ink-3">
             {state.git.subject
               ? `${t("project.git.lastCommit", { subject: state.git.subject })} · `
               : ""}
@@ -74,7 +62,6 @@ export function ProjectGitState({
 
         {state.git.behind > 0 && onPull ? (
           <Button
-            hint={t("project.header.syncHint")}
             icon={Download}
             loading={pulling}
             onClick={onPull}

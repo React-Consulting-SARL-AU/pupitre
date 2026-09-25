@@ -4,7 +4,6 @@ import { FoldingSection } from "@renderer/components/ui/section";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { HelpTarget } from "./help-screen";
 
-/** What each remote editor asks for, answered with the driven server's word. */
 export function HelpEditorsSection({ target }: { target: HelpTarget }) {
   const t = useTranslations();
 
@@ -30,7 +29,7 @@ export function HelpEditorsSection({ target }: { target: HelpTarget }) {
           </Fact>
         </FactList>
 
-        <p className="mt-4 text-[12px] text-ink-3 leading-relaxed">
+        <p className="mt-4 text-ink-3 text-small leading-relaxed">
           {t("help.editors.buttons")}
         </p>
       </Panel>

@@ -6,18 +6,20 @@ import { MAIL_HTML_CSP, MAIL_NOSNIFF } from "../../../mail/html"
 import { mailAttachmentUrl, readMailMessageHtml } from "../../../mail/objects"
 import {
   attachmentOrigin,
-  bulkUpdateMailThreads,
-  listMailThreads,
-  MAIL_PAGE_SIZE,
-  MailAssigneeNotOnTheTeamError,
-  MailOrganizationUnknownError,
   noteSensitiveThreadRead,
   readMailThread,
+} from "../../../mail/thread-detail"
+import {
+  bulkUpdateMailThreads,
+  MailAssigneeNotOnTheTeamError,
+  MailOrganizationUnknownError,
   updateMailThread,
-} from "../../../mail/threads"
+} from "../../../mail/thread-mutations"
+import { listMailThreads, MAIL_PAGE_SIZE } from "../../../mail/threads"
+import { actsOnPlatform } from "../../../platform/actor"
 import { apiError } from "../../errors"
 import { dataResponse, errorResponse } from "../../openapi-models"
-import { ROLE_RANK, requirePlatformAdmin } from "../../plugins/guards"
+import { requirePlatformAdmin } from "../../plugins/guards"
 import { serializeData } from "../../prisma"
 import {
   mailAttachmentUrlQuery,
@@ -38,10 +40,6 @@ const threadListResponse = t.Object(
   },
   { $id: "MailThreadList" }
 )
-
-function actsAsAdmin(platformRole: string | null | undefined): boolean {
-  return ROLE_RANK[(platformRole ?? "member") as "member"] >= ROLE_RANK.admin
-}
 
 function roleRefusal(locale: Locale) {
   return apiError(
@@ -207,7 +205,7 @@ export const adminInboxThreadRoutes = new Elysia({
         body.assigned_user_id !== undefined ||
         body.linked_organization_id !== undefined
 
-      if (acts && !actsAsAdmin(platformRole)) {
+      if (acts && !actsOnPlatform(platformRole)) {
         set.status = 403
 
         return roleRefusal(locale)
@@ -272,7 +270,7 @@ export const adminInboxThreadRoutes = new Elysia({
   .post(
     "/threads/bulk",
     async ({ user, platformRole, body, request, set }) => {
-      if (body.status !== undefined && !actsAsAdmin(platformRole)) {
+      if (body.status !== undefined && !actsOnPlatform(platformRole)) {
         set.status = 403
 
         return roleRefusal(resolveLocale(request.headers))

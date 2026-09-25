@@ -2,15 +2,7 @@ import type { Manifest } from "@pupitre/shared/catalog";
 import type { FieldProblem } from "@pupitre/shared/catalog/validate";
 import type { Translate } from "./i18n";
 
-/**
- * Why a value is refused, in one sentence.
- *
- * A problem the agent sent already carries its own phrase, in the language of
- * the session, and it is printed exactly as it came: the server is the one that
- * looked at the machine. A problem the app computed carries only its code, and
- * the same sentences are said here — the two implementations share their rules,
- * so they may as well share their words.
- */
+// A problem sent by the agent already carries its phrase and is printed exactly as it came.
 export function problemText(t: Translate, problem: FieldProblem): string {
   if (problem.message) {
     return problem.message;
@@ -42,11 +34,7 @@ export function problemText(t: Translate, problem: FieldProblem): string {
   }
 }
 
-/**
- * The refusals a form has no field to put under — a value the app fills from
- * a connection, a verdict on the whole module — each said with the name of the
- * field it concerns, so that none is left as a bare count.
- */
+/** Refusals with no drawn field, each named after its field so none is left as a bare count. */
 export function strayProblems(
   t: Translate,
   problems: readonly FieldProblem[],

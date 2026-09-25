@@ -9,19 +9,15 @@ export type TerminalTheme = AnsiPalette & {
   selectionBackground: string;
 };
 
-/** Reads a design token off an element, so nothing here holds a colour. */
 export type TokenReader = (name: string) => string;
 
 export function readTokens(root: Element): TokenReader {
   const style = getComputedStyle(root);
+
   return (name) => style.getPropertyValue(name).trim();
 }
 
-/**
- * The terminal keeps an ANSI palette because Claude Code, Codex and the tools
- * depend on it — desaturated, and different per theme. Everything around it
- * comes from the same tokens as the rest of the interface.
- */
+/** Keeps an ANSI palette because Claude Code, Codex and CLI tools depend on it; the rest comes from tokens. */
 export function terminalTheme(
   resolved: ResolvedTheme,
   token: TokenReader

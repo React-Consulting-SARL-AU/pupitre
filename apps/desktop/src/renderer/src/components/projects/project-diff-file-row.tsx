@@ -31,10 +31,15 @@ function iconFor(change: FileChange) {
 export function ProjectDiffFileRow({
   change,
   active,
+  id,
+  tabbable,
   onSelect,
 }: {
   change: FileChange;
   active: boolean;
+  id: string;
+  /** The one row of the list the Tab key lands on; the arrows walk the others. */
+  tabbable: boolean;
   onSelect: () => void;
 }) {
   const t = useTranslations();
@@ -45,17 +50,24 @@ export function ProjectDiffFileRow({
 
   return (
     <Tooltip label={`${change.path} · ${change.code.trim() || change.code}`}>
-      <button
+      <div
         aria-selected={active}
-        className={`flex w-full items-center gap-2 border-line border-b px-3 py-2 text-left last:border-b-0 ${
+        className={`flex w-full cursor-pointer items-center gap-2 border-line border-b px-3 py-2 text-left last:border-b-0 ${
           active ? "bg-raised" : "hover:bg-sunken"
         }`}
+        id={id}
         onClick={onSelect}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onSelect();
+          }
+        }}
         role="option"
-        type="button"
+        tabIndex={tabbable ? 0 : -1}
       >
         <Icon className={`shrink-0 ${stage.className}`} size={12} />
-        <span className="min-w-0 flex-1 font-data text-[12px]">
+        <span className="min-w-0 flex-1 font-data text-small">
           <span
             className={`block truncate ${active ? "text-ink" : "text-ink-2"}`}
           >
@@ -68,19 +80,19 @@ export function ProjectDiffFileRow({
             ) : null}
           </span>
           {dir ? (
-            <span className="block truncate text-[11px] text-ink-3">
+            <span className="block truncate text-caption text-ink-3">
               {dir.replace(TRAILING_SLASH, "")}
             </span>
           ) : null}
         </span>
         {change.binary ? (
-          <span className="shrink-0 font-data text-[11px] text-ink-3">
+          <span className="shrink-0 font-data text-caption text-ink-3">
             {t("project.diff.binary")}
           </span>
         ) : (
           <ProjectDiffCount added={change.added} removed={change.removed} />
         )}
-      </button>
+      </div>
     </Tooltip>
   );
 }

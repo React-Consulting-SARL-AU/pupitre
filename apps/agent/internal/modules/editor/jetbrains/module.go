@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	// The folder JetBrains Gateway inspects for an already installed backend; a distribution laid anywhere else is downloaded again.
+	// Gateway looks for an installed backend here only; anywhere else it downloads its own again.
 	CacheDir = shell.Home + "/.cache/JetBrains/RemoteDev/dist"
 
 	markerName    = ".installed.txt"
@@ -36,7 +36,6 @@ func (Module) Manifest() contract.Manifest {
 	return manifest()
 }
 
-// A folder is a backend once it carries build.txt: what a download cut short left is not one.
 func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 	build := installedBuild(ctx)
 	if build == "" {
@@ -68,9 +67,7 @@ func (Module) Install(ctx *modules.Context) error {
 	})
 }
 
-// The archive is extracted beside the distribution and moved into place whole:
-// a download cut short leaves nothing Gateway or a replay would take for a
-// backend, and an upgrade keeps the running backend until its replacement is there.
+// Extracted beside the dist and moved in whole: a cut-short download never passes for a backend, and an upgrade keeps the old one.
 func installBackend(ctx *modules.Context, found release) error {
 	dist := distDir(ctx)
 	partial := dist + partialSuffix
@@ -152,7 +149,7 @@ func writeOptions(ctx *modules.Context) error {
 	})
 }
 
-// Gateway takes a distribution carrying this marker as fully extracted, and offers it instead of downloading its own.
+// Gateway takes a distribution with this marker as fully extracted and offers it instead of downloading its own.
 func markInstalled(ctx *modules.Context) error {
 	return ctx.Step("mark-backend", func() (modules.Outcome, error) {
 		dist := distDir(ctx)
@@ -190,9 +187,7 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// The dist folder is Gateway's, and so is what Gateway downloaded itself;
-// every distribution this module laid there, under any IDE and version the form
-// named over time, goes.
+// Only the distributions this module laid go, under any IDE and version; what Gateway downloaded itself stays.
 func (Module) Uninstall(ctx *modules.Context) error {
 	return ctx.Step("remove-backend", func() (modules.Outcome, error) {
 		laid := laidDistributions(ctx)
@@ -210,7 +205,7 @@ func (Module) Uninstall(ctx *modules.Context) error {
 	})
 }
 
-// A distribution of ours is named <ide>-<version>, after an IDE the manifest offers; Gateway names its own after the build.
+// Ours are named <ide>-<version>; Gateway names its own after the build.
 func laidDistributions(ctx *modules.Context) []string {
 	entries, err := ctx.Sys().ReadDir(CacheDir)
 	if err != nil {
@@ -218,6 +213,7 @@ func laidDistributions(ctx *modules.Context) []string {
 	}
 
 	var laid []string
+
 	for _, entry := range entries {
 		ide, version, found := strings.Cut(entry.Name, "-")
 		if _, offered := ides[ide]; !entry.Dir || !found || !offered || !ourVersion.MatchString(version) {
@@ -250,7 +246,7 @@ func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
 	return status, nil
 }
 
-// One folder per IDE and per requested version, so Gateway lists what it can open and a replay finds it without asking JetBrains anything.
+// Named after the requested version, not the build, so a replay finds it without asking JetBrains.
 func distDir(ctx *modules.Context) string {
 	return CacheDir + "/" + ctx.String("ide") + "-" + wantedVersion(ctx)
 }

@@ -64,14 +64,12 @@ function agent(fixtures: string | string[], attempts = 3): AgentClient {
   });
 }
 
-/** One transcript per connection attempt, so the probes can be counted. */
 function probing(fixtures: string[]): AgentClient {
   return agent(fixtures, 1);
 }
 
 const AT_ONCE = { attempts: 2, delayMs: 0, sleep: () => Promise.resolve() };
 
-/** The app's own configuration, rewritten exactly as `servers.ts` rewrites it. */
 function account(servers: Server[], user: string) {
   const next = withAccount(servers, SERVER, user);
 
@@ -98,9 +96,11 @@ describe("runHarden", () => {
       close: (id) => client.close(id),
       switchUser: (id, user) => {
         const next = account(servers, user);
+
         if (!(next.servers && id === SERVER)) {
           return null;
         }
+
         servers = next.servers;
         rendered = next.config ?? rendered;
 
@@ -136,9 +136,11 @@ describe("runHarden", () => {
       close: (id) => client.close(id),
       switchUser: (id, user) => {
         const next = account(servers, user);
+
         if (!(next.servers && id === SERVER)) {
           return null;
         }
+
         servers = next.servers;
         rendered = next.config ?? rendered;
 
@@ -226,11 +228,7 @@ describe("runHarden", () => {
   });
 });
 
-/**
- * The hardening restarts sshd, and the channel dies with it. The agent writes
- * no report of a hardening, so nothing can be read back: the app asks the
- * machine who opens it now, on the account it came in with and on `dev`.
- */
+// Hardening restarts sshd and writes no report, so the app probes which account opens the machine now.
 describe("un durcissement coupé en route", () => {
   function tracked(client: AgentClient) {
     const switched: string[] = [];
@@ -242,9 +240,11 @@ describe("un durcissement coupé en route", () => {
         close: (id: string) => client.close(id),
         switchUser: (_id: string, user: string) => {
           const next = withAccount(servers, SERVER, user);
+
           if (!next) {
             return null;
           }
+
           servers = next;
           switched.push(user);
 
@@ -406,9 +406,11 @@ describe("le parcours d'un serveur atteint en root", () => {
       close: (id) => client.close(id),
       switchUser: (_id, user) => {
         const next = account(servers, user);
+
         if (!next.servers) {
           return null;
         }
+
         servers = next.servers;
         rendered = next.config ?? rendered;
 
@@ -431,11 +433,7 @@ describe("le parcours d'un serveur atteint en root", () => {
 });
 
 describe("le socket de multiplexage", () => {
-  /**
-   * `%C` is ssh's own hash of the host, the port and the account: a session
-   * opened as root and one opened as dev never share a socket, so closing root
-   * never leaves a master answering for it.
-   */
+  // `%C` hashes host, port and account, so root and dev sessions never share a master socket.
   it("est nommé par ssh d'après le compte, pour ne pas réutiliser la session de root", () => {
     const paths = appSshPaths("/data");
     const rendered = renderSshConfig(

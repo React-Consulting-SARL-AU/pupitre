@@ -15,6 +15,7 @@ import (
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/state"
+	"pupitre.studio/agent/internal/sudo"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/lock"
 	"pupitre.studio/agent/internal/tmux"
@@ -60,7 +61,6 @@ func fixture(t *testing.T) (*modtest.FakeSys, *state.Reader) {
 	return fake, newReader(t, fake, modules.NewRegistry(), func(time.Duration) {})
 }
 
-// One project of one process, as the screen declares most of them.
 func declared(name string, port int, cmd string) (registry.Project, []state.ProcessRequest) {
 	return registry.Project{Name: name, Dir: name}, []state.ProcessRequest{
 		{ID: registry.LabelFrom(name), Dir: registry.RootDir, PkgMgr: "bun", Host: "127.0.0.1", Port: port, Cmd: cmd},
@@ -112,6 +112,29 @@ func TestSnapshotReadsTheMachineTheProjectsAndTheEntitlement(t *testing.T) {
 	}
 }
 
+func TestSnapshotSaysWhatSudoAsksOfDev(t *testing.T) {
+	fake, reader := fixture(t)
+
+	if got := reader.Snapshot().Machine.Sudo; got != "" {
+		t.Fatalf("no sudoers rule, sudo = %q", got)
+	}
+
+	fake.Files[sudo.Path] = []byte(sudo.Open)
+	if got := reader.Snapshot().Machine.Sudo; got != contract.SudoNopasswdAll {
+		t.Fatalf("sudo = %q", got)
+	}
+
+	fake.Files[sudo.Path] = []byte(sudo.Restricted)
+	snapshot := reader.Snapshot()
+	if snapshot.Machine.Sudo != contract.SudoPassword {
+		t.Fatalf("sudo = %q", snapshot.Machine.Sudo)
+	}
+
+	if err := contract.ValidateValue("SnapshotResult", snapshot); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestAddThenUpBringsTheProjectOnlineAndDownStopsIt(t *testing.T) {
 	fake, reader := fixture(t)
 	fake.Serves("api/api", 5173)
@@ -159,7 +182,6 @@ func TestAddThenUpBringsTheProjectOnlineAndDownStopsIt(t *testing.T) {
 	}
 }
 
-// A repository brings its own folders with the clone: declaring one must leave the projects root untouched, or git refuses to clone into what it finds there.
 func TestAddCreatesNoFolderForARepositoryProject(t *testing.T) {
 	fake, reader := fixture(t)
 
@@ -178,7 +200,6 @@ func TestAddCreatesNoFolderForARepositoryProject(t *testing.T) {
 	}
 }
 
-// A folder left by an earlier project is found out at the declaration, when nothing has been written yet: the refusal says what to do with it.
 func TestAddRefusesARepositoryProjectWhoseFolderIsAlreadyBusy(t *testing.T) {
 	fake, reader := fixture(t)
 	fake.Dirs["/home/dev/projects/intranet"] = true
@@ -206,7 +227,6 @@ func TestAddRefusesARepositoryProjectWhoseFolderIsAlreadyBusy(t *testing.T) {
 	}
 }
 
-// A folder already on the machine is taken as it stands; a process folder it lacks is made, so the window has somewhere to open.
 func TestAddCreatesTheProcessFoldersOfAFolderProject(t *testing.T) {
 	fake, reader := fixture(t)
 	fake.Dirs["/home/dev/projects/local"] = true
@@ -270,6 +290,7 @@ func TestSnapshotAnswersUnderThreeHundredMillisecondsWithTenProjects(t *testing.
 	machine(fake)
 
 	var rows strings.Builder
+
 	for i := range 10 {
 		name := string(rune('a'+i)) + "-app"
 		port := 3000 + i
@@ -484,6 +505,7 @@ func TestAServiceSaysWhetherItHoldsAProcess(t *testing.T) {
 	reader := newReader(t, fake, catalog, func(time.Duration) {})
 
 	runs := map[string]bool{}
+
 	for _, service := range reader.Snapshot().Services {
 		runs[service.ID] = service.Runs
 	}
@@ -512,6 +534,7 @@ func TestAServiceNamesTheAccountItsManifestDeclares(t *testing.T) {
 	reader := newReader(t, fake, catalog, func(time.Duration) {})
 
 	connections := map[string]string{}
+
 	for _, service := range reader.Snapshot().Services {
 		connections[service.ID] = service.Connection
 	}
@@ -685,6 +708,7 @@ func TestAServiceIsUnconfiguredWhenTheEngineLeftItForLater(t *testing.T) {
 	})
 
 	configured := map[string]bool{}
+
 	for _, service := range reader.Snapshot().Services {
 		configured[service.ID] = service.Configured
 	}
@@ -720,7 +744,6 @@ func TestAddHandsTheProjectFoldersToTheirUser(t *testing.T) {
 	}
 }
 
-// A repository that freezes --host react-box.localhost binds to a name the machine does not resolve: the agent makes it answer, in IPv4 only, where the port is probed and the tunnel knocks.
 func TestAddPointsALocalhostHostAtTheLoopbackAndRemoveForgetsIt(t *testing.T) {
 	fake, reader := fixture(t)
 	fake.Files["/etc/hosts"] = []byte("127.0.0.1 localhost\n::1 localhost ip6-localhost\n")
@@ -754,7 +777,6 @@ func TestAddPointsALocalhostHostAtTheLoopbackAndRemoveForgetsIt(t *testing.T) {
 	}
 }
 
-// A folder a previous agent created as root would refuse the clone git runs as dev: it changes hands first.
 func TestSyncHandsARootOwnedFolderBackBeforeCloning(t *testing.T) {
 	fake, reader := fixture(t)
 	fake.Files[registry.DefaultConf] = []byte("api|api|https://github.com/me/api|none|127.0.0.1|5173|-|sleep 1\n")
@@ -771,6 +793,7 @@ func TestSyncHandsARootOwnedFolderBackBeforeCloning(t *testing.T) {
 	}
 
 	var clone sys.Command
+
 	for _, call := range fake.Calls {
 		if len(call.Argv) > 3 && call.Argv[0] == "git" && call.Argv[3] == "clone" {
 			clone = call
@@ -782,7 +805,6 @@ func TestSyncHandsARootOwnedFolderBackBeforeCloning(t *testing.T) {
 	}
 }
 
-// What the install prints travels as it comes: a reader watching a sync sees the package manager at work, not a blank channel for minutes.
 func TestInstallHandsTheOutputOverLineByLine(t *testing.T) {
 	fake, reader := fixture(t)
 	fake.Replies["zsh"] = "bun install v1.2.3\n42 packages installed\n"
@@ -797,8 +819,6 @@ func TestInstallHandsTheOutputOverLineByLine(t *testing.T) {
 	}
 }
 
-// A machine busy installing answers busy rather than racing: the second run
-// would work the same directories as the first, whichever session sent it.
 func lockedReader(t *testing.T, fake *modtest.FakeSys) (*state.Reader, func()) {
 	t.Helper()
 
@@ -847,8 +867,6 @@ func TestAPullOnABusyMachineAnswersBusy(t *testing.T) {
 	}
 }
 
-// The install ends with the channel that asked for it: a session cut mid-run
-// leaves no twin behind on the machine.
 type waitingSys struct {
 	*modtest.FakeSys
 }
@@ -895,7 +913,6 @@ func TestTheInstallEndsWithTheChannelThatAskedForIt(t *testing.T) {
 	}
 }
 
-// The reader reads the values the machine remembers where the engine wrote them, not at a path of its own: an engine on another install.json is read on that one.
 func TestTheReaderReadsTheModulesOnTheEnginesInstallFile(t *testing.T) {
 	fake, _ := fixture(t)
 	catalog := modules.NewRegistry()

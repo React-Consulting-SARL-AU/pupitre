@@ -23,10 +23,10 @@ const (
 
 	defaultDir      = "/var/lib/redis"
 	defaultFilename = "dump.rdb"
+	incomingSuffix  = ".restoring"
 	owner           = "redis"
 )
 
-// Snapshot has Redis write its RDB in the background, waits for it, and streams the file it wrote.
 func Snapshot(ctx *modules.Context, w io.Writer) error {
 	dir, filename := where(ctx)
 
@@ -40,7 +40,7 @@ func Snapshot(ctx *modules.Context, w io.Writer) error {
 		return err
 	}
 
-	// A save that started and ended within the second of the one before leaves LASTSAVE where it was: the fork being over says it as well.
+	// A save within the same second as the last leaves LASTSAVE unchanged, so a finished fork counts as saved too.
 	started := strings.Contains(reply, "started")
 	saved := func() (bool, error) {
 		now, err := cli(ctx, "LASTSAVE")
@@ -52,6 +52,7 @@ func Snapshot(ctx *modules.Context, w io.Writer) error {
 
 		return started && field(info, "rdb_bgsave_in_progress") == "0", err
 	}
+
 	if err := until(ctx, saved, "backup.redis.snapshot.timeout"); err != nil {
 		return err
 	}
@@ -70,26 +71,19 @@ func Snapshot(ctx *modules.Context, w io.Writer) error {
 	return err
 }
 
-// A server persisting through its append-only file would start empty on an RDB alone: it starts once without it, then turns it back on live, which rewrites it from the snapshot.
+// An AOF server would start empty on an RDB alone: start without AOF, then turn it on live to rewrite it from the RDB.
 func RestoreSnapshot(ctx *modules.Context, r io.Reader) error {
 	dir, filename := where(ctx)
-	persistent := ctx.Bool("persistence")
 
 	if err := systemd.Stop(ctx, unit); err != nil {
 		return err
 	}
 
-	for _, stale := range []string{"appendonlydir", "appendonly.aof"} {
-		if err := ctx.Sys().RemoveIn(dir, stale, true); err != nil {
-			return err
-		}
+	if err := swapIn(ctx, dir, filename, r); err != nil {
+		return errors.Join(err, systemd.Restart(ctx, unit))
 	}
 
-	if _, err := sys.Exec(ctx, sys.Command{User: owner, Argv: sys.Idle("dd", "of="+path.Join(dir, filename), "bs=1M", "status=none"), Input: r, Timeout: streamTimeout}); err != nil {
-		return err
-	}
-
-	if !persistent {
+	if !ctx.Bool("persistence") {
 		return systemd.Restart(ctx, unit)
 	}
 
@@ -109,11 +103,57 @@ func RestoreSnapshot(ctx *modules.Context, r io.Reader) error {
 	return started
 }
 
+// Renamed into place only once whole, so a broken stream leaves the server's own files untouched.
+func swapIn(ctx *modules.Context, dir, filename string, r io.Reader) error {
+	incoming := filename + incomingSuffix
+
+	if err := receive(ctx, dir, incoming, r); err != nil {
+		_ = ctx.Sys().RemoveIn(dir, incoming, false)
+
+		return err
+	}
+
+	if err := ctx.Sys().RenameIn(dir, incoming, filename); err != nil {
+		_ = ctx.Sys().RemoveIn(dir, incoming, false)
+
+		return err
+	}
+
+	for _, stale := range []string{"appendonlydir", "appendonly.aof"} {
+		if err := ctx.Sys().RemoveIn(dir, stale, true); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func receive(ctx *modules.Context, dir, name string, r io.Reader) error {
+	ctx.Logf("snapshot streamed into %s", path.Join(dir, name))
+
+	out, err := ctx.Sys().CreateIn(dir, name, owner)
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(out, r)
+	if synced, durable := out.(interface{ Sync() error }); durable && err == nil {
+		err = synced.Sync()
+	}
+
+	if closed := out.Close(); err == nil {
+		err = closed
+	}
+
+	return err
+}
+
 func persistLive(ctx *modules.Context) error {
 	input := user.Input{
 		Env:   auth(ctx),
 		Stdin: []byte(renderLive(ctx.Secret("password"), true, ctx.Int("maxmemory_mb"), policy(ctx))),
 	}
+
 	if _, err := user.RunWith(ctx, "root", input, "redis-cli", "-p", strconv.Itoa(port(ctx)), "--no-auth-warning"); err != nil {
 		return err
 	}
@@ -131,7 +171,6 @@ func writeDropIn(ctx *modules.Context, persistent bool) error {
 	return file.WriteAtomic(ctx, dropIn, renderConfig(port(ctx), ctx.Secret("password"), persistent, ctx.Int("maxmemory_mb"), policy(ctx)), 0o640)
 }
 
-// where reads the folder and the file the server writes its snapshot to, the package's own defaults when it does not answer.
 func where(ctx *modules.Context) (string, string) {
 	dir, filename := defaultDir, defaultFilename
 
@@ -150,9 +189,10 @@ func where(ctx *modules.Context) (string, string) {
 	return dir, filename
 }
 
-// The password rides on REDISCLI_AUTH, never on an argv ps shows; the commands themselves carry nothing secret.
+// REDISCLI_AUTH keeps the password out of an argv ps shows.
 func cli(ctx *modules.Context, words ...string) (string, error) {
 	argv := append([]string{"redis-cli", "-p", strconv.Itoa(port(ctx)), "--no-auth-warning"}, words...)
+
 	out, err := sys.Exec(ctx, sys.Command{Argv: argv, Env: auth(ctx)})
 	if err != nil {
 		return "", err

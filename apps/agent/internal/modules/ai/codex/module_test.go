@@ -26,6 +26,7 @@ func install(t *testing.T, fake *modtest.FakeSys) *modules.Context {
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -118,7 +119,6 @@ func asStepError(err error, target **modules.StepError) bool {
 
 var _ modules.Module = Module{}
 
-// A JWT whose payload carries an email, as the ChatGPT sign-in leaves one in auth.json; the signature is nothing here.
 func identityToken(t *testing.T, email string) string {
 	t.Helper()
 
@@ -127,7 +127,6 @@ func identityToken(t *testing.T, email string) string {
 	return "eyJhbGciOiJSUzI1NiJ9." + payload + ".signature"
 }
 
-// codex login status says whether it holds a session; the account comes from the identity token the sign-in left, or from nowhere.
 func TestLoginReadsWhatCodexLoginStatusSays(t *testing.T) {
 	cases := map[string]struct {
 		answer  string
@@ -160,9 +159,11 @@ func TestLoginReadsWhatCodexLoginStatusSays(t *testing.T) {
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			fake := modtest.NewFakeSys()
+
 			if tc.auth != "" {
 				fake.Files[authPath] = []byte(tc.auth)
 			}
+
 			if tc.refused {
 				fake.Refuse("codex login status", tc.answer)
 			} else {

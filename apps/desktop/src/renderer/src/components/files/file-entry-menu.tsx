@@ -17,7 +17,6 @@ import { Fragment } from "react";
 import type { ButtonIcon } from "../ui/button";
 import { Tooltip } from "../ui/tooltip";
 
-/** Where a right click landed, so the menu opens under the pointer rather than under the button. */
 export interface MenuPoint {
   x: number;
   y: number;
@@ -34,7 +33,7 @@ const ICON: Record<FileAction["id"], ButtonIcon> = {
 };
 
 const ITEM =
-  "flex cursor-default select-none items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-[13px] text-ink outline-none data-[highlighted]:bg-raised";
+  "flex cursor-default select-none items-center gap-2.5 rounded-sm px-2.5 py-1.5 text-control text-ink outline-none data-[highlighted]:bg-raised";
 
 function pointAnchor(point: MenuPoint) {
   return {
@@ -42,14 +41,6 @@ function pointAnchor(point: MenuPoint) {
   };
 }
 
-/**
- * The menu of one entry, opened from its button or from a right click.
- *
- * One menu serves both: the button is its trigger, and a right click on the
- * row opens the same menu anchored to the pointer. The items come from the
- * entry, so a file never offers a terminal and a folder without editors never
- * offers one.
- */
 export function FileEntryMenu({
   entry,
   actions,

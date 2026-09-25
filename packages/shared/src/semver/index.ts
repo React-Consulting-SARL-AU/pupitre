@@ -86,9 +86,7 @@ export function isNewer(candidate: string, current: string | null): boolean {
   return current === null || compareVersions(candidate, current) > 0
 }
 
-/**
- * The item carrying the highest version, the first one on a tie.
- */
+// The first one wins a tie.
 export function latestBy<T>(
   items: Iterable<T>,
   versionOf: (item: T) => string
@@ -108,11 +106,7 @@ export function latestBy<T>(
   return latest
 }
 
-/**
- * The version without its prerelease or metadata: `0.2.0-beta.1` belongs to
- * the `0.2.0` line, and a compatibility sheet that places it there says what
- * we mean, where semver ordering would place it just before.
- */
+// `0.2.0-beta.1` belongs to the `0.2.0` line, where semver ordering would place it just before.
 export function coreVersion(version: string): string | null {
   const match = SEMVER_RE.exec(version)
 

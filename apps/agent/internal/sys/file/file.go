@@ -14,7 +14,6 @@ func Read(ctx sys.Context, path string) ([]byte, error) {
 	return ctx.Sys().ReadFile(path)
 }
 
-// Tail is the last max bytes of the file: read as a range where the machine can, cut from the whole of it otherwise.
 func Tail(ctx sys.Context, path string, max int64) ([]byte, error) {
 	if ranged, can := ctx.Sys().(sys.Ranged); can {
 		return ranged.ReadTail(path, max)
@@ -32,7 +31,7 @@ func Tail(ctx sys.Context, path string, max int64) ([]byte, error) {
 	return raw, nil
 }
 
-// From is what the file holds past offset, the whole of it when it shrank under the reader.
+// A file shorter than offset shrank under the reader and is returned whole.
 func From(ctx sys.Context, path string, offset int64) ([]byte, error) {
 	if ranged, can := ctx.Sys().(sys.Ranged); can {
 		return ranged.ReadFrom(path, offset)
@@ -66,6 +65,17 @@ func Same(ctx sys.Context, path string, content []byte) bool {
 	return err == nil && bytes.Equal(current, content)
 }
 
+// A file an older agent left too readable is not yet the file this one writes.
+func SameAt(ctx sys.Context, path string, content []byte, mode fs.FileMode) bool {
+	if !Same(ctx, path, content) {
+		return false
+	}
+
+	node, err := ctx.Sys().StatIn(filepath.Dir(path), filepath.Base(path))
+
+	return err == nil && node.Mode.Perm() == mode.Perm()
+}
+
 func WriteAtomic(ctx sys.Context, path string, content []byte, mode fs.FileMode) error {
 	ctx.Logf("write %s (%o)", path, mode)
 
@@ -94,6 +104,7 @@ func EnsureLine(ctx sys.Context, path, line string) (bool, error) {
 	if updated != "" && !strings.HasSuffix(updated, "\n") {
 		updated += "\n"
 	}
+
 	updated += line + "\n"
 
 	ctx.Logf("append to %s", path)
@@ -111,11 +122,10 @@ func Owner(ctx sys.Context, path string) (string, error) {
 	return ctx.Sys().Owner(path)
 }
 
-// MkdirOwned creates the folder and hands the owner every folder it had to
-// create on the way: a folder made by root inside a user's home locks that
-// user out of everything under it.
+// Every folder made on the way goes to owner: a root-made folder in a user's home locks them out of all under it.
 func MkdirOwned(ctx sys.Context, path, owner, group string, mode fs.FileMode) error {
 	var created []string
+
 	for dir := path; dir != "/" && dir != "." && !Exists(ctx, dir); dir = filepath.Dir(dir) {
 		created = append(created, dir)
 	}
@@ -139,9 +149,7 @@ func MkdirOwned(ctx sys.Context, path, owner, group string, mode fs.FileMode) er
 	return nil
 }
 
-// EnsureOwned creates the folder for its owner, or gives it back to them,
-// everything inside included, when a previous run left it to root. It says
-// whether it changed anything, so the step around it can be skipped on a replay.
+// Also gives back, contents included, a folder an earlier run left to root.
 func EnsureOwned(ctx sys.Context, path, owner, group string, mode fs.FileMode) (bool, error) {
 	if !Exists(ctx, path) {
 		return true, MkdirOwned(ctx, path, owner, group, mode)
@@ -198,9 +206,9 @@ func Remove(ctx sys.Context, path string) (bool, error) {
 	return true, ctx.Sys().Remove(path)
 }
 
-// A block edits a file that is someone else's: the file keeps the mode it had.
+// A block edits a file that is someone else's: it keeps its mode, and a link at its name is followed only within its folder.
 func EnsureBlock(ctx sys.Context, path, name string, content []byte) (bool, error) {
-	current, err := ctx.Sys().ReadFile(path)
+	current, err := ownedBySomeoneElse(ctx, path)
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return false, err
 	}
@@ -215,8 +223,12 @@ func EnsureBlock(ctx sys.Context, path, name string, content []byte) (bool, erro
 	return true, ctx.Sys().WriteFile(path, updated, sys.KeepMode)
 }
 
+func ownedBySomeoneElse(ctx sys.Context, path string) ([]byte, error) {
+	return ctx.Sys().ReadFileIn(filepath.Dir(path), filepath.Base(path))
+}
+
 func ReadBlock(ctx sys.Context, path, name string) ([]byte, bool) {
-	current, err := ctx.Sys().ReadFile(path)
+	current, err := ownedBySomeoneElse(ctx, path)
 	if err != nil {
 		return nil, false
 	}
@@ -224,7 +236,6 @@ func ReadBlock(ctx sys.Context, path, name string) ([]byte, bool) {
 	return BlockOf(current, name)
 }
 
-// BlockOf is what lies between the markers of a block, when the file carries them.
 func BlockOf(current []byte, name string) ([]byte, bool) {
 	start, end := blockStart(name)+"\n", blockEnd(name)+"\n"
 	from := strings.Index(string(current), start)
@@ -236,19 +247,18 @@ func BlockOf(current []byte, name string) ([]byte, bool) {
 	return current[from+len(start) : to], true
 }
 
-// WithBlock is the file with its block replaced, or appended when it had none; every line outside the markers stays as it was.
 func WithBlock(current []byte, name string, content []byte) []byte {
 	return []byte(withBlock(string(current), blockStart(name), blockEnd(name), string(content)))
 }
 
 func HasBlock(ctx sys.Context, path, name string) bool {
-	current, err := ctx.Sys().ReadFile(path)
+	current, err := ownedBySomeoneElse(ctx, path)
 
 	return err == nil && strings.Contains(string(current), blockStart(name)+"\n") && strings.Contains(string(current), blockEnd(name)+"\n")
 }
 
 func RemoveBlock(ctx sys.Context, path, name string) (bool, error) {
-	current, err := ctx.Sys().ReadFile(path)
+	current, err := ownedBySomeoneElse(ctx, path)
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return false, nil
@@ -265,6 +275,7 @@ func RemoveBlock(ctx sys.Context, path, name string) (bool, error) {
 	}
 
 	ctx.Logf("remove block %s from %s", name, path)
+
 	updated := string(current[:from]) + string(current[to+len(end):])
 
 	return true, ctx.Sys().WriteFile(path, []byte(updated), sys.KeepMode)
@@ -282,6 +293,7 @@ func withBlock(current, start, end, content string) string {
 	if !strings.HasSuffix(content, "\n") {
 		content += "\n"
 	}
+
 	block := start + "\n" + content + end + "\n"
 
 	from := strings.Index(current, start+"\n")

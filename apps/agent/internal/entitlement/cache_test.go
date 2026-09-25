@@ -60,7 +60,6 @@ func TestCacheFollowsTheStateThePlatformGave(t *testing.T) {
 	}
 }
 
-// Six days unreachable and everything answers; on the eighth the agent restricts itself, on a clock the test moves by hand.
 func TestSevenDaysWithoutThePlatformCloseTheAgent(t *testing.T) {
 	fake := enrolledMachine()
 	now := enrolledAt
@@ -97,7 +96,6 @@ func TestSevenDaysWithoutThePlatformCloseTheAgent(t *testing.T) {
 	}
 }
 
-// The seven days count from the last successful read, not from the enrolment: a platform back on the fifth day pushes the deadline.
 func TestASuccessfulReadPushesTheDeadline(t *testing.T) {
 	fake := enrolledMachine()
 	now := enrolledAt
@@ -128,7 +126,6 @@ func TestAnEnrolledServerWithoutACacheStaysRestricted(t *testing.T) {
 	}
 }
 
-// A binary copied onto another server carries no token: hello, ping and diag, and not one command more.
 func TestABinaryWithoutATokenAnswersThreeCommands(t *testing.T) {
 	now := enrolledAt
 	state := resolver(modtest.NewFakeSys(), &now).State()

@@ -8,12 +8,6 @@ import {
 } from "@renderer/lib/project-state";
 import { ChevronRight } from "lucide-react";
 
-/**
- * One installed module, in one line: what it is, how it is doing, what it
- * listens on, and — when it works as somebody — whether it is connected.
- * Every word of it came from the agent, or from the accounts this computer
- * holds.
- */
 export function ServiceRow({
   service,
   account,
@@ -38,19 +32,15 @@ export function ServiceRow({
         <ServiceLogo moduleId={service.id} name={service.name} size={20} />
 
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-medium text-[13px] text-ink">
+          <span className="block truncate font-medium text-control text-ink">
             {service.name}
           </span>
-          <span className="block truncate font-data text-[11px] text-ink-3">
+          <span className="block truncate font-data text-caption text-ink-3">
             {facts.join(" · ")}
           </span>
         </span>
 
-        {/*
-          What a module still owes the reader comes before how it is running: a
-          service nobody has configured is not a service that went wrong. An
-          agent older than the field says nothing of it, and owes nothing.
-        */}
+        {/* An agent older than `configured` leaves it undefined: only false means unconfigured. */}
         <span className="flex flex-wrap items-center justify-end gap-1.5">
           {service.configured === false ? (
             <StatePill look={UNCONFIGURED_LOOK} name="unconfigured" />

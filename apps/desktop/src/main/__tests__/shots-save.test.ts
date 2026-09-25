@@ -1,12 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { saveShot } from "../shots-run";
 
-/**
- * The write is the one thing the window may not do on its own: it names a
- * path only by handing back the one the dialog returned. Everything else is
- * refused before a byte is written.
- */
-
 const PICKED = "/Users/ada/Downloads/accueil.png";
 
 function harness(

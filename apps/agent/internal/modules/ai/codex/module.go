@@ -54,7 +54,7 @@ func (Module) Install(ctx *modules.Context) error {
 	return cli.Install(ctx)
 }
 
-// Nothing to sign in: Codex prints its own connection URL on first launch, and the client's subscription answers it.
+// No sign-in step: Codex prints its own connection URL on first launch.
 func (Module) Configure(ctx *modules.Context) error {
 	return agents.Deploy(ctx, target)
 }
@@ -67,7 +67,7 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// The conversations, the credentials and the skills the client added himself stay: only the CLI and the context this module wrote go.
+// Conversations, credentials and the client's own skills stay; only the CLI and our context go.
 func (Module) Uninstall(ctx *modules.Context) error {
 	if err := cli.Remove(ctx); err != nil {
 		return err
@@ -90,7 +90,7 @@ func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
 	return status, nil
 }
 
-// codex login status says whether it holds a session and exits 1 otherwise; it never reaches OpenAI.
+// codex login status exits 1 when signed out and never reaches OpenAI.
 func (Module) Login(ctx *modules.Context) (contract.Login, bool) {
 	out, err := login.Ask(ctx, nil, Program, "login", "status")
 	answer := strings.TrimSpace(out.Stdout + "\n" + out.Stderr)
@@ -105,7 +105,7 @@ func (Module) Login(ctx *modules.Context) (contract.Login, bool) {
 	return login.Unknown(i18n.T("login.unanswered", "Codex", Program+" login status"))
 }
 
-// The status names no account: the email sits in the identity token the ChatGPT sign-in left, whose payload is plain JSON once decoded. A session opened with an API key has none, and stays unnamed.
+// The status names no account: the email is in the ChatGPT sign-in's ID token; an API-key session has none.
 func account(ctx *modules.Context) string {
 	raw, err := file.Read(ctx, authPath)
 	if err != nil {
@@ -117,6 +117,7 @@ func account(ctx *modules.Context) string {
 			IDToken string `json:"id_token"`
 		} `json:"tokens"`
 	}
+
 	if json.Unmarshal(raw, &auth) != nil {
 		return ""
 	}
@@ -134,6 +135,7 @@ func account(ctx *modules.Context) string {
 	var claims struct {
 		Email string `json:"email"`
 	}
+
 	if json.Unmarshal(payload, &claims) != nil {
 		return ""
 	}

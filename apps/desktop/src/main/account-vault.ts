@@ -11,19 +11,9 @@ import type { AccountDevice, AccountIdentity } from "@shared/account";
 import { ACCOUNT_MIGRATIONS } from "./account-migrations";
 import {
   forgetCopies,
-  type JsonObject,
-  keepCopy,
-  migrate,
+  type VersionedFile,
+  versionedFile,
 } from "./store-migrations";
-
-/**
- * The session token, and the little that is not one.
- *
- * The token goes through the operating system's keychain — `safeStorage` — and
- * only its ciphertext ever reaches the disk. A computer whose keychain refuses
- * to open keeps the token for the length of the run and says so, rather than
- * falling back to a readable file.
- */
 
 const DIR_MODE = 0o700;
 const FILE_MODE = 0o600;
@@ -52,10 +42,19 @@ export const EMPTY_RECORD: AccountRecord = {
 export interface TokenVault {
   sealed: () => boolean;
   token: () => string | null;
+  /** Without a keychain the token lives for the run only, never in a readable file. */
   keep: (token: string) => void;
   record: () => AccountRecord;
   remember: (record: AccountRecord) => void;
   clear: () => void;
+}
+
+function recordFile(path: string): VersionedFile {
+  return versionedFile({
+    migrations: ACCOUNT_MIGRATIONS,
+    modes: { dir: DIR_MODE, file: FILE_MODE },
+    path,
+  });
 }
 
 function ensureDir(dir: string): void {
@@ -99,35 +98,35 @@ export function createTokenVault({
     }
   }
 
+  let file = recordFile(recordPath);
+  // A newer version's file refuses this write: held for the run rather than written over it.
+  let unsaved: AccountRecord | null = null;
+
   function remember(record: AccountRecord): void {
-    ensureDir(dir);
-    writeFileSync(recordPath, `${JSON.stringify(record, null, 2)}\n`, {
-      mode: FILE_MODE,
-    });
-    chmodSync(recordPath, FILE_MODE);
+    if (!file.write({ ...record })) {
+      unsaved = record;
+    }
   }
 
-  /**
-   * A record written by an older version of the app goes back to disk in
-   * today's shape, once. Completing it in memory on every launch would mean
-   * that the day a default changed, every record already written changed
-   * with it.
-   */
+  /** Migrated records are written back once: filling defaults in memory would shift them when a default changes. */
   function record(): AccountRecord {
-    try {
-      const raw = JSON.parse(readFileSync(recordPath, "utf8")) as JsonObject;
-      const migrated = migrate(raw, ACCOUNT_MIGRATIONS);
-      const held = { ...EMPTY_RECORD, ...migrated.document } as AccountRecord;
+    if (unsaved) {
+      return unsaved;
+    }
 
-      if (migrated.applied.length > 0) {
-        keepCopy(recordPath, 0);
-        remember(held);
-      }
+    const held = file.read();
 
-      return held;
-    } catch {
+    if (held.status !== "read") {
       return EMPTY_RECORD;
     }
+
+    const kept = { ...EMPTY_RECORD, ...held.document } as AccountRecord;
+
+    if (held.migrated) {
+      file.write({ ...kept });
+    }
+
+    return kept;
   }
 
   return {
@@ -150,9 +149,12 @@ export function createTokenVault({
 
     clear() {
       held = null;
+      unsaved = null;
       rmSync(tokenPath, { force: true });
       rmSync(recordPath, { force: true });
+      rmSync(file.corruptPath(), { force: true });
       forgetCopies(recordPath);
+      file = recordFile(recordPath);
     },
   };
 }

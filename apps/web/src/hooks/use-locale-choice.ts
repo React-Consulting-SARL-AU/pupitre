@@ -11,11 +11,7 @@ export interface LocaleChoice {
   error: string | null
 }
 
-/**
- * One language for the person, whichever control they reach for: the console
- * changes on the spot, and a signed-in account follows so the emails speak it
- * too. Signed out, nothing is known of an account, so no route is called.
- */
+// A signed-in account saves the choice too, so the emails follow; signed out, no route is called.
 export function useLocaleChoice(): LocaleChoice {
   const { locale, setLocale } = useLocale()
   const queryClient = useQueryClient()

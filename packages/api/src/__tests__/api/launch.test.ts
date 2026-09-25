@@ -1,13 +1,17 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "bun:test"
 import { LAUNCH_PRODUCT, LAUNCH_SEATS } from "@pupitre/shared/plans"
 import { PLATFORM_ORGANIZATION_ID } from "@pupitre/shared/platform"
+import { withOrganization } from "../../lib/api/prisma"
 import type { FakeBilling } from "../../lib/billing/fake"
 import { suspendExpiredGrace } from "../../lib/billing/grace"
 import {
   grantLaunchSubscription,
+  LAUNCH_BATCH_SIZE,
   launchSubscriptionId,
   reconcileLaunch,
 } from "../../lib/billing/launch"
+import { seatQuotaFor } from "../../lib/billing/seats"
+import { expireEnrollments } from "../../lib/servers/expire"
 import { type ApiTestServer, bootApiTestServer, resetDb } from "../../testing"
 import {
   TEST_LAUNCH_END,
@@ -168,6 +172,37 @@ describe("le lancement", () => {
     ).toBe(1)
   })
 
+  it("ne rouvre pas un lancement arrêté, que l'équipe l'ait coupé ou qu'il ait pris fin", async () => {
+    await checkout(organizationId, owner)
+    await harness.prisma.subscription.update({
+      where: { stripeSubscriptionId: launchSubscriptionId(organizationId) },
+      data: { status: "canceled" },
+    })
+
+    const again = await apiRequest<ErrorBody>(
+      `/orgs/${organizationId}/checkout`,
+      {
+        body: { quantity: 1, interval: "month" },
+        session: owner,
+        locale: "fr",
+      }
+    )
+
+    expect(again.status).toBe(409)
+    expect(again.json.error.code).toBe("conflict")
+    expect(again.json.error.fix).toBeString()
+    expect(
+      await harness.prisma.subscription.findUniqueOrThrow({
+        where: { stripeSubscriptionId: launchSubscriptionId(organizationId) },
+      })
+    ).toMatchObject({ status: "canceled" })
+    expect(
+      await harness.prisma.event.count({
+        where: { organizationId, targetType: "subscription" },
+      })
+    ).toBe(1)
+  })
+
   it("laisse tranquille un abonnement Stripe encore en cours", async () => {
     await subscribeOrganization({
       organizationId,
@@ -318,6 +353,10 @@ describe("le lancement", () => {
     const { server } = await createServer({ organizationId })
     const ended = new Date(Date.now() - DAY_MS)
 
+    await harness.prisma.server.update({
+      where: { id: server.id },
+      data: { createdAt: new Date(ended.getTime() - DAY_MS) },
+    })
     useLaunchBilling({ endsAt: ended })
 
     const now = new Date()
@@ -371,6 +410,7 @@ describe("le lancement", () => {
         targetType: "server",
         targetId: "srv_partie",
         payload: {},
+        createdAt: new Date(Date.now() - 2 * DAY_MS),
       },
     })
 
@@ -421,6 +461,108 @@ describe("le lancement", () => {
     expect(report.canceled).toHaveLength(1)
   })
 
+  it("ne garde pas le siège d'un enrôlement abandonné puis révoqué", async () => {
+    await checkout(organizationId, owner)
+    await harness.prisma.server.create({
+      data: {
+        organizationId,
+        name: "vps-abandonne",
+        arch: "amd64",
+        status: "enrolling",
+        enrollmentTokenHash: "hash-abandonne",
+        enrollmentExpiresAt: new Date(Date.now() - DAY_MS),
+      },
+    })
+
+    expect(await expireEnrollments(new Date())).toHaveLength(1)
+
+    useLaunchBilling({ endsAt: new Date(Date.now() - 60_000) })
+
+    const report = await reconcileLaunch(new Date())
+
+    expect(report.kept).toEqual([])
+    expect(report.canceled).toHaveLength(1)
+  })
+
+  it("ne garde pas le siège d'une machine rattachée après la fin du lancement", async () => {
+    await checkout(organizationId, owner)
+
+    const launchEnd = new Date(Date.now() - 2 * DAY_MS)
+
+    await harness.prisma.subscription.updateMany({
+      where: { organizationId },
+      data: { currentPeriodEnd: launchEnd },
+    })
+    await createServer({ organizationId })
+    await harness.prisma.event.create({
+      data: {
+        action: "server.exchanged",
+        organizationId,
+        targetType: "server",
+        targetId: "srv_tardif",
+        payload: {},
+      },
+    })
+
+    useLaunchBilling({ endsAt: launchEnd })
+
+    const report = await reconcileLaunch(new Date())
+
+    expect(report.kept).toEqual([])
+    expect(report.canceled).toHaveLength(1)
+  })
+
+  it("garde chaque siège et annule le reste quand beaucoup de lancements finissent le même jour", async () => {
+    const ended = new Date(Date.now() - DAY_MS)
+    const keeping: string[] = []
+    const ending: string[] = []
+
+    for (let index = 0; index < LAUNCH_BATCH_SIZE + 5; index += 1) {
+      const { organization } = await createOrganizationWithMembers({
+        roles: ["owner"],
+      })
+      const row = await harness.prisma.subscription.create({
+        data: {
+          organizationId: organization.id,
+          stripeSubscriptionId: launchSubscriptionId(organization.id),
+          product: LAUNCH_PRODUCT,
+          quantity: LAUNCH_SEATS,
+          status: "trialing",
+          currentPeriodEnd: ended,
+          createdAt: new Date(ended.getTime() - DAY_MS),
+        },
+      })
+
+      if (index % 2 === 0) {
+        await harness.prisma.server.create({
+          data: {
+            organizationId: organization.id,
+            name: `vps-${index}`,
+            arch: "amd64",
+            status: "active",
+            serverTokenHash: `hash-${index}`,
+            createdAt: new Date(ended.getTime() - DAY_MS),
+          },
+        })
+        keeping.push(row.id)
+      } else {
+        ending.push(row.id)
+      }
+    }
+
+    useLaunchBilling({ endsAt: ended })
+
+    const report = await reconcileLaunch(new Date())
+
+    expect(report.kept.sort()).toEqual(keeping.sort())
+    expect(report.canceled.sort()).toEqual(ending.sort())
+    expect(
+      await harness.prisma.subscription.count({
+        where: { product: LAUNCH_PRODUCT, status: "trialing" },
+      })
+    ).toBe(0)
+  })
+
   it("dit le mode et la fin du lancement sur /status", async () => {
     const launch = await apiRequest<StatusBody>("/status")
 
@@ -468,13 +610,17 @@ describe("la fin d'un lancement, une fois Stripe branché", () => {
     useFakeBilling()
   })
 
-  it("laisse les serveurs actifs quand l'organisation paie déjà chez Stripe", async () => {
+  it("garde le siège du lancement d'une organisation qui paie déjà chez Stripe", async () => {
     const { organization } = await createOrganizationWithMembers({
       roles: ["owner"],
     })
     const { server } = await createServer({ organizationId: organization.id })
     const ended = new Date(Date.now() - DAY_MS)
 
+    await harness.prisma.server.update({
+      where: { id: server.id },
+      data: { createdAt: new Date(ended.getTime() - DAY_MS) },
+    })
     await harness.prisma.subscription.create({
       data: {
         organizationId: organization.id,
@@ -496,16 +642,16 @@ describe("la fin d'un lancement, une fois Stripe branché", () => {
       where: { stripeSubscriptionId: launchSubscriptionId(organization.id) },
     })
 
-    expect(report.canceled).toEqual([launch.id])
-    expect(launch.status).toBe("canceled")
+    expect(report.kept).toEqual([launch.id])
+    expect(report.canceled).toEqual([])
+    expect(launch.status).toBe("active")
+    expect(launch.currentPeriodEnd).toBeNull()
     expect(
-      await harness.prisma.event.count({
-        where: {
-          action: "subscription.canceled",
-          organizationId: organization.id,
-        },
-      })
-    ).toBe(1)
+      await seatQuotaFor(
+        withOrganization(harness.prisma, organization.id),
+        organization.id
+      )
+    ).toEqual({ quota: 5 + LAUNCH_SEATS, source: "subscription" })
 
     const untouched = await harness.prisma.server.findUniqueOrThrow({
       where: { id: server.id },

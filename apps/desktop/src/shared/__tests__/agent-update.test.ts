@@ -1,5 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import { compareVersions, orderOf, versionCore } from "../agent-update";
+import {
+  compareVersions,
+  floorOf,
+  orderOf,
+  verdictOf,
+  versionCore,
+} from "../agent-update";
 
 describe("la lecture d'une version", () => {
   it("accepte le semver, avec ou sans v, avec ou sans suffixe", () => {
@@ -37,5 +43,18 @@ describe("l'ordre annoncé à l'écran", () => {
     expect(orderOf("0.4.0", null)).toBe("unknown");
     expect(orderOf(null, "0.3.0")).toBe("unknown");
     expect(orderOf("0.4.0", "dev")).toBe("unknown");
+  });
+});
+
+// A 0.9.x agent still answers hello but its own agent.upgrade would roll a 1.0 back: the reinstall pushes it instead.
+describe("la 1.0 face à un agent 0.9", () => {
+  it("le juge trop ancien et nomme la 1.0 comme plancher", () => {
+    expect(verdictOf("1.0.0", "0.9.1")).toBe("agent_too_old");
+    expect(floorOf("1.0.0")).toBe("1.0.0");
+  });
+
+  it("garde une app 0.9 d'accord avec son agent 0.9", () => {
+    expect(verdictOf("0.9.1", "0.9.1")).toBe("ok");
+    expect(verdictOf("0.9.1", "1.0.0")).toBe("app_too_old");
   });
 });

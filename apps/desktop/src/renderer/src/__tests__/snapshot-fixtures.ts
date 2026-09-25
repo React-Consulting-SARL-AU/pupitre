@@ -7,15 +7,7 @@ import type {
 } from "@pupitre/shared/agent-protocol/projects";
 import type { SnapshotResult } from "@pupitre/shared/agent-protocol/state";
 
-/**
- * One `snapshot`, as an agent would answer it, and what the other commands of
- * an open project answer beside it.
- *
- * Every screen test renders from here: what the interface shows is what the
- * agent said, so a fixture is the honest starting point — and a field the agent
- * would not fill is absent here too.
- */
-
+// A field the agent would not fill is absent here too.
 export const SNAPSHOT: SnapshotResult = {
   entitlement: "dev",
   machine: {
@@ -37,32 +29,32 @@ export const SNAPSHOT: SnapshotResult = {
     {
       branch: "main",
       boot: false,
-      dir: "flymate",
-      name: "flymate-api",
-      path: "/home/dev/projects/flymate",
+      dir: "flyleaf",
+      name: "flyleaf-api",
+      path: "/home/dev/projects/flyleaf",
       processes: [
         {
           cmd: "bun run dev --port 3000",
           dir: ".",
           host: "127.0.0.1",
-          id: "flymate-api",
-          path: "/home/dev/projects/flymate",
+          id: "flyleaf-api",
+          path: "/home/dev/projects/flyleaf",
           pid: 4821,
           pkgmgr: "bun",
           port: 3000,
           ram_mb: 412,
           routes: [
-            { hostname: "flymate.example.org", label: "web", port: 3000 },
-            { hostname: "api-flymate.example.org", label: "api", port: 3001 },
+            { hostname: "flyleaf.example.org", label: "web", port: 3000 },
+            { hostname: "api-flyleaf.example.org", label: "api", port: 3001 },
           ],
           state: "online",
           uptime_s: 5400,
-          url: "https://flymate.example.org",
+          url: "https://flyleaf.example.org",
         },
       ],
-      repo: "https://example.org/moi/flymate.git",
+      repo: "https://example.org/moi/flyleaf.git",
       state: "online",
-      url: "https://flymate.example.org",
+      url: "https://flyleaf.example.org",
     },
     {
       boot: false,
@@ -140,8 +132,7 @@ export const SNAPSHOT: SnapshotResult = {
       runs: true,
       state: "failed",
     },
-    // Put on the machine and left for later: not a failure, and the screen has
-    // to say which of the two it is.
+    // Installed but not configured: the screen must not read it as a failure.
     {
       configured: false,
       id: "tool.github",
@@ -155,7 +146,7 @@ export const SNAPSHOT: SnapshotResult = {
       command: "claude",
       kind: "claude",
       pid: 5120,
-      project: "flymate-api",
+      project: "flyleaf-api",
       ram_mb: 640,
       seconds: 2700,
     },
@@ -174,7 +165,7 @@ export const PROCESSES: Process[] = [
     command: "bun run dev",
     cpu: 62.5,
     pid: 4821,
-    project: "flymate-api",
+    project: "flyleaf-api",
     ram_mb: 412,
   },
   {
@@ -195,7 +186,7 @@ export const GIT_STATUS: ProjectGitStatusResult = {
   last: 1_770_000_000,
   problem: "",
   repo: true,
-  root: "/home/dev/projects/flymate",
+  root: "/home/dev/projects/flyleaf",
   subject: "Corrige le calcul de TVA",
   upstream: "origin/main",
 };
@@ -206,7 +197,7 @@ export const BRANCHES: ProjectBranchesResult = {
   local: ["main", "feat/tarifs"],
   remote: ["main", "feat/tarifs", "release"],
   repo: true,
-  root: "/home/dev/projects/flymate",
+  root: "/home/dev/projects/flyleaf",
 };
 
 export const WORKING_TREE: ProjectWorkingTreeResult = {
@@ -240,7 +231,7 @@ export const WORKING_TREE: ProjectWorkingTreeResult = {
     },
   ],
   repo: true,
-  root: "/home/dev/projects/flymate",
+  root: "/home/dev/projects/flyleaf",
   upstream: "origin/main",
 };
 

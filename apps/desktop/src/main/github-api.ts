@@ -1,26 +1,12 @@
 import type { GithubRepo } from "@shared/github";
 
-/**
- * The client's GitHub account, seen from the laptop.
- *
- * The token stays in this process, exactly as Cloudflare's does: the window
- * asks for a list of repositories and gets a list of repositories. Nothing of
- * the account reaches the server either — a repository the agent clones is
- * cloned with the machine's own git identity, which the `tool.github` module
- * puts there.
- */
-
 const ENDPOINT = "https://api.github.com";
 
-/** A call that has not answered by then is not going to: the screen is owed a refusal. */
 const CALL_MS = 20_000;
 
 const PER_PAGE = 100;
 
-/**
- * Five hundred repositories is more than anyone scrolls, and the field filters
- * what the list holds. Someone with more than that types the address instead.
- */
+/** Beyond five hundred repositories the client types the address instead. */
 const MAX_PAGES = 5;
 
 export class GithubError extends Error {
@@ -41,7 +27,6 @@ function text(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
-/** A row GitHub answered, kept only when it names a repository we could clone. */
 function repoOf(value: unknown): GithubRepo | null {
   if (typeof value !== "object" || value === null) {
     return null;
@@ -103,13 +88,7 @@ export function githubApi(
   };
 
   return {
-    /**
-     * Everything the account can push to, the most recently touched first.
-     *
-     * `affiliation` is what makes an organisation's repository show up beside a
-     * personal one: without it GitHub answers only what the account owns, and
-     * the repository the client actually works in is missing from the list.
-     */
+    /** Without `affiliation` GitHub lists only owned repositories, leaving out the organisation's. */
     async repos() {
       const found: GithubRepo[] = [];
 

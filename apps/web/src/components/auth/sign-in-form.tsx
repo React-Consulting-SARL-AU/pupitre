@@ -112,9 +112,7 @@ export function SignInForm({
       {mounted.length > 0 ? (
         <div className="flex items-center gap-3" data-testid="sign-in-divider">
           <span className="h-px flex-1 bg-line" />
-          <span className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-            {t("common.or")}
-          </span>
+          <span className="text-label">{t("common.or")}</span>
           <span className="h-px flex-1 bg-line" />
         </div>
       ) : null}

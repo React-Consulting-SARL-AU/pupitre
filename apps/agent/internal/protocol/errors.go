@@ -3,6 +3,7 @@ package protocol
 import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/i18n"
+	"pupitre.studio/agent/internal/platform"
 )
 
 type Error struct {
@@ -55,7 +56,7 @@ func unknownCommand(cmd string) *Error {
 
 func EntitlementRequired() *Error {
 	return NewError(contract.ErrorEntitlementRequired, i18n.T("protocol.entitlement.required")).
-		WithFix(i18n.T("protocol.entitlement.required.fix"))
+		WithFix(i18n.T("protocol.entitlement.required.fix", platform.Console("")))
 }
 
 func internalError(cause string) *Error {

@@ -1,9 +1,4 @@
-/**
- * Pupitre's own organization and its administrator. These identifiers are
- * written into the database by `bun run db:seed` and never regenerated:
- * changing one of them orphans the rows already seeded.
- */
-
+// Seeded once and never regenerated: changing one of these ids orphans the rows already seeded.
 export const PLATFORM_ORGANIZATION_ID = "org_pupitre"
 
 export const PLATFORM_ORGANIZATION_SLUG = "pupitre"
@@ -14,10 +9,7 @@ export const PLATFORM_ADMIN_USER_ID = "usr_pupitre_admin"
 
 export const PLATFORM_ADMIN_MEMBER_ID = "mem_pupitre_admin"
 
-/**
- * The four mailboxes the migration writes. Their identifiers are stable like
- * the organization's: a renamed one orphans the threads already attached.
- */
+// Written by a migration: a renamed id orphans the threads already attached.
 export const PLATFORM_MAILBOX_IDS = {
   support: "mbx_support",
   legal: "mbx_legal",
@@ -25,9 +17,7 @@ export const PLATFORM_MAILBOX_IDS = {
   security: "mbx_security",
 } as const
 
-export type PlatformMailboxKey = keyof typeof PLATFORM_MAILBOX_IDS
-
-export const PLATFORM_MAILBOX_ID_LIST = Object.values(PLATFORM_MAILBOX_IDS)
+const PLATFORM_MAILBOX_ID_LIST = Object.values(PLATFORM_MAILBOX_IDS)
 
 export function isPlatformMailboxId(value: string): boolean {
   return PLATFORM_MAILBOX_ID_LIST.includes(
@@ -35,12 +25,11 @@ export function isPlatformMailboxId(value: string): boolean {
   )
 }
 
-/** How many rows a platform page asks for, and the most it may ask for. */
 export const ADMIN_PAGE_SIZE = 50
 
 export const ADMIN_MAX_PAGE_SIZE = 200
 
-/** How long a scheduled purge stays cancellable before the rows leave the database. */
+// A scheduled purge stays cancellable this long before the rows leave the database.
 export const DELETION_GRACE_DAYS = 7
 
 export const ACCOUNT_STATES = [
@@ -65,17 +54,11 @@ export function deletionDeadline(from: Date = new Date()): Date {
   return new Date(from.getTime() + DELETION_GRACE_DAYS * 86_400_000)
 }
 
-/** How many lines a work list of the overview shows before its "see everything" link. */
 export const WORKLIST_ITEMS = 5
 
-/**
- * How close to its end a trial has to be for the overview to raise it. The team
- * looks further ahead than the customer, whose own warning is `TRIAL_WARN_DAYS`
- * in `@pupitre/shared/plans`.
- */
+// The team looks further ahead than the customer, whose own warning is `TRIAL_WARN_DAYS`.
 export const TRIAL_WORKLIST_DAYS = 7
 
-/** The global search: how short a query may be, how long, and how many hits a group returns. */
 export const PLATFORM_SEARCH_MIN_LENGTH = 2
 
 export const PLATFORM_SEARCH_MAX_LENGTH = 80

@@ -13,10 +13,7 @@ import { useTranslations } from "@/hooks/use-locale"
 import { useLocaleChoice } from "@/hooks/use-locale-choice"
 import type { DictionaryKey } from "@/lib/i18n/en"
 
-/**
- * One language for the person: the console changes on the spot, and the
- * account follows so the emails speak it too.
- */
+// Saved on the account too, so the emails use the same language.
 export function LocaleToggle() {
   const t = useTranslations()
   const { locale, choose, pending, error } = useLocaleChoice()

@@ -7,13 +7,9 @@ import { ServiceDatabase } from "../services/service-database";
 import { TransferRow } from "../shell/transfer-row";
 import { TransfersList } from "../shell/transfers-list";
 
-/**
- * What the transfers panel and the drop zone show in each of their states.
- * Everything drawn comes as props: the store above them is tested on its own.
- */
-
 const noop = () => undefined;
 const later = () => Promise.resolve();
+const accepted = () => Promise.resolve(null);
 
 function transfer(patch: Partial<Transfer> = {}): Transfer {
   return {
@@ -65,11 +61,11 @@ function list(listing: ListingState): string {
       onDismiss={noop}
       onDrop={later}
       onHidden={noop}
-      onMakeFile={later}
-      onMakeFolder={later}
+      onMakeFile={accepted}
+      onMakeFolder={accepted}
       onRefresh={later}
       onRemove={later}
-      onRename={later}
+      onRename={accepted}
       onShow={later}
       onSort={noop}
       onUpload={later}

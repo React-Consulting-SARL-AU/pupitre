@@ -26,20 +26,15 @@ import {
 
 let resolved: ResolvedTheme = "light";
 
-/** Read fresh every time: the tokens move when `data-theme` does. */
+// Read fresh every time: the tokens move when `data-theme` does.
 function currentTheme(): TerminalTheme {
   return terminalTheme(resolved, readTokens(document.documentElement));
 }
 
-/**
- * Hands the living terminals their new palette.
- *
- * xterm draws on a canvas, so no CSS variable reaches it: the theme store calls
- * this the moment `data-theme` changes, and every open session repaints where it
- * stands, without losing a line.
- */
+/** xterm draws on a canvas that no CSS variable reaches, so a theme change is pushed here. */
 export function repaintTerminals(next: ResolvedTheme): void {
   resolved = next;
+
   const theme = currentTheme();
 
   for (const entry of live.values()) {
@@ -47,7 +42,6 @@ export function repaintTerminals(next: ResolvedTheme): void {
   }
 }
 
-/** A match is drawn in the theme's own greys, read off the tokens at search time. */
 function searchDecorations() {
   const token = readTokens(document.documentElement);
 
@@ -59,16 +53,9 @@ function searchDecorations() {
   };
 }
 
-/**
- * The look every session is given, and follows when it changes.
- *
- * The settings store owns the choice and writes it down; this is the copy the
- * registry reads when it opens a terminal, and what `applyTerminalSettings`
- * hands to the ones already open.
- */
+// The registry's copy; the settings store owns the choice and writes it down.
 let settings: TerminalSettings = DEFAULT_TERMINAL_SETTINGS;
 
-/** Whoever holds the choice is told when a shortcut changes the size. */
 let onSettingsChange: ((patch: Partial<TerminalSettings>) => void) | null =
   null;
 
@@ -78,12 +65,6 @@ export function followTerminalSettings(
   onSettingsChange = handler;
 }
 
-/**
- * Hands the living terminals their new look, without losing a line.
- *
- * The face and the size change the cell, so every session is refitted; the
- * scrollback and the blink take effect as they are.
- */
 export function applyTerminalSettings(next: TerminalSettings): void {
   const refit =
     next.fontSize !== settings.fontSize ||
@@ -103,7 +84,7 @@ export function applyTerminalSettings(next: TerminalSettings): void {
   }
 }
 
-/** The shortcuts the registry cannot answer alone: they move tabs, and tabs are React's. */
+/** For the shortcuts that move tabs, which only React can answer. */
 export type ShortcutHandler = (shortcut: TerminalShortcut) => void;
 
 interface Live {
@@ -115,13 +96,7 @@ interface Live {
   detach: () => void;
 }
 
-/**
- * One listener for every session's output.
- *
- * A busy machine writes hundreds of chunks a second, and one listener per open
- * terminal meant each chunk waking all of them. The bridge hands a chunk to
- * whoever holds its session, and only to them.
- */
+// One bridge listener dispatching by id: one per terminal woke them all on every chunk.
 const dataListeners = new Map<string, Set<(data: string) => void>>();
 
 let bridgeInstalled = false;
@@ -132,6 +107,7 @@ function onTerminalData(
 ): () => void {
   if (!bridgeInstalled) {
     bridgeInstalled = true;
+
     window.pupitre.onTerminalData((payload) => {
       for (const held of dataListeners.get(payload.id) ?? []) {
         held(payload.data);
@@ -157,15 +133,7 @@ function onTerminalData(
   };
 }
 
-/**
- * Terminals live here, outside React.
- *
- * An unmounted xterm loses its screen, and remounting it does not bring it back:
- * the whole session would have to be replayed. Yet the interface moves them
- * constantly — tabs, projects, views. So we keep the instance and its element in
- * this registry, and React only moves that element from one host to another. The
- * remote PTY never knew anything about it.
- */
+// Outside React: an unmounted xterm loses its screen, so React only moves the element between hosts.
 const live = new Map<string, Live>();
 
 function publishScroll(id: string, xterm: XTerm): void {
@@ -174,12 +142,6 @@ function publishScroll(id: string, xterm: XTerm): void {
   noteStatus(id, { atBottom: buffer.viewportY >= buffer.baseY });
 }
 
-/**
- * The keys the app answers itself, before the shell or the completion see them.
- *
- * What only touches this terminal — the screen, the clipboard, the type size —
- * is done here. What touches the tabs goes to whoever mounted the pane.
- */
 function answerShortcut(id: string, shortcut: TerminalShortcut): void {
   const entry = live.get(id);
 
@@ -211,13 +173,6 @@ function answerShortcut(id: string, shortcut: TerminalShortcut): void {
   }
 }
 
-/**
- * The GPU renderer, when this window has one to give.
- *
- * A context that cannot be made — a headless run, a driver that refuses — or
- * one lost later leaves the addon disposed and xterm on its DOM renderer: the
- * session draws either way, only slower.
- */
 function drawWithWebgl(xterm: XTerm): void {
   try {
     const webgl = new WebglAddon();
@@ -225,17 +180,19 @@ function drawWithWebgl(xterm: XTerm): void {
     webgl.onContextLoss(() => webgl.dispose());
     xterm.loadAddon(webgl);
   } catch {
-    // The DOM renderer stands in.
+    // No WebGL context (headless run, refusing driver): xterm keeps its slower DOM renderer.
   }
 }
 
 export function obtain(id: string, kind: TerminalKind): Live {
   const known = live.get(id);
+
   if (known) {
     return known;
   }
 
   const host = document.createElement("div");
+
   host.style.width = "100%";
   host.style.height = "100%";
 
@@ -258,6 +215,7 @@ export function obtain(id: string, kind: TerminalKind): Live {
   });
   const fit = new FitAddon();
   const search = new SearchAddon();
+
   xterm.loadAddon(fit);
   xterm.loadAddon(search);
   xterm.loadAddon(new Unicode11Addon());
@@ -267,8 +225,7 @@ export function obtain(id: string, kind: TerminalKind): Live {
   xterm.open(host);
   drawWithWebgl(xterm);
 
-  // Only a shell gets completion: Claude, Codex and the dashboard handle their
-  // own input, and a list on top of theirs would get in the way.
+  // Only a shell gets completion: Claude, Codex and the dashboard handle their own input.
   const detachCompletion =
     kind === "shell" ? attach(id, xterm) : () => undefined;
   const afterWrite = () => {
@@ -309,6 +266,7 @@ export function obtain(id: string, kind: TerminalKind): Live {
       );
     }
   });
+
   xterm.onData((data) => window.pupitre.writeTerminal(id, data));
 
   const entry: Live = {
@@ -325,12 +283,12 @@ export function obtain(id: string, kind: TerminalKind): Live {
       matched.dispose();
     },
   };
+
   live.set(id, entry);
 
   return entry;
 }
 
-/** Whoever mounts the pane answers the shortcuts that move between tabs. */
 export function onShortcut(id: string, handler: ShortcutHandler | null): void {
   const entry = live.get(id);
 
@@ -339,13 +297,7 @@ export function onShortcut(id: string, handler: ShortcutHandler | null): void {
   }
 }
 
-/**
- * The size the host would give a session, measured before the PTY is opened.
- *
- * A PTY opened at 80×24 and resized a frame later makes every full-screen
- * program draw twice; measuring first opens it at the right size. Without a
- * measurable host there is nothing to say, and the caller's default stands.
- */
+/** Measured before the PTY opens: opening at 80×24 then resizing makes full-screen programs draw twice. */
 export function proposeSize(id: string): { cols: number; rows: number } | null {
   const entry = live.get(id);
 
@@ -360,12 +312,13 @@ export function proposeSize(id: string): { cols: number; rows: number } | null {
     : null;
 }
 
-/** Resets the PTY to the real size. With no measurable host, we do nothing. */
 export function fitTerminal(id: string): void {
   const entry = live.get(id);
+
   if (!(entry?.host.isConnected && entry.host.clientHeight > 0)) {
     return;
   }
+
   try {
     entry.fit.fit();
     window.pupitre.resizeTerminal(id, entry.xterm.cols, entry.xterm.rows);
@@ -375,15 +328,7 @@ export function fitTerminal(id: string): void {
   }
 }
 
-/**
- * What a program on the other side copies lands in the clipboard here.
- *
- * tmux and the agents under it ask for the mouse, so a plain press is theirs
- * and a drag over a shell selects in tmux, which copies to its own buffer and
- * announces the text with OSC 52; Option (Shift elsewhere) keeps a drag for
- * xterm's own selection. Nothing goes the other way — a remote program never
- * reads what the clipboard holds.
- */
+// tmux copies over OSC 52 land here; a remote program never reads the local clipboard.
 const writeOnlyClipboard = {
   readText: () => "",
   writeText: (_selection: unknown, text: string) =>
@@ -422,14 +367,7 @@ export async function paste(id: string): Promise<void> {
   entry.xterm.paste(text);
 }
 
-/**
- * Everything the screen holds, scrollback included, as plain text.
- *
- * Read off the buffer row by row rather than replayed: a full-screen agent
- * draws on the alternate screen with cursor moves in place of line breaks,
- * and a replay stripped of them ran its rows together. A row xterm wrapped
- * is glued back to the one before it; the blank rows under the last word go.
- */
+/** Read off the buffer, not replayed: full-screen agents move the cursor instead of breaking lines. */
 export function wholeOutput(id: string): string | null {
   const entry = live.get(id);
 
@@ -442,6 +380,7 @@ export function wholeOutput(id: string): string | null {
 
   for (let y = 0; y < buffer.length; y++) {
     const line = buffer.getLine(y);
+
     if (!line) {
       continue;
     }
@@ -466,11 +405,7 @@ export async function copyWholeOutput(id: string): Promise<void> {
   }
 }
 
-/**
- * One type size for every session: a reader who leans in leans in everywhere.
- * Zero puts it back where the design put it. The choice goes to whoever holds
- * the settings, so it is written down like one made from the preferences.
- */
+/** One size for every session, saved through the settings holder like a preference. */
 export function zoom(step: -1 | 0 | 1): void {
   const next = steppedFontSize(settings.fontSize, step);
 
@@ -485,10 +420,6 @@ export function zoom(step: -1 | 0 | 1): void {
   }
 }
 
-/**
- * Looks for the term, forwards or back. Typing searches incrementally — the
- * selection grows with the word — while Enter jumps to the next occurrence.
- */
 export function find(
   id: string,
   term: string,
@@ -522,6 +453,7 @@ export function destroy(id: string, end: TerminalEnd | null = null): void {
   if (!entry) {
     return;
   }
+
   entry.detach();
   entry.xterm.dispose();
   entry.host.remove();

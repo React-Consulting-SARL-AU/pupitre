@@ -30,6 +30,7 @@ export const agentBackupsRoutes = new Elysia({ name: "agent-backups-routes" })
           const locale = resolveLocale(request.headers)
 
           set.status = 409
+
           return apiError(
             "conflict",
             translate(locale, "backup_id_taken", { id: body.id }),
@@ -42,7 +43,7 @@ export const agentBackupsRoutes = new Elysia({ name: "agent-backups-routes" })
     },
     {
       body: backupDeclarationBody,
-      detail: { summary: "Déclarer une sauvegarde écrite dans le seau" },
+      detail: { summary: "Déclarer une sauvegarde écrite dans le bucket" },
       response: {
         200: dataResponse(backupSchema),
         201: dataResponse(backupSchema),
@@ -59,6 +60,7 @@ export const agentBackupsRoutes = new Elysia({ name: "agent-backups-routes" })
 
       if (!removed) {
         set.status = 404
+
         return apiError(
           "not_found",
           translate(resolveLocale(request.headers), "backup_not_found")

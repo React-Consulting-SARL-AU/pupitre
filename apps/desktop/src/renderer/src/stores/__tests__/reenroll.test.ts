@@ -2,11 +2,7 @@ import { beforeEach, describe, expect, it } from "bun:test";
 import { stubPupitre } from "../../__tests__/stub-pupitre";
 import { useReenroll } from "../reenroll";
 
-/**
- * The store of the repair: it keeps the envelope the main process handed back
- * and nothing else. No token ever reaches it — the bridge does not carry one.
- */
-
+// No token ever reaches this store: the bridge does not carry one.
 const SERVER = "srv-1";
 
 beforeEach(() => {
@@ -42,6 +38,7 @@ describe("la réparation d'un serveur restreint", () => {
 
   it("dit que l'échange est en cours tant qu'il ne l'est plus", async () => {
     let release: () => void = () => undefined;
+
     stubPupitre({
       reenrollServer: () =>
         new Promise((resolve) => {

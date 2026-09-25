@@ -9,6 +9,10 @@ INSERT INTO "metrics_window" ("serverId", "metrics")
 SELECT "id", "metrics" FROM "Server"
 WHERE "metrics" IS NOT NULL AND json_valid("metrics");
 
+-- D1 keeps foreign keys on, so DROP TABLE "Server" cascades: its children wait aside until the rename.
+CREATE TABLE "revoked_devices_aside" AS SELECT "serverId", "deviceId", "revokedByUserId", "revokedAt" FROM "ServerRevokedDevice";
+CREATE TABLE "alerts_aside" AS SELECT "id", "serverId", "kind", "firstSeenAt", "notifiedAt", "resolvedAt" FROM "Alert";
+
 -- RedefineTables
 PRAGMA defer_foreign_keys=ON;
 CREATE TABLE "new_Server" (
@@ -56,6 +60,12 @@ CREATE INDEX "Server_status_idx" ON "Server"("status");
 CREATE INDEX "Server_decommissionAt_idx" ON "Server"("decommissionAt");
 CREATE INDEX "Server_pendingAssignmentEmail_idx" ON "Server"("pendingAssignmentEmail");
 CREATE INDEX "Server_lastHeartbeatAt_idx" ON "Server"("lastHeartbeatAt");
+INSERT OR IGNORE INTO "ServerRevokedDevice" ("serverId", "deviceId", "revokedByUserId", "revokedAt")
+SELECT "serverId", "deviceId", "revokedByUserId", "revokedAt" FROM "revoked_devices_aside";
+INSERT OR IGNORE INTO "Alert" ("id", "serverId", "kind", "firstSeenAt", "notifiedAt", "resolvedAt")
+SELECT "id", "serverId", "kind", "firstSeenAt", "notifiedAt", "resolvedAt" FROM "alerts_aside";
+DROP TABLE "revoked_devices_aside";
+DROP TABLE "alerts_aside";
 PRAGMA defer_foreign_keys=OFF;
 
 -- CreateTable

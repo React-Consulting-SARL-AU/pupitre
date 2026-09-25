@@ -4,10 +4,8 @@ import { z } from "zod"
 
 export type SortDirection = "asc" | "desc"
 
-/** What a filter select holds while it narrows nothing; the address carries no key at all. */
 export const FILTER_ALL = ""
 
-/** A sort the page does not declare is a sort it does not run. */
 export function listSort<Sort extends string>(
   value: string | undefined,
   sorts: readonly Sort[],
@@ -16,7 +14,6 @@ export function listSort<Sort extends string>(
   return sorts.find((sort) => sort === value) ?? fallback
 }
 
-/** The three values a select holds for a flag the address carries as a word. */
 export function flagValue(flag: boolean | undefined): string {
   if (flag === undefined) {
     return FILTER_ALL
@@ -36,15 +33,18 @@ export function readFlag(value: string): boolean | undefined {
 export type ListFilter =
   | { kind: "string" }
   | { kind: "boolean" }
+  | { kind: "offset" }
   | { kind: "enum"; values: readonly string[] }
 
 export type ListFilters = Record<string, ListFilter>
 
 type FilterValue<F extends ListFilter> = F extends { kind: "boolean" }
   ? boolean
-  : F extends { kind: "enum"; values: readonly (infer V)[] }
-    ? V
-    : string
+  : F extends { kind: "offset" }
+    ? number
+    : F extends { kind: "enum"; values: readonly (infer V)[] }
+      ? V
+      : string
 
 export type ListSearch<Filters extends ListFilters = Record<never, never>> = {
   q?: string
@@ -54,7 +54,6 @@ export type ListSearch<Filters extends ListFilters = Record<never, never>> = {
 } & { [Key in keyof Filters]?: FilterValue<Filters[Key]> }
 
 export interface ListSearchOptions<Filters extends ListFilters> {
-  /** The columns a header may sort on; anything else in the address is dropped. */
   sortKeys?: readonly string[]
   defaultSort?: string
   defaultDirection?: SortDirection
@@ -67,10 +66,7 @@ const offsetField = z.coerce.number().int().min(0)
 
 const directionField = z.enum(["asc", "desc"])
 
-/**
- * The router parses `?stale=true` into a boolean before the schema sees it, and
- * a link written by hand carries the word: both forms have to land.
- */
+// The router parses `?stale=true` into a boolean, while a link written by hand carries the word.
 const booleanField = z.union([
   z.boolean(),
   z.enum(["true", "false"]).transform((value) => value === "true"),
@@ -85,6 +81,10 @@ function filterSchema(filter: ListFilter): z.ZodType {
     return z.enum([...filter.values] as [string, ...string[]])
   }
 
+  if (filter.kind === "offset") {
+    return offsetField
+  }
+
   return z.string().trim().max(254)
 }
 
@@ -94,10 +94,7 @@ function kept<T>(schema: z.ZodType<T>, value: unknown): T | undefined {
   return parsed.success ? parsed.data : undefined
 }
 
-/**
- * The address carries what the reader chose and nothing else: a value equal to
- * the default leaves the URL, so a shared link never freezes today's defaults.
- */
+// Defaults leave the URL, so a shared link never freezes today's defaults.
 export function listSearch<Filters extends ListFilters>({
   sortKeys = [],
   defaultSort,
@@ -132,7 +129,7 @@ export function listSearch<Filters extends ListFilters>({
     for (const [name, filter] of Object.entries(filters)) {
       const value = kept(filterSchema(filter), raw[name])
 
-      if (value !== undefined && value !== "") {
+      if (value !== undefined && value !== "" && value !== 0) {
         search[name] = value
       }
     }
@@ -150,12 +147,14 @@ export interface SearchRoute<Search> {
   useSearch: () => Search
 }
 
-/** Anything but a page turn lands the reader back on the first page. */
+const PAGE_KEY = /(^|_)offset$/
+
+// Anything but a page turn goes back to the first page.
 export function nextListSearch<Search extends { offset?: number }>(
   search: Search,
   patch: Partial<Search>
 ): Search {
-  const turnsPage = Object.keys(patch).every((key) => key === "offset")
+  const turnsPage = Object.keys(patch).every((key) => PAGE_KEY.test(key))
 
   return {
     ...search,
@@ -174,8 +173,7 @@ export function useListSearch<Search extends { offset?: number }>(
       navigate({
         to: ".",
         replace: true,
-        // The hook serves every list, so the router cannot resolve one search
-        // shape here; the route's own `validateSearch` types and cleans it.
+        // Shared by every list: each route's `validateSearch` types and cleans the search.
         search: ((previous: Search) =>
           nextListSearch(previous, patch)) as never,
       })

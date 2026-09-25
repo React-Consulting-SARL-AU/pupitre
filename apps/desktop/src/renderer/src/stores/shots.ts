@@ -14,7 +14,6 @@ import { type ShotSize, shotBytes, shotSize } from "@renderer/lib/shot-image";
 import type { AgentError, AgentResponse } from "@shared/agent";
 import { create } from "zustand";
 
-/** One capture on the screen: read, checked, and shown from the app's memory. */
 export type ShotView =
   | { status: "idle" }
   | { status: "reading"; shot: Shot }
@@ -28,10 +27,6 @@ export type ShotView =
     }
   | { status: "failed"; shot: Shot; error: AgentError };
 
-/**
- * A thumbnail is the same bytes as the capture, read once and kept for the
- * life of the list: the grid asks for the ones on screen and no other.
- */
 export type ThumbnailState =
   | { status: "reading" }
   | { status: "ready"; url: string; blob: Blob; mediaType: ShotMediaType }
@@ -47,29 +42,19 @@ interface ShotsStore {
   state: ShotsState;
   view: ShotView;
   thumbnails: Record<string, ThumbnailState>;
-  /** The address the server serves the gallery at, once it has said. */
   gallery: string | null;
   cleaning: boolean;
-  /** The capture being removed, so its own button waits and no other. */
   removing: string | null;
-  /** How many the last cleaning removed, kept until the next reading. */
   removed: number | null;
   problem: AgentError | null;
-  /** Where the capture on screen was last written, until the viewer moves on. */
   saved: string | null;
-  /** What refused the last save, shown in the viewer until the next gesture. */
   saveProblem: AgentError | null;
 
   read: (serverId: string) => Promise<void>;
   readThumbnail: (serverId: string, shot: Shot) => Promise<void>;
   show: (serverId: string, shot: Shot) => Promise<void>;
-  /** The capture before or after the one shown, in the list's order. */
   step: (serverId: string, direction: -1 | 1) => Promise<void>;
   hide: () => void;
-  /**
-   * The capture on screen, written where the save dialog points. The bytes
-   * are the ones already shown; the path is the dialog's, handed back as is.
-   */
   save: () => Promise<void>;
   clean: (serverId: string) => Promise<void>;
   remove: (serverId: string, path: string) => Promise<void>;
@@ -77,8 +62,7 @@ interface ShotsStore {
   forget: () => void;
 }
 
-/** What the app says when the bytes do not match the receipt the agent gave. */
-function broken(): AgentError {
+function corruptShotError(): AgentError {
   return {
     code: "internal",
     fix: translate()("shots.brokenFix"),
@@ -90,14 +74,6 @@ type Read =
   | { ok: true; blob: Blob; mediaType: ShotMediaType }
   | { ok: false; error: AgentError };
 
-/**
- * The bytes of one capture, read over the channel the app already holds.
- *
- * They arrive on `shot` events and the answer says how many there were and
- * what they hash to: what comes out is either the whole capture or the reason
- * it is not showing one. Nothing is downloaded, nothing is opened in a
- * browser, and no port of the server is brought over.
- */
 async function readShot(serverId: string, shot: Shot): Promise<Read> {
   const chunks = new Map<number, string>();
 
@@ -121,7 +97,7 @@ async function readShot(serverId: string, shot: Shot): Promise<Read> {
   const bytes = await shotBytes(chunks, answer.result);
 
   if (!bytes) {
-    return { error: broken(), ok: false };
+    return { error: corruptShotError(), ok: false };
   }
 
   return {
@@ -137,6 +113,24 @@ function revokeAll(thumbnails: Record<string, ThumbnailState>): void {
       URL.revokeObjectURL(thumbnail.url);
     }
   }
+}
+
+function keepListedThumbnails(
+  thumbnails: Record<string, ThumbnailState>,
+  shots: readonly Shot[]
+): Record<string, ThumbnailState> {
+  const listed = new Set(shots.map((shot) => shot.path));
+  const kept: Record<string, ThumbnailState> = {};
+
+  for (const [path, thumbnail] of Object.entries(thumbnails)) {
+    if (listed.has(path)) {
+      kept[path] = thumbnail;
+    } else if (thumbnail.status === "ready") {
+      URL.revokeObjectURL(thumbnail.url);
+    }
+  }
+
+  return kept;
 }
 
 export const useShots = create<ShotsStore>((set, get) => ({
@@ -174,17 +168,7 @@ export const useShots = create<ShotsStore>((set, get) => ({
       return;
     }
 
-    // A thumbnail of a capture the list no longer names is let go of.
-    const named = new Set(answer.result.shots.map((shot) => shot.path));
-    const kept: Record<string, ThumbnailState> = {};
-
-    for (const [path, thumbnail] of Object.entries(get().thumbnails)) {
-      if (named.has(path)) {
-        kept[path] = thumbnail;
-      } else if (thumbnail.status === "ready") {
-        URL.revokeObjectURL(thumbnail.url);
-      }
-    }
+    const kept = keepListedThumbnails(get().thumbnails, answer.result.shots);
 
     set({
       removed: null,
@@ -193,7 +177,6 @@ export const useShots = create<ShotsStore>((set, get) => ({
     });
   },
 
-  /** Asked by the grid for a tile that reached the screen, once per capture. */
   async readThumbnail(serverId, shot) {
     if (get().thumbnails[shot.path]) {
       return;
@@ -242,11 +225,6 @@ export const useShots = create<ShotsStore>((set, get) => ({
     }
   },
 
-  /**
-   * One capture, by the path the list gave: the agent looks it up in what it
-   * listed and never resolves it on the disk. The viewer closes if it was on
-   * that one, and the list is read again so the grid says what is left.
-   */
   async remove(serverId, path) {
     set({ problem: null, removing: path });
 
@@ -269,7 +247,6 @@ export const useShots = create<ShotsStore>((set, get) => ({
     }
   },
 
-  // The address is the server's own: the app never builds one.
   async openGallery(serverId) {
     const answer = await call<ShotsUrlResult>(serverId, "shots.url");
 
@@ -280,13 +257,10 @@ export const useShots = create<ShotsStore>((set, get) => ({
     }
 
     set({ gallery: answer.result.url, problem: null });
+
     await window.pupitre.openUrl(answer.result.url);
   },
 
-  /**
-   * The image itself. A thumbnail already read is the same bytes, so the
-   * viewer opens on it at once rather than asking the channel a second time.
-   */
   async show(serverId, shot) {
     get().hide();
     set({ saveProblem: null, saved: null, view: { shot, status: "reading" } });
@@ -298,8 +272,7 @@ export const useShots = create<ShotsStore>((set, get) => ({
         : await readShot(serverId, shot);
     const size = read.ok ? await shotSize(read.blob) : null;
 
-    // Everything asynchronous is behind us: a viewer closed or moved on while
-    // the bytes or their size were being read is not painted over.
+    // The viewer may have closed or moved on while the bytes were read.
     const current = get().view;
 
     if (current.status !== "reading" || current.shot.path !== shot.path) {
@@ -365,8 +338,7 @@ export const useShots = create<ShotsStore>((set, get) => ({
     const bytes = new Uint8Array(await view.blob.arrayBuffer());
     const answer = await window.pupitre.saveShot(path, bytes);
 
-    // The viewer may have moved on while the dialog was open: what it shows
-    // now is not what was written, and the receipt would name another file.
+    // The viewer may have moved on while the dialog was open.
     if (get().view !== view) {
       return;
     }
@@ -395,7 +367,6 @@ export const useShots = create<ShotsStore>((set, get) => ({
   },
 }));
 
-/** The captures of a list, grouped by the day folder the agent files them under. */
 export function shotsByDay(
   shots: readonly Shot[]
 ): readonly { day: string; shots: Shot[] }[] {
@@ -417,7 +388,6 @@ export function shotsByDay(
 
 const DAY = /^(\d{4}-\d{2}-\d{2})\//;
 
-/** The day folder of a capture's path, else the date the agent gave for it. */
 export function shotDay(shot: Shot): string {
   const fromPath = DAY.exec(shot.path)?.[1];
 

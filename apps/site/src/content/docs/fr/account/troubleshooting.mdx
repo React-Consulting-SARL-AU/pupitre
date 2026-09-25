@@ -1,0 +1,109 @@
+---
+title: Dépannage
+description: Un serveur qui réclame un abonnement, le mode restreint, fail2ban qui bannit votre propre adresse, le mot de passe sudo de dev, une étape d’installation en échec, et où l’app écrit ses erreurs.
+locale: fr
+section: account
+sectionOrder: 3
+order: 6
+---
+
+## « Abonnement requis »
+
+L’agent répond `abonnement requis : ce serveur est en mode restreint` à chaque commande qu’il refuse, dans l’app comme après `dev` dans un terminal. L’app dit la même chose avec ses mots : **Choisissez une offre pour ouvrir Pupitre** ou **Abonnement suspendu** au lancement, **Aucun abonnement** sous **Réglages › Compte**, ou un bandeau au-dessus des écrans du serveur. La cause est l’une de celles-ci.
+
+- **L’organisation n’a pas d’offre.** L’app nomme l’organisation qu’elle a regardée. **Choisir une offre** ouvre la facturation de la console ; une fois le lancement, l’essai ou un abonnement ouvert, **Actualiser** dans l’app.
+- **Une autre organisation est active.** Votre offre est sur une autre organisation que celle pour laquelle travaille cet ordinateur. Depuis l’écran de lancement, **Ouvrir les réglages**, puis **Serveurs › Vos organisations**, et **Rendre active** sur la bonne.
+- **L’abonnement est suspendu.** **Gérer l’abonnement** ouvre la console ; régularisez-le là, puis **Actualiser**.
+- **La console n’a pas répondu depuis plus de sept jours.** L’app le dit. Reconnectez cet ordinateur, et la réponse suivante lève le refus.
+
+Sur le serveur lui-même, les commandes `dev` lisent le rattachement et le droit d’usage dans deux fichiers que seul root ouvre, et se relancent sous `sudo` pour y arriver. Depuis un compte dont le `sudo` demande un mot de passe, la commande le dit : tapez `sudo dev <commande>`.
+
+## Le mode restreint
+
+Un serveur passe en mode restreint quand la plateforme répond que son abonnement est suspendu, quand le serveur est supprimé de la console, ou quand l’agent n’a pas joint la plateforme depuis sept jours.
+
+Ce qui marche encore : lire l’état du serveur, le diagnostic, mettre l’agent à jour et migrer sa configuration, l’enrôlement, et une synchronisation avec la plateforme. Tout le reste est refusé — installations, changements de configuration, actions sur les projets, secrets. Rien de ce qui tourne n’est arrêté : services et projets continuent, et SSH en `dev` marche comme avant.
+
+Il se lève seul. L’agent lit la plateforme toutes les trente secondes : dès que l’abonnement est de nouveau valide, la lecture suivante rend le serveur. Quand votre compte détient une offre et que le serveur reste restreint malgré tout — il a perdu son token, par exemple —, le bandeau de l’app propose **Rattacher à nouveau ce serveur** : un token d’enrôlement neuf arrive à l’agent, et rien d’autre n’est touché sur la machine.
+
+Un paiement refusé ne restreint rien tout de suite : sept jours de tolérance, puis la suspension. Le côté argent est sur la [facturation](/fr/docs/account/billing/).
+
+## fail2ban a banni votre propre adresse
+
+`core.hardening` écrit cette jail dans `/etc/fail2ban/jail.d/pupitre.local` :
+
+```ini
+[sshd]
+enabled = true
+backend = systemd
+port = 22
+maxretry = 5
+findtime = 10m
+bantime = 1h
+```
+
+Le port vaut `22,443` quand vous avez demandé SSH sur 443 aussi. Il n’y a pas d’`ignoreip` : votre adresse est traitée comme n’importe quelle autre. Cinq échecs SSH en dix minutes — un client qui essaie encore `root` après que la sécurisation l’a fermé, un script qui réessaie en boucle — bannissent cette adresse pour une heure.
+
+Le symptôme : depuis votre réseau, `ssh` reste suspendu ou est refusé et l’app ne joint plus le serveur, alors que le serveur répond de partout ailleurs.
+
+Attendez l’heure, ou débannissez-vous depuis une autre adresse — un autre réseau, la connexion de votre téléphone :
+
+```bash
+sudo fail2ban-client status sshd
+sudo fail2ban-client set sshd unbanip 203.0.113.7
+```
+
+La première commande liste les adresses bannies ; la vôtre en fait partie. Le dernier recours est la console que fournit votre hébergeur — VNC, série ou mode rescue : ce n’est pas SSH, donc ni fail2ban ni les réglages SSH ne s’y opposent.
+
+Pour qu’une adresse ne soit jamais bannie, ne modifiez pas `pupitre.local` : `core.hardening` le réécrit la prochaine fois qu’il est configuré. Mettez l’exception dans un fichier à vous, puis rechargez :
+
+```ini
+# /etc/fail2ban/jail.d/ignore.local
+[sshd]
+ignoreip = 127.0.0.1/8 ::1 203.0.113.7
+```
+
+```bash
+sudo fail2ban-client reload
+```
+
+## Le mot de passe sudo de `dev`
+
+En `dev`, `sudo` demande un mot de passe pour tout sauf `pupitred serve` et `pupitred binary install`. Ce mot de passe est dans **Réglages › Serveurs**, sur la fiche du serveur : **Mot de passe sudo de dev**, à afficher ou à copier, puis à coller quand le terminal le demande. Les commandes `dev` n’en ont pas besoin, sauf `dev db dump`, `dev db import` et `dev backup now`, pour lesquelles sudo le demande dans le terminal.
+
+La fiche dit **Pas sur cet ordinateur** quand vous l’ouvrez depuis un autre ordinateur que celui qui a sécurisé le serveur, quand le trousseau a été vidé, ou sous Linux sans trousseau une fois l’app quittée. Les gestes qui demandent la session privilégiée — installer, sécuriser, restaurer une sauvegarde, entre autres — ne passent pas tant que cet ordinateur n’a pas le mot de passe. Le bouton à côté, **Saisir le mot de passe sudo de dev**, le demande : copiez-le depuis l’app d’un ordinateur qui le garde, puis **Garder sur cet ordinateur**. L’app ne le garde qu’une fois que sudo, sur le serveur, l’a accepté. Relancer la sécurisation depuis un ordinateur qui n’a pas le mot de passe n’est pas possible : c’est elle-même un geste privilégié. Un ordinateur qui le garde peut le remplacer en relançant la sécurisation.
+
+Perdu partout, posez-en un nouveau depuis la console de votre hébergeur, connecté en root, puis saisissez-le dans l’app :
+
+```bash
+passwd dev
+```
+
+## Une étape d’installation a échoué
+
+Une étape en échec arrête son module, pas l’installation : les autres modules continuent. L’écran d’installation nomme le module et l’étape où il s’est arrêté, et propose **Réessayer** — ou **Réessayer les 3 services** quand plusieurs ont échoué. Quand d’autres modules dépendent de celui qui a échoué, l’écran le dit. Vous pouvez aussi réessayer plus tard depuis **Services**. Chaque étape est idempotente : rejouer fait ce qui reste et ne change rien à ce qui est déjà en place.
+
+Un module marqué **installé, avec un avertissement** est installé ; l’avertissement dit quoi vérifier.
+
+Sur le serveur, les logs donnent la commande qui rejoue une étape en échec :
+
+```bash
+sudo tail -n 50 /var/log/pupitre.log
+```
+
+Sous l’étape en échec, une ligne indique `relance : sudo pupitred install --only=<module>` — `replay:` quand l’installation a tourné en anglais. L’agent garde les valeurs et les secrets que l’app a envoyés pour l’installation : cette commande rejoue donc avec la même configuration. Deux autres commandes aident :
+
+- `pupitred report` affiche le rapport de la dernière installation, avec le champ `replay` de chaque étape en échec ;
+- `dev doctor` lance un diagnostic court, et `dev status` montre ce qui tourne, les ports et les services.
+
+Les étapes elles-mêmes sont décrites dans [l’onboarding, pas à pas](/fr/docs/start/onboarding/).
+
+## L’app a rencontré une erreur
+
+Quand l’app tombe sur une erreur qu’elle n’attendait pas, elle propose **Relancer** : elle rouvre là où elle était, et les sessions sur vos serveurs continuent de tourner. Ce qui s’est passé est écrit sur votre ordinateur, dans un fichier que le support vous demandera :
+
+- macOS : `~/Library/Application Support/Pupitre/logs/main.log`
+- Windows : `%APPDATA%\Pupitre\logs\main.log`
+- Linux : `~/.config/Pupitre/logs/main.log`
+
+Le fichier ne garde que les erreurs, sans mot de passe ni jeton, et les trois précédents à côté (`main.1.log`…). Joignez-le à votre message au support.

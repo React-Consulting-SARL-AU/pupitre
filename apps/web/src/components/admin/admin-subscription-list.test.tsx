@@ -31,7 +31,6 @@ function list(initial?: AdminSubscriptionListSearch) {
   )
 }
 
-/** One organisation short of seats on the row that counts, one covered. */
 async function twoOrganizations() {
   const { organization: tight } = await createOrganizationWithMembers({
     name: "Atelier serré",

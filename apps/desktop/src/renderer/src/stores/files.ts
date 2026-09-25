@@ -31,19 +31,6 @@ import { type ShotSize, shotSize } from "@renderer/lib/shot-image";
 import type { AgentError, AgentResponse } from "@shared/agent";
 import { create } from "zustand";
 
-/**
- * The files of a server, one folder and one file at a time.
- *
- * Every path is relative to the root the agent holds, and the browser is bound
- * to one folder under it — a project's, or the root itself. Every read lands
- * only on the path it was asked for: a slow answer from a folder the reader
- * has since left would otherwise paint it over the one now open.
- *
- * A file that is read keeps its digest, and the write that follows carries it:
- * the agent refuses when the file changed in between, and the refusal is shown
- * as what it is — never merged, never overwritten blind.
- */
-
 export type ListingState =
   | { status: "idle" }
   | { status: "reading"; path: string }
@@ -55,7 +42,6 @@ export type ListingState =
     }
   | { status: "failed"; path: string; error: AgentError };
 
-/** What the right pane shows: one file, read whole, or refused before the read. */
 export type PreviewState =
   | { status: "idle" }
   | { status: "reading"; path: string }
@@ -79,7 +65,7 @@ export type PreviewState =
       status: "unreadable";
       path: string;
       stat: FsStatResult;
-      /** The agent's refusal when it was asked; nothing when the type alone said no. */
+      // Null when the media type alone ruled the file out, before any read.
       error: AgentError | null;
     }
   | { status: "failed"; path: string; error: AgentError };
@@ -88,14 +74,13 @@ export type WriteState =
   | { status: "idle" }
   | { status: "writing" }
   | { status: "written"; at: number }
-  /** The file is not the one that was read any more: the agent refused, and so does the app. */
+  // The file changed since it was read, so the agent refused the write.
   | { status: "stale"; error: AgentError }
   | { status: "failed"; error: AgentError };
 
-/** How a file that has a rendered form is looked at: drawn, or as the text it is. */
 export type PreviewView = "rendered" | "source";
 
-/** A folder the agent would not remove because it holds something. */
+/** A folder the agent refused to remove because it is not empty. */
 export interface Removal {
   path: string;
   error: AgentError;
@@ -103,25 +88,23 @@ export interface Removal {
 
 interface FilesStore {
   serverId: string | null;
-  /** Where the agent's root sits on the machine, read once per server. */
   workRoot: string | null;
-  /** The folder the browser is bound to, relative to the agent's root. */
+  // Relative to the agent's root.
   root: string | null;
   listing: ListingState;
   preview: PreviewState;
-  /** Rendered anew for every file opened; the source stays until the next. */
   view: PreviewView;
   write: WriteState;
-  /** The buffer as edited, or nothing while it still reads as the file. */
+  // Null while the buffer still matches the file.
   draft: string | null;
-  /** A gesture held back because the buffer is edited; confirming runs it. */
+  // A gesture held back by an edited buffer; confirmLeave runs it.
   leaving: (() => void) | null;
   sort: FileSort;
   hidden: boolean;
   problem: AgentError | null;
   removal: Removal | null;
 
-  /** Binds the browser to an absolute folder of the server, or to the root when none is named. */
+  // A null root binds the browser to the agent's root.
   open: (serverId: string, absoluteRoot: string | null) => Promise<void>;
   browse: (serverId: string, path: string) => Promise<void>;
   refresh: () => Promise<void>;
@@ -130,26 +113,27 @@ interface FilesStore {
   edit: (text: string) => void;
   setView: (view: PreviewView) => void;
   save: (serverId: string) => Promise<void>;
-  /** Reads the open file again and drops the buffer, which is what a stale write leaves to do. */
   reread: (serverId: string) => Promise<void>;
   confirmLeave: () => void;
   stay: () => void;
-  rename: (serverId: string, path: string, name: string) => Promise<void>;
+  rename: (
+    serverId: string,
+    path: string,
+    name: string
+  ) => Promise<AgentError | null>;
   remove: (
     serverId: string,
     path: string,
     recursive?: boolean
   ) => Promise<void>;
-  makeFolder: (serverId: string, name: string) => Promise<void>;
-  /** Makes an empty file in the folder on screen and opens it as code to write, unless a buffer is being edited. */
-  makeFile: (serverId: string, name: string) => Promise<void>;
+  makeFolder: (serverId: string, name: string) => Promise<AgentError | null>;
+  makeFile: (serverId: string, name: string) => Promise<AgentError | null>;
   setSort: (sort: FileSort) => void;
   setHidden: (hidden: boolean) => void;
   dismiss: () => void;
   forget: () => void;
 }
 
-/** What the app says when the bytes do not match the receipt the agent gave. */
 function broken(): AgentError {
   return {
     code: "internal",
@@ -202,14 +186,56 @@ const EMPTY = {
   write: { status: "idle" } as WriteState,
 };
 
+type Parked = Pick<
+  FilesStore,
+  "draft" | "listing" | "preview" | "view" | "write"
+>;
+
+function parkingKey(serverId: string, root: string): string {
+  return `${serverId}\u0000${root}`;
+}
+
 export const useFiles = create<FilesStore>((set, get) => {
+  const parked = new Map<string, Parked>();
+
   function release(preview: PreviewState): void {
     if (preview.status === "image") {
       URL.revokeObjectURL(preview.url);
     }
   }
 
-  /** A gesture that would drop an edited buffer waits for the reader's word. */
+  // An edited buffer is parked per server and root, to be found again on return.
+  function leave(state: FilesStore): void {
+    if (
+      state.draft === null ||
+      state.serverId === null ||
+      state.root === null
+    ) {
+      release(state.preview);
+
+      return;
+    }
+
+    const { draft, listing, preview, view, write } = state;
+
+    parked.set(parkingKey(state.serverId, state.root), {
+      draft,
+      listing,
+      preview,
+      view,
+      write: write.status === "writing" ? { status: "idle" } : write,
+    });
+  }
+
+  function unpark(serverId: string, root: string): Parked | null {
+    const key = parkingKey(serverId, root);
+    const kept = parked.get(key) ?? null;
+
+    parked.delete(key);
+
+    return kept;
+  }
+
   function guarded(gesture: () => Promise<void>): Promise<void> {
     if (get().draft === null) {
       return gesture();
@@ -246,7 +272,7 @@ export const useFiles = create<FilesStore>((set, get) => {
     return workRoot;
   }
 
-  /** Lists a folder and lands only on it: the reader may have left for another. */
+  // Lands only if the reader is still on this folder: a slow answer must not paint over another.
   async function list(serverId: string, path: string): Promise<void> {
     const answer = await call<FsListResult>(serverId, "fs.list", { path });
 
@@ -352,7 +378,7 @@ export const useFiles = create<FilesStore>((set, get) => {
       const current = get();
 
       if (current.serverId !== serverId) {
-        release(current.preview);
+        leave(current);
         set({ ...EMPTY, root: null, serverId, workRoot: null });
       }
 
@@ -374,8 +400,14 @@ export const useFiles = create<FilesStore>((set, get) => {
       }
 
       if (get().root !== root) {
-        release(get().preview);
-        set({ ...EMPTY, root });
+        leave(get());
+        set({ ...EMPTY, ...unpark(serverId, root), root });
+      }
+
+      if (get().draft !== null) {
+        await get().refresh();
+
+        return;
       }
 
       await get().browse(serverId, root);
@@ -472,6 +504,7 @@ export const useFiles = create<FilesStore>((set, get) => {
       set({ view });
     },
 
+    // The read's digest rides the write, so the agent refuses if the file changed in between.
     async save(serverId) {
       const { draft, preview } = get();
 
@@ -553,9 +586,7 @@ export const useFiles = create<FilesStore>((set, get) => {
       });
 
       if (!answer.ok) {
-        set({ problem: answer.error });
-
-        return;
+        return answer.error;
       }
 
       const { preview } = get();
@@ -565,6 +596,8 @@ export const useFiles = create<FilesStore>((set, get) => {
       }
 
       await get().refresh();
+
+      return null;
     },
 
     async remove(serverId, path, recursive = false) {
@@ -603,7 +636,7 @@ export const useFiles = create<FilesStore>((set, get) => {
       const { listing } = get();
 
       if (listing.status === "idle") {
-        return;
+        return null;
       }
 
       set({ problem: null });
@@ -613,19 +646,19 @@ export const useFiles = create<FilesStore>((set, get) => {
       });
 
       if (!answer.ok) {
-        set({ problem: answer.error });
-
-        return;
+        return answer.error;
       }
 
       await get().refresh();
+
+      return null;
     },
 
     async makeFile(serverId, name) {
       const { listing } = get();
 
       if (listing.status === "idle") {
-        return;
+        return null;
       }
 
       set({ problem: null });
@@ -638,9 +671,7 @@ export const useFiles = create<FilesStore>((set, get) => {
       });
 
       if (!answer.ok) {
-        set({ problem: answer.error });
-
-        return;
+        return answer.error;
       }
 
       await get().refresh();
@@ -649,6 +680,8 @@ export const useFiles = create<FilesStore>((set, get) => {
         await get().show(serverId, path);
         set({ view: "source" });
       }
+
+      return null;
     },
 
     setSort(sort) {
@@ -667,6 +700,7 @@ export const useFiles = create<FilesStore>((set, get) => {
 
     forget() {
       release(get().preview);
+      parked.clear();
       set({ ...EMPTY, root: null, serverId: null, workRoot: null });
     },
   };

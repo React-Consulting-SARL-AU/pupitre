@@ -10,14 +10,6 @@ import { useShots } from "@renderer/stores/shots";
 import { ChevronLeft, ChevronRight, Download, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 
-/**
- * The capture itself, laid over the gallery rather than pushed into it.
- *
- * The image comes from the app's own memory, checked against the fingerprint
- * the agent gave: nothing is downloaded, no browser is opened, and no port of
- * the server is brought over to show it. The arrows walk the list, Escape puts
- * the overlay away, and the bytes already here are what the clipboard gets.
- */
 export function ShotViewer({ serverId }: { serverId: string }) {
   const t = useTranslations();
 
@@ -30,14 +22,10 @@ export function ShotViewer({ serverId }: { serverId: string }) {
   const saved = useShots((s) => s.saved);
   const saveProblem = useShots((s) => s.saveProblem);
 
-  // The frame itself takes the focus: a button that goes away with the next
-  // capture — save, copy — would take the focus out with it, and a dialog
-  // whose focus leaves is a dialog that closes.
+  // Focus sits on the frame: a button that unmounts with the next capture would drop focus and close the dialog.
   const popup = useRef<HTMLDivElement | null>(null);
   const open = view.status !== "idle";
 
-  // The arrows are read on the window, not on the frame: wherever the focus
-  // landed once the overlay opened, the next capture is one key away.
   useEffect(() => {
     if (!open) {
       return;
@@ -53,7 +41,7 @@ export function ShotViewer({ serverId }: { serverId: string }) {
       }
     }
 
-    // Captured, so a key stopped inside the dialog still walks the list.
+    // Capture phase, so a key stopped inside the dialog still walks the list.
     window.addEventListener("keydown", onKey, true);
 
     return () => {
@@ -88,12 +76,12 @@ export function ShotViewer({ serverId }: { serverId: string }) {
           ref={popup}
         >
           <header className="flex shrink-0 items-center gap-3">
-            <span className="min-w-0 flex-1 truncate font-data text-[13px] text-ink">
+            <span className="min-w-0 flex-1 truncate font-data text-control text-ink">
               {view.shot.name}
             </span>
 
             {view.status === "shown" ? (
-              <span className="shrink-0 font-data text-[12px] text-ink-3 tabular-nums">
+              <span className="shrink-0 font-data text-ink-3 text-small tabular-nums">
                 {view.size
                   ? `${view.mediaType} · ${view.size.width} × ${view.size.height}`
                   : view.mediaType}
@@ -101,7 +89,7 @@ export function ShotViewer({ serverId }: { serverId: string }) {
             ) : null}
 
             {at === -1 ? null : (
-              <span className="shrink-0 font-data text-[12px] text-ink-3 tabular-nums">
+              <span className="shrink-0 font-data text-ink-3 text-small tabular-nums">
                 {t("shots.position", { index: at + 1, total: shots.length })}
               </span>
             )}
@@ -131,7 +119,7 @@ export function ShotViewer({ serverId }: { serverId: string }) {
 
           {saved ? (
             <p
-              className="mt-2 truncate font-data text-[12px] text-ink-3"
+              className="mt-2 truncate font-data text-ink-3 text-small"
               data-shot-saved={saved}
               role="status"
             >

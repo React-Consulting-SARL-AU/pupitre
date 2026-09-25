@@ -770,7 +770,7 @@ export type $MailMailboxPayload<ExtArgs extends runtime.Types.Extensions.Interna
     displayName: string
     signature: string | null
     /**
-     * A sensitive box journals every read: who opened what, and when.
+     * Every read of a sensitive mailbox is journaled.
      */
     sensitive: boolean
     canReply: boolean

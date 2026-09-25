@@ -9,8 +9,6 @@ import (
 	"pupitre.studio/agent/internal/sys/net"
 )
 
-// The fake writes as the real system does: the mode asked for is the mode the
-// file gets, an existing file included, and KeepMode alone leaves it as it was.
 func TestWriteFileHonoursTheModeAskedForAndKeepsItOnRequest(t *testing.T) {
 	fake := NewFakeSys()
 
@@ -39,7 +37,6 @@ func TestWriteFileHonoursTheModeAskedForAndKeepsItOnRequest(t *testing.T) {
 	}
 }
 
-// A link under a root is written through to its target, which keeps its mode and owner; one that leaves the root is refused.
 func TestWriteFileInWritesThroughALinkThatStaysUnderTheRoot(t *testing.T) {
 	fake := NewFakeSys()
 	fake.Files["/home/dev/projects/shop/.env"] = []byte("A=1\n")
@@ -87,7 +84,6 @@ func TestRangedReadsFollowTheRealSystem(t *testing.T) {
 	var _ sys.Ranged = fake
 }
 
-// The ports the fake listens on are readable the way the kernel prints them, so sys/net answers on the fake as on the machine.
 func TestListenIsRenderedIntoTheKernelTable(t *testing.T) {
 	fake := NewFakeSys()
 	fake.Listen[5432] = true
@@ -99,7 +95,6 @@ func TestListenIsRenderedIntoTheKernelTable(t *testing.T) {
 	}
 }
 
-// The idleness reader lists every pane with its pid and when it last moved; a window a test declares idle moved then.
 func TestListPanesAllAnswersPidAndActivity(t *testing.T) {
 	fake := NewFakeSys()
 	fake.Sessions["pupitre"] = true
@@ -120,7 +115,6 @@ func TestListPanesAllAnswersPidAndActivity(t *testing.T) {
 	}
 }
 
-// tmux takes a leading "=" for an exact target: the fake accepts it on the session and on the window alike.
 func TestExactTargetsAreAccepted(t *testing.T) {
 	fake := NewFakeSys()
 	fake.Sessions["pupitre"] = true

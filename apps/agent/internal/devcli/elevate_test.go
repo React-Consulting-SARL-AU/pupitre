@@ -4,7 +4,6 @@ import (
 	"errors"
 	"io/fs"
 	"os/exec"
-	"strings"
 	"testing"
 
 	"pupitre.studio/agent/internal/contract"
@@ -18,7 +17,6 @@ import (
 
 const sudoPath = "/usr/bin/sudo"
 
-// The machine as `dev` sees it once hardening has closed root: the state is there, and opening it is refused.
 type sealedSys struct {
 	*modtest.FakeSys
 	sealed map[string]bool
@@ -35,7 +33,13 @@ func (s sealedSys) ReadFile(path string) ([]byte, error) {
 type elevator struct {
 	fake      *modtest.FakeSys
 	elevation devcli.Elevation
-	argv      []string
+	launched  [][]string
+}
+
+type localCaller struct{}
+
+func (localCaller) Call(string, any, func(string, map[string]any)) (any, error) {
+	return nil, nil
 }
 
 func newElevator(t *testing.T, sealed ...string) *elevator {
@@ -46,41 +50,39 @@ func newElevator(t *testing.T, sealed ...string) *elevator {
 	fake.Files[entitlement.DefaultCachePath] = []byte("{}\n")
 
 	refused := map[string]bool{}
+
 	for _, path := range sealed {
 		refused[path] = true
 	}
 
 	held := &elevator{fake: fake}
 	held.elevation = devcli.Elevation{
-		Sys:        sealedSys{FakeSys: fake, sealed: refused},
-		State:      []string{platform.DefaultTokenPath, entitlement.DefaultCachePath},
-		Euid:       func() int { return 1000 },
-		Executable: func() (string, error) { return devcli.Binary, nil },
-		LookPath:   func(name string) (string, error) { return "/usr/bin/" + name, nil },
-		Exec: func(path string, argv, _ []string) error {
-			held.argv = append([]string{path}, argv...)
+		Sys:      sealedSys{FakeSys: fake, sealed: refused},
+		State:    []string{platform.DefaultTokenPath, entitlement.DefaultCachePath},
+		Euid:     func() int { return 1000 },
+		LookPath: func(name string) (string, error) { return "/usr/bin/" + name, nil },
+		Launch: func(argv []string) (devcli.Pipe, error) {
+			held.launched = append(held.launched, argv)
 
-			return nil
+			return devcli.Pipe{}, errors.New("not launched in this test")
 		},
 	}
 
 	return held
 }
 
-func (e *elevator) line() string {
-	return strings.Join(e.argv, " ")
-}
-
-func TestElevationRerunsTheGrammarUnderSudo(t *testing.T) {
+func TestASealedMachineIsAskedOfTheServerSudoRuns(t *testing.T) {
 	for _, sealed := range []string{platform.DefaultTokenPath, entitlement.DefaultCachePath} {
 		held := newElevator(t, sealed)
 
-		if err := held.elevation.Run([]string{"logs", "web", "-f"}); err != nil {
+		caller, err := held.elevation.Caller(func() devcli.Caller { return localCaller{} }, "1.2.0")
+		if err != nil {
 			t.Fatalf("%s: %v", sealed, err)
 		}
 
-		if want := sudoPath + " sudo -n " + devcli.Binary + " dev logs web -f"; held.line() != want {
-			t.Fatalf("%s: %q, expected %q", sealed, held.line(), want)
+		remote, isRemote := caller.(*devcli.Remote)
+		if !isRemote || remote.Sudo != sudoPath || remote.Version != "1.2.0" {
+			t.Fatalf("%s: caller = %#v", sealed, caller)
 		}
 	}
 }
@@ -89,16 +91,16 @@ func TestElevationLeavesAloneWhatItCannotHelp(t *testing.T) {
 	root := newElevator(t, platform.DefaultTokenPath)
 	root.elevation.Euid = func() int { return 0 }
 
-	if err := root.elevation.Run([]string{"status"}); err != nil || root.argv != nil {
-		t.Fatalf("root re-ran itself: %v · %v", err, root.argv)
+	if caller, err := root.elevation.Caller(func() devcli.Caller { return localCaller{} }, "1.2.0"); err != nil || caller != (localCaller{}) {
+		t.Fatalf("root went through sudo: %v · %#v", err, caller)
 	}
 
-	// A token nobody wrote is a machine nobody enrolled: root would read no more than this account does.
+	// An absent token is an unenrolled machine: root would read no more than this account does.
 	unenrolled := newElevator(t)
 	unenrolled.fake.Remove(platform.DefaultTokenPath)
 
-	if err := unenrolled.elevation.Run([]string{"status"}); err != nil || unenrolled.argv != nil {
-		t.Fatalf("an absent token is not a refused one: %v · %v", err, unenrolled.argv)
+	if caller, err := unenrolled.elevation.Caller(func() devcli.Caller { return localCaller{} }, "1.2.0"); err != nil || caller != (localCaller{}) {
+		t.Fatalf("an absent token is not a refused one: %v · %#v", err, caller)
 	}
 }
 
@@ -106,29 +108,10 @@ func TestElevationSaysSoWhenItCannotBecomeRoot(t *testing.T) {
 	noSudo := newElevator(t, platform.DefaultTokenPath)
 	noSudo.elevation.LookPath = func(string) (string, error) { return "", exec.ErrNotFound }
 
-	assertRefused(t, noSudo, "devcli.elevate.root.fix")
-
-	needsPassword := newElevator(t, platform.DefaultTokenPath)
-	needsPassword.fake.Failures[sudoPath] = "sudo: a password is required"
-
-	assertRefused(t, needsPassword, "devcli.elevate.password.fix")
-}
-
-func assertRefused(t *testing.T, held *elevator, fix string) {
-	t.Helper()
-
-	err := held.elevation.Run([]string{"status"})
+	_, err := noSudo.elevation.Caller(func() devcli.Caller { return localCaller{} }, "1.2.0")
 
 	var refusal *protocol.Error
-	if !errors.As(err, &refusal) {
-		t.Fatalf("expected a refusal, got %v", err)
-	}
-
-	if refusal.Code != contract.ErrorEntitlementRequired || refusal.Fix != i18n.T(fix) {
-		t.Fatalf("%s · %s", refusal.Code, refusal.Fix)
-	}
-
-	if held.argv != nil {
-		t.Fatalf("it ran something anyway: %v", held.argv)
+	if !errors.As(err, &refusal) || refusal.Code != contract.ErrorEntitlementRequired || refusal.Fix != i18n.T("devcli.elevate.root.fix") {
+		t.Fatalf("refusal = %v", err)
 	}
 }

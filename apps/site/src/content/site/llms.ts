@@ -26,7 +26,7 @@ export const LLMS: LlmsContent = {
   title: "Pupitre",
   summary:
     "A desktop app that turns any Ubuntu VPS into a workshop for AI agents, and a compiled agent installed on that server. The customer brings the machine; Pupitre inspects it, installs the services they choose, hardens it, and becomes the window onto it.",
-  note: "Pupitre is a closed commercial product. Nothing connects inward to a customer's server, no private key leaves their laptop, and when a subscription stops the server keeps running as an ordinary Ubuntu machine.",
+  note: "Pupitre is a closed commercial product. Neither the platform nor support ever connects to a customer's server, no private key leaves their laptop, and when a subscription stops the server keeps running as an ordinary Ubuntu machine.",
   sections: {
     start: "Start here",
     documentation: "Documentation",

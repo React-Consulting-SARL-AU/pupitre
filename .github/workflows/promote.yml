@@ -1,9 +1,5 @@
 name: Promote
 
-# A version goes out `stable` by `release.yml`, on its own. This workflow is
-# the way back: run by hand on a version production already holds, it moves
-# the agent and the app of that version to the channel and points the
-# channel's feeds at its files. Nothing is rebuilt, nothing is re-signed.
 on:
   workflow_dispatch:
     inputs:

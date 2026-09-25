@@ -4,13 +4,6 @@ import type { Server, ServerChanges } from "@shared/servers";
 import { Callout } from "../ui/callout";
 import { ServerRowEdit } from "./server-row-edit";
 
-/**
- * The edit of one row, from the form to what it answered.
- *
- * While the change runs the form waits; once it is done the row says so —
- * and says, when the address moved, that the pinned host key went with it
- * and what the next connection does about it.
- */
 export function ServerRowEditing({
   server,
   edit,
@@ -20,9 +13,8 @@ export function ServerRowEditing({
   onClose,
 }: {
   server: Server;
-  /** Where the last change stands, for whichever row asked for it. */
+  /** Shared by every row: only the row it names reads it. */
   edit: EditState;
-  /** The address is the app's to change; a system host keeps its own. */
   addressEditable: boolean;
   onSubmit: (changes: ServerChanges) => void;
   onRename: (name: string) => void;

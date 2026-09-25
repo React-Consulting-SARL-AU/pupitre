@@ -290,6 +290,7 @@ describe("the seed on a database the migrations built", () => {
     seed(database)
 
     expect(dump(database)).toBe(after)
+
     database.close()
   })
 
@@ -315,6 +316,7 @@ describe("the seed on a database the migrations built", () => {
     seed(database)
 
     expect(dump(database)).toBe(before)
+
     database.close()
   })
 

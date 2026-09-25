@@ -83,7 +83,7 @@ export const backups = {
     "backups.forgetting": "Oubli…",
     "backups.forgetTitle": "Oublier cette sauvegarde ?",
     "backups.forgetDescription":
-      "La plateforme cesse de lister la sauvegarde de {server} du {date}. Ses objets restent dans votre seau : effacez-les là-bas si elle ne sert plus.",
+      "La plateforme cesse de lister la sauvegarde de {server} du {date}. Ses objets restent dans votre bucket : effacez-les là-bas si elle ne sert plus.",
     "backups.forgotten": "Sauvegarde de {server} oubliée.",
     "backups.forgetFailed": "La sauvegarde n'a pas pu être oubliée.",
     "backups.forgetFailedFix":

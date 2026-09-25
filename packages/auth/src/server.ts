@@ -1,6 +1,7 @@
 import { passkey } from "@better-auth/passkey"
 import { scopedPrismaClient } from "@pupitre/db/scope"
 import { DEFAULT_LOCALE, LOCALES, localeOf } from "@pupitre/shared/i18n"
+import { LEGAL_CONTACTS } from "@pupitre/shared/legal"
 import { PLATFORM_ADMIN_ROLE } from "@pupitre/shared/permissions"
 import { betterAuth } from "better-auth"
 import { prismaAdapter } from "better-auth/adapters/prisma"
@@ -16,6 +17,7 @@ import {
 } from "better-auth/plugins"
 import { tanstackStartCookies } from "better-auth/tanstack-start"
 import { ac, platformAc, platformRoles, roles } from "./access-control"
+import { adminLockdown } from "./admin-lockdown"
 import {
   authEmailRenderer,
   configuredSendEmail,
@@ -30,7 +32,8 @@ import {
   readAuthEnv,
   trustedOrigins,
 } from "./env"
-import { organizationHooks } from "./hooks"
+import { freshDeviceApproval } from "./fresh-device-approval"
+import { accountHooks, organizationHooks } from "./hooks"
 import {
   ACCOUNT_DEACTIVATED_CODE,
   isAccountClosed,
@@ -69,8 +72,7 @@ export type SocialProviderId = (typeof SOCIAL_PROVIDER_IDS)[number]
 export const RELYING_PARTY_NAME = "Pupitre"
 export const BACKUP_CODE_COUNT = 10
 
-export const ACCOUNT_DEACTIVATED_MESSAGE =
-  "This account is closed. Write to support@pupitre.studio to have it reopened."
+export const ACCOUNT_DEACTIVATED_MESSAGE = `This account is closed. Write to ${LEGAL_CONTACTS.support} to have it reopened.`
 
 export const DEVICE_VERIFICATION_PATH = "/auth/device"
 export const INVITATION_PATH = "/auth/invitation"
@@ -95,11 +97,7 @@ function headersOf(value: unknown): Headers | null {
   return value instanceof Headers ? value : null
 }
 
-/**
- * Better Auth hands a `Request` to one plugin and its own endpoint context to
- * the other; both carry the caller's headers, one directly and one behind
- * `request`.
- */
+// Better Auth passes either a Request or an endpoint context holding headers behind `request`.
 function acceptLanguageOf(source: unknown): string | null {
   if (!(source && typeof source === "object")) {
     return null
@@ -129,27 +127,43 @@ function socialProviders(env: AuthEnv) {
   }
 }
 
-/**
- * Read back what `socialProviders` actually mounted, so nothing downstream has
- * to know again that a provider needs both of its variables.
- */
 export function mountedSocialProviders(instance: Auth): SocialProviderId[] {
   const mounted = instance.options.socialProviders ?? {}
 
   return SOCIAL_PROVIDER_IDS.filter((provider) => provider in mounted)
 }
 
-/**
- * D1 has no interactive transaction, and the adapter opens one around every
- * claim and increment — consuming a device code, counting a poll — whenever
- * the client offers `$transaction`. Without it, the same steps run one after
- * the other, which is what D1 can do.
- */
+/** D1 has no interactive transactions; hiding `$transaction` makes the adapter run its steps sequentially. */
 export function withoutInteractiveTransactions<T extends object>(prisma: T): T {
   return new Proxy(prisma, {
     get: (target, key) =>
       key === "$transaction" ? undefined : Reflect.get(target, key),
   })
+}
+
+const ACCOUNT_DELETION_UNAVAILABLE_CODE = "ACCOUNT_DELETION_UNAVAILABLE"
+
+async function refuseOrPurgeAccount(
+  userId: string,
+  request: unknown
+): Promise<void> {
+  const hooks = accountHooks()
+
+  if (!hooks) {
+    throw new APIError("SERVICE_UNAVAILABLE", {
+      code: ACCOUNT_DELETION_UNAVAILABLE_CODE,
+      message: "Account deletion is unavailable right now.",
+    })
+  }
+
+  const refusal = await hooks.onAccountDeleting({
+    userId,
+    acceptLanguage: acceptLanguageOf(request),
+  })
+
+  if (refusal) {
+    throw new APIError("CONFLICT", refusal)
+  }
 }
 
 function activeOrganizationIdOf(session: object): string | null {
@@ -182,8 +196,6 @@ export function createAuth({
     },
     rateLimit: {
       enabled: true,
-      // A configured storage wins over the library's per-isolate memory; the
-      // custom storage carries its own atomic consume.
       ...(rateLimitStorage ? { customStorage: rateLimitStorage } : {}),
     },
     emailVerification: {
@@ -201,10 +213,13 @@ export function createAuth({
       },
     },
     user: {
-      deleteUser: { enabled: true },
-      // The address that signs you in only moves once the address that holds
-      // the account has said so: the link goes to the current one, never to
-      // the new one, so a stolen session cannot walk the account away.
+      deleteUser: {
+        enabled: true,
+        beforeDelete: async (user, request) => {
+          await refuseOrPurgeAccount(user.id, request)
+        },
+      },
+      // The link goes to the current address so a stolen session cannot move the account away.
       changeEmail: {
         enabled: true,
         sendChangeEmailVerification: async (
@@ -312,7 +327,7 @@ export function createAuth({
           )
         },
       }),
-      // Before `bearer`, which would otherwise issue a token for the session before the code above has secured it.
+      // Must precede `bearer`, which would otherwise issue a token before the second factor is checked.
       twoFactorChallenge(consoleUrl(env)),
       deviceAuthorization({
         expiresIn: DEVICE_CODE_EXPIRES_IN,
@@ -320,6 +335,7 @@ export function createAuth({
         verificationUri: DEVICE_VERIFICATION_PATH,
       }),
       bearer(),
+      freshDeviceApproval(),
       organization({
         ac,
         roles,
@@ -350,6 +366,7 @@ export function createAuth({
           )
         },
       }),
+      adminLockdown(),
       admin({
         ac: platformAc,
         roles: platformRoles,
@@ -363,8 +380,7 @@ export function createAuth({
       }),
       twoFactor({
         issuer: RELYING_PARTY_NAME,
-        // Nobody here has a password, so the second factor is managed from a
-        // live session instead of being re-proven by one.
+        // Accounts have no password, so the second factor is managed from a live session.
         allowPasswordless: true,
         backupCodeOptions: { amount: BACKUP_CODE_COUNT },
       }),

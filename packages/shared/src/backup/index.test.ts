@@ -16,8 +16,6 @@ import {
   BackupLocationSchema,
   BackupManifestSchema,
   BackupNameSchema,
-  backupDatabaseItem,
-  countsOf,
 } from "./index"
 
 const fromBase64 = (value: string) => Buffer.from(value, "base64")
@@ -123,10 +121,10 @@ const manifest = {
       fingerprint: "0".repeat(64),
     },
     {
-      key: "db-postgres-flymate.pupitre",
+      key: "db-postgres-flyleaf.pupitre",
       kind: "database",
       engine: "postgres",
-      name: "flymate",
+      name: "flyleaf",
       format: "pg_custom",
       bytes: 48_213_990,
       sha256: "b".repeat(64),
@@ -160,13 +158,13 @@ describe("the manifest", () => {
   test("reads a manifest with every kind of part", () => {
     const parsed = BackupManifestSchema.parse(manifest)
 
-    expect(countsOf(parsed.parts)).toEqual({
-      setup: true,
-      home: true,
-      databases: 1,
-      projects: 1,
-      paths: 1,
-    })
+    expect(parsed.parts.map((part) => part.kind)).toEqual([
+      "setup",
+      "home",
+      "database",
+      "project",
+      "path",
+    ])
   })
 
   test("refuses a format it does not know", () => {
@@ -201,7 +199,6 @@ describe("what the settings leave out", () => {
   )
 
   test("a manifest says what it left out, and one made before says nothing", () => {
-    expect(backupDatabaseItem("postgres", "shop")).toBe("postgres:shop")
     expect(
       BackupManifestSchema.safeParse({
         ...manifest,

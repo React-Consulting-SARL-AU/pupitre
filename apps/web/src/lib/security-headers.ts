@@ -1,36 +1,31 @@
-/**
- * The headers of what the Worker itself answers. The documents the console
- * renders carry the full policy; the API's answers carry the interdictions
- * that mean something on a JSON body — its one HTML page, the OpenAPI docs,
- * loads its scripts from where it pleases. The static copies in
- * `public/_headers` carry the rest, on the responses the assets layer serves
- * without the Worker.
- *
- * The policy mirrors the site's, with one concession the site does not make:
- * TanStack Start hydrates through inline scripts it streams with the document,
- * so scripts accept 'unsafe-inline'. Everything a policy can still forbid —
- * framing, plug-ins, other origins — stays forbidden: Google Fonts is the sole
- * external origin beside the presigned R2 addresses the inbox's attachments
- * come from.
- */
-const DOCUMENT_CONTENT_SECURITY_POLICY = [
-  "default-src 'self'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-  "object-src 'none'",
-  "img-src 'self' data: blob:",
-  "font-src 'self' https://fonts.gstatic.com",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "script-src 'self' 'unsafe-inline'",
-  "connect-src 'self' https://*.r2.cloudflarestorage.com",
-  "upgrade-insecure-requests",
-].join("; ")
+const PRESIGNED_R2_ORIGIN = "https://*.r2.cloudflarestorage.com"
 
-/**
- * A socket upgrade answers with a body the runtime owns; copying it into a
- * fresh Response would drop the connection it just agreed to.
- */
+const NONCE_BYTES = 16
+
+function documentContentSecurityPolicy(nonce: string): string {
+  return [
+    "default-src 'self'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "object-src 'none'",
+    `img-src 'self' data: blob: ${PRESIGNED_R2_ORIGIN}`,
+    `frame-src 'self' ${PRESIGNED_R2_ORIGIN}`,
+    "font-src 'self'",
+    "style-src 'self' 'unsafe-inline'",
+    `script-src 'self' 'nonce-${nonce}'`,
+    `connect-src 'self' ${PRESIGNED_R2_ORIGIN}`,
+    "upgrade-insecure-requests",
+  ].join("; ")
+}
+
+export function createCspNonce(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(NONCE_BYTES))
+
+  return btoa(String.fromCharCode(...bytes))
+}
+
+// A socket upgrade answers with a body the runtime owns: copying it into a fresh Response drops the connection.
 function isUpgrade(response: Response): boolean {
   return (
     response.status === 101 ||
@@ -41,7 +36,7 @@ function isUpgrade(response: Response): boolean {
 export function withSecurityHeaders(
   response: Response,
   env: Pick<CloudflareEnv, "PUPITRE_ENVIRONMENT">,
-  { document }: { document: boolean }
+  { nonce }: { nonce: string | null }
 ): Response {
   if (isUpgrade(response)) {
     return response
@@ -49,8 +44,8 @@ export function withSecurityHeaders(
 
   const headers = new Headers(response.headers)
 
-  if (document) {
-    headers.set("content-security-policy", DOCUMENT_CONTENT_SECURITY_POLICY)
+  if (nonce) {
+    headers.set("content-security-policy", documentContentSecurityPolicy(nonce))
     headers.set("x-frame-options", "DENY")
   }
 
@@ -62,8 +57,7 @@ export function withSecurityHeaders(
     "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
   )
 
-  // Local development runs on plain http: the browser must not be told to
-  // refuse it for two years afterwards.
+  // Local development runs on plain http: the browser must not be told to refuse it for two years afterwards.
   if (env.PUPITRE_ENVIRONMENT === "production") {
     headers.set(
       "strict-transport-security",

@@ -4,6 +4,7 @@ import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import {
   checkBannedWords,
+  checkBlogTranslations,
   checkContent,
   checkRouteParity,
 } from "./check-content"
@@ -89,6 +90,40 @@ describe("banned words", () => {
     write("src/pages/index.astro", "<p>tmux, PostgreSQL 17</p>")
 
     expect(checkBannedWords(root)).toEqual([])
+  })
+})
+
+function post(locale: string, slug: string, translation?: string): void {
+  const line = translation ? `translation: ${translation}\n` : ""
+
+  write(
+    `src/content/blog/${locale}/${slug}.mdx`,
+    `---\ntitle: T\n${line}---\n\nBody.\n`
+  )
+}
+
+describe("blog translations", () => {
+  it("accepts posts that name each other across languages", () => {
+    post("en", "on-a-vps", "sur-un-vps")
+    post("fr", "sur-un-vps", "on-a-vps")
+
+    expect(checkBlogTranslations(root)).toEqual([])
+  })
+
+  it("reports a missing, a dangling and a one-way translation", () => {
+    post("en", "silent")
+    post("en", "dangling", "nowhere")
+    post("en", "one-way", "aller")
+    post("fr", "aller", "somewhere-else")
+
+    expect(
+      checkBlogTranslations(root).map((finding) => finding.reason)
+    ).toEqual([
+      'translation "nowhere" has no post in fr',
+      'its fr translation "aller" does not point back to "one-way"',
+      "no `translation` in the frontmatter",
+      'translation "somewhere-else" has no post in en',
+    ])
   })
 })
 

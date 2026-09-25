@@ -16,10 +16,6 @@ export type ModuleCategory = z.infer<typeof ModuleCategorySchema>
 
 const CATEGORY_OF_PREFIX: Record<string, ModuleCategory> = { db: "database" }
 
-/**
- * The category a module id names before its dot, so a screen with the id
- * alone — a snapshot's service — groups it as the catalogue does.
- */
 export function categoryOfModule(moduleId: string): string {
   const prefix = moduleId.split(".")[0] ?? ""
 
@@ -32,11 +28,7 @@ export const ArchitectureSchema = z.enum(ARCHITECTURES)
 
 export type Architecture = z.infer<typeof ArchitectureSchema>
 
-/**
- * The runtimes mise holds at several versions at once, by their mise tool
- * name. Each is the module `runtime.<tool>`, and its versions field is
- * `<tool>_versions`; a project pins one of them under the same name.
- */
+// Mise tool names: each is the module `runtime.<tool>`, whose versions field is `<tool>_versions`.
 export const RUNTIME_TOOLS = [
   "node",
   "java",
@@ -53,10 +45,6 @@ export type RuntimeTool = z.infer<typeof RuntimeToolSchema>
 
 export function runtimeModuleId(tool: RuntimeTool): string {
   return `runtime.${tool}`
-}
-
-export function runtimeVersionsKey(tool: RuntimeTool): string {
-  return `${tool}_versions`
 }
 
 export const MODULE_IDS = [
@@ -111,12 +99,7 @@ export const MANDATORY_MODULE_IDS = [
 
 const ModuleIdPatternSchema = z.string().regex(/^[a-z]+\.[a-z0-9-]+$/)
 
-/**
- * The shapes a manifest can hold a value to.
- *
- * The names live here, with the field that carries them; the expressions that
- * decide live in `formats.ts`, which is where both sides read them from.
- */
+// The expressions behind these names live in `formats.ts`, which both sides read.
 export const FIELD_FORMATS = [
   "port",
   "hostname",
@@ -129,29 +112,18 @@ export const FIELD_FORMATS = [
   "url",
 ] as const
 
-export const FieldFormatSchema = z.enum(FIELD_FORMATS)
+const FieldFormatSchema = z.enum(FIELD_FORMATS)
 
 export type FieldFormat = z.infer<typeof FieldFormatSchema>
 
-/**
- * The long form of `help`, behind a bubble.
- *
- * It says where a value is found and, when there is one, links the page that
- * issues it. Nothing the reader needs in order to fill the field belongs here:
- * a bubble is opened, and what decides is read without a gesture.
- */
-export const FieldHintSchema = z.object({
+// Behind a bubble, so nothing the reader needs to fill the field belongs here.
+const FieldHintSchema = z.object({
   text: z.string().min(1),
   url: z.url().optional(),
 })
 
 export type FieldHint = z.infer<typeof FieldHintSchema>
 
-/**
- * A managed field is derived from a connection by the app, never typed: it is
- * filled on the way out and never displayed. Only a module that declares a
- * `connection` may carry one.
- */
 const FieldBaseSchema = z.object({
   key: z.string().regex(/^[a-z][a-z0-9_]*$/),
   label: z.string().min(1),
@@ -161,12 +133,13 @@ const FieldBaseSchema = z.object({
   pattern: z.string().optional(),
   min_length: z.int().nonnegative().optional(),
   max_length: z.int().nonnegative().optional(),
+  // Filled by the app from the module's connection, never typed nor displayed.
   managed: z.boolean().optional(),
 })
 
-export const INPUT_FIELD_KINDS = ["text", "number", "select"] as const
+const INPUT_FIELD_KINDS = ["text", "number", "select"] as const
 
-export const InputFieldSchema = FieldBaseSchema.extend({
+const InputFieldSchema = FieldBaseSchema.extend({
   kind: z.enum(INPUT_FIELD_KINDS),
   required: z.boolean(),
   default: z.unknown().optional(),
@@ -175,32 +148,21 @@ export const InputFieldSchema = FieldBaseSchema.extend({
   max: z.int().optional(),
 }).strict()
 
-export type InputField = z.infer<typeof InputFieldSchema>
-
-export const SecretFieldSchema = FieldBaseSchema.extend({
+const SecretFieldSchema = FieldBaseSchema.extend({
   kind: z.literal("secret"),
   required: z.boolean(),
   generate: z.boolean().optional(),
 }).strict()
 
-export type SecretField = z.infer<typeof SecretFieldSchema>
-
-export const VersionFieldSchema = FieldBaseSchema.extend({
+const VersionFieldSchema = FieldBaseSchema.extend({
   kind: z.literal("version"),
   options: z.array(z.string()).min(1),
   default: z.string(),
 }).strict()
 
-export type VersionField = z.infer<typeof VersionFieldSchema>
-
-/**
- * Several versions side by side, for a runtime mise can hold at every major
- * at once. `options` runs newest first, and the newest of the chosen ones is
- * the machine's default: what a shell outside any project runs, and what a
- * project that names none gets.
- */
 export const VersionsFieldSchema = FieldBaseSchema.extend({
   kind: z.literal("versions"),
+  // Newest first: the newest chosen is the machine's default.
   options: z.array(z.string()).min(1),
   default: z.array(z.string()).min(1),
 })
@@ -213,7 +175,6 @@ export const VersionsFieldSchema = FieldBaseSchema.extend({
 
 export type VersionsField = z.infer<typeof VersionsFieldSchema>
 
-/** The version a runtime runs at when nothing names one: the newest chosen, in the order the options run. */
 export function defaultVersionOf(
   field: VersionsField,
   chosen: readonly string[]
@@ -221,17 +182,15 @@ export function defaultVersionOf(
   return field.options.find((option) => chosen.includes(option))
 }
 
-export const BooleanFieldSchema = FieldBaseSchema.extend({
+const BooleanFieldSchema = FieldBaseSchema.extend({
   kind: z.literal("boolean"),
   required: z.literal(false),
   default: z.boolean(),
 }).strict()
 
-export type BooleanField = z.infer<typeof BooleanFieldSchema>
+const LIST_ITEM_KINDS = ["text", "secret"] as const
 
-export const LIST_ITEM_KINDS = ["text", "secret"] as const
-
-export const ListFieldSchema = FieldBaseSchema.extend({
+const ListFieldSchema = FieldBaseSchema.extend({
   kind: z.literal("list"),
   required: z.boolean(),
   items: z.enum(LIST_ITEM_KINDS),
@@ -252,29 +211,14 @@ export const FieldSchema = z.discriminatedUnion("kind", [
 
 export type Field = z.infer<typeof FieldSchema>
 
-export const ResourcesSchema = z.object({
+const ResourcesSchema = z.object({
   ram_mb: z.int().nonnegative(),
   disk_mb: z.int().nonnegative(),
 })
 
 export type Resources = z.infer<typeof ResourcesSchema>
 
-/**
- * The third-party accounts the app holds for the client, once for every server.
- *
- * A token that is the same on every machine belongs to the account, not to a
- * server: the app keeps it in the system keychain and fills the module's
- * managed field with it at install time.
- *
- * `cloudflare` and `wrangler` open the same account with two tokens: the first
- * makes tunnels and DNS records from the laptop and never leaves it, the second
- * is exported into the server's shell for Wrangler. One token for both would
- * put the rights over the client's domain where their agents run.
- *
- * `backup` is the client's S3 bucket and the public key backups are encrypted
- * to. The passphrase that key comes from is typed, derived and forgotten: the
- * connection never holds it.
- */
+// The `cloudflare` token never leaves the laptop, so the domain's rights stay off the server.
 export const CONNECTION_KINDS = [
   "cloudflare",
   "wrangler",
@@ -291,15 +235,6 @@ export const ConnectionKindSchema = z.enum(CONNECTION_KINDS)
 
 export type ConnectionKind = z.infer<typeof ConnectionKindSchema>
 
-/**
- * `runs` says whether the module holds a process on the machine, or spawns one
- * at any moment: a database, a tunnel, an editor server, a coding agent.
- *
- * A language, a CLI or a hardening pass leaves nothing to watch, and the
- * dashboard has no row to give it. An agent older than the field says nothing,
- * and everything it installed is taken to run, which is what the dashboard did
- * before the field existed.
- */
 export const ManifestSchema = z.object({
   id: ModuleIdPatternSchema,
   category: ModuleCategorySchema,
@@ -311,6 +246,7 @@ export const ManifestSchema = z.object({
   arch: z.array(ArchitectureSchema).min(1),
   fields: z.array(FieldSchema),
   connection: ConnectionKindSchema.optional(),
+  // Defaults to true because an agent older than the field says nothing.
   runs: z.boolean().default(true),
   mandatory: z.boolean(),
   since: z.string().min(1),
@@ -318,19 +254,14 @@ export const ManifestSchema = z.object({
 
 export type Manifest = z.infer<typeof ManifestSchema>
 
-export const PRESET_IDS = ["web-js", "full", "minimal"] as const
+const PRESET_IDS = ["web-js", "full", "minimal"] as const
 
-export const PresetIdSchema = z.enum(PRESET_IDS)
+const PresetIdSchema = z.enum(PRESET_IDS)
 
-export type PresetId = z.infer<typeof PresetIdSchema>
-
-/**
- * A preset names modules the way a manifest does: a module the agent gained
- * before this package knew of it can enter one without a release here.
- */
 export const PresetSchema = z.object({
   id: PresetIdSchema,
   name: z.string().min(1),
+  // A pattern, not the enum: a module the agent gained first can enter a preset without a release here.
   modules: z.array(ModuleIdPatternSchema),
   choose_one: z.array(ModuleIdPatternSchema).min(2).optional(),
 })
@@ -357,10 +288,7 @@ export const PRESETS: readonly Preset[] = [
     ],
   },
   {
-    // Caddy and the tunnel contradict each other, so the preset carries
-    // neither and asks which one instead. Ticking none of them is a state of
-    // its own: the machine answers through the app's own session. Tailscale
-    // is an exposure too, but a private one that lives beside either.
+    // Caddy and the tunnel contradict each other; Tailscale is private and lives beside either.
     id: "full",
     name: "Tout le catalogue",
     modules: MODULE_IDS.filter((id) => !EXCLUSIVE_EXPOSURES.includes(id)),
@@ -381,13 +309,3 @@ export const PRESETS: readonly Preset[] = [
     ],
   },
 ]
-
-export function getPreset(id: PresetId): Preset {
-  const preset = PRESETS.find((candidate) => candidate.id === id)
-
-  if (!preset) {
-    throw new Error(`Unknown preset: ${id}`)
-  }
-
-  return preset
-}

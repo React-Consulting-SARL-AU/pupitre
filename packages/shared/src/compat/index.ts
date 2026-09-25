@@ -1,42 +1,21 @@
 import { compareVersions, coreVersion, isSemver } from "../semver"
 
-/**
- * The compatibility sheet between the app and the agent.
- *
- * The app and the agent ship on the same tag, but a fleet doesn't update all
- * at once: a new app drives servers still running an older agent, and an
- * updated agent serves apps still running an older version. What binds them
- * isn't their version number, it's the protocol generation they speak.
- *
- * A generation starts at the app version and agent version where the
- * protocol changed shape — a field removed or renamed. As long as no row is
- * added here, every app version drives every agent version, and that's the
- * truth we want to state.
- *
- * This table is the single source: it feeds the contract schema read by the
- * agent, the app reads it to say which server to update first, and nothing
- * else restates the same rule.
- */
 export interface Generation {
-  /** The contract integer this generation speaks. */
   protocol: number
-  /** The first app version of the generation. */
   app: string
-  /** The first agent version of the generation. */
   agent: string
 }
 
+// A row starts where one side can no longer drive the other, even on the same protocol: 0.x apps never open `serve --privileged`.
 export const GENERATIONS: readonly Generation[] = [
   { protocol: 1, app: "0.1.0", agent: "0.1.0" },
   { protocol: 2, app: "0.2.0", agent: "0.2.0" },
+  { protocol: 2, app: "1.0.0", agent: "1.0.0" },
 ]
 
-export type Side = "app" | "agent"
+type Side = "app" | "agent"
 
-/**
- * `unknown` covers a development build, whose version isn't semver: rejecting
- * a developer in the name of a table they're currently writing helps no one.
- */
+// `unknown` is a development build: rejecting it in the name of a table being written helps no one.
 export type CompatibilityVerdict =
   | "ok"
   | "agent_too_old"
@@ -67,24 +46,10 @@ export function generationOf(side: Side, version: string): Generation | null {
   return index === null ? null : (GENERATIONS[index] ?? null)
 }
 
-/** The oldest agent this app version knows how to drive. */
 export function agentFloorFor(appVersion: string): string | null {
   return generationOf("app", appVersion)?.agent ?? null
 }
 
-/** The oldest app this agent version agrees to serve. */
-export function appFloorFor(agentVersion: string): string | null {
-  return generationOf("agent", agentVersion)?.app ?? null
-}
-
-export function protocolOf(side: Side, version: string): number | null {
-  return generationOf(side, version)?.protocol ?? null
-}
-
-/**
- * The verdict reads in a single direction: whichever of the two is behind
- * the other is the one that needs updating.
- */
 export function compatibility(
   appVersion: string,
   agentVersion: string

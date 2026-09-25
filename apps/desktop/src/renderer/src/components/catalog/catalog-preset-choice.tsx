@@ -4,26 +4,13 @@ import { CircleSlash } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
+import { Panel } from "../ui/panel";
 import { RadioGroup, RadioLine } from "../ui/radio";
 import { ServiceLogo } from "../ui/service-logo";
 
-/** The value of the radio that stands for taking none of them. */
+// "None" is an answer, not a cancel: cancelling drops the whole preset.
 const NONE = "";
 
-/**
- * The one question a preset cannot answer for you.
- *
- * `choose_one` names modules that refuse to stand together — the ways of
- * exposing a machine, the agents. A preset that carried one of them would be
- * choosing for the client; a preset that carried none would leave a hole. So it
- * asks, in the names the agent gave, and among those this machine can still
- * take: what is already installed, or what the architecture refuses, is not a
- * question.
- *
- * Taking none of them is one of the answers, not a way out of the dialog:
- * exposing nothing is a state the product supports, and cancelling would drop
- * the whole preset instead.
- */
 export function CatalogPresetChoice({
   preset,
   choices,
@@ -31,7 +18,6 @@ export function CatalogPresetChoice({
   onCancel,
 }: {
   preset: Preset;
-  /** The exclusive modules still open here, resolved against the machine. */
   choices: readonly Manifest[];
   onChoose: (moduleId: string) => void;
   onCancel: () => void;
@@ -41,10 +27,7 @@ export function CatalogPresetChoice({
   const [chosen, setChosen] = useState(choices[0]?.id ?? NONE);
 
   return (
-    <div
-      className="elevation-raised flex flex-col gap-4 rounded-md border border-line bg-surface p-5"
-      data-preset-choice={preset.id}
-    >
+    <Panel className="flex flex-col gap-4" data-preset-choice={preset.id}>
       <Label>{t("catalog.presets.chooseOne", { preset: preset.name })}</Label>
 
       <RadioGroup
@@ -90,6 +73,6 @@ export function CatalogPresetChoice({
           {t("common.cancel")}
         </Button>
       </div>
-    </div>
+    </Panel>
   );
 }

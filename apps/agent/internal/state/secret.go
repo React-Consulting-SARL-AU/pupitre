@@ -8,7 +8,7 @@ import (
 	"pupitre.studio/agent/internal/sys/env"
 )
 
-// The value of one credential of a module, read from /etc/pupitre/env and returned to the caller alone: never logged, never persisted, never handed back in the result envelope.
+// The value goes to the caller alone: never logged, never persisted, never put in the result envelope.
 func (r *Reader) ServiceSecret(id, key string) (string, error) {
 	module, known := r.module(id)
 	if !known {

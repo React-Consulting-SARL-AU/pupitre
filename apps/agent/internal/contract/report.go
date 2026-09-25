@@ -7,11 +7,7 @@ import (
 	"pupitre.studio/agent/internal/i18n"
 )
 
-// Interrupted is the report of a run that died with nobody to finish it: the
-// process went and the kernel released its lock, while the report on disk
-// still reads as running. Every step left open is failed with the reason, its
-// module with it, and the end is written so a reader stops waiting for one.
-// A report that already ended is handed back as it is.
+// For a run that died unfinished: open steps fail, and the end is set so a reader stops waiting.
 func (r Report) Interrupted(now time.Time) Report {
 	if r.FinishedAt != "" {
 		return r
@@ -36,6 +32,7 @@ func (r Report) Interrupted(now time.Time) Report {
 		}
 
 		module.Steps = steps
+
 		if interrupted {
 			module.Status = ModuleFail
 			if !slices.Contains(closed.Failed, module.ID) {

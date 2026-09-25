@@ -173,7 +173,7 @@
         "required": true,
         "format": "domain"
       },
-      "value": "flymate.dev",
+      "value": "flyleaf.dev",
       "expect": null
     },
     {
@@ -185,7 +185,7 @@
         "required": true,
         "format": "domain"
       },
-      "value": "dev.flymate.dev",
+      "value": "dev.flyleaf.dev",
       "expect": null
     },
     {
@@ -197,7 +197,7 @@
         "required": true,
         "format": "domain"
       },
-      "value": "FlyMate.dev",
+      "value": "FlyLeaf.dev",
       "expect": null
     },
     {
@@ -209,7 +209,7 @@
         "required": true,
         "format": "domain"
       },
-      "value": "flymate",
+      "value": "flyleaf",
       "expect": "format"
     },
     {
@@ -221,7 +221,7 @@
         "required": true,
         "format": "domain"
       },
-      "value": "https://flymate.dev",
+      "value": "https://flyleaf.dev",
       "expect": "format"
     },
     {
@@ -233,7 +233,7 @@
         "required": true,
         "format": "domain"
       },
-      "value": "flymate.dev.",
+      "value": "flyleaf.dev.",
       "expect": "format"
     },
     {
@@ -245,7 +245,7 @@
         "required": true,
         "format": "domain"
       },
-      "value": "-flymate.dev",
+      "value": "-flyleaf.dev",
       "expect": "format"
     },
 
@@ -1030,6 +1030,62 @@
       },
       "held": ["openai:sk-live-1", " anthropic:sk-ant-2 ", ""],
       "expect": null
+    },
+    {
+      "name": "secret/line-break/refused",
+      "field": {
+        "key": "password",
+        "kind": "secret",
+        "label": "Mot de passe",
+        "required": true
+      },
+      "held": ["s3cret\nrename-command CONFIG \"\""],
+      "expect": "pattern"
+    },
+    {
+      "name": "secret/carriage-return/refused",
+      "field": {
+        "key": "password",
+        "kind": "secret",
+        "label": "Mot de passe",
+        "required": true
+      },
+      "held": ["s3cret\r"],
+      "expect": "pattern"
+    },
+    {
+      "name": "secret/nul/refused",
+      "field": {
+        "key": "password",
+        "kind": "secret",
+        "label": "Mot de passe",
+        "required": false
+      },
+      "held": ["s3cr\u0000et"],
+      "expect": "pattern"
+    },
+    {
+      "name": "secret/spaces-quotes-tab/ok",
+      "field": {
+        "key": "password",
+        "kind": "secret",
+        "label": "Mot de passe",
+        "required": true
+      },
+      "held": ["s3cret with spaces, quotes \" and ' and a tab\ttoo"],
+      "expect": null
+    },
+    {
+      "name": "list/secret/line-break/refused",
+      "field": {
+        "key": "keys",
+        "kind": "list",
+        "label": "Clés",
+        "required": false,
+        "items": "secret"
+      },
+      "held": ["fine", "sk-live\nEXTRA=1"],
+      "expect": "pattern"
     }
   ]
 }

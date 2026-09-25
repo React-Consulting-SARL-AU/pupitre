@@ -5,6 +5,7 @@ import { StartChecklist } from "@/components/dashboard/start-checklist"
 import { Callout } from "@/components/ui/callout"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
 import { EmptyState } from "@/components/ui/empty-state"
+import { PageHeader } from "@/components/ui/page-header"
 import { useDashboardContext } from "@/hooks/use-dashboard-context"
 import { useTranslations } from "@/hooks/use-locale"
 import { usePermission } from "@/hooks/use-permission"
@@ -89,14 +90,17 @@ export function StartPanel({ returningFromCheckout = false }: StartPanelProps) {
         />
       ) : null}
 
-      <header className="flex flex-col items-center gap-3 text-center">
-        <span className="flex size-11 items-center justify-center rounded-md bg-inverse font-data text-[16px] text-inverse-ink">
-          &gt;_
-        </span>
-        <h1 className="font-bold font-display text-[24px] text-ink leading-[1.2] tracking-[-0.01em]">
-          {t("start.heroTitle")}
-        </h1>
-      </header>
+      <PageHeader
+        mark={
+          <span
+            aria-hidden="true"
+            className="flex size-11 items-center justify-center rounded-md bg-inverse font-data text-[16px] text-inverse-ink"
+          >
+            &gt;_
+          </span>
+        }
+        title={t("start.heroTitle")}
+      />
 
       <StartChecklist />
     </div>

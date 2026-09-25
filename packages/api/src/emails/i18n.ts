@@ -103,7 +103,7 @@ export const EMAIL_FR = {
   "server_enrolled.subject": "{server} est prêt",
   "server_enrolled.preview":
     "L'agent répond. Le serveur est prêt à travailler.",
-  "server_enrolled.title": "{server} est enrôlé",
+  "server_enrolled.title": "{server} est rattaché",
   "server_enrolled.body":
     "L'agent est installé et répond. Ouvrez l'app Pupitre : la machine est prête, les clés de vos appareils y sont déposées.",
   "server_enrolled.cta": "Ouvrir la console",
@@ -185,7 +185,7 @@ export const EMAIL_FR = {
     "Le disque de ce serveur est occupé à {disk} %. Au-delà de 95 %, les services s'arrêtent d'écrire et les sessions de vos agents échouent.",
   "alert_disk_high.cta": "Ouvrir la console",
   "alert_disk_high.footnote":
-    "Le remède : effacez les journaux et les images inutiles, par exemple avec docker system prune -a, ou agrandissez le volume chez votre hébergeur.",
+    "Le remède : effacez les logs et les images inutiles, par exemple avec docker system prune -a, ou agrandissez le volume chez votre hébergeur.",
 
   "alert_agent_outdated.subject":
     "L'agent de {server} a deux versions de retard",
@@ -203,10 +203,10 @@ export const EMAIL_FR = {
     "La dernière tentative s'est arrêtée sur une erreur.",
   "alert_backup_failed.title": "La sauvegarde de {server} a échoué",
   "alert_backup_failed.body":
-    "La dernière sauvegarde de ce serveur n'a pas abouti. Les sauvegardes réussies avant elle restent dans votre seau : un échec n'en efface aucune.",
+    "La dernière sauvegarde de ce serveur n'a pas abouti. Les sauvegardes réussies avant elle restent dans votre bucket : un échec n'en efface aucune.",
   "alert_backup_failed.cta": "Ouvrir la console",
   "alert_backup_failed.footnote":
-    "Le remède : lisez l'erreur ci-dessus, corrigez le seau ou la clé d'accès dans l'app Pupitre, puis lancez « Sauvegarder maintenant » depuis la fiche du serveur.",
+    "Le remède : lisez l'erreur ci-dessus, corrigez le bucket ou la clé d'accès dans l'app Pupitre, puis lancez « Sauvegarder maintenant » depuis la fiche du serveur.",
   "alert_backup_incomplete.subject":
     "La dernière sauvegarde de {server} est incomplète",
   "alert_backup_incomplete.preview":
@@ -214,7 +214,7 @@ export const EMAIL_FR = {
   "alert_backup_incomplete.title":
     "La dernière sauvegarde de {server} est incomplète",
   "alert_backup_incomplete.body":
-    "La sauvegarde est dans votre seau, mais sans certaines de ses parties : une base qui ne s'est pas exportée, un projet qui ne s'est pas archivé. Ce qui manque ne reviendrait pas avec une restauration.",
+    "La sauvegarde est dans votre bucket, mais sans certaines de ses parties : une base qui ne s'est pas exportée, un projet qui ne s'est pas archivé. Ce qui manque ne reviendrait pas avec une restauration.",
   "alert_backup_incomplete.footnote":
     "Le remède : la page Sauvegardes du serveur, dans l'app Pupitre, nomme chaque partie manquante et sa raison ; corrigez-la, puis lancez « Sauvegarder maintenant ».",
 

@@ -21,7 +21,7 @@ const (
 
 var exportPattern = regexp.MustCompile(`^export ([A-Z][A-Z0-9_]*)='(.*)'$`)
 
-// A key the dev user's own tools read: /etc/pupitre/env belongs to root, so a CLI run from a terminal never sees what is stored there.
+// /etc/pupitre/env is root's, so a key dev's own CLIs must read goes here instead.
 func SetUserEnv(ctx *modules.Context, key, value string) (bool, error) {
 	entries, err := readUserEnv(ctx)
 	if err != nil {
@@ -98,12 +98,15 @@ func readUserEnv(ctx *modules.Context) (map[string]string, error) {
 
 func writeUserEnv(ctx *modules.Context, entries map[string]string) error {
 	keys := make([]string, 0, len(entries))
+
 	for key := range entries {
 		keys = append(keys, key)
 	}
+
 	sort.Strings(keys)
 
 	var content strings.Builder
+
 	for _, key := range keys {
 		content.WriteString("export " + key + "='" + strings.ReplaceAll(entries[key], "'", `'\''`) + "'\n")
 	}

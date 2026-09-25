@@ -9,6 +9,7 @@ export const AUDIT_ACTIONS = [
   "server.deleted",
   "device.added",
   "device.revoked",
+  "key.approved",
   "member.invited",
   "subscription.created",
   "subscription.updated",
@@ -75,6 +76,7 @@ const ACTION_KEYS: Record<AuditAction, DictionaryKey> = {
   "server.deleted": "audit.action.server.deleted",
   "device.added": "audit.action.device.added",
   "device.revoked": "audit.action.device.revoked",
+  "key.approved": "audit.action.key.approved",
   "member.invited": "audit.action.member.invited",
   "subscription.created": "audit.action.subscription.created",
   "subscription.updated": "audit.action.subscription.updated",
@@ -160,7 +162,6 @@ const TARGET_KEYS: Record<string, DictionaryKey> = {
   mail_template: "audit.target.mail_template",
 }
 
-/** A key when the action is one we name, and the raw action when it is not. */
 export function actionKey(action: string): DictionaryKey | null {
   return ACTION_KEYS[action as AuditAction] ?? null
 }

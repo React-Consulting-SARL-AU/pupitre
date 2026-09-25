@@ -6,11 +6,6 @@ import { BackupConnectionForm } from "./backup-connection-form";
 import { BackupConnectionHeld } from "./backup-connection-held";
 import type { ConnectionDescriptor } from "./connection-descriptors";
 
-/**
- * The backup connection where a restore or a module's configuration asks for
- * it. Held, it says where backups go; otherwise, or when the reader edits it,
- * it is the form.
- */
 export function BackupConnectionCard({
   connection,
 }: {

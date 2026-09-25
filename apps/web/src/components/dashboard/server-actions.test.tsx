@@ -76,6 +76,7 @@ describe("ServerActions", () => {
               role: "owner",
               entitlement: "valid",
               platformRole: null,
+              platformCanAct: false,
             }}
           >
             <ToastProvider>

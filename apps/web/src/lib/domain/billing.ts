@@ -1,5 +1,7 @@
 import {
   ANNUAL_FREE_MONTHS,
+  BILLING_INTERVALS,
+  type BillingInterval,
   type BillingMode,
   getPlan,
   isPlatformProduct,
@@ -8,9 +10,7 @@ import {
 import type { StatusLook } from "@/lib/domain/server-status"
 import type { DictionaryKey } from "@/lib/i18n/en"
 
-export const BILLING_INTERVALS = ["month", "year"] as const
-
-export type BillingIntervalName = (typeof BILLING_INTERVALS)[number]
+export type BillingIntervalName = BillingInterval
 
 export type CheckoutReturn = "billing" | "start"
 
@@ -61,26 +61,24 @@ export interface SubscriptionProduct {
   status: string
 }
 
-/** The subscription the platform granted itself for the launch: no Stripe, one machine, whatever status it ends on. */
 export function isLaunchSubscription({
   product,
 }: SubscriptionProduct): boolean {
   return product === LAUNCH_PRODUCT
 }
 
-/** The launch seat an organization keeps for good: the launch row, active and without an end. */
 export function isLaunchSeatKept(subscription: SubscriptionProduct): boolean {
   return isLaunchSubscription(subscription) && subscription.status === "active"
 }
 
-/** Stripe holds a trial to one machine; the launch and a granted subscription have no Stripe to resize: the seat form waits for a paid one. */
+// A trial holds one machine, and platform products have no Stripe quantity to resize.
 export function seatsLocked({ status, product }: SubscriptionProduct): boolean {
   return (
     status === "trialing" || (product !== null && isPlatformProduct(product))
   )
 }
 
-/** A status Stripe invents after this was written has no name of ours to show. */
+// A status Stripe adds later has no look of ours: null.
 export function subscriptionStatusLook(
   status: string,
   product: string | null = null
@@ -97,7 +95,6 @@ export interface BillingStatus {
   launch_ends_at: string | null
 }
 
-/** What either offer gives, trial or launch: the same product, free for a while. */
 export const START_PROMISES: DictionaryKey[] = [
   "start.gives.enrol",
   "start.gives.catalogue",
@@ -108,7 +105,6 @@ export type StartOfferKind = "trial" | "launch"
 
 export interface StartOffer {
   kind: StartOfferKind
-  /** When the free period ends; a launch without a date runs until the platform says otherwise. */
   endsAt: string | null
   title: DictionaryKey
   action: DictionaryKey
@@ -125,7 +121,7 @@ const TRIAL_OFFER: StartOffer = {
   failed: "start.failed",
 }
 
-/** Until `/status` has answered, the console offers the trial: that is what it offers outside the launch. */
+// Until `/status` answers, the trial is offered: it is the offer outside the launch.
 export function startOffer(
   billing: BillingStatus | null | undefined
 ): StartOffer {
@@ -154,7 +150,7 @@ export function amountUsd(
 
 const MS_PER_DAY = 86_400_000
 
-/** A day that has begun still counts: Stripe bills at the end of the last one. */
+// A day that has begun still counts: Stripe bills at the end of the last one.
 export function trialDaysLeft(
   endsAt: string | Date | null,
   now: Date = new Date()

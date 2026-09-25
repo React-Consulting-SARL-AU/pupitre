@@ -14,7 +14,6 @@ export interface InboxRecipientFieldProps {
   disabled?: boolean
 }
 
-/** Addresses as chips: each one is removed on its own, and a wrong one never hides in a comma list. */
 export function InboxRecipientField({
   id,
   label,

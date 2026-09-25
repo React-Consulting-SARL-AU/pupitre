@@ -4,12 +4,6 @@ import { assertAccessible } from "./harness/accessible";
 import { ANSWERS } from "./harness/fixtures";
 import { launchPupitre, type Running } from "./harness/launch";
 
-/**
- * The dashboard's three gestures of the seventh phase: a figure past its line
- * says what to do, a service card opens its page, and a restart is waited on
- * by name until the machine answers again.
- */
-
 const REBOOTING = /Redémarrage de/;
 
 const STRAINED = {
@@ -39,6 +33,7 @@ test.describe("le tableau de bord", () => {
           rebooted?: number;
           silentReads?: number;
         };
+
         kept.strained = false;
         kept.rebooted = 0;
         kept.silentReads = 0;
@@ -52,7 +47,6 @@ test.describe("le tableau de bord", () => {
             if (cmd === "snapshot") {
               kept.snapshotReads = (kept.snapshotReads ?? 0) + 1;
 
-              // A machine that was told to reboot is silent for two reads.
               if ((kept.silentReads ?? 0) > 0) {
                 kept.silentReads = (kept.silentReads ?? 0) - 1;
 
@@ -128,7 +122,6 @@ test.describe("le tableau de bord", () => {
     ).toBeVisible();
     await expect(page.getByText("17.2")).toBeVisible();
 
-    // The landing is not a memory: the next visit opens on the list.
     await page.getByRole("button", { name: "Tableau de bord" }).click();
     await page.getByRole("button", { name: "Services" }).click();
 
@@ -155,14 +148,11 @@ test.describe("le tableau de bord", () => {
 
     await assertAccessible(page, "tableau-de-bord/alertes");
 
-    // The disk's remedy is a command of the agent: the button waits on it.
     await page
       .locator('[data-remedy="disk"]')
       .getByRole("button", { name: "Nettoyer les sessions" })
       .click();
 
-    // The memory's remedy lands the reader on the projects, where one is
-    // stopped by its own button.
     await page
       .locator('[data-remedy="memory"]')
       .getByRole("button", { name: "Arrêter un projet" })

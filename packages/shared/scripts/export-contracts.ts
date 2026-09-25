@@ -1,6 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { renderContractSchema } from "../src/contracts"
+import { PUPITRE_ORIGINS } from "../src/legal"
+import { PLATFORM_API_PATH } from "../src/platform-api"
 
 const AGENT_CONTRACT = path.resolve(
   import.meta.dir,
@@ -17,16 +19,26 @@ const BACKUP_FIXTURES = path.resolve(
   "../src/backup/fixtures.json"
 )
 
+const KEY_APPROVAL_FIXTURES = path.resolve(
+  import.meta.dir,
+  "../src/keys/fixtures.json"
+)
+
 interface Artefact {
   output: string
   content: string
 }
 
-/**
- * The field fixtures travel with the schema: they are the only proof that the
- * app and the agent refuse the same value for the same reason, and a Go test
- * that read them across the workspaces would break the day one moves.
- */
+// Product names stay out of schema.json, so a Go test holds the agent's default platform to this.
+function platformFixtures(): string {
+  const platform = {
+    api_url: `${PUPITRE_ORIGINS.app}${PLATFORM_API_PATH}`,
+  }
+
+  return `${JSON.stringify(platform, null, 2)}\n`
+}
+
+// Fixtures are copied beside the schema: a Go test reading them across workspaces would break the day one moves.
 function artefacts(): Artefact[] {
   return [
     {
@@ -40,6 +52,14 @@ function artefacts(): Artefact[] {
     {
       content: readFileSync(BACKUP_FIXTURES, "utf8"),
       output: path.join(AGENT_CONTRACT, "backup.fixtures.json"),
+    },
+    {
+      content: readFileSync(KEY_APPROVAL_FIXTURES, "utf8"),
+      output: path.join(AGENT_CONTRACT, "key-approval.fixtures.json"),
+    },
+    {
+      content: platformFixtures(),
+      output: path.join(AGENT_CONTRACT, "platform.fixtures.json"),
     },
   ]
 }

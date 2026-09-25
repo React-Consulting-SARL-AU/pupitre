@@ -11,7 +11,7 @@ const DATABASES = [
 ] as const;
 
 const PROJECTS = [
-  { included: true, name: "flymate-api", repo: true },
+  { included: true, name: "flyleaf-api", repo: true },
   { included: true, name: "billing", repo: false },
 ];
 
@@ -33,7 +33,7 @@ function databases(
   );
 }
 
-/** The drawn checkbox of one line, found back from the hidden input that names it. */
+// The drawn checkbox is found back from the hidden input that names it.
 function box(html: string, name: string): string {
   const at = html.indexOf(`name="${name}"`);
   const role = html.lastIndexOf('role="checkbox"', at);
@@ -48,7 +48,7 @@ describe("le contenu des sauvegardes", () => {
 
     expect(html).toContain("PostgreSQL · shop");
     expect(html).toContain("MySQL · intranet");
-    expect(html).toContain("Redis · instantané");
+    expect(html).toContain("Redis · snapshot");
   });
 
   it("décoche ce que les réglages laissent dehors, et garde une exclusion d'une base partie", () => {

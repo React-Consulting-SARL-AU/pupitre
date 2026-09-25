@@ -2,6 +2,7 @@ import { createHash, createPrivateKey, type KeyObject, sign } from "node:crypto"
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import {
+  type Artefact,
   absoluteFeed,
   artefactOf,
   FEEDS,
@@ -9,6 +10,7 @@ import {
   isCompanion,
   objectKey,
   signedAppMessage,
+  signedArtefactOf,
 } from "../../apps/desktop/scripts/release-artefacts"
 import { NOTES_LOCALE, readEntry } from "../release-notes"
 import { hasFlag, say, VARIABLES, variable } from "./cli"
@@ -16,18 +18,7 @@ import { SYSTEMS, type System, WORK_INDEX } from "./desktop"
 import { type AppPublication, declareApp, platformFromEnv } from "./platform"
 import { type Bucket, bucket, get, keys, put } from "./r2"
 
-/**
- * The app, made public: every installer the three systems left in the private
- * bucket is signed with the release key, put in the public bucket with its
- * signature alongside, and declared to the platform. The updater's feeds go
- * up rewritten to point at the version's folder, under the channel's. The
- * rows declared are kept with the agent's, so that `promote` can say them
- * again to production without rebuilding anything.
- *
- * Nothing here runs on a workstation: the release key lives in the runner's
- * secrets, and travels in its environment only.
- */
-
+// Runner only: the release key lives in the runner's secrets, never on a workstation.
 const ROOT = path.resolve(import.meta.dir, "../..")
 
 const WORK_DIR = path.join(ROOT, "apps/desktop/dist/publish")
@@ -36,7 +27,7 @@ const ED25519_PKCS8_PREFIX = "302e020100300506032b657004220420"
 
 const SEED_BYTES = 32
 
-/** The raw 64 bytes Ed25519 calls a private key, wrapped as Node wants them. */
+// The raw 64-byte Ed25519 key wrapped as the PKCS#8 Node expects.
 export function releaseKey(encoded: string): KeyObject {
   const raw = Buffer.from(encoded, "base64")
 
@@ -103,16 +94,17 @@ async function fetchWork(version: string, vault: Bucket): Promise<string[]> {
   return files.sort()
 }
 
-async function publishInstaller(
+interface Signed {
+  bytes: number
+  sha256: string
+  signature: string
+}
+
+async function publishSigned(
   file: string,
+  artefact: Artefact,
   settings: Publish
-): Promise<AppPublication | null> {
-  const artefact = artefactOf(file)
-
-  if (!artefact) {
-    return null
-  }
-
+): Promise<Signed> {
   const local = path.join(WORK_DIR, file)
   const content = readFileSync(local)
   const sha256 = createHash("sha256").update(content).digest("hex")
@@ -134,9 +126,28 @@ async function publishInstaller(
     `${local}.sig`
   )
 
+  return { bytes: content.byteLength, sha256, signature }
+}
+
+async function publishInstaller(
+  file: string,
+  settings: Publish
+): Promise<AppPublication | null> {
+  const artefact = artefactOf(file)
+
+  if (!artefact) {
+    return null
+  }
+
+  const { bytes, sha256, signature } = await publishSigned(
+    file,
+    artefact,
+    settings
+  )
+
   return {
     arch: artefact.arch,
-    bytes: content.byteLength,
+    bytes,
     channel: settings.channel,
     format: artefact.format,
     notes: settings.notes,
@@ -195,11 +206,17 @@ export async function publishApp(
   }
 
   for (const file of files.filter(isCompanion)) {
-    await put(
-      settings.bucket,
-      objectKey(version, file),
-      path.join(WORK_DIR, file)
-    )
+    const signed = signedArtefactOf(file)
+
+    if (signed) {
+      await publishSigned(file, signed, settings)
+    } else {
+      await put(
+        settings.bucket,
+        objectKey(version, file),
+        path.join(WORK_DIR, file)
+      )
+    }
   }
 
   for (const file of files.filter((one) => FEEDS.includes(one))) {

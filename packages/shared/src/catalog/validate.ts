@@ -1,16 +1,8 @@
 import { z } from "zod"
-import { type FieldFormat, matchesFormat, normalized } from "./formats"
+import { type FieldFormat, matchesFormat } from "./formats"
 import type { Field, Manifest } from "./index"
 
-/**
- * What a configuration gets wrong, in one shape for both sides.
- *
- * The app computes these to keep an install from leaving, and the agent
- * computes them again before its first step. The rules live here so the two can
- * never drift; the fixtures next door are what proves they haven't.
- */
-
-export const FIELD_PROBLEM_CODES = [
+const FIELD_PROBLEM_CODES = [
   "required",
   "type",
   "min",
@@ -23,30 +15,23 @@ export const FIELD_PROBLEM_CODES = [
   "connection",
 ] as const
 
-export const FieldProblemCodeSchema = z.enum(FIELD_PROBLEM_CODES)
+const FieldProblemCodeSchema = z.enum(FIELD_PROBLEM_CODES)
 
 export type FieldProblemCode = z.infer<typeof FieldProblemCodeSchema>
 
-/**
- * `field` is empty when the problem is the module's own — a connection it
- * requires and nobody has given. `message` is filled by whoever crosses the
- * wire; a problem computed in the app carries none, its screen has the words.
- */
 export const FieldProblemSchema = z.object({
   module: z.string(),
+  // Empty when the problem is the module's own, such as a missing connection.
   field: z.string(),
   code: FieldProblemCodeSchema,
   expected: z.string().optional(),
+  // Filled only when the problem crosses the wire; the app's screens have their own words.
   message: z.string().optional(),
 })
 
 export type FieldProblem = z.infer<typeof FieldProblemSchema>
 
-/**
- * What is held for a secret field: the values themselves when the caller has
- * them, or how many when it only knows that. A count says nothing of the
- * values, so only the values can be weighed against the field's pattern.
- */
+// A caller that only knows how many values are held cannot have them weighed against a pattern.
 export type SecretsHeld = (
   moduleId: string,
   key: string
@@ -68,7 +53,25 @@ function heldItems(
   return { count: items.length, items }
 }
 
-export type ConfigValues = Record<string, Record<string, unknown>>
+// A line break or a nul would end the configuration line a secret is written into.
+const SECRET_PATTERN = "^[^\\r\\n\\x00]*$"
+
+const SECRET_LINE_BREAK_RE = /[\r\n\0]/
+
+function secretProblem(
+  held: SecretsHeld,
+  moduleId: string,
+  key: string
+): FieldProblem | null {
+  const kept = held(moduleId, key)
+  const broken =
+    typeof kept !== "number" &&
+    kept.some((value) => SECRET_LINE_BREAK_RE.test(value))
+
+  return broken ? problem(moduleId, key, "pattern", SECRET_PATTERN) : null
+}
+
+type ConfigValues = Record<string, Record<string, unknown>>
 
 function problem(
   moduleId: string,
@@ -146,6 +149,14 @@ function listProblem(
   }
 
   const least = Math.max(field.min ?? 0, field.required ? 1 : 0)
+
+  if (field.items === "secret") {
+    const broken = secretProblem(held, moduleId, field.key)
+
+    if (broken) {
+      return broken
+    }
+  }
 
   const { count, items } =
     field.items === "secret"
@@ -239,10 +250,6 @@ function numberProblem(
   return textProblem(moduleId, field, String(parsed))
 }
 
-/**
- * One field against one value, and nothing else — a `managed` field is the
- * caller's business, and a module that was never selected has no fields.
- */
 export function validateField(
   moduleId: string,
   field: Field,
@@ -266,7 +273,7 @@ export function validateField(
   if (field.kind === "secret") {
     return field.required && heldItems(held, moduleId, field.key).count === 0
       ? problem(moduleId, field.key, "required")
-      : null
+      : secretProblem(held, moduleId, field.key)
   }
 
   if (field.kind === "list") {
@@ -288,7 +295,6 @@ export function validateField(
   return textProblem(moduleId, field, String(value).trim())
 }
 
-/** The value a module will actually read: what was sent, and the manifest's own default when nothing was. */
 export function resolved(
   field: Field,
   values: Record<string, unknown>
@@ -302,25 +308,14 @@ export function resolved(
   return "default" in field ? field.default : undefined
 }
 
-export interface ValidateOptions {
-  /** Whether the app holds the connection a manifest requires, when it does. */
+interface ValidateOptions {
   connected?: (kind: string) => boolean
-  /** Fields the caller supplies itself — the app fills every `managed` one. */
   skipManaged?: boolean
-  /**
-   * Modules to be installed without being configured. Nothing of theirs is
-   * weighed: there is no answer to judge, and the point of deferring is that
-   * the reader has not given one yet.
-   */
+  // Installed without being configured: there is no answer yet to weigh.
   deferred?: readonly string[]
 }
 
-/**
- * The whole selection, in the order the modules were given.
- *
- * A module's connection is checked before its fields: being asked to fill a
- * domain for a tunnel that has no account behind it helps nobody.
- */
+// A module's connection is checked before its fields: a domain for a tunnel with no account helps nobody.
 export function validateConfig(
   manifests: readonly Manifest[],
   selection: readonly string[],
@@ -365,13 +360,4 @@ export function validateConfig(
   }
 
   return problems
-}
-
-/** What a value becomes once accepted: trimmed, and lowered where a shape says so. */
-export function normalizedValue(field: Field, value: unknown): unknown {
-  if (typeof value !== "string" || !field.format) {
-    return value
-  }
-
-  return normalized(field.format as FieldFormat, value)
 }

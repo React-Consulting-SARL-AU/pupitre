@@ -9,16 +9,7 @@ import type { ThumbnailState } from "@renderer/stores/shots";
 import { ImageOff, Trash2 } from "lucide-react";
 import { useEffect, useRef } from "react";
 
-/**
- * One capture in the grid: its picture when it has reached the screen, its
- * name and weight, and the gesture that removes it.
- *
- * The bytes are asked for the moment the tile scrolls into view and never
- * before: a gallery of three hundred captures is three hundred reads over one
- * channel, and the reader is looking at twelve of them.
- */
-/** The box a thumbnail is drawn in, so the grid does not jump when the bytes land. */
-const TILE = { height: 200, width: 320 };
+const THUMBNAIL_SIZE = { height: 200, width: 320 };
 
 export function ShotTile({
   shot,
@@ -43,8 +34,7 @@ export function ShotTile({
   const visible = useRef(onVisible);
   visible.current = onVisible;
 
-  // Watched once per capture: the callback is read through the ref, so a
-  // parent that renders again does not put a new observer on every tile.
+  // Bytes are read only once the tile scrolls into view: one agent channel serves the whole gallery.
   // biome-ignore lint/correctness/useExhaustiveDependencies: the path is the identity of the tile, and the only reason to watch again
   useEffect(() => {
     const element = frame.current;
@@ -89,18 +79,18 @@ export function ShotTile({
             <img
               alt={t("shots.alt", { name: shot.name })}
               className="h-full w-full object-cover"
-              height={TILE.height}
+              height={THUMBNAIL_SIZE.height}
               src={thumbnail.url}
-              width={TILE.width}
+              width={THUMBNAIL_SIZE.width}
             />
           ) : null}
 
           {thumbnail?.status === "failed" ? (
-            <span
-              className="grid h-full w-full place-items-center px-3 text-center text-[12px] text-ink-3"
-              title={agentText(t, thumbnail.error).message}
-            >
-              <ImageOff size={16} strokeWidth={1.5} />
+            <span className="flex h-full w-full flex-col items-center justify-center gap-1.5 px-3 text-center text-caption text-ink-3 leading-snug">
+              <ImageOff aria-hidden="true" size={16} strokeWidth={1.5} />
+              <span className="line-clamp-3">
+                {agentText(t, thumbnail.error).message}
+              </span>
             </span>
           ) : null}
 
@@ -112,10 +102,10 @@ export function ShotTile({
 
       <figcaption className="flex items-center gap-2 px-3 py-2">
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-data text-[12px] text-ink">
+          <span className="block truncate font-data text-ink text-small">
             {shot.name}
           </span>
-          <span className="block truncate font-data text-[11px] text-ink-3 tabular-nums">
+          <span className="block truncate font-data text-caption text-ink-3 tabular-nums">
             {weight(shot.size_bytes)} ·{" "}
             {Number.isNaN(taken) ? shot.created_at : since(taken)}
           </span>

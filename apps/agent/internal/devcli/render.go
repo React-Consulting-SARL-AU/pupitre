@@ -17,7 +17,6 @@ type printer struct {
 	json bool
 }
 
-// The protocol answer, or the same answer read aloud: --json is what a script pipes, the plain lines are what a human reads.
 func render[T any](out *printer, result any, show func(T)) int {
 	if out.json {
 		return out.raw(result)
@@ -72,11 +71,11 @@ func (p *printer) failure(err error) int {
 	return PrintFailure(p.err, err)
 }
 
-// A protocol error as a human reads it: the code so a ticket can name it, the message, and the fix when there is one.
 func PrintFailure(stderr io.Writer, err error) int {
 	var failure *protocol.Error
 	if errors.As(err, &failure) {
 		fmt.Fprintf(stderr, "%s : %s\n", failure.Code, failure.Message)
+
 		if failure.Fix != "" {
 			fmt.Fprintf(stderr, "  %s\n", failure.Fix)
 		}
@@ -110,7 +109,6 @@ func (p *printer) status(status contract.Status) {
 		p.line("")
 	}
 
-	// One line per project, then one per process when there are several: a single process says everything on the project's own line.
 	for _, project := range status.Projects {
 		if len(project.Processes) == 1 {
 			p.line(fmt.Sprintf("%-24s %-9s %-11s %s", project.Name, project.State, port(project.Processes[0].Port), project.Branch))
@@ -118,13 +116,13 @@ func (p *printer) status(status contract.Status) {
 		}
 
 		p.line(fmt.Sprintf("%-24s %-9s %-11s %s", project.Name, project.State, "", project.Branch))
+
 		for _, process := range project.Processes {
 			p.line(fmt.Sprintf("  %-22s %-9s %s", process.ID, process.State, port(process.Port)))
 		}
 	}
 }
 
-// Each part of a backup as it leaves: sent, copied inside the bucket, or refused with what the bucket said.
 func (p *printer) stepEvent(event string, fields map[string]any) {
 	if event != "step" || p.json {
 		return

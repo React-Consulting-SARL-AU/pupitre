@@ -1,6 +1,5 @@
 package i18n
 
-// What a configuration gets wrong, field by field. One phrase per problem code, and one per format.
 var fieldCatalog = map[string]Message{
 	"field.problem.required": {
 		FR: "ce champ est obligatoire",
@@ -43,15 +42,15 @@ var fieldCatalog = map[string]Message{
 		EN: "a port between 1 and 65535 is expected",
 	},
 	"field.problem.format.hostname": {
-		FR: "un nom d'hôte est attendu, sans espace ni barre oblique",
+		FR: "un nom d'hôte est attendu, sans espace ni slash",
 		EN: "a hostname is expected, with no space and no slash",
 	},
 	"field.problem.format.domain": {
-		FR: "un domaine est attendu, comme flymate.dev, sans schéma ni barre oblique",
-		EN: "a domain is expected, like flymate.dev, with no scheme and no slash",
+		FR: "un domaine est attendu, comme flyleaf.dev, sans schéma ni slash",
+		EN: "a domain is expected, like flyleaf.dev, with no scheme and no slash",
 	},
 	"field.problem.format.email": {
-		FR: "une adresse électronique est attendue",
+		FR: "une adresse e-mail est attendue",
 		EN: "an email address is expected",
 	},
 	"field.problem.format.identifier": {

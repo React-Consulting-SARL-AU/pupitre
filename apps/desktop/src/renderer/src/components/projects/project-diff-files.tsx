@@ -1,19 +1,7 @@
 import type { FileChange } from "@pupitre/shared/agent-protocol/projects";
 import { useTranslations } from "@renderer/i18n/use-translations";
-import type { KeyboardEvent } from "react";
+import { type KeyboardEvent, useId } from "react";
 import { ProjectDiffFileRow } from "./project-diff-file-row";
-
-/**
- * The changed files, grouped as git groups them.
- *
- * `code` is the pair of letters `git status --porcelain` gives, kept verbatim
- * in the tooltip rather than interpreted: it says more than any word we could
- * put in its place, and git is the one who defines it.
- *
- * The list answers the keyboard as a list does: the arrows and `j`/`k` move
- * the selection through the files in the order they are drawn, whichever
- * group they sit in, and the diff follows.
- */
 
 export const STAGES = {
   staged: { className: "text-ok", label: "project.diff.stage.staged" },
@@ -23,14 +11,13 @@ export const STAGES = {
 
 const ORDER = ["staged", "unstaged", "untracked"] as const;
 
-/** The files in the order the list draws them: by stage, then as git listed them. */
 export function drawnOrder(files: readonly FileChange[]): readonly string[] {
   return ORDER.flatMap((stage) =>
     files.filter((file) => file.stage === stage).map((file) => file.path)
   );
 }
 
-/** The path a key moves to, or null when the key is not one of the list's. */
+/** Null when the key does not move the selection. */
 export function pathAfterKey(
   key: string,
   order: readonly string[],
@@ -62,12 +49,19 @@ export function ProjectDiffFiles({
 }) {
   const t = useTranslations();
 
+  const prefix = useId();
+  const order = drawnOrder(files);
+  const optionId = (path: string) => `${prefix}-${order.indexOf(path)}`;
+  const tabbable =
+    selected !== null && order.includes(selected) ? selected : order[0];
+
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>): void {
-    const next = pathAfterKey(event.key, drawnOrder(files), selected);
+    const next = pathAfterKey(event.key, order, selected);
 
     if (next && next !== selected) {
       event.preventDefault();
       onSelect(next);
+      document.getElementById(optionId(next))?.focus();
     }
   }
 
@@ -77,7 +71,6 @@ export function ProjectDiffFiles({
       className="min-h-0 overflow-y-auto border-line border-r"
       onKeyDown={onKeyDown}
       role="listbox"
-      tabIndex={0}
     >
       {ORDER.map((stage) => {
         const group = files.filter((file) => file.stage === stage);
@@ -86,19 +79,25 @@ export function ProjectDiffFiles({
           return null;
         }
 
+        const caption = `${t(STAGES[stage].label)} · ${group.length}`;
+
         return (
-          <div key={stage}>
+          // biome-ignore lint/a11y/useSemanticElements: a listbox groups its options with role group; a fieldset groups form controls
+          <div aria-label={caption} key={stage} role="group">
             <p
-              className={`sticky top-0 z-10 border-line border-b bg-base px-3 py-1 font-data text-[11px] uppercase tracking-[0.08em] ${STAGES[stage].className}`}
+              aria-hidden="true"
+              className={`sticky top-0 z-10 border-line border-b bg-base px-3 py-1 font-data text-caption uppercase tracking-[0.08em] ${STAGES[stage].className}`}
             >
-              {t(STAGES[stage].label)} · {group.length}
+              {caption}
             </p>
             {group.map((file) => (
               <ProjectDiffFileRow
                 active={file.path === selected}
                 change={file}
+                id={optionId(file.path)}
                 key={file.path}
                 onSelect={() => onSelect(file.path)}
+                tabbable={file.path === tabbable}
               />
             ))}
           </div>

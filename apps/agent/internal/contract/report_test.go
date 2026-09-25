@@ -7,7 +7,6 @@ import (
 	"pupitre.studio/agent/internal/contract"
 )
 
-// A report with no end and nobody holding the lock is the trace of a run that died: every step left open fails with the reason, and the end is set so a reader stops waiting.
 func TestInterruptedClosesEveryOpenStepAsAFailure(t *testing.T) {
 	report := contract.Report{
 		StartedAt: "2026-09-04T12:00:00Z",
@@ -32,9 +31,11 @@ func TestInterruptedClosesEveryOpenStepAsAFailure(t *testing.T) {
 	if step.Status != contract.StepFail || step.Message == "" || step.Replay == "" {
 		t.Fatalf("the open step must fail with a reason and keep its replay: %+v", step)
 	}
+
 	if closed.Modules[1].Status != contract.ModuleFail || len(closed.Failed) != 1 || closed.Failed[0] != "db.postgres" {
 		t.Fatalf("the module of the open step fails: %+v, failed = %v", closed.Modules[1], closed.Failed)
 	}
+
 	if closed.Modules[0].Status != contract.ModuleOK || report.Modules[1].Steps[1].Status != contract.StepStart {
 		t.Fatalf("what ended stays as it was, and the report given is not written over: %+v", report)
 	}
@@ -44,7 +45,6 @@ func TestInterruptedClosesEveryOpenStepAsAFailure(t *testing.T) {
 	}
 }
 
-// A report already ended is handed back as it is.
 func TestInterruptedLeavesAFinishedReportAlone(t *testing.T) {
 	report := contract.Report{StartedAt: "2026-09-04T12:00:00Z", FinishedAt: "2026-09-04T12:01:00Z", Failed: []string{"db.postgres"}}
 

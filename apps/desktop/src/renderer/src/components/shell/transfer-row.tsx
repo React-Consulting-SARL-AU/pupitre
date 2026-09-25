@@ -7,16 +7,6 @@ import { ArrowDownToLine, ArrowUpFromLine, Pause, Play, X } from "lucide-react";
 import { IconButton } from "../ui/icon-button";
 import { StatusDot, type StatusShape, type StatusTone } from "../ui/status-dot";
 
-/**
- * One transfer of the panel: where it goes, how far it is, and the three
- * gestures it takes.
- *
- * The state is read by its shape first — breathing while it runs, ringed
- * while it waits, hollow when paused, full when done, struck when it stopped.
- * The figures come from the main process as it read them off rsync; `scp`
- * gives none, and the row says so instead of pretending.
- */
-
 const LOOK: Record<
   Transfer["status"],
   { shape: StatusShape; tone: StatusTone; label: DictionaryKey | null }
@@ -112,7 +102,7 @@ export function TransferRow({
           size={12}
           strokeWidth={1.5}
         />
-        <span className="min-w-0 flex-1 truncate font-data text-[12px] text-ink">
+        <span className="min-w-0 flex-1 truncate font-data text-ink text-small">
           {transfer.name}
         </span>
 
@@ -172,18 +162,18 @@ export function TransferRow({
         </div>
       )}
 
-      <p className="font-data text-[11px] text-ink-3 tabular-nums leading-relaxed">
+      <p className="font-data text-caption text-ink-3 tabular-nums leading-relaxed">
         {figures.join(" · ")}
       </p>
 
       {transfer.tool === "scp" && !over ? (
-        <p className="text-[11px] text-ink-3 leading-relaxed">
+        <p className="text-caption text-ink-3 leading-relaxed">
           {t("transfers.row.scp")}
         </p>
       ) : null}
 
       {said ? (
-        <p className="text-[11px] text-ink-2 leading-relaxed" role="status">
+        <p className="text-caption text-ink-2 leading-relaxed" role="status">
           {said.message}
           {said.fix ? (
             <span className="block text-ink-3">{said.fix}</span>

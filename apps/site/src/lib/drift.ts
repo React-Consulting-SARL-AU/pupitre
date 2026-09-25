@@ -17,13 +17,7 @@ interface Position extends Omit<Drift, "item"> {
   name: string
 }
 
-/**
- * Where each logo sits: `top` as a share of the block it flanks, `out` as the
- * distance in rem from the middle of the page to the near edge of the tile.
- * Measured from the middle rather than from the window, so a wide screen never
- * pushes the constellation away from the column of text. The ten services of
- * the wall are split between the two ends of the page and none is shown twice.
- */
+// `out` is rem from the page middle, not the window, so wide screens keep logos near the text.
 const POSITIONS: Record<DriftPlace, readonly Position[]> = {
   hero: [
     {

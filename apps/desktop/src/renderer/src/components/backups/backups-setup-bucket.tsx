@@ -11,10 +11,6 @@ import type {
 import type { BackupConnectionView, BackupStorage } from "@shared/backups";
 import { ArrowLeftRight, Undo2 } from "lucide-react";
 
-/**
- * The first step: the bucket this computer already holds, kept in one click,
- * or the one the reader gives — the provider, what it cannot derive, the key.
- */
 export function BackupsSetupBucket({
   connection,
   held,

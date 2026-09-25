@@ -6,11 +6,6 @@ import {
   signedMessage,
 } from "../agent-release";
 
-/**
- * The binary that comes down from the platform is checked before it goes up to
- * a server: the checksum the enrolment announced, then the release signature.
- */
-
 const BINARY = new Uint8Array([0x7f, 0x45, 0x4c, 0x46, 1, 2, 3, 4]);
 
 const SPKI_HEADER_BYTES = 12;

@@ -2,17 +2,6 @@ import type { AgentError } from "@shared/agent";
 import { settled, type Transfer, type TransferList } from "@shared/transfers";
 import { create } from "zustand";
 
-/**
- * The transfers, as the main process tells them.
- *
- * The list is the main process's and comes whole with every change: this
- * store keeps the latest revision, drops what arrived out of order, and asks
- * for what a gesture needs — a dialog opened over there, a path the user
- * pointed at, a transfer started on it. A transfer that finished leaves the
- * list on its own after a moment, or on a click.
- */
-
-/** How long a finished transfer stays on screen before leaving on its own. */
 export const LINGER_MS = 6000;
 
 interface TransfersStore {
@@ -21,23 +10,18 @@ interface TransfersStore {
   problem: AgentError | null;
 
   read: () => Promise<void>;
-  /** Starts listening to the main process; answers the way to stop. */
   follow: () => () => void;
-  /** Sends paths a dialog or a drop designated; answers the transfers started. */
   upload: (
     serverId: string,
     remoteDir: string,
     paths: readonly string[]
   ) => Promise<Transfer[]>;
-  /** Opens the dialog, then sends what was chosen into the folder. */
   pickAndUpload: (serverId: string, remoteDir: string) => Promise<number>;
-  /** Sends what was dropped on the window into the folder. */
   dropAndUpload: (
     serverId: string,
     remoteDir: string,
     files: Iterable<File>
   ) => Promise<number>;
-  /** Asks where to save, then brings the file or folder to this computer. */
   pickAndDownload: (
     serverId: string,
     remotePath: string,
@@ -72,7 +56,6 @@ export const useTransfers = create<TransfersStore>((set, get) => {
     );
   }
 
-  /** The newer list wins; an older one that arrived late is dropped. */
   function take(list: TransferList): void {
     if (list.revision <= get().revision) {
       return;

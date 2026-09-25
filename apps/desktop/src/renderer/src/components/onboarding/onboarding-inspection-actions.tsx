@@ -10,12 +10,6 @@ export interface InspectionActions {
   onPickAnother?: () => void;
 }
 
-/**
- * What the verdict allows, and nothing else.
- *
- * A blocked machine gets one way out — another server — because every other
- * button would promise an installation that cannot happen.
- */
 export function OnboardingInspectionActions({
   probe,
   onInstall,
@@ -33,6 +27,7 @@ export function OnboardingInspectionActions({
     </Button>
   );
 
+  // Any other button would promise an install an incompatible machine cannot take.
   if (kind === "incompatible") {
     return <div className="flex flex-wrap items-center gap-2">{another}</div>;
   }

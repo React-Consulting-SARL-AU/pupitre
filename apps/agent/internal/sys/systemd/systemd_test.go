@@ -92,7 +92,6 @@ func TestRecentReadsTheCurrentRunOfTheUnitAlone(t *testing.T) {
 		t.Fatalf("a unit that ran is read by its current invocation, got %v", read)
 	}
 
-	// A unit that never ran has no invocation: its whole journal is the only thing to read.
 	systemd.Recent(ctx, "ghost", 5)
 
 	read = fake.Calls[len(fake.Calls)-1].Argv

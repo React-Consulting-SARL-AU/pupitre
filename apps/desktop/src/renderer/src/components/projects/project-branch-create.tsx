@@ -14,13 +14,7 @@ const PROBLEM_KEY = {
   invalid: "project.branches.invalidName",
 } as const;
 
-/**
- * What stops a name from becoming a branch, before the agent is asked.
- *
- * git's own rule is the one the contract carries; a name that already exists,
- * locally or on the remote, is not created but taken, and the list is where
- * that gesture lives.
- */
+/** An existing name, local or remote, is switched to from the list, not created. */
 export function newBranchProblem(
   name: string,
   branches: Pick<ProjectBranchesResult, "local" | "remote">
@@ -36,14 +30,7 @@ export function newBranchProblem(
   return null;
 }
 
-/**
- * A branch that does not exist yet, named here and created from the one the
- * project is on.
- *
- * The agent creates it on the same `project.checkout` that takes an existing
- * one, so a tree with uncommitted changes gets the same refusal, said before
- * the agent says it.
- */
+// Creation rides `project.checkout`, so a dirty tree is refused the same way: the form warns first.
 export function ProjectBranchCreate({
   branches,
   switching,
@@ -120,13 +107,16 @@ export function ProjectBranchCreate({
         </Button>
       </div>
 
-      <span className="font-data text-[11px] text-ink-3" id={`${inputId}-help`}>
+      <span
+        className="font-data text-caption text-ink-3"
+        id={`${inputId}-help`}
+      >
         {t("project.branches.newFrom", { branch: branches.current })}
       </span>
 
       {refused ? (
         <span
-          className="text-[12px] text-danger leading-relaxed"
+          className="text-danger text-small leading-relaxed"
           id={`${inputId}-problem`}
         >
           {problemText}

@@ -19,7 +19,7 @@ export function StatusBadge({ look, className }: StatusBadgeProps) {
 
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
-      <StatusDot label={label} shape={look.shape} tone={look.tone} />
+      <StatusDot shape={look.shape} tone={look.tone} />
       <span className="text-[13px] text-ink-2">{label}</span>
     </span>
   )

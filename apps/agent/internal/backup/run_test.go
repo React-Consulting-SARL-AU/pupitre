@@ -25,11 +25,13 @@ func names(plain []byte) []string {
 	var listed []string
 
 	reader := tar.NewReader(bytes.NewReader(plain))
+
 	for {
 		header, err := reader.Next()
 		if errors.Is(err, io.EOF) {
 			return listed
 		}
+
 		if err != nil {
 			return listed
 		}
@@ -46,9 +48,11 @@ func TestABackupCarriesEveryPartSealedForTheRecipient(t *testing.T) {
 
 	want := []string{"setup.pupitre", "home.pupitre", "db-postgres-roles.pupitre", "db-postgres-shop.pupitre", "db-redis.pupitre", "project-intranet.pupitre", "path-notes.pupitre"}
 	var got []string
+
 	for _, part := range result.Parts {
 		got = append(got, part.Key)
 	}
+
 	if !slices.Equal(got, want) {
 		t.Fatalf("parts = %v, want %v (warnings %v)", got, want, result.Warnings)
 	}
@@ -81,7 +85,8 @@ func TestABackupCarriesEveryPartSealedForTheRecipient(t *testing.T) {
 	}
 
 	home := names(opened(t, bucket, result.Key+"/home.pupitre"))
-	if !slices.Contains(home, ".ssh/id_ed25519") || slices.Contains(home, ".ssh/authorized_keys") || !slices.Contains(home, ".claude.json") {
+	if !slices.Contains(home, ".ssh/id_ed25519") || slices.Contains(home, ".ssh/authorized_keys") || !slices.Contains(home, ".claude.json") ||
+		!slices.Contains(home, ".claude/settings.json") || slices.ContainsFunc(home, func(name string) bool { return strings.HasPrefix(name, ".claude/remote") }) {
 		t.Fatalf("home = %v", home)
 	}
 

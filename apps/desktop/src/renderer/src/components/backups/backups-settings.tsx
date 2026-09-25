@@ -22,12 +22,6 @@ const PANE_FIELDS: Record<BackupsSettingsPane, readonly string[]> = {
   frequency: FREQUENCY_FIELDS,
 };
 
-/**
- * One pane of the settings of backups already in place: how often, or what
- * they carry. The panes share one draft of `core.backup`, so an
- * Apply sends everything changed; a refusal no field of the pane carries is
- * named at its foot.
- */
 export function BackupsSettings({
   pane,
   serverId,
@@ -69,6 +63,7 @@ export function BackupsSettings({
     return found ? problemText(t, found) : undefined;
   }
 
+  // Both panes share one draft of core.backup, so Apply also sends the other pane's changes.
   function applyAll(): Promise<void> {
     return store.reconfigure(serverId, manifest.id);
   }

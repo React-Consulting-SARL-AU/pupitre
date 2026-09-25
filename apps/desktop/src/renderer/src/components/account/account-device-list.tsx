@@ -5,10 +5,6 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import type { AccountDevice } from "@shared/account";
 import { Laptop, Trash2 } from "lucide-react";
 
-/**
- * The devices as rows: this computer marked and left alone, every other one
- * with the gesture that revokes it, asked twice and naming the machine.
- */
 export function AccountDeviceList({
   devices,
   current,
@@ -16,9 +12,7 @@ export function AccountDeviceList({
   onRevoke,
 }: {
   devices: readonly AccountDevice[];
-  /** The device this computer is, as the platform named it. */
   current: AccountDevice | null;
-  /** The device a revocation is under way on. */
   revoking: string | null;
   onRevoke: (deviceId: string) => Promise<void>;
 }) {
@@ -46,7 +40,7 @@ export function AccountDeviceList({
             />
 
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] text-ink">
+              <p className="truncate text-control text-ink">
                 {device.name}
                 {self ? (
                   <CountPill className="ml-2">
@@ -54,13 +48,13 @@ export function AccountDeviceList({
                   </CountPill>
                 ) : null}
               </p>
-              <p className="truncate font-data text-[11px] text-ink-3">
+              <p className="truncate font-data text-caption text-ink-3">
                 {device.fingerprint}
               </p>
             </div>
 
             {self ? (
-              <span className="text-[12px] text-ink-3">
+              <span className="text-ink-3 text-small">
                 {t("account.devices.self")}
               </span>
             ) : (

@@ -42,7 +42,7 @@ export function InboxThreadActions({
     toast: {
       failed: () => ({
         title: t("inbox.changeFailed"),
-        fix: t("inbox.changeFailedFix"),
+        fix: t("common.retryLater"),
       }),
     },
   })

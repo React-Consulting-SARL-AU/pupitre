@@ -1,8 +1,11 @@
 import { sendSeatsDriftEmail } from "../../emails/notifications"
+import { type CursorBatch, D1_BATCH_SIZE, walkBatches } from "../api/batches"
 import { getPrisma } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import { getBillingProvider } from "./runtime"
 import { readSeatUsage } from "./seats"
+
+export const SEAT_RECONCILIATION_BATCH_SIZE = D1_BATCH_SIZE
 
 export interface SeatReconciliation {
   organization_id: string
@@ -18,17 +21,48 @@ export interface ReconcileSeatsOptions {
   apply?: boolean
 }
 
+export interface SeatReconciliationBatch extends CursorBatch {
+  report: SeatReconciliation[]
+}
+
 interface DriftingSubscription {
   organizationId: string
   stripeSubscriptionId: string
   quantity: number
 }
 
-/** More servers seated than seats paid: the journal keeps it, the owner hears it. */
+interface DriftPayload {
+  paid?: unknown
+  seated?: unknown
+}
+
+async function alreadyAnnounced(
+  subscription: DriftingSubscription,
+  seated: number
+): Promise<boolean> {
+  const last = await getPrisma().event.findFirst({
+    where: {
+      action: "seats.drifted",
+      targetType: "subscription",
+      targetId: subscription.stripeSubscriptionId,
+    },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    select: { payload: true },
+  })
+
+  const payload = last?.payload as DriftPayload | null | undefined
+
+  return payload?.paid === subscription.quantity && payload.seated === seated
+}
+
 async function announceDrift(
   subscription: DriftingSubscription,
   seated: number
 ): Promise<void> {
+  if (await alreadyAnnounced(subscription, seated)) {
+    return
+  }
+
   await recordEvent({
     action: "seats.drifted",
     actorUserId: null,
@@ -41,6 +75,7 @@ async function announceDrift(
       drift: seated - subscription.quantity,
     },
   })
+
   await sendSeatsDriftEmail({
     organizationId: subscription.organizationId,
     paid: subscription.quantity,
@@ -48,11 +83,15 @@ async function announceDrift(
   })
 }
 
-export async function reconcileSeats({
-  apply = false,
-}: ReconcileSeatsOptions = {}): Promise<SeatReconciliation[]> {
+export async function reconcileSeatsBatch(
+  after: string | null,
+  { apply = false }: ReconcileSeatsOptions = {}
+): Promise<SeatReconciliationBatch> {
   const prisma = getPrisma()
-  const usage = await readSeatUsage()
+  const usage = await readSeatUsage({
+    after,
+    take: SEAT_RECONCILIATION_BATCH_SIZE,
+  })
   const report: SeatReconciliation[] = []
 
   for (const { subscription, seated } of usage) {
@@ -64,6 +103,7 @@ export async function reconcileSeats({
         subscription.stripeSubscriptionId,
         seated
       )
+
       await prisma.subscription.update({
         where: { id: subscription.id },
         data: { quantity: seated },
@@ -87,5 +127,20 @@ export async function reconcileSeats({
     })
   }
 
-  return report
+  const next =
+    usage.length < SEAT_RECONCILIATION_BATCH_SIZE
+      ? null
+      : (usage.at(-1)?.subscription.id ?? null)
+
+  return { report, next }
+}
+
+export async function reconcileSeats(
+  options: ReconcileSeatsOptions = {}
+): Promise<SeatReconciliation[]> {
+  const batches = await walkBatches((after) =>
+    reconcileSeatsBatch(after, options)
+  )
+
+  return batches.flatMap((batch) => batch.report)
 }

@@ -45,7 +45,7 @@ func (Module) Install(ctx *modules.Context) error {
 	return installCLI(ctx)
 }
 
-// Nothing to sign in: Claude Code prints its own connection URL on first launch, and the app relays it to the client's browser.
+// No sign-in step: Claude Code prints its own connection URL on first launch.
 func (Module) Configure(ctx *modules.Context) error {
 	return agents.Deploy(ctx, target)
 }
@@ -58,7 +58,7 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// The conversations, the credentials and the skills the client added himself stay: only the CLI and the context this module wrote go.
+// Conversations, credentials and the client's own skills stay; only the CLI and our context go.
 func (Module) Uninstall(ctx *modules.Context) error {
 	if err := removeCLI(ctx); err != nil {
 		return err
@@ -87,7 +87,7 @@ type authStatus struct {
 	OrgName  string `json:"orgName"`
 }
 
-// claude auth status reads what ~/.claude holds and prints its JSON signed in or not; it never reaches Anthropic.
+// claude auth status only reads ~/.claude and never reaches Anthropic.
 func (Module) Login(ctx *modules.Context) (contract.Login, bool) {
 	out, _ := login.Ask(ctx, nil, Program, "auth", "status")
 

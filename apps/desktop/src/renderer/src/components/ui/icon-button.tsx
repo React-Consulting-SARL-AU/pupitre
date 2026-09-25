@@ -15,7 +15,6 @@ const VARIANT: Record<ButtonVariant, string> = {
 
 const PRESSED = "border-inverse bg-inverse text-inverse-ink hover:bg-ink-2";
 
-/** A square button whose label lives in its tooltip. */
 export function IconButton({
   icon: Icon,
   label,
@@ -31,18 +30,16 @@ export function IconButton({
 }: {
   icon: ButtonIcon;
   label: string;
-  /** Answer with the promise of the work started and the button waits on it. */
+  /** Return the work's promise and the button waits on it. */
   onClick?: Gesture;
   variant?: ButtonVariant;
   loading?: boolean;
   disabled?: boolean;
   size?: number;
   className?: string;
-  /** For a button that folds something: what it currently shows. */
   expanded?: boolean;
-  /** For a button that switches something on: whether it is on, drawn filled. */
   pressed?: boolean;
-  /** For a button that opens a dialog before it does anything. */
+  /** Opens a dialog before it does anything. */
   asks?: boolean;
 }) {
   const [click, pending] = usePending(onClick);
@@ -57,7 +54,7 @@ export function IconButton({
         aria-haspopup={asks ? "dialog" : undefined}
         aria-label={label}
         aria-pressed={pressed}
-        className={`clickable inline-flex shrink-0 items-center justify-center rounded-sm p-1.5 transition-soft ${waiting ? "cursor-progress" : ""} ${disabled && !waiting ? "opacity-40" : ""} ${pressed ? PRESSED : VARIANT[variant]} ${className}`}
+        className={`clickable inline-flex min-h-7 min-w-7 shrink-0 items-center justify-center rounded-sm p-1.5 transition-soft ${waiting ? "cursor-progress" : ""} ${disabled && !waiting ? "opacity-40" : ""} ${pressed ? PRESSED : VARIANT[variant]} ${className}`}
         disabled={disabled || waiting}
         onClick={click}
         type="button"

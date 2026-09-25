@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./app";
+import { GestureFailureNotice } from "./components/shell/gesture-failure-notice";
 import { LiveRegion } from "./components/ui/live-region";
 import { TooltipProvider } from "./components/ui/tooltip";
 import { watchTrace } from "./lib/trace";
@@ -9,8 +10,7 @@ import { startTerminalSettings } from "./stores/terminal-settings";
 import { startThemeWatch } from "./stores/theme";
 import "./styles.css";
 
-// Before the first paint: the attribute has to be on <html> or the window
-// flashes the wrong theme on launch.
+// Before the first paint, or the window flashes the wrong theme on launch.
 startThemeWatch();
 startLocaleWatch();
 startTerminalSettings();
@@ -23,6 +23,7 @@ if (root) {
       <LiveRegion />
       <TooltipProvider>
         <App />
+        <GestureFailureNotice />
       </TooltipProvider>
     </StrictMode>
   );

@@ -13,14 +13,6 @@ import type { UsageRight } from "@shared/account";
 import { ExternalLink } from "lucide-react";
 import { billingUrlOf } from "./account-subscription-card";
 
-/**
- * The right to work, told by a shape.
- *
- * A full dot is a fresh answer from the platform, a ringed one the cache that
- * still holds, a hollow circle a development build that answers for itself, a
- * struck dot a refusal. The seven days are named, because that is the promise.
- */
-
 interface Look {
   shape: StatusShape;
   tone: StatusTone;
@@ -103,7 +95,6 @@ function detailOf(
   return t("account.usage.none");
 }
 
-/** Where the console settles the right when it does not stand: billing for a plan, the dashboard otherwise. */
 function consoleOf(usage: UsageRight): string | null {
   if (usage.status === "granted") {
     return null;
@@ -147,11 +138,16 @@ export function AccountUsageNotice({
       </span>
       <div className="min-w-0">
         <p className="font-medium text-ink">{look.title}</p>
-        <p className="mt-1 text-[12px] text-ink-3 leading-relaxed">
+        <p className="mt-1 text-ink-3 text-small leading-relaxed">
           {detailOf(usage, checkedAt, t)}
         </p>
+        {usage.status === "stale" ? (
+          <p className="mt-1 text-ink-2 text-small leading-relaxed">
+            {t("account.usage.stale.fix")}
+          </p>
+        ) : null}
         {usage.status === "granted" && usage.validUntil ? (
-          <p className="mt-1.5 font-data text-[12px] text-ink-3">
+          <p className="mt-1.5 font-data text-ink-3 text-small">
             {t("account.usage.validUntil", {
               date: new Intl.DateTimeFormat(currentLocale()).format(
                 new Date(usage.validUntil)

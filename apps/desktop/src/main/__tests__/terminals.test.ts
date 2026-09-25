@@ -67,15 +67,15 @@ describe("le terminal d'un projet", () => {
 
     await listProjects(SERVER, calls.projects);
 
-    const opened = await shell("flymate-api", "tabc1", null, calls.terminals);
+    const opened = await shell("flyleaf-api", "tabc1", null, calls.terminals);
 
     expect(opened).toMatchObject({
       ok: true,
       result: {
         command:
-          "tmux new-session -A -s shell-flymate-api-tabc1 -c /home/dev/projects/flymate/api ';' set-option -t shell-flymate-api-tabc1 status off",
+          "tmux new-session -A -s shell-flyleaf-api-tabc1 -c /home/dev/projects/flyleaf/api ';' set-option -t shell-flyleaf-api-tabc1 status off",
         kind: "shell",
-        session: "shell-flymate-api-tabc1",
+        session: "shell-flyleaf-api-tabc1",
       },
     });
   });
@@ -102,9 +102,9 @@ describe("le terminal d'un projet", () => {
     await listProjects(SERVER, calls.projects);
 
     const opened = await shell(
-      "flymate-api",
+      "flyleaf-api",
       "tabc3",
-      "shell-flymate-api-tabc1",
+      "shell-flyleaf-api-tabc1",
       calls.terminals
     );
 
@@ -112,8 +112,8 @@ describe("le terminal d'un projet", () => {
       ok: true,
       result: {
         command:
-          "tmux new-session -A -s shell-flymate-api-tabc1 -c /home/dev/projects/flymate/api ';' set-option -t shell-flymate-api-tabc1 status off",
-        session: "shell-flymate-api-tabc1",
+          "tmux new-session -A -s shell-flyleaf-api-tabc1 -c /home/dev/projects/flyleaf/api ';' set-option -t shell-flyleaf-api-tabc1 status off",
+        session: "shell-flyleaf-api-tabc1",
       },
     });
   });
@@ -171,7 +171,7 @@ describe("le terminal ouvert dans un sous-dossier", () => {
         dir: "src/lib",
         id: "tabd1",
         kind: "shell",
-        project: "flymate-api",
+        project: "flyleaf-api",
         serverId: SERVER,
         session: null,
       },
@@ -182,7 +182,7 @@ describe("le terminal ouvert dans un sous-dossier", () => {
       ok: true,
       result: {
         command:
-          "tmux new-session -A -s shell-flymate-api-tabd1 -c /home/dev/projects/flymate/api/src/lib ';' set-option -t shell-flymate-api-tabd1 status off",
+          "tmux new-session -A -s shell-flyleaf-api-tabd1 -c /home/dev/projects/flyleaf/api/src/lib ';' set-option -t shell-flyleaf-api-tabd1 status off",
       },
     });
   });
@@ -192,7 +192,7 @@ describe("le terminal ouvert dans un sous-dossier", () => {
 
     const opened = await terminalCommand(
       {
-        dir: "projects/flymate",
+        dir: "projects/flyleaf",
         id: "tabd2",
         kind: "shell",
         project: null,
@@ -206,7 +206,7 @@ describe("le terminal ouvert dans un sous-dossier", () => {
       ok: true,
       result: {
         command:
-          "tmux new-session -A -s shell-server-tabd2 -c /home/dev/projects/flymate ';' set-option -t shell-server-tabd2 status off",
+          "tmux new-session -A -s shell-server-tabd2 -c /home/dev/projects/flyleaf ';' set-option -t shell-server-tabd2 status off",
       },
     });
   });
@@ -222,7 +222,7 @@ describe("le terminal ouvert dans un sous-dossier", () => {
           dir,
           id: "tabd3",
           kind: "shell",
-          project: "flymate-api",
+          project: "flyleaf-api",
           serverId: SERVER,
           session: null,
         },
@@ -271,7 +271,7 @@ describe("l'onglet d'un agent", () => {
       {
         id: "tag1",
         kind: "claude",
-        project: "flymate-api",
+        project: "flyleaf-api",
         serverId: SERVER,
         session: null,
       },
@@ -282,9 +282,9 @@ describe("l'onglet d'un agent", () => {
       ok: true,
       result: {
         command:
-          "tmux new-session -A -s claude-flymate-api -c /home/dev/projects/flymate/api claude",
+          "tmux new-session -A -s claude-flyleaf-api -c /home/dev/projects/flyleaf/api claude",
         kind: "claude",
-        session: "claude-flymate-api",
+        session: "claude-flyleaf-api",
       },
     });
   });
@@ -297,7 +297,7 @@ describe("l'onglet d'un agent", () => {
       {
         id: "tag2",
         kind: "claude",
-        project: "flymate-api",
+        project: "flyleaf-api",
         serverId: SERVER,
         session: null,
       },
@@ -308,7 +308,7 @@ describe("l'onglet d'un agent", () => {
       {
         id: "tag3",
         kind: "hermes",
-        project: "flymate-api",
+        project: "flyleaf-api",
         serverId: SERVER,
         session: null,
       },

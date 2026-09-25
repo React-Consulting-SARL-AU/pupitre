@@ -4,6 +4,7 @@ import { getPrisma } from "../api/prisma"
 export type AuditAction =
   | "device.added"
   | "device.revoked"
+  | "key.approved"
   | "server.enrolled"
   | "server.exchanged"
   | "server.deleted"
@@ -86,13 +87,7 @@ export type AuditTargetType =
   | "mail_mailbox"
   | "mail_template"
 
-/**
- * Who did the thing.
- *
- * The console acts as a person; the release pipeline acts as itself, and has no
- * user to name. The journal keeps both apart rather than lending the pipeline
- * the account whose credential it once borrowed.
- */
+/** The pipeline acts as itself, never under the account whose credential it once borrowed. */
 export type ActorSource = "console" | "pipeline"
 
 export interface Actor {

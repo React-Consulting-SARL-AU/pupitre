@@ -39,11 +39,6 @@ import { ProjectGitState } from "../projects/project-git-state";
 import { portOf, ServerAddForm } from "../servers/server-add-form";
 import { grantStatusLabel } from "../servers/server-grant-detail";
 
-/**
- * The screens of the seventh phase, rendered from the same fixtures as the
- * rest: what each one says, and the gesture each one puts where it belongs.
- */
-
 const NOOP = () => undefined;
 
 const RESOLVED = () => Promise.resolve();
@@ -67,7 +62,7 @@ describe("le fichier d'environnement d'un projet", () => {
         state={{
           env: {
             keys: ["DATABASE_URL", "AUTH_SECRET"],
-            path: "/home/dev/projects/flymate/.env.local",
+            path: "/home/dev/projects/flyleaf/.env.local",
             template: true,
             written: false,
           },
@@ -92,7 +87,7 @@ describe("le fichier d'environnement d'un projet", () => {
         state={{
           env: {
             keys,
-            path: "/home/dev/projects/flymate/.env.local",
+            path: "/home/dev/projects/flyleaf/.env.local",
             template: true,
             written: false,
           },
@@ -118,7 +113,7 @@ describe("le fichier d'environnement d'un projet", () => {
         state={{
           env: {
             keys: ["DATABASE_URL", "AUTH_SECRET"],
-            path: "/home/dev/projects/flymate/.env.local",
+            path: "/home/dev/projects/flyleaf/.env.local",
             template: true,
             written: false,
           },
@@ -206,8 +201,8 @@ describe("le changement de branche", () => {
   it("ne change rien tant qu'un bouton n'a pas été pressé", () => {
     const html = renderToStaticMarkup(
       <ProjectBranches
-        folder="/home/dev/projects/flymate"
-        onCheckout={NOOP}
+        folder="/home/dev/projects/flyleaf"
+        onCheckout={RESOLVED}
         state={{ branches: { ...BRANCHES, dirty: true }, status: "read" }}
         switching={false}
       />
@@ -215,14 +210,14 @@ describe("le changement de branche", () => {
 
     expect(html).toContain('role="combobox"');
     expect(text(html)).not.toContain("Changer ");
-    expect(text(html)).toContain("changement de branche sera refusé");
+    expect(text(html)).toContain("changer de branche sera refusé");
   });
 
   it("sépare les branches locales des distantes pas encore prises, et offre d'en créer une", async () => {
     const view = await mount(
       <ProjectBranches
-        folder="/home/dev/projects/flymate"
-        onCheckout={NOOP}
+        folder="/home/dev/projects/flyleaf"
+        onCheckout={RESOLVED}
         state={{ branches: { ...BRANCHES, dirty: false }, status: "read" }}
         switching={false}
       />
@@ -261,8 +256,7 @@ describe("l'écart avec le dépôt distant", () => {
       />
     );
 
-    expect(text(html)).toContain("Tirer et réinstaller");
-    expect(html).toContain("git pull puis réinstallation");
+    expect(text(html)).toContain("Pull et réinstaller");
   });
 
   it("ne l'offre pas quand tout est à jour", () => {
@@ -278,7 +272,7 @@ describe("l'écart avec le dépôt distant", () => {
       />
     );
 
-    expect(text(html)).not.toContain("Tirer");
+    expect(text(html)).not.toContain("Pull et réinstaller");
   });
 });
 
@@ -374,7 +368,6 @@ describe("un compte tiers connecté", () => {
     );
   });
 
-  /** Two tokens of one account, because only one of them goes to the server. */
   it("sépare le jeton du tunnel, qui reste ici, de celui de Wrangler, qui part", () => {
     const t = translator("fr");
     const [tunnel, wrangler] = CONNECTIONS.filter((one) =>
@@ -394,12 +387,12 @@ describe("un compte tiers connecté", () => {
     expect(wrangler?.hint).toContain("Aucune permission Tunnel ni DNS");
   });
 
-  /** Several accounts is a question the reader answers, never the first the provider listed. */
+  // Never default to the first account the provider lists.
   it("fait choisir le compte quand le jeton en ouvre plusieurs", () => {
     const html = renderToStaticMarkup(
       <ConnectionAccountChoice
         accounts={[
-          { id: "acc-1", name: "Flymate" },
+          { id: "acc-1", name: "Flyleaf" },
           { id: "acc-2", name: "Atelier" },
         ]}
         chosen="acc-2"
@@ -408,8 +401,8 @@ describe("un compte tiers connecté", () => {
       />
     );
 
-    expect(text(html)).toContain("Ce jeton ouvre plusieurs comptes");
-    expect(text(html)).toContain("Flymate");
+    expect(text(html)).toContain("Ce token ouvre plusieurs comptes");
+    expect(text(html)).toContain("Flyleaf");
     expect(text(html)).toContain("Atelier");
     expect(html).toContain('data-account-option="acc-1"');
     expect(html.match(/role="radio"/g)).toHaveLength(2);
@@ -455,8 +448,8 @@ describe("un compte tiers connecté", () => {
     );
 
     expect(text(answered)).toContain("répond comme ada");
-    expect(text(refused)).toContain("ne répond plus à ce jeton");
-    expect(text(refused)).toContain("Créez un nouveau jeton");
+    expect(text(refused)).toContain("ne répond plus à ce token");
+    expect(text(refused)).toContain("Créez un nouveau token");
   });
 });
 
@@ -568,7 +561,7 @@ describe("les sessions", () => {
     );
     const attached = renderToStaticMarkup(
       <ActivitySessions
-        attached={["claude:flymate-api"]}
+        attached={["claude:flyleaf-api"]}
         onClean={NOOP}
         onReattach={NOOP}
         onStop={NOOP}

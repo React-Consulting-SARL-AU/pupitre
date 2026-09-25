@@ -1,9 +1,14 @@
 import { describe, expect, it } from "bun:test"
+import { PUPITRE_ORIGINS } from "@pupitre/shared/legal"
 import { LAUNCH_ADMIN_SEATS } from "@pupitre/shared/plans"
 import {
+  AppUrlNotConfiguredError,
+  appUrlFromEnv,
+  BillingConfigInvalidError,
   BillingModeInvalidError,
   billingModeFromEnv,
   LaunchNotConfiguredError,
+  stripeEventLeaseMsFromEnv,
   stripeSubscriptionUrl,
 } from "./config"
 
@@ -50,6 +55,46 @@ describe("billingModeFromEnv", () => {
     expect(() => billingModeFromEnv({ BILLING_MODE: "free" })).toThrow(
       BillingModeInvalidError
     )
+  })
+})
+
+describe("appUrlFromEnv", () => {
+  it("reads the console's origin, path and trailing slash apart", () => {
+    expect(
+      appUrlFromEnv({ VITE_APP_URL: "https://app.pupitre.studio/dashboard/" })
+    ).toBe("https://app.pupitre.studio")
+    expect(
+      appUrlFromEnv({ BETTER_AUTH_URL: "https://app.pupitre.studio" })
+    ).toBe("https://app.pupitre.studio")
+  })
+
+  it("falls back to the local console only on a machine without an environment", () => {
+    expect(appUrlFromEnv({})).toBe(PUPITRE_ORIGINS.devConsole)
+    expect(appUrlFromEnv({})).toBe("http://localhost:3000")
+  })
+
+  it("refuses to guess the console's address on a deployed platform", () => {
+    expect(() =>
+      appUrlFromEnv({ PUPITRE_ENVIRONMENT: "production", VITE_APP_URL: " " })
+    ).toThrow(AppUrlNotConfiguredError)
+  })
+})
+
+describe("stripeEventLeaseMsFromEnv", () => {
+  it("holds an event five minutes unless told otherwise", () => {
+    expect(stripeEventLeaseMsFromEnv({})).toBe(300_000)
+    expect(stripeEventLeaseMsFromEnv({ STRIPE_EVENT_LEASE_MINUTES: "2" })).toBe(
+      120_000
+    )
+  })
+
+  it("refuses a lease that is not a positive number of minutes", () => {
+    expect(() =>
+      stripeEventLeaseMsFromEnv({ STRIPE_EVENT_LEASE_MINUTES: "0" })
+    ).toThrow(BillingConfigInvalidError)
+    expect(() =>
+      stripeEventLeaseMsFromEnv({ STRIPE_EVENT_LEASE_MINUTES: "soon" })
+    ).toThrow(BillingConfigInvalidError)
   })
 })
 

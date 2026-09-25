@@ -1,14 +1,5 @@
 import { currentLocale, translate } from "@renderer/i18n/translate";
 
-/**
- * The numbers of the interface, in the reader's language.
- *
- * The agent answers in megabytes, gigabytes and seconds; nothing is converted
- * beyond what makes a figure legible at a glance, and nothing is rounded away
- * that the reader would miss. The unit words and the decimal mark follow the
- * chosen locale.
- */
-
 const MB_PER_GB = 1024;
 
 const MINUTE_S = 60;
@@ -23,6 +14,10 @@ export function decimal(value: number, digits = 1): string {
   const fixed = value.toFixed(digits);
 
   return currentLocale() === "fr" ? fixed.replace(".", ",") : fixed;
+}
+
+export function count(value: number): string {
+  return new Intl.NumberFormat(currentLocale()).format(value);
 }
 
 export function memory(mb: number | undefined): string {
@@ -45,7 +40,6 @@ export function disk(gb: number): string {
   return `${decimal(gb, gb >= 10 ? 0 : 1)} ${translate()("format.unit.gb")}`;
 }
 
-/** A figure shown as it was measured, with only the decimal mark localised. */
 export function measured(value: number): string {
   return decimal(value, Number.isInteger(value) ? 0 : 1);
 }
@@ -72,7 +66,6 @@ export function uptime(seconds: number | undefined): string {
   return `${Math.floor(seconds / DAY_S)} ${t("format.unit.day")}`;
 }
 
-/** How long ago something was read, for a value the reader may want refreshed. */
 export function since(timestampMs: number): string {
   const seconds = Math.max(0, (Date.now() - timestampMs) / 1000);
   const t = translate();
@@ -92,7 +85,6 @@ export function since(timestampMs: number): string {
   return t("format.since.days", { count: Math.round(seconds / DAY_S) });
 }
 
-/** The time of day of a moment the agent dated, on the reader's clock; a date it cannot read is shown as it came. */
 export function clock(iso: string): string {
   const moment = new Date(iso);
 
@@ -105,7 +97,6 @@ export function clock(iso: string): string {
   }).format(moment);
 }
 
-/** A day and a time someone dated, on the reader's calendar; a date it cannot read is shown as it came. */
 export function dated(iso: string): string {
   const moment = new Date(iso);
 
@@ -121,7 +112,6 @@ export function dated(iso: string): string {
 
 const BYTES_PER_KB = 1024;
 
-/** A file's weight, the way a reader judges whether it is worth keeping. */
 export function weight(bytes: number): string {
   const t = translate();
   const kb = bytes / BYTES_PER_KB;
@@ -141,7 +131,6 @@ export function weight(bytes: number): string {
     : `${decimal(mb / BYTES_PER_KB, 2)} ${t("format.unit.gb")}`;
 }
 
-/** A transfer's pace, a weight per second. */
 export function rate(bytesPerSecond: number): string {
   return `${weight(bytesPerSecond)}/${translate()("format.unit.second")}`;
 }

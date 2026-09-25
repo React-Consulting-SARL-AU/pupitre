@@ -24,11 +24,6 @@ import { ProjectOverview } from "../projects/project-overview";
 import { ProjectTabBar } from "../projects/project-tab-bar";
 import { tabOfKind, tabsFor } from "../projects/project-tabs";
 
-/**
- * A project's screens, rendered from the same `snapshot` fixture as the
- * dashboard, plus what its own commands answer.
- */
-
 const NOOP = () => undefined;
 const RESOLVED = () => Promise.resolve();
 
@@ -80,7 +75,7 @@ describe("l'en-tête d'un projet", () => {
 
     expect(html).toContain("Redémarrer");
     expect(html).toContain("Arrêter");
-    expect(html).toContain("Synchroniser");
+    expect(html).toContain("Pull et réinstaller");
     expect(html).toContain("Retirer du registre");
   });
 
@@ -144,7 +139,7 @@ describe("les onglets d'un projet", () => {
     );
 
     expect(html).toContain("Vue d&#x27;ensemble");
-    expect(html).toContain("Journal");
+    expect(html).toContain("Logs");
     expect(html).toContain("Terminaux");
     expect(html).toContain("Agents");
     expect(html).not.toContain("Claude");
@@ -251,7 +246,7 @@ describe("la vue d'ensemble d'un projet", () => {
         git={{ at: Date.now(), git: GIT_STATUS, status: "read" }}
         onAct={NOOP}
         onCheckGit={NOOP}
-        onCheckout={NOOP}
+        onCheckout={RESOLVED}
         onConfigure={NOOP}
         onReadEnv={NOOP}
         onRegenerateEnv={() => Promise.resolve()}
@@ -262,15 +257,15 @@ describe("la vue d'ensemble d'un projet", () => {
       />
     );
 
-    expect(html).toContain("flymate.example.org");
-    expect(html).toContain("api-flymate.example.org");
+    expect(html).toContain("flyleaf.example.org");
+    expect(html).toContain("api-flyleaf.example.org");
     expect(html).toContain('data-addresses="2"');
     expect(html).toContain("Publier un autre port");
     expect(html).toContain('id="project-branch"');
     expect(html).toContain("bun run dev --port 3000");
     expect(html).toContain("412 Mo");
     expect(html).toContain('data-processes="1"');
-    expect(html).toContain('data-process="flymate-api"');
+    expect(html).toContain('data-process="flyleaf-api"');
     expect(html).toContain("3 commits à récupérer");
   });
 
@@ -283,7 +278,7 @@ describe("la vue d'ensemble d'un projet", () => {
         git={{ status: "idle" }}
         onAct={NOOP}
         onCheckGit={NOOP}
-        onCheckout={NOOP}
+        onCheckout={RESOLVED}
         onConfigure={NOOP}
         onReadEnv={NOOP}
         onRegenerateEnv={() => Promise.resolve()}
@@ -295,7 +290,7 @@ describe("la vue d'ensemble d'un projet", () => {
     );
 
     expect(html).toContain("dérivée de bun");
-    expect(html).toContain("interrogation du dépôt distant");
+    expect(html).toContain("Interrogation du dépôt distant");
   });
 });
 
@@ -323,6 +318,30 @@ describe("les adresses d'un projet", () => {
     expect(bare).toContain('data-addresses="1"');
     expect(bare).toContain("127.0.0.1:3100");
   });
+
+  it("n'offrent d'ouvrir un nom sur le web que tant que son processus tourne", () => {
+    const online = renderToStaticMarkup(
+      <ProjectAddresses onPublish={NOOP} project={PROJECT} />
+    );
+    const halted = renderToStaticMarkup(
+      <ProjectAddresses
+        onPublish={NOOP}
+        project={{
+          ...PROJECT,
+          processes: PROJECT.processes.map((process) => ({
+            ...process,
+            state: "stopped" as const,
+          })),
+          state: "stopped",
+        }}
+      />
+    );
+
+    expect(online).toContain('data-tooltip="Ouvrir flyleaf.example.org"');
+    expect(halted).toContain("flyleaf.example.org");
+    expect(halted).toContain('data-published="true"');
+    expect(halted).not.toContain("Ouvrir ");
+  });
 });
 
 describe("le diff d'un projet", () => {
@@ -342,7 +361,7 @@ describe("le diff d'un projet", () => {
     expect(html).toContain("modifiés");
     expect(html).toContain("nouveaux");
     expect(html).toContain("tva.ts");
-    expect(html).toContain("lecture seule");
+    expect(html).toContain("Lecture seule");
   });
 
   it("marque les lignes du patch par leur signe autant que par leur fond", () => {
@@ -386,7 +405,7 @@ describe("les éditeurs distants", () => {
     const html = renderToStaticMarkup(
       <ProjectEditors
         editors={remoteEditors(SNAPSHOT.services)}
-        onOpen={NOOP}
+        onOpen={RESOLVED}
         onShare={RESOLVED}
         root={GIT_STATUS.root}
         share={null}
@@ -408,7 +427,7 @@ describe("les éditeurs distants", () => {
     const html = renderToStaticMarkup(
       <ProjectEditors
         editors={remoteEditors(SNAPSHOT.services)}
-        onOpen={NOOP}
+        onOpen={RESOLVED}
         onShare={RESOLVED}
         root={null}
         share={null}
@@ -422,7 +441,7 @@ describe("les éditeurs distants", () => {
     const html = renderToStaticMarkup(
       <ProjectEditors
         editors={remoteEditors(SNAPSHOT.services)}
-        onOpen={NOOP}
+        onOpen={RESOLVED}
         onShare={RESOLVED}
         root={GIT_STATUS.root}
         share="/home/jean/.ssh/config"

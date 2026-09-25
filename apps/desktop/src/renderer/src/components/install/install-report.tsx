@@ -1,19 +1,13 @@
 import type { InstallResult } from "@pupitre/shared/agent-protocol/install";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { RotateCcw } from "lucide-react";
+import { stepLabel } from "../../lib/step-label";
 import type { ModuleProgress, StepEntry } from "../../stores/install";
 import { Button } from "../ui/button";
 import { Details } from "../ui/details";
+import { Panel } from "../ui/panel";
 import { StatusDot } from "../ui/status-dot";
 
-/**
- * What the agent concluded, and what can still be done about it.
- *
- * `failed` and `warned` are its own lists, printed in its own order. A module
- * that failed says so in plain words, says what it means for the reader, and
- * keeps the agent's own line and the repair command under Details; its button
- * runs `install` again for it alone. The way out is the bar the screen ends on.
- */
 export function InstallReport({
   result,
   modules,
@@ -55,9 +49,11 @@ export function InstallReport({
             const step = failedStepOf(moduleId);
 
             return (
-              <li
-                className="elevation-raised flex flex-wrap items-start gap-3 rounded-md border border-danger/40 bg-surface px-4 py-3"
+              <Panel
+                as="li"
+                className="flex flex-wrap items-start gap-3"
                 data-failed={moduleId}
+                inset="sm"
                 key={moduleId}
               >
                 <span className="translate-y-1">
@@ -68,8 +64,8 @@ export function InstallReport({
                     {t("install.failed", { name: nameOf(moduleId) })}
                   </p>
                   {step ? (
-                    <p className="mt-0.5 text-[12px] text-ink-3 leading-relaxed">
-                      {t("install.failedAt", { step: step.step })}
+                    <p className="mt-0.5 text-ink-3 text-small leading-relaxed">
+                      {t("install.failedAt", { step: stepLabel(t, step.step) })}
                     </p>
                   ) : null}
                   {step?.message || step?.replay ? (
@@ -94,7 +90,7 @@ export function InstallReport({
                 >
                   {t("install.replay")}
                 </Button>
-              </li>
+              </Panel>
             );
           })}
         </ul>
@@ -115,7 +111,7 @@ export function InstallReport({
                 <span>{t("install.warned", { name: nameOf(moduleId) })}</span>
                 {warningsOf(moduleId).map((warning) => (
                   <span
-                    className="text-[12px] text-ink-3 leading-relaxed"
+                    className="text-ink-3 text-small leading-relaxed"
                     key={warning}
                   >
                     {warning}

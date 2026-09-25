@@ -12,9 +12,7 @@ export function RequirementsCard() {
       </CardHeader>
       <CardBody className="grid gap-section sm:grid-cols-2">
         <section className="flex flex-col gap-2">
-          <h3 className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-            {t("download.forApp")}
-          </h3>
+          <h3 className="text-label">{t("download.forApp")}</h3>
           <ul className="flex flex-col gap-2">
             {APP_REQUIREMENTS.map((target) => (
               <li className="text-[13px] text-ink-2" key={target.os}>
@@ -26,9 +24,7 @@ export function RequirementsCard() {
         </section>
 
         <section className="flex flex-col gap-2">
-          <h3 className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-            {t("download.forServer")}
-          </h3>
+          <h3 className="text-label">{t("download.forServer")}</h3>
           <ul className="flex flex-col gap-2">
             {SERVER_REQUIREMENTS.map((line) => (
               <li className="text-[13px] text-ink-2" key={line}>

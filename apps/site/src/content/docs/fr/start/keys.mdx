@@ -11,7 +11,7 @@ Pupitre travaille avec des clés ed25519 qu’il génère lui-même. Les moitié
 
 ## Quelles clés existent
 
-- **Une clé pour cet ordinateur**, faite la première fois qu’elle sert. Sa moitié publique monte à la plateforme, qui la remet aux agents des serveurs que votre compte peut ouvrir — une machine que votre organisation vous confie n’a donc pas besoin d’une clé à elle.
+- **Une clé pour cet ordinateur**, faite la première fois qu’elle sert. Sa moitié publique monte à la plateforme, qui la transmet aux agents des serveurs qui vous sont attribués — une machine que votre organisation vous confie n’a donc pas besoin d’une clé à elle. Elle n’y entre qu’autorisée par un appareil que ce serveur connaît déjà.
 - **Une clé par serveur que vous ajoutez vous-même**, générée au moment de l’ajout. Vous pouvez à la place importer une clé que vous avez déjà : elle est copiée dans le dossier de l’app plutôt que référencée là où elle se trouve, pour que supprimer le serveur emporte réellement la clé avec lui.
 - **Aucune** pour un hôte déjà décrit dans votre `~/.ssh/config` et que vous demandez à l’app d’utiliser tel quel. L’app n’écrit alors rien nulle part.
 
@@ -21,24 +21,44 @@ Dans le dossier de données de l’app, en mode `0600`, à côté de la configur
 
 | Système | Dossier |
 | --- | --- |
-| macOS | `~/Library/Application Support/Pupitre` |
-| Windows | `%APPDATA%\Pupitre` |
-| Linux | `~/.config/Pupitre` |
+| macOS | `~/Library/Application Support/@pupitre/desktop` |
+| Windows | `%APPDATA%\@pupitre\desktop` |
+| Linux | `~/.config/@pupitre/desktop` |
 
 Le dossier `keys` porte `device` pour cet ordinateur et un `srv-…` par serveur, chacun avec son `.pub` à côté. Le fichier `ssh/config` dit lequel est lequel. Si vous voulez que votre terminal, votre éditeur ou un agent de code utilisent la même clé, pointez-les sur ce chemin : voir [votre propre client](/fr/docs/daily/clients/).
 
 ## Ce qui part sur le serveur
 
-La moitié publique, et elle seule, arrive dans `authorized_keys` de l’utilisateur `dev`. Le module `core.system` recopie les clés non restreintes déjà posées sur root, pour qu’une clé ouvre `dev` **avant** que le durcissement ne ferme root. Cet ordre compte : c’est lui qui empêche une installation de vous enfermer dehors de votre propre machine.
+La moitié publique, et elle seule, arrive dans `authorized_keys` de l’utilisateur `dev`. Le module `core.system` recopie les clés non restreintes déjà posées sur root, pour qu’une clé ouvre `dev` **avant** que la sécurisation ne ferme root. Cet ordre compte : c’est lui qui empêche une installation de vous enfermer dehors de votre propre machine.
+
+Les clés d’appareil de votre compte vivent dans un bloc à part du même fichier, entre `# >>> pupitre keys >>>` et `# <<< pupitre keys <<<`, que l’agent tient seul. Il n’y écrit qu’une clé qu’il tient déjà pour sûre, ou une clé qui arrive avec une autorisation signée par un appareil déjà autorisé sur ce serveur. La première, c’est l’app qui la pose : à l’onboarding, elle y met la clé de cet ordinateur, par sa propre session SSH. Les lignes hors du bloc sont à vous, et l’agent n’y touche pas. Un serveur déjà en service garde les appareils qu’il avait : la mise à jour de l’agent qui apporte cette règle les a tenus pour sûrs.
 
 ## Ce que voit la plateforme
 
-Si vous vous connectez, la plateforme garde la moitié publique pour la remettre aux agents des serveurs qui vous appartiennent. Elle ne voit jamais une moitié privée, et elle ne se connecte jamais à votre serveur : c’est l’agent qui va chercher ce dont il a besoin, en HTTPS sortant.
+La plateforme garde la moitié publique pour la transmettre aux agents des serveurs qui vous sont attribués. Elle ne voit jamais une moitié privée, et elle ne se connecte jamais à votre serveur : c’est l’agent qui va chercher ce dont il a besoin, en HTTPS sortant. Elle ne peut pas non plus y faire entrer une clé : sans la signature d’un appareil déjà autorisé, l’agent laisse de côté la clé qu’elle lui transmet. Une plateforme compromise pourrait vous couper un accès, jamais en ouvrir un.
+
+## Un nouvel appareil
+
+Un nouvel ordinateur — le vôtre, ou celui d’un membre à qui l’on attribue le serveur — n’ouvre pas le serveur tout de suite. Il apparaît dans l’app d’un appareil déjà autorisé sur ce serveur, sous **Réglages › Compte**, section **Appareils à autoriser** : « Autoriser *appareil* de *personne* sur *serveur* ». **Autoriser** signe l’autorisation avec la clé privée de cet ordinateur-là, sans qu’elle le quitte ; la plateforme la transmet, l’agent vérifie la signature et pose la clé à sa lecture suivante, sous trente secondes.
+
+La demande s’affiche chez la personne à qui le serveur est attribué, pour ses propres appareils, et chez un owner ou un admin de l’organisation, pour ceux d’un membre — dans les deux cas, sur un appareil que ce serveur tient déjà pour sûr. Seul avec un seul ordinateur, vous ne voyez rien de tout cela : la section n’apparaît que lorsqu’un serveur attend une autorisation.
+
+Ajouter un ordinateur au compte demande une connexion de moins de dix minutes, clé d’accès ou second facteur compris si le compte en a un, et un email vous prévient de chaque appareil ajouté.
 
 ## Une clé par appareil
 
-Chaque ordinateur sur lequel vous installez l’app a sa propre clé. C’est ce qui rend la révocation utile : retirer un appareil retire une clé, et les autres machines depuis lesquelles vous travaillez continuent. Un portable perdu est une clé qu’on révoque, pas un mot de passe qu’on change partout. Cela veut dire aussi qu’un client que vous aviez pointé sur cette clé perd le serveur au même instant — et c’est le comportement voulu.
+Chaque ordinateur sur lequel vous installez l’app a sa propre clé. C’est ce qui rend la révocation utile : retirer un appareil retire une clé, sans signature ni autorisation, et les autres machines depuis lesquelles vous travaillez continuent. Un portable perdu est une clé qu’on révoque, pas un mot de passe qu’on change partout. Cela veut dire aussi qu’un client que vous aviez pointé sur cette clé perd le serveur au même instant — et c’est le comportement voulu.
+
+Une exception : l’agent ne retire jamais la dernière clé du bloc. Quand il n’en resterait aucune, le bloc reste tel qu’il est.
 
 ## Si vous perdez la clé
 
-Vous perdez l’entrée de l’app, pas la machine. Connectez-vous avec l’autre accès que vous avez gardé — la console de votre hébergeur, une autre clé déjà dans `authorized_keys` — et ajoutez la nouvelle clé publique à la main. L’app l’affiche sur l’écran du serveur pour que vous la colliez.
+Vous perdez l’entrée de l’app, pas la machine. Révoquez l’appareil perdu dans la console. Si un autre de vos ordinateurs ouvre encore le serveur, c’est depuis lui que vous autorisez le nouveau.
+
+Si plus aucun ne l’ouvre, reprenez le serveur depuis la console de votre hébergeur :
+
+```bash
+sudo pupitred keys reset --key "ssh-ed25519 AAAA…"
+```
+
+`--key` prend une clé publique ed25519 ou ecdsa, ou le chemin d’un fichier `.pub` qui la porte : celle de l’ordinateur d’où vous reprendrez le serveur, `keys/device.pub` dans le dossier de l’app. La commande demande root. Le bloc et la liste des clés sûres ne contiennent plus que cette clé ; les lignes hors du bloc ne bougent pas. Connectez-vous ensuite depuis l’app avec la clé privée correspondante : l’onboarding reprend le serveur et y pose la clé d’appareil de cet ordinateur.

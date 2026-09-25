@@ -16,20 +16,7 @@ import { ServiceConfigField } from "./service-config-field";
 import { ServiceConfigFooter } from "./service-config-footer";
 import { ServiceConfigOutcome } from "./service-config-outcome";
 
-/**
- * The configuration of an already installed module, as the agent kept it.
- *
- * The fields are the manifest's, filled with what the agent answered: the app
- * knows none of them in advance. A secret left empty stays the one the server
- * holds; a secret retyped goes to the main process and joins the installation's
- * secret stream, without ever passing through here. A module whose every value
- * is derived from an account has nothing to type and one gesture left: apply,
- * which sends that account to the server again.
- *
- * The form ends on its gesture: apply stands at its foot, with the way back
- * beside it, and neither has anything to do until a value or a secret differs
- * from what the server holds. What a value is refused for is said under it.
- */
+/** A secret left empty keeps the one the server holds. */
 export function ServiceConfig({
   manifest,
   configured = true,
@@ -54,7 +41,7 @@ export function ServiceConfig({
   onDiscard,
 }: {
   manifest: Manifest | null;
-  /** False for a module put on the machine with its questions left unanswered. */
+  /** False when the module was installed with its questions unanswered. */
   configured?: boolean;
   /** The whole catalogue is refused, not this module's own settings. */
   catalogHeld?: boolean;
@@ -63,17 +50,13 @@ export function ServiceConfig({
   apply: ApplyState;
   values: Record<string, unknown>;
   secrets: SecretMarks;
-  /** What the form or the server refuses, each on the field it names. */
   problems?: readonly FieldProblem[];
-  /** Whether anything differs from what the server holds. */
   dirty?: boolean;
-  /** A refusal took the typed secrets with it: they have to be typed again. */
   secretsDropped?: boolean;
   steps: readonly ModuleProgress[];
   name: string;
-  /** What to call a module the run brought along — a dependency the agent replays — rather than this one's name for every row. */
+  /** An apply also replays dependencies, which need their own names. */
   nameOf?: (moduleId: string) => string;
-  /** The zones of the account an exposure publishes through: its domain is picked among them. */
   zones?: readonly CloudflareZone[];
   onValue: (key: string, value: unknown) => void;
   onSecret: (key: string, value: string) => void;
@@ -84,9 +67,7 @@ export function ServiceConfig({
 }) {
   const t = useTranslations();
 
-  // The settings of a module are its manifest's, which comes from the server's
-  // catalogue. Without it the form cannot be drawn, and a section that simply
-  // disappeared left the reader looking for what a service can be told.
+  // Without the catalogue's manifest, say why rather than drop the section.
   if (!manifest) {
     return (
       <Section data-config="unknown" title={t("services.config.title")}>
@@ -151,7 +132,7 @@ export function ServiceConfig({
           }}
         >
           {accountOnly ? (
-            <p className="px-6 py-5 text-[13px] text-ink-2 leading-relaxed">
+            <p className="px-6 py-5 text-control text-ink-2 leading-relaxed">
               {t("services.config.accountNote")}
             </p>
           ) : (

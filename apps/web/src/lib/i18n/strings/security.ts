@@ -7,7 +7,6 @@ export const security = {
     "passkeys.readFailed": "Your passkeys could not be read.",
     "passkeys.readFailedFix": "Reload the page; if it persists, sign in again.",
     "passkeys.revokeFailed": "The key could not be revoked.",
-    "passkeys.revokeFailedFix": "Try again in a moment.",
     "passkeys.nameLabel": "Key name",
     "passkeys.namePlaceholder": "Work MacBook",
     "passkeys.defaultName": "This device",
@@ -41,7 +40,6 @@ export const security = {
     "passkeys.readFailedFix":
       "Rechargez la page ; si cela persiste, reconnectez-vous.",
     "passkeys.revokeFailed": "La clé n'a pas pu être révoquée.",
-    "passkeys.revokeFailedFix": "Réessayez dans un instant.",
     "passkeys.nameLabel": "Nom de la clé",
     "passkeys.namePlaceholder": "Work MacBook",
     "passkeys.defaultName": "Cet appareil",

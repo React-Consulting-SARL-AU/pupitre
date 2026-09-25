@@ -1,4 +1,3 @@
-/** What the beat reads of the window: whether anyone is looking, and when that changes. */
 export interface PollPage {
   readonly hidden: boolean;
   addEventListener(type: "visibilitychange", listener: () => void): void;
@@ -9,16 +8,7 @@ function currentPage(): PollPage | null {
   return typeof document === "undefined" ? null : document;
 }
 
-/**
- * A read repeated on a beat, one at a time.
- *
- * The next turn is scheduled once the answer has landed, never on a clock of
- * its own: a server that takes four seconds to answer a three-second poll would
- * otherwise pile its answers up, and the last to land is not always the last
- * asked. A hidden window asks for nothing — what nobody is looking at need not
- * be fresh — and coming back reads at once. Stopping cancels the beat and lets
- * an answer in flight fall on the floor.
- */
+/** Schedules after each answer, never on a fixed clock, so slow answers cannot pile up out of order. */
 export function poll(
   read: () => Promise<void>,
   everyMs: number,

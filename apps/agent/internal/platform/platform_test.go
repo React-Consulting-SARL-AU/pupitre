@@ -63,7 +63,6 @@ func TestACancelledContextStopsTheCall(t *testing.T) {
 	}
 }
 
-// The platform is only ever spoken to over a modern TLS: a downgraded handshake is refused before any token leaves.
 func TestTheClientRefusesATlsBelowOneDotTwo(t *testing.T) {
 	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	server.TLS = &tls.Config{MaxVersion: tls.VersionTLS11}
@@ -92,7 +91,6 @@ func TestReleaseAsksForTheVersionOfTheRequest(t *testing.T) {
 	}
 }
 
-// The platform answers 303 towards a signed storage URL; the token stops at the platform.
 func TestReleaseFollowsTheRedirectWithoutLeakingTheToken(t *testing.T) {
 	storage := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "" {
@@ -128,6 +126,43 @@ func TestReleaseTellsAnUnknownVersionApartFromAFailure(t *testing.T) {
 	var failure *platform.Error
 	if !errors.As(err, &failure) || !failure.NotFound() {
 		t.Fatalf("error = %v", err)
+	}
+}
+
+func TestARefusalNamesTheConsoleOfThePlatformThatRefused(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+	defer server.Close()
+
+	_, err := platform.Client{BaseURL: server.URL + "/api/v1", Token: "jeton"}.Release(context.Background(), "1.2.3")
+
+	var failure *platform.Error
+	if !errors.As(err, &failure) || !failure.Unauthorized() {
+		t.Fatalf("error = %v", err)
+	}
+
+	if failure.Console() != server.URL {
+		t.Fatalf("console = %q, want %q", failure.Console(), server.URL)
+	}
+}
+
+func TestTheConsoleIsTheOriginOfThePlatformAddress(t *testing.T) {
+	shared := strings.TrimSuffix(platform.DefaultBaseURL, "/api/v1")
+
+	for _, tc := range []struct{ base, want string }{
+		{"https://console.example.org/api/v1", "https://console.example.org"},
+		{"http://127.0.0.1:8787/api/v1/", "http://127.0.0.1:8787"},
+		{"", shared},
+		{"not an address", shared},
+	} {
+		if got := platform.Console(tc.base); got != tc.want {
+			t.Errorf("Console(%q) = %q, want %q", tc.base, got, tc.want)
+		}
+	}
+
+	if got := (&platform.Error{Status: http.StatusUnauthorized}).Console(); got != shared {
+		t.Errorf("a refusal of no known platform names the shared one, got %q", got)
 	}
 }
 
@@ -194,8 +229,28 @@ func TestStateReadsEverythingTheAgentPolls(t *testing.T) {
 		t.Fatalf("state = %+v", state)
 	}
 
-	if len(state.AuthorizedKeys) != 1 || !state.ValidUntil.Equal(time.Date(2026, time.September, 5, 12, 0, 0, 0, time.UTC)) {
-		t.Fatalf("keys %v, valid until %s", state.AuthorizedKeys, state.ValidUntil)
+	if state.Keys != nil || !state.ValidUntil.Equal(time.Date(2026, time.September, 5, 12, 0, 0, 0, time.UTC)) {
+		t.Fatalf("keys %v, valid until %s", state.Keys, state.ValidUntil)
+	}
+}
+
+func TestStateTellsAbsentKeysFromAnEmptyList(t *testing.T) {
+	answers := map[string]int{
+		`{"entitlement":"valid","valid_until":"2026-09-05T12:00:00.000Z","keys":[]}`: 0,
+		`{"entitlement":"valid","valid_until":"2026-09-05T12:00:00.000Z","keys":[{"public_key":"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINIqIikYhGRpaqoJuvKifjn/NLVieWICV3MrBVyZO2Lj","user_id":"u1","device_id":"d1","approvals":[]}]}`: 1,
+	}
+
+	for answer, want := range answers {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.Write([]byte(answer))
+		}))
+
+		state, err := platform.Client{BaseURL: server.URL, Token: "jeton"}.State(context.Background())
+		server.Close()
+
+		if err != nil || state.Keys == nil || len(*state.Keys) != want {
+			t.Fatalf("%s: state = %+v, err = %v", answer, state, err)
+		}
 	}
 }
 
@@ -237,7 +292,6 @@ func TestReleaseMetadataReadsTheFingerprintAndTheSignature(t *testing.T) {
 	}
 }
 
-// Half an answer is no answer: an agent that took an empty signature for a valid one would install anything.
 func TestReleaseMetadataRefusesAnAnswerWithoutASignature(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte(`{"version":"1.4.0","arch":"amd64","sha256":"","signature":"","channel":"stable"}`))
@@ -249,7 +303,6 @@ func TestReleaseMetadataRefusesAnAnswerWithoutASignature(t *testing.T) {
 	}
 }
 
-// The platform leaves target_version null while no release is published for this architecture.
 func TestStateAcceptsANullTargetVersion(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Write([]byte(`{"entitlement":"valid","valid_until":"2026-09-05T12:00:00.000Z","authorized_keys":[],"target_version":null,"hostname":"vps"}`))
@@ -332,7 +385,6 @@ func TestBeatSendsTheSampleAndAcceptsAnEmptyAnswer(t *testing.T) {
 		t.Fatalf("body = %v", body)
 	}
 
-	// The contract types sessions and modules as arrays: an agent with neither still sends arrays.
 	if _, ok := body["sessions"].([]any); !ok {
 		t.Fatalf("sessions = %v", body["sessions"])
 	}
@@ -374,7 +426,6 @@ func TestSaveTokenRefusesAnEmptyToken(t *testing.T) {
 	}
 }
 
-// TestExchangeGivesUpOnAPlatformThatDoesNotAnswer: the app gives up on the command before the agent does — a stalled exchange must return a failure, not hold the line open.
 func TestExchangeGivesUpOnAPlatformThatDoesNotAnswer(t *testing.T) {
 	held := make(chan struct{})
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -401,7 +452,6 @@ func TestExchangeGivesUpOnAPlatformThatDoesNotAnswer(t *testing.T) {
 	}
 }
 
-// TestReleaseKeepsTheLongTimeout: downloading the binary keeps the long timeout — it is not a control command.
 func TestReleaseKeepsTheLongTimeout(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(80 * time.Millisecond)

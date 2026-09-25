@@ -3,11 +3,9 @@ import { MAX_REASON_LENGTH } from "@/lib/domain/admin"
 import type { Translate } from "@/lib/i18n/i18n"
 
 export interface ConfirmFormRules {
-  /** Absent when the dialog asks for no reason; `optional` still shows the field. */
   reason?: "optional" | "required"
-  /** Why the reason is asked for, in the words of the gesture; the generic refusal otherwise. */
   reasonRequiredMessage?: string
-  /** The word to retype, compared without case; absent when the dialog asks for none. */
+  // Compared case-insensitively.
   keyword?: string
   until: boolean
 }
@@ -37,7 +35,7 @@ function keywordField(t: Translate, keyword: string | undefined) {
       )
 }
 
-/** The field holds a local date and time; what leaves the form is its instant, or null. */
+// A local date and time leaves the form as an instant; an empty field as null.
 function untilField(t: Translate, asked: boolean) {
   return z
     .string()

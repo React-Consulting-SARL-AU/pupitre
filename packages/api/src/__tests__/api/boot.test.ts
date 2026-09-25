@@ -3,8 +3,7 @@ import { bootApiTestServer } from "../../testing"
 import { apiRequest } from "../../testing/request"
 import { createSession, createUser } from "../../testing/session"
 
-// A shared runner takes about twice as long as a laptop over the same work, and
-// the budget is here to notice a regression, not to rank machines.
+// CI runners are about twice as slow as a laptop; the budget catches regressions, not slow machines.
 const BOOT_BUDGET_MS = process.env.CI ? 10_000 : 3000
 
 describe("API test harness", () => {

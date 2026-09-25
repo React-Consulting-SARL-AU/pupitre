@@ -2,11 +2,7 @@ import type { Prisma } from "@pupitre/db/cloudflare/client"
 
 export const METRICS_WINDOW_MS = 604_800_000
 
-/**
- * What a detail answer carries, whatever the window holds: the chart draws a
- * sparkline, and three hundred and sixty points of it cover seven days as
- * well as the twenty-eight hundred the agent sends.
- */
+/** Enough for a seven-day sparkline; the agent sends about 2,800 samples. */
 export const CHART_MAX_POINTS = 360
 
 export interface MetricSample {
@@ -17,11 +13,7 @@ export interface MetricSample {
   sessions: string[]
   stack_version: string | null
   modules: string[]
-  /**
-   * What the machine measured, beside the percentages derived from it. Null for
-   * a sample an older agent sent: the console shows the percentage alone rather
-   * than a machine with no disk.
-   */
+  /** Null from an older agent: the console then shows the percentage alone. */
   disk_total_gb: number | null
   disk_free_gb: number | null
   ram_total_mb: number | null
@@ -38,12 +30,11 @@ function toStringArray(value: unknown): string[] {
     : []
 }
 
-/** A quantity the sample carried, or null: zero is a measurement, absence is not. */
+// Zero is a measurement; only absence becomes null.
 function toQuantity(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null
 }
 
-/** A sample read back from a row, or null when the row holds nothing usable. */
 export function toSample(value: unknown): MetricSample | null {
   if (!isRecord(value) || typeof value.at !== "string") {
     return null
@@ -71,7 +62,6 @@ export function toSample(value: unknown): MetricSample | null {
   }
 }
 
-/** The last sample without its lists: what a list of servers shows, kept beside the window. */
 export interface ServerUsage {
   at: string
   disk: number
@@ -110,11 +100,7 @@ export function toStoredSample(sample: MetricSample): Prisma.InputJsonValue {
   return sample as unknown as Prisma.InputJsonValue
 }
 
-/**
- * The window's points reduced to what a chart shows, keeping the first and the
- * last: an even stride across the middle, so the newest reading is always the
- * one the answer ends on.
- */
+/** Keeps the first and last samples so the answer always ends on the newest reading. */
 export function decimateSamples(
   samples: MetricSample[],
   maxPoints = CHART_MAX_POINTS

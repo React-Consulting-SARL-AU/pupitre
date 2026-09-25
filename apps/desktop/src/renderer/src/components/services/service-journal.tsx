@@ -8,14 +8,7 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { useJournal } from "@renderer/lib/use-journal";
 import { useState } from "react";
 
-/**
- * The unit's journal, followed line by line.
- *
- * The lines are `log` events of `service.logs` followed: the app never names a
- * unit, never tails a file. The history is bounded — a service that loops on
- * an error writes megabytes.
- */
-
+// A service looping on an error writes megabytes.
 const MAX_LINES = 2000;
 
 const TAIL = 120;
@@ -27,7 +20,6 @@ export function ServiceJournal({
 }: {
   serverId: string;
   moduleId: string;
-  /** The service's own name, for the reader; the unit stays the agent's. */
   name: string;
 }) {
   const t = useTranslations();
@@ -54,7 +46,6 @@ export function ServiceJournal({
 
           <CopyButton
             disabled={journal.rows.length === 0}
-            hint={t("services.journal.copyAllHint", { name })}
             onCopy={() =>
               navigator.clipboard.writeText(
                 journal.rows.map((row) => row.text).join("\n")
@@ -67,7 +58,7 @@ export function ServiceJournal({
       }
       aside={
         journal.rows.length > 0 ? (
-          <span className="font-data text-[11px] text-ink-3 tabular-nums">
+          <span className="font-data text-caption text-ink-3 tabular-nums">
             {t.plural("services.journal.lines", journal.rows.length)}
           </span>
         ) : null
@@ -88,7 +79,7 @@ export function ServiceJournal({
       >
         {journal.cut ? (
           <p
-            className="mb-2 border-line border-b pb-2 text-[11px] text-ink-3"
+            className="mb-2 border-line border-b pb-2 text-caption text-ink-3"
             data-logs-cut="true"
           >
             {t("services.journal.cut", { count: MAX_LINES })}

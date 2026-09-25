@@ -11,13 +11,6 @@ import { ServiceRow } from "../services/service-row";
 import { Callout } from "../ui/callout";
 import { WaitingNotice } from "../ui/waiting-notice";
 
-/**
- * The design system, checked where it is observable without a browser: the
- * elevation classes a card carries, the brand logos a list shows, and the
- * absence of any shadow, radius or colour written by hand instead of taken
- * from `@pupitre/design`.
- */
-
 const NOOP = () => undefined;
 
 const RENDERER = path.resolve(import.meta.dir, "../..");

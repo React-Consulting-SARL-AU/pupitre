@@ -11,7 +11,7 @@ Pupitre works with ed25519 keys it generates itself. The private halves never le
 
 ## Which keys exist
 
-- **One key for this computer**, made the first time it is needed. Its public half goes up to the platform, which hands it to the agents of the servers your account may open — so a machine your organisation assigns to you needs no key of its own.
+- **One key for this computer**, made the first time it is needed. Its public half goes up to the platform, which passes it on to the agents of the servers assigned to you — so a machine your organisation assigns to you needs no key of its own. It only gets in once a device that server already knows allows it.
 - **One key per server you add yourself**, generated when you add it. You can import a key you already have instead; it is copied into the app's folder rather than referenced where it sits, so deleting the server really takes the key with it.
 - **None at all** for a host you already declared in your `~/.ssh/config` and asked the app to use as it is. The app then writes nothing anywhere.
 
@@ -21,9 +21,9 @@ In the app's own data folder, in mode `0600`, next to the SSH configuration it p
 
 | System | Folder |
 | --- | --- |
-| macOS | `~/Library/Application Support/Pupitre` |
-| Windows | `%APPDATA%\Pupitre` |
-| Linux | `~/.config/Pupitre` |
+| macOS | `~/Library/Application Support/@pupitre/desktop` |
+| Windows | `%APPDATA%\@pupitre\desktop` |
+| Linux | `~/.config/@pupitre/desktop` |
 
 The `keys` folder holds `device` for this computer and one `srv-…` per server, each with its `.pub` beside it. The `ssh/config` file says which is which. If you want your terminal, your editor or a coding agent to use the same key, point it at that path: see [your own client](/docs/daily/clients/).
 
@@ -31,14 +31,34 @@ The `keys` folder holds `device` for this computer and one `srv-…` per server,
 
 The public half, and only the public half, lands in `authorized_keys` for the `dev` user. The `core.system` module copies the unrestricted keys already present on root, so a key opens `dev` **before** hardening closes root. That order matters: it is what stops an install from locking you out of your own machine.
 
+Your account's device keys live in a separate block of the same file, between `# >>> pupitre keys >>>` and `# <<< pupitre keys <<<`, which the agent alone keeps. It writes there only a key it already trusts, or a key that arrives with an approval signed by a device already allowed on that server. The app lays the first one itself: during onboarding, it puts this computer's key there over its own SSH session. Lines outside the block are yours, and the agent never touches them. A server already in service keeps the devices it had: the agent update that brings this rule trusted them.
+
 ## What the platform sees
 
-If you sign in, the platform stores the public half so it can hand it to the agents of servers you own. It never sees a private half, and it never connects to your server: the agent pulls what it needs over outbound HTTPS.
+The platform stores the public half so it can pass it on to the agents of the servers assigned to you. It never sees a private half, and it never connects to your server: the agent pulls what it needs over outbound HTTPS. Nor can it let a key in: without the signature of a device already allowed, the agent sets aside the key it passes on. A compromised platform could cut one of your ways in, never open one.
+
+## A new device
+
+A new computer — yours, or that of a member you assign the server to — does not open the server straight away. It shows up in the app of a device already allowed on that server, under **Settings › Account**, in the **Devices to allow** section: “Allow *device* of *person* on *server*”. **Allow** signs the approval with that computer's private key, which never leaves it; the platform passes it on, and the agent checks the signature and lays the key at its next read, within thirty seconds.
+
+The request shows up for the person the server is assigned to, for their own devices, and for an owner or an admin of the organisation, for a member's — in both cases on a device that server already trusts. On your own with a single computer, you see none of this: the section only appears when a server is waiting for an approval.
+
+Adding a computer to the account takes a sign-in less than ten minutes old, passkey or second factor included if the account has one, and an email tells you about each device added.
 
 ## One key per device
 
-Each computer you install the app on has its own key. That is what makes revocation useful: removing a device removes one key, and the other machines you work from keep working. A laptop that is lost is a key you revoke, not a password you rotate everywhere. It also means a client you pointed at that key loses the server at the same moment — which is the behaviour you want.
+Each computer you install the app on has its own key. That is what makes revocation useful: removing a device removes one key, with no signature or approval, and the other machines you work from keep working. A laptop that is lost is a key you revoke, not a password you rotate everywhere. It also means a client you pointed at that key loses the server at the same moment — which is the behaviour you want.
+
+One exception: the agent never removes the last key of the block. When none would be left, the block stays as it is.
 
 ## If you lose the key
 
-You lose the app's way in, not the machine. Connect with whatever other access you kept — your host's console, another key already in `authorized_keys` — and add the new public key by hand. The app shows it on the server screen so you can paste it.
+You lose the app's way in, not the machine. Revoke the lost device in the console. If another of your computers still opens the server, allow the new one from there.
+
+If none does any more, take the server back from your host's console:
+
+```bash
+sudo pupitred keys reset --key "ssh-ed25519 AAAA…"
+```
+
+`--key` takes an ed25519 or ecdsa public key, or the path of a `.pub` file that holds it: the one of the computer you will take the server back from, `keys/device.pub` in the app's folder. The command needs root. The block and the list of trusted keys then hold that key alone; lines outside the block do not move. Then connect from the app with the matching private key: the onboarding takes the server back and lays this computer's device key on it.

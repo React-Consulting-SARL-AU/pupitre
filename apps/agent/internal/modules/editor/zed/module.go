@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	// Where Zed looks for a server before uploading or downloading one, named after the release channel and the exact version of the client.
+	// Zed looks here, by channel and exact client version, before uploading or downloading a server itself.
 	ServerDir = shell.Home + "/.zed_server"
 
 	pointerPath = ServerDir + "/pupitre-release.txt"
@@ -75,9 +75,7 @@ func ensureServer(ctx *modules.Context, choose func(*modules.Context) (string, e
 	return version, err
 }
 
-// Zed publishes no checksum beside its server, but the server is a GitHub
-// release asset, and GitHub computes a digest for every one of them: the
-// archive is refused unless it matches.
+// Zed publishes no checksum, so the archive is checked against GitHub's digest of the release asset.
 var release = download.GitHubRelease{Repo: "zed-industries/zed", Program: "zed-remote-server", Asset: func(string) string { return "zed-remote-server-linux-" + platform() + ".gz" }}
 
 func installServer(ctx *modules.Context, version string) error {
@@ -148,7 +146,6 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 		return err
 	}
 
-	// The server of the previous version is one Zed no longer asks for.
 	if err := ctx.Step("remove-previous-server", func() (modules.Outcome, error) {
 		if previous == "" || previous == version {
 			return modules.Skipped, nil
@@ -171,7 +168,7 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return record(ctx, version)
 }
 
-// Only the server this module downloaded goes; another version the client put there is not ours to remove.
+// Only the recorded server goes; another version the client put there is not ours to remove.
 func (Module) Uninstall(ctx *modules.Context) error {
 	installed := recorded(ctx)
 
@@ -235,7 +232,7 @@ func recorded(ctx *modules.Context) string {
 	return strings.TrimSpace(string(raw))
 }
 
-// The version already on the machine is the one a replay keeps when latest was asked: a newer one is what upgrade fetches, never what a changed setting costs.
+// With latest asked, a replay keeps the version on the machine; only upgrade fetches a newer one.
 func pinned(ctx *modules.Context) (string, error) {
 	if kept := recorded(ctx); kept != "" && wanted(ctx) == latest && file.Exists(ctx, binaryPath(kept)) {
 		return kept, nil
@@ -253,16 +250,13 @@ func wanted(ctx *modules.Context) string {
 	return chosen
 }
 
-// A pinned version is downloaded as it is asked for; latest is resolved from
-// the first redirect alone: zed.dev points at the GitHub release, whose path
-// names the version, and GitHub then sends the download on to a storage host
-// whose path names nothing.
+// Only the first redirect, to the GitHub release, names the version; GitHub's next hop names nothing.
 func resolve(ctx *modules.Context) (string, error) {
 	if chosen := wanted(ctx); chosen != latest {
 		return strings.TrimPrefix(chosen, "v"), nil
 	}
 
-	out, err := sys.Exec(ctx, sys.Command{Argv: []string{"curl", "-fsS", "--proto", "=https", "--tlsv1.2", "-o", "/dev/null", "-w", "%{redirect_url}", assetURL(latest)}})
+	out, err := sys.Exec(ctx, sys.Command{Argv: sys.CurlRedirect(assetURL(latest))})
 	if err != nil {
 		return "", err
 	}

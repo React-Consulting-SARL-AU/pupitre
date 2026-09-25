@@ -1,4 +1,5 @@
-import type { Locale, Localized } from "../../lib/i18n"
+import { MODULE_CATEGORIES, MODULE_IDS } from "@pupitre/shared/catalog"
+import { fill, type Locale, type Localized } from "../../lib/i18n"
 
 export const DOCS_SECTIONS = ["start", "services", "daily", "account"] as const
 
@@ -34,8 +35,8 @@ export const DOCS_SECTION_META: Record<DocsSectionId, DocsSectionMeta> = {
   account: {
     title: { en: "Account", fr: "Compte" },
     lead: {
-      en: "Teams, billing, security, and the questions that come back.",
-      fr: "Équipes, facturation, sécurité, et les questions qui reviennent.",
+      en: "Teams, billing, security, the questions that come back, troubleshooting and uninstalling.",
+      fr: "Équipes, facturation, sécurité, les questions qui reviennent, le dépannage et la désinstallation.",
     },
   },
 }
@@ -64,10 +65,17 @@ export const MODULE_LABELS: ModulePageLabels = {
   },
   overviewTitle: { en: "The catalogue", fr: "Le catalogue" },
   overviewLead: {
-    en: "Twenty-five modules across seven categories. Each one knows how to install itself, check itself, configure itself, update itself, uninstall itself and report its state, on Ubuntu 22.04 and 24.04, amd64 and arm64.",
-    fr: "Vingt-cinq modules répartis en sept catégories. Chacun sait s’installer, se vérifier, se configurer, se mettre à jour, se désinstaller et rapporter son état, sur Ubuntu 22.04 et 24.04, amd64 et arm64.",
+    en: "{count} modules across {categories} categories. Each one knows how to install itself, check itself, configure itself, update itself, uninstall itself and report its state, on Ubuntu 22.04 and 24.04, amd64 and arm64.",
+    fr: "{count} modules répartis en {categories} catégories. Chacun sait s’installer, se vérifier, se configurer, se mettre à jour, se désinstaller et rapporter son état, sur Ubuntu 22.04 et 24.04, amd64 et arm64.",
   },
   backToServices: { en: "All services", fr: "Tous les services" },
+}
+
+export function servicesOverviewLead(locale: Locale): string {
+  return fill(MODULE_LABELS.overviewLead[locale], {
+    count: MODULE_IDS.length,
+    categories: MODULE_CATEGORIES.length,
+  })
 }
 
 export function sectionTitle(id: DocsSectionId, locale: Locale): string {

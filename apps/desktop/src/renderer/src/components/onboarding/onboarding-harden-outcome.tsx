@@ -7,16 +7,6 @@ import { Callout } from "../ui/callout";
 import { Panel } from "../ui/panel";
 import { StatusDot } from "../ui/status-dot";
 
-/**
- * What the hardening concluded, in the agent's own words.
- *
- * Root closed, and the app already speaks to the machine as `dev`: there is
- * nothing left to do. Root kept because the configuration asked for it is the
- * same ending, said otherwise: the machine is hardened, root simply keeps a key
- * of its own. A refusal prints the reason exactly as it came — the agent is the
- * one that looked at `authorized_keys`, not us — with the button that tries
- * again once the reason is gone. The way on is the screen's bar, not this.
- */
 export function OnboardingHardenOutcome({
   outcome,
   onRetry,

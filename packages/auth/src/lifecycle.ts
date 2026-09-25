@@ -6,7 +6,7 @@ const nullableString = {
   input: false,
 } as const
 
-/** A sanction stays on Better Auth's own `banned`: only a lasting closure and a scheduled purge are written here. */
+/** Sanctions use Better Auth's `banned`; these fields only record closures and scheduled purges. */
 export const LIFECYCLE_FIELDS = {
   deactivatedAt: nullableDate,
   deactivatedReason: nullableString,

@@ -25,7 +25,6 @@ func checksums(version string) string {
 	return modtest.Digest(modtest.Downloaded) + "  " + release.Asset(version) + "\n"
 }
 
-// A machine whose GitHub answers version as the latest release, with the digest of what curl serves in the checksum document.
 func machine(published string) *modtest.FakeSys {
 	fake := modtest.NewFakeSys()
 	fake.Users["dev"] = "/home/dev"
@@ -53,6 +52,7 @@ func run(t *testing.T, fake *modtest.FakeSys) *modules.Context {
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -185,9 +185,11 @@ func TestLoginAsksTheCliWithTheSecretInItsEnvironment(t *testing.T) {
 
 	last := fake.Calls[len(fake.Calls)-1]
 	found := false
+
 	for _, variable := range last.Env {
 		found = found || variable == "STRIPE_API_KEY="+held
 	}
+
 	if !found || strings.Contains(strings.Join(last.Argv, " "), held) {
 		t.Fatalf("the secret travels in the environment, never in argv: %+v", last)
 	}

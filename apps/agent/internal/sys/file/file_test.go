@@ -201,7 +201,6 @@ func TestEnsureOwnedGivesARootTreeBackToItsUser(t *testing.T) {
 	}
 }
 
-// A machine that cannot read by ranges is read whole: the tail is cut here, and the offset applied here.
 func TestTailAndFromFallBackOnTheWholeFile(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Files["/home/dev/.pupitre/logs/web/web.log"] = []byte("one\ntwo\nthree\n")

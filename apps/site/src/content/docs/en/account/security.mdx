@@ -13,11 +13,15 @@ Four rules hold the product together. Each one is stated so you can verify it ra
 
 The app opens an SSH session from your laptop. The agent makes outbound HTTPS calls for its licence, for public keys, and for its own updates. Neither the platform nor support opens a connection to your machine.
 
-Check it: `sudo ufw status` shows SSH, and nothing else unless you installed `exposure.caddy`.
+What the firewall lets in is yours to use: SSH on 22, and on 443 too if you chose SSH over 443 in the hardening; 80 and 443 for the web once you install `exposure.caddy`; and your own tailnet if you install `exposure.tailscale`.
+
+Check it: `sudo ufw status` lists exactly those rules, each with the comment of what added it: `ssh`, `caddy`, `tailscale`.
+
+Two ways in bypass that firewall, and stay closed until you open them. Docker writes its own rules ahead of ufw’s: `runtime.docker` therefore publishes container ports on `127.0.0.1` only — on the default bridge and on every network `docker network create` or Compose makes, IPv6 included — and names, on a server that ran containers before, the ones still open on every address until they are recreated; and `-p 0.0.0.0:8080:80` opens one to the internet whatever `ufw status` says. Tailscale SSH, an option of `exposure.tailscale`, answers before sshd: neither root being closed nor fail2ban applies to it, only your tailnet’s access policy decides.
 
 ## No private key leaves your laptop
 
-The app keeps its ed25519 keys in its own folder, in mode `0600`: one for this computer, and one per server you asked it to generate a key for. A key you import is copied in there too; a host declared in your `~/.ssh/config` puts nothing there at all. Only public halves ever leave: into the server's `authorized_keys`, and up to the platform, which hands them to your organisation's machines.
+The app keeps its ed25519 keys in its own folder, in mode `0600`: one for this computer, and one per server you asked it to generate a key for. A key you import is copied in there too; a host declared in your `~/.ssh/config` puts nothing there at all. Only public halves ever leave: into the server's `authorized_keys`, and up to the platform, which passes them on to your organisation's machines. The agent lays one only if it already trusts it, or if it arrives with an approval signed by a device already allowed on that server: the platform, which holds no private key, cannot make one up.
 
 Check it: `cat ~/.ssh/authorized_keys` on the server shows public keys only, and the app's key directory on your laptop is the only place a private half exists. Where that directory is, and how to point your own tools at it, is on [your key](/docs/start/keys/).
 
@@ -29,7 +33,7 @@ Check it: `ls /etc/pupitre/` and its permissions.
 
 ## Support cannot get in
 
-Support sees that a server is enrolled and which agent version it runs. There is no impersonation of your machine, no remote shell, and no support key in `authorized_keys`. If a support engineer needs to see something on your server, you paste it.
+Support sees what the platform knows of a server: its name, address, architecture and agent version, the services it runs, its health readings and the status of its backups. There is no impersonation of your machine, no remote shell, and no support key in `authorized_keys`. If a support engineer needs to see something on your server, you paste it.
 
 ## Hardening, in order
 
@@ -37,6 +41,18 @@ Support sees that a server is enrolled and which agent version it runs. There is
 
 If you would rather keep a second door onto your own machine, the module's “Keep root access” option leaves root reachable by SSH key. Never by password: password authentication goes off either way, and so does everything else the hardening does.
 
+## Sudo asks `dev` for a password
+
+Everything that runs as `dev` — your coding agents, a package's `postinstall` script, a forgotten terminal — runs unattended. So that none of them becomes root, the hardening gives `dev` a sudo password. The app draws it on your computer, sends the server only its hash, and keeps it in the computer's keychain; the platform sees neither. It is shown and copied from the server's card, in **Settings › Servers**. On Linux without GNOME Keyring or KWallet, the app keeps it for the session and asks you to write it down.
+
+Two command lines, exactly, run as root without a password: `/usr/local/bin/pupitred serve` and `/usr/local/bin/pupitred binary install`. The agent's binary is owned by root and out of `dev`'s reach. `pupitred binary install` places a new version of the agent, whose signature is checked first. `pupitred serve` opens the app's channel, and it is a limited session: it reads, acts on `dev`'s own projects, files and processes, starts and stops services already configured, and updates the agent to a signed version above its floor. It refuses whatever configures the machine — installing, uninstalling, securing —, reveals a secret root holds, imports a dump, touches backups beyond their status, changes the trusted keys or the server's enrolment, reboots it, or takes the agent back to an older version.
+
+For those gestures, the app opens a second session on demand, `pupitred serve --privileged`, with the sudo password it keeps: written on the first line of the SSH session's standard input, never on a command line. It closes it after a minute unused. Everything else — `sudo apt install`, `sudo systemctl`, any other `pupitred` command — asks for the password, as on any well-kept server. And the agent, which acts as root, no longer follows a link `dev` planted in its folder; the hardening also sets `fs.protected_hardlinks` and `fs.protected_symlinks` to `1`, in `/etc/sysctl.d/60-pupitre-links.conf`, so the kernel itself refuses a link `dev` would point at a file of root's.
+
+A server hardened before this password keeps the old rule, passwordless sudo, until you accept one: its dashboard says so, and **Run the securing again** sets the password. A computer that keeps the password replaces it the same way; a computer that does not have it types it in, and when it is lost everywhere, it is set again from the host's console; see [troubleshooting](/docs/account/troubleshooting/).
+
+Check: as `dev`, `sudo -l` lists `(ALL : ALL) ALL` and `(root) NOPASSWD: /usr/local/bin/pupitred serve, /usr/local/bin/pupitred binary install`, and `sudo -k; sudo true` asks for the password.
+
 ## What Pupitre does not protect you from
 
-It is not a backup product for your data, not an intrusion detection system, and not a substitute for reading what you run. It sets up `ufw` and `fail2ban`, keeps security updates flowing, and stays out of the way.
+Backups exist only if you turn them on: `core.backup` sends encrypted archives to a bucket of yours, and until then nothing on the server is copied anywhere. See [backups](/docs/daily/backups/). Pupitre is not an intrusion detection system, and not a substitute for reading what you run. It sets up `ufw` and `fail2ban`, keeps security updates flowing, and stays out of the way.

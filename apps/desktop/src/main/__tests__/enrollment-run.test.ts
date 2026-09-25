@@ -9,11 +9,6 @@ import { signedMessage } from "../agent-release";
 import { type EnrollmentDeps, prepareAgent } from "../enrollment-run";
 import type { EnrollInput } from "../platform-client";
 
-/**
- * The fixed order: the usage right, then the enrolment, then the binary
- * the platform named. A packaged build has nothing to fall back on.
- */
-
 const SPKI_HEADER_BYTES = 12;
 
 const BINARY = new Uint8Array([0x7f, 0x45, 0x4c, 0x46, 9, 9, 9]);
@@ -34,6 +29,8 @@ const CARRIED: AgentPayload = {
   content: Buffer.from([1, 2, 3]),
   path: "/resources/agent/pupitred-linux-amd64",
   sha256: "carried",
+  signature: null,
+  version: "0.0.0-unreleased",
 };
 
 function keyPair() {
@@ -87,7 +84,6 @@ function deps({
 }> = {}): EnrollmentDeps & {
   enrolled: EnrollInput[];
   bound: { serverId: string; platformServerId: string }[];
-  /** Hands the token to the agent, as `takeEnrollmentToken` does. */
   spend: (serverId: string) => void;
 } {
   const enrolled: EnrollInput[] = [];
@@ -167,6 +163,8 @@ function deps({
     build,
     embedded,
     enrolled,
+    hostFingerprint: (server) =>
+      Promise.resolve(server.hostFingerprint ?? null),
     releaseKey,
     spend: (serverId) => {
       held.delete(serverId);
@@ -194,6 +192,21 @@ describe("la préparation de l'agent", () => {
     });
   });
 
+  it("ne nomme à la plateforme que l'empreinte Ed25519, que l'agent déclarera à l'échange", async () => {
+    const signed = signedRelease(BINARY);
+    const ready = deps({
+      release: signed.release,
+      releaseKey: signed.publicKey,
+    });
+
+    await prepareAgent(SERVER, "amd64", {
+      ...ready,
+      hostFingerprint: () => Promise.resolve(null),
+    });
+
+    expect(ready.enrolled[0]).not.toHaveProperty("fingerprint");
+  });
+
   it("enrôle le serveur avant d'envoyer quoi que ce soit", async () => {
     const signed = signedRelease(BINARY);
     const ready = deps({
@@ -218,16 +231,17 @@ describe("la préparation de l'agent", () => {
           release: { available: true, version: "1.4.0" },
           serverId: "srv-platform-1",
         },
-        payload: { arch: "amd64", path: "pupitred 1.4.0" },
+        payload: {
+          arch: "amd64",
+          path: "pupitred 1.4.0",
+          signature: signed.release.signature,
+          version: "1.4.0",
+        },
       },
     });
   });
 
-  /**
-   * A push that failed leaves the seat bought and the token unspent: the next
-   * attempt hands the agent that same enrolment rather than buying the row
-   * again. Once the token has left for the agent, a new attempt enrols anew.
-   */
+  // Once the token has left for the agent, a new attempt enrols anew.
   it("réutilise l'enrôlement que le serveur tient encore plutôt que d'en acheter un autre", async () => {
     const ready = deps();
     const granted: Server = {

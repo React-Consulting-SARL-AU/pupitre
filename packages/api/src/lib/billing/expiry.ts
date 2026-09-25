@@ -1,40 +1,69 @@
+import { LIVE_SUBSCRIPTION_STATUSES } from "@pupitre/shared/plans"
+import { drainBatches } from "../api/batches"
 import { getPrisma } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
 import { graceOrganizationServers } from "./grace"
-import { liveSubscriptionOf } from "./subscription"
+
+/** Each ended row costs a few writes: a batch stays well inside one workflow step. */
+export const EXPIRY_BATCH_SIZE = 25
 
 export interface EndedSubscriptionsFilter {
   product: string
   status: string
 }
 
-/**
- * Every row of this product and status whose end has passed is cancelled, and
- * its servers take that past date so the suspension that runs next closes
- * them the same day — unless another subscription is the one that counts for
- * the organization, which has already paid for those servers.
- */
-export async function cancelEndedSubscriptions(
-  filter: EndedSubscriptionsFilter,
-  now: Date
-): Promise<string[]> {
-  const prisma = getPrisma()
-  const ended = await prisma.subscription.findMany({
-    where: { ...filter, currentPeriodEnd: { lte: now } },
-    orderBy: { currentPeriodEnd: "asc" },
+async function organizationsCoveredElsewhere(
+  ended: { id: string; organizationId: string }[]
+): Promise<Set<string>> {
+  const others = await getPrisma().subscription.findMany({
+    where: {
+      organizationId: {
+        in: [...new Set(ended.map((row) => row.organizationId))],
+      },
+      id: { notIn: ended.map((row) => row.id) },
+      status: { in: LIVE_SUBSCRIPTION_STATUSES },
+    },
+    select: { organizationId: true },
   })
 
-  for (const subscription of ended) {
-    const live = await liveSubscriptionOf(subscription.organizationId)
+  return new Set(others.map((row) => row.organizationId))
+}
 
-    await prisma.subscription.update({
-      where: { id: subscription.id },
-      data: { status: "canceled" },
-    })
+/** Rows are cancelled last, so a retry after a failure finds them again instead of leaving servers running. */
+export async function cancelEndedSubscriptionsBatch(
+  filter: EndedSubscriptionsFilter,
+  now: Date = new Date()
+): Promise<string[]> {
+  const prisma = getPrisma()
+  const where = { ...filter, currentPeriodEnd: { lte: now } }
+  const ended = await prisma.subscription.findMany({
+    where,
+    orderBy: { currentPeriodEnd: "asc" },
+    take: EXPIRY_BATCH_SIZE,
+  })
+
+  if (ended.length === 0) {
+    return []
+  }
+
+  const covered = await organizationsCoveredElsewhere(ended)
+  const graced = new Set<string>()
+
+  for (const subscription of ended) {
+    const { organizationId } = subscription
+
+    if (!(covered.has(organizationId) || graced.has(organizationId))) {
+      graced.add(organizationId)
+      await graceOrganizationServers(
+        organizationId,
+        subscription.currentPeriodEnd ?? now
+      )
+    }
+
     await recordEvent({
       action: "subscription.canceled",
       actorUserId: null,
-      organizationId: subscription.organizationId,
+      organizationId,
       targetType: "subscription",
       targetId: subscription.stripeSubscriptionId,
       payload: {
@@ -45,14 +74,23 @@ export async function cancelEndedSubscriptions(
           subscription.currentPeriodEnd?.toISOString() ?? null,
       },
     })
-
-    if (!live || live.id === subscription.id) {
-      await graceOrganizationServers(
-        subscription.organizationId,
-        subscription.currentPeriodEnd ?? now
-      )
-    }
   }
 
-  return ended.map((subscription) => subscription.id)
+  const ids = ended.map((subscription) => subscription.id)
+
+  await prisma.subscription.updateMany({
+    where: { ...where, id: { in: ids } },
+    data: { status: "canceled" },
+  })
+
+  return ids
+}
+
+export function cancelEndedSubscriptions(
+  filter: EndedSubscriptionsFilter,
+  now: Date = new Date()
+): Promise<string[]> {
+  return drainBatches(EXPIRY_BATCH_SIZE, () =>
+    cancelEndedSubscriptionsBatch(filter, now)
+  )
 }

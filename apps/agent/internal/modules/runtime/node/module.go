@@ -11,7 +11,7 @@ import (
 	"pupitre.studio/agent/internal/sys/user"
 )
 
-// pnpm and yarn come from the npm registry: mise's default aqua source verifies GitHub attestations that their releases no longer match.
+// From npm: mise's default aqua source checks GitHub attestations their releases no longer match.
 const (
 	pnpmSpec = "npm:pnpm"
 	yarnSpec = "npm:yarn"
@@ -22,7 +22,6 @@ type tool struct {
 	spec  string
 }
 
-// The managers ride beside node at one version each; node itself is held at every major chosen.
 var managers = []tool{{"bun", "bun"}, {"pnpm", pnpmSpec}, {"yarn", yarnSpec}}
 
 var corepacked = []tool{{"pnpm", pnpmSpec}, {"yarn", yarnSpec}}
@@ -61,9 +60,11 @@ func (Module) Install(ctx *modules.Context) error {
 	}
 
 	previous := mise.Global(ctx)["node"]
+
 	if _, err := mise.Node.Install(ctx); err != nil {
 		return err
 	}
+
 	moved := mise.Global(ctx)["node"] != previous
 
 	if _, err := optional(ctx, "install-bun", "bun", "bun"); err != nil {
@@ -71,6 +72,7 @@ func (Module) Install(ctx *modules.Context) error {
 	}
 
 	var added, chosen []string
+
 	for _, manager := range corepacked {
 		installed, err := optional(ctx, "install-"+manager.field, manager.field, manager.spec)
 		if err != nil {
@@ -80,14 +82,13 @@ func (Module) Install(ctx *modules.Context) error {
 		if installed {
 			added = append(added, manager.field)
 		}
+
 		if ctx.Bool(manager.field) {
 			chosen = append(chosen, manager.field)
 		}
 	}
 
-	// corepack is enabled for the chosen managers alone: enabled globally it
-	// rejects the repositories that declare bun as their package manager. Its
-	// links live under one node: a default moved to another major needs them again.
+	// Enabled globally, corepack rejects repos declaring bun; its links live under one node, so a new default needs them again.
 	return ctx.Step("enable-corepack", func() (modules.Outcome, error) {
 		enable := added
 		if moved {
@@ -119,6 +120,7 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 		before := mise.Installed(ctx)
 
 		present := []string{}
+
 		for _, manager := range managers {
 			if before[manager.spec] != "" {
 				present = append(present, manager.spec)
@@ -196,6 +198,7 @@ func describe(ctx *modules.Context) string {
 
 func describeManagers(installed map[string]string) string {
 	var parts []string
+
 	for _, manager := range managers {
 		if installed[manager.spec] != "" {
 			parts = append(parts, manager.field+" "+installed[manager.spec])

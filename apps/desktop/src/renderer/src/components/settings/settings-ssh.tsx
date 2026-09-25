@@ -7,14 +7,6 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { useSshShare } from "@renderer/stores/ssh-share";
 import { useEffect } from "react";
 
-/**
- * Whether the system's own SSH file includes the app's.
- *
- * The main process reads and writes that file, so it is the one that keeps the
- * answer: the switch asks it and draws what it wrote back. Under the switch,
- * the word each server answers to once the line is there — the one to type
- * after `ssh`, and the one the editor buttons hand out.
- */
 export function SettingsSsh() {
   const t = useTranslations();
 
@@ -47,7 +39,7 @@ export function SettingsSsh() {
           />
 
           <code
-            className="mt-4 block rounded-sm bg-sunken px-3 py-2 font-data text-[12px] text-ink-2"
+            className="mt-4 block rounded-sm bg-sunken px-3 py-2 font-data text-ink-2 text-small"
             data-ssh-include
           >
             {state.line}

@@ -3,14 +3,6 @@ import type { CloudflareZone } from "@shared/cloudflare";
 import { Field, fieldAria } from "../ui/field";
 import { Select } from "../ui/select";
 
-/**
- * The domain of an exposure, picked among the zones of the connected account.
- *
- * A domain typed by hand can be one the account does not carry, and the first
- * record written would say so; the list only offers what the token can write
- * into. The value stays a plain domain — the zone's name — so the manifest's
- * `domain` field receives what it always did.
- */
 export function ConfigZoneField({
   moduleId,
   zones,
@@ -23,6 +15,8 @@ export function ConfigZoneField({
   onChange: (domain: string) => void;
 }) {
   const t = useTranslations();
+
+  // The value stays the zone's name, so the manifest's `domain` field still gets a plain domain.
   const picked =
     typeof value === "string" && zones.some((zone) => value === zone.name)
       ? value

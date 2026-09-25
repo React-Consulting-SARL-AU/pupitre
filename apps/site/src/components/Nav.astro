@@ -10,6 +10,11 @@ import Brand from "./Brand.astro"
 import LocaleSwitch from "./LocaleSwitch.astro"
 import ThemeToggle from "./ThemeToggle.astro"
 
+interface Props {
+  translation?: string
+}
+
+const { translation } = Astro.props
 const pathname = Astro.url.pathname
 const locale = localeFromPath(pathname)
 const t = translator(locale)
@@ -50,7 +55,7 @@ const isCurrent = (href: string) =>
     <div class="ms-auto flex items-center gap-2">
       <div class="hidden items-center gap-2 lg:flex">
         <ThemeToggle />
-        <LocaleSwitch />
+        <LocaleSwitch href={translation} />
       </div>
       <a
         data-emphasis="main"
@@ -68,7 +73,7 @@ const isCurrent = (href: string) =>
           <span class="hidden group-open:inline">{t("nav.menuClose")}</span>
         </summary>
         <div
-          class="absolute end-0 mt-3 w-[17.5rem] rounded-xl border border-line bg-base p-2 shadow-overlay"
+          class="absolute end-0 mt-3 w-[17.5rem] rounded-xl bg-base p-2 shadow-overlay"
         >
           <nav aria-label={t("nav.label")} class="grid">
             {
@@ -95,7 +100,7 @@ const isCurrent = (href: string) =>
             class="mt-2 flex flex-wrap items-center justify-between gap-2 border-line border-t pt-2"
           >
             <ThemeToggle />
-            <LocaleSwitch />
+            <LocaleSwitch href={translation} />
           </div>
         </div>
       </details>

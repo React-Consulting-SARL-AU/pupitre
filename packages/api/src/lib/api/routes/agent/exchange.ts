@@ -7,6 +7,7 @@ import {
   EnrollmentTokenUnknownError,
   EnrollmentTokenUsedError,
   exchangeEnrollmentToken,
+  HostKeyMismatchError,
 } from "../../../servers/enrollment"
 import { type ApiErrorPayload, apiError } from "../../errors"
 import { errorResponse } from "../../openapi-models"
@@ -43,6 +44,17 @@ function refusalFor(error: unknown, locale: Locale): Refusal | null {
         "enrollment_expired",
         translate(locale, "enrollment_expired"),
         translate(locale, "enrollment_restart_fix")
+      ),
+    }
+  }
+
+  if (error instanceof HostKeyMismatchError) {
+    return {
+      status: 409,
+      payload: apiError(
+        "host_key_mismatch",
+        translate(locale, "host_key_mismatch"),
+        translate(locale, "host_key_mismatch_fix")
       ),
     }
   }
@@ -86,7 +98,7 @@ export const agentExchangeRoutes = new Elysia({
   {
     body: exchangeBody,
     detail: {
-      summary: "Échanger un jeton d'enrôlement contre un jeton de serveur",
+      summary: "Échanger un token de rattachement contre un token de serveur",
     },
     response: {
       200: serverTokenSchema,

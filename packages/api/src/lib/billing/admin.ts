@@ -1,9 +1,16 @@
 import type { Subscription } from "@pupitre/db/cloudflare/client"
-import { GRANTED_PRODUCT, isPlatformProduct } from "@pupitre/shared/plans"
+import {
+  GRANTED_PRODUCT,
+  isPlatformProduct,
+  LIVE_SUBSCRIPTION_STATUSES,
+} from "@pupitre/shared/plans"
 import { PLATFORM_ORGANIZATION_ID } from "@pupitre/shared/platform"
 import { getPrisma } from "../api/prisma"
 import { recordEvent } from "../audit/audit"
-import { cancelEndedSubscriptions } from "./expiry"
+import {
+  cancelEndedSubscriptions,
+  cancelEndedSubscriptionsBatch,
+} from "./expiry"
 import {
   graceOrganizationServers,
   restoreOrganizationServers,
@@ -14,7 +21,7 @@ import { applyOrganizationEntitlement, mirrorSubscription } from "./mirror"
 import type { RemoteSubscription } from "./provider"
 import { getBillingProvider } from "./runtime"
 import { assertSeatsCoverUsage } from "./seats"
-import { LIVE_SUBSCRIPTION_STATUSES, liveSubscriptionOf } from "./subscription"
+import { liveSubscriptionOf } from "./subscription"
 
 export interface PlatformBillingActor {
   userId: string
@@ -98,7 +105,7 @@ function isLive(subscription: Subscription): boolean {
   return LIVE_SUBSCRIPTION_STATUSES.includes(subscription.status)
 }
 
-/** Every gesture that reaches Stripe: the launch runs without a Stripe key at all. */
+// The launch runs without a Stripe key at all.
 function assertStripeReachable(): void {
   if (isLaunchMode()) {
     throw new BillingLaunchModeError()
@@ -109,11 +116,6 @@ export function grantedSubscriptionId(): string {
   return `granted_${crypto.randomUUID().replaceAll("-", "")}`
 }
 
-/**
- * A subscription the team gives, outside Stripe: the seats and the end it
- * chooses. An organization that still has a live subscription keeps it; the
- * team cancels it first.
- */
 export async function grantSubscription(
   actor: PlatformBillingActor,
   organizationId: string,
@@ -164,6 +166,7 @@ export async function grantSubscription(
       note: input.note ?? null,
     },
   })
+
   await restoreOrganizationServers(organizationId, now)
 
   return subscription
@@ -217,7 +220,6 @@ export async function resizeGrantedSubscription(
   return updated
 }
 
-/** What the mirror holds once Stripe, or the row itself, has stopped the subscription. */
 async function stopSubscription(
   subscription: Subscription,
   now: Date
@@ -242,12 +244,7 @@ async function stopSubscription(
   })
 }
 
-/**
- * The team stops a subscription. A Stripe one is cancelled at Stripe first,
- * so the customer stops being billed, and the webhook that follows finds the
- * mirror already there. The servers then follow what the organization still
- * has, and a tolerance that ends now is closed now.
- */
+/** Stripe cancels first so billing stops and the webhook that follows finds the mirror in place. */
 export async function cancelSubscriptionByAdmin(
   actor: PlatformBillingActor,
   subscriptionId: string,
@@ -283,13 +280,13 @@ export async function cancelSubscriptionByAdmin(
       current_period_end: canceled.currentPeriodEnd?.toISOString() ?? null,
     },
   })
+
   await applyOrganizationEntitlement(subscription.organizationId, now)
   await suspendExpiredGrace(now)
 
   return canceled
 }
 
-/** The row Stripe just wrote back, read from the mirror the webhook also writes. */
 async function mirroredAfter(
   subscription: Subscription,
   remote: RemoteSubscription,
@@ -303,11 +300,7 @@ async function mirroredAfter(
   })
 }
 
-/**
- * The team gives a trial more time. Stripe holds the trial, so Stripe moves it
- * first and the mirror takes the answer; the webhook that follows finds the
- * row already there.
- */
+/** Stripe holds the trial, so it moves first and the mirror takes its answer. */
 export async function extendSubscriptionTrial(
   actor: PlatformBillingActor,
   subscriptionId: string,
@@ -340,6 +333,7 @@ export async function extendSubscriptionTrial(
     subscription.stripeSubscriptionId,
     endsAt
   )
+
   const extended = await mirroredAfter(subscription, remote, now)
 
   await recordEvent({
@@ -359,10 +353,7 @@ export async function extendSubscriptionTrial(
   return extended
 }
 
-/**
- * A cancellation waiting for the end of the period is taken back: Stripe keeps
- * billing, and nothing about the servers changes, since they never stopped.
- */
+/** Servers are left alone: a pending cancellation never stopped them. */
 export async function resumeSubscriptionByAdmin(
   actor: PlatformBillingActor,
   subscriptionId: string,
@@ -388,6 +379,7 @@ export async function resumeSubscriptionByAdmin(
   const remote = await getBillingProvider().resumeSubscription(
     subscription.stripeSubscriptionId
   )
+
   const resumed = await mirroredAfter(subscription, remote, now)
 
   await recordEvent({
@@ -422,11 +414,6 @@ async function followEntitlementAfterLoss(
   await suspendExpiredGrace(now)
 }
 
-/**
- * Only a row Stripe no longer bills leaves the mirror: the platform's own
- * products in any status, or a Stripe one that is not live. If it was the one
- * that counted for the organization, the servers follow what is left.
- */
 export async function deleteSubscriptionByAdmin(
   actor: PlatformBillingActor,
   subscriptionId: string,
@@ -448,6 +435,7 @@ export async function deleteSubscriptionByAdmin(
   const live = await liveSubscriptionOf(subscription.organizationId)
 
   await prisma.subscription.delete({ where: { id: subscription.id } })
+
   await recordEvent({
     action: "subscription.deleted",
     actorUserId: actor.userId,
@@ -469,11 +457,16 @@ export async function deleteSubscriptionByAdmin(
   return true
 }
 
+const ENDED_GRANT_FILTER = { product: GRANTED_PRODUCT, status: "active" }
+
+export function expireGrantedSubscriptionsBatch(
+  now: Date = new Date()
+): Promise<string[]> {
+  return cancelEndedSubscriptionsBatch(ENDED_GRANT_FILTER, now)
+}
+
 export function expireGrantedSubscriptions(
   now: Date = new Date()
 ): Promise<string[]> {
-  return cancelEndedSubscriptions(
-    { product: GRANTED_PRODUCT, status: "active" },
-    now
-  )
+  return cancelEndedSubscriptions(ENDED_GRANT_FILTER, now)
 }

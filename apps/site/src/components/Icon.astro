@@ -1,11 +1,7 @@
 ---
 import type { HTMLAttributes } from "astro/types"
 
-/**
- * The few interface icons the site needs, as Lucide outlines inlined by hand.
- * The site pulls in no icon package: four glyphs do not justify a dependency,
- * and an `<img>` would not follow the theme.
- */
+// Lucide outlines inlined by hand: four glyphs do not justify an icon package.
 export type IconName = "system" | "light" | "dark" | "check"
 
 interface Props extends HTMLAttributes<"svg"> {

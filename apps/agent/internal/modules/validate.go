@@ -10,22 +10,10 @@ import (
 	"pupitre.studio/agent/internal/protocol"
 )
 
-/*
-The configuration, weighed before the first step.
-
-A module used to discover its own missing field halfway through its install,
-which left the machine half changed and the reader with a replay command that
-would fail the same way. Every field of every chosen module is now checked
-first, against the rules the app applied to the same values, and an install
-that would not hold is refused before anything is touched.
-*/
-
-// Preflighter is what only the machine knows: a port already listening, a directory that is a file, a time zone this kernel never heard of.
 type Preflighter interface {
 	Preflight(ctx *Context) []contract.FieldProblem
 }
 
-// held is what the secret line carries for one field: one value, or the ranks of a secret list.
 func held(secrets map[string]map[string]string) contract.SecretsHeld {
 	return func(module, key string) []string {
 		values := secrets[module]
@@ -34,6 +22,7 @@ func held(secrets map[string]map[string]string) contract.SecretsHeld {
 		}
 
 		var kept []string
+
 		if strings.TrimSpace(values[key]) != "" {
 			kept = append(kept, values[key])
 		}
@@ -60,8 +49,6 @@ func fieldProblems(modules []Module, request Request) []contract.FieldProblem {
 	for _, module := range modules {
 		manifest := module.Manifest()
 
-		// Nothing to weigh on a module nobody has answered yet, and refusing the
-		// install for it is exactly what deferring undoes.
 		if request.Deferred(manifest.ID) {
 			continue
 		}
@@ -85,6 +72,7 @@ func withoutSecrets(modules []Module, problems []contract.FieldProblem) []contra
 	}
 
 	kept := []contract.FieldProblem{}
+
 	for _, problem := range problems {
 		if !secret[problem.Module+"."+problem.Field] {
 			kept = append(kept, problem)
@@ -94,11 +82,12 @@ func withoutSecrets(modules []Module, problems []contract.FieldProblem) []contra
 	return kept
 }
 
-// The sentence of a refusal names at most three fields: the whole list travels in the remedy, where the screen reads it field by field.
+// The refusal sentence names at most three fields; the whole list travels in the remedy.
 const named = 3
 
 func invalidConfig(problems []contract.FieldProblem) error {
 	labels := make([]string, 0, len(problems))
+
 	for _, problem := range problems[:min(len(problems), named)] {
 		labels = append(labels, i18n.T("field.invalid.one", problem.Module, problem.Field, problem.Message))
 	}
@@ -108,7 +97,6 @@ func invalidConfig(problems []contract.FieldProblem) error {
 		WithRemedy(contract.InvalidFields(problems))
 }
 
-// Check answers what an install would refuse, without touching the machine and without a secret in sight.
 func (e *Engine) Check(request Request, sink Sink) (contract.InstallCheck, error) {
 	if !e.entitled() {
 		return contract.InstallCheck{}, protocol.EntitlementRequired()
@@ -122,8 +110,7 @@ func (e *Engine) Check(request Request, sink Sink) (contract.InstallCheck, error
 	r := e.newRun(request, sink)
 	defer r.close()
 
-	// The secrets the server already holds count as filled: a port changed on an
-	// installed module must not read as a password that went missing.
+	// Secrets the server already holds count as filled: a port change must not read as a missing password.
 	recalled := e.recall(r)
 	if err := e.refuseInstalledConflicts(r, modules, recalled); err != nil {
 		return contract.InstallCheck{}, err
@@ -135,9 +122,7 @@ func (e *Engine) Check(request Request, sink Sink) (contract.InstallCheck, error
 		return contract.InstallCheck{}, err
 	}
 
-	// A secret is judged by whoever holds it. The app has its vault and will
-	// write the secret line at install time; the server can only see the ones it
-	// already keeps, so it would call every other one missing and be wrong.
+	// Only the app's vault knows every secret; the server would wrongly call the ones it lacks missing.
 	problems := withoutSecrets(modules, fieldProblems(modules, request))
 
 	for _, module := range modules {

@@ -19,11 +19,6 @@ import { ProjectAddPanel } from "../projects/project-add-panel";
 import { ProjectAddRepos } from "../projects/project-add-repos";
 import { ProjectAddSteps } from "../projects/project-add-steps";
 
-/**
- * What the new-project screen shows in each of its states. The panel takes
- * everything it draws as a prop: the store above it is tested on its own.
- */
-
 const ROWS: PortRow[] = [
   {
     key: "row-1",
@@ -90,7 +85,7 @@ const EDIT = {
   boot: () => undefined,
   branch: () => undefined,
   browse: () => undefined,
-  createFolder: () => Promise.resolve(),
+  createFolder: () => Promise.resolve(null),
   generateRowWeb: () => undefined,
   kind: () => undefined,
   loadRepos: () => Promise.resolve(),
@@ -196,7 +191,7 @@ describe("le formulaire d'un nouveau projet", () => {
   it("ouvre sur la source seule, et finit sur sa lecture", () => {
     const rendered = panel({ status: "idle" }, { step: "source" });
 
-    expect(text(rendered)).toContain("Nouveau projet");
+    expect(text(rendered)).toContain("Ajouter un projet");
     expect(rendered).toContain('data-step="source"');
     expect(text(rendered)).toContain("Adresse git");
     expect(rendered).toContain('id="project.source"');
@@ -297,6 +292,20 @@ describe("le formulaire d'un nouveau projet", () => {
       'aria-describedby="project.processes.0.ports.0.web-problem" aria-invalid="true"'
     );
     expect(text(refused)).toContain("les points séparent les niveaux");
+  });
+
+  it("dit sous le nom du projet pourquoi il est refusé, et le lie au champ", () => {
+    const refused = panel({ status: "idle" }, { draft: { name: "Mon Site" } });
+
+    expect(refused).toContain('id="project.name-problem"');
+    expect(refused).toContain('aria-invalid="true"');
+    expect(text(refused)).toContain(
+      "Minuscules, chiffres, points, tirets et soulignés, en commençant par une lettre ou un chiffre."
+    );
+    expect(panel({ status: "idle" })).not.toContain("project.name-problem");
+    expect(panel({ status: "idle" }, { draft: { name: "" } })).not.toContain(
+      "project.name-problem"
+    );
   });
 
   it("dit, derrière Caddy, l'adresse à écrire dans le DNS", () => {
@@ -481,11 +490,7 @@ describe("un projet qui ne démarre pas", () => {
     expect(rendered).not.toContain("Modifier le formulaire");
   });
 
-  /**
-   * A declaration refused — a folder already busy, a name taken — is fixed in
-   * the form, and nothing exists on the server yet: the form must be reachable
-   * with the draft intact, where Cancel would drop it.
-   */
+  // Nothing exists on the server yet: Cancel would drop a draft the reader only has to fix.
   it("offre de revenir au formulaire quand la déclaration est refusée", () => {
     const rendered = text(
       panel({
@@ -504,10 +509,7 @@ describe("un projet qui ne démarre pas", () => {
     expect(rendered).toContain("Réessayer");
   });
 
-  /**
-   * Sources that would not come — a wrong branch, a private repository — left
-   * a declared project behind: the form is reachable too, and names it.
-   */
+  // Failed sources leave a declared project behind, so the way back names it.
   it("offre de revenir au formulaire quand les sources n'ont pas pu venir", () => {
     const rendered = text(
       panel({
@@ -560,7 +562,6 @@ describe("un projet en ligne", () => {
     expect(rendered).toContain('data-outcome="online"');
   });
 
-  /** The machine's own address is shown for what it is; only a name on the web opens from this computer. */
   it("n'offre d'ouvrir qu'une adresse publique", () => {
     const rendered = panel({
       name: "vite-starter",

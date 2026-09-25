@@ -9,7 +9,7 @@ export interface ListSearchHarnessProps<Search extends { offset?: number }> {
   }) => ReactNode
 }
 
-/** The address a list reads, held in memory: a component test has no router state. */
+// A component test has no router state, so the search lives in memory.
 export function ListSearchHarness<Search extends { offset?: number }>({
   initial,
   children,

@@ -2,7 +2,6 @@ import { LOCALES, type Locale } from "@pupitre/shared/i18n"
 import { type Dictionary, type DictionaryKey, en } from "./en"
 import { fr } from "./fr"
 
-/** The console was written in French first, and falls back to it. */
 export const DEFAULT_LOCALE: Locale = "en"
 
 const DICTIONARIES: Record<Locale, Dictionary> = { en, fr }
@@ -36,12 +35,8 @@ type Values = Record<string, string | number>
 
 export interface Translate {
   (key: DictionaryKey, values?: Values): string
-  /** The locale this translator speaks, for `Intl` and for anything date-shaped. */
   locale: Locale
-  /**
-   * Picks `<key>.one` or `<key>.other` by the locale's own rule and fills
-   * `{count}`. French counts 0 and 1 as singular, English only 1.
-   */
+  // French counts 0 and 1 as singular, English only 1.
   plural(key: string, count: number, values?: Values): string
 }
 

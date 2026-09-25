@@ -1,13 +1,12 @@
 package i18n
 
-// A step's warnings: what was not done, and what the machine keeps anyway.
 var warningCatalog = map[string]Message{
 	"warn.engine.state.unreadable": {
 		FR: "état illisible, mise à jour ignorée : %s",
 		EN: "the state cannot be read, the update was skipped: %s",
 	},
 	"cloudflared.tunnel.unknown": {
-		FR: "Cloudflare ne connaît plus ce tunnel. Rejouez ce service depuis l'app : elle en refera un et réécrira les identifiants du serveur.",
+		FR: "Cloudflare ne connaît plus ce tunnel. Réappliquez ce service depuis l'app : elle en refera un et réécrira les identifiants du serveur.",
 		EN: "Cloudflare no longer knows this tunnel. Replay this service from the app: it makes a new one and rewrites the server's credentials.",
 	},
 	"warn.cloudflare.tunnel.unready": {
@@ -15,7 +14,7 @@ var warningCatalog = map[string]Message{
 		EN: "the tunnel is not connected to Cloudflare yet and keeps trying: %s",
 	},
 	"warn.cloudflare.dns.refused": {
-		FR: "%d enregistrement(s) DNS refusé(s) par Cloudflare : vérifiez les droits DNS du jeton sur la zone %s",
+		FR: "%d enregistrement(s) DNS refusé(s) par Cloudflare : vérifiez les droits DNS du token sur la zone %s",
 		EN: "%d DNS record(s) refused by Cloudflare: check the token's DNS rights on zone %s",
 	},
 	"warn.tailscale.ufw.refused": {
@@ -47,7 +46,7 @@ var warningCatalog = map[string]Message{
 		EN: "bundler was not installed, the one shipped with Ruby stays in place: %s",
 	},
 	"warn.browser.none": {
-		FR: "aucun navigateur sans interface : shot <url> restera indisponible, shot <fichier> marche",
+		FR: "aucun navigateur headless : shot <url> restera indisponible, shot <fichier> marche",
 		EN: "no headless browser: shot <url> stays unavailable, shot <file> works",
 	},
 	"warn.browser.libraries.missing": {
@@ -71,7 +70,7 @@ var warningCatalog = map[string]Message{
 		EN: "%s was installed instead of %s: compatible with most clients, but it is not the same engine",
 	},
 	"warn.vscode.extension.refused": {
-		FR: "extension refusée par la place de marché : %s",
+		FR: "extension refusée par le Marketplace : %s",
 		EN: "the marketplace refused this extension: %s",
 	},
 	"warn.vscode.tunnel.login": {
@@ -79,11 +78,11 @@ var warningCatalog = map[string]Message{
 		EN: "the VS Code tunnel expects one sign-in: sudo -u dev %s tunnel user login",
 	},
 	"warn.onepassword.vault.none": {
-		FR: "op est installé mais le jeton n'ouvre aucun coffre : les .env.local retomberont sur le .env.example des dépôts",
+		FR: "op est installé mais le token n'ouvre aucun coffre : les .env.local retomberont sur le .env.example des dépôts",
 		EN: "op is installed but the token opens no vault: .env.local files will fall back on the repositories' .env.example",
 	},
 	"warn.github.key.refused": {
-		FR: "clé du serveur non enregistrée sur GitHub : il manque probablement le droit admin:public_key au jeton",
+		FR: "clé du serveur non enregistrée sur GitHub : il manque probablement le droit admin:public_key au token",
 		EN: "the server's key was not registered on GitHub: the token is probably missing the admin:public_key right",
 	},
 }

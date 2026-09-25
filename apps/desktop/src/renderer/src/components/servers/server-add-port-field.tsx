@@ -3,11 +3,6 @@ import { controlClass, Field, fieldAria } from "../ui/field";
 
 const NAME = "servers.add.port";
 
-/**
- * The port, refused under the field the moment it is not a whole number in
- * range: `aria-invalid` and the sentence travel with it, so a reader who
- * cannot see the red border still hears why the form will not go.
- */
 export function ServerAddPortField({
   value,
   placeholder,

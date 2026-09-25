@@ -2,9 +2,11 @@ package platform
 
 import (
 	"errors"
+	"io/fs"
 	"path"
 	"strings"
 
+	"pupitre.studio/agent/internal/keys"
 	"pupitre.studio/agent/internal/sys"
 )
 
@@ -12,11 +14,15 @@ const (
 	tokenMode = 0o600
 	tokenDir  = 0o700
 
-	// The address is not a secret; the folder it sits in is already root's own.
+	// The address is not a secret, and its folder is already root's own.
 	urlMode = 0o644
 )
 
-var ErrNoToken = errors.New("no server token: this server is not enrolled")
+var (
+	ErrNoToken         = errors.New("no server token: this server is not enrolled")
+	ErrServerIDInvalid = errors.New("the platform named this server with an identifier outside the contract")
+	ErrServerIDChanged = errors.New("the platform named this server otherwise than the identifier already kept")
+)
 
 func LoadToken(machine sys.Sys, filePath string) (string, error) {
 	if filePath == "" {
@@ -42,8 +48,6 @@ func Enrolled(machine sys.Sys, filePath string) bool {
 	return err == nil
 }
 
-// LoadBaseURL is the platform this server was enrolled with, or nothing when it
-// was enrolled by a build that named none.
 func LoadBaseURL(machine sys.Sys, filePath string) string {
 	if filePath == "" {
 		filePath = DefaultBaseURLPath
@@ -74,7 +78,6 @@ func SaveBaseURL(machine sys.Sys, filePath, baseURL string) error {
 	return machine.WriteFile(filePath, []byte(baseURL+"\n"), urlMode)
 }
 
-// Located is the client aimed at the platform this server was enrolled with, when the enrolment wrote one down.
 func Located(machine sys.Sys, client Client, baseURLPath string) Client {
 	if stored := LoadBaseURL(machine, baseURLPath); stored != "" {
 		client.BaseURL = stored
@@ -83,7 +86,6 @@ func Located(machine sys.Sys, client Client, baseURLPath string) Client {
 	return client
 }
 
-// Stored is the client this server speaks to the platform with on its own: the platform it was enrolled with, and its token.
 func Stored(machine sys.Sys, client Client, tokenPath, baseURLPath string) (Client, error) {
 	token, err := LoadToken(machine, tokenPath)
 	if err != nil {
@@ -96,7 +98,6 @@ func Stored(machine sys.Sys, client Client, tokenPath, baseURLPath string) (Clie
 	return located, nil
 }
 
-// LoadServerID is this server's identifier on the platform, once a read of /agent/state has named it.
 func LoadServerID(machine sys.Sys, filePath string) string {
 	if filePath == "" {
 		filePath = DefaultServerIDPath
@@ -110,15 +111,28 @@ func LoadServerID(machine sys.Sys, filePath string) string {
 	return strings.TrimSpace(string(raw))
 }
 
-// SaveServerID writes the identifier down when it changed, and says whether it did.
+// Sticky because approvals are checked against it: only an enrolment, made on the machine, clears it.
 func SaveServerID(machine sys.Sys, filePath, id string) (bool, error) {
 	if filePath == "" {
 		filePath = DefaultServerIDPath
 	}
 
 	id = strings.TrimSpace(id)
-	if id == "" || LoadServerID(machine, filePath) == id {
+	if id == "" {
 		return false, nil
+	}
+
+	if !keys.ValidServerID(id) {
+		return false, ErrServerIDInvalid
+	}
+
+	stored := LoadServerID(machine, filePath)
+	if stored == id {
+		return false, nil
+	}
+
+	if keys.ValidServerID(stored) {
+		return false, ErrServerIDChanged
 	}
 
 	if err := machine.MkdirAll(path.Dir(filePath), tokenDir); err != nil {
@@ -128,7 +142,18 @@ func SaveServerID(machine sys.Sys, filePath, id string) (bool, error) {
 	return true, machine.WriteFile(filePath, []byte(id+"\n"), urlMode)
 }
 
-// Root only, and nothing else on the disk says it: the token is the whole of what ties this binary to a server.
+func ForgetServerID(machine sys.Sys, filePath string) error {
+	if filePath == "" {
+		filePath = DefaultServerIDPath
+	}
+
+	if err := machine.Remove(filePath); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+
+	return nil
+}
+
 func SaveToken(machine sys.Sys, filePath, token string) error {
 	if filePath == "" {
 		filePath = DefaultTokenPath

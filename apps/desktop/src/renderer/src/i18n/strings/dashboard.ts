@@ -16,23 +16,23 @@ export const dashboard = {
     "dashboard.machine.projectsDeclared.other": "{count} projects declared",
     "dashboard.machine.projectsTitle": "Projects",
     "dashboard.panel.backgroundSessions": "Background sessions",
-    "dashboard.panel.newProject": "New project",
+    "dashboard.panel.newProject": "Add a project",
     "dashboard.panel.noProjects":
       "This server has not declared any project yet.",
     "dashboard.panel.machine": "Machine",
     "dashboard.panel.projects": "Projects",
     "dashboard.panel.reboot": "Restart",
     "dashboard.panel.rebootQuestion":
-      "Everything stops; the machine comes back in about a minute.",
+      "Restart {name}? Everything running on it stops; the server comes back in about a minute.",
     "dashboard.panel.rebootServer": "Restart the server",
     "dashboard.panel.services": "Services",
     "dashboard.remedy.openTerminal": "Open a terminal",
     "dashboard.remedy.stopProject": "Stop a project",
     "dashboard.remedy.cleanSessions": "Clean the sessions",
     "dashboard.remedy.memoryProjects":
-      "Less than a gigabyte is left: a project stopped gives its memory back.",
+      "Less than a gigabyte of memory is left: a project stopped gives its memory back.",
     "dashboard.remedy.memory":
-      "Less than a gigabyte is left, and no project is running: a terminal shows what holds it.",
+      "Less than a gigabyte of memory is left, and no project is running: a terminal shows which processes hold the memory.",
     "dashboard.remedy.loadProjects":
       "The processor is behind on its work: a project stopped lets it catch up.",
     "dashboard.remedy.load":
@@ -46,13 +46,18 @@ export const dashboard = {
     "dashboard.panel.summary": "{up} online of {projects}",
     "dashboard.panel.summaryBroken": "{up} online of {projects} · {broken}",
     "dashboard.panel.title": "Dashboard",
+    "dashboard.rootOpen.message": "Root access to this server stayed open.",
+    "dashboard.rootOpen.fix":
+      "Run the securing again: it closes root access and moves the app to the dev account.",
     "dashboard.project.one": "{count} project",
     "dashboard.project.other": "{count} projects",
-    "dashboard.services.emptyTitle": "Nothing running",
+    "dashboard.services.emptyTitle":
+      "No service runs continuously on this server",
+    "dashboard.agentVersion": "Agent {version}",
   },
   fr: {
     "dashboard.broken.one": "{count} en échec",
-    "dashboard.broken.other": "{count} en échecs",
+    "dashboard.broken.other": "{count} en échec",
     "dashboard.card.open": "Ouvrir",
     "dashboard.card.restart": "Redémarrer",
     "dashboard.card.start": "Démarrer",
@@ -67,28 +72,28 @@ export const dashboard = {
     "dashboard.machine.projectsDeclared.other": "{count} projets déclarés",
     "dashboard.machine.projectsTitle": "Projets",
     "dashboard.panel.backgroundSessions": "Sessions en arrière-plan",
-    "dashboard.panel.newProject": "Nouveau projet",
+    "dashboard.panel.newProject": "Ajouter un projet",
     "dashboard.panel.noProjects": "Ce serveur n'a encore déclaré aucun projet.",
     "dashboard.panel.machine": "Machine",
     "dashboard.panel.projects": "Projets",
     "dashboard.panel.reboot": "Redémarrer",
     "dashboard.panel.rebootQuestion":
-      "Tout s'arrête ; la machine revient en une minute environ.",
+      "Redémarrer {name} ? Tout ce qui y tourne s'arrête ; le serveur revient en une minute environ.",
     "dashboard.panel.rebootServer": "Redémarrer le serveur",
     "dashboard.panel.services": "Services",
     "dashboard.remedy.openTerminal": "Ouvrir un terminal",
     "dashboard.remedy.stopProject": "Arrêter un projet",
     "dashboard.remedy.cleanSessions": "Nettoyer les sessions",
     "dashboard.remedy.memoryProjects":
-      "Il reste moins d'un gigaoctet : un projet arrêté rend sa mémoire.",
+      "Il reste moins d'un gigaoctet de mémoire : un projet arrêté rend sa mémoire.",
     "dashboard.remedy.memory":
-      "Il reste moins d'un gigaoctet, et aucun projet ne tourne : un terminal montre ce qui la tient.",
+      "Il reste moins d'un gigaoctet de mémoire, et aucun projet ne tourne : un terminal montre quels processus occupent la mémoire.",
     "dashboard.remedy.loadProjects":
       "Le processeur est en retard sur son travail : un projet arrêté le laisse rattraper.",
     "dashboard.remedy.load":
       "Le processeur est en retard sur son travail, et aucun projet ne tourne : un terminal montre ce qui l'occupe.",
     "dashboard.remedy.disk":
-      "Le disque est plein à plus de neuf dixièmes : les sessions terminées gardent encore leurs journaux et leurs fichiers.",
+      "Le disque est plein à plus de neuf dixièmes : les sessions terminées gardent encore leurs logs et leurs fichiers.",
     "dashboard.services.open": "Ouvrir {name}",
     "dashboard.panel.startAll": "Tout démarrer",
     "dashboard.panel.stopAll": "Tout arrêter",
@@ -96,8 +101,14 @@ export const dashboard = {
     "dashboard.panel.summary": "{up} en ligne sur {projects}",
     "dashboard.panel.summaryBroken": "{up} en ligne sur {projects} · {broken}",
     "dashboard.panel.title": "Tableau de bord",
+    "dashboard.rootOpen.message":
+      "L'accès root de ce serveur est resté ouvert.",
+    "dashboard.rootOpen.fix":
+      "Relancez la sécurisation : elle ferme l'accès root et fait passer l'app par le compte dev.",
     "dashboard.project.one": "{count} projet",
     "dashboard.project.other": "{count} projets",
-    "dashboard.services.emptyTitle": "Rien en marche",
+    "dashboard.services.emptyTitle":
+      "Aucun service ne tourne en continu sur ce serveur",
+    "dashboard.agentVersion": "Agent {version}",
   },
 } as const;

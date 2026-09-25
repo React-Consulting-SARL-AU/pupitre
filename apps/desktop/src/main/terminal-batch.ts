@@ -1,11 +1,4 @@
-/**
- * What a busy PTY emits, held for one frame before it crosses the bridge.
- *
- * A `docker build` writes hundreds of chunks a second; sent one by one, each
- * is a structured-clone message the renderer pays for, and every open
- * terminal hears all of them. Joined per session over a frame, the same bytes
- * cross as a fraction of the messages, in order and uncut.
- */
+/** A `docker build` writes hundreds of chunks a second, each a structured-clone message: they cross per frame. */
 export interface TerminalBatch {
   push(id: string, chunk: string): void;
   flush(): void;
@@ -25,6 +18,7 @@ export function createTerminalBatch(
   }: { waitMs?: number; maxBytes?: number } = {}
 ): TerminalBatch {
   const chunks = new Map<string, string[]>();
+
   let buffered = 0;
   let timer: NodeJS.Timeout | null = null;
 

@@ -4,7 +4,7 @@ description: Tout ce qu’il faut pour faire tourner Claude Code sur un serveur 
 locale: fr
 date: 2026-08-18
 author: Jordan Monier
-reading: 12 min
+translation: claude-code-on-a-vps
 order: 1
 ---
 
@@ -14,7 +14,7 @@ Voici l’installation que j’utilise tous les jours : une machine Ubuntu, quat
 
 ## La machine
 
-Ubuntu 22.04 ou 24.04, 4 Go de RAM, 20 Go de disque, amd64 ou arm64. N’importe quel hébergeur avec une image nue convient. Évitez ceux qui livrent un panneau de contrôle : ils ont des opinions sur les unités `systemd` que vous passerez une soirée à défaire.
+Ubuntu 22.04 ou 24.04, 4 Go de RAM, 20 Go de disque, amd64 ou arm64. N’importe quel hébergeur avec une image nue convient. Évitez ceux qui livrent un panel d’administration : ils ont des opinions sur les unités `systemd` que vous passerez une soirée à défaire.
 
 Démarrez-la, notez l’adresse, ouvrez une session en root.
 
@@ -35,7 +35,7 @@ Copiez la clé **avant** de fermer root, et vérifiez qu’elle marche depuis un
 
 ## La mémoire, avant tout le reste
 
-Quatre gigaoctets disparaissent vite quand un build Node et une base partagent une machine. Deux choses empêchent le tueur de mémoire de choisir le mauvais processus :
+Quatre gigaoctets disparaissent vite quand un build Node et une base partagent une machine. Deux choses empêchent l’OOM killer de choisir le mauvais processus :
 
 ```sh
 fallocate -l 4G /swapfile && chmod 600 /swapfile
@@ -55,7 +55,7 @@ curl https://mise.run | sh
 mise use --global node@24 bun@latest
 ```
 
-Voici ce qui compte. Un agent n’ouvre pas de shell de connexion. Quand Claude Code lance `npm test` par une commande `ssh` non interactive, il obtient un shell qui n’a jamais lu votre `.zshrc`, et `node` n’est pas dans le chemin. Le symptôme, c’est un agent qui affirme que votre projet est cassé.
+Voici ce qui compte. Un agent n’ouvre pas de shell de connexion. Quand Claude Code lance `npm test` par une commande `ssh` non interactive, il obtient un shell qui n’a jamais lu votre `.zshrc`, et `node` n’est pas dans le PATH. Le symptôme, c’est un agent qui affirme que votre projet est cassé.
 
 Le correctif est d’activer le gestionnaire de versions dans `.zshenv`, que les shells non interactifs lisent bel et bien :
 
@@ -68,7 +68,7 @@ Utilisez les shims, pas l’activation complète : les shims fonctionnent sans h
 
 ## Marqueurs de prompt
 
-Si vous comptez lire le terminal depuis un programme — et vous le ferez — posez des marqueurs OSC 133 pour que le lecteur sache où une commande finit et où la suivante commence. `zsh` les obtient par un petit hook, `bash` par `PROMPT_COMMAND`. Sans eux, un flux de terminal est un mur d’octets indifférencié et vous finissez par écrire un analyseur de prompt, ce qui est une mauvaise façon d’occuper un week-end.
+Si vous comptez lire le terminal depuis un programme — et vous le ferez — posez des marqueurs OSC 133 pour que le lecteur sache où une commande finit et où la suivante commence. `zsh` les obtient par un petit hook, `bash` par `PROMPT_COMMAND`. Sans eux, un flux de terminal est un mur d’octets indifférencié et vous finissez par écrire un parser de prompt, ce qui est une mauvaise façon d’occuper un week-end.
 
 ## Claude Code
 
@@ -77,7 +77,7 @@ npm install -g @anthropic-ai/claude-code
 claude
 ```
 
-Il affiche une URL. Ouvrez-la sur votre laptop, approuvez, et vous êtes connecté sur le serveur avec votre propre abonnement. Rien n’est relayé et rien n’est stocké ailleurs que sur la machine.
+Il affiche une URL. Ouvrez-la sur votre laptop, approuvez, et vous êtes connecté sur le serveur avec votre propre abonnement. Le jeton de connexion reste sur la machine, et ce que Claude Code lit part du serveur vers Anthropic, sur votre compte, sans passer par personne d’autre.
 
 Lancez-le dans `tmux`, toujours :
 
@@ -110,6 +110,6 @@ Ensuite, et seulement ensuite, désactivez l’authentification par mot de passe
 
 ## Ce que ça fait au total
 
-Un après-midi, si rien ne vous surprend. Ça m’a surpris trois fois : le shell non interactif, le swap, et l’ordre des étapes de durcissement. Ces trois-là sont la raison pour laquelle j’ai fini par écrire un programme qui fait tout ça en dix minutes, vérifie chaque étape, et refuse de fermer root tant qu’il n’a pas prouvé que votre clé fonctionne.
+Un après-midi, si rien ne vous surprend. Ça m’a surpris trois fois : le shell non interactif, le swap, et l’ordre des étapes de sécurisation. Ces trois-là sont la raison pour laquelle j’ai fini par écrire un programme qui fait tout ça en dix minutes, vérifie chaque étape, et refuse de fermer root tant qu’il n’a pas prouvé que votre clé fonctionne.
 
 Ce programme, c’est Pupitre. Mais l’installation ci-dessus reste l’installation, avec ou sans lui, et elle mérite d’être faite une fois à la main pour savoir ce que la machine contient réellement.

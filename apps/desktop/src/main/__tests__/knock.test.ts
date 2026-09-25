@@ -46,11 +46,6 @@ describe("la frappe sur un compte", () => {
     expect(args).toContain("ControlMaster=no");
   });
 
-  /**
-   * The file to import is a path the renderer carries: it is offered to `ssh`
-   * only when the file picker handed it out, and a path named any other way
-   * is knocked without.
-   */
   it("n'offre à ssh qu'une clé que le sélecteur a désignée", async () => {
     const invented = recorder([{ code: 0 }]);
 

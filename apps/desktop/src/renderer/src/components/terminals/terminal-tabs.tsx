@@ -12,26 +12,12 @@ import type {
   Terminal as TerminalInfo,
   TerminalKind,
 } from "@shared/terminals";
-import { Eraser, Search } from "lucide-react";
+import { Eraser, Search, X } from "lucide-react";
 import type { KeyboardEvent } from "react";
 import { TerminalNewButton } from "./terminal-new-button";
 import { TerminalPane } from "./terminal-pane";
 import { TerminalTab } from "./terminal-tab";
 
-/**
- * The sessions of one project — or of the server — side by side, whatever
- * their kind: a shell next to a Claude next to a Codex.
- *
- * None is unmounted when you move to the next: they are all rendered, and only
- * the active one gets opacity and events. A terminal hidden by `display:none`
- * would measure zero rows, and the session brought back to the front would draw
- * itself crooked.
- *
- * The row is a tab list in the keyboard's sense too: the arrows move between
- * sessions, and the shortcuts a terminal catches — new, close, next, search —
- * land here, where the row knows its neighbours. "New" from a session opens
- * another of its kind.
- */
 export function TerminalTabs({
   sessions,
   active,
@@ -46,7 +32,6 @@ export function TerminalTabs({
   sessions: readonly TerminalInfo[];
   active: string | null;
   states: Record<string, AgentState>;
-  /** What the "+" can open here: the shell, and the agents the machine holds. */
   kinds: readonly TerminalKind[];
   project: string | null;
   onActivate: (id: string) => void;
@@ -144,7 +129,7 @@ export function TerminalTabs({
       <div className="flex shrink-0 items-center gap-1 border-line border-b bg-surface px-2 py-1.5">
         <div
           aria-label={t("terminals.tabs")}
-          className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto"
+          className="flex min-w-0 items-center gap-1 overflow-x-auto"
           onKeyDown={onListKey}
           role="tablist"
         >
@@ -160,12 +145,19 @@ export function TerminalTabs({
               state={states[session.id]}
             />
           ))}
-
-          <TerminalNewButton chord={chord} kinds={kinds} onNew={onNew} />
         </div>
 
+        <TerminalNewButton chord={chord} kinds={kinds} onNew={onNew} />
+
         {active ? (
-          <div className="flex shrink-0 items-center gap-0.5 border-line border-l pl-1.5">
+          <div className="ml-auto flex shrink-0 items-center gap-0.5 border-line border-l pl-1.5">
+            <IconButton
+              icon={X}
+              label={t("terminals.closeTabHint", { chord })}
+              onClick={() => onClose(active)}
+              size={12}
+              variant="discreet"
+            />
             <IconButton
               className={search === active ? "bg-raised text-ink" : ""}
               icon={Search}
@@ -185,7 +177,8 @@ export function TerminalTabs({
         ) : null}
       </div>
 
-      <div className="relative min-h-0 flex-1">
+      {/* Hidden by opacity, never display:none (xterm would measure zero rows); isolate keeps them under dialogs. */}
+      <div className="relative isolate min-h-0 flex-1">
         {sessions.map((session) => (
           <div
             className="absolute inset-0"

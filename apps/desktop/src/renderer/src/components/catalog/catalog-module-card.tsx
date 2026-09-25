@@ -2,14 +2,6 @@ import type { Manifest } from "@pupitre/shared/catalog";
 import { CheckBox } from "../ui/check-box";
 import { ServiceLogo } from "../ui/service-logo";
 
-/**
- * One module, as its manifest describes it.
- *
- * Name and summary are the agent's words; the app adds the logo, the shape of
- * the checkbox and — when something stands in the way — the reason, printed
- * under the summary rather than hidden in a tooltip. What the module weighs
- * decides nothing card by card: the sum is said once, against the machine.
- */
 export function CatalogModuleCard({
   module,
   selected,
@@ -18,7 +10,6 @@ export function CatalogModuleCard({
 }: {
   module: Manifest;
   selected: boolean;
-  /** Why it cannot be chosen right now, if it cannot. */
   reason?: string;
   onToggle?: (moduleId: string) => void;
 }) {
@@ -53,12 +44,12 @@ export function CatalogModuleCard({
         <span className="flex min-w-0 flex-col gap-1">
           <span className="font-medium text-ink">{module.name}</span>
 
-          <span className="text-[12px] text-ink-3 leading-relaxed">
+          <span className="text-ink-3 text-small leading-relaxed">
             {module.summary}
           </span>
 
           {reason ? (
-            <span className="text-[12px] text-warn leading-relaxed">
+            <span className="text-small text-warn leading-relaxed">
               {reason}
             </span>
           ) : null}

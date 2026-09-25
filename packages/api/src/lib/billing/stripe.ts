@@ -116,8 +116,7 @@ interface TrialTerms {
   subscriptionData: FormTree
 }
 
-// Without a card required, Stripe is the one that cancels at the end of the trial:
-// the subscription moves to `canceled`, the webhook suspends it, nothing to count here.
+// Without a required card, Stripe itself cancels at trial end and the webhook suspends it.
 function trialTerms(trialDays: number | null): TrialTerms {
   if (trialDays === null) {
     return { paymentMethodCollection: "always", subscriptionData: {} }
@@ -156,6 +155,7 @@ export function createStripeBilling(config: StripeConfig): BillingProvider {
       },
       body: init.body ? encodeForm(init.body) : undefined,
     })
+
     const payload = (await response.json()) as {
       error?: { message?: string }
     } & T
@@ -184,6 +184,7 @@ export function createStripeBilling(config: StripeConfig): BillingProvider {
     ): Promise<BillingSession> {
       const price = config.prices[input.interval]
       const trial = trialTerms(input.trialDays)
+
       const session = await call<{ id?: string; url?: string }>(
         "/checkout/sessions",
         {

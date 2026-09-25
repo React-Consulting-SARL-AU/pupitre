@@ -13,7 +13,7 @@ const enabled = Boolean(import.meta.env.PUBLIC_POSTHOG_KEY)
       hidden
       role="dialog"
       aria-label={t("consent.title")}
-      class="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-md rounded-xl border border-line bg-base p-5 shadow-overlay"
+      class="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-md rounded-xl bg-base p-5 shadow-overlay"
     >
       <p class="heading-4">{t("consent.title")}</p>
       <p class="mt-2 text-ink-2">{t("consent.body")}</p>
@@ -35,7 +35,7 @@ const enabled = Boolean(import.meta.env.PUBLIC_POSTHOG_KEY)
           {t("consent.decline")}
         </button>
         <a
-          href={localizePath("/legal/privacy/", locale)}
+          href={localizePath("/legal/cookies/", locale)}
           class="ms-auto py-2 text-ink-3 hover:text-ink"
         >
           {t("consent.link")}
@@ -64,6 +64,14 @@ const enabled = Boolean(import.meta.env.PUBLIC_POSTHOG_KEY)
     posthog.init(key, posthogOptions(host))
   }
 
+  function storedConsent(): ReturnType<typeof readConsent> {
+    try {
+      return readConsent(localStorage)
+    } catch {
+      return null
+    }
+  }
+
   function remember(consent: string): void {
     try {
       localStorage.setItem(CONSENT_KEY, consent)
@@ -73,7 +81,7 @@ const enabled = Boolean(import.meta.env.PUBLIC_POSTHOG_KEY)
   }
 
   if (key) {
-    const decided = readConsent(localStorage)
+    let decided = storedConsent()
 
     if (decided === "granted") {
       await start(key)
@@ -81,6 +89,16 @@ const enabled = Boolean(import.meta.env.PUBLIC_POSTHOG_KEY)
 
     if (decided === null && banner) {
       banner.hidden = false
+    }
+
+    for (const button of document.querySelectorAll<HTMLButtonElement>(
+      "[data-consent-reopen]"
+    )) {
+      button.addEventListener("click", () => {
+        if (banner) {
+          banner.hidden = false
+        }
+      })
     }
 
     for (const button of banner?.querySelectorAll<HTMLButtonElement>(
@@ -93,12 +111,22 @@ const enabled = Boolean(import.meta.env.PUBLIC_POSTHOG_KEY)
           return
         }
 
+        const withdrawn = decided === "granted" && consent === "denied"
+
         remember(consent)
         banner.hidden = true
 
-        if (consent === "granted") {
+        if (withdrawn) {
+          // PostHog keeps no state outside this page: reloading without it is the whole opt-out.
+          location.reload()
+          return
+        }
+
+        if (consent === "granted" && decided !== "granted") {
           await start(key)
         }
+
+        decided = consent
       })
     }
   }

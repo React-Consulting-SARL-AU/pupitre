@@ -2,12 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { createServer, type Server, type Socket } from "node:net";
 import { reachSsh } from "../reach";
 
-/**
- * Knocking on an address. Real sockets on the loopback, because what is being
- * checked is exactly the behaviour of a socket: who speaks first, and what a
- * refusal looks like.
- */
-
+// Real loopback sockets: who speaks first and what a refusal looks like are socket behaviours.
 function listening(onConnect: (socket: Socket) => void): Promise<Server> {
   const server = createServer(onConnect);
 

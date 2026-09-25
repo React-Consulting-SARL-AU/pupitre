@@ -1,5 +1,6 @@
 import type { DictionaryKey } from "@renderer/i18n/en";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import type { AgentError } from "@shared/agent";
 import type { GithubRepo } from "@shared/github";
 import { FolderGit2, HardDrive, Link2, Package } from "lucide-react";
 import type {
@@ -17,17 +18,6 @@ import { ModeCard, ModeCards } from "../ui/mode-card";
 import { ProjectAddFolders } from "./project-add-folders";
 import { ProjectAddRepos } from "./project-add-repos";
 
-/**
- * Where the project comes from, chosen before anything else is asked.
- *
- * The three ways sit side by side rather than behind one field that has to be
- * guessed at: a repository of the connected account brings its own branch and
- * says whether it is private, a free address is typed, and a folder already on
- * the server is walked to. Choosing is the first decision of this screen, so it
- * is the first thing on it. Nothing here asks the agent anything: the reading
- * is the gesture at the foot of the page, once the source and its branch are
- * settled.
- */
 const KINDS: {
   kind: SourceKind;
   icon: ButtonIcon;
@@ -61,7 +51,7 @@ export interface SourceEdits {
   pickRepo: (repo: GithubRepo) => void;
   pickFolder: (path: string) => void;
   browse: (path: string) => Promise<void> | void;
-  createFolder: (name: string) => Promise<void>;
+  createFolder: (name: string) => Promise<AgentError | null>;
   loadRepos: (refresh?: boolean) => Promise<void>;
 }
 
@@ -79,7 +69,6 @@ export function ProjectAddSource({
   detection: DetectionState;
   repos: ReposState;
   folders: FolderState;
-  /** Whether `tool.github` sits on this server: without it a private clone fails. */
   githubModule: boolean;
   edit: SourceEdits;
   onConnect: () => void;
@@ -161,11 +150,7 @@ export function ProjectAddSource({
         </Field>
       )}
 
-      {/*
-        A private clone needs a git identity on the machine, and that is what
-        the GitHub module puts there. Saying so here costs one sentence; saying
-        it after the project is declared costs a failed clone.
-      */}
+      {/* A private clone needs the git identity the GitHub module installs: warn before it fails. */}
       {draft.privateRepo && !githubModule ? (
         <Callout
           action={

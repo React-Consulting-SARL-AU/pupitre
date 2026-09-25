@@ -5,43 +5,26 @@ import { ConfigRevisionSchema } from "./migrate"
 
 export const EmptyParamsSchema = z.strictObject({})
 
-export type EmptyParams = z.infer<typeof EmptyParamsSchema>
-
-export const ENTITLEMENTS = ["valid", "grace", "restricted", "dev"] as const
+const ENTITLEMENTS = ["valid", "grace", "restricted", "dev"] as const
 
 export const EntitlementSchema = z.enum(ENTITLEMENTS)
 
 export type Entitlement = z.infer<typeof EntitlementSchema>
 
-/**
- * The app's language travels with the handshake.
- *
- * Everything the server sends back — messages, remedies, probe reasons,
- * catalogue labels — is written into the agent binary, and the app displays
- * it as is. Without this tag, an English app would show French sentences. An
- * agent that doesn't know the requested language answers in its own: never
- * an error, never an empty field.
- */
 export const HelloParamsSchema = z.strictObject({
   app_version: z.string().min(1),
   protocol: ProtocolVersionSchema,
+  // The agent writes every sentence the app shows; one that lacks this language answers in its own.
   locale: LocaleSchema.optional(),
 })
 
-export type HelloParams = z.infer<typeof HelloParamsSchema>
-
-/**
- * `config` says where the configuration on the machine stands against the
- * binary now reading it. An agent from before the ledger answers without it,
- * and the app takes that server for one whose configuration is current — which
- * it is, since nothing had changed shape yet.
- */
 export const HelloResultSchema = z.object({
   agent_version: z.string().min(1),
   protocol: ProtocolVersionSchema,
   server_id: z.string().optional(),
   entitlement: EntitlementSchema,
   capabilities: z.array(z.string()),
+  // Absent from an agent older than the ledger, whose configuration is current by definition.
   config: ConfigRevisionSchema.optional(),
 })
 
@@ -50,5 +33,3 @@ export type HelloResult = z.infer<typeof HelloResultSchema>
 export const PingResultSchema = z.object({
   ts: z.string(),
 })
-
-export type PingResult = z.infer<typeof PingResultSchema>

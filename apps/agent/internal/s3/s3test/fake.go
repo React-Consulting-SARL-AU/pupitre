@@ -1,4 +1,3 @@
-// Package s3test is a bucket in memory that checks every signature, for the tests of whatever speaks S3.
 package s3test
 
 import (
@@ -53,6 +52,7 @@ type Fake struct {
 	next     int
 	calls    map[string]int
 	refusals map[string][]refusal
+	lost     map[string]int
 }
 
 func New(t *testing.T, bucket string) *Fake {
@@ -66,14 +66,16 @@ func New(t *testing.T, bucket string) *Fake {
 		uploads:  map[string]*upload{},
 		calls:    map[string]int{},
 		refusals: map[string][]refusal{},
+		lost:     map[string]int{},
 	}
+
 	fake.server = httptest.NewTLSServer(http.HandlerFunc(fake.serve))
 	t.Cleanup(fake.server.Close)
 
 	return fake
 }
 
-// Client reaches the fake over HTTPS whatever host a request names, so a virtual-hosted bucket resolves too: the test certificate is checked under its own name.
+// Dials the fake whatever host a request names, so virtual-hosted buckets resolve; TLS checks the test cert's own name.
 func (f *Fake) Client(pathStyle bool) s3.Client {
 	address := f.server.Listener.Addr().String()
 	dialer := &net.Dialer{}
@@ -105,7 +107,7 @@ func port(address string) string {
 	return value
 }
 
-// Refuse answers the next call of op with this refusal, once.
+// Refuses only the next call of op.
 func (f *Fake) Refuse(op string, status int, code string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -113,7 +115,14 @@ func (f *Fake) Refuse(op string, status int, code string) {
 	f.refusals[op] = append(f.refusals[op], refusal{status: status, code: code})
 }
 
-// Calls counts the requests of one operation.
+// Carries out the next call of op but answers 500, as when the answer dies on the way back.
+func (f *Fake) Lose(op string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	f.lost[op]++
+}
+
 func (f *Fake) Calls(op string) int {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -143,6 +152,7 @@ func (f *Fake) Keys() []string {
 	defer f.mu.Unlock()
 
 	keys := make([]string, 0, len(f.objects))
+
 	for key := range f.objects {
 		keys = append(keys, key)
 	}
@@ -152,7 +162,6 @@ func (f *Fake) Keys() []string {
 	return keys
 }
 
-// Begin leaves an upload open, as an agent killed mid-part would.
 func (f *Fake) Begin(key string, initiated time.Time) string {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -210,6 +219,14 @@ func (f *Fake) serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if f.lost[op] > 0 {
+		f.lost[op]--
+		f.answer(httptest.NewRecorder(), r, op, key, body)
+		fail(w, http.StatusInternalServerError, "InternalError")
+
+		return
+	}
+
 	f.answer(w, r, op, key, body)
 }
 
@@ -218,6 +235,16 @@ func (f *Fake) answer(w http.ResponseWriter, r *http.Request, op, key string, bo
 
 	switch op {
 	case "HeadBucket":
+		w.WriteHeader(http.StatusOK)
+	case "HeadObject":
+		content, found := f.objects[key]
+		if !found {
+			fail(w, http.StatusNotFound, "NoSuchKey")
+
+			return
+		}
+
+		w.Header().Set("Content-Length", strconv.Itoa(len(content)))
 		w.WriteHeader(http.StatusOK)
 	case "DeleteObject":
 		delete(f.objects, key)
@@ -233,6 +260,7 @@ func (f *Fake) answer(w http.ResponseWriter, r *http.Request, op, key string, bo
 
 			return
 		}
+
 		_, _ = w.Write(content)
 	case "CopyObject":
 		content, found := f.source(r)
@@ -241,6 +269,7 @@ func (f *Fake) answer(w http.ResponseWriter, r *http.Request, op, key string, bo
 
 			return
 		}
+
 		f.objects[key] = content
 		f.modified[key] = f.Now
 		writeXML(w, "<CopyObjectResult><ETag>"+quoted(content)+"</ETag></CopyObjectResult>")
@@ -262,6 +291,7 @@ func (f *Fake) answer(w http.ResponseWriter, r *http.Request, op, key string, bo
 
 func (f *Fake) putPart(w http.ResponseWriter, r *http.Request, op string, body []byte) {
 	query := r.URL.Query()
+
 	pending, found := f.uploads[query.Get("uploadId")]
 	if !found {
 		fail(w, http.StatusNotFound, "NoSuchUpload")
@@ -290,7 +320,7 @@ func (f *Fake) putPart(w http.ResponseWriter, r *http.Request, op string, body [
 	writeXML(w, "<CopyPartResult><ETag>"+quoted(pending.parts[number])+"</ETag></CopyPartResult>")
 }
 
-// Every part but the last holds the same size, or the bucket refuses, as R2 does.
+// Every part but the last must be the same size, as R2 enforces.
 func (f *Fake) complete(w http.ResponseWriter, id, key string) {
 	pending, found := f.uploads[id]
 	if !found || pending.key != key {
@@ -300,6 +330,7 @@ func (f *Fake) complete(w http.ResponseWriter, id, key string) {
 	}
 
 	var joined bytes.Buffer
+
 	for number := 1; number <= len(pending.parts); number++ {
 		part, present := pending.parts[number]
 		if !present || (number < len(pending.parts) && len(part) != len(pending.parts[1])) {
@@ -339,6 +370,7 @@ func (f *Fake) list(w http.ResponseWriter, query url.Values) {
 
 	var entries []string
 	seen := map[string]bool{}
+
 	for _, key := range f.sorted() {
 		if !strings.HasPrefix(key, prefix) {
 			continue
@@ -403,6 +435,7 @@ func (f *Fake) listUploads(w http.ResponseWriter, prefix string) {
 
 func (f *Fake) sorted() []string {
 	keys := make([]string, 0, len(f.objects))
+
 	for key := range f.objects {
 		keys = append(keys, key)
 	}
@@ -412,7 +445,6 @@ func (f *Fake) sorted() []string {
 	return keys
 }
 
-// keyOf reads the bucket from the host or from the first segment, and answers the key under it.
 func (f *Fake) keyOf(r *http.Request) (string, bool) {
 	host, _, _ := net.SplitHostPort(r.Host)
 	path := strings.TrimPrefix(r.URL.Path, "/")
@@ -448,6 +480,8 @@ func operation(r *http.Request, key string) string {
 	switch {
 	case r.Method == http.MethodHead && key == "":
 		return "HeadBucket"
+	case r.Method == http.MethodHead:
+		return "HeadObject"
 	case r.Method == http.MethodGet && query.Has("uploads"):
 		return "ListMultipartUploads"
 	case r.Method == http.MethodGet && key == "":

@@ -7,6 +7,7 @@
     "./ansi": "./src/ansi.ts",
     "./brand": "./src/brand/index.ts",
     "./fonts.css": "./src/fonts/fonts.css",
+    "./fonts/*.woff2": "./src/fonts/*.woff2",
     "./logos": "./src/logos/index.ts",
     "./tailwind.css": "./src/tailwind.css",
     "./tokens": "./src/tokens.ts",
@@ -23,12 +24,12 @@
     "@pupitre/shared": "workspace:*"
   },
   "devDependencies": {
-    "@resvg/resvg-js": "^2.6.2",
-    "@types/bun": "^1.4.0",
-    "@typescript/native-preview": "^7.0.0-dev.20260707.2",
-    "satori": "^0.33.4",
+    "@resvg/resvg-js": "catalog:",
+    "@types/bun": "catalog:",
+    "@typescript/native-preview": "catalog:",
+    "satori": "catalog:",
     "simple-icons": "^16.29.0",
-    "typescript": "^6.0.3",
-    "ultracite": "7.8.3"
+    "typescript": "catalog:",
+    "ultracite": "catalog:"
   }
 }

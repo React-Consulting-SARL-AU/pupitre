@@ -1,5 +1,11 @@
 ---
-import { localeFromPath, localizePath, translator } from "../lib/i18n"
+import {
+  alternateLocale,
+  localeFromPath,
+  localizePath,
+  translator,
+} from "../lib/i18n"
+import type { Translations } from "../lib/seo"
 import { article, breadcrumbs, jsonLd } from "../lib/structured-data"
 import Base from "./Base.astro"
 
@@ -11,13 +17,27 @@ interface Props {
   meta: string[]
   backHref: string
   backLabel: string
+  translation: string
 }
 
-const { title, description, label, date, meta, backHref, backLabel } =
-  Astro.props
+const {
+  title,
+  description,
+  label,
+  date,
+  meta,
+  backHref,
+  backLabel,
+  translation,
+} = Astro.props
 const locale = localeFromPath(Astro.url.pathname)
 const t = translator(locale)
 const pathname = Astro.url.pathname
+const other = alternateLocale(locale)
+const translations: Translations = {
+  [locale]: pathname,
+  [other]: localizePath(`/blog/${translation}/`, other),
+}
 const published = new Intl.DateTimeFormat(locale, {
   dateStyle: "long",
 }).format(date)
@@ -42,7 +62,11 @@ const trail = jsonLd(
 )
 ---
 
-<Base title={`${title} — ${t("site.name")}`} description={description}>
+<Base
+  title={`${title} — ${t("site.name")}`}
+  description={description}
+  translations={translations}
+>
   <Fragment slot="head">
     <script is:inline type="application/ld+json" set:html={structured} />
     <script is:inline type="application/ld+json" set:html={trail} />

@@ -46,8 +46,7 @@ export function InboxOrganizationFilter({
     enabled: query.length > 1 && organizationId === undefined,
   })
 
-  // The organisation the address names is read from the platform, not guessed
-  // from the page: an empty page would otherwise show its raw identifier.
+  // Read from the platform: an empty page would otherwise show the raw identifier.
   const chosen = useQuery({
     ...adminOrganizationQueryOptions(organizationId ?? ""),
     enabled: organizationId !== undefined,

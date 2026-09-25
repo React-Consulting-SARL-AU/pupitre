@@ -25,7 +25,6 @@ export const servers = {
     "servers.devices.readFailedFix":
       "The platform did not answer. Try again in a moment.",
     "servers.devices.revokeFailed": "The removal failed.",
-    "servers.devices.revokeFailedFix": "Try again in a moment.",
     "servers.devices.removing": "Removing…",
     "servers.devices.removed": "“{device}” no longer opens “{server}”.",
     "servers.devices.remove": "Remove",
@@ -105,7 +104,6 @@ export const servers = {
     "servers.devices.readFailedFix":
       "La plateforme n'a pas répondu. Réessayez dans un instant.",
     "servers.devices.revokeFailed": "Le retrait a échoué.",
-    "servers.devices.revokeFailedFix": "Réessayez dans un instant.",
     "servers.devices.removing": "Retrait…",
     "servers.devices.removed": "« {device} » n'ouvre plus « {server} ».",
     "servers.devices.remove": "Retirer",

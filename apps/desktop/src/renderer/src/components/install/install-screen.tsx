@@ -15,18 +15,6 @@ import { InstallProgress } from "./install-progress";
 import { InstallReport } from "./install-report";
 import { InstallSending } from "./install-sending";
 
-/**
- * The installation, watched from start to report.
- *
- * The screen only ever sends module names: the configuration goes with them,
- * and what the reader typed as a secret stays in the main process until the
- * install writes it on the protocol's secret line. Nothing on this screen ever
- * held it.
- *
- * A module that fails is retried where it stands, in the same list; a request
- * the agent refused before touching anything is asked again whole; a report
- * left behind by a link that dropped is read back rather than replayed.
- */
 export function InstallScreen({
   serverId,
   serverName,
@@ -38,21 +26,12 @@ export function InstallScreen({
 }: {
   serverId: string;
   serverName?: string;
-  /** What the header offers on the whole sequence: a way out of it. */
   actions?: ReactNode;
-  /** The header sits on the page, as the onboarding's steps read theirs. */
   plain?: boolean;
-  /**
-   * What to install, when it is not simply the catalogue selection: a resumed
-   * onboarding installs what the machine is still missing, not what it already
-   * runs.
-   */
+  /** Overrides the catalogue selection: a resumed onboarding installs only what the machine still lacks. */
   modules?: readonly string[];
   onContinue?: () => void;
-  /**
-   * What a replay means outside this screen. A module that carried a secret
-   * cannot simply run again, and the flow above says what to do about it.
-   */
+  /** A module that carried a secret cannot simply run again, so the caller decides what a replay means. */
   onReplay?: (moduleId: string) => Promise<void>;
 }) {
   const t = useTranslations();
@@ -78,13 +57,9 @@ export function InstallScreen({
   const [replaying, setReplaying] = useState<string | null>(null);
 
   const asked = wanted ?? selected;
+  const rereadsReport = touched() || asked.length === 0;
 
-  /**
-   * The install itself is started by the onboarding on entering the step; this
-   * is the same ask, for a run the agent refused before touching anything. The
-   * generated secrets are made in the main process, one round trip each, so
-   * nothing starts before they have landed.
-   */
+  // Generated secrets are made in main, one round trip each: nothing starts before they land.
   const run = useCallback(
     () =>
       settled().then(() =>
@@ -110,8 +85,7 @@ export function InstallScreen({
     return failed.filter((id) => manifestOf(id)?.mandatory);
   }
 
-  /** Every failed module can run again as it is: none of them carried a secret. */
-  function plainFailures(failed: readonly string[]): boolean {
+  function noneCarriedSecret(failed: readonly string[]): boolean {
     return failed.every((id) => {
       const manifest = manifestOf(id);
 
@@ -162,7 +136,7 @@ export function InstallScreen({
             nameOf={nameOf}
             onContinue={onContinue}
             onReplayAll={
-              plainFailures(install.result.failed) ? replayAll : undefined
+              noneCarriedSecret(install.result.failed) ? replayAll : undefined
             }
             replaying={replaying}
             result={install.result}
@@ -176,21 +150,11 @@ export function InstallScreen({
       {install.status === "sending" ? <InstallSending /> : null}
 
       {install.status === "failed" ? (
-        /*
-          A run that never reached a module left no report to read: what it
-          refused, it refused before touching the machine, so the way out is to
-          ask again rather than to read what was done. A run that did touch it
-          has a report, and that is what a link that dropped left behind.
-        */
         <StepFailure
           error={install.error}
-          onRetry={
-            touched() || asked.length === 0 ? () => reload(serverId) : run
-          }
+          onRetry={rereadsReport ? () => reload(serverId) : run}
           retryLabel={
-            touched() || asked.length === 0
-              ? t("install.rereadReport")
-              : t("install.retry")
+            rereadsReport ? t("install.rereadReport") : t("install.retry")
           }
         />
       ) : null}

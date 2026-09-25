@@ -13,9 +13,9 @@ import {
   patchQuery,
   useOptimisticMutation,
 } from "@/hooks/use-optimistic-mutation"
+import { usePermission } from "@/hooks/use-permission"
 import { type Me, queryKeys } from "@/lib/api/queries"
 import { updateOrganization } from "@/lib/auth/organization"
-import { canManageOrganization } from "@/lib/domain/organization"
 import {
   type OrganizationInput,
   type OrganizationValues,
@@ -24,7 +24,8 @@ import {
 
 export function OrganizationCard() {
   const t = useTranslations()
-  const { activeOrganization, role } = useDashboardContext()
+  const { activeOrganization } = useDashboardContext()
+  const canManage = usePermission("organizations:manage")
   const organizationId = activeOrganization?.id ?? ""
   const form = useForm<OrganizationInput, OrganizationValues>({
     schema: organizationSchema(t),
@@ -80,7 +81,7 @@ export function OrganizationCard() {
     )
   }
 
-  if (!canManageOrganization(role)) {
+  if (!canManage) {
     return (
       <EmptyState
         description={t("organization.lockedDescription")}

@@ -413,6 +413,7 @@ export const ModelName = {
   Alert: 'Alert',
   Backup: 'Backup',
   ServerRevokedDevice: 'ServerRevokedDevice',
+  KeyApproval: 'KeyApproval',
   Subscription: 'Subscription',
   OrganizationBilling: 'OrganizationBilling',
   AffiliateLink: 'AffiliateLink',
@@ -445,7 +446,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "deviceCode" | "passkey" | "twoFactor" | "device" | "server" | "serverMetric" | "alert" | "backup" | "serverRevokedDevice" | "subscription" | "organizationBilling" | "affiliateLink" | "affiliateClickDay" | "referral" | "mailMailbox" | "mailThread" | "mailNote" | "mailDraft" | "mailActivity" | "mailTemplate" | "mailMessage" | "mailAttachment" | "release" | "appRelease" | "event" | "stripeEvent"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "member" | "invitation" | "deviceCode" | "passkey" | "twoFactor" | "device" | "server" | "serverMetric" | "alert" | "backup" | "serverRevokedDevice" | "keyApproval" | "subscription" | "organizationBilling" | "affiliateLink" | "affiliateClickDay" | "referral" | "mailMailbox" | "mailThread" | "mailNote" | "mailDraft" | "mailActivity" | "mailTemplate" | "mailMessage" | "mailAttachment" | "release" | "appRelease" | "event" | "stripeEvent"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1630,6 +1631,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.ServerRevokedDeviceCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.ServerRevokedDeviceCountAggregateOutputType> | number
+        }
+      }
+    }
+    KeyApproval: {
+      payload: Prisma.$KeyApprovalPayload<ExtArgs>
+      fields: Prisma.KeyApprovalFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.KeyApprovalFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KeyApprovalPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.KeyApprovalFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KeyApprovalPayload>
+        }
+        findFirst: {
+          args: Prisma.KeyApprovalFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KeyApprovalPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.KeyApprovalFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KeyApprovalPayload>
+        }
+        findMany: {
+          args: Prisma.KeyApprovalFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KeyApprovalPayload>[]
+        }
+        create: {
+          args: Prisma.KeyApprovalCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KeyApprovalPayload>
+        }
+        createMany: {
+          args: Prisma.KeyApprovalCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.KeyApprovalCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KeyApprovalPayload>[]
+        }
+        delete: {
+          args: Prisma.KeyApprovalDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KeyApprovalPayload>
+        }
+        update: {
+          args: Prisma.KeyApprovalUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KeyApprovalPayload>
+        }
+        deleteMany: {
+          args: Prisma.KeyApprovalDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.KeyApprovalUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.KeyApprovalUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KeyApprovalPayload>[]
+        }
+        upsert: {
+          args: Prisma.KeyApprovalUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$KeyApprovalPayload>
+        }
+        aggregate: {
+          args: Prisma.KeyApprovalAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateKeyApproval>
+        }
+        groupBy: {
+          args: Prisma.KeyApprovalGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.KeyApprovalGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.KeyApprovalCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.KeyApprovalCountAggregateOutputType> | number
         }
       }
     }
@@ -3131,6 +3206,7 @@ export const ServerScalarFieldEnum = {
   lastHeartbeatAt: 'lastHeartbeatAt',
   lastUsage: 'lastUsage',
   backup: 'backup',
+  keyReport: 'keyReport',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -3196,6 +3272,21 @@ export const ServerRevokedDeviceScalarFieldEnum = {
 } as const
 
 export type ServerRevokedDeviceScalarFieldEnum = (typeof ServerRevokedDeviceScalarFieldEnum)[keyof typeof ServerRevokedDeviceScalarFieldEnum]
+
+
+export const KeyApprovalScalarFieldEnum = {
+  id: 'id',
+  serverId: 'serverId',
+  deviceId: 'deviceId',
+  userId: 'userId',
+  signer: 'signer',
+  issuedAt: 'issuedAt',
+  signature: 'signature',
+  approvedByUserId: 'approvedByUserId',
+  createdAt: 'createdAt'
+} as const
+
+export type KeyApprovalScalarFieldEnum = (typeof KeyApprovalScalarFieldEnum)[keyof typeof KeyApprovalScalarFieldEnum]
 
 
 export const SubscriptionScalarFieldEnum = {
@@ -3293,6 +3384,10 @@ export const MailThreadScalarFieldEnum = {
   lastInboundAt: 'lastInboundAt',
   lastInboundAutomated: 'lastInboundAutomated',
   lastOutboundAt: 'lastOutboundAt',
+  senderEmail: 'senderEmail',
+  senderName: 'senderName',
+  senderAuthenticated: 'senderAuthenticated',
+  snippet: 'snippet',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -3366,10 +3461,12 @@ export const MailMessageScalarFieldEnum = {
   rawKey: 'rawKey',
   rawHash: 'rawHash',
   messageId: 'messageId',
+  address: 'address',
   inReplyTo: 'inReplyTo',
   references: 'references',
   sentByUserId: 'sentByUserId',
   automated: 'automated',
+  authenticated: 'authenticated',
   delivery: 'delivery',
   error: 'error',
   receivedAt: 'receivedAt',
@@ -3810,6 +3907,7 @@ export type GlobalOmitConfig = {
   alert?: Prisma.AlertOmit
   backup?: Prisma.BackupOmit
   serverRevokedDevice?: Prisma.ServerRevokedDeviceOmit
+  keyApproval?: Prisma.KeyApprovalOmit
   subscription?: Prisma.SubscriptionOmit
   organizationBilling?: Prisma.OrganizationBillingOmit
   affiliateLink?: Prisma.AffiliateLinkOmit

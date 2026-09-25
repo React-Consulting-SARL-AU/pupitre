@@ -1,32 +1,12 @@
 import { Link } from "@tanstack/react-router"
 import type { DataColumn } from "@/components/ui/async-data-table"
 import { StatusBadge } from "@/components/ui/status-badge"
+import type { AdminUser } from "@/lib/api/admin-queries"
 import { accountLook } from "@/lib/domain/admin"
 import { subscriptionStatusLook } from "@/lib/domain/billing"
 import { roleKey } from "@/lib/domain/roles"
 import type { Translate } from "@/lib/i18n/i18n"
 import { formatDate } from "@/lib/utils/format"
-
-export interface AdminUserRowOrganization {
-  id: string
-  name: string
-  slug: string
-  role: string
-  subscription_status: string | null
-  servers: number
-}
-
-export interface AdminUserRowUser {
-  id: string
-  email: string
-  name: string
-  role: string | null
-  banned: boolean
-  email_verified: boolean
-  created_at: string
-  state: string
-  organizations: AdminUserRowOrganization[]
-}
 
 function subscriptionName(status: string | null, t: Translate): string {
   if (status === null) {
@@ -44,7 +24,7 @@ function roleName(role: string, t: Translate): string {
   return key ? t(key) : role
 }
 
-export function adminUserColumns(t: Translate): DataColumn<AdminUserRowUser>[] {
+export function adminUserColumns(t: Translate): DataColumn<AdminUser>[] {
   return [
     {
       key: "name",

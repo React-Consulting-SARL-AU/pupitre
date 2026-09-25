@@ -7,15 +7,15 @@ sectionOrder: 2
 order: 7
 ---
 
-Un agent qui pilote un navigateur produit des images. `ai.browser` installe le navigateur sans interface et la commande `shot` qui les range ; la galerie est l’endroit où l’on regarde ce qui en sort.
+Un agent qui pilote un navigateur produit des images. `ai.browser` installe le navigateur headless et la commande `shot` qui les range ; la galerie est l’endroit où l’on regarde ce qui en sort.
 
 ## En prendre une
 
-Sur le serveur, `shot` est le binaire de l’agent sous un autre nom. `shot <url|fichier> [nom]` capture une page ou copie une image dans la galerie. `--mobile` ou `--size LxH` règlent la fenêtre, `--wait` laisse à une page lente le temps de se poser, `shot --list` imprime ce qui est rangé. Un agent qui travaille dans un terminal appelle la même commande que vous.
+Sur le serveur, `shot` est le binaire de l’agent sous un autre nom. `shot <url|fichier> [nom]` capture une page ou copie une image dans la galerie. `--mobile` ou `--size LxH` règlent la fenêtre, `--wait` laisse à une page lente le temps de se poser, `shot --list` affiche ce qui est rangé. Un agent qui travaille dans un terminal appelle la même commande que vous.
 
 ## Où sont les fichiers
 
-Sous `/home/dev/shots`, dans un dossier par jour. Ils y restent : la galerie est celle du serveur, pas celle de la plateforme, et rien n’est téléversé nulle part.
+Sous `/home/dev/shots`, dans un dossier par jour. Ils y restent : la galerie est celle du serveur, pas celle de la plateforme, et rien n’est envoyé nulle part.
 
 ## En lire une depuis l’app
 

@@ -28,7 +28,6 @@ export interface BackupView {
   server_name: string
   created_at: Date
   trigger: BackupTrigger
-  /** The name given to a manual backup; absent when none was. */
   name?: string
   bytes: number
   counts: BackupCounts
@@ -128,7 +127,7 @@ function rowOf(
   }
 }
 
-/** The daemon redeclares what a failure left pending: the same server gets its row back, not a refusal. */
+/** Idempotent: the daemon redeclares after a failure, and the same server gets its row back. */
 export async function declareBackup(
   server: ServerRow,
   input: BackupDeclaration
@@ -202,8 +201,8 @@ export async function removeBackup(
 
 function visibleWhere(viewer: Viewer): Prisma.BackupWhereInput {
   return seesEveryServer(viewer)
-    ? { forgottenAt: null }
-    : { forgottenAt: null, server: { assignedUserId: viewer.userId } }
+    ? {}
+    : { server: { assignedUserId: viewer.userId } }
 }
 
 export async function listBackups(
@@ -236,7 +235,7 @@ export async function listServerBackups(
     getPrisma(),
     organizationId
   ).backup.findMany({
-    where: { serverId: server.id, forgottenAt: null },
+    where: { serverId: server.id },
     orderBy: { createdAt: "desc" },
   })
 
@@ -253,7 +252,7 @@ async function findVisibleBackup(
   })
 }
 
-/** The bucket belongs to the client: forgetting only hides the reference. */
+/** The bucket belongs to the client: forgetting deletes the reference, and leaves the backup where it lies. */
 export async function forgetBackup(
   organizationId: string,
   backupId: string,
@@ -265,9 +264,8 @@ export async function forgetBackup(
     return false
   }
 
-  await withOrganization(getPrisma(), organizationId).backup.updateMany({
+  await withOrganization(getPrisma(), organizationId).backup.deleteMany({
     where: { id: backup.id },
-    data: { forgottenAt: new Date() },
   })
 
   await recordEvent({

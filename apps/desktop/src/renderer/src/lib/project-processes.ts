@@ -25,26 +25,14 @@ import {
   validLabel,
 } from "./project-ports";
 
-/**
- * The processes of a project, as the add and the configuration forms edit
- * them: what runs, from which folder, with which manager, on which ports.
- *
- * A project has one at the least. The first one is the main one — its first
- * port decides the project's local address and takes the project's bare name
- * on the web. Everything the agent proposed stays a proposal: a command
- * follows its port until the reader types one, and the registry is the one
- * that refuses.
- */
-
 const HOST = "127.0.0.1";
 
-/** The ids proposed to a process added by hand, in the order projects usually grow. */
 const USUAL_IDS = ["app", "api", "web", "worker", "docs"];
 
 const DIR_ESCAPES = /(^|\/)\.\.(\/|$)/;
 
 export interface ProcessDraft {
-  /** What tells one process from another on screen while their ids are typed. */
+  /** Stays stable while the id is being typed. */
   key: string;
   id: string;
   /** Relative to the project's folder; empty means the root. */
@@ -56,9 +44,9 @@ export interface ProcessDraft {
   /** The loopback, or the `.localhost` name a start script freezes. */
   host: string;
   rows: PortRow[];
-  /** True once the reader typed the command themselves: it stops following the port. */
+  /** Set once the reader typed `cmd`: it stops following the port. */
   ownCmd: boolean;
-  /** What the agent read off the folder: the command it starts on, and the port it asked for. */
+  /** The agent's command and the port it was written for, rewritten when the port moves. */
   proposed: { cmd?: string; port?: number };
 }
 
@@ -89,17 +77,14 @@ function draftOf(
   };
 }
 
-/** The one process a fresh draft opens on: the root, on a free port. */
 export function firstProcess(port: number, publish: boolean): ProcessDraft {
   return draftOf({ rows: [firstRow(port, publish)] });
 }
 
-/** The main port of a process: its first row's. */
 export function mainPort(draft: Pick<ProcessDraft, "rows">): number {
   return draft.rows[0]?.port ?? FIRST_PORT;
 }
 
-/** The agent's command, on the port the reader settled on since. */
 function proposedCommand(
   proposed: ProcessDraft["proposed"],
   port: number
@@ -118,7 +103,6 @@ function proposedCommand(
   );
 }
 
-/** The command a process runs on: the reader's, else the agent's on today's port, else the manager's own. */
 export function commandOf(draft: ProcessDraft): string {
   if (draft.ownCmd) {
     return draft.cmd;
@@ -131,7 +115,6 @@ export function commandOf(draft: ProcessDraft): string {
   );
 }
 
-/** Every port the other processes of the draft hold: what a row of this one is weighed against. */
 export function heldAround(
   processes: readonly ProcessDraft[],
   index: number,
@@ -148,7 +131,6 @@ export function heldAround(
   };
 }
 
-/** A process added by hand: the first usual id nobody carries, one row on a free port. */
 export function addedProcess(
   processes: readonly ProcessDraft[],
   held: Held,
@@ -190,11 +172,6 @@ function fromDetected(
   });
 }
 
-/**
- * The same processes, each port on one nobody holds: a port a declared project
- * took, or an earlier row of the draft, moves up to the next free one. The
- * command follows, since what the agent proposed is kept beside the row.
- */
 export function onFreePorts(
   processes: readonly ProcessDraft[],
   held: Held
@@ -213,7 +190,6 @@ export function onFreePorts(
   }));
 }
 
-/** The processes the agent read off the source, in its order, all published when the server can, on ports the server has free. */
 export function processesFromDetection(
   result: ProjectDetectResult,
   publish: boolean,
@@ -225,7 +201,6 @@ export function processesFromDetection(
   );
 }
 
-/** The processes of a declared project, as the configuration screen opens them: nothing proposed, everything the reader's. */
 export function processesFromProject(project: Project): ProcessDraft[] {
   return project.processes.map((declared) =>
     draftOf({
@@ -241,10 +216,6 @@ export function processesFromProject(project: Project): ProcessDraft[] {
   );
 }
 
-/**
- * Every process refreshed: its command follows its port unless the reader
- * took it over, and every row's name on the web follows the project's name.
- */
 export function followProcesses(
   processes: readonly ProcessDraft[],
   name: string,
@@ -270,7 +241,6 @@ export function validDir(dir: string): boolean {
   return !(dir.startsWith("/") || DIR_ESCAPES.test(dir));
 }
 
-/** Why the agent would refuse a process, weighed before it is asked. */
 export function processProblem(
   processes: readonly ProcessDraft[],
   index: number
@@ -300,7 +270,6 @@ export function processProblem(
   return null;
 }
 
-/** Why each row of a process would be refused, in the order of the rows. */
 export function rowProblems(
   processes: readonly ProcessDraft[],
   index: number,
@@ -341,7 +310,6 @@ function dirOf(draft: ProcessDraft): string {
   return dir.length > 0 ? dir : PROJECT_ROOT_DIR;
 }
 
-/** The processes `project.add` takes. */
 export function processRequests(
   processes: readonly ProcessDraft[],
   exposure: boolean
@@ -362,11 +330,7 @@ export function processRequests(
   });
 }
 
-/**
- * The processes `project.update` takes: the whole list, each with its whole
- * list of routes. The install line travels even when empty, because empty is
- * an answer: the command goes back to the package manager.
- */
+/** `install` travels even when empty: empty hands the install back to the package manager. */
 export function processPatches(
   processes: readonly ProcessDraft[],
   exposure: boolean
@@ -383,7 +347,6 @@ export function processPatches(
   }));
 }
 
-/** The subdomains the processes ask to publish: what the tunnel has to carry once the project is added. */
 export function publishedSubdomains(
   processes: readonly ProcessDraft[],
   exposure: boolean

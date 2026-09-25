@@ -33,7 +33,6 @@ func RegisterCommands(server *protocol.Server, engine *Engine) {
 		return engine.Install(Request{Modules: params.Modules, Config: params.Config, Defer: params.Defer, Secrets: secrets, Persist: true}, Emitter(ctx))
 	})
 
-	// No secret, no lock, nothing touched: it answers what an install would refuse.
 	server.Register("install.check", func(ctx *protocol.Context, raw json.RawMessage) (any, error) {
 		var params struct {
 			Modules []string                  `json:"modules"`
@@ -110,6 +109,7 @@ func decodeSecrets(raw json.RawMessage, expected bool) (map[string]map[string]st
 func Emitter(ctx *protocol.Context) Sink {
 	return func(event contract.StepEvent) {
 		fields := map[string]any{"module": event.Module, "step": event.Step, "status": string(event.Status), "ms": event.Ms}
+
 		if event.Replay != "" {
 			fields["replay"] = event.Replay
 		}
@@ -121,9 +121,7 @@ func Emitter(ctx *protocol.Context) Sink {
 	}
 }
 
-// Quiet runs a command whose answer is a body — a release index, an install
-// script, an account's own details — and journals the command with the size
-// and exit of what came back, never the body itself.
+// Journals only the size and exit, never the body: a release index, an install script, an account's details.
 func Quiet(ctx sys.Context, cmd sys.Command) (sys.Output, error) {
 	ctx.Logf("$ %s", sys.Describe(cmd))
 

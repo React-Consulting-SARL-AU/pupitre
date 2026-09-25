@@ -9,16 +9,6 @@ import { ConnectionAccountChoice } from "./connection-account-choice";
 import { ConnectionConnected } from "./connection-connected";
 import type { ConnectionDescriptor } from "./connection-descriptors";
 
-/**
- * One third-party account, given once and weighed at once.
- *
- * The token goes to the system keychain and never comes back down into the
- * window, so this can say an account is connected and under what name, never
- * with what. Nothing here asks for an identifier: what the token opens is read
- * from the provider, which is also how a bad token is caught at the fifth
- * second rather than at the eighth step. A provider with nothing to answer says
- * the token is held, and the server tells the rest at install.
- */
 export function ConnectionCard({
   connection,
   compact = false,
@@ -29,12 +19,10 @@ export function ConnectionCard({
 }: {
   connection: ConnectionDescriptor;
   compact?: boolean;
-  /** The modules the active server runs, so forgetting names what it takes away. */
   installed?: readonly string[];
-  /** The catalogue's manifests, when they have been read; null says nothing can be named. */
+  /** Null while the catalogue is unread: forgetting then cannot name the modules it affects. */
   manifests?: readonly Manifest[] | null;
   serverName?: string | null;
-  /** The account's state as the screen says it, in place of the card's own sentence. */
   status?: ReactNode;
 }) {
   const t = useTranslations();
@@ -102,7 +90,7 @@ export function ConnectionCard({
     >
       {status}
 
-      {compact ? null : (
+      {compact || !connection.intro ? null : (
         <p className="text-ink-3 leading-relaxed">{t(connection.intro)}</p>
       )}
 

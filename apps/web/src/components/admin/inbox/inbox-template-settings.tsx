@@ -65,7 +65,7 @@ export function InboxTemplateSettings({
 
     toasts.failed({
       title: refusal?.message ?? t("inbox.templateFailed"),
-      fix: refusal?.fix ?? t("inbox.templateFailedFix"),
+      fix: refusal?.fix ?? t("common.retryLater"),
     })
   }
 

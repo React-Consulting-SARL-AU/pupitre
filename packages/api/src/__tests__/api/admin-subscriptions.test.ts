@@ -35,6 +35,7 @@ interface AdminSubscription {
   live: boolean
   seats: { paid: number; used: number }
   drifted: boolean
+  allowed_actions: string[]
   organization: { id: string; name: string; slug: string }
 }
 
@@ -262,6 +263,7 @@ describe("GET et PATCH /admin/subscriptions/:id", () => {
       product: GRANTED_PRODUCT,
       platform: true,
       live: true,
+      allowed_actions: ["resize", "cancel", "delete"],
       organization: { id: organization.id, slug: organization.slug },
     })
     expect(response.json.data.events).toHaveLength(1)

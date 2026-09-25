@@ -7,16 +7,6 @@ import {
 import { snapshotOf, useSnapshot } from "../../stores/snapshot";
 import { ProjectAddPanel } from "./project-add-panel";
 
-/**
- * The new-project screen, bound to its store.
- *
- * The reading of the declared projects starts on its own: their ports decide
- * which one this project may take, and asking for that is not a decision the
- * reader should have to make. Leaving for the settings or for the services
- * parks the draft rather than dropping it — the reader who goes to connect a
- * GitHub account comes back to the form they had filled in — and only cancelling
- * or finishing empties it.
- */
 export function ProjectAddScreen({
   serverId,
   exposure,
@@ -27,9 +17,7 @@ export function ProjectAddScreen({
   onInstallModule,
 }: {
   serverId: string;
-  /** What publishes a port on this server, or nothing: what is chosen is whether to publish each one. */
   exposure: Exposure | null;
-  /** What the snapshot reports on this machine, which says what a private clone would cost. */
   services: readonly string[];
   onCancel?: () => void;
   onFinish?: (name: string) => void;
@@ -82,8 +70,8 @@ export function ProjectAddScreen({
   const browse = useProjectAdd((state) => state.browse);
   const makeFolder = useProjectAdd((state) => state.makeFolder);
   const pickFolder = useProjectAdd((state) => state.pickFolder);
-  // The outcome follows the machine, not the moment the start was sent: a
-  // server still binding its port then is online on the next read.
+
+  // Follow the machine: a server still binding its port at start is online on the next read.
   const liveState = useSnapshot((state) =>
     run.status === "done"
       ? snapshotOf(state.state, serverId)?.projects.find(
@@ -92,20 +80,17 @@ export function ProjectAddScreen({
       : undefined
   );
 
+  // Depend on these two values, not the object: each snapshot re-read hands a new one.
   const provider = exposure?.provider ?? null;
   const host = exposure?.host ?? "";
 
-  // The exposure is rebuilt from its two values so that a snapshot re-read on
-  // its timer, which hands a new object each time, does not restart the screen.
+  // Unmounting parks the draft so a detour to the settings keeps it; only cancel or finish resets it.
   useEffect(() => {
     prepare(serverId, provider ? { host, provider } : null);
 
     return park;
   }, [serverId, provider, host, prepare, park]);
 
-  // The list and the first folder are read when their way in is chosen, and
-  // once: what they cost is one call, and what they save is a screen that is
-  // already filled when the reader looks at it.
   useEffect(() => {
     if (draft.kind === "github" && repos.status === "idle") {
       loadRepos();

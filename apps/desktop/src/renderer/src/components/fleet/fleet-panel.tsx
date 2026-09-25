@@ -1,5 +1,6 @@
 import { Button } from "@renderer/components/ui/button";
 import { ErrorNotice } from "@renderer/components/ui/error-notice";
+import { Section } from "@renderer/components/ui/section";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { accountOf, useAccount } from "@renderer/stores/account";
 import {
@@ -12,27 +13,10 @@ import { Undo2 } from "lucide-react";
 import { useEffect } from "react";
 import { FleetOrganizations } from "./fleet-organizations";
 
-/**
- * What the organization grants that the list of servers cannot show by itself.
- *
- * A granted machine is a row of that list, like one typed here; this panel
- * carries the rest — the organizations to choose between, a platform that did
- * not answer, the grants removed from this computer and the ones with no
- * address yet. It also asks for the first read that merges the platform's list
- * into the local one; the heartbeat that follows the platform lives above the
- * screens, because a grant lands while the app is open.
- */
-
 export function FleetPanel({
   silentWhenEmpty = false,
 }: {
-  /**
-   * Say nothing as long as the organization grants nothing.
-   *
-   * "No server is granted to you" is information in the settings, and an
-   * obstacle in the wizard: there, what has to be possible when nothing is
-   * granted is adding a machine.
-   */
+  /** In the wizard, "nothing granted" would stand in the way of adding a machine. */
   silentWhenEmpty?: boolean;
 } = {}) {
   const t = useTranslations();
@@ -51,6 +35,7 @@ export function FleetPanel({
     readAccount();
   }, [readAccount]);
 
+  // Only the first read: the heartbeat that follows the platform lives above the screens.
   useEffect(() => {
     if (identity) {
       read();
@@ -71,44 +56,54 @@ export function FleetPanel({
     servers.length === 0 &&
     dismissed === 0 &&
     unreachable === 0 &&
-    !silentWhenEmpty;
+    !silentWhenEmpty &&
+    identity.role !== "owner";
 
-  if (
-    !(several || failed || nothingGranted || dismissed > 0 || unreachable > 0)
-  ) {
+  const notes = failed || nothingGranted || dismissed > 0 || unreachable > 0;
+
+  if (!(several || notes)) {
     return null;
   }
 
   return (
-    <section className="flex flex-col gap-4">
+    <>
       <FleetOrganizations identity={identity} />
 
-      {state.status === "failed" ? (
-        <ErrorNotice error={state.error} onRetry={read} />
-      ) : null}
+      {notes ? (
+        <Section name="grants" title={t("fleet.grants.title")}>
+          {state.status === "failed" ? (
+            <ErrorNotice error={state.error} onRetry={read} />
+          ) : null}
 
-      {nothingGranted ? (
-        <p className="text-[12px] text-ink-3 leading-relaxed">
-          {t("fleet.empty.detail")}
-        </p>
-      ) : null}
+          {nothingGranted ? (
+            <p className="text-ink-3 text-small leading-relaxed">
+              {t("fleet.empty.detail")}
+            </p>
+          ) : null}
 
-      {dismissed > 0 ? (
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-[12px] text-ink-3 leading-relaxed">
-            {t.plural("fleet.dismissed", dismissed)}
-          </p>
-          <Button icon={Undo2} onClick={restore} size="sm" variant="discreet">
-            {t("fleet.restore")}
-          </Button>
-        </div>
-      ) : null}
+          {dismissed > 0 ? (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-ink-3 text-small leading-relaxed">
+                {t.plural("fleet.dismissed", dismissed)}
+              </p>
+              <Button
+                icon={Undo2}
+                onClick={restore}
+                size="sm"
+                variant="discreet"
+              >
+                {t("fleet.restore")}
+              </Button>
+            </div>
+          ) : null}
 
-      {unreachable > 0 ? (
-        <p className="text-[12px] text-ink-3 leading-relaxed">
-          {t.plural("fleet.noAddress", unreachable)}
-        </p>
+          {unreachable > 0 ? (
+            <p className="text-ink-3 text-small leading-relaxed">
+              {t.plural("fleet.noAddress", unreachable)}
+            </p>
+          ) : null}
+        </Section>
       ) : null}
-    </section>
+    </>
   );
 }

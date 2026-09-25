@@ -1,13 +1,6 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
 
-/**
- * The environments of the platform, read from `environments.json` at the
- * root: each one is a 1Password note, production also a D1 database, and
- * nothing here ever holds a value. The workstation is `local` — its note — on
- * the database miniflare keeps.
- */
-
 const ROOT = join(import.meta.dir, "..")
 
 export const CONFIG_FILE = join(ROOT, "environments.json")
@@ -49,7 +42,6 @@ interface NoteField {
   value?: string
 }
 
-/** Every named field of a note that has a value: the environment, as the Worker reads it. */
 export function fieldsToEnv(note: {
   fields?: NoteField[]
 }): Record<string, string> {

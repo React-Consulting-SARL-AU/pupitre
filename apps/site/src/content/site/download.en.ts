@@ -11,7 +11,6 @@ export const downloadEn: DownloadContent = {
     headline: "The app for your machine.",
     lead: "One desktop app, three systems. It talks to your server over SSH with a key it generates on this device; nothing else is installed on your laptop.",
     detecting: "Your system",
-    unknown: "Pick your system",
   },
   account: {
     title: "The app needs a Pupitre account",
@@ -25,11 +24,11 @@ export const downloadEn: DownloadContent = {
     },
     windows: {
       name: "Windows",
-      note: "Windows 11, x64. Signed with Azure Trusted Signing.",
+      note: "Windows 11, x64. The installer is not code-signed yet: SmartScreen may ask you to confirm on first launch.",
     },
     linux: {
       name: "Linux",
-      note: "Ubuntu 22.04 or later on the desktop, x64 and arm64. AppImage, no installer.",
+      note: "Ubuntu 22.04 or later on the desktop, x64. AppImage or .deb.",
     },
   },
   arch: {
@@ -43,14 +42,10 @@ export const downloadEn: DownloadContent = {
     lead: "Every file below is the same release. The app checks its own updates against the signature.",
     verify: "Every build is published with its size and its SHA-256.",
     download: "Download",
-    size: "Size",
     digest: "SHA-256",
-    format: "Format",
     empty: "No build published for this system yet.",
   },
   release: {
-    label: "Release",
-    title: "What is published",
     version: "Version",
     published: "Published",
     channel: "Channel",
@@ -65,8 +60,8 @@ export const downloadEn: DownloadContent = {
       lines: [
         "macOS 13 Ventura or later, Apple silicon or Intel.",
         "Windows 11 on x64.",
-        "Ubuntu 22.04 or later on the desktop, x64 or arm64.",
-        "An SSH client is not required: the app carries its own configuration and its own key.",
+        "Ubuntu 22.04 or later on the desktop, x64.",
+        "The system’s OpenSSH client, which the app drives with its own configuration and its own key: built into macOS and Windows 11, the openssh-client package on Ubuntu.",
       ],
     },
     server: {
@@ -75,7 +70,7 @@ export const downloadEn: DownloadContent = {
         "Ubuntu 22.04 or 24.04, amd64 or arm64.",
         "4 GB of RAM at least; more for a remote JetBrains IDE or several databases.",
         "20 GB of free disk, and a root or sudo account for the first connection.",
-        "Port 22 reachable. Pupitre opens nothing else, and nothing connects inward afterwards.",
+        "Port 22 reachable. Neither the platform nor support ever connects to it; the firewall then lets in SSH, and 80 and 443 only once you install Caddy.",
       ],
     },
   },

@@ -42,12 +42,8 @@ type Values = Record<string, string | number>;
 
 export interface Translate {
   (key: DictionaryKey, values?: Values): string;
-  /**
-   * Picks `<key>.one` or `<key>.other` by the locale's own rule and fills
-   * `{count}`. French counts 0 and 1 as singular, English only 1.
-   */
+  /** Picks `<key>.one` or `<key>.other` and fills `{count}`. */
   plural(key: string, count: number, values?: Values): string;
-  /** Whether the dictionary carries this key: a fix is optional, a message isn't. */
   has(key: string): boolean;
 }
 

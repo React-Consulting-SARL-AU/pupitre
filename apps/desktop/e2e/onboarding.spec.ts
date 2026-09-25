@@ -6,10 +6,6 @@ import { answerOnboarding, reachConfig } from "./harness/onboarding";
 const INSTALL = /^Installer$/;
 const ADVANCED = /^Réglages avancés/;
 
-/**
- * The whole sequence, from a machine nobody has touched to a server the app
- * drives. The guide claimed this scenario existed for a while; it did not.
- */
 test.describe("onboarding", () => {
   let running: Running;
 
@@ -60,7 +56,7 @@ test.describe("onboarding", () => {
         .click();
 
       await expect(page.locator('[data-group="db.postgres"]')).toBeVisible();
-      await expect(page.getByText("Généré pour cette machine")).toBeVisible();
+      await expect(page.getByText("Généré pour ce serveur")).toBeVisible();
     });
 
     await test.step("la configuration mène à l'installation", async () => {
@@ -86,6 +82,24 @@ test.describe("onboarding", () => {
     await test.step("la sécurité ferme root et nomme le compte", async () => {
       await expect(page.getByText("L'accès root est fermé.")).toBeVisible();
       await expect(page.getByText("dev").first()).toBeVisible();
+    });
+
+    await test.step("dev reçoit un mot de passe sudo, masqué jusqu'à ce qu'on le demande", async () => {
+      await expect(
+        page.getByText("Sudo demande un mot de passe à dev")
+      ).toBeVisible();
+      await expect(page.getByText("k7mp-q2xw-9hdt-3vzc-u8fa-6rne")).toHaveCount(
+        0
+      );
+
+      await page
+        .getByRole("button", { name: "Afficher le mot de passe sudo de dev" })
+        .click();
+
+      await expect(
+        page.getByText("k7mp-q2xw-9hdt-3vzc-u8fa-6rne")
+      ).toBeVisible();
+      await assertAccessible(page, "onboarding/harden");
       await page.getByRole("button", { name: "Terminer" }).click();
 
       await expect(
@@ -95,7 +109,7 @@ test.describe("onboarding", () => {
 
     await test.step("le serveur est prêt, sans projet imposé", async () => {
       await expect(page.getByRole("banner").getByText("Prêt")).toBeVisible();
-      await expect(page.getByText("Connecté en dev")).toBeVisible();
+      await expect(page.getByText("Connecté en tant que dev")).toBeVisible();
       await expect(page.getByText("L'accès root est fermé")).toBeVisible();
       await assertAccessible(page, "onboarding/done");
     });

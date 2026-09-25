@@ -31,12 +31,7 @@ export async function mirrorSubscription(
   return existing ? "subscription.updated" : "subscription.created"
 }
 
-/**
- * The servers follow the one subscription that counts, read back from the
- * mirror after every event: a live one restores them, an unpaid one opens the
- * seven-day tolerance, a cancelled one lets them run to the end of the period.
- * The event that arrives last is not always the one that happened last.
- */
+/** Reads the mirror back: the event that arrives last is not always the one that happened last. */
 export async function applyOrganizationEntitlement(
   organizationId: string,
   now: Date

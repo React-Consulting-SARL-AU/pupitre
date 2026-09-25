@@ -7,6 +7,7 @@ import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/sys/ufw"
 )
 
 func newContext(t *testing.T, fake *modtest.FakeSys, o Options) *modules.Context {
@@ -23,6 +24,7 @@ func run(t *testing.T, ctx *modules.Context) {
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -30,6 +32,7 @@ func run(t *testing.T, ctx *modules.Context) {
 
 func statuses(ctx *modules.Context) map[string]contract.StepStatus {
 	result := map[string]contract.StepStatus{}
+
 	for _, event := range ctx.Events() {
 		result[event.Step] = event.Status
 	}
@@ -53,7 +56,7 @@ func TestInstallOnABareMachine(t *testing.T) {
 		t.Errorf("firewall = %+v", fake.Firewall)
 	}
 
-	if string(fake.Files[jailPath]) != string(jail(false)) || !strings.Contains(string(fake.Files[jailPath]), "port = 22\n") || fake.Units[jailUnit] != modtest.UnitActive {
+	if string(fake.Files[jailPath]) != string(jail([]int{22})) || !strings.Contains(string(fake.Files[jailPath]), "port = 22\n") || fake.Units[jailUnit] != modtest.UnitActive {
 		t.Errorf("jail = %q, unit %s", fake.Files[jailPath], fake.Units[jailUnit])
 	}
 
@@ -182,7 +185,6 @@ func TestUninstallRevertsWhatTheModuleDid(t *testing.T) {
 	}
 }
 
-// Reopening root goes through the same gate as closing it: a configuration sshd refuses is never reloaded.
 func TestUninstallValidatesSshdBeforeReloading(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	fake.Units["ssh"] = modtest.UnitActive
@@ -198,6 +200,26 @@ func TestUninstallValidatesSshdBeforeReloading(t *testing.T) {
 	if fake.Restarts["ssh"] != 0 {
 		t.Fatalf("ssh reloaded %d time(s) on a configuration sshd refused", fake.Restarts["ssh"])
 	}
+
+	if string(fake.Files[FragmentPath]) != string(Fragment(Options{})) {
+		t.Fatalf("the fragment sshd still runs on must be put back, got %q", fake.Files[FragmentPath])
+	}
+}
+
+func TestUninstallPutsTheFragmentBackWhenTheReloadFails(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Units["ssh"] = modtest.UnitActive
+	run(t, newContext(t, fake, Options{}))
+	fake.Files[FragmentPath] = Fragment(Options{})
+	fake.FailLine("systemctl daemon-reload", "Failed to reload daemon: Access denied")
+
+	if err := (Module{}).Uninstall(newContext(t, fake, Options{})); err == nil {
+		t.Fatal("a reload that fails must fail the step")
+	}
+
+	if string(fake.Files[FragmentPath]) != string(Fragment(Options{})) {
+		t.Fatalf("the fragment must be put back, got %q", fake.Files[FragmentPath])
+	}
 }
 
 func TestEveryFirewallCallIsBounded(t *testing.T) {
@@ -210,7 +232,7 @@ func TestEveryFirewallCallIsBounded(t *testing.T) {
 	}
 
 	for _, call := range fake.Calls {
-		if call.Argv[0] == "ufw" && call.Timeout != ufwTimeout {
+		if call.Argv[0] == "ufw" && call.Timeout != ufw.Timeout {
 			t.Fatalf("ufw call without the timeout: %v", call.Argv)
 		}
 	}
@@ -239,7 +261,7 @@ func TestFirewallLeavesCaddysRuleOn443Alone(t *testing.T) {
 
 func TestConfigureOnAHardenedMachineAppliesTheChangedFragment(t *testing.T) {
 	fake := hardenedMachine(t)
-	Harden(newContext(t, fake, Options{}), "dev")
+	Harden(newContext(t, fake, Options{}))
 
 	ctx := newContext(t, fake, Options{KeepRoot: true})
 	run(t, ctx)
@@ -266,6 +288,7 @@ func TestConfigureOnAHardenedMachineAppliesTheChangedFragment(t *testing.T) {
 			t.Errorf("replay: %s = %s, want skip", step, status)
 		}
 	}
+
 	if len(fake.Mutations) != mutations {
 		t.Fatalf("replay touched the machine: %v", fake.Mutations[mutations:])
 	}
@@ -273,8 +296,8 @@ func TestConfigureOnAHardenedMachineAppliesTheChangedFragment(t *testing.T) {
 
 func TestConfigureOnAHardenedMachineRevertsAFragmentSshdRefuses(t *testing.T) {
 	fake := hardenedMachine(t)
-	Harden(newContext(t, fake, Options{}), "dev")
-	fake.FailProgram("sshd", "Port: bad port number")
+	Harden(newContext(t, fake, Options{}))
+	fake.FailLine("sshd -t", "Port: bad port number")
 
 	ctx := newContext(t, fake, Options{SSH443: true})
 	err := (Module{}).Configure(ctx)
@@ -301,7 +324,7 @@ func TestConfigureBeforeHardenNeverTouchesSshd(t *testing.T) {
 
 func TestConfigureNeverClosesRootItself(t *testing.T) {
 	fake := machine(t, Options{KeepRoot: true})
-	Harden(newContext(t, fake, Options{KeepRoot: true}), "dev")
+	Harden(newContext(t, fake, Options{KeepRoot: true}))
 	reloads := fake.Restarts["ssh"]
 
 	ctx := newContext(t, fake, Options{})
@@ -316,6 +339,7 @@ func TestConfigureNeverClosesRootItself(t *testing.T) {
 	}
 
 	var message string
+
 	for _, event := range ctx.Events() {
 		if event.Step == "keep-sshd-fragment" {
 			message = event.Message

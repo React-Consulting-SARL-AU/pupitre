@@ -7,12 +7,14 @@ export const LOCALE_COOKIE = "pupitre_locale"
 
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365
 
-export function localeFromCookie(cookie: string): Locale {
-  const match = cookie.match(
-    new RegExp(`(?:^|; ?)${LOCALE_COOKIE}=(${LOCALES.join("|")})(?:;|$)`)
-  )
+const LOCALE_COOKIE_PATTERN = new RegExp(
+  `(?:^|; ?)${LOCALE_COOKIE}=(${LOCALES.join("|")})(?:;|$)`
+)
 
-  return parseLocale(match?.[1])
+function chosenLocale(cookie: string): Locale | null {
+  const match = cookie.match(LOCALE_COOKIE_PATTERN)
+
+  return match ? parseLocale(match[1]) : null
 }
 
 export function localeCookie(locale: Locale, secure: boolean): string {
@@ -30,13 +32,11 @@ export function localeCookie(locale: Locale, secure: boolean): string {
   return attributes.join("; ")
 }
 
-/** The one place that writes the cookie, so the rule lives here and not in a hook. */
 export function writeLocaleCookie(locale: Locale): void {
   // biome-ignore lint/suspicious/noDocumentCookie: the console keeps one small preference cookie, and it must survive a reload
   document.cookie = localeCookie(locale, location.protocol === "https:")
 }
 
-/** What the browser asks for, when nothing was chosen yet. */
 export function localeFromHeader(header: string | null): Locale {
   if (!header) {
     return DEFAULT_LOCALE
@@ -57,13 +57,16 @@ export function localeFromHeader(header: string | null): Locale {
   return DEFAULT_LOCALE
 }
 
-/**
- * The locale of this request. On the server it comes from the cookie, or from
- * what the browser asks for when nothing was chosen yet; on the client it comes
- * from the same cookie, so the page hydrates in the language it was rendered in.
- */
+// The browser sends navigator.languages as its Accept-Language, so the page hydrates in the language it was rendered in.
+export function browserLocale(
+  cookie: string,
+  languages: readonly string[]
+): Locale {
+  return chosenLocale(cookie) ?? localeFromHeader(languages.join(","))
+}
+
 export const readLocale = createIsomorphicFn()
-  .client((): Locale => localeFromCookie(document.cookie))
+  .client((): Locale => browserLocale(document.cookie, navigator.languages))
   .server((): Locale => {
     const chosen = getCookie(LOCALE_COOKIE)
 

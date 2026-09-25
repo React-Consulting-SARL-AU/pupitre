@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { FieldError } from "@/components/ui/field-error"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { useForm } from "@/hooks/use-form"
 import { useTranslations } from "@/hooks/use-locale"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -19,6 +20,7 @@ import {
   uploadAttachments,
 } from "@/lib/api/inbox-queries"
 import { DRAFT_SAVE_DELAY_MS } from "@/lib/domain/inbox"
+import { replySchema } from "@/lib/schemas/inbox"
 
 export interface InboxReplyFormProps {
   threadId: string
@@ -44,30 +46,33 @@ export function InboxReplyForm({
   const t = useTranslations()
   const toasts = useToast()
   const queryClient = useQueryClient()
-  const [text, setText] = useState(draftBody)
+  const form = useForm({
+    schema: replySchema(t),
+    defaultValues: { text: draftBody },
+  })
+  const text = form.watch("text")
   const [to, setTo] = useState(draftTo.length > 0 ? draftTo : defaultTo)
   const [cc, setCc] = useState(draftCc)
   const [files, setFiles] = useState<File[]>([])
   const [sending, setSending] = useState<string | null>(null)
-  const [refusal, setRefusal] = useState<string | null>(null)
   const [kept, setKept] = useState(false)
   const held = useRef(draftBody !== "")
   const settled = useRef(false)
 
   const send = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (reply: string) => {
       const attachments = await uploadAttachments(files, (file) => {
         setSending(file.name)
       })
 
       setSending(null)
-      await replyToThread(threadId, { text, to, cc, attachments })
+      await replyToThread(threadId, { text: reply, to, cc, attachments })
     },
     onSettled: () => {
       setSending(null)
     },
     onSuccess: async () => {
-      setText("")
+      form.reset({ text: "" })
       setFiles([])
       setKept(false)
       held.current = false
@@ -91,8 +96,7 @@ export function InboxReplyForm({
     }
 
     const timer = setTimeout(() => {
-      // An emptied composer means the reply was abandoned: the thread must not
-      // keep showing a draft badge over a draft nobody wrote.
+      // An emptied composer is an abandoned reply: no draft badge over a draft nobody wrote.
       if (text === "") {
         deleteDraft(threadId)
           .then(() => {
@@ -121,24 +125,16 @@ export function InboxReplyForm({
     }
   }, [text, to, cc, threadId])
 
-  function submit() {
-    if (text.trim() === "") {
-      setRefusal(t("inbox.replyRequired"))
-
-      return
-    }
-
-    setRefusal(null)
-    send.mutate()
-  }
+  const submit = form.handleSubmit((values) => {
+    send.mutate(values.text)
+  })
 
   return (
     <form
       className="flex flex-col gap-3 rounded-md border border-line-strong bg-surface px-4 py-3"
       noValidate
       onSubmit={(event) => {
-        event.preventDefault()
-        submit()
+        submit(event)
       }}
     >
       <InboxRecipientField
@@ -162,23 +158,20 @@ export function InboxReplyForm({
         <Textarea
           disabled={send.isPending}
           id="inbox-reply"
-          onChange={(event) => {
-            setText(event.target.value)
-          }}
           onKeyDown={(event) => {
             if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
               event.preventDefault()
-              submit()
+              submit(event)
             }
           }}
-          value={text}
+          {...form.register("text")}
         />
-        <FieldError>{refusal}</FieldError>
+        <FieldError>{form.formState.errors.text?.message}</FieldError>
       </div>
 
       {signature ? (
         <div className="flex flex-col gap-1">
-          <p className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
+          <p className="text-label">
             {t("inbox.signature", { mailbox: mailboxName })}
           </p>
           <pre className="whitespace-pre-wrap break-words font-sans text-[12px] text-ink-3">
@@ -198,7 +191,7 @@ export function InboxReplyForm({
       {send.isError ? (
         <InboxSendFailure
           error={send.error}
-          fix={t("inbox.replyFailedFix")}
+          fix={t("common.retryLater")}
           title={t("inbox.replyFailed")}
         />
       ) : null}
@@ -209,7 +202,7 @@ export function InboxReplyForm({
             disabled={send.isPending}
             mailboxId={mailboxId}
             onPick={(body) => {
-              setText(text === "" ? body : `${text}\n\n${body}`)
+              form.setValue("text", text === "" ? body : `${text}\n\n${body}`)
             }}
           />
           {kept ? (

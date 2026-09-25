@@ -11,11 +11,7 @@ function isLocal(origin: string): boolean {
   }
 }
 
-/**
- * The origins a route open to the browser answers: the site, and the machine
- * of whoever runs the platform locally — the console's own address says which
- * of the two the platform is serving.
- */
+/** Local origins are allowed only while the console itself runs locally. */
 export function siteOrigin(origin: string | null): string | null {
   if (origin === null) {
     return null

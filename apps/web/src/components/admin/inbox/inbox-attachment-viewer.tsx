@@ -1,9 +1,9 @@
-import { Dialog } from "@base-ui-components/react/dialog"
 import { useQuery } from "@tanstack/react-query"
 import { Download, X } from "lucide-react"
 import type { ReactNode } from "react"
 import { Button } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
+import { DialogClose, DialogPopup, DialogRoot } from "@/components/ui/dialog"
 import { LoadingState } from "@/components/ui/loading-state"
 import { useAttachmentDownload } from "@/hooks/use-attachment-download"
 import { useTranslations } from "@/hooks/use-locale"
@@ -78,47 +78,44 @@ export function InboxAttachmentViewer({
   }
 
   return (
-    <Dialog.Root onOpenChange={onOpenChange} open={open}>
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 bg-base/70 backdrop-blur-[2px]" />
-        <Dialog.Popup className="fixed top-1/2 left-1/2 flex h-[85vh] w-[min(1024px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 flex-col gap-3 rounded-lg bg-surface p-4 shadow-overlay outline-none">
-          <header className="flex items-center justify-between gap-3">
-            <Dialog.Title className="min-w-0 truncate font-bold font-display text-[16px] text-ink leading-[1.2]">
-              {name}
-            </Dialog.Title>
-            <div className="flex shrink-0 items-center gap-1">
-              <Button
-                icon={phase === "failed" ? X : Download}
-                loading={phase === "pending"}
-                onClick={() => {
-                  download()
-                }}
-                size="sm"
-              >
-                {phase === "failed"
-                  ? t("inbox.downloadFailed", { name })
-                  : t("inbox.download")}
-              </Button>
-              <Dialog.Close
-                render={
-                  <Button
-                    aria-label={t("common.close")}
-                    className="w-7 px-0"
-                    icon={X}
-                    size="sm"
-                    title={t("common.close")}
-                    variant="ghost"
-                  />
-                }
-              />
-            </div>
-          </header>
-
-          <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-md bg-sunken">
-            {body()}
-          </div>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+    <DialogRoot onOpenChange={onOpenChange} open={open}>
+      <DialogPopup
+        actions={
+          <>
+            <Button
+              icon={phase === "failed" ? X : Download}
+              loading={phase === "pending"}
+              onClick={() => {
+                download()
+              }}
+              size="sm"
+            >
+              {phase === "failed"
+                ? t("inbox.downloadFailed", { name })
+                : t("inbox.download")}
+            </Button>
+            <DialogClose
+              render={
+                <Button
+                  aria-label={t("common.close")}
+                  className="w-7 px-0"
+                  icon={X}
+                  size="sm"
+                  title={t("common.close")}
+                  variant="ghost"
+                />
+              }
+            />
+          </>
+        }
+        className="p-4"
+        size="lg"
+        title={name}
+      >
+        <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-md bg-sunken">
+          {body()}
+        </div>
+      </DialogPopup>
+    </DialogRoot>
   )
 }

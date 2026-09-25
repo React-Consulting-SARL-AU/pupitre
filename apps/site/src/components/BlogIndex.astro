@@ -3,6 +3,7 @@ import { getCollection } from "astro:content"
 import Base from "../layouts/Base.astro"
 import { docSlug } from "../lib/docs"
 import { localeFromPath, localizePath, translator } from "../lib/i18n"
+import { readingTime } from "../lib/reading"
 import PageHeader from "./PageHeader.astro"
 
 const locale = localeFromPath(Astro.url.pathname)
@@ -46,7 +47,8 @@ const format = new Intl.DateTimeFormat(locale, { dateStyle: "long" })
               class="card-link flex h-full flex-col p-6 md:p-7"
             >
               <span class="data text-ink-3">
-                {format.format(post.data.date)} · {post.data.reading}
+                {format.format(post.data.date)} ·{" "}
+                {readingTime(post.body ?? "", locale)}
               </span>
               <span class="heading-3 mt-4 block text-ink">
                 {post.data.title}

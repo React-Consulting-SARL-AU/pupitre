@@ -15,7 +15,6 @@ export interface LaunchOfferProps {
   offer: StartOffer
 }
 
-/** The launch grants one machine for free, without Stripe: no price, no interval, one gesture. */
 export function LaunchOffer({ organizationId, offer }: LaunchOfferProps) {
   const t = useTranslations()
   const order = useMutation({

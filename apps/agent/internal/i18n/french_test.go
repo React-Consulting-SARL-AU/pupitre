@@ -10,17 +10,11 @@ import (
 	"testing"
 )
 
-// Files that legitimately hold French outside the catalogue, and why.
-//
-// An artefact written to the client's disk, not a phrase answered to the app:
-// its content is compared byte for byte to decide whether the machine is
-// already configured, so making it follow the session locale would break
-// idempotence.
+// An artefact on the client's disk is compared byte for byte for idempotence, so it cannot follow the session locale.
 var frenchIsAllowed = map[string]string{
 	"internal/modules/ai/agents/context.go": "the context corpus deployed for the client's AI agents",
 }
 
-// Unambiguous French words, for the phrases that carry no accent at all.
 var frenchWords = map[string]bool{
 	"le": true, "la": true, "les": true, "une": true, "des": true, "du": true,
 	"dans": true, "pour": true, "avec": true, "que": true,

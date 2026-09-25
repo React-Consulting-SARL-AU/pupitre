@@ -9,9 +9,9 @@ import {
 import { bootApiTestServer, resetDb } from "@pupitre/api/testing"
 import { createServer } from "@pupitre/api/testing/factories"
 import type { OrgRole } from "@pupitre/shared/permissions"
+import type { ServerStatus } from "@pupitre/shared/platform-api"
 import { StartChecklist } from "@/components/dashboard/start-checklist"
 import type { DashboardOrganization } from "@/lib/domain/dashboard-context"
-import type { ServerStatus } from "@/lib/domain/server-status"
 import { createConsoleUser, useSessionApiClient } from "@/testing/harness"
 import { render, waitUntil, withDashboard } from "@/testing/render"
 

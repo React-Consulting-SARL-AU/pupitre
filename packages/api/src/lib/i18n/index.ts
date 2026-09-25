@@ -1,9 +1,10 @@
 import type { Locale } from "@pupitre/shared/i18n"
+import { LEGAL_CONTACTS } from "@pupitre/shared/legal"
 
 const FR = {
   unauthenticated: "Authentification requise.",
   unauthenticated_fix:
-    "Connectez-vous, ou envoyez un jeton valide dans l'en-tête Authorization.",
+    "Connectez-vous, ou envoyez un token valide dans l'en-tête Authorization.",
   forbidden: "Action non autorisée.",
   no_active_organization: "Aucune organisation active.",
   no_active_organization_fix:
@@ -13,11 +14,11 @@ const FR = {
   platform_admin_required: "Réservé à l'équipe Pupitre.",
   platform_role_required:
     "Le rôle {role} dans l'organisation Pupitre est requis pour agir ici.",
-  publish_token_invalid: "Jeton de publication invalide.",
+  publish_token_invalid: "Token de publication invalide.",
   publish_token_invalid_fix:
     "Vérifiez PUPITRE_PUBLISH_TOKEN des deux côtés : le Worker et GitHub Actions.",
-  server_token_required: "Jeton de serveur requis.",
-  server_token_unknown: "Jeton de serveur inconnu.",
+  server_token_required: "Token de serveur requis.",
+  server_token_unknown: "Token de serveur inconnu.",
   server_token_revoked: "Ce serveur a été révoqué.",
   server_token_revoked_fix: "Réinstallez l'agent depuis l'app.",
   not_found: "Cette ressource n'existe pas.",
@@ -26,7 +27,7 @@ const FR = {
   backup_id_taken:
     "Un autre serveur de l'organisation a déjà déclaré la sauvegarde {id}.",
   backup_id_taken_fix:
-    "Relancez la sauvegarde : elle tirera un nouvel identifiant.",
+    "Relancez la sauvegarde : elle générera un nouvel identifiant.",
   key_not_ed25519: "Seules les clés ed25519 sont acceptées.",
   key_not_ed25519_fix: "générez une clé ed25519 : ssh-keygen -t ed25519",
   key_malformed: "Cette clé publique est illisible.",
@@ -35,6 +36,42 @@ const FR = {
   device_exists: "Cet appareil est déjà enregistré.",
   device_exists_fix:
     "Utilisez l'appareil déjà enregistré, ou ajoutez-en un avec une autre clé.",
+  reauthentication_required:
+    "Ajouter un appareil demande une connexion de moins de {minutes} minutes.",
+  reauthentication_required_fix:
+    "Reconnectez-vous, avec votre clé d'accès ou votre second facteur si le compte en a un, puis ajoutez l'appareil.",
+  key_approval_target_not_found: "Ce serveur ou cet appareil n'existe pas.",
+  key_approval_forbidden:
+    "Vous ne pouvez pas autoriser cet appareil sur ce serveur.",
+  key_approval_forbidden_fix:
+    "La personne attribuée au serveur autorise ses propres appareils ; un propriétaire ou un administrateur de l'organisation autorise ceux de tous.",
+  key_approval_mismatch:
+    "Cette approbation ne nomme pas la clé ni l'utilisateur de cet appareil.",
+  key_approval_mismatch_fix:
+    "Signez de nouveau depuis l'app : l'approbation reprend la clé et l'utilisateur tels que la plateforme les connaît.",
+  key_approval_not_held: "Ce serveur n'attend pas la clé de cet appareil.",
+  key_approval_not_held_fix:
+    "Attribuez d'abord le serveur au propriétaire de l'appareil, ou rendez-lui l'appareil sur ce serveur.",
+  key_approval_signer:
+    "La clé qui signe n'est pas celle d'un de vos appareils.",
+  key_approval_signer_fix:
+    "Signez depuis un appareil enregistré sur votre compte et déjà autorisé sur ce serveur.",
+  key_approval_issued_at:
+    "Cette approbation est datée hors de la fenêtre acceptée.",
+  key_approval_issued_at_fix:
+    "Signez de nouveau : une approbation vaut {days} jours, et l'horloge de l'appareil doit être à l'heure.",
+  key_approval_signature:
+    "Cette signature n'est pas une approbation Pupitre de la clé nommée dans signer.",
+  key_approval_signature_fix:
+    "Signez avec ssh-keygen -Y sign -n {namespace}, par la clé de l'appareil nommée dans signer.",
+  server_repair_forbidden:
+    "Un serveur déjà installé ne se répare que par la personne qui y est attribuée, ou par un propriétaire ou un administrateur de l'organisation.",
+  server_repair_forbidden_fix:
+    "Demandez à la personne attribuée au serveur, ou à un administrateur de l'organisation, de relancer l'installation.",
+  host_key_mismatch:
+    "La clé d'hôte de cette machine n'est pas celle que la plateforme connaît pour ce serveur.",
+  host_key_mismatch_fix:
+    "Si la machine a été réinstallée, retirez le serveur depuis la console puis ajoutez-le de nouveau.",
   server_not_found: "Ce serveur n'existe pas.",
   server_revoked_no_suspend:
     "Ce serveur est révoqué : il n'y a rien à suspendre.",
@@ -52,11 +89,9 @@ const FR = {
   platform_member_protected_fix:
     "Retirez-le d'abord de l'organisation Pupitre depuis sa page des membres.",
   account_deactivated: "Ce compte est fermé.",
-  account_deactivated_fix:
-    "Écrivez à support@pupitre.studio pour le faire rouvrir.",
+  account_deactivated_fix: `Écrivez à ${LEGAL_CONTACTS.support} pour le faire rouvrir.`,
   account_suspended: "Ce compte est suspendu jusqu'au {date}.",
-  account_suspended_fix:
-    "Le compte se rouvre de lui-même à cette date. Écrivez à support@pupitre.studio pour la faire avancer.",
+  account_suspended_fix: `Le compte se rouvre de lui-même à cette date. Écrivez à ${LEGAL_CONTACTS.support} pour la faire avancer.`,
   ban_until_not_future: "Le terme d'une suspension est à venir.",
   ban_until_not_future_fix:
     "Donnez une date postérieure à maintenant, ou omettez until pour une suspension sans terme.",
@@ -70,12 +105,15 @@ const FR = {
     "Ce compte est le seul propriétaire d'une organisation qui porte encore un serveur ou un abonnement.",
   sole_owner_fix:
     "Transférez l'organisation à un autre membre, ou fermez-la : POST /admin/organizations/:id/transfer, DELETE /admin/organizations/:id.",
+  account_sole_owner:
+    "Votre compte est le seul propriétaire d'une organisation qui porte encore un serveur ou un abonnement payant.",
+  account_sole_owner_fix:
+    "Retirez les serveurs de cette organisation et résiliez son abonnement depuis la facturation, ou donnez le rôle de propriétaire à un autre membre, puis supprimez le compte.",
   email_verified: "L'adresse de ce compte est déjà vérifiée.",
   email_verified_fix:
     "Il n'y a rien à renvoyer ; le compte se connecte par lien magique ou clé d'accès.",
   organization_closed: "Cette organisation est fermée.",
-  organization_closed_fix:
-    "Choisissez une autre organisation, ou écrivez à support@pupitre.studio pour la faire rouvrir.",
+  organization_closed_fix: `Choisissez une autre organisation, ou écrivez à ${LEGAL_CONTACTS.support} pour la faire rouvrir.`,
   organization_already_suspended: "Cette organisation est déjà suspendue.",
   organization_already_suspended_fix:
     "Levez d'abord la suspension : POST /admin/organizations/:id/restore.",
@@ -188,7 +226,7 @@ const FR = {
     "Donnez une date postérieure à maintenant, au format ISO.",
   affiliate_code_taken: "Le code « {code} » est déjà pris.",
   affiliate_code_taken_fix:
-    "Choisissez un autre code, ou laissez la plateforme en tirer un.",
+    "Choisissez un autre code, ou laissez la plateforme en générer un.",
   affiliate_link_not_found: "Ce lien d'affiliation n'existe pas.",
   affiliate_link_referred:
     "Ce lien a déjà amené une organisation : il ne s'efface plus.",
@@ -205,7 +243,7 @@ const FR = {
     "Ce fil ne porte aucune adresse à qui répondre.",
   mail_thread_has_no_recipient_fix:
     "Écrivez un nouveau message depuis la boîte, en nommant le destinataire.",
-  mail_send_failed: "L'envoi a échoué : {reason}",
+  mail_send_failed: "Le service d'envoi a refusé le message.",
   mail_send_failed_fix:
     "Le message est enregistré comme échoué dans le fil ; réessayez, l'envoi ne part qu'une fois.",
   mail_attachment_blocked:
@@ -217,10 +255,10 @@ const FR = {
   mail_attachments_too_large_fix:
     "Retirez une pièce jointe, ou envoyez-la dans un second message.",
   mail_upload_missing:
-    "Le fichier « {filename} » n'a pas été reçu par le seau.",
-  mail_upload_missing_fix: "Téléversez-le à nouveau, puis renvoyez le message.",
+    "Le fichier « {filename} » n'a pas été reçu par le bucket.",
+  mail_upload_missing_fix: "Envoyez-le à nouveau, puis renvoyez le message.",
   mail_upload_foreign:
-    "Le fichier « {filename} » n'a pas été téléversé depuis votre session.",
+    "Le fichier « {filename} » n'a pas été envoyé depuis votre session.",
   mail_upload_foreign_fix:
     "Ajoutez la pièce jointe depuis ce formulaire, puis renvoyez le message.",
   mail_upload_size_mismatch:
@@ -268,14 +306,25 @@ const FR = {
     "Cette organisation n'a pas encore de client Stripe.",
   billing_customer_missing_fix:
     "Passez d'abord par le checkout : POST /orgs/{organization}/checkout.",
+  billing_already_subscribed:
+    "Cette organisation paie déjà un abonnement en cours : un second checkout la facturerait deux fois.",
+  billing_already_subscribed_fix:
+    "Ajoutez des sièges à l'abonnement en cours (POST /orgs/{organization}/seats), ou gérez-le depuis le portail (POST /orgs/{organization}/portal).",
+  launch_subscription_ended:
+    "L'abonnement du lancement de cette organisation est arrêté : il ne se rouvre pas.",
+  launch_subscription_ended_fix: `Écrivez à ${LEGAL_CONTACTS.support} pour le faire rouvrir par l'équipe Pupitre.`,
+  stripe_event_in_flight:
+    "Une autre livraison traite déjà cet événement Stripe.",
+  stripe_event_in_flight_fix:
+    "Rien à faire : Stripe relivre l'événement plus tard, et il n'est traité qu'une fois.",
   stripe_signature_invalid: "Signature Stripe invalide.",
   stripe_signature_invalid_fix:
     "Signez le corps brut avec le secret du webhook, dans les cinq minutes.",
-  enrollment_unknown: "Ce jeton d'enrôlement n'existe pas.",
-  enrollment_used: "Ce jeton d'enrôlement a déjà été échangé.",
-  enrollment_expired: "Ce jeton d'enrôlement a expiré.",
+  enrollment_unknown: "Ce token de rattachement n'existe pas.",
+  enrollment_used: "Ce token de rattachement a déjà été échangé.",
+  enrollment_expired: "Ce token de rattachement a expiré.",
   enrollment_restart_fix:
-    "Relancez l'installation depuis l'app pour obtenir un nouveau jeton.",
+    "Relancez l'installation depuis l'app pour obtenir un nouveau token.",
   internal: "Erreur interne (référence {ref}).",
   rate_limited: "Trop de requêtes.",
   rate_limited_fix: "Réessayez dans {seconds} secondes.",
@@ -341,6 +390,39 @@ const EN: Record<MessageKey, string> = {
   device_exists: "This device is already registered.",
   device_exists_fix:
     "Use the device already registered, or add one with another key.",
+  reauthentication_required:
+    "Adding a device needs a sign-in less than {minutes} minutes old.",
+  reauthentication_required_fix:
+    "Sign in again, with your passkey or your second factor if the account has one, then add the device.",
+  key_approval_target_not_found: "This server or this device does not exist.",
+  key_approval_forbidden: "You may not approve this device on this server.",
+  key_approval_forbidden_fix:
+    "The person assigned to the server approves their own devices; an owner or admin of the organization approves anyone's.",
+  key_approval_mismatch:
+    "This approval does not name this device's key or user.",
+  key_approval_mismatch_fix:
+    "Sign again from the app: the approval takes the key and the user as the platform knows them.",
+  key_approval_not_held: "This server does not expect this device's key.",
+  key_approval_not_held_fix:
+    "Assign the server to the device's owner first, or give the device back on this server.",
+  key_approval_signer: "The signing key is not one of your devices.",
+  key_approval_signer_fix:
+    "Sign from a device registered on your account and already trusted by this server.",
+  key_approval_issued_at: "This approval is dated outside the accepted window.",
+  key_approval_issued_at_fix:
+    "Sign again: an approval lasts {days} days, and the device's clock must be right.",
+  key_approval_signature:
+    "This signature is not a Pupitre approval made by the key named in signer.",
+  key_approval_signature_fix:
+    "Sign with ssh-keygen -Y sign -n {namespace}, using the key of the device named in signer.",
+  server_repair_forbidden:
+    "A server already installed is repaired only by the person assigned to it, or by an owner or admin of the organization.",
+  server_repair_forbidden_fix:
+    "Ask the person assigned to the server, or an admin of the organization, to run the installation again.",
+  host_key_mismatch:
+    "This machine's host key is not the one the platform knows for this server.",
+  host_key_mismatch_fix:
+    "If the machine was reinstalled, remove the server from the console, then add it again.",
   server_not_found: "This server does not exist.",
   server_revoked_no_suspend:
     "This server is revoked: there is nothing left to suspend.",
@@ -358,11 +440,9 @@ const EN: Record<MessageKey, string> = {
   platform_member_protected_fix:
     "Remove them from the Pupitre organization first, on its members page.",
   account_deactivated: "This account is closed.",
-  account_deactivated_fix:
-    "Write to support@pupitre.studio to have it reopened.",
+  account_deactivated_fix: `Write to ${LEGAL_CONTACTS.support} to have it reopened.`,
   account_suspended: "This account is suspended until {date}.",
-  account_suspended_fix:
-    "The account reopens on its own on that date. Write to support@pupitre.studio to bring it forward.",
+  account_suspended_fix: `The account reopens on its own on that date. Write to ${LEGAL_CONTACTS.support} to bring it forward.`,
   ban_until_not_future: "A suspension deadline lies ahead.",
   ban_until_not_future_fix:
     "Give a date later than now, or leave until out for a suspension with no deadline.",
@@ -376,12 +456,15 @@ const EN: Record<MessageKey, string> = {
     "This account is the sole owner of an organization that still holds a server or a subscription.",
   sole_owner_fix:
     "Transfer the organization to another member, or close it: POST /admin/organizations/:id/transfer, DELETE /admin/organizations/:id.",
+  account_sole_owner:
+    "Your account is the sole owner of an organization that still holds a server or a paid subscription.",
+  account_sole_owner_fix:
+    "Remove that organization's servers and cancel its subscription from billing, or make another member an owner, then delete the account.",
   email_verified: "This account's address is already verified.",
   email_verified_fix:
     "There is nothing to send again; the account signs in with a magic link or a passkey.",
   organization_closed: "This organization is closed.",
-  organization_closed_fix:
-    "Pick another organization, or write to support@pupitre.studio to have it reopened.",
+  organization_closed_fix: `Pick another organization, or write to ${LEGAL_CONTACTS.support} to have it reopened.`,
   organization_already_suspended: "This organization is already suspended.",
   organization_already_suspended_fix:
     "Lift the suspension first: POST /admin/organizations/:id/restore.",
@@ -500,7 +583,7 @@ const EN: Record<MessageKey, string> = {
   mail_thread_has_no_recipient: "This thread carries no address to answer.",
   mail_thread_has_no_recipient_fix:
     "Write a new message from the inbox, naming the recipient.",
-  mail_send_failed: "Sending failed: {reason}",
+  mail_send_failed: "The sending service refused the message.",
   mail_send_failed_fix:
     "The message is kept in the thread as failed; try again, it only leaves once.",
   mail_attachment_blocked:
@@ -558,6 +641,17 @@ const EN: Record<MessageKey, string> = {
   billing_customer_missing: "This organization has no Stripe customer yet.",
   billing_customer_missing_fix:
     "Go through checkout first: POST /orgs/{organization}/checkout.",
+  billing_already_subscribed:
+    "This organization already pays a live subscription: a second checkout would bill it twice.",
+  billing_already_subscribed_fix:
+    "Add seats to the live subscription (POST /orgs/{organization}/seats), or manage it from the portal (POST /orgs/{organization}/portal).",
+  launch_subscription_ended:
+    "This organization's launch subscription was stopped: it does not reopen.",
+  launch_subscription_ended_fix: `Write to ${LEGAL_CONTACTS.support} to have the Pupitre team reopen it.`,
+  stripe_event_in_flight:
+    "Another delivery is already processing this Stripe event.",
+  stripe_event_in_flight_fix:
+    "Nothing to do: Stripe delivers the event again later, and it is processed once.",
   stripe_signature_invalid: "Invalid Stripe signature.",
   stripe_signature_invalid_fix:
     "Sign the raw body with the webhook secret, within five minutes.",

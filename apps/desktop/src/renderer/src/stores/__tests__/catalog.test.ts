@@ -10,11 +10,7 @@ import { stubPupitre } from "../../__tests__/stub-pupitre";
 import { useCatalog } from "../catalog";
 import { useInspection } from "../inspection";
 
-/**
- * A main process reduced to what the catalogue screens ask of it: it answers
- * the `catalog` command and keeps the secrets. The values it keeps never leave
- * it except for one reveal, exactly as the real one behaves.
- */
+// Kept secrets only leave through a reveal, as in the real main process.
 function fakeMain(catalog = CATALOG) {
   const kept = new Map<string, string>();
   const madeHere = new Set<string>();
@@ -26,6 +22,7 @@ function fakeMain(catalog = CATALOG) {
 
     for (const path of kept.keys()) {
       const [moduleId, key] = path.split("|");
+
       if (!(moduleId && key)) {
         continue;
       }
@@ -85,6 +82,7 @@ function fakeMain(catalog = CATALOG) {
       ) => {
         const path = `${moduleId}|${key}`;
         const value = seen.has(path) ? null : (kept.get(path) ?? null);
+
         seen.add(path);
 
         return Promise.resolve({ value, marks: mark() });
@@ -102,6 +100,7 @@ function fakeMain(catalog = CATALOG) {
 
 async function ready(catalog = CATALOG) {
   const main = fakeMain(catalog);
+
   stubPupitre(main.api);
   await useCatalog.getState().load("srv-1");
 
@@ -121,6 +120,31 @@ describe("le catalogue vient de l'agent", () => {
 
     expect(state.status).toBe("ready");
     expect(state.status === "ready" && state.catalog).toEqual(CATALOG);
+  });
+
+  it("oublie au reset ce qu'un chargement oublie aussi", async () => {
+    await ready();
+
+    useCatalog.getState().adoptRestore({
+      deferred: ["runtime.node"],
+      held: {},
+      selected: ["core.system"],
+      values: {},
+    });
+    useCatalog.setState({
+      problem: {
+        code: "bad_request",
+        message: "Le secret n'a pas été lu.",
+        fix: "Réessaie.",
+      },
+    });
+
+    useCatalog.getState().reset();
+
+    expect(useCatalog.getState()).toMatchObject({
+      deferred: [],
+      problem: null,
+    });
   });
 
   it("garde l'erreur et son remède tels quels", async () => {
@@ -182,10 +206,7 @@ describe("la sélection", () => {
     });
   });
 
-  /**
-   * Deferring is the reader saying they will answer later: the questions stop
-   * being weighed, and the install goes on without them rather than refusing.
-   */
+  // A deferred service lets the install go on without it rather than refusing.
   it("cesse de peser un service remis à plus tard, et le reprend", async () => {
     await ready();
 
@@ -209,8 +230,6 @@ describe("la sélection", () => {
         .filter((one) => one.module === "db.mysql")
     ).toEqual([]);
 
-    // What was typed stays typed: taking the questions back up finds the form
-    // as it was left.
     useCatalog.getState().defer("db.mysql", false);
 
     expect(useCatalog.getState().deferred).toEqual([]);
@@ -237,7 +256,7 @@ describe("la sélection", () => {
     ]);
   });
 
-  /** A preset ticking what the machine cannot run is an install refused later. */
+  // A preset ticking what the architecture cannot run would only be refused at install.
   it("ne coche pas, par préréglage, ce que l'architecture ne porte pas", async () => {
     await ready({
       ...CATALOG,
@@ -258,6 +277,7 @@ describe("la sélection", () => {
 
   it("ne coche pas non plus ce qui se dispute la machine avec un module déjà posé", async () => {
     const main = fakeMain(CATALOG);
+
     stubPupitre(main.api);
     await useCatalog.getState().load("srv-1", ["exposure.caddy"]);
 
@@ -371,6 +391,7 @@ describe("les secrets ne vivent pas ici", () => {
 describe("la configuration pesée par le serveur", () => {
   it("pose sur les champs ce que la machine seule savait", async () => {
     const main = await ready();
+
     stubPupitre({
       ...main.api,
       checkInstall: () =>
@@ -397,6 +418,7 @@ describe("la configuration pesée par le serveur", () => {
 
   it("ignore un champ que l'app remplit elle-même à la sortie", async () => {
     const main = await ready();
+
     stubPupitre({
       ...main.api,
       checkInstall: () =>
@@ -422,6 +444,7 @@ describe("la configuration pesée par le serveur", () => {
 
   it("laisse passer l'installation quand le pont ne répond pas", async () => {
     const main = await ready();
+
     stubPupitre({
       ...main.api,
       checkInstall: () => Promise.reject(new Error("no handler")),
@@ -434,11 +457,6 @@ describe("la configuration pesée par le serveur", () => {
 });
 
 describe("les comptes et les valeurs lues avec le catalogue", () => {
-  /**
-   * The accounts used to be read when a connection card was on screen, so the
-   * configuration weighed a module as unconnected until its own panel had been
-   * visited — and said three services were still to be configured.
-   */
   it("sait dès le chargement quels comptes sont connectés", async () => {
     stubPupitre({
       ...fakeMain().api,

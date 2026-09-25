@@ -11,8 +11,9 @@ export interface PlanCopy {
 }
 
 export interface PricingContent {
-  meta: { title: string; description: string }
+  meta: { title: string; description: string; launchDescription: string }
   hero: { label: string; headline: string; lead: string; unit: string }
+  launch: { notice: string; cta: string; offer: string }
   billing: Record<BillingInterval, string> & {
     legend: string
     yearNote: string

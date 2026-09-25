@@ -3,20 +3,12 @@ import type {
   StepStatus,
 } from "@pupitre/shared/agent-protocol/envelope";
 
-/**
- * The `step` events of a module run, folded into what a screen draws.
- *
- * `install`, `upgrade` and `uninstall` all report the same way, so the shape
- * they are read into is shared rather than written once per command: the same
- * rows, the same counters, the same reading of what a module's steps add up to.
- */
-
 export interface StepEntry {
   step: string;
   status: StepStatus;
   ms: number;
   replay?: string;
-  /** What the agent said of the step: the raw line behind a `fail`, or the warning an `ok` carries. */
+  /** The raw line behind a `fail`, or the warning an `ok` carries. */
   message?: string;
 }
 
@@ -39,18 +31,10 @@ export function pending(modules: readonly string[]): ModuleProgress[] {
   return modules.map((id) => ({ id, ms: 0, status: "pending", steps: [] }));
 }
 
-/** The modules a gesture just sent to the agent: at work from the click, before their first step says so. */
 export function started(modules: readonly string[]): ModuleProgress[] {
   return modules.map((id) => ({ id, ms: 0, status: "running", steps: [] }));
 }
 
-/**
- * A module's fate, read off its own steps.
- *
- * One failed step condemns the module however the rest went; a module all of
- * whose steps were skipped had nothing to do. An open `start` means it is still
- * at work.
- */
 export function statusOf(steps: readonly StepEntry[]): ModuleStatus {
   if (steps.length === 0) {
     return "pending";
@@ -77,16 +61,7 @@ export function shaped(id: string, steps: StepEntry[]): ModuleProgress {
   return { id, ms: spent(steps), status: statusOf(steps), steps };
 }
 
-/**
- * A step closes the one it opened rather than piling up next to it: `start` and
- * `ok` are the same step seen twice, and the list is what the reader counts.
- *
- * The one it closes is the last opened under that name, never an older one: a
- * list holds several runs of the same module, and an event lost on the way back
- * leaves a row open behind. Closing that one would answer the run before with
- * the step of the run under way, and leave the reader watching a step that
- * ended minutes ago.
- */
+/** Closes the latest open step of that name, never an older one a lost event left open. */
 export function withStep(steps: StepEntry[], entry: StepEntry): StepEntry[] {
   const open = lastOpen(steps, entry.step);
 
@@ -109,15 +84,7 @@ function lastOpen(steps: readonly StepEntry[], step: string): number {
   return -1;
 }
 
-/**
- * A module the answer catches still at work.
- *
- * The agent has spoken for the whole run, so nothing of it is running any more:
- * the steps nobody closed are dropped, and what is left — or the answer itself,
- * for a module it says failed — says how it went. Without this, one step event
- * lost on the way back leaves a module turning under a screen that has already
- * been told the install is over.
- */
+/** The answer ends the run: unclosed steps are dropped so a lost event never leaves a module spinning. */
 export function settledBy(
   module: ModuleProgress,
   failed: boolean
@@ -154,7 +121,6 @@ export function record(
   );
 }
 
-/** The `step` event of the protocol, or nothing if this event is another one. */
 export function stepOf(
   event: Event
 ): { module: string; entry: StepEntry } | null {

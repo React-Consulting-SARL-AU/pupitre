@@ -21,9 +21,15 @@
     },
     {
       "name": "email",
-      "runtimeExecutable": "bun",
-      "runtimeArgs": ["--cwd=packages/api", "run", "dev:email"],
-      "port": 4321
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "EMAIL_PREVIEW_PORT=4322",
+        "bun",
+        "--cwd=packages/api",
+        "run",
+        "dev:email"
+      ],
+      "port": 4322
     }
   ]
 }

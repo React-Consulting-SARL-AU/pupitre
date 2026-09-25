@@ -1,4 +1,5 @@
 ---
+import { MODULE_IDS } from "@pupitre/shared/catalog"
 import {
   ANNUAL_FREE_MONTHS,
   formatUsd,
@@ -9,6 +10,7 @@ import {
 import { pricingContent } from "../content/site/pricing"
 import Base from "../layouts/Base.astro"
 import { fill, localeFromPath, localizePath, translator } from "../lib/i18n"
+import { isLaunchOpen, LAUNCH_ENDS_AT, launchEndDate } from "../lib/launch"
 import { jsonLd, product } from "../lib/structured-data"
 import { SIGNUP_URL } from "../lib/urls"
 import BillingToggle from "./BillingToggle.astro"
@@ -22,20 +24,30 @@ const locale = localeFromPath(Astro.url.pathname)
 const t = translator(locale)
 const content = pricingContent(locale)
 const solo = getPlan("solo")
+const launching = isLaunchOpen()
 const numbers = {
   price: formatUsd(solo.monthlyPriceUsd),
   months: ANNUAL_FREE_MONTHS,
   days: TRIAL_DAYS,
+  date: launchEndDate(locale),
 }
-const description = fill(content.meta.description, numbers)
+const description = launching
+  ? fill(content.meta.launchDescription, numbers)
+  : fill(content.meta.description, numbers)
 const offers = jsonLd(
   product({
     locale,
     name: t("site.name"),
     description,
     intervals: { month: content.billing.month, year: content.billing.year },
+    launch: launching
+      ? { endsAt: LAUNCH_ENDS_AT, name: content.launch.offer }
+      : undefined,
   })
 )
+const start = launching
+  ? content.launch.cta
+  : fill(content.plans.trial, numbers)
 ---
 
 <Base title={content.meta.title} description={description}>
@@ -50,8 +62,18 @@ const offers = jsonLd(
       <p class="lead mx-auto mt-7 max-w-2xl text-ink-2">
         {fill(content.hero.lead, numbers)}
       </p>
+      {
+        launching && (
+          <p
+            data-launch
+            class="card mx-auto mt-10 max-w-2xl px-6 py-5 text-left text-ink md:px-8"
+          >
+            {fill(content.launch.notice, numbers)}
+          </p>
+        )
+      }
       <p class="card-soft mx-auto mt-12 inline-block px-12 py-9">
-        <span class="figure block text-[clamp(64px,44px+3.5vw,104px)]"
+        <span class="figure figure-xl block"
           >{formatUsd(solo.monthlyPriceUsd)}</span
         >
         <span class="label mt-4 block text-ink-3">{content.hero.unit}</span>
@@ -77,7 +99,7 @@ const offers = jsonLd(
 
         <div class="flex flex-wrap items-center gap-3">
           <a data-emphasis="main" href={SIGNUP_URL} class="btn btn-primary">
-            {fill(content.plans.trial, numbers)}
+            {start}
           </a>
           <DownloadButton
             href={localizePath("/download/", locale)}
@@ -126,7 +148,7 @@ const offers = jsonLd(
     tone="surface"
     label={content.catalog.label}
     title={content.catalog.title}
-    lead={content.catalog.lead}
+    lead={fill(content.catalog.lead, { count: MODULE_IDS.length })}
   >
     <CatalogSummary />
   </Section>

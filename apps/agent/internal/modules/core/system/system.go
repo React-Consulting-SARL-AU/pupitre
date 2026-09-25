@@ -2,7 +2,6 @@ package system
 
 import (
 	"errors"
-	"strconv"
 	"strings"
 
 	"pupitre.studio/agent/internal/i18n"
@@ -10,6 +9,7 @@ import (
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/apt"
 	"pupitre.studio/agent/internal/sys/file"
+	"pupitre.studio/agent/internal/sys/host"
 	"pupitre.studio/agent/internal/sys/systemd"
 )
 
@@ -45,6 +45,7 @@ func installPackages(ctx *modules.Context) error {
 		}
 
 		var failed []string
+
 		for _, pkg := range missing {
 			if err := apt.Install(ctx, pkg); err != nil {
 				ctx.Logf("%s : %v", pkg, err)
@@ -60,7 +61,7 @@ func installPackages(ctx *modules.Context) error {
 	})
 }
 
-// A swap file half made — allocated but never formatted or enabled — is removed on the spot: left there, every replay would take it for a swap and skip it for ever.
+// A half-made swap file is removed on the spot, or every replay would take it for a swap and skip it for ever.
 func createSwap(ctx *modules.Context) error {
 	return ctx.Step("create-swap", func() (modules.Outcome, error) {
 		if swapPresent(ctx) {
@@ -68,6 +69,7 @@ func createSwap(ctx *modules.Context) error {
 		}
 
 		size := swapSize(ctx)
+
 		for _, argv := range [][]string{
 			{"fallocate", "-l", size, swapPath},
 			{"chmod", "600", swapPath},
@@ -100,20 +102,8 @@ func swapPresent(ctx *modules.Context) bool {
 }
 
 func swapSize(ctx *modules.Context) string {
-	raw, err := file.Read(ctx, "/proc/meminfo")
-	if err != nil {
-		return smallSwap
-	}
-
-	for _, line := range strings.Split(string(raw), "\n") {
-		fields := strings.Fields(line)
-		if len(fields) < 2 || fields[0] != "MemTotal:" {
-			continue
-		}
-
-		if kb, err := strconv.Atoi(fields[1]); err == nil && kb >= memoryThresholdKB {
-			return largeSwap
-		}
+	if kb, known := host.MemTotalKB(ctx); known && kb >= memoryThresholdKB {
+		return largeSwap
 	}
 
 	return smallSwap
@@ -143,9 +133,15 @@ func configureUnattendedUpgrades(ctx *modules.Context) error {
 	return writeIfChanged(ctx, "configure-unattended-upgrades", aptPeriodicPath, []byte(aptPeriodic), 0o644)
 }
 
+// In Configure, which every upgrade replays, so a server installed before the drop-in gets it too.
+func rotateAgentLog(ctx *modules.Context) error {
+	return writeIfChanged(ctx, "rotate-agent-log", logRotationPath, []byte(agentLogRotation), 0o644)
+}
+
 func enableUnattendedUpgrades(ctx *modules.Context) error {
 	return ctx.Step("enable-unattended-upgrades", func() (modules.Outcome, error) {
 		outcome := modules.Skipped
+
 		for _, timer := range aptTimers {
 			if systemd.Active(ctx, timer) {
 				continue
@@ -154,6 +150,7 @@ func enableUnattendedUpgrades(ctx *modules.Context) error {
 			if err := systemd.Enable(ctx, timer); err != nil {
 				return modules.Failed, err
 			}
+
 			outcome = modules.Done
 		}
 

@@ -9,8 +9,8 @@ const TABS: Terminal[] = [
     dormant: false,
     id: "t1",
     kind: "claude",
-    project: "flymate-api",
-    session: "claude-flymate-api",
+    project: "flyleaf-api",
+    session: "claude-flyleaf-api",
     title: "Claude",
   },
   {
@@ -18,7 +18,7 @@ const TABS: Terminal[] = [
     dormant: false,
     id: "t2",
     kind: "shell",
-    project: "flymate-api",
+    project: "flyleaf-api",
     session: null,
     title: "T",
   },
@@ -46,25 +46,25 @@ function session(patch: Partial<Session>): Session {
 
 describe("attachedSessions", () => {
   it("ne retient que les agents ouverts sur un projet", () => {
-    expect(attachedSessions(TABS)).toEqual(["claude:flymate-api"]);
+    expect(attachedSessions(TABS)).toEqual(["claude:flyleaf-api"]);
   });
 });
 
 describe("isAttached", () => {
   it("reconnaît la session que l'onglet tient", () => {
     expect(
-      isAttached(["claude:flymate-api"], session({ project: "flymate-api" }))
+      isAttached(["claude:flyleaf-api"], session({ project: "flyleaf-api" }))
     ).toBe(true);
   });
 
   it("laisse traîner celle d'un autre projet ou d'un autre agent", () => {
     expect(
-      isAttached(["claude:flymate-api"], session({ project: "atlas-web" }))
+      isAttached(["claude:flyleaf-api"], session({ project: "atlas-web" }))
     ).toBe(false);
     expect(
       isAttached(
-        ["claude:flymate-api"],
-        session({ kind: "codex", project: "flymate-api" })
+        ["claude:flyleaf-api"],
+        session({ kind: "codex", project: "flyleaf-api" })
       )
     ).toBe(false);
   });
@@ -72,14 +72,14 @@ describe("isAttached", () => {
   it("ne parle jamais d'un shell ni d'un éditeur distant", () => {
     expect(
       isAttached(
-        ["claude:flymate-api"],
-        session({ kind: "shell", project: "flymate-api" })
+        ["claude:flyleaf-api"],
+        session({ kind: "shell", project: "flyleaf-api" })
       )
     ).toBe(false);
     expect(
       isAttached(
-        ["claude:flymate-api"],
-        session({ kind: "ide", project: "flymate-api" })
+        ["claude:flyleaf-api"],
+        session({ kind: "ide", project: "flyleaf-api" })
       )
     ).toBe(false);
   });

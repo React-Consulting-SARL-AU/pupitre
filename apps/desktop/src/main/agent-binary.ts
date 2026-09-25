@@ -1,4 +1,3 @@
-import { type ChildProcess, spawn as spawnChild } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -6,21 +5,12 @@ import type { AgentResponse } from "@shared/agent";
 import type { CarriedAgent } from "@shared/agent-update";
 import type { AgentDelivery } from "@shared/install";
 import { AGENT_MANIFEST, type AgentManifest } from "../../scripts/embed-agent";
-import { refusalOf } from "./refusal";
+import { refusalOf, refuseWith } from "./refusal";
+import { lastLine, runSsh, type ShellSpawn } from "./ssh-run";
 
 const SPACES = /\s+/;
 
 const SHA256 = /^[0-9a-f]{64}$/;
-
-/**
- * The agent, on its way to a machine that has never run it.
- *
- * A bare server cannot fetch `pupitred` on its own, and nothing on it is
- * trusted to: the app pushes the binary it carries over the channel it already
- * has, on standard input, and asks the server for the checksum of what it just
- * wrote. What the app sent and what the server holds are compared before a
- * single `install` is spoken.
- */
 
 export type { AgentDelivery } from "@shared/install";
 
@@ -28,31 +18,77 @@ export const AGENT_REMOTE_PATH = "/usr/local/bin/pupitred";
 
 const AGENT_STAGING_PATH = "/usr/local/bin/.pupitred.new";
 
-/**
- * Written aside, then renamed over the old one: replacing a running `pupitred`
- * in place would fail with ETXTBSY on the very server that is answering us.
- *
- * The service restarts right after, because the rename does not touch it: the
- * daemon would keep running the old binary, report its old version to the
- * platform, and the app would offer forever the update it just made. A bare
- * machine has no unit yet, and its refusal concerns nobody.
- */
+/** A repository build carries no release key, so its agent is placed unchecked. */
+const UNRELEASED = "0.0.0-unreleased";
+
+/** Renamed over the running binary to dodge ETXTBSY; restarted so the daemon stops reporting the old version. */
 export const AGENT_INSTALL_COMMAND = `set -e; install -m 755 /dev/stdin ${AGENT_STAGING_PATH}; sha256sum ${AGENT_STAGING_PATH}; mv -f ${AGENT_STAGING_PATH} ${AGENT_REMOTE_PATH}; systemctl restart pupitred 2>/dev/null || true`;
 
-/**
- * The install command for the account the push logs in as: `/usr/local/bin`
- * and the unit belong to root, and a hardened server is reached as `dev`,
- * who holds passwordless sudo for exactly this. Root needs none.
- */
-export function installCommandAs(user: string): string {
-  return user === "root"
-    ? AGENT_INSTALL_COMMAND
-    : `sudo -n sh -c '${AGENT_INSTALL_COMMAND}'`;
+export interface PushedRelease {
+  version: string;
+  signature: string | null;
+}
+
+const SHELL_VERSION = /^[0-9A-Za-z.+-]+$/;
+
+const SHELL_SIGNATURE = /^[A-Za-z0-9+/=]+$/;
+
+/** Exit 2 is an agent older than `binary install`: dev still holds NOPASSWD:ALL there, so the shell install runs. */
+export function installCommandAs(
+  user: string,
+  release: PushedRelease
+): string | null {
+  if (user === "root") {
+    return AGENT_INSTALL_COMMAND;
+  }
+
+  if (
+    !SHELL_VERSION.test(release.version) ||
+    (release.signature !== null && !SHELL_SIGNATURE.test(release.signature))
+  ) {
+    return null;
+  }
+
+  const install = `${AGENT_REMOTE_PATH} binary install`;
+  const placed =
+    release.signature === null
+      ? [
+          `IFS= read -r p; cat > "$t"; s=0`,
+          `if sudo -n true 2>/dev/null; then sudo -n ${install} --privileged < "$t" || s=$?; else { printf '%s\\n' "$p"; cat "$t"; } | sudo -S -p '' ${install} --privileged || s=$?; fi`,
+        ]
+      : [`cat > "$t"; s=0`, `sudo -n ${install} < "$t" || s=$?`];
+
+  return [
+    `set -e; t=$(mktemp); trap 'rm -f "$t"' EXIT`,
+    ...placed,
+    `[ "$s" -eq 2 ] || exit "$s"`,
+    `tail -n +2 "$t" | sudo -n sh -c '${AGENT_INSTALL_COMMAND}'`,
+  ].join("; ");
+}
+
+/** An unsigned binary goes by `--privileged`, which only the sudo password on the first line opens. */
+export function pushedInput(
+  user: string,
+  payload: AgentPayload,
+  password: string | null
+): Buffer {
+  if (user === "root") {
+    return payload.content;
+  }
+
+  const header = `${JSON.stringify(
+    payload.signature === null
+      ? { version: payload.version }
+      : { signature: payload.signature, version: payload.version }
+  )}\n`;
+  const unlock = payload.signature === null ? `${password ?? ""}\n` : "";
+
+  return Buffer.concat([Buffer.from(unlock + header), payload.content]);
 }
 
 const SEND_TIMEOUT_MS = 180_000;
 
-export interface AgentPayload {
+export interface AgentPayload extends PushedRelease {
   arch: string;
   path: string;
   sha256: string;
@@ -60,10 +96,8 @@ export interface AgentPayload {
   content: Buffer;
 }
 
-export type ShellSpawn = (command: string, args: string[]) => ChildProcess;
-
-export function agentSshArgs(args: string[], user: string): string[] {
-  return ["-o", "BatchMode=yes", ...args, installCommandAs(user)];
+export function agentSshArgs(args: string[], command: string): string[] {
+  return ["-o", "BatchMode=yes", ...args, command];
 }
 
 function absent(arch: string): AgentResponse<never> {
@@ -89,7 +123,6 @@ export function readAgentManifest(dir: string): AgentManifest | null {
   }
 }
 
-/** The agent this app could offer a server of that architecture, if any. */
 export interface CarriedRelease {
   agent: CarriedAgent;
   signature: string | null;
@@ -152,15 +185,18 @@ export function agentPayload(
 
   return {
     ok: true,
-    result: { arch, bytes: content.byteLength, content, path, sha256 },
+    result: {
+      arch,
+      bytes: content.byteLength,
+      content,
+      path,
+      sha256,
+      signature: entry.signature ?? null,
+      version: manifest?.version ?? UNRELEASED,
+    },
   };
 }
 
-function defaultSpawn(command: string, args: string[]): ChildProcess {
-  return spawnChild(command, args, { stdio: ["pipe", "pipe", "pipe"] });
-}
-
-/** The hash `sha256sum` prints, first field of its line. */
 function receivedSum(output: string): string | null {
   for (const line of output.split("\n")) {
     const found = line.trim().split(SPACES)[0];
@@ -173,106 +209,68 @@ function receivedSum(output: string): string | null {
   return null;
 }
 
-export function sendAgentBinary({
+export async function sendAgentBinary({
   args,
   payload,
   user,
-  spawn = defaultSpawn,
+  password = null,
+  spawn,
   timeoutMs = SEND_TIMEOUT_MS,
 }: {
   args: string[];
   payload: AgentPayload;
-  /** The account `args` log in as: what decides whether the install goes through sudo. */
   user: string;
+  /** Rides the first line of stdin, never the command line. */
+  password?: string | null;
   spawn?: ShellSpawn;
   timeoutMs?: number;
 }): Promise<AgentResponse<AgentDelivery>> {
-  return new Promise((resolve) => {
-    const child = spawn("ssh", agentSshArgs(args, user));
+  const command = installCommandAs(user, payload);
 
-    let out = "";
-    let err = "";
-    let settled = false;
-
-    function settle(answer: AgentResponse<AgentDelivery>): void {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      clearTimeout(timer);
-      resolve(answer);
-    }
-
-    const timer = setTimeout(() => {
-      child.kill();
-      settle({
-        ok: false,
-        error: {
-          ...refusalOf("timeout", "refusal.binary.timeout", {
-            seconds: Math.round(timeoutMs / 1000),
-          }),
-        },
-      });
-    }, timeoutMs);
-
-    child.stdout?.setEncoding("utf8");
-    child.stdout?.on("data", (chunk: string) => {
-      out += chunk;
+  if (command === null) {
+    return refuseWith("internal", "refusal.binary.install", {
+      detail: payload.version,
     });
-    child.stderr?.setEncoding("utf8");
-    child.stderr?.on("data", (chunk: string) => {
-      err += chunk;
-    });
+  }
 
-    child.on("error", (error: Error) =>
-      settle({
-        ok: false,
-        error: {
-          ...refusalOf("disconnected", "refusal.binary.send", {
-            detail: error.message,
-          }),
-        },
-      })
-    );
-
-    child.on("close", (code: number | null) => {
-      const received = receivedSum(out);
-
-      if (code !== 0 || !received) {
-        settle({
-          ok: false,
-          error: {
-            ...refusalOf("internal", "refusal.binary.install", {
-              detail: err.trim().split("\n").at(-1) ?? String(code),
-            }),
-          },
-        });
-
-        return;
-      }
-
-      if (received !== payload.sha256) {
-        settle({
-          ok: false,
-          error: {
-            ...refusalOf("internal", "refusal.binary.mismatch"),
-          },
-        });
-
-        return;
-      }
-
-      settle({
-        ok: true,
-        result: {
-          arch: payload.arch,
-          bytes: payload.bytes,
-          path: AGENT_REMOTE_PATH,
-          sha256: received,
-        },
-      });
-    });
-
-    child.stdin?.end(payload.content);
+  const run = await runSsh(agentSshArgs(args, command), {
+    scope: "binary",
+    spawn,
+    stdin: pushedInput(user, payload, password),
+    timeoutMs,
   });
+
+  if (run.status === "failed") {
+    return refuseWith("disconnected", "refusal.binary.send", {
+      detail: run.message,
+    });
+  }
+
+  if (run.status === "timeout") {
+    return refuseWith("timeout", "refusal.binary.timeout", {
+      seconds: Math.round(timeoutMs / 1000),
+    });
+  }
+
+  const received = receivedSum(run.stdout);
+
+  if (run.code !== 0 || !received) {
+    return refuseWith("internal", "refusal.binary.install", {
+      detail: lastLine(run.stderr) || String(run.code),
+    });
+  }
+
+  if (received !== payload.sha256) {
+    return refuseWith("internal", "refusal.binary.mismatch");
+  }
+
+  return {
+    ok: true,
+    result: {
+      arch: payload.arch,
+      bytes: payload.bytes,
+      path: AGENT_REMOTE_PATH,
+      sha256: received,
+    },
+  };
 }

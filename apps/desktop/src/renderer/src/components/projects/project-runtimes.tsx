@@ -13,11 +13,6 @@ import { Panel } from "../ui/panel";
 import { Section } from "../ui/section";
 import { Select } from "../ui/select";
 
-/**
- * One select per runtime the server holds, in the catalogue's order: the
- * machine's default first, named, then each major installed. A server
- * without a runtime shows nothing of it — there is nothing to pin.
- */
 export function ProjectRuntimes({
   services,
   runtimes,
@@ -48,12 +43,13 @@ export function ProjectRuntimes({
       title={t("project.config.runtimes.title")}
     >
       <Panel className="flex flex-col gap-5" inset="lg">
-        <p className="text-[12px] text-ink-3 leading-relaxed">
+        <p className="text-ink-3 text-small leading-relaxed">
           {t("project.config.runtimes.help")}
         </p>
 
         <div className="grid gap-6 sm:grid-cols-2">
           {held.map(({ service, tool }) => {
+            // The machine's default version comes first.
             const versions = service.versions ?? [];
             const name = `config.runtimes.${tool}`;
 

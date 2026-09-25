@@ -9,7 +9,6 @@ const CLAUDE =
 const CODEX =
   "https://auth.openai.com/oauth/authorize?response_type=code&client_id=app_EMoamEEZ73f0CkXaXp7hrann&redirect_uri=http%3A%2F%2Flocalhost%3A1457%2Fauth%2Fcallback&scope=openid%20profile%20email%20offline_access&code_challenge=XV067cyPa7ZgBs0KFgypllzdYY_SDcD2RiYOLvfsIyw&code_challenge_method=S256&state=zWUR3I5fTFUEZTLSh5J8mytJsWQ1_L6PDi7Hi-HLL0U&originator=codex-tui";
 
-/** The address as a box of the given inner width shows it, one row per line. */
 function folded(url: string, width: number, margin = 0): string[] {
   const rows: string[] = [];
 

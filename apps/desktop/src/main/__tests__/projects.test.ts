@@ -13,20 +13,11 @@ import {
   type ProjectDeps,
   projectHostnames,
   projectLogs,
-  projectUrl,
   pullProject,
   startProject,
   updateProject,
 } from "../projects-run";
 import { type FakeAgent, fakeAgent } from "./fixtures/fake-agent";
-
-/**
- * The chain of a first project, replayed against the fake agent.
- *
- * Three transcripts because there are three channels: the reads travel on the
- * control one, the long commands on the work one, the followed journal on the
- * follow one. The order the app speaks in is what these files pin down.
- */
 
 const SERVER = "srv-1";
 
@@ -70,7 +61,6 @@ const SHOP: ProjectAddParams = {
   repo: "https://github.com/ada/shop.git",
 };
 
-/** One process of a fresh project, on one port, the way the form declares most of them. */
 function single(name: string, port: number): ProjectAddParams {
   return {
     boot: false,
@@ -133,7 +123,6 @@ describe("un dépôt du formulaire au journal", () => {
     const pulled = await pullProject(SERVER, VITE.name, calls);
     const installed = await installProject(SERVER, VITE.name, calls);
     const started = await startProject(SERVER, VITE.name, calls);
-    const address = await projectUrl(SERVER, VITE.name, calls);
 
     const lines: string[] = [];
     const journal = await projectLogs(
@@ -156,7 +145,6 @@ describe("un dépôt du formulaire au journal", () => {
       { command: "bun install", process: "vite-starter" },
     ]);
     expect(started.ok && started.result).toMatchObject({ state: "online" });
-    expect(address.ok && address.result.url).toBe("http://127.0.0.1:3000");
     expect(journal.ok).toBe(true);
     expect(lines).toEqual([
       "> vite-starter@0.0.0 dev",
@@ -179,12 +167,13 @@ describe("un projet à plusieurs ports", () => {
     );
 
     await listProjects(SERVER, calls);
+
     const added = await addProject(SERVER, SHOP, calls);
 
     expect(added.ok).toBe(true);
     expect(projectHostnames(SERVER, "shop")).toEqual([
-      "shop.flymate.dev",
-      "api-shop.flymate.dev",
+      "shop.flyleaf.dev",
+      "api-shop.flyleaf.dev",
     ]);
 
     const shop = {
@@ -216,10 +205,10 @@ describe("un projet à plusieurs ports", () => {
     );
 
     expect(renamed.ok && renamed.result.url).toBe(
-      "https://boutique.flymate.dev"
+      "https://boutique.flyleaf.dev"
     );
-    expect(released).toEqual(["shop.flymate.dev", "api-shop.flymate.dev"]);
-    expect(projectHostnames(SERVER, "shop")).toEqual(["boutique.flymate.dev"]);
+    expect(released).toEqual(["shop.flyleaf.dev", "api-shop.flyleaf.dev"]);
+    expect(projectHostnames(SERVER, "shop")).toEqual(["boutique.flyleaf.dev"]);
 
     const command = await updateProject(
       SERVER,
@@ -232,7 +221,7 @@ describe("un projet à plusieurs ports", () => {
               cmd: "bunx turbo run dev --filter=web...",
               routes: [
                 {
-                  hostname: "boutique.flymate.dev",
+                  hostname: "boutique.flyleaf.dev",
                   label: "web",
                   port: 3100,
                 },
@@ -254,9 +243,9 @@ describe("un projet à plusieurs ports", () => {
 
     expect(removed.ok).toBe(true);
     expect(released).toEqual([
-      "shop.flymate.dev",
-      "api-shop.flymate.dev",
-      "boutique.flymate.dev",
+      "shop.flyleaf.dev",
+      "api-shop.flyleaf.dev",
+      "boutique.flyleaf.dev",
     ]);
     expect(projectHostnames(SERVER, "shop")).toEqual([]);
   });
@@ -369,12 +358,6 @@ describe("ce que le renderer nomme", () => {
     expect(agent?.started()).toBe(0);
   });
 
-  /**
-   * The sidebar and the project screen read `snapshot`, never `project.list`:
-   * a project the app opens on after a launch has been named by the agent all
-   * the same, and removing it must not send the reader to reload a list no
-   * screen there reloads.
-   */
   it("tient pour déclaré un projet qu'un snapshot a nommé", () => {
     expect(declaresProject(SERVER, "react-box")).toBe(false);
 
@@ -419,11 +402,6 @@ describe("ce que le renderer nomme", () => {
     expect(declaresProject(SERVER, "ghost")).toBe(false);
   });
 
-  /**
-   * The folder an editor opens is a path the renderer carries: it opens only
-   * when the agent named it — a project's folder, or one under the root the
-   * file browser walks — and never one that climbs out of them.
-   */
   it("n'ouvre dans un éditeur qu'un dossier que l'agent a nommé", () => {
     noteProjects(SERVER, "snapshot", {
       ok: true,

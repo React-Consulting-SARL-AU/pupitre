@@ -1,6 +1,6 @@
 ---
 title: Les projets reviennent après un redémarrage, un retrait et un dossier confondu se règlent
-description: Les projets qui tournaient redémarrent seuls quand le serveur redémarre, un projet que l’app n’avait vu que sur le tableau de bord se retire du registre, et un dossier tenant un autre dépôt ne se fait plus tirer en silence.
+description: Les projets qui tournaient redémarrent seuls quand le serveur redémarre, un projet que l’app n’avait vu que sur le tableau de bord se retire du registre, et un dossier tenant un autre dépôt n’est plus pullé en silence.
 locale: fr
 version: 0.2.4
 channel: stable
@@ -17,7 +17,7 @@ Des correctifs dans l’app et dans l’agent, rien de nouveau à installer.
 ## L’agent
 
 - Les projets qui tournent survivent à un redémarrage du serveur. Jusqu’ici, chaque fenêtre disparaissait au redémarrage et chaque projet devait être relancé à la main. Chaque démarrage s’inscrit maintenant dans `/var/lib/pupitre/projects.running.json`, chaque arrêt ou suppression l’en retire, et un nouveau service `pupitre-resume` relance ce qui était inscrit au démarrage de la machine — et seulement quand la session tmux a vraiment disparu, pour qu’un démon redémarré pour une mise à jour ne lance rien deux fois. Un serveur existant reçoit le service quand ses modules sont mis à niveau après la mise à jour de l’agent.
-- Un dossier gardé d’un projet retiré ne se fait plus tirer par un autre. Quand un projet déclaré sur une adresse différente tombait sur un dossier tenant encore un autre dépôt, le pull passait en silence ; il refuse maintenant et nomme les deux dépôts. Le même dépôt écrit autrement — schéma, compte, `.git` — passe toujours.
+- Un dossier gardé d’un projet retiré n’est plus pullé par un autre. Quand un projet déclaré sur une adresse différente tombait sur un dossier tenant encore un autre dépôt, le pull passait en silence ; il refuse maintenant et nomme les deux dépôts. Le même dépôt écrit autrement — schéma, compte, `.git` — passe toujours.
 - Un pull en échec rapporte la dernière ligne de git plutôt qu’un « conflit » inventé.
 
 ## Limites connues

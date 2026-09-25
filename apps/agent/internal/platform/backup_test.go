@@ -60,16 +60,16 @@ func TestTheServerIDIsWrittenOnceAndOnlyWhenItChanges(t *testing.T) {
 		t.Fatal("no id before the platform names one")
 	}
 
-	written, err := platform.SaveServerID(fake, "", "srv_42")
-	if err != nil || !written || platform.LoadServerID(fake, "") != "srv_42" {
+	written, err := platform.SaveServerID(fake, "", "cm0k2x9q80000a1b2c3d4e5f6")
+	if err != nil || !written || platform.LoadServerID(fake, "") != "cm0k2x9q80000a1b2c3d4e5f6" {
 		t.Fatalf("written %v, %v", written, err)
 	}
 
-	if again, _ := platform.SaveServerID(fake, "", "srv_42"); again {
+	if again, _ := platform.SaveServerID(fake, "", "cm0k2x9q80000a1b2c3d4e5f6"); again {
 		t.Fatal("the same id is not written twice")
 	}
 
-	if empty, _ := platform.SaveServerID(fake, "", " "); empty || platform.LoadServerID(fake, "") != "srv_42" {
+	if empty, _ := platform.SaveServerID(fake, "", " "); empty || platform.LoadServerID(fake, "") != "cm0k2x9q80000a1b2c3d4e5f6" {
 		t.Fatal("an answer without an id keeps the one known")
 	}
 }

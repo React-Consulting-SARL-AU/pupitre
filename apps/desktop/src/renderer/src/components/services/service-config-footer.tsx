@@ -2,11 +2,6 @@ import { Button } from "@renderer/components/ui/button";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { RefreshCw, Undo2 } from "lucide-react";
 
-/**
- * The foot of a module's form: how many values are refused — named when no
- * field above carries them — the way back, and Apply, which has nothing to do
- * until something differs from what the server holds.
- */
 export function ServiceConfigFooter({
   refused,
   stray = [],
@@ -15,13 +10,12 @@ export function ServiceConfigFooter({
   applicable,
   onDiscard,
 }: {
-  /** How many fields the form or the server refuses. */
   refused: number;
-  /** The refusals no field of the form carries, each said with the field it names. */
+  /** Refusals that no field of the form carries. */
   stray?: readonly string[];
   running: boolean;
   dirty: boolean;
-  /** Apply stands open even with nothing changed: an account to send again, a module to install. */
+  /** Enables Apply with nothing changed: an account to resend, a module to install. */
   applicable: boolean;
   onDiscard?: () => void;
 }) {
@@ -30,7 +24,7 @@ export function ServiceConfigFooter({
   return (
     <div className="flex flex-wrap items-center gap-3 border-line border-t px-6 py-4">
       {refused > 0 && stray.length === 0 ? (
-        <span className="text-[12px] text-danger" data-config-refused="">
+        <span className="text-danger text-small" data-config-refused="">
           {t.plural("services.config.refused", refused)}
         </span>
       ) : null}
@@ -38,7 +32,7 @@ export function ServiceConfigFooter({
       {stray.length > 0 ? (
         <ul className="flex min-w-0 flex-1 flex-col gap-1" data-config-stray="">
           {stray.map((line) => (
-            <li className="text-[12px] text-danger" key={line}>
+            <li className="text-danger text-small" key={line}>
               {line}
             </li>
           ))}

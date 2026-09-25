@@ -23,11 +23,7 @@ export function clickWindowStart(at: Date): string {
   return clickDay(start)
 }
 
-/**
- * A visit counted for a link: one counter per link and per day, and nothing
- * else — no address, no cookie, no identifier, so there is nothing personal to
- * keep and nothing to tell apart two visitors of the same day.
- */
+/** Only a per-link daily counter, never anything about the visitor, so nothing personal is kept. */
 export async function recordAffiliateClick(
   code: string,
   at: Date = new Date()

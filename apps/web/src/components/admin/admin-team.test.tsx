@@ -11,8 +11,9 @@ import {
   ADMIN_PAGE_SIZE,
   PLATFORM_ORGANIZATION_ID,
 } from "@pupitre/shared/platform"
-import { AdminTeam } from "@/components/admin/admin-team"
+import { AdminTeam, type AdminTeamSearch } from "@/components/admin/admin-team"
 import { createConsoleUser, useSessionApiClient } from "@/testing/harness"
+import { ListSearchHarness } from "@/testing/list-search"
 import { render, trigger, waitUntil, withDashboard } from "@/testing/render"
 
 const mounted: (() => void)[] = []
@@ -71,7 +72,12 @@ describe("AdminTeam", () => {
 
     const total = ADMIN_PAGE_SIZE + EXTRA + 1
     const { container, unmount, click } = await render(
-      withDashboard(<AdminTeam />, { platformRole: "owner" })
+      withDashboard(
+        <ListSearchHarness<AdminTeamSearch>>
+          {(handle) => <AdminTeam {...handle} />}
+        </ListSearchHarness>,
+        { platformRole: "owner" }
+      )
     )
 
     mounted.push(unmount)

@@ -7,11 +7,6 @@ const CSP_HEADER = "content-security-policy"
 
 const SPACES_RE = /\s+/
 
-/**
- * The header file is served as it is written: nothing derives it from the
- * constants at build time, so a test reads it back and holds the origins the
- * pages actually call.
- */
 export function contentSecurityPolicy(content: string): string | null {
   for (const line of content.split("\n")) {
     const separator = line.indexOf(":")

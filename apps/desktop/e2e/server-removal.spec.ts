@@ -3,15 +3,7 @@ import { expect, test } from "@playwright/test";
 import { assertAccessible } from "./harness/accessible";
 import { launchPupitre, type Running } from "./harness/launch";
 
-/**
- * The two deletions of a server, watched while they are still running.
- *
- * What the scenario is about is the hundred milliseconds after the click: the
- * button that was pressed says it is working, its neighbours cannot be pressed,
- * and the row only leaves once the main process has answered. The bridge is
- * held open on purpose so that moment lasts long enough to be read.
- */
-
+// Holds the bridge open long enough for the pending state to be read.
 const HELD_MS = 1500;
 
 const GRANTED_ID = "e2e-attribue";

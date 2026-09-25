@@ -30,7 +30,7 @@ describe("dictionary", () => {
     }
   });
 
-  /** A value filled in one language and missing in the other would throw at render. */
+  // A placeholder missing in one language would throw at render.
   it("asks for the same placeholders in both languages", () => {
     const placeholders = (template: string) =>
       [...template.matchAll(/\{(\w+)\}/g)].map((match) => match[1]).sort();

@@ -1,17 +1,23 @@
 ---
 title: Billing
-description: What you pay for, how the trial works, and what happens when a subscription stops.
+description: The free launch, the trial, what counts as a server, and what happens when a subscription stops.
 locale: en
 section: account
 sectionOrder: 3
 order: 3
 ---
 
-You pay per server, per month. The app and the agent come with it, on every device you use.
+You pay per server, per month. The app and the agent come with it, on every device you use. See the [pricing](/pricing/) for the figures.
+
+An account is required, and the app enrols a server only under a subscription: the free launch, the trial, or a paid one.
+
+## The launch
+
+Until billing opens, Pupitre is free: **Start** in the console opens a launch subscription for one machine per organisation, with no card. The pricing page gives the date the launch ends. An organisation that enrolled a machine during the launch keeps that seat for free for good. Billing opening will be announced by email thirty days ahead, and nothing is ever charged without a step of yours.
 
 ## The trial
 
-Fourteen days, no card. You install the app, connect a server, and use everything. When the trial ends nothing is deleted: the server keeps running, and you subscribe when you want the app back.
+Once billing is open: thirty days, on one machine, with no card. An organisation has one trial. When it ends nothing is deleted: the server keeps running, and you subscribe when you want the app back.
 
 ## Yearly
 
@@ -19,14 +25,20 @@ Two months are free on the yearly plan. The switch happens in the console; the a
 
 ## What counts as a server
 
-A machine enrolled with the platform. Removing a server from the console stops it counting at the end of the period. A machine you never enrol — an app running without an account — does not count at all.
+A machine enrolled with the platform, under your organisation. Deleting a server in the console frees its seat at once; the agent then takes the platform's keys out of the server and goes into restricted mode. See [uninstall](/docs/account/uninstall/).
 
 ## Payments
 
-Checkout and the customer portal are handled by Stripe as merchant of record. The site does not sell: the order button opens the console, and no card ever touches `pupitre.studio`.
+Checkout and the customer portal will be handled by Stripe as merchant of record. The site does not sell: the order button opens the console, and no card ever touches `pupitre.studio`.
 
 ## When it stops
 
-The server keeps working as an ordinary server. Projects, databases, services and tunnels stay in place, and you connect over SSH as before. The agent falls back to a restricted mode after seven days without a licence — it stops accepting new installs, and it breaks nothing that already runs.
+The server keeps working as an ordinary server. Projects, databases, services and tunnels stay in place, and you connect over SSH as before.
 
-Subscribe again and the app picks up where it left off.
+- **A failed payment** opens seven days of grace: everything keeps working, and the console and the email say until when. After that, the servers are suspended.
+- **A cancelled or ended subscription** suspends the servers at their next check-in with the platform.
+- **A server that cannot reach the platform** keeps its last answer for seven days, then suspends itself.
+
+A suspended server puts the agent in restricted mode: the app still reads its state and can update the agent, but installs and changes wait. Nothing that already runs is stopped. See [troubleshooting](/docs/account/troubleshooting/).
+
+Subscribe again and the app picks up where it left off, at the server's next check-in.

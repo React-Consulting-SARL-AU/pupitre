@@ -70,7 +70,7 @@ function text(html: string): string {
     .replace(/\s+/g, " ");
 }
 
-/** The opening tag that carries this attribute, whatever order it renders in. */
+// Attribute order in the rendered tag is not stable, so the whole opening tag is matched.
 function tag(html: string, attribute: string, value: string): string {
   const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const match = html.match(

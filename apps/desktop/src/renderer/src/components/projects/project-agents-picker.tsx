@@ -10,14 +10,6 @@ import { agentChordLabel } from "@renderer/lib/project-shortcuts";
 import type { TerminalAgent } from "@shared/terminals";
 import { Bot, Boxes } from "lucide-react";
 
-/**
- * The agents tab before any agent runs: one card per agent the machine holds,
- * under the logo of the module that put it there.
- *
- * Nothing starts on arrival — an agent is a session that costs a login and a
- * context, and the reader picks which one. A machine with no agent module says
- * where one is installed from.
- */
 export function ProjectAgentsPicker({
   agents,
   onPick,

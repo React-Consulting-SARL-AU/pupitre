@@ -10,12 +10,13 @@ import (
 // AWS's documented example key, split so the commit hook's secret scan does not take it for a real one.
 const exampleKeyID = "AKIA" + "IOSFODNN7EXAMPLE"
 
-// The GET Object example of the AWS Signature Version 4 documentation, signed exactly as S3 expects it.
+// Expected values come from the GET Object example of the AWS Signature Version 4 documentation.
 func TestTheSignatureMatchesTheAWSExample(t *testing.T) {
 	request, err := http.NewRequest(http.MethodGet, "https://examplebucket.s3.amazonaws.com/test.txt", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	request.Header.Set("Range", "bytes=0-9")
 
 	holder := credentials{accessKey: exampleKeyID, secret: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", region: "us-east-1"}

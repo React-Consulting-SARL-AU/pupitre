@@ -38,26 +38,13 @@ import { useNavigation } from "./navigation";
 import { useTransfers } from "./transfers";
 import { useTunnel } from "./tunnel";
 
-/**
- * One service of the machine, as the screen works with it day to day.
- *
- * The state, the version and the port are the agent's. The credentials are not
- * here at all: this store holds their labels, and asks the main process for one
- * value at a time when the reader clicks — which is why the whole store can be
- * printed, dumped or inspected without a password appearing in it.
- */
-
+/** Holds credential labels only: values stay in the main process, revealed one at a time. */
 export type DetailState =
   | { status: "idle" }
   | { status: "reading"; moduleId: string }
   | { status: "ready"; moduleId: string; detail: ServiceDetail }
   | { status: "failed"; moduleId: string; error: AgentError };
 
-/**
- * What the agent kept from the last request for this module, and what the
- * reader changed since. Secrets are here by name only: their value goes to the
- * main process and does not come back.
- */
 export type ConfigState =
   | { status: "idle" }
   | { status: "reading"; moduleId: string }
@@ -65,9 +52,8 @@ export type ConfigState =
       status: "ready";
       moduleId: string;
       held: readonly string[];
-      /** The values as the agent answered them, before the form touched any. */
       answered: Record<string, unknown>;
-      /** What the form opened on: the answers, completed by the manifest's defaults. */
+      /** `answered` completed by the manifest's defaults. */
       baseline: Record<string, unknown>;
     }
   | { status: "failed"; moduleId: string; error: AgentError };
@@ -84,33 +70,24 @@ export type RemovalState =
   | { status: "done"; moduleId: string; failed: readonly string[] }
   | { status: "failed"; moduleId: string; error: AgentError };
 
-/** What the last database gesture produced, in the agent's own words. */
 export interface DatabaseOutcome {
   kind: "dump" | "import";
   lines: string[];
   bytes?: number;
 }
 
-/** The unit's three gestures, as the protocol names them. */
 export type ServiceControl =
   | "service.start"
   | "service.stop"
   | "service.restart";
 
-/** The dumps present in the server's folder, as `fs.list` describes them. */
 export type DumpsState =
   | { status: "idle" }
   | { status: "reading" }
   | { status: "ready"; dumps: FileEntry[] }
   | { status: "failed"; error: AgentError };
 
-/**
- * A dump on its way up from this computer, imported the moment it lands.
- *
- * The file rides its own transfer, outside the agent's channel — a dump of
- * several gigabytes is the reason transfers exist — and `db.import` is asked
- * by name once the transfer says done.
- */
+/** Dumps travel on their own transfer, not the agent channel; `db.import` runs once it is done. */
 export interface PendingImport {
   transferId: string;
   name: string;
@@ -118,28 +95,23 @@ export interface PendingImport {
   moduleId: string;
 }
 
-/** The folder under the agent's root where `db.dump` writes and `db.import` reads. */
+/** Relative to the agent's root. */
 export const DUMPS_DIR = "dumps";
 
 interface ServicesStore {
   detail: DetailState;
   config: ConfigState;
-  /** The manifest the form is drawn from, when the server declared one. */
   manifest: Manifest | null;
   values: Record<string, unknown>;
   secrets: SecretMarks;
-  /** The fields the reader answered since the form opened: the only ones that say what is wrong with them before an apply. */
   touched: readonly string[];
-  /** An apply was asked for: every problem is shown from then on. */
   attempted: boolean;
-  /** What only the server could refuse — a port another program holds — kept on its field until that field changes. */
+  /** Server-side refusals (e.g. a port in use), cleared when their field changes. */
   refused: readonly FieldProblem[];
   apply: ApplyState;
-  /** A refusal took the typed secrets with it: the form says so until one is typed again. */
   secretsDropped: boolean;
   removal: RemovalState;
   steps: ModuleProgress[];
-  /** How long to wait between two readings of a report still being written. */
   pollMs: number;
   database: DatabaseOutcome | null;
   dumps: DumpsState;
@@ -147,10 +119,6 @@ interface ServicesStore {
   busy: string | null;
   problem: AgentError | null;
 
-  /**
-   * Opens the panel: the state, and, given the manifest, the form under it —
-   * with the secrets a module left unconfigured still owes made on the way.
-   */
   open: (
     serverId: string,
     moduleId: string,
@@ -162,13 +130,9 @@ interface ServicesStore {
     defaults?: Record<string, unknown>
   ) => Promise<void>;
   setValue: (key: string, value: unknown) => void;
-  /** What the form refuses by the rules of the manifest, and what the server refused. */
   problems: () => FieldProblem[];
-  /** The problems the form is allowed to show: on a field answered since it opened, or all once an apply was asked for. */
   shown: () => FieldProblem[];
-  /** Whether the form holds anything the server does not: a changed value, a typed or generated secret. */
   dirty: () => boolean;
-  /** Puts the form back to what the server holds and drops the secrets typed since. */
   discard: (serverId: string) => Promise<void>;
   setSecret: (
     serverId: string,
@@ -192,7 +156,6 @@ interface ServicesStore {
   copy: (serverId: string, moduleId: string, label: string) => Promise<boolean>;
   connectionUrl: (serverId: string, moduleId: string) => Promise<void>;
   remove: (serverId: string, moduleId: string) => Promise<void>;
-  /** Starts, stops or restarts the unit; what comes back is the state it is in. */
   control: (
     serverId: string,
     moduleId: string,
@@ -204,20 +167,15 @@ interface ServicesStore {
     moduleId: string,
     name?: string
   ) => Promise<void>;
-  /** The dumps on the server, listed from the folder `db.dump` writes to. */
   readDumps: (serverId: string) => Promise<void>;
-  /** Feeds one dump, chosen by its file, to the database its name says. */
   restoreDump: (
     serverId: string,
     moduleId: string,
     fileName: string
   ) => Promise<void>;
   removeDump: (serverId: string, fileName: string) => Promise<void>;
-  /** Opens the database's shell in a terminal tab the main process commands. */
   shell: (serverId: string, moduleId: string) => Promise<void>;
-  /** Brings the last dump to this computer, on its own transfer. */
   downloadDump: (serverId: string) => Promise<void>;
-  /** Sends dumps chosen on this computer to the server, then imports each one. */
   importFromComputer: (serverId: string, moduleId: string) => Promise<void>;
   announce: (error: AgentError | null) => void;
   forget: () => void;
@@ -249,7 +207,6 @@ function engineParams(
 }
 
 export const useServices = create<ServicesStore>((set, get) => {
-  /** The dump's path as the agent's `fs.*` names it: under the root the agent holds. */
   async function relativeDump(
     serverId: string,
     absolute: string
@@ -349,17 +306,7 @@ export const useServices = create<ServicesStore>((set, get) => {
     });
   }
 
-  /**
-   * The configuration the agent kept, re-read when the panel opens.
-   *
-   * `values` is what the form will send back in `install`: it always goes
-   * whole, because the agent replaces a module's configuration rather than
-   * merging it field by field.
-   */
-  /**
-   * The names the projects answer to under the domain an exposure is about to
-   * leave: nothing when the module is not an exposure, or keeps its domain.
-   */
+  // null when the module is not an exposure or keeps its domain.
   async function publishedNames(
     serverId: string,
     moduleId: string,
@@ -386,11 +333,7 @@ export const useServices = create<ServicesStore>((set, get) => {
     );
   }
 
-  /**
-   * The agent moved every name under the new domain; the records are the
-   * app's to move: the ones of before go — only those it wrote — and the ones
-   * of now are written from what the tunnel declares.
-   */
+  // The agent moves the routes; the DNS records are the app's to release and rewrite.
   async function followDomain(
     serverId: string,
     before: string[] | null
@@ -413,11 +356,6 @@ export const useServices = create<ServicesStore>((set, get) => {
     await useTunnel.getState().sync(serverId);
   }
 
-  /**
-   * The report of a run already under way on the machine, read until it ends:
-   * the module's steps and its fate come from there, as they would have come
-   * from the channel.
-   */
   async function followReport(
     serverId: string,
     moduleId: string
@@ -504,9 +442,7 @@ export const useServices = create<ServicesStore>((set, get) => {
       return;
     }
 
-    // A module installed by an older agent kept nothing on record: the form
-    // then shows the manifest's defaults, the values the agent would apply,
-    // instead of empty fields.
+    // An older agent kept no values on record: fall back to the manifest's defaults.
     const baseline = { ...defaults, ...answer.result.values };
 
     set({
@@ -521,7 +457,7 @@ export const useServices = create<ServicesStore>((set, get) => {
     });
   }
 
-  /** A refusal that named its fields is not a failure to announce: the form says it, on the fields. */
+  // A refusal naming its fields is shown on those fields, not announced as a failure.
   function outcomeOf(
     answer: AgentResponse<InstallResult>,
     moduleId: string,
@@ -536,7 +472,6 @@ export const useServices = create<ServicesStore>((set, get) => {
       : { error: answer.error, moduleId, status: "failed" };
   }
 
-  /** How many values a secret field holds: typed or generated here, or kept by the server. */
   function heldSecrets(moduleId: string): (id: string, key: string) => number {
     return (_id, key) => {
       const { config, secrets } = get();
@@ -548,6 +483,7 @@ export const useServices = create<ServicesStore>((set, get) => {
       }
 
       let filled = 0;
+
       while (marks[itemKey(key, filled)]?.filled) {
         filled += 1;
       }
@@ -560,13 +496,8 @@ export const useServices = create<ServicesStore>((set, get) => {
     return JSON.stringify(left ?? null) === JSON.stringify(right ?? null);
   }
 
-  /**
-   * The server's own verdict on the values, asked before they are applied: a
-   * port another program listens on is something only the machine knows. An
-   * agent too old to answer says so, and the apply goes on with what the form
-   * checked itself.
-   */
-  async function weigh(
+  // An agent too old to check answers nothing: the form's own checks then stand.
+  async function serverRefusals(
     serverId: string,
     moduleId: string,
     values: Record<string, unknown>
@@ -619,9 +550,7 @@ export const useServices = create<ServicesStore>((set, get) => {
 
       await read(serverId, moduleId, defaultsOf(manifest));
 
-      // A module put on the machine for later was never given the passwords
-      // its manifest says to generate: they are made now, as the catalogue
-      // would have, so that applying the form is all that finishes it.
+      // A module installed for later never got its generated passwords: make them now.
       const { detail, config } = get();
       const owed =
         detail.status === "ready" && !detail.detail.configured
@@ -687,6 +616,7 @@ export const useServices = create<ServicesStore>((set, get) => {
       }
 
       const marks = manifest ? Object.values(secrets[manifest.id] ?? {}) : [];
+
       if (marks.some((mark) => mark.filled)) {
         return true;
       }
@@ -756,18 +686,13 @@ export const useServices = create<ServicesStore>((set, get) => {
         moduleId,
         key
       );
+
       set({ secrets: answer.marks });
 
       return answer.value;
     },
 
-    /**
-     * The form sent back to the agent: the same `install`, for this one module.
-     *
-     * A retyped secret leaves the main process's vault on the secret stream;
-     * a secret left untyped isn't sent at all, and the agent keeps the one it
-     * already holds.
-     */
+    // An untyped secret is not sent: the agent keeps the one it holds.
     async reconfigure(serverId, moduleId) {
       set({ attempted: true, problem: null });
 
@@ -777,7 +702,8 @@ export const useServices = create<ServicesStore>((set, get) => {
 
       set({ apply: { moduleId, status: "running" }, steps: [] });
 
-      const refused = await weigh(serverId, moduleId, get().values);
+      const refused = await serverRefusals(serverId, moduleId, get().values);
+
       if (refused.length > 0) {
         set({ apply: { status: "idle" }, refused });
 
@@ -792,6 +718,7 @@ export const useServices = create<ServicesStore>((set, get) => {
       const answer = await window.pupitre.startInstall(
         serverId,
         [moduleId],
+        // Sent whole: the agent replaces a module's configuration, it never merges.
         { [moduleId]: { ...get().values } },
         (update) => {
           if (update.kind === "event") {
@@ -804,16 +731,13 @@ export const useServices = create<ServicesStore>((set, get) => {
         }
       );
 
-      // A machine already installing is not a machine that refused: the run
-      // is followed to its end on the report, as the install screen does.
+      // Busy means another run is under way: follow it on the report instead of failing.
       if (!answer.ok && answer.error.code === "busy") {
         await followReport(serverId, moduleId);
 
         return;
       }
 
-      // A configuration the agent refused names its fields: the form marks
-      // them, as it would have had the check caught them first.
       const named =
         !answer.ok && answer.error.remedy?.code === "invalid_fields"
           ? answer.error.remedy.problems
@@ -830,8 +754,7 @@ export const useServices = create<ServicesStore>((set, get) => {
         secretsDropped: !(answer.ok || kept) && typed,
       }));
 
-      // The panel keeps its steps and verdict: only the service's state and
-      // what the agent now holds are re-read.
+      // Not open(): that would reset the steps and verdict the panel keeps.
       if (answer.ok) {
         await readDetail(serverId, moduleId);
         await read(serverId, moduleId, get().values);
@@ -839,7 +762,6 @@ export const useServices = create<ServicesStore>((set, get) => {
       }
     },
 
-    /** Closing the panel is what tells the main process to drop the values. */
     async close(serverId) {
       const { detail } = get();
 
@@ -859,10 +781,7 @@ export const useServices = create<ServicesStore>((set, get) => {
       return window.pupitre.copyCredential(serverId, moduleId, label);
     },
 
-    /**
-     * The connection string joins the credentials rather than the screen: it
-     * carries what opens the database, and is masked like the rest.
-     */
+    // The URL becomes a masked credential, so it is read back through the detail.
     async connectionUrl(serverId, moduleId) {
       set({ busy: "db.url", problem: null });
 
@@ -875,6 +794,7 @@ export const useServices = create<ServicesStore>((set, get) => {
       }
 
       set({ busy: null });
+
       await readDetail(serverId, moduleId);
     },
 
@@ -899,11 +819,7 @@ export const useServices = create<ServicesStore>((set, get) => {
       });
     },
 
-    /**
-     * The answer is the state, not the intention: the agent waits for systemd's
-     * verdict and answers what `service.status` would. The credentials it does
-     * not carry are the ones already on the page.
-     */
+    // The agent answers the state systemd settled on, not the one requested.
     async control(serverId, moduleId, cmd) {
       set({ busy: cmd, problem: null });
 
@@ -945,7 +861,6 @@ export const useServices = create<ServicesStore>((set, get) => {
         (result) => ({ bytes: result.size_bytes, lines: [result.path] })
       );
 
-      // The list, when the reader has it open, shows the file that just landed.
       if (get().database?.kind === "dump" && get().dumps.status !== "idle") {
         await readDumps(serverId);
       }
@@ -982,11 +897,7 @@ export const useServices = create<ServicesStore>((set, get) => {
       }
     },
 
-    /**
-     * The tab is opened on an identifier the main process chose: the command
-     * the agent composed waits there, under that identifier, and the terminal
-     * that mounts on it runs it without this side ever reading the line.
-     */
+    // The renderer only gets an id: the shell command stays in the main process.
     async shell(serverId, moduleId) {
       set({ busy: "db.shell", problem: null });
 

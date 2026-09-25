@@ -23,6 +23,7 @@ func execute(t *testing.T, env environment, args ...string) (int, string, string
 
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
+
 	code := run(args, stdout, stderr, env)
 
 	return code, stdout.String(), stderr.String()
@@ -84,7 +85,6 @@ func TestPublicKeyDerivesTheFlagTheReleaseBuildInjects(t *testing.T) {
 	}
 }
 
-// The binary of a release is signed by the CI or not at all: without the secret the tool stops instead of producing something unsigned.
 func TestSigningStopsWithoutTheSecret(t *testing.T) {
 	binary := binaryAt(t, "pupitred-linux-amd64", []byte("pupitred"))
 

@@ -21,6 +21,7 @@ const (
 	ErrorBackupMissing       ErrorCode = "backup_missing"
 	ErrorBackupUnsupported   ErrorCode = "backup_unsupported"
 	ErrorBackupCorrupt       ErrorCode = "backup_corrupt"
+	ErrorPrivilegeRequired   ErrorCode = "privilege_required"
 	ErrorInternal            ErrorCode = "internal"
 )
 
@@ -43,6 +44,7 @@ var ErrorCodes = []ErrorCode{
 	ErrorBackupMissing,
 	ErrorBackupUnsupported,
 	ErrorBackupCorrupt,
+	ErrorPrivilegeRequired,
 	ErrorInternal,
 }
 

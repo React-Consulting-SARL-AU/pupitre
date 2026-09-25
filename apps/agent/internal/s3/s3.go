@@ -1,4 +1,3 @@
-// Package s3 speaks S3 — Cloudflare R2, AWS, anything compatible — with the standard library alone.
 package s3
 
 import (
@@ -16,12 +15,11 @@ import (
 )
 
 const (
-	// DefaultPartBytes is the size of every part of a multipart upload but the
-	// last: R2 wants them all equal, and ten thousand of them carry 80 GB.
+	// R2 wants every part but the last equal; ten thousand parts of this size carry 80 GB.
 	DefaultPartBytes = 8 << 20
 	maxParts         = 10_000
 
-	// A copy inside the bucket goes in one call up to 5 GiB, in ranges of 1 GiB beyond.
+	// S3 copies up to 5 GiB in one call; beyond that, in 1 GiB ranges.
 	singleCopyLimit = 5 << 30
 	copyPartBytes   = 1 << 30
 
@@ -46,7 +44,7 @@ type Client struct {
 	HTTP      *http.Client
 	Now       func() time.Time
 	PartBytes int
-	// Backoff is the wait before the given retry; nil doubles from a second.
+	// nil doubles from one second.
 	Backoff func(retry int) time.Duration
 }
 
@@ -72,7 +70,6 @@ type Upload struct {
 	Initiated time.Time
 }
 
-// Uploaded is what left the server: the bytes of the object and their digest, the one a manifest binds.
 type Uploaded struct {
 	Bytes  int64
 	SHA256 string
@@ -97,6 +94,7 @@ func (c Client) HeadBucket(ctx context.Context) error {
 
 func (c Client) Put(ctx context.Context, key string, body []byte, contentType string) error {
 	header := http.Header{}
+
 	if contentType != "" {
 		header.Set("Content-Type", contentType)
 	}
@@ -112,7 +110,17 @@ func (c Client) Delete(ctx context.Context, key string) error {
 	return err
 }
 
-// Get streams an object; the caller closes what it reads.
+// A missing key refuses with KindNoKey.
+func (c Client) Size(ctx context.Context, key string) (int64, error) {
+	response, err := c.open(ctx, call{op: "HeadObject", method: http.MethodHead, key: key})
+	if err != nil {
+		return 0, err
+	}
+	defer response.Body.Close()
+
+	return response.ContentLength, nil
+}
+
 func (c Client) Get(ctx context.Context, key string) (io.ReadCloser, error) {
 	response, err := c.open(ctx, call{op: "GetObject", method: http.MethodGet, key: key})
 	if err != nil {
@@ -122,7 +130,6 @@ func (c Client) Get(ctx context.Context, key string) (io.ReadCloser, error) {
 	return response.Body, nil
 }
 
-// List walks every page of what lies under prefix: the objects, and with a delimiter the common prefixes.
 func (c Client) List(ctx context.Context, prefix, delimiter string) ([]Object, []string, error) {
 	var objects []Object
 	var prefixes []string
@@ -130,9 +137,11 @@ func (c Client) List(ctx context.Context, prefix, delimiter string) ([]Object, [
 
 	for {
 		query := url.Values{"list-type": {"2"}, "prefix": {prefix}}
+
 		if delimiter != "" {
 			query.Set("delimiter", delimiter)
 		}
+
 		if token != "" {
 			query.Set("continuation-token", token)
 		}
@@ -149,6 +158,7 @@ func (c Client) List(ctx context.Context, prefix, delimiter string) ([]Object, [
 			IsTruncated bool   `xml:"IsTruncated"`
 			Next        string `xml:"NextContinuationToken"`
 		}
+
 		if err := c.decode(ctx, call{op: "ListObjectsV2", method: http.MethodGet, bucket: true, query: query}, &page); err != nil {
 			return nil, nil, err
 		}
@@ -156,6 +166,7 @@ func (c Client) List(ctx context.Context, prefix, delimiter string) ([]Object, [
 		for _, entry := range page.Contents {
 			objects = append(objects, Object{Key: entry.Key, Size: entry.Size, LastModified: entry.LastModified})
 		}
+
 		for _, common := range page.CommonPrefixes {
 			prefixes = append(prefixes, common.Prefix)
 		}
@@ -168,13 +179,13 @@ func (c Client) List(ctx context.Context, prefix, delimiter string) ([]Object, [
 	}
 }
 
-// Uploads names the multipart uploads begun under prefix and never completed nor aborted.
 func (c Client) Uploads(ctx context.Context, prefix string) ([]Upload, error) {
 	var uploads []Upload
 	keyMarker, idMarker := "", ""
 
 	for {
 		query := url.Values{"uploads": {""}, "prefix": {prefix}}
+
 		if keyMarker != "" {
 			query.Set("key-marker", keyMarker)
 			query.Set("upload-id-marker", idMarker)
@@ -190,6 +201,7 @@ func (c Client) Uploads(ctx context.Context, prefix string) ([]Upload, error) {
 			NextKey     string `xml:"NextKeyMarker"`
 			NextID      string `xml:"NextUploadIdMarker"`
 		}
+
 		if err := c.decode(ctx, call{op: "ListMultipartUploads", method: http.MethodGet, bucket: true, query: query}, &page); err != nil {
 			return nil, err
 		}
@@ -212,7 +224,7 @@ func (c Client) Abort(ctx context.Context, key, uploadID string) error {
 	return err
 }
 
-// decode runs a call and reads its XML answer, which may be an error even under a 200.
+// S3 may answer an error inside a 200 body.
 func (c Client) decode(ctx context.Context, request call, into any) error {
 	answer, err := c.exchange(ctx, request)
 	if err != nil {
@@ -235,7 +247,6 @@ type answer struct {
 	header http.Header
 }
 
-// exchange runs a call whose body is held in memory, retried on what a network or a busy bucket answers, and reads the whole answer.
 func (c Client) exchange(ctx context.Context, request call) (answer, error) {
 	var last error
 
@@ -278,7 +289,7 @@ func (c Client) once(ctx context.Context, request call) (answer, error) {
 	return answer{body: body, header: response.Header}, nil
 }
 
-// open runs a call whose answer is streamed: only the request is retried, never a body half read.
+// The answer is streamed, so only the request is retried, never a body half read.
 func (c Client) open(ctx context.Context, request call) (*http.Response, error) {
 	var last error
 
@@ -324,6 +335,7 @@ func (c Client) send(ctx context.Context, request call) (*http.Response, error) 
 	message.URL = target
 	message.Host = host
 	message.ContentLength = int64(len(request.body))
+
 	for name, values := range request.header {
 		message.Header[name] = values
 	}
@@ -350,7 +362,6 @@ func (c Client) send(ctx context.Context, request call) (*http.Response, error) 
 	return response, nil
 }
 
-// address is where a key lives: under the bucket's own host, or under its name on the endpoint's.
 func (c Client) address(key string, bucketOnly bool) (*url.URL, string, error) {
 	endpoint, err := url.Parse(strings.TrimSuffix(c.Endpoint, "/"))
 	if err != nil || endpoint.Host == "" || (endpoint.Scheme != "https" && endpoint.Scheme != "http") {
@@ -411,9 +422,10 @@ func (c Client) now() time.Time {
 	return c.Now()
 }
 
-// A signed request never follows a redirect: the signature names one host, and a bucket in another region says so in its refusal.
+// Never follow a redirect: the signature names one host, and a bucket in another region says so in its refusal.
 func (c Client) client() *http.Client {
 	client := &http.Client{Transport: transport}
+
 	if c.HTTP != nil {
 		copied := *c.HTTP
 		client = &copied

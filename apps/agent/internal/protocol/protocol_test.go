@@ -170,7 +170,7 @@ func runFixture(t *testing.T, f fixture) {
 	}
 }
 
-// A line the run only spells differently is kept as the file holds it: a regeneration records what changed, not the whole file.
+// Lines that only differ in spelling keep the file's version, so a regeneration diff shows real changes only.
 func recording(t *testing.T, got, want []string) (lines []string, diverged bool) {
 	t.Helper()
 
@@ -228,7 +228,6 @@ func TestHelloResultMatchesTheContract(t *testing.T) {
 	}
 }
 
-// pupitred dev greets nobody: hello through Call has no session to mark, and must still answer.
 func TestHelloAnswersADirectCallWithoutASession(t *testing.T) {
 	result, err := newTestServer(contract.EntitlementDev).Call("hello", map[string]any{"app_version": "0.2.0", "protocol": contract.ProtocolVersion}, nil)
 	if err != nil {
@@ -240,11 +239,10 @@ func TestHelloAnswersADirectCallWithoutASession(t *testing.T) {
 	}
 }
 
-// A server the platform has named says so in hello; one it has not named yet says nothing rather than an empty name.
 func TestHelloNamesTheServerOnceThePlatformHas(t *testing.T) {
 	named := ""
 	server := NewServer(Options{AgentVersion: "1.0.0", ServerID: func() string { return named }})
-	params := map[string]any{"app_version": "0.2.0", "protocol": contract.ProtocolVersion}
+	params := map[string]any{"app_version": "1.0.0", "protocol": contract.ProtocolVersion}
 
 	unnamed, err := server.Call("hello", params, nil)
 	if err != nil {
@@ -263,6 +261,35 @@ func TestHelloNamesTheServerOnceThePlatformHas(t *testing.T) {
 
 	if encoded, _ := json.Marshal(result); !strings.Contains(string(encoded), `"server_id":"srv_42"`) {
 		t.Fatalf("hello = %s", encoded)
+	}
+}
+
+func TestHelloRefusesAnAppBelowTheAgentsFloorOnTheSameProtocol(t *testing.T) {
+	server := NewServer(Options{AgentVersion: "1.0.0", Now: fixedNow})
+
+	_, err := server.Call("hello", map[string]any{"app_version": "0.9.1", "protocol": contract.ProtocolVersion, "locale": "en"}, nil)
+
+	var refused *Error
+	if !errors.As(err, &refused) || refused.Code != contract.ErrorProtocolMismatch {
+		t.Fatalf("hello from app 0.9.1 = %v, want protocol_mismatch", err)
+	}
+
+	if !strings.Contains(refused.Message, "0.9.1") || !strings.Contains(refused.Fix, "1.0.0") {
+		t.Fatalf("the refusal must name the app and the version to reach: %+v", refused)
+	}
+
+	for _, app := range []string{"1.0.0", "1.4.2", "1.0.0-rc.1", "dev"} {
+		if _, err := server.Call("hello", map[string]any{"app_version": app, "protocol": contract.ProtocolVersion}, nil); err != nil {
+			t.Errorf("hello from app %q: %v", app, err)
+		}
+	}
+}
+
+func TestHelloStillAnswersANewerAgentThanTheSheetKnows(t *testing.T) {
+	server := NewServer(Options{AgentVersion: "0.9.1", Now: fixedNow})
+
+	if _, err := server.Call("hello", map[string]any{"app_version": "1.0.0", "protocol": contract.ProtocolVersion}, nil); err != nil {
+		t.Fatalf("an older agent must keep answering a newer app, which upgrades it: %v", err)
 	}
 }
 
@@ -352,8 +379,7 @@ func TestALinePastTheLimitIsRefusedAndEndsTheSession(t *testing.T) {
 
 func TestTheLargestLegalLineStillPasses(t *testing.T) {
 	var out bytes.Buffer
-	// The largest line the contract carries is a fs.write just under the cap;
-	// a ping padded with whitespace to the same length must go through.
+	// Stands in for the largest real line, an fs.write just under the cap.
 	padded := `{"id":2,"cmd":"ping","params":{}}` + strings.Repeat(" ", lineLimit-len(`{"id":2,"cmd":"ping","params":{}}`)-1)
 	input := strings.NewReader(
 		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}` + "\n" + padded + "\n",
@@ -410,8 +436,6 @@ func TestErrorUnwrapsAsProtocolError(t *testing.T) {
 	}
 }
 
-// A writer that goes the way of a dropped SSH session: it takes a few lines,
-// then refuses every one that follows.
 type droppingWriter struct {
 	keep   int
 	buffer bytes.Buffer
@@ -456,8 +480,6 @@ func TestACommandOutlivesTheChannelThatCarriedIt(t *testing.T) {
 	}
 }
 
-// A follow ends with the channel: a handler that waits on the command's context
-// is released the moment standard input closes, not when its own time is up.
 func TestTheChannelContextEndsWhenStandardInputCloses(t *testing.T) {
 	server := NewServer(Options{AgentVersion: testAgentVersion, Entitlement: entitlement.Fixed(contract.EntitlementDev), Now: fixedNow})
 
@@ -491,7 +513,6 @@ func TestTheChannelContextEndsWhenStandardInputCloses(t *testing.T) {
 	}
 }
 
-// A write that fails is the channel gone too: the context ends, and the loop returns the failure.
 func TestTheChannelContextEndsWhenAWriteFails(t *testing.T) {
 	server := NewServer(Options{AgentVersion: testAgentVersion, Entitlement: entitlement.Fixed(contract.EntitlementDev), Now: fixedNow})
 

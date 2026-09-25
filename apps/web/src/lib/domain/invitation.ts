@@ -7,7 +7,7 @@ export interface InvitationRefusal {
   fix: DictionaryKey
 }
 
-/** The one refusal worth naming: the invitation went to another address than the session's. */
+// The only refusal worth naming: the invitation went to another address than the session's.
 export function invitationRefusalOf(
   code: string | null | undefined
 ): InvitationRefusal {

@@ -5,7 +5,6 @@ import {
   absoluteOf,
   crumbsOf,
   dirnameOf,
-  heldCount,
   isEntryName,
   nameOf,
   parentOf,
@@ -126,16 +125,6 @@ describe("le tri d'un dossier", () => {
   });
 });
 
-describe("le refus d'un dossier non vide", () => {
-  it("lit le nombre d'entrées que le message nomme en dernier", () => {
-    expect(heldCount("the folder is not empty: v2/src holds 14 entries")).toBe(
-      14
-    );
-    expect(heldCount("dossier non vide : app contient 3 entrées")).toBe(3);
-    expect(heldCount("nothing to count here")).toBeNull();
-  });
-});
-
 describe("le menu d'une entrée", () => {
   const zed = {
     backend: false,
@@ -162,6 +151,12 @@ describe("le menu d'une entrée", () => {
       "copy",
       "remove",
     ]);
+  });
+
+  it("n'offre ni ouverture ni copie d'un tube, d'une socket ou d'un périphérique, qu'une lecture attendrait sans fin", () => {
+    expect(
+      entryActions(entry("fifo", "special"), [zed]).map((a) => a.id)
+    ).toEqual(["rename", "remove"]);
   });
 
   it("dit d'un téléchargement s'il porte sur un dossier, ce qui change la boîte", () => {

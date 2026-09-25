@@ -10,7 +10,6 @@ import type { ModuleProgress } from "@renderer/lib/module-progress";
 import type { RunState } from "@renderer/stores/backups";
 import { X } from "lucide-react";
 
-/** The backup asked for now: its steps as the agent runs them, then what it left in the bucket. */
 export function BackupsRunOutcome({
   run,
   steps,

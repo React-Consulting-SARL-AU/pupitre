@@ -70,9 +70,7 @@ export function InboxThreadAside({
           <dl className="flex flex-col gap-2">
             {facts.map((fact) => (
               <div className="flex flex-col gap-0.5" key={fact.label}>
-                <dt className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-                  {fact.label}
-                </dt>
+                <dt className="text-label">{fact.label}</dt>
                 <dd className="break-words text-[13px] text-ink-2">
                   {fact.value}
                 </dd>
@@ -93,9 +91,7 @@ export function InboxThreadAside({
           ) : null}
 
           <div className="flex flex-col gap-1">
-            <p className="text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-              {t("inbox.linkedOrganization")}
-            </p>
+            <p className="text-label">{t("inbox.linkedOrganization")}</p>
             <InboxOrganizationLink
               canAct={canAct}
               onLink={onLink}

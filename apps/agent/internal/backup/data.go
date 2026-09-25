@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"io/fs"
 	"maps"
 	"os"
 	"path/filepath"
@@ -20,7 +21,6 @@ import (
 	"pupitre.studio/agent/internal/protocol"
 )
 
-// restoring is one restore of data under way: the backup, the key that opens it, whom the files go to, and what came back.
 type restoring struct {
 	service  *Service
 	ctx      *modules.Context
@@ -32,7 +32,6 @@ type restoring struct {
 	result   contract.BackupRestoreDataResult
 }
 
-// RestoreData brings the chosen parts back, then gives each project what project.add gives a new row and starts what ran.
 func (s *Service) RestoreData(sink modules.Sink, location contract.BackupLocation, secrets contract.BackupSecrets, keys []string, start bool) (contract.BackupRestoreDataResult, error) {
 	var result contract.BackupRestoreDataResult
 
@@ -56,6 +55,7 @@ func (s *Service) restoreData(ctx *modules.Context, location contract.BackupLoca
 	if err != nil {
 		return contract.BackupRestoreDataResult{}, err
 	}
+	defer clear(private)
 
 	chosen, err := choose(backup.manifest.Parts, keys)
 	if err != nil {
@@ -94,7 +94,7 @@ func (s *Service) restoreData(ctx *modules.Context, location contract.BackupLoca
 	return r.result, nil
 }
 
-// choose reads the parts asked for in the order they come back: home, the databases with the Postgres roles first, the extra paths, the projects.
+// Restore order: home, Postgres roles before the databases that need them, extra paths, then projects.
 func choose(parts []contract.BackupPart, keys []string) ([]contract.BackupPart, error) {
 	var chosen []contract.BackupPart
 
@@ -148,6 +148,7 @@ func (r *restoring) bring(part contract.BackupPart) {
 	r.ctx.Replaying(replayOf("backup.restore.data", map[string]any{"parts": []string{part.Key}}))
 
 	var failure error
+
 	err := r.ctx.Step(step, func() (modules.Outcome, error) {
 		if err := r.restore(part); err != nil {
 			failure = err
@@ -169,17 +170,24 @@ func (r *restoring) bring(part contract.BackupPart) {
 }
 
 func (r *restoring) restore(part contract.BackupPart) error {
-	reader, err := r.service.part(r.backup, part, r.private)
+	staged, err := r.service.part(r.backup, part, r.private)
 	if err != nil {
 		return err
 	}
-	defer reader.Close()
+	defer staged.Close()
+
+	if part.Kind == contract.BackupPartDatabase {
+		return r.database(part, staged)
+	}
+
+	reader, err := staged.open()
+	if err != nil {
+		return err
+	}
 
 	switch part.Kind {
 	case contract.BackupPartHome:
 		return archive.Extract(reader, r.service.paths.Home, r.owner)
-	case contract.BackupPartDatabase:
-		return r.database(part, reader)
 	case contract.BackupPartPath:
 		return r.path(part, reader)
 	}
@@ -187,8 +195,8 @@ func (r *restoring) restore(part contract.BackupPart) error {
 	return r.project(part, reader)
 }
 
-// A database is dropped and made again by its own engine; one whose module is not installed yet has nowhere to go.
-func (r *restoring) database(part contract.BackupPart, reader io.Reader) error {
+// The dump is measured first: the engine weighs its size against the disk before it drops anything.
+func (r *restoring) database(part contract.BackupPart, staged *fetched) error {
 	chosen, known := engineNamed(part.Engine)
 	if !known || (part.Name != contract.BackupWholeServer && !carriable(part.Name)) {
 		return corrupt(i18n.T("backup.corrupt.part", part.Key, part.Engine+"/"+part.Name))
@@ -201,40 +209,80 @@ func (r *restoring) database(part contract.BackupPart, reader io.Reader) error {
 	}
 
 	if part.Name == contract.BackupWholeServer && chosen.whole != nil {
+		reader, err := staged.open()
+		if err != nil {
+			return err
+		}
+
 		return chosen.whole.restore(sibling, reader)
 	}
 
-	return chosen.restore(sibling, part.Name, reader)
+	size, err := staged.measure()
+	if err != nil {
+		return err
+	}
+
+	reader, err := staged.open()
+	if err != nil {
+		return err
+	}
+
+	return chosen.restore(sibling, part.Name, size, reader)
 }
 
-// An extra path is replaced whole: laid out beside the home first, then swapped in.
+// Laid out beside the home first, then swapped in whole.
 func (r *restoring) path(part contract.BackupPart, reader io.Reader) error {
-	home := r.service.paths.Home
 	rel := strings.TrimSuffix(part.Path, "/")
 
 	if !extraPathPattern.MatchString(part.Path) {
 		return corrupt(i18n.T("backup.corrupt.part", part.Key, part.Path))
 	}
 
-	staged, err := archive.Staging(home, "path", r.owner)
+	home, err := os.OpenRoot(r.service.paths.Home)
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(staged)
+	defer home.Close()
 
-	if err := archive.Extract(reader, staged, r.owner); err != nil {
+	staged, err := archive.Staging(home, ".", "path", r.owner)
+	if err != nil {
+		return err
+	}
+	defer home.RemoveAll(staged)
+
+	if err := archive.ExtractIn(reader, home, staged, r.owner); err != nil {
 		return err
 	}
 
-	target := filepath.Join(home, rel)
-	if err := archive.MakeDirs(home, filepath.Dir(target), r.owner); err != nil {
+	target := filepath.Join(r.service.paths.Home, rel)
+
+	if resolved, err := r.through(target); err == nil && resolved != target {
+		within, err := r.inHome(resolved)
+		if err != nil {
+			return err
+		}
+
+		return archive.Swap(home, filepath.Join(staged, rel), within)
+	}
+
+	if err := archive.MakeDirs(home, filepath.Dir(rel), r.owner); err != nil {
 		return err
 	}
 
-	return archive.Swap(filepath.Join(staged, rel), target)
+	return archive.Swap(home, filepath.Join(staged, rel), rel)
 }
 
-// A full project replaces its folder whole, work not pushed included; an env project is cloned, then gets its .env files.
+// A folder dev linked comes back where the link leads, when that is inside the home; the link stays.
+func (r *restoring) through(target string) (string, error) {
+	info, err := os.Lstat(target)
+	if err != nil || info.Mode()&os.ModeSymlink == 0 {
+		return target, nil
+	}
+
+	return archive.Resolve(target, r.service.paths.Home)
+}
+
+// Full mode replaces the folder whole, unpushed work included; env mode clones, then adds the .env files.
 func (r *restoring) project(part contract.BackupPart, reader io.Reader) error {
 	project, declared := r.projects[part.Name]
 	if !declared {
@@ -242,12 +290,29 @@ func (r *restoring) project(part contract.BackupPart, reader io.Reader) error {
 			WithFix(i18n.T("backup.restore.project.fix"))
 	}
 
+	destination, err := r.through(project.Path)
+
 	if part.Mode == contract.BackupProjectsEnv {
+		if err != nil {
+			return err
+		}
+
+		within, err := r.inHome(destination)
+		if err != nil {
+			return err
+		}
+
 		if _, err := r.service.options.Reader.Pull(part.Name); err != nil {
 			return err
 		}
 
-		if err := archive.Extract(reader, project.Path, r.owner); err != nil {
+		home, err := os.OpenRoot(r.service.paths.Home)
+		if err != nil {
+			return err
+		}
+		defer home.Close()
+
+		if err := archive.ExtractIn(reader, home, within, r.owner); err != nil {
 			return err
 		}
 
@@ -256,22 +321,40 @@ func (r *restoring) project(part contract.BackupPart, reader io.Reader) error {
 		return nil
 	}
 
-	parent := filepath.Dir(project.Path)
-	if err := makeDirs(parent, r.owner); err != nil {
-		return err
+	if err != nil {
+		destination = project.Path
 	}
 
-	staged, err := archive.Staging(parent, part.Name, r.owner)
+	within, err := r.inHome(destination)
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(staged)
 
-	if err := archive.Extract(reader, staged, r.owner); err != nil {
+	home, err := os.OpenRoot(r.service.paths.Home)
+	if err != nil {
+		return err
+	}
+	defer home.Close()
+
+	parent := filepath.Dir(within)
+
+	if _, err := home.Stat(parent); errors.Is(err, fs.ErrNotExist) {
+		if err := archive.MakeDirs(home, parent, r.owner); err != nil {
+			return err
+		}
+	}
+
+	staged, err := archive.Staging(home, parent, part.Name, r.owner)
+	if err != nil {
+		return err
+	}
+	defer home.RemoveAll(staged)
+
+	if err := archive.ExtractIn(reader, home, staged, r.owner); err != nil {
 		return err
 	}
 
-	if err := archive.Swap(staged, project.Path); err != nil {
+	if err := archive.Swap(home, staged, within); err != nil {
 		return err
 	}
 
@@ -280,7 +363,24 @@ func (r *restoring) project(part contract.BackupPart, reader io.Reader) error {
 	return nil
 }
 
-// leftOut is what a fresh server makes of what the settings kept out of the backup; a server taken back to it keeps its own.
+// The home's own links (a temporary folder's on macOS) spell it one more way, so both spellings are tried.
+func (r *restoring) inHome(full string) (string, error) {
+	bases := []string{r.service.paths.Home}
+
+	if evaluated, err := filepath.EvalSymlinks(r.service.paths.Home); err == nil {
+		bases = append(bases, evaluated)
+	}
+
+	for _, base := range bases {
+		if rel, err := filepath.Rel(base, full); err == nil && filepath.IsLocal(rel) {
+			return rel, nil
+		}
+	}
+
+	return "", &archive.UnsafeError{Name: full}
+}
+
+// Only a fresh server acts on what the settings kept out; a server taken back to its backup keeps its own.
 func (r *restoring) leftOut(excluded contract.BackupExcluded) {
 	reader := r.service.options.Reader
 
@@ -320,30 +420,7 @@ func (r *restoring) leftOut(excluded contract.BackupExcluded) {
 	}
 }
 
-// makeDirs makes a folder and whatever it needed, from the nearest one that exists, each given to owner.
-func makeDirs(dir string, owner archive.Owner) error {
-	base := dir
-	for {
-		if _, err := os.Stat(base); err == nil {
-			break
-		}
-
-		parent := filepath.Dir(base)
-		if parent == base {
-			break
-		}
-
-		base = parent
-	}
-
-	if base == dir {
-		return nil
-	}
-
-	return archive.MakeDirs(base, dir, owner)
-}
-
-// settle gives the restored registry what project.add gives a new row, then starts what ran.
+// Gives the restored registry what project.add gives a new row, then starts what ran.
 func (r *restoring) settle(manifest contract.BackupManifest, start bool) {
 	reader := r.service.options.Reader
 
@@ -385,9 +462,9 @@ func (r *restoring) settle(manifest contract.BackupManifest, start bool) {
 	}
 }
 
-// start brings up what the backup recorded as running, and the projects that start with the server anyway.
 func (r *restoring) start(manifest contract.BackupManifest) {
 	var names []string
+
 	for _, name := range manifest.Running {
 		if _, declared := r.projects[name]; declared && !slices.Contains(names, name) {
 			names = append(names, name)
@@ -411,11 +488,12 @@ func (r *restoring) start(manifest contract.BackupManifest) {
 	}
 }
 
-// after runs one step of the settling; a failure is a warning with its replay, and the next step runs all the same.
+// A failure is a warning with its replay, and the next step runs all the same.
 func (r *restoring) after(step, replay string, run func() (modules.Outcome, error)) bool {
 	r.ctx.Replaying(replay)
 
 	var failure error
+
 	err := r.ctx.Step(step, func() (modules.Outcome, error) {
 		outcome, err := run()
 		if err != nil {
@@ -435,7 +513,7 @@ func (r *restoring) after(step, replay string, run func() (modules.Outcome, erro
 	return true
 }
 
-// replayOf is the request that runs a step again, as the app sends it: a restore has no command on the machine, since its key never lands there.
+// The replay is an app request: a restore's key never lands on the machine, so it has no local command.
 func replayOf(cmd string, params map[string]any) string {
 	if params == nil {
 		return cmd

@@ -14,16 +14,16 @@ describe("l'ouverture d'une session", () => {
       openTerminal: () =>
         Promise.resolve({
           ok: true,
-          result: { session: "claude-flymate-api" },
+          result: { session: "claude-flyleaf-api" },
         }),
     });
 
     await useTerminals
       .getState()
-      .start("t1", SERVER, "claude", "flymate-api", null);
+      .start("t1", SERVER, "claude", "flyleaf-api", null);
 
     expect(useTerminals.getState().sessions.t1).toEqual({
-      session: "claude-flymate-api",
+      session: "claude-flyleaf-api",
       status: "open",
     });
   });
@@ -43,7 +43,7 @@ describe("l'ouverture d'une session", () => {
 
     await useTerminals
       .getState()
-      .start("t2", SERVER, "hermes", "flymate-api", null);
+      .start("t2", SERVER, "hermes", "flyleaf-api", null);
 
     expect(useTerminals.getState().sessions.t2).toMatchObject({
       error: { fix: "Ajoute le module ai.hermes depuis l'écran Services." },

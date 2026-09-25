@@ -24,8 +24,8 @@ function chord(key: string, held: Partial<KeyChord> = {}): KeyChord {
 const ENTRIES: PaletteEntry[] = [
   { id: "dashboard", kind: "view", label: "Tableau de bord" },
   { id: "services", kind: "view", label: "Services" },
-  { hint: "online", id: "flymate-api", kind: "project", label: "flymate-api" },
-  { hint: "flymate-api", id: "t1", kind: "terminal", label: "Claude" },
+  { hint: "online", id: "flyleaf-api", kind: "project", label: "flyleaf-api" },
+  { hint: "flyleaf-api", id: "t1", kind: "terminal", label: "Claude" },
   { hint: "203.0.113.9", id: "srv-2", kind: "server", label: "Bureau" },
 ];
 
@@ -51,7 +51,7 @@ describe("la palette", () => {
 
   it("filtre à la frappe, ce qui commence par le terme d'abord, puis ce que l'indice porte", () => {
     expect(filterEntries(ENTRIES, "fly").map((one) => one.id)).toEqual([
-      "flymate-api",
+      "flyleaf-api",
       "t1",
     ]);
     expect(filterEntries(ENTRIES, "ERVI").map((one) => one.id)).toEqual([

@@ -27,11 +27,14 @@
       }
     },
     {
-      "includes": ["src/**"],
+      // node-pty has no named export; `spyOn` needs the module object to watch `fs`.
+      "includes": [
+        "src/main/terminals.ts",
+        "src/main/__tests__/services-secret.test.ts"
+      ],
       "linter": {
         "rules": {
           "performance": {
-            // `src/main/terminals.ts` imports node-pty, which has no named export.
             "noNamespaceImport": "off"
           }
         }

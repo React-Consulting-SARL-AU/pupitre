@@ -5,7 +5,7 @@ import {
   AFFILIATE_PARTNER_NAME_MAX_LENGTH,
 } from "@pupitre/shared/plans"
 import { z } from "zod"
-import { endOfDayIso, MAX_REASON_LENGTH } from "@/lib/domain/admin"
+import { endOfDayIso } from "@/lib/domain/admin"
 import type { Translate } from "@/lib/i18n/i18n"
 import { MAX_SEATS, MIN_SEATS } from "@/lib/schemas/billing"
 
@@ -23,7 +23,7 @@ function seatsField(t: Translate) {
     .max(MAX_SEATS, t("validation.quantityMax", { max: MAX_SEATS }))
 }
 
-/** The field holds a day or nothing; what leaves the form is the last instant of that day, or null. */
+// A picked day leaves the form as its last instant; an empty field as null.
 function endsAtField(t: Translate) {
   return z
     .string()
@@ -48,7 +48,7 @@ function endsAtField(t: Translate) {
     })
 }
 
-/** A trial ends on a day: an empty field is a refusal here, not an open end. */
+// An empty field is refused here, not read as an open end.
 function trialEndField(t: Translate) {
   return z
     .string()
@@ -143,22 +143,6 @@ export type RenameOrganizationValues = z.output<
   ReturnType<typeof renameOrganizationSchema>
 >
 
-export interface ReasonCopy {
-  required: string
-  tooLong: string
-}
-
-/** Suspending a server and banning an account both write a reason someone else reads. */
-export function reasonSchema({ required, tooLong }: ReasonCopy) {
-  return z.object({
-    reason: z.string().trim().min(1, required).max(MAX_REASON_LENGTH, tooLong),
-  })
-}
-
-export type ReasonInput = z.input<ReturnType<typeof reasonSchema>>
-
-export type ReasonValues = z.output<ReturnType<typeof reasonSchema>>
-
 function affiliateNameField(t: Translate) {
   return z
     .string()
@@ -194,7 +178,7 @@ function affiliateSeatsField(t: Translate) {
     )
 }
 
-/** An empty field clears what the link carried: the API takes `null` for that. */
+// An empty field clears the value: the API takes `null` for that.
 function clearableText(t: Translate, max: number) {
   return z
     .string()

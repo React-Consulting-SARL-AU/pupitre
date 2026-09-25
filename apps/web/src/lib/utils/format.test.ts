@@ -39,7 +39,7 @@ describe("formatUsed", () => {
     )
   })
 
-  /** A sample an older agent sent carries no quantity: the percentage stands alone. */
+  // An older agent sends no quantity: the percentage stands alone.
   it("says nothing when the agent measured nothing", () => {
     expect(formatUsed(null, gigabytesToBytes(556), fr)).toBeNull()
     expect(formatUsed(gigabytesToBytes(1), null, fr)).toBeNull()

@@ -6,6 +6,21 @@ import type { StatusLook } from "@/lib/domain/server-status"
 import type { Translate } from "@/lib/i18n/i18n"
 import { formatRelative } from "@/lib/utils/format"
 
+const HEALTH_LOOKS: Record<"ok" | "down", StatusLook> = {
+  ok: { shape: "filled", tone: "ok", label: "service.responds" },
+  down: { shape: "barred", tone: "danger", label: "service.doesNotRespond" },
+}
+
+export function healthLook(health: string): StatusLook {
+  return health === "ok" ? HEALTH_LOOKS.ok : HEALTH_LOOKS.down
+}
+
+export function releaseLook(published: boolean): StatusLook {
+  return published
+    ? { shape: "filled", tone: "ok", label: "statusPage.releasePublished" }
+    : { shape: "hollow", tone: "muted", label: "statusPage.noRelease" }
+}
+
 export interface FreshnessNotice {
   look: StatusLook
   headline: string

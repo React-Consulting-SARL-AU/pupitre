@@ -44,14 +44,13 @@ RestartSec=3
 WantedBy=multi-user.target
 `
 
-// What a Chromium started by Playwright links against; a distribution that renamed one of them loses that one alone, never the browser.
 var playwrightLibraries = []string{
 	"libnss3", "libnspr4", "libdrm2",
 	"libxkbcommon0", "libxcomposite1", "libxdamage1", "libxfixes3", "libxrandr2",
 	"libgbm1", "libpango-1.0-0", "libcairo2", "fonts-liberation",
 }
 
-// The 64-bit time_t transition of 24.04 renamed these four; 22.04 knows them without the suffix.
+// Ubuntu 24.04's 64-bit time_t transition added a t64 suffix to these four; 22.04 names them without it.
 var renamedIn2404 = []string{"libatk1.0-0", "libatk-bridge2.0-0", "libcups2", "libasound2"}
 
 const osReleasePath = "/etc/os-release"
@@ -63,6 +62,7 @@ func playwrightPackages(ctx *modules.Context) []string {
 	}
 
 	packages := append([]string{}, playwrightLibraries...)
+
 	for _, name := range renamedIn2404 {
 		packages = append(packages, name+suffix)
 	}
@@ -121,8 +121,7 @@ func (Module) Install(ctx *modules.Context) error {
 	return installPlaywrightLibraries(ctx)
 }
 
-// Ubuntu's chromium package is a wrapper around a confined snap, which cannot write into ~/shots; the Google build is a real binary, and it only exists for amd64.
-// On Ubuntu `apt-get install chromium` lands chromium-browser, a stub that only says to install the snap, and exits 0: the package is checked by name afterwards.
+// The chromium snap cannot write into ~/shots and its apt stub exits 0: Google's build on amd64, and a check by name.
 func installBrowser(ctx *modules.Context) error {
 	return ctx.Step("install-browser", func() (modules.Outcome, error) {
 		if installedPackage(ctx) != "" {
@@ -160,7 +159,7 @@ func addGoogleRepository(ctx *modules.Context) error {
 		}
 	}
 
-	return apt.Refresh(ctx)
+	return apt.RefreshAdded(ctx, sourcePath, keyringPath)
 }
 
 func installPlaywrightLibraries(ctx *modules.Context) error {
@@ -175,6 +174,7 @@ func installPlaywrightLibraries(ctx *modules.Context) error {
 		}
 
 		var refused []string
+
 		for _, pkg := range missing {
 			if err := apt.Install(ctx, pkg); err != nil {
 				refused = append(refused, pkg)
@@ -215,7 +215,7 @@ func createGallery(ctx *modules.Context) error {
 	})
 }
 
-// shot is the agent's own binary under another name: a command the agents call, and never a script laid on the client's disk.
+// A link to the agent's own binary, never a readable script left on the client's disk.
 func linkShot(ctx *modules.Context) error {
 	return ctx.Step("link-shot-command", func() (modules.Outcome, error) {
 		if target(ctx) == shots.Binary {
@@ -283,7 +283,7 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// The captures belong to the client: uninstalling gives back the browser, the command and the service, never ~/shots.
+// ~/shots holds the client's captures and survives an uninstall.
 func (Module) Uninstall(ctx *modules.Context) error {
 	if err := ctx.Step("stop-gallery-service", func() (modules.Outcome, error) {
 		if !file.Exists(ctx, unitPath) {

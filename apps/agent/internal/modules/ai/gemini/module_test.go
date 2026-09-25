@@ -25,6 +25,7 @@ func install(t *testing.T, fake *modtest.FakeSys) *modules.Context {
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +128,6 @@ func TestFailedInstallCarriesItsReplayCommand(t *testing.T) {
 	}
 }
 
-// Neither CLI answers who holds the session without spending a request, so the module reports no account rather than guessing from a file.
 func TestTheModuleReportsNoAccount(t *testing.T) {
 	if _, asks := modules.Module(Module{}).(modules.Account); asks {
 		t.Fatal("the module must not claim an account check it cannot make")

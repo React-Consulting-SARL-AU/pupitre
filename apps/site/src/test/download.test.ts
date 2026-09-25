@@ -23,6 +23,7 @@ const COUNT_RE =
 const SERVED = {
   version: "9.9.9",
   channel: "stable",
+  notes: "Une version.",
   published_at: "2026-09-04T00:00:00.000Z",
   builds: [
     {
@@ -31,6 +32,7 @@ const SERVED = {
       format: "dmg",
       bytes: 111_000_000,
       sha256: "b".repeat(64),
+      signature: null,
       url: "https://example.test/pupitre-macos-arm64.dmg",
     },
   ],

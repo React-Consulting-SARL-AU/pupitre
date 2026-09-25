@@ -33,6 +33,8 @@ import {
   CatalogResultSchema,
   HardenParamsSchema,
   HardenResultSchema,
+  HardenSudoParamsSchema,
+  HardenSudoResultSchema,
   InstallCheckParamsSchema,
   InstallCheckResultSchema,
   InstallParamsSchema,
@@ -129,6 +131,7 @@ import {
   EnrollParamsSchema,
   EnrollResultSchema,
   KeysListResultSchema,
+  KeysTrustParamsSchema,
   PlatformSyncResultSchema,
 } from "./system"
 
@@ -148,6 +151,10 @@ export const COMMANDS = {
   },
   uninstall: { params: UninstallParamsSchema, result: UninstallResultSchema },
   harden: { params: HardenParamsSchema, result: HardenResultSchema },
+  "harden.sudo": {
+    params: HardenSudoParamsSchema,
+    result: HardenSudoResultSchema,
+  },
   upgrade: { params: UpgradeParamsSchema, result: InstallResultSchema },
   report: { params: EmptyParamsSchema, result: InstallReportSchema },
   snapshot: { params: EmptyParamsSchema, result: SnapshotResultSchema },
@@ -349,6 +356,7 @@ export const COMMANDS = {
   enroll: { params: EnrollParamsSchema, result: EnrollResultSchema },
   "keys.list": { params: EmptyParamsSchema, result: KeysListResultSchema },
   "keys.sync": { params: EmptyParamsSchema, result: KeysListResultSchema },
+  "keys.trust": { params: KeysTrustParamsSchema, result: KeysListResultSchema },
   "platform.sync": {
     params: EmptyParamsSchema,
     result: PlatformSyncResultSchema,
@@ -382,11 +390,7 @@ export function isCommandName(value: string): value is CommandName {
   return Object.hasOwn(COMMANDS, value)
 }
 
-/**
- * `platform.sync` is among them on purpose: a restricted agent is one whose
- * usage right the platform has not confirmed, and this is how it asks again
- * without waiting for the daemon's next turn.
- */
+// `platform.sync` is how a restricted agent asks the platform again without waiting for the daemon.
 export const RESTRICTED_COMMANDS = [
   "hello",
   "ping",
@@ -399,31 +403,7 @@ export const RESTRICTED_COMMANDS = [
   "platform.sync",
 ] as const satisfies readonly CommandName[]
 
-export type RestrictedCommandName = (typeof RESTRICTED_COMMANDS)[number]
-
-export function isAllowedInRestrictedMode(
-  cmd: string
-): cmd is RestrictedCommandName {
-  return (RESTRICTED_COMMANDS as readonly string[]).includes(cmd)
-}
-
-/**
- * A binary on a server that was never enrolled has no state to show and no
- * server to upgrade: it says who it is, answers a ping, hands out a diagnostic,
- * and takes the enrolment that gives it a server.
- */
-/**
- * What a server answers while its configuration is not at the revision the
- * binary expects.
- *
- * The agent migrates itself at start-up, so this list is normally never
- * reached. It is reached when a migration refused: the files were put back as
- * they were, and a binary that reads a shape it does not understand would get
- * it wrong in ways nobody sees. Refusing is the safe answer — but a server one
- * cannot look at is a server one cannot repair, so what remains open is the
- * view of the machine, the diagnostic, the ways out (another version of the
- * agent, another attempt at the migration) and the platform.
- */
+// Reached only after a refused migration: a server one cannot look at is a server one cannot repair.
 export const MIGRATION_COMMANDS = [
   "hello",
   "ping",
@@ -438,14 +418,6 @@ export const MIGRATION_COMMANDS = [
   "platform.sync",
 ] as const satisfies readonly CommandName[]
 
-export type MigrationCommandName = (typeof MIGRATION_COMMANDS)[number]
-
-export function isAllowedWhileMigrating(
-  cmd: string
-): cmd is MigrationCommandName {
-  return (MIGRATION_COMMANDS as readonly string[]).includes(cmd)
-}
-
 export const UNENROLLED_COMMANDS = [
   "hello",
   "ping",
@@ -453,10 +425,85 @@ export const UNENROLLED_COMMANDS = [
   "enroll",
 ] as const satisfies readonly CommandName[]
 
-export type UnenrolledCommandName = (typeof UNENROLLED_COMMANDS)[number]
+// Reachable by anything running as `dev`: a command stays privileged until listed here.
+export const LIMITED_COMMANDS = [
+  "hello",
+  "ping",
+  "probe",
+  "catalog",
+  "module.config",
+  "report",
+  "snapshot",
+  "status",
+  "service.status",
+  "service.start",
+  "service.stop",
+  "service.restart",
+  "service.logs",
+  "completions",
+  "project.list",
+  "project.add",
+  "project.detect",
+  "project.update",
+  "project.remove",
+  "project.up",
+  "project.down",
+  "project.restart",
+  "project.logs",
+  "project.pull",
+  "project.sync",
+  "project.install",
+  "project.env",
+  "project.branches",
+  "project.checkout",
+  "project.git_status",
+  "project.working_tree",
+  "project.diff",
+  "project.url",
+  "project.debug",
+  "agent.open",
+  "sessions.list",
+  "sessions.clean",
+  "processes.list",
+  "process.kill",
+  "shots.list",
+  "shots.url",
+  "shots.read",
+  "shots.clean",
+  "fs.list",
+  "fs.stat",
+  "fs.read",
+  "fs.write",
+  "fs.mkdir",
+  "fs.rename",
+  "fs.remove",
+  "secrets.sync",
+  "db.shell",
+  "db.url",
+  "tunnel.status",
+  "tunnel.sync",
+  "tunnel.restart",
+  "backup.status",
+  "backup.contents",
+  "keys.list",
+  "keys.sync",
+  "platform.sync",
+  "agent.upgrade",
+  "agent.migrate",
+  "doctor",
+  "diag",
+] as const satisfies readonly CommandName[]
 
-export function isAllowedWithoutEnrolment(
-  cmd: string
-): cmd is UnenrolledCommandName {
-  return (UNENROLLED_COMMANDS as readonly string[]).includes(cmd)
+// A downgrade would run a signed but known-faulty agent as root, of the caller's choosing.
+export function requiresPrivilege(cmd: string, params?: unknown): boolean {
+  if (!(LIMITED_COMMANDS as readonly string[]).includes(cmd)) {
+    return true
+  }
+
+  return (
+    cmd === "agent.upgrade" &&
+    typeof params === "object" &&
+    params !== null &&
+    (params as { allow_downgrade?: unknown }).allow_downgrade === true
+  )
 }

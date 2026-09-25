@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test"
 import { renderToStaticMarkup } from "react-dom/server"
+import { StatusBadge } from "@/components/ui/status-badge"
 import { StatusDot } from "@/components/ui/status-dot"
 import { statusLook } from "@/lib/domain/server-status"
 import { translator } from "@/lib/i18n/i18n"
@@ -33,5 +34,15 @@ describe("StatusDot", () => {
 
   it("breathes while the server enrolls", () => {
     expect(markupFor("enrolling")).toContain("animate-breathe")
+  })
+
+  it("stays silent beside a label that already says the state", () => {
+    const look = statusLook("active")
+    const badge = renderToStaticMarkup(<StatusBadge look={look} />)
+
+    expect(badge).toContain('aria-hidden="true"')
+    expect(badge).not.toContain("<title>")
+    expect(badge).not.toContain('role="img"')
+    expect(badge.match(/Online/g)).toHaveLength(1)
   })
 })

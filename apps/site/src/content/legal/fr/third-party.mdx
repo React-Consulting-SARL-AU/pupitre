@@ -1,0 +1,42 @@
+---
+title: "Logiciels tiers"
+description: "Les composants libres sur lesquels l’app desktop et l’agent sont construits, leurs licences, et ce qu’elles vous permettent."
+locale: fr
+updated: 2026-09-25
+order: 10
+---
+
+L’app desktop et l’agent sont des logiciels fermés, sous la [licence](/fr/legal/licence/) de Pupitre. Ils sont construits sur des composants libres, dont chacun garde sa licence et la mention de copyright de ses auteurs. Pour ces composants, leur licence prime sur celle de Pupitre : rien dans la licence de Pupitre ne vous retire ce qu’elles vous accordent.
+
+## L’app desktop
+
+| Composant | Rôle | Licence |
+| --- | --- | --- |
+| Electron, avec Chromium et Node.js | la fenêtre et le processus de l’app | MIT ; Chromium sous licence BSD et les licences de ses propres composants |
+| React et React DOM | l’interface | MIT |
+| Base UI | les contrôles de l’interface | MIT |
+| CodeMirror et Lezer | l’éditeur de fichiers | MIT |
+| xterm.js | les terminaux | MIT |
+| node-pty | les processus des terminaux | MIT |
+| electron-updater | les mises à jour | MIT |
+| Zustand | l’état de l’interface | MIT |
+| react-markdown et remark-gfm | l’affichage du Markdown | MIT |
+| Lucide | les icônes | ISC |
+| Bricolage Grotesque | la police des titres | SIL Open Font License 1.1 |
+| JetBrains Mono | la police des chemins, des commandes et des chiffres | SIL Open Font License 1.1 |
+
+## L’agent
+
+L’agent `pupitred` est écrit en Go et n’embarque que la bibliothèque standard du langage, sous licence BSD à trois clauses, copyright The Go Authors.
+
+## Le site et la console
+
+Le site et la console affichent Bricolage Grotesque et JetBrains Mono, sous SIL Open Font License 1.1, servies par nos propres serveurs.
+
+## Les logiciels que l’agent installe
+
+Les services du catalogue — runtimes, bases de données, agents de code, outils — ne font pas partie de Pupitre. L’agent les installe sur votre machine depuis leurs sources officielles, chacun sous la licence de son éditeur, que vous acceptez en l’installant.
+
+## Obtenir les textes
+
+La liste complète des composants de chaque version, avec le texte de chaque licence et la mention de copyright de chaque auteur, vous est envoyée sur demande à `legal@pupitre.studio`.

@@ -10,9 +10,11 @@ import { appUrlFromEnv } from "./config"
 import { grantLaunchSubscription, isLaunchMode } from "./launch"
 import type { BillingIntervalName } from "./provider"
 import { getBillingProvider } from "./runtime"
-import { liveSubscriptionOf, readBilling } from "./subscription"
-
-const TRAILING_SLASHES_RE = /\/+$/
+import {
+  billedSubscriptionOf,
+  liveSubscriptionOf,
+  readBilling,
+} from "./subscription"
 
 export class BillingCustomerMissingError extends Error {
   constructor() {
@@ -32,6 +34,13 @@ export class BillingGrantedError extends Error {
   constructor() {
     super("the platform granted this subscription: there is no Stripe portal")
     this.name = "BillingGrantedError"
+  }
+}
+
+export class BillingAlreadySubscribedError extends Error {
+  constructor() {
+    super("this organization already pays a live Stripe subscription")
+    this.name = "BillingAlreadySubscribedError"
   }
 }
 
@@ -63,17 +72,13 @@ interface TrialTerms {
 }
 
 function appUrl(path: string): string {
-  return `${appUrlFromEnv().replace(TRAILING_SLASHES_RE, "")}${path}`
+  return `${appUrlFromEnv()}${path}`
 }
 
 function returnUrl(destination: CheckoutReturn, query: string): string {
   return appUrl(`${RETURN_PATHS[destination]}${query}`)
 }
 
-/**
- * One trial per organization: the first checkout opens it, on one machine or
- * on what the affiliate link promised; every later checkout is a paid one.
- */
 async function trialTermsFor(
   organizationId: string,
   requested: number
@@ -117,10 +122,15 @@ export async function startCheckout(
     return { url: returnUrl(destination, "?checkout=done") }
   }
 
+  if (await billedSubscriptionOf(organizationId)) {
+    throw new BillingAlreadySubscribedError()
+  }
+
   const [billing, trial] = await Promise.all([
     readBilling(organizationId),
     trialTermsFor(organizationId, input.quantity),
   ])
+
   const session = await getBillingProvider().createCheckoutSession({
     organizationId,
     customerId: billing?.stripeCustomerId ?? null,
@@ -142,9 +152,12 @@ export async function startPortal(
     throw new BillingLaunchError()
   }
 
-  const live = await liveSubscriptionOf(organizationId)
+  const [billed, live] = await Promise.all([
+    billedSubscriptionOf(organizationId),
+    liveSubscriptionOf(organizationId),
+  ])
 
-  if (live && isPlatformProduct(live.product)) {
+  if (!billed && live && isPlatformProduct(live.product)) {
     throw new BillingGrantedError()
   }
 

@@ -1,7 +1,7 @@
 import { RELEASE_CHANNELS, type ReleaseChannel } from "@pupitre/shared/releases"
 import { Link } from "@tanstack/react-router"
-import { AdminFacts } from "@/components/admin/admin-facts"
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/card"
+import { Facts } from "@/components/ui/facts"
 import { Label } from "@/components/ui/label"
 import { Select } from "@/components/ui/select"
 import { StatusBadge } from "@/components/ui/status-badge"
@@ -68,7 +68,7 @@ export function AdminServerOverview({
           </div>
         </CardHeader>
 
-        <AdminFacts
+        <Facts
           facts={[
             {
               label: t("admin.servers.host"),

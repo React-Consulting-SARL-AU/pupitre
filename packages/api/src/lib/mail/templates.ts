@@ -162,6 +162,7 @@ export async function deleteMailTemplate(
   }
 
   await prisma.mailTemplate.delete({ where: { id: templateId } })
+
   await recordEvent({
     action: "mail.template_deleted",
     actorUserId: actor.userId,

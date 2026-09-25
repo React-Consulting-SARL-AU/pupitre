@@ -37,6 +37,7 @@ func run(t *testing.T, fake *modtest.FakeSys) *modules.Context {
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +56,6 @@ func configuredMachine() *modtest.FakeSys {
 	return fake
 }
 
-// wrangler reads CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID from its own shell: both land in root's file and in the dev shell.
 func TestTheCliLandsAndTheTokenReachesTheDevShell(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	run(t, fake)
@@ -120,7 +120,6 @@ func TestSecretNeverLeaks(t *testing.T) {
 	}
 }
 
-// The Cloudflare account belongs to the client: uninstalling gives back the CLI and the variables, nothing else.
 func TestUninstallForgetsTheCliAndBothVariables(t *testing.T) {
 	fake := configuredMachine()
 
@@ -158,7 +157,6 @@ func TestFailedInstallCarriesItsReplayCommand(t *testing.T) {
 	}
 }
 
-// The apiToken travels in the CLI's environment, never on its command line; the account named is the one the apiToken deploys to.
 func TestLoginAsksWranglerWhoamiWithTheTokenTheMachineHolds(t *testing.T) {
 	bare := modtest.NewFakeSys()
 	if got, asked := (Module{}).Login(newContext(t, bare)); !asked || got.State != contract.LoginSignedOut || got.Fix == "" {
@@ -177,12 +175,12 @@ func TestLoginAsksWranglerWhoamiWithTheTokenTheMachineHolds(t *testing.T) {
 		want    contract.Login
 	}{
 		"a user token": {
-			answer: `{"loggedIn":true,"authType":"API Token","email":"jordan@example.org","accounts":[{"id":"` + account + `","name":"Flymate"}]}`,
+			answer: `{"loggedIn":true,"authType":"API Token","email":"jordan@example.org","accounts":[{"id":"` + account + `","name":"Flyleaf"}]}`,
 			want:   contract.Login{State: contract.LoginSignedIn, Account: "jordan@example.org"},
 		},
 		"an account token": {
-			answer: `{"loggedIn":true,"authType":"API Token","accounts":[{"id":"other","name":"Other"},{"id":"` + account + `","name":"Flymate"}]}`,
-			want:   contract.Login{State: contract.LoginSignedIn, Account: "Flymate"},
+			answer: `{"loggedIn":true,"authType":"API Token","accounts":[{"id":"other","name":"Other"},{"id":"` + account + `","name":"Flyleaf"}]}`,
+			want:   contract.Login{State: contract.LoginSignedIn, Account: "Flyleaf"},
 		},
 		"refused": {
 			answer:  "",
@@ -194,6 +192,7 @@ func TestLoginAsksWranglerWhoamiWithTheTokenTheMachineHolds(t *testing.T) {
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			fake := configuredMachine()
+
 			if tc.refused {
 				fake.Refuse("wrangler whoami", tc.answer)
 			} else {

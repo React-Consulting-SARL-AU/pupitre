@@ -2,6 +2,8 @@ import { describe, expect, it } from "bun:test"
 import type { AuthContext } from "@pupitre/api/auth-context"
 import {
   broadcastInboxEvent,
+  closeRevokedInboxSockets,
+  handleInboxEventsRequest,
   inboxSocketRefusal,
 } from "@/realtime/inbox-realtime"
 
@@ -78,6 +80,47 @@ describe("qui ouvre la socket de la boîte", () => {
 
     expect(anonymous?.status).toBe(401)
     expect(outsider?.status).toBe(403)
+  })
+})
+
+describe("l'origine de la socket", () => {
+  it("refuse une socket ouverte depuis une autre page que la console", async () => {
+    // happy-dom's Request drops the Origin header a browser forbids scripts to set; the Worker's keeps it.
+    const handshake = {
+      url: "https://app.pupitre.studio/api/v1/admin/inbox/events",
+      headers: new Headers({
+        origin: "https://evil.example",
+        upgrade: "websocket",
+      }),
+    } as Request
+    const refused = await handleInboxEventsRequest(
+      handshake,
+      {} as CloudflareEnv
+    )
+
+    expect(refused.status).toBe(403)
+    expect(
+      ((await refused.json()) as { error: { message: string } }).error.message
+    ).toBe("This socket only opens from the Pupitre console.")
+  })
+})
+
+describe("le retrait d'un membre de l'équipe", () => {
+  it("ferme ses sockets et laisse celles des autres ouvertes", () => {
+    const leaving = fakeSocket()
+    const staying = fakeSocket()
+    const state = {
+      getWebSockets: (tag?: string) =>
+        (tag === "usr_leaving"
+          ? [leaving]
+          : [leaving, staying]) as unknown as WebSocket[],
+    } as unknown as DurableObjectState
+
+    closeRevokedInboxSockets(state, "usr_leaving")
+
+    expect(leaving.closed).toBe(true)
+    expect(staying.closed).toBe(false)
+    expect(staying.sent).toEqual([])
   })
 })
 

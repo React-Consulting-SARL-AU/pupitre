@@ -4,54 +4,56 @@ import {
   pollDeviceFlow,
   startDeviceFlow,
 } from "@pupitre/auth/client/desktop";
+import { PlatformBackupSchema } from "@pupitre/shared/backup";
+import type {
+  ContractSchema,
+  ContractValue,
+} from "@pupitre/shared/contracts/json-schema";
+import {
+  type KeyApprovalSubmission,
+  type PendingKeyApproval,
+  PendingKeyApprovalSchema,
+} from "@pupitre/shared/keys";
 import { PUPITRE_ORIGINS } from "@pupitre/shared/legal";
-import type { MeSubscription } from "@pupitre/shared/plans";
+import { PLATFORM_API_PATH } from "@pupitre/shared/platform-api";
+import {
+  type Device,
+  DeviceSchema,
+  KeyApprovalReceiptSchema,
+  type LatestAgentRelease,
+  LatestAgentReleaseSchema,
+  listOf,
+  type Me,
+  MeSchema,
+  recordOf,
+  type ServerEnrollment,
+  ServerEnrollmentSchema,
+  type ServerForUser,
+  ServerForUserSchema,
+} from "@pupitre/shared/platform-api/account";
 import type {
   AccountDevice,
   AccountError,
   AccountIdentity,
   AccountResponse,
   BuildKind,
-  Entitlement,
 } from "@shared/account";
 import type { PlatformBackup } from "@shared/backups";
+import type { KeyApprovalReceipt } from "@shared/key-approvals";
 import type { FleetServer } from "@shared/servers";
-
-/**
- * The platform, seen from the main process.
- *
- * Nothing here knows Electron, so the whole account can be replayed against the
- * API's own test harness. The bearer token is a parameter of every call and is
- * never held by this module: it belongs to the vault.
- */
 
 export const DEFAULT_PLATFORM_URL = PUPITRE_ORIGINS.app;
 
-/** `bun run dev:web` — the console and its API, on this computer. */
 export const LOCAL_PLATFORM_URL = "http://localhost:3000";
 
-/**
- * The same console, as a remote server reaches it.
- *
- * `localhost` means nothing on the VPS: it is that machine's own loopback,
- * where nothing listens. The named tunnel `bun dev` runs publishes this console
- * under this name, which does not change from one launch to the next, and
- * serves only `/api/v1/agent/` of it.
- */
-export const DEV_AGENT_PLATFORM_URL = "https://dev.pupitre.studio";
+/** A VPS cannot reach this computer's localhost: `bun dev` publishes the console under this tunnel name. */
+export const DEV_AGENT_PLATFORM_URL = PUPITRE_ORIGINS.devTunnel;
 
 export const RELEASE_STORAGE_HEADER = "x-pupitre-release-storage";
 
 const REDIRECT = 303;
 
-/**
- * How long a call has to come back, and the binary to arrive.
- *
- * A silent platform — one that accepts the connection and never answers — is
- * the case that doesn't show itself: without a bound, the wizard stays stuck
- * on its step announcing nothing. The binary download keeps its own budget,
- * since it needs it.
- */
+/** A platform that accepts the connection and never answers would otherwise leave the wizard stuck silently. */
 const CALL_MS = 20_000;
 const DOWNLOAD_MS = 5 * 60_000;
 
@@ -59,34 +61,6 @@ export type FetchLike = (
   input: string | URL | Request,
   init?: RequestInit
 ) => Promise<Response>;
-
-export interface MeBody {
-  user: { email: string; name: string };
-  organizations: { id: string; name: string; slug: string; role: string }[];
-  active_organization: { id: string; name: string; slug: string } | null;
-  role: string | null;
-  entitlement: Entitlement;
-  subscription?: MeSubscription | null;
-}
-
-export interface ServerForUserBody {
-  id: string;
-  name: string;
-  host: string | null;
-  port: number;
-  user: string;
-  host_fingerprint: string | null;
-  status: string;
-  key_ready: boolean;
-  organization: { id: string; name: string };
-}
-
-export interface DeviceBody {
-  id: string;
-  name: string;
-  public_key: string;
-  fingerprint: string;
-}
 
 export interface EnrollInput {
   device_id: string;
@@ -97,29 +71,9 @@ export interface EnrollInput {
   probe: { arch: string };
 }
 
-export interface EnrollBody {
-  server_id: string;
-  enrollment_token: string;
-  release: {
-    version: string;
-    url: string;
-    sha256: string;
-    signature: string;
-    channel: string;
-  };
-}
-
 export interface ReleaseDownload {
   bytes: Uint8Array;
   storage: string;
-}
-
-/** What the platform publishes for a version of the agent: enough to name and verify it, not to read it. */
-export interface AgentReleaseBody {
-  version: string;
-  arch: string;
-  sha256: string;
-  signature: string;
 }
 
 export interface PlatformClient {
@@ -127,13 +81,11 @@ export interface PlatformClient {
   deviceCode: () => Promise<AccountResponse<DeviceFlowStart>>;
   deviceToken: (deviceCode: string) => Promise<AccountResponse<DeviceFlowPoll>>;
   me: (token: string) => Promise<AccountResponse<AccountIdentity>>;
-  /** Switches this session's active organization, and this session's alone. */
   switchOrganization: (
     token: string,
     organizationId: string
   ) => Promise<AccountResponse<AccountIdentity>>;
   devices: (token: string) => Promise<AccountResponse<AccountDevice[]>>;
-  /** Revokes a device: its key stops opening the granted servers at the platform's next push. */
   removeDevice: (
     token: string,
     deviceId: string
@@ -147,37 +99,38 @@ export interface PlatformClient {
   enroll: (
     token: string,
     input: EnrollInput
-  ) => Promise<AccountResponse<EnrollBody>>;
+  ) => Promise<AccountResponse<ServerEnrollment>>;
   downloadRelease: (
     token: string,
     version: string,
     arch: string
   ) => Promise<AccountResponse<ReleaseDownload>>;
-  /** The latest version published for this architecture, the one a server should run. */
   latestAgentRelease: (
     token: string,
     arch: string,
     channel?: string
-  ) => Promise<AccountResponse<AgentReleaseBody>>;
-  /**
-   * One call per stage of deletion: the first revokes, the second erases the
-   * row. Requires the `admin` role; a row already erased answers `not_found`.
-   */
+  ) => Promise<AccountResponse<LatestAgentRelease>>;
+  /** Two-stage: the first call revokes, the second erases the row; an erased row answers `not_found`. */
   deleteServer: (
     token: string,
     serverId: string
   ) => Promise<AccountResponse<null>>;
-  /** The backups of the active organization, or of one server, the most recent first. */
   backups: (
     token: string,
     serverId?: string
   ) => Promise<AccountResponse<PlatformBackup[]>>;
-  /** Notes in the journal that a backup was restored on that server. */
   backupRestored: (
     token: string,
     backupId: string,
     serverId: string
   ) => Promise<AccountResponse<null>>;
+  keyApprovals: (
+    token: string
+  ) => Promise<AccountResponse<PendingKeyApproval[]>>;
+  approveKey: (
+    token: string,
+    approval: KeyApprovalSubmission
+  ) => Promise<AccountResponse<KeyApprovalReceipt>>;
 }
 
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
@@ -190,25 +143,35 @@ export function isLocalPlatform(baseUrl: string): boolean {
   }
 }
 
-/**
- * How a build conducts itself, decided by the platform it talks to rather than
- * by the folder it runs from.
- *
- * A development build pointed at a hosted platform is a second computer of the
- * same person: the usage right comes from the account, the agent from the
- * release the platform names, and nothing is granted by the build itself. Only
- * a build on the console of this computer gets the developer's shortcuts.
- */
+/** A dev build on a hosted platform behaves as production: only a local console grants developer shortcuts. */
 export function buildKindOf(packaged: boolean, baseUrl: string): BuildKind {
   return packaged || !isLocalPlatform(baseUrl) ? "production" : "development";
 }
 
-/**
- * The platform as the agent is given it: its own, unless that is a console of
- * this computer, which no remote server could reach.
- */
 export function agentBaseUrl(platform: string): string {
   return isLocalPlatform(platform) ? DEV_AGENT_PLATFORM_URL : platform;
+}
+
+/** A packaged app ignores its environment: no variable may redirect the bearer token to another address. */
+export function platformUrlOf(
+  packaged: boolean,
+  asked: string | undefined
+): string {
+  if (packaged) {
+    return DEFAULT_PLATFORM_URL;
+  }
+
+  return asked || LOCAL_PLATFORM_URL;
+}
+
+export function agentPlatformUrlOf(
+  packaged: boolean,
+  asked: string | undefined,
+  platform: string
+): string {
+  const base = (!packaged && asked) || platform;
+
+  return new URL(PLATFORM_API_PATH, agentBaseUrl(base)).toString();
 }
 
 export function offlineError(error: unknown, baseUrl?: string): AccountError {
@@ -258,11 +221,7 @@ function failureOf(status: number, payload: unknown): AccountError {
 
 const S3_ERROR_RE = /<Code>([^<]*)<\/Code>(?:.*<Message>([^<]*)<\/Message>)?/s;
 
-/**
- * The storage refuses in S3's XML, never in the console's envelope. Its code
- * and message are what say why — a key of the wrong shape, an expired URL —
- * and the refusal is laid on the storage, not on the account.
- */
+/** The storage refuses in S3's XML, never in the console's envelope. */
 async function storageRefusal(
   response: Response,
   version: string
@@ -281,36 +240,51 @@ async function storageRefusal(
   };
 }
 
-function identityOf(body: MeBody): AccountIdentity {
+/** An answer off the contract means an app older than the platform. */
+function unreadableAnswer(path: string): AccountError {
+  return {
+    code: "internal",
+    message: "refusal.platform.unreadable",
+    phrase: { id: "refusal.platform.unreadable", values: { path } },
+  };
+}
+
+function identityOf(body: Me): AccountIdentity {
+  const active = body.active_organization;
+
   return {
     email: body.user.email,
     entitlement: body.entitlement,
     name: body.user.name,
-    organization: body.active_organization,
-    organizations: body.organizations,
+    organization: active
+      ? { id: active.id, name: active.name, slug: active.slug }
+      : null,
+    organizations: body.organizations.map(({ id, name, slug, role }) => ({
+      id,
+      name,
+      role,
+      slug,
+    })),
     role: body.role,
-    subscription: body.subscription ?? null,
+    subscription: body.subscription,
   };
 }
 
-function fleetServerOf(body: ServerForUserBody): FleetServer {
+function fleetServerOf(body: ServerForUser): FleetServer {
   return {
     host: body.host,
     hostFingerprint: body.host_fingerprint,
     id: body.id,
     keyReady: body.key_ready,
     name: body.name,
-    organization: {
-      id: body.organization?.id ?? "",
-      name: body.organization?.name ?? "",
-    },
+    organization: body.organization,
     port: body.port,
     status: body.status,
     user: body.user,
   };
 }
 
-function deviceOf(body: DeviceBody): AccountDevice {
+function deviceOf(body: Device): AccountDevice {
   return {
     fingerprint: body.fingerprint,
     id: body.id,
@@ -331,14 +305,14 @@ export function createPlatformClient({
   downloadMs?: number;
 }): PlatformClient {
   function url(path: string): string {
-    return new URL(`/api/v1${path}`, baseUrl).toString();
+    return new URL(`${PLATFORM_API_PATH}${path}`, baseUrl).toString();
   }
 
-  async function call<T>(
+  async function call(
     token: string,
     path: string,
     init: RequestInit = {}
-  ): Promise<AccountResponse<T>> {
+  ): Promise<AccountResponse<unknown>> {
     let response: Response;
 
     try {
@@ -359,8 +333,37 @@ export function createPlatformClient({
     const payload = (await response.json().catch(() => null)) as unknown;
 
     return response.ok
-      ? { ok: true, result: payload as T }
+      ? { ok: true, result: payload }
       : { ok: false, error: failureOf(response.status, payload) };
+  }
+
+  async function send(
+    token: string,
+    path: string,
+    init: RequestInit
+  ): Promise<AccountResponse<null>> {
+    const answer = await call(token, path, init);
+
+    return answer.ok ? { ok: true, result: null } : answer;
+  }
+
+  async function read<Schema extends ContractSchema>(
+    token: string,
+    path: string,
+    schema: Schema,
+    init: RequestInit = {}
+  ): Promise<AccountResponse<ContractValue<Schema>>> {
+    const answer = await call(token, path, init);
+
+    if (!answer.ok) {
+      return answer;
+    }
+
+    const parsed = schema.safeParse(answer.result);
+
+    return parsed.success
+      ? { ok: true, result: parsed.data }
+      : { ok: false, error: unreadableAnswer(path.split("?")[0] ?? path) };
   }
 
   async function guarded<T>(
@@ -453,7 +456,7 @@ export function createPlatformClient({
     },
 
     async me(token) {
-      const answer = await call<MeBody>(token, "/me");
+      const answer = await read(token, "/me", MeSchema);
 
       return answer.ok
         ? { ok: true, result: identityOf(answer.result) }
@@ -461,7 +464,7 @@ export function createPlatformClient({
     },
 
     async switchOrganization(token, organizationId) {
-      const answer = await call<MeBody>(token, "/me", {
+      const answer = await read(token, "/me", MeSchema, {
         body: JSON.stringify({ organization_id: organizationId }),
         method: "PATCH",
       });
@@ -472,7 +475,7 @@ export function createPlatformClient({
     },
 
     async devices(token) {
-      const answer = await call<{ data: DeviceBody[] }>(token, "/me/devices");
+      const answer = await read(token, "/me/devices", listOf(DeviceSchema));
 
       return answer.ok
         ? { ok: true, result: answer.result.data.map(deviceOf) }
@@ -480,13 +483,13 @@ export function createPlatformClient({
     },
 
     removeDevice(token, deviceId) {
-      return call<null>(token, `/me/devices/${encodeURIComponent(deviceId)}`, {
+      return send(token, `/me/devices/${encodeURIComponent(deviceId)}`, {
         method: "DELETE",
       });
     },
 
     async addDevice(token, name, publicKey) {
-      const answer = await call<{ data: DeviceBody }>(token, "/me/devices", {
+      const answer = await read(token, "/me/devices", recordOf(DeviceSchema), {
         body: JSON.stringify({ name, public_key: publicKey }),
         method: "POST",
       });
@@ -497,9 +500,10 @@ export function createPlatformClient({
     },
 
     async servers(token) {
-      const answer = await call<{ data: ServerForUserBody[] }>(
+      const answer = await read(
         token,
-        "/me/servers"
+        "/me/servers",
+        listOf(ServerForUserSchema)
       );
 
       return answer.ok
@@ -508,7 +512,7 @@ export function createPlatformClient({
     },
 
     enroll(token, input) {
-      return call<EnrollBody>(token, "/servers/enroll", {
+      return read(token, "/servers/enroll", ServerEnrollmentSchema, {
         body: JSON.stringify(input),
         method: "POST",
       });
@@ -525,32 +529,57 @@ export function createPlatformClient({
         query.set("channel", channel);
       }
 
-      return call<AgentReleaseBody>(token, `/releases/agent/latest?${query}`);
+      return read(
+        token,
+        `/releases/agent/latest?${query}`,
+        LatestAgentReleaseSchema
+      );
     },
 
     deleteServer(token, serverId) {
-      return call<null>(token, `/servers/${encodeURIComponent(serverId)}`, {
+      return send(token, `/servers/${encodeURIComponent(serverId)}`, {
         method: "DELETE",
       });
     },
 
     async backups(token, serverId) {
-      const answer = await call<{ data: PlatformBackup[] }>(
+      const answer = await read(
         token,
         serverId
           ? `/servers/${encodeURIComponent(serverId)}/backups`
-          : "/backups"
+          : "/backups",
+        listOf(PlatformBackupSchema)
       );
 
       return answer.ok ? { ok: true, result: answer.result.data } : answer;
     },
 
     backupRestored(token, backupId, serverId) {
-      return call<null>(
+      return send(token, `/backups/${encodeURIComponent(backupId)}/restored`, {
+        body: JSON.stringify({ server_id: serverId }),
+        method: "POST",
+      });
+    },
+
+    async keyApprovals(token) {
+      const answer = await read(
         token,
-        `/backups/${encodeURIComponent(backupId)}/restored`,
-        { body: JSON.stringify({ server_id: serverId }), method: "POST" }
+        "/me/key-approvals",
+        listOf(PendingKeyApprovalSchema)
       );
+
+      return answer.ok ? { ok: true, result: answer.result.data } : answer;
+    },
+
+    async approveKey(token, approval) {
+      const answer = await read(
+        token,
+        "/me/key-approvals",
+        recordOf(KeyApprovalReceiptSchema),
+        { body: JSON.stringify(approval), method: "POST" }
+      );
+
+      return answer.ok ? { ok: true, result: answer.result.data } : answer;
     },
   };
 }

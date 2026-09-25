@@ -1,4 +1,3 @@
-import { Dialog } from "@base-ui-components/react/dialog"
 import type { LucideIcon } from "lucide-react"
 import {
   type KeyboardEvent,
@@ -10,6 +9,12 @@ import {
 } from "react"
 import { Button, type ButtonVariant } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
+import {
+  DialogClose,
+  DialogPopup,
+  DialogRoot,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { FieldError } from "@/components/ui/field-error"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -32,40 +37,30 @@ export interface ConfirmRefusal {
 }
 
 export interface ConfirmFormDialogProps {
-  /** Unique on a page that carries several: the fields and the labels hang off it. */
   id: string
-  /** Left out when the dialog is opened from elsewhere: a row menu item carries no button. */
   triggerLabel?: string
   triggerIcon?: LucideIcon
-  /** A row has no room for a sentence: the icon carries the action, the word names it. */
   triggerIconOnly?: boolean
   triggerDisabled?: boolean
-  /** Why the trigger is dead, on the trigger itself. */
   triggerTitle?: string
-  /** Opened from outside — a row menu carries the act, so the dialog grows no trigger of its own. */
+  // Controlled from a row menu: the dialog then renders no trigger of its own.
   open?: boolean
-  /** Called whichever side holds the dialog: a refusal is cleared when it closes. */
   onOpenChange?: (open: boolean) => void
   title: string
-  /** What happens once the button is pressed, in one sentence. */
   description: string
-  /** Left out, the dialog asks for no reason at all; given, the field is there. */
   reason?: ReasonRule
   reasonLabel?: string
-  /** Why the reason is asked for, in the words of the gesture. */
   reasonRequiredMessage?: string
-  /** What has to be retyped before the button comes alive; compared without case. */
+  // Compared case-insensitively.
   keyword?: string
   keywordLabel?: string
-  /** An instant the action holds until, asked as a local date and time. */
   until?: boolean
   untilLabel?: string
   confirmLabel: string
-  /** Given while the work runs: the dialog then closes when it ends without a refusal. */
+  // The dialog closes once busy ends without a refusal.
   busy?: boolean
   busyLabel?: string
   tone?: ConfirmTone
-  /** The server's refusal, shown inside the dialog, which stays open with the typing intact. */
   refusal?: ConfirmRefusal | null
   onConfirm: (values: ConfirmFormValues) => void
   children?: ReactNode
@@ -78,7 +73,6 @@ const TRIGGER_VARIANTS: Record<ConfirmTone, ButtonVariant> = {
 
 const EMPTY: ConfirmFormInput = { reason: "", keyword: "", until: "" }
 
-/** A confirmation the reader has to mean: a reason, a word to retype, a deadline. */
 export function ConfirmFormDialog({
   id,
   triggerLabel,
@@ -167,7 +161,7 @@ export function ConfirmFormDialog({
   }
 
   return (
-    <Dialog.Root
+    <DialogRoot
       onOpenChange={(next) => {
         setOpen(next)
 
@@ -178,7 +172,7 @@ export function ConfirmFormDialog({
       open={shown}
     >
       {driven || triggerLabel === undefined ? null : (
-        <Dialog.Trigger
+        <DialogTrigger
           render={
             <Button
               aria-label={triggerIconOnly ? triggerLabel : undefined}
@@ -196,98 +190,82 @@ export function ConfirmFormDialog({
           }
         />
       )}
-      <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 bg-base/70 backdrop-blur-[2px]" />
-        <Dialog.Popup className="fixed top-1/2 left-1/2 w-[min(440px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 rounded-lg bg-surface p-6 shadow-overlay outline-none">
-          <Dialog.Title className="font-bold font-display text-[16px] text-ink leading-[1.2]">
-            {title}
-          </Dialog.Title>
-          <Dialog.Description className="mt-2 text-[13px] text-ink-2">
-            {description}
-          </Dialog.Description>
+      <DialogPopup description={description} size="sm" title={title}>
+        <form
+          className="mt-gutter flex flex-col gap-gutter"
+          noValidate
+          onSubmit={(event) => {
+            submit(event)
+          }}
+        >
+          {children}
 
-          <form
-            className="mt-gutter flex flex-col gap-gutter"
-            noValidate
-            onSubmit={(event) => {
-              submit(event)
-            }}
-          >
-            {children}
-
-            {reason ? (
-              <div className="flex flex-col gap-2">
-                <Label htmlFor={`${id}-reason`}>
-                  {reasonLabel ?? t("confirm.reason")}
-                </Label>
-                <Input
-                  autoComplete="off"
-                  id={`${id}-reason`}
-                  maxLength={MAX_REASON_LENGTH}
-                  onKeyDown={onFieldKeyDown}
-                  {...form.register("reason")}
-                />
-                <FieldError>{form.formState.errors.reason?.message}</FieldError>
-              </div>
-            ) : null}
-
-            {until ? (
-              <div className="flex flex-col gap-2">
-                <Label htmlFor={`${id}-until`}>
-                  {untilLabel ?? t("confirm.until")}
-                </Label>
-                <Input
-                  className="w-56 font-data tabular-nums"
-                  id={`${id}-until`}
-                  onKeyDown={onFieldKeyDown}
-                  type="datetime-local"
-                  {...form.register("until")}
-                />
-                <FieldError>{form.formState.errors.until?.message}</FieldError>
-              </div>
-            ) : null}
-
-            {keyword === undefined ? null : (
-              <div className="flex flex-col gap-2">
-                <Label htmlFor={`${id}-keyword`}>
-                  {keywordLabel ?? t("confirm.keyword", { keyword })}
-                </Label>
-                <Input
-                  autoComplete="off"
-                  id={`${id}-keyword`}
-                  onKeyDown={onFieldKeyDown}
-                  {...form.register("keyword")}
-                />
-                <FieldError>
-                  {form.formState.errors.keyword?.message}
-                </FieldError>
-              </div>
-            )}
-
-            {refusal ? (
-              <Callout
-                fix={refusal.fix}
-                title={refusal.message}
-                tone="danger"
+          {reason ? (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor={`${id}-reason`}>
+                {reasonLabel ?? t("confirm.reason")}
+              </Label>
+              <Input
+                autoComplete="off"
+                id={`${id}-reason`}
+                maxLength={MAX_REASON_LENGTH}
+                onKeyDown={onFieldKeyDown}
+                {...form.register("reason")}
               />
-            ) : null}
-
-            <div className="flex justify-end gap-2">
-              <Dialog.Close
-                render={<Button variant="ghost">{t("common.cancel")}</Button>}
-              />
-              <Button
-                disabled={locked}
-                loading={busy}
-                type="submit"
-                variant={tone === "danger" ? "danger" : "primary"}
-              >
-                {busy && busyLabel ? busyLabel : confirmLabel}
-              </Button>
+              <FieldError>{form.formState.errors.reason?.message}</FieldError>
             </div>
-          </form>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+          ) : null}
+
+          {until ? (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor={`${id}-until`}>
+                {untilLabel ?? t("confirm.until")}
+              </Label>
+              <Input
+                className="w-56 font-data tabular-nums"
+                id={`${id}-until`}
+                onKeyDown={onFieldKeyDown}
+                type="datetime-local"
+                {...form.register("until")}
+              />
+              <FieldError>{form.formState.errors.until?.message}</FieldError>
+            </div>
+          ) : null}
+
+          {keyword === undefined ? null : (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor={`${id}-keyword`}>
+                {keywordLabel ?? t("confirm.keyword", { keyword })}
+              </Label>
+              <Input
+                autoComplete="off"
+                id={`${id}-keyword`}
+                onKeyDown={onFieldKeyDown}
+                {...form.register("keyword")}
+              />
+              <FieldError>{form.formState.errors.keyword?.message}</FieldError>
+            </div>
+          )}
+
+          {refusal ? (
+            <Callout fix={refusal.fix} title={refusal.message} tone="danger" />
+          ) : null}
+
+          <div className="flex justify-end gap-2">
+            <DialogClose
+              render={<Button variant="ghost">{t("common.cancel")}</Button>}
+            />
+            <Button
+              disabled={locked}
+              loading={busy}
+              type="submit"
+              variant={tone === "danger" ? "danger" : "primary"}
+            >
+              {busy && busyLabel ? busyLabel : confirmLabel}
+            </Button>
+          </div>
+        </form>
+      </DialogPopup>
+    </DialogRoot>
   )
 }

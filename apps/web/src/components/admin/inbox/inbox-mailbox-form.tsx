@@ -24,7 +24,6 @@ export interface InboxMailboxFormProps {
   defaults: MailboxFormInput
   flags: MailboxFlags
   onFlagsChange: (flags: MailboxFlags) => void
-  /** An address is chosen once: an open mailbox keeps the one the envelope carries. */
   addressLocked: boolean
   submitLabel: string
   pending: boolean

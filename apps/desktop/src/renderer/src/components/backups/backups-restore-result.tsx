@@ -4,7 +4,6 @@ import { Fact, FactList } from "@renderer/components/ui/fact";
 import { Panel } from "@renderer/components/ui/panel";
 import { useTranslations } from "@renderer/i18n/use-translations";
 
-/** What came back, what did not, and the projects now running — the agent's own account of the data. */
 export function BackupsRestoreResult({
   result,
   headline,
@@ -14,28 +13,35 @@ export function BackupsRestoreResult({
 }) {
   const t = useTranslations();
 
+  // Warnings say why each part was missed; the bare failed list is only a fallback.
+  const missed = result.warnings.length > 0 ? result.warnings : result.failed;
+
   return (
     <>
-      <Callout tone={result.failed.length > 0 ? "warn" : "ok"}>
+      <Callout name="restore-done" tone="ok">
         {headline}
       </Callout>
 
-      {result.warnings.map((warning) => (
-        <Callout key={warning} tone="warn">
-          {warning}
+      {missed.length > 0 ? (
+        <Callout name="restore-missed" tone="warn">
+          <p>{t.plural("backups.result.missed", missed.length)}</p>
+          <ul className="mt-2 flex flex-col gap-1">
+            {missed.map((line) => (
+              <li
+                className="break-words font-data text-ink-2 text-small"
+                key={line}
+              >
+                {line}
+              </li>
+            ))}
+          </ul>
         </Callout>
-      ))}
+      ) : null}
 
       <Panel inset="lg">
-        <FactList columns={3}>
+        <FactList columns={2}>
           <Fact label={t("backups.result.restored")}>
             {result.restored.length}
-          </Fact>
-          <Fact
-            detail={result.failed.join(", ") || undefined}
-            label={t("backups.result.failed")}
-          >
-            {result.failed.length}
           </Fact>
           <Fact
             detail={result.started.join(", ") || undefined}

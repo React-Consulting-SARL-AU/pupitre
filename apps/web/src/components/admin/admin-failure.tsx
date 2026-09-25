@@ -2,14 +2,17 @@ import { RotateCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Callout } from "@/components/ui/callout"
 import { useTranslations } from "@/hooks/use-locale"
+import { apiFailure } from "@/lib/api/errors"
 
 export interface AdminFailureProps {
   fetching: boolean
   onRetry: () => void
+  error?: unknown
 }
 
-export function AdminFailure({ fetching, onRetry }: AdminFailureProps) {
+export function AdminFailure({ fetching, onRetry, error }: AdminFailureProps) {
   const t = useTranslations()
+  const refused = apiFailure(error)
 
   return (
     <Callout
@@ -18,8 +21,8 @@ export function AdminFailure({ fetching, onRetry }: AdminFailureProps) {
           {t("common.retry")}
         </Button>
       }
-      fix={t("admin.failedFix")}
-      title={t("admin.failed")}
+      fix={refused?.fix ?? t("common.retryLater")}
+      title={refused?.message ?? t("admin.failed")}
       tone="danger"
     />
   )

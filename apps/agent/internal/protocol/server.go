@@ -20,13 +20,12 @@ import (
 type Options struct {
 	AgentVersion string
 	Entitlement  func() entitlement.State
-	// Config says where the configuration on the machine stands against this
-	// binary. Nil is a server with no ledger to consult — a test, a direct
-	// call — and its commands are gated by the entitlement alone.
-	Config func() contract.ConfigRevision
-	// ServerID names this server on the platform once the daemon has read it; empty says nothing yet.
+	// Nil means no ledger to consult: commands are then gated by the entitlement alone.
+	Config   func() contract.ConfigRevision
 	ServerID func() string
 	Now      func() time.Time
+	// The passwordless sudo session: refuses what the contract reserves for --privileged.
+	Limited bool
 }
 
 type Server struct {
@@ -58,7 +57,7 @@ func (s *Server) Register(cmd string, handler Handler) {
 	s.handlers[cmd] = handler
 }
 
-// A session is long-lived: the entitlement is asked again for every command, so a platform back after a week reopens the agent without a reconnection.
+// Resolved per command so a long-lived session reopens as soon as the platform is back.
 func (s *Server) Entitlement() entitlement.State {
 	if s.options.Entitlement == nil {
 		return entitlement.State{Entitlement: contract.EntitlementDev, Enrolled: true}
@@ -67,14 +66,22 @@ func (s *Server) Entitlement() entitlement.State {
 	return s.options.Entitlement()
 }
 
-// Config is asked again for every command, like the entitlement: a migration
-// that goes through mid-session reopens the agent without a reconnection.
+// Resolved per command so a migration run mid-session reopens it without a reconnection.
 func (s *Server) Config() contract.ConfigRevision {
 	if s.options.Config == nil {
 		return contract.ConfigRevision{State: contract.ConfigCurrent}
 	}
 
 	return s.options.Config()
+}
+
+func (s *Server) privileged(cmd string, params any) *Error {
+	if !s.options.Limited || !contract.RequiresPrivilege(cmd, params) {
+		return nil
+	}
+
+	return NewError(contract.ErrorPrivilegeRequired, i18n.T("protocol.privilege.required", cmd)).
+		WithFix(i18n.T("protocol.privilege.required.fix"))
 }
 
 func (s *Server) gate(cmd string) (contract.ConfigRevision, bool) {
@@ -93,21 +100,11 @@ func (s *Server) Capabilities() []string {
 	return capabilities
 }
 
-// One command, without a session: this is the door pupitred dev enters by, so a
-// human on a terminal runs the very handler the app reaches over SSH, with the
-// same validation and the same refusals.
+// pupitred dev enters here, so a terminal gets the same handlers, validation and refusals as the app.
 func (s *Server) Call(cmd string, params any, emit func(event string, fields map[string]any)) (any, error) {
 	handler, known := s.handlers[cmd]
 	if !known {
 		return nil, unknownCommand(cmd)
-	}
-
-	if !s.Entitlement().Allows(cmd) {
-		return nil, EntitlementRequired()
-	}
-
-	if config, gated := s.gate(cmd); gated {
-		return nil, MigrationRequired(config)
 	}
 
 	if params == nil {
@@ -122,6 +119,18 @@ func (s *Server) Call(cmd string, params any, emit func(event string, fields map
 	value, err := contract.Decode(raw)
 	if err != nil {
 		return nil, badRequest(i18n.T("protocol.params.unreadable", err.Error()))
+	}
+
+	if refused := s.privileged(cmd, value); refused != nil {
+		return nil, refused
+	}
+
+	if !s.Entitlement().Allows(cmd) {
+		return nil, EntitlementRequired()
+	}
+
+	if config, gated := s.gate(cmd); gated {
+		return nil, MigrationRequired(config)
 	}
 
 	if err := contract.Validate(contract.ParamsDefinition(cmd), value); err != nil {
@@ -183,8 +192,7 @@ type session struct {
 	lastID   int64
 	greeted  bool
 
-	// closed says standard input has ended, broken that a write failed: either
-	// one is the channel gone, which a follow has to notice while it runs.
+	// Closed when stdin ends or a write fails: a running follow must notice the channel is gone.
 	closed chan struct{}
 	broken chan struct{}
 
@@ -197,14 +205,12 @@ type read struct {
 	err  error
 }
 
-// The longest line this server will hold: the desktop's own flood line,
-// mirrored, so a peer that lost its cap cannot grow this process without one.
+// Mirrors the desktop's flood cap so a peer that lost its own cannot grow this root process.
 const lineLimit = 4 << 20
 
 var errLineTooLong = errors.New("protocol: line over the limit")
 
-// One line, bounded: ReadBytes would gather whatever the peer sends, and the
-// reader runs as root.
+// Not ReadBytes: it would gather whatever the peer sends, and this reader runs as root.
 func readLine(in *bufio.Reader) ([]byte, error) {
 	var line []byte
 
@@ -224,14 +230,11 @@ func readLine(in *bufio.Reader) ([]byte, error) {
 	}
 }
 
-// One line ahead of the loop, never more: a request queued behind a long
-// command stays unread, and the end of the input is known the moment it comes,
-// even while a handler holds the loop.
+// Reads one line ahead, never more, so end of input is seen even while a handler holds the loop.
 func (s *session) read(in *bufio.Reader) {
 	for {
 		line, err := readLine(in)
 		if err == errLineTooLong {
-			// The refusal leaves before the door closes on the session.
 			s.fail(0, badRequest(i18n.T("protocol.line.too_long")))
 		}
 		if err != nil {
@@ -253,24 +256,25 @@ func (s *session) handle(line []byte) error {
 	object, isObject := value.(map[string]any)
 	if err != nil || !isObject {
 		s.fail(0, badRequest(i18n.T("protocol.request.unreadable")))
-		return s.writeErr
+		return s.writeFailure()
 	}
 
 	id, ok := requestID(object["id"])
 	if !ok {
 		s.fail(0, badRequest(i18n.T("protocol.id.invalid")))
-		return s.writeErr
+		return s.writeFailure()
 	}
 
 	if id <= s.lastID {
 		s.fail(id, badRequest(i18n.T("protocol.id.not_increasing", id, s.lastID)))
-		return s.writeErr
+		return s.writeFailure()
 	}
+
 	s.lastID = id
 
 	if err := contract.Validate("Request", value); err != nil {
 		s.fail(id, badRequest(i18n.T("protocol.request.invalid", err.Error())))
-		return s.writeErr
+		return s.writeFailure()
 	}
 
 	cmd := object["cmd"].(string)
@@ -285,11 +289,10 @@ func (s *session) handle(line []byte) error {
 		s.write(successResponse{ID: id, OK: true, Result: result})
 	}
 
-	return s.writeErr
+	return s.writeFailure()
 }
 
-// The secrets line is consumed the moment the request announces it, before any
-// refusal: a line left on the input would be read as a request, by root.
+// The secrets line is consumed before any refusal: left on the input, root would read it as a request.
 func (s *session) dispatch(id int64, cmd string, params any, line []byte) (any, *Error) {
 	var secrets json.RawMessage
 	var secretsErr *Error
@@ -304,6 +307,10 @@ func (s *session) dispatch(id int64, cmd string, params any, line []byte) (any, 
 	handler, known := s.server.handlers[cmd]
 	if !known {
 		return nil, unknownCommand(cmd)
+	}
+
+	if refused := s.server.privileged(cmd, params); refused != nil {
+		return nil, refused
 	}
 
 	if !s.server.Entitlement().Allows(cmd) {
@@ -330,9 +337,7 @@ func (s *session) dispatch(id int64, cmd string, params any, line []byte) (any, 
 	return call(handler, ctx, rawParams(line))
 }
 
-// The context of one command: done when the channel that carried it is gone,
-// which is what ends a follow, and nothing else — install, upgrade and harden
-// never consult it, and run to the end with nobody to read them.
+// Only follows honour it: install, upgrade and harden run to the end even once the channel is gone.
 func (s *session) channel() (context.Context, func()) {
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan struct{})
@@ -369,8 +374,7 @@ func call(handler Handler, ctx *Context, params json.RawMessage) (result any, fa
 	return nil, internalError(err.Error())
 }
 
-// The line that follows a request carrying secrets_stdin, on the very stream the
-// request came in on: ssh forwards descriptors 0, 1 and 2 and nothing else.
+// Same stream as the request: ssh forwards descriptors 0, 1 and 2 and nothing else.
 func (s *session) readSecrets() (json.RawMessage, *Error) {
 	for {
 		raw, err := s.nextLine()
@@ -386,8 +390,7 @@ func (s *session) readSecrets() (json.RawMessage, *Error) {
 	}
 }
 
-// A request in place of the secret line is handed back to the loop rather than
-// eaten: a client that forgot its secrets still gets an answer to what follows.
+// A request in place of the secret line goes back to the loop, so a client that forgot its secrets still gets answers.
 func (s *session) decodeSecretLine(line []byte) (json.RawMessage, *Error) {
 	value, err := contract.Decode(line)
 	if _, isObject := value.(map[string]any); err != nil || !isObject {
@@ -438,6 +441,14 @@ func (s *session) write(line any) {
 	if s.writeErr != nil {
 		close(s.broken)
 	}
+}
+
+// The reader goroutine writes too when it refuses an oversized line.
+func (s *session) writeFailure() error {
+	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+
+	return s.writeErr
 }
 
 func requestID(value any) (int64, bool) {

@@ -9,12 +9,7 @@ export const WORKFLOW_BINDINGS = {
 
 export type WorkflowName = keyof typeof WORKFLOW_BINDINGS
 
-/**
- * One cron starts several workflows: the database wakes once for the hour's
- * work and once for the day's, and sleeps the rest of the time. An
- * unreachable server is one without a heartbeat for thirty minutes, and an
- * alert an hour later is the same alert.
- */
+// Grouped so the database wakes once an hour and once a day, and sleeps otherwise.
 export const WORKFLOW_CRONS = {
   "0 * * * *": ["expire-enrollments", "evaluate-alerts"],
   "20 3 * * *": [
@@ -33,11 +28,22 @@ export function workflowsScheduledAt(cron: string): readonly WorkflowName[] {
   return WORKFLOW_CRONS[cron as keyof typeof WORKFLOW_CRONS] ?? []
 }
 
+// Deterministic, so Cloudflare refuses a second delivery of the same fire.
+export function scheduledInstanceId(
+  name: WorkflowName,
+  scheduledTime: number
+): string {
+  return `${name}-${scheduledTime}`
+}
+
 export async function startWorkflow(
   env: CloudflareEnv,
-  name: WorkflowName
+  name: WorkflowName,
+  id?: string
 ): Promise<string> {
-  const instance = await env[WORKFLOW_BINDINGS[name]].create()
+  const instance = await env[WORKFLOW_BINDINGS[name]].create(
+    id === undefined ? undefined : { id }
+  )
 
   return instance.id
 }

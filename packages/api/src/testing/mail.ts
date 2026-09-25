@@ -30,7 +30,6 @@ export interface FakeMail {
   uploaded: Map<string, Date>
   sent: OutboundEnvelope[]
   signed: SignedMailRequest[]
-  /** What the Durable Object would have broadcast, in order. */
   broadcast: InboxEvent[]
   storage: MailStorage
 }
@@ -86,10 +85,6 @@ function createFakeMailStorage(
   }
 }
 
-/**
- * The bucket and the sending binding only exist inside the Worker: a test
- * keeps both in memory and reads back what the ingestion wrote.
- */
 export function useFakeMail(): FakeMail {
   const objects = new Map<string, MailObject>()
   const uploaded = new Map<string, Date>()

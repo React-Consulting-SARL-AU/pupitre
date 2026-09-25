@@ -12,12 +12,11 @@ export interface SelectGroup<T extends string> {
   options: readonly SelectOption<T>[];
 }
 
-/** What floats under a control — a list of choices, a menu — shares one frame. */
 export const POPUP_CLASS =
   "elevation-overlay z-50 rounded-md border border-line bg-surface p-1 outline-none transition-pop data-[ending-style]:opacity-0 data-[starting-style]:opacity-0";
 
 export const POPUP_ITEM_CLASS =
-  "flex cursor-default select-none items-center gap-2 rounded-sm px-2.5 py-1.5 text-[13px] text-ink-2 outline-none data-[highlighted]:bg-raised data-[highlighted]:text-ink";
+  "flex cursor-default select-none items-center gap-2 rounded-sm px-2.5 py-1.5 text-control text-ink-2 outline-none data-[highlighted]:bg-raised data-[highlighted]:text-ink";
 
 export const POPUP_GROUP_LABEL_CLASS = "label px-2.5 pt-2 pb-1 text-ink-3";
 
@@ -30,7 +29,7 @@ function SelectItems<T extends string>({
 }) {
   return options.map((option) => (
     <Base.Item
-      className={`${POPUP_ITEM_CLASS} ${kind === "data" ? "font-data text-[12px]" : ""}`}
+      className={`${POPUP_ITEM_CLASS} ${kind === "data" ? "font-data text-small" : ""}`}
       key={option.value}
       value={option.value}
     >
@@ -44,16 +43,6 @@ function SelectItems<T extends string>({
   ));
 }
 
-/**
- * One value among the ones a list allows, drawn by the app rather than by the
- * platform.
- *
- * The control reads like every other field — same frame, same inks, same
- * refusal border — and the list opens under it in the frame every floating
- * thing of the app shares. What the reader sees is always a label, never a
- * value: the value is what the form keeps. Groups, when the list has them,
- * are captioned the way every menu of the app captions its groups.
- */
 export function Select<T extends string>({
   value,
   onChange,
@@ -70,12 +59,9 @@ export function Select<T extends string>({
   onChange: (next: T) => void;
   options?: readonly SelectOption<T>[];
   groups?: readonly SelectGroup<T>[];
-  /** A name reads in the interface face; a version, a port, a code in the data face. */
   kind?: FieldText;
-  /** The control is refused: it takes the border every refused field takes. */
   wrong?: boolean;
   disabled?: boolean;
-  /** What the control says while no option stands. */
   placeholder?: string;
   className?: string;
   id?: string;

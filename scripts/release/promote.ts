@@ -10,17 +10,6 @@ import { argumentOf, hasFlag, say, variable } from "./cli"
 import { platformFromEnv, promoteAgent, promoteApp } from "./platform"
 import { bucket, get, put } from "./r2"
 
-/**
- * A published version changes channel here, and only here: the platform is
- * told for the agent and for the app, then the channel's feeds are pointed
- * at the version's files. Nothing is rebuilt, nothing is re-signed. A release
- * goes out `stable` on its own, so this is the way back: the previous version
- * promoted again is what every app and every agent sees next.
- *
- * Every request is idempotent, so a promotion run twice changes nothing the
- * second time.
- */
-
 const LEADING_V_RE = /^v/
 
 export async function promoteCommand(

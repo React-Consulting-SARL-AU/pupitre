@@ -2,16 +2,6 @@ import { spawnSync } from "node:child_process"
 import { appVersion } from "./check"
 import { argumentOf, say, VARIABLES } from "./cli"
 
-/**
- * What a release is, read from git and the app's manifest, nothing else.
- *
- * The version is the one the app declares — `next` wrote it there, and `ship`
- * tags it before the runners build it. Every release leaves from `staging`:
- * the tag is cut there, and the same run merges the branch into `main` once
- * what it built is downloadable. The channel is `stable` unless the caller
- * says otherwise: nobody tries a version in between.
- */
-
 export const RELEASE_BRANCH = "staging"
 
 const DEFAULT_CHANNEL = "stable"
@@ -23,7 +13,34 @@ export interface Release {
 
 const TAG_RE = /^v(\d+\.\d+\.\d+)$/
 
-const VERSION_RE = /^(\d+)\.(\d+)\.(\d+)$/
+const VERSION_RE = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/
+
+export function isReleaseVersion(version: string): boolean {
+  return VERSION_RE.test(version)
+}
+
+function partsOf(version: string): [number, number, number] {
+  const match = version.match(VERSION_RE)
+
+  if (!match) {
+    throw new Error(`${version} is not a semver version.`)
+  }
+
+  return match.slice(1).map(Number) as [number, number, number]
+}
+
+export function compareRelease(left: string, right: string): number {
+  const a = partsOf(left)
+  const b = partsOf(right)
+
+  for (const [index, part] of a.entries()) {
+    if (part !== b[index]) {
+      return part - (b[index] ?? 0)
+    }
+  }
+
+  return 0
+}
 
 export function versionOfTag(tag: string): string | null {
   return tag.match(TAG_RE)?.[1] ?? null
@@ -39,10 +56,7 @@ function lines(output: string | null): string[] {
   return (output ?? "").split("\n").filter(Boolean)
 }
 
-/**
- * A runner checks a tag out detached: the release branch then has to hold
- * the commit, since a tag cut anywhere else is not a release.
- */
+// A runner checks a tag out detached, so the release branch must hold the commit instead.
 export function onReleaseBranch(head: string, holds: () => boolean): boolean {
   return head === RELEASE_BRANCH || (head === "HEAD" && holds())
 }
@@ -62,11 +76,7 @@ function releaseBranchHoldsHead(): boolean {
   )
 }
 
-/**
- * The v* tags origin holds, asked of the remote itself: a tag only exists as
- * a release once it is pushed, since the runners build from origin and nothing
- * else. A local tag is at most a release stopped on its way.
- */
+// Asked of the remote: runners build from origin, so an unpushed tag is no release.
 export function originTags(cwd?: string): Set<string> {
   const listed = git(
     ["ls-remote", "--tags", "--refs", "origin", "refs/tags/v*"],
@@ -82,7 +92,6 @@ export function originTags(cwd?: string): Set<string> {
   )
 }
 
-/** The highest v* tag reachable from HEAD that origin holds, or nothing before the first release. */
 export function lastVersion(held: Set<string>, cwd?: string): string | null {
   const reachable = lines(
     git(["tag", "--list", "v*", "--merged", "HEAD", "--sort=-v:refname"], cwd)
@@ -92,7 +101,7 @@ export function lastVersion(held: Set<string>, cwd?: string): string | null {
   return released ? versionOfTag(released) : null
 }
 
-/** The v* tag on HEAD that origin does not hold: a release stopped between its tag and its push. */
+// A tag on HEAD that origin lacks is a release stopped between its tag and its push.
 export function pendingVersion(held: Set<string>, cwd?: string): string | null {
   const pending = lines(
     git(["tag", "--points-at", "HEAD", "--list", "v*"], cwd)
@@ -105,17 +114,7 @@ export function bump(
   version: string,
   part: "major" | "minor" | "patch"
 ): string {
-  const match = version.match(VERSION_RE)
-
-  if (!match) {
-    throw new Error(`${version} is not a semver version.`)
-  }
-
-  const [major, minor, patch] = match.slice(1).map(Number) as [
-    number,
-    number,
-    number,
-  ]
+  const [major, minor, patch] = partsOf(version)
 
   switch (part) {
     case "major":
@@ -154,7 +153,6 @@ export function resolve(
   }
 }
 
-/** The lines a shell exports, or a JSON document. */
 export function formatRelease(release: Release, format: string): string {
   if (format === "json") {
     return JSON.stringify(release)

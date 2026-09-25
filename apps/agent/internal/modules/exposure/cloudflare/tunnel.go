@@ -27,7 +27,7 @@ func Status(ctx *modules.Context) (Report, error) {
 	return report, nil
 }
 
-// The ingress is regenerated from the project registry; the DNS that points at it is the app's business, and it reads these routes to write it.
+// DNS is the app's job: it reads these routes to write the records.
 func Sync(ctx *modules.Context) (Report, error) {
 	if !ours(ctx) {
 		return Report{}, modules.NotInstalled(ID, manifest().Name)
@@ -71,7 +71,7 @@ func Restart(ctx *modules.Context) (Report, error) {
 	return Status(ctx)
 }
 
-// The configured value first, then the one the configuration left in /etc/pupitre/env: a command runs long after the install.
+// Falls back to /etc/pupitre/env: a command runs long after the install, without its configuration.
 func domainOf(ctx *modules.Context) string {
 	if domain := ctx.String("domain"); domain != "" {
 		return domain

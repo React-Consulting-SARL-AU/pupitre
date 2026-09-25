@@ -4,12 +4,6 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import type { Gesture } from "@renderer/lib/use-pending";
 import { RotateCw, X } from "lucide-react";
 
-/**
- * The process is gone, and the tab says so where the prompt used to be.
- *
- * What was printed stays on screen to be read; the two ways out are a fresh
- * process in the same tab, or the tab itself going away.
- */
 export function TerminalEndedBar({
   code,
   onReopen,
@@ -32,11 +26,11 @@ export function TerminalEndedBar({
         tone={code === 0 ? "neutral" : "danger"}
       />
 
-      <p className="min-w-0 flex-1 text-[13px]">
+      <p className="min-w-0 flex-1 text-control">
         <span className="font-medium text-ink">
           {t("terminals.ended.title")}
         </span>
-        <span className="ml-2 font-data text-[12px] text-ink-3">
+        <span className="ml-2 font-data text-ink-3 text-small">
           {t("terminals.ended.detail", { code })}
         </span>
       </p>

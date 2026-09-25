@@ -12,8 +12,8 @@ const TUNNEL: TunnelStatusResult = {
   installed: true,
   routes: [
     {
-      hostname: "flymate.example.org",
-      project: "flymate-api",
+      hostname: "flyleaf.example.org",
+      project: "flyleaf-api",
       service: "http://127.0.0.1:3000",
     },
   ],
@@ -73,12 +73,11 @@ describe("le tunnel de l'agent", () => {
     await useTunnel.getState().sync(SERVER);
 
     expect(sent).toEqual(["tunnel.sync"]);
-    expect(named).toEqual(["flymate.example.org"]);
+    expect(named).toEqual(["flyleaf.example.org"]);
     expect(useTunnel.getState().busy).toBeNull();
     expect(useTunnel.getState().problem).toBeNull();
   });
 
-  /** A name the account refuses is said where the routes are, not lost in a trace. */
   it("garde le refus de l'écriture des noms", async () => {
     stubPupitre({
       agentCall: () =>

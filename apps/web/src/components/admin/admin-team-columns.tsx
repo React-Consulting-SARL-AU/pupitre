@@ -1,19 +1,10 @@
 import type { DataColumn } from "@/components/ui/async-data-table"
+import type { AdminTeamMember } from "@/lib/api/admin-queries"
 import { roleKey } from "@/lib/domain/roles"
 import type { Translate } from "@/lib/i18n/i18n"
 import { formatDate } from "@/lib/utils/format"
 
-export interface AdminTeamRowMember {
-  user_id: string
-  email: string
-  name: string
-  role: string
-  created_at: string
-}
-
-export function adminTeamColumns(
-  t: Translate
-): DataColumn<AdminTeamRowMember>[] {
+export function adminTeamColumns(t: Translate): DataColumn<AdminTeamMember>[] {
   return [
     {
       key: "name",

@@ -13,7 +13,6 @@ import { ConnectionHealthLine } from "./connection-health-line";
 
 type Scope = ReturnType<typeof forgetScope>;
 
-/** What forgetting takes away, in one line: the server and its modules when they are known. */
 export function forgetQuestion(
   t: Translate,
   scope: Scope,
@@ -33,15 +32,6 @@ export function forgetQuestion(
   });
 }
 
-/**
- * A connected account: who it is, whether it still answers, and the way out.
- *
- * Disconnecting takes the account away from every server that uses it, so it
- * is asked twice and the question names what it takes: the active server and
- * the installed modules that declare this account, when the catalogue has
- * been read. Checking asks the provider again — a token revoked upstream reads
- * here rather than at the next failed install.
- */
 export function ConnectionConnected({
   connection,
   state,
@@ -59,7 +49,6 @@ export function ConnectionConnected({
   scope: Scope;
   serverName: string | null;
   busy: boolean;
-  /** What stands for the account's state, when the screen says it in its own way. */
   status?: ReactNode;
   onVerify: () => Promise<void>;
   onForget: () => Promise<void>;
@@ -75,7 +64,7 @@ export function ConnectionConnected({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           {status ?? (
-            <p className="text-[13px] text-ink">
+            <p className="text-control text-ink">
               {state.account
                 ? t("connections.connected", { account: state.account.name })
                 : t("connections.held")}
@@ -83,7 +72,7 @@ export function ConnectionConnected({
           )}
 
           {state.sealed ? null : (
-            <p className="mt-1 text-[12px] text-warn">
+            <p className="mt-1 text-small text-warn">
               {t("connections.unsealed")}
             </p>
           )}

@@ -8,10 +8,8 @@ import (
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/registry"
-	"pupitre.studio/agent/internal/sys/file"
 )
 
-// A Turborepo runs every workspace from its root, in one window: the project holds the root's command and one port per workspace that listens.
 const turboConfig = "turbo.json"
 
 var (
@@ -27,7 +25,7 @@ type workspace struct {
 	host string
 }
 
-// What the monorepo proposes, or nothing when the root is not one: a turbo.json and a list of workspaces are what makes it one.
+// A Turborepo runs every workspace from its root in one window, with one route per workspace that listens.
 func (r *Reader) monorepo(files sources, manifest packageJSON, pkgmgr string, taken map[int]bool) (contract.DetectedProcess, bool) {
 	if !files.exists(turboConfig) {
 		return contract.DetectedProcess{}, false
@@ -71,13 +69,12 @@ func (r *Reader) monorepo(files sources, manifest packageJSON, pkgmgr string, ta
 	}, true
 }
 
-// The workspaces that declare a start script naming a port, in the order the globs list them, then by folder name.
 func (s sources) workspaces(globs []string) []workspace {
 	var members []workspace
 
 	for _, glob := range globs {
 		for _, dir := range s.expand(glob) {
-			member := sources{ctx: s.ctx, root: s.root + "/" + dir}
+			member := s.sub(dir)
 			manifest := member.packageJSON()
 			if !manifest.Present {
 				continue
@@ -101,7 +98,7 @@ func (s sources) workspaces(globs []string) []workspace {
 	return members
 }
 
-// One trailing "*" is the whole of what package managers write: apps/*, packages/*. A literal path names one folder.
+// Package managers only ever write one trailing "*" (apps/*); a literal path names one folder.
 func (s sources) expand(glob string) []string {
 	glob = strings.TrimSuffix(strings.TrimPrefix(glob, "./"), "/")
 	if strings.HasPrefix(glob, "!") {
@@ -117,22 +114,16 @@ func (s sources) expand(glob string) []string {
 		return nil
 	}
 
-	entries, err := file.List(s.ctx, s.root+"/"+parent)
-	if err != nil {
-		return nil
-	}
-
 	var dirs []string
-	for _, entry := range entries {
-		if entry.Dir && !strings.HasPrefix(entry.Name, ".") {
-			dirs = append(dirs, parent+"/"+entry.Name)
-		}
+
+	for _, name := range s.folders(parent) {
+		dirs = append(dirs, parent+"/"+name)
 	}
 
 	return dirs
 }
 
-// The workspaces field of a package.json: a list, or the object npm and yarn also accept.
+// A list, or the object form npm and yarn also accept.
 func (p packageJSON) workspaceGlobs() []string {
 	if len(p.Workspaces) == 0 {
 		return nil
@@ -146,6 +137,7 @@ func (p packageJSON) workspaceGlobs() []string {
 	var shaped struct {
 		Packages []string `json:"packages"`
 	}
+
 	if err := json.Unmarshal(p.Workspaces, &shaped); err == nil {
 		return shaped.Packages
 	}
@@ -160,6 +152,7 @@ func pnpmWorkspaces(yaml string) []string {
 	}
 
 	var globs []string
+
 	for _, match := range pnpmPackages.FindAllStringSubmatch(packages, -1) {
 		globs = append(globs, match[1])
 	}
@@ -167,7 +160,7 @@ func pnpmWorkspaces(yaml string) []string {
 	return globs
 }
 
-// A workspace name becomes the label of its route: one DNS label, since the app puts it in front of the subdomain.
+// One DNS label, since the app puts it in front of the subdomain.
 func uniqueLabel(name string, labels map[string]bool) string {
 	label := scope.ReplaceAllString(strings.ToLower(name), "")
 	label = strings.Trim(dashes.ReplaceAllString(notLabel.ReplaceAllString(label, "-"), "-"), "-")

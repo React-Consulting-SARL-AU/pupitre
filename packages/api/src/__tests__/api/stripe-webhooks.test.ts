@@ -1,4 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
+import { stripeEventLeaseMsFromEnv } from "../../lib/billing/config"
 import {
   entitlementForOrganization,
   GRACE_PERIOD_MS,
@@ -47,6 +48,12 @@ function invoicePaymentFailed(id: string) {
     customer: "cus_test_1",
     subscription: "sub_test_1",
   })
+}
+
+function pastDue(organizationId: string) {
+  return {
+    remote: remoteSubscription({ organizationId, status: "past_due" }),
+  }
 }
 
 function subjectsSent(server: ApiTestServer): string[] {
@@ -307,8 +314,7 @@ describe("POST /webhooks/stripe", () => {
       )
     )
 
-    // Stripe cancels a trial that ends without a card: the period end is the
-    // trial's, so already past — the tolerance window extends nothing here.
+    // A trial ending without a card cancels with an already past period end, so the grace window adds nothing.
     await postStripeWebhook<AckBody>(
       stripeEvent(
         "customer.subscription.deleted",
@@ -352,7 +358,8 @@ describe("POST /webhooks/stripe", () => {
         object: "invoice",
         customer: "cus_test_1",
         subscription: "sub_test_1",
-      })
+      }),
+      pastDue(organizationId)
     )
 
     expect(failed.json.handled).toBe(true)
@@ -410,7 +417,8 @@ describe("POST /webhooks/stripe", () => {
           parent: { subscription_details: { subscription: "sub_test_1" } },
         },
         "evt_test_parent"
-      )
+      ),
+      pastDue(organizationId)
     )
 
     expect(failed.json.handled).toBe(true)
@@ -559,7 +567,10 @@ describe("POST /webhooks/stripe", () => {
         stripeSubscriptionObject({ organizationId })
       )
     )
-    await postStripeWebhook<AckBody>(invoicePaymentFailed("in_1"))
+    await postStripeWebhook<AckBody>(
+      invoicePaymentFailed("in_1"),
+      pastDue(organizationId)
+    )
 
     const first = await server.prisma.server.findUniqueOrThrow({
       where: { id: enrolled.server.id },
@@ -567,7 +578,10 @@ describe("POST /webhooks/stripe", () => {
     const emailsAfterFirst = subjectsSent(server).length
 
     await new Promise((resolve) => setTimeout(resolve, 1100))
-    await postStripeWebhook<AckBody>(invoicePaymentFailed("in_2"))
+    await postStripeWebhook<AckBody>(
+      invoicePaymentFailed("in_2"),
+      pastDue(organizationId)
+    )
 
     const second = await server.prisma.server.findUniqueOrThrow({
       where: { id: enrolled.server.id },
@@ -591,20 +605,146 @@ describe("POST /webhooks/stripe", () => {
     )
 
     const event = invoicePaymentFailed("in_twice")
-    const [left, right] = await Promise.all([
-      postStripeWebhook<AckBody>(event),
-      postStripeWebhook<AckBody>(event),
+    const responses = await Promise.all([
+      postStripeWebhook<AckBody | ErrorBody>(event, pastDue(organizationId)),
+      postStripeWebhook<AckBody | ErrorBody>(event, pastDue(organizationId)),
     ])
-    const verdicts = [left.json, right.json].sort(
-      (a, b) => Number(a.duplicate) - Number(b.duplicate)
+    const handled = responses.filter(
+      (response) => (response.json as AckBody).handled === true
     )
+    const others = responses.filter((response) => !handled.includes(response))
 
-    expect(left.status).toBe(200)
-    expect(right.status).toBe(200)
-    expect(verdicts[0]).toMatchObject({ handled: true, duplicate: false })
-    expect(verdicts[1]).toMatchObject({ handled: false, duplicate: true })
+    expect(handled).toHaveLength(1)
+    expect(handled[0]?.json).toMatchObject({ handled: true, duplicate: false })
+    expect(others).toHaveLength(1)
+    expect(
+      others[0]?.status === 409 ||
+        (others[0]?.json as AckBody | undefined)?.duplicate === true
+    ).toBe(true)
     expect(await server.prisma.stripeEvent.count()).toBe(2)
     expect(subjectsSent(server)).toHaveLength(1)
+  })
+
+  it("refuse une livraison pendant qu'une autre traite encore l'événement, pour que Stripe la rejoue", async () => {
+    const event = invoicePaymentFailed("in_in_flight")
+
+    await server.prisma.stripeEvent.create({
+      data: {
+        id: String(event.id),
+        type: "invoice.payment_failed",
+        status: "processing",
+        receivedAt: new Date(),
+      },
+    })
+
+    const response = await postStripeWebhook<ErrorBody>(event)
+
+    expect(response.status).toBe(409)
+    expect(response.json.error.code).toBe("conflict")
+    expect(response.json.error.fix).toBeString()
+    expect(
+      (
+        await server.prisma.stripeEvent.findUniqueOrThrow({
+          where: { id: String(event.id) },
+        })
+      ).status
+    ).toBe("processing")
+  })
+
+  it("reprend un événement resté en cours au-delà du bail, quand son isolate est mort", async () => {
+    await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "customer.subscription.created",
+        stripeSubscriptionObject({ organizationId })
+      )
+    )
+
+    const event = invoicePaymentFailed("in_abandoned")
+
+    await server.prisma.stripeEvent.create({
+      data: {
+        id: String(event.id),
+        type: "invoice.payment_failed",
+        status: "processing",
+        receivedAt: new Date(Date.now() - stripeEventLeaseMsFromEnv() - 1000),
+      },
+    })
+
+    const response = await postStripeWebhook<AckBody>(
+      event,
+      pastDue(organizationId)
+    )
+
+    expect(response.status).toBe(200)
+    expect(response.json).toMatchObject({ handled: true, duplicate: false })
+    expect(
+      await server.prisma.stripeEvent.findUniqueOrThrow({
+        where: { id: String(event.id) },
+      })
+    ).toMatchObject({ status: "processed" })
+    expect(
+      (
+        await server.prisma.subscription.findFirstOrThrow({
+          where: { organizationId },
+        })
+      ).status
+    ).toBe("past_due")
+  })
+
+  it("ne ressuscite pas un abonnement résilié sur un impayé livré en retard", async () => {
+    const periodEnd = secondsFloor(Date.now() + 86_400_000)
+    const canceled = remoteSubscription({
+      organizationId,
+      status: "canceled",
+      currentPeriodEnd: periodEnd,
+    })
+
+    await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "customer.subscription.deleted",
+        stripeSubscriptionObject({
+          organizationId,
+          status: "canceled",
+          currentPeriodEnd: periodEnd,
+        })
+      )
+    )
+
+    const late = await postStripeWebhook<AckBody>(
+      invoicePaymentFailed("in_late"),
+      { remote: canceled }
+    )
+
+    expect(late.json.handled).toBe(true)
+    expect(
+      await server.prisma.subscription.findFirstOrThrow({
+        where: { organizationId },
+      })
+    ).toMatchObject({ status: "canceled" })
+  })
+
+  it("ne met pas en impayé un abonnement que Stripe dit réglé depuis", async () => {
+    const enrolled = await createServer({ organizationId })
+
+    await postStripeWebhook<AckBody>(
+      stripeEvent(
+        "customer.subscription.created",
+        stripeSubscriptionObject({ organizationId })
+      )
+    )
+    await postStripeWebhook<AckBody>(invoicePaymentFailed("in_settled"))
+
+    expect(
+      await server.prisma.subscription.findFirstOrThrow({
+        where: { organizationId },
+      })
+    ).toMatchObject({ status: "active" })
+    expect(
+      await server.prisma.server.findUniqueOrThrow({
+        where: { id: enrolled.server.id },
+      })
+    ).toMatchObject({ status: "active" })
+    expect(subjectsSent(server)).toHaveLength(0)
   })
 
   it("garde un événement dont le traitement a échoué pour que Stripe le rejoue", async () => {

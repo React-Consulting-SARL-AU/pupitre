@@ -15,15 +15,6 @@ import type { Server } from "@shared/servers";
 
 const SPACES = /\s+/;
 
-/**
- * The keys the app owns, one per server, in its own data folder.
- *
- * Nothing here ever reaches ~/.ssh: a key made for this computer stays in the
- * app's folder, in 0600, and leaves it only by its public half. A key someone
- * already had is copied in rather than referenced where it sits, so that
- * deleting the server really takes the key the app was using with it.
- */
-
 const run = promisify(execFile);
 
 const SERVER_ID = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$/;
@@ -105,28 +96,18 @@ export async function generateKey(
   return seal(paths);
 }
 
-/**
- * The public half derived from the private one, without its comment.
- *
- * The comment travels with an imported key and names the machine it was made
- * on, which is not this one: keeping it would put someone else's hostname in
- * the line we ask the user to paste on their server.
- */
+/** Drops the comment: an imported key's comment names another machine's hostname. */
 async function publicHalf(keyPath: string): Promise<string> {
   try {
     const { stdout } = await run("ssh-keygen", ["-y", "-f", keyPath]);
+
     return stdout.trim().split(SPACES).slice(0, 2).join(" ");
   } catch {
     throw new KeyError("refusal.key.unreadable");
   }
 }
 
-/**
- * A key someone already had, copied in rather than pointed at.
- *
- * Pointing at it would leave the app depending on a file it does not own, which
- * a cleanup elsewhere would take away without warning.
- */
+/** Copied rather than referenced: a file the app does not own could vanish in someone else's cleanup. */
 export async function importKey(
   dir: string,
   serverId: string,
@@ -147,6 +128,7 @@ export async function importKey(
   chmodSync(paths.keyPath, PRIVATE_MODE);
 
   const derived = await publicHalf(paths.keyPath);
+
   writeFileSync(paths.publicKeyPath, `${derived}\n`, { mode: PUBLIC_MODE });
 
   return seal(paths);
@@ -154,6 +136,7 @@ export async function importKey(
 
 export function readPublicKey(dir: string, serverId: string): string | null {
   let paths: KeyPaths;
+
   try {
     paths = keyPaths(dir, serverId);
   } catch {
@@ -169,6 +152,7 @@ export function readPublicKey(dir: string, serverId: string): string | null {
 
 export function removeKey(dir: string, serverId: string): void {
   let paths: KeyPaths;
+
   try {
     paths = keyPaths(dir, serverId);
   } catch {
@@ -179,24 +163,15 @@ export function removeKey(dir: string, serverId: string): void {
   rmSync(paths.publicKeyPath, { force: true });
 }
 
-/** What a shell reads as one word, and needs no quotes to do so. */
 const PLAIN_ARGUMENT = /^[A-Za-z0-9_@%+=:,./-]+$/;
 
-/**
- * One argument of a line meant to be pasted into a shell.
- *
- * The app's own folder is `~/Library/Application Support/…` on macOS: a path
- * with a space in it, which a shell splits in two unless it is quoted. Single
- * quotes protect everything but a single quote, which is closed, escaped and
- * reopened.
- */
+/** The app folder on macOS is `~/Library/Application Support/…`, whose space a shell would split. */
 function shellArgument(value: string): string {
   return PLAIN_ARGUMENT.test(value)
     ? value
     : `'${value.replaceAll("'", "'\\''")}'`;
 }
 
-/** The line to paste on the server, ready to run, with nothing to fill in. */
 export function copyIdCommand(server: Server, publicKeyPath: string): string {
   const port = server.port === DEFAULT_PORT ? [] : ["-p", String(server.port)];
 

@@ -17,11 +17,11 @@ import (
 
 const sketch = `{"name":"sketch","dir":"sketch","boot":false,"runtimes":{},"processes":[{"id":"app","dir":".","pkgmgr":"bun","host":"127.0.0.1","port":3001,"routes":[],"cmd":"bun run dev"}]}`
 
-// setting changes one value of core.backup in install.json, as the form would.
 func (b *bench) setting(key string, value any) {
 	b.t.Helper()
 
 	var document map[string]any
+
 	if err := json.Unmarshal(b.fake.Files[installPath], &document); err != nil {
 		b.t.Fatal(err)
 	}
@@ -30,13 +30,13 @@ func (b *bench) setting(key string, value any) {
 	b.install(document)
 }
 
-// withSketch adds a project without a repository beside the intranet.
 func (b *bench) withSketch() {
 	b.t.Helper()
 
 	var registry struct {
 		Projects []json.RawMessage `json:"projects"`
 	}
+
 	if err := json.Unmarshal(b.fake.Files[b.paths.Local], &registry); err != nil {
 		b.t.Fatal(err)
 	}
@@ -58,6 +58,7 @@ func TestWhatTheSettingsLeaveOutStaysOutAndIsRecorded(t *testing.T) {
 	result := b.run(contract.BackupTriggerManual)
 
 	keys := keys(result.Parts)
+
 	for _, left := range []string{"project-sketch.pupitre", "db-postgres-shop.pupitre", "db-postgres-roles.pupitre", "db-redis.pupitre"} {
 		if slices.Contains(keys, left) {
 			t.Fatalf("%s must stay out: %v", left, keys)
@@ -69,6 +70,7 @@ func TestWhatTheSettingsLeaveOutStaysOutAndIsRecorded(t *testing.T) {
 	}
 
 	raw, _ := bucket.Object(result.Key + "/" + contract.BackupManifestKey)
+
 	var manifest contract.BackupManifest
 	if err := json.Unmarshal(raw, &manifest); err != nil {
 		t.Fatal(err)
@@ -86,12 +88,12 @@ func TestWhatTheSettingsLeaveOutStaysOutAndIsRecorded(t *testing.T) {
 func TestTheRolesGoWithTheirEngineAsLongAsOneDatabaseDoes(t *testing.T) {
 	bucket := s3test.New(t, bucketName)
 	b := newBench(t, bucket).configured()
-	b.fake.Answer("FROM pg_database WHERE datallowconn", "shop\nflymate\n")
-	b.fake.Answer("pg_dump --format=custom --dbname=flymate", "PGDMP flymate")
+	b.fake.Answer("FROM pg_database WHERE datallowconn", "shop\nflyleaf\n")
+	b.fake.Answer("pg_dump --format=custom --dbname=flyleaf", "PGDMP flyleaf")
 	b.setting("exclude_databases", []string{"postgres:shop"})
 
 	keys := keys(b.run(contract.BackupTriggerManual).Parts)
-	if !slices.Contains(keys, "db-postgres-roles.pupitre") || !slices.Contains(keys, "db-postgres-flymate.pupitre") || slices.Contains(keys, "db-postgres-shop.pupitre") {
+	if !slices.Contains(keys, "db-postgres-roles.pupitre") || !slices.Contains(keys, "db-postgres-flyleaf.pupitre") || slices.Contains(keys, "db-postgres-shop.pupitre") {
 		t.Fatalf("parts = %v", keys)
 	}
 }
@@ -116,6 +118,7 @@ func TestTheContentsAreTheChecklistTheAppDraws(t *testing.T) {
 		{Engine: "postgres", Name: "shop", Item: "postgres:shop", Included: true},
 		{Engine: "redis", Name: "*", Item: "redis:*", Included: false},
 	}
+
 	if !slices.Equal(contents.Databases, wantDatabases) || len(contents.Unreadable) != 0 {
 		t.Fatalf("databases = %+v, unreadable %v", contents.Databases, contents.Unreadable)
 	}
@@ -146,7 +149,6 @@ func TestWithoutTheModuleEverythingIsIncluded(t *testing.T) {
 	}
 }
 
-// excludingBackup is a server that left its intranet, its sketch and its shop out of the backup.
 func excludingBackup(t *testing.T) (*s3test.Fake, *bench, contract.BackupRunResult) {
 	t.Helper()
 
@@ -164,6 +166,7 @@ func TestAFreshServerClonesAnExcludedProjectAndDropsOneWithoutRepository(t *test
 	location := source.location()
 
 	fresh := newBench(t, bucket)
+
 	setup, err := fresh.service.RestoreSetup(nil, location, fresh.secrets(), false)
 	if err != nil {
 		t.Fatal(err)
@@ -261,6 +264,7 @@ func TestACategorySwitchedOffLeavesOutAndRecordsEverythingInIt(t *testing.T) {
 
 	b.setting("projects", true)
 	b.now = b.now.Add(time.Hour)
+
 	result, err := b.service.Run(nil, contract.BackupTriggerManual, backup.Overrides{Projects: contract.BackupProjectsNone})
 	if err != nil {
 		t.Fatal(err)
@@ -281,6 +285,7 @@ func TestAFreshRestoreOfABackupWithoutCategoriesLeavesNoProjectWithoutAFolder(t 
 	location := source.location()
 
 	fresh := newBench(t, bucket)
+
 	setup, err := fresh.service.RestoreSetup(nil, location, fresh.secrets(), false)
 	if err != nil {
 		t.Fatal(err)

@@ -38,15 +38,17 @@ var dbSecrets = fmt.Sprintf(
 
 var ports = map[string]int{"mysql": 3306, "postgres": 5432, "mongodb": 27017, "redis": 6379}
 
-// The dump has to be there before the engines are, which is the whole point of ~/dumps.
+// The dump must be in ~/dumps before the engines install: that is when it gets imported.
 func installDatabases(t *testing.T, host string) response {
 	t.Helper()
 
 	dev := "dev@" + address(host)
+
 	ssh(t, dev, "mkdir", "-p", "/home/dev/dumps")
 
 	seed := sshCommand(dev, "sh", "-c", "'cat > "+dumpFile+"'")
 	seed.Stdin = strings.NewReader(dumpTable + "\n")
+
 	if out, err := seed.CombinedOutput(); err != nil {
 		t.Fatalf("seeding %s: %v\n%s", dumpFile, err, out)
 	}
@@ -63,6 +65,7 @@ func TestDatabasesListenOnTheLoopbackOnly(t *testing.T) {
 	}
 
 	listening := ssh(t, host, "ss", "-ltn")
+
 	for engine, port := range ports {
 		if !strings.Contains(listening, fmt.Sprintf("127.0.0.1:%d", port)) {
 			t.Errorf("%s must answer on the loopback:\n%s", engine, listening)
@@ -92,7 +95,6 @@ func TestDatabasesListenOnTheLoopbackOnly(t *testing.T) {
 	}
 }
 
-// Redis without a password on a machine that also carries the client's code is the classic way to lose both.
 func TestRedisRefusesAnyoneWithoutThePassword(t *testing.T) {
 	host := stagingHost(t)
 
@@ -101,6 +103,7 @@ func TestRedisRefusesAnyoneWithoutThePassword(t *testing.T) {
 	}
 
 	conf := ssh(t, host, "sudo", "cat", "/etc/redis/pupitre.conf")
+
 	for _, want := range []string{"maxmemory 256mb", "maxmemory-policy allkeys-lfu"} {
 		if !strings.Contains(conf, want) {
 			t.Errorf("the configuration lacks %q:\n%s", want, conf)
@@ -108,7 +111,6 @@ func TestRedisRefusesAnyoneWithoutThePassword(t *testing.T) {
 	}
 }
 
-// A machine that also runs projects cannot let an engine size itself: what the client asked for is what the engine must report back.
 func TestTheChosenMemoryReachesTheRunningEngines(t *testing.T) {
 	host := stagingHost(t)
 
@@ -140,7 +142,6 @@ func TestADumpLeftBeforeTheInstallIsImportedAndReported(t *testing.T) {
 	}
 }
 
-// The same dump feeds PostgreSQL when asked for: ~dev is closed to the postgres account, so root opens the file on the standard input, as mysql reads its own.
 func TestAPostgresDumpIsImportedOnDemand(t *testing.T) {
 	host := stagingHost(t)
 
@@ -187,16 +188,17 @@ func TestDbUrlIsUsableThroughAnSshForward(t *testing.T) {
 			t.Errorf("%s: nothing answers through ssh -L %d:127.0.0.1:%d: %v", engine, local, port, err)
 			continue
 		}
+
 		conn.Close()
 	}
 }
 
-// ssh -L is the only way in: the app opens it, the url above is what the client pastes at the other end.
 func forward(t *testing.T, host string, local, remote int) func() {
 	t.Helper()
 
 	cmd := exec.Command("ssh", "-o", "BatchMode=yes", "-o", "ExitOnForwardFailure=yes", "-N",
 		"-L", fmt.Sprintf("127.0.0.1:%d:127.0.0.1:%d", local, remote), host)
+
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
@@ -209,6 +211,7 @@ func forward(t *testing.T, host string, local, remote int) func() {
 
 func dial(port int) (net.Conn, error) {
 	var err error
+
 	for range 20 {
 		var conn net.Conn
 		conn, err = net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", port), time.Second)
@@ -226,6 +229,7 @@ func TestNoGeneratedPasswordLeavesTheEnvFile(t *testing.T) {
 	host := stagingHost(t)
 
 	keys := ssh(t, host, "sudo", "cat", "/etc/pupitre/env")
+
 	for _, key := range []string{"MYSQL_APP_PASSWORD", "MYSQL_REMOTE_PASSWORD", "POSTGRES_APP_PASSWORD", "POSTGRES_REMOTE_PASSWORD", "MONGODB_APP_PASSWORD", "REDIS_PASSWORD"} {
 		if !strings.Contains(keys, key+"=") {
 			t.Errorf("%s must be stored in /etc/pupitre/env", key)
@@ -267,7 +271,6 @@ func TestReplayingTheDatabasesChangesNothing(t *testing.T) {
 	}
 }
 
-// Mailpit catches on 1025 and shows on 8025, both on the loopback, under dev.
 func TestMailpitCatchesMailOnTheLoopback(t *testing.T) {
 	host := stagingHost(t)
 	dev := "dev@" + address(host)
@@ -278,6 +281,7 @@ func TestMailpitCatchesMailOnTheLoopback(t *testing.T) {
 	}
 
 	listening := ssh(t, host, "ss", "-ltn")
+
 	for _, port := range []string{"127.0.0.1:1025", "127.0.0.1:8025"} {
 		if !strings.Contains(listening, port) {
 			t.Fatalf("mailpit must listen on %s:\n%s", port, listening)

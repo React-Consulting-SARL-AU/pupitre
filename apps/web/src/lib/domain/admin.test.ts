@@ -2,15 +2,7 @@ import { describe, expect, it } from "bun:test"
 import {
   accountGestures,
   accountLook,
-  canActOnPlatform,
-  canCancelSubscription,
-  canDeleteSubscription,
-  canExtendTrial,
   canGrantSubscription,
-  canResizeSubscription,
-  canRestore,
-  canResumeSubscription,
-  canSuspend,
   dateInputValue,
   endOfDayIso,
   organizationGestures,
@@ -21,7 +13,6 @@ import {
   releaseVersions,
   SUBSCRIPTION_PRODUCT_FILTERS,
   stripeEventStatusKey,
-  subscriptionIsLive,
   suspendedReasonKey,
 } from "@/lib/domain/admin"
 
@@ -35,18 +26,6 @@ describe("platformOpen", () => {
     expect(platformOpen("org_perso", "owner")).toBe(false)
     expect(platformOpen(null, "owner")).toBe(false)
     expect(platformOpen("org_pupitre", null)).toBe(false)
-  })
-})
-
-describe("canActOnPlatform", () => {
-  it("lets the two roles the owner grants on the platform organisation act", () => {
-    expect(canActOnPlatform("owner")).toBe(true)
-    expect(canActOnPlatform("admin")).toBe(true)
-  })
-
-  it("leaves a plain member, and anyone outside, reading only", () => {
-    expect(canActOnPlatform("member")).toBe(false)
-    expect(canActOnPlatform(null)).toBe(false)
   })
 })
 
@@ -66,14 +45,6 @@ describe("suspendedReasonKey", () => {
   })
 })
 
-describe("canRestore", () => {
-  it("only lifts the suspension the team laid", () => {
-    expect(canRestore("admin")).toBe(true)
-    expect(canRestore("billing")).toBe(false)
-    expect(canRestore(null)).toBe(false)
-  })
-})
-
 describe("productKey", () => {
   it("names the two products of the platform, and Stripe for every other", () => {
     expect(productKey("launch")).toBe("admin.subscriptions.product.launch")
@@ -90,107 +61,6 @@ describe("productKey", () => {
       "granted",
       "stripe",
     ])
-  })
-})
-
-describe("subscriptionIsLive", () => {
-  it("counts what Stripe still bills, and what a trial or a granted right still covers", () => {
-    for (const status of ["active", "trialing", "past_due"]) {
-      expect(subscriptionIsLive(status), status).toBe(true)
-    }
-
-    for (const status of ["canceled", "unpaid", "incomplete_expired"]) {
-      expect(subscriptionIsLive(status), status).toBe(false)
-    }
-  })
-})
-
-describe("canCancelSubscription", () => {
-  it("stops anything that is not already cancelled", () => {
-    expect(canCancelSubscription("active")).toBe(true)
-    expect(canCancelSubscription("trialing")).toBe(true)
-    expect(canCancelSubscription("canceled")).toBe(false)
-  })
-})
-
-describe("canDeleteSubscription", () => {
-  it("deletes a platform row whatever its status", () => {
-    expect(
-      canDeleteSubscription({ product: "launch", status: "trialing" })
-    ).toBe(true)
-    expect(
-      canDeleteSubscription({ product: "granted", status: "active" })
-    ).toBe(true)
-  })
-
-  it("deletes a Stripe row only once Stripe no longer bills it", () => {
-    expect(
-      canDeleteSubscription({ product: "prod_server", status: "canceled" })
-    ).toBe(true)
-    expect(
-      canDeleteSubscription({ product: "prod_server", status: "active" })
-    ).toBe(false)
-    expect(
-      canDeleteSubscription({ product: "prod_server", status: "past_due" })
-    ).toBe(false)
-  })
-})
-
-describe("canResizeSubscription", () => {
-  it("resizes the granted product alone", () => {
-    expect(canResizeSubscription("granted")).toBe(true)
-    expect(canResizeSubscription("launch")).toBe(false)
-    expect(canResizeSubscription("prod_server")).toBe(false)
-  })
-})
-
-describe("canExtendTrial", () => {
-  it("pushes the end of a Stripe trial alone", () => {
-    expect(canExtendTrial({ product: "prod_server", status: "trialing" })).toBe(
-      true
-    )
-    expect(canExtendTrial({ product: "prod_server", status: "active" })).toBe(
-      false
-    )
-    expect(canExtendTrial({ product: "launch", status: "trialing" })).toBe(
-      false
-    )
-    expect(canExtendTrial({ product: "granted", status: "trialing" })).toBe(
-      false
-    )
-  })
-})
-
-describe("canResumeSubscription", () => {
-  it("takes back a Stripe cancellation that still runs to the end of the period", () => {
-    expect(
-      canResumeSubscription({
-        product: "prod_server",
-        status: "active",
-        cancel_at_period_end: true,
-      })
-    ).toBe(true)
-    expect(
-      canResumeSubscription({
-        product: "prod_server",
-        status: "active",
-        cancel_at_period_end: false,
-      })
-    ).toBe(false)
-    expect(
-      canResumeSubscription({
-        product: "prod_server",
-        status: "canceled",
-        cancel_at_period_end: true,
-      })
-    ).toBe(false)
-    expect(
-      canResumeSubscription({
-        product: "granted",
-        status: "active",
-        cancel_at_period_end: true,
-      })
-    ).toBe(false)
   })
 })
 
@@ -305,16 +175,6 @@ describe("releaseVersions", () => {
 
   it("has nothing to show before the first publication", () => {
     expect(releaseVersions([])).toEqual([])
-  })
-})
-
-describe("canSuspend", () => {
-  it("only offers the suspension on a running server", () => {
-    expect(canSuspend("active")).toBe(true)
-
-    for (const status of ["enrolling", "grace", "suspended", "revoked"]) {
-      expect(canSuspend(status), status).toBe(false)
-    }
   })
 })
 

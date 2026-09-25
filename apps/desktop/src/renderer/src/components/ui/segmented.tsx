@@ -1,13 +1,6 @@
 import { Toggle } from "@base-ui-components/react/toggle";
 import { ToggleGroup } from "@base-ui-components/react/toggle-group";
 
-/**
- * One choice among a few words, the chosen one drawn in inverse.
- *
- * A sort, a filter, a view: what a segmented control asks is answered on the
- * spot and read at a glance, which a select would hide behind a click. One
- * word is always pressed: unpressing the current one changes nothing.
- */
 export function Segmented<T extends string>({
   label,
   options,
@@ -26,6 +19,7 @@ export function Segmented<T extends string>({
       onValueChange={(next) => {
         const [picked] = next as T[];
 
+        // Unpressing the current word leaves the group empty; one word always stays pressed.
         if (picked !== undefined) {
           onChange(picked);
         }
@@ -34,7 +28,7 @@ export function Segmented<T extends string>({
     >
       {options.map((option) => (
         <Toggle
-          className="clickable rounded-full px-2.5 py-0.5 text-[11px] text-ink-3 transition-fast hover:text-ink data-[pressed]:bg-inverse data-[pressed]:text-inverse-ink"
+          className="clickable rounded-full px-2.5 py-0.5 text-caption text-ink-3 transition-fast hover:text-ink data-[pressed]:bg-inverse data-[pressed]:text-inverse-ink"
           key={option.value}
           value={option.value}
         >

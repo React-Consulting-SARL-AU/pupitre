@@ -1,6 +1,6 @@
 # gh et op s'installent avec leurs jetons, puis le rejeu ne touche à rien.
 @answer hostname :: staging
-@answer gh api user :: flymate
+@answer gh api user :: flyleaf
 @answer credential.https://github.com.helper :: !gh auth git-credential
 @answer gh ssh-key list :: staging\tssh-ed25519 AAAA\t2026-09-04
 @file /home/dev/.ssh/id_ed25519 PRIVATE KEY

@@ -19,7 +19,9 @@ Everything belongs to an organisation. When you sign up, a personal one is creat
 
 ## Assigning a server
 
-A server belongs to the organisation and is assigned to one person. That person's devices get their public keys pushed to the machine; nobody else's do. Reassigning a server removes the old keys and adds the new ones on the next agent check-in.
+A server belongs to the organisation and is assigned to one person. The platform passes that person's device public keys on to the machine; nobody else's. Each key only gets in once a device the server already trusts allows it: the person themselves for their own devices, an owner or an admin for a member's. See [your key](/docs/start/keys/).
+
+Reassigning a server brings the new person's devices up under **Devices to allow**, in the app of an owner or an admin whose device already opens that server. The old keys stay until then, and leave as soon as a new one is in. If no owner's or admin's device opens that server, take it back from the host's console with `sudo pupitred keys reset`.
 
 ## Inviting
 
@@ -27,7 +29,7 @@ An invitation is an email with a link. The person accepts, signs in, and install
 
 ## Revoking
 
-Removing a member removes their devices' keys from every server they were on. The revocation reaches a machine on the agent's next outbound check-in — it is not a connection the platform opens.
+Removing a member removes their devices' keys from every server they were on. The revocation reaches a machine on the agent's next outbound check-in — it is not a connection the platform opens. But the agent never removes the last key of a server: on a server that was assigned to that member, their keys are usually the only ones, and they stay until another is allowed in.
 
 ## The audit log
 

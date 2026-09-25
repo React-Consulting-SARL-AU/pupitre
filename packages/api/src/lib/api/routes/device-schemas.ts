@@ -1,20 +1,11 @@
+import { DeviceSchema } from "@pupitre/shared/platform-api/account"
 import { t } from "elysia"
-import { dateTime } from "../openapi-models"
+import { fromContract } from "../contract-schema"
 
 const NAME_MAX_LENGTH = 80
 const PUBLIC_KEY_MAX_LENGTH = 4096
 
-export const deviceSchema = t.Object(
-  {
-    id: t.String(),
-    name: t.String(),
-    public_key: t.String(),
-    fingerprint: t.String(),
-    last_used_at: t.Nullable(dateTime),
-    created_at: dateTime,
-  },
-  { $id: "Device" }
-)
+export const deviceSchema = fromContract(DeviceSchema, { $id: "Device" })
 
 export const deviceInputBody = t.Object({
   name: t.String({ minLength: 1, maxLength: NAME_MAX_LENGTH }),

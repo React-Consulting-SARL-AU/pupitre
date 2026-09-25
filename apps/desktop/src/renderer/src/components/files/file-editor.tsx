@@ -29,18 +29,6 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FileSearchPanel } from "./file-search-panel";
 
-/**
- * The text of one file, in a CodeMirror view the component owns.
- *
- * The view is built once per file and torn down with it; a save keeps the
- * view and its history, a fresh read replaces the text under it. Every change
- * is handed up as the whole buffer — a file the channel carries is a megabyte
- * at most, and the store is what knows whether the buffer still reads as the
- * file. The grammar comes in after the view, when the file has one, and the
- * look follows the theme: the syntax takes the palette of the theme in force.
- * The search panel is the app's own, rendered into the slot CodeMirror opens
- * for it and spoken in the reader's language, as are the editor's own words.
- */
 export function FileEditor({
   path,
   text,
@@ -49,9 +37,7 @@ export function FileEditor({
   onSave,
 }: {
   path: string;
-  /** What the file reads as on the server, as of the last read or write. */
   text: string;
-  /** The buffer as the reader left it, when it differs from the file. */
   draft: string | null;
   onChange: (text: string) => void;
   onSave: () => void;
@@ -64,6 +50,7 @@ export function FileEditor({
   const look = useRef(new Compartment());
   const phrases = useRef(new Compartment());
   const [search, setSearch] = useState<SearchPanelHandle | null>(null);
+
   const resolvedRef = useRef(resolved);
   resolvedRef.current = resolved;
   const onChangeRef = useRef(onChange);
@@ -119,6 +106,7 @@ export function FileEditor({
             ...searchKeymap,
             indentWithTab,
           ]),
+          // The whole buffer goes up on each change: the channel caps a file at a megabyte.
           EditorView.updateListener.of((update) => {
             if (update.docChanged) {
               onChangeRef.current(update.state.doc.toString());
@@ -158,8 +146,7 @@ export function FileEditor({
     });
   }, [t]);
 
-  // A fresh read puts the file's text under the cursor; a save leaves the
-  // buffer alone, since the buffer is what was saved.
+  // Only a fresh read replaces the text; after a save the buffer already is the file.
   useEffect(() => {
     const editor = view.current;
 

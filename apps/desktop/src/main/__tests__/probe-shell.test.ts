@@ -9,8 +9,8 @@ import {
   PROBE_REMOTE_COMMAND,
   probeSshArgs,
   runShellProbe,
-  type ShellSpawn,
 } from "../probe-shell";
+import type { ShellSpawn } from "../ssh-run";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DESKTOP = join(HERE, "..", "..", "..");
@@ -67,6 +67,7 @@ function recorder(
     child.kill = () => undefined;
 
     const call: Call = { args, command, ended: false, stdin: "" };
+
     calls.push(call);
 
     child.stdin.on("data", (chunk: Buffer) => {
@@ -77,6 +78,7 @@ function recorder(
       call.ended = true;
 
       const answer = reply(call);
+
       if (!answer) {
         return;
       }
@@ -84,6 +86,7 @@ function recorder(
       if (answer.out) {
         child.stdout.write(answer.out);
       }
+
       if (answer.err) {
         child.stderr.write(answer.err);
       }

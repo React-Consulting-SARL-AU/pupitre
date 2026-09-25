@@ -9,6 +9,29 @@
     "apps/*",
     "packages/*"
   ],
+  "catalog": {
+    "@base-ui-components/react": "1.0.0-rc.0",
+    "@cloudflare/workers-types": "5.20260708.1",
+    "@happy-dom/global-registrator": "^20.14.0",
+    "@playwright/test": "^1.62.1",
+    "@resvg/resvg-js": "^2.6.2",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/bun": "^1.4.0",
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@typescript/native-preview": "^7.0.0-dev.20260707.2",
+    "lucide-react": "^1.41.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-markdown": "^10.1.0",
+    "satori": "^0.33.4",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3",
+    "ultracite": "7.8.3",
+    "wrangler": "^4.131.1",
+    "zod": "^4.4.3"
+  },
   "scripts": {
     "dev:prepare": "bun scripts/bootstrap-local.ts",
     "env": "bun scripts/env-run.ts",
@@ -22,10 +45,11 @@
     "build": "turbo run build",
     "build:agent": "turbo run build --filter=@pupitre/agent",
     "lint": "bun scripts/assert-package-boundaries.ts && bun scripts/check-prisma-client-freshness.ts && bun run contracts:check && bun run lint:root && turbo run lint",
-    "lint:root": "ultracite check scripts biome.jsonc commitlint.config.js package.json tsconfig.base.json tsconfig.worker.json turbo.json",
+    "lint:root": "ultracite check scripts biome.jsonc commitlint.config.js package.json tsconfig.base.json tsconfig.json turbo.json",
     "lint:fix": "bun run lint:fix:root && turbo run lint:fix",
-    "lint:fix:root": "ultracite fix scripts biome.jsonc commitlint.config.js package.json tsconfig.base.json tsconfig.worker.json turbo.json",
-    "check:types": "turbo run check:types",
+    "lint:fix:root": "ultracite fix scripts biome.jsonc commitlint.config.js package.json tsconfig.base.json tsconfig.json turbo.json",
+    "check:types": "bun run check:types:root && turbo run check:types",
+    "check:types:root": "tsgo -p tsconfig.json --pretty false",
     "check:prisma-client": "bun scripts/check-prisma-client-freshness.ts",
     "check:secrets": "bun scripts/check-worker-secrets.ts",
     "workflows:run": "bun scripts/run-workflow.ts",
@@ -46,17 +70,16 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.10",
-    "@cloudflare/workers-types": "5.20260708.1",
     "@commitlint/cli": "^21.2.2",
     "@commitlint/config-conventional": "^21.2.2",
-    "@types/bun": "^1.4.0",
-    "@types/node": "^26.2.0",
-    "@typescript/native-preview": "^7.0.0-dev.20260707.2",
+    "@types/bun": "catalog:",
+    "@types/node": "catalog:",
+    "@typescript/native-preview": "catalog:",
     "husky": "^9.1.7",
     "turbo": "^2.10.11",
-    "typescript": "^6.0.3",
-    "ultracite": "7.8.3",
-    "wrangler": "^4.131.1"
+    "typescript": "catalog:",
+    "ultracite": "catalog:",
+    "wrangler": "catalog:"
   },
   "trustedDependencies": [
     "@parcel/watcher",
@@ -64,8 +87,5 @@
     "electron-builder",
     "esbuild",
     "node-pty"
-  ],
-  "patchedDependencies": {
-    "miniflare@4.20260708.0": "patches/miniflare@4.20260708.0.patch"
-  }
+  ]
 }

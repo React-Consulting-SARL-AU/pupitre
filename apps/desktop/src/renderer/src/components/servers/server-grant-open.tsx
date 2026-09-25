@@ -7,20 +7,12 @@ import { Button } from "../ui/button";
 import { ErrorNotice } from "../ui/error-notice";
 import { WaitingNotice } from "../ui/waiting-notice";
 
-/**
- * The first opening of a granted server, and what stands in its way.
- *
- * The gesture is offered once: after it, the machine is driven like any other
- * from the list. A withdrawn grant offers nothing and says why; a pending one
- * waits for the console's key, and the wait says so.
- */
 export function ServerGrantOpen({
   grant,
   opening,
   onOpen,
 }: {
   grant: ServerGrant;
-  /** The opening in flight, when it is this server's. */
   opening: FleetOpening | null;
   onOpen: () => void;
 }) {

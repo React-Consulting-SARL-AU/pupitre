@@ -83,7 +83,6 @@ async function until(
   return condition();
 }
 
-/** A platform that publishes nothing: the app is reduced to what it carries. */
 function unpublished(): AgentUpdateDeps["published"] {
   return () =>
     Promise.resolve({
@@ -215,12 +214,7 @@ describe("la comparaison des versions", () => {
     expect(after.ok).toBe(true);
   });
 
-  /**
-   * The beat reads this every fifteen seconds. Its snapshot rides the beat
-   * channel, so a click never waits behind it, and the shell probe — a whole
-   * `ssh` of its own — is never a timer's fallback: an unreachable server
-   * would otherwise collect one per tick.
-   */
+  // Read every 15 s: a shell-probe fallback would open one `ssh` per tick on an unreachable server.
   it("lit la machine sur le canal du battement, sans passer devant un geste", async () => {
     const client = agent([
       "hello-then-ping.jsonl",
@@ -393,8 +387,7 @@ describe("agent.upgrade", () => {
     });
   });
 
-  // The process still answering us runs the binary the rename replaced: only a
-  // new session reaches the version that was just installed.
+  // The process still answering runs the replaced binary: only a new session reaches the installed one.
   it("ne demande la migration qu'après avoir rouvert le canal", async () => {
     const client = agent([
       "agent-update-control.jsonl",

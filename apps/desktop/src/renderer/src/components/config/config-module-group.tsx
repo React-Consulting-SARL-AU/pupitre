@@ -7,20 +7,15 @@ import { type FieldGroup, splitFields } from "../../lib/catalog-selection";
 import { Button } from "../ui/button";
 import { Callout } from "../ui/callout";
 import { Details } from "../ui/details";
+import { RequiredLegend } from "../ui/field";
 import { Panel } from "../ui/panel";
 import { ServiceLogo } from "../ui/service-logo";
-import { ConfigFieldControl, type FieldHandlers } from "./config-field-control";
+import {
+  ConfigFieldControl,
+  type FieldHandlers,
+  isRequired,
+} from "./config-field-control";
 
-/**
- * One service's questions, under its own name and logo.
- *
- * What has to be answered is asked first; what the manifest already answered
- * waits behind « Advanced settings », closed — unless one of those settings is
- * refused, in which case it opens on its own so the refusal is read. A service
- * with nothing to decide says so, rather than leaving the reader looking for a
- * question that is not there. What a service needs before its own questions —
- * an account it publishes through — is said above them.
- */
 export function ConfigModuleGroup({
   group,
   values,
@@ -37,22 +32,17 @@ export function ConfigModuleGroup({
   group: FieldGroup;
   values: Record<string, unknown>;
   marks?: Record<string, SecretMark>;
-  /** The secrets the machine already holds, restored from a backup. */
   held?: readonly string[];
-  /** What this service gets wrong, already filtered to what may be shown. */
   problems: readonly FieldProblemView[];
-  /** The connection this service declares, when it declares one. */
   before?: ReactNode;
-  /** Where the service stands in the sequence; said only when there is one. */
   position?: { index: number; total: number };
-  /** The reader just moved here: the heading takes the focus, and says so. */
   focus?: boolean;
-  /** The reader put this service's questions off: nothing of it is asked. */
   deferred?: boolean;
   onDefer?: (later: boolean) => void;
   handlers: FieldHandlers;
 }) {
   const t = useTranslations();
+
   const heading = useRef<HTMLHeadingElement>(null);
   const [advancedOpened, setAdvancedOpened] = useState(false);
 
@@ -69,6 +59,10 @@ export function ConfigModuleGroup({
   const { asked, kept } = splitFields(group.fields);
   const keptRefused = kept.some((field) => problemOf(field.key));
   const asksSecret = asked.some((field) => field.kind === "secret");
+  const advancedOpen = advancedOpened || keptRefused;
+  const asksRequired = asked.some(isRequired);
+  const keepsRequired = advancedOpen && !asksRequired && kept.some(isRequired);
+  const legend = <RequiredLegend>{t("common.field.required")}</RequiredLegend>;
 
   function control(field: FieldGroup["fields"][number]) {
     return (
@@ -109,10 +103,10 @@ export function ConfigModuleGroup({
           >
             {group.module.name}
           </h2>
-          <p className="text-[12px] text-ink-3">{group.module.summary}</p>
+          <p className="text-ink-3 text-small">{group.module.summary}</p>
         </div>
         {position && position.total > 1 ? (
-          <span className="shrink-0 font-data text-[12px] text-ink-3 tabular-nums">
+          <span className="shrink-0 font-data text-ink-3 text-small tabular-nums">
             {t("config.module.position", position)}
           </span>
         ) : null}
@@ -133,11 +127,11 @@ export function ConfigModuleGroup({
       {deferred ? null : before}
 
       {!deferred && group.fields.length === 0 ? (
-        <p className="text-[12px] text-ink-3">{t("config.module.nothing")}</p>
+        <p className="text-ink-3 text-small">{t("config.module.nothing")}</p>
       ) : null}
 
       {!deferred && group.fields.length > 0 && asked.length === 0 ? (
-        <p className="text-[12px] text-ink-3" data-defaults="true">
+        <p className="text-ink-3 text-small" data-defaults="true">
           {t("config.module.defaults")}
         </p>
       ) : null}
@@ -148,8 +142,10 @@ export function ConfigModuleGroup({
         </div>
       ) : null}
 
+      {!deferred && asksRequired ? legend : null}
+
       {!deferred && asksSecret ? (
-        <p className="text-[12px] text-ink-3 leading-relaxed">
+        <p className="text-ink-3 text-small leading-relaxed">
           {t("config.secretsNotice")}
         </p>
       ) : null}
@@ -160,19 +156,15 @@ export function ConfigModuleGroup({
           label={t("config.advanced", { count: kept.length })}
           name="advanced"
           onOpenChange={setAdvancedOpened}
-          open={advancedOpened || keptRefused}
+          open={advancedOpen}
         >
           <div className="mt-3 grid @lg/module:grid-cols-2 gap-6">
             {kept.map(control)}
           </div>
+          {keepsRequired ? <div className="mt-6">{legend}</div> : null}
         </Details>
       ) : null}
 
-      {/*
-        Putting a service off is a decision about this installation, not about
-        the service: it sits at the foot of its own panel, discreet, and never
-        offered for a module the machine cannot do without.
-      */}
       {!(deferred || group.module.mandatory) && onDefer ? (
         <div className="border-line border-t pt-4">
           <Button

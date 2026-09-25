@@ -42,6 +42,7 @@ const CONTEXT = {
   role: "member" as const,
   entitlement: "valid",
   platformRole: null,
+  platformCanAct: false,
 }
 
 const mounted: (() => void)[] = []

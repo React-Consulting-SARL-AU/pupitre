@@ -1,12 +1,17 @@
 import { openapi } from "@elysiajs/openapi"
 import { configureAuthEmails } from "@pupitre/auth/emails"
-import { configureOrganizationHooks } from "@pupitre/auth/hooks"
+import {
+  configureAccountHooks,
+  configureOrganizationHooks,
+} from "@pupitre/auth/hooks"
 import { type Auth, CLIENT_IP_HEADER } from "@pupitre/auth/server"
 import { resolveLocale } from "@pupitre/shared/i18n"
+import { PLATFORM_ORGANIZATION_ID } from "@pupitre/shared/platform"
 import { type AnyElysia, Elysia, ValidationError } from "elysia"
 import { authEmails } from "./emails/renderer"
 import { createEmailSender } from "./emails/send"
 import { apiError, createErrorRef } from "./lib/api/errors"
+import { isForeignCookieWrite } from "./lib/api/origin"
 import { configureAuth } from "./lib/api/plugins/auth"
 import { type ApiPrisma, configurePrisma } from "./lib/api/prisma"
 import {
@@ -18,17 +23,24 @@ import {
 import { routes } from "./lib/api/routes"
 import { describeValidationError } from "./lib/api/validation-errors"
 import { translate } from "./lib/i18n"
+import { publishInboxEvent } from "./lib/mail/realtime"
+import { deleteAccountFromConsole } from "./lib/me/delete-account"
 import { unassignServersOfMember } from "./lib/servers/assign"
 
 export type { ApiPrisma } from "./lib/api/prisma"
 
-// The Better Auth handler is served from its own route, which never imports
-// this module's exports: the port has to be filled at import time.
+// Filled at import time: the Better Auth route never imports this module's exports.
 configureAuthEmails({ renderer: authEmails, sendEmail: createEmailSender() })
 configureOrganizationHooks({
-  onMemberRemoved: ({ organizationId, userId }) =>
-    unassignServersOfMember(organizationId, userId).then(() => undefined),
+  onMemberRemoved: async ({ organizationId, userId }) => {
+    await unassignServersOfMember(organizationId, userId)
+
+    if (organizationId === PLATFORM_ORGANIZATION_ID) {
+      await publishInboxEvent({ type: "access.revoked", user_id: userId })
+    }
+  },
 })
+configureAccountHooks({ onAccountDeleting: deleteAccountFromConsole })
 
 export interface ApiRuntime {
   prisma: ApiPrisma
@@ -42,7 +54,7 @@ export function configureApi({ prisma, auth }: ApiRuntime): void {
 
 const LOGGED_MESSAGE_LENGTH = 200
 
-/** Name, code and a trimmed message: never the error itself, whose meta and arguments can carry what a row holds. */
+// Never the error itself: its meta and arguments can carry row data.
 function describeError(error: unknown): string {
   if (!(error instanceof Error)) {
     return typeof error
@@ -70,9 +82,7 @@ function reportInternalError(error: unknown, request: Request): string {
 }
 
 export function createApi<Routes extends AnyElysia>(apiRoutes: Routes) {
-  // Workers forbid `new Function`, which Elysia's ahead-of-time compiler and its
-  // exact-mirror normalizer both use: the typebox normalizer is the fallback
-  // Elysia would reach anyway, minus a warning per route.
+  // Workers forbid `new Function`, which Elysia's AOT compiler and exact-mirror normalizer use.
   return new Elysia({ aot: false, normalize: "typebox", prefix: "/api/v1" })
     .onError(({ code, error, request, set }) => {
       const locale = resolveLocale(request.headers)
@@ -85,8 +95,7 @@ export function createApi<Routes extends AnyElysia>(apiRoutes: Routes) {
         return apiError("validation", message, fix)
       }
 
-      // Without ahead-of-time compilation Elysia lets the JSON parse error
-      // through as a plain SyntaxError instead of its own PARSE code.
+      // Without AOT, Elysia surfaces a JSON parse error as a plain SyntaxError, not PARSE.
       if (code === "PARSE" || (error instanceof SyntaxError && request.body)) {
         set.status = 400
 
@@ -153,14 +162,23 @@ function tooManyRequests(
 }
 
 export async function handleApiRequest(request: Request): Promise<Response> {
-  // The edge sets this header on every custom domain; a request it did not
-  // sign still draws from a budget, a tight one shared by all such callers,
-  // rather than passing without a limit at all.
+  // Requests missing the edge's IP header share one tight budget instead of going unlimited.
   const clientIp = request.headers.get(CLIENT_IP_HEADER) ?? UNKNOWN_CLIENT
   const verdict = await globalRateLimiter.check(`global:${clientIp}`)
 
   if (!verdict.allowed) {
     return tooManyRequests(request, verdict)
+  }
+
+  if (isForeignCookieWrite(request)) {
+    const locale = resolveLocale(request.headers)
+
+    return Response.json(
+      apiError("forbidden", translate(locale, "forbidden")),
+      {
+        status: 403,
+      }
+    )
   }
 
   return await app.handle(request)

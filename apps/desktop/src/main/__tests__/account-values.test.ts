@@ -2,31 +2,19 @@ import { describe, expect, it } from "bun:test";
 import type { Manifest } from "@pupitre/shared/catalog";
 import { accountValues, type HeldConnection } from "../account-values";
 
-/**
- * How an account token reaches the machine once it no longer comes from a form.
- *
- * It travels exactly as it did: grouped by module identifier on the install's
- * own secret line, written by the main process, never in `params` and never
- * through the window. Two things are watched beyond that — the app reads which
- * module wants one from the manifests the agent declared rather than from a
- * list of its own, and it refuses before the first step rather than on the
- * machine. The account the token opened travels in the plain config, for the
- * managed text field of a module that has to name it.
- */
-
 const HELD: Record<string, HeldConnection> = {
   "1password": { account: null, token: "ops_de_test" },
   cloudflare: {
-    account: { id: "407880e9a2f71d528020f4201d604548", name: "Flymate" },
+    account: { id: "407880e9a2f71d528020f4201d604548", name: "Flyleaf" },
     token: "cf_de_test",
   },
   github: {
-    account: { id: "70213307", name: "flymate" },
+    account: { id: "70213307", name: "flyleaf" },
     token: "ghp_de_test",
   },
-  neon: { account: { id: "u_1", name: "flymate" }, token: "neon_de_test" },
+  neon: { account: { id: "u_1", name: "flyleaf" }, token: "neon_de_test" },
   wrangler: {
-    account: { id: "407880e9a2f71d528020f4201d604548", name: "Flymate" },
+    account: { id: "407880e9a2f71d528020f4201d604548", name: "Flyleaf" },
     token: "cf_wrangler_de_test",
   },
 };
@@ -85,8 +73,7 @@ const CATALOG: Manifest[] = [
       options: ["22", "20"],
     },
   ]),
-  // Typed rather than managed: an older agent still wants it in the form, and
-  // the app has no business filling it.
+  // Typed rather than managed: an older agent still asks for it in the form.
   manifest("tool.1password", undefined, [
     {
       key: "service_account_token",
@@ -114,7 +101,6 @@ describe("les valeurs de compte d'une installation", () => {
     });
   });
 
-  /** The token goes on the secret line; the account it opened goes in the plain config, where the agent keeps it. */
   it("remplit un champ texte géré avec l'identifiant du compte que le jeton ouvre", () => {
     const answer = accountValues(["tool.wrangler"], CATALOG, token);
 
@@ -126,7 +112,6 @@ describe("les valeurs de compte d'une installation", () => {
     });
   });
 
-  /** A provider the laptop cannot ask names no account: the field stays for the agent to refuse, never a made-up value. */
   it("laisse vide un champ texte géré quand le compte n'a pas de nom", () => {
     const unnamed = [
       manifest("tool.wrangler", "wrangler", [
@@ -148,7 +133,6 @@ describe("les valeurs de compte d'une installation", () => {
     expect(answer.ok && answer.result).toEqual({ config: {}, secrets: {} });
   });
 
-  /** The catalogue belongs to the agent: an older one keeps asking in the form. */
   it("laisse un champ typé au formulaire, même sur un module qu'un compte pourrait servir", () => {
     const answer = accountValues(["tool.1password"], CATALOG, token);
 
@@ -161,7 +145,7 @@ describe("les valeurs de compte d'une installation", () => {
     expect(answer.ok && answer.result).toEqual({ config: {}, secrets: {} });
   });
 
-  /** Refusing here leaves the machine untouched; refusing on it leaves half an install. */
+  // Refusing here leaves the machine untouched; refusing on it leaves half an install.
   it("refuse avant la première étape quand le compte n'est pas connecté", () => {
     const answer = accountValues(["tool.github"], CATALOG, () => null);
 
@@ -172,7 +156,6 @@ describe("les valeurs de compte d'une installation", () => {
     });
   });
 
-  /** The tunnel's own managed secret is made by the tunnel code, not taken from a vault. */
   it("laisse au tunnel les valeurs que le tunnel dérive", () => {
     const withTunnel = [
       ...CATALOG,

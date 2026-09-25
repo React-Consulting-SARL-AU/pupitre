@@ -2,7 +2,6 @@ import type { ProjectGitStatusResult } from "@pupitre/shared/agent-protocol/proj
 import { Callout } from "@renderer/components/ui/callout";
 import { useTranslations } from "@renderer/i18n/use-translations";
 
-/** The gap with the upstream in one line: behind, ahead, and what is not committed. */
 export function ProjectGitSummary({ git }: { git: ProjectGitStatusResult }) {
   const t = useTranslations();
 
@@ -16,7 +15,7 @@ export function ProjectGitSummary({ git }: { git: ProjectGitStatusResult }) {
 
   if (!git.upstream) {
     return (
-      <p className="font-data text-[12px] text-ink-3">
+      <p className="font-data text-ink-3 text-small">
         {t("project.git.noUpstream")}
       </p>
     );
@@ -24,7 +23,7 @@ export function ProjectGitSummary({ git }: { git: ProjectGitStatusResult }) {
 
   return (
     <p
-      className={`font-data text-[12px] ${git.behind > 0 ? "text-ink" : "text-ink-3"}`}
+      className={`font-data text-small ${git.behind > 0 ? "text-ink" : "text-ink-3"}`}
     >
       {git.behind > 0
         ? t("project.git.behind", {

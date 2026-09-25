@@ -36,20 +36,7 @@ import { ProjectAddJournal } from "./project-add-journal";
 import { ProjectAddOutcome } from "./project-add-outcome";
 import { ProjectAddSteps } from "./project-add-steps";
 
-/**
- * A project added to a server, as it is drawn.
- *
- * What is asked runs in the open — each phase says what the agent is doing,
- * the journal stays on screen whatever happens, and a refusal keeps the agent's
- * own words and its own remedy. Leaving costs nothing before the first phase;
- * after it, the project exists on the server, and the screen says so.
- */
-/**
- * The phases a refusal sends back to the form from. A declaration refused
- * left nothing on the server; sources that would not come — a wrong branch, a
- * private repository — left a declared project, which the form then names and
- * offers to open.
- */
+// A refusal in these phases is still fixable from the form; past them the project runs on the server.
 const EDITABLE: readonly PhaseId[] = ["add", "sources"];
 
 export function ProjectAddPanel({
@@ -85,41 +72,34 @@ export function ProjectAddPanel({
   onOpenDeclared,
 }: {
   known: KnownState;
-  /** Which page of the form is open: the source, or what runs in it. */
   step: AddStep;
   draft: Draft;
-  /** The project the server already declares where the draft points: opened rather than declared again. */
   declared: Project | null;
   detection: DetectionState;
   repos: ReposState;
   folders: FolderState;
-  /** What publishes a port on this machine, or nothing: no exposure, no name on the web. */
   exposure: Exposure | null;
-  /** Whether `tool.github` sits on this machine: no module, no private clone. */
+  /** Without `tool.github` on the machine, a private repository cannot be cloned. */
   githubModule: boolean;
   phases: readonly Phase[];
   logs: readonly string[];
   run: ProjectAddState;
-  /** The state the machine reports now, when it has been read since the run ended. */
   state?: ProjectState;
   ready: boolean;
   processProblems: readonly (ProcessProblem | null)[];
   rowProblems: readonly (readonly (RowProblem | null)[])[];
   edit: DraftEdits;
-  /** The agent reads the source; the button waits on it. */
+  /** Return the reading's promise so the button stays pending on it. */
   onDetect: () => Promise<void> | void;
-  /** Opens the configuration without a reading, once one has failed. */
   onSkipReading: () => void;
   onEditSource: () => void;
   onLaunch: () => void;
   onRetry: () => void;
-  /** Back to the form with the draft intact. */
   onEdit?: () => void;
   onReload: () => void;
   onCancel?: () => void;
   onFinish?: () => void;
   onOpen?: (url: string) => void;
-  /** Opens the settings on the connections, and comes back to this draft. */
   onConnect: () => void;
   onInstallModule: () => void;
   onOpenDeclared: (name: string) => void;

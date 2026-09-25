@@ -18,15 +18,7 @@ function systemPrefersDark(): boolean {
   }
 }
 
-/**
- * The whole switch, in three lines.
- *
- * `data-theme` on `<html>` is what the tokens of `@pupitre/design` key off, so
- * setting the attribute repaints the entire interface — no reload, no re-render.
- * The terminal draws on a canvas and knows nothing of CSS, so it is handed the
- * new palette by hand; the native window frame has no stylesheet either, so it
- * is told what the choice resolved to.
- */
+// The terminal canvas and the native frame ignore CSS, so both are told the theme by hand.
 function paint(preference: ThemePreference, resolved: ResolvedTheme): void {
   const root = document.documentElement;
 
@@ -64,12 +56,7 @@ export const useTheme = create<ThemeStore>((set) => ({
   },
 }));
 
-/**
- * Applies the remembered choice and follows the system while it stays "system".
- *
- * Called once, before the first render: the attribute has to be on `<html>`
- * before anything paints, otherwise the window flashes the wrong theme.
- */
+/** Call before the first render, or the window flashes the wrong theme. */
 export function startThemeWatch(): () => void {
   const media = window.matchMedia(DARK_QUERY);
 

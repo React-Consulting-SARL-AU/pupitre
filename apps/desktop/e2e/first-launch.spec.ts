@@ -3,15 +3,6 @@ import { expect, test } from "@playwright/test";
 import { assertAccessible } from "./harness/accessible";
 import { launchPupitre, type Running } from "./harness/launch";
 
-/**
- * The first launch of a packaged build, and the eighth day.
- *
- * The account is the first screen: no onboarding, no server, no terminal is
- * behind it. Only the account channels are replaced — the window, the bridge
- * and the stores are the app's own, and the servers fixture is there precisely
- * to prove that a declared server changes nothing.
- */
-
 const CONSOLE_URL = "https://app.pupitre.test/dashboard";
 
 const NO_ACCOUNT = {
@@ -74,8 +65,6 @@ test.describe("premier lancement", () => {
     await stubAccount(app, NO_ACCOUNT);
     await page.reload();
 
-    // A first launch has no account yet: that is the screen's nominal state,
-    // and the sign-in card is the whole of what it says — no refusal under it.
     await expect(
       page.getByRole("heading", { name: "Connectez-vous pour ouvrir Pupitre" })
     ).toBeVisible();
@@ -96,8 +85,6 @@ test.describe("premier lancement", () => {
     await expect(page.getByRole("button", { name: "Projets" })).toHaveCount(0);
     await expect(page.getByText("atelier")).toHaveCount(0);
 
-    // Settings stay reachable: it's where a console address, a proxy, or
-    // the account itself gets repaired.
     await page.getByRole("button", { name: "Ouvrir les réglages" }).click();
 
     await expect(page.getByRole("heading", { name: "Réglages" })).toBeVisible();
@@ -118,8 +105,6 @@ test.describe("premier lancement", () => {
     await expect(
       page.getByRole("heading", { name: "Connectez-vous pour ouvrir Pupitre" })
     ).toBeVisible();
-    // The notice says the fault once, with its way out; the refusal's own
-    // sentence is not repeated under it.
     await expect(page.getByText("Vérification expirée")).toBeVisible();
     await expect(
       page.getByText("au-delà des sept jours de tolérance")

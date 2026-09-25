@@ -32,7 +32,9 @@ describe("createAuth", () => {
       "two-factor-challenge",
       "device-authorization",
       "bearer",
+      "fresh-device-approval",
       "organization",
+      "admin-lockdown",
       "admin",
       "passkey",
       "two-factor",
@@ -198,7 +200,9 @@ describe("withoutInteractiveTransactions", () => {
 
     expect(client.$transaction).toBeUndefined()
     expect(typeof client.$transaction).toBe("undefined")
+
     client.user.findFirst()
+
     expect(calls).toEqual(["user.findFirst"])
   })
 })

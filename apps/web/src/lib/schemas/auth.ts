@@ -3,10 +3,6 @@ import type { Translate } from "@/lib/i18n/i18n"
 
 const USER_CODE_LENGTH = 8
 
-/**
- * A schema is built with a translator: the message a field shows is in the
- * language the reader picked, not in the one the file was written in.
- */
 export function signInSchema(t: Translate) {
   return z.object({ email: z.email(t("validation.email")) })
 }

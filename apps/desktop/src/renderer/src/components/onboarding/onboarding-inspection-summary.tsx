@@ -1,15 +1,8 @@
 import type { ProbeResult } from "@pupitre/shared/agent-protocol/install";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { measured, memory } from "@renderer/lib/format";
-import { Label } from "../ui/label";
+import { Fact, FactList } from "../ui/fact";
 
-/**
- * The machine in four figures, as the probe measured them.
- *
- * Nothing is converted and nothing is rounded further: what is shown is what
- * the next screen will weigh services against. Only the unit words and the
- * decimal mark follow the reader's language.
- */
 export function OnboardingInspectionSummary({ probe }: { probe: ProbeResult }) {
   const t = useTranslations();
 
@@ -30,15 +23,12 @@ export function OnboardingInspectionSummary({ probe }: { probe: ProbeResult }) {
   ];
 
   return (
-    <dl className="grid grid-cols-2 gap-4 rounded-sm bg-sunken p-4">
+    <FactList className="rounded-sm bg-sunken p-4">
       {cells.map((cell) => (
-        <div className="flex flex-col gap-1" key={cell.label}>
-          <dt>
-            <Label>{cell.label}</Label>
-          </dt>
-          <dd className="font-data text-ink tabular-nums">{cell.value}</dd>
-        </div>
+        <Fact key={cell.label} label={cell.label}>
+          {cell.value}
+        </Fact>
       ))}
-    </dl>
+    </FactList>
   );
 }

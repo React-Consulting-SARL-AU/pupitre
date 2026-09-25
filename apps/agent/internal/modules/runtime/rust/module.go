@@ -7,7 +7,7 @@ import (
 	"pupitre.studio/agent/internal/modules/runtime/shell"
 )
 
-// Where cargo install puts what it builds; rustup's toolchains sit under mise and answer through its shims.
+// Only cargo install output lands here; rustup's toolchains answer through mise's shims.
 const cargoBin = "$HOME/.cargo/bin"
 
 type Module struct{}

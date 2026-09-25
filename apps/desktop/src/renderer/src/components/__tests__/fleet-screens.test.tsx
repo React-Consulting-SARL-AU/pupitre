@@ -8,14 +8,6 @@ import { ServerGrantDetail } from "../servers/server-grant-detail";
 import { ServerGrantOpen } from "../servers/server-grant-open";
 import { ServerRow } from "../servers/server-row";
 
-/**
- * What an invited member reads about a server they never typed an address for.
- *
- * A granted machine is one row of the list, with the console's word among its
- * facts. The three states of an assignment are told apart by their shape, and
- * the remedy of a refusal is printed exactly as the main process phrased it.
- */
-
 const NOOP = () => undefined;
 
 const GRANT: ServerGrant = {

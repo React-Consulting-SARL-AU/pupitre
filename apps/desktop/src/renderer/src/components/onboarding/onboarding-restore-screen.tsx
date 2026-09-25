@@ -19,14 +19,6 @@ import { useRestore } from "@renderer/stores/restore";
 import { ArchiveRestore } from "lucide-react";
 import { useState } from "react";
 
-/**
- * A new server may start as another one was: its configuration, its secrets,
- * then — once installed and hardened — its data and its projects running.
- *
- * The backups are the organization's; the bucket is this computer's
- * connection, asked here when it is missing; the passphrase is checked on this
- * computer before the machine is asked anything.
- */
 export function OnboardingRestoreScreen({
   serverName,
   onSkip,

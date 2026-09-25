@@ -11,7 +11,8 @@ export const fleet = {
     "fleet.dismissed.one": "{count} granted server is hidden on this computer.",
     "fleet.dismissed.other":
       "{count} granted servers are hidden on this computer.",
-    "fleet.restore": "Put them back",
+    "fleet.restore": "Show the hidden servers again",
+    "fleet.grants.title": "Servers granted to you",
     "fleet.row.platformState": "Console",
     "fleet.row.organization": "Organization",
     "fleet.row.open": "Open",
@@ -48,7 +49,8 @@ export const fleet = {
       "{count} serveur attribué est masqué sur cet ordinateur.",
     "fleet.dismissed.other":
       "{count} serveurs attribués sont masqués sur cet ordinateur.",
-    "fleet.restore": "Les remettre",
+    "fleet.restore": "Réafficher les serveurs masqués",
+    "fleet.grants.title": "Serveurs qui vous sont attribués",
     "fleet.row.platformState": "Console",
     "fleet.row.organization": "Organisation",
     "fleet.row.open": "Ouvrir",
@@ -58,7 +60,7 @@ export const fleet = {
     "fleet.row.withdrawnDetail":
       "La console a suspendu ce serveur. Il revient de lui-même dès que l'abonnement revient.",
     "fleet.status.active": "actif",
-    "fleet.status.enrolling": "en cours d'enrôlement",
+    "fleet.status.enrolling": "rattachement en cours",
     "fleet.status.grace": "en tolérance",
     "fleet.status.suspended": "suspendu",
     "fleet.status.revoked": "révoqué",

@@ -10,11 +10,12 @@ import (
 	"pupitre.studio/agent/internal/contract"
 )
 
-// The tunnel the staging campaign is given: the app creates it on Cloudflare, the agent only ever receives these four.
+// The app creates the tunnel on Cloudflare; the agent only ever receives these ids and the tunnel secret.
 func tunnelConfig(t *testing.T) map[string]any {
 	t.Helper()
 
 	config := map[string]any{}
+
 	for key, variable := range map[string]string{
 		"account_tag": "PUPITRE_STAGING_TUNNEL_ACCOUNT",
 		"tunnel_id":   "PUPITRE_STAGING_TUNNEL_ID",
@@ -64,7 +65,6 @@ func installTunnel(t *testing.T, host string) response {
 	return first
 }
 
-// The four values come from the app and the module cannot invent them: cloudflared installs, and the configuration is what refuses.
 func TestWithoutItsCredentialsTheConfigurationIsRefusedNotTheInstall(t *testing.T) {
 	host := stagingHost(t)
 
@@ -140,7 +140,6 @@ func TestASubdomainGetsARoute(t *testing.T) {
 	}
 }
 
-// No exposure is a state, not a module: taking the tunnel back leaves the project on its port, and the subdomain column of the registry is simply ignored.
 func TestWithoutATunnelTheUrlIsLocal(t *testing.T) {
 	host := stagingHost(t)
 
@@ -185,7 +184,6 @@ func TestGithubClonesOverHttpsWithoutAKey(t *testing.T) {
 	}
 }
 
-// The module poses the CLI and hands the key to the dev shell, where `neon` runs; root's file stays root's.
 func TestNeonPosesTheCliAndKeepsTheKey(t *testing.T) {
 	host := stagingHost(t)
 
@@ -259,9 +257,9 @@ func TestReplayingTheExposureInstallChangesNothing(t *testing.T) {
 	}
 }
 
-// A domain that is not on Cloudflare: Caddy answers the same questions, through the same tunnel.* commands.
 func TestCaddyServesTheSameRoutesUnderItsOwnRules(t *testing.T) {
 	host := stagingHost(t)
+
 	domain := os.Getenv("PUPITRE_STAGING_CADDY_DOMAIN")
 	if domain == "" {
 		t.Skip("PUPITRE_STAGING_CADDY_DOMAIN is not set")
@@ -315,7 +313,6 @@ func TestCaddyServesTheSameRoutesUnderItsOwnRules(t *testing.T) {
 	}
 }
 
-// Tailscale joins with the key the environment gives, and the node answers under the login that minted it; without a key only the package is checked.
 func TestTailscaleJoinsWithAnAuthKey(t *testing.T) {
 	host := stagingHost(t)
 

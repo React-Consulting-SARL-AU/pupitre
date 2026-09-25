@@ -1,9 +1,11 @@
 import { type Locale, resolveLocale } from "@pupitre/shared/i18n"
+import { FRESH_SIGN_IN_SECONDS } from "@pupitre/shared/keys"
 import { Elysia, t } from "elysia"
 import {
   addDevice,
   DeviceAlreadyExistsError,
   listDevices,
+  ReauthenticationRequiredError,
   removeDevice,
 } from "../../devices/devices"
 import {
@@ -18,11 +20,26 @@ import { serializeData } from "../prisma"
 import { deviceInputBody, deviceSchema } from "./device-schemas"
 
 interface Refusal {
-  status: 409 | 422
+  status: 403 | 409 | 422
   payload: ApiErrorPayload
 }
 
+const MINUTE_SECONDS = 60
+
 function refusalFor(error: unknown, locale: Locale): Refusal | null {
+  if (error instanceof ReauthenticationRequiredError) {
+    return {
+      status: 403,
+      payload: apiError(
+        "reauthentication_required",
+        translate(locale, "reauthentication_required", {
+          minutes: FRESH_SIGN_IN_SECONDS / MINUTE_SECONDS,
+        }),
+        translate(locale, "reauthentication_required_fix")
+      ),
+    }
+  }
+
   if (error instanceof PublicKeyNotEd25519Error) {
     return {
       status: 422,
@@ -77,11 +94,12 @@ export const devicesRoutes = new Elysia({
   )
   .post(
     "/me/devices",
-    async ({ user, body, request, set }) => {
+    async ({ user, session, body, request, set }) => {
       try {
         const device = await addDevice(
           user.id,
           body,
+          session.createdAt,
           request.headers.get("accept-language")
         )
 
@@ -106,6 +124,7 @@ export const devicesRoutes = new Elysia({
       response: {
         201: dataResponse(deviceSchema),
         401: errorResponse,
+        403: errorResponse,
         409: errorResponse,
         422: errorResponse,
       },

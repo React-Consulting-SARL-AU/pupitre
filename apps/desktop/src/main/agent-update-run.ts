@@ -22,29 +22,6 @@ import type { CarriedRelease } from "./agent-binary";
 import type { AgentClient } from "./agent-client";
 import { refusalOf, refuseWith } from "./refusal";
 
-/**
- * Updating the agent, and the modules it installed.
- *
- * Two gestures that look alike and are not. `agent.upgrade` replaces the binary
- * that is answering us: the app names a version — the one the platform
- * publishes, or the one it carries for a server the platform no longer answers —
- * and the agent reads the fingerprint and the signature on the platform, and it
- * alone decides whether what it downloads matches. The signature the app carries
- * goes with the request only in that second case.
- * `upgrade` replays the install steps of modules already present, and only
- * names the agent's own catalogue can name.
- *
- * Between the two comes a third, which is not a gesture the reader asks for:
- * `agent.migrate`. The binary changed, the files it reads did not, and the new
- * binary carries the migrations that bring them to the shape it expects. It
- * runs them itself when it starts, so the app's call is normally a confirmation
- * — but the app is the one that knows a binary has just been replaced, so it is
- * the one that asks, and the one with somewhere to show the answer.
- *
- * Neither is done from the renderer: a signature is not something an interface
- * gets to compose.
- */
-
 export interface MachineFacts {
   arch: string;
   version: string | null;
@@ -56,24 +33,12 @@ export interface AgentUpdateDeps {
   /** The last resort when the protocol refuses to answer a gesture: the shell probe. */
   probe: (serverId: string) => Promise<AgentResponse<ProbeResult>>;
   carried: (arch: string) => CarriedRelease | null;
-  /** The version the platform publishes for this architecture, when it answers. */
   published: (arch: string) => Promise<AccountResponse<PublishedAgent>>;
   declared: (serverId: string) => Promise<AgentResponse<readonly string[]>>;
-  /** This app's version, the one the compatibility sheet judges. */
   appVersion: string;
 }
 
-/**
- * The architecture and the agent's version, whatever state the server is in.
- *
- * `snapshot` answers even in restricted mode, which is exactly the server that
- * needs repairing. Asked on a timer, it rides the beat channel: the platform
- * beat reads this every fifteen seconds, and a click must never wait behind
- * it. A server whose agent is too old to speak the protocol at all answers
- * nothing, and the probe — a whole `ssh` of its own — is what reads the
- * machine then, but only for a gesture: a timer that fell back on it against
- * an unreachable server would pile a probe on every tick.
- */
+/** Timer reads never fall back on the probe: against an unreachable server it would pile an ssh on every tick. */
 export async function machineFacts(
   serverId: string,
   deps: {
@@ -115,14 +80,6 @@ export async function machineFacts(
     : probe;
 }
 
-/**
- * What the app can offer this server.
- *
- * The platform comes first: the version it publishes is the fleet's, and the
- * agent fetches it itself. The app offers its own binary only when the platform
- * no longer answers for this server, or when the app carries a version newer
- * than the platform's — a development build ahead of what is published.
- */
 export async function offerFor(
   arch: string,
   platform: boolean,
@@ -195,13 +152,7 @@ export async function readAgentUpdate(
 
 const reads = new Map<string, Promise<AgentResponse<AgentUpdateState>>>();
 
-/**
- * One read per server at a time.
- *
- * The beat asks every fifteen seconds and a server that takes longer than that
- * to answer would have the ticks pile up behind one another: a tick that lands
- * while the previous one is still out is handed the same answer.
- */
+/** The beat asks every fifteen seconds: a slower server would otherwise have its reads pile up. */
 export function readAgentUpdateShared(
   serverId: string,
   deps: AgentUpdateDeps
@@ -221,13 +172,7 @@ export function readAgentUpdateShared(
   return read;
 }
 
-/**
- * The configuration brought to the shape the agent now reads.
- *
- * `unknown_command` is an agent from before the ledger: it has no migration to
- * run and no shape to carry over, so the answer is that there was nothing to
- * do, not that something went wrong.
- */
+/** `unknown_command` is an agent from before the ledger: nothing to migrate, not a failure. */
 export async function runMigrate(
   serverId: string,
   deps: { client: Pick<AgentClient, "request"> }
@@ -243,12 +188,7 @@ export async function runMigrate(
     : answer;
 }
 
-/**
- * Two paths for the same command. Published version: the app names the number
- * and nothing else, the agent reads the digest and the signature on the
- * platform. Version carried by the app: the signature travels with the request,
- * because it is the only case where the agent cannot fetch it itself.
- */
+/** The agent fetches a published version's signature itself; only a carried version's travels with the request. */
 export async function runAgentUpgrade(
   serverId: string,
   onEvent: (event: Event) => void,
@@ -297,14 +237,7 @@ export async function runAgentUpgrade(
   return await migrated(serverId, upgraded.result, deps);
 }
 
-/**
- * The session that asked for the upgrade is still on the old binary.
- *
- * The new one was put in place by a rename, so the `serve` process answering us
- * keeps the file it opened; only a new session reaches the version that was
- * just installed. Closing here is what makes the migration — and every read
- * after it — a question asked of the agent that now runs the server.
- */
+/** The binary was swapped by rename: the serving process keeps the old file, only a new session reaches the new one. */
 async function migrated(
   serverId: string,
   upgrade: AgentUpgradeResult,

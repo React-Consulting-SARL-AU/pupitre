@@ -1,9 +1,7 @@
 import type { Session } from "@pupitre/shared/agent-protocol/state";
 import type { Terminal } from "@shared/terminals";
 
-// A session is named by kind and project: `agent.open` reattaches to that pair
-// rather than opening a second. A shell dies with its tab and is not counted.
-
+// `agent.open` reattaches to this pair; a shell dies with its tab and is never counted.
 function key(kind: string, project: string): string {
   return `${kind}:${project}`;
 }
@@ -38,7 +36,6 @@ export function isAttached(
   );
 }
 
-/** An agent session with a project and no tab: one a tab can be opened on again. */
 export function reattachable(
   attached: readonly string[],
   session: Session

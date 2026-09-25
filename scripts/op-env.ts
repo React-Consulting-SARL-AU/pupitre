@@ -47,11 +47,7 @@ function unquote(value: string): string {
     : trimmed
 }
 
-/**
- * Résout les références `op://` du modèle. Rend null en expliquant pourquoi quand
- * `op` manque, que la session n'est pas ouverte ou qu'un champ est absent : le
- * démarrage retombe alors sur ce que `.env.local` porte déjà.
- */
+/** Null, with the reason printed, when `op` cannot answer: startup keeps `.env.local` as is. */
 export function loadOnePasswordEnv(): Record<string, string> | null {
   if (!existsSync(TEMPLATE)) {
     return null

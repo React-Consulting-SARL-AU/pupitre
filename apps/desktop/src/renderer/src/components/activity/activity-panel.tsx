@@ -7,12 +7,6 @@ import type { TerminalAgent } from "@shared/terminals";
 import { ActivityProcesses } from "./activity-processes";
 import { ActivitySessions } from "./activity-sessions";
 
-/**
- * What runs on the machine right now: the processes, then what outlives them.
- *
- * `processes.list` costs a full `ps`, so it is read on a slower beat than the
- * snapshot. The sessions come with the snapshot itself and cost nothing more.
- */
 export function ActivityPanel({
   serverName,
   processes,
@@ -28,12 +22,11 @@ export function ActivityPanel({
 }: {
   serverName: string;
   processes: readonly Process[];
-  /** The pids a stop was sent to and that the next read still listed. */
+  /** Pids still listed by the read that followed their stop. */
   lingering: readonly number[];
-  /** The last `processes.list` that failed, while the rows are the read before it. */
+  /** The rows stay those of the last successful read. */
   processesProblem: AgentError | null;
   sessions: readonly Session[];
-  /** The sessions the app still has a tab on. */
   attached: readonly string[];
   onStopProcess: (pid: number, force: boolean) => void;
   onRetryProcesses: () => void;

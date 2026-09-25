@@ -11,8 +11,6 @@ import (
 	"pupitre.studio/agent/internal/probe"
 )
 
-// probe.sh is what the app sends before anything is installed: it must run in memory, on a machine
-// that has never seen pupitred, and answer exactly what the Go probe answers on the same machine.
 func TestShellProbeMatchesTheAgentProbe(t *testing.T) {
 	host := stagingHost(t)
 
@@ -20,9 +18,11 @@ func TestShellProbeMatchesTheAgentProbe(t *testing.T) {
 	agentSide := agent(t, host, request{Cmd: "probe"})[0]
 
 	var fromShell, fromAgent probe.Result
+
 	if err := json.Unmarshal(shell, &fromShell); err != nil {
 		t.Fatalf("probe.sh did not print a Probe: %v\n%s", err, shell)
 	}
+
 	if err := json.Unmarshal(agentSide.Result, &fromAgent); err != nil {
 		t.Fatal(err)
 	}
@@ -40,11 +40,11 @@ func TestShellProbeMatchesTheAgentProbe(t *testing.T) {
 	}
 }
 
-// A staging VPS is reinstalled from a plain Ubuntu image: nothing on it should read as occupied.
 func TestFreshStagingReadsAsBare(t *testing.T) {
 	host := stagingHost(t)
 
 	var result probe.Result
+
 	if err := json.Unmarshal(shellProbe(t, host), &result); err != nil {
 		t.Fatal(err)
 	}
@@ -62,12 +62,13 @@ func TestFreshStagingReadsAsBare(t *testing.T) {
 	}
 }
 
-// Once the agent is installed the same machine reads as managed, and names the modules it carries.
 func TestInstalledStagingReadsAsManaged(t *testing.T) {
 	host := stagingHost(t)
+
 	agent(t, host, coreInstall)
 
 	var result probe.Result
+
 	if err := json.Unmarshal(shellProbe(t, host), &result); err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +82,6 @@ func TestInstalledStagingReadsAsManaged(t *testing.T) {
 	}
 }
 
-// The script is piped into a shell, never written down: nothing of it may survive on the machine.
 func TestShellProbeLeavesNothingBehind(t *testing.T) {
 	host := stagingHost(t)
 

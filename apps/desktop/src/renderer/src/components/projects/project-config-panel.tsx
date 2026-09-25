@@ -24,16 +24,7 @@ export interface ConfigEdits extends ProcessEdits {
   runtime: (tool: RuntimeTool, version: string) => void;
 }
 
-/**
- * The configuration of a declared project, as the add form drew it: the
- * branch, and each process with its command, its install line, its folder,
- * its ports and their names on the web.
- *
- * The source and the name are not here — they do not change without removing
- * the project. What the save will do is said in the bar it ends on: a
- * changed command restarts its process if it runs, and a name taken out stops
- * answering. The agent's answer is read above the bar, in its own words.
- */
+// Source and name are absent on purpose: they only change by removing the project.
 export function ProjectConfigPanel({
   project,
   draft,
@@ -50,15 +41,12 @@ export function ProjectConfigPanel({
 }: {
   project: Project;
   draft: ConfigDraft;
-  /** The server's services: the runtimes among them say which versions a project may pin. */
   services: readonly Service[];
   exposure: Exposure | null;
   processProblems: readonly (ProcessProblem | null)[];
   rowProblems: readonly (readonly (RowProblem | null)[])[];
   ready: boolean;
-  /** The processes whose command changed: saving restarts those that run. */
   restarts: readonly string[];
-  /** The names on the web the save takes away. */
   dropped: readonly string[];
   run: ConfigState;
   edit: ConfigEdits;

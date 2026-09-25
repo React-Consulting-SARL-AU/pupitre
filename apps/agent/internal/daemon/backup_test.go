@@ -27,13 +27,13 @@ func (b *backups) Beat() *contract.BackupBeat {
 
 func TestTheServerIDThePlatformNamesIsKept(t *testing.T) {
 	b := newBench(t, true)
-	b.platform.serverID = "srv_42"
+	b.platform.serverID = "cq1w2e3r4t5y6u7i8o9p0a1s2"
 
 	if _, err := b.agent().Sync(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 
-	if platform.LoadServerID(b.fake, "") != "srv_42" {
+	if platform.LoadServerID(b.fake, "") != "cq1w2e3r4t5y6u7i8o9p0a1s2" {
 		t.Fatalf("server.id = %q", b.fake.Files[platform.DefaultServerIDPath])
 	}
 }

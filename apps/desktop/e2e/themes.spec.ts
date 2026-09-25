@@ -41,10 +41,7 @@ test.describe("thèmes", () => {
     await running.app.close();
   });
 
-  // Both captures come from one launch: the only difference between them is
-  // the theme. They are compared pixel for pixel, and only where their
-  // references are kept: on macOS, the machine the product is looked at on. A
-  // Linux runner draws other pixels, and checks the theme without an image.
+  // References are kept for macOS only; a Linux runner draws other pixels.
   const compared = process.platform === "darwin";
 
   async function looksLike(page: Page, name: string): Promise<void> {
@@ -68,9 +65,6 @@ test.describe("thèmes", () => {
       }
     });
 
-    // The contrast floor is a property of the palette, so it is measured in
-    // both themes rather than once: an ink that passes on white can fail on the
-    // dark ground it was paired with.
     await test.step("en clair", async () => {
       await dashboardIn(page, "light");
       await looksLike(page, "tableau-de-bord-clair.png");
@@ -84,9 +78,6 @@ test.describe("thèmes", () => {
     });
   });
 
-  // A selection painted a grey next to the grey of the field it sits in was
-  // invisible in the dark theme: the highlight has to be the inverse of the
-  // ground, in both themes.
   test("une sélection dans un champ se voit dans les deux thèmes", async () => {
     const { page } = running;
 
@@ -117,9 +108,6 @@ test.describe("thèmes", () => {
     }
   });
 
-  // The colour the window paints on its own, before the page draws and while it
-  // is being resized: on a machine whose system is dark, a forced light theme
-  // used to show dark edges.
   test("le fond natif de la fenêtre suit le thème forcé", async () => {
     const { app, page } = running;
 

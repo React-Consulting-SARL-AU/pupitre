@@ -3,15 +3,20 @@
 package staging
 
 import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"io"
 	"os"
 	"strings"
 	"testing"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/s3"
 )
 
-// The identity of the backup fixtures: what "correct horse battery staple" derives with this salt.
+// The keys that the passphrase "correct horse battery staple" derives with this salt.
 const (
 	stagingRecipient = "A10gydBSR5g4m/L8q8Msuz7sSJNSPyytp4QgelrXxEw="
 	stagingSalt      = "lneDgZnxLTb17pcdSfaKvA=="
@@ -19,7 +24,6 @@ const (
 	stagingNotes     = "pupitre-staging-notes"
 )
 
-// bucket is the client's bucket for this run: a real one, R2 or AWS, named by the environment and skipped without it.
 type bucket struct {
 	endpoint, region, name, accessKey, secretKey string
 }
@@ -57,11 +61,30 @@ func (b bucket) secrets(private bool) string {
 	return string(encoded)
 }
 
-func (b bucket) location(key string) contract.BackupLocation {
-	return contract.BackupLocation{Endpoint: b.endpoint, Region: b.region, Bucket: b.name, Key: key, PathStyle: true}
+// A restore refuses a location without the manifest's digest, which the platform would have recorded.
+func (b bucket) location(t *testing.T, key string) contract.BackupLocation {
+	t.Helper()
+
+	location := contract.BackupLocation{Endpoint: b.endpoint, Region: b.region, Bucket: b.name, Key: key, PathStyle: true}
+	client := s3.Client{Endpoint: b.endpoint, Region: b.region, Bucket: b.name, AccessKeyID: b.accessKey, SecretAccessKey: b.secretKey, PathStyle: true}
+
+	body, err := client.Get(context.Background(), key+"/"+contract.BackupManifestKey)
+	if err != nil {
+		t.Fatalf("manifest of %s: %v", key, err)
+	}
+	defer body.Close()
+
+	hasher := sha256.New()
+	if _, err := io.Copy(hasher, body); err != nil {
+		t.Fatalf("manifest of %s: %v", key, err)
+	}
+
+	location.SHA256 = hex.EncodeToString(hasher.Sum(nil))
+
+	return location
 }
 
-// A server the platform has not named yet has no prefix to back up under: the test names it when it must.
+// A backup's prefix comes from server.id, which a server the platform has not enrolled yet lacks.
 func namedServer(t *testing.T, host string) {
 	t.Helper()
 
@@ -71,6 +94,7 @@ func namedServer(t *testing.T, host string) {
 
 	command := sshCommand(host, "sudo", "-n", "tee", "/etc/pupitre/server.id")
 	command.Stdin = strings.NewReader("staging-server\n")
+
 	if out, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("server.id: %v\n%s", err, out)
 	}
@@ -79,6 +103,7 @@ func namedServer(t *testing.T, host string) {
 func TestABackupLeavesTheServerSealedAndComesBack(t *testing.T) {
 	host := stagingHost(t)
 	store := stagingBucket(t)
+
 	namedServer(t, host)
 
 	ssh(t, host, "sudo", "-n", "-u", "dev", "mkdir", "-p", "/home/dev/"+stagingNotes)
@@ -100,14 +125,17 @@ func TestABackupLeavesTheServerSealedAndComesBack(t *testing.T) {
 		t.Fatalf("backup = %+v", made)
 	}
 
+	location := store.location(t, made.Key)
+
 	inspected := decode[contract.BackupManifest](t, agentWithSecrets(t, host, store.secrets(false), request{Cmd: "backup.inspect", Params: map[string]any{
-		"location": store.location(made.Key), "secrets_stdin": true,
+		"location": location, "secrets_stdin": true,
 	}})[0].Result)
 	if inspected.ID != made.ID || inspected.Recipient != stagingRecipient {
 		t.Fatalf("manifest = %+v", inspected)
 	}
 
 	pathKey := ""
+
 	for _, part := range made.Parts {
 		if part.Kind == contract.BackupPartPath {
 			pathKey = part.Key
@@ -117,7 +145,7 @@ func TestABackupLeavesTheServerSealedAndComesBack(t *testing.T) {
 	ssh(t, host, "sudo", "-n", "rm", "-rf", "/home/dev/"+stagingNotes)
 
 	restored := decode[contract.BackupRestoreDataResult](t, agentWithSecrets(t, host, store.secrets(true), request{Cmd: "backup.restore.data", Params: map[string]any{
-		"location": store.location(made.Key), "parts": []string{pathKey}, "start": false, "secrets_stdin": true,
+		"location": location, "parts": []string{pathKey}, "start": false, "secrets_stdin": true,
 	}})[0].Result)
 	if len(restored.Failed) != 0 || len(restored.Restored) != 1 {
 		t.Fatalf("restore = %+v", restored)
@@ -132,7 +160,7 @@ func TestABackupLeavesTheServerSealedAndComesBack(t *testing.T) {
 		t.Fatal("the backup must leave the bucket")
 	}
 
-	gone := attempt(t, host, request{Cmd: "backup.inspect", Params: map[string]any{"location": store.location(made.Key), "secrets_stdin": true}, Secrets: store.secrets(false)})[0]
+	gone := attempt(t, host, request{Cmd: "backup.inspect", Params: map[string]any{"location": location, "secrets_stdin": true}, Secrets: store.secrets(false)})[0]
 	if gone.OK || !strings.Contains(string(gone.Error), string(contract.ErrorBackupMissing)) {
 		t.Fatalf("a deleted backup: %s", gone.Error)
 	}

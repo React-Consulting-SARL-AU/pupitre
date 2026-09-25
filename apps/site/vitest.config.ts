@@ -5,7 +5,11 @@ type AstroViteConfig = Parameters<typeof getViteConfig>[0]
 
 const config: ViteUserConfig = {
   test: {
-    include: ["src/**/*.test.ts", "scripts/**/*.test.ts"],
+    include: [
+      "src/**/*.test.ts",
+      "scripts/**/*.test.ts",
+      "worker/**/*.test.ts",
+    ],
   },
 }
 

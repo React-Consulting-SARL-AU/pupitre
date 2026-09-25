@@ -1,12 +1,3 @@
-/**
- * What every step reads from its command line and its environment.
- *
- * A step never asks a question: what it needs is a flag or a variable, and a
- * value that is missing stops it with the name of what to set. `--dry-run`
- * prints every command and every request instead of running it, which is how a
- * step is tried on a workstation without a bucket or a platform in reach.
- */
-
 export const VARIABLES = {
   version: "PUPITRE_RELEASE_VERSION",
   channel: "PUPITRE_RELEASE_CHANNEL",

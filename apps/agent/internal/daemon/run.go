@@ -9,7 +9,7 @@ import (
 	"pupitre.studio/agent/internal/platform"
 )
 
-// Thirty seconds for the state, five minutes for the heartbeat, and a failure never stops the loop: the platform coming back is exactly what the agent is waiting for.
+// A failure never stops the loop: the platform coming back is exactly what it waits for.
 func (d *Daemon) Run(ctx context.Context) error {
 	states := time.NewTicker(d.options.StateInterval)
 	defer states.Stop()
@@ -62,7 +62,6 @@ func (d *Daemon) beatOnce(ctx context.Context) {
 	}
 }
 
-// An unenrolled server, a network down, a revoked token: three silences the journal tells apart, and none of them stops anything that runs.
 func (d *Daemon) report(what string, err error) {
 	if errors.Is(err, platform.ErrNoToken) {
 		d.once(what, "this server is not enrolled")
@@ -80,7 +79,7 @@ func (d *Daemon) report(what string, err error) {
 	d.once(what, err.Error())
 }
 
-// The same silence repeated every thirty seconds fills a journal for nothing: it is written once, and again when it changes.
+// Logged only when it changes, or the same silence would fill the journal every thirty seconds.
 func (d *Daemon) once(what, message string) {
 	line := what + " : " + message
 	if line == d.lastReport {

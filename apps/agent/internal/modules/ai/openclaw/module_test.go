@@ -26,7 +26,6 @@ func newContext(t *testing.T, fake *modtest.FakeSys, values modtest.Values) *mod
 	return modtest.NewContext(t, fake, modtest.Options{Manifest: manifest(), Values: values, Secrets: secrets()})
 }
 
-// A machine whose Node is one OpenClaw accepts.
 func machine() *modtest.FakeSys {
 	fake := modtest.NewFakeSys()
 	fake.Files[mise.Path] = []byte("mise")
@@ -43,6 +42,7 @@ func run(t *testing.T, fake *modtest.FakeSys, values modtest.Values) *modules.Co
 	if err := (Module{}).Install(ctx); err != nil {
 		t.Fatal(err)
 	}
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -69,6 +69,7 @@ func TestFirstInstallLaysDownTheGatewayTheProvidersAndTheSkills(t *testing.T) {
 	}
 
 	unit := string(fake.Files[unitPath])
+
 	for _, want := range []string{"gateway --port 18789", "User=dev", "EnvironmentFile=" + envPath, mise.ShimsDir} {
 		if !strings.Contains(unit, want) {
 			t.Errorf("the unit lacks %q:\n%s", want, unit)
@@ -128,7 +129,6 @@ func TestWithoutAlwaysOnTheGatewayIsACommand(t *testing.T) {
 	}
 }
 
-// The gateway reads the providers at start: a key rotated on disk is only in force once it has restarted.
 func TestARotatedProviderKeyRestartsTheGateway(t *testing.T) {
 	fake := machine()
 	run(t, fake, modtest.Values{"always_on": true})
@@ -139,6 +139,7 @@ func TestARotatedProviderKeyRestartsTheGateway(t *testing.T) {
 		Values:   modtest.Values{"always_on": true},
 		Secrets:  modtest.Secrets{"providers.0": "openai:sk-rotated", "providers.1": "anthropic:" + anthropicKey},
 	})
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -233,7 +234,6 @@ func TestFailedInstallCarriesItsReplayCommand(t *testing.T) {
 
 var _ modules.Module = Module{}
 
-// A provider taken out of the form leaves nothing behind: neither its key in /etc/pupitre/env and the credentials file, nor its name in the status.
 func TestAWithdrawnProviderIsForgottenEverywhere(t *testing.T) {
 	fake := machine()
 	run(t, fake, modtest.Values{"always_on": false})
@@ -243,6 +243,7 @@ func TestAWithdrawnProviderIsForgottenEverywhere(t *testing.T) {
 		Values:   modtest.Values{"always_on": false},
 		Secrets:  modtest.Secrets{"providers.0": "anthropic:" + anthropicKey},
 	})
+
 	if err := (Module{}).Configure(ctx); err != nil {
 		t.Fatal(err)
 	}
@@ -259,6 +260,7 @@ func TestAWithdrawnProviderIsForgottenEverywhere(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if _, named := status.Credentials[envPrefix+"OPENAI_API_KEY"]; named {
 		t.Fatalf("the status still names the withdrawn provider: %v", status.Credentials)
 	}

@@ -8,12 +8,6 @@ import { Dialog } from "../ui/dialog";
 import { Kbd } from "../ui/kbd";
 import { Section } from "../ui/section";
 
-/**
- * Every shortcut of the app on one sheet, opened by the menu or by ⌘/.
- *
- * Each control already prints its own chord in its bubble; the sheet is
- * where a reader learns them all at once, written for their keyboard.
- */
 export function ShortcutsDialog({
   open,
   onClose,
@@ -22,6 +16,7 @@ export function ShortcutsDialog({
   onClose: () => void;
 }) {
   const t = useTranslations();
+
   const groups = useMemo(() => shortcutSheet(isMac), []);
 
   function keysOf(line: ShortcutLine) {
@@ -71,7 +66,7 @@ export function ShortcutsDialog({
             <dl className="flex flex-col gap-2">
               {group.shortcuts.map((line) => (
                 <div
-                  className="flex items-center justify-between gap-4 text-[13px]"
+                  className="flex items-center justify-between gap-4 text-control"
                   key={line.name}
                 >
                   <dt className="text-ink-2">

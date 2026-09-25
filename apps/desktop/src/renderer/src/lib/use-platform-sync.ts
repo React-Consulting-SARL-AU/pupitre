@@ -3,31 +3,10 @@ import { type AccountView, accountOf, useAccount } from "../stores/account";
 import { useAgentUpdate } from "../stores/agent-update";
 import { useFleet } from "../stores/fleet";
 
-/**
- * The app, kept aware of what the platform does without it.
- *
- * A server granted, a key pushed, a subscription suspended, a server revoked
- * from the console: none of that goes through the app, and a screen that only
- * re-reads when it opens shows the state of an hour ago. The heartbeat lives
- * here, above the screens, so the list is fresh everywhere and not only where a
- * panel asked for it.
- *
- * A backgrounded window asks for nothing — what nobody is looking at need not
- * be fresh — and coming back to the foreground re-reads at once.
- *
- * The agent's update state rides the same beat for the active server: what
- * the app carries does not change while it runs, but what the platform
- * publishes and what the server runs both can, and the banner has to follow.
- */
+// The console grants, suspends and revokes without the app, so the beat lives above every screen.
 const BEAT_MS = 15_000;
 
-/**
- * Who the beat follows, as a value that survives a refresh unchanged.
- *
- * Every refresh sets a freshly cloned account, so an effect keyed on the
- * identity itself re-runs on its own answer: a beat with no interval, a
- * thousand calls a second, and a dev server out of ephemeral ports.
- */
+/** A primitive, because each refresh clones the account and an effect keyed on it re-ran in a hot loop. */
 export function syncKey(view: AccountView): string | null {
   return accountOf(view)?.identity?.email ?? null;
 }

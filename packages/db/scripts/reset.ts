@@ -5,12 +5,7 @@ import {
 } from "../src/migration-guard"
 import { BINDING, fail, wrangler } from "./wrangler"
 
-/**
- * An empty database again: every table dropped, the migrations' ledger
- * included, then every migration applied. What D1 calls a reset is this, and
- * nothing else is reset — the database keeps its identifier and its bindings.
- */
-
+// D1 has no reset: drop every table, the migrations ledger included, then reapply.
 const TABLES_SQL =
   "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%'"
 

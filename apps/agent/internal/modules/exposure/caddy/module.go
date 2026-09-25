@@ -6,27 +6,27 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"time"
 
 	"pupitre.studio/agent/internal/i18n"
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/exposure/routes"
+	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/apt"
 	"pupitre.studio/agent/internal/sys/env"
 	"pupitre.studio/agent/internal/sys/file"
 	"pupitre.studio/agent/internal/sys/systemd"
+	"pupitre.studio/agent/internal/sys/ufw"
 )
 
 const (
 	Unit = "caddy"
 
-	// The comment every firewall rule of this module carries: what tells its ports apart from the client's own.
+	// Tags this module's firewall rules apart from the client's own.
 	comment = "caddy"
 
-	// Provider is the one name this module answers to: the marker on disk, and the name its report carries.
 	Provider = "caddy"
 
 	DefaultHTTPPort  = 80
@@ -40,16 +40,15 @@ const (
 	sourcePath  = "/etc/apt/sources.list.d/caddy-stable.list"
 	sourceLine  = "deb [signed-by=" + keyringPath + "] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main\n"
 
-	configPath = "/etc/caddy/Caddyfile"
-	modePath   = routes.ModePath
+	configDir     = "/etc/caddy"
+	configPath    = configDir + "/Caddyfile"
+	candidatePath = configDir + "/.Caddyfile.pupitre"
+	modePath      = routes.ModePath
 
 	portsKey = "CADDY_PORTS"
 )
 
-var mode = []byte(Provider + "\n")
-
-// ufw rewrites the whole rule set through iptables and can sit there for ever on a kernel that refuses it; a minute is more than it ever needs.
-const ufwTimeout = time.Minute
+var mode = routes.Marker(Provider)
 
 type Module struct{}
 
@@ -61,7 +60,6 @@ func (Module) Manifest() contract.Manifest {
 	return manifest()
 }
 
-// Both doors are on the public side of this machine: one already held means no certificate and no project served.
 func (Module) Preflight(ctx *modules.Context) []contract.FieldProblem {
 	return modules.Problems(
 		modules.PortTaken(ctx, "http_port"),
@@ -69,7 +67,7 @@ func (Module) Preflight(ctx *modules.Context) []contract.FieldProblem {
 	)
 }
 
-// The package alone is not this module: the marker says which exposure holds the machine, and a caddy the client put there for something else is not ours to report or to sync.
+// A caddy the client installed for something else is not ours: the exposure marker decides.
 func ours(ctx *modules.Context) bool {
 	return apt.Installed(ctx, pkg) && file.Same(ctx, modePath, mode)
 }
@@ -87,7 +85,7 @@ func (Module) Check(ctx *modules.Context) (modules.Status, error) {
 	return modules.Status{Installed: true, Version: version, Configured: file.Exists(ctx, configPath)}, nil
 }
 
-// Ubuntu's own caddy trails the project by a long way: the module adds Caddy's repository, key first.
+// Ubuntu's own caddy trails upstream by a long way, hence Caddy's repository.
 func (Module) Install(ctx *modules.Context) error {
 	if err := ctx.Step("add-repository", func() (modules.Outcome, error) {
 		if file.Exists(ctx, keyringPath) && file.Same(ctx, sourcePath, []byte(sourceLine)) {
@@ -110,7 +108,7 @@ func (Module) Install(ctx *modules.Context) error {
 			return modules.Failed, err
 		}
 
-		return modules.Done, apt.Refresh(ctx)
+		return modules.Done, apt.RefreshAdded(ctx, sourcePath, keyringPath)
 	}); err != nil {
 		return err
 	}
@@ -124,7 +122,7 @@ func (Module) Install(ctx *modules.Context) error {
 	})
 }
 
-// The mode and the domain are declared before the Caddyfile is written: the registry resolves the routes of the repository's rows against the domain.
+// Mode and domain come before the Caddyfile: the registry resolves the routes against the stored domain.
 func (Module) Configure(ctx *modules.Context) error {
 	if err := routes.MoveRoutes(ctx); err != nil {
 		return err
@@ -146,16 +144,35 @@ func (Module) Configure(ctx *modules.Context) error {
 	return reload(ctx, changed)
 }
 
+// An identical Caddyfile is still validated: an upgraded Caddy may refuse what the previous version took.
 func writeCaddyfile(ctx *modules.Context) (bool, error) {
 	content := render(ctx)
 	changed := false
+	refused := false
 
 	err := ctx.Step("write-caddyfile", func() (modules.Outcome, error) {
 		if file.Same(ctx, configPath, content) {
+			if err := validate(ctx, configPath); err != nil {
+				refused = true
+
+				return modules.Failed, err
+			}
+
 			return modules.Skipped, nil
 		}
 
-		if err := ctx.Sys().MkdirAll("/etc/caddy", 0o755); err != nil {
+		if err := ctx.Sys().MkdirAll(configDir, 0o755); err != nil {
+			return modules.Failed, err
+		}
+
+		if err := file.WriteAtomic(ctx, candidatePath, content, 0o644); err != nil {
+			return modules.Failed, err
+		}
+		defer file.Remove(ctx, candidatePath)
+
+		if err := validate(ctx, candidatePath); err != nil {
+			refused = true
+
 			return modules.Failed, err
 		}
 
@@ -164,17 +181,22 @@ func writeCaddyfile(ctx *modules.Context) (bool, error) {
 		return modules.Done, file.WriteAtomic(ctx, configPath, content, 0o644)
 	})
 
+	var step *modules.StepError
+	if refused && errors.As(err, &step) {
+		return false, protocol.NewError(contract.ErrorBadRequest, step.Message).WithFix(i18n.T("modules.caddy.invalid.fix"))
+	}
+
 	return changed, err
 }
 
-// The rules are written as <port>/tcp and carry the module's name: core.hardening owns the bare 22 and 443 of SSH, and never touches these.
-// A port the client moved away from is closed on the same pass, so the firewall only ever opens what the Caddyfile serves.
+// Rules are <port>/tcp with the module's comment, kept apart from core.hardening's bare 22 and 443.
 func syncFirewall(ctx *modules.Context) error {
 	return ctx.Step("sync-firewall", func() (modules.Outcome, error) {
 		wanted := wantedRules(ctx)
 		opened := owned(ctx)
 
 		var stale []string
+
 		for _, rule := range sortedRules(opened) {
 			if !slices.Contains(wanted, rule) {
 				stale = append(stale, rule)
@@ -182,6 +204,7 @@ func syncFirewall(ctx *modules.Context) error {
 		}
 
 		var missing []string
+
 		for _, rule := range wanted {
 			if !opened[rule] {
 				missing = append(missing, rule)
@@ -193,7 +216,7 @@ func syncFirewall(ctx *modules.Context) error {
 		}
 
 		for _, rule := range stale {
-			if _, err := ufw(ctx, "delete", "allow", rule); err != nil {
+			if _, err := ufw.Run(ctx, "delete", "allow", rule); err != nil {
 				ctx.Warn(i18n.T("warn.caddy.ufw.refused", rule))
 
 				return modules.Done, nil
@@ -201,7 +224,7 @@ func syncFirewall(ctx *modules.Context) error {
 		}
 
 		for _, rule := range missing {
-			if _, err := ufw(ctx, "allow", rule, "comment", comment); err != nil {
+			if _, err := ufw.Run(ctx, "allow", rule, "comment", comment); err != nil {
 				ctx.Warn(i18n.T("warn.caddy.ufw.refused", rule))
 
 				return modules.Done, nil
@@ -213,17 +236,7 @@ func syncFirewall(ctx *modules.Context) error {
 }
 
 func declareMode(ctx *modules.Context) error {
-	if err := ctx.Step("declare-mode", func() (modules.Outcome, error) {
-		if file.Same(ctx, modePath, mode) {
-			return modules.Skipped, nil
-		}
-
-		if err := ctx.Sys().MkdirAll("/etc/pupitre", 0o700); err != nil {
-			return modules.Failed, err
-		}
-
-		return modules.Done, file.WriteAtomic(ctx, modePath, mode, 0o644)
-	}); err != nil {
+	if err := routes.DeclareMode(ctx, Provider); err != nil {
 		return err
 	}
 
@@ -234,6 +247,7 @@ func declareMode(ctx *modules.Context) error {
 			env.DomainKey: ctx.String("domain"),
 			portsKey:      strconv.Itoa(httpPort(ctx)) + "," + strconv.Itoa(httpsPort(ctx)),
 		}
+
 		for key, value := range values {
 			changed, err := env.Set(ctx, key, value)
 			if err != nil {
@@ -251,15 +265,11 @@ func declareMode(ctx *modules.Context) error {
 	})
 }
 
-// A reload keeps the certificates and the open connections; only a Caddyfile that changed is worth one.
+// A reload keeps certificates and open connections; only a changed Caddyfile is worth one.
 func reload(ctx *modules.Context, changed bool) error {
 	return ctx.Step("enable-service", func() (modules.Outcome, error) {
 		if systemd.Active(ctx, Unit) && !changed {
 			return modules.Skipped, nil
-		}
-
-		if err := validate(ctx); err != nil {
-			return modules.Failed, err
 		}
 
 		if err := systemd.Enable(ctx, Unit); err != nil {
@@ -274,13 +284,11 @@ func reload(ctx *modules.Context, changed bool) error {
 	})
 }
 
-// A Caddyfile the running server refuses would be reloaded into nothing: systemctl
-// reload says the job failed, and the reason stays in Caddy's journal. Validating
-// first puts that reason in the step.
-func validate(ctx *modules.Context) error {
-	out, err := sys.Exec(ctx, sys.Command{Argv: []string{"caddy", "validate", "--config", configPath, "--adapter", "caddyfile"}})
+// systemctl reload leaves the reason in Caddy's journal; caddy validate brings it into the step.
+func validate(ctx *modules.Context, path string) error {
+	out, err := sys.Exec(ctx, sys.Command{Argv: []string{"caddy", "validate", "--config", path, "--adapter", "caddyfile"}})
 	if err != nil {
-		return errors.New(i18n.T("modules.caddy.invalid", configPath, strings.TrimSpace(out.Stderr+"\n"+out.Stdout)))
+		return errors.New(i18n.T("modules.caddy.invalid", configPath, strings.ReplaceAll(strings.TrimSpace(out.Stderr+"\n"+out.Stdout), candidatePath, configPath)))
 	}
 
 	return nil
@@ -305,8 +313,10 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// The certificates Caddy obtained live under /var/lib/caddy and belong to the client's domain, not to this module.
+// Certificates under /var/lib/caddy belong to the client's domain and are left in place.
 func (Module) Uninstall(ctx *modules.Context) error {
+	heldByAnother := routes.HeldByAnother(ctx, Provider)
+
 	if err := ctx.Step("stop-service", func() (modules.Outcome, error) {
 		if !systemd.Active(ctx, Unit) {
 			return modules.Skipped, nil
@@ -321,7 +331,7 @@ func (Module) Uninstall(ctx *modules.Context) error {
 		closed := false
 
 		for _, rule := range sortedRules(owned(ctx)) {
-			if _, err := ufw(ctx, "delete", "allow", rule); err != nil {
+			if _, err := ufw.Run(ctx, "delete", "allow", rule); err != nil {
 				continue
 			}
 
@@ -350,7 +360,12 @@ func (Module) Uninstall(ctx *modules.Context) error {
 	if err := ctx.Step("remove-config", func() (modules.Outcome, error) {
 		cleared := false
 
-		for _, path := range []string{sourcePath, modePath} {
+		paths := []string{sourcePath}
+		if file.Same(ctx, modePath, mode) {
+			paths = append(paths, modePath)
+		}
+
+		for _, path := range paths {
 			removed, err := file.Remove(ctx, path)
 			if err != nil {
 				return modules.Failed, err
@@ -371,7 +386,12 @@ func (Module) Uninstall(ctx *modules.Context) error {
 	return ctx.Step("forget-domain", func() (modules.Outcome, error) {
 		forgotten := false
 
-		for _, key := range []string{env.DomainKey, portsKey} {
+		keys := []string{portsKey}
+		if !heldByAnother {
+			keys = append(keys, env.DomainKey)
+		}
+
+		for _, key := range keys {
 			removed, err := env.Unset(ctx, key)
 			if err != nil {
 				return modules.Failed, err
@@ -426,7 +446,7 @@ func portOr(ctx *modules.Context, key string, fallback int) int {
 	return fallback
 }
 
-// The configured value first, then the one the configuration left in /etc/pupitre/env: a command runs long after the install.
+// Falls back to /etc/pupitre/env: a command runs long after the install, without its configuration.
 func domainOf(ctx *modules.Context) string {
 	if domain := ctx.String("domain"); domain != "" {
 		return domain
@@ -437,24 +457,12 @@ func domainOf(ctx *modules.Context) string {
 	return domain
 }
 
-func ufw(ctx *modules.Context, args ...string) (sys.Output, error) {
-	return sys.Exec(ctx, sys.Command{Argv: append([]string{"ufw"}, args...), Timeout: ufwTimeout})
-}
-
-// ufw show added lists the rules as they were given, comment included, whether the firewall is up yet or not: the hardening may come after this module.
+// Read by comment whether ufw is up or not: the hardening may come after this module.
 func owned(ctx *modules.Context) map[string]bool {
 	rules := map[string]bool{}
 
-	out, err := ctx.Sys().Run(sys.Command{Argv: []string{"ufw", "show", "added"}, Timeout: ufwTimeout})
-	if err != nil {
-		return rules
-	}
-
-	for _, line := range strings.Split(out.Stdout, "\n") {
-		fields := strings.Fields(line)
-		if len(fields) == 5 && fields[0] == "ufw" && fields[1] == "allow" && fields[3] == "comment" && fields[4] == "'"+comment+"'" {
-			rules[fields[2]] = true
-		}
+	for _, rule := range ufw.Commented(ctx, comment) {
+		rules[rule] = true
 	}
 
 	return rules

@@ -2,7 +2,6 @@ import { describe, expect, it } from "bun:test";
 import { ANSI_DARK, ANSI_LIGHT } from "@pupitre/design/ansi";
 import { terminalTheme } from "../terminal-theme";
 
-/** Sentinels, not colours: what matters is that each token reaches its slot. */
 const TOKENS: Record<string, string> = {
   "--sunken": "token(sunken)",
   "--ink": "token(ink)",

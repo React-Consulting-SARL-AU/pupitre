@@ -1,8 +1,10 @@
 ---
 import { TRIAL_DAYS } from "@pupitre/shared/plans"
 import { homeContent } from "../content/site/home"
+import { pricingContent } from "../content/site/pricing"
 import Base from "../layouts/Base.astro"
 import { fill, localeFromPath, translator } from "../lib/i18n"
+import { isLaunchOpen, LAUNCH_ENDS_AT, launchEndDate } from "../lib/launch"
 import {
   faqPage,
   jsonLd,
@@ -24,19 +26,25 @@ const locale = localeFromPath(Astro.url.pathname)
 const t = translator(locale)
 const content = homeContent(locale)
 
+const launching = isLaunchOpen()
 const application = jsonLd(
   softwareApplication({
     locale,
     name: t("site.name"),
     description: content.meta.description,
+    launch: launching
+      ? { endsAt: LAUNCH_ENDS_AT, name: pricingContent(locale).launch.offer }
+      : undefined,
   })
 )
 const company = jsonLd(organization({ name: t("site.name"), locale }))
 const questions = jsonLd(faqPage(content.faq.items))
-const steps = content.steps.items.map((item) => ({
-  ...item,
-  detail: fill(item.detail, { days: TRIAL_DAYS }),
-}))
+const numbers = { days: TRIAL_DAYS, date: launchEndDate(locale) }
+const steps = content.steps.items.map((item) => {
+  const shown = launching && item.duringLaunch ? item.duringLaunch : item
+
+  return { title: shown.title, detail: fill(shown.detail, numbers) }
+})
 ---
 
 <Base title={content.meta.title} description={content.meta.description}>

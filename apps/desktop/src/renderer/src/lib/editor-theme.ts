@@ -5,25 +5,11 @@ import { tags } from "@lezer/highlight";
 import { ANSI_DARK, ANSI_LIGHT, type AnsiPalette } from "@pupitre/design/ansi";
 import type { ResolvedTheme } from "@shared/appearance";
 
-/**
- * The editor in the interface's own greys, with the terminal's palette for
- * the syntax.
- *
- * The frame holds no colour: every value is a design token read through
- * `var()`, so it follows the theme the moment the root switches. The syntax
- * is the one place hue is allowed, on the same footing as the terminal — the
- * ANSI palette of the resolved theme, desaturated, and nothing outside it. A
- * keyword is magenta, a definition or a type blue, a string green, a literal
- * amber; names stay ink, comments and punctuation step down the greys, so
- * the screen still reads in pure greys. The amber is the `warn` token rather
- * than the palette's yellow, and attributes keep a grey rather than its cyan:
- * on the light theme those two fall short of the contrast text is owed.
- */
-
 const INK = "var(--ink)";
 const INK_2 = "var(--ink-2)";
 const INK_3 = "var(--ink-3)";
 const INK_4 = "var(--ink-4)";
+// The palette's yellow and cyan fall short of text contrast on light, hence `warn` for literals and grey for attributes.
 const AMBER = "var(--warn)";
 
 const BOLD = "600";
@@ -167,7 +153,6 @@ export const editorTheme = EditorView.theme({
   },
 });
 
-/** The look of the editor, complete: the frame and the syntax of one theme. */
 export function editorLook(resolved: ResolvedTheme): Extension {
   return [editorTheme, syntaxHighlighting(editorHighlight(resolved))];
 }

@@ -7,14 +7,6 @@ import { IconButton } from "../ui/icon-button";
 import { Label } from "../ui/label";
 import { ForwardRow } from "./forward-row";
 
-/**
- * The forwards drawn, in the same shape as the transfers above them.
- *
- * Every `ssh -L` the app holds is here, whichever panel opened it and
- * whichever server it reaches: a forward is a port of this computer, and the
- * place that lists what this computer is doing is the sidebar. Nothing shows
- * while none is open.
- */
 export function ForwardsList({
   forwards,
   nameOf,

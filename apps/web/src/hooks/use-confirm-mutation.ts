@@ -15,9 +15,7 @@ export interface ConfirmMutationFailure {
 export interface ConfirmMutation<Variables, Data> {
   mutationFn: (variables: Variables) => Promise<Data>
   invalidate?: QueryKey[]
-  /** One sentence in the past tense, once the server agrees. */
   done?: (variables: Variables) => string
-  /** What the dialog shows when the API says nothing usable. */
   failed: ConfirmMutationFailure
   onDone?: (variables: Variables) => void
 }
@@ -25,15 +23,11 @@ export interface ConfirmMutation<Variables, Data> {
 export interface ConfirmMutationHandle<Variables> {
   run: (variables: Variables) => void
   busy: boolean
-  /** The refusal the dialog shows while it stays open with the typing intact. */
   refusal: ConfirmRefusal | null
   reset: () => void
 }
 
-/**
- * A gesture behind a confirmation: the refusal stays inside the dialog, where
- * the reader can read it against what they typed, and the success leaves a toast.
- */
+// A refusal stays inside the dialog, next to what the reader typed; only success leaves a toast.
 export function useConfirmMutation<Variables = void, Data = unknown>({
   mutationFn,
   invalidate = [],

@@ -1,12 +1,7 @@
 import type { ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
-import type { ShellSpawn } from "../key-install";
-
-/**
- * An `ssh` that answers from a script: what it was given, and what it says
- * back, so the tests read as the dialogue they check.
- */
+import type { ShellSpawn } from "../ssh-run";
 
 export interface Call {
   args: string[];
@@ -39,6 +34,7 @@ export function recorder(answers: Answer[]): {
     child.kill = () => undefined;
 
     const call: Call = { args, env: options.env, stdin: "" };
+
     calls.push(call);
 
     child.stdin.on("data", (chunk: Buffer) => {

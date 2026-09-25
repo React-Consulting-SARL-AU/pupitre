@@ -5,12 +5,7 @@ import { SettingsAboutBuild } from "../settings/settings-about-build";
 import { SettingsAboutUpdate } from "../settings/settings-about-update";
 import { CheckLine } from "../ui/check-line";
 
-/**
- * What the sections the seventh phase adds to the settings draw, from what the
- * main process would have answered. The sections that read a store are walked
- * by the Playwright scenario, where the bridge answers for real.
- */
-
+// Sections that read a store are covered by the Playwright scenario, where the bridge answers for real.
 const RESOLVED = () => Promise.resolve();
 
 function text(html: string): string {
@@ -56,16 +51,47 @@ describe("l'état de la mise à jour de l'app", () => {
   });
 
   it("dit l'échec avec son remède, et laisse rechercher à nouveau", () => {
-    const html = update({
-      error: "ENOTFOUND dl.pupitre.studio",
-      status: "error",
-      updates: true,
-    });
+    const html = update({ failure: "failed", status: "error", updates: true });
 
-    expect(text(html)).toContain("ENOTFOUND dl.pupitre.studio");
-    expect(text(html)).toContain("Vérifiez la connexion et réessayez");
+    expect(text(html)).toContain("La mise à jour n'a pas pu être téléchargée");
+    expect(text(html)).toContain("Vérifiez la connexion");
     expect(text(html)).toContain("Rechercher une mise à jour");
     expect(html).toContain('data-tone="danger"');
+  });
+
+  it("dit qu'une version refusée par la clé de release n'est pas installée, et quoi faire", () => {
+    const refused = update({
+      failure: "refused",
+      status: "error",
+      updates: true,
+      version: "0.5.0",
+    });
+    const changed = update({
+      failure: "changed",
+      status: "error",
+      updates: true,
+      version: "0.5.0",
+    });
+
+    expect(text(refused)).toContain("La version 0.5.0");
+    expect(text(refused)).toContain("pas été installée");
+    expect(text(refused)).toContain("pupitre.studio");
+    expect(text(changed)).toContain("pas été installée");
+    expect(text(changed)).toContain("Rechercher une mise à jour");
+  });
+
+  it("attend la vérification de la signature avant d'offrir le redémarrage", () => {
+    const html = update({
+      status: "verifying",
+      updates: true,
+      version: "0.5.0",
+    });
+
+    expect(text(html)).toContain(
+      "Vérification de la signature de la version 0.5.0"
+    );
+    expect(text(html)).not.toContain("Redémarrer maintenant");
+    expect(html).toContain('aria-busy="true"');
   });
 
   it("montre l'avancée d'un téléchargement", () => {

@@ -1,9 +1,17 @@
-import { Prisma } from "@pupitre/db/cloudflare/client"
-import { MAIL_MAX_BYTES, MAIL_MAX_TEXT_CHARS } from "@pupitre/shared/legal"
-import { getPrisma } from "../api/prisma"
+import {
+  MAIL_MAX_BYTES,
+  MAIL_MAX_INBOUND_ATTACHMENTS,
+  MAIL_MAX_TEXT_CHARS,
+} from "@pupitre/shared/legal"
+import { getPrisma, isUniqueViolation } from "../api/prisma"
 import { recordMailActivity } from "./activity"
 import { mailboxIdForAddress } from "./mailboxes"
-import { normalizeSubject, referencedMessageIds, snippetOf } from "./normalize"
+import {
+  buildReferences,
+  normalizeSubject,
+  referencedMessageIds,
+  snippetOf,
+} from "./normalize"
 import { type ParsedEmail, parseEmail } from "./parse"
 import { publishInboxEvent } from "./realtime"
 import {
@@ -14,6 +22,8 @@ import {
   mailStorage,
   RAW_CONTENT_TYPE,
 } from "./storage"
+import { discardEmptyMailThread } from "./thread-mutations"
+import { emailList } from "./thread-view"
 
 export const ENVELOPE_FROM_HEADER = "x-pupitre-envelope-from"
 
@@ -24,10 +34,6 @@ export const THREAD_WINDOW_DAYS = 30
 export const MAIL_TOO_LARGE_REASON = "Message too large"
 
 const MILLISECONDS_PER_DAY = 86_400_000
-
-const UNIQUE_VIOLATION = "P2002"
-
-const NO_SUBJECT = "(sans objet)"
 
 const SUBJECT_CANDIDATES = 10
 
@@ -45,21 +51,25 @@ export interface IngestResult {
   newThread: boolean
 }
 
-async function sha256(raw: ArrayBuffer): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", raw)
+// The address is hashed too: one mail delivered to two of our addresses is two deliveries.
+async function deliveryHash(
+  address: string,
+  raw: ArrayBuffer
+): Promise<string> {
+  const prefix = new TextEncoder().encode(`${address}\n`)
+  const bytes = new Uint8Array(prefix.byteLength + raw.byteLength)
+
+  bytes.set(prefix)
+  bytes.set(new Uint8Array(raw), prefix.byteLength)
+
+  const digest = await crypto.subtle.digest("SHA-256", bytes)
 
   return Array.from(new Uint8Array(digest), (byte) =>
     byte.toString(16).padStart(2, "0")
   ).join("")
 }
 
-function emailList(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.filter((entry): entry is string => typeof entry === "string")
-    : []
-}
-
-/** The raw `.eml` in the bucket holds the whole body; the column holds what D1 accepts. */
+// The raw `.eml` in the bucket keeps the whole body; the column holds what D1 accepts.
 function cappedText(text: string | null | undefined): string | null {
   if (!text) {
     return null
@@ -75,10 +85,9 @@ async function findDuplicate(
   rawHash: string,
   messageId: string | null
 ): Promise<IngestResult | null> {
-  const prisma = getPrisma()
-  const existing = await prisma.mailMessage.findFirst({
+  const existing = await getPrisma().mailMessage.findFirst({
     where: messageId
-      ? { OR: [{ rawHash }, { messageId, thread: { address } }] }
+      ? { OR: [{ rawHash }, { messageId, address }] }
       : { rawHash },
     select: { id: true, threadId: true },
   })
@@ -95,22 +104,27 @@ async function findDuplicate(
   }
 }
 
+// A message filed under two of our addresses resolves to the thread of the address written to.
 async function threadByReferences(
+  address: string,
   parsed: ParsedEmail | null
 ): Promise<string | null> {
-  const ids = referencedMessageIds(parsed?.inReplyTo, parsed?.references)
+  const ids = referencedMessageIds(parsed?.references, parsed?.inReplyTo)
 
   if (ids.length === 0) {
     return null
   }
 
-  const referenced = await getPrisma().mailMessage.findFirst({
+  const referenced = await getPrisma().mailMessage.findMany({
     where: { messageId: { in: ids } },
     orderBy: { createdAt: "desc" },
-    select: { threadId: true },
+    select: { threadId: true, address: true },
   })
 
-  return referenced?.threadId ?? null
+  return (
+    (referenced.find((message) => message.address === address) ?? referenced[0])
+      ?.threadId ?? null
+  )
 }
 
 async function threadBySubject(
@@ -126,6 +140,7 @@ async function threadBySubject(
   const since = new Date(
     now.getTime() - THREAD_WINDOW_DAYS * MILLISECONDS_PER_DAY
   )
+
   const candidates = await getPrisma().mailThread.findMany({
     where: { address, normalizedSubject, updatedAt: { gte: since } },
     orderBy: { updatedAt: "desc" },
@@ -135,6 +150,7 @@ async function threadBySubject(
       messages: { select: { fromEmail: true, toEmails: true } },
     },
   })
+
   const shares = candidates.find((thread) =>
     thread.messages.some(
       (message) =>
@@ -160,11 +176,7 @@ interface StoredObjects {
   attachments: StoredAttachment[]
 }
 
-/**
- * Everything reaches the bucket before a single row is written: a put that
- * fails leaves nothing behind, and the replay that follows lands on the same
- * keys rather than on a row whose body was lost.
- */
+// Objects land before any row: a failed put leaves nothing, and the replay reuses the same keys.
 async function storeObjects(
   rawHash: string,
   raw: ArrayBuffer,
@@ -188,8 +200,13 @@ async function storeObjects(
   }
 
   const attachments: StoredAttachment[] = []
+  // Parts past the cap stay in the raw `.eml`: thousands would outrun the Worker's subrequests.
+  const filed = (parsed?.attachments ?? []).slice(
+    0,
+    MAIL_MAX_INBOUND_ATTACHMENTS
+  )
 
-  for (const [rank, attachment] of (parsed?.attachments ?? []).entries()) {
+  for (const [rank, attachment] of filed.entries()) {
     const key = inboundAttachmentKey(rawHash, rank, attachment.filename)
 
     await storage.put(key, attachment.content, attachment.mimeType)
@@ -224,23 +241,33 @@ interface ThreadTarget {
   subject: string
   normalizedSubject: string
   sender: string
+  senderName: string | null
+  authenticated: boolean
   contactUserId: string | null
   automated: boolean
 }
 
+interface ResolvedThread {
+  id: string
+  created: boolean
+}
+
+// An unauthenticated sender joins a thread only by referenced ids, never by a forgeable subject.
 async function resolveThread(
   target: ThreadTarget,
   parsed: ParsedEmail | null,
   now: Date
-): Promise<{ id: string; created: boolean }> {
+): Promise<ResolvedThread> {
   const existing =
-    (await threadByReferences(parsed)) ??
-    (await threadBySubject(
-      target.address,
-      target.normalizedSubject,
-      target.sender,
-      now
-    ))
+    (await threadByReferences(target.address, parsed)) ??
+    (target.authenticated
+      ? await threadBySubject(
+          target.address,
+          target.normalizedSubject,
+          target.sender,
+          now
+        )
+      : null)
 
   if (existing) {
     return { id: existing, created: false }
@@ -253,6 +280,9 @@ async function resolveThread(
       subject: target.subject,
       normalizedSubject: target.normalizedSubject,
       contactUserId: target.contactUserId,
+      senderEmail: target.sender,
+      senderName: target.senderName,
+      senderAuthenticated: target.authenticated,
       unread: !target.automated,
     },
     select: { id: true },
@@ -262,7 +292,7 @@ async function resolveThread(
 }
 
 interface InboundRow {
-  threadId: string
+  thread: ResolvedThread
   address: string
   sender: string
   rawHash: string
@@ -277,7 +307,7 @@ async function writeInboundMessage(
   try {
     return await getPrisma().mailMessage.create({
       data: {
-        threadId: row.threadId,
+        threadId: row.thread.id,
         direction: "inbound",
         fromEmail: row.sender,
         fromName: parsed?.fromName ?? null,
@@ -290,9 +320,11 @@ async function writeInboundMessage(
         htmlKey: row.stored.htmlKey,
         rawHash: row.rawHash,
         messageId: parsed?.messageId ?? null,
+        address: row.address,
         inReplyTo: parsed?.inReplyTo ?? null,
-        references: parsed?.references ?? null,
+        references: buildReferences(parsed?.references, null),
         automated: parsed?.automated ?? false,
+        authenticated: parsed?.authenticated ?? false,
         delivery: "received",
         receivedAt: row.now,
         attachments: { create: row.stored.attachments },
@@ -300,20 +332,13 @@ async function writeInboundMessage(
       select: { id: true },
     })
   } catch (error) {
-    if (
-      !(
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === UNIQUE_VIOLATION
-      )
-    ) {
-      throw error
+    if (row.thread.created) {
+      await discardEmptyMailThread(row.thread.id)
     }
 
-    const raced = await findDuplicate(
-      row.address,
-      row.rawHash,
-      parsed?.messageId ?? null
-    )
+    const raced = isUniqueViolation(error)
+      ? await findDuplicate(row.address, row.rawHash, parsed?.messageId ?? null)
+      : null
 
     if (!raced) {
       throw error
@@ -323,18 +348,13 @@ async function writeInboundMessage(
   }
 }
 
-/**
- * The raw bytes are the identity of a message: Cloudflare replays a delivery
- * that failed, and a replay must land on the row already written rather than a
- * second copy of the same mail.
- */
+/** Address plus raw bytes identify a delivery, so a Cloudflare replay lands on the row already written. */
 export async function ingestInboundEmail(
   input: InboundEmail
 ): Promise<IngestResult> {
-  const prisma = getPrisma()
   const now = input.now ?? new Date()
   const address = input.envelopeTo.trim().toLowerCase()
-  const rawHash = await sha256(input.raw)
+  const rawHash = await deliveryHash(address, input.raw)
   const parsed = await parseEmail(input.raw)
   const duplicate = await findDuplicate(
     address,
@@ -356,8 +376,12 @@ export async function ingestInboundEmail(
 
   const stored = await storeObjects(rawHash, input.raw, parsed)
   const sender = parsed?.fromEmail ?? input.envelopeFrom.trim().toLowerCase()
-  const subject = parsed?.subject ?? NO_SUBJECT
-  const contactUserId = await contactUserIdFor(parsed?.fromEmail ?? null)
+  const authenticated = parsed?.authenticated ?? false
+  const subject = parsed?.subject ?? ""
+  const contactUserId = authenticated
+    ? await contactUserIdFor(parsed?.fromEmail ?? null)
+    : null
+
   const thread = await resolveThread(
     {
       address,
@@ -365,14 +389,17 @@ export async function ingestInboundEmail(
       subject,
       normalizedSubject: normalizeSubject(subject),
       sender,
+      senderName: parsed?.fromName ?? null,
+      authenticated,
       contactUserId,
       automated: parsed?.automated ?? false,
     },
     parsed,
     now
   )
+
   const message = await writeInboundMessage(
-    { threadId: thread.id, address, sender, rawHash, now, stored },
+    { thread, address, sender, rawHash, now, stored },
     parsed
   )
 
@@ -380,7 +407,7 @@ export async function ingestInboundEmail(
     return message
   }
 
-  await prisma.mailThread.update({
+  await getPrisma().mailThread.update({
     where: { id: thread.id },
     data: {
       lastInboundAt: now,
@@ -388,8 +415,13 @@ export async function ingestInboundEmail(
       status: parsed?.automated ? undefined : "open",
       unread: parsed?.automated ? undefined : true,
       contactUserId: contactUserId ?? undefined,
+      senderEmail: sender,
+      senderName: parsed?.fromName ?? null,
+      senderAuthenticated: authenticated,
+      snippet: snippetOf(parsed?.text),
     },
   })
+
   await recordMailActivity({ threadId: thread.id, action: "received" })
   await publishInboxEvent({
     type: "thread.received",
@@ -405,7 +437,7 @@ export async function ingestInboundEmail(
   }
 }
 
-/** What Email Routing hands the Worker, and all this path reads of it. */
+/** The subset of Email Routing's message that this path reads. */
 export interface InboundEmailMessage {
   from: string
   to: string
@@ -414,11 +446,7 @@ export interface InboundEmailMessage {
   setReject(reason: string): void
 }
 
-/**
- * The envelope announces the size before the bytes are read: a mail over the
- * cap is refused at the door, because buffering it kills the isolate and
- * Cloudflare replays a delivery that died, forever.
- */
+/** Oversized mail is refused before reading: buffering it kills the isolate, and Cloudflare replays that forever. */
 export async function handleInboundEmailMessage(
   message: InboundEmailMessage
 ): Promise<void> {

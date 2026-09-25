@@ -36,10 +36,7 @@ export interface PlatformSearchResults {
   threads: SearchThread[]
 }
 
-/**
- * SQLite's `LIKE` ignores case on ASCII on its own, which is what D1 runs and
- * what the harness runs: the query goes in as typed.
- */
+// SQLite's `LIKE` (D1 and the harness) already ignores ASCII case.
 export async function searchPlatform(
   query: string
 ): Promise<PlatformSearchResults> {

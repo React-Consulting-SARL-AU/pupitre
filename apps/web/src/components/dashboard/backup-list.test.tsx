@@ -12,9 +12,13 @@ import {
   createServer,
 } from "@pupitre/api/testing/factories"
 import type { OrgRole } from "@pupitre/shared/permissions"
-import { BackupList } from "@/components/dashboard/backup-list"
+import {
+  BackupList,
+  type BackupListSearch,
+} from "@/components/dashboard/backup-list"
 import { ToastProvider } from "@/components/ui/toast"
 import { apiJson, useSessionApiClient } from "@/testing/harness"
+import { ListSearchHarness } from "@/testing/list-search"
 import { render, trigger, waitUntil, withDashboard } from "@/testing/render"
 
 const mounted: (() => void)[] = []
@@ -82,7 +86,9 @@ async function mount(
   const view = await render(
     withDashboard(
       <ToastProvider>
-        <BackupList />
+        <ListSearchHarness<BackupListSearch>>
+          {(handle) => <BackupList {...handle} />}
+        </ListSearchHarness>
       </ToastProvider>,
       { organization, role, entitlement: "valid" }
     )

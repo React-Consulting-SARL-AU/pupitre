@@ -6,23 +6,8 @@ import { CONNECTION_KINDS } from "@shared/connections";
 import { refuseWith } from "./refusal";
 import type { ManagedValues } from "./tunnel-run";
 
-/**
- * What an installation takes from the connections, out of the keychain.
- *
- * Which module wants one, and under which field, is read from the manifests the
- * agent declared — never from a list held here. An app that kept its own would
- * refuse what a newer agent accepts, and would go on asking for what an older
- * one still wants typed. The catalogue belongs to the agent.
- *
- * A managed secret is the connection's token. A managed text field is the
- * identifier of the account that token opens — what `wrangler` deploys to when
- * the token spans several. Nothing changes on the wire for having moved a
- * token out of a form: it still reaches the machine on the install's own
- * secret line, written by the main process, and still lands in
- * `/etc/pupitre/env` under root alone.
- */
+// Managed fields come from the agent's manifests, never a local list that would drift from newer agents.
 
-/** What the keychain holds for a connection: the token, and the account it opened when the provider could be asked. */
 export interface HeldConnection {
   token: string;
   account: ConnectionAccount | null;
@@ -44,7 +29,7 @@ export function accountValues(
   modules: readonly string[],
   manifests: readonly Manifest[],
   held: (kind: ConnectionKind) => HeldConnection | null,
-  /** Modules whose managed values are derived elsewhere, the tunnel's above all. */
+  /** Modules whose managed values are derived elsewhere, such as the tunnel's. */
   derived: readonly string[] = [],
   /** A restored machine already holds what an absent connection would have given. */
   lenient = false
@@ -71,8 +56,7 @@ export function accountValues(
       continue;
     }
 
-    // Refusing here leaves the machine untouched; letting the install start
-    // would leave half of one, stopped on a module that had no way to work.
+    // Refusing now leaves the machine untouched instead of half-installed on a module that cannot work.
     if (!connection) {
       return refuseWith("bad_request", "refusal.connection.absent", { kind });
     }

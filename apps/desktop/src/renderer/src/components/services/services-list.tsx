@@ -5,11 +5,6 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { CATEGORY_NAMES, groupByCategory } from "@renderer/lib/module-category";
 import { ServiceRow } from "./service-row";
 
-/**
- * The installed modules, under the same captions as the catalogue they were
- * picked from: a runtime is found among the runtimes, a database among the
- * databases, in the order the snapshot listed them.
- */
 export function ServicesList({
   services,
   accounts,

@@ -4,12 +4,8 @@ import path from "node:path"
 import { YAML } from "bun"
 import {
   DARK,
-  type Elevation,
   LIGHT,
-  MOTION,
   RADIUS,
-  SHADOW_DARK,
-  SHADOW_LIGHT,
   SPACE,
   type ThemeColors,
   TYPOGRAPHY,
@@ -56,7 +52,7 @@ function cssBlock(css: string, selector: string): string {
   return css.slice(start, css.indexOf("}", start))
 }
 
-/** The CSS formatter is free to respace, requote and pad decimals; only the value matters. */
+// The CSS formatter is free to respace, requote and pad decimals.
 function normalize(value: string): string {
   return value
     .replaceAll("'", "")
@@ -197,10 +193,6 @@ describe("tokens.ts", () => {
     expect(RADIUS).toEqual(frontmatter.radius as unknown as typeof RADIUS)
   })
 
-  it("mirrors the motion durations of DESIGN.md", () => {
-    expect(MOTION).toEqual(frontmatter.motion as unknown as typeof MOTION)
-  })
-
   it("mirrors the space scale of DESIGN.md", () => {
     const expected: Record<string, string> = {
       gutter: frontmatter.space.gutter,
@@ -212,21 +204,5 @@ describe("tokens.ts", () => {
     }
 
     expect(SPACE).toEqual(expected as unknown as typeof SPACE)
-  })
-
-  it("mirrors the light elevation of DESIGN.md", () => {
-    expect(SHADOW_LIGHT).toEqual({
-      flat: frontmatter.elevation.flat,
-      raised: frontmatter.elevation.raised,
-      overlay: frontmatter.elevation.overlay,
-    } as Elevation)
-  })
-
-  it("mirrors the dark elevation of DESIGN.md", () => {
-    expect(SHADOW_DARK).toEqual({
-      flat: frontmatter.elevation.flat,
-      raised: frontmatter.elevation["raised-dark"],
-      overlay: frontmatter.elevation["overlay-dark"],
-    } as Elevation)
   })
 })

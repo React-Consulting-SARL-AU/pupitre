@@ -8,11 +8,6 @@ import { roleLabel } from "@renderer/lib/roles";
 import type { AccountState } from "@shared/account";
 import { LogOut, RotateCw } from "lucide-react";
 
-/**
- * Who this app is signed in as, and in which organization. The device this
- * computer is stands in the devices list below, marked as this one, so it is
- * not said twice.
- */
 export function AccountIdentityCard({
   account,
   onRefresh,
@@ -20,7 +15,7 @@ export function AccountIdentityCard({
 }: {
   account: AccountState;
   onRefresh: () => void;
-  /** Answer with the promise of the sign-out and the button waits on it. */
+  /** Return the sign-out's promise so the button stays pending on it. */
   onDisconnect: () => unknown;
 }) {
   const t = useTranslations();
@@ -72,7 +67,7 @@ export function AccountIdentityCard({
         </FactList>
 
         {account.sealed ? null : (
-          <p className="border-line border-t pt-3 text-[12px] text-warn leading-relaxed">
+          <p className="border-line border-t pt-3 text-small text-warn leading-relaxed">
             {t("account.identity.unsealed")}
           </p>
         )}

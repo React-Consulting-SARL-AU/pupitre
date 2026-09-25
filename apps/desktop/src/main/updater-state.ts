@@ -1,12 +1,4 @@
-import type { AppUpdateState } from "@shared/app-update";
-
-/**
- * The updater's state, as one value the window can read.
- *
- * electron-updater speaks in events; the About screen wants a status. This is
- * the fold from one to the other, without Electron, so it is tested by hand:
- * each event answers the next state from the one before.
- */
+import type { AppUpdateFailure, AppUpdateState } from "@shared/app-update";
 
 export type UpdaterEvent =
   | { kind: "checking" }
@@ -14,13 +6,30 @@ export type UpdaterEvent =
   | { kind: "not-available" }
   | { kind: "progress"; percent: number }
   | { kind: "downloaded"; version: string }
+  | { kind: "verified"; version: string }
   | { kind: "refused"; version: string }
-  | { kind: "error"; message: string };
+  | { kind: "changed" }
+  | { kind: "error" };
+
+function failed(
+  state: AppUpdateState,
+  failure: AppUpdateFailure,
+  version: string | undefined
+): AppUpdateState {
+  return {
+    ...(state.checkedAt ? { checkedAt: state.checkedAt } : {}),
+    failure,
+    status: "error",
+    updates: state.updates,
+    ...(version ? { version } : {}),
+  };
+}
 
 export function initialUpdateState(updates: boolean): AppUpdateState {
   return { status: "idle", updates };
 }
 
+/** A download stays `verifying` until the release key vouches for it: only `verified` reaches `ready`. */
 export function nextUpdateState(
   state: AppUpdateState,
   event: UpdaterEvent,
@@ -52,22 +61,21 @@ export function nextUpdateState(
       return {
         ...base,
         ...(state.checkedAt ? { checkedAt: state.checkedAt } : {}),
+        status: "verifying",
+        version: event.version,
+      };
+    case "verified":
+      return {
+        ...base,
+        ...(state.checkedAt ? { checkedAt: state.checkedAt } : {}),
         status: "ready",
         version: event.version,
       };
     case "refused":
-      return {
-        ...base,
-        error: `signature refused for ${event.version}`,
-        status: "error",
-        version: event.version,
-      };
+      return failed(state, "refused", event.version);
+    case "changed":
+      return failed(state, "changed", state.version);
     default:
-      return {
-        ...base,
-        ...(state.checkedAt ? { checkedAt: state.checkedAt } : {}),
-        error: event.message,
-        status: "error",
-      };
+      return failed(state, "failed", undefined);
   }
 }

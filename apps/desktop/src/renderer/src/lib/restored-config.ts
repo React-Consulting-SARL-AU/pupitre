@@ -5,17 +5,9 @@ import type {
 import type { AgentResponse } from "@shared/agent";
 import { agentCall } from "./agent-call";
 
-/**
- * What a restored machine holds for each module, read back from it.
- *
- * `backup.restore.setup` put the backup's configuration in place; the install
- * that follows names the same values again, and leaves out every secret the
- * machine already holds — a secret absent from the line is kept, which is what
- * makes a restore ask nothing twice.
- */
 export interface RestoredConfig {
   values: ModuleConfig;
-  /** The secrets each module already holds on the machine, by field. */
+  /** Secrets the machine already holds; the install leaves them out, and the agent keeps them. */
   held: Record<string, readonly string[]>;
 }
 

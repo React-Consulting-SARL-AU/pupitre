@@ -1,6 +1,6 @@
 ---
 import { CATALOG } from "../content/site/catalog"
-import { MODULE_LABELS } from "../content/site/docs"
+import { MODULE_LABELS, servicesOverviewLead } from "../content/site/docs"
 import Docs from "../layouts/Docs.astro"
 import { docPath, moduleSlug, SERVICES_SLUG } from "../lib/docs"
 import { docsSections } from "../lib/docs-entries"
@@ -12,7 +12,7 @@ const sections = await docsSections(locale)
 
 <Docs
   title={MODULE_LABELS.overviewTitle[locale]}
-  description={MODULE_LABELS.overviewLead[locale]}
+  description={servicesOverviewLead(locale)}
   section={MODULE_LABELS.overviewTitle[locale]}
   slug={SERVICES_SLUG}
   sections={sections}
@@ -31,7 +31,7 @@ const sections = await docsSections(locale)
                 <span class="flex items-baseline gap-3">
                   <span class="heading-4 text-ink">{entry.name[locale]}</span>
                 </span>
-                <span class="data mt-1.5 block text-ink-4">{entry.id}</span>
+                <span class="data mt-1.5 block text-ink-3">{entry.id}</span>
                 <span class="mt-2 block text-ink-2">{entry.detail[locale]}</span>
               </a>
             </li>

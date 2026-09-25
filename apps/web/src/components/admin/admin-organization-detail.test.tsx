@@ -402,6 +402,33 @@ describe("AdminOrganizationDetail", () => {
     )
   })
 
+  it("takes the right to act from the platform, not from the role it shows", async () => {
+    const { organization } = await createOrganizationWithMembers({
+      name: "Atelier",
+      roles: ["owner"],
+    })
+
+    const { container, unmount } = await render(
+      withDashboard(<Page id={organization.id} start="danger" />, {
+        platformRole: "owner",
+        platformCanAct: false,
+      })
+    )
+
+    mounted.push(unmount)
+
+    await waitUntil(
+      () => container.textContent?.includes("Suspend the organisation") === true
+    )
+
+    const suspend = trigger(
+      container,
+      "Suspend the organisation"
+    ) as HTMLButtonElement
+
+    expect(suspend.disabled).toBe(true)
+  })
+
   it("grants a subscription outside Stripe and keeps the grant shut afterwards", async () => {
     const { prisma } = await bootApiTestServer()
     const { organization } = await createOrganizationWithMembers({

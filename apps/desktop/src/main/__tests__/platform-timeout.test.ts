@@ -1,13 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { createPlatformClient } from "../platform-client";
 
-/**
- * A silent platform does not hold the app.
- *
- * It accepts the connection and never answers: the case nobody sees — no
- * refusal, no cut, the screen sits on its step. A call has to come back
- * refused, and say so.
- */
 function neverAnswers(): { fetch: typeof fetch; calls: () => number } {
   let calls = 0;
 
@@ -51,7 +44,6 @@ describe("un appel à la plateforme", () => {
     expect(silent.calls()).toBe(1);
   });
 
-  /** The binary weighs eighteen megabytes: it isn't judged by a call's timeout. */
   it("laisse au binaire le temps d'un téléchargement, pas celui d'un appel", async () => {
     let storageDeadline = 0;
 
@@ -91,11 +83,6 @@ describe("un appel à la plateforme", () => {
     expect(storageDeadline).toBeGreaterThan(200);
   });
 
-  /**
-   * The storage answers with S3's XML, never with the console's envelope: a
-   * refusal there is the storage's, and it is named — not laid on the console
-   * with an invitation to sign in again.
-   */
   it("nomme le stockage qui refuse le binaire, avec sa raison", async () => {
     const refusing = ((input: unknown) => {
       if (String(input).includes("/releases/agent/")) {

@@ -50,7 +50,12 @@ export const homeFr: HomeContent = {
       {
         title: "Démarrez votre essai",
         detail:
-          "{days} jours, et aucune carte bancaire demandée. L’essai ouvre tout le catalogue et tout ce que l’app sait faire.",
+          "{days} jours sur une machine, et aucune carte bancaire demandée. L’essai ouvre tout le catalogue et tout ce que l’app sait faire.",
+        duringLaunch: {
+          title: "Commencez gratuitement",
+          detail:
+            "Gratuit pendant le lancement, jusqu’au {date}, sur une machine par organisation, sans carte bancaire. Une machine enrôlée pendant le lancement reste gratuite pour de bon.",
+        },
       },
       {
         title: "Téléchargez l’app",
@@ -91,7 +96,7 @@ export const homeFr: HomeContent = {
         title: "Vos comptes restent les vôtres",
         lines: [
           "Claude Code et Codex s’installent sur le serveur et se connectent à vos propres abonnements.",
-          "Rien ne passe par nous : votre code et vos conversations restent entre vous et votre serveur.",
+          "Votre code et vos conversations vont de votre serveur au fournisseur de modèle que vous avez choisi, sur votre compte, jamais par Pupitre.",
         ],
       },
     ],
@@ -135,9 +140,9 @@ export const homeFr: HomeContent = {
     title: "Quatre choses que vous pouvez vérifier",
     items: [
       {
-        statement: "Personne ne peut entrer chez vous.",
+        statement: "Nous ne nous connectons jamais à votre serveur.",
         proof:
-          "Votre serveur n’accepte aucune connexion venant de nous. C’est votre ordinateur qui va lui parler, jamais l’inverse — pas même notre support, qui ne peut pas s’y connecter.",
+          "C’est votre ordinateur qui va lui parler, jamais l’inverse : ni la plateforme ni notre support n’ouvrent jamais de connexion vers lui. Son pare-feu laisse entrer votre propre connexion, et les ports web 80 et 443 seulement une fois Caddy installé pour publier vos projets.",
       },
       {
         statement: "Vos clés ne quittent pas votre ordinateur.",
@@ -178,7 +183,7 @@ export const homeFr: HomeContent = {
       {
         question: "Est-ce que mon code reste privé ?",
         answer:
-          "Votre code, vos données et vos conversations avec les agents vivent sur votre serveur et n’en sortent pas. Nous ne les voyons pas, nous n’en gardons aucune copie et rien ne transite par nos serveurs. Nous savons seulement qu’un serveur est rattaché à votre compte et quelle version il fait tourner, pour vous prévenir quand une mise à jour l’attend.",
+          "Votre code, vos données et vos conversations avec les agents vivent sur votre serveur. Quand un agent travaille, ce qu’il lit part de votre serveur vers le fournisseur de modèle que vous avez choisi — Anthropic pour Claude, OpenAI pour Codex —, sur votre propre compte, jamais par Pupitre, et nous n’en gardons aucune copie. La plateforme connaît le nom et l’adresse de votre serveur, son architecture, la version de l’agent, les services et les sessions de terminal qu’il fait tourner, ses relevés de santé et l’état de ses sauvegardes — jamais le contenu de vos fichiers, de vos bases ni de vos conversations. C’est ce qui lui permet de vous prévenir quand une mise à jour attend ou qu’une sauvegarde a échoué.",
       },
       {
         question: "Est-ce que le serveur ne sert qu’à Pupitre ?",
@@ -203,14 +208,16 @@ export const homeFr: HomeContent = {
     perServer: "{price} HT par serveur et par mois, en {solo} comme en {team}.",
     annual:
       "À l’année, {months} mois sont offerts : {yearly} par serveur et par an.",
-    trial: "{days} jours d’essai, sans carte bancaire.",
+    trial: "{days} jours d’essai sur une machine, sans carte bancaire.",
+    launch:
+      "Gratuit pendant le lancement, jusqu’au {date}, sur une machine par organisation. Une machine enrôlée pendant le lancement reste gratuite pour de bon. Ces prix s’appliqueront à l’ouverture de la facturation.",
     hosted:
       "{hosted}, un serveur fourni par Pupitre, à partir de {price} par mois. Plus tard.",
     link: "Voir les tarifs",
   },
   cta: {
     title: "Donnez une machine à vos agents.",
-    lead: "Créez votre compte, démarrez l’essai, puis téléchargez l’app et indiquez-lui le serveur que vous venez de louer. Sur votre ordinateur, rien d’autre ne s’installe que l’app elle-même.",
+    lead: "Créez votre compte, puis téléchargez l’app et indiquez-lui le serveur que vous venez de louer. Sur votre ordinateur, rien d’autre ne s’installe que l’app elle-même.",
     signUp: "Créer un compte",
     docs: "Lire la doc",
   },

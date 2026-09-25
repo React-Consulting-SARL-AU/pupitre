@@ -7,14 +7,6 @@ import { roleLabel } from "@renderer/lib/roles";
 import { useAccount } from "@renderer/stores/account";
 import type { AccountIdentity } from "@shared/account";
 
-/**
- * The organizations this account belongs to, and which one is active.
- *
- * It appears only where there is something to choose between: a single
- * organization is already named by the account panel, and a selector of one is
- * noise. The switch moves this computer's session and nothing else — the
- * console open next to it keeps the organization it was on.
- */
 export function FleetOrganizations({
   identity,
 }: {
@@ -39,12 +31,12 @@ export function FleetOrganizations({
               <span className="min-w-0 flex-1 truncate text-ink-2">
                 {organization.name}
               </span>
-              <span className="text-[12px] text-ink-3">
+              <span className="text-ink-3 text-small">
                 {roleLabel(t, organization.role)}
               </span>
 
               {active ? (
-                <span className="text-[12px] text-ink-3">
+                <span className="text-ink-3 text-small">
                   {t("fleet.organizations.active")}
                 </span>
               ) : (

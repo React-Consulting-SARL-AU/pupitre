@@ -68,6 +68,7 @@ func TestErrorCodesAreStable(t *testing.T) {
 	}
 
 	present := map[string]bool{}
+
 	for _, code := range errorCode.Enum {
 		present[code] = true
 	}

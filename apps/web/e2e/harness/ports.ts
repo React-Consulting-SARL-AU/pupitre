@@ -4,7 +4,7 @@ function portOf(variable: string, fallback: number): number {
   return Number.isInteger(value) && value > 0 ? value : fallback
 }
 
-/** Another project's dev server may hold 3000 on the owner's machine: the pair moves together. */
+// Another dev server may hold 3000: the harness and Vite move together.
 export const HARNESS_PORT = portOf("PUPITRE_E2E_PORT", 3000)
 export const VITE_PORT = HARNESS_PORT + 100
 export const HARNESS_PREFIX = "/__e2e"

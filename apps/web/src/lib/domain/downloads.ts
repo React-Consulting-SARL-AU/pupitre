@@ -47,10 +47,8 @@ const MOBILE_RE = /android|iphone|ipad|ipod/i
 export type DetectedArch = "arm64" | "x64"
 
 export interface MachineHints {
-  /** What Chromium states through `navigator.userAgentData`. */
   architecture?: string
   bitness?: string
-  /** What WebGL names as the graphics card. */
   renderer?: string
 }
 
@@ -61,12 +59,7 @@ export interface Machine {
 
 const APPLE_CHIP_RE = /\bapple m\d/i
 
-/**
- * A browser does not say which processor it runs on, or barely: Chromium
- * states it when asked, and a graphics card named after an Apple chip is one.
- * "Apple GPU" alone is what Safari says on every Mac, so it decides nothing;
- * an undecided machine is offered every build of its system.
- */
+// Safari says "Apple GPU" on every Mac, so only a named Apple chip decides; undecided gets every build.
 export function detectArch(hints: MachineHints): DetectedArch | null {
   if (hints.architecture === "arm" && hints.bitness === "64") {
     return "arm64"
@@ -109,7 +102,7 @@ export interface PublishedBuild {
   url: string
 }
 
-/** A system's usual format needs no name; Linux's second one does. */
+// A system's usual format needs no label; Linux's second one does.
 const FORMAT_LABELS: Record<string, DictionaryKey> = {
   deb: "download.format.deb",
 }
@@ -126,12 +119,7 @@ export interface DownloadOffer extends DesktopTarget {
   arch: string | null
 }
 
-/**
- * One row per downloadable file, not one per OS: an Intel Mac and an Apple
- * Silicon Mac don't install the same `.dmg`, and letting the reader pick the
- * right machine means showing both. An OS with nothing published keeps its
- * row, without a link.
- */
+// One row per file, not per OS: Intel and Apple Silicon Macs need different `.dmg`s.
 export function downloadOffers(
   release: PublishedAppRelease | null
 ): DownloadOffer[] {

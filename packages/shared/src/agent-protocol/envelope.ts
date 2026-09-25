@@ -30,7 +30,7 @@ export const LogEventSchema = z.object({
 
 export type LogEvent = z.infer<typeof LogEventSchema>
 
-export const STEP_STATUSES = ["start", "ok", "skip", "fail"] as const
+const STEP_STATUSES = ["start", "ok", "skip", "fail"] as const
 
 export const StepStatusSchema = z.enum(STEP_STATUSES)
 
@@ -44,27 +44,23 @@ export const StepEventSchema = z.object({
   status: StepStatusSchema,
   ms: z.int().nonnegative(),
   replay: z.string().optional(),
-  /** What the agent has to say about the step: why a `fail` failed (raw, redacted), or the warning an `ok` carries. */
+  // Why a `fail` failed (raw, redacted), or the warning an `ok` carries.
   message: z.string().optional(),
 })
 
 export type StepEvent = z.infer<typeof StepEventSchema>
 
-export const SuccessResponseSchema = z.object({
+const SuccessResponseSchema = z.object({
   id: RequestIdSchema,
   ok: z.literal(true),
   result: z.unknown(),
 })
 
-export type SuccessResponse = z.infer<typeof SuccessResponseSchema>
-
-export const FailureResponseSchema = z.object({
+const FailureResponseSchema = z.object({
   id: RequestIdSchema,
   ok: z.literal(false),
   error: ProtocolErrorSchema,
 })
-
-export type FailureResponse = z.infer<typeof FailureResponseSchema>
 
 export const ResponseSchema = z.discriminatedUnion("ok", [
   SuccessResponseSchema,

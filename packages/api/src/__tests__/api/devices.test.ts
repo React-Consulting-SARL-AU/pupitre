@@ -203,6 +203,65 @@ describe("devices", () => {
     })
   })
 
+  describe("POST /me/devices after a sign-in grown old", () => {
+    const ELEVEN_MINUTES_MS = 11 * 60_000
+
+    async function agedSession(ageMs: number) {
+      const { prisma, sentEmails } = await bootApiTestServer()
+      const created = await createSession({ userId })
+
+      await prisma.session.update({
+        where: { id: created.session.id },
+        data: { createdAt: new Date(Date.now() - ageMs) },
+      })
+
+      return { session: created, sentEmails }
+    }
+
+    it("asks for a fresh sign-in and adds nothing", async () => {
+      const { session: aged, sentEmails } = await agedSession(ELEVEN_MINUTES_MS)
+      const before = sentEmails.length
+      const response = await apiRequest<ErrorBody>("/me/devices", {
+        body: { name: "MacBook", public_key: ED25519_KEY },
+        session: aged,
+        locale: "fr",
+      })
+
+      expect(response.status).toBe(403)
+      expect(ApiErrorBodySchema.safeParse(response.json).success).toBe(true)
+      expect(response.json.error.code).toBe("reauthentication_required")
+      expect(response.json.error.message).toContain("10 minutes")
+      expect(response.json.error.fix).toContain("Reconnectez-vous")
+      expect((await listDevices(aged)).json.data).toEqual([])
+      expect(sentEmails.length).toBe(before)
+    })
+
+    it("says so in English", async () => {
+      const { session: aged } = await agedSession(ELEVEN_MINUTES_MS)
+      const response = await apiRequest<ErrorBody>("/me/devices", {
+        body: { name: "MacBook", public_key: ED25519_KEY },
+        session: aged,
+        locale: "en",
+      })
+
+      expect(response.status).toBe(403)
+      expect(response.json.error.fix).toContain("Sign in again")
+    })
+
+    it("adds the device within the window and warns the owner by email, in French by default", async () => {
+      const { session: recent, sentEmails } = await agedSession(5 * 60_000)
+      const response = await addDevice(recent, "MacBook", ED25519_KEY)
+
+      expect(response.status).toBe(201)
+
+      const email = sentEmails.at(-1)
+
+      expect(email?.to).toBe("jordan@test.local")
+      expect(email?.subject).toBe("Un appareil a été ajouté à votre compte")
+      expect(email?.html).toContain("MacBook")
+    })
+  })
+
   describe("DELETE /me/devices/:id", () => {
     it("refuses without a session", async () => {
       const response = await apiRequest("/me/devices/whatever", {

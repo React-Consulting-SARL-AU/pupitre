@@ -6,16 +6,6 @@ import {
   TokenError,
 } from "../account-tokens";
 
-/**
- * What a token opens, asked of the provider from the laptop.
- *
- * The point of asking is that a bad token is caught at the fifth second rather
- * than at the eighth step, on a machine the client has stopped watching. What
- * is watched here: the account comes back named, a refusal carries the
- * provider's own words and never the token, and the one provider that answers
- * nothing says so instead of guessing.
- */
-
 function answering(
   body: unknown,
   status = 200
@@ -143,7 +133,7 @@ describe("un jeton déjà tenu, pesé de nouveau", () => {
   it("pèse le jeton sur le compte connecté, pas sur le premier listé", async () => {
     const { fetcher } = answering({
       result: [
-        { id: "acc-1", name: "Flymate" },
+        { id: "acc-1", name: "Flyleaf" },
         { id: "acc-2", name: "Atelier" },
       ],
       success: true,
@@ -164,7 +154,7 @@ describe("un jeton déjà tenu, pesé de nouveau", () => {
 
   it("refuse un jeton qui n'ouvre plus le compte connecté", async () => {
     const { fetcher } = answering({
-      result: [{ id: "acc-1", name: "Flymate" }],
+      result: [{ id: "acc-1", name: "Flyleaf" }],
       success: true,
     });
 
@@ -207,7 +197,7 @@ describe("un jeton déjà tenu, pesé de nouveau", () => {
   it("rend tous les comptes Cloudflare qu'un jeton ouvre, un compte sans nom par son identifiant", async () => {
     const { fetcher } = answering({
       result: [
-        { id: "acc-1", name: "Flymate" },
+        { id: "acc-1", name: "Flyleaf" },
         { id: "acc-2", name: "" },
         { id: "acc-3", name: "Atelier" },
       ],
@@ -215,15 +205,15 @@ describe("un jeton déjà tenu, pesé de nouveau", () => {
     });
 
     expect(await accountsOfToken("wrangler", "cf_multi", fetcher)).toEqual([
-      { id: "acc-1", name: "Flymate" },
+      { id: "acc-1", name: "Flyleaf" },
       { id: "acc-2", name: "acc-2" },
       { id: "acc-3", name: "Atelier" },
     ]);
   });
 
-  /** The first account the provider lists is nobody's choice: several and no name is a question, not an answer. */
+  // The first account listed is nobody's choice: several and no name is a question, not an answer.
   it("n'agit que sur le compte nommé, ou sur le seul qu'il y a", () => {
-    const one = [{ id: "acc-1", name: "Flymate" }];
+    const one = [{ id: "acc-1", name: "Flyleaf" }];
     const two = [...one, { id: "acc-2", name: "Atelier" }];
 
     expect(chosenAccount(one, null)).toEqual(one[0]);
@@ -232,7 +222,7 @@ describe("un jeton déjà tenu, pesé de nouveau", () => {
     expect(chosenAccount(two, "acc-9")).toBeNull();
   });
 
-  /** Cloudflare accepts a token that may not read account settings, and lists nothing: the refusal names the permission, not the symptom. */
+  // Cloudflare accepts a token that may not read account settings, and then lists no account at all.
   it("nomme la permission qui manque à un jeton Cloudflare sans compte", async () => {
     const { fetcher } = answering({ result: [], success: true });
 

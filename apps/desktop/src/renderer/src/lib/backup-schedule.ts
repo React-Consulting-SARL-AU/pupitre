@@ -1,8 +1,3 @@
-/**
- * The schedule of `core.backup` in the reader's words: an interval picked
- * among the usual ones, and what a retention count amounts to in time.
- */
-
 export const BACKUP_INTERVAL_CHOICES = [
   "1",
   "6",
@@ -19,7 +14,6 @@ const HOURS_PER_DAY = 24;
 
 const DAYS_PER_WEEK = 7;
 
-/** From this span on, history is counted in weeks rather than days. */
 const WEEKS_FROM_DAYS = 28;
 
 export function choiceOf(interval: number): IntervalChoice {
@@ -28,7 +22,7 @@ export function choiceOf(interval: number): IntervalChoice {
   return BACKUP_INTERVAL_CHOICES.includes(named) ? named : "custom";
 }
 
-/** A backup a day or more apart starts at the configured hour; a shorter one runs from the last. */
+/** Shorter intervals run from the previous backup, not at the configured hour. */
 export function startsAtHour(interval: number): boolean {
   return interval >= HOURS_PER_DAY;
 }
@@ -38,7 +32,6 @@ export interface Span {
   count: number;
 }
 
-/** How far back the backups kept reach, rounded to what a reader would say. */
 export function historyOf(interval: number, keep: number): Span {
   const hours = interval * keep;
 
@@ -53,7 +46,6 @@ export function historyOf(interval: number, keep: number): Span {
     : { count: Math.round(days / DAYS_PER_WEEK), unit: "weeks" };
 }
 
-/** A number a form holds, as the agent sent it or as it was typed. */
 export function numberOf(value: unknown, fallback: number): number {
   const read = typeof value === "string" ? Number(value) : value;
 

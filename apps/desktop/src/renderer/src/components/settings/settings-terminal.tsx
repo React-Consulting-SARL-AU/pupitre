@@ -6,6 +6,7 @@ import { Section } from "@renderer/components/ui/section";
 import { Select } from "@renderer/components/ui/select";
 import { SwitchLine } from "@renderer/components/ui/switch";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import { count } from "@renderer/lib/format";
 import {
   DEFAULT_TERMINAL_SETTINGS,
   FONT_SIZE_MAX,
@@ -20,14 +21,7 @@ import { RotateCcw } from "lucide-react";
 
 const SCROLLBACK_STEP = 1000;
 
-/**
- * The look of every terminal, chosen once.
- *
- * Each choice lands on the open sessions the moment it is made — xterm draws
- * on a canvas and is handed the value by hand — so nothing here asks to be
- * saved or applied. The face is a list, never a field: a name xterm cannot
- * measure breaks the grid of every cell.
- */
+// The font is a closed list: a family xterm cannot measure breaks the cell grid.
 export function SettingsTerminal() {
   const t = useTranslations();
 
@@ -107,8 +101,8 @@ export function SettingsTerminal() {
 
           <Field
             help={t("settings.terminal.scrollback.help", {
-              max: SCROLLBACK_MAX,
-              min: SCROLLBACK_MIN,
+              max: count(SCROLLBACK_MAX),
+              min: count(SCROLLBACK_MIN),
             })}
             label={t("settings.terminal.scrollback.label")}
             name="settings.terminal.scrollback"

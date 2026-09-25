@@ -20,15 +20,6 @@ import { ServicesAddFlow } from "./services-add-flow";
 import { ServicesList } from "./services-list";
 import { ServicesTunnel } from "./services-tunnel";
 
-/**
- * The services of a server, once the onboarding is behind.
- *
- * The list is the snapshot's: a module the agent did not install is not a row
- * here. A service's own page is a place in the app's history, so "back" from
- * it lands on the list; adding one goes back through the catalogue, the
- * configuration and the report of the onboarding, unchanged.
- */
-
 export function ServicesScreen({
   serverId,
   serverName,
@@ -36,19 +27,19 @@ export function ServicesScreen({
   service,
   onOpenService,
   onCloseService,
+  startAdding = false,
 }: {
   serverId: string;
   serverName?: string;
   services: readonly Service[];
-  onMachineName?: (name: string) => void;
-  /** The service whose page is open, or the list when none. */
   service: string | null;
   onOpenService: (moduleId: string) => void;
   onCloseService: () => void;
+  startAdding?: boolean;
 }) {
   const t = useTranslations();
 
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState(startAdding);
 
   const catalog = useCatalog((state) => state.catalog);
   const modules = useCatalog((state) => state.modules);
@@ -61,16 +52,13 @@ export function ServicesScreen({
   const installed = services.map((service) => service.id);
   const key = installed.join(" ");
 
-  // Asked again each time the list comes back on screen: a fiche is where the
-  // reader signs in, and the row has to say so on the way back.
+  // Re-read whenever the list shows again: signing in happens on a service's page.
   const accounts = useServiceAccounts(
     serverId,
     services,
     service === null && !adding
   );
 
-  // The add flow loads the catalogue itself, and a catalogue already read for
-  // this machine and these modules is the same answer twice.
   useEffect(() => {
     const state = useCatalog.getState();
     const read =
@@ -85,8 +73,7 @@ export function ServicesScreen({
     loadCatalog(serverId, key.length > 0 ? key.split(" ") : []);
   }, [serverId, key, loadCatalog, adding]);
 
-  // The page is left by its own button, the arrows or the sidebar alike, and
-  // the values it held go with it whichever way.
+  // Closed on unmount so every way out (button, arrows, sidebar) drops the values.
   useEffect(() => {
     if (!service) {
       return;
@@ -155,11 +142,7 @@ export function ServicesScreen({
       eyebrow={serverName ?? t("services.screen.fallbackName")}
       title={t("services.screen.title")}
     >
-      {/*
-          A server held for its usage right refuses the catalogue, the tunnel
-          and every service with the same sentence; the notice at the top of
-          the window already says it, and where to answer it.
-        */}
+      {/* A usage hold is already announced at the top of the window. */}
       {catalog.status === "failed" && !heldForUsage(catalog.error) ? (
         <ErrorNotice
           error={catalog.error}

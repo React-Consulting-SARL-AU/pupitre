@@ -60,7 +60,6 @@ func TestUnenrolledCommandsMatchTheContract(t *testing.T) {
 	}
 }
 
-// A restricted server repairs itself by enrolling again: a lost token, a revoked one, or an entitlement to restore.
 func TestRestrictedModeLetsAServerEnrolAgain(t *testing.T) {
 	if !AllowedInRestrictedMode("enroll") {
 		t.Error("a restricted server can no longer re-enrol")
@@ -72,7 +71,6 @@ func TestRestrictedModeLetsAServerEnrolAgain(t *testing.T) {
 	}
 }
 
-// An unenrolled binary opens nothing a restricted server does not also open.
 func TestUnenrolledCommandsAreOpenInRestrictedMode(t *testing.T) {
 	for _, cmd := range UnenrolledCommands {
 		if !AllowedInRestrictedMode(cmd) {

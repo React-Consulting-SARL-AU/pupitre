@@ -38,7 +38,6 @@ import { StatePill } from "../ui/state-pill";
 
 const SERVER = "srv-1";
 
-/** What a server that has been through the onboarding already runs. */
 const INSTALLED = ["core.system", "core.hardening", "runtime.node", "db.mysql"];
 
 const WITH_MONGO = {
@@ -57,7 +56,7 @@ function text(html: string): string {
     .replace(/\s+/g, " ");
 }
 
-/** The opening tag that carries this attribute, whatever order it renders in. */
+// Attribute order in the rendered tag is not stable, so the whole opening tag is matched.
 function tag(html: string, attribute: string, value: string): string {
   const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const match = html.match(
@@ -152,7 +151,7 @@ describe("la liste des services", () => {
     ].map((match) => match[1]);
 
     expect(categories).toEqual(["core", "runtime", "database", "ai"]);
-    expect(text(html)).toMatch(/Socle.*Runtimes.*Bases de données.*Agents IA/);
+    expect(text(html)).toMatch(/Base.*Runtimes.*Bases de données.*Agents IA/);
   });
 
   it("garde dans une catégorie l'ordre du snapshot", () => {
@@ -209,7 +208,7 @@ describe("les identifiants d'un service", () => {
     expect(text(plain)).not.toContain("Demander l'URL de connexion");
   });
 
-  /** A runtime has nothing to open it; a section saying so was noise on every such page. */
+  // A runtime has nothing to open it, and a section saying so was noise on every such page.
   it("n'existe pas pour un module sans identifiant", () => {
     const none = renderToStaticMarkup(
       <ServiceCredentials
@@ -267,7 +266,6 @@ describe("le compte d'un service", () => {
     expect(text(html)).toContain("Reconnectez le compte.");
   });
 
-  /** The state the section says stands where the card's own sentence was: one state, the gestures beside it. */
   it("met les gestes du compte sur la ligne de l'état, sans redire qu'il est connecté", () => {
     const html = renderToStaticMarkup(
       <ConnectionConnected
@@ -293,7 +291,7 @@ describe("le compte d'un service", () => {
     expect(text(html)).not.toContain("Connecté en tant que");
   });
 
-  /** A tunnel has no CLI to ask; the account it was made from is still an account. */
+  // A tunnel has no CLI to ask, but the account it was made from still counts.
   it("existe pour un module qui n'a qu'une connexion, et demande le jeton qui manque", () => {
     stubPupitre({});
 
@@ -353,7 +351,6 @@ describe("la confirmation d'un retrait", () => {
     view.unmount();
   });
 
-  /** The gesture stands in the header; the question floats over the page it was asked from. */
   it("pose la question dans une boîte de dialogue, et rien tant qu'elle n'est pas ouverte", async () => {
     const view = await asked();
     const html = view.html();
@@ -391,8 +388,8 @@ describe("les routes du module d'exposition", () => {
     installed: true,
     routes: [
       {
-        hostname: "flymate.example.org",
-        project: "flymate-api",
+        hostname: "flyleaf.example.org",
+        project: "flyleaf-api",
         service: "http://127.0.0.1:3000",
       },
     ],
@@ -409,7 +406,7 @@ describe("les routes du module d'exposition", () => {
       />
     );
 
-    expect(html).toContain('data-route="flymate.example.org"');
+    expect(html).toContain('data-route="flyleaf.example.org"');
     expect(text(html)).toContain("http://127.0.0.1:3000");
     expect(text(html)).toContain("Synchroniser les routes");
     expect(text(html)).not.toContain("Redémarrer");
@@ -516,11 +513,7 @@ describe("ajouter un module à un serveur déjà installé", () => {
     expect(text(html)).not.toContain("Nom git");
   });
 
-  /**
-   * The criterion is that the screens are the onboarding's own. A rendering
-   * cannot say where a component came from; the import can — and no screen of
-   * its own sits next to it.
-   */
+  // A render cannot tell where a component came from, so the imports are checked.
   it("monte les écrans de l'onboarding plutôt que des siens", () => {
     const flow = source("services-add-flow.tsx");
 
@@ -556,7 +549,7 @@ describe("l'en-tête d'un service", () => {
     expect(text(html)).toContain("port 5432");
   });
 
-  /** What names the module on the machine decides nothing for the reader, and everything for whoever goes looking on the server. */
+  // The id and the unit only matter to whoever goes looking on the server.
   it("range l'identifiant et l'unité systemd sous Détails", () => {
     const fold = html.indexOf('hidden=""');
     const details = html.slice(fold);
@@ -567,7 +560,6 @@ describe("l'en-tête d'un service", () => {
     expect(html.slice(0, fold)).not.toContain("db.postgres");
   });
 
-  /** A mandatory module has no removal button; the header says why in its place. */
   it("dit dans l'en-tête pourquoi un module obligatoire ne se retire pas", () => {
     const held = renderToStaticMarkup(
       <ServicePanelFacts
@@ -607,7 +599,7 @@ describe("les réglages d'un service dont le catalogue manque", () => {
     values: {},
   };
 
-  /** A section that simply vanished left the reader looking for what a service can be told. */
+  // A section that silently vanished left the reader searching for the service's settings.
   it("dit pourquoi ils manquent, et propose de relire le catalogue", () => {
     const html = renderToStaticMarkup(
       <ServiceConfig
@@ -619,16 +611,14 @@ describe("les réglages d'un service dont le catalogue manque", () => {
 
     expect(html).toContain('data-config="unknown"');
     expect(text(html)).toContain("catalogue du serveur n'a pas répondu");
-    expect(text(html)).toContain("Relire le catalogue");
+    expect(text(html)).toContain("Actualiser le catalogue");
   });
 
-  // The domain of an installed tunnel is picked among the account's zones and
-  // stays typed below, a subdomain of the zone being allowed; without an
-  // account to ask, the field alone remains.
+  // The typed field stays beside the zones because a subdomain of a zone is allowed.
   it("propose les zones du compte pour le domaine d'un tunnel installé", () => {
     const config = {
-      answered: { domain: "flymate.dev" },
-      baseline: { domain: "flymate.dev" },
+      answered: { domain: "flyleaf.dev" },
+      baseline: { domain: "flyleaf.dev" },
       held: [],
       moduleId: EXPOSURE_CLOUDFLARE.id,
       status: "ready" as const,
@@ -639,10 +629,10 @@ describe("les réglages d'un service dont le catalogue manque", () => {
         {...props}
         config={config}
         manifest={EXPOSURE_CLOUDFLARE}
-        values={{ domain: "flymate.dev" }}
+        values={{ domain: "flyleaf.dev" }}
         zones={[
-          { id: "z-1", name: "flymate.dev" },
-          { id: "z-2", name: "flymate.studio" },
+          { id: "z-1", name: "flyleaf.dev" },
+          { id: "z-2", name: "flyleaf.studio" },
         ]}
       />
     );
@@ -650,7 +640,7 @@ describe("les réglages d'un service dont le catalogue manque", () => {
     expect(picked).toContain('id="exposure.cloudflare.zone"');
     expect(picked).toContain('role="combobox"');
     expect(picked).toMatch(
-      /id="exposure.cloudflare.zone"[^>]*>[^<]*<span[^>]*>flymate\.dev</
+      /id="exposure.cloudflare.zone"[^>]*>[^<]*<span[^>]*>flyleaf\.dev</
     );
     expect(picked).toContain('data-field="exposure.cloudflare.domain"');
 
@@ -659,7 +649,7 @@ describe("les réglages d'un service dont le catalogue manque", () => {
         {...props}
         config={config}
         manifest={EXPOSURE_CLOUDFLARE}
-        values={{ domain: "flymate.dev" }}
+        values={{ domain: "flyleaf.dev" }}
       />
     );
 
@@ -667,8 +657,7 @@ describe("les réglages d'un service dont le catalogue manque", () => {
     expect(typed).not.toContain('id="exposure.cloudflare.zone"');
   });
 
-  // The wait sits where the gesture was made: the form ends on its button, and
-  // the progress follows it, so the click and what it started read together.
+  // The progress follows the button so the click and what it started read together.
   it("place la progression sous le formulaire, à la suite du bouton", () => {
     const html = renderToStaticMarkup(
       <ServiceConfig
@@ -701,7 +690,6 @@ describe("les réglages d'un service dont le catalogue manque", () => {
     expect(html).toContain('aria-busy="true"');
   });
 
-  /** Everything Wrangler is told comes from its account: nothing to type, one gesture left. */
   it("garde le geste d'appliquer pour un module dont toute la valeur vient d'un compte", () => {
     const html = renderToStaticMarkup(
       <ServiceConfig
@@ -736,11 +724,10 @@ describe("les réglages d'un service dont le catalogue manque", () => {
     expect(html).not.toContain("elevation-raised grid");
   });
 
-  /** Nothing differs from what the server holds: the gesture has nothing to do, and says so by waiting. */
   it("n'offre d'appliquer qu'une fois quelque chose changé, et alors aussi d'y renoncer", () => {
     const config = {
-      answered: { domain: "flymate.dev" },
-      baseline: { domain: "flymate.dev" },
+      answered: { domain: "flyleaf.dev" },
+      baseline: { domain: "flyleaf.dev" },
       held: [],
       moduleId: EXPOSURE_CLOUDFLARE.id,
       status: "ready" as const,
@@ -753,7 +740,7 @@ describe("les réglages d'un service dont le catalogue manque", () => {
         dirty={false}
         manifest={EXPOSURE_CLOUDFLARE}
         onDiscard={() => undefined}
-        values={{ domain: "flymate.dev" }}
+        values={{ domain: "flyleaf.dev" }}
       />
     );
 
@@ -768,7 +755,7 @@ describe("les réglages d'un service dont le catalogue manque", () => {
         dirty
         manifest={EXPOSURE_CLOUDFLARE}
         onDiscard={() => undefined}
-        values={{ domain: "flymate.studio" }}
+        values={{ domain: "flyleaf.studio" }}
       />
     );
 
@@ -777,14 +764,13 @@ describe("les réglages d'un service dont le catalogue manque", () => {
     expect(text(changed)).toContain("Annuler les modifications");
   });
 
-  /** What is refused is said under the field that carries it, and counted at the foot of the form. */
   it("dit sous le champ ce qui est refusé, et le compte au pied du formulaire", () => {
     const html = renderToStaticMarkup(
       <ServiceConfig
         {...props}
         config={{
-          answered: { domain: "flymate.dev" },
-          baseline: { domain: "flymate.dev" },
+          answered: { domain: "flyleaf.dev" },
+          baseline: { domain: "flyleaf.dev" },
           held: [],
           moduleId: EXPOSURE_CLOUDFLARE.id,
           status: "ready",
@@ -820,7 +806,7 @@ describe("les réglages d'un service dont le catalogue manque", () => {
     );
 
     expect(text(html)).toContain("tant que le serveur est retenu");
-    expect(text(html)).not.toContain("Relire le catalogue");
+    expect(text(html)).not.toContain("Actualiser le catalogue");
   });
 });
 
@@ -835,7 +821,7 @@ describe("un écran que l'app n'a pas su dessiner", () => {
 
     expect(html).toContain('data-screen-failure="true"');
     expect(text(html)).toContain("Rien n'a changé sur le serveur");
-    expect(text(html)).toContain("Le dessiner à nouveau");
+    expect(text(html)).toContain("Réafficher l'écran");
     expect(html.slice(html.indexOf('hidden=""'))).toContain(
       "Cannot read properties"
     );

@@ -52,7 +52,6 @@ func TestShotsAreListedNewestFirstWithTheirGalleryPath(t *testing.T) {
 	}
 }
 
-// A link planted in the gallery would be read as root by shots.read: it is neither listed nor followed.
 func TestShotsLeaveASymlinkOutOfTheGallery(t *testing.T) {
 	fake, reader := shotFixture(t)
 	fake.Files["/home/dev/shots/2026-09-04/shadow.png"] = []byte("root:x\n")
@@ -76,8 +75,8 @@ func TestShotsURLComesFromTheGalleryRow(t *testing.T) {
 		t.Fatalf("got %q", got)
 	}
 
-	fake.Files["/etc/pupitre/env"] = []byte(state.DomainKey + "=flymate.dev\n")
-	if got := reader.ShotsURL(); got != "https://shots.flymate.dev" {
+	fake.Files["/etc/pupitre/env"] = []byte(state.DomainKey + "=flyleaf.dev\n")
+	if got := reader.ShotsURL(); got != "https://shots.flyleaf.dev" {
 		t.Fatalf("got %q", got)
 	}
 }
@@ -138,7 +137,7 @@ func TestShotsReadRendersTheExactBytesOfTheFile(t *testing.T) {
 
 func TestShotsReadOpensOnlyWhatTheGalleryLists(t *testing.T) {
 	fake, reader := shotFixture(t)
-	fake.Files["/etc/pupitre/env"] = []byte("PUPITRE_DOMAIN=flymate.dev\n")
+	fake.Files["/etc/pupitre/env"] = []byte("PUPITRE_DOMAIN=flyleaf.dev\n")
 	fake.Files["/home/dev/shots/2026-09-04/notes.txt"] = []byte("rien à voir\n")
 
 	for _, refused := range []string{
@@ -196,6 +195,7 @@ func join(t *testing.T, chunks []string) []byte {
 	t.Helper()
 
 	var content []byte
+
 	for _, encoded := range chunks {
 		decoded, err := base64.StdEncoding.DecodeString(encoded)
 		if err != nil {
@@ -208,7 +208,6 @@ func join(t *testing.T, chunks []string) []byte {
 	return content
 }
 
-// The channel is a line of JSON: what proves a heavy capture does not break it is that every line stays bounded, that they reassemble byte for byte, and that the command which follows still gets its answer.
 func TestALargeCaptureLeavesTheChannelUsable(t *testing.T) {
 	fake, reader := shotFixture(t)
 

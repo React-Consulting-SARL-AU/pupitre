@@ -1,5 +1,10 @@
 export const table = {
   en: {
+    "table.reading": "Reading…",
+    "table.failed": "The platform did not answer.",
+    "table.range": "{from}–{to} of {total}",
+    "table.previous": "Previous",
+    "table.next": "Next",
     "table.search": "Search",
     "table.actions": "Actions",
     "table.rowActions": "Actions on this line",
@@ -11,10 +16,15 @@ export const table = {
     "table.selected.other": "{count} lines selected",
   },
   fr: {
+    "table.reading": "Lecture…",
+    "table.failed": "La plateforme n'a pas répondu.",
+    "table.range": "{from}–{to} sur {total}",
+    "table.previous": "Précédent",
+    "table.next": "Suivant",
     "table.search": "Recherche",
     "table.actions": "Actions",
     "table.rowActions": "Actions sur cette ligne",
-    "table.rowActionsOn": "Gestes sur {name}",
+    "table.rowActionsOn": "Actions sur {name}",
     "table.selectRow": "Sélectionner cette ligne",
     "table.selectPage": "Sélectionner toutes les lignes de cette page",
     "table.clearSelection": "Vider la sélection",

@@ -1,4 +1,4 @@
-import { agentText } from "@renderer/i18n/agent-error";
+import { agentLine, agentText } from "@renderer/i18n/agent-error";
 import type { DictionaryKey } from "@renderer/i18n/en";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { AgentError } from "@shared/agent";
@@ -10,14 +10,16 @@ import {
   Server as ServerIcon,
 } from "lucide-react";
 import { type FormEvent, useEffect, useState } from "react";
+import { type RefusedField, refusedField } from "../../lib/server-add-refusal";
 import type { ButtonIcon } from "../ui/button";
 import { Button } from "../ui/button";
 import { Callout } from "../ui/callout";
-import { Field, fieldControlClass } from "../ui/field";
-import { Label } from "../ui/label";
+import { Field, fieldAria, fieldControlClass } from "../ui/field";
 import { ModeCard, ModeCards } from "../ui/mode-card";
 import { panelClass } from "../ui/panel";
 import { Select } from "../ui/select";
+import { ServerAddKeyFileField } from "./server-add-key-file-field";
+import { ServerAddPasswordField } from "./server-add-password-field";
 import { ServerAddPortField } from "./server-add-port-field";
 import { ServerReachNotice } from "./server-reach-notice";
 import { ServerSshNameField } from "./server-ssh-name-field";
@@ -30,12 +32,14 @@ const PORT_MAX = 65_535;
 
 const DIGITS = /^\d+$/;
 
-/**
- * The port as a number, or null when what was typed is not one.
- *
- * `Number.parseInt` would read "22abc" as 22 and "" as NaN; a port is a whole
- * number between 1 and 65535, and nothing else reaches the draft.
- */
+const FIELD = {
+  address: "servers.add.address",
+  name: "servers.add.name",
+  systemHost: "servers.add.systemHost",
+  user: "servers.add.user",
+};
+
+/** Not `Number.parseInt`, which reads "22abc" as 22. */
 export function portOf(typed: string): number | null {
   const text = typed.trim();
 
@@ -48,16 +52,12 @@ export function portOf(typed: string): number | null {
   return port >= 1 && port <= PORT_MAX ? port : null;
 }
 
-/**
- * What the port field stands at: the number the draft will carry, and the
- * refusal under the field once something that is not a port has been typed.
- * An alias of `~/.ssh/config` carries its own port in that file.
- */
 function portState(
   mode: Mode,
   typed: string,
   t: ReturnType<typeof useTranslations>
 ): { portNumber: number | null; portProblem?: string } {
+  // An alias of `~/.ssh/config` carries its own port in that file.
   if (mode === "system") {
     return { portNumber: 22 };
   }
@@ -73,7 +73,6 @@ function portState(
   };
 }
 
-/** Whether the draft has everything the chosen way of giving a key needs. */
 function readyToAdd({
   mode,
   systemHost,
@@ -129,25 +128,7 @@ const MODES: {
   },
 ];
 
-/**
- * Adding a server: an address, a port, an account, and who owns the key.
- *
- * The three ways of giving a key are shown side by side rather than hidden in a
- * menu, because choosing between them is the one decision of this screen — and
- * the recommended one says so.
- *
- * The address is knocked on before it is declared: a typo, a closed port or a
- * web server on 22 is worth learning here rather than three screens later. So
- * is the account: the knock says whether something here already opens it,
- * whether it takes a password — asked right here, and gone with the draft —
- * or whether the app will have to hand the line over. The test never blocks —
- * a machine that is down is still worth declaring — but it goes first, and
- * adding waits behind its answer.
- *
- * The password lives in this component's state for as long as it takes to send
- * it, and nowhere else: not in the store, not in the trace, not on a command
- * line.
- */
+/** The password lives only in this component's state, until it is sent. */
 export function ServerAddForm({
   busy,
   error,
@@ -157,7 +138,6 @@ export function ServerAddForm({
   busy: boolean;
   error: AgentError | null;
   onSubmit: (draft: ServerDraft) => void;
-  /** Absent when there's nothing behind it: a button that leads nowhere. */
   onCancel?: () => void;
 }) {
   const t = useTranslations();
@@ -182,8 +162,7 @@ export function ServerAddForm({
     });
   }, []);
 
-  // A development build types the developer's own machine, and only into a
-  // field still blank: nothing here ever overwrites what was just typed.
+  // Dev defaults only fill blank fields: they never overwrite what was typed.
   useEffect(() => {
     window.pupitre.devDefaults().then((defaults) => {
       if (!defaults) {
@@ -204,6 +183,7 @@ export function ServerAddForm({
 
   async function pickFile() {
     const picked = await window.pupitre.pickKeyFile();
+
     if (picked) {
       setReach(null);
       setFile(picked);
@@ -219,9 +199,11 @@ export function ServerAddForm({
     if (mode === "import") {
       return { file, mode: "import" };
     }
+
     if (mode === "system") {
       return { host: systemHost, mode: "system" };
     }
+
     return { mode: "generate" };
   }
 
@@ -229,6 +211,8 @@ export function ServerAddForm({
   const asksPassword = access?.access === "password";
 
   const { portNumber, portProblem } = portState(mode, port, t);
+
+  const refused = refusedField(error, mode, asksPassword);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -268,7 +252,7 @@ export function ServerAddForm({
     setTesting(false);
   }
 
-  /** A result describes the address that was typed then; a new one is untested. */
+  // A reach result describes the address typed then; a new one is untested.
   function retype(set: (value: string) => void) {
     return (value: string) => {
       setReach(null);
@@ -286,8 +270,7 @@ export function ServerAddForm({
     user,
   });
 
-  // An alias of `~/.ssh/config` carries its address in that file, which this
-  // window does not read: there is nothing here to knock on.
+  // A `~/.ssh/config` alias keeps its address in a file this window does not read.
   const testable =
     mode !== "system" &&
     host.trim() !== "" &&
@@ -324,8 +307,9 @@ export function ServerAddForm({
       </div>
 
       <div className="mt-5 grid gap-5 sm:grid-cols-2">
-        <Field label={t("servers.add.name.label")}>
+        <Field label={t("servers.add.name.label")} name={FIELD.name}>
           <input
+            {...fieldAria({ name: FIELD.name })}
             className={fieldControlClass}
             onChange={(e) => setName(e.target.value)}
             placeholder={t("servers.add.name.placeholder")}
@@ -350,9 +334,15 @@ export function ServerAddForm({
                 : t("servers.add.noHosts")
             }
             label={t("servers.add.systemHost.label")}
+            name={FIELD.systemHost}
+            required
           >
             <Select
-              aria-label={t("servers.add.systemHost.label")}
+              {...fieldAria({
+                help: true,
+                name: FIELD.systemHost,
+                required: true,
+              })}
               kind="data"
               onChange={setSystemHost}
               options={hosts.map((declared) => ({
@@ -366,8 +356,15 @@ export function ServerAddForm({
           <Field
             help={t("servers.add.address.help")}
             label={t("servers.field.address")}
+            name={FIELD.address}
+            required
           >
             <input
+              {...fieldAria({
+                help: true,
+                name: FIELD.address,
+                required: true,
+              })}
               className={fieldControlClass}
               onChange={(e) => retype(setHost)(e.target.value)}
               placeholder="203.0.113.10"
@@ -388,8 +385,11 @@ export function ServerAddForm({
             <Field
               help={t("servers.add.user.help")}
               label={t("servers.add.user.label")}
+              name={FIELD.user}
+              required
             >
               <input
+                {...fieldAria({ help: true, name: FIELD.user, required: true })}
                 className={fieldControlClass}
                 onChange={(e) => setUser(e.target.value)}
                 placeholder={t("servers.add.user.placeholder")}
@@ -402,23 +402,11 @@ export function ServerAddForm({
 
       {mode === "import" ? (
         <div className="mt-5">
-          <Label>{t("servers.add.keyFile.label")}</Label>
-          <div className="mt-1.5 flex items-center gap-2">
-            <Button icon={FileKey2} onClick={pickFile}>
-              {t("servers.add.pickFile")}
-            </Button>
-            <span className="min-w-0 truncate font-data text-[12px] text-ink-3">
-              {file || t("servers.add.noFile")}
-            </span>
-          </div>
-        </div>
-      ) : null}
-
-      {error ? (
-        <div className="mt-5">
-          <Callout bare fix={agentText(t, error).fix} tone="danger">
-            {agentText(t, error).message}
-          </Callout>
+          <ServerAddKeyFileField
+            file={file}
+            onPick={pickFile}
+            problem={refusalAt(t, error, refused, "keyFile")}
+          />
         </div>
       ) : null}
 
@@ -430,19 +418,19 @@ export function ServerAddForm({
 
       {asksPassword ? (
         <div className="fade-in mt-5 max-w-sm">
-          <Field
-            help={t("servers.add.password.help")}
-            label={t("servers.add.password.label")}
-          >
-            <input
-              autoComplete="off"
-              autoFocus
-              className={fieldControlClass}
-              onChange={(event) => setPassword(event.target.value)}
-              type="password"
-              value={password}
-            />
-          </Field>
+          <ServerAddPasswordField
+            onChange={setPassword}
+            problem={refusalAt(t, error, refused, "password")}
+            value={password}
+          />
+        </div>
+      ) : null}
+
+      {error && refused === null ? (
+        <div className="mt-5">
+          <Callout bare fix={agentText(t, error).fix} tone="danger">
+            {agentText(t, error).message}
+          </Callout>
         </div>
       ) : null}
 
@@ -481,6 +469,15 @@ export function ServerAddForm({
       </div>
     </form>
   );
+}
+
+function refusalAt(
+  t: ReturnType<typeof useTranslations>,
+  error: AgentError | null,
+  refused: RefusedField | null,
+  field: RefusedField
+): string | undefined {
+  return error && refused === field ? agentLine(t, error) : undefined;
 }
 
 function submitLabel(

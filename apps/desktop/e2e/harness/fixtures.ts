@@ -6,8 +6,7 @@ import {
 import type { AccountState } from "../../src/shared/account";
 import type { ServersConfig } from "../../src/shared/servers";
 
-// TEST-NET-1 is never routed: a channel that escapes the harness reaches
-// nothing rather than someone.
+// TEST-NET-1 is never routed: a channel escaping the harness reaches nothing.
 export const SERVERS: ServersConfig = {
   active: "e2e-atelier",
   servers: [
@@ -25,9 +24,6 @@ export const SERVERS: ServersConfig = {
   version: 1,
 };
 
-// The snapshot the screen tests already render from: a capture and a unit test
-// disagree about the interface, never about the data.
-/** What the unit answers once systemd has had its say: the state, never the intention. */
 function postgres(state: "running" | "stopped") {
   return {
     credentials: {},
@@ -72,7 +68,6 @@ export const ANSWERS: Partial<Record<CommandName, unknown>> = {
   },
 };
 
-/** One entry of the fake tree, as `fs.list` describes it. */
 export interface FixtureEntry {
   name: string;
   kind: "file" | "dir";
@@ -81,13 +76,7 @@ export interface FixtureEntry {
   mode: string;
 }
 
-/**
- * The working tree of the fake server, under the root its completions name.
- *
- * `fs.list` reads a folder here, `fs.stat` and `fs.read` a file: the text is
- * what the editor opens, and what a write replaces. The archive is listed and
- * described but never read — it is the file the app says is to be downloaded.
- */
+/** `dump.tar.gz` has no text on purpose: it is the file the app offers to download. */
 export const FILES: {
   root: string;
   folders: Record<string, FixtureEntry[]>;
@@ -115,11 +104,11 @@ export const FILES: {
         kind: "dir",
         mode: "0755",
         modified_at: "2026-09-01T10:00:00Z",
-        name: "flymate",
+        name: "flyleaf",
         size_bytes: 4096,
       },
     ],
-    "projects/flymate": [
+    "projects/flyleaf": [
       {
         kind: "dir",
         mode: "0755",
@@ -156,7 +145,7 @@ export const FILES: {
         size_bytes: 118,
       },
     ],
-    "projects/flymate/src": [
+    "projects/flyleaf/src": [
       {
         kind: "file",
         mode: "0644",
@@ -169,23 +158,17 @@ export const FILES: {
   root: "/home/dev/projects",
   texts: {
     ".bashrc": "export PATH=$HOME/.bun/bin:$PATH\n",
-    "projects/flymate/.env": "PORT=3000\n",
-    "projects/flymate/README.md":
-      "# Flymate\n\nThe API behind the booking app.\n\n| Route | Port |\n|---|---|\n| api | 3000 |\n",
-    "projects/flymate/logo.svg":
+    "projects/flyleaf/.env": "PORT=3000\n",
+    "projects/flyleaf/README.md":
+      "# Flyleaf\n\nThe API behind the booking app.\n\n| Route | Port |\n|---|---|\n| api | 3000 |\n",
+    "projects/flyleaf/logo.svg":
       '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="32"><rect width="64" height="32" fill="#000"/></svg>',
-    "projects/flymate/src/index.ts":
+    "projects/flyleaf/src/index.ts":
       "export const port = 3000;\nexport const host = 'x';\n",
   },
 };
 
-/**
- * Someone is signed in on this computer.
- *
- * The app opens on the sign-in as long as nobody is, so every scenario that is
- * not about the account itself starts from an identity the platform confirmed.
- * The specs that do test the account replace these two channels with their own.
- */
+/** Signed in by default: the app opens on the sign-in otherwise; account specs replace it. */
 export const ACCOUNT: AccountState = {
   build: "production",
   checkedAt: "2026-09-06T09:00:00.000Z",

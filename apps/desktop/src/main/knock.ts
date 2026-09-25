@@ -1,4 +1,4 @@
-import { spawn as spawnChild } from "node:child_process";
+import { isSshHost, isSshUser } from "@pupitre/shared/ssh";
 import type {
   AddressReach,
   ServerAccess,
@@ -8,41 +8,19 @@ import type {
 import { designatedKeyFile } from "./key-files";
 import {
   ALONE,
+  askSsh,
   CONNECT_TIMEOUT_S,
   installsWithPassword,
-  lastLine,
   ownIdentities,
   RUN_TIMEOUT_MS,
   rebuffOf,
   rebuffPhrase,
-  runSsh,
-  type ShellSpawn,
 } from "./key-install";
 import { current, type Platform } from "./platform";
 import { reachFailure, reachSsh } from "./reach";
-import { isHost, isUser } from "./server-setup";
 import { argument, type SshPaths } from "./ssh-config";
+import { lastLine, type ShellSpawn } from "./ssh-run";
 import { trace } from "./trace";
-
-/**
- * Knocking on an account before a key exists for it.
- *
- * The address is asked first whether it speaks SSH at all, then the account is
- * asked what would open it: everything this computer already holds is offered
- * — an agent, the identities of ~/.ssh, the file a reader chose to import —
- * and the refusal, if any, says whether a password would do. That is what the
- * form needs to know before making a key: a machine that opens is not asked a
- * password, a machine that takes one is asked it there and then, and a machine
- * that takes neither is announced before it enters the list, along with the
- * reason the app will hand the line over.
- *
- * The host key is pinned here the way the first connection would pin it: in
- * the app's own known_hosts, on first sight. A key that already sits there and
- * does not match is a refusal, not a warning, exactly as it is later on — unless
- * no server of the list reaches that address any more, in which case the pin
- * is a leftover of a machine that was removed, and is dropped for one more
- * knock.
- */
 
 export interface KnockOptions {
   spawn?: ShellSpawn;
@@ -50,9 +28,8 @@ export interface KnockOptions {
   platform?: Platform;
   timeoutMs?: number;
   reach?: (host: string, port: number) => Promise<AddressReach>;
-  /** Drops a pin no listed server owns; answers whether there was one to drop. */
   forgetStalePin?: () => Promise<boolean>;
-  /** Whether the file picker handed this key path out: no other reaches `ssh -i`. */
+  /** Only a path the file picker handed out may reach `ssh -i`. */
   designated?: (path: unknown) => boolean;
 }
 
@@ -87,11 +64,12 @@ export function knockArgs(
   ];
 }
 
+/** A mismatched host key is refused, unless no listed server owns the pin: then it is a leftover, dropped once. */
 export async function probeAccess(
   target: ServerKnock,
   paths: SshPaths,
   {
-    spawn = spawnChild as ShellSpawn,
+    spawn,
     identities = ownIdentities(),
     platform = current(),
     timeoutMs = RUN_TIMEOUT_MS,
@@ -109,7 +87,7 @@ export async function probeAccess(
   });
 
   const args = knockArgs({ ...target, keyFile }, paths, identities);
-  let ran = await runSsh(args, { spawn, timeoutMs });
+  let ran = await askSsh(args, { spawn, timeoutMs });
 
   if (ran.code !== 0 && rebuffOf(ran.stderr) === "host-key") {
     const dropped = await forgetStalePin();
@@ -117,7 +95,7 @@ export async function probeAccess(
     trace("knock", "stale-pin", { dropped, host: target.host });
 
     if (dropped) {
-      ran = await runSsh(args, { spawn, timeoutMs });
+      ran = await askSsh(args, { spawn, timeoutMs });
     }
   }
 
@@ -143,7 +121,25 @@ export async function probeAccess(
   };
 }
 
-/** The address, then the account: the second question is only worth asking once the first answers. */
+const MAX_PORT = 65_535;
+
+export function isServerKnock(value: unknown): value is ServerKnock {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const target = value as Record<string, unknown>;
+
+  return (
+    typeof target.host === "string" &&
+    typeof target.user === "string" &&
+    Number.isInteger(target.port) &&
+    (target.port as number) >= 1 &&
+    (target.port as number) <= MAX_PORT &&
+    (target.keyFile === null || typeof target.keyFile === "string")
+  );
+}
+
 export async function knock(
   target: ServerKnock,
   paths: SshPaths,
@@ -151,11 +147,11 @@ export async function knock(
 ): Promise<ServerReach> {
   const values = { host: target.host, port: target.port, user: target.user };
 
-  if (!isHost(target.host)) {
+  if (!isSshHost(target.host)) {
     return reachFailure("bad-host", values);
   }
 
-  if (!isUser(target.user)) {
+  if (!isSshUser(target.user)) {
     return reachFailure("bad-user", values);
   }
 

@@ -1,4 +1,3 @@
-// Package shots holds the gallery: where a capture is filed, how it is taken, and the read-only server that shows it.
 package shots
 
 import (
@@ -34,7 +33,7 @@ const (
 	slugLimit   = 60
 )
 
-// The Google build on amd64, the distribution's chromium elsewhere, in the order the module installs them; Ubuntu's chromium-browser is a snap stub, not a browser.
+// Ubuntu's chromium-browser is left out: it is a snap stub, not a browser.
 var Browsers = []string{
 	"/usr/bin/google-chrome-stable",
 	"/opt/google/chrome/google-chrome",
@@ -76,7 +75,6 @@ type Capture struct {
 	URL  string
 }
 
-// Files the image and answers with both addresses: the local path for whoever reads it back, the URL for whoever has to open it from elsewhere.
 func Take(ctx sys.Context, options Options, request Request) (Capture, error) {
 	options = options.resolved()
 
@@ -128,7 +126,7 @@ func shoot(ctx sys.Context, request Request, target string) error {
 	}
 	argv = append(argv, "--screenshot="+target, request.Source)
 
-	// No user is forced: shot is invoked by dev through the link, and it captures under the identity that called it.
+	// No user is forced: dev invokes shot through the link and it captures as the caller.
 	if _, err := sys.Exec(ctx, sys.Command{Argv: argv}); err != nil {
 		return errors.New(i18n.T("shots.capture.failed", request.Source))
 	}

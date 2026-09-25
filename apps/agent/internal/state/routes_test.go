@@ -13,7 +13,7 @@ import (
 	"pupitre.studio/agent/internal/sys/env"
 )
 
-const domain = "flymate.dev"
+const domain = "flyleaf.dev"
 
 func published(t *testing.T) (*modtest.FakeSys, *state.Reader) {
 	t.Helper()
@@ -28,7 +28,6 @@ func turbo() registry.Project {
 	return registry.Project{Name: "shop", Dir: "shop"}
 }
 
-// The one process of the turbo project, on the routes the screen declared.
 func running(cmd string, routes ...registry.RouteRequest) []state.ProcessRequest {
 	if routes == nil {
 		routes = []registry.RouteRequest{}
@@ -69,12 +68,11 @@ func TestAddResolvesEachNameOnTheWebOnceFromTheDomain(t *testing.T) {
 	}
 
 	local := string(fake.Files[registry.DefaultLocal])
-	if !strings.Contains(local, `"hostname": "api-shop.flymate.dev"`) {
+	if !strings.Contains(local, `"hostname": "api-shop.flyleaf.dev"`) {
 		t.Fatalf("the hostname must be stored whole:\n%s", local)
 	}
 }
 
-// The name stored when the project was declared is the one that answers: a domain that moved since does not rewrite it.
 func TestTheAddressComesFromTheStoredHostnameNotFromTheDomainOfTheDay(t *testing.T) {
 	fake, reader := published(t)
 
@@ -203,7 +201,6 @@ func TestUpdateRestartsTheProcessOnlyWhenItsCommandChangedAndItWasRunning(t *tes
 	}
 }
 
-// A second process joins a running project without touching the first; one that leaves the list is stopped.
 func TestUpdateStartsNothingForANewProcessAndStopsAProcessThatLeaves(t *testing.T) {
 	fake, reader := published(t)
 	fake.Serves("shop/shop", 3100)

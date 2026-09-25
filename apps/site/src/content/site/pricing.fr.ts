@@ -4,13 +4,21 @@ export const pricingFr: PricingContent = {
   meta: {
     title: "Tarifs — Pupitre",
     description:
-      "{price} HT par serveur et par mois, en Solo comme en Équipe. {months} mois offerts à l’année, {days} jours d’essai sans carte. Quand vous arrêtez, votre serveur continue de tourner.",
+      "{price} HT par serveur et par mois, en Solo comme en Équipe. {months} mois offerts à l’année, {days} jours d’essai sur une machine, sans carte. Quand vous arrêtez, votre serveur continue de tourner.",
+    launchDescription:
+      "Gratuit pendant le lancement, jusqu’au {date}, sur une machine par organisation. Ensuite {price} HT par serveur et par mois, en Solo comme en Équipe. Quand vous arrêtez, votre serveur continue de tourner.",
   },
   hero: {
     label: "Tarifs",
     headline: "Un prix par serveur. Le serveur reste à vous.",
-    lead: "Solo et Équipe coûtent le même prix par serveur : {price} HT par mois. À l’année, {months} mois sont offerts. L’essai dure {days} jours et ne demande pas de carte. Quand vous arrêtez de payer, votre serveur continue de fonctionner sans Pupitre.",
+    lead: "Solo et Équipe coûtent le même prix par serveur : {price} HT par mois. À l’année, {months} mois sont offerts. L’essai dure {days} jours, couvre une machine et ne demande pas de carte. Quand vous arrêtez de payer, votre serveur continue de fonctionner sans Pupitre.",
     unit: "par serveur et par mois",
+  },
+  launch: {
+    notice:
+      "Gratuit pendant le lancement, jusqu’au {date}, sur une machine par organisation. Une machine enrôlée pendant le lancement reste gratuite pour de bon. Les prix ci-dessous s’appliqueront à l’ouverture de la facturation.",
+    cta: "Commencer gratuitement",
+    offer: "Lancement gratuit, une machine par organisation",
   },
   billing: {
     legend: "Facturation",
@@ -112,7 +120,7 @@ export const pricingFr: PricingContent = {
   catalog: {
     label: "Catalogue",
     title: "Compris dans chaque offre",
-    lead: "Tout le catalogue vient avec chaque serveur, quelle que soit l’offre. Vingt-cinq modules, tous disponibles, par catégorie.",
+    lead: "Tout le catalogue vient avec chaque serveur, quelle que soit l’offre. {count} modules, tous disponibles, par catégorie.",
     available: "{count} disponibles",
     link: "Voir tout le catalogue",
   },

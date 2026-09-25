@@ -110,7 +110,7 @@ export type ServerMetric = Prisma.ServerMetricModel
 export type Alert = Prisma.AlertModel
 /**
  * Model Backup
- * A backup lying in the client's own bucket: where it is and how big, never what it holds.
+ * Where a backup lies in the client's own bucket and its size, never its content.
  */
 export type Backup = Prisma.BackupModel
 /**
@@ -118,6 +118,11 @@ export type Backup = Prisma.BackupModel
  * 
  */
 export type ServerRevokedDevice = Prisma.ServerRevokedDeviceModel
+/**
+ * Model KeyApproval
+ * 
+ */
+export type KeyApproval = Prisma.KeyApprovalModel
 /**
  * Model Subscription
  * 

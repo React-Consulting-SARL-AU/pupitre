@@ -13,11 +13,6 @@ import {
 import type { ConfigState } from "../../stores/project-config";
 import { ProjectConfigPanel } from "../projects/project-config-panel";
 
-/**
- * What the configuration tab shows: the same form as the add, minus the source
- * and the name, and what the save will do said before the button.
- */
-
 const PROJECT = SNAPSHOT.projects[0];
 
 const EDIT = {
@@ -117,14 +112,14 @@ describe("la configuration d'un projet", () => {
     expect(html).toContain('id="config.branch"');
     expect(html).toContain('id="project.processes.0.install"');
     expect(html).toContain('id="project.processes.0.id"');
-    expect(html).toContain('value="flymate.example.org"');
-    expect(html).toContain('value="api-flymate.example.org"');
+    expect(html).toContain('value="flyleaf.example.org"');
+    expect(html).toContain('value="api-flyleaf.example.org"');
     expect(html).not.toContain('id="project.source"');
     expect(html).not.toContain('id="project.name"');
     expect(text(html)).toContain("Enregistrer la configuration");
   });
 
-  /** The first choice is whether the project follows the server; a reader who only came for that never scrolls. */
+  // A reader who only came to choose whether the project boots with the server never scrolls.
   it("demande d'abord si le projet démarre avec le serveur, avant la branche", () => {
     const html = panel({ status: "idle" });
 
@@ -134,21 +129,19 @@ describe("la configuration d'un projet", () => {
     );
   });
 
-  /** A process the reader did not come for folds under one line saying what it is; one the registry would refuse opens on its refusal. */
   it("replie chaque processus sous son résumé, et ouvre celui qui serait refusé", () => {
     const folded = panel({ status: "idle" });
     const refused = panel({ status: "idle" }, { processProblems: ["cmd"] });
 
     expect(folded).toMatch(/data-closed=""[^>]*data-process="0"/);
     expect(folded).toMatch(
-      /data-process-fold="0"[^>]*>[\s\S]*?3000[\s\S]*?flymate\.example\.org[\s\S]*?<\/button>/
+      /data-process-fold="0"[^>]*>[\s\S]*?3000[\s\S]*?flyleaf\.example\.org[\s\S]*?<\/button>/
     );
     expect(text(folded)).toContain("principal");
 
     expect(refused).toMatch(/data-open=""[^>]*data-process="0"/);
   });
 
-  /** Each runtime the server holds at several majors gets a select: the default first, named, then the majors; a server without a runtime shows nothing of it. */
   it("propose une version par runtime installé, le défaut nommé, rien sans runtime", async () => {
     const html = panel({ status: "idle" }, { runtimes: { node: "22" } });
     const none = panel({ status: "idle" }, { services: [] });
@@ -178,12 +171,12 @@ describe("la configuration d'un projet", () => {
     const html = text(
       panel(
         { status: "idle" },
-        { dropped: ["api-flymate.example.org"], restarts: ["flymate-api"] }
+        { dropped: ["api-flyleaf.example.org"], restarts: ["flyleaf-api"] }
       )
     );
 
-    expect(html).toContain("redémarre flymate-api");
-    expect(html).toContain("api-flymate.example.org");
+    expect(html).toContain("redémarre flyleaf-api");
+    expect(html).toContain("api-flyleaf.example.org");
     expect(html).toContain("cessent de répondre");
   });
 
@@ -192,9 +185,9 @@ describe("la configuration d'un projet", () => {
       throw new Error("the fixture has no project");
     }
 
-    const saving = panel({ name: "flymate-api", status: "saving" });
+    const saving = panel({ name: "flyleaf-api", status: "saving" });
     const saved = text(
-      panel({ name: "flymate-api", project: PROJECT, status: "saved" })
+      panel({ name: "flyleaf-api", project: PROJECT, status: "saved" })
     );
     const failed = text(
       panel({
@@ -203,13 +196,13 @@ describe("la configuration d'un projet", () => {
           fix: "Give a name under example.org.",
           message: "shop.elsewhere.org is not under this server's domain",
         },
-        name: "flymate-api",
+        name: "flyleaf-api",
         status: "failed",
       })
     );
 
     expect(saving).toContain('aria-busy="true"');
-    expect(saved).toContain("flymate-api est réécrit dans le registre");
+    expect(saved).toContain("flyleaf-api est réécrit dans le registre");
     expect(failed).toContain(
       "shop.elsewhere.org is not under this server's domain"
     );
@@ -222,7 +215,7 @@ describe("la configuration d'un projet", () => {
     }
 
     const html = panel({
-      name: "flymate-api",
+      name: "flyleaf-api",
       project: PROJECT,
       status: "saved",
       sync: {
@@ -233,7 +226,7 @@ describe("la configuration d'un projet", () => {
       warnings: ["le démarrage a refusé, le processus reste arrêté"],
     });
 
-    expect(text(html)).toContain("flymate-api est réécrit dans le registre");
+    expect(text(html)).toContain("flyleaf-api est réécrit dans le registre");
     expect(text(html)).toContain("le tunnel refuse");
     expect(text(html)).toContain("Reconnecte le compte Cloudflare.");
     expect(text(html)).toContain(

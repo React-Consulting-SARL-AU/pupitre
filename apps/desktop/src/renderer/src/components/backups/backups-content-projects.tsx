@@ -4,11 +4,6 @@ import { SwitchLine } from "@renderer/components/ui/switch";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { excluding } from "@renderer/lib/backups";
 
-/**
- * The projects a backup carries: the whole category, each project the server
- * runs, and how much of them — the whole folder, or only its environment
- * files when a clone can bring the code back.
- */
 export function BackupsContentProjects({
   label,
   envOnly,
@@ -20,7 +15,6 @@ export function BackupsContentProjects({
   onExcluded,
 }: {
   label: string;
-  /** The field that keeps only the environment files, as the agent names it. */
   envOnly: {
     label: string;
     detail?: string;
@@ -28,7 +22,6 @@ export function BackupsContentProjects({
     onChange: (next: boolean) => void;
   } | null;
   carried: boolean;
-  /** Null until the server has said what it holds. */
   projects: BackupContentsResult["projects"] | null;
   excluded: readonly string[];
   problem?: string;
@@ -78,7 +71,7 @@ export function BackupsContentProjects({
         ))}
 
         {problem ? (
-          <span className="text-[12px] text-danger">{problem}</span>
+          <span className="text-danger text-small">{problem}</span>
         ) : null}
 
         {envOnly ? (

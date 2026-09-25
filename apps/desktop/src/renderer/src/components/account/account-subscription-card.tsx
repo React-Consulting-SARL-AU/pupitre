@@ -17,15 +17,6 @@ import { currentLocale } from "@renderer/i18n/translate";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { ExternalLink } from "lucide-react";
 
-/**
- * The subscription of the active organization, as the console mirrors it.
- *
- * A trial is what most accounts hold first: the days it has left are the one
- * figure that decides something, so they are the headline, and they turn to a
- * warning under three days. The rest — the renewal, the seats — is read, and
- * the only gesture goes to the console, which is where Stripe is spoken to.
- */
-
 const BILLING_PATH = "/dashboard/billing";
 
 interface Look {
@@ -78,7 +69,7 @@ const LOOKS: Record<string, NamedLook> = {
   },
 };
 
-/** A status Stripe invents after this was written keeps its own word. */
+// A status Stripe adds later falls back to its raw name.
 function lookOf(status: string, t: Translate): Look {
   const named = LOOKS[status];
 
@@ -106,7 +97,6 @@ export function AccountSubscriptionCard({
   subscription: MeSubscription;
   consoleUrl: string;
   onOpenConsole: (url: string) => void;
-  /** The moment the days are counted from; the clock, outside a test. */
   now?: Date;
 }) {
   const t = useTranslations();
@@ -143,7 +133,7 @@ export function AccountSubscriptionCard({
               </p>
             )}
             {ending ? (
-              <p className="mt-1 text-[12px] text-ink-3 leading-relaxed">
+              <p className="mt-1 text-ink-3 text-small leading-relaxed">
                 {t("account.subscription.trialEndingFix")}
               </p>
             ) : null}

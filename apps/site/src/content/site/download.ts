@@ -15,7 +15,6 @@ export interface DownloadContent {
     headline: string
     lead: string
     detecting: string
-    unknown: string
   }
   account: { title: string; body: string; cta: string }
   os: Record<OperatingSystem, { name: string; note: string }>
@@ -26,14 +25,10 @@ export interface DownloadContent {
     lead: string
     verify: string
     download: string
-    size: string
     digest: string
-    format: string
     empty: string
   }
   release: {
-    label: string
-    title: string
     version: string
     published: string
     channel: string

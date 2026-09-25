@@ -8,13 +8,6 @@ import {
 } from "../projects-run";
 import { type FakeAgent, fakeAgent } from "./fixtures/fake-agent";
 
-/**
- * The environment file of a project, replayed against the fake agent.
- *
- * What is pinned down: the renderer names a project the list gave, `force`
- * only travels when asked, and what comes back is the keys — never a value.
- */
-
 const SERVER = "srv-1";
 
 let fake: FakeAgent | null = null;
@@ -55,10 +48,10 @@ describe("le fichier d'environnement d'un projet", () => {
 
     await listProjects(SERVER, shared);
 
-    const read = await projectEnv(SERVER, "flymate-api", false, null, shared);
+    const read = await projectEnv(SERVER, "flyleaf-api", false, null, shared);
     const rewritten = await projectEnv(
       SERVER,
-      "flymate-api",
+      "flyleaf-api",
       true,
       null,
       shared
@@ -80,8 +73,8 @@ describe("le fichier d'environnement d'un projet", () => {
     const envCalls = sent.filter((line) => line.cmd === "project.env");
 
     expect(envCalls.map((line) => line.params)).toEqual([
-      { name: "flymate-api" },
-      { force: true, name: "flymate-api" },
+      { name: "flyleaf-api" },
+      { force: true, name: "flyleaf-api" },
     ]);
   });
 });

@@ -7,7 +7,7 @@
 > {"id":2,"cmd":"install","params":{"secrets_stdin":false,"modules":["core.system","core.hardening"],"config":{"core.system":{"git_name":"Jordan Monier","git_email":"jordan@example.org"},"core.hardening":{"ssh_443":true,"keep_root":true}}}}
 > {"id":3,"cmd":"harden","params":{"user":"dev"}}
 > {"id":4,"cmd":"harden","params":{"user":"dev"}}
-< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["catalog","harden","hello","install","install.check","module.config","ping","report","uninstall","upgrade"]}}
+< {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["catalog","harden","harden.sudo","hello","install","install.check","module.config","ping","report","uninstall","upgrade"]}}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"repair-dpkg"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"skip","step":"repair-dpkg"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"install-packages"}
@@ -48,6 +48,8 @@
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"install-agent-unit"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"install-resume-unit"}
 < {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"install-resume-unit"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"start","step":"rotate-agent-log"}
+< {"event":"step","id":2,"module":"core.system","ms":0,"status":"ok","step":"rotate-agent-log"}
 < {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"start","step":"install-packages"}
 < {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"ok","step":"install-packages"}
 < {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"start","step":"configure-firewall"}
@@ -56,9 +58,13 @@
 < {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"ok","step":"write-fail2ban-jail"}
 < {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"start","step":"enable-fail2ban"}
 < {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"ok","step":"enable-fail2ban"}
+< {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"start","step":"protect-links"}
+< {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"ok","step":"protect-links"}
 < {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"start","step":"prepare-sshd-fragment"}
 < {"event":"step","id":2,"module":"core.hardening","ms":0,"status":"ok","step":"prepare-sshd-fragment"}
 < {"id":2,"ok":true,"result":{"failed":[],"warned":[],"report_path":"%REPORT_PATH%"}}
+< {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"start","step":"protect-links"}
+< {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"skip","step":"protect-links"}
 < {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"start","step":"check-authorized-keys"}
 < {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"ok","step":"check-authorized-keys"}
 < {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"start","step":"write-sshd-fragment"}
@@ -70,6 +76,8 @@
 < {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"start","step":"confirm-sshd-config"}
 < {"event":"step","id":3,"module":"core.hardening","ms":0,"status":"ok","step":"confirm-sshd-config"}
 < {"id":3,"ok":true,"result":{"root_closed":false,"root_kept":true,"next_user":"dev"}}
+< {"event":"step","id":4,"module":"core.hardening","ms":0,"status":"start","step":"protect-links"}
+< {"event":"step","id":4,"module":"core.hardening","ms":0,"status":"skip","step":"protect-links"}
 < {"event":"step","id":4,"module":"core.hardening","ms":0,"status":"start","step":"check-authorized-keys"}
 < {"event":"step","id":4,"module":"core.hardening","ms":0,"status":"ok","step":"check-authorized-keys"}
 < {"event":"step","id":4,"module":"core.hardening","ms":0,"status":"start","step":"write-sshd-fragment"}

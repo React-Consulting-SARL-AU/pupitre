@@ -1,25 +1,30 @@
+import {
+  type AppBuild,
+  AppReleaseSchema,
+  DESKTOP_SYSTEMS,
+  type DesktopArchitecture,
+  type DesktopSystem,
+  SHA256_PATTERN,
+  type ReleaseChannel as SharedReleaseChannel,
+} from "@pupitre/shared/releases"
+import { isProduction } from "../../scripts/legal"
 import { FALLBACK_RELEASES } from "../content/site/releases"
 
-export const OPERATING_SYSTEMS = ["macos", "windows", "linux"] as const
+export const OPERATING_SYSTEMS = DESKTOP_SYSTEMS
 
-export type OperatingSystem = (typeof OPERATING_SYSTEMS)[number]
+export type OperatingSystem = DesktopSystem
 
-export const ARCHITECTURES = ["arm64", "x64", "universal"] as const
+export type Architecture = DesktopArchitecture
 
-export type Architecture = (typeof ARCHITECTURES)[number]
-
-export const RELEASE_CHANNELS = ["stable", "beta"] as const
-
-export type ReleaseChannel = (typeof RELEASE_CHANNELS)[number]
+export type ReleaseChannel = SharedReleaseChannel
 
 export interface AppAsset {
   os: OperatingSystem
   arch: Architecture
   format: string
   url: string
-  /** Absent on the static fallback, which cannot know the published file. */
   size_bytes?: number
-  /** Absent on the static fallback: a wrong checksum is worse than none. */
+  // Absent on the static fallback: a wrong checksum is worse than none.
   sha256?: string
 }
 
@@ -30,72 +35,29 @@ export interface AppRelease {
   assets: AppAsset[]
 }
 
-const SHA256_RE = /^[0-9a-f]{64}$/
+const SHA256_RE = new RegExp(SHA256_PATTERN)
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
+function assetOf({ os, arch, format, url, bytes, sha256 }: AppBuild): AppAsset {
+  return { os, arch, format, url, size_bytes: bytes, sha256 }
 }
 
-/** The platform's build becomes an asset here; one missing its size or digest is dropped — silence beats a wrong claim. */
-function parseAsset(value: unknown): AppAsset | null {
-  if (!isRecord(value)) {
-    return null
-  }
-
-  const { os, arch, format, bytes, sha256, url } = value
-  const known =
-    OPERATING_SYSTEMS.includes(os as OperatingSystem) &&
-    ARCHITECTURES.includes(arch as Architecture) &&
-    typeof format === "string" &&
-    typeof bytes === "number" &&
-    Number.isFinite(bytes) &&
-    typeof sha256 === "string" &&
-    SHA256_RE.test(sha256) &&
-    typeof url === "string"
-
-  if (!known) {
-    return null
-  }
-
-  return {
-    os: os as OperatingSystem,
-    arch: arch as Architecture,
-    format,
-    url,
-    size_bytes: bytes,
-    sha256,
-  }
-}
-
+// One build without a showable digest drops the whole release: silence beats a wrong claim.
 export function parseRelease(value: unknown): AppRelease | null {
-  if (!isRecord(value)) {
+  const parsed = AppReleaseSchema.safeParse(value)
+
+  if (!parsed.success) {
     return null
   }
 
-  const { version, channel, published_at, builds } = value
-  const shaped =
-    typeof version === "string" &&
+  const { version, channel, published_at, builds } = parsed.data
+  const complete =
     version.length > 0 &&
-    RELEASE_CHANNELS.includes(channel as ReleaseChannel) &&
-    typeof published_at === "string" &&
-    Array.isArray(builds)
+    builds.length > 0 &&
+    builds.every((build) => SHA256_RE.test(build.sha256))
 
-  if (!shaped) {
-    return null
-  }
-
-  const parsed = (builds as unknown[]).map(parseAsset)
-
-  if (parsed.length === 0 || parsed.some((asset) => asset === null)) {
-    return null
-  }
-
-  return {
-    version,
-    channel: channel as ReleaseChannel,
-    published_at,
-    assets: parsed as AppAsset[],
-  }
+  return complete
+    ? { version, channel, published_at, assets: builds.map(assetOf) }
+    : null
 }
 
 export function parseReleases(payload: unknown): AppRelease[] | null {
@@ -147,58 +109,57 @@ export interface FetchOptions {
   fetcher?: typeof fetch
   warn?: (message: string) => void
   endpoint?: string
+  strict?: boolean
 }
 
 export const ENDPOINT_VARIABLE = "PUBLIC_RELEASES_URL"
 
-/**
- * Read at build time, once per release: a version reaches the page through the
- * build that follows its publication, never through the visitor's browser. A
- * platform that cannot be reached is not a build error — the page ships the
- * last list the repository knows, and the build says so.
- */
-export async function loadReleases({
-  fetcher = fetch,
-  warn = (message) => process.emitWarning(message),
-  endpoint = import.meta.env.PUBLIC_RELEASES_URL,
-}: FetchOptions = {}): Promise<AppRelease[]> {
-  if (!endpoint) {
-    warn(
-      `${ENDPOINT_VARIABLE} is not set; the download page ships the last known list.`
-    )
+const FALLBACK_NOTE = "the download page ships the last known list"
 
-    return FALLBACK_RELEASES
-  }
-
+async function readReleases(
+  fetcher: typeof fetch,
+  endpoint: string
+): Promise<AppRelease[] | string> {
   try {
     const response = await fetcher(endpoint, {
       headers: { accept: "application/json" },
     })
 
     if (!response.ok) {
-      warn(
-        `Release list unavailable (${response.status} from ${endpoint}); the download page ships the last known list.`
-      )
-
-      return FALLBACK_RELEASES
+      return `Release list unavailable (${response.status} from ${endpoint})`
     }
 
     const releases = parseReleases(await response.json())
 
-    if (!releases) {
-      warn(
-        `Release list from ${endpoint} did not match the expected shape; the download page ships the last known list.`
-      )
-
-      return FALLBACK_RELEASES
-    }
-
-    return sortReleases(releases)
+    return releases
+      ? sortReleases(releases)
+      : `Release list from ${endpoint} did not match the expected shape`
   } catch (error) {
-    warn(
-      `Release list could not be read from ${endpoint} (${String(error)}); the download page ships the last known list.`
-    )
-
-    return FALLBACK_RELEASES
+    return `Release list could not be read from ${endpoint} (${String(error)})`
   }
+}
+
+export async function loadReleases({
+  fetcher = fetch,
+  warn = (message) => process.emitWarning(message),
+  endpoint = import.meta.env.PUBLIC_RELEASES_URL,
+  strict = isProduction(),
+}: FetchOptions = {}): Promise<AppRelease[]> {
+  const read = endpoint
+    ? await readReleases(fetcher, endpoint)
+    : `${ENDPOINT_VARIABLE} is not set`
+
+  if (typeof read !== "string") {
+    return read
+  }
+
+  if (strict) {
+    throw new Error(
+      `${read}: a production build publishes no download link it has not read from the platform.`
+    )
+  }
+
+  warn(`${read}; ${FALLBACK_NOTE}.`)
+
+  return FALLBACK_RELEASES
 }

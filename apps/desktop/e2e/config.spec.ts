@@ -7,14 +7,6 @@ const TIMEZONE_HINT = /À propos de Fuseau/;
 const IANA = /Europe\/Paris/;
 const ADVANCED = /^Réglages avancés/;
 
-/**
- * The configuration screen: what it refuses, where it says so, and what a
- * reader who never sees it is told.
- *
- * One launch and one walk: the screen is reached once and everything is asked
- * of it there, because a check run on whatever screen the last test left is a
- * check of nothing in particular.
- */
 test.describe("configuration", () => {
   let running: Running;
 
@@ -33,6 +25,7 @@ test.describe("configuration", () => {
     await reachConfig(page);
 
     const email = page.locator("#core\\.system\\.git_email");
+
     await expect(email).toBeVisible();
 
     await test.step("l'index nomme les modules choisis", async () => {

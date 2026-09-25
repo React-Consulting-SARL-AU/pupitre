@@ -6,15 +6,12 @@ export interface AdminFigureProps {
   figure: OverviewFigure
 }
 
-/** One counter of the overview: what it counts, how many, and its breakdown underneath. */
 export function AdminFigure({ figure }: AdminFigureProps) {
   const t = useTranslations()
 
   return (
     <Card className="flex min-w-0 flex-col gap-1 px-4 py-3">
-      <p className="truncate text-[10.5px] text-ink-3 uppercase tracking-[0.08em]">
-        {t(figure.label)}
-      </p>
+      <p className="truncate text-label">{t(figure.label)}</p>
       <p className="font-bold font-display text-[24px] text-ink tabular-nums leading-[1.2] tracking-[-0.01em]">
         {figure.value}
       </p>

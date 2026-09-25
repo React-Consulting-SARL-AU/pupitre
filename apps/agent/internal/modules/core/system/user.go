@@ -10,14 +10,14 @@ import (
 	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/keys"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/sudo"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/file"
 	"pupitre.studio/agent/internal/sys/systemd"
 	"pupitre.studio/agent/internal/sys/user"
 )
 
-// A clock left on UTC is a warning: nothing else of the machine depends on it,
-// and the user must still be created behind it.
+// A failed timezone only warns: nothing depends on it, and the user must still be created after it.
 func setTimezone(ctx *modules.Context) error {
 	return ctx.Step("set-timezone", func() (modules.Outcome, error) {
 		zone := ctx.String("timezone")
@@ -68,12 +68,22 @@ func loginShell(ctx *modules.Context, name string) (string, bool) {
 	return "", false
 }
 
+// Opens sudo on a new server until a password is set; a server that has one keeps its restricted rule.
 func grantSudo(ctx *modules.Context) error {
-	return writeIfChanged(ctx, "grant-sudo", sudoersPath, []byte(sudoers), 0o440)
+	return ctx.Step("grant-sudo", func() (modules.Outcome, error) {
+		if file.Same(ctx, sudoersPath, []byte(sudo.Restricted)) || file.Same(ctx, sudoersPath, []byte(sudo.Open)) {
+			return modules.Skipped, nil
+		}
+
+		return modules.Done, file.WriteAtomic(ctx, sudoersPath, []byte(sudo.Open), 0o440)
+	})
 }
 
-// The tools the dev user installs land under ~/.local; a folder there that
-// root made on an earlier run keeps every one of them from installing.
+func sudoGranted(ctx *modules.Context) bool {
+	return sudo.State(ctx) != ""
+}
+
+// A root-owned folder under ~/.local from an earlier run would keep every tool dev installs from installing.
 func prepareHome(ctx *modules.Context) error {
 	return ctx.Step("prepare-home", func() (modules.Outcome, error) {
 		outcome := modules.Skipped
@@ -83,6 +93,7 @@ func prepareHome(ctx *modules.Context) error {
 		if err != nil {
 			return modules.Failed, err
 		}
+
 		if owned {
 			outcome = modules.Done
 		}
@@ -95,6 +106,7 @@ func prepareHome(ctx *modules.Context) error {
 			if err := ownedDir(ctx, dir, 0o700); err != nil {
 				return modules.Failed, err
 			}
+
 			outcome = modules.Done
 		}
 
@@ -121,7 +133,7 @@ func seedAuthorizedKeys(ctx *modules.Context) error {
 			return modules.Failed, err
 		}
 
-		current, err := file.Read(ctx, authorizedKeysPath)
+		current, err := ctx.Sys().ReadFileIn(Home, strings.TrimPrefix(authorizedKeysPath, Home+"/"))
 		if err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return modules.Failed, err
 		}
@@ -129,6 +141,7 @@ func seedAuthorizedKeys(ctx *modules.Context) error {
 		devKeys := keys.Parse(current)
 		content := string(current)
 		added := 0
+
 		for _, key := range rootKeys.Keys {
 			if key.Restricted() || devKeys.Has(key) {
 				continue
@@ -137,6 +150,7 @@ func seedAuthorizedKeys(ctx *modules.Context) error {
 			if content != "" && !strings.HasSuffix(content, "\n") {
 				content += "\n"
 			}
+
 			content += key.Line() + "\n"
 			added++
 		}
@@ -193,14 +207,14 @@ func writeZshrc(ctx *modules.Context) error {
 	})
 }
 
-// The prompt markers for a bash terminal: an app that reads a line being typed needs them wherever the client lands.
+// Bash too: the app's terminal needs the prompt markers whichever shell the client lands in.
 func writeBashrc(ctx *modules.Context) error {
 	return ctx.Step("write-bashrc", func() (modules.Outcome, error) {
 		return ensureOwnedBlock(ctx, bashrcPath, bashrcBlock(ctx.String("projects_dir")))
 	})
 }
 
-// dev is the agent's own binary under another name: ssh serveur dev status drives the machine without the app, and nothing is laid on the client's disk.
+// A link to the agent's own binary: `dev status` works over plain ssh, and nothing readable is laid on disk.
 func linkDev(ctx *modules.Context) error {
 	return ctx.Step("link-dev-command", func() (modules.Outcome, error) {
 		if linked(ctx) {
@@ -235,7 +249,6 @@ func linked(ctx *modules.Context) bool {
 	return err == nil && strings.TrimSpace(out.Stdout) == devcli.Binary
 }
 
-// The agent's own service: without it nobody reads the platform, and the keys of the console never reach this machine.
 func installAgentUnit(ctx *modules.Context) error {
 	return ctx.Step("install-agent-unit", func() (modules.Outcome, error) {
 		same := file.Same(ctx, daemon.UnitPath, []byte(daemon.UnitFile))
@@ -262,7 +275,7 @@ func installAgentUnit(ctx *modules.Context) error {
 	})
 }
 
-// What was up before a boot comes back after it: a oneshot of its own, outside the daemon's sandbox.
+// A oneshot of its own, outside the daemon's sandbox, brings back what was up before a boot.
 func installResumeUnit(ctx *modules.Context) error {
 	return ctx.Step("install-resume-unit", func() (modules.Outcome, error) {
 		if file.Same(ctx, daemon.ResumeUnitPath, []byte(daemon.ResumeUnitFile)) {

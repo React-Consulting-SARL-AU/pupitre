@@ -1,12 +1,4 @@
-/**
- * The same colours as `tokens.css`, for the consumers that cannot read CSS.
- *
- * The Electron main process paints the native window before any stylesheet
- * exists, and a canvas has no computed style to ask. Both need the values as
- * data. `tokens.test.ts` checks these records against the frontmatter of
- * `docs/product/DESIGN.md`, the same source `tokens.css` is checked against, so
- * the two forms cannot drift apart.
- */
+// tokens.css as data, for what paints before any stylesheet exists (Electron window, canvas).
 export interface ThemeColors {
   base: string
   surface: string
@@ -67,7 +59,7 @@ export const DARK: ThemeColors = {
   "frost-soft": "#5a97cf",
 }
 
-export interface Typography {
+interface Typography {
   ui: { fontFamily: string; fontSize: string; lineHeight: number }
   data: { fontFamily: string; fontSize: string }
   label: { fontSize: string; letterSpacing: string; textTransform: string }
@@ -97,7 +89,7 @@ export const TYPOGRAPHY: Typography = {
   },
 }
 
-export interface Radius {
+interface Radius {
   xs: string
   sm: string
   md: string
@@ -115,10 +107,7 @@ export const RADIUS: Radius = {
   full: "999px",
 }
 
-/**
- * A 4 px scale, plus the two distances that carry the hierarchy: `gutter`
- * between the blocks of one group, `section` between two sections.
- */
+// `gutter` separates the blocks of one group, `section` two sections.
 export const SPACE: Readonly<Record<string, string>> = {
   1: "4px",
   2: "8px",
@@ -131,46 +120,4 @@ export const SPACE: Readonly<Record<string, string>> = {
   24: "96px",
   gutter: "20px",
   section: "32px",
-}
-
-export interface Elevation {
-  flat: string
-  raised: string
-  overlay: string
-}
-
-export const SHADOW_LIGHT: Elevation = {
-  flat: "none",
-  raised: "0 1px 2px rgb(0 0 0 / .05), 0 1px 3px rgb(0 0 0 / .06)",
-  overlay: "0 4px 12px rgb(0 0 0 / .08), 0 12px 32px rgb(0 0 0 / .10)",
-}
-
-export const SHADOW_DARK: Elevation = {
-  flat: "none",
-  raised: "0 1px 2px rgb(0 0 0 / .5), 0 1px 3px rgb(0 0 0 / .4)",
-  overlay: "0 4px 12px rgb(0 0 0 / .5), 0 12px 32px rgb(0 0 0 / .55)",
-}
-
-export interface Motion {
-  fast: string
-  soft: string
-  /** What arrives on screen. */
-  enter: string
-  /** What leaves it, always shorter than what arrives. */
-  exit: string
-  /** The interval between two siblings of one cascade. */
-  stagger: string
-  breathe: string
-  /** The turn of the disc that says a gesture is still working. */
-  spinner: string
-}
-
-export const MOTION: Motion = {
-  fast: "120ms ease",
-  soft: "180ms cubic-bezier(.2,.6,.3,1)",
-  enter: "320ms cubic-bezier(.16,.84,.44,1)",
-  exit: "160ms cubic-bezier(.4,0,1,1)",
-  stagger: "40ms",
-  breathe: "1.6s ease-in-out infinite",
-  spinner: "0.9s linear infinite",
 }

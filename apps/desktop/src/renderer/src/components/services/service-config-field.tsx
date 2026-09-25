@@ -7,15 +7,7 @@ import { ConfigZoneField } from "@renderer/components/config/config-zone-field";
 import type { CloudflareZone } from "@shared/cloudflare";
 import type { SecretMark } from "@shared/secrets";
 
-/**
- * One field of an installed module — and, for the domain of an exposure, the
- * account's zones to pick it from, above the field itself.
- *
- * The pick fills the domain; the field stays typed, since the domain may be a
- * subdomain of the zone, one per server. Changing it is what moves every
- * project's name: the agent carries the routes under the new domain, and the
- * app moves the records.
- */
+/** The domain stays typed beside the zone pick: it may be a subdomain of the zone. */
 export function ServiceConfigField({
   field,
   moduleId,
@@ -28,12 +20,10 @@ export function ServiceConfigField({
 }: {
   field: Field;
   moduleId: string;
-  /** The zones of the connected account, when the module publishes through one. */
   zones: readonly CloudflareZone[];
   value: unknown;
   marks?: Record<string, SecretMark>;
   held: readonly string[];
-  /** Why the value is refused, in the words of whoever refused it. */
   problem?: string;
   handlers: FieldHandlers;
 }) {

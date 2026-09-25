@@ -2,12 +2,11 @@ import { getSearchQuery, type SearchQuery, search } from "@codemirror/search";
 import type { EditorState, Extension } from "@codemirror/state";
 import type { EditorView, Panel } from "@codemirror/view";
 
-/** Past this many matches the count stops: the reader wants a number, not a wait. */
+/** Counting stops here so a huge file never stalls the panel. */
 export const MATCH_CAP = 1000;
 
 export interface Matches {
   total: number;
-  /** The rank of the match under the cursor, when the cursor sits on one. */
   current: number | null;
   capped: boolean;
 }
@@ -17,7 +16,6 @@ export interface SearchSnapshot {
   matches: Matches;
 }
 
-/** What the search panel reads from the editor, and how it hears of a change. */
 export interface SearchPanelHandle {
   dom: HTMLElement;
   view: EditorView;
@@ -56,14 +54,6 @@ function snapshotOf(state: EditorState): SearchSnapshot {
   return { matches: countMatches(state, query), query };
 }
 
-/**
- * The search extension with the app's own panel in place of CodeMirror's.
- *
- * CodeMirror owns the panel's place and its DOM node; the app renders into
- * the node once it is mounted and stops when it is destroyed. Every change
- * the panel shows — the query, the text, the cursor — is read from the
- * editor's state and pushed to whoever listens.
- */
 export function searchPanel(watch: {
   open: (panel: SearchPanelHandle) => void;
   close: () => void;

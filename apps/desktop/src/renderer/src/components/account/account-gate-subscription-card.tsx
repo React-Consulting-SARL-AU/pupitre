@@ -6,12 +6,6 @@ import type { AccountIdentity } from "@shared/account";
 import { ExternalLink, LogOut, RotateCw } from "lucide-react";
 import { billingUrlOf } from "./account-subscription-card";
 
-/**
- * The gate of an account that is signed in but has no right to work: the
- * organization holds no plan, or its plan stopped. Signing in again would
- * change nothing, so the card sends to the console's billing and offers to
- * read the platform again once that is settled.
- */
 export function AccountGateSubscriptionCard({
   identity,
   reason,
@@ -47,7 +41,7 @@ export function AccountGateSubscriptionCard({
       </div>
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-line border-t pt-4">
-        <p className="min-w-0 truncate font-data text-[12px] text-ink-3">
+        <p className="min-w-0 truncate font-data text-ink-3 text-small">
           {t("account.gate.signedInAs", { email: identity.email })}
         </p>
         <ConfirmButton

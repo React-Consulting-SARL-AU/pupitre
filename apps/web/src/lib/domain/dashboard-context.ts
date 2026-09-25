@@ -11,7 +11,6 @@ export interface DashboardOrganization {
 }
 
 export interface DashboardActiveOrganization extends DashboardOrganization {
-  /** What the platform wrote when it suspended, closed or scheduled the erasure; null while the organisation is active. */
   reason: string | null
 }
 
@@ -27,8 +26,8 @@ export interface DashboardContextValue {
   activeOrganization: DashboardActiveOrganization | null
   role: OrgRole | null
   entitlement: string
-  /** The role held in the platform organization: it opens the platform pages whatever the active organisation. */
   platformRole: OrgRole | null
+  platformCanAct: boolean
 }
 
 export const DashboardContext = createContext<DashboardContextValue | null>(

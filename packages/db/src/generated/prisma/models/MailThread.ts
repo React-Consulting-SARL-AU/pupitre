@@ -38,6 +38,10 @@ export type MailThreadMinAggregateOutputType = {
   lastInboundAt: Date | null
   lastInboundAutomated: boolean | null
   lastOutboundAt: Date | null
+  senderEmail: string | null
+  senderName: string | null
+  senderAuthenticated: boolean | null
+  snippet: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -56,6 +60,10 @@ export type MailThreadMaxAggregateOutputType = {
   lastInboundAt: Date | null
   lastInboundAutomated: boolean | null
   lastOutboundAt: Date | null
+  senderEmail: string | null
+  senderName: string | null
+  senderAuthenticated: boolean | null
+  snippet: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -74,6 +82,10 @@ export type MailThreadCountAggregateOutputType = {
   lastInboundAt: number
   lastInboundAutomated: number
   lastOutboundAt: number
+  senderEmail: number
+  senderName: number
+  senderAuthenticated: number
+  snippet: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -94,6 +106,10 @@ export type MailThreadMinAggregateInputType = {
   lastInboundAt?: true
   lastInboundAutomated?: true
   lastOutboundAt?: true
+  senderEmail?: true
+  senderName?: true
+  senderAuthenticated?: true
+  snippet?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -112,6 +128,10 @@ export type MailThreadMaxAggregateInputType = {
   lastInboundAt?: true
   lastInboundAutomated?: true
   lastOutboundAt?: true
+  senderEmail?: true
+  senderName?: true
+  senderAuthenticated?: true
+  snippet?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -130,6 +150,10 @@ export type MailThreadCountAggregateInputType = {
   lastInboundAt?: true
   lastInboundAutomated?: true
   lastOutboundAt?: true
+  senderEmail?: true
+  senderName?: true
+  senderAuthenticated?: true
+  snippet?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -221,6 +245,10 @@ export type MailThreadGroupByOutputType = {
   lastInboundAt: Date | null
   lastInboundAutomated: boolean
   lastOutboundAt: Date | null
+  senderEmail: string | null
+  senderName: string | null
+  senderAuthenticated: boolean
+  snippet: string | null
   createdAt: Date
   updatedAt: Date
   _count: MailThreadCountAggregateOutputType | null
@@ -260,6 +288,10 @@ export type MailThreadWhereInput = {
   lastInboundAt?: Prisma.DateTimeNullableFilter<"MailThread"> | Date | string | null
   lastInboundAutomated?: Prisma.BoolFilter<"MailThread"> | boolean
   lastOutboundAt?: Prisma.DateTimeNullableFilter<"MailThread"> | Date | string | null
+  senderEmail?: Prisma.StringNullableFilter<"MailThread"> | string | null
+  senderName?: Prisma.StringNullableFilter<"MailThread"> | string | null
+  senderAuthenticated?: Prisma.BoolFilter<"MailThread"> | boolean
+  snippet?: Prisma.StringNullableFilter<"MailThread"> | string | null
   createdAt?: Prisma.DateTimeFilter<"MailThread"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"MailThread"> | Date | string
   mailbox?: Prisma.XOR<Prisma.MailMailboxNullableScalarRelationFilter, Prisma.MailMailboxWhereInput> | null
@@ -284,6 +316,10 @@ export type MailThreadOrderByWithRelationInput = {
   lastInboundAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastInboundAutomated?: Prisma.SortOrder
   lastOutboundAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  senderEmail?: Prisma.SortOrderInput | Prisma.SortOrder
+  senderName?: Prisma.SortOrderInput | Prisma.SortOrder
+  senderAuthenticated?: Prisma.SortOrder
+  snippet?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   mailbox?: Prisma.MailMailboxOrderByWithRelationInput
@@ -311,6 +347,10 @@ export type MailThreadWhereUniqueInput = Prisma.AtLeast<{
   lastInboundAt?: Prisma.DateTimeNullableFilter<"MailThread"> | Date | string | null
   lastInboundAutomated?: Prisma.BoolFilter<"MailThread"> | boolean
   lastOutboundAt?: Prisma.DateTimeNullableFilter<"MailThread"> | Date | string | null
+  senderEmail?: Prisma.StringNullableFilter<"MailThread"> | string | null
+  senderName?: Prisma.StringNullableFilter<"MailThread"> | string | null
+  senderAuthenticated?: Prisma.BoolFilter<"MailThread"> | boolean
+  snippet?: Prisma.StringNullableFilter<"MailThread"> | string | null
   createdAt?: Prisma.DateTimeFilter<"MailThread"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"MailThread"> | Date | string
   mailbox?: Prisma.XOR<Prisma.MailMailboxNullableScalarRelationFilter, Prisma.MailMailboxWhereInput> | null
@@ -335,6 +375,10 @@ export type MailThreadOrderByWithAggregationInput = {
   lastInboundAt?: Prisma.SortOrderInput | Prisma.SortOrder
   lastInboundAutomated?: Prisma.SortOrder
   lastOutboundAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  senderEmail?: Prisma.SortOrderInput | Prisma.SortOrder
+  senderName?: Prisma.SortOrderInput | Prisma.SortOrder
+  senderAuthenticated?: Prisma.SortOrder
+  snippet?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.MailThreadCountOrderByAggregateInput
@@ -359,6 +403,10 @@ export type MailThreadScalarWhereWithAggregatesInput = {
   lastInboundAt?: Prisma.DateTimeNullableWithAggregatesFilter<"MailThread"> | Date | string | null
   lastInboundAutomated?: Prisma.BoolWithAggregatesFilter<"MailThread"> | boolean
   lastOutboundAt?: Prisma.DateTimeNullableWithAggregatesFilter<"MailThread"> | Date | string | null
+  senderEmail?: Prisma.StringNullableWithAggregatesFilter<"MailThread"> | string | null
+  senderName?: Prisma.StringNullableWithAggregatesFilter<"MailThread"> | string | null
+  senderAuthenticated?: Prisma.BoolWithAggregatesFilter<"MailThread"> | boolean
+  snippet?: Prisma.StringNullableWithAggregatesFilter<"MailThread"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"MailThread"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"MailThread"> | Date | string
 }
@@ -375,6 +423,10 @@ export type MailThreadCreateInput = {
   lastInboundAt?: Date | string | null
   lastInboundAutomated?: boolean
   lastOutboundAt?: Date | string | null
+  senderEmail?: string | null
+  senderName?: string | null
+  senderAuthenticated?: boolean
+  snippet?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   mailbox?: Prisma.MailMailboxCreateNestedOneWithoutThreadsInput
@@ -399,6 +451,10 @@ export type MailThreadUncheckedCreateInput = {
   lastInboundAt?: Date | string | null
   lastInboundAutomated?: boolean
   lastOutboundAt?: Date | string | null
+  senderEmail?: string | null
+  senderName?: string | null
+  senderAuthenticated?: boolean
+  snippet?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   messages?: Prisma.MailMessageUncheckedCreateNestedManyWithoutThreadInput
@@ -419,6 +475,10 @@ export type MailThreadUpdateInput = {
   lastInboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInboundAutomated?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastOutboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  senderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderAuthenticated?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  snippet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   mailbox?: Prisma.MailMailboxUpdateOneWithoutThreadsNestedInput
@@ -443,6 +503,10 @@ export type MailThreadUncheckedUpdateInput = {
   lastInboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInboundAutomated?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastOutboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  senderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderAuthenticated?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  snippet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   messages?: Prisma.MailMessageUncheckedUpdateManyWithoutThreadNestedInput
@@ -465,6 +529,10 @@ export type MailThreadCreateManyInput = {
   lastInboundAt?: Date | string | null
   lastInboundAutomated?: boolean
   lastOutboundAt?: Date | string | null
+  senderEmail?: string | null
+  senderName?: string | null
+  senderAuthenticated?: boolean
+  snippet?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -481,6 +549,10 @@ export type MailThreadUpdateManyMutationInput = {
   lastInboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInboundAutomated?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastOutboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  senderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderAuthenticated?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  snippet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -499,6 +571,10 @@ export type MailThreadUncheckedUpdateManyInput = {
   lastInboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInboundAutomated?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastOutboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  senderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderAuthenticated?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  snippet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -527,6 +603,10 @@ export type MailThreadCountOrderByAggregateInput = {
   lastInboundAt?: Prisma.SortOrder
   lastInboundAutomated?: Prisma.SortOrder
   lastOutboundAt?: Prisma.SortOrder
+  senderEmail?: Prisma.SortOrder
+  senderName?: Prisma.SortOrder
+  senderAuthenticated?: Prisma.SortOrder
+  snippet?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -545,6 +625,10 @@ export type MailThreadMaxOrderByAggregateInput = {
   lastInboundAt?: Prisma.SortOrder
   lastInboundAutomated?: Prisma.SortOrder
   lastOutboundAt?: Prisma.SortOrder
+  senderEmail?: Prisma.SortOrder
+  senderName?: Prisma.SortOrder
+  senderAuthenticated?: Prisma.SortOrder
+  snippet?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -563,6 +647,10 @@ export type MailThreadMinOrderByAggregateInput = {
   lastInboundAt?: Prisma.SortOrder
   lastInboundAutomated?: Prisma.SortOrder
   lastOutboundAt?: Prisma.SortOrder
+  senderEmail?: Prisma.SortOrder
+  senderName?: Prisma.SortOrder
+  senderAuthenticated?: Prisma.SortOrder
+  snippet?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -728,6 +816,10 @@ export type MailThreadCreateWithoutLinkedOrganizationInput = {
   lastInboundAt?: Date | string | null
   lastInboundAutomated?: boolean
   lastOutboundAt?: Date | string | null
+  senderEmail?: string | null
+  senderName?: string | null
+  senderAuthenticated?: boolean
+  snippet?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   mailbox?: Prisma.MailMailboxCreateNestedOneWithoutThreadsInput
@@ -750,6 +842,10 @@ export type MailThreadUncheckedCreateWithoutLinkedOrganizationInput = {
   lastInboundAt?: Date | string | null
   lastInboundAutomated?: boolean
   lastOutboundAt?: Date | string | null
+  senderEmail?: string | null
+  senderName?: string | null
+  senderAuthenticated?: boolean
+  snippet?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   messages?: Prisma.MailMessageUncheckedCreateNestedManyWithoutThreadInput
@@ -800,6 +896,10 @@ export type MailThreadScalarWhereInput = {
   lastInboundAt?: Prisma.DateTimeNullableFilter<"MailThread"> | Date | string | null
   lastInboundAutomated?: Prisma.BoolFilter<"MailThread"> | boolean
   lastOutboundAt?: Prisma.DateTimeNullableFilter<"MailThread"> | Date | string | null
+  senderEmail?: Prisma.StringNullableFilter<"MailThread"> | string | null
+  senderName?: Prisma.StringNullableFilter<"MailThread"> | string | null
+  senderAuthenticated?: Prisma.BoolFilter<"MailThread"> | boolean
+  snippet?: Prisma.StringNullableFilter<"MailThread"> | string | null
   createdAt?: Prisma.DateTimeFilter<"MailThread"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"MailThread"> | Date | string
 }
@@ -816,6 +916,10 @@ export type MailThreadCreateWithoutMailboxInput = {
   lastInboundAt?: Date | string | null
   lastInboundAutomated?: boolean
   lastOutboundAt?: Date | string | null
+  senderEmail?: string | null
+  senderName?: string | null
+  senderAuthenticated?: boolean
+  snippet?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   linkedOrganization?: Prisma.OrganizationCreateNestedOneWithoutMailThreadsInput
@@ -838,6 +942,10 @@ export type MailThreadUncheckedCreateWithoutMailboxInput = {
   lastInboundAt?: Date | string | null
   lastInboundAutomated?: boolean
   lastOutboundAt?: Date | string | null
+  senderEmail?: string | null
+  senderName?: string | null
+  senderAuthenticated?: boolean
+  snippet?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   messages?: Prisma.MailMessageUncheckedCreateNestedManyWithoutThreadInput
@@ -883,6 +991,10 @@ export type MailThreadCreateWithoutNotesInput = {
   lastInboundAt?: Date | string | null
   lastInboundAutomated?: boolean
   lastOutboundAt?: Date | string | null
+  senderEmail?: string | null
+  senderName?: string | null
+  senderAuthenticated?: boolean
+  snippet?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   mailbox?: Prisma.MailMailboxCreateNestedOneWithoutThreadsInput
@@ -906,6 +1018,10 @@ export type MailThreadUncheckedCreateWithoutNotesInput = {
   lastInboundAt?: Date | string | null
   lastInboundAutomated?: boolean
   lastOutboundAt?: Date | string | null
+  senderEmail?: string | null
+  senderName?: string | null
+  senderAuthenticated?: boolean
+  snippet?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   messages?: Prisma.MailMessageUncheckedCreateNestedManyWithoutThreadInput
@@ -941,6 +1057,10 @@ export type MailThreadUpdateWithoutNotesInput = {
   lastInboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInboundAutomated?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastOutboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  senderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderAuthenticated?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  snippet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   mailbox?: Prisma.MailMailboxUpdateOneWithoutThreadsNestedInput
@@ -964,6 +1084,10 @@ export type MailThreadUncheckedUpdateWithoutNotesInput = {
   lastInboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInboundAutomated?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastOutboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  senderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderAuthenticated?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  snippet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   messages?: Prisma.MailMessageUncheckedUpdateManyWithoutThreadNestedInput
@@ -983,6 +1107,10 @@ export type MailThreadCreateWithoutDraftInput = {
   lastInboundAt?: Date | string | null
   lastInboundAutomated?: boolean
   lastOutboundAt?: Date | string | null
+  senderEmail?: string | null
+  senderName?: string | null
+  senderAuthenticated?: boolean
+  snippet?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   mailbox?: Prisma.MailMailboxCreateNestedOneWithoutThreadsInput
@@ -1006,6 +1134,10 @@ export type MailThreadUncheckedCreateWithoutDraftInput = {
   lastInboundAt?: Date | string | null
   lastInboundAutomated?: boolean
   lastOutboundAt?: Date | string | null
+  senderEmail?: string | null
+  senderName?: string | null
+  senderAuthenticated?: boolean
+  snippet?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   messages?: Prisma.MailMessageUncheckedCreateNestedManyWithoutThreadInput
@@ -1041,6 +1173,10 @@ export type MailThreadUpdateWithoutDraftInput = {
   lastInboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInboundAutomated?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastOutboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  senderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderAuthenticated?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  snippet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   mailbox?: Prisma.MailMailboxUpdateOneWithoutThreadsNestedInput
@@ -1064,6 +1200,10 @@ export type MailThreadUncheckedUpdateWithoutDraftInput = {
   lastInboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInboundAutomated?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastOutboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  senderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderAuthenticated?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  snippet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   messages?: Prisma.MailMessageUncheckedUpdateManyWithoutThreadNestedInput
@@ -1083,6 +1223,10 @@ export type MailThreadCreateWithoutActivitiesInput = {
   lastInboundAt?: Date | string | null
   lastInboundAutomated?: boolean
   lastOutboundAt?: Date | string | null
+  senderEmail?: string | null
+  senderName?: string | null
+  senderAuthenticated?: boolean
+  snippet?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   mailbox?: Prisma.MailMailboxCreateNestedOneWithoutThreadsInput
@@ -1106,6 +1250,10 @@ export type MailThreadUncheckedCreateWithoutActivitiesInput = {
   lastInboundAt?: Date | string | null
   lastInboundAutomated?: boolean
   lastOutboundAt?: Date | string | null
+  senderEmail?: string | null
+  senderName?: string | null
+  senderAuthenticated?: boolean
+  snippet?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   messages?: Prisma.MailMessageUncheckedCreateNestedManyWithoutThreadInput
@@ -1141,6 +1289,10 @@ export type MailThreadUpdateWithoutActivitiesInput = {
   lastInboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInboundAutomated?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastOutboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  senderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderAuthenticated?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  snippet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   mailbox?: Prisma.MailMailboxUpdateOneWithoutThreadsNestedInput
@@ -1164,6 +1316,10 @@ export type MailThreadUncheckedUpdateWithoutActivitiesInput = {
   lastInboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInboundAutomated?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastOutboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  senderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderAuthenticated?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  snippet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   messages?: Prisma.MailMessageUncheckedUpdateManyWithoutThreadNestedInput
@@ -1183,6 +1339,10 @@ export type MailThreadCreateWithoutMessagesInput = {
   lastInboundAt?: Date | string | null
   lastInboundAutomated?: boolean
   lastOutboundAt?: Date | string | null
+  senderEmail?: string | null
+  senderName?: string | null
+  senderAuthenticated?: boolean
+  snippet?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   mailbox?: Prisma.MailMailboxCreateNestedOneWithoutThreadsInput
@@ -1206,6 +1366,10 @@ export type MailThreadUncheckedCreateWithoutMessagesInput = {
   lastInboundAt?: Date | string | null
   lastInboundAutomated?: boolean
   lastOutboundAt?: Date | string | null
+  senderEmail?: string | null
+  senderName?: string | null
+  senderAuthenticated?: boolean
+  snippet?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   notes?: Prisma.MailNoteUncheckedCreateNestedManyWithoutThreadInput
@@ -1241,6 +1405,10 @@ export type MailThreadUpdateWithoutMessagesInput = {
   lastInboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInboundAutomated?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastOutboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  senderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderAuthenticated?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  snippet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   mailbox?: Prisma.MailMailboxUpdateOneWithoutThreadsNestedInput
@@ -1264,6 +1432,10 @@ export type MailThreadUncheckedUpdateWithoutMessagesInput = {
   lastInboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInboundAutomated?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastOutboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  senderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderAuthenticated?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  snippet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   notes?: Prisma.MailNoteUncheckedUpdateManyWithoutThreadNestedInput
@@ -1284,6 +1456,10 @@ export type MailThreadCreateManyLinkedOrganizationInput = {
   lastInboundAt?: Date | string | null
   lastInboundAutomated?: boolean
   lastOutboundAt?: Date | string | null
+  senderEmail?: string | null
+  senderName?: string | null
+  senderAuthenticated?: boolean
+  snippet?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1300,6 +1476,10 @@ export type MailThreadUpdateWithoutLinkedOrganizationInput = {
   lastInboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInboundAutomated?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastOutboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  senderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderAuthenticated?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  snippet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   mailbox?: Prisma.MailMailboxUpdateOneWithoutThreadsNestedInput
@@ -1322,6 +1502,10 @@ export type MailThreadUncheckedUpdateWithoutLinkedOrganizationInput = {
   lastInboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInboundAutomated?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastOutboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  senderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderAuthenticated?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  snippet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   messages?: Prisma.MailMessageUncheckedUpdateManyWithoutThreadNestedInput
@@ -1343,6 +1527,10 @@ export type MailThreadUncheckedUpdateManyWithoutLinkedOrganizationInput = {
   lastInboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInboundAutomated?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastOutboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  senderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderAuthenticated?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  snippet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1360,6 +1548,10 @@ export type MailThreadCreateManyMailboxInput = {
   lastInboundAt?: Date | string | null
   lastInboundAutomated?: boolean
   lastOutboundAt?: Date | string | null
+  senderEmail?: string | null
+  senderName?: string | null
+  senderAuthenticated?: boolean
+  snippet?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -1376,6 +1568,10 @@ export type MailThreadUpdateWithoutMailboxInput = {
   lastInboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInboundAutomated?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastOutboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  senderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderAuthenticated?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  snippet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   linkedOrganization?: Prisma.OrganizationUpdateOneWithoutMailThreadsNestedInput
@@ -1398,6 +1594,10 @@ export type MailThreadUncheckedUpdateWithoutMailboxInput = {
   lastInboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInboundAutomated?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastOutboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  senderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderAuthenticated?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  snippet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   messages?: Prisma.MailMessageUncheckedUpdateManyWithoutThreadNestedInput
@@ -1419,6 +1619,10 @@ export type MailThreadUncheckedUpdateManyWithoutMailboxInput = {
   lastInboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   lastInboundAutomated?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lastOutboundAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  senderEmail?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  senderAuthenticated?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  snippet?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -1486,6 +1690,10 @@ export type MailThreadSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   lastInboundAt?: boolean
   lastInboundAutomated?: boolean
   lastOutboundAt?: boolean
+  senderEmail?: boolean
+  senderName?: boolean
+  senderAuthenticated?: boolean
+  snippet?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   mailbox?: boolean | Prisma.MailThread$mailboxArgs<ExtArgs>
@@ -1511,6 +1719,10 @@ export type MailThreadSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   lastInboundAt?: boolean
   lastInboundAutomated?: boolean
   lastOutboundAt?: boolean
+  senderEmail?: boolean
+  senderName?: boolean
+  senderAuthenticated?: boolean
+  snippet?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   mailbox?: boolean | Prisma.MailThread$mailboxArgs<ExtArgs>
@@ -1531,6 +1743,10 @@ export type MailThreadSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   lastInboundAt?: boolean
   lastInboundAutomated?: boolean
   lastOutboundAt?: boolean
+  senderEmail?: boolean
+  senderName?: boolean
+  senderAuthenticated?: boolean
+  snippet?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   mailbox?: boolean | Prisma.MailThread$mailboxArgs<ExtArgs>
@@ -1551,11 +1767,15 @@ export type MailThreadSelectScalar = {
   lastInboundAt?: boolean
   lastInboundAutomated?: boolean
   lastOutboundAt?: boolean
+  senderEmail?: boolean
+  senderName?: boolean
+  senderAuthenticated?: boolean
+  snippet?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type MailThreadOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "address" | "mailboxId" | "subject" | "normalizedSubject" | "status" | "unread" | "assignedUserId" | "contactUserId" | "linkedOrganizationId" | "lastInboundAt" | "lastInboundAutomated" | "lastOutboundAt" | "createdAt" | "updatedAt", ExtArgs["result"]["mailThread"]>
+export type MailThreadOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "address" | "mailboxId" | "subject" | "normalizedSubject" | "status" | "unread" | "assignedUserId" | "contactUserId" | "linkedOrganizationId" | "lastInboundAt" | "lastInboundAutomated" | "lastOutboundAt" | "senderEmail" | "senderName" | "senderAuthenticated" | "snippet" | "createdAt" | "updatedAt", ExtArgs["result"]["mailThread"]>
 export type MailThreadInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   mailbox?: boolean | Prisma.MailThread$mailboxArgs<ExtArgs>
   linkedOrganization?: boolean | Prisma.MailThread$linkedOrganizationArgs<ExtArgs>
@@ -1587,7 +1807,7 @@ export type $MailThreadPayload<ExtArgs extends runtime.Types.Extensions.Internal
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     /**
-     * The envelope's truth; the mailbox is what we declared, and may be missing.
+     * The envelope address; the declared mailbox may be missing.
      */
     address: string
     mailboxId: string | null
@@ -1600,11 +1820,23 @@ export type $MailThreadPayload<ExtArgs extends runtime.Types.Extensions.Internal
     linkedOrganizationId: string | null
     lastInboundAt: Date | null
     /**
-     * Whether the last mail that came in was a bounce, a blast or an auto-reply:
-     * the open view hides those, and no `some`/`none` filter can say "the last one".
+     * Denormalized because no `some`/`none` filter can target the last inbound mail.
      */
     lastInboundAutomated: boolean
     lastOutboundAt: Date | null
+    /**
+     * Last inbound sender, or the recipient of a thread we started.
+     */
+    senderEmail: string | null
+    senderName: string | null
+    /**
+     * Passed DMARC, or an aligned DKIM or SPF check, at the receiving MX.
+     */
+    senderAuthenticated: boolean
+    /**
+     * Copied from the last message so the list never reads messages.
+     */
+    snippet: string | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["mailThread"]>
@@ -2049,6 +2281,10 @@ export interface MailThreadFieldRefs {
   readonly lastInboundAt: Prisma.FieldRef<"MailThread", 'DateTime'>
   readonly lastInboundAutomated: Prisma.FieldRef<"MailThread", 'Boolean'>
   readonly lastOutboundAt: Prisma.FieldRef<"MailThread", 'DateTime'>
+  readonly senderEmail: Prisma.FieldRef<"MailThread", 'String'>
+  readonly senderName: Prisma.FieldRef<"MailThread", 'String'>
+  readonly senderAuthenticated: Prisma.FieldRef<"MailThread", 'Boolean'>
+  readonly snippet: Prisma.FieldRef<"MailThread", 'String'>
   readonly createdAt: Prisma.FieldRef<"MailThread", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"MailThread", 'DateTime'>
 }

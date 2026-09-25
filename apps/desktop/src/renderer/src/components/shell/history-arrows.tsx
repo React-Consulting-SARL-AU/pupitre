@@ -4,13 +4,6 @@ import { historyChord } from "@renderer/lib/history-shortcuts";
 import { isMac } from "@renderer/lib/platform";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-/**
- * The two arrows of a browser, in the band above the screens.
- *
- * They walk the app's own history — the views the reader went through — and
- * an arrow with nowhere to go fades rather than disappears, so the band keeps
- * its shape and the hand finds it where it was.
- */
 export function HistoryArrows({
   canGoBack,
   canGoForward,

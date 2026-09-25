@@ -6,13 +6,7 @@ import { Button } from "../ui/button";
 import { EmptyState } from "../ui/empty-state";
 import { Screen } from "../ui/screen";
 
-/**
- * The server's own terminals — the projects' ones live on their page.
- *
- * Sessions survive unmounting: it is the `lib/terminals` registry that holds
- * them, not React. With none open, the screen says so and offers the one
- * gesture that changes that.
- */
+/** Sessions outlive this screen: the `lib/terminals` registry holds them, not React. */
 export function ServerTerminalsScreen({
   serverName,
   terminals,
@@ -43,7 +37,6 @@ export function ServerTerminalsScreen({
               {t("app.terminals.empty.action")}
             </Button>
           }
-          detail={t("app.terminals.empty.detail")}
           icon={SquareTerminal}
           title={t("app.terminals.empty.title")}
         />

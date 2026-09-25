@@ -39,6 +39,7 @@ async function registerPasskey(
   }>("GET", "/passkey/generate-register-options", undefined, bearer)
 
   expect(options.status).toBe(200)
+
   jar.absorb(options.raw)
 
   const verified = await authRequest<Passkey>(
@@ -64,6 +65,7 @@ async function signInWithPasskey(
   )
 
   expect(options.status).toBe(200)
+
   jar.absorb(options.raw)
 
   const assertion = await authenticator.authenticate(options.json)

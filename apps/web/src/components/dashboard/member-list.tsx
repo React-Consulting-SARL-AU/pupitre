@@ -68,7 +68,7 @@ export function MemberList() {
         t("memberList.cancelled", { email: target.email }),
       failed: () => ({
         title: t("memberList.cancelFailed"),
-        fix: t("memberList.cancelFailedFix"),
+        fix: t("common.retryLater"),
       }),
     },
   })

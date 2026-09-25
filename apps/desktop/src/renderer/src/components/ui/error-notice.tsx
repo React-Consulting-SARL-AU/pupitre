@@ -6,14 +6,6 @@ import { RotateCw } from "lucide-react";
 import { Button } from "./button";
 import { Callout } from "./callout";
 
-/**
- * What the agent refused, in its own words.
- *
- * `message` and `fix` are printed as they arrived: a remedy rewritten here
- * would describe the machine we imagine rather than the one that answered. The
- * button is what replays the command, when replaying it makes sense, and it
- * waits on the replay so the reader sees it was heard.
- */
 export function ErrorNotice({
   error,
   onRetry,
@@ -24,9 +16,8 @@ export function ErrorNotice({
   bare = false,
 }: {
   error: AgentError;
-  /** Answer with the promise of the replay and the button waits on it. */
   onRetry?: Gesture;
-  /** The replay runs elsewhere: the button spins until it lands. */
+  /** For a replay tracked outside the promise `onRetry` returns. */
   retrying?: boolean;
   retryLabel?: string;
   onDismiss?: () => void;

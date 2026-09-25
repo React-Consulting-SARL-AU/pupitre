@@ -25,11 +25,7 @@ export interface ServerActionsProps {
 
 const REVOKED = "revoked"
 
-/**
- * The deletion the click meant is carried by the call, not read back from the
- * status: the optimistic patch turns the server revoked the instant the first
- * step starts, and the sentence that closes it must still speak of that step.
- */
+// The deletion step rides on the call: the optimistic patch already shows the server revoked.
 export function ServerActions({
   serverId,
   serverName,

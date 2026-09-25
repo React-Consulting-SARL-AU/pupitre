@@ -1,16 +1,10 @@
 import { spawnSync } from "node:child_process"
 
-/**
- * A command a step runs, printed before it runs so a log reads as a script.
- * In a dry run it is printed and nothing else; a secret never appears, because
- * secrets travel in the environment and never on a command line.
- */
-
+// Commands are printed as run: secrets travel in the environment, never on a command line.
 export interface RunOptions {
   cwd?: string
   env?: NodeJS.ProcessEnv
   dryRun?: boolean
-  /** Capture stdout instead of streaming it. */
   capture?: boolean
 }
 

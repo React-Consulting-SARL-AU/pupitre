@@ -19,19 +19,6 @@ import { ServerAddForm } from "./server-add-form";
 import { ServerKeyInstall } from "./server-key-install";
 import { ServerRow } from "./server-row";
 
-/**
- * The servers screen: the machines you drive, and how to add one.
- *
- * Everything that touches a file happens in the main process; this screen shows
- * what it answered. The host key sits above the list rather than inside it,
- * because a refused connection is not a detail of one row: it is the reason
- * nothing works.
- *
- * This is the panel of the settings, where a server is managed: renamed, made
- * active, deleted. A machine the organization grants is one row of the same
- * list, with the console's word among its facts. The assistant has its own
- * screen for the same machines, because choosing one is not managing them.
- */
 export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
   const t = useTranslations();
 
@@ -91,8 +78,7 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
 
     const state = useServers.getState().addition;
 
-    // A refusal keeps the form open, with its remedy: closing it would take the
-    // typed values away along with the explanation.
+    // A refusal keeps the form open so the typed values survive next to the remedy.
     if (state.status !== "added") {
       return;
     }
@@ -100,8 +86,7 @@ export function ServersPanel({ onChanged }: { onChanged?: () => void }) {
     setAdding(false);
     onChanged?.();
 
-    // A system host already opens the machine: there is no key to install and
-    // nothing to wait for.
+    // A system host already opens the machine: there is no key to install.
     if (!state.publicKey) {
       forgetAddition();
     }

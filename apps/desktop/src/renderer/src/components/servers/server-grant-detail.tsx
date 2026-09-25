@@ -7,14 +7,6 @@ import { Fact } from "../ui/fact";
 import type { StatusShape, StatusTone } from "../ui/status-dot";
 import { StatusDot } from "../ui/status-dot";
 
-/**
- * What the console says about a server of the list, among its other facts.
- *
- * A granted machine is one entry, not two: the platform's word sits next to
- * the address and the host key rather than in a list of its own. Three shapes
- * tell the three states apart before the words do.
- */
-
 interface Look {
   shape: StatusShape;
   tone: StatusTone;
@@ -37,7 +29,6 @@ const WITHDRAWN: Look = {
   tone: "danger",
 };
 
-/** The platform's own word for a server, said in the reader's language; an unknown one is said as it came. */
 const STATUS_KEYS: Record<string, DictionaryKey> = {
   active: "fleet.status.active",
   enrolling: "fleet.status.enrolling",

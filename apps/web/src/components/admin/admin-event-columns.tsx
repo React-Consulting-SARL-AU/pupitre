@@ -1,22 +1,11 @@
 import { Link } from "@tanstack/react-router"
 import type { DataColumn } from "@/components/ui/async-data-table"
+import type { AdminEvent } from "@/lib/api/admin-queries"
 import { actionKey, targetKey } from "@/lib/domain/audit"
 import type { Translate } from "@/lib/i18n/i18n"
 import { formatDateTime } from "@/lib/utils/format"
 
-export interface AdminEventRowEvent {
-  id: string
-  action: string
-  target_type: string
-  target_id: string
-  created_at: string
-  organization: { id: string; name: string; slug: string } | null
-  actor: { id: string; email: string; name: string } | null
-}
-
-export function adminEventColumns(
-  t: Translate
-): DataColumn<AdminEventRowEvent>[] {
+export function adminEventColumns(t: Translate): DataColumn<AdminEvent>[] {
   return [
     {
       key: "action",

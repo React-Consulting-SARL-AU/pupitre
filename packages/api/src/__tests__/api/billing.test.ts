@@ -1,5 +1,10 @@
 import { beforeAll, beforeEach, describe, expect, it } from "bun:test"
-import { TRIAL_DAYS, TRIAL_SEATS } from "@pupitre/shared/plans"
+import {
+  LAUNCH_PRODUCT,
+  LAUNCH_SEATS,
+  TRIAL_DAYS,
+  TRIAL_SEATS,
+} from "@pupitre/shared/plans"
 import type { FakeBilling } from "../../lib/billing/fake"
 import { suspendExpiredGrace } from "../../lib/billing/grace"
 import { reconcileSeats } from "../../lib/billing/reconcile"
@@ -163,6 +168,43 @@ describe("facturation d'une organisation", () => {
     })
   })
 
+  it("refuse un second checkout tant qu'un abonnement payé court, vers les sièges ou le portail", async () => {
+    await paySeats(billing, organizationId, 2)
+
+    const response = await apiRequest<ErrorBody>(
+      `/orgs/${organizationId}/checkout`,
+      { body: { quantity: 3, interval: "month" }, session: owner }
+    )
+
+    expect(response.status).toBe(409)
+    expect(response.json.error.code).toBe("conflict")
+    expect(response.json.error.fix).toContain(`/orgs/${organizationId}/seats`)
+    expect(response.json.error.fix).toContain("portal")
+    expect(billing.checkouts).toHaveLength(0)
+  })
+
+  it("ouvre un checkout payé à côté d'un siège gardé du lancement", async () => {
+    const { prisma } = await bootApiTestServer()
+
+    await prisma.subscription.create({
+      data: {
+        organizationId,
+        stripeSubscriptionId: `launch_${organizationId}`,
+        product: LAUNCH_PRODUCT,
+        quantity: LAUNCH_SEATS,
+        status: "active",
+      },
+    })
+
+    const response = await apiRequest<UrlBody>(
+      `/orgs/${organizationId}/checkout`,
+      { body: { quantity: 2, interval: "month" }, session: owner }
+    )
+
+    expect(response.status).toBe(200)
+    expect(billing.checkouts).toHaveLength(1)
+  })
+
   it("ouvre un checkout annuel", async () => {
     await apiRequest(`/orgs/${organizationId}/checkout`, {
       body: { quantity: 1, interval: "year" },
@@ -271,6 +313,30 @@ describe("facturation d'une organisation", () => {
     expect(billing.portals[0].customerId).toBe("cus_seat")
   })
 
+  it("ouvre le portail d'un abonnement payé à côté du siège gardé du lancement", async () => {
+    await paySeats(billing, organizationId, 2)
+
+    const { prisma } = await bootApiTestServer()
+
+    await prisma.subscription.create({
+      data: {
+        organizationId,
+        stripeSubscriptionId: `launch_${organizationId}`,
+        product: LAUNCH_PRODUCT,
+        quantity: LAUNCH_SEATS,
+        status: "active",
+      },
+    })
+
+    const response = await apiRequest<UrlBody>(
+      `/orgs/${organizationId}/portal`,
+      { method: "POST", session: owner }
+    )
+
+    expect(response.status).toBe(200)
+    expect(billing.portals[0]?.customerId).toBe("cus_seat")
+  })
+
   it("montre le miroir de l'abonnement", async () => {
     const before = await apiRequest<SubscriptionBody>(
       `/orgs/${organizationId}/subscription`,
@@ -311,6 +377,41 @@ describe("facturation d'une organisation", () => {
     expect(third.json.error.message).toContain("2")
     expect(third.json.error.fix).toContain("seats")
     expect(third.json.error.fix).toContain(organizationId)
+  })
+
+  it("ajoute le siège gardé du lancement aux sièges payés, quel que soit l'abonnement touché en dernier", async () => {
+    await paySeats(billing, organizationId, 2)
+
+    const { prisma } = await bootApiTestServer()
+
+    await prisma.subscription.create({
+      data: {
+        organizationId,
+        stripeSubscriptionId: `launch_${organizationId}`,
+        product: LAUNCH_PRODUCT,
+        quantity: LAUNCH_SEATS,
+        status: "active",
+      },
+    })
+
+    const device = await addDevice(owner, "poste")
+    const deviceId = device.json.data.id
+    const statuses: number[] = []
+
+    for (const host of ["vps-1", "vps-2", "vps-3", "vps-4"]) {
+      statuses.push(
+        (await enroll(owner, deviceId, `${host}.example.net`)).status
+      )
+    }
+
+    expect(statuses).toEqual([201, 201, 201, 403])
+
+    const resized = await apiRequest<ErrorBody>(
+      `/orgs/${organizationId}/seats`,
+      { body: { quantity: 2 }, session: owner }
+    )
+
+    expect(resized.status).toBe(200)
   })
 
   it("sans aucun abonnement, suspend le droit d'usage et refuse l'enrôlement", async () => {

@@ -32,7 +32,7 @@ Les branches : `staging` est la branche de travail, `main` est la production et 
 | Apple Developer | la signature de l'app macOS | 99 $/an | quelques jours |
 | Azure Trusted Signing | la signature de l'app Windows | à l'usage | quelques jours de vérification |
 
-Les cinq premiers suffisent pour mettre le service en ligne. Les deux derniers ne concernent que la publication de l'app desktop : sans eux elle se construit quand même, non signée, et les systèmes préviennent l'utilisateur au premier lancement.
+Les cinq premiers suffisent pour mettre le service en ligne. Les deux derniers ne concernent que la publication de l'app desktop : sans eux, une release `stable` s'arrête sur le runner macOS ou Windows plutôt que de publier un installateur non signé ; seul un build `beta` ou local sort non signé, et le dit. Exception temporaire : tant qu'Azure n'est pas ouvert, `release.yml` pose `PUPITRE_ALLOW_UNSIGNED_WINDOWS: "1"` et Windows sort non signé en `stable` ([la tâche](./tasks/windows-signing.md)).
 
 ### Les outils
 
@@ -272,7 +272,7 @@ gh api -X PUT repos/<compte>/pupitre/actions/permissions/workflow \
 
 Le squash est interdit parce qu'il réécrit les commits : le commit tagué d'une version sortirait de l'historique de `main`, et `next` compterait depuis le mauvais tag. La seconde commande autorise GitHub Actions à ouvrir des pull requests — *Settings* → *Actions* → *General* → *Allow GitHub Actions to create and approve pull requests* : sans elle, le dernier job de `release.yml` construit tout et ne peut pas fusionner.
 
-**Ce dépôt est privé sur un plan GitHub gratuit**, qui refuse la protection de branche et les relecteurs obligatoires. `main` n'a donc **aucune protection côté serveur** : les hooks du dépôt sont la seule barrière, et ils ne protègent que la machine sur laquelle `bun install` est passé. GitHub Pro lève les deux.
+**Ce dépôt est privé, dans une organisation sur le plan GitHub gratuit**, qui refuse la protection de branche, les rulesets, les checks requis et les relecteurs obligatoires (l'API répond 403). `main` n'a donc **aucune protection côté serveur**. Ce qui tient à la place : les hooks du dépôt, sur la seule machine où `bun install` est passé, et la release elle-même — `release.yml` appelle `ci.yml` avant tout build, et `merge` ne fusionne la pull request `staging` → `main` qu'avec la CI verte sur son commit de tête (voir [`monorepo.md`](./monorepo.md#vérifications)). Une pull request fusionnée à la main n'est tenue par rien. Le message de l'API parle de GitHub Pro, qui vaut pour un compte personnel ; pour une organisation, c'est GitHub Team.
 
 ## 8 bis. La note 1Password de la release
 
@@ -283,11 +283,11 @@ Les runners de `release.yml` lisent leurs secrets dans ceux du dépôt GitHub, e
 | `PUPITRE_PUBLISH_TOKEN` | la même valeur qu'à l'étape 3, mot pour mot | la version se construit et ne se déclare pas |
 | `PUPITRE_RELEASE_PRIVATE_KEY` | `cd apps/agent && go run ./tools/release keygen`, une seule fois | rien ne se construit |
 | `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` | le second jeton R2 de l'étape 3, *Object Read & Write* sur les deux seaux | rien ne monte sur les seaux |
-| `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD` | le certificat Developer ID exporté du trousseau en `.p12`, `base64 -i certificat.p12 \| pbcopy`, et son mot de passe | l'app macOS sort non signée |
-| `APPLE_API_KEY_CONTENT` | `base64 -i AuthKey_<id>.p8 \| pbcopy` | pas de notarisation |
+| `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD` | le certificat Developer ID exporté du trousseau en `.p12`, `base64 -i certificat.p12 \| pbcopy`, et son mot de passe | une release `stable` s'arrête sur macOS |
+| `APPLE_API_KEY_CONTENT` | `base64 -i AuthKey_<id>.p8 \| pbcopy` | idem |
 | `APPLE_API_KEY_ID`, `APPLE_API_ISSUER` | la page *Keys* d'App Store Connect | idem |
 
-Les trois premières lignes suffisent pour publier. Les autres signent et notarisent l'app macOS : le runner importe le certificat dans un trousseau jetable le temps du build. Windows sort non signé tant qu'Azure Trusted Signing n'est pas posé.
+Les trois premières lignes suffisent pour un build `beta`. Les autres signent et notarisent l'app macOS : le runner importe le certificat dans un trousseau jetable le temps du build. Windows demande Azure Trusted Signing — quatre variables `AZURE_SIGNING_*` et trois secrets `AZURE_*`, [`tasks/windows-signing.md`](./tasks/windows-signing.md) : sans eux, une release `stable` s'arrête sur le runner Windows.
 
 **La clé de publication mérite une phrase.** Une seule paire de clés signe tout ce que Pupitre publie, pour toujours. Sa moitié privée est dans cette note et nulle part ailleurs ; sa moitié publique est déjà écrite dans le code de l'app. Les deux vont ensemble : une app qui connaît une clé publique et un agent signé avec une autre refusent toute mise à jour, sans message utile. Ne la régénère pas.
 
@@ -341,6 +341,6 @@ Un retour arrière du Worker se fait sur ses versions : `bun x wrangler rollback
 
 - **Un secret ou un certificat.** Aucun n'entre dans le dépôt, dans un journal de construction ou dans une conversation.
 - **La création des projets Workers Builds**, qui passe par une autorisation GitHub dans le tableau de bord.
-- **La signature Windows** : Azure Trusted Signing n'existe que sur Windows, et la chaîne tourne sur macOS.
+- **Le compte Azure Trusted Signing** : l'identité se fait valider par Microsoft, sur justificatifs ; tant qu'il manque, aucune release `stable` ne sort.
 - **La relecture des notes de version** : `claude -p` les rédige, le propriétaire les lit avant qu'elles soient commitées.
 - **La mise à jour de ce document.** Quand un réglage change dans un tableau de bord, il change ici dans la même passe : c'est la seule trace qu'en garde le dépôt.

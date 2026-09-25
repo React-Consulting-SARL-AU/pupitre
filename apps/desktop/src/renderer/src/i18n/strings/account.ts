@@ -3,14 +3,14 @@ export const account = {
     "account.identity.refresh": "Refresh",
     "account.identity.disconnect": "Sign out",
     "account.identity.disconnectQuestion":
-      "The servers close for this computer and every open terminal with them; the sessions keep running on the machines.",
+      "The servers stay on this computer and their sessions keep running; the app drives no server until the next sign-in.",
     "account.devices.heading": "Devices",
     "account.devices.none": "No device is registered.",
     "account.devices.thisComputer": "this computer",
     "account.devices.self": "signed in here",
     "account.devices.revoke": "Revoke",
     "account.devices.revokeQuestion":
-      "{name} stops opening the servers of this account at the platform's next push.",
+      "{name} stops opening the servers of this account at the console's next push.",
     "account.usage.openConsole": "Open the console",
     "account.usage.manageSubscription": "Manage the subscription",
     "account.usage.choosePlan": "Choose a plan",
@@ -27,16 +27,16 @@ export const account = {
     "account.subscription.trialEndingFix":
       "Choose a plan in the console before it ends, or your servers lose Pupitre — never their projects.",
     "account.subscription.servers": "Servers",
-    "account.subscription.serversOf": "{used} of {limit} seats in use",
+    "account.subscription.serversOf": "{used} of {limit} servers in use",
     "account.subscription.trialEndsOn": "Trial ends on",
     "account.subscription.renewsOn": "Renews on",
     "account.usage.title": "Subscription",
     "account.identity.title": "Account",
     "account.identity.name": "Signed in as",
-    "account.identity.organization": "Organisation",
-    "account.identity.noOrganization": "No active organisation",
+    "account.identity.organization": "Organization",
+    "account.identity.noOrganization": "No active organization",
     "account.identity.unsealed":
-      "This computer's keychain would not keep the session: it will need doing again next time the app starts.",
+      "This computer has no system keychain the app can use: the session will need doing again next time the app starts. On Linux, install and unlock GNOME Keyring or KWallet, then restart Pupitre.",
 
     "account.reading.title": "Reading the account",
     "account.read.failed": "The account could not be read.",
@@ -63,7 +63,7 @@ export const account = {
     "account.signIn.openConsole": "Open the console",
     "account.signIn.startingTitle": "Sign-in request",
     "account.signIn.startingDetail":
-      "The console is preparing a code for this device.",
+      "The console is preparing a code for this computer.",
     "account.signIn.step.browser": "The browser has opened on {url}.",
     "account.signIn.step.approve":
       "Check that the code over there is the one below, and approve it.",
@@ -72,6 +72,7 @@ export const account = {
     "account.signIn.codeLabel": "Waiting for your approval",
     "account.signIn.codeHelp": "Expires after thirty minutes.",
     "account.signIn.reopenBrowser": "Reopen the browser",
+    "account.signIn.cancel": "Cancel signing in",
 
     "account.usage.look.development": "Development build",
     "account.usage.look.valid": "Subscription active",
@@ -86,10 +87,12 @@ export const account = {
       "Checked {since}. Pupitre stays usable for seven days offline.",
     "account.usage.stale":
       "Last check {since}, beyond the seven days of tolerance.",
+    "account.usage.stale.fix":
+      "Connect this computer to the internet, then refresh the account: the console checks the subscription again.",
     "account.usage.suspended":
-      "This organisation's servers can no longer be installed or updated.",
+      "This organization's servers can no longer be installed or updated.",
     "account.usage.unsubscribed":
-      "This organisation's servers cannot be installed or updated until it holds a plan.",
+      "This organization's servers cannot be installed or updated until it holds a plan.",
     "account.usage.none":
       "No server can be installed or updated until an account is connected.",
     "account.usage.validUntil": "valid until {date}",
@@ -98,14 +101,14 @@ export const account = {
     "account.identity.refresh": "Actualiser",
     "account.identity.disconnect": "Se déconnecter",
     "account.identity.disconnectQuestion":
-      "Les serveurs se ferment pour cet ordinateur et chaque terminal ouvert avec eux ; les sessions continuent sur les machines.",
+      "Les serveurs restent sur cet ordinateur et leurs sessions continuent ; l'app ne pilote plus aucun serveur avant la prochaine connexion.",
     "account.devices.heading": "Appareils",
     "account.devices.none": "Aucun appareil n'est enregistré.",
     "account.devices.thisComputer": "cet ordinateur",
     "account.devices.self": "connecté ici",
     "account.devices.revoke": "Révoquer",
     "account.devices.revokeQuestion":
-      "{name} cesse d'ouvrir les serveurs de ce compte à la prochaine poussée de la plateforme.",
+      "{name} cesse d'ouvrir les serveurs de ce compte au prochain push de la console.",
     "account.usage.openConsole": "Ouvrir la console",
     "account.usage.manageSubscription": "Gérer l'abonnement",
     "account.usage.choosePlan": "Choisir une offre",
@@ -122,7 +125,7 @@ export const account = {
     "account.subscription.trialEndingFix":
       "Choisissez une offre dans la console avant la fin, sinon vos serveurs perdent Pupitre — jamais leurs projets.",
     "account.subscription.servers": "Serveurs",
-    "account.subscription.serversOf": "{used} sièges sur {limit} occupés",
+    "account.subscription.serversOf": "{used} sur {limit} serveurs utilisés",
     "account.subscription.trialEndsOn": "Fin de l'essai le",
     "account.subscription.renewsOn": "Renouvellement le",
     "account.usage.title": "Abonnement",
@@ -131,7 +134,7 @@ export const account = {
     "account.identity.organization": "Organisation",
     "account.identity.noOrganization": "Aucune organisation active",
     "account.identity.unsealed":
-      "Le trousseau de cet ordinateur n'a pas accepté de garder la session : elle sera à refaire au prochain démarrage.",
+      "Cet ordinateur n'a pas de trousseau système que l'app puisse utiliser : la session sera à refaire au prochain démarrage. Sous Linux, installez et déverrouillez GNOME Keyring ou KWallet, puis redémarrez Pupitre.",
 
     "account.reading.title": "Lecture du compte",
     "account.read.failed": "Le compte n'a pas pu être lu.",
@@ -159,7 +162,7 @@ export const account = {
     "account.signIn.openConsole": "Ouvrir la console",
     "account.signIn.startingTitle": "Demande de connexion",
     "account.signIn.startingDetail":
-      "La console prépare un code pour cet appareil.",
+      "La console prépare un code pour cet ordinateur.",
     "account.signIn.step.browser": "Le navigateur s'est ouvert sur {url}.",
     "account.signIn.step.approve":
       "Vérifiez que le code affiché là-bas est celui ci-dessous, et approuvez-le.",
@@ -168,6 +171,7 @@ export const account = {
     "account.signIn.codeLabel": "En attente de votre approbation",
     "account.signIn.codeHelp": "Expire au bout de trente minutes.",
     "account.signIn.reopenBrowser": "Rouvrir le navigateur",
+    "account.signIn.cancel": "Annuler la connexion",
 
     "account.usage.look.development": "Build de développement",
     "account.usage.look.valid": "Abonnement actif",
@@ -182,6 +186,8 @@ export const account = {
       "Vérifié {since}. Pupitre reste utilisable sept jours sans connexion.",
     "account.usage.stale":
       "Dernière vérification {since}, au-delà des sept jours de tolérance.",
+    "account.usage.stale.fix":
+      "Reconnectez cet ordinateur à internet, puis actualisez le compte : la console revérifie l'abonnement.",
     "account.usage.suspended":
       "Les serveurs de cette organisation ne peuvent plus être installés ni mis à jour.",
     "account.usage.unsubscribed":

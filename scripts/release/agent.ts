@@ -12,16 +12,7 @@ import {
 import { type Bucket, bucket, get, keys, put } from "./r2"
 import { run } from "./shell"
 
-/**
- * The agent: one static binary per architecture, obfuscated, signed with the
- * release key, then kept in the private bucket with the manifest the app
- * embeds and the rows the platform is told.
- *
- * A version is built once. garble does not reproduce a binary, so a second
- * build would carry other digests than the ones the platform already holds:
- * when the bucket has the version, the build step takes it from there.
- */
-
+// garble builds are not reproducible, so a version already in the bucket is reused, never rebuilt.
 const ROOT = path.resolve(import.meta.dir, "../..")
 
 export const AGENT_DIR = path.join(ROOT, "apps/agent")
@@ -36,7 +27,6 @@ export const AGENT_FILES = [
   "publications.json",
 ]
 
-/** Above this, garble left something readable behind. */
 const READABLE_LIMIT = 10
 
 const NEEDLE = Buffer.from("pupitre")
@@ -57,12 +47,7 @@ function binaryPath(arch: string): string {
   return path.join(AGENT_DIST, `pupitred-linux-${arch}`)
 }
 
-/**
- * The host runs what it built when it is that machine — Linux, same
- * architecture. A Mac runs it through Docker. A Linux host of the other
- * architecture runs nothing: a binary under emulation proves nothing, and
- * the other architecture has its own runner for that.
- */
+// A binary under emulation proves nothing: a Linux host of the other architecture leaves it to its own runner.
 function runner(arch: string): ((argv: string[]) => string) | null {
   const host = hostArch() === "x64" ? "amd64" : hostArch()
 
@@ -126,7 +111,11 @@ function smoke(version: string, publicKey: string): void {
       )
     }
 
-    const hello = exec(["sh", "-c", `echo '${HELLO}' | ${binary} serve`])
+    const hello = exec([
+      "sh",
+      "-c",
+      `echo '${helloFrom(version)}' | ${binary} serve`,
+    ])
 
     if (!hello.includes('"ok":true')) {
       throw new Error(`${binary} does not answer hello.`)
@@ -134,11 +123,14 @@ function smoke(version: string, publicKey: string): void {
   }
 }
 
-const HELLO = JSON.stringify({
-  id: 1,
-  cmd: "hello",
-  params: { app_version: "0.0.0", protocol: PROTOCOL_VERSION },
-})
+// The app of the same release: an agent refuses an app below its compatibility floor.
+export function helloFrom(version: string): string {
+  return JSON.stringify({
+    id: 1,
+    cmd: "hello",
+    params: { app_version: version, protocol: PROTOCOL_VERSION },
+  })
+}
 
 async function alreadyBuilt(version: string, vault: Bucket): Promise<boolean> {
   if (!vault.client) {
@@ -188,7 +180,6 @@ export async function buildAgent(
   smokeAgent(env)
 }
 
-/** The binaries in place, tried on this machine: what it can run, it runs; the rest is another runner's. */
 export function smokeAgent(env: NodeJS.ProcessEnv): void {
   const publicKey = run(["go", "run", "./tools/release", "public-key"], {
     capture: true,
@@ -210,7 +201,7 @@ export function readAgentPublications(file: string): AgentPublication[] {
   return publications
 }
 
-/** The bucket first: the platform hands out a signed URL as soon as the row exists. */
+// The bucket first: the platform hands out a signed URL as soon as the row exists.
 export async function publishAgent(
   env: NodeJS.ProcessEnv,
   dryRun: boolean

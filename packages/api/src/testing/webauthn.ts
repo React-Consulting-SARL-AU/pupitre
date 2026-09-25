@@ -204,11 +204,7 @@ export interface AuthenticationOptionsJSON {
   challenge: string
 }
 
-/**
- * A software WebAuthn authenticator: it holds a real P-256 key per credential
- * and signs real ceremonies, so the passkey routes are exercised end to end
- * instead of being mocked. Better Auth ships no simulator of its own.
- */
+/** Signs real P-256 ceremonies so passkey routes run end to end: Better Auth ships no simulator. */
 export class VirtualAuthenticator {
   private readonly rpId: string
   private readonly origin: string

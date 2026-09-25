@@ -1,8 +1,8 @@
 # Les fichiers de l'arbre du client : une racine unique, des chemins relatifs, une lecture par morceaux, et une écriture qui dit d'où elle part.
 @dir /home/dev
 @dir /home/dev/notes
-@file /home/dev/notes/readme.md # flymate
-@file /etc/pupitre/env PUPITRE_DOMAIN=flymate.dev
+@file /home/dev/notes/readme.md # flyleaf
+@file /etc/pupitre/env PUPITRE_DOMAIN=flyleaf.dev
 > {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}
 > {"id":2,"cmd":"fs.list","params":{"path":"notes"}}
 > {"id":3,"cmd":"fs.stat","params":{"path":"notes/readme.md","hash":true}}
@@ -18,9 +18,9 @@
 > {"id":13,"cmd":"fs.list","params":{"path":"/etc/pupitre"}}
 < {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["agent.open","catalog","completions","diag","doctor","fs.list","fs.mkdir","fs.read","fs.remove","fs.rename","fs.stat","fs.write","hello","install","install.check","module.config","ping","process.kill","processes.list","project.add","project.branches","project.checkout","project.debug","project.detect","project.diff","project.down","project.git_status","project.install","project.list","project.logs","project.pull","project.remove","project.restart","project.sync","project.up","project.update","project.url","project.working_tree","reboot","report","service.logs","service.restart","service.secret","service.start","service.status","service.stop","sessions.clean","sessions.list","shots.clean","shots.list","shots.read","shots.url","snapshot","status","uninstall","upgrade"]}}
 < {"id":2,"ok":true,"result":{"path":"notes","entries":[{"name":"readme.md","kind":"file","size_bytes":10,"modified_at":"2026-09-04T12:00:00Z","mode":"0644"}],"truncated":false}}
-< {"id":3,"ok":true,"result":{"path":"notes/readme.md","kind":"file","size_bytes":10,"modified_at":"2026-09-04T12:00:00Z","mode":"0644","media_type":"text/plain","sha256":"b6a6391bcdeec4a17e51349efdca791e2b5d0541e0a40451d4dd593237439e32"}}
-< {"bytes":"IyBmbHltYXRlCg==","event":"file","id":4,"seq":0}
-< {"id":4,"ok":true,"result":{"path":"notes/readme.md","media_type":"text/plain","size_bytes":10,"sha256":"b6a6391bcdeec4a17e51349efdca791e2b5d0541e0a40451d4dd593237439e32","chunks":1}}
+< {"id":3,"ok":true,"result":{"path":"notes/readme.md","kind":"file","size_bytes":10,"modified_at":"2026-09-04T12:00:00Z","mode":"0644","media_type":"text/plain","sha256":"2f743197aacbeaff86c9cd636c53df07c4102a2344c7385ea4cb01557b01dc7a"}}
+< {"bytes":"IyBmbHlsZWFmCg==","event":"file","id":4,"seq":0}
+< {"id":4,"ok":true,"result":{"path":"notes/readme.md","media_type":"text/plain","size_bytes":10,"sha256":"2f743197aacbeaff86c9cd636c53df07c4102a2344c7385ea4cb01557b01dc7a","chunks":1}}
 < {"id":5,"ok":true,"result":{"path":"notes/todo.md","size_bytes":7,"sha256":"7d634505627415fb2cdbbf1d69233595e383317b3ada68ea8475181cf2253f8f"}}
 < {"id":6,"ok":false,"error":{"code":"bad_request","message":"notes/todo.md already exists","fix":"Read the file with fs.read and give the write its sha256 digest."}}
 < {"id":7,"ok":true,"result":{"path":"notes/drafts"}}
@@ -29,4 +29,4 @@
 < {"id":10,"ok":false,"error":{"code":"bad_request","message":"the folder is not empty: notes holds 3 entries","fix":"Call fs.remove again with recursive: true to delete the folder and what it holds."}}
 < {"id":11,"ok":true,"result":{"path":"notes/drafts","removed":2}}
 < {"id":12,"ok":false,"error":{"code":"bad_request","message":"the path leaves the work folder: ../../etc/pupitre/env","fix":"Stay under the work folder, without \"..\" and without a link that leaves it."}}
-< {"id":13,"ok":false,"error":{"code":"bad_request","message":"absolute path refused: /etc/pupitre","fix":"Give a path relative to the work folder, for example projects/flymate/api."}}
+< {"id":13,"ok":false,"error":{"code":"bad_request","message":"absolute path refused: /etc/pupitre","fix":"Give a path relative to the work folder, for example projects/flyleaf/api."}}

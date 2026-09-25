@@ -1,8 +1,17 @@
-import { describe, expect, it } from "bun:test"
+import { describe, expect, it, mock } from "bun:test"
 import { API_PREFIX } from "./lib/config/urls"
-import { getRouter } from "./router"
+
+const REQUEST_NONCE = "bm9uY2Utb2YtdGhlLXJlcXVlc3Q="
+
+mock.module("@/lib/csp-nonce", () => ({ readCspNonce: () => REQUEST_NONCE }))
+
+const { getRouter } = await import("./router")
 
 describe("router", () => {
+  it("hands the nonce of the request to every script it streams", () => {
+    expect(getRouter().options.ssr?.nonce).toBe(REQUEST_NONCE)
+  })
+
   it("registers the console routes and leaves /api/v1 to the worker", () => {
     const ids = Object.keys(getRouter().routesById)
 

@@ -1,4 +1,3 @@
-// Package devcli holds the driving commands as a human types them : the grammar of `pupitred dev`, and the renderer that turns a protocol answer into lines on a terminal.
 package devcli
 
 import (
@@ -10,7 +9,6 @@ import (
 )
 
 const (
-	// The name the grammar is typed under: /usr/local/bin/dev is a symlink to the agent, and pupitred dev answers the same.
 	Command = "dev"
 
 	// The app replaces it with the projects the same answer carries.
@@ -46,10 +44,7 @@ func Grammar() []contract.SubCommand {
 	return grammar()
 }
 
-// The arguments of each verb, as a terminal takes them. The grammar above
-// describes what the app completes, which knows nothing of `-n` nor of a second
-// positional; the placeholders stay in English, the sentence beside them comes
-// from the catalogue.
+// The terminal's forms: the grammar the app completes knows nothing of `-n` nor of a second positional.
 var forms = map[string]string{
 	"up":      "<project|all> [process]",
 	"down":    "<project|all> [process]",
@@ -66,9 +61,11 @@ func Usage() string {
 	var lines strings.Builder
 
 	fmt.Fprintf(&lines, "%s\n\n", i18n.T("devcli.usage"))
+
 	for _, verb := range grammar() {
 		fmt.Fprintf(&lines, "  %-35s %s\n", strings.TrimSpace(verb.Name+" "+forms[verb.Name]), verb.Help)
 	}
+
 	fmt.Fprintf(&lines, "\n%s\n", i18n.T("devcli.usage.json"))
 
 	return lines.String()

@@ -29,7 +29,7 @@ export function resetMailTransport(): void {
   configured = null
 }
 
-/** Email Sending takes one recipient per message: the envelope is fanned out here. */
+// Email Sending takes one recipient per message, so the envelope is fanned out.
 const cloudflareTransport: MailTransport = async (envelope) => {
   const [binding, Message] = await Promise.all([
     cloudflareEmailBinding(),

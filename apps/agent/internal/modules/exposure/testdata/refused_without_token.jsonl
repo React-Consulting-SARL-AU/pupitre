@@ -1,7 +1,7 @@
 # Sans jeton, cloudflared s'installe et c'est la configuration qui refuse ; tunnel.sync le dit en bad_request.
-@file /etc/pupitre/projects.conf web|flymate/apps/web|-|bun|web.localhost|3000|app|bun run dev
+@file /etc/pupitre/projects.conf web|flyleaf/apps/web|-|bun|web.localhost|3000|app|bun run dev
 > {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}
-> {"id":2,"cmd":"install","params":{"secrets_stdin":false,"modules":["exposure.cloudflare"],"config":{"exposure.cloudflare":{"account_id":"acc-1234","zone_id":"zone-1234","zone_name":"flymate.dev","domain":"flymate.dev"}}}}
+> {"id":2,"cmd":"install","params":{"secrets_stdin":false,"modules":["exposure.cloudflare"],"config":{"exposure.cloudflare":{"account_id":"acc-1234","zone_id":"zone-1234","zone_name":"flyleaf.dev","domain":"flyleaf.dev"}}}}
 > {"id":3,"cmd":"tunnel.sync"}
 > {"id":4,"cmd":"project.url","params":{"name":"web"}}
 < {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["agent.open","catalog","completions","diag","doctor","fs.list","fs.mkdir","fs.read","fs.remove","fs.rename","fs.stat","fs.write","hello","install","install.check","module.config","ping","process.kill","processes.list","project.add","project.branches","project.checkout","project.debug","project.detect","project.diff","project.down","project.git_status","project.install","project.list","project.logs","project.pull","project.remove","project.restart","project.sync","project.up","project.update","project.url","project.working_tree","reboot","report","service.logs","service.restart","service.secret","service.start","service.status","service.stop","sessions.clean","sessions.list","shots.clean","shots.list","shots.read","shots.url","snapshot","status","tunnel.restart","tunnel.status","tunnel.sync","uninstall","upgrade"]}}

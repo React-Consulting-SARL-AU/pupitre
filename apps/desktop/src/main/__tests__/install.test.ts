@@ -261,20 +261,13 @@ describe("le flux secret", () => {
       vaulted(client)
     );
 
-    // The transcript refuses the request if `params` doesn't match the
-    // fixture, which carries only `version`, and refuses the secrets line if
-    // it isn't the expected one: together, the two prove the separation.
+    // The transcript refuses params beyond `version` and any other secrets line: that proves the separation.
     expect(fake?.trace()).toEqual(["id=1 cmd=hello", "id=2 cmd=install"]);
 
     client.closeAll();
   });
 
-  /**
-   * A refusal has consumed nothing: the agent validates the whole
-   * configuration before its first step, and a machine busy or a line cut
-   * before that never read the secrets. The form still shows them filled, and
-   * the next Apply has to carry them again rather than leave with none.
-   */
+  // The agent validates the whole configuration before reading the secrets: a refusal consumed nothing.
   it("garde le coffre quand l'agent refuse la configuration", async () => {
     const client = agent("install-refused-config.jsonl");
     setSecret(SERVER, "db.postgres", "app_password", PASSWORD);
@@ -445,10 +438,7 @@ describe("l'enrôlement", () => {
   }
 
   it("remet le jeton sur le flux secret, jamais dans params", async () => {
-    const client = agent([
-      "enroll-then-install.jsonl",
-      "install-no-secrets.jsonl",
-    ]);
+    const client = agent(["enroll-then-install.jsonl"]);
 
     const answer = await runInstall(
       SERVER,
@@ -466,9 +456,9 @@ describe("l'enrôlement", () => {
     expect(fake?.trace()).toEqual([
       "id=1 cmd=hello",
       "id=2 cmd=enroll",
-      "id=1 cmd=hello",
-      "id=2 cmd=install",
+      "id=3 cmd=install",
     ]);
+    expect(fake?.purposes()).toEqual(["privileged"]);
 
     client.closeAll();
   });
@@ -629,12 +619,7 @@ describe("l'envoi de l'agent avant la première installation", () => {
     client.closeAll();
   });
 
-  /**
-   * The session that answered the probe still runs the binary the rename
-   * replaced. The channels are dropped so the next word reaches the new one,
-   * and a machine that already ran the agent has its configuration brought to
-   * that binary's shape before anything is installed on it.
-   */
+  // The session that answered the probe still runs the binary the rename replaced.
   it("rouvre les canaux et migre la configuration après avoir remplacé l'agent d'un serveur géré", async () => {
     const client = agent([
       "hello-then-ping.jsonl",
@@ -912,11 +897,7 @@ describe("une coupure pendant l'installation", () => {
 });
 
 describe("un enrôlement repris", () => {
-  /**
-   * A channel cut between the exchange and its answer leaves the app not
-   * knowing whether the token was burnt. It was: the platform says so, and the
-   * server carries the identity it granted.
-   */
+  // A cut between the exchange and its answer leaves the token burnt: the server already carries its identity.
   it("ne réenrôle pas un agent qui porte déjà son identité", async () => {
     const calls: string[] = [];
 
@@ -947,11 +928,7 @@ describe("un enrôlement repris", () => {
     expect(calls).toEqual([]);
   });
 
-  /**
-   * The agent answers a burnt token and a revoked one with the same code, so a
-   * refusal is reported as it comes: only the identity says the exchange
-   * already happened, and a server without one has genuinely not enrolled.
-   */
+  // The agent answers a burnt token and a revoked one with the same code: only the identity tells them apart.
   it("rapporte un refus tel quel quand le serveur ne porte aucune identité", async () => {
     const answer = await enrolAgent(
       "srv-1",
@@ -987,11 +964,7 @@ describe("un enrôlement repris", () => {
 
   const instant = { attempts: 3, delayMs: 0, sleep: () => Promise.resolve() };
 
-  /**
-   * A cut is not a refusal: the enrolment is sent again on a fresh channel, and
-   * the seat is claimed on the attempt the line finally holds. The probe that
-   * watches for an enrolment that already landed reads as a ping.
-   */
+  // The probe that watches for an enrolment that already landed reads as a ping.
   it("renvoie l'enrôlement quand le canal tombe, jusqu'à ce qu'il passe", async () => {
     const codes = ["disconnected", "disconnected"];
 
@@ -1040,11 +1013,7 @@ describe("un enrôlement repris", () => {
     expect(codes).toEqual([]);
   });
 
-  /**
-   * The cut the retry fears can fall after the exchange: the token is spent
-   * and the machine enrolled, and the probe says so before another enrolment
-   * replays what cannot be replayed.
-   */
+  // A spent token cannot be replayed: the probe must see the enrolment before another one is sent.
   it("voit un échange tombé après la remise comme l'enrôlement réussi qu'il fut", async () => {
     let enrolled = false;
     const commands: string[] = [];
@@ -1089,7 +1058,6 @@ describe("un enrôlement repris", () => {
     expect(commands).toEqual(["enroll", "ping"]);
   });
 
-  /** A refusal that is not a cut is not retried: it stands as it came. */
   it("ne réessaie pas un refus qui n'est pas une coupure", async () => {
     let calls = 0;
 
@@ -1124,7 +1092,6 @@ describe("un enrôlement repris", () => {
     expect(calls).toBe(1);
   });
 
-  /** A channel that never comes back gives up bounded, not for ever. */
   it("renonce après un nombre borné de coupures", async () => {
     let enrolments = 0;
     let probes = 0;

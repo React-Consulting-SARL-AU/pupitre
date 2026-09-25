@@ -33,7 +33,7 @@ export interface ServerRowProps {
   onPurge: () => void
 }
 
-/** Past the eighth, a row arrives with the eighth: the cascade must not outlast the read. */
+// Caps the stagger so the entrance cascade never outlasts the read.
 const LAST_STAGGERED = 8
 
 export function ServerRow({

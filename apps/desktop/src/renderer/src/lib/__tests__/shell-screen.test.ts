@@ -2,13 +2,6 @@ import { describe, expect, it } from "bun:test";
 import type { UsageRight } from "@shared/account";
 import { shellScreen } from "../shell-screen";
 
-/**
- * Which shell the app opens on: the account, the onboarding, a server that has
- * not answered, or the server itself. The usage right decides first — nothing
- * of a machine is reachable before the account is — and `snapshot` decides the
- * rest.
- */
-
 const CONSOLE_URL = "https://app.pupitre.test/dashboard";
 
 const GRANTED: UsageRight = {

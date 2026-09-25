@@ -13,13 +13,13 @@ describe("le statut d'un terminal", () => {
 
   it("retient la taille, le dossier et la recherche séparément", () => {
     noteStatus("t1", { cols: 120, rows: 40 });
-    noteStatus("t1", { dir: "/home/dev/flymate-api" });
+    noteStatus("t1", { dir: "/home/dev/flyleaf-api" });
     noteStatus("t1", { matches: { count: 3, index: 1 } });
 
     expect(statusOf("t1")).toEqual({
       atBottom: true,
       cols: 120,
-      dir: "/home/dev/flymate-api",
+      dir: "/home/dev/flyleaf-api",
       matches: { count: 3, index: 1 },
       rows: 40,
     });

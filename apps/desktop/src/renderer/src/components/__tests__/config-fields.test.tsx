@@ -11,12 +11,7 @@ import {
 } from "../../lib/catalog-selection";
 import { ConfigModuleGroup } from "../config/config-module-group";
 
-/**
- * Every kind of field the contract defines, drawn from a manifest and nothing
- * else. A kind that had no control would render an empty group, which is what
- * these assertions are looking for.
- */
-
+// A field kind with no control renders an empty group, which is what these assertions look for.
 const ALL = [
   "core.system",
   "core.hardening",
@@ -65,7 +60,7 @@ function form(
     .join("");
 }
 
-/** The options a list offers are only drawn once it is open: the group is mounted and the list opened. */
+// A list only draws its options once open, so the group is mounted rather than rendered to a string.
 async function listed(moduleId: string, fieldId: string): Promise<string[]> {
   const view = await mount(<div>{groups(CATALOG.modules, [moduleId])}</div>);
   const found = await optionsOf(view, document.getElementById(fieldId));
@@ -75,7 +70,7 @@ async function listed(moduleId: string, fieldId: string): Promise<string[]> {
   return found.options;
 }
 
-/** The opening tag that carries this attribute, whatever order it renders in. */
+// Attribute order in the rendered tag is not stable, so the whole opening tag is matched.
 function tag(html: string, attribute: string, value: string): string {
   const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const match = html.match(
@@ -241,10 +236,6 @@ describe("chaque genre de champ a son contrôle", () => {
     expect(input).not.toContain("value=");
   });
 
-  /**
-   * A managed value comes from a connection the app holds. Asking for it here
-   * would be asking twice, and the form never shows one.
-   */
   it("ne demande jamais un champ que l'app remplit elle-même", () => {
     expect(html).toContain('data-field="exposure.cloudflare.domain"');
     expect(html).not.toContain('data-field="exposure.cloudflare.tunnel_id"');
@@ -267,7 +258,7 @@ describe("un secret généré", () => {
     expect(field(html, "db.postgres.app_password")).toContain(
       'data-generated="true"'
     );
-    expect(text(html)).toContain("Généré pour cette machine");
+    expect(text(html)).toContain("Généré pour ce serveur");
     expect(text(html)).toContain("Montrer une fois");
   });
 
@@ -276,7 +267,7 @@ describe("un secret généré", () => {
       'data-revealed="true"'
     );
     expect(text(html)).toContain(
-      "Déjà montré une fois ; il ne sera plus affiché."
+      "Déjà montré une fois ; le secret ne sera plus affiché."
     );
   });
 
@@ -299,7 +290,7 @@ describe("les champs du socle", () => {
     }
   });
 
-  /** The machine is named where a machine is named: adding it, and in the list. */
+  // The machine is named when it is added and in the server list, never in a module form.
   it("ne demande pas le nom de la machine", () => {
     expect(html).not.toContain('data-field="machine.name"');
   });
@@ -433,5 +424,46 @@ describe("ce qui est demandé d'abord, et ce qui attend derrière", () => {
     );
 
     expect(text(html)).toContain("2 sur 5");
+  });
+});
+
+describe("la légende des champs obligatoires", () => {
+  const withDefaults = Object.fromEntries(
+    CATALOG.modules.map((module) => [module.id, defaultsOf(module)])
+  );
+
+  it("suit un champ obligatoire posé à l'écran", () => {
+    const html = form(CATALOG.modules, ["core.system"], {
+      values: withDefaults,
+    });
+
+    expect(text(html).match(/Champ obligatoire/g)).toHaveLength(1);
+  });
+
+  it("reste absente d'un service dont aucun champ montré n'est obligatoire", () => {
+    const html = form(CATALOG.modules, ["runtime.node"], {
+      values: withDefaults,
+    });
+
+    expect(text(html)).not.toContain("Champ obligatoire");
+  });
+
+  it("apparaît quand le pli ouvert montre un champ obligatoire", async () => {
+    const view = await mount(
+      <div>
+        {groups(CATALOG.modules, ["runtime.node"], { values: withDefaults })}
+      </div>
+    );
+
+    expect(view.container.textContent).not.toContain("Champ obligatoire");
+
+    await view.click(
+      view.container.querySelector('[data-details="advanced"] button')
+    );
+
+    expect(
+      view.container.textContent?.match(/Champ obligatoire/g)
+    ).toHaveLength(1);
+    view.unmount();
   });
 });

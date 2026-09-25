@@ -10,10 +10,10 @@ import (
 
 func TestTheDatabasesOfTheClientAreListedWithoutTheSystemOnes(t *testing.T) {
 	fake := modtest.NewFakeSys()
-	fake.Answer("FROM pg_database WHERE datallowconn", "shop\nflymate\n")
+	fake.Answer("FROM pg_database WHERE datallowconn", "shop\nflyleaf\n")
 
 	names, err := Databases(newContext(t, fake))
-	if err != nil || !slices.Equal(names, []string{"shop", "flymate"}) {
+	if err != nil || !slices.Equal(names, []string{"shop", "flyleaf"}) {
 		t.Fatalf("names = %v, %v", names, err)
 	}
 
@@ -43,23 +43,105 @@ func TestADumpStreamsAsPostgresBehindEverythingElse(t *testing.T) {
 	}
 }
 
-func TestARestoreDropsTheDatabaseAndLetsTheDumpCreateIt(t *testing.T) {
+func scripts(fake *modtest.FakeSys) string {
+	var fed []string
+
+	for _, call := range fake.Calls {
+		fed = append(fed, string(call.Stdin))
+	}
+
+	return strings.Join(fed, "\n")
+}
+
+func TestARestoreSetsTheDatabaseAsideAndLetsTheDumpCreateIt(t *testing.T) {
 	fake := modtest.NewFakeSys()
+	fake.Answer("datname = 'shop'", "1\n")
+	aside := asideName("shop")
 
 	if err := RestoreRoles(newContext(t, fake), strings.NewReader("CREATE ROLE app;")); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := RestoreFrom(newContext(t, fake), "shop", strings.NewReader("PGDMP")); err != nil {
+	if err := RestoreFrom(newContext(t, fake), "shop", 5, strings.NewReader("PGDMP")); err != nil {
 		t.Fatal(err)
 	}
 
 	commands := strings.Join(fake.Commands(), "\n")
-	if strings.Contains(commands, "ON_ERROR_STOP") || strings.Index(commands, "dropdb --if-exists --force shop") > strings.Index(commands, "pg_restore --create") {
-		t.Fatalf("a role already there is not an error, the drop comes first:\n%s", commands)
+	if strings.Contains(commands, "--force shop") || !strings.Contains(scripts(fake), `ALTER DATABASE "shop" RENAME TO "`+aside+`"`) {
+		t.Fatalf("the database of before is renamed, never dropped first:\n%s", commands)
 	}
 
-	if string(fake.FedTo("pg_restore")) != "PGDMP" || string(fake.FedTo("psql --no-psqlrc --quiet")) != "CREATE ROLE app;" {
+	if strings.Index(commands, "pg_restore --create") > strings.Index(commands, "dropdb --if-exists --force "+aside) {
+		t.Fatalf("the copy of before goes once the restore went through:\n%s", commands)
+	}
+
+	if string(fake.FedTo("pg_restore")) != "PGDMP" || string(fake.FedTo("psql --no-psqlrc --quiet --dbname")) != "CREATE ROLE app;" {
 		t.Fatal("each command reads its own stream")
+	}
+
+	if len(aside) > 63 {
+		t.Fatalf("%s is longer than Postgres keeps", aside)
+	}
+}
+
+func TestARestoreThatFailsPutsTheDatabaseOfBeforeBack(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Answer("datname = 'shop'", "1\n")
+	fake.FailLine("pg_restore --create", "pg_restore: error: could not write to file: No space left on device")
+	aside := asideName("shop")
+
+	err := RestoreFrom(newContext(t, fake), "shop", 5, strings.NewReader("PGDMP"))
+	if err == nil || !strings.Contains(err.Error(), "No space left") {
+		t.Fatalf("err = %v", err)
+	}
+
+	commands := strings.Join(fake.Commands(), "\n")
+	if strings.Index(commands, "dropdb --if-exists --force shop") < strings.Index(commands, "pg_restore --create") || strings.Contains(commands, "--force "+aside) {
+		t.Fatalf("what the failed restore left goes, the copy of before stays:\n%s", commands)
+	}
+
+	if !strings.Contains(scripts(fake), `ALTER DATABASE "`+aside+`" RENAME TO "shop";`+"\n"+`ALTER DATABASE "shop" ALLOW_CONNECTIONS true;`) {
+		t.Fatalf("the database of before takes its name back, open again:\n%s", scripts(fake))
+	}
+}
+
+func TestADatabaseLeftAsideByAnInterruptedRestoreIsNeverOverwritten(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Answer("datname = '"+asideName("shop")+"'", "1\n")
+
+	err := RestoreFrom(newContext(t, fake), "shop", 5, strings.NewReader("PGDMP"))
+	if err == nil || !strings.Contains(err.Error(), asideName("shop")) {
+		t.Fatalf("err = %v", err)
+	}
+
+	if commands := strings.Join(fake.Commands(), "\n"); strings.Contains(commands, "pg_restore") || strings.Contains(commands, "dropdb") {
+		t.Fatalf("nothing is touched:\n%s", commands)
+	}
+}
+
+func TestAFreshServerRestoresWithoutSettingAnythingAside(t *testing.T) {
+	fake := modtest.NewFakeSys()
+
+	if err := RestoreFrom(newContext(t, fake), "shop", 5, strings.NewReader("PGDMP")); err != nil {
+		t.Fatal(err)
+	}
+
+	if strings.Contains(scripts(fake), "RENAME") || strings.Contains(strings.Join(fake.Commands(), "\n"), "dropdb") {
+		t.Fatalf("nothing to set aside:\n%s", strings.Join(fake.Commands(), "\n"))
+	}
+}
+
+func TestARestoreTheDiskCannotHoldTouchesNothing(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Answer("datname = 'shop'", "1\n")
+	fake.Answer("df -P -B1 /var/lib/postgresql", "Filesystem 1-blocks Used Available Capacity Mounted on\n/dev/sda1 42949672960 0 1073741824 97% /\n")
+
+	err := RestoreFrom(newContext(t, fake), "shop", 2<<30, strings.NewReader("PGDMP"))
+	if err == nil || !strings.Contains(err.Error(), "/var/lib/postgresql") {
+		t.Fatalf("err = %v", err)
+	}
+
+	if strings.Contains(scripts(fake), "RENAME") || strings.Contains(strings.Join(fake.Commands(), "\n"), "pg_restore") {
+		t.Fatal("a restore that cannot fit leaves the cluster as it is")
 	}
 }

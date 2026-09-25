@@ -5,10 +5,6 @@ import {
 } from "@renderer/lib/backup-setup";
 import { Check } from "lucide-react";
 
-/**
- * Where the setup is: each step numbered, a done one checked and open to go
- * back to, the current one inked, the ones ahead waiting in grey.
- */
 export function BackupsSetupProgress({
   current,
   onGo,
@@ -32,6 +28,7 @@ export function BackupsSetupProgress({
         const label = t(`backups.setup.step.${step}`);
 
         let mark = "border-line text-ink-4";
+
         if (done) {
           mark = "border-inverse bg-inverse text-inverse-ink";
         } else if (now) {
@@ -42,12 +39,12 @@ export function BackupsSetupProgress({
           <>
             <span
               aria-hidden="true"
-              className={`flex size-6 shrink-0 items-center justify-center rounded-full border font-data text-[11px] tabular-nums transition-soft ${mark}`}
+              className={`flex size-6 shrink-0 items-center justify-center rounded-full border font-data text-caption tabular-nums transition-soft ${mark}`}
             >
               {done ? <Check size={12} strokeWidth={2} /> : index + 1}
             </span>
             <span
-              className={`text-[13px] transition-soft ${now ? "font-medium text-ink" : "text-ink-3"}`}
+              className={`text-control transition-soft ${now ? "font-medium text-ink" : "text-ink-3"}`}
             >
               {label}
             </span>

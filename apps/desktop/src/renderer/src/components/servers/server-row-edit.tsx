@@ -13,15 +13,6 @@ import {
 } from "../ui/field";
 import { ServerSshNameField } from "./server-ssh-name-field";
 
-/**
- * The address, the port and the account of a server, changed where they are read.
- *
- * The form sends only what changed, and the main process is the one that
- * checks each value before it becomes a line of the SSH file: a refusal comes
- * back naming its field, and the field carries it. Nothing here is written
- * on this side.
- */
-
 const FIELDS = ["host", "port", "user", "slug"] as const;
 
 type FieldName = (typeof FIELDS)[number];
@@ -34,7 +25,6 @@ const REFUSED: Record<string, FieldName> = {
   "refusal.setup.user": "user",
 };
 
-/** The field a refusal of the main process points at, or none for a general one. */
 export function refusedField(error: AgentError | null): FieldName | null {
   return error?.phrase ? (REFUSED[error.phrase.id] ?? null) : null;
 }
@@ -51,10 +41,10 @@ export function ServerRowEdit({
   server: Server;
   busy: boolean;
   error: AgentError | null;
-  /** The address is the app's to change; a system host keeps its own. */
+  /** False for a system host: its address belongs to `~/.ssh/config`. */
   addressEditable?: boolean;
   onSubmit: (changes: ServerChanges) => void;
-  /** The name is the app's alone: it changes on the spot, whatever the address does. */
+  /** Applies on the spot, apart from the address changes. */
   onRename?: (name: string) => void;
   onCancel: () => void;
 }) {
@@ -199,7 +189,7 @@ export function ServerRowEdit({
       ) : null}
 
       {said && wrong === null ? (
-        <p className="text-[12px] text-danger leading-relaxed" role="alert">
+        <p className="text-danger text-small leading-relaxed" role="alert">
           {said.message}
           {said.fix ? (
             <span className="block text-ink-3">{said.fix}</span>
@@ -208,7 +198,7 @@ export function ServerRowEdit({
       ) : null}
 
       {addressEditable ? (
-        <p className="text-[12px] text-ink-3 leading-relaxed">
+        <p className="text-ink-3 text-small leading-relaxed">
           {t("servers.edit.note")}
         </p>
       ) : null}

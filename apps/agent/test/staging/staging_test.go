@@ -31,7 +31,7 @@ type response struct {
 	Events []contract.StepEvent
 }
 
-// The staging host is root@<address> of a reinstallable VPS holding a freshly built pupitred; never a machine of the owner.
+// Must name root@ a reinstallable VPS running a fresh pupitred, never one of the owner's machines.
 func stagingHost(t *testing.T) string {
 	t.Helper()
 
@@ -78,14 +78,12 @@ func agent(t *testing.T, host string, requests ...request) []response {
 	return succeeded(t, converse(t, host, requests...), requests)
 }
 
-// The refusals are part of the contract too: this one hands back what the agent answered, failure included.
 func attempt(t *testing.T, host string, requests ...request) []response {
 	t.Helper()
 
 	return converse(t, host, requests...)
 }
 
-// The secret line follows its request on the same standard input, exactly as the app writes it.
 func agentWithSecrets(t *testing.T, host, secrets string, requests ...request) []response {
 	t.Helper()
 
@@ -99,10 +97,27 @@ func agentWithSecrets(t *testing.T, host, secrets string, requests ...request) [
 	return succeeded(t, converse(t, host, carrying...), requests)
 }
 
+// The whole protocol needs the privileged session; a secured dev's sudo password comes from the environment, never a file.
 func converse(t *testing.T, host string, requests ...request) []response {
 	t.Helper()
 
-	cmd := sshCommand(host, "sudo", "-n", "pupitred", "serve")
+	if password := os.Getenv(sudoPasswordVariable); password != "" {
+		return converseOn(t, sshCommand(host, privilegedServe), password, requests...)
+	}
+
+	return converseOn(t, sshCommand(host, "sudo", "-n", "pupitred", "serve", "--privileged"), "", requests...)
+}
+
+const sudoPasswordVariable = "PUPITRE_STAGING_SUDO_PASSWORD"
+
+// Same line as the app: under the old NOPASSWD rule the shell swallows the password line sudo -S would read.
+const privilegedServe = `if sudo -n true 2>/dev/null; then IFS= read -r p; exec sudo -n pupitred serve --privileged; fi; exec sudo -S -p '' pupitred serve --privileged`
+
+func converseOn(t *testing.T, cmd *exec.Cmd, sudoPassword string, requests ...request) []response {
+	t.Helper()
+
+	host := strings.Join(cmd.Args, " ")
+
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 
@@ -110,20 +125,28 @@ func converse(t *testing.T, host string, requests ...request) []response {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	if err := cmd.Start(); err != nil {
 		t.Fatal(err)
 	}
 
-	all := append([]request{{Cmd: "hello", Params: map[string]any{"app_version": "0.0.0-staging", "protocol": contract.ProtocolVersion}}}, requests...)
+	// Not semver, so no agent's app floor judges the bench.
+	all := append([]request{{Cmd: "hello", Params: map[string]any{"app_version": "staging", "protocol": contract.ProtocolVersion}}}, requests...)
+
 	go func() {
 		defer stdin.Close()
+
+		if sudoPassword != "" {
+			fmt.Fprintf(stdin, "%s\n", sudoPassword)
+		}
+
 		for i, req := range all {
-			// A command that takes no argument still sends an object: the agent's
-			// params are a closed shape, and a bare null is not one.
+			// The agent's params are a closed shape that refuses a bare null, so an argument-less command sends {}.
 			params := req.Params
 			if params == nil {
 				params = map[string]any{}
@@ -141,6 +164,7 @@ func converse(t *testing.T, host string, requests ...request) []response {
 	responses := make([]response, len(all))
 	scanner := bufio.NewScanner(stdout)
 	scanner.Buffer(make([]byte, 1<<20), 1<<20)
+
 	for scanner.Scan() {
 		var line struct {
 			ID      int             `json:"id"`
@@ -153,11 +177,13 @@ func converse(t *testing.T, host string, requests ...request) []response {
 			Status  string          `json:"status"`
 			Message string          `json:"message"`
 		}
+
 		if err := json.Unmarshal(scanner.Bytes(), &line); err != nil || line.ID < 1 || line.ID > len(all) {
 			t.Fatalf("unreadable line from the agent: %s", scanner.Text())
 		}
 
 		current := &responses[line.ID-1]
+
 		if line.Event == "step" {
 			current.Events = append(current.Events, contract.StepEvent{Module: line.Module, Step: line.Step, Status: contract.StepStatus(line.Status), Message: line.Message})
 			continue
@@ -193,6 +219,7 @@ func decode[T any](t *testing.T, raw json.RawMessage) T {
 	t.Helper()
 
 	var value T
+
 	if err := json.Unmarshal(raw, &value); err != nil {
 		t.Fatalf("unreadable result %s: %v", raw, err)
 	}
@@ -202,6 +229,7 @@ func decode[T any](t *testing.T, raw json.RawMessage) T {
 
 func messages(resp response) []string {
 	var said []string
+
 	for _, event := range resp.Events {
 		if event.Message != "" {
 			said = append(said, event.Message)
@@ -213,6 +241,7 @@ func messages(resp response) []string {
 
 func steps(resp response, status contract.StepStatus) []string {
 	var matching []string
+
 	for _, event := range resp.Events {
 		if event.Status == status {
 			matching = append(matching, event.Module+"·"+event.Step)

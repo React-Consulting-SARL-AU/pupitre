@@ -118,6 +118,7 @@ export async function deleteMailNote(
   }
 
   await prisma.mailNote.delete({ where: { id: noteId } })
+
   await recordMailActivity({
     threadId,
     action: "note_deleted",

@@ -9,20 +9,10 @@ const INSET = {
   lg: "p-6",
 };
 
-/** The same frame on an element the component cannot be: a form, a button. */
 export function panelClass(inset: keyof typeof INSET = "md"): string {
   return `${FRAME} ${INSET[inset]}`;
 }
 
-/**
- * The one card of the system: a surface posed on the page by a soft shadow.
- *
- * Every framed block reads the same way — a list of rows, a form, a set of
- * facts — so the reader tells a section's content from its caption and never
- * from the shape of its frame. `list` frames rows that draw their own
- * separators and take no inset; `lg` is the inset of a form, whose fields
- * need more air than a line of facts.
- */
 export function Panel({
   children,
   inset = "md",

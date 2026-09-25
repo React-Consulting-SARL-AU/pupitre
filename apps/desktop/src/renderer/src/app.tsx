@@ -33,12 +33,14 @@ import { ServerTerminalsScreen } from "./components/shell/server-terminals-scree
 import { ShortcutsDialog } from "./components/shell/shortcuts-dialog";
 import { SignOutDialog } from "./components/shell/sign-out-dialog";
 import { ShotsScreen } from "./components/shots/shots-screen";
+import { TerminalCloseDialog } from "./components/terminals/terminal-close-dialog";
 import { ErrorNotice } from "./components/ui/error-notice";
 import { WindowBand } from "./components/ui/window-band";
 import { AgentUpdateBanner } from "./components/updates/agent-update-banner";
 import { noteProjects } from "./lib/completion";
 import { agentModulesFrom } from "./lib/modules";
 import { unlessHeld } from "./lib/refusals";
+import { needsSecuring } from "./lib/server-security";
 import { attachedSessions } from "./lib/sessions";
 import { shellScreen } from "./lib/shell-screen";
 import { useHistoryShortcuts } from "./lib/use-history-shortcuts";
@@ -63,23 +65,22 @@ import {
 } from "./stores/snapshot";
 import { useTerminals } from "./stores/terminals";
 
-/** A shell of its own, lost alone when it throws: the window stays. */
 function guarded(view: string, screen: ReactNode): ReactNode {
   return <ScreenBoundary view={view}>{screen}</ScreenBoundary>;
 }
 
 export function App() {
-  // Where the settings open when a screen sent the reader there to repair
-  // something: a connection to make, and then the way back to their draft.
   const [settingsSection, setSettingsSection] =
     useState<SettingsSection>("servers");
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [addingService, setAddingService] = useState(false);
 
   const onboarding = useOnboarding((s) => s.step);
   const openOnboarding = useOnboarding((s) => s.open);
   const beginOnboarding = useOnboarding((s) => s.begin);
+  const secureServer = useOnboarding((s) => s.secure);
 
   const config = useServers((s) => s.config);
   const loadServers = useServers((s) => s.load);
@@ -104,7 +105,7 @@ export function App() {
   const settle = useNavigation((s) => s.settle);
   const openTerminal = useNavigation((s) => s.openTerminal);
   const openTerminalHere = useNavigation((s) => s.openTerminalHere);
-  const closeTerminal = useNavigation((s) => s.closeTerminal);
+  const askCloseTerminal = useNavigation((s) => s.askCloseTerminal);
   const activateTerminal = useNavigation((s) => s.activateTerminal);
   const renameTerminal = useNavigation((s) => s.renameTerminal);
   const noteStates = useNavigation((s) => s.noteStates);
@@ -170,11 +171,7 @@ export function App() {
 
   usePaletteShortcut(openPalette);
 
-  // The account is read before anything of a machine is: a build without a
-  // usage right opens on the account, and the list of servers it would show is
-  // not what the reader has to answer first. The list comes next: an onboarding
-  // left half-way reopens where it stopped, and a machine that has left the
-  // list stops it there.
+  // The account comes first: a build without a usage right must open on it, not on the servers.
   const boot = useCallback(async () => {
     await readAccount();
 
@@ -192,10 +189,15 @@ export function App() {
 
   useEffect(() => window.pupitre.onTerminalStates(noteStates), [noteStates]);
 
+  useEffect(() => {
+    if (view !== "services") {
+      setAddingService(false);
+    }
+  }, [view]);
+
   useEffect(() => useChannel.getState().listen(), []);
 
-  // A session that prints a login address: only the main process saw the
-  // address, and only the host comes here.
+  // Only the host of a login address reaches the renderer; the address stays in the main process.
   useEffect(() => {
     const link = window.pupitre.onTerminalLink((payload) =>
       useTerminals.getState().noteLink(payload.id, payload.host)
@@ -216,8 +218,7 @@ export function App() {
   const projects = snapshot?.projects;
 
   useEffect(() => {
-    // Until the first snapshot lands there is no list to settle against, and
-    // settling against an empty one would drop the project we remembered.
+    // Settling before the first snapshot would drop the remembered project.
     if (!projects) {
       return;
     }
@@ -228,9 +229,6 @@ export function App() {
     settle(names);
   }, [projects, settle]);
 
-  // The comparison is read once on arrival, and then on the platform's beat:
-  // a server upgraded from elsewhere, or a release published since, has to
-  // reach the banner without a relaunch.
   useEffect(() => {
     forgetUpdate();
 
@@ -310,8 +308,7 @@ export function App() {
 
   const account = accountOf(accountView);
 
-  // Until the keychain has answered there is no right to judge, and guessing
-  // one would open the onboarding on a build that refuses to install.
+  // Guessing a usage right before the keychain answers could open the onboarding on a build that refuses to install.
   if (!account) {
     return <AccountReadingScreen />;
   }
@@ -373,8 +370,6 @@ export function App() {
   const project = snapshot.projects.find((p) => p.name === selection) ?? null;
   const serverName = server?.name ?? snapshot.machine.hostname;
 
-  // The server's own screens take nothing but the server: a lookup, not a
-  // branch each, so a view added tomorrow is one key here.
   const serverScreens: Partial<Record<View, ReactNode>> = {
     files: (
       <FilesScreen
@@ -418,6 +413,7 @@ export function App() {
         onClose={() => setShortcutsOpen(false)}
         open={shortcutsOpen}
       />
+      <TerminalCloseDialog />
       <SignOutDialog
         onCancel={() => setSigningOut(false)}
         onConfirm={async () => {
@@ -430,7 +426,7 @@ export function App() {
         activeTerminal={activeTerminal}
         allTerminals={terminals}
         onAddProject={() => goTo("project-add")}
-        onCloseTerminal={closeTerminal}
+        onCloseTerminal={askCloseTerminal}
         onNewTerminal={() => openTerminal(null, "shell")}
         onProject={select}
         onSwitchServer={switchServer}
@@ -470,6 +466,7 @@ export function App() {
               migration={migration}
               onHide={hideUpdate}
               onMigrate={() => migrateConfig(serverId)}
+              onRepair={() => beginOnboarding(serverId)}
               onUpgrade={() => upgradeAgent(serverId)}
               state={updateState}
               upgrade={upgrade}
@@ -504,22 +501,25 @@ export function App() {
                   busy={busy}
                   onAct={(action, name) => act(action, serverId, name)}
                   onAddProject={() => goTo("project-add")}
+                  onAddService={() => {
+                    setAddingService(true);
+                    goTo("services");
+                  }}
                   onCleanSessions={() => cleanSessions(serverId)}
                   onOpenProject={select}
                   onOpenService={openService}
                   onOpenTerminal={() => openTerminal(null, "shell")}
                   onReboot={() => reboot(serverId, serverName)}
+                  onSecure={() => secureServer(serverId)}
                   onStopSession={(pid) => stopProcess(serverId, pid)}
+                  securing={needsSecuring(server, snapshot.machine.sudo)}
                   serverName={server?.name}
                   snapshot={snapshot}
                 />
               </div>
             ) : null}
 
-            {/*
-              The project is opened once the snapshot lists it: selecting a name
-              the list does not hold yet would fall back on the first project.
-            */}
+            {/* Selecting before the snapshot lists the new project would fall back on the first one. */}
             {view === "project-add" ? (
               <div className="absolute inset-0">
                 <ProjectAddScreen
@@ -553,14 +553,12 @@ export function App() {
               <div className="absolute inset-0">
                 <ServicesScreen
                   onCloseService={() => goTo("services")}
-                  onMachineName={(name) =>
-                    serverId && useServers.getState().rename(serverId, name)
-                  }
                   onOpenService={openService}
                   serverId={serverId}
                   serverName={server?.name}
                   service={service}
                   services={snapshot.services}
+                  startAdding={addingService}
                 />
               </div>
             ) : null}
@@ -607,7 +605,7 @@ export function App() {
                 <ServerTerminalsScreen
                   active={activeTerminal}
                   onActivate={activateTerminal}
-                  onClose={closeTerminal}
+                  onClose={askCloseTerminal}
                   onNew={openTerminal}
                   onRename={renameTerminal}
                   serverName={serverName}

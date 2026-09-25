@@ -54,6 +54,7 @@ function banner(
       migration={migration}
       onHide={NOOP}
       onMigrate={NOOP}
+      onRepair={NOOP}
       onUpgrade={NOOP}
       state={state}
       upgrade={upgrade}
@@ -81,7 +82,7 @@ describe("le bandeau de mise à jour", () => {
     expect(html).toContain("ne connaît pas encore");
   });
 
-  it("dit qu'un serveur d'une autre génération se répare, sans rien proposer", () => {
+  it("dit qu'un serveur d'une autre génération se répare, et ouvre l'assistant qui le répare", () => {
     const html = banner({
       serverId: "srv-1",
       status: "ready",
@@ -97,7 +98,11 @@ describe("le bandeau de mise à jour", () => {
     });
 
     expect(html).toContain("Ce serveur est trop en arrière");
-    expect(html).toContain("écran de réparation");
+    expect(html).toContain(
+      "Cet agent est trop ancien pour cette app. Réinstallez-le avec l&#x27;assistant : vos services restent en place."
+    );
+    expect(html).toContain("Réinstaller l&#x27;agent");
+    expect(html).not.toContain("écran de réparation");
     expect(html).not.toContain("Mettre l&#x27;agent à jour");
   });
 

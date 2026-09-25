@@ -57,9 +57,7 @@ describe("Base layout", () => {
     expect(html).toContain("<p>body</p>")
   })
 
-  // Byte equality would only measure the formatter: it sorts the attributes of
-  // an SVG and reindents the stylesheet. What must not drift is the drawing —
-  // the small cut, since a tab shows it under twenty-four pixels.
+  // Byte equality would only measure the formatter; the drawing is what must not drift.
   it("serves the brand mark itself as the favicon", () => {
     const favicon = readFileSync(
       new URL("../../public/favicon.svg", import.meta.url),
@@ -113,23 +111,43 @@ describe("Base layout", () => {
     expect(html).toContain('n="pupitre.studio"')
   })
 
-  it("loads Bricolage Grotesque and JetBrains Mono from Google Fonts with swap, without blocking the first paint", async () => {
+  it("preloads its own two fonts and asks no third party for them", async () => {
     const html = await render(Base, { props })
-    const fonts =
-      "https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=JetBrains+Mono:wght@400;500&display=swap"
+    const preloads = [
+      ...html.matchAll(/<link rel="preload" href="([^"]+)" as="font"/g),
+    ].map((match) => match[1])
+
+    expect(preloads).toHaveLength(2)
+    expect(preloads.some((href) => href.includes("bricolage-grotesque"))).toBe(
+      true
+    )
+    expect(preloads.some((href) => href.includes("jetbrains-mono"))).toBe(true)
+    for (const href of preloads) {
+      expect(href.startsWith("/")).toBe(true)
+    }
+    expect(html).not.toContain("fonts.googleapis.com")
+    expect(html).not.toContain("fonts.gstatic.com")
+  })
+
+  it("points the alternates and the language switch at a translation with its own slug", async () => {
+    const html = await render(Base, {
+      props: {
+        ...props,
+        translations: {
+          en: "/blog/claude-code-on-a-vps/",
+          fr: "/fr/blog/claude-code-sur-un-vps/",
+        },
+      },
+      path: "/blog/claude-code-on-a-vps/",
+    })
 
     expect(html).toContain(
-      '<link rel="preconnect" href="https://fonts.googleapis.com">'
+      '<link rel="alternate" hreflang="fr" href="https://pupitre.studio/fr/blog/claude-code-sur-un-vps/">'
     )
     expect(html).toContain(
-      '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+      '<a href="/fr/blog/claude-code-sur-un-vps/" hreflang="fr"'
     )
-    expect(html).toContain(
-      `<link rel="stylesheet" href="${fonts}" media="print" onload="this.media='all'">`
-    )
-    expect(html).toContain(
-      `<noscript><link rel="stylesheet" href="${fonts}"></noscript>`
-    )
+    expect(html).not.toContain('href="/fr/blog/claude-code-on-a-vps/"')
   })
 
   it("puts the head slot inside the head", async () => {

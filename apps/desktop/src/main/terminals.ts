@@ -22,9 +22,8 @@ interface Session extends Activity {
   serverId: string;
   project: string | null;
   screen: Screen;
-  /** The login address this session last printed, kept out of the renderer. */
+  /** Kept out of the renderer: only its host crosses the bridge. */
   login: LoginAddress | null;
-  /** This session's share of the bridge: dropped with it, unread. */
   batch: TerminalBatch;
 }
 
@@ -32,10 +31,6 @@ const sessions = new Map<string, Session>();
 
 const BELL = "\u0007";
 
-/**
- * The pipe to the renderer, one frame wide: chunks of the same session are
- * joined before they cross, and the recipient is whoever last opened one.
- */
 function batchFor(recipient: WebContents) {
   return createTerminalBatch((id, data) => {
     if (!recipient.isDestroyed()) {
@@ -51,6 +46,7 @@ export function states(): Record<string, AgentState> {
   for (const [id, session] of sessions) {
     all[id] = stateOf(session, now);
   }
+
   return all;
 }
 
@@ -59,13 +55,12 @@ export interface OpenTerminal {
   serverId: string;
   kind: TerminalKind;
   project: string | null;
-  /** The remote command: the app's own for a shell, `agent.open`'s otherwise. */
+  /** The app's own for a shell, `agent.open`'s otherwise. */
   command: string;
   cols: number;
   rows: number;
 }
 
-/** The address stays here: only its host crosses the bridge. */
 function noteLogin(id: string, session: Session, recipient: WebContents): void {
   if (sessions.get(id) !== session) {
     return;
@@ -88,13 +83,14 @@ function noteLogin(id: string, session: Session, recipient: WebContents): void {
   }
 }
 
-/**
- * The session, on the app's own SSH configuration.
- *
- * `-tt` forces terminal allocation even when ssh does not deem it necessary:
- * without it, an agent refuses to start, for want of a TTY. The command is a
- * single argument, and the remote login shell is the only thing to read it.
- */
+/** Another shell now holds this tab: what the old one still says is not the tab's. */
+function replaced(id: string, proc: pty.IPty): boolean {
+  const holder = sessions.get(id);
+
+  return holder !== undefined && holder.proc !== proc;
+}
+
+/** `-tt` forces a TTY even when ssh deems none needed: without it, coding agents refuse to start. */
 export function open(request: OpenTerminal, recipient: WebContents): void {
   const { id } = request;
 
@@ -108,24 +104,38 @@ export function open(request: OpenTerminal, recipient: WebContents): void {
   );
 
   proc.onData((data) => {
+    if (replaced(id, proc)) {
+      return;
+    }
+
     const session = sessions.get(id);
+
     if (session) {
       noteOutput(session, data.length, Date.now());
+
       if (data.includes(BELL)) {
         session.bell = true;
       }
+
       session.screen.write(data, () => noteLogin(id, session, recipient));
     }
+
     batch.push(id, data);
   });
 
   proc.onExit(({ exitCode }) => {
+    if (replaced(id, proc)) {
+      return;
+    }
+
     const session = sessions.get(id);
+
     if (session) {
       session.finished = true;
     }
-    // The last bytes leave before the door closes on them.
+
     batch.flush();
+
     if (!recipient.isDestroyed()) {
       recipient.send("terminal-exit", { id, code: exitCode });
     }
@@ -143,7 +153,6 @@ export function open(request: OpenTerminal, recipient: WebContents): void {
   watch(recipient);
 }
 
-/** The address this session is waiting on, for whoever opens it. */
 export function pendingLogin(id: string): LoginAddress | null {
   return sessions.get(id)?.login ?? null;
 }
@@ -152,7 +161,6 @@ export function serverOf(id: string): string | null {
   return sessions.get(id)?.serverId ?? null;
 }
 
-/** What a session runs and for which project, for a notice painted outside the window. */
 export function describeSession(
   id: string
 ): { kind: TerminalKind; project: string | null } | null {
@@ -163,14 +171,13 @@ export function describeSession(
 
 let watcher: NodeJS.Timeout | null = null;
 let lastSignature = "";
-/** The window the states go to: the one that last opened a session, not the first. */
+/** The window that last opened a session, not the first. */
 let audience: WebContents | null = null;
 
 type StatesListener = (states: Record<string, AgentState>) => void;
 
 const listeners = new Set<StatesListener>();
 
-/** Told what moved, on the same beat as the window: the badge and the notification read it. */
 export function onStates(listener: StatesListener): () => void {
   listeners.add(listener);
 
@@ -185,16 +192,14 @@ function tell(all: Record<string, AgentState>): void {
   }
 }
 
-/**
- * Not every state change comes from an event: "working" becomes "idle" through
- * the passage of time alone. So we recompute them, but only send what moved.
- */
+/** "working" turns "idle" through time alone, so states are recomputed on a timer and sent when they move. */
 function watch(recipient: WebContents): void {
   audience = recipient;
 
   if (watcher) {
     return;
   }
+
   watcher = setInterval(() => {
     if (sessions.size === 0) {
       clearInterval(watcher as NodeJS.Timeout);
@@ -202,10 +207,13 @@ function watch(recipient: WebContents): void {
       lastSignature = "";
       audience = null;
       tell({});
+
       return;
     }
+
     const all = states();
     const signature = JSON.stringify(all);
+
     if (signature !== lastSignature && audience && !audience.isDestroyed()) {
       lastSignature = signature;
       audience.send("terminal-states", all);
@@ -218,15 +226,16 @@ let keystrokesReceived = 0;
 
 export function write(id: string, data: string): void {
   const session = sessions.get(id);
+
   if (!session) {
     return;
   }
+
   keystrokesReceived += data.length;
   noteKeystroke(session, Date.now());
   session.proc.write(data);
 }
 
-/** Enough to check, without guessing, that the keyboard really reaches the PTY. */
 export function terminalDiagnostics(): {
   sessions: number;
   keystrokesReceived: number;
@@ -236,10 +245,13 @@ export function terminalDiagnostics(): {
 
 export function resize(id: string, cols: number, rows: number): void {
   const session = sessions.get(id);
+
   if (!session || cols < 2 || rows < 2) {
     return;
   }
+
   session.screen.resize(cols, rows);
+
   try {
     session.proc.resize(cols, rows);
   } catch {
@@ -249,17 +261,19 @@ export function resize(id: string, cols: number, rows: number): void {
 
 export function close(id: string): void {
   const session = sessions.get(id);
+
   if (!session) {
     return;
   }
+
   try {
     session.proc.kill();
   } catch {
     // Already dead.
   }
+
   session.screen.dispose();
-  // A replacement opens under the same id: what this one still held is not
-  // its bytes to deliver.
+  // A replacement opens under the same id: what this one still held is not its bytes to deliver.
   session.batch.drop(id);
   sessions.delete(id);
 }
@@ -270,7 +284,6 @@ export function closeAll(): void {
   }
 }
 
-/** The tabs of one server, closed with it: the others keep their shells. */
 export function closeFor(serverId: string): void {
   for (const [id, session] of [...sessions]) {
     if (session.serverId === serverId) {
@@ -290,17 +303,7 @@ function isEnd(value: unknown): value is TerminalEnd {
   );
 }
 
-/**
- * The tab is closed for good, so the session it held goes with it.
- *
- * Closing the window or quitting only lets go of the pipe — that is the whole
- * point of running under tmux. Closing a tab is the reader saying they are done
- * with that session, and a session nobody will come back to would otherwise sit
- * on the machine for ever.
- *
- * The renderer names it; nothing runs until the name has passed the grammar and
- * the server is one of ours.
- */
+/** Quitting only lets go of the pipe, tmux keeps the session; closing a tab is what ends it for good. */
 export function endSession(end: unknown): void {
   if (!isEnd(end)) {
     return;
@@ -327,8 +330,7 @@ export function endSession(end: unknown): void {
   );
 
   killer.on("error", () => {
-    // The machine is out of reach: the session outlives the tab, and the next
-    // attach on that name would find it.
+    // Out of reach: the session outlives the tab, and the next attach on that name finds it.
   });
   killer.unref();
 }

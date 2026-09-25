@@ -34,21 +34,20 @@ const memorySizedCache = "0.96"
 
 func newFakeSys() *modtest.FakeSys {
 	fake := modtest.NewFakeSys()
-	fake.Files[osReleasePath] = []byte("ID=ubuntu\nVERSION_CODENAME=noble\n")
-	fake.Files[meminfoPath] = []byte("MemTotal:       4015000 kB\n")
+	fake.Files["/etc/os-release"] = []byte("ID=ubuntu\nVERSION_CODENAME=noble\n")
+	fake.Files["/proc/meminfo"] = []byte("MemTotal:       4015000 kB\n")
 	fake.Answers["mongosh"] = userReady + "\n"
 
 	return fake
 }
 
-// The fake never opens a port on its own: the wait for mongod is switched off, and the one test that exercises it turns it back on.
+// The fake never opens a port, so the mongod wait stays off except in the test that exercises it.
 func TestMain(m *testing.M) {
 	startWait = 0
 
 	os.Exit(m.Run())
 }
 
-// mongosh reads its script on a REPL: an uncaught error prints and exits 0, so only the script's own last word says the user is there.
 func TestAUserScriptThatDoesNotReportReadyIsARefusal(t *testing.T) {
 	fake := newFakeSys()
 	fake.Answers["mongosh"] = "test> Uncaught MongoServerError[Unauthorized]: not authorized on admin to execute command\n"
@@ -65,7 +64,6 @@ func TestAUserScriptThatDoesNotReportReadyIsARefusal(t *testing.T) {
 	}
 }
 
-// mongod takes its time to listen after a start: a shell refused on the door is asked again, and the user is created once it opens.
 func TestTheUserIsCreatedOnceTheEngineListens(t *testing.T) {
 	fake := newFakeSys()
 	startWait, startPoll = time.Second, 10*time.Millisecond
@@ -76,6 +74,7 @@ func TestTheUserIsCreatedOnceTheEngineListens(t *testing.T) {
 	install(t, ctx)
 
 	shells := 0
+
 	for _, cmd := range fake.Calls {
 		if cmd.Argv[0] == "mongosh" {
 			shells++
@@ -116,6 +115,7 @@ func install(t *testing.T, ctx *modules.Context) {
 
 func statuses(ctx *modules.Context) map[string]contract.StepStatus {
 	steps := map[string]contract.StepStatus{}
+
 	for _, event := range ctx.Events() {
 		steps[event.Step] = event.Status
 	}
@@ -151,6 +151,7 @@ func TestMongodbListensOnTheLoopbackWithAuthorizationOn(t *testing.T) {
 	install(t, ctx)
 
 	written := string(fake.Files[confPath])
+
 	for _, want := range []string{"bindIp: 127.0.0.1", "port: 27017", "authorization: enabled"} {
 		if !strings.Contains(written, want) {
 			t.Errorf("%s missing from %s:\n%s", want, confPath, written)
@@ -178,6 +179,7 @@ func TestMongodb8ComesFromItsOwnRepository(t *testing.T) {
 	}
 
 	var fetched string
+
 	for _, call := range fake.Commands() {
 		if strings.HasPrefix(call, "curl") {
 			fetched = call
@@ -200,6 +202,7 @@ func TestApplicationUserIsCreatedOnTheStandardInput(t *testing.T) {
 	install(t, ctx)
 
 	var script string
+
 	for _, call := range fake.Calls {
 		if len(call.Stdin) > 0 {
 			script = string(call.Stdin)
@@ -253,7 +256,7 @@ func TestNoGeneratedPasswordReachesTheJournalOrTheEvents(t *testing.T) {
 func TestMongodumpArchivesAreImportedAndNamedInTheReport(t *testing.T) {
 	fake := installedSys(t)
 	fake.Dirs[dumps.Dir] = true
-	fake.Replies["find"] = dumps.Dir + "/dump_shop_20260101.archive.gz\n"
+	fake.Replies["find"] = dumps.Dir + "/dump_shop_20260101.archive.gz\x00"
 	ctx := newContext(t, fake)
 
 	install(t, ctx)
@@ -262,14 +265,20 @@ func TestMongodumpArchivesAreImportedAndNamedInTheReport(t *testing.T) {
 		t.Fatalf("the report must name the imported database: %+v", ctx.Events())
 	}
 
-	var restore string
+	var restore, fed string
+
 	for _, call := range fake.Calls {
 		if call.Argv[0] == "mongorestore" {
 			restore = strings.Join(call.Argv, " ")
+			fed = call.StdinPath
 		}
 	}
 
-	for _, want := range []string{"--archive=" + dumps.Dir + "/dump_shop_20260101.archive.gz", "--gzip", "--username=app", "--config=" + toolsConfigPath} {
+	if fed != dumps.Dir+"/dump_shop_20260101.archive.gz" {
+		t.Fatalf("the archive reaches mongorestore on a standard input root opened without following a link: %q", fed)
+	}
+
+	for _, want := range []string{"--archive", "--gzip", "--username=app", "--config=" + toolsConfigPath} {
 		if !strings.Contains(restore, want) {
 			t.Errorf("mongorestore lacks %q: %q", want, restore)
 		}
@@ -338,13 +347,12 @@ func TestShellPromptsForThePasswordAndDumpWritesAnArchive(t *testing.T) {
 		t.Fatal("the shell command never carries the password, mongosh asks for it")
 	}
 
-	fake.Answer("stat", "2048\n")
 	path, size, err := Dump(ctx, "shop")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if path != dumps.Dir+"/shop_20260904-1200.archive.gz" || size != 2048 {
+	if path != dumps.Dir+"/shop_20260904-1200.archive.gz" || size != int64(len("dump")) || string(fake.Files[path]) != "dump" {
 		t.Fatalf("dump = %q, %d", path, size)
 	}
 }
@@ -422,7 +430,6 @@ func newContextWith(t *testing.T, fake *modtest.FakeSys, values modtest.Values) 
 	})
 }
 
-// Left at zero the cache follows the machine; a figure given follows the client, whose database may be the whole point of the server.
 func TestTheCacheFollowsTheMachineUntilTheClientSizesIt(t *testing.T) {
 	fake := newFakeSys()
 	install(t, newContext(t, fake))
@@ -446,10 +453,10 @@ func TestTheCacheFollowsTheMachineUntilTheClientSizesIt(t *testing.T) {
 	}
 }
 
-// The version, the port and the user name are the client's call; the repository, the configuration and the url follow.
 func TestTheChosenVersionPortAndUserReachTheServer(t *testing.T) {
 	fake := newFakeSys()
-	ctx := newContextWith(t, fake, modtest.Values{"version": "7.0", "port": 27018, "app_user": "flymate"})
+	fake.Files["/etc/os-release"] = []byte("ID=ubuntu\nVERSION_CODENAME=jammy\n")
+	ctx := newContextWith(t, fake, modtest.Values{"version": "7.0", "port": 27018, "app_user": "flyleaf"})
 
 	install(t, ctx)
 
@@ -463,22 +470,23 @@ func TestTheChosenVersionPortAndUserReachTheServer(t *testing.T) {
 	}
 
 	script := ""
+
 	for _, call := range fake.Calls {
 		if len(call.Stdin) > 0 {
 			script = string(call.Stdin)
 		}
 	}
-	if !strings.Contains(script, `"flymate"`) {
+
+	if !strings.Contains(script, `"flyleaf"`) {
 		t.Fatalf("the chosen user must be the one created:\n%s", script)
 	}
 
 	url, err := URL(ctx, "shop")
-	if err != nil || url != "mongodb://flymate@127.0.0.1:27018/shop?authSource=admin" {
+	if err != nil || url != "mongodb://flyleaf@127.0.0.1:27018/shop?authSource=admin" {
 		t.Fatalf("url = %q, %v", url, err)
 	}
 }
 
-// A user name reaches the mongosh script as an identifier: what does not look like one is refused before it gets there.
 func TestAUserNameThatIsNotAnIdentifierFallsBackOnTheDefault(t *testing.T) {
 	ctx := newContextWith(t, newFakeSys(), modtest.Values{"app_user": `app"); db.dropDatabase(); //`})
 
@@ -489,6 +497,7 @@ func TestAUserNameThatIsNotAnIdentifierFallsBackOnTheDefault(t *testing.T) {
 
 func sentScript(fake *modtest.FakeSys) string {
 	var script string
+
 	for _, call := range fake.Calls {
 		if len(call.Stdin) > 0 {
 			script = string(call.Stdin)
@@ -498,7 +507,6 @@ func sentScript(fake *modtest.FakeSys) string {
 	return script
 }
 
-// Once authorization is on, only the previous password opens the user: a rotation that signs in with the new one fails for ever, and the env must not say otherwise.
 func TestRotationSignsInWithThePreviousPasswordAndStoresLast(t *testing.T) {
 	fake := installedSys(t)
 	fake.Files[env.Path] = []byte(appPasswordKey + "=former-password\n")
@@ -528,9 +536,9 @@ func TestRotationSignsInWithThePreviousPasswordAndStoresLast(t *testing.T) {
 	}
 }
 
-// A new major beside the running one is a server that will not start on the old files until featureCompatibilityVersion was raised: the form is told so before anything moves.
 func TestPreflightRefusesAVersionChangeWhileInstalled(t *testing.T) {
 	fake := installedSys(t)
+	fake.Files["/etc/os-release"] = []byte("ID=ubuntu\nVERSION_CODENAME=jammy\n")
 	ctx := modtest.NewContext(t, fake, modtest.Options{
 		Manifest: manifest(),
 		Values:   modtest.Values{"version": "7.0"},
@@ -540,6 +548,94 @@ func TestPreflightRefusesAVersionChangeWhileInstalled(t *testing.T) {
 	problems := (Module{}).Preflight(ctx)
 	if len(problems) != 1 || problems[0].Field != "version" || !strings.Contains(problems[0].Message, "setFeatureCompatibilityVersion") {
 		t.Fatalf("problems = %+v", problems)
+	}
+}
+
+func TestAMajorMongoDBDoesNotPublishForThisReleaseIsRefused(t *testing.T) {
+	fake := newFakeSys()
+	chosen := modtest.Values{"version": "7.0"}
+
+	problems := (Module{}).Preflight(newContextWith(t, fake, chosen))
+	if len(problems) != 1 || problems[0].Field != "version" || problems[0].Code != contract.ProblemOptions ||
+		problems[0].Expected != "8.0" || !strings.Contains(problems[0].Message, "noble") {
+		t.Fatalf("problems = %+v", problems)
+	}
+
+	ctx := newContextWith(t, fake, chosen)
+	err := (Module{}).Install(ctx)
+	if err == nil || !strings.Contains(err.Error(), "8.0") || statuses(ctx)["add-repository"] != contract.StepFail {
+		t.Fatalf("install = %v, steps = %v", err, statuses(ctx))
+	}
+
+	if len(fake.Mutations) != 0 {
+		t.Fatalf("a refused major must leave the machine untouched: %v", fake.Mutations)
+	}
+
+	fake.Files["/etc/os-release"] = []byte("ID=ubuntu\nVERSION_CODENAME=jammy\n")
+	if problems := (Module{}).Preflight(newContextWith(t, fake, chosen)); len(problems) != 0 {
+		t.Fatalf("7.0 is published for jammy: %+v", problems)
+	}
+}
+
+func TestEveryOfferedMajorIsPublishedForSomeRelease(t *testing.T) {
+	for _, field := range manifest().Fields {
+		if field.Key != "version" {
+			continue
+		}
+
+		for _, major := range field.Options {
+			if len(published[major]) == 0 {
+				t.Errorf("%s is offered and published for no release", major)
+			}
+		}
+	}
+}
+
+func TestARepositoryAptCannotReadIsTakenBackOut(t *testing.T) {
+	fake := newFakeSys()
+	fake.FailLine("update -qq", "E: The repository 'https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0 Release' does not have a Release file.")
+	ctx := newContext(t, fake)
+
+	if err := (Module{}).Install(ctx); err == nil {
+		t.Fatal("expected the install to fail")
+	}
+
+	for _, path := range []string{defaultList, defaultKeyring} {
+		if _, kept := fake.Files[path]; kept {
+			t.Errorf("%s must not stay where apt reads it", path)
+		}
+	}
+}
+
+func TestUninstallTakesBackThePackagesAndTheRepository(t *testing.T) {
+	fake := installedSys(t)
+
+	for _, part := range []string{"mongodb-org-server", "mongodb-org-mongos", "mongodb-org-database", "mongodb-org-tools", "mongodb-mongosh", "mongodb-database-tools"} {
+		fake.Packages[part] = "8.0.4"
+	}
+
+	fake.Packages["mongodb-clients"] = "1:3.6"
+	delete(fake.Answers, "mongosh")
+	ctx := newContext(t, fake)
+
+	if err := (Module{}).Uninstall(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	for name := range fake.Packages {
+		if strings.HasPrefix(name, "mongodb-org") || name == "mongodb-mongosh" || name == "mongodb-database-tools" {
+			t.Errorf("%s stayed behind", name)
+		}
+	}
+
+	if _, kept := fake.Packages["mongodb-clients"]; !kept {
+		t.Error("a package the module never installed is not its to remove")
+	}
+
+	for _, path := range []string{defaultList, defaultKeyring} {
+		if _, kept := fake.Files[path]; kept {
+			t.Errorf("%s stayed behind", path)
+		}
 	}
 }
 
@@ -554,6 +650,7 @@ func TestInstallingOneVersionDropsTheListOfAnother(t *testing.T) {
 	if _, kept := fake.Files["/etc/apt/sources.list.d/mongodb-org-7.0.list"]; kept {
 		t.Fatal("the list of the previous version would take the next upgrade across a major")
 	}
+
 	if _, present := fake.Files[defaultList]; !present {
 		t.Fatal("the list of the chosen version must be there")
 	}
@@ -561,7 +658,6 @@ func TestInstallingOneVersionDropsTheListOfAnother(t *testing.T) {
 
 func TestADumpBelongsToDev(t *testing.T) {
 	fake := installedSys(t)
-	fake.Answer("stat", "2048\n")
 	ctx := newContext(t, fake)
 
 	path, _, err := Dump(ctx, "shop")

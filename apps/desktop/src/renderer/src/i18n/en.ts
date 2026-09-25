@@ -13,6 +13,8 @@ import { format } from "./strings/format";
 import { forwards } from "./strings/forwards";
 import { help } from "./strings/help";
 import { install } from "./strings/install";
+import { installSteps } from "./strings/install-steps";
+import { keyApprovals } from "./strings/key-approvals";
 import { onboarding } from "./strings/onboarding";
 import { project } from "./strings/project";
 import { projectAdd } from "./strings/project-add";
@@ -25,6 +27,7 @@ import { settings } from "./strings/settings";
 import { shell } from "./strings/shell";
 import { shots } from "./strings/shots";
 import { state } from "./strings/state";
+import { sudo } from "./strings/sudo";
 import { terminals } from "./strings/terminals";
 import { transfers } from "./strings/transfers";
 import { ui } from "./strings/ui";
@@ -49,6 +52,8 @@ export const en = {
   ...fleet.en,
   ...help.en,
   ...install.en,
+  ...installSteps.en,
+  ...keyApprovals.en,
   ...onboarding.en,
   ...project.en,
   ...projectAdd.en,
@@ -58,6 +63,7 @@ export const en = {
   ...settings.en,
   ...shell.en,
   ...shots.en,
+  ...sudo.en,
   ...terminals.en,
   ...transfers.en,
   ...ui.en,

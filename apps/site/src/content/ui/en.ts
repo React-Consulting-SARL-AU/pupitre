@@ -1,7 +1,5 @@
 export const en = {
   "site.name": "Pupitre",
-  "site.domain": "pupitre.studio",
-  "site.tagline": "A machine of their own for your AI agents.",
 
   "a11y.skip": "Skip to content",
 
@@ -20,7 +18,6 @@ export const en = {
   "theme.light": "Light",
   "theme.dark": "Dark",
 
-  "locale.label": "Language",
   "locale.alternateName": "Français",
 
   "footer.tagline":
@@ -30,9 +27,10 @@ export const en = {
   "footer.legal": "Legal",
   "footer.terms": "Terms",
   "footer.privacy": "Privacy",
-  "footer.licence": "Licence",
-  "footer.acceptableUse": "Acceptable use",
-  "footer.dpa": "Data processing",
+  "footer.cookies": "Cookies",
+  "footer.legalNotice": "Legal notice",
+  "footer.allLegal": "All legal documents",
+  "footer.consent": "Audience measurement",
   "footer.status": "Status",
 
   "callout.info": "Note",
@@ -51,12 +49,10 @@ export const en = {
   "docs.search": "Search",
   "docs.searchPlaceholder": "Search the docs",
   "docs.searchEmpty": "No page matches.",
-  "docs.searchCount": "{count} page(s)",
   "docs.next": "Next",
   "docs.previous": "Previous",
   "docs.start": "Start here",
   "docs.back": "All docs",
-  "docs.updated": "Section",
 
   "blog.label": "Blog",
   "blog.title": "Blog — Pupitre",
@@ -68,13 +64,12 @@ export const en = {
   "blog.by": "By",
   "blog.rss": "RSS",
   "blog.back": "All posts",
-  "blog.reading": "Reading time",
   "blog.empty": "Nothing published yet.",
 
   "legal.label": "Legal",
   "legal.title": "Legal — Pupitre",
   "legal.description":
-    "Terms, licence, acceptable use, privacy and data processing for Pupitre.",
+    "Terms, licence, privacy, cookies, subscription, security and legal notice for Pupitre.",
   "legal.headline": "The rules, written to be read.",
   "legal.lead": "Nothing here contradicts what the app does on your machine.",
   "legal.updated": "Updated",
@@ -94,7 +89,7 @@ export const en = {
     "We would like to count page views, without a cookie and without identifying you. Nothing is stored until you accept.",
   "consent.accept": "Accept",
   "consent.decline": "Decline",
-  "consent.link": "Privacy",
+  "consent.link": "Cookies",
 } as const
 
 export type Dictionary = Record<keyof typeof en, string>

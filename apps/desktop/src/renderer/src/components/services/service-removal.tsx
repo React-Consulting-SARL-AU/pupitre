@@ -5,14 +5,6 @@ import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { ServiceRemovalLosses } from "./service-removal-losses";
 
-/**
- * Retiring a module, asked twice, the second time with the bill.
- *
- * The gesture stands in the page's header with the other things done to the
- * module as a whole. A module the catalogue calls mandatory has no button at
- * all: the machine depends on it, and offering the gesture only to refuse it
- * would be a lie — the header's facts say so instead.
- */
 export function ServiceRemoval({
   name,
   removal,
@@ -26,6 +18,7 @@ export function ServiceRemoval({
 
   const [asking, setAsking] = useState(false);
 
+  // No button to refuse: the header's facts carry the refusal instead.
   if (!removal.allowed) {
     return null;
   }

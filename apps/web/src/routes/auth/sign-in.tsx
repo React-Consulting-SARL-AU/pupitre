@@ -10,7 +10,6 @@ import { documentTitle } from "@/lib/domain/page-titles"
 
 interface SignInSearch {
   callbackURL?: string
-  /** The affiliate code an invitation link carries; it lands in the cookie the checkout reads. */
   ref?: string
 }
 

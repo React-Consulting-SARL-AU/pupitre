@@ -1,17 +1,9 @@
 import { Terminal } from "@xterm/headless";
 
-/**
- * What a session shows, read here rather than in the window.
- *
- * The stream is not enough: tmux paints the screen row by row, drops the
- * hyperlinks it does not know how to keep, and an address longer than a row
- * arrives as positioned fragments. Only a screen puts them back in order, and
- * the address stays in this process, so the screen lives here too.
- */
+/** tmux paints row by row and splits long addresses into fragments: only a screen reassembles them. */
 export interface Screen {
   write(data: string, then: () => void): void;
   resize(cols: number, rows: number): void;
-  /** The rows on display, top to bottom, without their trailing blanks. */
   lines(): string[];
   cols(): number;
   dispose(): void;

@@ -20,6 +20,11 @@ func unverifiable(cause error) *protocol.Error {
 		WithFix(i18n.T("selfupdate.signature.unverifiable.fix"))
 }
 
+func unsignedRefused() *protocol.Error {
+	return protocol.NewError(contract.ErrorPrivilegeRequired, i18n.T("selfupdate.unsigned.refused")).
+		WithFix(i18n.T("selfupdate.unsigned.refused.fix"))
+}
+
 func corrupted(version, announced, computed string) *protocol.Error {
 	return protocol.NewError(contract.ErrorBadSignature,
 		i18n.T("selfupdate.corrupted", version, computed, announced)).
@@ -50,8 +55,7 @@ func downloadFailed(version string, cause error) *protocol.Error {
 	}
 
 	if errors.As(cause, &failure) && failure.Unauthorized() {
-		return protocol.NewError(contract.ErrorEntitlementRequired, i18n.T("selfupdate.token.refused", platform.Describe(cause))).
-			WithFix(i18n.T("selfupdate.token.refused.fix"))
+		return tokenRefused(failure)
 	}
 
 	return protocol.NewError(contract.ErrorInternal, i18n.T("selfupdate.download.failed", platform.Describe(cause))).
@@ -61,12 +65,16 @@ func downloadFailed(version string, cause error) *protocol.Error {
 func stateFailed(cause error) *protocol.Error {
 	var failure *platform.Error
 	if errors.As(cause, &failure) && failure.Unauthorized() {
-		return protocol.NewError(contract.ErrorEntitlementRequired, i18n.T("selfupdate.token.refused", platform.Describe(cause))).
-			WithFix(i18n.T("selfupdate.token.refused.fix"))
+		return tokenRefused(failure)
 	}
 
 	return protocol.NewError(contract.ErrorInternal, i18n.T("selfupdate.state.unreadable", platform.Describe(cause))).
 		WithFix(i18n.T("selfupdate.state.unreadable.fix"))
+}
+
+func tokenRefused(failure *platform.Error) *protocol.Error {
+	return protocol.NewError(contract.ErrorEntitlementRequired, i18n.T("selfupdate.token.refused", platform.Describe(failure))).
+		WithFix(i18n.T("selfupdate.token.refused.fix", failure.Console()))
 }
 
 func unreachableFix(cause error) string {
@@ -81,6 +89,16 @@ func restartFailed(version string, cause error) *protocol.Error {
 	return protocol.NewError(contract.ErrorInternal,
 		i18n.T("selfupdate.restart.failed", version, cause)).
 		WithFix(i18n.T("selfupdate.restart.failed.fix"))
+}
+
+func upgradeBusy() *protocol.Error {
+	return protocol.NewError(contract.ErrorBusy, i18n.T("selfupdate.busy")).
+		WithFix(i18n.T("selfupdate.busy.fix"))
+}
+
+func installBusy() *protocol.Error {
+	return protocol.NewError(contract.ErrorBusy, i18n.T("selfupdate.install.busy")).
+		WithFix(i18n.T("selfupdate.install.busy.fix"))
 }
 
 func silent(version, restored string, cause error) *protocol.Error {

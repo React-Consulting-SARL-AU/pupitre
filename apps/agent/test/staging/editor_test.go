@@ -78,7 +78,7 @@ func TestTheVSCodeServerIsThereBeforeTheFirstConnection(t *testing.T) {
 		t.Fatalf("the listed extensions must already be installed:\n%s", extensions)
 	}
 
-	// systemctl exits 1 when nothing is listed, which is the answer wanted here.
+	// systemctl exits 1 when no unit matches, which is the answer wanted here, so its error is ignored.
 	out, _ := sshCommand(host, "systemctl", "list-unit-files", "pupitre-code-tunnel.service").CombinedOutput()
 	if strings.Contains(string(out), "pupitre-code-tunnel.service") {
 		t.Fatalf("without the tunnel there is no service:\n%s", out)

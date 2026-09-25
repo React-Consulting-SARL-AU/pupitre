@@ -1,6 +1,7 @@
 package docker
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -8,6 +9,7 @@ import (
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/modtest"
 	"pupitre.studio/agent/internal/modules/runtime/shell"
+	"pupitre.studio/agent/internal/sys"
 )
 
 var values = modtest.Values{"compose": true}
@@ -33,6 +35,7 @@ func run(t *testing.T, ctx *modules.Context) {
 
 func statuses(ctx *modules.Context) map[string]contract.StepStatus {
 	result := map[string]contract.StepStatus{}
+
 	for _, event := range ctx.Events() {
 		result[event.Step] = event.Status
 	}
@@ -72,15 +75,16 @@ func TestInstallAddsTheRepositoryThenTheEngine(t *testing.T) {
 	}
 }
 
-// Without the group every docker command would need sudo, and the agents that run as dev would stop at the first one.
 func TestDevJoinsTheDockerGroupOnce(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	run(t, newContext(t, fake, values))
 
 	found := false
+
 	for _, joined := range fake.Groups[shell.User] {
 		found = found || joined == group
 	}
+
 	if !found {
 		t.Fatalf("dev groups = %v", fake.Groups[shell.User])
 	}
@@ -174,5 +178,141 @@ func TestJoiningTheDockerGroupWarnsThatTerminalsMustBeReopened(t *testing.T) {
 
 	if output := strings.Join(ctx.Output(), "\n"); !strings.Contains(output, "! dev just joined the docker group") {
 		t.Fatalf("no warning about the open terminals:\n%s", output)
+	}
+}
+
+func TestPublishedPortsBindToLoopbackOnEveryBridge(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	run(t, newContext(t, fake, values))
+
+	var config struct {
+		IP                 string                       `json:"ip"`
+		DefaultNetworkOpts map[string]map[string]string `json:"default-network-opts"`
+	}
+
+	if err := json.Unmarshal(fake.Files[configPath], &config); err != nil {
+		t.Fatal(err)
+	}
+
+	if config.IP != "127.0.0.1" || config.DefaultNetworkOpts["bridge"]["com.docker.network.bridge.host_binding_ipv4"] != "127.0.0.1" {
+		t.Fatalf("daemon.json = %s", fake.Files[configPath])
+	}
+}
+
+const networksBeforeLoopback = `[
+  {"Name": "bridge", "Driver": "bridge", "Options": {"com.docker.network.bridge.host_binding_ipv4": "0.0.0.0", "com.docker.network.bridge.name": "docker0"}},
+  {"Name": "shop_default", "Driver": "bridge", "Options": {}},
+  {"Name": "safe", "Driver": "bridge", "Options": {"com.docker.network.bridge.host_binding_ipv4": "127.0.0.1"}}
+]`
+
+const bridgeBeforeLoopback = `[
+  {"Name": "bridge", "Driver": "bridge", "Options": {"com.docker.network.bridge.host_binding_ipv4": "0.0.0.0"}}
+]`
+
+const networksOnLoopback = `[
+  {"Name": "bridge", "Driver": "bridge", "Options": {"com.docker.network.bridge.host_binding_ipv4": "127.0.0.1"}}
+]`
+
+const containersBeforeLoopback = `[
+  {"Name": "/web", "HostConfig": {"PortBindings": {"80/tcp": [{"HostIp": "", "HostPort": "8086"}]}},
+   "NetworkSettings": {"Ports": {"80/tcp": [{"HostIp": "0.0.0.0", "HostPort": "8086"}, {"HostIp": "::", "HostPort": "8086"}]}}},
+  {"Name": "/admin", "HostConfig": {"PortBindings": {"80/tcp": [{"HostIp": "0.0.0.0", "HostPort": "8090"}]}},
+   "NetworkSettings": {"Ports": {"80/tcp": [{"HostIp": "0.0.0.0", "HostPort": "8090"}]}}},
+  {"Name": "/db", "HostConfig": {"PortBindings": {"5432/tcp": [{"HostIp": "", "HostPort": "5432"}]}},
+   "NetworkSettings": {"Ports": {"5432/tcp": [{"HostIp": "127.0.0.1", "HostPort": "5432"}]}}}
+]`
+
+func dockerAnswers(fake *modtest.FakeSys, networks, running, containers string) {
+	fake.Answer("docker network ls", "n1\nn2\nn3\n")
+	fake.Answer("docker network inspect", networks)
+	fake.Answer("docker ps", running)
+	fake.Answer("docker inspect", containers)
+}
+
+const beforeLoopback = `{
+  "live-restore": true,
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-file": "3",
+    "max-size": "10m"
+  }
+}
+`
+
+func TestUpgradeNamesWhatStaysPublishedEverywhereAndHowToCloseIt(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	run(t, newContext(t, fake, values))
+	fake.Files[configPath] = []byte(beforeLoopback)
+	dockerAnswers(fake, networksBeforeLoopback, "3f2a9c1d\n", containersBeforeLoopback)
+	restarts := fake.Restarts[Unit]
+
+	ctx := newContext(t, fake, values)
+	if err := (Module{}).Upgrade(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if config := string(fake.Files[configPath]); !strings.Contains(config, "host_binding_ipv4") {
+		t.Fatalf("daemon.json = %s", config)
+	}
+
+	if fake.Restarts[Unit] != restarts+1 {
+		t.Fatalf("the daemon must restart once to read the new bind, restarts = %d", fake.Restarts[Unit]-restarts)
+	}
+
+	output := strings.Join(ctx.Output(), "\n")
+
+	for _, want := range []string{"web (0.0.0.0:8086, [::]:8086)", "bridge, shop_default", "docker stop", "systemctl restart docker", "docker compose down", "docker compose up -d", "docker network rm"} {
+		if !strings.Contains(output, want) {
+			t.Errorf("the warning must say %q:\n%s", want, output)
+		}
+	}
+
+	for _, spared := range []string{"admin", "8090", "safe", "5432"} {
+		if strings.Contains(output, spared) {
+			t.Errorf("%s is published on purpose or on the loopback, and must not be named:\n%s", spared, output)
+		}
+	}
+}
+
+func TestAnIdleDaemonStillBoundEverywhereIsRestartedOntoTheLoopback(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	run(t, newContext(t, fake, values))
+	dockerAnswers(fake, bridgeBeforeLoopback, "", "[]")
+	fake.Observe = func(cmd sys.Command) {
+		if strings.Join(cmd.Argv, " ") == "systemctl restart docker" {
+			fake.Answer("docker network inspect", networksOnLoopback)
+		}
+	}
+
+	restarts := fake.Restarts[Unit]
+
+	ctx := newContext(t, fake, values)
+	run(t, ctx)
+
+	if fake.Restarts[Unit] != restarts+1 || statuses(ctx)["check-published-ports"] != contract.StepOK {
+		t.Fatalf("restarts = %d, steps = %v", fake.Restarts[Unit]-restarts, statuses(ctx))
+	}
+
+	if output := strings.Join(ctx.Output(), "\n"); strings.Contains(output, "docker network rm") {
+		t.Fatalf("nothing is left to warn about:\n%s", output)
+	}
+}
+
+func TestAForgedRepositoryKeyIsRefusedAndNotKept(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Signers[keyURL] = []string{"1111111111111111111111111111111111111111"}
+	ctx := newContext(t, fake, values)
+
+	err := (Module{}).Install(ctx)
+	if err == nil || !strings.Contains(err.Error(), "1111111111111111111111111111111111111111") {
+		t.Fatalf("install = %v, want the forged key named", err)
+	}
+
+	if _, kept := fake.Files[keyringPath]; kept {
+		t.Fatal("a refused key must not stay where apt reads it")
+	}
+
+	if fake.Packages[enginePkg] != "" {
+		t.Fatal("nothing is installed from a repository whose key was refused")
 	}
 }

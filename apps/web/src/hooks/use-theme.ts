@@ -11,10 +11,7 @@ export interface ThemeControl {
   setTheme: (next: Theme) => void
 }
 
-/**
- * One value for the whole page: the footer, the sidebar and the settings card
- * all show the same theme, and one of them changing it moves the others.
- */
+// Module-level store, so every theme control on the page moves together.
 const listeners = new Set<() => void>()
 
 let current: Theme | null = null
@@ -35,7 +32,6 @@ function snapshot(): Theme {
   return current
 }
 
-/** The server has no browser storage to read, and paints the system theme. */
 function serverSnapshot(): Theme {
   return "system"
 }

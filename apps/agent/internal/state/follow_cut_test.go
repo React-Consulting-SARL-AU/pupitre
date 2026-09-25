@@ -16,7 +16,6 @@ import (
 	"pupitre.studio/agent/internal/state"
 )
 
-// A follow holds its channel for as long as the reader stays: the moment standard input closes, the follow ends, not a quarter of an hour later.
 func TestAFollowEndsWhenTheChannelIsCut(t *testing.T) {
 	fake := modtest.NewFakeSys()
 	machine(fake)

@@ -29,7 +29,6 @@ export interface AdminSubscriptionTrialFormProps {
   trialEndsAt: string | Date | null
 }
 
-/** Stripe holds the trial: the console asks for a day, Stripe answers with the mirror. */
 export function AdminSubscriptionTrialForm({
   subscriptionId,
   organization,

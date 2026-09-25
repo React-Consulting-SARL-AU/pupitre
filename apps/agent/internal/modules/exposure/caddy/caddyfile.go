@@ -8,7 +8,7 @@ import (
 	"pupitre.studio/agent/internal/registry"
 )
 
-// Host rewriting neutralises the allowedHosts check of a dev server without touching a single vite.config.ts.
+// Rewriting Host defeats a dev server's allowedHosts check without touching its vite.config.ts.
 func caddyfile(email string, httpPort, httpsPort int, domain string, projects []registry.Project) []byte {
 	var out strings.Builder
 

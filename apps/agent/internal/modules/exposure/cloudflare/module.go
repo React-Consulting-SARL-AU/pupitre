@@ -1,4 +1,3 @@
-// Package cloudflare exposes the projects through a Cloudflare tunnel: the app creates it on the client's account, the server only runs it.
 package cloudflare
 
 import (
@@ -16,14 +15,12 @@ import (
 const (
 	Unit = cloudflared.Unit
 
-	// Provider is the one name this module answers to: the marker on disk, and the name its report carries.
 	Provider = "cloudflare"
 
 	modePath = routes.ModePath
 )
 
-// The marker /etc/pupitre/exposure says which exposure holds the machine; this one writes its name there like ssh and caddy do.
-var mode = []byte(Provider + "\n")
+var mode = routes.Marker(Provider)
 
 type Module struct{}
 
@@ -66,7 +63,7 @@ func (Module) Install(ctx *modules.Context) error {
 	})
 }
 
-// The domain is stored before the ingress is written: the registry resolves the routes of the repository's rows against it.
+// The domain is stored before the ingress: the registry resolves the routes against it.
 func (m Module) Configure(ctx *modules.Context) error {
 	credentials, err := writeCredentials(ctx)
 	if err != nil {
@@ -152,22 +149,10 @@ func storeDomain(ctx *modules.Context) error {
 }
 
 func declareMode(ctx *modules.Context) error {
-	return ctx.Step("declare-mode", func() (modules.Outcome, error) {
-		if file.Same(ctx, modePath, mode) {
-			return modules.Skipped, nil
-		}
-
-		if err := ctx.Sys().MkdirAll("/etc/pupitre", 0o700); err != nil {
-			return modules.Failed, err
-		}
-
-		return modules.Done, file.WriteAtomic(ctx, modePath, mode, 0o644)
-	})
+	return routes.DeclareMode(ctx, Provider)
 }
 
-// A daemon already running keeps the credentials and the ingress it read at
-// start: whichever of the two was rewritten, the tunnel it carries is not the
-// one this run configured until it has been restarted.
+// A running daemon keeps the credentials and ingress it read at start, so rewriting either needs a restart.
 func service(ctx *modules.Context, configChanged bool) error {
 	written := false
 
@@ -194,9 +179,7 @@ func service(ctx *modules.Context, configChanged bool) error {
 			return modules.Failed, cloudflared.StartFailure(ctx, err)
 		}
 
-		// A unit already running keeps its old configuration until it is
-		// restarted; one that was down was just started by enable --now, and
-		// restarting it again would only make a failed start be waited twice.
+		// enable --now already started a unit that was down; restarting it would wait out a failed start twice.
 		if running {
 			if err := systemd.Restart(ctx, Unit); err != nil {
 				return modules.Failed, cloudflared.StartFailure(ctx, err)
@@ -240,8 +223,10 @@ func (m Module) Upgrade(ctx *modules.Context) error {
 	return m.Configure(ctx)
 }
 
-// The tunnel and its records live on the client's Cloudflare account: uninstalling gives back the machine, and touches neither.
+// The tunnel and its DNS records live on the client's Cloudflare account and are left untouched.
 func (Module) Uninstall(ctx *modules.Context) error {
+	heldByAnother := routes.HeldByAnother(ctx, Provider)
+
 	if err := ctx.Step("stop-service", func() (modules.Outcome, error) {
 		if !file.Exists(ctx, cloudflared.UnitPath) {
 			return modules.Skipped, nil
@@ -268,7 +253,7 @@ func (Module) Uninstall(ctx *modules.Context) error {
 	if err := ctx.Step("remove-config", func() (modules.Outcome, error) {
 		cleared := false
 
-		paths := []string{cloudflared.ConfigPath, cloudflared.CredentialsPath, cloudflared.SourcePath}
+		paths := []string{cloudflared.ConfigPath, cloudflared.CredentialsPath, cloudflared.SourcePath, cloudflared.KeyringPath}
 		if file.Same(ctx, modePath, mode) {
 			paths = append(paths, modePath)
 		}
@@ -302,6 +287,10 @@ func (Module) Uninstall(ctx *modules.Context) error {
 	}
 
 	return ctx.Step("forget-domain", func() (modules.Outcome, error) {
+		if heldByAnother {
+			return modules.Skipped, nil
+		}
+
 		forgotten, err := env.Unset(ctx, env.DomainKey)
 		if err != nil {
 			return modules.Failed, err

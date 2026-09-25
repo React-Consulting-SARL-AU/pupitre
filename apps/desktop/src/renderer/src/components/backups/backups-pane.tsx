@@ -6,7 +6,6 @@ import { BackupsDestination } from "./backups-destination";
 import { BackupsSettings } from "./backups-settings";
 import type { BackupsTab } from "./backups-tabs";
 
-/** The pane the open tab names; the settings wait for the module's manifest. */
 export function BackupsPane({
   tab,
   serverId,

@@ -3,12 +3,10 @@ package contract
 import (
 	_ "embed"
 	"encoding/json"
+	"reflect"
 	"testing"
 )
 
-// The fixtures the app validates against, exported by `bun run contracts:export`.
-// A case that passes here and fails there is the drift this file exists to catch.
-//
 //go:embed fields.fixtures.json
 var fixturesRaw []byte
 
@@ -20,11 +18,12 @@ type fieldCase struct {
 	Expect *string         `json:"expect"`
 }
 
-// A fixture holds the secret values, or only their count when the app could see no more: the agent always sees them, so a count stands for that many values it has nothing to say against.
+// A count stands for that many held values the app could not see but the agent always does.
 func (c fieldCase) held(t *testing.T) SecretsHeld {
 	t.Helper()
 
 	var values []string
+
 	if c.Held == nil {
 		return func(string, string) []string { return nil }
 	}
@@ -166,5 +165,75 @@ func TestAnAbsentValueFallsBackOnTheManifestDefault(t *testing.T) {
 
 	if len(problems) != 1 || problems[0].Field != "port" || problems[0].Code != ProblemMin {
 		t.Fatalf("problems = %+v", problems)
+	}
+}
+
+func TestASecretHoldingALineBreakOrANulIsRefused(t *testing.T) {
+	single := Field{Key: "password", Kind: FieldSecret, Label: "Mot de passe", Required: true}
+	list := Field{Key: "keys", Kind: FieldList, Items: ItemsSecret, Label: "Clés"}
+
+	for _, value := range []string{"s3cret\nrename-command CONFIG \"\"", "s3cret\r", "s3cr\x00et"} {
+		held := func(string, string) []string { return []string{value} }
+
+		if problem := ValidateField("db.redis", single, nil, held); problem == nil || problem.Code != ProblemPattern {
+			t.Errorf("secret %q: problem = %+v", value, problem)
+		}
+
+		listed := func(string, string) []string { return []string{"fine", value} }
+
+		if problem := ValidateField("ai.hermes", list, nil, listed); problem == nil || problem.Code != ProblemPattern {
+			t.Errorf("secret list holding %q: problem = %+v", value, problem)
+		}
+	}
+
+	held := func(string, string) []string { return []string{`s3cret with spaces, quotes " and ' and a tab	too`} }
+
+	if problem := ValidateField("db.redis", single, nil, held); problem != nil {
+		t.Fatalf("anything but a line break or a nul passes: %+v", problem)
+	}
+}
+
+func TestTheValuesAModuleReadsAreTheOnesThatWereJudged(t *testing.T) {
+	manifest := Manifest{
+		ID: "exposure.caddy",
+		Fields: []Field{
+			{Key: "domain", Kind: FieldText, Label: "Domaine", Format: FormatDomain},
+			{Key: "app_role", Kind: FieldText, Label: "Rôle", Format: FormatIdentifier},
+			{Key: "hosts", Kind: FieldList, Label: "Hôtes", Format: FormatHostname},
+			{Key: "port", Kind: FieldNumber, Label: "Port"},
+			{Key: "engine", Kind: FieldSelect, Label: "Moteur", Options: []string{"mysql"}},
+		},
+	}
+
+	sent := map[string]any{
+		"domain":   "  Flyleaf.DEV \n",
+		"app_role": " app ",
+		"hosts":    []any{" API.flyleaf.dev", "web.flyleaf.dev "},
+		"port":     float64(443),
+		"engine":   "mysql",
+		"unknown":  " kept as sent ",
+	}
+
+	got := NormalizeValues(manifest, sent)
+
+	want := map[string]any{
+		"domain":   "flyleaf.dev",
+		"app_role": "app",
+		"hosts":    []any{"api.flyleaf.dev", "web.flyleaf.dev"},
+		"port":     float64(443),
+		"engine":   "mysql",
+		"unknown":  " kept as sent ",
+	}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("normalized = %#v", got)
+	}
+
+	if sent["domain"] != "  Flyleaf.DEV \n" {
+		t.Fatal("the request itself is left as it was sent")
+	}
+
+	if NormalizeValues(manifest, nil) != nil {
+		t.Fatal("nothing sent stays nothing")
 	}
 }

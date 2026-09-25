@@ -14,27 +14,15 @@ const TAILWIND_CSS = fileURLToPath(
   import.meta.resolve("@pupitre/design/tailwind.css")
 )
 
-/** The scale `@pupitre/design` exposes, and nothing beside it. */
 const RADIUS_TOKEN_RE = /--radius-([a-z0-9]+)\s*:/g
 
-/**
- * A radius written by hand: an arbitrary Tailwind value, a `borderRadius`
- * style, or a CSS declaration. None of them can follow a token when the scale
- * moves, which is exactly what the site's tightening asked of the console.
- */
+// A hand-written radius cannot follow the token scale when it moves.
 const ARBITRARY_RADIUS_RE = /\brounded(?:-[a-z]+)*-\[/
 const INLINE_RADIUS_RE = /\bborderRadius\b|border-radius\s*:/
 
-/**
- * A duration or an easing written by hand: `@pupitre/design` exposes the motion
- * as `transition-fast`, `transition-soft`, `animate-enter` and `animate-exit`.
- */
 const ARBITRARY_MOTION_RE = /\bduration-\[|\bease-\[/
 
-/**
- * `ink-4` is the one ink that does not reach 4.5:1: it belongs to a placeholder
- * and to what is disabled, never to a sentence somebody has to read.
- */
+// `ink-4` does not reach 4.5:1 contrast: placeholders and disabled states only.
 const INK_4_RE = /(?:[a-z-]+:)*text-ink-4/g
 const STATE_VARIANT_RE = /(?:placeholder|disabled):/
 

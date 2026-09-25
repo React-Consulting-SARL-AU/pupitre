@@ -1,4 +1,4 @@
-const UNIQUE_VIOLATION = "P2002"
+import { isUniqueViolation } from "../api/prisma"
 
 export interface PublishOnce<T> {
   find: () => Promise<T | null>
@@ -12,21 +12,7 @@ export interface PublishOnceResult<T> {
   created: boolean
 }
 
-function isUniqueViolation(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    (error as { code: unknown }).code === UNIQUE_VIOLATION
-  )
-}
-
-/**
- * Publishing an artefact twice is the normal case: a rerun of the release
- * pipeline. The same fingerprint returns what is already published, a
- * different one is a conflict, and two simultaneous publications end up on
- * the same row rather than on a unique constraint.
- */
+/** Pipeline reruns republish: the same fingerprint returns the row, another one conflicts. */
 export async function publishOnce<T>({
   find,
   create,

@@ -1,13 +1,6 @@
 import { say, VARIABLES } from "./cli"
 
-/**
- * The four requests the chain makes to a platform, through the publication
- * role: declare a version of the agent or of the app, promote either to a
- * channel. A declaration is idempotent on the platform — a row that exists
- * with the same digest answers 200, a different digest is refused — so saying
- * a version twice, or to a second platform, costs nothing and changes nothing.
- */
-
+// Declarations are idempotent: the same digest answers 200, a different one is refused.
 export interface Platform {
   url: string
   token: string

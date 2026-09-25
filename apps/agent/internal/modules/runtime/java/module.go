@@ -136,7 +136,7 @@ func home(ctx *modules.Context) string {
 	return resolved
 }
 
-// JAVA_HOME is resolved by mise as each shell opens, so gradlew in a project pinned to another major finds that one and not the machine's default.
+// Resolved as each shell opens, so gradlew in a project pinned to another major finds that JDK, not the default.
 const javaHomeLine = `export JAVA_HOME="$(mise where java 2>/dev/null)"` + "\n"
 
 func block(javaHome string) []byte {

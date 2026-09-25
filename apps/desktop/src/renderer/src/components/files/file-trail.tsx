@@ -3,11 +3,6 @@ import { ChevronRight } from "lucide-react";
 const CRUMB =
   "clickable rounded-sm px-1.5 py-1 transition-fast hover:bg-raised hover:text-ink";
 
-/**
- * The trail of crumbs is the path itself, so the reader always reads where
- * they are. The root is the first crumb and the highest: there is nothing
- * above it to walk to, and the last crumb is the folder on screen.
- */
 export function FileTrail({
   crumbs,
   rootLabel,
@@ -15,7 +10,6 @@ export function FileTrail({
   onBrowse,
 }: {
   crumbs: readonly string[];
-  /** What the root is called: a project, or the server. */
   rootLabel: string;
   label: string;
   onBrowse: (path: string) => void;
@@ -25,7 +19,7 @@ export function FileTrail({
   return (
     <nav
       aria-label={label}
-      className="flex min-w-0 flex-wrap items-center gap-0.5 text-[12px]"
+      className="flex min-w-0 flex-wrap items-center gap-0.5 text-small"
     >
       <button
         aria-current={last < 0 ? "location" : undefined}

@@ -201,6 +201,7 @@ export type DeviceWhereInput = {
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   enrolledServers?: Prisma.ServerListRelationFilter
   serverRevocations?: Prisma.ServerRevokedDeviceListRelationFilter
+  keyApprovals?: Prisma.KeyApprovalListRelationFilter
 }
 
 export type DeviceOrderByWithRelationInput = {
@@ -214,6 +215,7 @@ export type DeviceOrderByWithRelationInput = {
   user?: Prisma.UserOrderByWithRelationInput
   enrolledServers?: Prisma.ServerOrderByRelationAggregateInput
   serverRevocations?: Prisma.ServerRevokedDeviceOrderByRelationAggregateInput
+  keyApprovals?: Prisma.KeyApprovalOrderByRelationAggregateInput
 }
 
 export type DeviceWhereUniqueInput = Prisma.AtLeast<{
@@ -230,6 +232,7 @@ export type DeviceWhereUniqueInput = Prisma.AtLeast<{
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   enrolledServers?: Prisma.ServerListRelationFilter
   serverRevocations?: Prisma.ServerRevokedDeviceListRelationFilter
+  keyApprovals?: Prisma.KeyApprovalListRelationFilter
 }, "id" | "fingerprint">
 
 export type DeviceOrderByWithAggregationInput = {
@@ -268,6 +271,7 @@ export type DeviceCreateInput = {
   user: Prisma.UserCreateNestedOneWithoutDevicesInput
   enrolledServers?: Prisma.ServerCreateNestedManyWithoutDeviceInput
   serverRevocations?: Prisma.ServerRevokedDeviceCreateNestedManyWithoutDeviceInput
+  keyApprovals?: Prisma.KeyApprovalCreateNestedManyWithoutDeviceInput
 }
 
 export type DeviceUncheckedCreateInput = {
@@ -280,6 +284,7 @@ export type DeviceUncheckedCreateInput = {
   createdAt?: Date | string
   enrolledServers?: Prisma.ServerUncheckedCreateNestedManyWithoutDeviceInput
   serverRevocations?: Prisma.ServerRevokedDeviceUncheckedCreateNestedManyWithoutDeviceInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedCreateNestedManyWithoutDeviceInput
 }
 
 export type DeviceUpdateInput = {
@@ -292,6 +297,7 @@ export type DeviceUpdateInput = {
   user?: Prisma.UserUpdateOneRequiredWithoutDevicesNestedInput
   enrolledServers?: Prisma.ServerUpdateManyWithoutDeviceNestedInput
   serverRevocations?: Prisma.ServerRevokedDeviceUpdateManyWithoutDeviceNestedInput
+  keyApprovals?: Prisma.KeyApprovalUpdateManyWithoutDeviceNestedInput
 }
 
 export type DeviceUncheckedUpdateInput = {
@@ -304,6 +310,7 @@ export type DeviceUncheckedUpdateInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   enrolledServers?: Prisma.ServerUncheckedUpdateManyWithoutDeviceNestedInput
   serverRevocations?: Prisma.ServerRevokedDeviceUncheckedUpdateManyWithoutDeviceNestedInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedUpdateManyWithoutDeviceNestedInput
 }
 
 export type DeviceCreateManyInput = {
@@ -457,6 +464,20 @@ export type DeviceUpdateOneRequiredWithoutServerRevocationsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.DeviceUpdateToOneWithWhereWithoutServerRevocationsInput, Prisma.DeviceUpdateWithoutServerRevocationsInput>, Prisma.DeviceUncheckedUpdateWithoutServerRevocationsInput>
 }
 
+export type DeviceCreateNestedOneWithoutKeyApprovalsInput = {
+  create?: Prisma.XOR<Prisma.DeviceCreateWithoutKeyApprovalsInput, Prisma.DeviceUncheckedCreateWithoutKeyApprovalsInput>
+  connectOrCreate?: Prisma.DeviceCreateOrConnectWithoutKeyApprovalsInput
+  connect?: Prisma.DeviceWhereUniqueInput
+}
+
+export type DeviceUpdateOneRequiredWithoutKeyApprovalsNestedInput = {
+  create?: Prisma.XOR<Prisma.DeviceCreateWithoutKeyApprovalsInput, Prisma.DeviceUncheckedCreateWithoutKeyApprovalsInput>
+  connectOrCreate?: Prisma.DeviceCreateOrConnectWithoutKeyApprovalsInput
+  upsert?: Prisma.DeviceUpsertWithoutKeyApprovalsInput
+  connect?: Prisma.DeviceWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.DeviceUpdateToOneWithWhereWithoutKeyApprovalsInput, Prisma.DeviceUpdateWithoutKeyApprovalsInput>, Prisma.DeviceUncheckedUpdateWithoutKeyApprovalsInput>
+}
+
 export type DeviceCreateWithoutUserInput = {
   id?: string
   name: string
@@ -466,6 +487,7 @@ export type DeviceCreateWithoutUserInput = {
   createdAt?: Date | string
   enrolledServers?: Prisma.ServerCreateNestedManyWithoutDeviceInput
   serverRevocations?: Prisma.ServerRevokedDeviceCreateNestedManyWithoutDeviceInput
+  keyApprovals?: Prisma.KeyApprovalCreateNestedManyWithoutDeviceInput
 }
 
 export type DeviceUncheckedCreateWithoutUserInput = {
@@ -477,6 +499,7 @@ export type DeviceUncheckedCreateWithoutUserInput = {
   createdAt?: Date | string
   enrolledServers?: Prisma.ServerUncheckedCreateNestedManyWithoutDeviceInput
   serverRevocations?: Prisma.ServerRevokedDeviceUncheckedCreateNestedManyWithoutDeviceInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedCreateNestedManyWithoutDeviceInput
 }
 
 export type DeviceCreateOrConnectWithoutUserInput = {
@@ -526,6 +549,7 @@ export type DeviceCreateWithoutEnrolledServersInput = {
   createdAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutDevicesInput
   serverRevocations?: Prisma.ServerRevokedDeviceCreateNestedManyWithoutDeviceInput
+  keyApprovals?: Prisma.KeyApprovalCreateNestedManyWithoutDeviceInput
 }
 
 export type DeviceUncheckedCreateWithoutEnrolledServersInput = {
@@ -537,6 +561,7 @@ export type DeviceUncheckedCreateWithoutEnrolledServersInput = {
   lastUsedAt?: Date | string | null
   createdAt?: Date | string
   serverRevocations?: Prisma.ServerRevokedDeviceUncheckedCreateNestedManyWithoutDeviceInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedCreateNestedManyWithoutDeviceInput
 }
 
 export type DeviceCreateOrConnectWithoutEnrolledServersInput = {
@@ -564,6 +589,7 @@ export type DeviceUpdateWithoutEnrolledServersInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutDevicesNestedInput
   serverRevocations?: Prisma.ServerRevokedDeviceUpdateManyWithoutDeviceNestedInput
+  keyApprovals?: Prisma.KeyApprovalUpdateManyWithoutDeviceNestedInput
 }
 
 export type DeviceUncheckedUpdateWithoutEnrolledServersInput = {
@@ -575,6 +601,7 @@ export type DeviceUncheckedUpdateWithoutEnrolledServersInput = {
   lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   serverRevocations?: Prisma.ServerRevokedDeviceUncheckedUpdateManyWithoutDeviceNestedInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedUpdateManyWithoutDeviceNestedInput
 }
 
 export type DeviceCreateWithoutServerRevocationsInput = {
@@ -586,6 +613,7 @@ export type DeviceCreateWithoutServerRevocationsInput = {
   createdAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutDevicesInput
   enrolledServers?: Prisma.ServerCreateNestedManyWithoutDeviceInput
+  keyApprovals?: Prisma.KeyApprovalCreateNestedManyWithoutDeviceInput
 }
 
 export type DeviceUncheckedCreateWithoutServerRevocationsInput = {
@@ -597,6 +625,7 @@ export type DeviceUncheckedCreateWithoutServerRevocationsInput = {
   lastUsedAt?: Date | string | null
   createdAt?: Date | string
   enrolledServers?: Prisma.ServerUncheckedCreateNestedManyWithoutDeviceInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedCreateNestedManyWithoutDeviceInput
 }
 
 export type DeviceCreateOrConnectWithoutServerRevocationsInput = {
@@ -624,6 +653,7 @@ export type DeviceUpdateWithoutServerRevocationsInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutDevicesNestedInput
   enrolledServers?: Prisma.ServerUpdateManyWithoutDeviceNestedInput
+  keyApprovals?: Prisma.KeyApprovalUpdateManyWithoutDeviceNestedInput
 }
 
 export type DeviceUncheckedUpdateWithoutServerRevocationsInput = {
@@ -635,6 +665,71 @@ export type DeviceUncheckedUpdateWithoutServerRevocationsInput = {
   lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   enrolledServers?: Prisma.ServerUncheckedUpdateManyWithoutDeviceNestedInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedUpdateManyWithoutDeviceNestedInput
+}
+
+export type DeviceCreateWithoutKeyApprovalsInput = {
+  id?: string
+  name: string
+  publicKey: string
+  fingerprint: string
+  lastUsedAt?: Date | string | null
+  createdAt?: Date | string
+  user: Prisma.UserCreateNestedOneWithoutDevicesInput
+  enrolledServers?: Prisma.ServerCreateNestedManyWithoutDeviceInput
+  serverRevocations?: Prisma.ServerRevokedDeviceCreateNestedManyWithoutDeviceInput
+}
+
+export type DeviceUncheckedCreateWithoutKeyApprovalsInput = {
+  id?: string
+  userId: string
+  name: string
+  publicKey: string
+  fingerprint: string
+  lastUsedAt?: Date | string | null
+  createdAt?: Date | string
+  enrolledServers?: Prisma.ServerUncheckedCreateNestedManyWithoutDeviceInput
+  serverRevocations?: Prisma.ServerRevokedDeviceUncheckedCreateNestedManyWithoutDeviceInput
+}
+
+export type DeviceCreateOrConnectWithoutKeyApprovalsInput = {
+  where: Prisma.DeviceWhereUniqueInput
+  create: Prisma.XOR<Prisma.DeviceCreateWithoutKeyApprovalsInput, Prisma.DeviceUncheckedCreateWithoutKeyApprovalsInput>
+}
+
+export type DeviceUpsertWithoutKeyApprovalsInput = {
+  update: Prisma.XOR<Prisma.DeviceUpdateWithoutKeyApprovalsInput, Prisma.DeviceUncheckedUpdateWithoutKeyApprovalsInput>
+  create: Prisma.XOR<Prisma.DeviceCreateWithoutKeyApprovalsInput, Prisma.DeviceUncheckedCreateWithoutKeyApprovalsInput>
+  where?: Prisma.DeviceWhereInput
+}
+
+export type DeviceUpdateToOneWithWhereWithoutKeyApprovalsInput = {
+  where?: Prisma.DeviceWhereInput
+  data: Prisma.XOR<Prisma.DeviceUpdateWithoutKeyApprovalsInput, Prisma.DeviceUncheckedUpdateWithoutKeyApprovalsInput>
+}
+
+export type DeviceUpdateWithoutKeyApprovalsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  publicKey?: Prisma.StringFieldUpdateOperationsInput | string
+  fingerprint?: Prisma.StringFieldUpdateOperationsInput | string
+  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  user?: Prisma.UserUpdateOneRequiredWithoutDevicesNestedInput
+  enrolledServers?: Prisma.ServerUpdateManyWithoutDeviceNestedInput
+  serverRevocations?: Prisma.ServerRevokedDeviceUpdateManyWithoutDeviceNestedInput
+}
+
+export type DeviceUncheckedUpdateWithoutKeyApprovalsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  publicKey?: Prisma.StringFieldUpdateOperationsInput | string
+  fingerprint?: Prisma.StringFieldUpdateOperationsInput | string
+  lastUsedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  enrolledServers?: Prisma.ServerUncheckedUpdateManyWithoutDeviceNestedInput
+  serverRevocations?: Prisma.ServerRevokedDeviceUncheckedUpdateManyWithoutDeviceNestedInput
 }
 
 export type DeviceCreateManyUserInput = {
@@ -655,6 +750,7 @@ export type DeviceUpdateWithoutUserInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   enrolledServers?: Prisma.ServerUpdateManyWithoutDeviceNestedInput
   serverRevocations?: Prisma.ServerRevokedDeviceUpdateManyWithoutDeviceNestedInput
+  keyApprovals?: Prisma.KeyApprovalUpdateManyWithoutDeviceNestedInput
 }
 
 export type DeviceUncheckedUpdateWithoutUserInput = {
@@ -666,6 +762,7 @@ export type DeviceUncheckedUpdateWithoutUserInput = {
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   enrolledServers?: Prisma.ServerUncheckedUpdateManyWithoutDeviceNestedInput
   serverRevocations?: Prisma.ServerRevokedDeviceUncheckedUpdateManyWithoutDeviceNestedInput
+  keyApprovals?: Prisma.KeyApprovalUncheckedUpdateManyWithoutDeviceNestedInput
 }
 
 export type DeviceUncheckedUpdateManyWithoutUserInput = {
@@ -685,11 +782,13 @@ export type DeviceUncheckedUpdateManyWithoutUserInput = {
 export type DeviceCountOutputType = {
   enrolledServers: number
   serverRevocations: number
+  keyApprovals: number
 }
 
 export type DeviceCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   enrolledServers?: boolean | DeviceCountOutputTypeCountEnrolledServersArgs
   serverRevocations?: boolean | DeviceCountOutputTypeCountServerRevocationsArgs
+  keyApprovals?: boolean | DeviceCountOutputTypeCountKeyApprovalsArgs
 }
 
 /**
@@ -716,6 +815,13 @@ export type DeviceCountOutputTypeCountServerRevocationsArgs<ExtArgs extends runt
   where?: Prisma.ServerRevokedDeviceWhereInput
 }
 
+/**
+ * DeviceCountOutputType without action
+ */
+export type DeviceCountOutputTypeCountKeyApprovalsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.KeyApprovalWhereInput
+}
+
 
 export type DeviceSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -728,6 +834,7 @@ export type DeviceSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   enrolledServers?: boolean | Prisma.Device$enrolledServersArgs<ExtArgs>
   serverRevocations?: boolean | Prisma.Device$serverRevocationsArgs<ExtArgs>
+  keyApprovals?: boolean | Prisma.Device$keyApprovalsArgs<ExtArgs>
   _count?: boolean | Prisma.DeviceCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["device"]>
 
@@ -768,6 +875,7 @@ export type DeviceInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   enrolledServers?: boolean | Prisma.Device$enrolledServersArgs<ExtArgs>
   serverRevocations?: boolean | Prisma.Device$serverRevocationsArgs<ExtArgs>
+  keyApprovals?: boolean | Prisma.Device$keyApprovalsArgs<ExtArgs>
   _count?: boolean | Prisma.DeviceCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type DeviceIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -783,6 +891,7 @@ export type $DevicePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     user: Prisma.$UserPayload<ExtArgs>
     enrolledServers: Prisma.$ServerPayload<ExtArgs>[]
     serverRevocations: Prisma.$ServerRevokedDevicePayload<ExtArgs>[]
+    keyApprovals: Prisma.$KeyApprovalPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
@@ -1189,6 +1298,7 @@ export interface Prisma__DeviceClient<T, Null = never, ExtArgs extends runtime.T
   user<T extends Prisma.UserDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.UserDefaultArgs<ExtArgs>>): Prisma.Prisma__UserClient<runtime.Types.Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   enrolledServers<T extends Prisma.Device$enrolledServersArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Device$enrolledServersArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ServerPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   serverRevocations<T extends Prisma.Device$serverRevocationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Device$serverRevocationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ServerRevokedDevicePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  keyApprovals<T extends Prisma.Device$keyApprovalsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Device$keyApprovalsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$KeyApprovalPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1669,6 +1779,30 @@ export type Device$serverRevocationsArgs<ExtArgs extends runtime.Types.Extension
   take?: number
   skip?: number
   distinct?: Prisma.ServerRevokedDeviceScalarFieldEnum | Prisma.ServerRevokedDeviceScalarFieldEnum[]
+}
+
+/**
+ * Device.keyApprovals
+ */
+export type Device$keyApprovalsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the KeyApproval
+   */
+  select?: Prisma.KeyApprovalSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the KeyApproval
+   */
+  omit?: Prisma.KeyApprovalOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.KeyApprovalInclude<ExtArgs> | null
+  where?: Prisma.KeyApprovalWhereInput
+  orderBy?: Prisma.KeyApprovalOrderByWithRelationInput | Prisma.KeyApprovalOrderByWithRelationInput[]
+  cursor?: Prisma.KeyApprovalWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.KeyApprovalScalarFieldEnum | Prisma.KeyApprovalScalarFieldEnum[]
 }
 
 /**

@@ -12,7 +12,7 @@ export const AGENT_KINDS = [
   "hermes",
 ] as const
 
-export const AgentKindSchema = z.enum(AGENT_KINDS)
+const AgentKindSchema = z.enum(AGENT_KINDS)
 
 export type AgentKind = z.infer<typeof AgentKindSchema>
 
@@ -21,26 +21,18 @@ export const AgentOpenParamsSchema = z.strictObject({
   project: ProjectNameSchema,
 })
 
-export type AgentOpenParams = z.infer<typeof AgentOpenParamsSchema>
-
 export const AgentOpenResultSchema = z.object({
   command: z.string(),
   session: z.string(),
 })
 
-export type AgentOpenResult = z.infer<typeof AgentOpenResultSchema>
-
 export const SessionsListResultSchema = z.object({
   sessions: z.array(SessionSchema),
 })
 
-export type SessionsListResult = z.infer<typeof SessionsListResultSchema>
-
 export const SessionsCleanResultSchema = z.object({
   killed: z.int().nonnegative(),
 })
-
-export type SessionsCleanResult = z.infer<typeof SessionsCleanResultSchema>
 
 export const ProcessSchema = z.object({
   pid: z.int().positive(),
@@ -63,9 +55,7 @@ export const ProcessKillParamsSchema = z.strictObject({
   force: z.boolean().optional(),
 })
 
-export type ProcessKillParams = z.infer<typeof ProcessKillParamsSchema>
-
-export const ShotSchema = z.object({
+const ShotSchema = z.object({
   name: z.string(),
   path: z.string(),
   size_bytes: z.int().nonnegative(),
@@ -86,16 +76,10 @@ export const ShotsUrlResultSchema = z.object({
 
 export type ShotsUrlResult = z.infer<typeof ShotsUrlResultSchema>
 
-/**
- * Without a path, the gallery is swept of what is older than it keeps. With
- * one, that single capture goes — and the path is looked up in what
- * `shots.list` names, never resolved on the disk, exactly as `shots.read`.
- */
 export const ShotsCleanParamsSchema = z.strictObject({
+  // Looked up in what `shots.list` names, never resolved on the disk; absent, the gallery is swept by age.
   path: z.string().min(1).optional(),
 })
-
-export type ShotsCleanParams = z.infer<typeof ShotsCleanParamsSchema>
 
 export const ShotsCleanResultSchema = z.object({
   removed: z.int().nonnegative(),
@@ -112,19 +96,15 @@ export const SHOT_MEDIA_TYPES = [
   "image/svg+xml",
 ] as const
 
-export const ShotMediaTypeSchema = z.enum(SHOT_MEDIA_TYPES)
+const ShotMediaTypeSchema = z.enum(SHOT_MEDIA_TYPES)
 
 export type ShotMediaType = z.infer<typeof ShotMediaTypeSchema>
-
-export const SHOT_CHUNK_BYTES = 48 * 1024
 
 export const SHOT_MAX_BYTES = 16 * 1024 * 1024
 
 export const ShotsReadParamsSchema = z.strictObject({
   path: z.string().min(1),
 })
-
-export type ShotsReadParams = z.infer<typeof ShotsReadParamsSchema>
 
 export const ShotsReadResultSchema = z.object({
   path: z.string(),

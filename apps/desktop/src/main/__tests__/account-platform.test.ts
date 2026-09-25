@@ -14,6 +14,7 @@ import {
   setTestSession,
 } from "@pupitre/auth/testing";
 import type { ProbeResult } from "@pupitre/shared/agent-protocol/install";
+import { publicKeyFingerprint } from "@pupitre/shared/keys";
 import type { SignInProgress } from "@shared/account";
 import type { AgentResponse } from "@shared/agent";
 import type { InstallUpdate } from "@shared/install";
@@ -27,19 +28,6 @@ import { type EnrollmentGrant, runInstall } from "../install-run";
 import { createPlatformClient } from "../platform-client";
 import { fakeAgent } from "./fixtures/fake-agent";
 import { memorySealer } from "./fixtures/fake-platform";
-
-/**
- * The account against the platform's own API, booted on SQLite.
- *
- * Nothing here reaches a remote service: `@pupitre/api/testing` is the same
- * Elysia app the console mounts. What it proves is the enrolment round trip —
- * device flow, device key, enrolment — and that a server enrolled from the app
- * shows up in the console with its heartbeat well inside a minute.
- *
- * The heartbeat is played by hand, since nothing in the app sends one. The
- * enrolment is not: the app hands the token to an agent over the protocol, and
- * that agent trades it against a server token at this very API.
- */
 
 const DEVICE_PUBLIC_KEY =
   "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJggxfUKhpYOKRen6E6lpoh//viuSJtxOQ8hVlFZb+/t jordan@macbook";
@@ -61,14 +49,7 @@ async function rewindPolls(): Promise<void> {
   });
 }
 
-/**
- * A console someone is signed into, and whose organization pays.
- *
- * No server enrols without a running subscription, so the fixture
- * gives the personal organization one — a trial, which is what a new account
- * starts on. `subscribed: false` is the other side of that rule, and one test
- * below is about exactly that.
- */
+/** No server enrols without a running subscription, so the organization gets one by default. */
 async function signedInConsole({ subscribed = true } = {}): Promise<Console> {
   const { prisma, fetch } = await bootApiTestServer();
   const { user, organization } = await createTestUser(prisma, {
@@ -136,13 +117,7 @@ async function desktop(browser: Console) {
   return { account, dir, report };
 }
 
-/**
- * The harness, on a real port.
- *
- * `bootApiTestServer` answers in this process, and the agent is a child one:
- * without a socket between them there is no end-to-end to speak of, and going
- * out to a deployed platform is the one thing this test may not do.
- */
+/** The fake agent is a child process: it needs a real socket to reach this in-process API. */
 async function platformBridge(): Promise<{ url: string; stop: () => void }> {
   const { fetch } = await bootApiTestServer();
   const server = serve({ fetch: (request) => fetch(request), port: 0 });
@@ -236,7 +211,7 @@ describe("le compte contre l'API de la plateforme", () => {
     const started = Date.now();
     const enrolled = await account.enroll({
       device_id: account.state().device?.id ?? "",
-      fingerprint: "SHA256:host",
+      fingerprint: (await publicKeyFingerprint(DEVICE_PUBLIC_KEY)) ?? "",
       host: "vps.test",
       port: 22,
       probe: { arch: "amd64" },
@@ -271,6 +246,7 @@ describe("le compte contre l'API de la plateforme", () => {
     const { server_token } = (await exchanged.json()) as {
       server_token: string;
     };
+    // Nothing in the app sends a heartbeat, so the test plays the agent's.
     const beat = await asAgent(
       server_token,
       {
@@ -347,9 +323,6 @@ describe("le compte contre l'API de la plateforme", () => {
 
     expect(direct.status).toBe(403);
     expect(refusal.error.code).toBe("entitlement_required");
-
-    // The code, message and fix arrive on screen exactly as the API gives
-    // them, from the platform client through to the protocol error.
     expect(enrolled.error).toEqual(refusal.error);
     expect(asAgentError(enrolled.error)).toEqual(refusal.error);
 
@@ -401,6 +374,7 @@ describe("le compte contre l'API de la plateforme", () => {
       DEVICE_PUBLIC_KEY.split(" ")[1]
     );
   });
+
   it("enrôle un serveur par le protocole, sans jamais montrer le jeton", async () => {
     const browser = await signedInConsole();
     const { account, report } = await desktop(browser);
@@ -408,7 +382,7 @@ describe("le compte contre l'API de la plateforme", () => {
     await account.signIn(report);
 
     const bridge = await platformBridge();
-    const fake = fakeAgent(["enroll-install.jsonl", "enroll-work.jsonl"]);
+    const fake = fakeAgent("enroll-install.jsonl");
     const client = createAgentClient({
       appVersion: "0.1.0",
       backoff: { attempts: 2, firstMs: 5, maxMs: 20 },
@@ -494,11 +468,9 @@ describe("le compte contre l'API de la plateforme", () => {
     expect(fake.trace()).toEqual([
       "id=1 cmd=hello",
       "id=2 cmd=enroll",
-      "id=1 cmd=hello",
-      "id=2 cmd=install",
+      "id=3 cmd=install",
     ]);
 
-    // The token did serve that one exchange: the platform refuses it a second time.
     const replayed = await apiFetch("/agent/exchange", {
       body: JSON.stringify({
         agent_version: "0.0.0-test",

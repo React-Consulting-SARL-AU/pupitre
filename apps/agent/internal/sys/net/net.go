@@ -1,4 +1,3 @@
-// Package net answers the one question a configuration screen cannot: what is already listening on this machine.
 package net
 
 import (
@@ -8,10 +7,10 @@ import (
 	"pupitre.studio/agent/internal/sys"
 )
 
-// The kernel's own tables, rather than ss or lsof: no package to install, and a fake machine can hold the two files.
+// The kernel's tables rather than ss or lsof: nothing to install, and a fake machine can hold the two files.
 var tables = []string{"/proc/net/tcp", "/proc/net/tcp6"}
 
-// listenState is the hexadecimal TCP_LISTEN of /proc/net/tcp.
+// TCP_LISTEN, as /proc/net/tcp writes it in hex.
 const listenState = "0A"
 
 const (
@@ -20,14 +19,12 @@ const (
 	columns     = 4
 )
 
-// Ports is the set of TCP ports a socket is bound to on this machine.
 type Ports map[int]bool
 
 func (p Ports) Has(port int) bool {
 	return p[port]
 }
 
-// Listening reads that set, whatever address each socket is bound to.
 func Listening(ctx sys.Context) Ports {
 	ports := Ports{}
 

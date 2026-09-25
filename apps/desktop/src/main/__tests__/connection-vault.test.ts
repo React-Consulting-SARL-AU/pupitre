@@ -1,17 +1,15 @@
 import { describe, expect, it } from "bun:test";
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Sealer } from "../account-vault";
 import { createConnectionVault } from "../connection-vault";
-
-/**
- * The tokens of the client's third-party accounts, one file per provider.
- *
- * What is watched here is that a token never touches the disk in the clear,
- * that a computer without a keychain still remembers which accounts were
- * given, and that connecting one provider leaves the others alone.
- */
 
 /** The ciphertext must not carry the plaintext, or the assertion below proves nothing. */
 const SEALED: Sealer = {
@@ -68,11 +66,7 @@ describe("le coffre des connexions", () => {
     expect(held.token("cloudflare")).toBe("cf_de_test");
   });
 
-  /**
-   * A service account token answers no call from the laptop: the connection is
-   * held without a name, and the screen has to be able to tell that from an
-   * account that was never given.
-   */
+  // A service account token answers no call from the laptop, so no provider can name its account.
   it("tient un jeton que personne ne sait nommer", () => {
     const { vault: held } = vault();
 
@@ -113,7 +107,7 @@ describe("le coffre des connexions", () => {
     );
   });
 
-  /** Cloudflare wrote the account under two other names before there was a second connection. */
+  // Before a second connection existed, Cloudflare stored the account as `accountId`/`accountName`.
   it("relit le compte Cloudflare écrit par une version précédente", () => {
     const { dir, vault: held } = vault();
 
@@ -129,5 +123,23 @@ describe("le coffre des connexions", () => {
       id: "acc-1",
       name: "Atelier Ada",
     });
+    expect(
+      JSON.parse(readFileSync(join(dir, "cloudflare.json"), "utf8"))
+    ).toEqual({
+      connection: { id: "acc-1", name: "Atelier Ada" },
+      version: 1,
+    });
+    expect(existsSync(join(dir, "cloudflare.json.r0"))).toBe(true);
+  });
+
+  it("écrit chaque fiche avec sa révision, en 0600", () => {
+    const { dir, vault: held } = vault();
+
+    held.connect("github", "ghp_de_test", { id: "42", name: "ada" });
+
+    const path = join(dir, "github.json");
+
+    expect(JSON.parse(readFileSync(path, "utf8")).version).toBe(1);
+    expect(statSync(path).mode & 0o777).toBe(0o600);
   });
 });

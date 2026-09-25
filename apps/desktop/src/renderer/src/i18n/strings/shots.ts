@@ -4,7 +4,8 @@ export const shots = {
     "shots.openGallery": "Open the gallery",
     "shots.clear": "Empty the gallery",
     "shots.clearConfirm": "Empty",
-    "shots.clearQuestion": "The server's screenshots are deleted.",
+    "shots.clearQuestion":
+      "Every screenshot on the server will be deleted, with no way back.",
     "shots.none": "No screenshots",
     "shots.emptyTitle": "The gallery is empty",
     "shots.cleaningTitle": "Cleaning up",
@@ -27,7 +28,8 @@ export const shots = {
     "refusal.shots.saveFailed.fix":
       "Choose another folder, or free some space on this computer.",
     "shots.remove": "Delete",
-    "shots.removeQuestion": "{name} is deleted from the server.",
+    "shots.removeQuestion":
+      "{name} will be deleted from the server, with no way back.",
     "shots.previous": "Previous screenshot",
     "shots.next": "Next screenshot",
     "shots.position": "{index} / {total}",
@@ -40,14 +42,15 @@ export const shots = {
     "shots.brokenMessage":
       "The screenshot did not arrive whole: what came through does not match the fingerprint the server gave.",
     "shots.brokenFix":
-      "Read it again; if it fails again, the file is damaged on the server.",
+      "Open the screenshot again; if it fails again, the file is damaged on the server.",
   },
   fr: {
     "shots.title": "Galerie",
     "shots.openGallery": "Ouvrir la galerie",
     "shots.clear": "Vider la galerie",
     "shots.clearConfirm": "Vider",
-    "shots.clearQuestion": "Les captures du serveur sont supprimées.",
+    "shots.clearQuestion":
+      "Toutes les captures du serveur seront supprimées, sans retour possible.",
     "shots.none": "Aucune capture",
     "shots.emptyTitle": "La galerie est vide",
     "shots.cleaningTitle": "Nettoyage",
@@ -71,7 +74,8 @@ export const shots = {
     "refusal.shots.saveFailed.fix":
       "Choisissez un autre dossier, ou libérez de la place sur cet ordinateur.",
     "shots.remove": "Supprimer",
-    "shots.removeQuestion": "{name} est supprimée du serveur.",
+    "shots.removeQuestion":
+      "{name} sera supprimée du serveur, sans retour possible.",
     "shots.previous": "Capture précédente",
     "shots.next": "Capture suivante",
     "shots.position": "{index} / {total}",
@@ -84,6 +88,6 @@ export const shots = {
     "shots.brokenMessage":
       "La capture n'est pas arrivée entière : ce qui a été reçu ne correspond pas à l'empreinte que le serveur a donnée.",
     "shots.brokenFix":
-      "Relis la capture ; si elle échoue encore, le fichier est abîmé sur le serveur.",
+      "Rouvrez la capture ; si elle échoue encore, le fichier est abîmé sur le serveur.",
   },
 } as const;

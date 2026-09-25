@@ -2,14 +2,11 @@ import { z } from "zod"
 
 export const STATUS_FRESHNESS = ["fresh", "stale", "unknown"] as const
 
-export const StatusFreshnessSchema = z.enum(STATUS_FRESHNESS)
+const StatusFreshnessSchema = z.enum(STATUS_FRESHNESS)
 
 export type StatusFreshness = z.infer<typeof StatusFreshnessSchema>
 
-/**
- * Three heartbeat cycles: one missed beat is unremarkable, three across the
- * whole fleet at once means collection is broken.
- */
+// Three heartbeat cycles: one missed beat is unremarkable, three across the fleet means collection is broken.
 export const STATUS_STALE_AFTER_MS = 900_000
 
 export const STATUS_STALE_AFTER_MINUTES = STATUS_STALE_AFTER_MS / 60_000

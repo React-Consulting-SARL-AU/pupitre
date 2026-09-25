@@ -2,7 +2,6 @@ import { BACKUP_PASSPHRASE_MIN } from "@shared/backups";
 
 export type PassphraseProblem = "short" | "mismatch";
 
-/** What stands between the two fields and a passphrase the main process will take. */
 export function passphraseProblem(
   passphrase: string,
   confirm: string
@@ -14,11 +13,10 @@ export function passphraseProblem(
   return passphrase === confirm ? null : "mismatch";
 }
 
-/** The passphrase as a form holds it until it is sent. */
 export interface PhraseDraft {
   passphrase: string;
   confirm: string;
-  /** The phrase the app drew, while it is the one in the fields. */
+  /** Null once the fields no longer hold the phrase the app drew. */
   drawn: string | null;
   noted: boolean;
 }
@@ -30,7 +28,6 @@ export const NO_PHRASE: PhraseDraft = {
   passphrase: "",
 };
 
-/** Whether the phrase can be sent: well formed, and noted when drawn. */
 export function phraseReady(phrase: PhraseDraft): boolean {
   return (
     passphraseProblem(phrase.passphrase, phrase.confirm) === null &&
@@ -38,21 +35,14 @@ export function phraseReady(phrase: PhraseDraft): boolean {
   );
 }
 
-/**
- * A passphrase drawn for the reader, to write down rather than invent.
- *
- * Six groups of four from an alphabet without look-alikes — no 0 and o, no 1,
- * l and i — so it survives being copied by hand: 120 bits, read aloud in six
- * breaths.
- */
-
+// No look-alikes (0/o, 1/l/i) so the phrase survives being copied by hand.
 const ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
 
 const GROUPS = 6;
 
 const GROUP_LENGTH = 4;
 
-/** 256 is not a multiple of the alphabet's length: bytes past the last whole round are drawn again. */
+// Bytes past the last whole round of the alphabet are redrawn so no letter is favoured.
 const FAIR_LIMIT = 256 - (256 % ALPHABET.length);
 
 function drawIndexes(count: number): number[] {

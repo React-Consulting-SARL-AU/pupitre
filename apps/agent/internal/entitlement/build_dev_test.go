@@ -10,7 +10,6 @@ import (
 	"pupitre.studio/agent/internal/modules/modtest"
 )
 
-// The development build carries its own entitlement: no token, no cache, and every command still answers.
 func TestTheDevelopmentBuildNeedsNeitherTokenNorPlatform(t *testing.T) {
 	state := entitlement.New(entitlement.Options{Sys: modtest.NewFakeSys()}).State()
 

@@ -1,7 +1,6 @@
 import type { OrgRole } from "@pupitre/shared/permissions"
 import {
   GRANTED_PRODUCT,
-  isPlatformProduct,
   LAUNCH_PRODUCT,
   STRIPE_PRODUCT,
 } from "@pupitre/shared/plans"
@@ -10,18 +9,12 @@ import {
   type OrganizationState,
   PLATFORM_ORGANIZATION_ID,
 } from "@pupitre/shared/platform"
-import { SERVER_STATUSES, type StatusLook } from "@/lib/domain/server-status"
+import { SERVER_STATUSES } from "@pupitre/shared/platform-api"
+import type { StatusLook } from "@/lib/domain/server-status"
 import type { DictionaryKey } from "@/lib/i18n/en"
 
 export const MAX_REASON_LENGTH = 500
 
-const ACTING_ROLES: OrgRole[] = ["owner", "admin"]
-
-/**
- * The platform pages belong to the platform organisation: they open when it is
- * the active one, and only for its members. On any other organisation, even the
- * owner's own, the console shows that organisation and nothing of the platform.
- */
 export function platformOpen(
   activeOrganizationId: string | null | undefined,
   platformRole: OrgRole | null
@@ -31,19 +24,10 @@ export function platformOpen(
   )
 }
 
-/** The platform organisation has no trial, no subscription and no onboarding: its right of use is permanent. */
 export function isPlatformOrganization(
   organizationId: string | null | undefined
 ): boolean {
   return organizationId === PLATFORM_ORGANIZATION_ID
-}
-
-/**
- * Any member of the platform organisation reads these pages; only the two roles
- * the owner grants there act on them. The guards decide, this only hides.
- */
-export function canActOnPlatform(role: OrgRole | null): boolean {
-  return role !== null && ACTING_ROLES.includes(role)
 }
 
 const SUSPENDED_REASON_KEYS: Record<string, DictionaryKey> = {
@@ -55,16 +39,6 @@ export function suspendedReasonKey(
   reason: string | null
 ): DictionaryKey | null {
   return reason === null ? null : (SUSPENDED_REASON_KEYS[reason] ?? null)
-}
-
-/** The team suspends what is running; what is already stopped, or gone, has nothing to suspend. */
-export function canSuspend(status: string): boolean {
-  return status === "active"
-}
-
-/** Only the suspension the team laid is the team's to lift; non-payment lifts itself. */
-export function canRestore(suspendedReason: string | null): boolean {
-  return suspendedReason === "admin"
 }
 
 export const SUBSCRIPTION_STATUS_FILTERS = [
@@ -88,62 +62,13 @@ const PRODUCT_KEYS: Record<string, DictionaryKey> = {
   [STRIPE_PRODUCT]: "admin.subscriptions.product.stripe",
 }
 
-/** Stripe names its own products: the console says where the row is billed, never the identifier. */
+// Stripe names its own products: any unknown product is a Stripe one.
 export function productKey(product: string | null): DictionaryKey | null {
   if (product === null) {
     return null
   }
 
   return PRODUCT_KEYS[product] ?? PRODUCT_KEYS[STRIPE_PRODUCT]
-}
-
-/** The statuses under which an organisation still holds its right of use, as `/me` counts them. */
-const LIVE_SUBSCRIPTION_STATUSES = ["active", "trialing", "past_due"]
-
-export function subscriptionIsLive(status: string): boolean {
-  return LIVE_SUBSCRIPTION_STATUSES.includes(status)
-}
-
-export function canCancelSubscription(status: string): boolean {
-  return status !== "canceled"
-}
-
-export interface SubscriptionRow {
-  product: string
-  status: string
-}
-
-/** A platform row is the team's to remove; a Stripe row only once Stripe has let go of it. */
-export function canDeleteSubscription({
-  product,
-  status,
-}: SubscriptionRow): boolean {
-  return isPlatformProduct(product) || !subscriptionIsLive(status)
-}
-
-export function canResizeSubscription(product: string): boolean {
-  return product === GRANTED_PRODUCT
-}
-
-/** Stripe holds the trial: only a row it still bills as `trialing` takes a new end. */
-export function canExtendTrial({ product, status }: SubscriptionRow): boolean {
-  return !isPlatformProduct(product) && status === "trialing"
-}
-
-export interface ResumableSubscription extends SubscriptionRow {
-  cancel_at_period_end: boolean
-}
-
-export function canResumeSubscription({
-  product,
-  status,
-  cancel_at_period_end,
-}: ResumableSubscription): boolean {
-  return (
-    !isPlatformProduct(product) &&
-    subscriptionIsLive(status) &&
-    cancel_at_period_end
-  )
 }
 
 const STRIPE_EVENT_STATUS_KEYS: Record<string, DictionaryKey> = {
@@ -170,7 +95,7 @@ export function canGrantSubscription({
 
 const DATE_INPUT_RE = /^(\d{4})-(\d{2})-(\d{2})$/
 
-/** A day picked in the console ends where the team sits: the right of use covers the whole of it. */
+// Local end of day, so the right of use covers the whole picked day.
 export function endOfDayIso(date: string): string | null {
   const parts = DATE_INPUT_RE.exec(date)
 
@@ -215,7 +140,7 @@ export function channelKey(channel: string): DictionaryKey | null {
 export interface ReleaseBuild {
   version: string
   channel: string
-  /** Eden revives an ISO date into a `Date`; a fixture hands the string. */
+  // Eden revives an ISO date into a `Date`; a fixture hands the string.
   published_at: string | Date
 }
 
@@ -235,10 +160,6 @@ function isoOf(value: string | Date): string {
   return new Date(value).toISOString()
 }
 
-/**
- * A version is published one artefact at a time; the page promotes a version,
- * so its artefacts are gathered back into one line, newest first.
- */
 export function releaseVersions(builds: ReleaseBuild[]): ReleaseVersion[] {
   const versions = new Map<string, ReleaseVersion>()
 
@@ -339,7 +260,6 @@ export type AccountGesture =
   | "cancel_deletion"
   | "revoke_sessions"
 
-/** What an account in this state has left to be done to it: the page shows these and nothing else. */
 export function accountGestures(state: string): AccountGesture[] {
   if (state === "deleting") {
     return ["cancel_deletion", "purge", "revoke_sessions"]
@@ -410,7 +330,7 @@ const SERVER_PARTS: Record<(typeof SERVER_STATUSES)[number], DictionaryKey> = {
   revoked: "status.revoked",
 }
 
-/** The Stripe statuses a subscription can hold; the launch is a product, not one of them. */
+// The launch is a product, not a status: it has its own figure.
 const SUBSCRIPTION_PARTS: [string, DictionaryKey][] = [
   ["trialing", "billing.status.trialing"],
   ["active", "billing.status.active"],
@@ -419,7 +339,6 @@ const SUBSCRIPTION_PARTS: [string, DictionaryKey][] = [
   ["other", "admin.overview.other"],
 ]
 
-/** The counts as the page lays them out: a figure, then its parts in the order the reader expects. */
 export function overviewFigures(overview: AdminOverview): OverviewFigure[] {
   return [
     {

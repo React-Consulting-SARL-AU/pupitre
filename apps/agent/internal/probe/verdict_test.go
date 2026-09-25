@@ -75,7 +75,6 @@ func TestOutdatedAgentWarnsWithBothVersions(t *testing.T) {
 	}
 }
 
-// A managed machine is managed even when it also carries what would otherwise occupy it: the agent already owns it.
 func TestManagedWinsOverOccupied(t *testing.T) {
 	machine := ubuntu()
 	machine.AgentVersion = "0.2.0"
@@ -137,7 +136,6 @@ func TestOccupiedListsWhatWouldBeTouched(t *testing.T) {
 	}
 }
 
-// Port 22 alone is not an occupant: SSH is how the app got here in the first place.
 func TestSSHAloneDoesNotOccupy(t *testing.T) {
 	machine := ubuntu()
 	machine.Ports = []Port{{Port: 22, Process: "sshd"}}
@@ -194,7 +192,6 @@ func TestIncompatibleReasons(t *testing.T) {
 	}
 }
 
-// Ubuntu 20.04 is out, 22.04 and 24.04 are in: the agent only builds against those.
 func TestSupportedUbuntuVersions(t *testing.T) {
 	for version, want := range map[string]string{"20.04": KindIncompatible, "22.04": KindBare, "24.04": KindBare, "25.10": KindIncompatible} {
 		machine := ubuntu()
@@ -217,7 +214,6 @@ func TestIncompatibleAccumulatesEveryBlocker(t *testing.T) {
 	}
 }
 
-// Nothing readable at all still has to produce a verdict rather than a panic or an empty one.
 func TestUnknownMachineIsIncompatible(t *testing.T) {
 	verdict := Decide(Machine{})
 

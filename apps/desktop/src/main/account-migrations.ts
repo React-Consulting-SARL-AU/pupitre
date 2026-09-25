@@ -1,11 +1,5 @@
 import type { JsonObject, StoreMigration } from "./store-migrations";
 
-/**
- * The ledger of `account.json`.
- *
- * Adding an entry is the whole of what a shape change costs — see
- * docs/contracts/config-migrations.md.
- */
 export const ACCOUNT_MIGRATIONS: readonly StoreMigration[] = [
   {
     apply: listedOrganizations,

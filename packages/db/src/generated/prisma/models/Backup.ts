@@ -14,7 +14,7 @@ import type * as Prisma from "../internal/prismaNamespace"
 
 /**
  * Model Backup
- * A backup lying in the client's own bucket: where it is and how big, never what it holds.
+ * Where a backup lies in the client's own bucket and its size, never its content.
  */
 export type BackupModel = runtime.Types.Result.DefaultSelection<Prisma.$BackupPayload>
 

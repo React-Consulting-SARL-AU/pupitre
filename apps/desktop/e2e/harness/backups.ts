@@ -6,16 +6,6 @@ import {
 } from "@pupitre/shared/backup";
 import { SNAPSHOT } from "../../src/renderer/src/__tests__/snapshot-fixtures";
 
-/**
- * Backups, answered by the harness rather than by a bucket and a platform.
- *
- * The agent's `backup.*` commands, the platform's list and the restore
- * channels reply the shapes the contract declares. What stays real is the
- * main process's own work on this computer: the bucket's connection is kept,
- * and the passphrase derived, by the app itself — only the keychain is
- * replaced, so that no scenario reaches the one of whoever runs the suite.
- */
-
 export const BACKUP_ID = "20260919T031500Z-7f3a2c";
 
 const RECIPIENT = "ms1b2m6G3lR0b3v8C9W3dGdtS1XU9Qp3mM5o6f7g8h0=";
@@ -77,7 +67,7 @@ export const CORE_BACKUP = {
     {
       key: "endpoint",
       kind: "text",
-      label: "Point d'accès",
+      label: "Endpoint",
       managed: true,
       required: true,
     },
@@ -92,7 +82,7 @@ export const CORE_BACKUP = {
     {
       key: "bucket",
       kind: "text",
-      label: "Seau",
+      label: "Bucket",
       managed: true,
       required: true,
     },
@@ -193,7 +183,7 @@ export const CORE_BACKUP = {
     },
     {
       default: false,
-      help: "Le code revient alors par un clone : les modifications non commitées et les commits non poussés ne reviennent pas. Un projet sans dépôt est toujours sauvegardé en entier.",
+      help: "Le code revient alors par un clone : les modifications non commitées et les commits non pushés ne reviennent pas. Un projet sans dépôt est toujours sauvegardé en entier.",
       key: "projects_env_only",
       kind: "boolean",
       label: "Seulement leurs fichiers d'environnement",
@@ -219,7 +209,7 @@ export const CORE_BACKUP = {
       required: false,
     },
     {
-      help: "moteur:nom, ou redis:* pour l'instantané Redis. Toutes les autres partent, celles créées plus tard comprises.",
+      help: "moteur:nom, ou redis:* pour le snapshot Redis. Toutes les autres partent, celles créées plus tard comprises.",
       items: "text",
       key: "exclude_databases",
       kind: "list",
@@ -235,22 +225,18 @@ export const CORE_BACKUP = {
   resources: { disk_mb: 0, ram_mb: 0 },
   runs: false,
   since: "0.8.0",
-  summary: "Sauvegardes chiffrées vers un seau S3.",
+  summary: "Sauvegardes chiffrées vers un bucket S3.",
 };
 
-/**
- * What the server holds, as `backup.contents` says it, read with the module's
- * values below: the Redis snapshot is left out, and `mysql:archives` is an
- * exclusion naming a database the server no longer holds.
- */
+// Read with the module's values below: `mysql:archives` excludes a database the server no longer holds.
 const CONTENTS = {
   databases: [
     { engine: "postgres", included: true, item: "postgres:shop", name: "shop" },
     {
       engine: "postgres",
       included: true,
-      item: "postgres:flymate",
-      name: "flymate",
+      item: "postgres:flyleaf",
+      name: "flyleaf",
     },
     {
       engine: "mysql",
@@ -261,7 +247,7 @@ const CONTENTS = {
     { engine: "redis", included: false, item: "redis:*", name: "*" },
   ],
   projects: [
-    { included: true, name: "flymate-api", repo: true },
+    { included: true, name: "flyleaf-api", repo: true },
     { included: true, name: "atlas-web", repo: true },
     { included: true, name: "billing", repo: false },
   ],
@@ -306,9 +292,9 @@ export const RESTORE_SETUP = {
       bytes: 48_213_990,
       engine: "postgres",
       format: "pg_custom",
-      key: "db-postgres-flymate.pupitre",
+      key: "db-postgres-flyleaf.pupitre",
       kind: "database",
-      name: "flymate",
+      name: "flyleaf",
       sha256: "b".repeat(64),
     },
     {
@@ -324,23 +310,15 @@ export const RESTORE_SETUP = {
   warnings: [],
 };
 
-/** The passphrase the harness's backups open with; any other is refused on this computer. */
 export const PASSPHRASE = "atelier-sauvegarde-2026";
 
 export interface BackupsHarness {
-  /** Whether the organization lists backups; an empty one is what a first computer sees. */
   listed?: boolean;
-  /** Docker on the machine, for what its volumes are left out of. */
   docker?: boolean;
-  /** Whether the server has backups in place already; one without walks the setup. */
   configured?: boolean;
 }
 
-/**
- * The keychain, replaced by a transform that keeps nothing in the clear and
- * never asks the system: a scenario must not touch the keychain of the person
- * running it, and the files it leaves are read back to prove what is not in them.
- */
+/** Keeps the scenario off the keychain of whoever runs the suite, while still sealing. */
 export function sealInMemory(app: ElectronApplication): Promise<void> {
   return app.evaluate(({ safeStorage }) => {
     Object.assign(safeStorage, {
@@ -355,7 +333,6 @@ export function sealInMemory(app: ElectronApplication): Promise<void> {
   });
 }
 
-/** A scheduled backup under way on the server, as `backup.status` says it. */
 export function markRunning(
   app: ElectronApplication,
   running: boolean
@@ -365,7 +342,6 @@ export function markRunning(
   }, running);
 }
 
-/** The commands streamed to the agent, with their parameters, in order. */
 export function streamedCalls(
   app: ElectronApplication
 ): Promise<{ cmd: string; params: Record<string, unknown> }[]> {
@@ -378,7 +354,6 @@ export function streamedCalls(
   );
 }
 
-/** The configurations the installs carried, in order. */
 export function installedConfigs(
   app: ElectronApplication
 ): Promise<
@@ -393,11 +368,7 @@ export function installedConfigs(
   );
 }
 
-/**
- * The bucket the connection is checked against when it is saved: the main
- * process's own signed write and delete reach this answer instead of a
- * provider — accepted, or refused with the S3 code a scenario names.
- */
+/** Answers the main process's probe write and delete in place of the S3 provider. */
 export function answerBucket(
   app: ElectronApplication,
   refusal: { status: number; code: string } | null = null
@@ -426,11 +397,6 @@ export function answerBucket(
   }, refusal);
 }
 
-/**
- * A second computer of the organization: it holds no bucket until the reader
- * gives one, and then takes the organization's key, as the main process does
- * when the platform lists a backup — the platform being the harness's here.
- */
 export function answerSecondComputer(app: ElectronApplication): Promise<void> {
   return app.evaluate(
     ({ ipcMain }, identity: { recipient: string; kdf_salt: string }) => {
@@ -541,7 +507,6 @@ export function answerBackups(
         "db.postgres": ["app_password"],
       };
 
-      // A server without backups in place holds no value of the module yet.
       const moduleConfig = (id: string) => ({
         id,
         secrets: secrets[id] ?? [],
@@ -639,7 +604,7 @@ export function answerBackups(
             for (const name of [
               "setup",
               "home",
-              "db:postgres:flymate",
+              "db:postgres:flyleaf",
               "manifest",
               "declare",
               "prune",
@@ -726,9 +691,9 @@ export function answerBackups(
         ok: true,
         result: { problems: [], warnings: [] },
       }));
-      // What each install carried, so a scenario reads back the configuration
-      // the form sent.
+
       const installs = globalThis as { installed?: unknown[] };
+
       installs.installed = [];
 
       answer("install:start", (_token, _serverId, modules, config) => {

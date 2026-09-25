@@ -4,13 +4,7 @@ import { StatusDot } from "@renderer/components/ui/status-dot";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import type { EnrollmentSummary } from "@shared/account";
 
-/**
- * The server as the console now knows it.
- *
- * Nothing of the enrolment token appears here: it stayed in the main process,
- * on its way to the agent. What the reader gets is the identity the platform
- * gave the machine and the release it named.
- */
+/** Never shows the enrolment token: it stays in the main process. */
 export function OnboardingEnrollmentNote({
   enrollment,
 }: {

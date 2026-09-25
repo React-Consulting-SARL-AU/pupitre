@@ -1,6 +1,5 @@
 package i18n
 
-// The module engine: what it refuses, and what to do to make it accept.
 var engineCatalog = map[string]Message{
 	"module.notInstalled": {
 		FR: "%s n'est pas installé sur ce serveur",
@@ -15,7 +14,7 @@ var engineCatalog = map[string]Message{
 		EN: "the report cannot be read %s: %s",
 	},
 	"engine.step.panic": {
-		FR: "panique : %v",
+		FR: "panic : %v",
 		EN: "panic: %v",
 	},
 	"engine.report.none": {

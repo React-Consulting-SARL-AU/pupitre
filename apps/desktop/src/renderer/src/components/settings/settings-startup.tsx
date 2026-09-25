@@ -6,13 +6,6 @@ import { useTranslations } from "@renderer/i18n/use-translations";
 import { usePreferences } from "@renderer/stores/preferences";
 import { useEffect } from "react";
 
-/**
- * Whether the app opens with the session.
- *
- * The main process writes the login item — macOS and Windows keep such a list,
- * Linux has none that is standard — and answers with what it wrote, so the
- * switch never shows a wish the system did not take.
- */
 export function SettingsStartup() {
   const t = useTranslations();
 

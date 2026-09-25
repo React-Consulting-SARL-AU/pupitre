@@ -1,12 +1,5 @@
 import type { ReactNode } from "react";
 
-/**
- * One entry of the sidebar, in the second and third planes of the menu.
- *
- * The entries are `ink`; the active one sits on `raised` and carries a marker
- * on its left — the plane that says "you are here" without a colour doing the
- * work alone.
- */
 export function SidebarEntry({
   active,
   onClick,
@@ -36,7 +29,8 @@ export function SidebarEntry({
         }`}
       />
       <button
-        className={`flex min-w-0 flex-1 items-center gap-2.5 py-2 pr-1 pl-3 text-left text-[13px] transition-soft ${
+        aria-current={active ? "page" : undefined}
+        className={`flex min-w-0 flex-1 items-center gap-2.5 py-2 pr-1 pl-3 text-left text-control transition-soft ${
           active ? "font-medium text-ink" : "text-ink-2 group-hover:text-ink"
         }`}
         onClick={onClick}

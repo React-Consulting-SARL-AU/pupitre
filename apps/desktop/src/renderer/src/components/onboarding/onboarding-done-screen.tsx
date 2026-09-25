@@ -1,5 +1,5 @@
 import { useTranslations } from "@renderer/i18n/use-translations";
-import { Check } from "lucide-react";
+import { Check, ShieldCheck } from "lucide-react";
 import { ActionBar } from "../ui/action-bar";
 import { Button } from "../ui/button";
 import { Panel } from "../ui/panel";
@@ -12,21 +12,19 @@ const ROOT_LINE = {
   open: "onboarding.done.rootOpen",
 } as const;
 
-/**
- * The end of the onboarding: a machine that runs the agent, reached by the
- * account it opened. What comes next — the first project — is its own screen.
- */
 export function OnboardingDoneScreen({
   serverName,
   user,
   root,
   onClose,
+  onSecure,
 }: {
   serverName?: string;
   user: string;
-  /** Closed, kept open because the configuration asked for it, or left open by a hardening that stopped. */
+  /** "kept" is asked for by the configuration; "open" means the hardening stopped. */
   root: "closed" | "kept" | "open";
   onClose?: () => void;
+  onSecure?: () => void;
 }) {
   const t = useTranslations();
 
@@ -63,6 +61,16 @@ export function OnboardingDoneScreen({
           <p className="mt-1 text-ink-3 leading-relaxed">
             {t(ROOT_LINE[root])}
           </p>
+          {hardened || !onSecure ? null : (
+            <Button
+              className="mt-3"
+              icon={ShieldCheck}
+              onClick={onSecure}
+              size="sm"
+            >
+              {t("onboarding.secureAgain")}
+            </Button>
+          )}
         </div>
       </Panel>
     </Screen>

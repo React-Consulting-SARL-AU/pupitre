@@ -17,10 +17,7 @@ import (
 	"pupitre.studio/agent/internal/sys/user"
 )
 
-// Claude Code ships as one native binary per platform, published next to a
-// manifest of checksums. That is the path Anthropic's own installer takes, and
-// the only one that works here: the npm package finishes its install in a
-// postinstall script, and mise never runs those.
+// The native binary, as Anthropic's installer takes it: the npm package installs in a postinstall script mise never runs.
 const (
 	releasesURL  = "https://downloads.claude.ai/claude-code-releases"
 	downloadsDir = agents.Home + "/.claude/downloads"
@@ -44,10 +41,7 @@ func platform() string {
 	return "linux-x64"
 }
 
-// The installer leaves ~/.local/bin/claude as a link into the versions
-// directory, named after the version it points to: reading the link costs a
-// millisecond where starting the CLI costs a second, and a snapshot asks every
-// few seconds. A binary that is not such a link is asked itself.
+// Reading the version off the link costs a millisecond where starting the CLI costs a second, on every snapshot.
 func installedVersion(ctx *modules.Context) string {
 	if !file.Exists(ctx, BinPath) {
 		return ""
@@ -85,7 +79,7 @@ func linkedVersion(ctx *modules.Context) string {
 }
 
 func fetch(ctx *modules.Context, url string) (string, error) {
-	out, err := user.Run(ctx, shell.User, "curl", "-fsSL", "--proto", "=https", "--tlsv1.2", url)
+	out, err := user.Run(ctx, shell.User, sys.CurlText(url)...)
 
 	return strings.TrimSpace(out), err
 }
@@ -136,8 +130,6 @@ func checksumOf(ctx *modules.Context, path string) (string, error) {
 	return strings.ToLower(fields[0]), nil
 }
 
-// installVersion downloads the binary, refuses it unless its checksum is the
-// one the manifest announces, then lets it lay itself down under ~/.local.
 func installVersion(ctx *modules.Context, version string) error {
 	checksum, err := expectedChecksum(ctx, version)
 	if err != nil {
@@ -151,7 +143,7 @@ func installVersion(ctx *modules.Context, version string) error {
 	path := downloadsDir + "/" + Program + "-" + version + "-" + platform()
 	url := releasesURL + "/" + version + "/" + platform() + "/" + Program
 
-	if _, err := user.Run(ctx, shell.User, "curl", "-fsSL", "--proto", "=https", "--tlsv1.2", "-o", path, url); err != nil {
+	if _, err := user.Run(ctx, shell.User, sys.CurlFile(path, url)...); err != nil {
 		return err
 	}
 
@@ -218,7 +210,6 @@ func upgradeCLI(ctx *modules.Context) error {
 	})
 }
 
-// The conversations and the credentials under ~/.claude stay; the binary and the versions it keeps go.
 func removeCLI(ctx *modules.Context) error {
 	return ctx.Step("remove-cli", func() (modules.Outcome, error) {
 		if !file.Exists(ctx, BinPath) && !file.Exists(ctx, versionsDir) {

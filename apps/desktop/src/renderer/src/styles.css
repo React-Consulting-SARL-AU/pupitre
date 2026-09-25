@@ -2,11 +2,7 @@
 @import "@pupitre/design/tailwind.css";
 @import "@pupitre/design/fonts.css";
 
-/**
- * Unlayered on purpose: `@pupitre/design` declares the type sizes outside any
- * layer, and an unlayered declaration beats a layered one whatever its order.
- * The app is read at arm's length on a large screen, a step above the console.
- */
+/* Unlayered on purpose: `@pupitre/design` declares these outside any layer too. */
 :root {
   --font-ui-size: 14px;
   --font-label-size: 11.5px;
@@ -69,7 +65,7 @@
   }
 }
 
-/* The hidden title bar leaves the window draggable by its header. */
+/* The title bar is hidden, so the header is what drags the window. */
 @utility draggable {
   -webkit-app-region: drag;
 }
@@ -97,7 +93,6 @@
   transition: width var(--motion-soft);
 }
 
-/* What floats — a menu, a bubble, a dialog — fades and settles in one breath. */
 @utility transition-pop {
   transition:
     opacity var(--motion-fast),
@@ -132,7 +127,7 @@
   }
 }
 
-/* A block that arrives. `--rise-index` places it in its cascade. */
+/* `--rise-index` staggers sibling blocks into a cascade. */
 @utility rise {
   animation: rise var(--motion-enter) backwards;
   animation-delay: calc(var(--rise-index, 0) * var(--motion-stagger));
@@ -162,7 +157,6 @@
   }
 }
 
-/* A step of a sequence: forward comes from the right, back from the left. */
 @utility step-forward {
   animation: step-forward var(--motion-enter);
 }
@@ -203,14 +197,12 @@
   animation: leave-back var(--motion-exit) forwards;
 }
 
-/* A bar or a rail that fills up to the width its state names. */
 @utility transition-track {
   transition:
     width var(--motion-enter),
     transform var(--motion-enter);
 }
 
-/* Read out loud and never drawn: the live regions, and the caption of a control that carries only a glyph. */
 @utility sr-only {
   position: absolute;
   width: 1px;
@@ -223,7 +215,6 @@
   clip-path: inset(50%);
 }
 
-/* A system preference, not an option: we honour it everywhere. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

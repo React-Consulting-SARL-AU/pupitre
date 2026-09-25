@@ -3,20 +3,16 @@ import { RequestIdSchema } from "./envelope"
 import { ProjectEnvResultSchema } from "./projects"
 import { ProcessIdSchema, ProjectNameSchema } from "./state"
 
-export const SecretKeySchema = z.string().regex(/^[A-Z][A-Z0-9_]*$/)
+const SecretKeySchema = z.string().regex(/^[A-Z][A-Z0-9_]*$/)
 
 export const ServiceSecretParamsSchema = z.strictObject({
   id: z.string().min(1),
   key: SecretKeySchema,
 })
 
-export type ServiceSecretParams = z.infer<typeof ServiceSecretParamsSchema>
-
 export const ServiceSecretResultSchema = z.object({
   key: SecretKeySchema,
 })
-
-export type ServiceSecretResult = z.infer<typeof ServiceSecretResultSchema>
 
 export const SecretEventSchema = z.object({
   id: RequestIdSchema,
@@ -32,15 +28,11 @@ export const SecretsSyncParamsSchema = z.strictObject({
   process: ProcessIdSchema.optional(),
 })
 
-export type SecretsSyncParams = z.infer<typeof SecretsSyncParamsSchema>
-
 export const SecretsSyncResultSchema = ProjectEnvResultSchema
-
-export type SecretsSyncResult = z.infer<typeof SecretsSyncResultSchema>
 
 export const DB_ENGINES = ["mysql", "postgres", "mongodb"] as const
 
-export const DbEngineSchema = z.enum(DB_ENGINES)
+const DbEngineSchema = z.enum(DB_ENGINES)
 
 export type DbEngine = z.infer<typeof DbEngineSchema>
 
@@ -48,8 +40,6 @@ export const DbParamsSchema = z.strictObject({
   engine: DbEngineSchema,
   name: z.string().min(1).optional(),
 })
-
-export type DbParams = z.infer<typeof DbParamsSchema>
 
 export const DbDumpResultSchema = z.object({
   path: z.string(),
@@ -68,17 +58,13 @@ export const DbShellResultSchema = z.object({
   command: z.string(),
 })
 
-export type DbShellResult = z.infer<typeof DbShellResultSchema>
-
 export const DbUrlResultSchema = z.object({
   url: z.string(),
 })
 
-export type DbUrlResult = z.infer<typeof DbUrlResultSchema>
+const TUNNEL_STATES = ["running", "stopped", "failed", "absent"] as const
 
-export const TUNNEL_STATES = ["running", "stopped", "failed", "absent"] as const
-
-export const TunnelStateSchema = z.enum(TUNNEL_STATES)
+const TunnelStateSchema = z.enum(TUNNEL_STATES)
 
 export type TunnelState = z.infer<typeof TunnelStateSchema>
 
@@ -90,14 +76,12 @@ export const TunnelRouteSchema = z.object({
 
 export type TunnelRoute = z.infer<typeof TunnelRouteSchema>
 
-export const EXPOSURE_PROVIDERS = ["cloudflare", "caddy"] as const
+const EXPOSURE_PROVIDERS = ["cloudflare", "caddy"] as const
 
-export const ExposureProviderSchema = z.enum(EXPOSURE_PROVIDERS)
+const ExposureProviderSchema = z.enum(EXPOSURE_PROVIDERS)
 
-export type ExposureProvider = z.infer<typeof ExposureProviderSchema>
-
-/** `provider` names the module that answered, and is null when none holds the machine. */
 export const TunnelStatusResultSchema = z.object({
+  // Null when no exposure module holds the machine.
   provider: ExposureProviderSchema.nullable(),
   installed: z.boolean(),
   state: TunnelStateSchema,

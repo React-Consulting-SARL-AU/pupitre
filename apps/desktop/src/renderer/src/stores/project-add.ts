@@ -49,31 +49,13 @@ import {
 } from "../lib/project-processes";
 import { useTunnel } from "./tunnel";
 
-/**
- * A project added to a server, from an address to a journal.
- *
- * The order is the whole of it: declare the project, give it its name on the
- * web when it has one, bring its sources and its dependencies, start it, then
- * read its journal and its address. The name comes right after the declaration
- * because the agent wrote the route with it: sources that will not clone or
- * dependencies that will not install are no reason for the tunnel to stay
- * unwritten. Nothing here decides anything the agent
- * has not said — the repository is read by the agent before it is declared, a
- * refused port comes back with the free one in its remedy, and that is the
- * port the form then proposes.
- */
-
 const LOG_KEPT = 500;
 
 const TAIL = 200;
 
 const SETTLE_POLL_MS = 2000;
 
-/**
- * How many reads a start is given to leave "starting" — a minute at the pace
- * above. A Grails server takes longer and is not a failure: past that, the
- * screen goes on and its outcome keeps following the state the server reports.
- */
+/** About a minute of polling; a slower start (e.g. Grails) is not a failure, the outcome keeps following the state. */
 export const SETTLE_READS = 30;
 
 function delay(ms: number): Promise<void> {
@@ -84,17 +66,15 @@ function delay(ms: number): Promise<void> {
 
 const PROJECT_NAME = /^[a-z0-9][a-z0-9._-]*$/;
 
+export function nameRefused(name: string): boolean {
+  return name !== "" && !PROJECT_NAME.test(name);
+}
+
 export const CLOUDFLARE = "exposure.cloudflare";
 
 export const CADDY = "exposure.caddy";
 
-/**
- * What publishes a project on this server, and what the reader has to do for it.
- *
- * Behind a Cloudflare tunnel the app writes the records itself. Behind Caddy
- * the client points their own DNS at the machine, so the screen carries its
- * address: it is what they have to write.
- */
+/** Behind Caddy the client writes their own DNS records, so the screen shows them `host`. */
 export interface Exposure {
   provider: "cloudflare" | "caddy";
   host: string;
@@ -115,29 +95,16 @@ export function exposureOf(
   return null;
 }
 
-/** The module that puts a git identity and a key on the machine: without it a private clone fails. */
+/** Puts a git identity and a key on the machine: without it a private clone fails. */
 export const GITHUB_TOOL = "tool.github";
 
-/**
- * Where a project comes from, chosen rather than guessed.
- *
- * The three are not three ways of typing the same string: a repository of the
- * connected account carries its branch and says whether it is private, a free
- * address carries neither, and a folder is already on the machine and is never
- * cloned at all.
- */
 export const SOURCE_KINDS = ["github", "git", "dir"] as const;
 
 export type SourceKind = (typeof SOURCE_KINDS)[number];
 
-/**
- * The two pages of the form: where the project comes from, then what runs in
- * it. The second opens once the agent has read the source — its processes,
- * its ports and its commands are what the configuration starts from — or
- * when the reader chooses to fill it in without a reading.
- */
 export type AddStep = "source" | "config";
 
+// "publish" follows "add" directly: a failed clone or install is no reason to leave the route unwritten.
 export const PHASES = [
   "add",
   "publish",
@@ -155,7 +122,7 @@ export interface Phase {
   id: PhaseId;
   status: PhaseStatus;
   detail?: string;
-  /** What the agent refused after the row was written: the phase stands, and each one is said under it. */
+  /** Refused by the agent after the row was written: the phase still stands. */
   warnings?: string[];
 }
 
@@ -163,24 +130,21 @@ export interface Draft {
   kind: SourceKind;
   /** A repository address, or a folder relative to the projects root. */
   source: string;
-  /** True when the repository the account named is private: cloning it needs the GitHub module. */
+  /** Cloning a private repository needs the GitHub module. */
   privateRepo: boolean;
   /** Empty means the repository's own default branch. */
   branch: string;
   name: string;
   dir: string;
-  /** What runs in the project, the first one being the main one. */
+  /** The first one is the main one. */
   processes: ProcessDraft[];
-  /** Whether the project is started once declared, fetched and installed. */
   startNow: boolean;
-  /** Whether the project starts with the server, whatever ran when it went down. */
   boot: boolean;
 }
 
-/** What the reader has taken over, and what still follows the source. */
 interface Edited {
   name: boolean;
-  /** A port, a command, a process added or taken away: the list is theirs, and a detection no longer replaces it. */
+  /** Once the reader edits the list, a detection no longer replaces it. */
   processes: boolean;
 }
 
@@ -190,23 +154,14 @@ export type KnownState =
   | { status: "ready"; serverId: string; projects: readonly Project[] }
   | { status: "failed"; serverId: string; error: AgentError };
 
-/**
- * What the agent read off the source: nothing yet, a clone in flight, what it
- * found, or why it could not look.
- */
 export type DetectionState =
   | { status: "idle" }
-  /** `branch` is the one the clone asks for; absent, the repository's own. */
+  /** An absent `branch` means the repository's default one. */
   | { status: "reading"; source: string; branch?: string }
   | { status: "read"; source: string; result: ProjectDetectResult }
   | { status: "failed"; source: string; error: AgentError };
 
-/**
- * The repositories of the connected GitHub account, read by the main process.
- *
- * `absent` is not a failure: nobody has connected an account yet, and what the
- * screen owes the reader is the way to the settings, not an error.
- */
+/** `absent` is not a failure: no GitHub account is connected yet. */
 export type ReposState =
   | { status: "idle" }
   | { status: "absent" }
@@ -214,13 +169,7 @@ export type ReposState =
   | { status: "ready"; repos: readonly GithubRepo[] }
   | { status: "failed"; error: AgentError };
 
-/**
- * One folder of the server, and the folders under it.
- *
- * `path` is in the same space as a project's `dir` — relative to the projects
- * root — and the browser never leaves it: what `fs.list` is given is that path
- * under the folder the agent itself named.
- */
+/** `path` is relative to the projects root, like a project's `dir`, and browsing never leaves it. */
 export type FolderState =
   | { status: "idle" }
   | { status: "loading"; path: string }
@@ -259,7 +208,7 @@ interface ProjectAddStore {
   phases: Phase[];
   logs: string[];
   run: ProjectAddState;
-  /** The pace of the reads that follow a start, shortened by the tests. */
+  /** Poll interval after a start, held in state so tests can shorten it. */
   settleMs: number;
 
   prepare: (serverId: string, exposure: Exposure | null) => Promise<void>;
@@ -278,40 +227,30 @@ interface ProjectAddStore {
   setRowPort: (process: number, row: number, value: number) => void;
   setRowPublish: (process: number, row: number, value: boolean) => void;
   setRowWeb: (process: number, row: number, value: string) => void;
-  /** Proposes a name on the web no declared project holds, from the project's name and the row's label. */
   generateRowWeb: (process: number, row: number) => void;
   addRow: (process: number) => void;
   removeRow: (process: number, row: number) => void;
   addProcess: () => void;
   removeProcess: (process: number) => void;
-  /** The repositories of the connected account, held by the main process. */
   loadRepos: (refresh?: boolean) => Promise<void>;
-  /** A repository of the list: its address, its default branch, and what it costs. */
   pickRepo: (repo: GithubRepo) => void;
-  /** Lists a folder of the server, relative to the projects root. */
   browse: (serverId: string, path: string) => Promise<void>;
-  makeFolder: (serverId: string, name: string) => Promise<void>;
+  makeFolder: (serverId: string, name: string) => Promise<AgentError | null>;
   pickFolder: (path: string) => void;
-  /** Asks the agent what the source asks for, without declaring anything; what it read opens the configuration. */
   detect: (serverId: string) => Promise<void>;
-  /** Opens the configuration on what the form proposes alone, when the agent could not read the source. */
   skipReading: () => void;
-  /** Back to the source, the configuration kept. */
   editSource: () => void;
 
   launch: (serverId: string) => Promise<void>;
   retry: (serverId: string) => Promise<void>;
-  /** Leaves the screen without losing what was typed: the run and the journal go, the draft stays. */
+  /** Unlike reset, keeps the draft: a reader who leaves to connect GitHub or install a module finds the form again. */
   park: () => void;
   reset: () => void;
 
   params: () => ProjectAddParams;
-  /** The project the server already declares at this folder or under this name: it is opened, not declared again. */
   declared: () => Project | null;
   ready: () => boolean;
-  /** Why a process would be refused, before the agent is asked. */
   processProblem: (process: number) => ProcessProblem | null;
-  /** Why each row of a process would be refused, before the agent is asked. */
   rowProblems: (process: number) => (RowProblem | null)[];
 }
 
@@ -336,7 +275,7 @@ function pending(): Phase[] {
   return PHASES.map((id) => ({ id, status: "pending" }));
 }
 
-/** What the declared projects hold: every one of them, the one the draft may name again included. */
+// Includes the declared project the draft may name again.
 function heldOf(known: KnownState): Held {
   return known.status === "ready"
     ? heldBy(known.projects)
@@ -372,13 +311,6 @@ function atRow(
   });
 }
 
-/**
- * A project the agent already declares at this folder or under this name.
- *
- * Its row is what the server itself knows about those sources — the package
- * manager it runs them with, the command it starts them with. Reusing it beats
- * asking the reader to retype what the machine could tell.
- */
 function declaredAt(
   known: KnownState,
   name: string,
@@ -395,11 +327,7 @@ function declaredAt(
   );
 }
 
-/**
- * The request as it goes on the wire: an optional param at its default is
- * left out. `project.add` refuses a key it does not know, and an agent from
- * before `boot` and `runtimes` still has to take a project that asks neither.
- */
+/** Optional params at their default are left out: agents older than `boot` and `runtimes` refuse unknown keys. */
 export type ProjectAddRequest = Omit<ProjectAddParams, "boot"> & {
   boot?: boolean;
 };
@@ -425,14 +353,13 @@ function detectParams(draft: Draft): ProjectDetectParams {
   return { repo: source, ...(branch ? { branch } : {}) };
 }
 
-/** Two path pieces joined, either of which may be the root and name nothing. */
 function under(path: string, name: string): string {
   return [path, name].filter(Boolean).join("/");
 }
 
 export const useProjectAdd = create<ProjectAddStore>((set, get) => {
   let leaveJournal: (() => void) | null = null;
-  /** The folder the agent named as its projects root, read once per server. */
+  // The projects root the agent named, read once per server.
   let projectsFolder: string | null = null;
 
   function append(lines: readonly string[]): void {
@@ -463,13 +390,6 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     }));
   }
 
-  /**
-   * A name proposed by the folded subdomain, not by the raw name.
-   *
-   * A project name takes a dot and an underscore and a DNS label takes neither,
-   * so `my.site` proposes `my-site`: the field opens on a value the agent will
-   * accept, instead of one the reader has to repair before the button works.
-   */
   function derive(
     draft: Draft,
     edited: Edited,
@@ -508,14 +428,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     });
   }
 
-  /**
-   * The port the agent refused, given the free one it named.
-   *
-   * The remedy carries the port to use, not the row it was for: the first row
-   * whose port a declared project holds is the one that collided, and the main
-   * port of the first process is the fallback when the list gives no better
-   * clue.
-   */
+  // The remedy names a free port, not the row: the first row on a held port is taken to be the one that collided.
   function takePort(free: number): void {
     const { draft, known } = get();
     const held = heldOf(known).ports;
@@ -563,11 +476,6 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     return call();
   }
 
-  /**
-   * Another source is another repository: what the agent read of the last one
-   * is read no more, and the processes go back to one on the same port — unless
-   * the reader made the list theirs.
-   */
   function forgetDetection(): void {
     const { draft, edited, exposure } = get();
 
@@ -582,12 +490,11 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     refresh({ processes: [firstProcess(port, exposure !== null)] });
   }
 
-  /** The main process: the first one, whose journal the outcome shows. */
   function mainProcess(): string {
     return get().draft.processes[0]?.id ?? "";
   }
 
-  /** The journal of every process, read once, so a project that never started still says why. */
+  // Every process's journal, so a project that never started still says why.
   async function readLogs(serverId: string, name: string): Promise<void> {
     for (const process of get().draft.processes) {
       const answer = await window.pupitre.projectJournal(
@@ -615,6 +522,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       TAIL,
       (line) => append([line])
     );
+
     leaveJournal = journal.cancel;
 
     await journal.done;
@@ -624,8 +532,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     const added = await step("add", serverId, () =>
       window.pupitre.addProject(
         serverId,
-        // The schema's output type requires `boot`; the wire omits it at its
-        // default, so an agent whose params are closed still takes the request.
+        // The schema type requires `boot`; the wire omits it at its default for agents with closed params.
         requestOf(get().params()) as ProjectAddParams
       )
     );
@@ -656,13 +563,6 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
 
   type Sources = "failed" | "pulled" | "skipped";
 
-  /**
-   * The sources, when they are not on the machine yet.
-   *
-   * A folder the reader pointed at is already there; an address has to be
-   * cloned. The clone is all this phase does — the dependencies are the next
-   * one's, so each of the two says how long it took.
-   */
   async function bringSources(
     serverId: string,
     name: string
@@ -690,7 +590,6 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     return "pulled";
   }
 
-  /** The install line the agent ran is the phase's detail; a project that declares none skips it. */
   async function installDeps(serverId: string, name: string): Promise<boolean> {
     const installed = await step("install", serverId, () =>
       window.pupitre.installProject(serverId, name)
@@ -720,14 +619,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
 
   const IDLE_STATES: readonly ProjectState[] = ["failed", "stopped", "down"];
 
-  /**
-   * The state once the start has settled: the port bound, or the command gone.
-   *
-   * `project.up` answers the moment the window opens, which is always
-   * "starting" for a server worth the name. What follows is read off the
-   * machine through the main process, until the state moves or the reads run
-   * out; a read the agent refuses stops the wait and is what the screen says.
-   */
+  // `project.up` answers while still "starting", so the state is polled until it moves or the reads run out.
   async function settle(
     serverId: string,
     name: string,
@@ -753,14 +645,6 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     return { state };
   }
 
-  /**
-   * The start, and the state the project settles on after it.
-   *
-   * A command that dies on the spot leaves a project the agent calls stopped
-   * or failed rather than an error, so the state is read as well as the
-   * envelope — and either way the journal is fetched before the screen says
-   * anything.
-   */
   async function bringUp(
     serverId: string,
     name: string
@@ -787,6 +671,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
 
     const { state } = settled;
 
+    // A command that dies on the spot comes back as a stopped or failed state, not an error.
     if (IDLE_STATES.includes(state)) {
       await readLogs(serverId, name);
       fail("up", {
@@ -806,14 +691,6 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     return { state };
   }
 
-  /**
-   * The name on the web, when the project has one.
-   *
-   * The agent wrote the route with the declaration; the record that makes the
-   * name answer is the app's, written from the account it holds. It needs
-   * nothing of what follows, so nothing that follows can keep it from being
-   * written. A project that is not published has nothing to do here.
-   */
   async function publishRoute(serverId: string): Promise<boolean> {
     const published = publishedSubdomains(
       get().draft.processes,
@@ -880,16 +757,12 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     await follow(serverId, name);
   }
 
-  /**
-   * The start, unless the reader chose to leave the project stopped — a
-   * project declared for later is fetched and installed all the same, and its
-   * outcome says stopped. A retry past the start assumes it was made.
-   */
   function startIfAsked(
     serverId: string,
     name: string,
     start: number
   ): Promise<{ state: ProjectState } | null> {
+    // A retry past the start assumes it was made.
     if (start > PHASES.indexOf("up")) {
       return Promise.resolve({ state: "online" });
     }
@@ -903,7 +776,6 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
     return bringUp(serverId, name);
   }
 
-  /** The chain, from the phase it is asked to start at. */
   async function sequence(serverId: string, from: PhaseId): Promise<void> {
     const start = PHASES.indexOf(from);
     const name = get().draft.name;
@@ -996,7 +868,6 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       }
     },
 
-    /** Another way in is another source: nothing of the last one is carried over. */
     setKind(kind) {
       if (kind === get().draft.kind) {
         return;
@@ -1006,7 +877,6 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       refresh({ branch: "", kind, privateRepo: false, source: "" });
     },
 
-    /** Another source is another repository: what the agent read is read no more. */
     setSource(value) {
       if (value.trim() !== get().draft.source.trim()) {
         forgetDetection();
@@ -1019,7 +889,6 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       refresh({ name: value }, { name: true });
     },
 
-    /** Another branch is another tree: what the agent read of the last one no longer holds. */
     setStartNow(value) {
       refresh({ startNow: value });
     },
@@ -1125,13 +994,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       });
     },
 
-    /**
-     * The field goes back to the proposal, and to following the name.
-     *
-     * Generating is the reader handing the name back to the app, so what
-     * comes after — another repository, another name — is followed again; a
-     * value they type themselves stays theirs.
-     */
+    // Hands the name back to the app: later source or name changes are followed again.
     generateRowWeb(process, row) {
       refresh({
         processes: atRow(get().draft.processes, process, row, {
@@ -1162,7 +1025,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       );
     },
 
-    /** The first row is the main port, and a process always has one: it cannot go. */
+    // The first row is the main port and cannot go.
     removeRow(process, row) {
       const { draft } = get();
       const current = draft.processes[process];
@@ -1195,7 +1058,6 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       );
     },
 
-    /** A project always has a process: the last one cannot go. */
     removeProcess(process) {
       const { processes } = get().draft;
 
@@ -1209,13 +1071,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       );
     },
 
-    /**
-     * The repositories of the connected account.
-     *
-     * The token that reads them never comes here: the main process holds it,
-     * calls GitHub and answers a list. A computer with no account connected is
-     * not an error — the screen shows the way to the settings.
-     */
+    // The GitHub token stays in the main process, which answers only the list.
     async loadRepos(refreshList = false) {
       set({ repos: { status: "loading" } });
 
@@ -1244,14 +1100,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       });
     },
 
-    /**
-     * A folder of the server, listed under the projects root and never above it.
-     *
-     * `fs.list` counts from the working folder of the projects account, and a
-     * project's `dir` counts from the projects folder inside it. The agent
-     * names that folder itself — `completions` carries its root — so nothing
-     * here concatenates a path the contract does not give.
-     */
+    // `fs.list` counts from the projects account's home, `dir` from the projects folder `completions` names.
     async browse(serverId, path) {
       set({ folders: { path, status: "loading" } });
 
@@ -1296,7 +1145,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       const wanted = under(path, name.trim());
 
       if (projectsFolder === null || name.trim().length === 0) {
-        return;
+        return null;
       }
 
       const answer = await agentCall<FsPathResult>(serverId, "fs.mkdir", {
@@ -1304,12 +1153,12 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       });
 
       if (!answer.ok) {
-        set({ folders: { error: answer.error, path, status: "failed" } });
-
-        return;
+        return answer.error;
       }
 
       await get().browse(serverId, path);
+
+      return null;
     },
 
     pickFolder(path) {
@@ -1317,12 +1166,6 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       refresh({ source: path });
     },
 
-    /**
-     * What the repository asks for, read by the agent before anything is
-     * declared: the manager it locks, the script it starts on, the port it
-     * wants if the server has it free. A project the server already declares
-     * has said all of that itself.
-     */
     async detect(serverId) {
       const source = get().draft.source.trim();
       const { detection } = get();
@@ -1407,20 +1250,12 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       await sequence(serverId, "add");
     },
 
-    /** Picks up at the phase that failed: what worked is not done again. */
     async retry(serverId) {
       const { run } = get();
 
       await sequence(serverId, run.status === "failed" ? run.phase : "add");
     },
 
-    /**
-     * The screen closes, the draft does not.
-     *
-     * The reader who leaves to connect a GitHub account or to install a module
-     * comes back to the form they had filled in; what goes is the run and the
-     * journal, which belong to an attempt that is over.
-     */
     park() {
       leaveJournal?.();
       leaveJournal = null;
@@ -1461,19 +1296,11 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
       };
     },
 
-    /**
-     * What the agent applies, applied here first.
-     *
-     * A port a project already holds, a name on the web one already answers to
-     * or that DNS would not carry are all refused by the registry; catching them
-     * here is what keeps the button from sending a form that comes back with a
-     * phase in failure.
-     */
     processProblem(process) {
       return processProblem(get().draft.processes, process);
     },
 
-    /** A declared project is its own refusal: its rows are not weighed against itself. */
+    // A declared project is refused as a whole: its rows are not weighed against itself.
     rowProblems(process) {
       const { draft, exposure, known } = get();
 

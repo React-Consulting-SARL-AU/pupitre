@@ -4,8 +4,7 @@ import path from "node:path"
 const ROOT = path.resolve(import.meta.dir, "..")
 const CHANGELOG_DIR = path.join(ROOT, "apps/site/src/content/changelog")
 
-// The notes stored on the release are one string: they take the locale the site
-// serves without a prefix, so a reader who never chose one still gets prose.
+// Release notes are one string, so they take the unprefixed default locale.
 export const NOTES_LOCALE = "en"
 
 const FRONTMATTER = /^---\r?\n([\s\S]*?)\r?\n---/

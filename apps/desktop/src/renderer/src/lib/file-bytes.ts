@@ -1,13 +1,3 @@
-/**
- * Bytes that crossed the channel in pieces, put back together and checked.
- *
- * A capture and a file travel the same way: base64 chunks on events, then a
- * receipt that says how many there were, how much they weigh and what they
- * hash to. Anything that does not add up — a chunk missing, one that is not
- * base64, a size or a digest that differs — comes back as nothing at all: a
- * truncated file shown as the file would be a lie about what is on the server.
- */
-
 export type Bytes = Uint8Array<ArrayBuffer>;
 
 export interface ChunkReceipt {
@@ -37,6 +27,7 @@ function joined(parts: readonly Bytes[]): Bytes {
   const bytes = new Uint8Array(
     parts.reduce((size, part) => size + part.length, 0)
   );
+
   let at = 0;
 
   for (const part of parts) {
@@ -55,6 +46,7 @@ export async function fingerprint(bytes: Bytes): Promise<string> {
     .join("");
 }
 
+/** Any mismatch yields null: a truncated file shown as the file would misreport the server. */
 export async function checkedBytes(
   chunks: ReadonlyMap<number, string>,
   receipt: ChunkReceipt
@@ -85,7 +77,7 @@ export async function checkedBytes(
   return (await fingerprint(bytes)) === receipt.sha256 ? bytes : null;
 }
 
-/** Base64 without line breaks, as every body on the channel travels; built in steps so a megabyte never becomes one call's arguments. */
+/** Built in steps so a large buffer never becomes one call's argument list. */
 export function base64Of(bytes: Bytes): string {
   let binary = "";
 
