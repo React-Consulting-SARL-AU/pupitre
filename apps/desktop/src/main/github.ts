@@ -1,6 +1,5 @@
 import type { AgentResponse } from "@shared/agent";
 import type { GithubRepo } from "@shared/github";
-import { connectionToken } from "./connections";
 import { type GithubApi, githubApi } from "./github-api";
 import { refuseWith } from "./refusal";
 
@@ -14,11 +13,10 @@ function stillHeld(token: string, now: number): boolean {
 }
 
 export async function githubRepos(
+  token: string | null,
   refresh: boolean,
   api: (token: string) => GithubApi = githubApi
 ): Promise<AgentResponse<GithubRepo[]>> {
-  const token = connectionToken("github");
-
   if (!token) {
     held = null;
 

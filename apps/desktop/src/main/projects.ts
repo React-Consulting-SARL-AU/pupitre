@@ -1,6 +1,6 @@
 import { editorById, remoteEditorUrl } from "@shared/editors";
 import { agentClient } from "./agent";
-import { releaseHostname } from "./connections";
+import { connectionToken, releaseHostname } from "./connections";
 import { openOutside } from "./foreground";
 import { githubRepos } from "./github";
 import { handle, listen } from "./ipc";
@@ -55,7 +55,7 @@ export function registerProjects({
   );
 
   handle("github:repos", shape(optional(isBoolean)), (_event, refresh) =>
-    githubRepos(refresh ?? false)
+    githubRepos(connectionToken("github"), refresh ?? false)
   );
 
   handle("project:add", shape(anything, anything), (_event, serverId, params) =>
