@@ -30,6 +30,7 @@ Every agent module writes the same machine context, under the name its tool read
 Beside it come the Pupitre skills, in `~/.agents/skills` and in the tool's own folder:
 
 - `server-dev` — register, start and diagnose a project with `dev`;
+- `project-env` — read a project's port, addresses and domain from its [`PUPITRE_*` variables](/docs/daily/projects/#variables-from-pupitre) instead of hardcoding them;
 - `capture` — take a screenshot and answer with a URL somebody else can open, not a local path;
 - `branch`, `pr`, `ship` — commit, push, open a pull request, in the repository's own convention.
 

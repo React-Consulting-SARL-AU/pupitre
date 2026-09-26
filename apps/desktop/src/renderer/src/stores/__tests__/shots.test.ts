@@ -6,7 +6,17 @@ import type {
   ShotsReadResult,
 } from "@pupitre/shared/agent-protocol/processes";
 import { stubPupitre } from "../../__tests__/stub-pupitre";
-import { shotsByDay, useShots } from "../shots";
+import {
+  ALL_SHOTS,
+  folderOf,
+  publicAddress,
+  shotDay,
+  shotFolders,
+  shotsByDay,
+  shotsIn,
+  UNFILED,
+  useShots,
+} from "../shots";
 
 const SERVER = "srv-1";
 
@@ -162,23 +172,169 @@ describe("la galerie", () => {
     ]);
   });
 
-  it("ouvre l'adresse que le serveur donne, jamais une adresse construite", async () => {
+  it("n'ouvre que l'adresse publique que le serveur donne", async () => {
     const opened: string[] = [];
 
-    stubPupitre({
-      agentCall: () =>
-        Promise.resolve({ ok: true, result: { url: "https://shots.exemple" } }),
-      openUrl: (url: string) => {
-        opened.push(url);
+    for (const exposed of [false, true]) {
+      stubPupitre({
+        agentCall: (_serverId: string, cmd: CommandName) =>
+          Promise.resolve({
+            ok: true,
+            result:
+              cmd === "shots.url"
+                ? { exposed, url: `https://shots.exemple/${exposed}` }
+                : { shots: SHOTS },
+          }),
+        openUrl: (url: string) => {
+          opened.push(url);
 
-        return Promise.resolve();
-      },
+          return Promise.resolve();
+        },
+      });
+
+      await useShots.getState().read(SERVER);
+      await useShots.getState().openGallery();
+    }
+
+    expect(opened).toEqual(["https://shots.exemple/true"]);
+  });
+});
+
+const SORTED: Shot[] = [
+  {
+    created_at: "2026-09-05T10:00:00Z",
+    name: "panier.png",
+    path: "boutique/2026-09-05/panier.png",
+    project: "boutique",
+    size_bytes: 10,
+  },
+  {
+    created_at: "2026-09-05T09:00:00Z",
+    name: "graphe.png",
+    path: "_unfiled/2026-09-05/graphe.png",
+    project: null,
+    size_bytes: 10,
+  },
+  {
+    created_at: "2026-09-04T10:00:00Z",
+    name: "accueil.png",
+    path: "boutique/2026-09-04/accueil.png",
+    project: "boutique",
+    size_bytes: 10,
+  },
+  {
+    created_at: "2026-09-04T09:00:00Z",
+    name: "login.png",
+    path: "admin/2026-09-04/login.png",
+    project: "admin",
+    size_bytes: 10,
+  },
+];
+
+function sortedAgent(shown: string[], removed: string[] = []): void {
+  stubPupitre({
+    agentCall: (_serverId: string, cmd: CommandName, params?: unknown) => {
+      if (cmd === "shots.clean") {
+        removed.push((params as { path: string }).path);
+
+        return Promise.resolve({ ok: true, result: { removed: 1 } });
+      }
+
+      return Promise.resolve({
+        ok: true,
+        result:
+          cmd === "shots.url"
+            ? { exposed: true, url: "https://shots.exemple/jeton" }
+            : { shots: SORTED.filter((shot) => !removed.includes(shot.path)) },
+      });
+    },
+    agentStream: (_serverId: string, _cmd: CommandName, params: unknown) => {
+      shown.push((params as { path: string }).path);
+
+      return Promise.resolve({
+        error: { code: "internal", message: "pas d'octets ici" },
+        ok: false,
+      });
+    },
+  });
+}
+
+describe("les dossiers de la galerie", () => {
+  it("range les captures par projet, sans projet en dernier", () => {
+    expect(shotFolders(SORTED)).toEqual([
+      { count: 1, folder: "admin" },
+      { count: 2, folder: "boutique" },
+      { count: 1, folder: UNFILED },
+    ]);
+    expect(shotsIn(SORTED, "boutique").map((shot) => shot.name)).toEqual([
+      "panier.png",
+      "accueil.png",
+    ]);
+    expect(shotsIn(SORTED, ALL_SHOTS)).toHaveLength(4);
+  });
+
+  it("tient une capture d'un agent sans dossiers pour une capture sans projet", () => {
+    expect(folderOf(SHOTS[0] as Shot)).toBe(UNFILED);
+  });
+
+  it("lit le jour dans le dossier du projet", () => {
+    expect(shotDay(SORTED[0] as Shot)).toBe("2026-09-05");
+  });
+
+  it("donne l'adresse publique d'une capture, et rien d'une galerie locale", () => {
+    const shot = {
+      ...(SORTED[0] as Shot),
+      path: "boutique/2026-09-05/un panier.png",
+    };
+
+    expect(
+      publicAddress({ exposed: true, url: "https://shots.exemple/jeton" }, shot)
+    ).toBe("https://shots.exemple/jeton/boutique/2026-09-05/un%20panier.png");
+    expect(
+      publicAddress({ exposed: false, url: "http://127.0.0.1:8099" }, shot)
+    ).toBeNull();
+    expect(publicAddress(null, shot)).toBeNull();
+  });
+
+  it("parcourt le dossier choisi, pas toute la galerie", async () => {
+    const shown: string[] = [];
+    sortedAgent(shown);
+
+    await useShots.getState().read(SERVER);
+    useShots.getState().choose("boutique");
+    await useShots.getState().show(SERVER, SORTED[0] as Shot);
+    await useShots.getState().step(SERVER, 1);
+    await useShots.getState().step(SERVER, 1);
+
+    expect(shown).toEqual([
+      "boutique/2026-09-05/panier.png",
+      "boutique/2026-09-04/accueil.png",
+    ]);
+    expect(useShots.getState().address).toEqual({
+      exposed: true,
+      url: "https://shots.exemple/jeton",
+    });
+  });
+
+  it("montre la voisine d'une capture supprimée depuis la visionneuse", async () => {
+    const shown: string[] = [];
+    const removed: string[] = [];
+    sortedAgent(shown, removed);
+
+    await useShots.getState().read(SERVER);
+    useShots.getState().choose("boutique");
+    await useShots.getState().show(SERVER, SORTED[0] as Shot);
+    await useShots.getState().remove(SERVER, "boutique/2026-09-05/panier.png");
+
+    expect(removed).toEqual(["boutique/2026-09-05/panier.png"]);
+    expect(useShots.getState().view).toMatchObject({
+      shot: { path: "boutique/2026-09-04/accueil.png" },
     });
 
-    await useShots.getState().openGallery(SERVER);
+    await useShots.getState().remove(SERVER, "boutique/2026-09-04/accueil.png");
 
-    expect(opened).toEqual(["https://shots.exemple"]);
-    expect(useShots.getState().gallery).toBe("https://shots.exemple");
+    expect(useShots.getState().view).toEqual({ status: "idle" });
+    expect(useShots.getState().folder).toBe(ALL_SHOTS);
   });
 });
 

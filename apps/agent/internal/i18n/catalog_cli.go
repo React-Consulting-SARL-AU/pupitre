@@ -58,18 +58,42 @@ var cliCatalog = map[string]Message{
 		EN: "first state not read, the agent will retry: %s",
 	},
 	"shot.usage": {
-		FR: `usage : shot [--mobile|--size LxH] [--wait ms] <fichier|url> [nom]
+		FR: `usage : shot [--mobile|--size LxH] [--wait ms] [--project nom] <fichier|url> [nom]
         shot --list
 
+La capture est rangée sous son projet : celui que --project nomme, sinon celui
+du dossier courant, sinon celui qui sert l'URL capturée, sinon « sans projet ».
 La dernière ligne écrite est toujours l'URL de la capture, prête à coller ;
 le chemin local part sur la sortie d'erreur.
 `,
-		EN: `usage: shot [--mobile|--size WxH] [--wait ms] <file|url> [name]
+		EN: `usage: shot [--mobile|--size WxH] [--wait ms] [--project name] <file|url> [name]
        shot --list
 
+The capture is filed under its project: the one --project names, else the one
+of the current folder, else the one serving the captured URL, else "unfiled".
 The last line written is always the capture's URL, ready to paste;
 the local path goes to the error output.
 `,
+	},
+	"shot.project.expected": {
+		FR: "--project attend le nom d'un projet",
+		EN: "--project expects a project name",
+	},
+	"shot.projects.unread": {
+		FR: "projets illisibles, capture rangée sans projet : %s",
+		EN: "projects unreadable, capture filed under no project: %s",
+	},
+	"shot.url.unread": {
+		FR: "adresse de la galerie illisible, URL locale donnée : %s",
+		EN: "gallery address unreadable, local URL given: %s",
+	},
+	"shot.url.local": {
+		FR: "la galerie n'est pas exposée : cette URL ne s'ouvre que sur le serveur (Services › Navigateur et galerie › Sous-domaine)",
+		EN: "the gallery is not exposed: this URL opens on the server only (Services › Browser and gallery › Subdomain)",
+	},
+	"shots.project.unknown": {
+		FR: "projet inconnu : %s (projets : %s)",
+		EN: "unknown project: %s (projects: %s)",
 	},
 	"shot.file": {
 		FR: "fichier : %s",
@@ -122,6 +146,10 @@ the local path goes to the error output.
 	"shots.gallery.folder": {
 		FR: "dossier",
 		EN: "folder",
+	},
+	"shots.gallery.unfiled": {
+		FR: "Sans projet",
+		EN: "Unfiled",
 	},
 	"shots.size.bytes": {
 		FR: "%d o",

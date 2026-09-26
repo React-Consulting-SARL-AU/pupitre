@@ -11,6 +11,16 @@ order: 5
 
 The web version fits an isolated task on one repository. It does not give you a machine: no database next to the code, no headless browser, no service running overnight, nothing that persists once the session ends. Pupitre gives you the machine, and your subscription works there as it is.
 
+## How is it different from Coolify or Dokploy?
+
+They deploy applications to production. Pupitre sets up the machine your coding agents develop on. It gives them a server of their own, on all the time, where they build, run tests, open headless browsers and work in parallel worktrees, next to the databases and services of your projects. That load leaves your laptop. The projects under development get an address you can open from anywhere: on your computer through the app's SSH session, or at a route of your domain through `exposure.cloudflare` or `exposure.caddy`, or on your tailnet through `exposure.tailscale`. See [projects](/docs/daily/projects/#exposure).
+
+Pupitre does no deployment pipeline, no zero-downtime release and no scaling. The two fit together: develop on a Pupitre server, and ship with the tool you already use for production.
+
+## Can I run production on it?
+
+Nothing stops you: the server is yours, and anything outside the catalogue installs the usual way. But Pupitre is built as a development machine, where agents work unattended as `dev`, and it makes no promise about a production workload. A separate server for production is the safer layout.
+
 ## Do I have to work inside the app?
 
 No. The server is an ordinary Ubuntu machine reached over SSH as `dev`. The Claude desktop app takes an SSH connection with the key Pupitre generated, the ChatGPT desktop app reads the host aliases of your `~/.ssh/config` to run Codex there, and `ssh` works the way it always has. The app stays the place for installing, configuring and watching the machine. See [your own client](/docs/daily/clients/).
@@ -41,4 +51,8 @@ On your server. When an agent works, what it reads goes from the server to the m
 
 ## Can I read the agent's source?
 
-No. Pupitre is a closed commercial product. What the agent does is documented here, module by module, and everything it installs is a standard tool you can inspect on your own machine.
+No. Pupitre is a closed commercial product. What the agent does is documented here, module by module, and everything it installs is a standard tool you can inspect on your own machine. The [security page](/security/) lists what the agent can and cannot do, with the command that checks each claim.
+
+## What happens if Pupitre shuts down?
+
+Your server keeps running. Without the platform, the app and the agent keep working for seven days. After that, the agent stops accepting changes and leaves everything that runs in place. SSH, your editors, your services, databases, projects and backups need nothing from us, and `sudo pupitred uninstall` removes the agent. See [security](/security/#shutdown) and [uninstall](/docs/account/uninstall/).

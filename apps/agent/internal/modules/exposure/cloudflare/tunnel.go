@@ -17,7 +17,7 @@ func Status(ctx *modules.Context) (Report, error) {
 	report := Report{
 		Installed: installed,
 		State:     routes.State(ctx, installed && file.Exists(ctx, cloudflared.UnitPath), Unit),
-		Routes:    routes.For(domainOf(ctx), cloudflared.Declared(ctx)),
+		Routes:    routes.Published(ctx, domainOf(ctx)),
 	}
 
 	if installed {
@@ -38,7 +38,7 @@ func Sync(ctx *modules.Context) (Report, error) {
 		return Report{}, modules.NotInstalled(ID, manifest().Name)
 	}
 
-	content := cloudflared.Ingress(id, domainOf(ctx), cloudflared.Declared(ctx))
+	content := cloudflared.Ingress(id, routes.Published(ctx, domainOf(ctx)))
 
 	if err := ctx.Step("write-ingress", func() (modules.Outcome, error) {
 		if file.Same(ctx, cloudflared.ConfigPath, content) {

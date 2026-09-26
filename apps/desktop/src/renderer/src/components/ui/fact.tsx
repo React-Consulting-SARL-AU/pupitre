@@ -7,10 +7,10 @@ export function FactList({
   className = "",
 }: {
   children: ReactNode;
-  columns?: 2 | 3;
+  columns?: 1 | 2 | 3;
   className?: string;
 }) {
-  const grid = columns === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2";
+  const grid = { 1: "", 2: "sm:grid-cols-2", 3: "sm:grid-cols-3" }[columns];
 
   return (
     <dl className={`grid gap-x-6 gap-y-4 ${grid} ${className}`}>{children}</dl>

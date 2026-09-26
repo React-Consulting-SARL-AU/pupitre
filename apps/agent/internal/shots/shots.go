@@ -63,11 +63,12 @@ func (o Options) resolved() Options {
 }
 
 type Request struct {
-	Source string
-	Name   string
-	Size   string
-	Wait   int
-	Mobile bool
+	Source  string
+	Name    string
+	Size    string
+	Wait    int
+	Mobile  bool
+	Project string
 }
 
 type Capture struct {
@@ -78,10 +79,14 @@ type Capture struct {
 func Take(ctx sys.Context, options Options, request Request) (Capture, error) {
 	options = options.resolved()
 
-	day := options.Now().Format(dayLayout)
-	folder := options.Dir + "/" + day
+	if _, err := FileLoose(ctx, options.Dir); err != nil {
+		return Capture{}, errors.New(i18n.T("shots.gallery.unwritable", options.Dir))
+	}
 
-	if err := ctx.Sys().MkdirAll(folder, 0o755); err != nil {
+	relative := Folder(request.Project) + "/" + options.Now().Format(dayLayout)
+	folder := options.Dir + "/" + relative
+
+	if err := file.MkdirOwned(ctx, folder, User, User, 0o755); err != nil {
 		return Capture{}, errors.New(i18n.T("shots.gallery.unwritable", options.Dir))
 	}
 
@@ -99,7 +104,7 @@ func Take(ctx sys.Context, options Options, request Request) (Capture, error) {
 		return Capture{}, errors.New(i18n.T("shots.capture.missing", target))
 	}
 
-	return Capture{Path: target, URL: options.Base + "/" + day + "/" + path.Base(target)}, nil
+	return Capture{Path: target, URL: options.Base + "/" + relative + "/" + path.Base(target)}, nil
 }
 
 func shoot(ctx sys.Context, request Request, target string) error {

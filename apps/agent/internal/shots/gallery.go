@@ -44,9 +44,9 @@ func MediaType(name string) string {
 	return mediaTypes[strings.ToLower(path.Ext(name))]
 }
 
-// Loopback only: reached through the app's SSH session, never from outside.
-func Serve(dir string, port int) error {
-	handler, err := Handler(dir)
+// Loopback only: the outside reaches it through the server's exposure, and only under the token.
+func Serve(dir string, port int, token string) error {
+	handler, err := Handler(dir, token)
 	if err != nil {
 		return err
 	}
@@ -61,13 +61,18 @@ func Serve(dir string, port int) error {
 }
 
 // os.Root keeps a symlink dropped in the folder from leading anywhere a browser can follow.
-func Handler(dir string) (http.Handler, error) {
+func Handler(dir, token string) (http.Handler, error) {
 	root, err := os.OpenRoot(dir)
 	if err != nil {
 		return nil, err
 	}
 
-	files := http.FileServerFS(root.FS())
+	prefix := ""
+	if token != "" {
+		prefix = "/" + token
+	}
+
+	files := http.StripPrefix(prefix, http.FileServerFS(root.FS()))
 
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		if request.Method != http.MethodGet && request.Method != http.MethodHead {
@@ -75,9 +80,23 @@ func Handler(dir string) (http.Handler, error) {
 			return
 		}
 
+		writer.Header().Set("X-Robots-Tag", "noindex, nofollow")
+		writer.Header().Set("Referrer-Policy", "no-referrer")
+
 		clean := path.Clean("/" + request.URL.Path)
-		if info, err := root.Stat(inside(clean)); err == nil && info.IsDir() {
-			index(writer, root, clean)
+
+		relative, found := strings.CutPrefix(clean, prefix)
+		if !found || (relative != "" && !strings.HasPrefix(relative, "/")) {
+			http.NotFound(writer, request)
+			return
+		}
+
+		if relative == "" {
+			relative = "/"
+		}
+
+		if info, err := root.Stat(inside(relative)); err == nil && info.IsDir() {
+			index(writer, root, prefix, relative)
 			return
 		}
 
@@ -102,7 +121,7 @@ type entry struct {
 	image bool
 }
 
-func index(writer http.ResponseWriter, root *os.Root, relative string) {
+func index(writer http.ResponseWriter, root *os.Root, prefix, relative string) {
 	entries, err := listing(root, inside(relative))
 	if err != nil {
 		http.Error(writer, i18n.T("shots.gallery.unreadable"), http.StatusNotFound)
@@ -110,23 +129,26 @@ func index(writer http.ResponseWriter, root *os.Root, relative string) {
 	}
 
 	writer.Header().Set("Content-Type", "text/html; charset=utf-8")
-	fmt.Fprintf(writer, "<!doctype html><meta charset=utf-8><meta name=viewport content=\"width=device-width,initial-scale=1\"><title>shots · %s</title><style>%s</style>", html.EscapeString(strings.TrimPrefix(relative, "/")), galleryStyle)
-	fmt.Fprintf(writer, "<h1><a href=\"/\">shots</a>%s</h1><div class=g>", crumb(relative))
+	fmt.Fprintf(writer, "<!doctype html><meta charset=utf-8><meta name=viewport content=\"width=device-width,initial-scale=1\"><meta name=robots content=noindex><title>shots · %s</title><style>%s</style>", html.EscapeString(strings.TrimPrefix(relative, "/")), galleryStyle)
+	fmt.Fprintf(writer, "<h1><a href=\"%s/\">shots</a>%s</h1><div class=g>", html.EscapeString(prefix), crumb(relative))
 
 	if len(entries) == 0 {
 		fmt.Fprintf(writer, "<p class=e>%s</p>", html.EscapeString(i18n.T("shots.gallery.empty")))
 	}
 
 	for _, found := range entries {
-		card(writer, relative, found)
+		card(writer, prefix, relative, found)
 	}
 
 	fmt.Fprint(writer, "</div>")
 }
 
-func card(writer http.ResponseWriter, relative string, found entry) {
-	href := html.EscapeString(path.Join(relative, found.name))
+func card(writer http.ResponseWriter, prefix, relative string, found entry) {
+	href := html.EscapeString(prefix + path.Join(relative, found.name))
 	label := html.EscapeString(found.name)
+	if found.dir && found.name == Unfiled && relative == "/" {
+		label = html.EscapeString(i18n.T("shots.gallery.unfiled"))
+	}
 
 	fmt.Fprintf(writer, "<a class=c href=\"%s\"><div class=t>", href)
 	if found.image {

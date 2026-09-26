@@ -5,14 +5,16 @@ import { Tooltip } from "@renderer/components/ui/tooltip";
 import { agentText } from "@renderer/i18n/agent-error";
 import { useTranslations } from "@renderer/i18n/use-translations";
 import { since, weight } from "@renderer/lib/format";
+import { useFirstSight } from "@renderer/lib/use-first-sight";
 import type { ThumbnailState } from "@renderer/stores/shots";
 import { ImageOff, Trash2 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 
 const THUMBNAIL_SIZE = { height: 200, width: 320 };
 
 export function ShotTile({
   shot,
+  folder,
   thumbnail,
   shown,
   removing,
@@ -21,6 +23,7 @@ export function ShotTile({
   onRemove,
 }: {
   shot: Shot;
+  folder: string | null;
   thumbnail: ThumbnailState | undefined;
   shown: boolean;
   removing: boolean;
@@ -31,31 +34,9 @@ export function ShotTile({
   const t = useTranslations();
 
   const frame = useRef<HTMLElement | null>(null);
-  const visible = useRef(onVisible);
-  visible.current = onVisible;
 
   // Bytes are read only once the tile scrolls into view: one agent channel serves the whole gallery.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the path is the identity of the tile, and the only reason to watch again
-  useEffect(() => {
-    const element = frame.current;
-
-    if (!element || typeof IntersectionObserver !== "function") {
-      visible.current();
-
-      return;
-    }
-
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting)) {
-        visible.current();
-        observer.disconnect();
-      }
-    });
-
-    observer.observe(element);
-
-    return () => observer.disconnect();
-  }, [shot.path]);
+  useFirstSight(frame, shot.path, onVisible);
 
   const taken = Date.parse(shot.created_at);
 
@@ -106,6 +87,7 @@ export function ShotTile({
             {shot.name}
           </span>
           <span className="block truncate font-data text-caption text-ink-3 tabular-nums">
+            {folder ? `${folder} · ` : ""}
             {weight(shot.size_bytes)} ·{" "}
             {Number.isNaN(taken) ? shot.created_at : since(taken)}
           </span>

@@ -116,7 +116,7 @@ func writeIngress(ctx *modules.Context) (bool, error) {
 	changed := false
 
 	err := ctx.Step("write-ingress", func() (modules.Outcome, error) {
-		content := cloudflared.Ingress(ctx.String("tunnel_id"), ctx.String("domain"), cloudflared.Declared(ctx))
+		content := cloudflared.Ingress(ctx.String("tunnel_id"), routes.Published(ctx, ctx.String("domain")))
 		if file.Same(ctx, cloudflared.ConfigPath, content) {
 			return modules.Skipped, nil
 		}

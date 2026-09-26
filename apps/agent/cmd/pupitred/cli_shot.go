@@ -1,15 +1,19 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 
+	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/devcli"
 	"pupitre.studio/agent/internal/i18n"
+	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/shots"
 	"pupitre.studio/agent/internal/state"
 )
@@ -27,7 +31,37 @@ func arguments(argv []string) []string {
 	return argv[1:]
 }
 
-func runShot(reader *state.Reader, args []string, stdout, stderr io.Writer) int {
+// The projects and the gallery's public address are root's to read: dev asks the agent, as dev's verbs do.
+func runShotCommand(engine *modules.Engine, args []string, stdout, stderr io.Writer) int {
+	local := func() devcli.Caller { return newServer(engine, false) }
+
+	var agent devcli.Caller
+
+	caller, err := devcli.RealElevation(engine.Sys, tokenPath(), entitlementPath()).Caller(local, version)
+	if err != nil {
+		agent = unreachable{err: err}
+	} else {
+		agent = caller
+	}
+
+	if remote, isRemote := caller.(*devcli.Remote); isRemote {
+		defer remote.Close()
+	}
+
+	cwd, _ := os.Getwd()
+
+	return runShot(state.FromEngine(engine, stateOptions()), agent, cwd, args, stdout, stderr)
+}
+
+type unreachable struct {
+	err error
+}
+
+func (u unreachable) Call(string, any, func(string, map[string]any)) (any, error) {
+	return nil, u.err
+}
+
+func runShot(reader *state.Reader, agent devcli.Caller, cwd string, args []string, stdout, stderr io.Writer) int {
 	request, list, err := parseShot(args)
 	if err != nil {
 		fmt.Fprintln(stderr, err)
@@ -44,7 +78,16 @@ func runShot(reader *state.Reader, args []string, stdout, stderr io.Writer) int 
 		return 0
 	}
 
-	capture, err := shots.Take(reader.Context(), shots.Options{Base: reader.ShotsURL(), Now: reader.Now()}, request)
+	project, err := shotProject(agent, request, cwd, stderr)
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+
+		return 1
+	}
+
+	request.Project = project
+
+	capture, err := shots.Take(reader.Context(), shots.Options{Base: galleryBase(agent, stderr), Now: reader.Now()}, request)
 	if err != nil {
 		fmt.Fprintln(stderr, err)
 
@@ -55,6 +98,61 @@ func runShot(reader *state.Reader, args []string, stdout, stderr io.Writer) int 
 	fmt.Fprintln(stdout, capture.URL)
 
 	return 0
+}
+
+// A named project must be one the agent knows: the name becomes a folder of the gallery.
+func shotProject(agent devcli.Caller, request shots.Request, cwd string, stderr io.Writer) (string, error) {
+	var listed struct {
+		Projects []contract.Project `json:"projects"`
+	}
+
+	if err := call(agent, "project.list", &listed); err != nil {
+		if request.Project != "" {
+			return "", err
+		}
+
+		fmt.Fprintln(stderr, i18n.T("shot.projects.unread", err))
+
+		return "", nil
+	}
+
+	return shots.Resolve(listed.Projects, request.Project, cwd, request.Source)
+}
+
+func galleryBase(agent devcli.Caller, stderr io.Writer) string {
+	local := "http://127.0.0.1:" + strconv.Itoa(shots.Port)
+
+	var answer struct {
+		URL     string `json:"url"`
+		Exposed bool   `json:"exposed"`
+	}
+
+	if err := call(agent, "shots.url", &answer); err != nil {
+		fmt.Fprintln(stderr, i18n.T("shot.url.unread", err))
+
+		return local
+	}
+
+	if !answer.Exposed {
+		fmt.Fprintln(stderr, i18n.T("shot.url.local"))
+	}
+
+	return answer.URL
+}
+
+// A local server answers with Go values, a remote one with decoded JSON: both go through JSON once.
+func call(agent devcli.Caller, cmd string, into any) error {
+	answer, err := agent.Call(cmd, nil, nil)
+	if err != nil {
+		return err
+	}
+
+	raw, err := json.Marshal(answer)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(raw, into)
 }
 
 func parseShot(args []string) (shots.Request, bool, error) {
@@ -85,6 +183,12 @@ func parseShot(args []string) (shots.Request, bool, error) {
 			}
 
 			request.Wait = milliseconds
+		case argument == "-p" || argument == "--project":
+			index++
+			request.Project = argumentAt(args, index)
+			if request.Project == "" {
+				return request, false, errors.New(i18n.T("shot.project.expected"))
+			}
 		case strings.HasPrefix(argument, "-"):
 			return request, false, errors.New(i18n.T("cli.option.unknown", argument))
 		default:
@@ -135,7 +239,8 @@ func runGallery(args []string, stderr io.Writer) int {
 		}
 	}
 
-	if err := shots.Serve(dir, port); err != nil {
+	// From the environment, never from the command line that ps shows every user.
+	if err := shots.Serve(dir, port, os.Getenv(shots.TokenKey)); err != nil {
 		fmt.Fprintln(stderr, err)
 
 		return 1

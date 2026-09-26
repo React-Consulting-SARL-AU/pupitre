@@ -57,6 +57,8 @@ type FakeSys struct {
 	Provides map[string]string
 	// A second pane the user split off, which list-panes prints after the window's own.
 	Split map[string]bool
+	// The environment fingerprint each window holds as its @pupitre_env option.
+	WindowEnv map[string]string
 	// Windows not listed here move at the fake's clock.
 	Activity   map[string]time.Time
 	Dead       map[string]int
@@ -123,6 +125,7 @@ func NewFakeSys() *FakeSys {
 		Twins:        map[string][]int{},
 		Provides:     map[string]string{},
 		Split:        map[string]bool{},
+		WindowEnv:    map[string]string{},
 		Activity:     map[string]time.Time{},
 		Dead:         map[string]int{},
 		Binds:        map[string]int{},

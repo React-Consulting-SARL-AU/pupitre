@@ -7,7 +7,9 @@ import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/modtest"
+	"pupitre.studio/agent/internal/registry"
 	"pupitre.studio/agent/internal/shots"
+	"pupitre.studio/agent/internal/sys/env"
 )
 
 func newContext(t *testing.T, fake *modtest.FakeSys) *modules.Context {
@@ -244,5 +246,83 @@ func TestUbuntusSnapStubIsNoBrowser(t *testing.T) {
 
 	if installedPackage(newContext(t, fake)) != "" {
 		t.Fatal("the stub must not count as an installed browser")
+	}
+}
+
+func withSubdomain(t *testing.T, fake *modtest.FakeSys, subdomain string) *modules.Context {
+	t.Helper()
+
+	ctx := modtest.NewContext(t, fake, modtest.Options{Manifest: manifest(), Values: modtest.Values{SubdomainKey: subdomain}})
+	if err := (Module{}).Configure(ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	return ctx
+}
+
+func TestASubdomainPublishesTheGalleryUnderASecretToken(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Files[env.Path] = []byte(env.DomainKey + "=flyleaf.dev\n")
+	install(t, fake)
+
+	if file := fake.Files[unitPath]; !strings.Contains(string(file), "EnvironmentFile=-"+shots.ExposurePath) {
+		t.Fatalf("the gallery reads its token from the exposure file:\n%s", file)
+	}
+
+	fake.Units[Unit] = modtest.UnitActive
+	restarts := len(fake.Mutations)
+
+	withSubdomain(t, fake, "captures")
+
+	exposure := shots.ReadExposure(modtest.NewSysContext(fake))
+	if exposure.Hostname != "captures.flyleaf.dev" || len(exposure.Token) != 32 || fake.Modes[shots.ExposurePath] != 0o600 {
+		t.Fatalf("exposure = %+v, mode %o", exposure, fake.Modes[shots.ExposurePath])
+	}
+
+	if !strings.Contains(strings.Join(fake.Mutations[restarts:], "\n"), "restart "+Unit) {
+		t.Fatalf("a new token restarts the gallery:\n%s", strings.Join(fake.Mutations[restarts:], "\n"))
+	}
+
+	withSubdomain(t, fake, "galerie")
+	if moved := shots.ReadExposure(modtest.NewSysContext(fake)); moved.Token != exposure.Token || moved.Hostname != "galerie.flyleaf.dev" {
+		t.Fatalf("a new subdomain keeps the token: %+v", moved)
+	}
+
+	fake.Mutations = nil
+	withSubdomain(t, fake, "galerie")
+
+	if len(fake.Mutations) != 0 {
+		t.Fatalf("a replay must not touch the machine:\n  %s", strings.Join(fake.Mutations, "\n  "))
+	}
+
+	withSubdomain(t, fake, "")
+	if _, kept := fake.Files[shots.ExposurePath]; kept {
+		t.Fatal("an empty subdomain withdraws the gallery and forgets the token")
+	}
+}
+
+func TestASubdomainNeedsADomainAndAFreeName(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	ctx := modtest.NewContext(t, fake, modtest.Options{Manifest: manifest(), Values: modtest.Values{SubdomainKey: "shop"}})
+
+	if problems := (Module{}).Preflight(ctx); len(problems) != 1 || problems[0].Field != SubdomainKey {
+		t.Fatalf("no exposed domain, no name for the gallery: %+v", problems)
+	}
+
+	if err := (Module{}).Configure(ctx); err == nil {
+		t.Fatal("the exposure step refuses without a domain")
+	}
+
+	fake.Files[env.Path] = []byte(env.DomainKey + "=flyleaf.dev\n")
+	fake.Files[registry.DefaultLocal] = []byte(`{"projects":[{"name":"shop","dir":"shop","processes":[{"id":"shop","pkgmgr":"bun","host":"127.0.0.1","port":3100,"routes":[{"label":"web","port":3100,"hostname":"shop.flyleaf.dev"}],"cmd":"bun run dev"}]}]}`)
+
+	problems := (Module{}).Preflight(ctx)
+	if len(problems) != 1 || !strings.Contains(problems[0].Message, "shop") {
+		t.Fatalf("a name a project already holds is refused: %+v", problems)
+	}
+
+	free := modtest.NewContext(t, fake, modtest.Options{Manifest: manifest(), Values: modtest.Values{SubdomainKey: "shots"}})
+	if problems := (Module{}).Preflight(free); len(problems) != 0 {
+		t.Fatalf("a free name passes: %+v", problems)
 	}
 }

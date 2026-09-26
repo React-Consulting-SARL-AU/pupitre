@@ -12,6 +12,7 @@ import (
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/registry"
+	"pupitre.studio/agent/internal/shots"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/env"
 	"pupitre.studio/agent/internal/sys/file"
@@ -72,7 +73,32 @@ func MoveDomain(ctx *modules.Context, to string) ([]string, error) {
 
 	paths := registry.Paths{Lock: ctx.ProjectsLock()}
 
-	return registry.Load(ctx, paths).Rehost(ctx, from, to)
+	moved, err := registry.Load(ctx, paths).Rehost(ctx, from, to)
+	if err != nil {
+		return nil, err
+	}
+
+	gallery, err := moveGallery(ctx, from, to)
+	if err != nil || gallery == "" {
+		return moved, err
+	}
+
+	return append(moved, gallery), nil
+}
+
+// The subdomain field stays what it was; only the resolved name follows the domain.
+func moveGallery(ctx sys.Context, from, to string) (string, error) {
+	exposure := shots.ReadExposure(ctx)
+
+	label, under := strings.CutSuffix(exposure.Hostname, "."+from)
+	if from == "" || to == "" || !exposure.Published() || !under {
+		return "", nil
+	}
+
+	previous := exposure.Hostname
+	exposure.Hostname = label + "." + to
+
+	return previous, shots.WriteExposure(ctx, exposure)
 }
 
 // Must run before the new domain is stored: MoveDomain reads the old one from the environment file.
@@ -121,6 +147,24 @@ func DeclareMode(ctx *modules.Context, provider string) error {
 
 		return modules.Done, file.WriteAtomic(ctx, ModePath, Marker(provider), 0o600)
 	})
+}
+
+// What a provider serves: every project route under the domain, and the gallery once it is exposed.
+func Published(ctx sys.Context, domain string) []Route {
+	return append(For(domain, Declared(ctx)), Gallery(ctx, domain)...)
+}
+
+func Gallery(ctx sys.Context, domain string) []Route {
+	exposure := shots.ReadExposure(ctx)
+	if domain == "" || !exposure.Published() || !strings.HasSuffix(exposure.Hostname, "."+domain) {
+		return []Route{}
+	}
+
+	return []Route{{
+		Hostname: exposure.Hostname,
+		Service:  "http://127.0.0.1:" + strconv.Itoa(shots.Port),
+		Project:  shots.RouteLabel,
+	}}
 }
 
 func For(domain string, projects []registry.Project) []Route {

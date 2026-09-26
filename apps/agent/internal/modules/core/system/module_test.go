@@ -123,7 +123,9 @@ func TestInstallOnABareMachine(t *testing.T) {
 	zshrc := string(fake.Files[zshrcPath])
 
 	for _, want := range []string{
-		zshrcBase, "# >>> pupitre core.system >>>", `export PROJECTS_DIR='/home/dev/projects'`,
+		zshrcBase, "# >>> pupitre core.system >>>",
+		`export PROJECTS_DIR='/home/dev/projects' PUPITRE_PROJECTS_DIR='/home/dev/projects' PUPITRE=1`,
+		`eval "$(/usr/local/bin/pupitred env 2>/dev/null)"`, "add-zsh-hook chpwd _pupitre_env",
 		`\e]133;A\a`, `\e]133;B\a`, `\e]133;C\a`, `\e]133;D;%s\a`, `\e]7;file://`,
 		`mise" activate zsh`, "# <<< pupitre core.system <<<",
 	} {
@@ -409,7 +411,7 @@ func TestShellMarkersAreLaidDownForZshAndBash(t *testing.T) {
 	fake := bareMachine()
 	run(t, newContext(t, fake))
 
-	markers := []string{`\e]133;A`, `\e]133;B`, `\e]133;C`, `\e]133;D`, `\e]7;file://`}
+	markers := []string{`\e]133;A`, `\e]133;B`, `\e]133;C`, `\e]133;D`, `\e]7;file://`, "PUPITRE=1", `eval "$(/usr/local/bin/pupitred env 2>/dev/null)"`}
 
 	for path, extra := range map[string][]string{
 		zshrcPath:  {`mise" activate zsh`, "add-zsh-hook precmd _pupitre_precmd"},

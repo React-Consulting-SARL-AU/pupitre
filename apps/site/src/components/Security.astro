@@ -1,0 +1,143 @@
+---
+import { LEGAL_CONTACTS, LEGAL_ENTITY } from "@pupitre/shared/legal"
+import { securityContent } from "../content/site/security"
+import Base from "../layouts/Base.astro"
+import { docPath } from "../lib/docs"
+import { fill, localeFromPath, localizePath, translator } from "../lib/i18n"
+import { breadcrumbs, jsonLd } from "../lib/structured-data"
+import Callout from "./Callout.astro"
+import PageHeader from "./PageHeader.astro"
+import Section from "./Section.astro"
+
+const locale = localeFromPath(Astro.url.pathname)
+const t = translator(locale)
+const content = securityContent(locale)
+const [beforeEmail, afterEmail] = content.closing.body.split("{email}")
+
+const trail = jsonLd(
+  breadcrumbs([
+    { name: t("site.name"), pathname: localizePath("/", locale) },
+    { name: content.hero.label, pathname: localizePath("/security/", locale) },
+  ])
+)
+---
+
+<Base title={content.meta.title} description={content.meta.description}>
+  <Fragment slot="head">
+    <script is:inline type="application/ld+json" set:html={trail} />
+  </Fragment>
+
+  <PageHeader
+    label={content.hero.label}
+    title={content.hero.headline}
+    lead={content.hero.lead}
+  >
+    <a
+      data-emphasis="main"
+      href={docPath("account/security", locale)}
+      class="btn btn-lg btn-primary"
+    >
+      {content.hero.cta}
+    </a>
+  </PageHeader>
+
+  <Section
+    id="guarantees"
+    label={content.guarantees.label}
+    title={content.guarantees.title}
+    lead={content.guarantees.lead}
+  >
+    <ul class="reveal-group grid gap-5 md:grid-cols-2">
+      {
+        content.guarantees.items.map((item) => (
+          <li data-guarantee class="card flex flex-col p-6">
+            <h3 class="heading-3">{item.statement}</h3>
+            <p class="mt-4 flex-1 text-ink-2">{item.proof}</p>
+            <p class="mt-6 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <span class="label text-ink-3">
+                {content.guarantees.checkLabel}
+              </span>
+              <code class="data text-ink">{item.check}</code>
+            </p>
+          </li>
+        ))
+      }
+    </ul>
+  </Section>
+
+  <Section
+    id="platform"
+    label={content.platform.label}
+    title={content.platform.title}
+    tone="surface"
+  >
+    <div class="reveal-group grid gap-12 md:grid-cols-2">
+      {
+        [content.platform.knows, content.platform.never].map((group) => (
+          <div>
+            <h3 class="heading-3">{group.title}</h3>
+            <ul class="mt-6 grid gap-3">
+              {group.items.map((item) => (
+                <li class="border-line border-t pt-3 text-ink-2">{item}</li>
+              ))}
+            </ul>
+          </div>
+        ))
+      }
+    </div>
+  </Section>
+
+  <Section
+    id="questions"
+    label={content.questions.label}
+    title={content.questions.title}
+  >
+    <div class="grid max-w-3xl gap-14">
+      {
+        content.questions.items.map((item) => (
+          <article id={item.id} class="reveal">
+            <h3 class="heading-3">{item.question}</h3>
+            {item.paragraphs.map((paragraph) => (
+              <p class="body-lg mt-4 text-ink-2">
+                {fill(paragraph, { owner: LEGAL_ENTITY.owner })}
+              </p>
+            ))}
+            {item.command && (
+              <pre class="card-flat data mt-5 overflow-x-auto px-4 py-3 text-ink"><code>{item.command}</code></pre>
+            )}
+            {item.link && (
+              <a
+                href={localizePath(item.link.href, locale)}
+                class="link-underline mt-5 inline-block py-1"
+              >
+                {item.link.label}
+              </a>
+            )}
+          </article>
+        ))
+      }
+    </div>
+  </Section>
+
+  <div class="shell pb-8">
+    <Callout title={content.closing.title}>
+      <p>
+        {beforeEmail}<a
+          href={`mailto:${LEGAL_CONTACTS.security}`}
+          class="link-underline">{LEGAL_CONTACTS.security}</a
+        >{afterEmail}
+      </p>
+      <p class="mt-3 flex flex-wrap gap-x-6 gap-y-2">
+        <a
+          href={localizePath("/legal/security/", locale)}
+          class="link-underline"
+        >
+          {content.closing.policy}
+        </a>
+        <a href={docPath("account/security", locale)} class="link-underline">
+          {content.closing.docs}
+        </a>
+      </p>
+    </Callout>
+  </div>
+</Base>

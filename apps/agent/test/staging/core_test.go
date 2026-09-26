@@ -43,6 +43,10 @@ func TestInstallCoreOpensDevWithSudo(t *testing.T) {
 		t.Fatalf("zsh must export PROJECTS_DIR: %q", out)
 	}
 
+	if out := ssh(t, dev, "zsh", "-ic", "'echo $PUPITRE:$PUPITRE_PROJECTS_DIR'"); !strings.Contains(out, "1:/home/dev/projects") {
+		t.Fatalf("zsh must export PUPITRE and PUPITRE_PROJECTS_DIR: %q", out)
+	}
+
 	var replay response
 	elapsed := timed(t, "install replay", func() { replay = agent(t, host, coreInstall)[0] })
 	if changed := steps(replay, contract.StepOK); len(changed) != 0 || elapsed > 30*time.Second {

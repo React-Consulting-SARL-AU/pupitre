@@ -38,7 +38,7 @@ func TestTheFourManifestsMatchTheCatalog(t *testing.T) {
 		claude.ID:  {},
 		codex.ID:   {},
 		hermes.ID:  {"providers", "always_on"},
-		browser.ID: {},
+		browser.ID: {"subdomain"},
 	}
 
 	for _, module := range registry(t).All() {

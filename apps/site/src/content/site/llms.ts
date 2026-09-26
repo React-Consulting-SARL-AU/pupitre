@@ -52,6 +52,11 @@ export const LLMS: LlmsContent = {
       path: "/integrations/",
       note: "Every service Pupitre installs and manages on the server, by category, each one linked to its documentation.",
     },
+    {
+      title: "Security",
+      path: "/security/",
+      note: "What the agent can and cannot do on the server, what the platform knows, the command that checks each claim, and how to remove Pupitre.",
+    },
   ],
   alternate: {
     title: "Français",

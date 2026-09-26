@@ -110,6 +110,19 @@ func (p Process) Primary() (Route, bool) {
 	return Route{}, false
 }
 
+// Without a published main route, "https://…" would be an address that does not answer.
+func (p Process) URL() string {
+	if route, published := p.Primary(); published {
+		return "https://" + route.Hostname
+	}
+
+	return p.LocalURL()
+}
+
+func (p Process) LocalURL() string {
+	return "http://" + p.Host + ":" + strconv.Itoa(p.Port)
+}
+
 func (p Process) Hostnames() []string {
 	var names []string
 
@@ -221,6 +234,18 @@ func (p Project) Primary() (Process, Route, bool) {
 	}
 
 	return Process{}, Route{}, false
+}
+
+func (p Project) URL() string {
+	if process, _, published := p.Primary(); published {
+		return process.URL()
+	}
+
+	if len(p.Processes) == 0 {
+		return ""
+	}
+
+	return p.Processes[0].URL()
 }
 
 func (p Project) Hostnames() []string {

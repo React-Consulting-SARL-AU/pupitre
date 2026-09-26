@@ -534,6 +534,8 @@ type ProjectProcess struct {
 	PID     int          `json:"pid,omitempty"`
 	RAMMB   int          `json:"ram_mb,omitempty"`
 	UptimeS int          `json:"uptime_s,omitempty"`
+	// Running with PUPITRE_* values the registry no longer gives: a restart brings the new ones.
+	EnvChanged bool `json:"env_changed,omitempty"`
 }
 
 type Project struct {
@@ -645,10 +647,11 @@ type Process struct {
 }
 
 type Shot struct {
-	Name      string `json:"name"`
-	Path      string `json:"path"`
-	SizeBytes int64  `json:"size_bytes"`
-	CreatedAt string `json:"created_at"`
+	Name      string  `json:"name"`
+	Path      string  `json:"path"`
+	SizeBytes int64   `json:"size_bytes"`
+	CreatedAt string  `json:"created_at"`
+	Project   *string `json:"project"`
 }
 
 const (

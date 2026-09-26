@@ -28,7 +28,7 @@ func init() {
 	parts := []map[string]Message{
 		moduleCatalog, selfupdateCatalog, probeCatalog, hardenCatalog, engineCatalog, stateCatalog, commandCatalog,
 		cliCatalog, warningCatalog, validateCatalog, registryCatalog, fieldCatalog, hintCatalog, filesCatalog,
-		migrateCatalog, loginCatalog, backupCatalog, keysCatalog, sudoCatalog,
+		migrateCatalog, loginCatalog, backupCatalog, keysCatalog, sudoCatalog, uninstallCatalog,
 	}
 
 	for _, part := range parts {

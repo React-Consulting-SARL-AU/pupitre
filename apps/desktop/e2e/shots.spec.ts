@@ -12,22 +12,27 @@ const SHOTS = [
   {
     created_at: "2026-09-05T10:00:00Z",
     name: "panier.png",
-    path: "2026-09-05/panier.png",
+    path: "boutique/2026-09-05/panier.png",
+    project: "boutique",
     size_bytes: PNG.length,
   },
   {
     created_at: "2026-09-05T11:00:00Z",
     name: "paiement.png",
-    path: "2026-09-05/paiement.png",
+    path: "boutique/2026-09-05/paiement.png",
+    project: "boutique",
     size_bytes: PNG.length,
   },
   {
     created_at: "2026-09-04T10:00:00Z",
     name: "accueil.png",
-    path: "2026-09-04/accueil.png",
+    path: "_unfiled/2026-09-04/accueil.png",
+    project: null,
     size_bytes: PNG.length,
   },
 ];
+
+const GALLERY = { exposed: true, url: "https://shots.flyleaf.dev/jeton" };
 
 test.describe("la galerie", () => {
   let running: Running;
@@ -40,6 +45,7 @@ test.describe("la galerie", () => {
         { ipcMain },
         fixtures: {
           answers: Record<string, unknown>;
+          gallery: typeof GALLERY;
           png: string;
           shots: typeof SHOTS;
         }
@@ -72,6 +78,10 @@ test.describe("la galerie", () => {
 
             if (cmd === "shots.list") {
               return { ok: true, result: { shots } };
+            }
+
+            if (cmd === "shots.url") {
+              return { ok: true, result: fixtures.gallery };
             }
 
             if (cmd === "shots.clean") {
@@ -152,7 +162,12 @@ test.describe("la galerie", () => {
           }
         );
       },
-      { answers: ANSWERS, png: PNG.toString("base64"), shots: SHOTS }
+      {
+        answers: ANSWERS,
+        gallery: GALLERY,
+        png: PNG.toString("base64"),
+        shots: SHOTS,
+      }
     );
   });
 
@@ -175,7 +190,9 @@ test.describe("la galerie", () => {
     });
 
     await test.step("les vignettes reçoivent leurs octets par le canal, et la page les dessine", async () => {
-      const thumbnail = page.locator('[data-shot="2026-09-05/panier.png"] img');
+      const thumbnail = page.locator(
+        '[data-shot="boutique/2026-09-05/panier.png"] img'
+      );
 
       await expect(thumbnail).toBeVisible();
       await expect
@@ -185,12 +202,45 @@ test.describe("la galerie", () => {
         .toBeGreaterThan(0);
     });
 
+    await test.step("les onglets rangent les captures par projet, sans projet en dernier", async () => {
+      const folders = page.getByRole("tab");
+
+      await expect(folders).toHaveText([
+        "Toutes3",
+        "boutique2",
+        "Sans projet1",
+      ]);
+
+      await page.getByRole("tab", { name: "boutique 2" }).click();
+      await expect(page.locator("[data-shot]")).toHaveCount(2);
+
+      await page.getByRole("tab", { name: "Sans projet 1" }).click();
+      await expect(page.locator("[data-shot]")).toHaveCount(1);
+
+      await page.getByRole("tab", { name: "Toutes 3" }).click();
+      await expect(page.locator("[data-shot]")).toHaveCount(3);
+      await expect(
+        page.locator('[data-shot="_unfiled/2026-09-04/accueil.png"]')
+      ).toContainText("Sans projet ·");
+    });
+
+    await test.step("une galerie publiée s'ouvre dans le navigateur", async () => {
+      await expect(
+        page.getByRole("button", { name: "Ouvrir la galerie" })
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Publier la galerie" })
+      ).toHaveCount(0);
+    });
+
     await test.step("l'écran tient l'accessibilité", async () => {
       await assertAccessible(page, "shots/grid");
     });
 
     await test.step("une capture se supprime par son propre bouton, en deux gestes", async () => {
-      const tile = page.locator('[data-shot="2026-09-05/paiement.png"]');
+      const tile = page.locator(
+        '[data-shot="boutique/2026-09-05/paiement.png"]'
+      );
 
       await tile.getByRole("button", { name: "Supprimer" }).click();
 
@@ -203,7 +253,7 @@ test.describe("la galerie", () => {
 
       await expect(page.locator("[data-shot]")).toHaveCount(2);
       await expect(
-        page.locator('[data-shot="2026-09-05/paiement.png"]')
+        page.locator('[data-shot="boutique/2026-09-05/paiement.png"]')
       ).toHaveCount(0);
       await expect(page.getByText("1 supprimée")).toBeVisible();
 
@@ -211,7 +261,7 @@ test.describe("la galerie", () => {
         () => (globalThis as { cleaned?: unknown[] }).cleaned ?? []
       );
 
-      expect(cleaned).toEqual([{ path: "2026-09-05/paiement.png" }]);
+      expect(cleaned).toEqual([{ path: "boutique/2026-09-05/paiement.png" }]);
     });
 
     await test.step("la visionneuse s'ouvre par-dessus et se ferme à Échap", async () => {
@@ -219,11 +269,65 @@ test.describe("la galerie", () => {
         .getByRole("button", { exact: true, name: "Voir panier.png" })
         .click();
 
-      await expect(page.locator("[data-shot-viewer]")).toBeVisible();
-      await expect(page.getByText("1 / 2")).toBeVisible();
+      const viewer = page.locator("[data-shot-viewer]");
+
+      await expect(viewer).toBeVisible();
+      await expect(viewer.getByText("boutique · 1 / 2")).toBeVisible();
 
       await page.keyboard.press("ArrowRight");
-      await expect(page.getByText("2 / 2")).toBeVisible();
+      await expect(viewer.getByText("Sans projet · 2 / 2")).toBeVisible();
+
+      await page.keyboard.press("Escape");
+      await expect(page.locator("[data-shot-viewer]")).toHaveCount(0);
+    });
+
+    await test.step("la visionneuse dit tout de la capture et donne son adresse publique", async () => {
+      await page
+        .getByRole("button", { exact: true, name: "Voir accueil.png" })
+        .click();
+
+      const details = page.locator("[data-shot-details]");
+
+      await expect(details.getByText("Sans projet")).toBeVisible();
+      await expect(
+        details.getByText("~/shots/_unfiled/2026-09-04/accueil.png")
+      ).toBeVisible();
+      await expect(
+        details.getByText(
+          "https://shots.flyleaf.dev/jeton/_unfiled/2026-09-04/accueil.png"
+        )
+      ).toBeVisible();
+      await expect(details.getByText("1 × 1 ·")).toBeVisible();
+
+      await expect(page.locator("[data-shot-strip]")).toHaveCount(2);
+      await expect(
+        page.locator('[data-shot-strip="_unfiled/2026-09-04/accueil.png"]')
+      ).toHaveAttribute("aria-current", "true");
+
+      await assertAccessible(page, "shots/viewer");
+    });
+
+    await test.step("la taille réelle se prend et se quitte", async () => {
+      const stage = page.locator("[data-shot-zoom]");
+
+      await expect(stage).toHaveAttribute("data-shot-zoom", "fit");
+
+      await page.locator('[data-tooltip="Taille réelle"]').click();
+      await expect(stage).toHaveAttribute("data-shot-zoom", "actual");
+
+      await page.locator('[data-tooltip="Ajuster à la fenêtre"]').click();
+      await expect(stage).toHaveAttribute("data-shot-zoom", "fit");
+    });
+
+    await test.step("la pellicule passe d'une capture à l'autre", async () => {
+      await page
+        .locator('[data-shot-strip="boutique/2026-09-05/panier.png"]')
+        .click();
+
+      await expect(page.locator("[data-shot-viewer]")).toHaveAttribute(
+        "data-shot-viewer",
+        "boutique/2026-09-05/panier.png"
+      );
 
       await page.keyboard.press("Escape");
       await expect(page.locator("[data-shot-viewer]")).toHaveCount(0);
@@ -254,6 +358,22 @@ test.describe("la galerie", () => {
       expect(await savedShots(running.app)).toEqual([
         { bytes: PNG.length, path: "/tmp/pupitre-e2e/accueil.png" },
       ]);
+    });
+
+    await test.step("une capture supprimée depuis la visionneuse laisse place à sa voisine", async () => {
+      const viewer = page.locator("[data-shot-viewer]");
+
+      await viewer.getByRole("button", { name: "Supprimer" }).click();
+      await page
+        .getByRole("alertdialog")
+        .getByRole("button", { name: "Supprimer" })
+        .click();
+
+      await expect(viewer).toHaveAttribute(
+        "data-shot-viewer",
+        "boutique/2026-09-05/panier.png"
+      );
+      await expect(page.locator("[data-shot]")).toHaveCount(1);
 
       await page.keyboard.press("Escape");
     });

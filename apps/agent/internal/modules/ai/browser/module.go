@@ -2,15 +2,18 @@ package browser
 
 import (
 	"fmt"
-	"pupitre.studio/agent/internal/i18n"
 	"runtime"
 	"strings"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/exposure/routes"
+	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/shots"
 	"pupitre.studio/agent/internal/sys"
 	"pupitre.studio/agent/internal/sys/apt"
+	"pupitre.studio/agent/internal/sys/env"
 	"pupitre.studio/agent/internal/sys/file"
 	"pupitre.studio/agent/internal/sys/systemd"
 )
@@ -36,6 +39,7 @@ After=network.target
 [Service]
 Type=simple
 User=` + shots.User + `
+EnvironmentFile=-` + shots.ExposurePath + `
 ExecStart=` + shots.Binary + ` gallery --dir=` + shots.Dir + ` --port=%d
 Restart=always
 RestartSec=3
@@ -189,8 +193,54 @@ func installPlaywrightLibraries(ctx *modules.Context) error {
 	})
 }
 
+func (Module) Preflight(ctx *modules.Context) []contract.FieldProblem {
+	subdomain := ctx.String(SubdomainKey)
+	if subdomain == "" {
+		return []contract.FieldProblem{}
+	}
+
+	domain, _, _ := env.Get(ctx, env.DomainKey)
+	if domain == "" {
+		return []contract.FieldProblem{subdomainProblem(ctx, i18n.T("module.ai.browser.subdomain.noDomain"))}
+	}
+
+	if project := routeHolder(ctx, subdomain+"."+domain); project != "" {
+		return []contract.FieldProblem{subdomainProblem(ctx, i18n.T("module.ai.browser.subdomain.taken", subdomain+"."+domain, project))}
+	}
+
+	return []contract.FieldProblem{}
+}
+
+func subdomainProblem(ctx *modules.Context, message string) contract.FieldProblem {
+	return contract.FieldProblem{
+		Module:   ctx.Module(),
+		Field:    SubdomainKey,
+		Code:     contract.ProblemFormat,
+		Expected: contract.FormatHostname,
+		Message:  message,
+	}
+}
+
+func routeHolder(ctx *modules.Context, hostname string) string {
+	for _, project := range routes.Declared(ctx) {
+		for _, process := range project.Processes {
+			for _, route := range process.Routes {
+				if route.Hostname == hostname {
+					return project.Name
+				}
+			}
+		}
+	}
+
+	return ""
+}
+
 func (Module) Configure(ctx *modules.Context) error {
 	if err := createGallery(ctx); err != nil {
+		return err
+	}
+
+	if err := fileLooseCaptures(ctx); err != nil {
 		return err
 	}
 
@@ -198,7 +248,74 @@ func (Module) Configure(ctx *modules.Context) error {
 		return err
 	}
 
-	return enableGallery(ctx)
+	exposed, err := exposeGallery(ctx)
+	if err != nil {
+		return err
+	}
+
+	return enableGallery(ctx, exposed)
+}
+
+func fileLooseCaptures(ctx *modules.Context) error {
+	return ctx.Step("file-loose-captures", func() (modules.Outcome, error) {
+		moved, err := shots.FileLoose(ctx, shots.Dir)
+		if err != nil {
+			return modules.Failed, err
+		}
+
+		if moved == 0 {
+			return modules.Skipped, nil
+		}
+
+		return modules.Done, nil
+	})
+}
+
+// The token outlives a change of subdomain; only withdrawing the exposure forgets it.
+func exposeGallery(ctx *modules.Context) (bool, error) {
+	changed := false
+
+	err := ctx.Step("write-gallery-exposure", func() (modules.Outcome, error) {
+		subdomain := ctx.String(SubdomainKey)
+		if subdomain == "" {
+			removed, err := file.Remove(ctx, shots.ExposurePath)
+			if err != nil || !removed {
+				return modules.Skipped, err
+			}
+
+			changed = true
+
+			return modules.Done, nil
+		}
+
+		domain, _, err := env.Get(ctx, env.DomainKey)
+		if err != nil || domain == "" {
+			return modules.Failed, protocol.NewError(contract.ErrorBadRequest, i18n.T("module.ai.browser.subdomain.noDomain")).
+				WithFix(i18n.T("module.ai.browser.subdomain.noDomain.fix"))
+		}
+
+		exposure := shots.ReadExposure(ctx)
+		exposure.Hostname = subdomain + "." + domain
+
+		if exposure.Token == "" {
+			token, err := shots.NewToken()
+			if err != nil {
+				return modules.Failed, err
+			}
+
+			exposure.Token = token
+		}
+
+		if file.SameAt(ctx, shots.ExposurePath, exposure.Content(), 0o600) {
+			return modules.Skipped, nil
+		}
+
+		changed = true
+
+		return modules.Done, shots.WriteExposure(ctx, exposure)
+	})
+
+	return changed, err
 }
 
 func createGallery(ctx *modules.Context) error {
@@ -230,9 +347,10 @@ func linkShot(ctx *modules.Context) error {
 	})
 }
 
-func enableGallery(ctx *modules.Context) error {
+// The gallery reads its token once, at start: a new exposure restarts it.
+func enableGallery(ctx *modules.Context, exposed bool) error {
 	content := []byte(fmt.Sprintf(unitTemplate, shots.Port))
-	changed := false
+	changed := exposed
 
 	if err := ctx.Step("write-gallery-service", func() (modules.Outcome, error) {
 		if file.Same(ctx, unitPath, content) {
@@ -301,6 +419,17 @@ func (Module) Uninstall(ctx *modules.Context) error {
 
 		if !removed {
 			return modules.Skipped, nil
+		}
+
+		return modules.Done, nil
+	}); err != nil {
+		return err
+	}
+
+	if err := ctx.Step("forget-gallery-exposure", func() (modules.Outcome, error) {
+		removed, err := file.Remove(ctx, shots.ExposurePath)
+		if err != nil || !removed {
+			return modules.Skipped, err
 		}
 
 		return modules.Done, nil

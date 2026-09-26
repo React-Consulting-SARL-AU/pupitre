@@ -18,6 +18,7 @@ describe("une vignette de la galerie", () => {
   it("montre le nom, le poids et la suppression, et attend ses octets", () => {
     const html = renderToStaticMarkup(
       <ShotTile
+        folder={null}
         onRemove={REMOVE}
         onShow={NOOP}
         onVisible={NOOP}
@@ -39,6 +40,7 @@ describe("une vignette de la galerie", () => {
   it("dessine l'image une fois les octets reçus", () => {
     const html = renderToStaticMarkup(
       <ShotTile
+        folder={null}
         onRemove={REMOVE}
         onShow={NOOP}
         onVisible={NOOP}
@@ -62,6 +64,7 @@ describe("une vignette de la galerie", () => {
   it("montre la date brute quand le serveur en donne une illisible", () => {
     const html = renderToStaticMarkup(
       <ShotTile
+        folder={null}
         onRemove={REMOVE}
         onShow={NOOP}
         onVisible={NOOP}
@@ -73,5 +76,22 @@ describe("une vignette de la galerie", () => {
     );
 
     expect(html).toContain("hier");
+  });
+
+  it("nomme son dossier quand la galerie montre tous les projets", () => {
+    const html = renderToStaticMarkup(
+      <ShotTile
+        folder="boutique"
+        onRemove={REMOVE}
+        onShow={NOOP}
+        onVisible={NOOP}
+        removing={false}
+        shot={SHOT}
+        shown={false}
+        thumbnail={undefined}
+      />
+    );
+
+    expect(html).toContain("boutique · 2,3 Mo");
   });
 });

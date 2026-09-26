@@ -1,0 +1,45 @@
+---
+title: La galerie reçoit une adresse publique, et les projets leurs propres variables
+description: Une galerie de captures publiée sur un sous-domaine de votre domaine derrière un jeton secret, des captures rangées par projet, des variables PUPITRE_* qui donnent à chaque projet son port, ses adresses et le domaine, et `pupitred uninstall` pour retirer l'agent d'un serveur.
+locale: fr
+version: 1.1.0
+channel: stable
+date: 2026-09-26
+order: 21
+---
+
+Trois ajouts sur le serveur, et l'app qui va avec.
+
+## La galerie
+
+- **La galerie peut être publiée.** *Navigateur et galerie* accepte un sous-domaine dans Services ; l'exposition déjà installée — Cloudflare Tunnel ou Caddy — sert alors la galerie sous `https://<sous-domaine>.<domaine>/<jeton>/`. Le jeton est tiré par l'agent et gardé dans `/etc/pupitre/shots.env`, lisible par root seul ; sans lui, toute adresse répond 404. Qui tient l'URL ouvre l'image — vous, un agent, la personne à qui vous l'envoyez. Sans sous-domaine, la galerie ne répond que sur le serveur, comme avant.
+- Un domaine déplacé emmène le nom de la galerie, et garde le jeton.
+- **Une capture est rangée sous son projet** : celui que nomme `--project`, sinon celui dont `shot` est lancé dans le dossier, sinon celui qui sert l'URL capturée, sinon *Sans projet*. Les fichiers vivent sous `~/shots/<projet>/<jour>/`, l'URL les reflète, et `shot` affiche l'adresse publique quand il y en a une.
+- La galerie de l'app a un onglet par projet, et une visionneuse qui montre le projet de la capture, sa date, l'image, son chemin sur le serveur et son adresse publique — ou, quand il n'y en a pas, quoi faire pour en avoir une. Taille réelle, pellicule et suppression sont dans la visionneuse.
+
+## Les projets
+
+- **Chaque projet reçoit son port, ses adresses et le domaine en variables `PUPITRE_*`** : `PUPITRE_HOST` et `PUPITRE_PORT` où écouter, `PUPITRE_URL`, `PUPITRE_LOCAL_URL` et `PUPITRE_PUBLIC_URL`, les adresses des autres processus du projet et des routes du processus, `PUPITRE_DOMAIN`. Un script les lit au lieu d'écrire un port en dur, et publier une route ou déplacer le domaine ne change rien au code.
+- Un processus garde ce qu'il a reçu au démarrage. L'app signale un processus qui tourne sur des valeurs entre-temps changées, et propose de le redémarrer.
+- Un terminal reçoit les variables du dossier où il se trouve, rafraîchies à chaque invite. Un agent ouvert sur un projet reçoit celles du projet, et apprend leur existence par le skill `project-env`.
+- `PORT` et `HOST` ne sont jamais posés : le `.env.local` du dépôt garde autorité sur eux, et aucun secret ne passe par ces variables.
+
+## Retirer Pupitre d'un serveur
+
+- **`pupitred uninstall` retire l'agent en une commande** : ses services, son binaire, son état, ses journaux et ses lignes sudo sans mot de passe. Les services, les bases, les projets, le compte `dev`, la sécurisation, les clés et `/etc/pupitre/env` restent en place — la machine continue de tourner sans Pupitre.
+
+## Le site
+
+- Une page **Sécurité**, en français et en anglais : six garanties, chacune avec la commande qui la vérifie, ce que la plateforme sait et ce qu'elle ne voit jamais, le code fermé, ce qui se passe si Pupitre s'arrête, comment désinstaller, et qui le construit.
+- La FAQ répond sur Coolify et Dokploy, sur la production, et sur l'arrêt du service.
+
+## Limites connues
+
+- Le jeton de la galerie est sa seule serrure : qui tient l'URL d'une capture publiée l'ouvre, donc rien de secret n'a sa place dans une capture.
+- Un serveur qui n'a pas encore accepté le mot de passe sudo garde l'ancienne règle, sans mot de passe, tant qu'il n'est pas appliqué.
+- Tous les appareils autorisés perdus, l'accès ne se repose que depuis la console de l'hébergeur, par `sudo pupitred keys reset`.
+- Les volumes Docker ne sont pas sauvegardés ; l'app le dit quand le runtime Docker est installé.
+- Qui lit le bucket lit les manifestes, en clair : le nom du serveur, les noms des projets, des bases et des dossiers, l'adresse et la branche des dépôts. Jamais un contenu, jamais un secret — ceux-là sont scellés.
+- Qui tient la clé S3 peut effacer les sauvegardes : le versionnage ou le verrouillage d'objets du bucket sont la parade, et le guide le dit.
+- Perdue, la passphrase rend les sauvegardes illisibles — personne ne peut la recouvrer.
+- L'installateur Windows n'est toujours pas signé : SmartScreen avertit au premier lancement.

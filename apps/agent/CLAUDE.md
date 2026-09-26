@@ -26,7 +26,7 @@ Go 1.26 (la version de `go.mod`), bibliothèque standard d'abord. Binaire statiq
 ## Architecture
 
 ```
-cmd/pupitred/            main.go : version · serve [--privileged] · daemon · enroll · install · migrate · report · probe · gallery · dev · backup open · binary install · keys reset ; un cli_*.go par sous-commande
+cmd/pupitred/            main.go : version · serve [--privileged] · daemon · enroll · install · migrate · report · probe · gallery · dev · env · backup open · binary install · keys reset · uninstall ; un cli_*.go par sous-commande
 internal/backup/         sauvegardes et restauration : parties en flux, manifeste, élagage, ordonnancement, commandes backup.* ; seal/ le conteneur chiffré et la clé d'une phrase, archive/ les tar du compte dev et leur extraction sûre
 internal/contract/       schema.json exporté de packages/shared, codes d'erreur, règles des champs, feuille de compatibilité
 internal/daemon/         pupitred daemon : lecture de /agent/state, clés, heartbeat, unité systemd, enrôlement, keys.list
@@ -44,7 +44,7 @@ internal/registry/       projets et leurs processus, projects.local.json, projec
 internal/s3/             client S3 en bibliothèque standard : SigV4, envoi multipart en flux, copie dans le seau, listes ; s3test/ un seau en mémoire qui vérifie chaque signature
 internal/release/        signature et publication des binaires par la chaîne de release ; rien n'en est lié dans pupitred
 internal/selfupdate/     agent.upgrade : téléchargement, empreinte et signature, plancher de version, remplacement ; Place pour binary install, le binaire poussé par l'app en dev
-internal/sudo/           la règle sudoers de dev (décision 0015) : Open d'avant, Restricted aux deux lignes exactes serve et binary install, et l'état que snapshot en lit
+internal/sudo/           la règle sudoers de dev (décision 0015) : Open d'avant, Restricted aux deux lignes exactes serve et binary install, Password qu'uninstall laisse, Write qui passe par visudo, et l'état que snapshot en lit
 internal/shots/          la galerie de captures et son serveur en lecture seule
 internal/state/          snapshot, status, projets, git, agents, complétions, détection d'un dépôt
 internal/sys/            apt, systemd, fichiers, réseau, utilisateurs, environnement ; sys.Real et le faux des tests

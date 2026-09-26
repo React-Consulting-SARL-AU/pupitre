@@ -379,7 +379,8 @@ func (r *Reader) startWith(project registry.Project, process registry.Process, c
 			WithFix(i18n.T("state.project.sync.fix", project.Name))
 	}
 
-	if err := tmux.Start(ctx, r.options.Tmux, tmux.Job{Window: window, Dir: dir, Cmd: command}); err != nil {
+	job := tmux.Job{Window: window, Dir: dir, Cmd: command, Env: r.processEnvironment(project, process)}
+	if err := tmux.Start(ctx, r.options.Tmux, job); err != nil {
 		return err
 	}
 
@@ -408,7 +409,13 @@ func (r *Reader) rewrite(change func(*registry.File) error) error {
 		return err
 	}
 
-	return change(reg)
+	if err := change(reg); err != nil {
+		return err
+	}
+
+	r.healEnvironment(r.registry())
+
+	return nil
 }
 
 // A window whose command died is still a window: a stop closes it, so it does not read as a failure forever.
@@ -707,7 +714,7 @@ func (r *Reader) URL(name string) (string, error) {
 		return "", err
 	}
 
-	return url(project), nil
+	return project.URL(), nil
 }
 
 func (r *Reader) project(name string) (registry.Project, error) {
@@ -722,27 +729,6 @@ func (r *Reader) project(name string) (registry.Project, error) {
 	}
 
 	return project, nil
-}
-
-// Without a published main route, "https://…" would be an address that does not answer.
-func processURL(process registry.Process) string {
-	if route, published := process.Primary(); published {
-		return "https://" + route.Hostname
-	}
-
-	return "http://" + process.Host + ":" + strconv.Itoa(process.Port)
-}
-
-func url(project registry.Project) string {
-	if process, _, published := project.Primary(); published {
-		return processURL(process)
-	}
-
-	if len(project.Processes) == 0 {
-		return ""
-	}
-
-	return processURL(project.Processes[0])
 }
 
 // dev writes the repository, so HEAD is read inside the projects root, never through a link leaving it.

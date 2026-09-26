@@ -84,11 +84,11 @@ func TestSudoPasswordIsSetBeforeTheRuleIsRestricted(t *testing.T) {
 		t.Fatalf("chpasswd = %v with %q", got.Argv, got.Stdin)
 	}
 
-	if got := fake.Calls[visudo].Argv; strings.Join(got, " ") != "visudo -c -f "+sudoCandidatePath {
+	if got := fake.Calls[visudo].Argv; strings.Join(got, " ") != "visudo -c -f "+sudo.CandidatePath {
 		t.Fatalf("visudo = %v", got)
 	}
 
-	if _, left := fake.Files[sudoCandidatePath]; left {
+	if _, left := fake.Files[sudo.CandidatePath]; left {
 		t.Fatal("the candidate rule stayed in sudoers.d")
 	}
 }
@@ -192,7 +192,7 @@ func TestSudoRuleRefusedByVisudoStaysOut(t *testing.T) {
 		t.Fatalf("sudoers = %q", fake.Files[sudo.Path])
 	}
 
-	if _, left := fake.Files[sudoCandidatePath]; left {
+	if _, left := fake.Files[sudo.CandidatePath]; left {
 		t.Fatal("the refused candidate stayed in sudoers.d")
 	}
 

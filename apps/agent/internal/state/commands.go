@@ -90,6 +90,11 @@ type urlResult struct {
 	URL string `json:"url"`
 }
 
+type shotsURLResult struct {
+	URL     string `json:"url"`
+	Exposed bool   `json:"exposed"`
+}
+
 type secretResult struct {
 	Key string `json:"key"`
 }
@@ -434,7 +439,9 @@ func RegisterCommands(server *protocol.Server, reader *Reader) {
 	})
 
 	server.Register("shots.url", func(_ *protocol.Context, _ json.RawMessage) (any, error) {
-		return urlResult{URL: reader.ShotsURL()}, nil
+		address, exposed := reader.ShotsURL()
+
+		return shotsURLResult{URL: address, Exposed: exposed}, nil
 	})
 
 	server.Register("shots.read", func(ctx *protocol.Context, raw json.RawMessage) (any, error) {

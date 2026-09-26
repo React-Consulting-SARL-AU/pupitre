@@ -121,21 +121,25 @@ func (r *Reader) list(collected tmux.Collection, table processTable) []contract.
 	branches := map[string]string{}
 
 	projects := make([]contract.Project, 0, len(file.Projects))
+	root := r.options.Paths.Resolved().Projects
+
+	r.healEnvironment(file)
 
 	for _, declared := range file.Projects {
-		project := declared.Contract(r.options.Paths.Resolved().Projects)
+		project := declared.Contract(root)
 
 		for at, process := range declared.Processes {
 			window := declared.Window(process.ID)
+			project.Processes[at].EnvChanged = collected.EnvChanged(window, declared.ProcessEnvironment(root, file.Domain, process).List())
 			project.Processes[at].State = tmux.State(ctx, r.options.Tmux, window, process.PkgMgr, process.Port, collected)
-			project.Processes[at].URL = processURL(process)
+			project.Processes[at].URL = process.URL()
 			project.Processes[at].PID = collected.PID(window)
 			project.Processes[at].RAMMB = memory[window]
 			project.Processes[at].UptimeS = collected.Seconds(window)
 		}
 
 		project.State = aggregate(project.Processes)
-		project.URL = url(declared)
+		project.URL = declared.URL()
 
 		// The registry's branch stands until there is a working tree to read HEAD from.
 		if head := r.branch(branches, declared); head != "" {

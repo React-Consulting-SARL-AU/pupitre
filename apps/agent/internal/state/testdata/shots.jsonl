@@ -1,24 +1,25 @@
-# La galerie : ce qu'elle contient, à quelle adresse elle répond, ce qu'un ménage retire, et la seule capture qu'un chemin listé supprime.
-@file /etc/pupitre/projects.conf shots|.|-|service|127.0.0.1|8099|shots|-|-
+# La galerie : ce qu'elle contient et sous quel projet, à quelle adresse publique elle répond, ce qu'un ménage retire, et la seule capture qu'un chemin listé supprime.
 @file /etc/pupitre/env PUPITRE_DOMAIN=flyleaf.dev
-@shot 1788516000 24000 /home/dev/shots/2026-09-04/login.png
-@shot 1788084000 48000 /home/dev/shots/2026-08-30/dashboard.png
-@shot 1782864000 12000 /home/dev/shots/2026-07-01/premiere-maquette.png
+@file /etc/pupitre/exposure cloudflare
+@file /etc/pupitre/shots.env PUPITRE_SHOTS_HOSTNAME=shots.flyleaf.dev\nPUPITRE_SHOTS_TOKEN=5f0c2a9e41d7b3386e2c1f0a9b8d7e6c
+@shot 1788516000 24000 /home/dev/shots/web/2026-09-04/login.png
+@shot 1788084000 48000 /home/dev/shots/_unfiled/2026-08-30/dashboard.png
+@shot 1782864000 12000 /home/dev/shots/web/2026-07-01/premiere-maquette.png
 > {"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}
 > {"id":2,"cmd":"shots.url"}
 > {"id":3,"cmd":"shots.list"}
 > {"id":4,"cmd":"shots.clean"}
 > {"id":5,"cmd":"shots.list"}
-> {"id":6,"cmd":"shots.clean","params":{"path":"2026-08-30/dashboard.png"}}
+> {"id":6,"cmd":"shots.clean","params":{"path":"_unfiled/2026-08-30/dashboard.png"}}
 > {"id":7,"cmd":"shots.clean","params":{"path":"../../etc/pupitre/env"}}
-> {"id":8,"cmd":"shots.clean","params":{"path":"2026-08-30/dashboard.png"}}
+> {"id":8,"cmd":"shots.clean","params":{"path":"_unfiled/2026-08-30/dashboard.png"}}
 > {"id":9,"cmd":"shots.list"}
 < {"id":1,"ok":true,"result":{"agent_version":"0.0.0-test","protocol":2,"entitlement":"dev","capabilities":["agent.open","catalog","completions","diag","doctor","fs.list","fs.mkdir","fs.read","fs.remove","fs.rename","fs.stat","fs.write","hello","install","install.check","module.config","ping","process.kill","processes.list","project.add","project.branches","project.checkout","project.debug","project.detect","project.diff","project.down","project.git_status","project.install","project.list","project.logs","project.pull","project.remove","project.restart","project.sync","project.up","project.update","project.url","project.working_tree","reboot","report","service.logs","service.restart","service.secret","service.start","service.status","service.stop","sessions.clean","sessions.list","shots.clean","shots.list","shots.read","shots.url","snapshot","status","uninstall","upgrade"]}}
-< {"id":2,"ok":true,"result":{"url":"https://shots.flyleaf.dev"}}
-< {"id":3,"ok":true,"result":{"shots":[{"name":"login.png","path":"2026-09-04/login.png","size_bytes":24000,"created_at":"2026-09-04T10:00:00Z"},{"name":"dashboard.png","path":"2026-08-30/dashboard.png","size_bytes":48000,"created_at":"2026-08-30T10:00:00Z"},{"name":"premiere-maquette.png","path":"2026-07-01/premiere-maquette.png","size_bytes":12000,"created_at":"2026-07-01T00:00:00Z"}]}}
+< {"id":2,"ok":true,"result":{"url":"https://shots.flyleaf.dev/5f0c2a9e41d7b3386e2c1f0a9b8d7e6c","exposed":true}}
+< {"id":3,"ok":true,"result":{"shots":[{"name":"login.png","path":"web/2026-09-04/login.png","size_bytes":24000,"created_at":"2026-09-04T10:00:00Z","project":"web"},{"name":"dashboard.png","path":"_unfiled/2026-08-30/dashboard.png","size_bytes":48000,"created_at":"2026-08-30T10:00:00Z","project":null},{"name":"premiere-maquette.png","path":"web/2026-07-01/premiere-maquette.png","size_bytes":12000,"created_at":"2026-07-01T00:00:00Z","project":"web"}]}}
 < {"id":4,"ok":true,"result":{"removed":1}}
-< {"id":5,"ok":true,"result":{"shots":[{"name":"login.png","path":"2026-09-04/login.png","size_bytes":24000,"created_at":"2026-09-04T10:00:00Z"},{"name":"dashboard.png","path":"2026-08-30/dashboard.png","size_bytes":48000,"created_at":"2026-08-30T10:00:00Z"}]}}
+< {"id":5,"ok":true,"result":{"shots":[{"name":"login.png","path":"web/2026-09-04/login.png","size_bytes":24000,"created_at":"2026-09-04T10:00:00Z","project":"web"},{"name":"dashboard.png","path":"_unfiled/2026-08-30/dashboard.png","size_bytes":48000,"created_at":"2026-08-30T10:00:00Z","project":null}]}}
 < {"id":6,"ok":true,"result":{"removed":1}}
 < {"id":7,"ok":false,"error":{"code":"bad_request","message":"unknown capture: ../../etc/pupitre/env","fix":"Call shots.list and take the path of one of its entries, as it is."}}
-< {"id":8,"ok":false,"error":{"code":"bad_request","message":"unknown capture: 2026-08-30/dashboard.png","fix":"Call shots.list and take the path of one of its entries, as it is."}}
-< {"id":9,"ok":true,"result":{"shots":[{"name":"login.png","path":"2026-09-04/login.png","size_bytes":24000,"created_at":"2026-09-04T10:00:00Z"}]}}
+< {"id":8,"ok":false,"error":{"code":"bad_request","message":"unknown capture: _unfiled/2026-08-30/dashboard.png","fix":"Call shots.list and take the path of one of its entries, as it is."}}
+< {"id":9,"ok":true,"result":{"shots":[{"name":"login.png","path":"web/2026-09-04/login.png","size_bytes":24000,"created_at":"2026-09-04T10:00:00Z","project":"web"}]}}
