@@ -26,7 +26,7 @@ Go 1.26 (la version de `go.mod`), bibliothèque standard d'abord. Binaire statiq
 ## Architecture
 
 ```
-cmd/pupitred/            main.go : version · serve [--privileged] · daemon · enroll · install · migrate · report · probe · gallery · dev · backup open · binary install · keys reset · uninstall ; un cli_*.go par sous-commande
+cmd/pupitred/            main.go : version · serve [--privileged] · daemon · enroll · install · migrate · report · probe · gallery · dev · env · backup open · binary install · keys reset · uninstall ; un cli_*.go par sous-commande
 internal/backup/         sauvegardes et restauration : parties en flux, manifeste, élagage, ordonnancement, commandes backup.* ; seal/ le conteneur chiffré et la clé d'une phrase, archive/ les tar du compte dev et leur extraction sûre
 internal/contract/       schema.json exporté de packages/shared, codes d'erreur, règles des champs, feuille de compatibilité
 internal/daemon/         pupitred daemon : lecture de /agent/state, clés, heartbeat, unité systemd, enrôlement, keys.list

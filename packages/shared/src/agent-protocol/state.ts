@@ -207,6 +207,8 @@ export const ProcessSchema = ProcessBaseSchema.extend({
   pid: z.int().positive().optional(),
   ram_mb: z.int().nonnegative().optional(),
   uptime_s: z.int().nonnegative().optional(),
+  // Running with PUPITRE_* values the registry no longer gives: a restart brings the new ones.
+  env_changed: z.boolean().optional(),
 })
 
 export type Process = z.infer<typeof ProcessSchema>

@@ -126,6 +126,8 @@ export const project = {
     "project.overview.startCmd": "start",
     "project.overview.installCmd": "install",
     "project.overview.derivedFrom": "derived from {pkgmgr}",
+    "project.overview.envChanged":
+      "This process still runs on the PUPITRE_* addresses and ports it started with; restart it to apply the current ones.",
     "project.overview.remove": "Remove",
     "project.overview.removeQuestion":
       "The project leaves the registry and its public addresses stop answering; its folder stays on the server.",
@@ -260,6 +262,8 @@ export const project = {
     "project.overview.startCmd": "démarrage",
     "project.overview.installCmd": "installation",
     "project.overview.derivedFrom": "dérivée de {pkgmgr}",
+    "project.overview.envChanged":
+      "Ce processus tourne encore avec les adresses et ports PUPITRE_* de son démarrage ; redémarrez-le pour appliquer les actuels.",
     "project.overview.remove": "Retirer",
     "project.overview.removeQuestion":
       "Le projet quitte le registre et ses adresses publiques meurent avec ; son dossier reste sur le serveur.",

@@ -63,7 +63,7 @@ func (r *Reader) Shots() []contract.Shot {
 
 func (r *Reader) ShotsURL() string {
 	if project, declared := r.registry().Get(ShotsProject); declared {
-		return url(project)
+		return project.URL()
 	}
 
 	if domain := r.domain(); domain != "" {

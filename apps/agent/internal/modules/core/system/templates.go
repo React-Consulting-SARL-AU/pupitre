@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"pupitre.studio/agent/internal/devcli"
 	"pupitre.studio/agent/internal/modules"
 )
 
@@ -46,33 +47,38 @@ alias ll='ls -lah --color=auto'
 alias gs='git status -sb'
 `
 
-// OSC 133 (prompt, input, command, exit code) and OSC 7 (folder), read by the app's terminal.
-const zshrcBlockTemplate = `export PROJECTS_DIR=%s
+// OSC 133 (prompt, input, command, exit code) and OSC 7 (folder), read by the app's terminal; the PUPITRE_* of the folder at each prompt and each cd.
+const zshrcBlockTemplate = `export PROJECTS_DIR=%[1]s PUPITRE_PROJECTS_DIR=%[1]s PUPITRE=1
 [[ -x "$HOME/.local/bin/mise" ]] && eval "$("$HOME/.local/bin/mise" activate zsh)"
 autoload -Uz add-zsh-hook
+_pupitre_env() { [[ -x %[2]s ]] && eval "$(%[2]s env 2>/dev/null)"; }
 _pupitre_cwd() { printf '\e]7;file://%%s%%s\a' "${HOST:-}" "${PWD// /%%20}"; }
 _pupitre_precmd() {
   local code=$?
   printf '\e]133;D;%%s\a' "$code"
   _pupitre_cwd
+  _pupitre_env
   printf '\e]133;A\a'
   [[ $PS1 == *$'\e]133;B'* ]] || PS1="${PS1}%%{"$'\e]133;B\a'"%%}"
 }
 _pupitre_preexec() { printf '\e]133;C\a'; }
 add-zsh-hook precmd _pupitre_precmd
 add-zsh-hook preexec _pupitre_preexec
+add-zsh-hook chpwd _pupitre_env
 `
 
-// The same markers in bash, guarded rather than returned from because .bashrc goes on being read after it.
-const bashrcBlockTemplate = `export PROJECTS_DIR=%s
+// The same markers in bash, guarded rather than returned from because .bashrc goes on being read after it; _pupitre_env runs inside the precmd, where the DEBUG trap cannot take it for the user's command.
+const bashrcBlockTemplate = `export PROJECTS_DIR=%[1]s PUPITRE_PROJECTS_DIR=%[1]s PUPITRE=1
 [ -x "$HOME/.local/bin/mise" ] && eval "$("$HOME/.local/bin/mise" activate bash)"
 if [[ $- == *i* && -z ${_PUPITRE_INTEGRATION:-} ]]; then
   _PUPITRE_INTEGRATION=1
+  _pupitre_env() { [ -x %[2]s ] && eval "$(%[2]s env 2>/dev/null)"; }
   _pupitre_cwd() { printf '\e]7;file://%%s%%s\a' "${HOSTNAME:-}" "${PWD// /%%20}"; }
   _pupitre_precmd() {
     local code=$?
     printf '\e]133;D;%%s\a' "$code"
     _pupitre_cwd
+    _pupitre_env
     printf '\e]133;A\a'
     _pupitre_running=
     [[ $PS1 == *'\e]133;B'* ]] || PS1="${PS1}\[\e]133;B\a\]"
@@ -101,11 +107,11 @@ bind r source-file ~/.tmux.conf \; display "tmux reloaded"
 `
 
 func zshrcBlock(projectsDir string) []byte {
-	return []byte(fmt.Sprintf(zshrcBlockTemplate, shellQuote(projectsDir)))
+	return []byte(fmt.Sprintf(zshrcBlockTemplate, shellQuote(projectsDir), devcli.Binary))
 }
 
 func bashrcBlock(projectsDir string) []byte {
-	return []byte(fmt.Sprintf(bashrcBlockTemplate, shellQuote(projectsDir)))
+	return []byte(fmt.Sprintf(bashrcBlockTemplate, shellQuote(projectsDir), devcli.Binary))
 }
 
 func gitIdentity(name, email string) []byte {

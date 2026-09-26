@@ -166,6 +166,36 @@ PUPITRE_DEBUG_PORTS="intranet/server:5005 flyleaf/worker:5006"
 
 Les guillemets sont ceux de systemd, qui lit ce fichier comme `EnvironmentFile` : sans eux, une valeur à espaces ne serait plus une seule variable. Un processus absent de la liste est refusé en `bad_request`, avec la ligne à écrire dans le `fix` ; un processus `service`, qui appartient à systemd et non à une fenêtre tmux, l'est aussi.
 
+#### L'environnement d'un projet vient du registre
+
+Ce que Pupitre sait d'un projet — son port, ses adresses, celles de ses voisins — arrive dans son environnement, préfixé `PUPITRE_`, pour qu'un script le lise au lieu de le figer. Ces noms sont un contrat avec le code des clients : on en ajoute, on n'en renomme ni n'en retire aucun.
+
+| Variable | Valeur | Où |
+| --- | --- | --- |
+| `PUPITRE` | `1` | partout |
+| `PUPITRE_PROJECTS_DIR` | la racine des projets, `/home/dev/projects` | partout |
+| `PUPITRE_DOMAIN` | le domaine que le serveur publie, absent sans exposition | partout |
+| `PUPITRE_PROJECT` | le nom du projet | projet |
+| `PUPITRE_PROJECT_DIR` | le dossier du projet, absolu | projet |
+| `PUPITRE_PROJECT_URL` | le `url` du projet | projet |
+| `PUPITRE_PROCESS_<ID>_PORT` | le port principal de chaque processus du projet | projet |
+| `PUPITRE_PROCESS_<ID>_URL` | le `url` de chaque processus du projet | projet |
+| `PUPITRE_PROCESS` | l'identifiant du processus | processus |
+| `PUPITRE_PROCESS_DIR` | le dossier du processus, absolu | processus |
+| `PUPITRE_HOST` / `PUPITRE_PORT` | l'hôte et le port principal où lier le serveur | processus |
+| `PUPITRE_URL` | le `url` du processus : publique si elle existe, locale sinon | processus |
+| `PUPITRE_LOCAL_URL` | `http://<host>:<port>` | processus |
+| `PUPITRE_PUBLIC_URL` | `https://<hostname>` de la route principale, absent si elle n'est pas publiée | processus |
+| `PUPITRE_ROUTE_<LABEL>_PORT` / `_URL` | le port de chaque route du processus, et son adresse : publique si elle porte un nom, locale sinon | processus |
+
+`<ID>` et `<LABEL>` sont l'identifiant ou le libellé en majuscules, tiret changé en souligné : `api-v2` donne `PUPITRE_PROCESS_API_V2_URL`. Les deux sont des étiquettes DNS, si bien que deux processus ne se partagent jamais un nom, et les préfixes `PROCESS_` et `ROUTE_` tiennent un processus nommé `public` à l'écart de `PUPITRE_PUBLIC_URL`. Aucun secret n'y passe : le jeton 1Password et les clés restent où ils sont.
+
+**Un processus reçoit tout, au démarrage.** `project.up`, `project.restart`, `project.debug`, la reprise au boot et un redémarrage par `project.update` ouvrent la fenêtre avec `tmux new-window -e` pour chaque variable des trois niveaux, calculées depuis le registre à cet instant. `PORT` et `HOST` ne sont jamais posés : une variable injectée l'emporterait sur le `.env.local` du dépôt, et Pupitre changerait en silence un projet qui marchait. Le client écrit `--port $PUPITRE_PORT` s'il le veut.
+
+**Un processus lancé garde ce qu'il a reçu.** La fenêtre retient l'empreinte de son environnement dans l'option `@pupitre_env`. Quand le registre donnerait autre chose — un domaine déplacé, une route publiée, un port changé, un voisin ajouté —, le `Process` d'un processus qui tourne porte **`env_changed: true`**, et l'app propose de le redémarrer. Rien ne redémarre seul. Une fenêtre sans empreinte, ouverte avant que l'agent ne la pose, n'est jamais `env_changed`.
+
+**Un terminal suit son dossier.** L'agent écrit ce que chaque dossier reçoit dans `~/.pupitre/environment.json`, propriété de `dev` : à chaque écriture du registre et à chaque `snapshot` qui le trouve en retard. Le bloc `core.system` de `.zshrc` et de `.bashrc` exporte `PUPITRE=1` et `PUPITRE_PROJECTS_DIR`, puis évalue `pupitred env` avant chaque invite — et, sous zsh, à chaque changement de dossier. `pupitred env` tourne en `dev`, ne lit que ce fichier, choisit le dossier déclaré le plus profond qui contient le dossier courant — celui d'un processus, puis celui d'un projet, puis la machine — et imprime des `export` et des `unset` : ce qui ne s'applique plus au nouveau dossier part, sous le suivi de `_PUPITRE_ENV_KEYS`. Un fichier absent ou illisible n'imprime rien. Un agent ouvert par `agent.open` reçoit l'environnement du projet par `new-session -e`, comme une fenêtre de processus.
+
 #### Ce qu'un dépôt demande, avant de l'ajouter
 
 `project.detect` répond à ce que l'écran d'ajout doit deviner avant `project.add` : quels processus, et pour chacun quel gestionnaire de paquets, quelle commande de démarrage, quel port. Elle prend **une seule** source — `repo` pour un dépôt que le serveur ne connaît pas encore, `dir` pour un dossier déjà présent sous la racine des projets — et le contrat refuse les deux à la fois comme aucun des deux.

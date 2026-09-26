@@ -534,6 +534,8 @@ type ProjectProcess struct {
 	PID     int          `json:"pid,omitempty"`
 	RAMMB   int          `json:"ram_mb,omitempty"`
 	UptimeS int          `json:"uptime_s,omitempty"`
+	// Running with PUPITRE_* values the registry no longer gives: a restart brings the new ones.
+	EnvChanged bool `json:"env_changed,omitempty"`
 }
 
 type Project struct {

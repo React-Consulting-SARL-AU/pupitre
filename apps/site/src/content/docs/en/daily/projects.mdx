@@ -37,6 +37,27 @@ The app streams the session output as the agent reads it. The scrollback is the 
 
 If `tool.1password` is installed, a project that carries an `.env.local` template gets its file generated from your vault when it starts. Without it, you manage environment files yourself, in the folder, like anywhere else.
 
+## Variables from Pupitre
+
+Every project receives what Pupitre knows about it in `PUPITRE_*` variables: its port, its local and public addresses, those of its other processes, the server's domain. A script reads them instead of hardcoding them, and when you publish a route or change the domain in the app, the project follows without a code change.
+
+| Variable | Value |
+| --- | --- |
+| `PUPITRE` | `1`, everywhere on the server |
+| `PUPITRE_PROJECTS_DIR` | the projects root |
+| `PUPITRE_DOMAIN` | the published domain, absent without exposure |
+| `PUPITRE_PROJECT`, `PUPITRE_PROJECT_DIR`, `PUPITRE_PROJECT_URL` | the project's name, folder and address |
+| `PUPITRE_PROCESS_<ID>_PORT`, `PUPITRE_PROCESS_<ID>_URL` | the port and address of each process of the project |
+| `PUPITRE_PROCESS`, `PUPITRE_PROCESS_DIR` | the process's id and folder |
+| `PUPITRE_HOST`, `PUPITRE_PORT` | where the dev server must listen |
+| `PUPITRE_URL` | its public address when there is one, its local one otherwise |
+| `PUPITRE_LOCAL_URL`, `PUPITRE_PUBLIC_URL` | each of the two; the public one is absent until something is published |
+| `PUPITRE_ROUTE_<LABEL>_PORT`, `PUPITRE_ROUTE_<LABEL>_URL` | the port and address of each route of the process |
+
+`<ID>` and `<LABEL>` are upper-cased, a dash becoming an underscore: process `api-v2` gives `PUPITRE_PROCESS_API_V2_URL`. A client writes for instance `vite --host $PUPITRE_HOST --port $PUPITRE_PORT`, or points at its API with `PUPITRE_PROCESS_API_URL`.
+
+A process the app starts receives all of them at start and keeps them: when they change, the app flags the process, and a restart applies the new ones. A terminal receives them for the folder it stands in, at every prompt. `PORT` and `HOST` are never set, so your repository's `.env.local` stays in charge; no secret goes through them.
+
 ## Exposure
 
 By default a project listens on localhost and the app reaches it through the SSH session it already holds. That is a state, not a module: tick no exposure and nothing is published. With `exposure.cloudflare` installed, you can give a project a route on your domain — one tunnel for the machine, one route per project, DNS and certificate handled; `exposure.caddy` does the same for a domain outside Cloudflare.

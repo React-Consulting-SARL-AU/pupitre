@@ -1,6 +1,7 @@
 package state_test
 
 import (
+	"strconv"
 	"strings"
 	"testing"
 
@@ -38,17 +39,30 @@ func agentMachine(t *testing.T) *modtest.FakeSys {
 	return fake
 }
 
-func TestEachAgentOpensInTheProjectFolder(t *testing.T) {
+func projectEnvironment(name string, port int) string {
+	return strings.Join([]string{
+		"-e 'PUPITRE=1'",
+		"-e 'PUPITRE_PROCESS_" + strings.ToUpper(name) + "_PORT=" + strconv.Itoa(port) + "'",
+		"-e 'PUPITRE_PROCESS_" + strings.ToUpper(name) + "_URL=http://127.0.0.1:" + strconv.Itoa(port) + "'",
+		"-e 'PUPITRE_PROJECT=" + name + "'",
+		"-e 'PUPITRE_PROJECTS_DIR=/home/dev/projects'",
+		"-e 'PUPITRE_PROJECT_DIR=/home/dev/projects/" + name + "'",
+		"-e 'PUPITRE_PROJECT_URL=http://127.0.0.1:" + strconv.Itoa(port) + "'",
+	}, " ")
+}
+
+func TestEachAgentOpensInTheProjectFolderWithItsEnvironment(t *testing.T) {
 	reader := agentReader(t, agentMachine(t), "ai.claude", "ai.codex", "ai.cursor", "ai.gemini", "ai.copilot", "ai.opencode", "ai.hermes")
+	env := projectEnvironment("web", 3000)
 
 	for kind, want := range map[string]string{
-		"claude":   "tmux new-session -A -s claude-web -c /home/dev/projects/web claude",
-		"codex":    "tmux new-session -A -s codex-web -c /home/dev/projects/web codex",
-		"hermes":   "tmux new-session -A -s hermes-web -c /home/dev/projects/web hermes",
-		"cursor":   "tmux new-session -A -s cursor-web -c /home/dev/projects/web cursor-agent",
-		"opencode": "tmux new-session -A -s opencode-web -c /home/dev/projects/web opencode",
-		"gemini":   "tmux new-session -A -s gemini-web -c /home/dev/projects/web gemini",
-		"copilot":  "tmux new-session -A -s copilot-web -c /home/dev/projects/web copilot",
+		"claude":   "tmux new-session -A -s claude-web -c /home/dev/projects/web " + env + " claude",
+		"codex":    "tmux new-session -A -s codex-web -c /home/dev/projects/web " + env + " codex",
+		"hermes":   "tmux new-session -A -s hermes-web -c /home/dev/projects/web " + env + " hermes",
+		"cursor":   "tmux new-session -A -s cursor-web -c /home/dev/projects/web " + env + " cursor-agent",
+		"opencode": "tmux new-session -A -s opencode-web -c /home/dev/projects/web " + env + " opencode",
+		"gemini":   "tmux new-session -A -s gemini-web -c /home/dev/projects/web " + env + " gemini",
+		"copilot":  "tmux new-session -A -s copilot-web -c /home/dev/projects/web " + env + " copilot",
 	} {
 		opened, err := reader.OpenAgent(kind, "web")
 		if err != nil {
@@ -71,7 +85,7 @@ func TestTheFolderFollowsTheRegistry(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if opened.Command != "tmux new-session -A -s claude-api -c /home/dev/projects/api claude" {
+	if opened.Command != "tmux new-session -A -s claude-api -c /home/dev/projects/api "+projectEnvironment("api", 3001)+" claude" {
 		t.Fatalf("unexpected command: %s", opened.Command)
 	}
 }

@@ -63,6 +63,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 
 		fmt.Fprintln(stdout, "pupitred "+version)
 		return 0
+	case envCommand:
+		return runEnv(args[1:], stdout, stderr)
 	case migrate.Command:
 		return runMigrate(newMigrator(newEngine()), args[1:], stdout, stderr)
 	case "serve":
@@ -125,7 +127,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 }
 
 func usage(stderr io.Writer) {
-	fmt.Fprintln(stderr, "usage: pupitred <serve [--privileged]|daemon|enroll|install [--only=id,id] [--skip=id,id]|migrate [--status] [--restore=NAME]|probe [--script] [--projects=DIR]|report|resume|dev|shot|gallery|backup open [--salt=B64|--private-key] FILE|keys reset --key KEY|FILE.pub|uninstall [--yes]|binary install [--privileged] [--allow-downgrade] < HEADER+FILE|version [--json]>")
+	fmt.Fprintln(stderr, "usage: pupitred <serve [--privileged]|daemon|enroll|install [--only=id,id] [--skip=id,id]|migrate [--status] [--restore=NAME]|probe [--script] [--projects=DIR]|report|resume|env|dev|shot|gallery|backup open [--salt=B64|--private-key] FILE|keys reset --key KEY|FILE.pub|uninstall [--yes]|binary install [--privileged] [--allow-downgrade] < HEADER+FILE|version [--json]>")
 }
 
 // The agent that upgrades to this binary asks it which protocol to greet it in.

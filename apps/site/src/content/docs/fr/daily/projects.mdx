@@ -37,6 +37,27 @@ L’app diffuse la sortie de la session telle que l’agent la lit. L’historiq
 
 Si `tool.1password` est installé, un projet qui porte un template `.env.local` voit son fichier généré depuis votre coffre au démarrage. Sans lui, vous gérez vos fichiers d’environnement vous-même, dans le dossier, comme partout ailleurs.
 
+## Variables fournies par Pupitre
+
+Chaque projet reçoit ce que Pupitre sait de lui dans des variables `PUPITRE_*` : son port, ses adresses locale et publique, celles de ses autres processus, le domaine du serveur. Un script les lit au lieu de les écrire en dur, et quand vous publiez une route ou changez de domaine dans l’app, le projet suit sans qu’on touche au code.
+
+| Variable | Valeur |
+| --- | --- |
+| `PUPITRE` | `1`, partout sur le serveur |
+| `PUPITRE_PROJECTS_DIR` | la racine des projets |
+| `PUPITRE_DOMAIN` | le domaine publié, absent sans exposition |
+| `PUPITRE_PROJECT`, `PUPITRE_PROJECT_DIR`, `PUPITRE_PROJECT_URL` | le nom, le dossier et l’adresse du projet |
+| `PUPITRE_PROCESS_<ID>_PORT`, `PUPITRE_PROCESS_<ID>_URL` | le port et l’adresse de chaque processus du projet |
+| `PUPITRE_PROCESS`, `PUPITRE_PROCESS_DIR` | l’identifiant et le dossier du processus |
+| `PUPITRE_HOST`, `PUPITRE_PORT` | où le serveur de développement doit écouter |
+| `PUPITRE_URL` | son adresse publique si elle existe, locale sinon |
+| `PUPITRE_LOCAL_URL`, `PUPITRE_PUBLIC_URL` | chacune des deux ; la publique est absente tant que rien n’est publié |
+| `PUPITRE_ROUTE_<LABEL>_PORT`, `PUPITRE_ROUTE_<LABEL>_URL` | le port et l’adresse de chaque route du processus |
+
+`<ID>` et `<LABEL>` passent en majuscules, tiret changé en souligné : le processus `api-v2` donne `PUPITRE_PROCESS_API_V2_URL`. Un client écrit par exemple `vite --host $PUPITRE_HOST --port $PUPITRE_PORT`, ou pointe vers son API avec `PUPITRE_PROCESS_API_URL`.
+
+Un processus démarré par l’app reçoit toutes ces variables à son démarrage et les garde : quand elles changent, l’app le signale sur le processus, et un redémarrage applique les nouvelles. Un terminal les reçoit pour le dossier où il se trouve, à chaque invite. `PORT` et `HOST` ne sont jamais posés, pour que le `.env.local` de votre dépôt garde la main ; aucun secret ne passe par là.
+
 ## Exposition
 
 Par défaut un projet écoute en local et l’app l’atteint par la session SSH qu’elle tient déjà. C’est un état, pas un module : ne cochez aucune exposition et rien n’est publié. Avec `exposure.cloudflare` installé, vous pouvez donner à un projet une route sur votre domaine — un tunnel pour la machine, une route par projet, DNS et certificat gérés ; `exposure.caddy` fait de même pour un domaine hors Cloudflare.

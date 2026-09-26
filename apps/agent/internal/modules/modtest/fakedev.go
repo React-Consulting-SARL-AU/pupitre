@@ -6,11 +6,15 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"pupitre.studio/agent/internal/sys"
 )
 
-const firstPanePID = 4000
+const (
+	firstPanePID = 4000
+	envOption    = "@pupitre_env"
+)
 
 // Nothing else in the fake makes a port answer.
 func (f *FakeSys) Serves(window string, port int) {
@@ -109,10 +113,20 @@ func (f *FakeSys) tmuxOne(args []string) (sys.Output, error) {
 			return f.fail("tmux", "can't find session: "+target)
 		}
 
+		// The agent's locale is not UTF-8, where tmux prints a control character of the format as "_".
+		if at := slices.Index(args, "-F"); at >= 0 && at+1 < len(args) && strings.ContainsFunc(args[at+1], unicode.IsControl) {
+			return f.fail("tmux", "a format with a control character comes back mangled: "+strconv.Quote(args[at+1]))
+		}
+
 		return sys.Output{Stdout: f.panes(action == "list-panes")}, nil
 	case "send-keys", "pipe-pane", "set-option":
-		if _, _, err := f.window(target); err != nil {
+		window, _, err := f.window(target)
+		if err != nil {
 			return f.fail("tmux", err.Error())
+		}
+
+		if at := slices.Index(args, envOption); action == "set-option" && at >= 0 && at+1 < len(args) {
+			f.WindowEnv[window] = args[at+1]
 		}
 
 		f.mutate("tmux " + action + " " + target)
@@ -125,6 +139,7 @@ func (f *FakeSys) tmuxOne(args []string) (sys.Output, error) {
 
 func (f *FakeSys) openWindow(name string) {
 	delete(f.Dead, name)
+	delete(f.WindowEnv, name)
 	f.Windows[name] = firstPanePID + len(f.Windows)
 	f.Uptimes[f.Windows[name]] = 42
 
@@ -165,6 +180,7 @@ func (f *FakeSys) window(target string) (string, int, error) {
 func (f *FakeSys) closeWindow(name string) {
 	delete(f.Dead, name)
 	delete(f.Split, name)
+	delete(f.WindowEnv, name)
 	delete(f.Uptimes, f.Windows[name])
 	delete(f.Windows, name)
 
@@ -192,14 +208,14 @@ func (f *FakeSys) panes(withPID bool) string {
 			continue
 		}
 
-		fmt.Fprintf(&out, "@%d %s %d %s\n", f.Windows[name], name, f.Windows[name], f.liveness(name))
+		fmt.Fprintf(&out, "@%d|%s|%d|%s|%s\n", f.Windows[name], name, f.Windows[name], f.liveness(name), f.WindowEnv[name])
 
 		if f.Split[name] {
-			fmt.Fprintf(&out, "@%d %s %d alive\n", f.Windows[name], name, f.Windows[name]+1)
+			fmt.Fprintf(&out, "@%d|%s|%d|alive||%s\n", f.Windows[name], name, f.Windows[name]+1, f.WindowEnv[name])
 		}
 
 		for _, twin := range f.Twins[name] {
-			fmt.Fprintf(&out, "@%d %s %d alive\n", twin, name, twin)
+			fmt.Fprintf(&out, "@%d|%s|%d|alive||\n", twin, name, twin)
 		}
 	}
 
@@ -234,12 +250,12 @@ func (f *FakeSys) liveness(window string) string {
 
 	switch {
 	case !dead:
-		return "alive"
+		return "alive|"
 	case status < 0:
-		return "dead"
+		return "dead|"
 	}
 
-	return "dead " + strconv.Itoa(status)
+	return "dead|" + strconv.Itoa(status)
 }
 
 // A seeded answer wins: the probe reads processes there, the project state only ports.

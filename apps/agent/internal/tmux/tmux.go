@@ -1,7 +1,10 @@
 package tmux
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -25,6 +28,9 @@ const (
 
 	// Passed through the environment, never a shell's quoting, so what the app declared is what runs.
 	commandKey = "PUPITRE_CMD"
+
+	// A window option dies with its window, so a fingerprint never outlives the process it describes.
+	envOption = "@pupitre_env"
 
 	// tmux leaves the status blank for a pane whose command died by a signal.
 	signalled = -1
@@ -80,6 +86,8 @@ type Pane struct {
 	Dead   bool
 	Status int
 	Twins  []string
+	// Empty for a window opened before the agent recorded one.
+	Env string
 }
 
 // One read of the machine for every window: tmux, the port table and ps once each, not once per process.
@@ -127,6 +135,19 @@ func (c Collection) Exited(window string) (int, bool) {
 	return pane.Status, true
 }
 
+func (c Collection) EnvChanged(window string, env []string) bool {
+	pane, open := c.Windows[window]
+
+	return open && !pane.Dead && pane.Env != "" && pane.Env != Fingerprint(env)
+}
+
+func Fingerprint(env []string) string {
+	sorted := slices.Sorted(slices.Values(env))
+	sum := sha256.Sum256([]byte(strings.Join(sorted, "\n")))
+
+	return hex.EncodeToString(sum[:8])
+}
+
 func (c Collection) PortUp(port int) bool {
 	return c.Listening[port]
 }
@@ -170,11 +191,18 @@ func (c Collection) livePIDs() map[string]int {
 	return live
 }
 
+// Fixed columns, since a live pane's status and an older window's fingerprint print empty; tmux turns a tab into "_" outside a UTF-8 locale, and no column can hold a "|".
+const (
+	panesSeparator = "|"
+	panesFormat    = "#{window_id}|#{window_name}|#{pane_pid}|#{?pane_dead,dead,alive}|#{pane_dead_status}|#{" + envOption + "}"
+	panesColumns   = 6
+)
+
 // A window's own pane prints first and a user's split after, so dedupe by id, never by pane index (tmux.conf may start at 1).
 func windows(ctx sys.Context, options Options) map[string]Pane {
 	open := map[string]Pane{}
 
-	out, err := ctx.Sys().Run(options.tmux("list-panes", "-s", "-t", sessionTarget(options), "-F", "#{window_id} #{window_name} #{pane_pid} #{?pane_dead,dead,alive} #{pane_dead_status}"))
+	out, err := ctx.Sys().Run(options.tmux("list-panes", "-s", "-t", sessionTarget(options), "-F", panesFormat))
 	if err != nil {
 		return open
 	}
@@ -182,8 +210,8 @@ func windows(ctx sys.Context, options Options) map[string]Pane {
 	seen := map[string]bool{}
 
 	for _, line := range strings.Split(out.Stdout, "\n") {
-		fields := strings.Fields(line)
-		if len(fields) < 4 || seen[fields[0]] {
+		fields := strings.Split(line, panesSeparator)
+		if len(fields) < panesColumns || seen[fields[0]] {
 			continue
 		}
 
@@ -201,8 +229,8 @@ func windows(ctx sys.Context, options Options) map[string]Pane {
 			continue
 		}
 
-		pane := Pane{ID: fields[0], PID: pid, Dead: fields[3] == "dead", Status: signalled}
-		if pane.Dead && len(fields) > 4 {
+		pane := Pane{ID: fields[0], PID: pid, Dead: fields[3] == "dead", Status: signalled, Env: fields[5]}
+		if pane.Dead {
 			if status, err := strconv.Atoi(fields[4]); err == nil {
 				pane.Status = status
 			}
@@ -297,6 +325,8 @@ type Job struct {
 	Window string
 	Dir    string
 	Cmd    string
+	// NAME=value pairs.
+	Env []string
 }
 
 // The command is the pane, so its exit leaves a corpse with a status; option and pipe ride the same call, so nothing slips in first.
@@ -326,12 +356,19 @@ func Start(ctx sys.Context, options Options, job Job) error {
 
 	target := Target(options, job.Window)
 
-	_, err := sys.Exec(ctx, options.tmux(
-		"new-window", "-d", "-t", sessionTarget(options), "-n", job.Window, "-c", job.Dir,
-		"-e", commandKey+"="+job.Cmd, "exec "+user.Shell+` -lc "$`+commandKey+`"`,
-		";", "set-option", "-w", "-t", target, "remain-on-exit", "on",
-		";", "pipe-pane", "-o", "-t", target, sink(options.LogPath(job.Window)),
-	))
+	window := []string{"new-window", "-d", "-t", sessionTarget(options), "-n", job.Window, "-c", job.Dir}
+	for _, pair := range job.Env {
+		window = append(window, "-e", pair)
+	}
+
+	window = append(window, "-e", commandKey+"="+job.Cmd, "exec "+user.Shell+` -lc "$`+commandKey+`"`)
+
+	_, err := sys.Exec(ctx, options.tmux(slices.Concat(
+		window,
+		[]string{";", "set-option", "-w", "-t", target, "remain-on-exit", "on"},
+		[]string{";", "set-option", "-w", "-t", target, envOption, Fingerprint(job.Env)},
+		[]string{";", "pipe-pane", "-o", "-t", target, sink(options.LogPath(job.Window))},
+	)...))
 
 	return err
 }

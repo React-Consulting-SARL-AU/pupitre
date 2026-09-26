@@ -8,6 +8,7 @@ import (
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/protocol"
+	"pupitre.studio/agent/internal/sys"
 )
 
 var agentPrograms = map[string]struct {
@@ -45,11 +46,18 @@ func (r *Reader) OpenAgent(kind, name string) (AgentSession, error) {
 		return AgentSession{}, err
 	}
 
-	dir := project.Path(r.options.Paths.Resolved().Projects)
+	projects := r.options.Paths.Resolved().Projects
+	dir := project.Path(projects)
 	session := kind + "-" + project.Name
 
+	command := []string{"tmux", "new-session", "-A", "-s", session, "-c", dir}
+	for _, pair := range project.Environment(projects, r.domain()).List() {
+		// The app hands the line to the remote shell, which would otherwise split a value on its spaces.
+		command = append(command, "-e", sys.ShellQuote(pair))
+	}
+
 	return AgentSession{
-		Command: strings.Join([]string{"tmux", "new-session", "-A", "-s", session, "-c", dir, agent.Program}, " "),
+		Command: strings.Join(append(command, agent.Program), " "),
 		Session: session,
 	}, nil
 }

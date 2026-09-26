@@ -63,6 +63,12 @@ export function ProjectProcessRow({
         </span>
       </div>
 
+      {process.env_changed ? (
+        <p className="text-small text-warn" data-env-changed="">
+          {t("project.overview.envChanged")}
+        </p>
+      ) : null}
+
       <FactList>
         <Fact label={t("project.overview.startCmd")}>{process.cmd}</Fact>
         <Fact label={t("project.overview.installCmd")}>
