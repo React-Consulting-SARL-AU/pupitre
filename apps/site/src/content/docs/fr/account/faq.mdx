@@ -11,6 +11,16 @@ order: 5
 
 La version web convient à une tâche isolée sur un dépôt. Elle ne vous donne pas une machine : pas de base à côté du code, pas de navigateur headless, pas de service qui tourne la nuit, rien qui persiste une fois la session finie. Pupitre vous donne la machine, et votre abonnement y fonctionne tel quel.
 
+## En quoi est-ce différent de Coolify ou Dokploy ?
+
+Eux déploient des applications en production. Pupitre prépare la machine sur laquelle vos agents de code développent. Elle leur donne un serveur à eux, allumé en permanence, où ils compilent, lancent les tests, ouvrent des navigateurs headless et travaillent dans des worktrees en parallèle, à côté des bases et des services de vos projets. Cette charge quitte votre laptop. Les projets en cours de développement ont une adresse que vous ouvrez de n’importe où : sur votre ordinateur par la session SSH de l’app, sur une route de votre domaine par `exposure.cloudflare` ou `exposure.caddy`, ou sur votre tailnet par `exposure.tailscale`. Voir [projets](/fr/docs/daily/projects/#exposition).
+
+Pupitre ne fait ni chaîne de déploiement, ni mise en production sans coupure, ni montée en charge. Les deux se complètent : développez sur un serveur Pupitre, et livrez avec l’outil que vous utilisez déjà pour la production.
+
+## Puis-je y faire tourner de la production ?
+
+Rien ne vous en empêche : le serveur est à vous, et ce qui sort du catalogue s’installe comme d’habitude. Mais Pupitre est construit comme une machine de développement, où des agents travaillent sans surveillance sous `dev`, et il ne promet rien pour une charge de production. Un serveur séparé pour la production est la disposition la plus sûre.
+
 ## Suis-je obligé de travailler dans l’app ?
 
 Non. Le serveur est une machine Ubuntu ordinaire, jointe en SSH sous le compte `dev`. L’app Claude accepte une connexion SSH avec la clé que Pupitre a générée, l’app ChatGPT lit les alias d’hôte de votre `~/.ssh/config` pour y faire tourner Codex, et `ssh` fonctionne comme il l’a toujours fait. L’app reste l’endroit où l’on installe, configure et surveille la machine. Voir [votre propre client](/fr/docs/daily/clients/).
@@ -41,4 +51,8 @@ Sur votre serveur. Quand un agent travaille, ce qu’il lit part du serveur vers
 
 ## Puis-je lire le code de l’agent ?
 
-Non. Pupitre est un produit commercial fermé. Ce que fait l’agent est documenté ici, module par module, et tout ce qu’il installe est un outil standard que vous pouvez inspecter sur votre propre machine.
+Non. Pupitre est un produit commercial fermé. Ce que fait l’agent est documenté ici, module par module, et tout ce qu’il installe est un outil standard que vous pouvez inspecter sur votre propre machine. La [page sécurité](/fr/security/) liste ce que l’agent peut et ne peut pas faire, avec la commande qui vérifie chaque affirmation.
+
+## Que se passe-t-il si Pupitre s’arrête ?
+
+Votre serveur continue de tourner. Sans la plateforme, l’app et l’agent fonctionnent sept jours. Ensuite, l’agent cesse d’accepter des changements et laisse en place tout ce qui tourne. SSH, vos éditeurs, vos services, vos bases, vos projets et vos sauvegardes n’ont besoin de rien de notre part, et `sudo pupitred uninstall` retire l’agent. Voir [sécurité](/fr/security/#shutdown) et [désinstaller](/fr/docs/account/uninstall/).

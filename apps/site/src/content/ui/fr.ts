@@ -11,6 +11,7 @@ export const fr: Dictionary = {
   "nav.download": "Télécharger",
   "nav.blog": "Blog",
   "nav.integrations": "Intégrations",
+  "nav.security": "Sécurité",
   "nav.cta": "Créer un compte",
   "nav.menu": "Menu",
   "nav.menuClose": "Fermer",

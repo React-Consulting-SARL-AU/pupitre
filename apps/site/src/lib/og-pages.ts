@@ -11,6 +11,7 @@ import { downloadContent } from "../content/site/download"
 import { homeContent } from "../content/site/home"
 import { integrationsContent } from "../content/site/integrations"
 import { pricingContent } from "../content/site/pricing"
+import { securityContent } from "../content/site/security"
 import { docSlug, moduleSlug } from "./docs"
 import { fill, LOCALES, type Locale, localizePath, translator } from "./i18n"
 import type { OgCard } from "./og"
@@ -38,6 +39,7 @@ async function pagesFor(locale: Locale): Promise<OgPage[]> {
   const pricing = pricingContent(locale)
   const download = downloadContent(locale)
   const integrations = integrationsContent(locale)
+  const security = securityContent(locale)
   const at = (path: string) => localizePath(path, locale)
 
   const docs = await getCollection(
@@ -77,6 +79,11 @@ async function pagesFor(locale: Locale): Promise<OgPage[]> {
       eyebrow: integrations.hero.label,
       title: integrations.hero.headline,
       description: integrations.meta.description,
+    }),
+    page(at("/security/"), {
+      eyebrow: security.hero.label,
+      title: security.hero.headline,
+      description: security.meta.description,
     }),
     page(at("/docs/"), {
       eyebrow: t("docs.label"),

@@ -9,6 +9,7 @@ export const en = {
   "nav.download": "Download",
   "nav.blog": "Blog",
   "nav.integrations": "Integrations",
+  "nav.security": "Security",
   "nav.cta": "Create an account",
   "nav.menu": "Menu",
   "nav.menuClose": "Close",
