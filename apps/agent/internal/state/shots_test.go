@@ -12,6 +12,7 @@ import (
 
 	"pupitre.studio/agent/internal/modules/modtest"
 	"pupitre.studio/agent/internal/protocol"
+	"pupitre.studio/agent/internal/shots"
 	"pupitre.studio/agent/internal/state"
 )
 
@@ -24,9 +25,9 @@ func shotFixture(t *testing.T) (*modtest.FakeSys, *state.Reader) {
 	t.Helper()
 
 	fake, reader := agentFixture(t)
-	gallery(fake, "/home/dev/shots/2026-09-04/login.png", 24_000, time.Hour)
-	gallery(fake, "/home/dev/shots/2026-08-30/dashboard.png", 48_000, 5*24*time.Hour)
-	gallery(fake, "/home/dev/shots/2026-07-01/old.png", 12_000, 60*24*time.Hour)
+	gallery(fake, "/home/dev/shots/web/2026-09-04/login.png", 24_000, time.Hour)
+	gallery(fake, "/home/dev/shots/_unfiled/2026-08-30/dashboard.png", 48_000, 5*24*time.Hour)
+	gallery(fake, "/home/dev/shots/web/2026-07-01/old.png", 12_000, 60*24*time.Hour)
 
 	return fake, reader
 }
@@ -39,7 +40,7 @@ func TestShotsAreListedNewestFirstWithTheirGalleryPath(t *testing.T) {
 		t.Fatalf("got %d shots: %+v", len(shots), shots)
 	}
 
-	if shots[0].Name != "login.png" || shots[0].Path != "2026-09-04/login.png" {
+	if shots[0].Name != "login.png" || shots[0].Path != "web/2026-09-04/login.png" {
 		t.Fatalf("unexpected first shot %+v", shots[0])
 	}
 
@@ -50,12 +51,20 @@ func TestShotsAreListedNewestFirstWithTheirGalleryPath(t *testing.T) {
 	if shots[2].Name != "old.png" {
 		t.Fatalf("the oldest must come last: %+v", shots)
 	}
+
+	if shots[0].Project == nil || *shots[0].Project != "web" {
+		t.Fatalf("a capture under a project folder belongs to that project: %+v", shots[0])
+	}
+
+	if shots[1].Project != nil {
+		t.Fatalf("a capture under %s belongs to no project: %+v", "_unfiled", shots[1])
+	}
 }
 
 func TestShotsLeaveASymlinkOutOfTheGallery(t *testing.T) {
 	fake, reader := shotFixture(t)
-	fake.Files["/home/dev/shots/2026-09-04/shadow.png"] = []byte("root:x\n")
-	fake.Links["/home/dev/shots/2026-09-04/shadow.png"] = "/etc/shadow"
+	fake.Files["/home/dev/shots/web/2026-09-04/shadow.png"] = []byte("root:x\n")
+	fake.Links["/home/dev/shots/web/2026-09-04/shadow.png"] = "/etc/shadow"
 
 	for _, listed := range reader.Shots() {
 		if listed.Name == "shadow.png" {
@@ -63,21 +72,32 @@ func TestShotsLeaveASymlinkOutOfTheGallery(t *testing.T) {
 		}
 	}
 
-	if _, err := reader.ReadShot("2026-09-04/shadow.png"); err == nil {
+	if _, err := reader.ReadShot("web/2026-09-04/shadow.png"); err == nil {
 		t.Fatal("the link was read")
 	}
 }
 
-func TestShotsURLComesFromTheGalleryRow(t *testing.T) {
+func TestShotsURLIsPublicOnlyOnceAProviderServesTheGallery(t *testing.T) {
 	fake, reader := shotFixture(t)
+	fake.Files["/etc/pupitre/env"] = []byte(state.DomainKey + "=flyleaf.dev\n")
 
-	if got := reader.ShotsURL(); got != "http://127.0.0.1:8099" {
-		t.Fatalf("got %q", got)
+	if got, exposed := reader.ShotsURL(); got != "http://127.0.0.1:8099" || exposed {
+		t.Fatalf("without an exposure the gallery is local: %q %v", got, exposed)
 	}
 
-	fake.Files["/etc/pupitre/env"] = []byte(state.DomainKey + "=flyleaf.dev\n")
-	if got := reader.ShotsURL(); got != "https://shots.flyleaf.dev" {
-		t.Fatalf("got %q", got)
+	fake.Files[shots.ExposurePath] = shots.Exposure{Hostname: "shots.flyleaf.dev", Token: "abc123"}.Content()
+	if _, exposed := reader.ShotsURL(); exposed {
+		t.Fatal("no provider serves the route yet, the address would not answer")
+	}
+
+	fake.Files["/etc/pupitre/exposure"] = []byte("cloudflare\n")
+	if got, exposed := reader.ShotsURL(); got != "https://shots.flyleaf.dev/abc123" || !exposed {
+		t.Fatalf("got %q %v", got, exposed)
+	}
+
+	fake.Files["/etc/pupitre/env"] = []byte(state.DomainKey + "=elsewhere.dev\n")
+	if _, exposed := reader.ShotsURL(); exposed {
+		t.Fatal("a name outside the served domain is not routed")
 	}
 }
 
@@ -88,11 +108,11 @@ func TestShotsCleanRemovesOnlyWhatIsPastTheKeepWindow(t *testing.T) {
 		t.Fatalf("got %d removed, want the sixty-day-old capture alone", removed)
 	}
 
-	if _, kept := fake.Files["/home/dev/shots/2026-08-30/dashboard.png"]; !kept {
+	if _, kept := fake.Files["/home/dev/shots/_unfiled/2026-08-30/dashboard.png"]; !kept {
 		t.Fatal("a five-day-old capture must be kept")
 	}
 
-	if _, gone := fake.Files["/home/dev/shots/2026-07-01/old.png"]; gone {
+	if _, gone := fake.Files["/home/dev/shots/web/2026-07-01/old.png"]; gone {
 		t.Fatal("the old capture must be gone")
 	}
 }
@@ -110,9 +130,9 @@ func TestShotsReadRendersTheExactBytesOfTheFile(t *testing.T) {
 	fake, reader := shotFixture(t)
 
 	content := payload(24_000)
-	fake.Files["/home/dev/shots/2026-09-04/login.png"] = content
+	fake.Files["/home/dev/shots/web/2026-09-04/login.png"] = content
 
-	shot, err := reader.ReadShot("2026-09-04/login.png")
+	shot, err := reader.ReadShot("web/2026-09-04/login.png")
 	if err != nil {
 		t.Fatalf("read: %v", err)
 	}
@@ -126,7 +146,7 @@ func TestShotsReadRendersTheExactBytesOfTheFile(t *testing.T) {
 		t.Fatalf("unexpected accounting %d %s", shot.SizeBytes, shot.Digest)
 	}
 
-	if shot.MediaType != "image/png" || shot.Path != "2026-09-04/login.png" {
+	if shot.MediaType != "image/png" || shot.Path != "web/2026-09-04/login.png" {
 		t.Fatalf("unexpected identity %+v", shot)
 	}
 
@@ -138,15 +158,15 @@ func TestShotsReadRendersTheExactBytesOfTheFile(t *testing.T) {
 func TestShotsReadOpensOnlyWhatTheGalleryLists(t *testing.T) {
 	fake, reader := shotFixture(t)
 	fake.Files["/etc/pupitre/env"] = []byte("PUPITRE_DOMAIN=flyleaf.dev\n")
-	fake.Files["/home/dev/shots/2026-09-04/notes.txt"] = []byte("rien à voir\n")
+	fake.Files["/home/dev/shots/web/2026-09-04/notes.txt"] = []byte("rien à voir\n")
 
 	for _, refused := range []string{
 		"../../etc/pupitre/env",
 		"/etc/pupitre/env",
-		"/home/dev/shots/2026-09-04/login.png",
-		"2026-09-04/./login.png",
-		"2026-09-04/absente.png",
-		"2026-09-04/notes.txt",
+		"/home/dev/shots/web/2026-09-04/login.png",
+		"web/2026-09-04/./login.png",
+		"web/2026-09-04/absente.png",
+		"web/2026-09-04/notes.txt",
 		"",
 	} {
 		if _, err := reader.ReadShot(refused); err == nil {
@@ -159,9 +179,9 @@ func TestShotsReadCutsALargeCaptureIntoBoundedLines(t *testing.T) {
 	fake, reader := shotFixture(t)
 
 	content := payload(5 << 20)
-	fake.Files["/home/dev/shots/2026-09-04/login.png"] = content
+	fake.Files["/home/dev/shots/web/2026-09-04/login.png"] = content
 
-	shot, err := reader.ReadShot("2026-09-04/login.png")
+	shot, err := reader.ReadShot("web/2026-09-04/login.png")
 	if err != nil {
 		t.Fatalf("read: %v", err)
 	}
@@ -184,9 +204,9 @@ func TestShotsReadCutsALargeCaptureIntoBoundedLines(t *testing.T) {
 
 func TestShotsReadRefusesACaptureBeyondTheCap(t *testing.T) {
 	fake, reader := shotFixture(t)
-	gallery(fake, "/home/dev/shots/2026-09-04/enorme.png", state.ShotMaxBytes+1, time.Hour)
+	gallery(fake, "/home/dev/shots/web/2026-09-04/enorme.png", state.ShotMaxBytes+1, time.Hour)
 
-	if _, err := reader.ReadShot("2026-09-04/enorme.png"); err == nil {
+	if _, err := reader.ReadShot("web/2026-09-04/enorme.png"); err == nil {
 		t.Fatal("a capture beyond the cap must be refused")
 	}
 }
@@ -212,14 +232,14 @@ func TestALargeCaptureLeavesTheChannelUsable(t *testing.T) {
 	fake, reader := shotFixture(t)
 
 	content := payload(5 << 20)
-	fake.Files["/home/dev/shots/2026-09-04/login.png"] = content
+	fake.Files["/home/dev/shots/web/2026-09-04/login.png"] = content
 
 	server := protocol.NewServer(protocol.Options{AgentVersion: "0.0.0-test", Now: modtest.NewClock(time.Millisecond).Now})
 	state.RegisterCommands(server, reader)
 
 	input := strings.Join([]string{
 		`{"id":1,"cmd":"hello","params":{"app_version":"0.2.0","protocol":2}}`,
-		`{"id":2,"cmd":"shots.read","params":{"path":"2026-09-04/login.png"}}`,
+		`{"id":2,"cmd":"shots.read","params":{"path":"web/2026-09-04/login.png"}}`,
 		`{"id":3,"cmd":"ping"}`,
 	}, "\n") + "\n"
 

@@ -329,10 +329,92 @@ describe("le domaine d'une exposition", () => {
         (step) => !step.startsWith("module.config") && step !== "service.status"
       )
     ).toEqual([
+      "tunnel.status",
       "install",
       "release web.flyleaf.dev",
       "tunnel.sync",
       "records web.flyleaf.studio",
+    ]);
+  });
+
+  it("retire l'ancien nom de la galerie et publie le nouveau sous-domaine", async () => {
+    const order: string[] = [];
+    let subdomain = "shots";
+
+    stubPupitre({
+      agentCall: (_server, cmd) => {
+        order.push(cmd);
+
+        if (cmd === "module.config") {
+          return Promise.resolve({
+            ok: true,
+            result: { id: "ai.browser", secrets: [], values: { subdomain } },
+          } as AgentResponse<unknown>);
+        }
+
+        return Promise.resolve({
+          ok: true,
+          result: {
+            installed: true,
+            provider: "cloudflare",
+            routes: [
+              {
+                hostname: "web.flyleaf.dev",
+                project: "web",
+                service: "http://127.0.0.1:3000",
+              },
+              {
+                hostname: `${subdomain}.flyleaf.dev`,
+                project: "shots",
+                service: "http://127.0.0.1:8099",
+              },
+            ],
+            state: "running",
+          },
+        } as AgentResponse<unknown>);
+      },
+      releaseTunnelRecords: (_server, hostnames) => {
+        order.push(`release ${hostnames.join(",")}`);
+
+        return Promise.resolve({ ok: true, result: hostnames.length });
+      },
+      serviceDetail: () => Promise.resolve({ ok: true, result: DETAIL }),
+      startInstall: () => {
+        order.push("install");
+        subdomain = "galerie";
+
+        return Promise.resolve({
+          ok: true,
+          result: {
+            failed: [],
+            report_path: "/var/lib/pupitre/report.json",
+            warned: [],
+          },
+        });
+      },
+      syncTunnelRecords: (_server, routes) => {
+        order.push(
+          `records ${routes.map((route) => route.hostname).join(",")}`
+        );
+
+        return Promise.resolve({ ok: true, result: routes.length });
+      },
+    });
+
+    await useServices.getState().readConfig(SERVER, "ai.browser");
+    useServices.getState().setValue("subdomain", "galerie");
+    await useServices.getState().reconfigure(SERVER, "ai.browser");
+
+    expect(
+      order.filter(
+        (step) => !step.startsWith("module.config") && step !== "service.status"
+      )
+    ).toEqual([
+      "tunnel.status",
+      "install",
+      "release shots.flyleaf.dev",
+      "tunnel.sync",
+      "records web.flyleaf.dev,galerie.flyleaf.dev",
     ]);
   });
 

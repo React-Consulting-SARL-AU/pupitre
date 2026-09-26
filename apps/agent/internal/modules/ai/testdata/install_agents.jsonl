@@ -25,8 +25,12 @@ $ {"ai.hermes":{"providers.0":"openai:s3cret-de-test"}}
 < {"event":"step","id":1,"module":"ai.browser","ms":0,"status":"ok","step":"install-playwright-libraries"}
 < {"event":"step","id":1,"module":"ai.browser","ms":0,"status":"start","step":"create-gallery"}
 < {"event":"step","id":1,"module":"ai.browser","ms":0,"status":"ok","step":"create-gallery"}
+< {"event":"step","id":1,"module":"ai.browser","ms":0,"status":"start","step":"file-loose-captures"}
+< {"event":"step","id":1,"module":"ai.browser","ms":0,"status":"skip","step":"file-loose-captures"}
 < {"event":"step","id":1,"module":"ai.browser","ms":0,"status":"start","step":"link-shot-command"}
 < {"event":"step","id":1,"module":"ai.browser","ms":0,"status":"ok","step":"link-shot-command"}
+< {"event":"step","id":1,"module":"ai.browser","ms":0,"status":"start","step":"write-gallery-exposure"}
+< {"event":"step","id":1,"module":"ai.browser","ms":0,"status":"skip","step":"write-gallery-exposure"}
 < {"event":"step","id":1,"module":"ai.browser","ms":0,"status":"start","step":"write-gallery-service"}
 < {"event":"step","id":1,"module":"ai.browser","ms":0,"status":"ok","step":"write-gallery-service"}
 < {"event":"step","id":1,"module":"ai.browser","ms":0,"status":"start","step":"enable-gallery-service"}
@@ -82,8 +86,12 @@ $ {"ai.hermes":{"providers.0":"openai:s3cret-de-test"}}
 < {"event":"step","id":2,"module":"ai.browser","ms":0,"status":"skip","step":"install-playwright-libraries"}
 < {"event":"step","id":2,"module":"ai.browser","ms":0,"status":"start","step":"create-gallery"}
 < {"event":"step","id":2,"module":"ai.browser","ms":0,"status":"skip","step":"create-gallery"}
+< {"event":"step","id":2,"module":"ai.browser","ms":0,"status":"start","step":"file-loose-captures"}
+< {"event":"step","id":2,"module":"ai.browser","ms":0,"status":"skip","step":"file-loose-captures"}
 < {"event":"step","id":2,"module":"ai.browser","ms":0,"status":"start","step":"link-shot-command"}
 < {"event":"step","id":2,"module":"ai.browser","ms":0,"status":"skip","step":"link-shot-command"}
+< {"event":"step","id":2,"module":"ai.browser","ms":0,"status":"start","step":"write-gallery-exposure"}
+< {"event":"step","id":2,"module":"ai.browser","ms":0,"status":"skip","step":"write-gallery-exposure"}
 < {"event":"step","id":2,"module":"ai.browser","ms":0,"status":"start","step":"write-gallery-service"}
 < {"event":"step","id":2,"module":"ai.browser","ms":0,"status":"skip","step":"write-gallery-service"}
 < {"event":"step","id":2,"module":"ai.browser","ms":0,"status":"start","step":"enable-gallery-service"}

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/exposure/routes"
 	"pupitre.studio/agent/internal/modules/modtest"
 	"pupitre.studio/agent/internal/registry"
 )
@@ -34,10 +35,10 @@ func project(name, hostname string, port int) registry.Project {
 }
 
 func TestTheIngressNamesTheTunnelItsCredentialsAndEndsOnA404(t *testing.T) {
-	ingress := string(Ingress(tunnel, domain, []registry.Project{
+	ingress := string(Ingress(tunnel, routes.For(domain, []registry.Project{
 		project("web", "app."+domain, 3000),
 		project("elsewhere", "app.other.dev", 3001),
-	}))
+	})))
 
 	for _, want := range []string{
 		"tunnel: " + tunnel + "\n",
@@ -60,7 +61,7 @@ func TestTheIngressNamesTheTunnelItsCredentialsAndEndsOnA404(t *testing.T) {
 }
 
 func TestAnIngressWithoutProjectsStillAnswers(t *testing.T) {
-	ingress := string(Ingress(tunnel, domain, nil))
+	ingress := string(Ingress(tunnel, nil))
 
 	if strings.Contains(ingress, "hostname:") || !strings.Contains(ingress, "ingress:\n  - service: http_status:404\n") {
 		t.Fatalf("ingress = %s", ingress)

@@ -423,7 +423,7 @@ func (m Module) Status(ctx *modules.Context) (modules.Status, error) {
 }
 
 func render(ctx *modules.Context) []byte {
-	return caddyfile(ctx.String("email"), httpPort(ctx), httpsPort(ctx), domainOf(ctx), routes.Declared(ctx))
+	return caddyfile(ctx.String("email"), httpPort(ctx), httpsPort(ctx), routes.Published(ctx, domainOf(ctx)))
 }
 
 func wantedRules(ctx *modules.Context) []string {

@@ -60,6 +60,8 @@ const ShotSchema = z.object({
   path: z.string(),
   size_bytes: z.int().nonnegative(),
   created_at: z.string(),
+  // null files the capture under no project; absent from an agent that did not sort captures yet.
+  project: z.string().nullable().optional(),
 })
 
 export type Shot = z.infer<typeof ShotSchema>
@@ -72,6 +74,8 @@ export type ShotsListResult = z.infer<typeof ShotsListResultSchema>
 
 export const ShotsUrlResultSchema = z.object({
   url: z.string(),
+  // true when the address answers from the internet, through the server's exposure.
+  exposed: z.boolean().optional(),
 })
 
 export type ShotsUrlResult = z.infer<typeof ShotsUrlResultSchema>

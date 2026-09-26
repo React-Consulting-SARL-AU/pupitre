@@ -166,7 +166,7 @@ Un module dont le CLI se connecte à un compte implémente en plus `Login` : il 
 | `ai.opencode` | OpenCode, binaire de la release GitHub vérifié par la somme que GitHub publie, `~/.local/bin/opencode`, contexte machine dans `~/.config/opencode/AGENTS.md`, skills Pupitre | — |
 | `ai.hermes` | Hermes Agent (Nous Research) via Python, configuration des fournisseurs de modèles, service systemd si toujours actif, redémarré quand une clé change | `providers` (list de secrets), `always_on` (boolean) |
 | `ai.openclaw` | OpenClaw via mise sur le Node de `runtime.node` (24.16 ou plus, vérifié avant l'installation), fournisseurs de modèles dans `~/.openclaw/providers.env` sous les noms que la passerelle lit, passerelle `openclaw gateway` en service systemd `pupitre-openclaw` sur 127.0.0.1:18789 si toujours active — redémarrée quand une clé change —, skills Pupitre ; les canaux se branchent par `openclaw onboard` dans un terminal | `providers` (list de secrets), `always_on` (boolean) |
-| `ai.browser` | Chrome headless, dépendances Playwright, commande de capture qui range les images dans la galerie | — |
+| `ai.browser` | Chrome headless, dépendances Playwright, commande `shot` qui range les images par projet dans la galerie (`~/shots/<projet>/<jour>/`, `~/shots/_unfiled/<jour>/` hors projet), galerie `pupitre-shots` sur 127.0.0.1:8099 ; avec un sous-domaine, la galerie est publiée par l'exposition installée sous `https://<sous-domaine>.<domaine>/<jeton>/`, le jeton tiré par l'agent dans `/etc/pupitre/shots.env` (0600, lu par systemd) | `subdomain` (text, une étiquette DNS, vide = galerie locale) |
 
 ### Éditeurs distants
 

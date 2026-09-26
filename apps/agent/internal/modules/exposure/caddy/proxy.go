@@ -15,7 +15,7 @@ func Status(ctx *modules.Context) (Report, error) {
 	report := Report{
 		Installed: installed,
 		State:     routes.State(ctx, installed && file.Exists(ctx, configPath), Unit),
-		Routes:    routes.For(domainOf(ctx), routes.Declared(ctx)),
+		Routes:    routes.Published(ctx, domainOf(ctx)),
 	}
 
 	if installed {

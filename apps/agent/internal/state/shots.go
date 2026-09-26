@@ -11,15 +11,11 @@ import (
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/i18n"
+	"pupitre.studio/agent/internal/modules/exposure/routes"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/shots"
 	"pupitre.studio/agent/internal/sys/file"
 	"pupitre.studio/agent/internal/sys/user"
-)
-
-const (
-	ShotsProject = "shots"
-	ShotsPort    = 8099
 )
 
 type ShotOptions struct {
@@ -50,27 +46,37 @@ func (r *Reader) Shots() []contract.Shot {
 	shots := []contract.Shot{}
 
 	for _, found := range r.gallery() {
+		relative := strings.TrimPrefix(strings.TrimPrefix(found.path, dir), "/")
+
 		shots = append(shots, contract.Shot{
 			Name:      base(found.path),
-			Path:      strings.TrimPrefix(strings.TrimPrefix(found.path, dir), "/"),
+			Path:      relative,
 			SizeBytes: found.size,
 			CreatedAt: found.when.UTC().Format(time.RFC3339),
+			Project:   folderOf(relative),
 		})
 	}
 
 	return shots
 }
 
-func (r *Reader) ShotsURL() string {
-	if project, declared := r.registry().Get(ShotsProject); declared {
-		return project.URL()
+// A capture lying at the gallery's root belongs to no folder, so to no project.
+func folderOf(relative string) *string {
+	folder, _, nested := strings.Cut(relative, "/")
+	if !nested {
+		return nil
 	}
 
-	if domain := r.domain(); domain != "" {
-		return "https://" + ShotsProject + "." + domain
+	return shots.ProjectOf(folder)
+}
+
+// Exposed only while a provider serves the gallery's route: an address that does not answer is not given out.
+func (r *Reader) ShotsURL() (string, bool) {
+	if len(routes.Gallery(r.ctx(), r.domain())) > 0 && file.Exists(r.ctx(), routes.ModePath) {
+		return shots.ReadExposure(r.ctx()).Base(), true
 	}
 
-	return "http://127.0.0.1:" + strconv.Itoa(ShotsPort)
+	return "http://127.0.0.1:" + strconv.Itoa(shots.Port), false
 }
 
 func (r *Reader) CleanShots() int {

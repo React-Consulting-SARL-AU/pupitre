@@ -13,6 +13,7 @@ import (
 	"pupitre.studio/agent/internal/modules/exposure/routes"
 	"pupitre.studio/agent/internal/modules/modtest"
 	"pupitre.studio/agent/internal/registry"
+	"pupitre.studio/agent/internal/shots"
 	"pupitre.studio/agent/internal/sys/env"
 )
 
@@ -66,6 +67,42 @@ func TestForKeepsToTheDomainOfTheMachine(t *testing.T) {
 
 	if list := routes.For("other.example", []registry.Project{shop()}); len(list) != 0 {
 		t.Fatalf("a name under another domain is not routed: %+v", list)
+	}
+}
+
+func TestTheGalleryIsPublishedBesideTheProjectsOnceExposed(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	ctx := modtest.NewSysContext(fake)
+
+	if list := routes.Published(ctx, domain); len(list) != 0 {
+		t.Fatalf("nothing is declared: %+v", list)
+	}
+
+	fake.Files[shots.ExposurePath] = shots.Exposure{Hostname: "shots." + domain, Token: "abc123"}.Content()
+
+	list := routes.Published(ctx, domain)
+	if len(list) != 1 || list[0].Hostname != "shots."+domain || list[0].Service != "http://127.0.0.1:8099" {
+		t.Fatalf("the gallery route is served from its loopback port: %+v", list)
+	}
+
+	if list := routes.Published(ctx, "other.example"); len(list) != 0 {
+		t.Fatalf("a gallery named under another domain is not routed: %+v", list)
+	}
+}
+
+func TestMoveDomainTakesTheGalleryAlong(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Files[env.Path] = []byte(env.DomainKey + "=old.example\n")
+	fake.Files[shots.ExposurePath] = shots.Exposure{Hostname: "captures.old.example", Token: "abc123"}.Content()
+	ctx := modules.NewContext(modules.ContextOptions{Sys: fake, Manifest: contract.Manifest{ID: "exposure.caddy"}})
+
+	moved, err := routes.MoveDomain(ctx, "new.example")
+	if err != nil || len(moved) != 1 || moved[0] != "captures.old.example" {
+		t.Fatalf("moved = %v, %v", moved, err)
+	}
+
+	if got := shots.ReadExposure(ctx); got.Hostname != "captures.new.example" || got.Token != "abc123" {
+		t.Fatalf("the gallery keeps its label and its token under the new domain: %+v", got)
 	}
 }
 

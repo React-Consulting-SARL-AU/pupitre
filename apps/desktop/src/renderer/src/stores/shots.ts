@@ -14,6 +14,10 @@ import { type ShotSize, shotBytes, shotSize } from "@renderer/lib/shot-image";
 import type { AgentError, AgentResponse } from "@shared/agent";
 import { create } from "zustand";
 
+// Project names start with a letter or a digit, so neither key can be a project's.
+export const ALL_SHOTS = "*";
+export const UNFILED = "_unfiled";
+
 export type ShotView =
   | { status: "idle" }
   | { status: "reading"; shot: Shot }
@@ -42,7 +46,8 @@ interface ShotsStore {
   state: ShotsState;
   view: ShotView;
   thumbnails: Record<string, ThumbnailState>;
-  gallery: string | null;
+  address: ShotsUrlResult | null;
+  folder: string;
   cleaning: boolean;
   removing: string | null;
   removed: number | null;
@@ -51,6 +56,7 @@ interface ShotsStore {
   saveProblem: AgentError | null;
 
   read: (serverId: string) => Promise<void>;
+  choose: (folder: string) => void;
   readThumbnail: (serverId: string, shot: Shot) => Promise<void>;
   show: (serverId: string, shot: Shot) => Promise<void>;
   step: (serverId: string, direction: -1 | 1) => Promise<void>;
@@ -58,7 +64,7 @@ interface ShotsStore {
   save: () => Promise<void>;
   clean: (serverId: string) => Promise<void>;
   remove: (serverId: string, path: string) => Promise<void>;
-  openGallery: (serverId: string) => Promise<void>;
+  openGallery: () => Promise<void>;
   forget: () => void;
 }
 
@@ -133,9 +139,25 @@ function keepListedThumbnails(
   return kept;
 }
 
+function listed(state: ShotsState): Shot[] {
+  return state.status === "read" ? state.shots : [];
+}
+
+// The capture that takes the place of one about to go: the next in the folder, else the one before.
+function neighbour(shots: readonly Shot[], path: string): Shot | null {
+  const at = shots.findIndex((shot) => shot.path === path);
+
+  if (at === -1) {
+    return null;
+  }
+
+  return shots[at + 1] ?? shots[at - 1] ?? null;
+}
+
 export const useShots = create<ShotsStore>((set, get) => ({
+  address: null,
   cleaning: false,
-  gallery: null,
+  folder: ALL_SHOTS,
   problem: null,
   removed: null,
   removing: null,
@@ -151,13 +173,17 @@ export const useShots = create<ShotsStore>((set, get) => ({
     if (current.status === "idle" || current.serverId !== serverId) {
       revokeAll(get().thumbnails);
       set({
-        gallery: null,
+        address: null,
+        folder: ALL_SHOTS,
         state: { serverId, status: "loading" },
         thumbnails: {},
       });
     }
 
-    const answer = await call<ShotsListResult>(serverId, "shots.list");
+    const [answer, address] = await Promise.all([
+      call<ShotsListResult>(serverId, "shots.list"),
+      call<ShotsUrlResult>(serverId, "shots.url"),
+    ]);
 
     if (!answer.ok) {
       set({
@@ -168,13 +194,24 @@ export const useShots = create<ShotsStore>((set, get) => ({
       return;
     }
 
-    const kept = keepListedThumbnails(get().thumbnails, answer.result.shots);
+    const { shots } = answer.result;
+    const { folder } = get();
+    const kept = keepListedThumbnails(get().thumbnails, shots);
 
     set({
+      address: address.ok ? address.result : null,
+      folder:
+        folder === ALL_SHOTS || shots.some((shot) => folderOf(shot) === folder)
+          ? folder
+          : ALL_SHOTS,
       removed: null,
-      state: { serverId, shots: answer.result.shots, status: "read" },
+      state: { serverId, shots, status: "read" },
       thumbnails: kept,
     });
+  },
+
+  choose(folder) {
+    set({ folder });
   },
 
   async readThumbnail(serverId, shot) {
@@ -228,15 +265,13 @@ export const useShots = create<ShotsStore>((set, get) => ({
   async remove(serverId, path) {
     set({ problem: null, removing: path });
 
+    const { state, view, folder } = get();
+    const shown = view.status !== "idle" && view.shot.path === path;
+    const next = shown ? neighbour(shotsIn(listed(state), folder), path) : null;
+
     const answer = await call<ShotsCleanResult>(serverId, "shots.clean", {
       path,
     });
-
-    const { view } = get();
-
-    if (answer.ok && view.status !== "idle" && view.shot.path === path) {
-      get().hide();
-    }
 
     set({ problem: answer.ok ? null : answer.error, removing: null });
 
@@ -245,20 +280,24 @@ export const useShots = create<ShotsStore>((set, get) => ({
     if (answer.ok) {
       set({ removed: answer.result.removed });
     }
-  },
 
-  async openGallery(serverId) {
-    const answer = await call<ShotsUrlResult>(serverId, "shots.url");
-
-    if (!answer.ok) {
-      set({ problem: answer.error });
-
+    if (!(answer.ok && shown)) {
       return;
     }
 
-    set({ gallery: answer.result.url, problem: null });
+    if (next) {
+      await get().show(serverId, next);
+    } else {
+      get().hide();
+    }
+  },
 
-    await window.pupitre.openUrl(answer.result.url);
+  async openGallery() {
+    const { address } = get();
+
+    if (address?.exposed) {
+      await window.pupitre.openUrl(address.url);
+    }
   },
 
   async show(serverId, shot) {
@@ -298,14 +337,15 @@ export const useShots = create<ShotsStore>((set, get) => ({
   },
 
   async step(serverId, direction) {
-    const { state, view } = get();
+    const { state, view, folder } = get();
 
-    if (state.status !== "read" || view.status === "idle") {
+    if (view.status === "idle") {
       return;
     }
 
-    const at = state.shots.findIndex((shot) => shot.path === view.shot.path);
-    const next = state.shots[at + direction];
+    const shots = shotsIn(listed(state), folder);
+    const at = shots.findIndex((shot) => shot.path === view.shot.path);
+    const next = shots[at + direction];
 
     if (at !== -1 && next) {
       await get().show(serverId, next);
@@ -354,8 +394,9 @@ export const useShots = create<ShotsStore>((set, get) => ({
     get().hide();
     revokeAll(get().thumbnails);
     set({
+      address: null,
       cleaning: false,
-      gallery: null,
+      folder: ALL_SHOTS,
       problem: null,
       removed: null,
       removing: null,
@@ -366,6 +407,51 @@ export const useShots = create<ShotsStore>((set, get) => ({
     });
   },
 }));
+
+// An agent that did not sort captures yet names no project: its captures read as unfiled.
+export function folderOf(shot: Shot): string {
+  return shot.project ?? UNFILED;
+}
+
+export function shotsIn(shots: readonly Shot[], folder: string): Shot[] {
+  return folder === ALL_SHOTS
+    ? [...shots]
+    : shots.filter((shot) => folderOf(shot) === folder);
+}
+
+export function shotFolders(
+  shots: readonly Shot[]
+): readonly { folder: string; count: number }[] {
+  const counts = new Map<string, number>();
+
+  for (const shot of shots) {
+    const folder = folderOf(shot);
+    counts.set(folder, (counts.get(folder) ?? 0) + 1);
+  }
+
+  return [...counts]
+    .map(([folder, count]) => ({ count, folder }))
+    .sort((a, b) => {
+      if (a.folder === UNFILED || b.folder === UNFILED) {
+        return a.folder === UNFILED ? 1 : -1;
+      }
+
+      return a.folder.localeCompare(b.folder);
+    });
+}
+
+export function publicAddress(
+  address: ShotsUrlResult | null,
+  shot: Shot
+): string | null {
+  if (!address?.exposed) {
+    return null;
+  }
+
+  const path = shot.path.split("/").map(encodeURIComponent).join("/");
+
+  return `${address.url}/${path}`;
+}
 
 export function shotsByDay(
   shots: readonly Shot[]
@@ -386,7 +472,7 @@ export function shotsByDay(
   return [...groups].map(([day, held]) => ({ day, shots: held }));
 }
 
-const DAY = /^(\d{4}-\d{2}-\d{2})\//;
+const DAY = /(?:^|\/)(\d{4}-\d{2}-\d{2})\//;
 
 export function shotDay(shot: Shot): string {
   const fromPath = DAY.exec(shot.path)?.[1];

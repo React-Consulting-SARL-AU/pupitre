@@ -114,10 +114,16 @@ func TestAShotShowsUpInTheGallery(t *testing.T) {
 		t.Fatalf("shots.list must show the capture: %+v", shots.Shots)
 	}
 
-	served := ssh(t, dev, "curl", "-fsS", "http://127.0.0.1:8099/")
-	if !strings.Contains(served, shots.Shots[0].Path[:10]) {
-		t.Fatalf("the gallery must serve the day of the capture:\n%s", served)
+	if shots.Shots[0].Project != nil || !strings.HasPrefix(shots.Shots[0].Path, "_unfiled/") {
+		t.Fatalf("a capture taken outside any project is filed apart: %+v", shots.Shots[0])
 	}
+
+	served := ssh(t, dev, "curl", "-fsS", "http://127.0.0.1:8099/")
+	if !strings.Contains(served, `href="/_unfiled"`) {
+		t.Fatalf("the gallery must list the folder of the capture:\n%s", served)
+	}
+
+	ssh(t, dev, "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8099/"+shots.Shots[0].Path)
 }
 
 func TestOpeningAnAgentGivesTheTmuxCommand(t *testing.T) {

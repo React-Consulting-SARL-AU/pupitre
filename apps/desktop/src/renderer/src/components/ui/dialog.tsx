@@ -1,11 +1,12 @@
 import { Dialog as Base } from "@base-ui-components/react/dialog";
 import type { ReactNode, RefObject } from "react";
 
+// Above the gallery's full-screen viewer (z-20), below menus and tooltips (z-50).
 export const DIALOG_BACKDROP =
-  "fixed inset-0 bg-base/60 transition-pop data-[ending-style]:opacity-0 data-[starting-style]:opacity-0";
+  "fixed inset-0 z-30 bg-base/60 transition-pop data-[ending-style]:opacity-0 data-[starting-style]:opacity-0";
 
 export const DIALOG_POPUP =
-  "elevation-overlay fixed top-1/2 left-1/2 flex max-h-[calc(100vh-4rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-5 rounded-lg border border-line bg-surface p-6 outline-none transition-pop data-[ending-style]:opacity-0 data-[ending-style]:scale-[0.98] data-[starting-style]:opacity-0 data-[starting-style]:scale-[0.98]";
+  "elevation-overlay fixed top-1/2 left-1/2 z-30 flex max-h-[calc(100vh-4rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-5 rounded-lg border border-line bg-surface p-6 outline-none transition-pop data-[ending-style]:opacity-0 data-[ending-style]:scale-[0.98] data-[starting-style]:opacity-0 data-[starting-style]:scale-[0.98]";
 
 export const DIALOG_TITLE = "font-semibold text-heading text-ink";
 

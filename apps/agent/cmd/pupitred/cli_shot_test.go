@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"reflect"
 	"strings"
 	"testing"
@@ -33,47 +34,102 @@ func TestShotReadsItsOptions(t *testing.T) {
 		t.Fatalf("request = %+v, want %+v", request, want)
 	}
 
+	request, _, _ = parseShot([]string{"--project", "web", "out.png"})
+	want = shots.Request{Source: "out.png", Project: "web"}
+	if request != want {
+		t.Fatalf("request = %+v, want %+v", request, want)
+	}
+
 	if _, list, _ := parseShot([]string{"--list"}); !list {
 		t.Error("--list must be recognised")
 	}
 
-	for _, args := range [][]string{{}, {"--size"}, {"--wait", "soon"}, {"--zoom", "2"}} {
+	for _, args := range [][]string{{}, {"--size"}, {"--wait", "soon"}, {"--zoom", "2"}, {"--project"}} {
 		if _, _, err := parseShot(args); err == nil {
 			t.Errorf("%v must be refused", args)
 		}
 	}
 }
 
-func TestShotPrintsTheUrlLastAndThePathAside(t *testing.T) {
+type agentAnswers map[string]any
+
+func (a agentAnswers) Call(cmd string, _ any, _ func(string, map[string]any)) (any, error) {
+	answer, known := a[cmd]
+	if !known {
+		return nil, errors.New("refused: " + cmd)
+	}
+
+	return answer, nil
+}
+
+func shotReader() *state.Reader {
 	fake := modtest.NewFakeSys()
 	fake.Files[shots.Browsers[0]] = []byte("chrome")
 
-	reader := state.New(state.Options{
+	return state.New(state.Options{
 		Sys:   fake,
 		Now:   func() time.Time { return modtest.Epoch },
 		Shots: state.ShotOptions{Dir: shots.Dir},
 	})
+}
+
+var exposedAgent = agentAnswers{
+	"project.list": map[string]any{"projects": []map[string]any{
+		{"name": "web", "path": "/home/dev/projects/web", "processes": []map[string]any{{"host": "127.0.0.1", "port": 3000}}},
+	}},
+	"shots.url": map[string]any{"url": "https://shots.flyleaf.dev/abc123", "exposed": true},
+}
+
+func TestShotPrintsThePublicUrlLastAndThePathAside(t *testing.T) {
+	reader := shotReader()
 
 	var stdout, stderr bytes.Buffer
-	if code := runShot(reader, []string{"https://example.org"}, &stdout, &stderr); code != 0 {
+	if code := runShot(reader, exposedAgent, "/home/dev/projects/web/src", []string{"https://example.org"}, &stdout, &stderr); code != 0 {
 		t.Fatalf("code %d, stderr: %s", code, stderr.String())
 	}
 
-	if !strings.HasSuffix(strings.TrimSpace(stdout.String()), ".png") || !strings.HasPrefix(stdout.String(), "http") {
-		t.Fatalf("the last line printed is the URL: %q", stdout.String())
+	if got := strings.TrimSpace(stdout.String()); got != "https://shots.flyleaf.dev/abc123/web/2026-09-04/example-org-120000.png" {
+		t.Fatalf("the last line printed is the public URL, under the project of the folder: %q", got)
 	}
 
-	if !strings.Contains(stderr.String(), shots.Dir) {
+	if !strings.Contains(stderr.String(), shots.Dir+"/web/") {
 		t.Fatalf("the local path goes to the error output: %q", stderr.String())
 	}
 
 	stdout.Reset()
 
-	if code := runShot(reader, []string{"--list"}, &stdout, &stderr); code != 0 {
+	if code := runShot(reader, exposedAgent, "/", []string{"--list"}, &stdout, &stderr); code != 0 {
 		t.Fatalf("code %d", code)
 	}
 
-	if !strings.Contains(stdout.String(), "2026-09-04/") {
+	if !strings.Contains(stdout.String(), "web/2026-09-04/") {
 		t.Fatalf("--list shows the gallery: %q", stdout.String())
+	}
+}
+
+func TestShotStillCapturesWhenTheAgentCannotBeAsked(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+	if code := runShot(shotReader(), agentAnswers{}, "/home/dev", []string{"https://example.org"}, &stdout, &stderr); code != 0 {
+		t.Fatalf("code %d, stderr: %s", code, stderr.String())
+	}
+
+	if got := strings.TrimSpace(stdout.String()); got != "http://127.0.0.1:8099/_unfiled/2026-09-04/example-org-120000.png" {
+		t.Fatalf("got %q", got)
+	}
+}
+
+func TestShotRefusesAProjectItCannotVouchFor(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+
+	if code := runShot(shotReader(), exposedAgent, "/", []string{"--project", "../etc", "https://example.org"}, &stdout, &stderr); code != 1 {
+		t.Fatalf("an unknown project is refused, code %d", code)
+	}
+
+	if code := runShot(shotReader(), agentAnswers{}, "/", []string{"-p", "web", "https://example.org"}, &stdout, &stderr); code != 1 {
+		t.Fatalf("a named project the agent cannot confirm is refused, code %d", code)
+	}
+
+	if stdout.Len() != 0 {
+		t.Fatalf("a refused capture prints no URL: %q", stdout.String())
 	}
 }

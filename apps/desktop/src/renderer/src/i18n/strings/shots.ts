@@ -2,6 +2,21 @@ export const shots = {
   en: {
     "shots.title": "Gallery",
     "shots.openGallery": "Open the gallery",
+    "shots.publish": "Publish the gallery",
+    "shots.folders": "Folders of the gallery",
+    "shots.folder.all": "All",
+    "shots.folder.unfiled": "Unfiled",
+    "shots.zoomActual": "Actual size",
+    "shots.zoomFit": "Fit to the window",
+    "shots.stripLabel": "Screenshots of the folder",
+    "shots.detailsLabel": "About the screenshot",
+    "shots.details.project": "Project",
+    "shots.details.taken": "Taken",
+    "shots.details.image": "Image",
+    "shots.details.path": "On the server",
+    "shots.details.url": "Public address",
+    "shots.details.private":
+      "None: the gallery answers on the server only. Give it a subdomain in Services › Browser and gallery.",
     "shots.clear": "Empty the gallery",
     "shots.clearConfirm": "Empty",
     "shots.clearQuestion":
@@ -47,6 +62,21 @@ export const shots = {
   fr: {
     "shots.title": "Galerie",
     "shots.openGallery": "Ouvrir la galerie",
+    "shots.publish": "Publier la galerie",
+    "shots.folders": "Dossiers de la galerie",
+    "shots.folder.all": "Toutes",
+    "shots.folder.unfiled": "Sans projet",
+    "shots.zoomActual": "Taille réelle",
+    "shots.zoomFit": "Ajuster à la fenêtre",
+    "shots.stripLabel": "Captures du dossier",
+    "shots.detailsLabel": "À propos de la capture",
+    "shots.details.project": "Projet",
+    "shots.details.taken": "Prise",
+    "shots.details.image": "Image",
+    "shots.details.path": "Sur le serveur",
+    "shots.details.url": "Adresse publique",
+    "shots.details.private":
+      "Aucune : la galerie ne répond que sur le serveur. Donnez-lui un sous-domaine dans Services › Navigateur et galerie.",
     "shots.clear": "Vider la galerie",
     "shots.clearConfirm": "Vider",
     "shots.clearQuestion":

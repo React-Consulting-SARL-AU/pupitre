@@ -100,7 +100,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	case devcli.Command:
 		return runDev(newEngine(), args[1:], stdout, stderr)
 	case shots.Command:
-		return runShot(state.FromEngine(newEngine(), stateOptions()), args[1:], stdout, stderr)
+		return runShotCommand(newEngine(), args[1:], stdout, stderr)
 	case "resume":
 		engine := newEngine()
 		migrator := newMigrator(engine)
