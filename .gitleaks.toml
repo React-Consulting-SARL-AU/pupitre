@@ -16,4 +16,5 @@ regexes = [
   '''pupitre\.navigation\.v\d+''',
   '''pupitre-key-approval-v\d+''',
   '''2596A99EAAB33821893C0A79458CA832957F5868''',
+  '''5f0c2a9e41d7b3386e2c1f0a9b8d7e6c''',
 ]
