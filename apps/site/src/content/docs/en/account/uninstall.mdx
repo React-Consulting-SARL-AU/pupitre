@@ -13,6 +13,8 @@ Four pieces, each removed on its own. To remove everything, take them in this or
 
 The app's data folder holds the only copy of the private key it made for each server you added. Delete the folder and that key is gone for good. Before you remove the app, make sure something else opens `dev` on each server you keep — a key of your own in `/home/dev/.ssh/authorized_keys`, or your host's console — or finish with the server first.
 
+The same goes for `dev`'s sudo password, which the app keeps in the computer's keychain: once the agent is removed, it is the only way to root on a hardened server. Copy it from the server's card, in **Settings › Servers**, before you delete the server or remove the app. Lost, it is set again from the host's console with `passwd dev`.
+
 ## The server in the console
 
 **Servers**, the server, then **Delete the server**; it takes an admin or the owner of the organisation. The server turns revoked:
@@ -31,26 +33,35 @@ Uninstalling the app does not revoke the computer, and neither does **Sign out**
 
 ## The agent on the server
 
-`pupitred` has no uninstall command. On the server, through `sudo`:
+On the server, as `dev`:
 
 ```bash
-sudo systemctl disable --now pupitred
-sudo systemctl disable pupitre-resume
-sudo rm /etc/systemd/system/pupitred.service /etc/systemd/system/pupitre-resume.service
-sudo systemctl daemon-reload
-sudo rm /usr/local/bin/pupitred /usr/local/bin/dev
-sudo rm /var/log/pupitre.log
-sudo rm -r /var/lib/pupitre
+sudo pupitred uninstall
 ```
 
-`pupitre-resume` brings projects back after a boot, and the projects it started live in its `tmux` server: disable it without `--now`, and they keep running until the next reboot, after which nothing starts them. `pupitred` is the agent's own service — the platform reads, the keys, the scheduled backups; they stop with it. `/var/lib/pupitre` holds its state: the cached usage right, the last install report, where the backups stand, the copies taken before a configuration migration.
+On a server hardened with a password, `sudo` asks for `dev`'s. The command lists what it removes and what it keeps, then asks for confirmation; `--yes` skips the question, and is required when no terminal is attached. It does not contact the platform.
 
-`/etc/pupitre` holds the agent's configuration, and in `/etc/pupitre/env` the passwords and tokens of your services — database passwords, tunnel token, API keys. Copy what you still need somewhere safe before deleting the folder.
+It removes:
+
+- the `pupitred` service: stopped, disabled, its unit deleted. It is the agent's own service — the platform reads, the keys, the scheduled backups; they stop with it;
+- the `pupitre-resume` service: disabled and its unit deleted, but not stopped. It brings projects back after a boot, and the projects it started live in its `tmux` server: they keep running until the next reboot, after which nothing starts them;
+- `pupitre-shots`, the screenshot gallery, when it is there: stopped, disabled, its unit deleted;
+- `/usr/local/bin/pupitred`, and the `dev` and `shot` commands in `/usr/local/bin`, which are links to it;
+- in `/etc/sudoers.d/90-dev`, the two lines that let `pupitred` run without a password: `dev` keeps `sudo` on its password. The new rule is checked by `visudo` before it replaces the old one. A server hardened before the password keeps its passwordless rule as it is;
+- `/etc/pupitre`, except `/etc/pupitre/env`;
+- `/var/lib/pupitre`, the agent's state: the cached usage right, the last install report, where the backups stand, the copies taken before a configuration migration;
+- `/var/log/pupitre.log`, its rotated copies, and their rotation in `/etc/logrotate.d/pupitre`.
+
+`/etc/pupitre/env` stays, readable by root only: it holds the passwords and tokens of your services — database passwords, tunnel token, API keys — and nowhere else keeps them. Copy what you still need somewhere safe, then delete it if you wish:
 
 ```bash
 sudo cat /etc/pupitre/env
 sudo rm -r /etc/pupitre
 ```
+
+When a step fails, the others still run, and the summary gives the command that finishes it by hand; `pupitred` itself is then kept, so the command can run again. Run on a server where nothing is left, it says so and changes nothing.
+
+The server's seat is freed only by [deleting the server](#the-server-in-the-console), in the app or the console.
 
 ## What stays on the server
 
@@ -58,6 +69,7 @@ Everything Pupitre installed is ordinary Ubuntu, and keeps running without the a
 
 - the packages and their `systemd` services — PostgreSQL, Redis, Caddy, `cloudflared`, and the `pupitre-…` services some modules add, such as `pupitre-mailpit`;
 - the `dev` user, its sudo rule in `/etc/sudoers.d/90-dev` — the password the hardening gave it, or the passwordless sudo of a server hardened before that —, its shell, and your projects under `/home/dev`;
+- every key in `dev`'s `authorized_keys`, the device-key block included: the agent's removal never closes the door behind you;
 - the databases and their data;
 - the `.localhost` names of your projects, in a `# >>> pupitre projects >>>` block of `/etc/hosts`;
 - the system settings: `/etc/sysctl.d/99-pupitre.conf`, and the automatic security updates of `/etc/apt/apt.conf.d/52pupitre`.

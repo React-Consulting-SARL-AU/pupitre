@@ -15,11 +15,7 @@ import (
 	"pupitre.studio/agent/internal/sys/file"
 )
 
-const (
-	shadowPath = "/etc/shadow"
-	// sudo skips sudoers.d names holding a dot, so the candidate is checked there without being read as a rule.
-	sudoCandidatePath = "/etc/sudoers.d/.90-dev.pupitre"
-)
+const shadowPath = "/etc/shadow"
 
 var sshPasswordKeys = []string{"passwordauthentication", "kbdinteractiveauthentication", "challengeresponseauthentication"}
 
@@ -210,17 +206,11 @@ func restrictSudo(ctx *modules.Context) error {
 			return modules.Skipped, nil
 		}
 
-		defer file.Remove(ctx, sudoCandidatePath)
-
-		if err := file.WriteAtomic(ctx, sudoCandidatePath, []byte(sudo.Restricted), 0o440); err != nil {
+		if err := sudo.Write(ctx, sudo.Restricted); err != nil {
 			return modules.Failed, err
 		}
 
-		if _, err := sys.Exec(ctx, sys.Command{Argv: []string{"visudo", "-c", "-f", sudoCandidatePath}}); err != nil {
-			return modules.Failed, err
-		}
-
-		return modules.Done, file.WriteAtomic(ctx, sudo.Path, []byte(sudo.Restricted), 0o440)
+		return modules.Done, nil
 	})
 }
 

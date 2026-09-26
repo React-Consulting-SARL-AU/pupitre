@@ -13,6 +13,8 @@ Quatre morceaux, chacun se retire seul. Pour tout retirer, prenez-les dans cet o
 
 Le dossier de données de l’app porte la seule copie de la clé privée qu’elle a faite pour chaque serveur que vous avez ajouté. Supprimez le dossier et cette clé est perdue pour de bon. Avant de retirer l’app, assurez-vous qu’autre chose ouvre `dev` sur chaque serveur que vous gardez — une clé à vous dans `/home/dev/.ssh/authorized_keys`, ou la console de votre hébergeur — ou finissez d’abord avec le serveur.
 
+Il en va de même du mot de passe sudo de `dev`, que l’app garde dans le trousseau de l’ordinateur : une fois l’agent retiré, c’est le seul chemin vers root sur un serveur sécurisé. Copiez-le depuis la carte du serveur, dans **Réglages › Serveurs**, avant de supprimer le serveur ou de retirer l’app. Perdu, il se redéfinit depuis la console de l’hébergeur avec `passwd dev`.
+
 ## Le serveur dans la console
 
 **Serveurs**, le serveur, puis **Supprimer le serveur** ; il faut être admin ou propriétaire de l’organisation. Le serveur passe en révoqué :
@@ -31,26 +33,35 @@ Désinstaller l’app ne révoque pas l’ordinateur, pas plus que **Se déconne
 
 ## L’agent sur le serveur
 
-`pupitred` n’a pas de commande de désinstallation. Sur le serveur, par `sudo` :
+Sur le serveur, en `dev` :
 
 ```bash
-sudo systemctl disable --now pupitred
-sudo systemctl disable pupitre-resume
-sudo rm /etc/systemd/system/pupitred.service /etc/systemd/system/pupitre-resume.service
-sudo systemctl daemon-reload
-sudo rm /usr/local/bin/pupitred /usr/local/bin/dev
-sudo rm /var/log/pupitre.log
-sudo rm -r /var/lib/pupitre
+sudo pupitred uninstall
 ```
 
-`pupitre-resume` relance les projets après un redémarrage, et les projets qu’il a lancés vivent dans son serveur `tmux` : désactivez-le sans `--now`, et ils continuent de tourner jusqu’au prochain redémarrage, après quoi plus rien ne les lance. `pupitred` est le service propre de l’agent — les lectures de la plateforme, les clés, les sauvegardes programmées ; elles s’arrêtent avec lui. `/var/lib/pupitre` porte son état : le droit d’usage en cache, le rapport de la dernière installation, où en sont les sauvegardes, les copies prises avant une migration de configuration.
+Sur un serveur sécurisé avec un mot de passe, `sudo` demande celui de `dev`. La commande liste ce qu’elle retire et ce qu’elle garde, puis demande confirmation ; `--yes` saute la question, et il est requis quand aucun terminal n’est attaché. Elle ne contacte pas la plateforme.
 
-`/etc/pupitre` porte la configuration de l’agent, et dans `/etc/pupitre/env` les mots de passe et tokens de vos services — mots de passe des bases, token du tunnel, clés d’API. Copiez ce dont vous avez encore besoin en lieu sûr avant de supprimer le dossier.
+Elle retire :
+
+- le service `pupitred` : arrêté, désactivé, son unité supprimée. C’est le service propre de l’agent — les lectures de la plateforme, les clés, les sauvegardes programmées ; elles s’arrêtent avec lui ;
+- le service `pupitre-resume` : désactivé et son unité supprimée, mais pas arrêté. Il relance les projets après un redémarrage, et les projets qu’il a lancés vivent dans son serveur `tmux` : ils continuent de tourner jusqu’au prochain redémarrage, après quoi plus rien ne les lance ;
+- `pupitre-shots`, la galerie de captures, s’il est là : arrêté, désactivé, son unité supprimée ;
+- `/usr/local/bin/pupitred`, et les commandes `dev` et `shot` de `/usr/local/bin`, qui sont des liens vers lui ;
+- dans `/etc/sudoers.d/90-dev`, les deux lignes qui laissent `pupitred` tourner sans mot de passe : `dev` garde `sudo` sur son mot de passe. La nouvelle règle est vérifiée par `visudo` avant de remplacer l’ancienne. Un serveur sécurisé avant le mot de passe garde sa règle sans mot de passe telle quelle ;
+- `/etc/pupitre`, sauf `/etc/pupitre/env` ;
+- `/var/lib/pupitre`, l’état de l’agent : le droit d’usage en cache, le rapport de la dernière installation, où en sont les sauvegardes, les copies prises avant une migration de configuration ;
+- `/var/log/pupitre.log`, ses copies tournées, et leur rotation dans `/etc/logrotate.d/pupitre`.
+
+`/etc/pupitre/env` reste, lisible par root seul : il porte les mots de passe et tokens de vos services — mots de passe des bases, token du tunnel, clés d’API — et rien d’autre ne les garde. Copiez ce dont vous avez encore besoin en lieu sûr, puis supprimez-le si vous le souhaitez :
 
 ```bash
 sudo cat /etc/pupitre/env
 sudo rm -r /etc/pupitre
 ```
+
+Quand une étape échoue, les autres tournent quand même, et le bilan donne la commande qui la finit à la main ; `pupitred` est alors gardé, pour relancer la commande. Lancée sur un serveur où il ne reste rien, elle le dit et ne change rien.
+
+Le siège du serveur ne se libère qu’en [supprimant le serveur](#le-serveur-dans-la-console), dans l’app ou la console.
 
 ## Ce qui reste sur le serveur
 
@@ -58,6 +69,7 @@ Tout ce que Pupitre a installé est de l’Ubuntu ordinaire, et continue de tour
 
 - les paquets et leurs services `systemd` — PostgreSQL, Redis, Caddy, `cloudflared`, et les services `pupitre-…` qu’ajoutent certains modules, comme `pupitre-mailpit` ;
 - l’utilisateur `dev`, sa règle sudo dans `/etc/sudoers.d/90-dev` — le mot de passe que la sécurisation lui a donné, ou le sudo sans mot de passe d’un serveur sécurisé avant —, son shell, et vos projets sous `/home/dev` ;
+- chaque clé de l’`authorized_keys` de `dev`, le bloc des clés d’appareil compris : retirer l’agent ne ferme jamais la porte derrière vous ;
 - les bases de données et leurs données ;
 - les noms `.localhost` de vos projets, dans un bloc `# >>> pupitre projects >>>` de `/etc/hosts` ;
 - les réglages système : `/etc/sysctl.d/99-pupitre.conf`, et les mises à jour de sécurité automatiques de `/etc/apt/apt.conf.d/52pupitre`.
