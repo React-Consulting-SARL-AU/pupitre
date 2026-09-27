@@ -12,6 +12,7 @@ import {
   sealInMemory,
   streamedCalls,
 } from "./harness/backups";
+import { openServerPage } from "./harness/controls";
 import { launchPupitre, type Running } from "./harness/launch";
 
 const SECRET_KEY = "fake-secret-access-key-of-the-harness";
@@ -64,9 +65,7 @@ test.describe("sauvegardes", () => {
   test("la mise en place garde le seau et la clé publique, jamais la phrase, puis active les sauvegardes", async () => {
     const { app, page } = running;
 
-    await page
-      .getByRole("button", { exact: true, name: "Sauvegardes" })
-      .click();
+    await openServerPage(page, "Sauvegardes");
 
     const setup = page.locator('[data-section="backup-setup"]');
     const next = setup.getByRole("button", { name: "Continuer" });
@@ -164,9 +163,7 @@ test.describe("sauvegardes", () => {
     await answerBackups(app, { docker: true });
     await markRunning(app, true);
     await page.getByRole("button", { name: "Services" }).click();
-    await page
-      .getByRole("button", { exact: true, name: "Sauvegardes" })
-      .click();
+    await openServerPage(page, "Sauvegardes");
 
     await test.step("le tableau de bord montre ce qui tourne, la dernière et la prochaine", async () => {
       await expect(
@@ -319,9 +316,7 @@ test.describe("sauvegardes", () => {
 
     await answerBackups(app, { docker: true });
     await page.getByRole("button", { name: "Services" }).click();
-    await page
-      .getByRole("button", { exact: true, name: "Sauvegardes" })
-      .click();
+    await openServerPage(page, "Sauvegardes");
     await page.getByRole("tab", { name: "Destination" }).click();
 
     const destination = page.locator('[data-section="backup-destination"]');

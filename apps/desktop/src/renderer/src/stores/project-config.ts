@@ -22,6 +22,7 @@ import {
 import {
   addedProcess,
   followProcesses,
+  type ProcessAccess,
   type ProcessDraft,
   type ProcessProblem,
   processesFromProject,
@@ -39,6 +40,7 @@ export interface ConfigDraft {
   /** A tool left out runs at the machine's default version. */
   runtimes: ProjectRuntimes;
   processes: ProcessDraft[];
+  protected: boolean;
 }
 
 export type ConfigState =
@@ -75,6 +77,10 @@ interface ProjectConfigStore {
   setProcessPkgmgr: (process: number, value: PackageManager) => void;
   setProcessCmd: (process: number, value: string) => void;
   setProcessInstall: (process: number, value: string) => void;
+  setProtected: (value: boolean) => void;
+  setProcessAccess: (process: number, value: ProcessAccess) => void;
+  /** False for an agent that has no access gate: nothing about protection is sent to it. */
+  gated: () => boolean;
   setRowLabel: (process: number, row: number, value: string) => void;
   setRowPort: (process: number, row: number, value: number) => void;
   setRowPublish: (process: number, row: number, value: boolean) => void;
@@ -100,6 +106,7 @@ const EMPTY_DRAFT: ConfigDraft = {
   boot: false,
   branch: "",
   processes: [],
+  protected: true,
   runtimes: {},
 };
 
@@ -139,6 +146,7 @@ function draftFrom(project: Project): ConfigDraft {
     boot: project.boot === true,
     branch: project.branch ?? "",
     processes: processesFromProject(project),
+    protected: project.protected !== false,
     runtimes: { ...(project.runtimes ?? {}) },
   };
 }
@@ -230,6 +238,20 @@ export const useProjectConfig = create<ProjectConfigStore>((set, get) => {
       editProcesses(
         atProcess(get().draft.processes, process, { install: value })
       );
+    },
+
+    setProtected(value) {
+      edit({ protected: value });
+    },
+
+    setProcessAccess(process, value) {
+      editProcesses(
+        atProcess(get().draft.processes, process, { access: value })
+      );
+    },
+
+    gated() {
+      return get().project?.protected !== undefined;
     },
 
     setRowLabel(process, row, value) {
@@ -390,6 +412,10 @@ export const useProjectConfig = create<ProjectConfigStore>((set, get) => {
           : {}),
         ...(project && !sameRuntimes(draft.runtimes, project.runtimes ?? {})
           ? { runtimes: draft.runtimes }
+          : {}),
+        ...(project?.protected !== undefined &&
+        draft.protected !== project.protected
+          ? { protected: draft.protected }
           : {}),
         processes: processPatches(draft.processes, exposure),
       };

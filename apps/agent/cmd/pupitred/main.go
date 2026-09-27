@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"pupitre.studio/agent/internal/access"
 	"pupitre.studio/agent/internal/backup"
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/daemon"
@@ -109,6 +110,8 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return runResume(state.FromEngine(engine, stateOptions()), migrator.State(), stdout)
 	case "gallery":
 		return runGallery(args[1:], stderr)
+	case gateCommand:
+		return runGate(args[1:], stderr)
 	case "backup":
 		return runBackup(args[1:], stdin, stdout, stderr)
 	case "binary":
@@ -127,7 +130,7 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 }
 
 func usage(stderr io.Writer) {
-	fmt.Fprintln(stderr, "usage: pupitred <serve [--privileged]|daemon|enroll|install [--only=id,id] [--skip=id,id]|migrate [--status] [--restore=NAME]|probe [--script] [--projects=DIR]|report|resume|env|dev|shot|gallery|backup open [--salt=B64|--private-key] FILE|keys reset --key KEY|FILE.pub|uninstall [--yes]|binary install [--privileged] [--allow-downgrade] < HEADER+FILE|version [--json]>")
+	fmt.Fprintln(stderr, "usage: pupitred <serve [--privileged]|daemon|enroll|install [--only=id,id] [--skip=id,id]|migrate [--status] [--restore=NAME]|probe [--script] [--projects=DIR]|report|resume|env|dev|shot|gallery|gate|backup open [--salt=B64|--private-key] FILE|keys reset --key KEY|FILE.pub|uninstall [--yes]|binary install [--privileged] [--allow-downgrade] < HEADER+FILE|version [--json]>")
 }
 
 // The agent that upgrades to this binary asks it which protocol to greet it in.
@@ -181,6 +184,11 @@ func newServer(engine *modules.Engine, limited bool) *protocol.Server {
 	daemon.RegisterCommands(server, daemonOptions(engine))
 	state.RegisterCommands(server, reader)
 	backup.RegisterCommands(server, backups)
+	access.RegisterCommands(server, access.New(access.Options{
+		Ctx:  unjournaled{sys: engine.Sys},
+		Lock: pathFromEnv("PUPITRE_ACCESS_LOCK_PATH", access.DefaultLockPath),
+		Now:  engine.Now,
+	}))
 
 	return server
 }

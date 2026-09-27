@@ -1,0 +1,88 @@
+---
+title: Accès aux adresses
+description: Qui peut ouvrir un projet publié, les clés d’accès, et comment un navigateur, une app ou un script les présentent.
+locale: fr
+section: daily
+sectionOrder: 2
+order: 11
+---
+
+Une adresse publiée par `exposure.cloudflare` ou `exposure.caddy` ne s’ouvre qu’avec une clé d’accès. Sans clé, un navigateur tombe sur une page de connexion, et un client d’API reçoit un `401`. Le projet que vous avez en cours n’est pas visible par qui devine son adresse.
+
+## Ce qui est protégé
+
+Un projet est protégé dès qu’il est déclaré. Un projet publié avant cette version l’est aussi, depuis la mise à jour de l’agent.
+
+Dans l’app, l’onglet **Configuration › Accès** du projet règle deux choses :
+
+- **Protéger le projet** : l’interrupteur qui vaut pour tous ses processus.
+- **Chaque processus** : il suit le projet, ou reste toujours protégé, ou toujours public. « Toujours public » est fait pour un récepteur de webhooks : Stripe ou GitHub n’envoient pas de clé, et le processus vérifie la signature de leurs requêtes lui-même.
+
+Ouvrir un projet ou un processus à tous demande votre mot de passe sudo. Un agent de code qui tourne en `dev` ne peut donc pas lever la protection de lui-même.
+
+## Les clés
+
+Une clé ressemble à `ppk_` suivi de deux suites de lettres et de chiffres. Elle ouvre soit tout le serveur, y compris les projets ajoutés plus tard, soit une liste de projets.
+
+- **La clé de cet ordinateur.** L’app la tire la première fois que vous ouvrez une adresse protégée, et l’ajoute ensuite à chaque adresse qu’elle ouvre. Vous n’avez rien à faire.
+- **Les clés que vous créez.** Pour un simulateur iOS, un script, un collègue ou la recette d’un client : **Nouvelle clé** dans l’onglet Accès d’un projet, ou dans la page **Accès** du serveur.
+
+Une clé n’expire pas. Plusieurs personnes peuvent en partager une. **Révoquer** la coupe pour tous à leur requête suivante, sans rien redémarrer. Pour distinguer deux personnes, donnez-leur deux clés.
+
+L’app tire chaque clé sur votre ordinateur et la garde dans son trousseau. Le serveur n’en reçoit que l’empreinte. Une clé ne se copie donc que depuis l’ordinateur qui l’a créée : ailleurs, elle apparaît dans la liste, mais il faut en créer une autre pour la copier.
+
+## La présenter
+
+| Depuis | Comment |
+| --- | --- |
+| Un navigateur | Ouvrez une fois le lien copié. Le navigateur garde l’accès dans un cookie, renouvelé à chaque visite. |
+| Une app, un script, un outil d’API | L’en-tête `Pupitre-Key: ppk_…` sur chaque requête. |
+| Un WebSocket, un EventSource | Là où un en-tête ne se pose pas : le paramètre `?pupitre_key=ppk_…` dans l’adresse. |
+
+Par exemple, depuis un simulateur ou un terminal :
+
+```sh
+curl -H "Pupitre-Key: $PUPITRE_KEY" https://api-shop.exemple.fr/v1/cart
+```
+
+**Chemin et paramètres conservés**
+
+- Une adresse ouverte avec la clé dans ses paramètres est redirigée vers la même adresse sans ce seul paramètre : le chemin et les autres paramètres restent.
+- Sans clé, la page de connexion s’affiche à l’adresse demandée. Une fois la clé saisie, elle y revient, avec le chemin et les paramètres.
+
+## Ce que votre site voit
+
+**Ce qu’il ne voit jamais**
+- La clé, le paramètre et le cookie de Pupitre : ils sont retirés avant que la requête lui parvienne.
+- Rien ne change pour son propre en-tête `Authorization`, ses cookies et ses paramètres : ils ne rencontrent jamais ceux de Pupitre.
+
+**Ce qu’il reçoit en plus**
+- `Pupitre-Identity` : le nom de la clé qui a ouvert la requête, encodé comme dans une URL.
+- `X-Forwarded-Host` : le nom public qui a été demandé.
+- Un en-tête `Pupitre-Identity` envoyé par l’extérieur est toujours remplacé.
+
+**Les pré-vols CORS** (`OPTIONS`) passent sans clé : un navigateur ne sait pas en joindre une.
+
+## Depuis le serveur lui-même
+
+Un processus qui s’appelle lui-même, ou qui appelle un autre projet du serveur, passe par l’adresse locale :
+
+- `PUPITRE_LOCAL_URL` ;
+- `PUPITRE_PROCESS_<ID>_URL` d’un processus sans nom public.
+
+`PUPITRE_PUBLIC_URL` fait le tour par Internet et demande une clé comme n’importe quel client. Voir les [variables des projets](/fr/docs/daily/projects/).
+
+## Vérifier
+
+Depuis n’importe quelle machine, sans clé :
+
+```sh
+curl -sI https://votre-projet.exemple.fr
+```
+
+La réponse est `401`. Avec l’en-tête `Pupitre-Key`, c’est celle de votre site.
+
+Sur le serveur :
+
+- `systemctl status pupitre-gate` montre le portier ;
+- `sudo cat /etc/pupitre/gate/access.json` liste les clés, avec leurs empreintes et jamais les clés elles-mêmes.

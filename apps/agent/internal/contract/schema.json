@@ -617,6 +617,9 @@
               },
               "env_changed": {
                 "type": "boolean"
+              },
+              "protected": {
+                "type": "boolean"
               }
             },
             "required": [
@@ -670,6 +673,9 @@
         },
         "url": {
           "type": "string"
+        },
+        "protected": {
+          "type": "boolean"
         }
       },
       "required": [
@@ -2361,6 +2367,9 @@
                   ],
                   "additionalProperties": false
                 }
+              },
+              "protected": {
+                "type": "boolean"
               }
             },
             "required": [
@@ -2396,6 +2405,10 @@
             "type": "string",
             "pattern": "^[0-9]+(\\.[0-9]+)*$"
           }
+        },
+        "protected": {
+          "default": true,
+          "type": "boolean"
         }
       },
       "required": [
@@ -2536,6 +2549,9 @@
               },
               "env_changed": {
                 "type": "boolean"
+              },
+              "protected": {
+                "type": "boolean"
               }
             },
             "required": [
@@ -2589,6 +2605,9 @@
         },
         "url": {
           "type": "string"
+        },
+        "protected": {
+          "type": "boolean"
         },
         "warnings": {
           "type": "array",
@@ -2763,6 +2782,9 @@
                 "pattern": "^[0-9]+(\\.[0-9]+)*$"
               }
             },
+            "protected": {
+              "type": "boolean"
+            },
             "processes": {
               "minItems": 1,
               "type": "array",
@@ -2852,6 +2874,9 @@
                       ],
                       "additionalProperties": false
                     }
+                  },
+                  "protected": {
+                    "type": "boolean"
                   }
                 },
                 "required": [
@@ -3006,6 +3031,9 @@
               },
               "env_changed": {
                 "type": "boolean"
+              },
+              "protected": {
+                "type": "boolean"
               }
             },
             "required": [
@@ -3059,6 +3087,9 @@
         },
         "url": {
           "type": "string"
+        },
+        "protected": {
+          "type": "boolean"
         },
         "warnings": {
           "type": "array",
@@ -4832,6 +4863,9 @@
               },
               "project": {
                 "type": "string"
+              },
+              "protected": {
+                "type": "boolean"
               }
             },
             "required": [
@@ -4895,6 +4929,9 @@
               },
               "project": {
                 "type": "string"
+              },
+              "protected": {
+                "type": "boolean"
               }
             },
             "required": [
@@ -4958,6 +4995,9 @@
               },
               "project": {
                 "type": "string"
+              },
+              "protected": {
+                "type": "boolean"
               }
             },
             "required": [
@@ -4972,6 +5012,203 @@
         "installed",
         "state",
         "routes"
+      ]
+    },
+    "AccessListParams": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    },
+    "AccessListResult": {
+      "type": "object",
+      "properties": {
+        "keys": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AccessUpdateResult"
+          }
+        }
+      },
+      "required": [
+        "keys"
+      ]
+    },
+    "AccessCreateParams": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]{12}$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "projects": {
+          "anyOf": [
+            {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^[a-z0-9][a-z0-9._-]*$"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "hash",
+        "projects"
+      ],
+      "additionalProperties": false
+    },
+    "AccessCreateResult": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]{12}$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "projects": {
+          "anyOf": [
+            {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^[a-z0-9][a-z0-9._-]*$"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "created_at": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "projects",
+        "created_at"
+      ]
+    },
+    "AccessUpdateParams": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]{12}$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "projects": {
+          "anyOf": [
+            {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^[a-z0-9][a-z0-9._-]*$"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "AccessUpdateResult": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]{12}$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "projects": {
+          "anyOf": [
+            {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^[a-z0-9][a-z0-9._-]*$"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "created_at": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "projects",
+        "created_at"
+      ]
+    },
+    "AccessRevokeParams": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]{12}$"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "AccessRevokeResult": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]{12}$"
+        }
+      },
+      "required": [
+        "id"
       ]
     },
     "BackupStatusParams": {

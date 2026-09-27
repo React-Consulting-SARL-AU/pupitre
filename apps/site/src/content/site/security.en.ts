@@ -15,7 +15,7 @@ export const securityEn: SecurityContent = {
   },
   guarantees: {
     label: "Guarantees",
-    title: "Six claims, each one checkable",
+    title: "Seven claims, each one checkable",
     lead: "Run the command on the server, or on your computer where it says so.",
     checkLabel: "Check it",
     items: [
@@ -42,6 +42,12 @@ export const securityEn: SecurityContent = {
         proof:
           "Everything that runs as dev, your agents included, runs unattended. The hardening gives dev a sudo password that only your computer holds. Two exact command lines run without it, both the agent's own, and the session they open refuses whatever configures the machine.",
         check: "sudo -l",
+      },
+      {
+        statement: "Your published projects open only with a key.",
+        proof:
+          "Every address the tunnel or Caddy publishes goes through a gate in the agent, and answers 401 to whoever has no access key. Keys are drawn on your computer, the server keeps only their hash, and opening a project to everyone takes your sudo password. Run the check from any machine.",
+        check: "curl -sI https://your-project.example.com",
       },
       {
         statement: "Nothing readable is left on the server.",

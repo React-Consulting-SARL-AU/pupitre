@@ -572,8 +572,8 @@ func TestMigrationOneCarriesTheRowsOfEightNineAndTenColumnsToJSON(t *testing.T) 
 		t.Fatalf("Run: %v", err)
 	}
 
-	if result.State != contract.ConfigCurrent || result.Revision != 6 || len(result.Applied) != 6 {
-		t.Fatalf("result = %+v, want current at 6 after one run", result)
+	if result.State != contract.ConfigCurrent || result.Revision != 7 || len(result.Applied) != 7 {
+		t.Fatalf("result = %+v, want current at 7 after one run", result)
 	}
 
 	projects := migratedProjects(t, machine)
@@ -710,8 +710,8 @@ func TestMigrationTwoGathersTheRowsOfOneRepositoryIntoOneProject(t *testing.T) {
 		t.Fatalf("Run: %v", err)
 	}
 
-	if result.Revision != 6 || len(result.Applied) != 5 || result.Applied[0].ID != 2 || result.Applied[3].ID != 5 {
-		t.Fatalf("result = %+v, want the second to sixth migrations on a machine already at one", result)
+	if result.Revision != 7 || len(result.Applied) != 6 || result.Applied[0].ID != 2 || result.Applied[3].ID != 5 {
+		t.Fatalf("result = %+v, want the second to seventh migrations on a machine already at one", result)
 	}
 
 	projects := migratedProjects(t, machine)
@@ -773,13 +773,53 @@ func TestMigrationThreeWritesTheBootColumnOnEveryRow(t *testing.T) {
 		t.Fatalf("Run: %v", err)
 	}
 
-	if result.Revision != 6 || len(result.Applied) != 4 || result.Applied[0].ID != 3 {
+	if result.Revision != 7 || len(result.Applied) != 5 || result.Applied[0].ID != 3 {
 		t.Fatalf("result = %+v, want the third migration first on a machine already at two", result)
 	}
 
 	projects := migratedProjects(t, machine)
 	if len(projects) != 2 || projects[0].Boot == nil || *projects[0].Boot || projects[1].Boot == nil || !*projects[1].Boot {
 		t.Fatalf("every row must carry boot, false unless it already said true: %+v", projects)
+	}
+
+	before := string(machine.Files[projectsPath])
+
+	if again, err := runner(machine, migrate.All()...).Run(); err != nil || len(again.Applied) != 0 || string(machine.Files[projectsPath]) != before {
+		t.Fatal("a second pass must change nothing")
+	}
+}
+
+func TestMigrationSevenProtectsEveryProjectPublishedBeforeTheGate(t *testing.T) {
+	machine := newSys()
+	configured(machine)
+	machine.Files[ledgerPath] = []byte(`{"revision":6,"applied":[]}`)
+	machine.Files[projectsPath] = []byte(`{"projects":[` +
+		`{"name":"web","dir":"web","boot":false,"legacy":1,"processes":[{"id":"web","dir":".","pkgmgr":"bun","host":"127.0.0.1","port":3000,"routes":[],"cmd":"bun run dev"}]},` +
+		`{"name":"hooks","dir":"hooks","boot":false,"protected":false,"processes":[{"id":"hooks","dir":".","pkgmgr":"bun","host":"127.0.0.1","port":3001,"routes":[],"cmd":"bun run dev"}]}` +
+		`]}` + "\n")
+
+	result, err := runner(machine, migrate.All()...).Run()
+	if err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	if len(result.Applied) != 1 || result.Applied[0].ID != 7 {
+		t.Fatalf("result = %+v, want the seventh migration alone", result)
+	}
+
+	var document struct {
+		Projects []map[string]any `json:"projects"`
+	}
+	if err := json.Unmarshal(machine.Files[projectsPath], &document); err != nil {
+		t.Fatal(err)
+	}
+
+	if document.Projects[0]["protected"] != true || document.Projects[1]["protected"] != false {
+		t.Fatalf("an unanswered project must be protected, an answered one kept: %+v", document.Projects)
+	}
+
+	if document.Projects[0]["legacy"] != float64(1) {
+		t.Fatalf("a field the code no longer names must survive: %+v", document.Projects[0])
 	}
 
 	before := string(machine.Files[projectsPath])
@@ -819,8 +859,8 @@ func TestMigrationFourTurnsEachRuntimeVersionIntoAListOfOne(t *testing.T) {
 		t.Fatalf("Run: %v", err)
 	}
 
-	if result.Revision != 6 || len(result.Applied) != 3 || result.Applied[0].ID != 4 {
-		t.Fatalf("result = %+v, want the fourth to sixth migrations on a machine already at three", result)
+	if result.Revision != 7 || len(result.Applied) != 4 || result.Applied[0].ID != 4 {
+		t.Fatalf("result = %+v, want the fourth to seventh migrations on a machine already at three", result)
 	}
 
 	var document struct {
@@ -865,8 +905,8 @@ func TestMigrationFiveWritesTheRuntimesColumnOnEveryRow(t *testing.T) {
 		t.Fatalf("Run: %v", err)
 	}
 
-	if result.Revision != 6 || len(result.Applied) != 2 || result.Applied[0].ID != 5 {
-		t.Fatalf("result = %+v, want the fifth and sixth migrations on a machine already at four", result)
+	if result.Revision != 7 || len(result.Applied) != 3 || result.Applied[0].ID != 5 {
+		t.Fatalf("result = %+v, want the fifth to seventh migrations on a machine already at four", result)
 	}
 
 	projects := migratedProjects(t, machine)

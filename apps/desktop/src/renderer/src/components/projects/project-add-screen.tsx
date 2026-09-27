@@ -157,7 +157,7 @@ export function ProjectAddScreen({
       }}
       onInstallModule={onInstallModule}
       onLaunch={() => launch(serverId)}
-      onOpen={(url) => window.pupitre.openUrl(url)}
+      onOpen={(url) => window.pupitre.openAddress(serverId, url)}
       onOpenDeclared={(name) => leave(() => onFinish?.(name))}
       onReload={() => prepare(serverId, exposure)}
       onRetry={() => retry(serverId)}

@@ -1,6 +1,6 @@
 ---
 title: Galerie
-description: Les captures que les agents prennent en travaillant, où elles sont rangées, et comment l’app les montre.
+description: Les captures que les agents prennent en travaillant, où elles sont rangées, comment l’app les montre, et comment en donner l’adresse.
 locale: fr
 section: daily
 sectionOrder: 2
@@ -11,20 +11,48 @@ Un agent qui pilote un navigateur produit des images. `ai.browser` installe le n
 
 ## En prendre une
 
-Sur le serveur, `shot` est le binaire de l’agent sous un autre nom. `shot <url|fichier> [nom]` capture une page ou copie une image dans la galerie. `--mobile` ou `--size LxH` règlent la fenêtre, `--wait` laisse à une page lente le temps de se poser, `shot --list` affiche ce qui est rangé. Un agent qui travaille dans un terminal appelle la même commande que vous.
+Sur le serveur, `shot` est le binaire de l’agent sous un autre nom. `shot <url|fichier> [nom]` capture une page ou copie une image dans la galerie.
+
+- `--mobile` ou `--size LxH` règlent la fenêtre.
+- `--wait` laisse à une page lente le temps de se poser.
+- `--project <nom>` range la capture sous ce projet.
+- `shot --list` affiche ce qui est rangé.
+
+Un agent qui travaille dans un terminal appelle la même commande que vous. Quand la galerie est publiée, `shot` répond l’adresse publique de la capture, qu’un agent peut coller dans une conversation ou une revue.
 
 ## Où sont les fichiers
 
-Sous `/home/dev/shots`, dans un dossier par jour. Ils y restent : la galerie est celle du serveur, pas celle de la plateforme, et rien n’est envoyé nulle part.
+Sous `/home/dev/shots`, un dossier par projet, puis un dossier par jour : `~/shots/<projet>/<jour>/<nom>`. `shot` choisit le projet dans cet ordre :
+
+1. celui que `--project` nomme ;
+2. celui dont le dossier contient le dossier courant ;
+3. celui qui sert l’adresse capturée.
+
+Une capture qui ne relève d’aucun projet va sous `~/shots/_unfiled`.
+
+Les fichiers restent sur le serveur : la galerie est la sienne, pas celle de la plateforme, et rien n’est envoyé nulle part.
 
 ## En lire une depuis l’app
 
-L’écran de la galerie liste ce qui est rangé, avec son poids. En ouvrir une fait passer ses octets par le canal que l’app tient déjà, et les vérifie contre l’empreinte que le serveur a envoyée avec. Si les deux ne s’accordent pas, l’app le dit plutôt que de vous montrer une demi-image.
+L’écran **Galerie** classe les captures par projet, avec leur poids. En ouvrir une fait passer ses octets par le canal que l’app tient déjà, et les vérifie contre l’empreinte que le serveur a envoyée avec. Si les deux ne s’accordent pas, l’app le dit plutôt que de vous montrer une demi-image.
 
-## La galerie du serveur
+## Publier la galerie
 
-L’agent sert aussi le dossier comme une page en lecture seule, sur `127.0.0.1` et nulle part ailleurs, joignable par la session SSH que l’app tient. `Ouvrir la galerie` l’ouvre dans votre navigateur — pratique pour parcourir une journée de travail plutôt qu’une capture à la fois.
+Par défaut, la galerie n’est servie que sur le serveur, en lecture seule, sur `127.0.0.1:8099`. Pour qu’un agent puisse montrer une capture hors de l’app, donnez-lui un sous-domaine dans **Services › Navigateur et galerie**. Il faut une exposition installée, `exposure.cloudflare` ou `exposure.caddy`.
+
+**Le jeton**
+- L’agent tire un jeton secret, et la galerie ne répond que sous `https://<sous-domaine>.<domaine>/<jeton>/`.
+- Tout autre chemin répond 404, y compris la liste des captures, et aucune page n’est indexée.
+- Qui tient une adresse de capture tient la galerie entière : ne la donnez qu’à qui doit la voir.
+
+**Le sous-domaine**
+- Le changer garde le jeton, et changer de domaine emmène l’adresse avec lui.
+- Vider le champ retire l’adresse et oublie le jeton. Le remettre en tire un nouveau, ce qui coupe toutes les adresses données avant.
+
+**Hors de la protection par clé**
+- La galerie a déjà son jeton : elle ne demande pas de clé d’accès, contrairement aux projets publiés (voir l’[accès aux adresses](/fr/docs/daily/access/)).
+- Une fois publiée, **Ouvrir la galerie** l’ouvre dans votre navigateur, et la fiche d’une capture montre son adresse publique.
 
 ## La vider
 
-Un bouton supprime les captures du serveur. Il demande confirmation, et il n’emporte rien d’autre.
+Un bouton supprime les captures du serveur. Il demande confirmation, et il n’emporte rien d’autre. Une capture seule se supprime depuis sa vignette ou quand elle est ouverte.

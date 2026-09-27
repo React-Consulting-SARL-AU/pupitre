@@ -1,6 +1,7 @@
 import { Button } from "@renderer/components/ui/button";
 import { Menu } from "@renderer/components/ui/menu";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import { openAddress } from "@renderer/lib/open-address";
 import type { LiveAddress } from "@renderer/lib/project-addresses";
 import { ExternalLink } from "lucide-react";
 
@@ -21,7 +22,7 @@ export function DashboardProjectOpen({
     return (
       <Button
         icon={ExternalLink}
-        onClick={() => window.pupitre.openUrl(only.url)}
+        onClick={() => openAddress(only.url)}
         size="sm"
       >
         {t("dashboard.card.open")}
@@ -39,7 +40,7 @@ export function DashboardProjectOpen({
       }))}
       icon={ExternalLink}
       label={t("dashboard.card.open")}
-      onPick={(url) => window.pupitre.openUrl(url)}
+      onPick={(url) => openAddress(url)}
       trigger="button"
     />
   );

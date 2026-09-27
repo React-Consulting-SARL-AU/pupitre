@@ -1,6 +1,13 @@
 export const projectConfig = {
   en: {
     "project.tab.configuration": "Configuration",
+    "project.config.sections": "Parts of the configuration",
+    "project.config.part.general": "General",
+    "project.config.part.runtimes": "Runtimes",
+    "project.config.part.processes": "Processes",
+    "project.config.part.access": "Access",
+    "project.config.part.refused": "{part}, a field to fix",
+    "project.config.start.title": "Start and source",
     "project.addresses.title": "Addresses",
     "project.addresses.mainLabel": "main",
     "project.addresses.open": "Open {hostname}",
@@ -25,6 +32,13 @@ export const projectConfig = {
   },
   fr: {
     "project.tab.configuration": "Configuration",
+    "project.config.sections": "Parties de la configuration",
+    "project.config.part.general": "Général",
+    "project.config.part.runtimes": "Environnements",
+    "project.config.part.processes": "Processus",
+    "project.config.part.access": "Accès",
+    "project.config.part.refused": "{part}, un champ à corriger",
+    "project.config.start.title": "Démarrage et source",
     "project.addresses.title": "Adresses",
     "project.addresses.mainLabel": "principal",
     "project.addresses.open": "Ouvrir {hostname}",

@@ -3,6 +3,7 @@ package cloudflare
 import (
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/exposure/cloudflared"
+	"pupitre.studio/agent/internal/modules/exposure/gateway"
 	"pupitre.studio/agent/internal/modules/exposure/routes"
 	"pupitre.studio/agent/internal/sys/env"
 	"pupitre.studio/agent/internal/sys/file"
@@ -38,7 +39,14 @@ func Sync(ctx *modules.Context) (Report, error) {
 		return Report{}, modules.NotInstalled(ID, manifest().Name)
 	}
 
-	content := cloudflared.Ingress(id, routes.Published(ctx, domainOf(ctx)))
+	published := routes.Published(ctx, domainOf(ctx))
+
+	// Enable, not a bare reload: a tunnel synced before its module was upgraded would point at a gate not yet there.
+	if err := gateway.Enable(ctx, published); err != nil {
+		return Report{}, err
+	}
+
+	content := cloudflared.Ingress(id, published)
 
 	if err := ctx.Step("write-ingress", func() (modules.Outcome, error) {
 		if file.Same(ctx, cloudflared.ConfigPath, content) {

@@ -37,6 +37,22 @@ function postgres(state: "running" | "stopped") {
 }
 
 export const ANSWERS: Partial<Record<CommandName, unknown>> = {
+  "access.list": {
+    keys: [
+      {
+        created_at: "2026-09-20T09:12:00Z",
+        id: "e2edevice001",
+        name: "atelier",
+        projects: null,
+      },
+      {
+        created_at: "2026-09-24T16:40:00Z",
+        id: "e2ereview001",
+        name: "Recette client",
+        projects: ["flyleaf-api"],
+      },
+    ],
+  },
   "processes.list": { processes: PROCESSES },
   "service.restart": postgres("running"),
   "service.start": postgres("running"),

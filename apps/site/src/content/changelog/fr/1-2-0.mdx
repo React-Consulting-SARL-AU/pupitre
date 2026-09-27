@@ -1,0 +1,61 @@
+---
+title: Une adresse publiée ne s'ouvre qu'avec une clé
+description: Chaque adresse publiée par le tunnel ou Caddy passe par un portier dans l'agent, un projet est protégé dès sa déclaration, les clés sont tirées sur votre ordinateur et révoquées depuis l'app, et ouvrir un projet à tous demande votre mot de passe sudo.
+locale: fr
+version: 1.2.0
+channel: stable
+date: 2026-09-27
+order: 22
+---
+
+Jusqu'ici, une adresse publiée par Cloudflare Tunnel ou par Caddy répondait à qui la connaissait. À partir de cette version, elle ne répond qu'à une clé d'accès. Mettez d'abord l'app à jour, puis l'agent de chaque serveur depuis son bandeau : la mise à jour de l'agent protège chaque projet déjà déclaré, donc une adresse que vous avez donnée cesse de répondre tant qu'elle ne porte pas de clé.
+
+## Le portier
+
+- **Chaque nom publié passe par `pupitre-gate`**, un proxy de l'agent sur `127.0.0.1:8098`. L'exposition que vous avez installée — `exposure.cloudflare` ou `exposure.caddy` — le met en place et le recharge ; désinstaller l'exposition l'arrête et garde les clés.
+- Le portier tourne en root sans aucune capacité, sur un système en lecture seule, et ne voit de `/etc/pupitre` que `gate/` : ni les secrets du serveur, ni ce que l'installation a reçu, ni son jeton.
+- Un nom protégé sans clé répond `401` : une page de connexion pour un navigateur, à l'adresse demandée et dans la langue du visiteur, et `access_required` avec son remède pour un client d'API. Les pré-vols CORS passent sans clé, puisqu'un navigateur ne peut pas en poser. Plus de vingt clés refusées en dix minutes depuis une même adresse répondent `429`.
+- Le chemin et les paramètres survivent : une clé donnée dans l'adresse en est retirée par une redirection `303` qui garde le reste, et la page de connexion revient à l'adresse demandée.
+- **Votre site ne voit jamais les marques de Pupitre.** La clé, le paramètre `pupitre_key` et le cookie `__Host-pupitre` sont retirés avant que la requête ne lui arrive ; son propre en-tête `Authorization`, ses cookies et ses paramètres restent intacts. Il reçoit le nom de la clé qui a ouvert la requête dans `Pupitre-Identity`, et le nom public demandé dans `X-Forwarded-Host`.
+- Une protection changée ou une clé révoquée prennent effet à un rechargement, sans couper les WebSocket en cours.
+
+## La protection
+
+- **Un projet est protégé dès sa déclaration**, et un projet déclaré avant cette version le devient à la mise à jour de son agent.
+- Un processus seul peut s'en écarter, dans un sens ou dans l'autre : toujours protégé, ou toujours public. Toujours public est fait pour un récepteur de webhooks — Stripe ou GitHub n'envoient pas de clé et vérifient leur propre signature.
+- **Ouvrir un projet ou un processus à tous demande votre mot de passe sudo**, comme créer ou révoquer une clé. Un agent de code qui tourne en `dev` ne peut pas lever la protection de lui-même.
+
+## Les clés
+
+- Une clé s'écrit `ppk_` puis deux suites de lettres et de chiffres. Elle ouvre tout le serveur, y compris les projets ajoutés plus tard, ou la liste de projets que vous choisissez.
+- **L'app tire la clé de cet ordinateur** la première fois que vous ouvrez une adresse protégée, et l'ajoute ensuite à chaque adresse qu'elle ouvre — depuis le tableau de bord, depuis la page d'un projet, depuis ses adresses. Vous n'avez rien à faire.
+- **Nouvelle clé**, dans l'onglet Accès d'un projet ou sur la page Accès du serveur, en crée une pour un simulateur, un script, un collègue ou une recette client. Elle se copie en lien qui ouvre le site déjà connecté, en en-tête `Pupitre-Key`, ou seule.
+- Une clé est tirée sur votre ordinateur et gardée dans son trousseau ; le serveur n'en reçoit que l'empreinte SHA-256. Elle ne se copie donc que depuis l'ordinateur qui l'a créée — ailleurs, l'app la liste et le dit.
+- Une clé n'expire jamais. **Révoquer** coupe tous ceux qui l'utilisent à leur requête suivante, sans rien à redémarrer.
+
+## L'app
+
+- La **Configuration** d'un projet se lit maintenant en parties à gauche — Général, Environnements, Processus, Accès — et une partie qui tient un champ à corriger le dit.
+- La page **Accès** du serveur liste ses clés, ce que chacune ouvre et sa date de création, et montre comment présenter une clé depuis un navigateur, depuis un script et depuis un WebSocket.
+- Un projet dont le serveur n'a pas d'exposition installée dit que ses adresses ne sortent pas du serveur ; un serveur dont l'agent n'a pas de portier dit de le mettre à jour depuis Services.
+- La barre latérale garde les projets en haut : Processus et sessions, Galerie, Sauvegardes et Accès sont repliés sous **Plus**, qui reste ouvert sur la page où vous êtes.
+
+## Le site
+
+- Une nouvelle page **Accès aux adresses** dans la documentation : ce qui est protégé, les clés, les trois façons d'en présenter une, ce que votre site voit, et la commande qui le vérifie depuis n'importe quelle machine.
+- La page Sécurité fait une septième affirmation vérifiable — un projet publié ne s'ouvre qu'avec une clé — et la FAQ, la page des projets et la documentation de sécurité y renvoient.
+
+## Limites connues
+
+- Un processus déclaré toujours public répond à quiconque détient son adresse : réservez-le à un récepteur qui vérifie sa propre signature.
+- Une clé n'expire jamais et plusieurs personnes peuvent la partager : pour distinguer deux personnes, donnez-leur deux clés.
+- Un script du serveur qui appelle son propre projet par `PUPITRE_PUBLIC_URL` demande désormais une clé comme n'importe quel client ; `PUPITRE_LOCAL_URL` n'en demande pas.
+- Une clé créée sur un autre ordinateur ne se copie pas ici ; créez-en une autre à la place.
+- La galerie publiée garde son propre jeton et ne demande pas de clé d'accès, donc rien de secret n'a sa place dans une capture.
+- Un serveur qui n'a pas encore accepté le mot de passe sudo garde l'ancienne règle, sans mot de passe, tant qu'il n'est pas appliqué.
+- Tous les appareils autorisés perdus, l'accès ne se repose que depuis la console de l'hébergeur, par `sudo pupitred keys reset`.
+- Les volumes Docker ne sont pas sauvegardés ; l'app le dit quand le runtime Docker est installé.
+- Qui lit le bucket lit les manifestes, en clair : le nom du serveur, les noms des projets, des bases et des dossiers, l'adresse et la branche des dépôts. Jamais un contenu, jamais un secret — ceux-là sont scellés.
+- Qui tient la clé S3 peut effacer les sauvegardes : le versionnage ou le verrouillage d'objets du bucket sont la parade, et le guide le dit.
+- Perdue, la passphrase rend les sauvegardes illisibles — personne ne peut la recouvrer.
+- L'installateur Windows n'est toujours pas signé : SmartScreen avertit au premier lancement.

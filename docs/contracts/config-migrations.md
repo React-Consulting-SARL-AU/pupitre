@@ -9,7 +9,7 @@ Une mise à jour ne réinstalle rien. Le binaire de l'agent est remplacé, l'app
 | Côté | Fichiers | Registre | Sauvegardes |
 | --- | --- | --- | --- |
 | Agent, sur le VPS | `/etc/pupitre/install.json`, `/etc/pupitre/env`, `/etc/pupitre/projects.local.json`, et tout autre fichier de `/etc/pupitre` qu'une migration nomme | `/etc/pupitre/migrations.json` | `/var/lib/pupitre/config-backups/<horodatage>-r<révision>/`, les cinq derniers lots |
-| App, sur le laptop | `servers.json`, `account.json`, `transfers.json`, `forwards.json`, `preferences.json`, `connections/<fournisseur>.json` dans le dossier de données | le champ `version` du fichier lui-même | `<fichier>.r<révision>`, à côté ; `<fichier>.corrupt` pour un fichier qui ne se lit pas |
+| App, sur le laptop | `servers.json`, `account.json`, `transfers.json`, `forwards.json`, `preferences.json`, `connections/<fournisseur>.json`, `access/<serveur>.json` dans le dossier de données | le champ `version` du fichier lui-même | `<fichier>.r<révision>`, à côté ; `<fichier>.corrupt` pour un fichier qui ne se lit pas |
 
 Ce que le registre **ne** possède pas :
 
@@ -131,7 +131,7 @@ func All() []Migration {
 }
 ```
 
-Côté app — `apps/desktop/src/main/servers-migrations.ts`, `account-migrations.ts`, `transfers-migrations.ts`, `forwards-migrations.ts`, `preferences-migrations.ts` ou `connections-migrations.ts`, lus et écrits par `versionedFile()` de `store-migrations.ts` (écriture à côté puis renommée, fichier d'une version plus récente jamais réécrit) :
+Côté app — `apps/desktop/src/main/servers-migrations.ts`, `account-migrations.ts`, `transfers-migrations.ts`, `forwards-migrations.ts`, `preferences-migrations.ts`, `connections-migrations.ts` ou `access-migrations.ts`, lus et écrits par `versionedFile()` de `store-migrations.ts` (écriture à côté puis renommée, fichier d'une version plus récente jamais réécrit) :
 
 ```ts
 export const SERVERS_MIGRATIONS: readonly StoreMigration[] = [
@@ -163,3 +163,4 @@ Une machine neuve se voit **estampillée à la révision courante sans que rien 
 | 4 | `runtime-versions` | Un runtime demandait une version, `node_version: "22"` dans `install.json` ; il en demande plusieurs, `node_versions: ["22"]`. Pour `node`, `java`, `python`, `go`, `php`, `ruby` et `rust`, la valeur d'`<outil>_version` devient la liste d'un élément `<outil>_versions`, sauf si la liste est déjà là ; l'ancienne clé part dans tous les cas. Un module absent d'`install.json` n'est pas touché. |
 | 5 | `projects-runtimes` | Chaque ligne de `projects.local.json` porte `runtimes`, la version épinglée par outil ; les lignes d'avant n'en nomment aucune et reçoivent `{}`. Une ligne qui répond déjà est laissée telle quelle. |
 | 6 | `key-signers` | Les clés approuvées par un appareil ([décision 0014](../decisions/0014-cles-approuvees-par-un-appareil.md)) : l'agent ne pose plus une clé que si elle est déjà signataire ou qu'une approbation signée l'admet. Chaque clé du bloc géré de `/home/dev/.ssh/authorized_keys` qui peut signer — ed25519 ou ecdsa sur une courbe NIST, sans option — devient signataire dans `/etc/pupitre/signers.json`, `via: "migration"`, pour que la mise à jour n'enferme personne dehors. Une clé RSA ou tenue par des options n'est pas reprise. Un `signers.json` déjà là, un fichier absent, illisible ou lié hors de `.ssh`, un bloc vide : rien n'est écrit. |
+| 7 | `projects-protected` | Le portier d'accès ([décision 0017](../decisions/0017-portier-d-acces.md)) : chaque ligne de `projects.local.json` qui ne dit rien de `protected` reçoit `true`, pour qu'un projet publié avant la mise à jour ne réponde plus sans clé. Une ligne qui répond déjà, `false` compris, est laissée telle quelle ; un processus ne reçoit rien et suit son projet. |

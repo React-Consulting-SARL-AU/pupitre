@@ -105,6 +105,36 @@ function answerFromFixtures(app: ElectronApplication): Promise<void> {
       return { ok: true, result: { path } };
     });
 
+    // The keys live in the harness: a real draw would reach for the agent over SSH.
+    answer("access:held", () => ({
+      ok: true,
+      result: { device: "e2edevice001", held: ["e2edevice001"] },
+    }));
+    answer(
+      "access:create",
+      (_serverId: unknown, name: unknown, projects: unknown) => ({
+        ok: true,
+        result: {
+          created_at: "2026-09-27T12:00:00Z",
+          id: "e2ecreated01",
+          name,
+          projects,
+        },
+      })
+    );
+    answer("access:revoke", (_serverId: unknown, id: unknown) => ({
+      ok: true,
+      result: { id },
+    }));
+    answer(
+      "access:copy",
+      (_serverId: unknown, _id: unknown, form: unknown) => ({
+        ok: true,
+        result: { copied: form },
+      })
+    );
+    answer("access:open", () => ({ ok: true, result: { keyed: true } }));
+
     answer("service:forwards", () => []);
     answer("service:db-shell", () => ({
       ok: true,

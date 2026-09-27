@@ -82,6 +82,8 @@ type Process struct {
 	Routes  []Route `json:"routes"`
 	Cmd     string  `json:"cmd"`
 	Install string  `json:"install,omitempty"`
+	// Nil follows the project.
+	Protected *bool `json:"protected,omitempty"`
 }
 
 type Project struct {
@@ -92,8 +94,18 @@ type Project struct {
 	Processes []Process `json:"processes"`
 	Boot      bool      `json:"boot"`
 	// By mise tool; an absent tool runs at the machine's default version.
-	Runtimes map[string]string `json:"runtimes"`
-	Local    bool              `json:"-"`
+	Runtimes  map[string]string `json:"runtimes"`
+	Protected bool              `json:"protected"`
+	Local     bool              `json:"-"`
+}
+
+// Whether the names of this process answer only to an access key.
+func (p Project) Guards(process Process) bool {
+	if process.Protected != nil {
+		return *process.Protected
+	}
+
+	return p.Protected
 }
 
 func (p Process) IsService() bool {
@@ -286,15 +298,16 @@ func (p Process) Contract(projectPath string) contract.ProjectProcess {
 	}
 
 	return contract.ProjectProcess{
-		ID:      p.ID,
-		Dir:     p.Dir,
-		Path:    p.Path(projectPath),
-		PkgMgr:  p.PkgMgr,
-		Host:    p.Host,
-		Port:    p.Port,
-		Routes:  routes,
-		Cmd:     p.Cmd,
-		Install: p.InstallCommand(),
+		ID:        p.ID,
+		Dir:       p.Dir,
+		Path:      p.Path(projectPath),
+		PkgMgr:    p.PkgMgr,
+		Host:      p.Host,
+		Port:      p.Port,
+		Routes:    routes,
+		Cmd:       p.Cmd,
+		Install:   p.InstallCommand(),
+		Protected: p.Protected,
 	}
 }
 
@@ -321,6 +334,7 @@ func (p Project) Contract(projects string) contract.Project {
 		Processes: processes,
 		Boot:      p.Boot,
 		Runtimes:  runtimes,
+		Protected: p.Protected,
 	}
 }
 
@@ -579,7 +593,7 @@ func Group(rows []Row) ([]Project, map[string]string) {
 
 	for _, key := range order {
 		group := byRoot[key]
-		project := Project{Dir: group[0].Dir, Name: group[0].Name}
+		project := Project{Dir: group[0].Dir, Name: group[0].Name, Protected: true}
 		if shared[key] {
 			project.Dir = key
 			project.Name = nameFor(key, group, rows)
@@ -786,6 +800,7 @@ type Patch struct {
 	Branch    *string
 	Boot      *bool
 	Runtimes  *map[string]string
+	Protected *bool
 	Processes *[]Process
 }
 
@@ -808,6 +823,9 @@ func (f *File) Update(ctx sys.Context, name string, patch Patch) (Project, error
 	}
 	if patch.Runtimes != nil {
 		updated.Runtimes = *patch.Runtimes
+	}
+	if patch.Protected != nil {
+		updated.Protected = *patch.Protected
 	}
 	if patch.Processes != nil {
 		updated.Processes = append([]Process{}, (*patch.Processes)...)

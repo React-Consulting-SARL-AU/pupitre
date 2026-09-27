@@ -1,13 +1,16 @@
 package caddy
 
 import (
+	"encoding/json"
 	"errors"
 	"slices"
 	"strings"
 	"testing"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/gate"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/exposure/gateway"
 	"pupitre.studio/agent/internal/modules/exposure/routes"
 	"pupitre.studio/agent/internal/modules/modtest"
 	"pupitre.studio/agent/internal/protocol"
@@ -73,10 +76,18 @@ func TestCaddyfileRoutesOnlyTheProjectsThatDeclareASubdomain(t *testing.T) {
 
 	config := string(fake.Files[configPath])
 
-	for _, want := range []string{"email " + email, "http_port 80", "app." + domain + " {", "reverse_proxy web.localhost:3000", "header_up Host web.localhost:3000"} {
+	for _, want := range []string{"email " + email, "http_port 80", "app." + domain + " {", "reverse_proxy " + gate.Address} {
 		if !strings.Contains(config, want) {
 			t.Errorf("Caddyfile lacks %q:\n%s", want, config)
 		}
+	}
+
+	if strings.Contains(config, "web.localhost") || strings.Contains(config, "header_up Host") {
+		t.Fatalf("a name must reach the gate with its own Host, never the process directly:\n%s", config)
+	}
+
+	if gated := string(fake.Files[gate.RoutesPath]); !strings.Contains(gated, `"upstream": "web.localhost:3000"`) {
+		t.Fatalf("the gate must know where the name goes: %s", gated)
 	}
 
 	if strings.Contains(config, "api."+domain) {
@@ -98,14 +109,21 @@ func TestCaddyfileCarriesEveryRouteOfAProject(t *testing.T) {
 
 	config := string(fake.Files[configPath])
 
-	for _, want := range []string{"shop." + domain + " {", "reverse_proxy 127.0.0.1:3100", "api-shop." + domain + " {", "reverse_proxy 127.0.0.1:3101", "header_up Host 127.0.0.1:3101"} {
+	for _, want := range []string{"shop." + domain + " {", "api-shop." + domain + " {"} {
 		if !strings.Contains(config, want) {
 			t.Errorf("Caddyfile lacks %q:\n%s", want, config)
 		}
 	}
 
-	if strings.Contains(config, "127.0.0.1:3102") {
-		t.Fatalf("a port without a name on the web is not exposed:\n%s", config)
+	gated := string(fake.Files[gate.RoutesPath])
+	for _, want := range []string{`"upstream": "127.0.0.1:3100"`, `"upstream": "127.0.0.1:3101"`} {
+		if !strings.Contains(gated, want) {
+			t.Errorf("gate routes lack %q:\n%s", want, gated)
+		}
+	}
+
+	if strings.Contains(gated, "127.0.0.1:3102") {
+		t.Fatalf("a port without a name on the web is not exposed:\n%s", gated)
 	}
 
 	report, err := Status(ctx)
@@ -284,6 +302,78 @@ func TestUninstallGivesBackTheModeAndThePorts(t *testing.T) {
 
 	if fake.EnvValue(env.DomainKey) != "" || owned(ctx)["443/tcp"] {
 		t.Fatalf("uninstall left %q and %v behind", fake.EnvValue(env.DomainKey), fake.Firewall.Rules)
+	}
+}
+
+func TestTheGateComesUpBeforeTheProxyPointsAtIt(t *testing.T) {
+	fake := machine()
+	run(t, newContext(t, fake, values()))
+
+	unit := string(fake.Files[gateway.UnitPath])
+	for _, want := range []string{"gate --dir=" + gate.Dir, "CapabilityBoundingSet=\n", "TemporaryFileSystem=/etc/pupitre:ro", "BindReadOnlyPaths=" + gate.Dir} {
+		if !strings.Contains(unit, want) {
+			t.Errorf("gate unit lacks %q:\n%s", want, unit)
+		}
+	}
+
+	enabled := slices.Index(fake.Mutations, "systemctl enable "+gate.Unit)
+	proxied := slices.Index(fake.Mutations, "write "+configPath)
+	if enabled < 0 || proxied < 0 || enabled > proxied {
+		t.Fatalf("the gate must be up before Caddy sends it a name: %v", fake.Mutations)
+	}
+
+	var access gate.Access
+	if err := json.Unmarshal(fake.Files[gate.AccessPath], &access); err != nil || len(access.Secret) != 64 {
+		t.Fatalf("the gate needs its secret before it starts: %v %s", err, fake.Files[gate.AccessPath])
+	}
+}
+
+func TestAProjectOpenedToTheWebReloadsTheGateAlone(t *testing.T) {
+	fake := machine()
+	run(t, newContext(t, fake, values()))
+
+	fake.Files[registry.DefaultLocal] = []byte(`{"projects":[{"name":"hooks","dir":"hooks","protected":false,"processes":[{"id":"hooks","pkgmgr":"bun","host":"127.0.0.1","port":3100,"routes":[{"label":"web","port":3100,"hostname":"hooks.` + domain + `"}],"cmd":"bun run dev"}]}]}`)
+	fake.Mutations = nil
+
+	if _, err := Sync(newContext(t, fake, values())); err != nil {
+		t.Fatal(err)
+	}
+
+	if !slices.Contains(fake.Mutations, "systemctl reload "+gate.Unit) || slices.Contains(fake.Mutations, "systemctl restart "+gate.Unit) {
+		t.Fatalf("a new name reloads the gate, keeping its connections: %v", fake.Mutations)
+	}
+
+	if gated := string(fake.Files[gate.RoutesPath]); !strings.Contains(gated, `"protected": false`) {
+		t.Fatalf("routes = %s", gated)
+	}
+
+	fake.Mutations = nil
+
+	if _, err := Sync(newContext(t, fake, values())); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, mutation := range fake.Mutations {
+		if strings.Contains(mutation, gate.Unit) {
+			t.Fatalf("a sync with nothing new must leave the gate alone: %v", fake.Mutations)
+		}
+	}
+}
+
+func TestUninstallStopsTheGateAndKeepsTheKeys(t *testing.T) {
+	fake := machine()
+	run(t, newContext(t, fake, values()))
+
+	if err := (Module{}).Uninstall(newContext(t, fake, values())); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, unit := fake.Files[gateway.UnitPath]; unit {
+		t.Fatal("the gate goes with the exposure that sent it names")
+	}
+
+	if _, keys := fake.Files[gate.AccessPath]; !keys {
+		t.Fatal("the keys stay, so an exposure put back finds every key it had given out")
 	}
 }
 

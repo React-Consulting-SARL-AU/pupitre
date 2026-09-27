@@ -1,3 +1,4 @@
+import { access } from "./strings/access";
 import { account } from "./strings/account";
 import { activity } from "./strings/activity";
 import { app } from "./strings/app";
@@ -41,6 +42,7 @@ export const en = {
   ...forwards.en,
   ...state.en,
   ...app.en,
+  ...access.en,
   ...account.en,
   ...activity.en,
   ...backups.en,

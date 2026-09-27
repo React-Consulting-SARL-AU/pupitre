@@ -328,16 +328,18 @@ function declaredAt(
 }
 
 /** Optional params at their default are left out: agents older than `boot` and `runtimes` refuse unknown keys. */
-export type ProjectAddRequest = Omit<ProjectAddParams, "boot"> & {
+export type ProjectAddRequest = Omit<ProjectAddParams, "boot" | "protected"> & {
   boot?: boolean;
+  protected?: boolean;
 };
 
 export function requestOf(params: ProjectAddParams): ProjectAddRequest {
-  const { boot, runtimes, ...rest } = params;
+  const { boot, runtimes, protected: guarded, ...rest } = params;
 
   return {
     ...rest,
     ...(boot ? { boot: true } : {}),
+    ...(guarded === false ? { protected: false } : {}),
     ...(runtimes && Object.keys(runtimes).length > 0 ? { runtimes } : {}),
   };
 }
@@ -1291,6 +1293,7 @@ export const useProjectAdd = create<ProjectAddStore>((set, get) => {
         dir: draft.dir,
         name: draft.name,
         processes: processRequests(draft.processes, exposure !== null),
+        protected: true,
         ...(draft.kind === "dir" ? {} : { repo: draft.source.trim() }),
         ...(draft.kind === "dir" || !branch ? {} : { branch }),
       };

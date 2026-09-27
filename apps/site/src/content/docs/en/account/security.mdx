@@ -53,6 +53,27 @@ A server hardened before this password keeps the old rule, passwordless sudo, un
 
 Check: as `dev`, `sudo -l` lists `(ALL : ALL) ALL` and `(root) NOPASSWD: /usr/local/bin/pupitred serve, /usr/local/bin/pupitred binary install`, and `sudo -k; sudo true` asks for the password.
 
+## A published address needs a key
+
+Every name that `exposure.cloudflare` or `exposure.caddy` publishes goes through `pupitre-gate`, a gate in the agent listening on `127.0.0.1:8098`. Without an access key it answers `401`. The one exception is a process you declared public.
+
+**Keys**
+- They are drawn on your computer and kept in its keychain.
+- The server only keeps their SHA-256 hash, in `/etc/pupitre/gate/access.json`, readable by root only.
+- Creating or revoking a key, or opening a project to everyone, takes your sudo password.
+
+**The gate**
+- It runs as root without a single capability, on a read-only system.
+- Of `/etc/pupitre`, it only sees its own folder: a compromised gate reads neither your secrets nor the server's token.
+- It removes the key before passing the request on, and replaces any `Pupitre-Identity` header coming from outside.
+
+How it works in full is in [access to addresses](/docs/daily/access/).
+
+Check:
+- `curl -sI https://your-project.example.com` answers `401` from any machine;
+- `systemctl show pupitre-gate -p CapabilityBoundingSet` is empty;
+- `sudo cat /etc/pupitre/gate/access.json` shows only hashes.
+
 ## What Pupitre does not protect you from
 
 Backups exist only if you turn them on: `core.backup` sends encrypted archives to a bucket of yours, and until then nothing on the server is copied anywhere. See [backups](/docs/daily/backups/). Pupitre is not an intrusion detection system, and not a substitute for reading what you run. It sets up `ufw` and `fail2ban`, keeps security updates flowing, and stays out of the way.

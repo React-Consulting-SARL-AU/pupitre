@@ -1,6 +1,7 @@
 export const shell = {
   en: {
     "shell.sidebar.activity": "Processes and sessions",
+    "shell.sidebar.more": "More",
     "shell.sidebar.closeTerminal": "Close {title} and stop the session",
     "shell.sidebar.dashboard": "Dashboard",
     "shell.sidebar.gallery": "Gallery",
@@ -105,6 +106,7 @@ export const shell = {
   },
   fr: {
     "shell.sidebar.activity": "Processus et sessions",
+    "shell.sidebar.more": "Plus",
     "shell.sidebar.closeTerminal": "Fermer {title} et arrêter la session",
     "shell.sidebar.dashboard": "Tableau de bord",
     "shell.sidebar.gallery": "Galerie",

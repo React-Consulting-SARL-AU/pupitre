@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./agent-protocol": "./src/agent-protocol/index.ts",
+    "./agent-protocol/access": "./src/agent-protocol/access.ts",
     "./agent-protocol/backup": "./src/agent-protocol/backup.ts",
     "./agent-protocol/envelope": "./src/agent-protocol/envelope.ts",
     "./agent-protocol/errors": "./src/agent-protocol/errors.ts",

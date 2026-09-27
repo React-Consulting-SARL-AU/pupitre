@@ -1,4 +1,5 @@
 import type { Dictionary } from "./en";
+import { access } from "./strings/access";
 import { account } from "./strings/account";
 import { activity } from "./strings/activity";
 import { app } from "./strings/app";
@@ -42,6 +43,7 @@ export const fr: Dictionary = {
   ...forwards.fr,
   ...state.fr,
   ...app.fr,
+  ...access.fr,
   ...account.fr,
   ...activity.fr,
   ...backups.fr,

@@ -25,6 +25,38 @@ func TestACommandTheListDoesNotNameIsPrivileged(t *testing.T) {
 	}
 }
 
+func TestOpeningAProjectToTheWebWaitsForThePrivilegedSession(t *testing.T) {
+	cases := []struct {
+		cmd        string
+		params     string
+		privileged bool
+	}{
+		{"project.add", `{"name":"shop"}`, false},
+		{"project.add", `{"name":"shop","protected":false}`, true},
+		{"project.add", `{"name":"shop","processes":[{"id":"hooks","protected":false}]}`, true},
+		{"project.update", `{"name":"shop","patch":{"protected":true,"processes":[{"id":"web"}]}}`, false},
+		{"project.update", `{"name":"shop","patch":{"protected":false}}`, true},
+		{"project.update", `{"name":"shop","patch":{"processes":[{"id":"web","protected":false}]}}`, true},
+	}
+
+	for _, c := range cases {
+		var decoded any
+		if err := json.Unmarshal([]byte(c.params), &decoded); err != nil {
+			t.Fatal(err)
+		}
+
+		if got := RequiresPrivilege(c.cmd, decoded); got != c.privileged {
+			t.Fatalf("%s %s: privileged %v, want %v", c.cmd, c.params, got, c.privileged)
+		}
+	}
+
+	for _, cmd := range []string{"access.list", "access.create", "access.update", "access.revoke"} {
+		if !RequiresPrivilege(cmd, map[string]any{}) {
+			t.Fatalf("%s must wait for the privileged session", cmd)
+		}
+	}
+}
+
 func TestADowngradeWaitsForThePrivilegedSession(t *testing.T) {
 	var decoded any
 	if err := json.Unmarshal([]byte(`{"version":"1.0.0","allow_downgrade":true}`), &decoded); err != nil {

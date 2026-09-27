@@ -20,3 +20,4 @@ Une décision par fichier, numérotée, jamais réécrite : une décision qui ch
 | [0014](./0014-cles-approuvees-par-un-appareil.md) | Un accès au serveur n'est accordé que par un appareil déjà autorisé |
 | [0015](./0015-sudo-par-mot-de-passe.md) | `dev` passe par un mot de passe pour sudo, sauf pour `pupitred` |
 | [0016](./0016-retrait-de-server.md) | La stack bash d'origine quitte le dépôt |
+| [0017](./0017-portier-d-acces.md) | Les adresses publiées passent par un portier, un projet est protégé par défaut |

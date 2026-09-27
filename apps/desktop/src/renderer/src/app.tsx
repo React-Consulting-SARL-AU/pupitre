@@ -5,6 +5,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { AccessScreen } from "./components/access/access-screen";
 import { AccountFailedScreen } from "./components/account/account-failed-screen";
 import { AccountGateScreen } from "./components/account/account-gate-screen";
 import { AccountReadingScreen } from "./components/account/account-reading-screen";
@@ -380,6 +381,13 @@ export function App() {
       />
     ),
     shots: <ShotsScreen serverId={serverId} serverName={serverName} />,
+    access: (
+      <AccessScreen
+        projects={snapshot.projects}
+        serverId={serverId}
+        serverName={serverName}
+      />
+    ),
     backups: (
       <BackupsScreen
         installed={snapshot.services.map((service) => service.id)}

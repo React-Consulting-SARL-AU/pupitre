@@ -1,3 +1,4 @@
+import { guards } from "@pupitre/shared/agent-protocol/access";
 import type {
   ProjectActionResult,
   ProjectAddParams,
@@ -50,6 +51,8 @@ interface Declared {
   /** Git's root, preferred by the editor when the registry folder sits below it. */
   root: string | null;
   hostnames: readonly string[];
+  /** The names that answer only to an access key. */
+  guarded: readonly string[];
 }
 
 const declared = new Map<string, Map<string, Declared>>();
@@ -149,15 +152,32 @@ export function projectHostnames(
   return declared.get(serverId)?.get(name)?.hostnames ?? [];
 }
 
-function remember(
-  serverId: string,
-  projects: readonly {
-    name: string;
-    dir: string;
-    path?: string;
-    processes?: readonly { routes?: readonly Route[] }[];
-  }[]
-): void {
+/** The project a protected name belongs to; null for a name that opens without a key, or no name of this server. */
+export function guardedBy(serverId: string, hostname: string): string | null {
+  for (const [name, project] of declared.get(serverId) ?? []) {
+    if (project.guarded.includes(hostname)) {
+      return name;
+    }
+  }
+
+  return null;
+}
+
+interface Remembered {
+  name: string;
+  dir: string;
+  path?: string;
+  protected?: boolean;
+  processes?: readonly { routes?: readonly Route[]; protected?: boolean }[];
+}
+
+function guardedOf(project: Remembered): string[] {
+  return (project.processes ?? []).flatMap((process) =>
+    guards(project, process) ? hostnamesOf([process]) : []
+  );
+}
+
+function remember(serverId: string, projects: readonly Remembered[]): void {
   const held = declared.get(serverId) ?? new Map<string, Declared>();
 
   for (const project of projects) {
@@ -169,6 +189,7 @@ function remember(
 
     held.set(project.name, {
       dir: project.dir,
+      guarded: guardedOf(project),
       hostnames: hostnamesOf(project.processes),
       path: absolute,
       root: known?.root ?? null,
@@ -261,11 +282,12 @@ export async function addProject(
 
 /** The agent's params are closed: an agent from before `boot` or `runtimes` refuses a key it never learnt. */
 function withoutDefaults(params: ProjectAddParams): Partial<ProjectAddParams> {
-  const { boot, runtimes, ...rest } = params;
+  const { boot, runtimes, protected: guarded, ...rest } = params;
 
   return {
     ...rest,
     ...(boot ? { boot } : {}),
+    ...(guarded ? {} : { protected: false }),
     ...(runtimes && Object.keys(runtimes).length > 0 ? { runtimes } : {}),
   };
 }

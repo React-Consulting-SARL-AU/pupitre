@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/gate"
 	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/protocol"
@@ -30,9 +31,26 @@ const (
 const ModePath = "/etc/pupitre/exposure"
 
 type Route struct {
-	Hostname string `json:"hostname"`
-	Service  string `json:"service"`
-	Project  string `json:"project,omitempty"`
+	Hostname  string `json:"hostname"`
+	Service   string `json:"service"`
+	Project   string `json:"project,omitempty"`
+	Protected bool   `json:"protected"`
+}
+
+// The gate for every name: it answers a protected one itself, and forwards to Service.
+func Gate(published []Route) []gate.Route {
+	list := make([]gate.Route, 0, len(published))
+
+	for _, route := range published {
+		list = append(list, gate.Route{
+			Hostname:  route.Hostname,
+			Upstream:  strings.TrimPrefix(route.Service, "http://"),
+			Project:   route.Project,
+			Protected: route.Protected,
+		})
+	}
+
+	return list
 }
 
 type Report struct {
@@ -182,9 +200,10 @@ func For(domain string, projects []registry.Project) []Route {
 				}
 
 				list = append(list, Route{
-					Hostname: route.Hostname,
-					Service:  "http://" + process.Host + ":" + strconv.Itoa(route.Port),
-					Project:  project.Name,
+					Hostname:  route.Hostname,
+					Service:   "http://" + process.Host + ":" + strconv.Itoa(route.Port),
+					Project:   project.Name,
+					Protected: project.Guards(process),
 				})
 			}
 		}

@@ -82,6 +82,8 @@ const ProcessPatchSchema = z.strictObject({
   // Empty hands the command back to the package manager.
   install: z.string().optional(),
   routes: z.array(RoutePatchSchema),
+  // Absent follows the project.
+  protected: z.boolean().optional(),
 })
 
 export type ProcessPatch = z.infer<typeof ProcessPatchSchema>
@@ -91,6 +93,7 @@ const ProjectPatchSchema = z.strictObject({
   boot: z.boolean().optional(),
   // Replaces the whole map: a missing tool goes back to the machine's default.
   runtimes: ProjectRuntimesSchema.optional(),
+  protected: z.boolean().optional(),
   // Replaces the whole list: a missing process goes, one whose command changed restarts.
   processes: z
     .array(ProcessPatchSchema)

@@ -5,6 +5,7 @@ import (
 	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/exposure/cloudflared"
+	"pupitre.studio/agent/internal/modules/exposure/gateway"
 	"pupitre.studio/agent/internal/modules/exposure/routes"
 	"pupitre.studio/agent/internal/sys/apt"
 	"pupitre.studio/agent/internal/sys/env"
@@ -75,6 +76,10 @@ func (m Module) Configure(ctx *modules.Context) error {
 	}
 
 	if err := storeDomain(ctx); err != nil {
+		return err
+	}
+
+	if err := gateway.Enable(ctx, routes.Published(ctx, ctx.String("domain"))); err != nil {
 		return err
 	}
 
@@ -284,6 +289,12 @@ func (Module) Uninstall(ctx *modules.Context) error {
 		return modules.Done, apt.Remove(ctx, cloudflared.Pkg)
 	}); err != nil {
 		return err
+	}
+
+	if !heldByAnother {
+		if err := gateway.Disable(ctx); err != nil {
+			return err
+		}
 	}
 
 	return ctx.Step("forget-domain", func() (modules.Outcome, error) {
