@@ -1,0 +1,30 @@
+---
+title: Un agent mis à jour met le portier en place de lui-même
+description: Un serveur mis à jour depuis son bandeau protège désormais ses adresses publiées sans geste dans l'app.
+locale: fr
+version: 1.2.1
+channel: stable
+date: 2026-09-27
+order: 23
+---
+
+Une correction dans l'agent, pour qui a mis un serveur à jour en 1.2.0.
+
+## Le portier
+
+- **Un serveur mis à jour depuis son bandeau met `pupitre-gate` en place de lui-même.** En 1.2.0, le portier n'était écrit qu'en mettant à jour les services ou en enregistrant la configuration d'un projet publié : d'ici là, l'exposition continuait d'envoyer chaque nom publié directement à son processus, sans demander de clé. L'agent fait désormais cette resynchronisation à son démarrage, et la reprend au tour suivant tant qu'une installation ou une sauvegarde le tient.
+
+## Limites connues
+
+- Un processus déclaré toujours public répond à quiconque détient son adresse : réservez-le à un récepteur qui vérifie sa propre signature.
+- Une clé n'expire jamais et plusieurs personnes peuvent la partager : pour distinguer deux personnes, donnez-leur deux clés.
+- Un script du serveur qui appelle son propre projet par `PUPITRE_PUBLIC_URL` demande une clé comme n'importe quel client ; `PUPITRE_LOCAL_URL` n'en demande pas.
+- Une clé créée sur un autre ordinateur ne se copie pas ici ; créez-en une autre à la place.
+- La galerie publiée garde son propre jeton et ne demande pas de clé d'accès, donc rien de secret n'a sa place dans une capture.
+- Un serveur qui n'a pas encore accepté le mot de passe sudo garde l'ancienne règle, sans mot de passe, tant qu'il n'est pas appliqué.
+- Tous les appareils autorisés perdus, l'accès ne se repose que depuis la console de l'hébergeur, par `sudo pupitred keys reset`.
+- Les volumes Docker ne sont pas sauvegardés ; l'app le dit quand le runtime Docker est installé.
+- Qui lit le bucket lit les manifestes, en clair : le nom du serveur, les noms des projets, des bases et des dossiers, l'adresse et la branche des dépôts. Jamais un contenu, jamais un secret — ceux-là sont scellés.
+- Qui tient la clé S3 peut effacer les sauvegardes : le versionnage ou le verrouillage d'objets du bucket sont la parade, et le guide le dit.
+- Perdue, la passphrase rend les sauvegardes illisibles — personne ne peut la recouvrer.
+- L'installateur Windows n'est toujours pas signé : SmartScreen avertit au premier lancement.
