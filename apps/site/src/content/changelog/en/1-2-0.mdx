@@ -1,0 +1,61 @@
+---
+title: A published address opens only with a key
+description: Every address the tunnel or Caddy publishes goes through a gate in the agent, a project is protected as soon as it is declared, keys are drawn on your computer and revoked from the app, and opening a project to everyone takes your sudo password.
+locale: en
+version: 1.2.0
+channel: stable
+date: 2026-09-27
+order: 22
+---
+
+Until now, an address published by Cloudflare Tunnel or Caddy answered whoever knew it. From this version on, it answers only an access key. Update the app first, then each server's agent from its banner: the agent's update protects every project already declared, so an address you had given out stops answering until it carries a key.
+
+## The gate
+
+- **Every published name goes through `pupitre-gate`**, a proxy of the agent on `127.0.0.1:8098`. The exposure you have installed — `exposure.cloudflare` or `exposure.caddy` — puts it in place and reloads it; uninstalling the exposure stops it and keeps the keys.
+- The gate runs as root with no capability at all, on a read-only system, and sees nothing of `/etc/pupitre` but `gate/`: neither the server's secrets, nor what the installation received, nor its token.
+- A protected name without a key answers `401`: a sign-in page to a browser, at the address asked for and in the visitor's language, and `access_required` with its remedy to an API client. CORS preflights pass without a key, since a browser cannot attach one. More than twenty refused keys in ten minutes from one address answer `429`.
+- Path and parameters survive: a key given in the address is redirected away with a `303` that keeps the rest, and the sign-in page comes back to the address asked for.
+- **Your site never sees Pupitre's marks.** The key, the `pupitre_key` parameter and the `__Host-pupitre` cookie are removed before the request reaches it; its own `Authorization` header, its cookies and its parameters are left alone. It receives the name of the key that opened the request in `Pupitre-Identity`, and the public name asked for in `X-Forwarded-Host`.
+- A protection changed or a key revoked takes effect on a reload, without cutting the WebSockets in flight.
+
+## Protection
+
+- **A project is protected as soon as it is declared**, and a project declared before this version becomes protected when its agent updates.
+- A single process can step out of it, in either direction: always protected, or always public. Always public is for a webhook receiver — Stripe or GitHub send no key and check their own signature.
+- **Opening a project or a process to everyone takes your sudo password**, as does creating or revoking a key. A coding agent running as `dev` cannot lift the protection by itself.
+
+## Keys
+
+- A key reads `ppk_` then two runs of letters and digits. It opens the whole server, projects added later included, or the list of projects you choose.
+- **The app draws this computer's key** the first time you open a protected address, and adds it to every address it opens afterwards — from the dashboard, from a project's page, from its addresses. You have nothing to do.
+- **New key** in a project's Access tab or on the server's Access page creates one for a simulator, a script, a colleague or a client review. Copy it as a link that opens the site already signed in, as the `Pupitre-Key` header, or alone.
+- A key is drawn on your computer and kept in its keychain; the server receives only its SHA-256 hash. It can therefore be copied only from the computer that created it — elsewhere the app lists it and says so.
+- A key never expires. **Revoke** cuts everyone using it off at their next request, with nothing to restart.
+
+## The app
+
+- A project's **Configuration** is now read as parts down the left — General, Runtimes, Processes, Access — and a part holding a field to fix says so.
+- The server's **Access** page lists its keys, what each one opens and when it was created, and shows how to present a key from a browser, from a script and from a WebSocket.
+- A project whose server has no exposure installed says its addresses do not leave the server; a server whose agent has no gate says to update it from Services.
+- The sidebar keeps projects high: Processes and sessions, Gallery, Backups and Access are folded under **More**, which stays open on the page you are on.
+
+## The site
+
+- A new **Access to addresses** page in the docs: what is protected, the keys, the three ways to present one, what your site sees, and the command that checks it from any machine.
+- The Security page makes a seventh checkable claim — a published project opens only with a key — and the FAQ, the projects page and the security docs point to it.
+
+## Known limits
+
+- A process declared always public answers anyone who holds its address: keep that for a receiver that checks its own signature.
+- A key never expires and several people may share one: to tell two people apart, give them two keys.
+- A script on the server that calls its own project through `PUPITRE_PUBLIC_URL` now needs a key like any client; `PUPITRE_LOCAL_URL` does not.
+- A key copied from another computer cannot be copied again here; create another one instead.
+- The published gallery keeps its own token and asks for no access key, so nothing secret belongs in a capture.
+- A server that has not yet accepted the sudo password keeps the old rule, without a password, until it is applied.
+- Lose every authorised device and access is put back only from the host's console, with `sudo pupitred keys reset`.
+- Docker volumes are not backed up; the app says so when the Docker runtime is installed.
+- Whoever can read the bucket reads the manifests, which are in clear: the server's name, the names of the projects, the databases and the folders, the address and branch of the repositories. Never a content, never a secret — those are sealed.
+- Whoever holds the S3 key can erase the backups: object versioning or object lock on the bucket is the answer, and the guide says so.
+- Lose the passphrase and the backups are unreadable — nobody can recover it.
+- The Windows installer is still unsigned: SmartScreen warns at first launch.
