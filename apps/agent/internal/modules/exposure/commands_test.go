@@ -4,18 +4,23 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/gate"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/exposure/caddy"
 	"pupitre.studio/agent/internal/modules/exposure/cloudflare"
 	"pupitre.studio/agent/internal/modules/exposure/cloudflared"
+	"pupitre.studio/agent/internal/modules/exposure/gateway"
 	"pupitre.studio/agent/internal/modules/exposure/routes"
 	"pupitre.studio/agent/internal/modules/modtest"
 	"pupitre.studio/agent/internal/protocol"
+	"pupitre.studio/agent/internal/registry"
+	"pupitre.studio/agent/internal/sys/env"
 )
 
 func TestStatusAnswersWhileTheInstallLockIsHeld(t *testing.T) {
@@ -95,6 +100,79 @@ func TestAStatusThatCannotBeReadIsAnErrorNotAnAbsence(t *testing.T) {
 
 	if _, err := acting(engine, func(p provider) reporter { return p.sync })(&protocol.Context{}, nil); !errors.Is(err, unreadable) {
 		t.Fatalf("sync = %v, want the read error", err)
+	}
+}
+
+func TestSettlePutsTheGateInFrontOfATunnelFromBeforeIt(t *testing.T) {
+	fake := modtest.NewFakeSys()
+	fake.Packages["cloudflared"] = "2026.9.1"
+	fake.Files[routes.ModePath] = []byte("cloudflare\n")
+	fake.Files[cloudflared.UnitPath] = cloudflared.UnitFile
+	fake.Units[cloudflared.Unit] = modtest.UnitActive
+	fake.Files[env.Path] = []byte(env.DomainKey + "=example.org\n")
+	fake.Files[cloudflared.CredentialsPath] = cloudflared.Credentials{
+		AccountTag: "0123456789abcdef0123456789abcdef", TunnelID: "01234567-89ab-cdef-0123-456789abcdef", TunnelSecret: "c2VjcmV0",
+	}.Encode()
+	fake.Files[cloudflared.ConfigPath] = []byte("ingress:\n  - hostname: shop.example.org\n    service: http://127.0.0.1:3100\n  - service: http_status:404\n")
+	fake.Files[registry.DefaultLocal] = []byte(`{"projects":[{"name":"shop","dir":"shop","protected":true,"processes":[{"id":"shop","pkgmgr":"bun","host":"127.0.0.1","port":3100,"routes":[{"label":"web","port":3100,"hostname":"shop.example.org"}],"cmd":"bun run dev"}]}]}`)
+
+	reg := modules.NewRegistry()
+	reg.Register(cloudflare.Module{})
+	reg.Register(caddy.Module{})
+
+	dir := t.TempDir()
+	engine := &modules.Engine{
+		Registry:    reg,
+		Sys:         fake,
+		Now:         modtest.NewClock(10 * time.Millisecond).Now,
+		Entitlement: func() contract.Entitlement { return contract.EntitlementDev },
+		ReportPath:  filepath.Join(dir, "report.json"),
+		LogPath:     filepath.Join(dir, "pupitre.log"),
+		InstallPath: "/etc/pupitre/install.json",
+		LockPath:    filepath.Join(dir, "install.lock"),
+	}
+
+	if err := Settle(engine); err != nil {
+		t.Fatalf("Settle: %v", err)
+	}
+
+	if _, unit := fake.Files[gateway.UnitPath]; !unit {
+		t.Fatal("an updated agent must install the gate without waiting for a gesture")
+	}
+
+	if ingress := string(fake.Files[cloudflared.ConfigPath]); !strings.Contains(ingress, "service: http://"+gate.Address) || strings.Contains(ingress, "127.0.0.1:3100") {
+		t.Fatalf("the ingress must send every name to the gate:\n%s", ingress)
+	}
+
+	if gated := string(fake.Files[gate.RoutesPath]); !strings.Contains(gated, `"protected": true`) {
+		t.Fatalf("routes = %s", gated)
+	}
+}
+
+func TestSettleLeavesAMachineWithoutExposureAlone(t *testing.T) {
+	reg := modules.NewRegistry()
+	reg.Register(cloudflare.Module{})
+	reg.Register(caddy.Module{})
+
+	fake := modtest.NewFakeSys()
+	dir := t.TempDir()
+	engine := &modules.Engine{
+		Registry:    reg,
+		Sys:         fake,
+		Now:         modtest.NewClock(10 * time.Millisecond).Now,
+		Entitlement: func() contract.Entitlement { return contract.EntitlementDev },
+		ReportPath:  filepath.Join(dir, "report.json"),
+		LogPath:     filepath.Join(dir, "pupitre.log"),
+		InstallPath: "/etc/pupitre/install.json",
+		LockPath:    filepath.Join(dir, "install.lock"),
+	}
+
+	if err := Settle(engine); err != nil {
+		t.Fatalf("Settle: %v", err)
+	}
+
+	if len(fake.Mutations) != 0 {
+		t.Fatalf("nothing to settle, yet: %v", fake.Mutations)
 	}
 }
 

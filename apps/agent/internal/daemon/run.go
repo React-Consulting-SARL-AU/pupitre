@@ -5,8 +5,10 @@ import (
 	"errors"
 	"time"
 
+	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/platform"
+	"pupitre.studio/agent/internal/protocol"
 )
 
 // A failure never stops the loop: the platform coming back is exactly what it waits for.
@@ -21,6 +23,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 
 	d.syncOnce(ctx)
 	d.beatOnce(ctx)
+	d.upkeep()
 
 	for {
 		select {
@@ -30,6 +33,7 @@ func (d *Daemon) Run(ctx context.Context) error {
 			return nil
 		case <-states.C:
 			d.syncOnce(ctx)
+			d.upkeep()
 			d.backupTurn()
 		case <-beats.C:
 			d.beatOnce(ctx)
@@ -48,6 +52,28 @@ func (d *Daemon) syncOnce(ctx context.Context) {
 	if synced.KeysChanged {
 		d.journal.Logf("entitlement %s, target version %s", synced.Entitlement, orNone(synced.TargetVersion))
 	}
+}
+
+// A busy engine is an install or a backup under way: the next turn tries again, silently.
+func (d *Daemon) upkeep() {
+	if d.upkept || d.options.Upkeep == nil {
+		return
+	}
+
+	err := d.options.Upkeep()
+
+	var refusal *protocol.Error
+	if errors.As(err, &refusal) && refusal.Code == contract.ErrorBusy {
+		return
+	}
+
+	if err != nil {
+		d.report("upkeep", err)
+
+		return
+	}
+
+	d.upkept = true
 }
 
 func (d *Daemon) backupTurn() {
