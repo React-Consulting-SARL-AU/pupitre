@@ -247,6 +247,7 @@ func newDaemon(engine *modules.Engine) *daemon.Daemon {
 	options := daemonOptions(engine)
 	options.Reader = state.FromEngine(engine, stateOptions()).WithJournal(engine.LogPath)
 	options.Backups = newBackups(engine, options.Reader)
+	options.Upkeep = func() error { return exposure.Settle(engine) }
 
 	return daemon.New(options)
 }

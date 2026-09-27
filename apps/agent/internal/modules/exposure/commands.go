@@ -119,6 +119,21 @@ func Resync(sibling func(id string) (*modules.Context, bool)) (bool, error) {
 	return false, nil
 }
 
+// Settle brings what the exposure serves up to what this agent writes; the daemon runs it once it starts,
+// so an agent update puts the gate in front of every name without waiting for a gesture in the app.
+func Settle(engine *modules.Engine) error {
+	chosen, ok, err := installed(engine)
+	if err != nil || !ok {
+		return err
+	}
+
+	return engine.Command(chosen.id, nil, func(ctx *modules.Context) error {
+		_, err := chosen.sync(ctx)
+
+		return err
+	})
+}
+
 // An unreadable module is an error, never an absence: answering absent once had a live tunnel deleted by name.
 func installed(engine *modules.Engine) (provider, bool, error) {
 	for _, candidate := range providers {

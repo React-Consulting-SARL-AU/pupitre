@@ -467,7 +467,7 @@ Le principe est celui du flux secret d'entrée, dans l'autre sens : à l'entrée
 
 ## Le portier d'accès
 
-Chaque nom publié passe par `pupitre-gate` (décision [0017](../decisions/0017-portier-d-acces.md)). L'exposition qui tient la machine, tunnel ou Caddy, l'installe à son `Configure` et le recharge à chaque `tunnel.sync`. Un `tunnel.sync` lancé avant la mise à jour du module installe aussi le portier : l'ingress ne pointe jamais vers un portier absent. Désinstaller l'exposition arrête le portier et garde les clés.
+Chaque nom publié passe par `pupitre-gate` (décision [0017](../decisions/0017-portier-d-acces.md)). L'exposition qui tient la machine, tunnel ou Caddy, l'installe à son `Configure` et le recharge à chaque `tunnel.sync`. Un `tunnel.sync` lancé avant la mise à jour du module installe aussi le portier : l'ingress ne pointe jamais vers un portier absent. Le daemon fait ce `tunnel.sync` lui-même à son démarrage, donc juste après chaque mise à jour de l'agent, et le reprend au tour suivant tant qu'une installation ou une sauvegarde tient le moteur : une mise à jour met le portier en place sans attendre un geste dans l'app. Désinstaller l'exposition arrête le portier et garde les clés.
 
 **La protection**
 - Le registre porte `protected` sur chaque projet, et `protected` sur un processus qui s'en écarte. `Project.protected` et `ProjectProcess.protected` le rendent.
