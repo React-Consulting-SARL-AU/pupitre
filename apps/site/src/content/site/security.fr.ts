@@ -15,7 +15,7 @@ export const securityFr: SecurityContent = {
   },
   guarantees: {
     label: "Garanties",
-    title: "Six affirmations, chacune vérifiable",
+    title: "Sept affirmations, chacune vérifiable",
     lead: "Lancez la commande sur le serveur, ou sur votre ordinateur quand c’est indiqué.",
     checkLabel: "Vérifier",
     items: [
@@ -42,6 +42,12 @@ export const securityFr: SecurityContent = {
         proof:
           "Tout ce qui tourne sous dev, vos agents compris, tourne sans surveillance. La sécurisation donne à dev un mot de passe sudo que seul votre ordinateur connaît. Deux lignes de commande exactes s’en passent, toutes deux celles de l’agent, et la session qu’elles ouvrent refuse tout ce qui configure la machine.",
         check: "sudo -l",
+      },
+      {
+        statement: "Vos projets publiés ne s’ouvrent qu’avec une clé.",
+        proof:
+          "Chaque adresse que le tunnel ou Caddy publie passe par un portier de l’agent, et répond 401 à qui n’a pas de clé d’accès. Les clés sont tirées sur votre ordinateur, le serveur n’en garde que l’empreinte, et ouvrir un projet à tous demande votre mot de passe sudo. Lancez la vérification depuis n’importe quelle machine.",
+        check: "curl -sI https://votre-projet.exemple.fr",
       },
       {
         statement: "Rien de lisible n’est laissé sur le serveur.",

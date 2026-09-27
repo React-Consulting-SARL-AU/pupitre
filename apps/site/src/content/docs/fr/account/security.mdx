@@ -53,6 +53,27 @@ Un serveur sécurisé avant ce mot de passe garde l’ancienne règle, sudo sans
 
 Vérifiez : en `dev`, `sudo -l` liste `(ALL : ALL) ALL` et `(root) NOPASSWD: /usr/local/bin/pupitred serve, /usr/local/bin/pupitred binary install`, et `sudo -k; sudo true` demande le mot de passe.
 
+## Une adresse publiée demande une clé
+
+Chaque nom que `exposure.cloudflare` ou `exposure.caddy` publie passe par `pupitre-gate`, un portier de l’agent qui écoute sur `127.0.0.1:8098`. Sans clé d’accès, il répond `401`. La seule exception est un processus que vous avez déclaré public.
+
+**Les clés**
+- Elles sont tirées sur votre ordinateur et gardées dans son trousseau.
+- Le serveur n’en garde que l’empreinte SHA-256, dans `/etc/pupitre/gate/access.json`, lisible par root seul.
+- Créer ou révoquer une clé, ou ouvrir un projet à tous, demande votre mot de passe sudo.
+
+**Le portier**
+- Il tourne en root sans aucune capacité, sur un système en lecture seule.
+- De `/etc/pupitre`, il ne voit que son propre dossier : un portier compromis ne lit ni vos secrets, ni le jeton du serveur.
+- Il retire la clé avant de transmettre la requête, et remplace tout en-tête `Pupitre-Identity` venu de l’extérieur.
+
+Le fonctionnement complet est dans [l’accès aux adresses](/fr/docs/daily/access/).
+
+Vérifiez :
+- `curl -sI https://votre-projet.exemple.fr` répond `401` depuis n’importe quelle machine ;
+- `systemctl show pupitre-gate -p CapabilityBoundingSet` est vide ;
+- `sudo cat /etc/pupitre/gate/access.json` ne montre que des empreintes.
+
 ## Ce dont Pupitre ne vous protège pas
 
 Les sauvegardes n’existent que si vous les activez : `core.backup` envoie des archives chiffrées dans un bucket à vous, et d’ici là rien du serveur n’est copié nulle part. Voir les [sauvegardes](/fr/docs/daily/backups/). Pupitre n’est pas un système de détection d’intrusion, et pas un substitut à la lecture de ce que vous exécutez. Il pose `ufw` et `fail2ban`, laisse couler les mises à jour de sécurité, et se tient à l’écart.

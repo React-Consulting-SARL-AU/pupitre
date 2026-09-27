@@ -1,6 +1,6 @@
 ---
 title: Gallery
-description: The screenshots agents take while working, where they are filed, and how the app shows them.
+description: The screenshots agents take while working, where they are filed, how the app shows them, and how to give out their address.
 locale: en
 section: daily
 sectionOrder: 2
@@ -11,20 +11,48 @@ An agent that drives a browser produces images. `ai.browser` installs the headle
 
 ## Taking one
 
-On the server, `shot` is the agent binary under another name. `shot <url|file> [name]` captures a page or copies an image into the gallery. `--mobile` or `--size LxH` set the viewport, `--wait` gives a slow page time to settle, `shot --list` prints what is filed. An agent working in a terminal calls the same command you would.
+On the server, `shot` is the agent binary under another name. `shot <url|file> [name]` captures a page or copies an image into the gallery.
+
+- `--mobile` or `--size LxH` set the viewport.
+- `--wait` gives a slow page time to settle.
+- `--project <name>` files the capture under that project.
+- `shot --list` prints what is filed.
+
+An agent working in a terminal calls the same command you would. Once the gallery is published, `shot` answers the capture's public address, which an agent can paste into a conversation or a review.
 
 ## Where the files are
 
-Under `/home/dev/shots`, in a folder per day. They stay there: the gallery is the server's, not the platform's, and nothing is uploaded anywhere.
+Under `/home/dev/shots`, one folder per project, then one per day: `~/shots/<project>/<day>/<name>`. `shot` picks the project in this order:
+
+1. the one `--project` names;
+2. the one whose folder holds the current folder;
+3. the one that serves the captured address.
+
+A capture that belongs to no project goes under `~/shots/_unfiled`.
+
+The files stay on the server: the gallery is the server's, not the platform's, and nothing is uploaded anywhere.
 
 ## Reading one from the app
 
-The gallery screen lists what is filed, with its weight. Opening one brings its bytes over the channel the app already holds, and checks them against the fingerprint the server sent with them. If the two disagree the app says so rather than showing you half an image.
+The **Gallery** screen sorts captures by project, with their weight. Opening one brings its bytes over the channel the app already holds, and checks them against the fingerprint the server sent with them. If the two disagree the app says so rather than showing you half an image.
 
-## The server's own gallery
+## Publishing the gallery
 
-The agent also serves the folder as a plain read-only page, on `127.0.0.1` and nowhere else, reachable through the SSH session the app holds. `Open the gallery` opens it in your browser — useful for scrolling a day's work rather than one capture at a time.
+By default the gallery is served on the server only, read-only, on `127.0.0.1:8099`. For an agent to show a capture outside the app, give the gallery a subdomain in **Services › Browser and gallery**. It needs an installed exposure, `exposure.cloudflare` or `exposure.caddy`.
+
+**The token**
+- The agent draws a secret token, and the gallery only answers under `https://<subdomain>.<domain>/<token>/`.
+- Any other path answers 404, the list of captures included, and no page is indexed.
+- Whoever holds a capture's address holds the whole gallery: give it only to who should see it.
+
+**The subdomain**
+- Changing it keeps the token, and a domain change carries the address along.
+- Emptying the field withdraws the address and forgets the token. Setting it again draws a new one, which cuts off every address given before.
+
+**Outside key protection**
+- The gallery already has its token: it asks for no access key, unlike published projects (see [access to addresses](/docs/daily/access/)).
+- Once published, **Open the gallery** opens it in your browser, and a capture's details show its public address.
 
 ## Emptying it
 
-One button deletes the server's screenshots. It asks first, and it takes nothing else with it.
+One button deletes the server's screenshots. It asks first, and it takes nothing else with it. A single capture is deleted from its tile, or while it is open.

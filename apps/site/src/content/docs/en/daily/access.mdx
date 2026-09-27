@@ -1,0 +1,88 @@
+---
+title: Access to addresses
+description: Who can open a published project, access keys, and how a browser, an app or a script presents them.
+locale: en
+section: daily
+sectionOrder: 2
+order: 11
+---
+
+An address published by `exposure.cloudflare` or `exposure.caddy` opens only with an access key. Without one, a browser lands on a sign-in page and an API client gets a `401`. Your work in progress is not visible to whoever guesses its address.
+
+## What is protected
+
+A project is protected as soon as it is declared. A project published before this version is protected too, from the agent's update on.
+
+In the app, the project's **Configuration › Access** tab sets two things:
+
+- **Protect the project**: the switch that applies to all its processes.
+- **Each process**: it follows the project, or stays always protected, or always public. "Always public" is meant for a webhook receiver: Stripe or GitHub send no key, and the process checks the signature of their requests itself.
+
+Opening a project or a process to everyone takes your sudo password. A coding agent running as `dev` therefore cannot lift the protection on its own.
+
+## Keys
+
+A key looks like `ppk_` followed by two runs of letters and digits. It opens either the whole server, projects added later included, or a list of projects.
+
+- **This computer's key.** The app draws it the first time you open a protected address, then adds it to every address it opens. You have nothing to do.
+- **Keys you create.** For an iOS simulator, a script, a colleague or a client review: **New key** in a project's Access tab, or in the server's **Access** page.
+
+A key never expires. Several people may share one. **Revoke** cuts everyone off at their next request, with nothing to restart. To tell two people apart, give them two keys.
+
+The app draws each key on your computer and keeps it in its keychain. The server only receives its hash. A key can therefore be copied only from the computer that created it: elsewhere it shows in the list, but copying it means creating another one.
+
+## Presenting it
+
+| From | How |
+| --- | --- |
+| A browser | Open the copied link once. The browser keeps the access in a cookie, renewed on every visit. |
+| An app, a script, an API tool | The `Pupitre-Key: ppk_…` header on every request. |
+| A WebSocket, an EventSource | Where no header can be set: the `?pupitre_key=ppk_…` parameter in the address. |
+
+For instance, from a simulator or a terminal:
+
+```sh
+curl -H "Pupitre-Key: $PUPITRE_KEY" https://api-shop.example.com/v1/cart
+```
+
+**Path and parameters kept**
+
+- An address opened with the key in its parameters is redirected to the same address without that one parameter: the path and the other parameters stay.
+- Without a key, the sign-in page shows at the address asked for. Once the key is typed, it comes back there, with the path and the parameters.
+
+## What your site sees
+
+**What it never sees**
+- Pupitre's key, parameter and cookie: they are removed before the request reaches it.
+- Nothing changes for its own `Authorization` header, cookies and parameters: they never meet Pupitre's.
+
+**What it receives on top**
+- `Pupitre-Identity`: the name of the key that opened the request, URL-encoded.
+- `X-Forwarded-Host`: the public name that was asked for.
+- A `Pupitre-Identity` header sent from outside is always replaced.
+
+**CORS preflights** (`OPTIONS`) pass without a key: a browser cannot attach one.
+
+## From the server itself
+
+A process that calls itself, or another project of the server, goes through the local address:
+
+- `PUPITRE_LOCAL_URL`;
+- `PUPITRE_PROCESS_<ID>_URL` of a process without a public name.
+
+`PUPITRE_PUBLIC_URL` goes round through the internet and needs a key like any client. See the [project variables](/docs/daily/projects/).
+
+## Check it
+
+From any machine, without a key:
+
+```sh
+curl -sI https://your-project.example.com
+```
+
+The answer is `401`. With the `Pupitre-Key` header, it is your site's.
+
+On the server:
+
+- `systemctl status pupitre-gate` shows the gate;
+- `sudo cat /etc/pupitre/gate/access.json` lists the keys, with their hashes and never the keys themselves.

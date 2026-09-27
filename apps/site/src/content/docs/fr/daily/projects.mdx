@@ -61,3 +61,5 @@ Un processus démarré par l’app reçoit toutes ces variables à son démarrag
 ## Exposition
 
 Par défaut un projet écoute en local et l’app l’atteint par la session SSH qu’elle tient déjà. C’est un état, pas un module : ne cochez aucune exposition et rien n’est publié. Avec `exposure.cloudflare` installé, vous pouvez donner à un projet une route sur votre domaine — un tunnel pour la machine, une route par projet, DNS et certificat gérés ; `exposure.caddy` fait de même pour un domaine hors Cloudflare.
+
+Une adresse publiée ne s’ouvre qu’avec une clé d’accès : le projet est protégé dès qu’il est déclaré, et un processus peut rester public pour recevoir des webhooks. L’app ajoute la clé de cet ordinateur à chaque adresse qu’elle ouvre. Voir l’[accès aux adresses](/fr/docs/daily/access/). Un script du serveur qui appelle son propre projet passe par `PUPITRE_LOCAL_URL` : `PUPITRE_PUBLIC_URL` lui demande une clé comme à n’importe quel client.

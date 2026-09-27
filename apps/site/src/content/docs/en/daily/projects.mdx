@@ -61,3 +61,5 @@ A process the app starts receives all of them at start and keeps them: when they
 ## Exposure
 
 By default a project listens on localhost and the app reaches it through the SSH session it already holds. That is a state, not a module: tick no exposure and nothing is published. With `exposure.cloudflare` installed, you can give a project a route on your domain — one tunnel for the machine, one route per project, DNS and certificate handled; `exposure.caddy` does the same for a domain outside Cloudflare.
+
+A published address opens only with an access key: the project is protected as soon as it is declared, and a process can be left public for a webhook receiver. The app adds this computer's key to every address it opens. See [access to addresses](/docs/daily/access/). A script on the server that calls its own project goes through `PUPITRE_LOCAL_URL`: `PUPITRE_PUBLIC_URL` asks it for a key like any client.

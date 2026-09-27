@@ -49,6 +49,10 @@ A server is assigned to one person. Two people who need the same machine share i
 
 On your server. When an agent works, what it reads goes from the server to the model provider you chose, on your account, never through Pupitre. The platform stores your account, your organisation and the public keys of your devices; of each server, its name, address, architecture and agent version, the services and terminal sessions it runs, its health readings over seven days, and the status of its backups. It stores no code, no secrets, no logs, and no contents from your machines.
 
+## Who can see a project I publish?
+
+Nobody without an access key. A published address asks for one. The app adds your computer's key when it opens the address, and you create others for a colleague, a client or a script. A process can stay public to receive webhooks. See [access to addresses](/docs/daily/access/).
+
 ## Can I read the agent's source?
 
 No. Pupitre is a closed commercial product. What the agent does is documented here, module by module, and everything it installs is a standard tool you can inspect on your own machine. The [security page](/security/) lists what the agent can and cannot do, with the command that checks each claim.
