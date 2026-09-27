@@ -48,8 +48,6 @@ type Options struct {
 	LogPath           string
 	StateInterval     time.Duration
 	HeartbeatInterval time.Duration
-	// Rewrites what the modules generate after an update; retried on each state turn until it passes.
-	Upkeep func() error
 }
 
 // Turn must return without holding the daemon loop.
@@ -68,7 +66,6 @@ type Daemon struct {
 	pendingKnown   bool
 	silentPlatform bool
 	lastKeyHeld    bool
-	upkept         bool
 }
 
 type Sync struct {

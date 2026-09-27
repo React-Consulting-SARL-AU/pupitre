@@ -78,7 +78,21 @@ func run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		// A dropped channel ends the session, not the command: the write fails and the work goes on.
 		signal.Ignore(syscall.SIGPIPE, syscall.SIGHUP)
 
-		if err := newServer(newEngine(), limited).Serve(stdin, stdout); err != nil {
+		engine := newEngine()
+		server := newServer(engine, limited)
+
+		// Beside the session, never before hello: a tunnel restart takes half a minute.
+		settled := make(chan struct{})
+		go func() {
+			defer close(settled)
+			// A refusal leaves the steps in the journal; the next session, or tunnel.sync, tries again.
+			_ = exposure.Settle(engine)
+		}()
+
+		err := server.Serve(stdin, stdout)
+		<-settled
+
+		if err != nil {
 			fmt.Fprintln(stderr, err)
 			return 1
 		}
@@ -247,7 +261,6 @@ func newDaemon(engine *modules.Engine) *daemon.Daemon {
 	options := daemonOptions(engine)
 	options.Reader = state.FromEngine(engine, stateOptions()).WithJournal(engine.LogPath)
 	options.Backups = newBackups(engine, options.Reader)
-	options.Upkeep = func() error { return exposure.Settle(engine) }
 
 	return daemon.New(options)
 }

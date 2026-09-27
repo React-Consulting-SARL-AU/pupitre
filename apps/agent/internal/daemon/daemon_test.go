@@ -12,7 +12,6 @@ import (
 	"slices"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -22,7 +21,6 @@ import (
 	"pupitre.studio/agent/internal/keys"
 	"pupitre.studio/agent/internal/modules/modtest"
 	"pupitre.studio/agent/internal/platform"
-	"pupitre.studio/agent/internal/protocol"
 )
 
 const (
@@ -776,58 +774,6 @@ func TestRunPollsUntilItIsStopped(t *testing.T) {
 
 	if !b.opens(laptopDevice) || !strings.Contains(b.authorized(), own) {
 		t.Fatalf("a revoked server keeps its keys:\n%s", b.authorized())
-	}
-}
-
-func TestUpkeepWaitsOutABusyEngineThenRunsNoMore(t *testing.T) {
-	b := newBench(t, true)
-	b.trusting(t, laptopDevice)
-	b.platform.want(asked(laptopDevice))
-
-	var calls atomic.Int32
-
-	upkeep := func() error {
-		if calls.Add(1) < 3 {
-			return protocol.NewError(contract.ErrorBusy, "an install is under way")
-		}
-
-		return nil
-	}
-
-	ctx, stop := context.WithCancel(context.Background())
-	defer stop()
-
-	agent := daemon.New(daemon.Options{
-		Sys:               b.fake,
-		Now:               func() time.Time { return b.now },
-		Platform:          platform.Client{BaseURL: b.server.URL},
-		Entitlement:       entitlement.New(entitlement.Options{Sys: b.fake, Now: func() time.Time { return b.now }}),
-		AgentVersion:      "1.2.3",
-		StateInterval:     time.Millisecond,
-		HeartbeatInterval: time.Millisecond,
-		Upkeep:            upkeep,
-	})
-
-	done := make(chan error, 1)
-	go func() { done <- agent.Run(ctx) }()
-
-	deadline := time.After(5 * time.Second)
-	for b.platform.count() < 10 {
-		select {
-		case <-deadline:
-			t.Fatalf("%d state read(s) in five seconds", b.platform.count())
-		default:
-			time.Sleep(time.Millisecond)
-		}
-	}
-
-	stop()
-	if err := <-done; err != nil {
-		t.Fatalf("Run: %v", err)
-	}
-
-	if got := calls.Load(); got != 3 {
-		t.Fatalf("upkeep ran %d time(s), want twice busy then once through", got)
 	}
 }
 
