@@ -11,6 +11,7 @@ import (
 
 	"pupitre.studio/agent/internal/contract"
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/exposure/gateway"
 	"pupitre.studio/agent/internal/modules/exposure/routes"
 	"pupitre.studio/agent/internal/protocol"
 	"pupitre.studio/agent/internal/sys"
@@ -129,6 +130,10 @@ func (Module) Configure(ctx *modules.Context) error {
 	}
 
 	if err := declareMode(ctx); err != nil {
+		return err
+	}
+
+	if err := gateway.Enable(ctx, routes.Published(ctx, domainOf(ctx))); err != nil {
 		return err
 	}
 
@@ -381,6 +386,12 @@ func (Module) Uninstall(ctx *modules.Context) error {
 		return modules.Done, nil
 	}); err != nil {
 		return err
+	}
+
+	if !heldByAnother {
+		if err := gateway.Disable(ctx); err != nil {
+			return err
+		}
 	}
 
 	return ctx.Step("forget-domain", func() (modules.Outcome, error) {

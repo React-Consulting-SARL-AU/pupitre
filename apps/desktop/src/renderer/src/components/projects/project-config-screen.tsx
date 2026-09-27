@@ -3,19 +3,21 @@ import { exposureOf } from "@renderer/stores/project-add";
 import { useProjectConfig } from "@renderer/stores/project-config";
 import { useSnapshot } from "@renderer/stores/snapshot";
 import { useEffect } from "react";
-import { ProjectConfigPanel } from "./project-config-panel";
+import { type ConfigPart, ProjectConfigPanel } from "./project-config-panel";
 
 export function ProjectConfigScreen({
   serverId,
   project,
   services,
   host,
+  openAt,
 }: {
   serverId: string;
   project: Project;
   services: readonly Service[];
   /** Where a Caddy exposure asks the reader to point their DNS. */
   host: string | undefined;
+  openAt: ConfigPart;
 }) {
   const state = useSnapshot((s) => s.state);
   const draft = useProjectConfig((s) => s.draft);
@@ -37,6 +39,9 @@ export function ProjectConfigScreen({
   const setProcessPkgmgr = useProjectConfig((s) => s.setProcessPkgmgr);
   const setProcessCmd = useProjectConfig((s) => s.setProcessCmd);
   const setProcessInstall = useProjectConfig((s) => s.setProcessInstall);
+  const setProtected = useProjectConfig((s) => s.setProtected);
+  const setProcessAccess = useProjectConfig((s) => s.setProcessAccess);
+  const gated = useProjectConfig((s) => s.gated);
   const addProcess = useProjectConfig((s) => s.addProcess);
   const removeProcess = useProjectConfig((s) => s.removeProcess);
   const setRowLabel = useProjectConfig((s) => s.setRowLabel);
@@ -80,8 +85,10 @@ export function ProjectConfigScreen({
         processCmd: setProcessCmd,
         processDir: setProcessDir,
         processId: setProcessId,
+        processAccess: setProcessAccess,
         processInstall: setProcessInstall,
         processPkgmgr: setProcessPkgmgr,
+        protected: setProtected,
         removeProcess,
         removeRow,
         rowLabel: setRowLabel,
@@ -91,15 +98,19 @@ export function ProjectConfigScreen({
         rowWeb: setRowWeb,
       }}
       exposure={exposure}
+      gated={gated()}
       onSave={() => save(serverId)}
+      openAt={openAt}
       processProblems={draft.processes.map((_process, index) =>
         processProblem(index)
       )}
       project={project}
+      projects={state.status === "ready" ? state.snapshot.projects : [project]}
       ready={ready()}
       restarts={restarts()}
       rowProblems={draft.processes.map((_process, index) => rowProblems(index))}
       run={run}
+      serverId={serverId}
       services={services}
     />
   );

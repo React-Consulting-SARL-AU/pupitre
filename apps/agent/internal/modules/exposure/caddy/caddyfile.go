@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"strings"
 
+	"pupitre.studio/agent/internal/gate"
 	"pupitre.studio/agent/internal/modules/exposure/routes"
 	"pupitre.studio/agent/internal/registry"
 )
 
-// Rewriting Host defeats a dev server's allowedHosts check without touching its vite.config.ts.
+// Every name goes to the gate with its Host untouched: the gate picks the route by it, then sends the origin's own.
 func caddyfile(email string, httpPort, httpsPort int, published []routes.Route) []byte {
 	var out strings.Builder
 
@@ -22,13 +23,10 @@ func caddyfile(email string, httpPort, httpsPort int, published []routes.Route) 
 	out.WriteString("}\n")
 
 	for _, route := range published {
-		origin := strings.TrimPrefix(route.Service, "http://")
-
 		fmt.Fprintf(&out, "\n# %s\n", route.Project)
 		fmt.Fprintf(&out, "%s {\n", route.Hostname)
-		fmt.Fprintf(&out, "\treverse_proxy %s {\n", origin)
-		fmt.Fprintf(&out, "\t\theader_up Host %s\n", origin)
-		out.WriteString("\t}\n}\n")
+		fmt.Fprintf(&out, "\treverse_proxy %s\n", gate.Address)
+		out.WriteString("}\n")
 	}
 
 	return []byte(out.String())

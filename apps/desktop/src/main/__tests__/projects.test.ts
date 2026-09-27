@@ -36,6 +36,7 @@ const VITE: ProjectAddParams = {
       routes: [{ label: "web", port: 3000 }],
     },
   ],
+  protected: true,
   repo: "https://github.com/moi/vite-starter.git",
 };
 
@@ -58,6 +59,7 @@ const SHOP: ProjectAddParams = {
       ],
     },
   ],
+  protected: true,
   repo: "https://github.com/ada/shop.git",
 };
 
@@ -77,6 +79,7 @@ function single(name: string, port: number): ProjectAddParams {
         routes: [{ label: "web", port }],
       },
     ],
+    protected: true,
     repo: `https://github.com/moi/${name}.git`,
   };
 }

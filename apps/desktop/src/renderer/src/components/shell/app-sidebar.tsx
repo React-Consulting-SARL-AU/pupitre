@@ -20,6 +20,7 @@ import {
   Files,
   FolderPlus,
   Images,
+  KeyRound,
   LayoutDashboard,
   Plus,
   Settings as SettingsIcon,
@@ -30,7 +31,15 @@ import { ForwardsPanel } from "./forwards-panel";
 import { ServerSwitch } from "./server-switch";
 import { SidebarEntry } from "./sidebar-entry";
 import { SidebarGroup } from "./sidebar-group";
+import { SidebarMore } from "./sidebar-more";
 import { TransfersPanel } from "./transfers-panel";
+
+const FOLDED_VIEWS: readonly View[] = [
+  "activity",
+  "shots",
+  "backups",
+  "access",
+];
 
 interface Props {
   view: View;
@@ -101,33 +110,42 @@ export function AppSidebar({
           {t("shell.sidebar.services")}
         </SidebarEntry>
         <SidebarEntry
-          active={view === "activity"}
-          bullet={<Activity size={14} strokeWidth={1.5} />}
-          onClick={() => onView("activity")}
-        >
-          {t("shell.sidebar.activity")}
-        </SidebarEntry>
-        <SidebarEntry
-          active={view === "shots"}
-          bullet={<Images size={14} strokeWidth={1.5} />}
-          onClick={() => onView("shots")}
-        >
-          {t("shell.sidebar.gallery")}
-        </SidebarEntry>
-        <SidebarEntry
           active={view === "files"}
           bullet={<Files size={14} strokeWidth={1.5} />}
           onClick={() => onView("files")}
         >
           {t("shell.sidebar.files")}
         </SidebarEntry>
-        <SidebarEntry
-          active={view === "backups"}
-          bullet={<DatabaseBackup size={14} strokeWidth={1.5} />}
-          onClick={() => onView("backups")}
-        >
-          {t("shell.sidebar.backups")}
-        </SidebarEntry>
+        <SidebarMore holdsActive={FOLDED_VIEWS.includes(view)}>
+          <SidebarEntry
+            active={view === "activity"}
+            bullet={<Activity size={14} strokeWidth={1.5} />}
+            onClick={() => onView("activity")}
+          >
+            {t("shell.sidebar.activity")}
+          </SidebarEntry>
+          <SidebarEntry
+            active={view === "shots"}
+            bullet={<Images size={14} strokeWidth={1.5} />}
+            onClick={() => onView("shots")}
+          >
+            {t("shell.sidebar.gallery")}
+          </SidebarEntry>
+          <SidebarEntry
+            active={view === "backups"}
+            bullet={<DatabaseBackup size={14} strokeWidth={1.5} />}
+            onClick={() => onView("backups")}
+          >
+            {t("shell.sidebar.backups")}
+          </SidebarEntry>
+          <SidebarEntry
+            active={view === "access"}
+            bullet={<KeyRound size={14} strokeWidth={1.5} />}
+            onClick={() => onView("access")}
+          >
+            {t("shell.sidebar.access")}
+          </SidebarEntry>
+        </SidebarMore>
       </SidebarGroup>
 
       <SidebarGroup

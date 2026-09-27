@@ -13,6 +13,7 @@ import type {
 import { movesConnection } from "@shared/servers";
 import type { SshShareState } from "@shared/ssh-names";
 import { app, dialog } from "electron";
+import { forgetAccess } from "./access";
 import { account } from "./account";
 import { currentLanguage } from "./agent";
 import { dialogTextIn } from "./dialogs";
@@ -63,6 +64,7 @@ function serverChanges(value: unknown): ServerChanges {
 function forgetServer(serverId: string, settle: (id: string) => void): void {
   settle(serverId);
   forgetSudoPassword(serverId);
+  forgetAccess(serverId);
 }
 
 function registerReading(): void {

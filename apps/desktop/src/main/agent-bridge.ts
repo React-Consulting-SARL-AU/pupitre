@@ -36,6 +36,8 @@ export const BRIDGE_COMMANDS: ReadonlySet<CommandName> = new Set<CommandName>([
   "fs.remove",
   "tunnel.status",
   "tunnel.sync",
+  "access.list",
+  "access.update",
   "backup.status",
   "backup.contents",
   "backup.run",

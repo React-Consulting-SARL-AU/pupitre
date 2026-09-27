@@ -41,7 +41,7 @@ Un changement peut appeler les deux : renommer un champ dans le manifeste **et**
 | `apps/agent/internal/migrate/migrate_test.go` | les tests du moteur ; un test par migration s'y ajoute |
 | `apps/agent/internal/i18n/catalog_migrate.go` | toutes les phrases de la migration, FR et EN |
 | `apps/desktop/src/main/store-migrations.ts` | le moteur côté app |
-| `apps/desktop/src/main/servers-migrations.ts`, `account-migrations.ts`, `transfers-migrations.ts`, `forwards-migrations.ts`, `preferences-migrations.ts`, `connections-migrations.ts` | les listes, un fichier par store ; un store nouveau ajoute le sien ici |
+| `apps/desktop/src/main/servers-migrations.ts`, `account-migrations.ts`, `transfers-migrations.ts`, `forwards-migrations.ts`, `preferences-migrations.ts`, `connections-migrations.ts`, `access-migrations.ts` | les listes, un fichier par store ; un store nouveau ajoute le sien ici |
 | `packages/shared/src/agent-protocol/migrate.ts` | `ConfigRevision`, `AgentMigrateResult` |
 | `docs/contracts/config-migrations.md` | le contrat |
 

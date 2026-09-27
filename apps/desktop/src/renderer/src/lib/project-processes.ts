@@ -48,6 +48,26 @@ export interface ProcessDraft {
   ownCmd: boolean;
   /** The agent's command and the port it was written for, rewritten when the port moves. */
   proposed: { cmd?: string; port?: number };
+  access: ProcessAccess;
+}
+
+/** `project` follows the project's protection; the others hold whatever the project says. */
+export const PROCESS_ACCESS = ["project", "protected", "public"] as const;
+
+export type ProcessAccess = (typeof PROCESS_ACCESS)[number];
+
+function accessOf(declared: { protected?: boolean }): ProcessAccess {
+  if (declared.protected === undefined) {
+    return "project";
+  }
+
+  return declared.protected ? "protected" : "public";
+}
+
+function protectionOf(draft: ProcessDraft): { protected?: boolean } {
+  return draft.access === "project"
+    ? {}
+    : { protected: draft.access === "protected" };
 }
 
 export type ProcessProblem = "id" | "idTaken" | "dir" | "cmd";
@@ -64,6 +84,7 @@ function draftOf(
   partial: Partial<ProcessDraft> & { rows: PortRow[] }
 ): ProcessDraft {
   return {
+    access: "project",
     cmd: "",
     dir: "",
     host: HOST,
@@ -204,6 +225,7 @@ export function processesFromDetection(
 export function processesFromProject(project: Project): ProcessDraft[] {
   return project.processes.map((declared) =>
     draftOf({
+      access: accessOf(declared),
       cmd: declared.cmd,
       dir: declared.dir === PROJECT_ROOT_DIR ? "" : declared.dir,
       host: declared.host,
@@ -326,6 +348,7 @@ export function processRequests(
       port: mainPort(current),
       routes: routeRequests(current.rows, exposure),
       ...(install ? { install } : {}),
+      ...protectionOf(current),
     };
   });
 }
@@ -344,6 +367,7 @@ export function processPatches(
     pkgmgr: current.pkgmgr,
     port: mainPort(current),
     routes: routePatches(current.rows, exposure),
+    ...protectionOf(current),
   }));
 }
 

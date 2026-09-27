@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { windowBackground } from "@shared/appearance";
 import type { MenuCommand } from "@shared/shell";
 import { app, BrowserWindow, Menu, nativeTheme, session } from "electron";
+import { registerAccess } from "./access";
 import { registerAccount } from "./account";
 import {
   agentClient,
@@ -219,6 +220,7 @@ function installMenu(): void {
 nativeTheme.on("updated", () => window?.setBackgroundColor(nativeBackground()));
 
 function registerChannels(): void {
+  registerAccess();
   registerAccount();
   registerAgentChannels();
   registerAgentUpdate();

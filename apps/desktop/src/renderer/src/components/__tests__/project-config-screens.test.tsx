@@ -11,7 +11,10 @@ import {
   processesFromProject,
 } from "../../lib/project-processes";
 import type { ConfigState } from "../../stores/project-config";
-import { ProjectConfigPanel } from "../projects/project-config-panel";
+import {
+  type ConfigPart,
+  ProjectConfigPanel,
+} from "../projects/project-config-panel";
 
 const PROJECT = SNAPSHOT.projects[0];
 
@@ -25,7 +28,9 @@ const EDIT = {
   processDir: () => undefined,
   processId: () => undefined,
   processInstall: () => undefined,
+  processAccess: () => undefined,
   processPkgmgr: () => undefined,
+  protected: () => undefined,
   removeProcess: () => undefined,
   removeRow: () => undefined,
   runtime: () => undefined,
@@ -70,6 +75,9 @@ interface Extra {
   services?: Service[];
   runtimes?: ProjectRuntimes;
   processProblems?: (ProcessProblem | null)[];
+  part?: ConfigPart;
+  guarded?: boolean;
+  gated?: boolean;
 }
 
 function element(run: ConfigState, extra: Extra = {}) {
@@ -83,18 +91,23 @@ function element(run: ConfigState, extra: Extra = {}) {
         boot: false,
         branch: "main",
         processes: processesFromProject(PROJECT),
+        protected: extra.guarded ?? true,
         runtimes: extra.runtimes ?? {},
       }}
       dropped={extra.dropped ?? []}
       edit={EDIT}
       exposure={{ host: "192.0.2.10", provider: "cloudflare" }}
+      gated={extra.gated ?? true}
       onSave={() => Promise.resolve()}
+      openAt={extra.part}
       processProblems={extra.processProblems ?? [null]}
       project={PROJECT}
+      projects={SNAPSHOT.projects}
       ready
       restarts={extra.restarts ?? []}
       rowProblems={[[null, null]]}
       run={run}
+      serverId="srv-1"
       services={extra.services ?? [...SNAPSHOT.services, ...RUNTIMES]}
     />
   );
@@ -142,9 +155,53 @@ describe("la configuration d'un projet", () => {
     expect(refused).toMatch(/data-open=""[^>]*data-process="0"/);
   });
 
+  it("range la configuration en parties, sur une colonne à gauche", () => {
+    const html = panel({ status: "idle" });
+    const bare = panel({ status: "idle" }, { services: [] });
+
+    expect(html).toContain('aria-label="Parties de la configuration"');
+    expect(text(html)).toContain("Général");
+    expect(text(html)).toContain("Environnements");
+    expect(text(html)).toContain("Processus");
+    expect(text(html)).toContain("Accès");
+    expect(text(bare)).not.toContain("Environnements");
+  });
+
+  it("signale sur sa partie un processus à corriger", () => {
+    const html = panel({ status: "idle" }, { processProblems: ["cmd"] });
+
+    expect(html).toContain('data-part-refused="processes"');
+    expect(html).toContain("Processus, un champ à corriger");
+  });
+
+  it("protège le projet, et laisse chaque processus suivre le projet ou en décider", () => {
+    const html = panel({ status: "idle" }, { part: "access" });
+    const open = panel({ status: "idle" }, { guarded: false, part: "access" });
+
+    expect(html).toContain('name="config.protected"');
+    expect(text(html)).toContain("Protéger le projet");
+    expect(text(html)).toContain("ne s'ouvrent qu'avec une clé d'accès");
+    expect(html).toContain('aria-label="Accès de flyleaf-api"');
+    expect(text(html)).toContain("Comme le projet : protégé");
+    expect(text(html)).toContain("Clés qui ouvrent flyleaf-api");
+
+    expect(text(open)).toContain("Comme le projet : public");
+    expect(text(open)).toContain("récepteur de webhooks");
+  });
+
+  it("ne propose rien de la protection à un agent sans portier", () => {
+    const html = panel({ status: "idle" }, { gated: false, part: "access" });
+
+    expect(text(html)).toContain("n'a pas de portier d'accès");
+    expect(text(html)).not.toContain("Clés qui ouvrent");
+  });
+
   it("propose une version par runtime installé, le défaut nommé, rien sans runtime", async () => {
-    const html = panel({ status: "idle" }, { runtimes: { node: "22" } });
-    const none = panel({ status: "idle" }, { services: [] });
+    const html = panel(
+      { status: "idle" },
+      { part: "runtimes", runtimes: { node: "22" } }
+    );
+    const none = panel({ status: "idle" }, { part: "runtimes", services: [] });
 
     expect(none).not.toContain("config.runtimes");
 
@@ -155,7 +212,10 @@ describe("la configuration d'un projet", () => {
     expect(html).toContain('name="config.runtimes.node" value="22"');
 
     const view = await mount(
-      element({ status: "idle" }, { runtimes: { node: "22" } })
+      element(
+        { status: "idle" },
+        { part: "runtimes", runtimes: { node: "22" } }
+      )
     );
     const node = await optionsOf(
       view,

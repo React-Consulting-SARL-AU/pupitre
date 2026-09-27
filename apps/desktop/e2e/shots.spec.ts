@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { assertAccessible } from "./harness/accessible";
+import { openServerPage } from "./harness/controls";
 import { ANSWERS } from "./harness/fixtures";
 import { launchPupitre, type Running, savedShots } from "./harness/launch";
 
@@ -178,7 +179,7 @@ test.describe("la galerie", () => {
   test("dessine les captures par jour et en supprime une par son bouton", async () => {
     const { page } = running;
 
-    await page.getByRole("button", { name: "Galerie" }).click();
+    await openServerPage(page, "Galerie");
 
     await test.step("la grille groupe par jour, dans l'ordre de la liste", async () => {
       await expect(page.locator("[data-shot-day]")).toHaveCount(2);

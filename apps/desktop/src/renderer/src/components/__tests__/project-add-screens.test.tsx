@@ -41,6 +41,7 @@ const ROWS: PortRow[] = [
 ];
 
 const PROCESS: ProcessDraft = {
+  access: "project",
   cmd: "bun run dev --port 3000",
   dir: "",
   host: "127.0.0.1",

@@ -536,6 +536,8 @@ type ProjectProcess struct {
 	UptimeS int          `json:"uptime_s,omitempty"`
 	// Running with PUPITRE_* values the registry no longer gives: a restart brings the new ones.
 	EnvChanged bool `json:"env_changed,omitempty"`
+	// Nil follows the project.
+	Protected *bool `json:"protected,omitempty"`
 }
 
 type Project struct {
@@ -549,6 +551,7 @@ type Project struct {
 	URL       string            `json:"url,omitempty"`
 	Boot      bool              `json:"boot"`
 	Runtimes  map[string]string `json:"runtimes"`
+	Protected bool              `json:"protected"`
 }
 
 type DetectedRoute struct {

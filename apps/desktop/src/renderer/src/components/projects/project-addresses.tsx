@@ -4,6 +4,7 @@ import { IconButton } from "@renderer/components/ui/icon-button";
 import { Panel } from "@renderer/components/ui/panel";
 import { Section } from "@renderer/components/ui/section";
 import { useTranslations } from "@renderer/i18n/use-translations";
+import { openAddress } from "@renderer/lib/open-address";
 import { routeLabel } from "@renderer/lib/project-addresses";
 import { isRunning } from "@renderer/lib/project-state";
 import { Check, Copy, ExternalLink, Plus } from "lucide-react";
@@ -94,7 +95,7 @@ export function ProjectAddresses({
               {openable ? (
                 <button
                   className="min-w-0 flex-1 truncate text-left font-data text-control text-ink hover:underline"
-                  onClick={() => window.pupitre.openUrl(url)}
+                  onClick={() => openAddress(url)}
                   type="button"
                 >
                   {shown}
@@ -109,7 +110,7 @@ export function ProjectAddresses({
                 <IconButton
                   icon={ExternalLink}
                   label={t("project.addresses.open", { hostname: shown })}
-                  onClick={() => window.pupitre.openUrl(url)}
+                  onClick={() => openAddress(url)}
                   variant="discreet"
                 />
               ) : null}

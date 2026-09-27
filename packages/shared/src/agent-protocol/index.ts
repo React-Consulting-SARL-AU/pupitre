@@ -1,5 +1,12 @@
 import type { z } from "zod"
-
+import {
+  AccessCreateParamsSchema,
+  AccessKeyResultSchema,
+  AccessListResultSchema,
+  AccessRevokeParamsSchema,
+  AccessRevokeResultSchema,
+  AccessUpdateParamsSchema,
+} from "./access"
 import {
   BackupContentsResultSchema,
   BackupDeleteParamsSchema,
@@ -321,6 +328,22 @@ export const COMMANDS = {
     params: EmptyParamsSchema,
     result: TunnelStatusResultSchema,
   },
+  "access.list": {
+    params: EmptyParamsSchema,
+    result: AccessListResultSchema,
+  },
+  "access.create": {
+    params: AccessCreateParamsSchema,
+    result: AccessKeyResultSchema,
+  },
+  "access.update": {
+    params: AccessUpdateParamsSchema,
+    result: AccessKeyResultSchema,
+  },
+  "access.revoke": {
+    params: AccessRevokeParamsSchema,
+    result: AccessRevokeResultSchema,
+  },
   "backup.status": {
     params: EmptyParamsSchema,
     result: BackupStatusResultSchema,
@@ -494,16 +517,41 @@ export const LIMITED_COMMANDS = [
   "diag",
 ] as const satisfies readonly CommandName[]
 
+interface ProtectionCarrier {
+  protected?: unknown
+  processes?: unknown
+}
+
+function unprotects(value: unknown): boolean {
+  if (typeof value !== "object" || value === null) {
+    return false
+  }
+
+  const carrier = value as ProtectionCarrier
+  const processes = Array.isArray(carrier.processes) ? carrier.processes : []
+
+  return carrier.protected === false || processes.some(unprotects)
+}
+
 // A downgrade would run a signed but known-faulty agent as root, of the caller's choosing.
+// An agent running as dev must not open a project to the web on its own.
 export function requiresPrivilege(cmd: string, params?: unknown): boolean {
   if (!(LIMITED_COMMANDS as readonly string[]).includes(cmd)) {
     return true
   }
 
-  return (
-    cmd === "agent.upgrade" &&
-    typeof params === "object" &&
-    params !== null &&
-    (params as { allow_downgrade?: unknown }).allow_downgrade === true
-  )
+  const object =
+    typeof params === "object" && params !== null
+      ? (params as { allow_downgrade?: unknown; patch?: unknown })
+      : {}
+
+  if (cmd === "project.add") {
+    return unprotects(object)
+  }
+
+  if (cmd === "project.update") {
+    return unprotects(object.patch)
+  }
+
+  return cmd === "agent.upgrade" && object.allow_downgrade === true
 }

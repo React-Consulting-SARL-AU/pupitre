@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"pupitre.studio/agent/internal/contract"
+	"pupitre.studio/agent/internal/gate"
 	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/exposure/cloudflared"
@@ -76,14 +77,21 @@ func TestTheIngressCarriesEveryRouteOfAProject(t *testing.T) {
 
 	ingress := string(fake.Files[cloudflared.ConfigPath])
 
-	for _, want := range []string{"hostname: shop." + domain, "service: http://127.0.0.1:3100", "hostname: api-shop." + domain, "service: http://127.0.0.1:3101", "httpHostHeader: 127.0.0.1:3101"} {
+	for _, want := range []string{"hostname: shop." + domain, "hostname: api-shop." + domain, "service: http://" + gate.Address} {
 		if !strings.Contains(ingress, want) {
 			t.Errorf("ingress lacks %q:\n%s", want, ingress)
 		}
 	}
 
-	if strings.Contains(ingress, "127.0.0.1:3102") {
-		t.Fatalf("a port without a name on the web is not exposed:\n%s", ingress)
+	gated := string(fake.Files[gate.RoutesPath])
+	for _, want := range []string{`"upstream": "127.0.0.1:3100"`, `"upstream": "127.0.0.1:3101"`} {
+		if !strings.Contains(gated, want) {
+			t.Errorf("gate routes lack %q:\n%s", want, gated)
+		}
+	}
+
+	if strings.Contains(ingress, "127.0.0.1:3102") || strings.Contains(gated, "127.0.0.1:3102") {
+		t.Fatalf("a port without a name on the web is not exposed:\n%s", gated)
 	}
 
 	report, err := Status(ctx)
@@ -148,8 +156,12 @@ func TestTheTunnelOfThePlatformIsRunNotCreated(t *testing.T) {
 	}
 
 	ingress := string(fake.Files[cloudflared.ConfigPath])
-	if !strings.Contains(ingress, label+"."+domain) || !strings.Contains(ingress, "http://web.localhost:3000") {
+	if !strings.Contains(ingress, label+"."+domain) || !strings.Contains(ingress, "service: http://"+gate.Address) {
 		t.Fatalf("ingress = %s", ingress)
+	}
+
+	if gated := string(fake.Files[gate.RoutesPath]); !strings.Contains(gated, `"upstream": "web.localhost:3000"`) || !strings.Contains(gated, `"protected": true`) {
+		t.Fatalf("the gate must know where the name goes, and that it is protected: %s", gated)
 	}
 
 	if strings.Contains(ingress, "api.localhost") {
@@ -336,7 +348,9 @@ var _ modules.Module = Module{}
 func TestAStartThatNeverComesUpNamesWhatTheDaemonSaid(t *testing.T) {
 	fake := equipped(t)
 	fake.Files[registry.DefaultConf] = []byte(projects + "shop|flyleaf/apps/shop|-|bun|shop.localhost|3002|-|bun run shop\n")
-	fake.FailProgram("systemctl", "Job for cloudflared.service failed because a timeout was exceeded.")
+	for _, line := range []string{"systemctl is-active cloudflared", "systemctl restart cloudflared", "systemctl enable --now cloudflared"} {
+		fake.FailLine(line, "Job for cloudflared.service failed because a timeout was exceeded.")
+	}
 	fake.Answer("journalctl", `ERR Register tunnel error from server side error="Unauthorized: Tunnel not found"`)
 	ctx := newContext(t, fake, modtest.Secrets{"tunnel_secret": secret})
 

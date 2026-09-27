@@ -28,7 +28,7 @@ func init() {
 	parts := []map[string]Message{
 		moduleCatalog, selfupdateCatalog, probeCatalog, hardenCatalog, engineCatalog, stateCatalog, commandCatalog,
 		cliCatalog, warningCatalog, validateCatalog, registryCatalog, fieldCatalog, hintCatalog, filesCatalog,
-		migrateCatalog, loginCatalog, backupCatalog, keysCatalog, sudoCatalog, uninstallCatalog,
+		migrateCatalog, loginCatalog, backupCatalog, keysCatalog, sudoCatalog, uninstallCatalog, gateCatalog, accessCatalog,
 	}
 
 	for _, part := range parts {
@@ -83,13 +83,18 @@ func Known(locale string) bool {
 
 // An unknown key renders as the key itself: a strange message beats an empty field.
 func T(key string, args ...any) string {
+	return In(Current(), key, args...)
+}
+
+// For a reader other than the session's, such as a visitor of a protected site.
+func In(locale Locale, key string, args ...any) string {
 	message, known := catalog[key]
 	if !known {
 		return key
 	}
 
 	text := message.FR
-	if Current() == EN {
+	if locale == EN {
 		text = message.EN
 	}
 

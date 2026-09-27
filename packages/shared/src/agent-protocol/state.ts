@@ -192,6 +192,8 @@ const ProcessRegistrationSchema = ProcessBaseSchema.extend({
   dir: ProcessDirSchema.default(PROJECT_ROOT_DIR),
   host: z.union([z.literal("127.0.0.1"), LocalhostNameSchema]),
   routes: z.array(RouteRequestSchema),
+  // Absent follows the project; a webhook receiver says false and trusts its own signature.
+  protected: z.boolean().optional(),
 }).strict()
 
 export type ProcessRegistration = z.infer<typeof ProcessRegistrationSchema>
@@ -209,6 +211,8 @@ export const ProcessSchema = ProcessBaseSchema.extend({
   uptime_s: z.int().nonnegative().optional(),
   // Running with PUPITRE_* values the registry no longer gives: a restart brings the new ones.
   env_changed: z.boolean().optional(),
+  // Absent follows the project.
+  protected: z.boolean().optional(),
 })
 
 export type Process = z.infer<typeof ProcessSchema>
@@ -246,6 +250,8 @@ export const ProjectRegistrationSchema = ProjectBaseSchema.extend({
   // Starts with the server, whatever ran when it went down.
   boot: z.boolean().default(false),
   runtimes: ProjectRuntimesSchema.optional(),
+  // Its names on the web answer only to an access key.
+  protected: z.boolean().default(true),
 })
 
 export const ProjectSchema = ProjectBaseSchema.extend({
@@ -258,6 +264,8 @@ export const ProjectSchema = ProjectBaseSchema.extend({
   url: z.string().optional(),
   // What HEAD reads as, a hash on a detached checkout: looser than a registration's branch.
   branch: z.string().optional(),
+  // Absent from an agent that has no access gate.
+  protected: z.boolean().optional(),
 })
 
 export type Project = z.infer<typeof ProjectSchema>

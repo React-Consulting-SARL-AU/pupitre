@@ -75,6 +75,10 @@ const CONTRACT_COMMANDS = [
   "tunnel.status",
   "tunnel.sync",
   "tunnel.restart",
+  "access.list",
+  "access.create",
+  "access.update",
+  "access.revoke",
   "backup.status",
   "backup.contents",
   "backup.run",
@@ -217,6 +221,40 @@ describe("a session opened without the password", () => {
     expect(requiresPrivilege("agent.upgrade", { allow_downgrade: true })).toBe(
       true
     )
+  })
+
+  it("keeps for the privileged session what opens a project to the web", () => {
+    expect(requiresPrivilege("project.add", { name: "shop" })).toBe(false)
+    expect(requiresPrivilege("project.add", { protected: false })).toBe(true)
+    expect(
+      requiresPrivilege("project.add", {
+        processes: [{ id: "hooks", protected: false }],
+      })
+    ).toBe(true)
+    expect(
+      requiresPrivilege("project.update", {
+        patch: { protected: true, processes: [{ id: "web" }] },
+      })
+    ).toBe(false)
+    expect(
+      requiresPrivilege("project.update", { patch: { protected: false } })
+    ).toBe(true)
+    expect(
+      requiresPrivilege("project.update", {
+        patch: { processes: [{ id: "web", protected: false }] },
+      })
+    ).toBe(true)
+  })
+
+  it("keeps access keys for the privileged session", () => {
+    for (const cmd of [
+      "access.list",
+      "access.create",
+      "access.update",
+      "access.revoke",
+    ]) {
+      expect(requiresPrivilege(cmd)).toBe(true)
+    }
   })
 
   it("names only contract commands, each of them classified once", () => {

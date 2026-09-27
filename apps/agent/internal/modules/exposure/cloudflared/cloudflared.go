@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"pupitre.studio/agent/internal/gate"
 	"pupitre.studio/agent/internal/i18n"
 	"pupitre.studio/agent/internal/modules"
 	"pupitre.studio/agent/internal/modules/exposure/routes"
@@ -192,14 +193,11 @@ func Ingress(tunnelID string, published []routes.Route) []byte {
 	fmt.Fprintf(&out, "credentials-file: %s\n", CredentialsPath)
 	out.WriteString("originRequest:\n  connectTimeout: 30s\ningress:\n")
 
+	// The Host is left as published: the gate reads it to pick the route, then sends the origin's own.
 	for _, route := range published {
-		origin := strings.TrimPrefix(route.Service, "http://")
-
 		fmt.Fprintf(&out, "  # %s\n", route.Project)
 		fmt.Fprintf(&out, "  - hostname: %s\n", route.Hostname)
-		fmt.Fprintf(&out, "    service: %s\n", route.Service)
-		out.WriteString("    originRequest:\n")
-		fmt.Fprintf(&out, "      httpHostHeader: %s\n", origin)
+		fmt.Fprintf(&out, "    service: http://%s\n", gate.Address)
 	}
 
 	out.WriteString("  - service: http_status:404\n")

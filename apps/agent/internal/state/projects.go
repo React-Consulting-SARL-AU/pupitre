@@ -169,14 +169,15 @@ func (r *Reader) roomForClone(project registry.Project) error {
 }
 
 type ProcessRequest struct {
-	ID      string
-	Dir     string
-	PkgMgr  string
-	Host    string
-	Port    int
-	Cmd     string
-	Install string
-	Routes  []registry.RouteRequest
+	ID        string
+	Dir       string
+	PkgMgr    string
+	Host      string
+	Port      int
+	Cmd       string
+	Install   string
+	Routes    []registry.RouteRequest
+	Protected *bool
 }
 
 func resolveProcesses(domain string, requests []ProcessRequest) ([]registry.Process, error) {
@@ -189,14 +190,15 @@ func resolveProcesses(domain string, requests []ProcessRequest) ([]registry.Proc
 		}
 
 		processes = append(processes, registry.Process{
-			ID:      request.ID,
-			Dir:     request.Dir,
-			PkgMgr:  request.PkgMgr,
-			Host:    request.Host,
-			Port:    request.Port,
-			Routes:  routes,
-			Cmd:     request.Cmd,
-			Install: request.Install,
+			ID:        request.ID,
+			Dir:       request.Dir,
+			PkgMgr:    request.PkgMgr,
+			Host:      request.Host,
+			Port:      request.Port,
+			Routes:    routes,
+			Cmd:       request.Cmd,
+			Install:   request.Install,
+			Protected: request.Protected,
 		})
 	}
 
@@ -208,6 +210,7 @@ type UpdatePatch struct {
 	Branch    *string
 	Boot      *bool
 	Runtimes  *map[string]string
+	Protected *bool
 	Processes *[]ProcessRequest
 }
 
@@ -215,7 +218,7 @@ type UpdatePatch struct {
 func (r *Reader) Update(name string, patch UpdatePatch) (Declared, error) {
 	ctx := r.ctx()
 
-	change := registry.Patch{Branch: patch.Branch, Boot: patch.Boot, Runtimes: patch.Runtimes}
+	change := registry.Patch{Branch: patch.Branch, Boot: patch.Boot, Runtimes: patch.Runtimes, Protected: patch.Protected}
 
 	if patch.Runtimes != nil {
 		if err := r.checkRuntimes(*patch.Runtimes); err != nil {

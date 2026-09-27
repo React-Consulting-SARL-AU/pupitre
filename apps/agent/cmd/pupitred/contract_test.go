@@ -133,6 +133,10 @@ func answerCases(platformURL string) []answerCase {
 		{cmd: "tunnel.status"},
 		{cmd: "tunnel.sync"},
 		{cmd: "tunnel.restart"},
+		{cmd: "access.create", params: map[string]any{"id": "abcdef012345", "name": "Simulateur iOS", "hash": strings.Repeat("f", 64), "projects": []string{"web"}}},
+		{cmd: "access.update", params: map[string]any{"id": "abcdef012345", "projects": nil}},
+		{cmd: "access.list"},
+		{cmd: "access.revoke", params: map[string]any{"id": "abcdef012345"}},
 		{cmd: "secrets.sync", params: map[string]any{"project": "web"}},
 		{cmd: "backup.status"},
 		{cmd: "backup.contents"},
@@ -199,6 +203,7 @@ func TestEveryAnswerMatchesItsResultDefinition(t *testing.T) {
 	fake, dir := setupCLI(t)
 	t.Setenv("PUPITRE_LOCK_PATH", filepath.Join(dir, "install.lock"))
 	t.Setenv("PUPITRE_PROJECT_INSTALL_LOCK_PATH", filepath.Join(dir, "project-install.lock"))
+	t.Setenv("PUPITRE_ACCESS_LOCK_PATH", filepath.Join(dir, "access.lock"))
 	seedMachine(fake)
 
 	console := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -43,12 +43,15 @@ func TestTheIngressNamesTheTunnelItsCredentialsAndEndsOnA404(t *testing.T) {
 	for _, want := range []string{
 		"tunnel: " + tunnel + "\n",
 		"credentials-file: " + CredentialsPath + "\n",
-		"  - hostname: app." + domain + "\n    service: http://127.0.0.1:3000\n",
-		"      httpHostHeader: 127.0.0.1:3000\n",
+		"  - hostname: app." + domain + "\n    service: http://127.0.0.1:8098\n",
 	} {
 		if !strings.Contains(ingress, want) {
 			t.Errorf("ingress lacks %q:\n%s", want, ingress)
 		}
+	}
+
+	if strings.Contains(ingress, "127.0.0.1:3000") || strings.Contains(ingress, "httpHostHeader") {
+		t.Fatalf("a name must reach the gate with its own Host, never the process directly:\n%s", ingress)
 	}
 
 	if strings.Contains(ingress, "other.dev") {

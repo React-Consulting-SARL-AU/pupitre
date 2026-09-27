@@ -126,6 +126,45 @@ describe("la configuration d'un projet rouverte", () => {
     expect(useProjectConfig.getState().changed()).toBe(false);
   });
 
+  it("envoie la protection du projet quand elle change, et le choix d'un processus qui s'en écarte", () => {
+    useProjectConfig
+      .getState()
+      .open({ ...SHOP, protected: true }, SNAPSHOT.projects, true);
+
+    expect(useProjectConfig.getState().gated()).toBe(true);
+    expect(useProjectConfig.getState().draft.protected).toBe(true);
+    expect(
+      useProjectConfig.getState().patch().processes?.[0]?.protected
+    ).toBeUndefined();
+
+    useProjectConfig.getState().setProtected(false);
+
+    expect(useProjectConfig.getState().patch().protected).toBe(false);
+    expect(useProjectConfig.getState().ready()).toBe(true);
+
+    useProjectConfig.getState().setProtected(true);
+    useProjectConfig.getState().setProcessAccess(0, "public");
+
+    expect(useProjectConfig.getState().patch().protected).toBeUndefined();
+    expect(useProjectConfig.getState().patch().processes?.[0]?.protected).toBe(
+      false
+    );
+    expect(useProjectConfig.getState().changed()).toBe(true);
+
+    useProjectConfig.getState().setProcessAccess(0, "project");
+
+    expect(useProjectConfig.getState().changed()).toBe(false);
+  });
+
+  it("ne dit rien de la protection à un agent qui n'a pas de portier", () => {
+    useProjectConfig.getState().open(SHOP, SNAPSHOT.projects, true);
+
+    useProjectConfig.getState().setProtected(false);
+
+    expect(useProjectConfig.getState().gated()).toBe(false);
+    expect(useProjectConfig.getState().patch().protected).toBeUndefined();
+  });
+
   // The sent map replaces the project's, so it always goes whole.
   it("envoie les versions de runtime épinglées quand elles changent, la carte entière", () => {
     useProjectConfig

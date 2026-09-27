@@ -72,6 +72,8 @@ export const TunnelRouteSchema = z.object({
   hostname: z.string(),
   service: z.string(),
   project: z.string().optional(),
+  // Absent from an agent that has no access gate.
+  protected: z.boolean().optional(),
 })
 
 export type TunnelRoute = z.infer<typeof TunnelRouteSchema>

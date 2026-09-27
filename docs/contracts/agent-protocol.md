@@ -126,9 +126,9 @@ Le chemin absolu vit sur le projet, pas sur la machine : `status`, `project.list
 | Commande | Paramètres |
 | --- | --- |
 | `project.list` | — |
-| `project.add` | `{ name, dir, repo?, branch?, boot?, runtimes?, processes[] }` : chaque processus porte `{ id, dir?, pkgmgr, host, port, routes[], cmd, install? }`, chaque route `{ label, port, subdomain? }` ; `dir` absent vaut `.`. Un projet avec `repo` ne crée aucun dossier — le clone les apporte — et refuse en `bad_request`, avant d'écrire sa ligne, un dossier déjà là qui n'est ni vide ni un clone de ce même dépôt ; un projet sans `repo` reçoit le dossier de chacun de ses processus |
+| `project.add` | `{ name, dir, repo?, branch?, boot?, runtimes?, protected?, processes[] }` : `protected` absent vaut `true` ; chaque processus porte `{ id, dir?, pkgmgr, host, port, routes[], cmd, install?, protected? }`, `protected` absent suivant le projet ; chaque route `{ label, port, subdomain? }` ; `dir` absent vaut `.`. Un projet avec `repo` ne crée aucun dossier — le clone les apporte — et refuse en `bad_request`, avant d'écrire sa ligne, un dossier déjà là qui n'est ni vide ni un clone de ce même dépôt ; un projet sans `repo` reçoit le dossier de chacun de ses processus |
 | `project.detect` | `{ repo, branch? }` ou `{ dir }` : ce qu'un dépôt demande, sans rien installer |
-| `project.update` | `{ name, patch }` avec `patch: { branch?, boot?, runtimes?, processes? }` : réécrit la ligne du projet et répond le `Project` mis à jour. Comme `project.add`, la réponse porte `warnings[]` quand une étape a refusé une fois la ligne écrite — un dossier qui ne se crée pas, une épingle de runtime, un démarrage : la ligne tient, l'app montre les phrases comme des avertissements, et un second `add` répondrait que le projet est déjà déclaré |
+| `project.update` | `{ name, patch }` avec `patch: { branch?, boot?, runtimes?, protected?, processes? }` : réécrit la ligne du projet et répond le `Project` mis à jour. Comme `project.add`, la réponse porte `warnings[]` quand une étape a refusé une fois la ligne écrite — un dossier qui ne se crée pas, une épingle de runtime, un démarrage : la ligne tient, l'app montre les phrases comme des avertissements, et un second `add` répondrait que le projet est déjà déclaré |
 | `project.remove` | `{ name }` (le dossier reste) |
 | `project.up` / `project.down` / `project.restart` | `{ name \| "all", process? }` : tous les processus du projet, ou celui que `process` nomme ; `all` n'en nomme aucun |
 | `project.logs` | `{ name, process, lines?, follow? }` → événements `log` si `follow` : le journal d'un processus, jamais du projet entier. Le journal est capturé sur la fenêtre tmux, séquences d'échappement comprises : c'est à l'app de les interpréter. Chaque démarrage y écrit `=== pupitre up <RFC 3339> ===` sur sa propre ligne, chaque arrêt `=== pupitre down <RFC 3339> ===` ; un démarrage vide le journal avant d'écrire. Un suivi survit à l'arrêt et au redémarrage du processus — il relit le journal depuis son premier octet quand celui-ci raccourcit — et ne s'arrête qu'avec le canal ou son propre quart d'heure. Une ligne ne voyage qu'entière : ce qui est lu avant son saut de ligne attend la suite — sauf à dépasser 64 Kio sans saut de ligne, où elle part telle quelle plutôt que de croître sans borne ; une rafale plus large qu'un mébioctet ne livre que sa fin |
@@ -285,7 +285,11 @@ Le `subdomain` d'une route accepte **plusieurs étiquettes séparées par des po
 | `service.secret` | `{ id, key }` : révèle la valeur d'un identifiant du module `id` ; voir [La valeur d'un identifiant](#la-valeur-dun-identifiant) |
 | `secrets.sync` | `{ project }` |
 | `db.dump` / `db.import` / `db.shell` / `db.url` | `{ engine, name? }` |
-| `tunnel.status` / `tunnel.sync` / `tunnel.restart` | — |
+| `tunnel.status` / `tunnel.sync` / `tunnel.restart` | — ; chaque route porte `protected`. Voir [Le portier d'accès](#le-portier-daccès) |
+| `access.list` | — → `{ keys: [{ id, name, projects, created_at }] }`, sans empreinte |
+| `access.create` | `{ id, name, hash, projects }` : `hash` est l'empreinte SHA-256 de la clé entière, `projects` une liste ou `null` pour tout le serveur → la clé listée ; un `id` déjà pris refuse en `bad_request` |
+| `access.update` | `{ id, name?, projects? }` : un champ absent reste, `projects: null` ouvre tout le serveur |
+| `access.revoke` | `{ id }` → `{ id }` ; une clé déjà partie répond aussi |
 
 ### Sauvegardes
 
@@ -399,6 +403,7 @@ La session limitée répond aux commandes de `LIMITED_COMMANDS` (`packages/share
 | `backup.run`, `backup.delete`, `backup.inspect`, `backup.restore.*` | une sauvegarde de plus élague les anciennes, une suppression les perd, une restauration réécrit la configuration |
 | `keys.trust`, `enroll` | à qui le serveur fait confiance, et à quelle plateforme il répond |
 | `reboot`, `agent.upgrade { allow_downgrade: true }` | la machine arrêtée ; un binaire signé mais connu faillible |
+| `access.*`, `project.add` ou `project.update` qui portent `protected: false` sur le projet ou sur un processus | qui peut ouvrir une adresse publiée, et une adresse ouverte au web sans clé : un agent IA en `dev` ne lève pas la protection de lui-même |
 
 **Ce que l'app fait.** Elle ouvre les quatre canaux de la session limitée comme avant, par `sudo -n pupitred serve`, et un cinquième, privilégié, à la demande, pour chaque commande que `requiresPrivilege` (`packages/shared`) désigne. Pour `dev`, ce canal lance :
 
@@ -459,6 +464,36 @@ La valeur **ne sort pas dans le résultat**. Elle voyage sur un événement déd
 ```
 
 Le principe est celui du flux secret d'entrée, dans l'autre sens : à l'entrée, une valeur ne se met pas dans `params`, qui se journalise et se rejoue ; à la sortie, elle ne se met pas dans `result`, l'unité qu'un enregistreur de requêtes et de réponses capture. L'événement `secret` est la seule ligne qu'un tel enregistreur sait écarter, et c'est par lui que l'app remet la valeur à l'écran sans la faire transiter par son pont IPC générique. L'agent ne l'écrit jamais dans son journal, ne la persiste jamais, ne la renvoie jamais dans `params`, un rapport ou un autre événement.
+
+## Le portier d'accès
+
+Chaque nom publié passe par `pupitre-gate` (décision [0017](../decisions/0017-portier-d-acces.md)). L'exposition qui tient la machine, tunnel ou Caddy, l'installe à son `Configure` et le recharge à chaque `tunnel.sync`. Un `tunnel.sync` lancé avant la mise à jour du module installe aussi le portier : l'ingress ne pointe jamais vers un portier absent. Désinstaller l'exposition arrête le portier et garde les clés.
+
+**La protection**
+- Le registre porte `protected` sur chaque projet, et `protected` sur un processus qui s'en écarte. `Project.protected` et `ProjectProcess.protected` le rendent.
+- Un agent sans portier ne les rend pas, et l'app ne lui envoie rien de la protection.
+- La migration 7 protège chaque projet qui ne disait rien.
+
+**Les fichiers**
+- `/etc/pupitre/gate/access.json` (0600) : le secret du cookie, tiré une fois, et les clés, `{ id, name, hash, projects, created_at }`.
+- `/etc/pupitre/gate/routes.json` (0600) : chaque nom, son amont `host:port`, son projet et sa protection.
+- Le portier les relit sur `SIGHUP`, et `access.*` et `tunnel.sync` le lui envoient par `systemctl reload`.
+
+**Une requête sur un nom protégé**
+
+| Ce que porte la requête | Réponse |
+| --- | --- |
+| `Pupitre-Key: <clé>` qui ouvre le projet | transmise, sans l'en-tête |
+| `?pupitre_key=<clé>` sur une navigation (`GET`/`HEAD`, `Sec-Fetch-Mode: navigate` ou `Accept: text/html`) | `303` vers la même adresse sans ce seul paramètre, chemin et autres paramètres gardés dans leur ordre et leur encodage, et le cookie `__Host-pupitre` (400 jours, renouvelé à chaque navigation) |
+| `?pupitre_key=<clé>` ailleurs (API, WebSocket, EventSource) | transmise sur place, sans le paramètre |
+| cookie `__Host-pupitre` d'une clé qui existe encore | transmise, sans le cookie ; les autres cookies restent tels quels |
+| rien, ou une clé refusée, sur une navigation | `401`, page de connexion à l'adresse demandée, dans la langue du visiteur ; son formulaire poste sur `/.pupitre/login` avec `next`, un chemin du même site seulement |
+| rien, ou une clé refusée, ailleurs | `401` `{ error: { code: "access_required", message, fix } }` |
+| un pré-vol CORS (`OPTIONS` avec `Access-Control-Request-Method`) | transmis sans clé |
+
+**Ce que le site reçoit**
+- Un en-tête `Pupitre-Identity` entrant est toujours retiré. Le site reçoit le nom de la clé, encodé, dans `Pupitre-Identity`, `X-Forwarded-Host` et son propre `Host`.
+- Plus de vingt clés refusées en dix minutes depuis une même adresse répondent `429` (`access_throttled`).
 
 ## Le contenu d'une capture
 

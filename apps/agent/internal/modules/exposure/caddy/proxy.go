@@ -2,6 +2,7 @@ package caddy
 
 import (
 	"pupitre.studio/agent/internal/modules"
+	"pupitre.studio/agent/internal/modules/exposure/gateway"
 	"pupitre.studio/agent/internal/modules/exposure/routes"
 	"pupitre.studio/agent/internal/sys/file"
 	"pupitre.studio/agent/internal/sys/systemd"
@@ -32,6 +33,11 @@ func Sync(ctx *modules.Context) (Report, error) {
 
 	if domainOf(ctx) == "" {
 		return Report{}, modules.NotInstalled(ID, manifest().Name)
+	}
+
+	// Enable, not a bare reload: a proxy synced before its module was upgraded would point at a gate not yet there.
+	if err := gateway.Enable(ctx, routes.Published(ctx, domainOf(ctx))); err != nil {
+		return Report{}, err
 	}
 
 	changed, err := writeCaddyfile(ctx)

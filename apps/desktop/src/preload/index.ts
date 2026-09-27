@@ -1,4 +1,5 @@
 import type { CommandName } from "@pupitre/shared/agent-protocol";
+import type { AccessKey } from "@pupitre/shared/agent-protocol/access";
 import type {
   BackupRestoreDataResult,
   BackupRestoreSetupResult,
@@ -44,6 +45,7 @@ import type {
   PlatformSyncResult,
 } from "@pupitre/shared/agent-protocol/system";
 import type { PendingKeyApproval } from "@pupitre/shared/keys";
+import type { AccessCopyForm, AccessHeld } from "@shared/access";
 import type {
   AccountDevice,
   AccountResponse,
@@ -853,6 +855,37 @@ const api = {
     ipcRenderer.invoke("server-trust-reinstalled", id),
 
   openUrl: (url: string): Promise<void> => ipcRenderer.invoke("open-url", url),
+
+  /** The main process draws the key and keeps it: the renderer only ever sees its id. */
+  createAccessKey: (
+    serverId: string,
+    name: string,
+    projects: string[] | null
+  ): Promise<AgentResponse<AccessKey>> =>
+    ipcRenderer.invoke("access:create", serverId, name, projects),
+  revokeAccessKey: (
+    serverId: string,
+    id: string
+  ): Promise<AgentResponse<{ id: string }>> =>
+    ipcRenderer.invoke("access:revoke", serverId, id),
+  heldAccessKeys: (
+    serverId: string,
+    listed: string[]
+  ): Promise<AgentResponse<AccessHeld>> =>
+    ipcRenderer.invoke("access:held", serverId, listed),
+  copyAccessKey: (
+    serverId: string,
+    id: string,
+    form: AccessCopyForm,
+    hostname: string | null
+  ): Promise<AgentResponse<{ copied: AccessCopyForm }>> =>
+    ipcRenderer.invoke("access:copy", serverId, id, form, hostname),
+  /** A protected address opens with this computer's key, drawn on first use. */
+  openAddress: (
+    serverId: string,
+    url: string
+  ): Promise<AgentResponse<{ keyed: boolean }>> =>
+    ipcRenderer.invoke("access:open", serverId, url),
 
   /** The main process builds the address: a support mail carries the app and system versions. */
   openHelp: (link: HelpLink, language: string): Promise<void> =>

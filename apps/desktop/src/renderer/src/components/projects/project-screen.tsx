@@ -21,6 +21,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ProjectActions } from "./project-actions";
 import { ProjectAgentsPicker } from "./project-agents-picker";
 import { ProjectBody } from "./project-body";
+import type { ConfigPart } from "./project-config-panel";
 import { ProjectConfigScreen } from "./project-config-screen";
 import { ProjectDiff } from "./project-diff";
 import { ProjectEditors } from "./project-editors";
@@ -85,9 +86,14 @@ export function ProjectScreen({
     [readEnv, serverId, name]
   );
 
+  const [configAt, setConfigAt] = useState<ConfigPart>("general");
+
   // Kept in the navigation store: returning reopens the same tab, and shortcuts switch it from outside.
   const setTab = useCallback(
-    (next: ProjectTab) => setProjectTab(name, next),
+    (next: ProjectTab) => {
+      setConfigAt("general");
+      setProjectTab(name, next);
+    },
     [name, setProjectTab]
   );
 
@@ -251,6 +257,7 @@ export function ProjectScreen({
             configuration={
               <ProjectConfigScreen
                 host={host}
+                openAt={configAt}
                 project={project}
                 serverId={serverId}
                 services={services}
@@ -299,7 +306,10 @@ export function ProjectScreen({
                 }
                 onCheckGit={() => store.readGit(serverId, name)}
                 onCheckout={(branch) => store.checkout(serverId, name, branch)}
-                onConfigure={() => setTab("configuration")}
+                onConfigure={() => {
+                  setTab("configuration");
+                  setConfigAt("processes");
+                }}
                 onReadEnv={readKeys}
                 onRegenerateEnv={() => readEnv(serverId, name, true)}
                 onSync={sync}

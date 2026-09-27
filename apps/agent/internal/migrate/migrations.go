@@ -54,7 +54,43 @@ func All() []Migration {
 			Touches: []Target{TargetSigners},
 			Apply:   keySigners,
 		},
+		{
+			ID:      7,
+			Slug:    "projects-protected",
+			Since:   "1.2.0",
+			Touches: []Target{TargetProjects},
+			Apply:   projectsProtected,
+		},
 	}
+}
+
+// Every project published before the access gate goes behind it: its names answered anyone holding the URL.
+func projectsProtected(ctx *Context) error {
+	document, present, err := ctx.JSON(TargetProjects)
+	if err != nil || !present {
+		return err
+	}
+
+	entries, _ := document["projects"].([]any)
+	changed := false
+
+	for _, entry := range entries {
+		fields, _ := entry.(map[string]any)
+		if fields == nil {
+			continue
+		}
+
+		if _, answered := fields["protected"]; !answered {
+			fields["protected"] = true
+			changed = true
+		}
+	}
+
+	if !changed {
+		return nil
+	}
+
+	return ctx.SetJSON(TargetProjects, document)
 }
 
 // Frozen with this migration: the runtimes mise held at a single version when it was written.
