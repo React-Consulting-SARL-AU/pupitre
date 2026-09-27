@@ -404,14 +404,15 @@ function main(): void {
       ) as Record<string, unknown>;
 
       value.id = request.id;
-      say(JSON.stringify(value));
 
-      // The agent resolves its entitlement again after an enrolment that granted a right.
+      // Like `pupitred`, the right is on disk before the reply leaves, or another channel races the write.
       const granted = exchange.cmd === "enroll" ? entitlementOf(value) : null;
 
       if (granted) {
         right.set(granted === RESTRICTED);
       }
+
+      say(JSON.stringify(value));
     }
 
     if (exchange.die) {
